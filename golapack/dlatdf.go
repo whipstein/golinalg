@@ -1,0 +1,119 @@
+package golapack
+
+import (
+	"golinalg/goblas"
+	"golinalg/mat"
+	"math"
+)
+
+// Dlatdf uses the LU factorization of the n-by-n matrix Z computed by
+// DGETC2 and computes a contribution to the reciprocal Dif-estimate
+// by solving Z * x = b for x, and choosing the r.h.s. b such that
+// the norm of x is as large as possible. On entry RHS = b holds the
+// contribution from earlier solved sub-systems, and on return RHS = x.
+//
+// The factorization of Z returned by DGETC2 has the form Z = P*L*U*Q,
+// where P and Q are permutation matrices. L is lower triangular with
+// unit diagonal elements and U is upper triangular.
+func Dlatdf(ijob, n *int, z *mat.Matrix, ldz *int, rhs *mat.Vector, rdsum, rdscal *float64, ipiv, jpiv *[]int) {
+	var bm, bp, one, pmone, sminu, splus, temp, zero float64
+	var i, info, j, k, maxdim int
+
+	maxdim = 8
+	zero = 0.0
+	one = 1.0
+	work := vf(4 * maxdim)
+	xm := vf(8)
+	xp := vf(8)
+	iwork := make([]int, 8)
+
+	if (*ijob) != 2 {
+		//        Apply permutations IPIV to RHS
+		Dlaswp(func() *int { y := 1; return &y }(), rhs.Matrix(*ldz, opts), ldz, func() *int { y := 1; return &y }(), toPtr((*n)-1), ipiv, func() *int { y := 1; return &y }())
+
+		//        Solve for L-part choosing RHS either to +1 or -1.
+		pmone = -one
+
+		for j = 1; j <= (*n)-1; j++ {
+			bp = rhs.Get(j-1) + one
+			bm = rhs.Get(j-1) - one
+			splus = one
+
+			//           Look-ahead for L-part RHS(1:N-1) = + or -1, SPLUS and
+			//           SMIN computed more efficiently than in BSOLVE [1].
+			splus = splus + goblas.Ddot(toPtr((*n)-j), z.Vector(j+1-1, j-1), func() *int { y := 1; return &y }(), z.Vector(j+1-1, j-1), func() *int { y := 1; return &y }())
+			sminu = goblas.Ddot(toPtr((*n)-j), z.Vector(j+1-1, j-1), func() *int { y := 1; return &y }(), rhs.Off(j+1-1), func() *int { y := 1; return &y }())
+			splus = splus * rhs.Get(j-1)
+			if splus > sminu {
+				rhs.Set(j-1, bp)
+			} else if sminu > splus {
+				rhs.Set(j-1, bm)
+			} else {
+				//              In this case the updating sums are equal and we can
+				//              choose RHS(J) +1 or -1. The first time this happens
+				//              we choose -1, thereafter +1. This is a simple way to
+				//              get good estimates of matrices like Byers well-known
+				//              example (see [1]). (Not done in BSOLVE.)
+				rhs.Set(j-1, rhs.Get(j-1)+pmone)
+				pmone = one
+			}
+
+			//           Compute the remaining r.h.s.
+			temp = -rhs.Get(j - 1)
+			goblas.Daxpy(toPtr((*n)-j), &temp, z.Vector(j+1-1, j-1), func() *int { y := 1; return &y }(), rhs.Off(j+1-1), func() *int { y := 1; return &y }())
+
+		}
+
+		//        Solve for U-part, look-ahead for RHS(N) = +-1. This is not done
+		//        in BSOLVE and will hopefully give us a better estimate because
+		//        any ill-conditioning of the original matrix is transferred to U
+		//        and not to L. U(N, N) is an approximation to sigma_min(LU).
+		goblas.Dcopy(toPtr((*n)-1), rhs, func() *int { y := 1; return &y }(), xp, func() *int { y := 1; return &y }())
+		xp.Set((*n)-1, rhs.Get((*n)-1)+one)
+		rhs.Set((*n)-1, rhs.Get((*n)-1)-one)
+		splus = zero
+		sminu = zero
+		for i = (*n); i >= 1; i-- {
+			temp = one / z.Get(i-1, i-1)
+			xp.Set(i-1, xp.Get(i-1)*temp)
+			rhs.Set(i-1, rhs.Get(i-1)*temp)
+			for k = i + 1; k <= (*n); k++ {
+				xp.Set(i-1, xp.Get(i-1)-xp.Get(k-1)*(z.Get(i-1, k-1)*temp))
+				rhs.Set(i-1, rhs.Get(i-1)-rhs.Get(k-1)*(z.Get(i-1, k-1)*temp))
+			}
+			splus = splus + math.Abs(xp.Get(i-1))
+			sminu = sminu + math.Abs(rhs.Get(i-1))
+		}
+		if splus > sminu {
+			goblas.Dcopy(n, xp, func() *int { y := 1; return &y }(), rhs, func() *int { y := 1; return &y }())
+		}
+
+		//        Apply the permutations JPIV to the computed solution (RHS)
+		Dlaswp(func() *int { y := 1; return &y }(), rhs.Matrix(*ldz, opts), ldz, func() *int { y := 1; return &y }(), toPtr((*n)-1), jpiv, toPtr(-1))
+
+		//        Compute the sum of squares
+		Dlassq(n, rhs, func() *int { y := 1; return &y }(), rdscal, rdsum)
+
+	} else {
+		//        IJOB = 2, Compute approximate nullvector XM of Z
+		Dgecon('I', n, z, ldz, &one, &temp, work, &iwork, &info)
+		goblas.Dcopy(n, work.Off((*n)+1-1), func() *int { y := 1; return &y }(), xm, func() *int { y := 1; return &y }())
+
+		//        Compute RHS
+		Dlaswp(func() *int { y := 1; return &y }(), xm.Matrix(*ldz, opts), ldz, func() *int { y := 1; return &y }(), toPtr((*n)-1), ipiv, toPtr(-1))
+		temp = one / math.Sqrt(goblas.Ddot(n, xm, func() *int { y := 1; return &y }(), xm, func() *int { y := 1; return &y }()))
+		goblas.Dscal(n, &temp, xm, func() *int { y := 1; return &y }())
+		goblas.Dcopy(n, xm, func() *int { y := 1; return &y }(), xp, func() *int { y := 1; return &y }())
+		goblas.Daxpy(n, &one, rhs, func() *int { y := 1; return &y }(), xp, func() *int { y := 1; return &y }())
+		goblas.Daxpy(n, toPtrf64(-one), xm, func() *int { y := 1; return &y }(), rhs, func() *int { y := 1; return &y }())
+		Dgesc2(n, z, ldz, rhs, ipiv, jpiv, &temp)
+		Dgesc2(n, z, ldz, xp, ipiv, jpiv, &temp)
+		if goblas.Dasum(n, xp, func() *int { y := 1; return &y }()) > goblas.Dasum(n, rhs, func() *int { y := 1; return &y }()) {
+			goblas.Dcopy(n, xp, func() *int { y := 1; return &y }(), rhs, func() *int { y := 1; return &y }())
+		}
+
+		//        Compute the sum of squares
+		Dlassq(n, rhs, func() *int { y := 1; return &y }(), rdscal, rdsum)
+
+	}
+}

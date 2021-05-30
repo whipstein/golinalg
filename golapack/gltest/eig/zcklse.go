@@ -1,0 +1,115 @@
+package eig
+
+import (
+	"fmt"
+	"golinalg/golapack/gltest/matgen"
+	"golinalg/mat"
+	"testing"
+)
+
+// Zcklse tests ZGGLSE - a subroutine for solving linear equality
+// constrained least square problem (LSE).
+func Zcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *float64, nmax *int, a, af, b, bf, x, work *mat.CVector, rwork *mat.Vector, nout, info *int, t *testing.T) {
+	var firstt bool
+	var dista, distb, _type byte
+	var anorm, bnorm, cndnma, cndnmb float64
+	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nfail, nrun, nt, ntypes, p int
+	dotype := make([]bool, 8)
+	result := vf(7)
+
+	// ntests = 7
+	ntypes = 8
+
+	//     Initialize constants and the random number seed.
+	path := []byte("LSE")
+	(*info) = 0
+	nrun = 0
+	nfail = 0
+	firstt = true
+	Alareq(nmats, &dotype)
+	lda = (*nmax)
+	ldb = (*nmax)
+	lwork = (*nmax) * (*nmax)
+
+	//     Check for valid input values.
+	for ik = 1; ik <= (*nn); ik++ {
+		m = (*mval)[ik-1]
+		p = (*pval)[ik-1]
+		n = (*nval)[ik-1]
+		if p > n || n > m+p {
+			if firstt {
+				fmt.Printf("\n")
+				firstt = false
+			}
+			fmt.Printf(" *** Invalid input  for LSE:  M = %6d, P = %6d, N = %6d;\n     must satisfy P <= N <= P+M  (this set of values will be skipped)\n", m, p, n)
+		}
+	}
+	firstt = true
+
+	//     Do for each value of M in MVAL.
+	for ik = 1; ik <= (*nn); ik++ {
+		m = (*mval)[ik-1]
+		p = (*pval)[ik-1]
+		n = (*nval)[ik-1]
+		if p > n || n > m+p {
+			goto label40
+		}
+
+		for imat = 1; imat <= ntypes; imat++ {
+			//           Do the tests only if DOTYPE( IMAT ) is true.
+			if !dotype[imat-1] {
+				goto label30
+			}
+
+			//           Set up parameters with DLATB9 and generate test
+			//           matrices A and B with ZLATMS.
+			Dlatb9(path, &imat, &m, &p, &n, &_type, &kla, &kua, &klb, &kub, &anorm, &bnorm, &modea, &modeb, &cndnma, &cndnmb, &dista, &distb)
+
+			matgen.Zlatms(&m, &n, dista, iseed, _type, rwork, &modea, &cndnma, &anorm, &kla, &kua, 'N', a.CMatrix(lda, opts), &lda, work, &iinfo)
+			if iinfo != 0 {
+				t.Fail()
+				fmt.Printf(" ZLATMS in ZCKLSE   INFO = %5d\n", iinfo)
+				(*info) = absint(iinfo)
+				goto label30
+			}
+
+			matgen.Zlatms(&p, &n, distb, iseed, _type, rwork, &modeb, &cndnmb, &bnorm, &klb, &kub, 'N', b.CMatrix(ldb, opts), &ldb, work, &iinfo)
+			if iinfo != 0 {
+				t.Fail()
+				fmt.Printf(" ZLATMS in ZCKLSE   INFO = %5d\n", iinfo)
+				(*info) = absint(iinfo)
+				goto label30
+			}
+
+			//           Generate the right-hand sides C and D for the LSE.
+			Zlarhs([]byte("ZGE"), 'N', 'U', 'N', &m, &n, toPtr(maxint(m-1, 0)), toPtr(maxint(n-1, 0)), func() *int { y := 1; return &y }(), a.CMatrix(lda, opts), &lda, x.CMatrixOff(4*(*nmax)+1-1, maxint(n, 1), opts), toPtr(maxint(n, 1)), x.CMatrix(maxint(m, 1), opts), toPtr(maxint(m, 1)), iseed, &iinfo)
+
+			Zlarhs([]byte("ZGE"), 'C', 'U', 'N', &p, &n, toPtr(maxint(p-1, 0)), toPtr(maxint(n-1, 0)), func() *int { y := 1; return &y }(), b.CMatrix(lda, opts), &ldb, x.CMatrixOff(4*(*nmax)+1-1, maxint(n, 1), opts), toPtr(maxint(n, 1)), x.CMatrixOff(2*(*nmax)+1-1, maxint(m, 1), opts), toPtr(maxint(p, 1)), iseed, &iinfo)
+
+			nt = 2
+
+			Zlsets(&m, &p, &n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), bf.CMatrix(ldb, opts), &ldb, x, x.Off((*nmax)+1-1), x.Off(2*(*nmax)+1-1), x.Off(3*(*nmax)+1-1), x.Off(4*(*nmax)+1-1), work, &lwork, rwork, result.Off(0))
+
+			//           Print information about the tests that did not
+			//           pass the threshold.
+			for i = 1; i <= nt; i++ {
+				if result.Get(i-1) >= (*thresh) {
+					t.Fail()
+					if nfail == 0 && firstt {
+						firstt = false
+						Alahdg(path)
+					}
+					fmt.Printf(" M=%4d P=%4d, N=%4d, _type %2d, test %2d, ratio=%13.6f\n", m, p, n, imat, i, result.Get(i-1))
+					nfail = nfail + 1
+				}
+			}
+			nrun = nrun + nt
+
+		label30:
+		}
+	label40:
+	}
+
+	//     Print a summary of the results.
+	Alasum(path, &nfail, &nrun, func() *int { y := 0; return &y }())
+}

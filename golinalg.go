@@ -1,0 +1,5 @@
+package golinalg
+
+func main() {
+
+}
