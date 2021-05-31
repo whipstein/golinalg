@@ -1,9 +1,9 @@
 package lin
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // DlavsyRook performs one of the matrix-vector operations

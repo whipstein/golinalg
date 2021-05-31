@@ -1,10 +1,11 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dgbsvx uses the LU factorization to compute the solution to a real

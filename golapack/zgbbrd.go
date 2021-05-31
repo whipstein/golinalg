@@ -1,10 +1,11 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgbbrd reduces a complex general m-by-n band matrix A to real upper

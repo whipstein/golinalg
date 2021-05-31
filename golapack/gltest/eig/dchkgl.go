@@ -2,9 +2,10 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dchkgl tests DGGBAL, a routine for balancing a matrix pair (A, B).

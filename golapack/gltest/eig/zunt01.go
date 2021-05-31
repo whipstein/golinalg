@@ -1,9 +1,9 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zunt01 checks that the matrix U is unitary by computing the ratio

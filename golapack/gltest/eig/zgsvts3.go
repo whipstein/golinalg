@@ -1,9 +1,9 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgsvts3 tests ZGGSVD3, which computes the GSVD of an M-by-N matrix A

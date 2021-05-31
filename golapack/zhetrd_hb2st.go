@@ -1,10 +1,11 @@
 package golapack
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zhetrdhb2st reduces a complex Hermitian band matrix A to real symmetric

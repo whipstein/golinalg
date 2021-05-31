@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dget34 tests DLAEXC, a routine for swapping adjacent blocks (either

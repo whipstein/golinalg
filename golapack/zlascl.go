@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlascl multiplies the M by N complex matrix A by the real scalar

@@ -2,8 +2,9 @@ package goblas
 
 import (
 	"fmt"
-	"golinalg/mat"
 	"testing"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 var opts = mat.NewMatOptsCol()

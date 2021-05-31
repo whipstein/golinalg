@@ -1,11 +1,12 @@
 package eig
 
 import (
-	"golinalg/golapack"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlatm4 generates basic square matrices, which may later be

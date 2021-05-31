@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlasy2 solves for the N1 by N2 matrix X, 1 <= N1,N2 <= 2, in

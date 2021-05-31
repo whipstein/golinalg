@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlaed5 subroutine computes the I-th eigenvalue of a symmetric rank-one

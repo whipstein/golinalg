@@ -1,9 +1,9 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zptsvx uses the factorization A = L*D*L**H to compute the solution

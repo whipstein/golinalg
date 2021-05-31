@@ -1,10 +1,11 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dstt22 checks a set of M eigenvalues and eigenvectors,

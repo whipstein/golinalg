@@ -1,6 +1,6 @@
 package matgen
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlatm3 returns the (ISUB,JSUB) entry of a random matrix of
 //    dimension (M, N) described by the other parameters. (ISUB,JSUB)

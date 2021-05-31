@@ -1,9 +1,10 @@
 package lin
 
 import (
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Derrgt tests the error exits for the DOUBLE PRECISION tridiagonal

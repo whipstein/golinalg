@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zhb2stkernels is an internal routine used by the ZHETRD_HB2ST
 // subroutine.

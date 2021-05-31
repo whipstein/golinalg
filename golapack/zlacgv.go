@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlacgv conjugates a complex vector of length N.
 func Zlacgv(n *int, x *mat.CVector, incx *int) {

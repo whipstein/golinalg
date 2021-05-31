@@ -1,6 +1,6 @@
 package eig
 
-import "golinalg/golapack/gltest"
+import "github.com/whipstein/golinalg/golapack/gltest"
 
 // XlaenvEig sets certain machine- and problem-dependent quantities
 // which will later be retrieved by ILAENV.

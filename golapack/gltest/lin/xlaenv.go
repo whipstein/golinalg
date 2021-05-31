@@ -1,6 +1,6 @@
 package lin
 
-import "golinalg/golapack/gltest"
+import "github.com/whipstein/golinalg/golapack/gltest"
 
 // Xlaenv sets certain machine- and problem-dependent quantities
 // which will later be retrieved by ILAENV.

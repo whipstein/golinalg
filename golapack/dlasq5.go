@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlasq5 computes one dqds transform in ping-pong form, one
 // version for IEEE machines another for non IEEE machines.

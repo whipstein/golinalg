@@ -1,9 +1,9 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dget54 checks a generalized decomposition of the form

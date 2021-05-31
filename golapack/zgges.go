@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgges computes for a pair of N-by-N complex nonsymmetric matrices

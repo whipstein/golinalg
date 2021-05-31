@@ -2,9 +2,10 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/goblas"
-	"golinalg/golapack"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Zchkgk tests ZGGBAK, a routine for backward balancing  of

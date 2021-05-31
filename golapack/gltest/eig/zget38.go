@@ -1,11 +1,12 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zget38 tests golapack.Ztrsen, a routine for estimating condition numbers of a

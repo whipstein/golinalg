@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlargv generates a vector of complex plane rotations with real

@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dsvdct counts the number NUM of eigenvalues of a 2*N by 2*N

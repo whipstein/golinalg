@@ -1,9 +1,9 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zuncsd2by1 computes the CS decomposition of an M-by-Q matrix X with

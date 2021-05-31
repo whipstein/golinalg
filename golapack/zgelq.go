@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgelq computes an LQ factorization of a complex M-by-N matrix A:

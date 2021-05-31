@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlahqr is an auxiliary routine called by DHSEQR to update the

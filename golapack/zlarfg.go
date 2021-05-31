@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlarfg generates a complex elementary reflector H of order n, such

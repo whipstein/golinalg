@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgebd2 reduces a complex general m by n matrix A to upper or lower

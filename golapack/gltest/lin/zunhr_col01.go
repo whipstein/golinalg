@@ -1,11 +1,12 @@
 package lin
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zunhrcol01 tests ZUNHR_COL using ZLATSQR, ZGEMQRT and ZUNGTSQR.

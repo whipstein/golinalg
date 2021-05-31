@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zposvx uses the Cholesky factorization A = U**H*U or A = L*L**H to

@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zgtts2 solves one of the systems of equations
 //    A * X = B,  A**T * X = B,  or  A**H * X = B,

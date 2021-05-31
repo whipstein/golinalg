@@ -1,6 +1,6 @@
 package matgen
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlatm2 returns the (I,J) entry of a random matrix of dimension
 //    (M, N) described by the other parameters. It is called by the

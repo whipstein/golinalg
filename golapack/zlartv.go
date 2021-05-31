@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlartv applies a vector of complex plane rotations with real cosines
 // to elements of the complex vectors x and y. For i = 1,2,...,n

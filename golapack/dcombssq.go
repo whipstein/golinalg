@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dcombssq adds two scaled sum of squares quantities, V1 := V1 + V2.

@@ -1,7 +1,7 @@
 package goblas
 
 import (
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dgbmv performs one of the matrix-vector operations

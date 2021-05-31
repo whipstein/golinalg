@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dtgex2 swaps adjacent diagonal blocks (A11, B11) and (A22, B22)

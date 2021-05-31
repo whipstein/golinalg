@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlaqr5 called by DLAQR0, performs a

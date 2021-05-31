@@ -2,8 +2,9 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/mat"
 	"testing"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlafts tests the result vector against the threshold value to

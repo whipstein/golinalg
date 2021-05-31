@@ -1,12 +1,13 @@
 package matgen
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlatms generates random matrices with specified singular values

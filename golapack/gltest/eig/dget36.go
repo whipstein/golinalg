@@ -1,8 +1,9 @@
 package eig
 
 import (
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dget36 tests DTREXC, a routine for moving blocks (either 1 by 1 or

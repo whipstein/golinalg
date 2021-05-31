@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlacn2 estimates the 1-norm of a square, complex matrix A.

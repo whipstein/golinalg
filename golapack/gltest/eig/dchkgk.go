@@ -2,10 +2,11 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/goblas"
-	"golinalg/golapack"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dchkgk tests DGGBAK, a routine for backward balancing  of

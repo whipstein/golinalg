@@ -1,6 +1,6 @@
 package lin
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zgennd tests that its argument has a real, non-negative diagonal.
 func Zgennd(m, n *int, a *mat.CMatrix, lda *int) (zgenndReturn bool) {

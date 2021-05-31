@@ -1,9 +1,10 @@
 package lin
 
 import (
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlatsy generates a special test matrix for the complex symmetric

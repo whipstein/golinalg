@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlar1v computes the (scaled) r-th column of the inverse of

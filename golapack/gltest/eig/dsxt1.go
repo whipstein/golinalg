@@ -1,8 +1,9 @@
 package eig
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dsxt1 computes the difference between a set of eigenvalues.

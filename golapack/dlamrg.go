@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlamrg will create a permutation list which will merge the elements
 // of A (which is composed of two independently sorted sets) into a

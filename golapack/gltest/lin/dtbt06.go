@@ -1,8 +1,8 @@
 package lin
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dtbt06 computes a test ratio comparing RCOND (the reciprocal

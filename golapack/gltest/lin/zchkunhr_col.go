@@ -2,8 +2,9 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/golapack/gltest"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Zchkunhrcol tests ZUNHR_COL using ZLATSQR and ZGEMQRT. Therefore, ZLATSQR

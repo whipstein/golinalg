@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlarra Compute the splitting points with threshold SPLTOL.

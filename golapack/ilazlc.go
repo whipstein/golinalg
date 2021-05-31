@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Ilazlc scans A for its last non-zero column.
 func Ilazlc(m, n *int, a *mat.CMatrix, lda *int) (ilazlcReturn int) {

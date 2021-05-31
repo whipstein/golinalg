@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlaln2 solves a system of the form  (ca A - w D ) X = s B

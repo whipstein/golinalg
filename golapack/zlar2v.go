@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlar2v applies a vector of complex plane rotations with real cosines

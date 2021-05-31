@@ -1,8 +1,9 @@
 package eig
 
 import (
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dlatb9 sets parameters for the matrix generator based on the _type of

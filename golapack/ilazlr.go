@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Ilazlr scans A for its last non-zero row.
 func Ilazlr(m, n *int, a *mat.CMatrix, lda *int) (ilazlrReturn int) {

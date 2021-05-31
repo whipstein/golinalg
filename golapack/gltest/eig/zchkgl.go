@@ -2,10 +2,11 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"math"
 	"math/cmplx"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Zchkgl tests ZGGBAL, a routine for balancing a matrix pair (A, B).

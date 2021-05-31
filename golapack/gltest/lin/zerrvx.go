@@ -2,9 +2,10 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Zerrvx tests the error exits for the COMPLEX*16 driver routines

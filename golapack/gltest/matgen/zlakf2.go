@@ -1,8 +1,8 @@
 package matgen
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlakf2 Form the 2*M*N by 2*M*N matrix

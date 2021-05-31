@@ -1,8 +1,9 @@
 package eig
 
 import (
-	"golinalg/golapack/gltest"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Zslect returns .TRUE. if the eigenvalue Z is to be selected,

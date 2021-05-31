@@ -1,8 +1,9 @@
 package lin
 
 import (
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dlatb5 sets parameters for the matrix generator based on the _type

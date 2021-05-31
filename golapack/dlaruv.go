@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlaruv returns a vector of n random real numbers from a uniform (0,1)
 // distribution (n <= 128).

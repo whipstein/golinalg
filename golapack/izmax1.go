@@ -1,7 +1,7 @@
 package golapack
 
 import (
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Izmax1 finds the index of the first vector element of maximum absolute value.

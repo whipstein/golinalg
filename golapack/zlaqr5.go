@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlaqr5 called by ZLAQR0, performs a

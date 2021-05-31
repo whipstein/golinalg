@@ -51,7 +51,10 @@ func TestVectorFactory(t *testing.T) {
 		}
 	}
 
-	// x = vcf(y)
+	x = vf(len(y))
+	for i, val := range y {
+		x.Set(i, val)
+	}
 	for i, val := range y {
 		if x.Get(i) != val {
 			t.Errorf("VectorFactory failed: got %v  want %v\n", x.Get(i), val)

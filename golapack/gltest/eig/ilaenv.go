@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Ilaenv returns problem-dependent parameters for the local

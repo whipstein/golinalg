@@ -2,9 +2,10 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dckgqr tests

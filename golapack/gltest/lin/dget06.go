@@ -1,6 +1,6 @@
 package lin
 
-import "golinalg/golapack"
+import "github.com/whipstein/golinalg/golapack"
 
 // Dget06 computes a test ratio to compare two values for RCOND.
 func Dget06(rcond *float64, rcondc *float64) (dget06Return float64) {

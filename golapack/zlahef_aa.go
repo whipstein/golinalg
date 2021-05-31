@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlahefaa factorizes a panel of a complex hermitian matrix A using

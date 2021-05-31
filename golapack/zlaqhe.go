@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlaqhe equilibrates a Hermitian matrix A using the scaling factors
 // in the vector S.

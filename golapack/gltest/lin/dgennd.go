@@ -1,6 +1,6 @@
 package lin
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dgennd tests that its argument has a non-negative diagonal.
 func Dgennd(m, n *int, a *mat.Matrix, lda *int) (dgenndReturn bool) {

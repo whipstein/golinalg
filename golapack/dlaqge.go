@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlaqge equilibrates a general M by N matrix A using the row and
 // column scaling factors in the vectors R and C.

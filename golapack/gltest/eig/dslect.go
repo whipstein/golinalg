@@ -1,8 +1,8 @@
 package eig
 
 import (
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Dslect returns .TRUE. if the eigenvalue ZR+sqrt(-1)*ZI is to be

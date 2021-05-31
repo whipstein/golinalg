@@ -1,7 +1,7 @@
 package golapack
 
 import (
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dzsum1 takes the sum of the absolute values of a complex

@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlaqr0 computes the eigenvalues of a Hessenberg matrix H

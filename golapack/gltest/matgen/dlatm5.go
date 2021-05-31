@@ -1,9 +1,10 @@
 package matgen
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlatm5 generates matrices involved in the Generalized Sylvester

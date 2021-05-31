@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlaneg computes the Sturm count, the number of negative pivots
 // encountered while factoring tridiagonal T - sigma I = L D L^T.

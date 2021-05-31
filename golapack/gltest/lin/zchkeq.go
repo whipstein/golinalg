@@ -2,9 +2,10 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Zchkeq tests ZGEEQU, ZGBEQU, ZPOEQU, ZPPEQU and ZPBEQU

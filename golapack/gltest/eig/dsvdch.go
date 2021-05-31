@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dsvdch checks to see if SVD(1) ,..., SVD(N) are accurate singular

@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlacpy copies all or part of a two-dimensional matrix A to another
 // matrix B.

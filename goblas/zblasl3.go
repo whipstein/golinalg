@@ -1,8 +1,9 @@
 package goblas
 
 import (
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgemm performs one of the matrix-matrix operations

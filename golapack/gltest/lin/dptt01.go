@@ -1,9 +1,10 @@
 package lin
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dptt01 reconstructs a tridiagonal matrix A from its L*D*L'

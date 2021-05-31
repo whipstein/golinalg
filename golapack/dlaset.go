@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlaset initializes an m-by-n matrix A to BETA on the diagonal and
 // ALPHA on the offdiagonals.

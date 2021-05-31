@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlatrd reduces NB rows and columns of a real symmetric matrix A to

@@ -2,11 +2,12 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // DdrvsyAa tests the driver routine DSYSV_AA.

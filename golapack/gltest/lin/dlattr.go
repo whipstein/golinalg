@@ -1,11 +1,12 @@
 package lin
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlattr generates a triangular test matrix.

@@ -1,8 +1,8 @@
 package golapack
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlarft forms the triangular factor T of a real block reflector H

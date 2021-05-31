@@ -2,9 +2,10 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Derrbd tests the error exits for DGEBD2, DGEBRD, DORGBR, DORMBR,

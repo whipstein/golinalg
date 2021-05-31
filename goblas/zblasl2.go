@@ -1,8 +1,9 @@
 package goblas
 
 import (
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgbmv performs one of the matrix-vector operations

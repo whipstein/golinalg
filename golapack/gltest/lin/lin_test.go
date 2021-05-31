@@ -2,10 +2,11 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dchkaa is the main test program for the DOUBLE PRECISION LAPACK

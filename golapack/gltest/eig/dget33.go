@@ -1,8 +1,9 @@
 package eig
 
 import (
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dget33 tests DLANV2, a routine for putting 2 by 2 blocks into

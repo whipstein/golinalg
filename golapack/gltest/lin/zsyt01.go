@@ -1,8 +1,8 @@
 package lin
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zsyt01 reconstructs a complex symmetric indefinite matrix A from its

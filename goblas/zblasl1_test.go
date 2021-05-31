@@ -2,9 +2,10 @@ package goblas
 
 import (
 	"fmt"
-	"golinalg/mat"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 func TestZblasLevel1(t *testing.T) {

@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlarnv returns a vector of n random complex numbers from a uniform or

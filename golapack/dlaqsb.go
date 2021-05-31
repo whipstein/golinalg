@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlaqsb equilibrates a symmetric band matrix A using the scaling
 // factors in the vector S.

@@ -2,11 +2,12 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zget23 checks the nonsymmetric eigenvalue problem driver CGEEVX.

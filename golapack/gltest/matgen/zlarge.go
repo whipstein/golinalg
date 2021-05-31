@@ -1,10 +1,10 @@
 package matgen
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlarge pre- and post-multiplies a complex general n by n matrix A

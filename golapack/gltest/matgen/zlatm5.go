@@ -1,9 +1,10 @@
 package matgen
 
 import (
-	"golinalg/goblas"
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlatm5 generates matrices involved in the Generalized Sylvester

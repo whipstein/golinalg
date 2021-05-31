@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlar2v applies a vector of real plane rotations from both sides to
 // a sequence of 2-by-2 real symmetric matrices, defined by the elements

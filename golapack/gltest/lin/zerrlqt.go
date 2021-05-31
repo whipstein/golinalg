@@ -1,9 +1,10 @@
 package lin
 
 import (
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // Zerlqt tests the error exits for the COMPLEX routines

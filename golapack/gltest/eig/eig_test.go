@@ -2,11 +2,12 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
-	"golinalg/util"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
+	"github.com/whipstein/golinalg/util"
 )
 
 // Dchkee tests the DOUBLE PRECISION LAPACK subroutines for the matrix

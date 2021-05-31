@@ -2,11 +2,13 @@ package goblas
 
 import (
 	"fmt"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
 	"testing"
+
+	"github.com/whipstein/golinalg/mat"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 func TestZblasLevel2(t *testing.T) {

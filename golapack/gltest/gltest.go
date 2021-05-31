@@ -1,6 +1,6 @@
 package gltest
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 type Memory struct {
 	Infoc struct {

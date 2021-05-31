@@ -1,6 +1,6 @@
 package eig
 
-import "golinalg/golapack/gltest"
+import "github.com/whipstein/golinalg/golapack/gltest"
 
 // Zlctsx function is used to determine what eigenvalues will be
 // selected.  If this is part of the test driver ZDRGSX, do not

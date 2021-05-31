@@ -2,12 +2,13 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dckcsd tests DORCSD:

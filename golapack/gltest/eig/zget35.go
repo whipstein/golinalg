@@ -1,12 +1,13 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zget35 tests ZTRSYL, a routine for solving the Sylvester matrix

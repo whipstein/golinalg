@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlaswp performs a series of row interchanges on the matrix A.
 // One row interchange is initiated for each of rows K1 through K2 of A.

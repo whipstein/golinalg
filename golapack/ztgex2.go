@@ -1,9 +1,10 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Ztgex2 swaps adjacent diagonal 1 by 1 blocks (A11,B11) and (A22,B22)

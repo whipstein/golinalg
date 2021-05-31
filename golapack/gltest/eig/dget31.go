@@ -1,8 +1,9 @@
 package eig
 
 import (
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dget31 tests DLALN2, a routine for solving

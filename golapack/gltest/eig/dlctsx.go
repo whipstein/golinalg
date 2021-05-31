@@ -1,6 +1,6 @@
 package eig
 
-import "golinalg/golapack/gltest"
+import "github.com/whipstein/golinalg/golapack/gltest"
 
 // Dlctsx This function is used to determine what eigenvalues will be
 // selected.  If this is part of the test driver DDRGSX, do not

@@ -2,9 +2,10 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dchkbl tests DGEBAL, a routine for balancing a general real

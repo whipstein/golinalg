@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Zget36 tests ZTREXC, a routine for reordering diagonal entries of a

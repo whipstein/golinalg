@@ -2,8 +2,9 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Zchkbk tests ZGEBAK, a routine for backward transformation of

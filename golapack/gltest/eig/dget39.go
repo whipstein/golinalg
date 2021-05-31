@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/goblas"
-	"golinalg/golapack"
 	"math"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dget39 tests DLAQTR, a routine for solving the real or

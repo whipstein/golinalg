@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlarfx applies a real elementary reflector H to a real m by n
 // matrix C, from either the left or the right. H is represented in the

@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlacp2 copies all or part of a real two-dimensional matrix A to a
 // complex matrix B.

@@ -1,9 +1,9 @@
 package lin
 
 import (
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dtplqt computes a blocked LQ factorization of a real

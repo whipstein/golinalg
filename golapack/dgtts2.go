@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dgtts2 solves one of the systems of equations
 //    A*X = B  or  A**T*X = B,

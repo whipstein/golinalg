@@ -1,6 +1,6 @@
 package lin
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlaptm multiplies an N by NRHS matrix X by a symmetric tridiagonal
 // matrix A and stores the result in a matrix B.  The operation has the

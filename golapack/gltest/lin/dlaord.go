@@ -1,8 +1,9 @@
 package lin
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlaord sorts the elements of a vector x in increasing or decreasing

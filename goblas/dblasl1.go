@@ -1,8 +1,9 @@
 package goblas
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dasum takes the sum of the absolute values

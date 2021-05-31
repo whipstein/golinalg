@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlapmr rearranges the rows of the M by N matrix X as specified
 // by the permutation K(1),K(2),...,K(M) of the integers 1,...,M.

@@ -1,6 +1,6 @@
 package goblas
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dgemm performs one of the matrix-matrix operations
 //    C := alpha*op( A )*op( B ) + beta*C,

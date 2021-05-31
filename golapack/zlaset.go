@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlaset initializes a 2-D array A to BETA on the diagonal and
 // ALPHA on the offdiagonals.

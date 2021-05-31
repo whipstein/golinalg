@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlaqr1 Given a 2-by-2 or 3-by-3 matrix H, ZLAQR1 sets v to a
 //      scalar multiple of the first column of the product

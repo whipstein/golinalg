@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlartv applies a vector of real plane rotations to elements of the
 // real vectors x and y. For i = 1,2,...,n

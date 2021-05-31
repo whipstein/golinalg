@@ -2,9 +2,10 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Zchkbl tests ZGEBAL, a routine for balancing a general complex

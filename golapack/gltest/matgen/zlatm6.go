@@ -1,10 +1,11 @@
 package matgen
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlatm6 generates test matrices for the generalized eigenvalue

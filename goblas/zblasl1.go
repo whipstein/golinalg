@@ -1,9 +1,10 @@
 package goblas
 
 import (
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dcabs1 computes |Re(.)| + |Im(.)| of a double complex number

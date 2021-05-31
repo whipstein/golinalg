@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dsb2stkernels is an internal routine used by the DSYTRD_SB2ST
 // subroutine.

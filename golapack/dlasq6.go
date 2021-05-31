@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Dlasq6 computes one dqd (shift equal to zero) transform in
 // ping-pong form, with protection against underflow and overflow.

@@ -1,6 +1,6 @@
 package golapack
 
-import "golinalg/mat"
+import "github.com/whipstein/golinalg/mat"
 
 // Zlaqgb equilibrates a general M by N band matrix A with KL
 // subdiagonals and KU superdiagonals using the row and scaling factors

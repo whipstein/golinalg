@@ -2,8 +2,9 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/golapack/gltest"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
 // DchkorhrCol tests DORHR_COL using DLATSQR and DGEMQRT. Therefore, DLATSQR

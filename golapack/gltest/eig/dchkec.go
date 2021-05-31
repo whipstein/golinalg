@@ -2,8 +2,9 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
 )
 
 // Dchkec tests eigen- condition estimation routines

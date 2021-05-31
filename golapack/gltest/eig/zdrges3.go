@@ -2,13 +2,14 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
 	"math"
 	"math/cmplx"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zdrges3 checks the nonsymmetric generalized eigenvalue (Schur form)

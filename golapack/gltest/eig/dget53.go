@@ -1,9 +1,10 @@
 package eig
 
 import (
-	"golinalg/golapack"
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dget53 checks the generalized eigenvalues computed by DLAG2.

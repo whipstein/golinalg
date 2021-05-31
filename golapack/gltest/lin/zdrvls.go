@@ -2,12 +2,13 @@ package lin
 
 import (
 	"fmt"
-	"golinalg/goblas"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/goblas"
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zdrvls tests the least squares driver routines ZGELS, ZGETSLS, ZGELSS, ZGELSY

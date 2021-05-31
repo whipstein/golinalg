@@ -1,8 +1,9 @@
 package golapack
 
 import (
-	"golinalg/mat"
 	"math"
+
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Dlaqr1 Given a 2-by-2 or 3-by-3 matrix H, DLAQR1 sets v to a

@@ -1,9 +1,10 @@
 package matgen
 
 import (
-	"golinalg/golapack/gltest"
-	"golinalg/mat"
 	"math/cmplx"
+
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/mat"
 )
 
 // Zlarot applies a (Givens) rotation to two adjacent rows or

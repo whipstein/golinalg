@@ -2,13 +2,14 @@ package eig
 
 import (
 	"fmt"
-	"golinalg/golapack"
-	"golinalg/golapack/gltest"
-	"golinalg/golapack/gltest/matgen"
-	"golinalg/mat"
-	"golinalg/util"
 	"math"
 	"testing"
+
+	"github.com/whipstein/golinalg/golapack"
+	"github.com/whipstein/golinalg/golapack/gltest"
+	"github.com/whipstein/golinalg/golapack/gltest/matgen"
+	"github.com/whipstein/golinalg/mat"
+	"github.com/whipstein/golinalg/util"
 )
 
 // Ddrgsx checks the nonsymmetric generalized eigenvalue (Schur form)
