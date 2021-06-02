@@ -369,6 +369,32 @@ type Matrix struct {
 	Opts       *MatOpts
 }
 
+func (m *Matrix) AppendCol(x []float64) {
+	m.Cols += 1
+	newData := make([]float64, m.Rows*m.Cols)
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			newData[getIdx(m.Opts.Major, m.Rows, m.Cols, i, j)] = m.Get(i, j)
+		}
+	}
+	m.Data = newData
+	for i := 0; i < m.Rows; i++ {
+		m.Set(i, m.Cols-1, x[i])
+	}
+}
+func (m *Matrix) AppendRow(x []float64) {
+	m.Rows += 1
+	newData := make([]float64, m.Rows*m.Cols)
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			newData[getIdx(m.Opts.Major, m.Rows, m.Cols, i, j)] = m.Get(i, j)
+		}
+	}
+	m.Data = newData
+	for i := 0; i < m.Cols; i++ {
+		m.Set(m.Rows-1, i, x[i])
+	}
+}
 func (m *Matrix) Get(r, c int) float64 {
 	rnew, cnew := r, c
 
@@ -544,6 +570,32 @@ type CMatrix struct {
 	Opts       *MatOpts
 }
 
+func (m *CMatrix) AppendCol(x []complex128) {
+	m.Cols += 1
+	newData := make([]complex128, m.Rows*m.Cols)
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			newData[getIdx(m.Opts.Major, m.Rows, m.Cols, i, j)] = m.Get(i, j)
+		}
+	}
+	m.Data = newData
+	for i := 0; i < m.Rows; i++ {
+		m.Set(i, m.Cols-1, x[i])
+	}
+}
+func (m *CMatrix) AppendRow(x []complex128) {
+	m.Rows += 1
+	newData := make([]complex128, m.Rows*m.Cols)
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			newData[getIdx(m.Opts.Major, m.Rows, m.Cols, i, j)] = m.Get(i, j)
+		}
+	}
+	m.Data = newData
+	for i := 0; i < m.Cols; i++ {
+		m.Set(m.Rows-1, i, x[i])
+	}
+}
 func (m *CMatrix) Get(r, c int) complex128 {
 	rnew, cnew := r, c
 
