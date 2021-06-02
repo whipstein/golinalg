@@ -414,6 +414,21 @@ func (m *Matrix) Set(r, c int, x float64) {
 
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = x
 }
+func (m *Matrix) SetAll(x float64) {
+	for i := range m.Data {
+		m.Data[i] = x
+	}
+}
+func (m *Matrix) SetCol(c int, x float64) {
+	for i := 0; i < m.Rows; i++ {
+		m.Set(i, c, x)
+	}
+}
+func (m *Matrix) SetRow(r int, x float64) {
+	for i := 0; i < m.Cols; i++ {
+		m.Set(r, i, x)
+	}
+}
 func (m *Matrix) SetIdx(idx int, x float64) {
 	m.Data[idx] = x
 }
@@ -618,11 +633,56 @@ func (m *CMatrix) Set(r, c int, x complex128) {
 
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = x
 }
+func (m *CMatrix) SetAll(x complex128) {
+	for i := range m.Data {
+		m.Data[i] = x
+	}
+}
+func (m *CMatrix) SetCol(c int, x complex128) {
+	for i := 0; i < m.Rows; i++ {
+		m.Set(i, c, x)
+	}
+}
+func (m *CMatrix) SetRow(r int, x complex128) {
+	for i := 0; i < m.Cols; i++ {
+		m.Set(r, i, x)
+	}
+}
 func (m *CMatrix) SetRe(r, c int, x float64) {
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = complex(x, 0)
 }
 func (m *CMatrix) SetIm(r, c int, x float64) {
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = complex(0, x)
+}
+func (m *CMatrix) SetReAll(x float64) {
+	for i := range m.Data {
+		m.Data[i] = complex(x, 0)
+	}
+}
+func (m *CMatrix) SetReCol(c int, x float64) {
+	for i := 0; i < m.Rows; i++ {
+		m.SetRe(i, c, x)
+	}
+}
+func (m *CMatrix) SetReRow(r int, x float64) {
+	for i := 0; i < m.Cols; i++ {
+		m.SetRe(r, i, x)
+	}
+}
+func (m *CMatrix) SetImAll(x float64) {
+	for i := range m.Data {
+		m.Data[i] = complex(0, x)
+	}
+}
+func (m *CMatrix) SetImCol(c int, x float64) {
+	for i := 0; i < m.Rows; i++ {
+		m.SetIm(i, c, x)
+	}
+}
+func (m *CMatrix) SetImRow(r int, x float64) {
+	for i := 0; i < m.Cols; i++ {
+		m.SetIm(r, i, x)
+	}
 }
 func (m *CMatrix) SetIdx(idx int, x complex128) {
 	m.Data[idx] = x

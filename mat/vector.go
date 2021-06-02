@@ -27,6 +27,11 @@ func (v *Vector) GetMag(n int) float64 {
 func (v *Vector) Set(n int, x float64) {
 	v.Data[n] = x
 }
+func (v *Vector) SetAll(x float64) {
+	for i := range v.Data {
+		v.Data[i] = x
+	}
+}
 func (v *Vector) Copy(idx int) *Vector {
 	b := bytes.Buffer{}
 	e := gob.NewEncoder(&b)
@@ -145,11 +150,26 @@ func (v *CVector) GetPtr(n int) *complex128 {
 func (v *CVector) Set(n int, x complex128) {
 	v.Data[n] = x
 }
+func (v *CVector) SetAll(x complex128) {
+	for i := range v.Data {
+		v.Data[i] = x
+	}
+}
 func (v *CVector) SetRe(n int, x float64) {
 	v.Data[n] = complex(x, 0)
 }
 func (v *CVector) SetIm(n int, x float64) {
 	v.Data[n] = complex(0, x)
+}
+func (v *CVector) SetReAll(x float64) {
+	for i := range v.Data {
+		v.Data[i] = complex(x, 0)
+	}
+}
+func (v *CVector) SetImAll(x float64) {
+	for i := range v.Data {
+		v.Data[i] = complex(0, x)
+	}
 }
 func (v *CVector) Copy(idx int) *CVector {
 	b := bytes.Buffer{}
