@@ -16,6 +16,9 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	var testzeros bool
 	var anorm, cnorm, dnorm, eps, one, resid, zero float64
 	var i, info, j, k, l, lwork, nb1Ub, nb2Ub, nrb int
+	var err error
+	_ = err
+
 	srnamt := &gltest.Common.Srnamc.Srnamt
 	iseed := make([]int, 4)
 
@@ -121,7 +124,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	for i = 1; i <= (*n); i++ {
 		if diag.Get(i-1) == -one {
-			goblas.Dscal(toPtr((*n)+1-i), toPtrf64(-one), af.Vector(i-1, i-1), m)
+			goblas.Dscal((*n)+1-i, -one, af.Vector(i-1, i-1), *m)
 		}
 	}
 
@@ -141,7 +144,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 1
 	//     Compute |R - (Q**T)*A| / ( eps * m * |A| ) and store in RESULT(1)
-	goblas.Dgemm(Trans, NoTrans, m, n, m, toPtrf64(-one), q, m, a, m, &one, r, m)
+	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, *m, a, *m, one, r, *m)
 
 	anorm = golapack.Dlange('1', m, n, a, m, rwork)
 	resid = golapack.Dlange('1', m, n, r, m, rwork)
@@ -154,7 +157,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//     TEST 2
 	//     Compute |I - (Q**T)*Q| / ( eps * m ) and store in RESULT(2)
 	golapack.Dlaset('F', m, m, &zero, &one, r, m)
-	goblas.Dsyrk(Upper, Trans, m, m, toPtrf64(-one), q, m, &one, r, m)
+	err = goblas.Dsyrk(Upper, Trans, *m, *m, -one, q, *m, one, r, *m)
 	resid = golapack.Dlansy('1', 'U', m, r, m, rwork)
 	result.Set(1, resid/(eps*float64(maxint(1, *m))))
 
@@ -171,7 +174,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 3
 	//     Compute |CF - Q*C| / ( eps *  m * |C| )
-	goblas.Dgemm(NoTrans, NoTrans, m, n, m, toPtrf64(-one), q, m, c, m, &one, cf, m)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
 	resid = golapack.Dlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
 		result.Set(2, resid/(eps*float64(maxint(1, *m))*cnorm))
@@ -188,7 +191,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 4
 	//     Compute |CF - (Q**T)*C| / ( eps * m * |C|)
-	goblas.Dgemm(Trans, NoTrans, m, n, m, toPtrf64(-one), q, m, c, m, &one, cf, m)
+	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
 	resid = golapack.Dlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
 		result.Set(3, resid/(eps*float64(maxint(1, *m))*cnorm))
@@ -209,7 +212,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 5
 	//     Compute |DF - D*Q| / ( eps * m * |D| )
-	goblas.Dgemm(NoTrans, NoTrans, n, m, m, toPtrf64(-one), d, n, q, m, &one, df, n)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
 		result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -226,7 +229,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 6
 	//     Compute |DF - D*(Q**T)| / ( eps * m * |D| )
-	goblas.Dgemm(NoTrans, Trans, n, m, m, toPtrf64(-one), d, n, q, m, &one, df, n)
+	err = goblas.Dgemm(NoTrans, Trans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
 		result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))

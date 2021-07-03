@@ -15,6 +15,8 @@ import (
 func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldafac *int, rwork *mat.Vector, resid *float64) {
 	var akk, anorm, eps, one, zero float64
 	var i, j, k, kc, klen, ml, mu int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -58,12 +60,12 @@ func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, 
 			klen = (*kd) + 1 - kc
 
 			//           Compute the (K,K) element of the result.
-			akk = real(goblas.Zdotc(toPtr(klen+1), afac.CVector(kc-1, k-1), func() *int { y := 1; return &y }(), afac.CVector(kc-1, k-1), func() *int { y := 1; return &y }()))
+			akk = real(goblas.Zdotc(klen+1, afac.CVector(kc-1, k-1), 1, afac.CVector(kc-1, k-1), 1))
 			afac.SetRe((*kd)+1-1, k-1, akk)
 
 			//           Compute the rest of column K.
 			if klen > 0 {
-				goblas.Ztrmv(Upper, ConjTrans, NonUnit, &klen, afac.Off((*kd)+1-1, k-klen-1).UpdateRows((*ldafac)-1), toPtr((*ldafac)-1), afac.CVector(kc-1, k-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, klen, afac.Off((*kd)+1-1, k-klen-1).UpdateRows((*ldafac)-1), (*ldafac)-1, afac.CVector(kc-1, k-1), 1)
 			}
 
 		}
@@ -76,12 +78,12 @@ func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, 
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if klen > 0 {
-				goblas.Zher(Lower, &klen, &one, afac.CVector(1, k-1), func() *int { y := 1; return &y }(), afac.Off(0, k+1-1).UpdateRows((*ldafac)-1), toPtr((*ldafac)-1))
+				err = goblas.Zher(Lower, klen, one, afac.CVector(1, k-1), 1, afac.Off(0, k+1-1).UpdateRows((*ldafac)-1), (*ldafac)-1)
 			}
 
 			//           Scale column K by the diagonal element.
 			akk = afac.GetRe(0, k-1)
-			goblas.Zdscal(toPtr(klen+1), &akk, afac.CVector(0, k-1), func() *int { y := 1; return &y }())
+			goblas.Zdscal(klen+1, akk, afac.CVector(0, k-1), 1)
 
 		}
 	}

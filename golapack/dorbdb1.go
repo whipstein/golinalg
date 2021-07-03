@@ -84,13 +84,13 @@ func Dorbdb1(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *
 		Dlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1), x21.Off(i-1, i+1-1), ldx21, work.Off(ilarf-1))
 
 		if i < (*q) {
-			goblas.Drot(toPtr((*q)-i), x11.Vector(i-1, i+1-1), ldx11, x21.Vector(i-1, i+1-1), ldx21, &c, &s)
+			goblas.Drot((*q)-i, x11.Vector(i-1, i+1-1), *ldx11, x21.Vector(i-1, i+1-1), *ldx21, c, s)
 			Dlarfgp(toPtr((*q)-i), x21.GetPtr(i-1, i+1-1), x21.Vector(i-1, i+2-1), ldx21, tauq1.GetPtr(i-1))
 			s = x21.Get(i-1, i+1-1)
 			x21.Set(i-1, i+1-1, one)
 			Dlarf('R', toPtr((*p)-i), toPtr((*q)-i), x21.Vector(i-1, i+1-1), ldx21, tauq1.GetPtr(i-1), x11.Off(i+1-1, i+1-1), ldx11, work.Off(ilarf-1))
 			Dlarf('R', toPtr((*m)-(*p)-i), toPtr((*q)-i), x21.Vector(i-1, i+1-1), ldx21, tauq1.GetPtr(i-1), x21.Off(i+1-1, i+1-1), ldx21, work.Off(ilarf-1))
-			c = math.Sqrt(math.Pow(goblas.Dnrm2(toPtr((*p)-i), x11.Vector(i+1-1, i+1-1), func() *int { y := 1; return &y }()), 2) + math.Pow(goblas.Dnrm2(toPtr((*m)-(*p)-i), x21.Vector(i+1-1, i+1-1), func() *int { y := 1; return &y }()), 2))
+			c = math.Sqrt(math.Pow(goblas.Dnrm2((*p)-i, x11.Vector(i+1-1, i+1-1), 1), 2) + math.Pow(goblas.Dnrm2((*m)-(*p)-i, x21.Vector(i+1-1, i+1-1), 1), 2))
 			phi.Set(i-1, math.Atan2(s, c))
 			Dorbdb5(toPtr((*p)-i), toPtr((*m)-(*p)-i), toPtr((*q)-i-1), x11.Vector(i+1-1, i+1-1), func() *int { y := 1; return &y }(), x21.Vector(i+1-1, i+1-1), func() *int { y := 1; return &y }(), x11.Off(i+1-1, i+2-1), ldx11, x21.Off(i+1-1, i+2-1), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
 		}

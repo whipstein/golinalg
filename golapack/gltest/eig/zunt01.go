@@ -27,6 +27,8 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 	var tmp complex128
 	var eps, one, zero float64
 	var i, j, k, ldwork, mnmin int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -56,7 +58,7 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 	if ldwork > 0 {
 		//        Compute I - U*U' or I - U'*U.
 		golapack.Zlaset('U', &mnmin, &mnmin, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), work.CMatrix(ldwork, opts), &ldwork)
-		goblas.Zherk(Upper, mat.TransByte(transu), &mnmin, &k, toPtrf64(-one), u, ldu, &one, work.CMatrix(ldwork, opts), &ldwork)
+		err = goblas.Zherk(Upper, mat.TransByte(transu), mnmin, k, -one, u, *ldu, one, work.CMatrix(ldwork, opts), ldwork)
 
 		//        Compute norm( I - U*U' ) / ( K * EPS ) .
 		(*resid) = golapack.Zlansy('1', 'U', &mnmin, work.CMatrix(ldwork, opts), &ldwork, rwork)
@@ -70,7 +72,7 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 				} else {
 					tmp = complex(one, 0)
 				}
-				tmp = tmp - goblas.Zdotc(m, u.CVector(0, i-1), func() *int { y := 1; return &y }(), u.CVector(0, j-1), func() *int { y := 1; return &y }())
+				tmp = tmp - goblas.Zdotc(*m, u.CVector(0, i-1), 1, u.CVector(0, j-1), 1)
 				(*resid) = maxf64(*resid, cabs1(tmp))
 			}
 		}
@@ -84,7 +86,7 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 				} else {
 					tmp = complex(one, 0)
 				}
-				tmp = tmp - goblas.Zdotc(n, u.CVector(j-1, 0), ldu, u.CVector(i-1, 0), ldu)
+				tmp = tmp - goblas.Zdotc(*n, u.CVector(j-1, 0), *ldu, u.CVector(i-1, 0), *ldu)
 				(*resid) = maxf64(*resid, cabs1(tmp))
 			}
 		}

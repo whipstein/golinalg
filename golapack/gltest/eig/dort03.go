@@ -74,7 +74,7 @@ func Dort03(rc byte, mu, mv, n, k *int, u *mat.Matrix, ldu *int, v *mat.Matrix, 
 		//        Compare rows
 		res1 = zero
 		for i = 1; i <= (*k); i++ {
-			lmx = goblas.Idamax(n, u.Vector(i-1, 0), ldu)
+			lmx = goblas.Idamax(*n, u.Vector(i-1, 0), *ldu)
 			s = math.Copysign(one, u.Get(i-1, lmx-1)) * math.Copysign(one, v.Get(i-1, lmx-1))
 			for j = 1; j <= (*n); j++ {
 				res1 = maxf64(res1, math.Abs(u.Get(i-1, j-1)-s*v.Get(i-1, j-1)))
@@ -89,7 +89,7 @@ func Dort03(rc byte, mu, mv, n, k *int, u *mat.Matrix, ldu *int, v *mat.Matrix, 
 		//        Compare columns
 		res1 = zero
 		for i = 1; i <= (*k); i++ {
-			lmx = goblas.Idamax(n, u.Vector(0, i-1), toPtr(1))
+			lmx = goblas.Idamax(*n, u.Vector(0, i-1), 1)
 			s = math.Copysign(one, u.Get(lmx-1, i-1)) * math.Copysign(one, v.Get(lmx-1, i-1))
 			for j = 1; j <= (*n); j++ {
 				res1 = maxf64(res1, math.Abs(u.Get(j-1, i-1)-s*v.Get(j-1, i-1)))

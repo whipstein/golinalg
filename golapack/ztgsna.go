@@ -18,6 +18,9 @@ func Ztgsna(job, howmny byte, _select []bool, n *int, a *mat.CMatrix, lda *int, 
 	var yhax, yhbx complex128
 	var bignum, cond, eps, lnrm, one, rnrm, scale, smlnum, zero float64
 	var i, idifjb, ierr, ifst, ilst, k, ks, lwmin, n1, n2 int
+	var err error
+	_ = err
+
 	dummy := cvf(1)
 	dummy1 := cvf(1)
 
@@ -111,12 +114,12 @@ func Ztgsna(job, howmny byte, _select []bool, n *int, a *mat.CMatrix, lda *int, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			rnrm = goblas.Dznrm2(n, vr.CVector(0, ks-1), func() *int { y := 1; return &y }())
-			lnrm = goblas.Dznrm2(n, vl.CVector(0, ks-1), func() *int { y := 1; return &y }())
-			goblas.Zgemv(NoTrans, n, n, toPtrc128(complex(one, zero)), a, lda, vr.CVector(0, ks-1), func() *int { y := 1; return &y }(), toPtrc128(complex(zero, zero)), work, func() *int { y := 1; return &y }())
-			yhax = goblas.Zdotc(n, work, func() *int { y := 1; return &y }(), vl.CVector(0, ks-1), func() *int { y := 1; return &y }())
-			goblas.Zgemv(NoTrans, n, n, toPtrc128(complex(one, zero)), b, ldb, vr.CVector(0, ks-1), func() *int { y := 1; return &y }(), toPtrc128(complex(zero, zero)), work, func() *int { y := 1; return &y }())
-			yhbx = goblas.Zdotc(n, work, func() *int { y := 1; return &y }(), vl.CVector(0, ks-1), func() *int { y := 1; return &y }())
+			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1), 1)
+			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1), 1)
+			err = goblas.Zgemv(NoTrans, *n, *n, complex(one, zero), a, *lda, vr.CVector(0, ks-1), 1, complex(zero, zero), work, 1)
+			yhax = goblas.Zdotc(*n, work, 1, vl.CVector(0, ks-1), 1)
+			err = goblas.Zgemv(NoTrans, *n, *n, complex(one, zero), b, *ldb, vr.CVector(0, ks-1), 1, complex(zero, zero), work, 1)
+			yhbx = goblas.Zdotc(*n, work, 1, vl.CVector(0, ks-1), 1)
 			cond = Dlapy2(toPtrf64(cmplx.Abs(yhax)), toPtrf64(cmplx.Abs(yhbx)))
 			if cond == zero {
 				s.Set(ks-1, -one)

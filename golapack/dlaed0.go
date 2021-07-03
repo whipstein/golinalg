@@ -13,6 +13,8 @@ import (
 func Dlaed0(icompq, qsiz, n *int, d, e *mat.Vector, q *mat.Matrix, ldq *int, qstore *mat.Matrix, ldqs *int, work *mat.Vector, iwork *[]int, info *int) {
 	var one, temp, two, zero float64
 	var curlvl, curprb, curr, i, igivcl, igivnm, igivpt, indxq, iperm, iprmpt, iq, iqptr, iwrem, j, k, lgn, matsiz, msd2, smlsiz, smm1, spm1, spm2, submat, subpbs, tlvls int
+	var err error
+	_ = err
 
 	zero = 0.
 	one = 1.
@@ -126,7 +128,7 @@ label10:
 				goto label130
 			}
 			if (*icompq) == 1 {
-				goblas.Dgemm(NoTrans, NoTrans, qsiz, &matsiz, &matsiz, &one, q.Off(0, submat-1), ldq, work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), &matsiz, &zero, qstore.Off(0, submat-1), ldqs)
+				err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, matsiz, matsiz, one, q.Off(0, submat-1), *ldq, work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), matsiz, zero, qstore.Off(0, submat-1), *ldqs)
 			}
 			(*iwork)[iqptr+curr+1-1] = (*iwork)[iqptr+curr-1] + int(math.Pow(float64(matsiz), 2))
 			curr = curr + 1
@@ -190,23 +192,23 @@ label80:
 		for i = 1; i <= (*n); i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(qsiz, qstore.Vector(0, j-1), toPtr(1), q.Vector(0, i-1), toPtr(1))
+			goblas.Dcopy(*qsiz, qstore.Vector(0, j-1), 1, q.Vector(0, i-1), 1)
 		}
-		goblas.Dcopy(n, work, toPtr(1), d, toPtr(1))
+		goblas.Dcopy(*n, work, 1, d, 1)
 	} else if (*icompq) == 2 {
 		for i = 1; i <= (*n); i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(n, q.Vector(0, j-1), toPtr(1), work.Off((*n)*i+1-1), toPtr(1))
+			goblas.Dcopy(*n, q.Vector(0, j-1), 1, work.Off((*n)*i+1-1), 1)
 		}
-		goblas.Dcopy(n, work, toPtr(1), d, toPtr(1))
+		goblas.Dcopy(*n, work, 1, d, 1)
 		Dlacpy('A', n, n, work.MatrixOff((*n)+1-1, *n, opts), n, q, ldq)
 	} else {
 		for i = 1; i <= (*n); i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
 		}
-		goblas.Dcopy(n, work, toPtr(1), d, toPtr(1))
+		goblas.Dcopy(*n, work, 1, d, 1)
 	}
 	return
 

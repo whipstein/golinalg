@@ -26,9 +26,9 @@ func Dget10(m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, work *m
 
 	wnorm = zero
 	for j = 1; j <= (*n); j++ {
-		goblas.Dcopy(m, a.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		goblas.Daxpy(m, toPtrf64(-one), b.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		wnorm = maxf64(wnorm, goblas.Dasum(n, work, toPtr(1)))
+		goblas.Dcopy(*m, a.Vector(0, j-1), 1, work, 1)
+		goblas.Daxpy(*m, -one, b.Vector(0, j-1), 1, work, 1)
+		wnorm = maxf64(wnorm, goblas.Dasum(*n, work, 1))
 	}
 
 	anorm = maxf64(golapack.Dlange('1', m, n, a, lda, work), unfl)

@@ -185,11 +185,11 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						anorm = golapack.Zlanhp('1', uplo, &n, a, rwork)
 
 						//                    Factor the matrix A.
-						goblas.Zcopy(&npp, a, func() *int { y := 1; return &y }(), afac, func() *int { y := 1; return &y }())
+						goblas.Zcopy(npp, a, 1, afac, 1)
 						golapack.Zhptrf(uplo, &n, afac, iwork, &info)
 
 						//                    Compute inv(A) and take its norm.
-						goblas.Zcopy(&npp, afac, func() *int { y := 1; return &y }(), ainv, func() *int { y := 1; return &y }())
+						goblas.Zcopy(npp, afac, 1, ainv, 1)
 						golapack.Zhptri(uplo, &n, ainv, iwork, work, &info)
 						ainvnm = golapack.Zlanhp('1', uplo, &n, ainv, rwork)
 
@@ -208,7 +208,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 					//                 --- Test ZHPSV  ---
 					if ifact == 2 {
-						goblas.Zcopy(&npp, a, func() *int { y := 1; return &y }(), afac, func() *int { y := 1; return &y }())
+						goblas.Zcopy(npp, a, 1, afac, 1)
 						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 						//                    Factor the matrix and solve the system using ZHPSV.

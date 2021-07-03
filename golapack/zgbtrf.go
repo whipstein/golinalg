@@ -13,6 +13,8 @@ import (
 func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *int) {
 	var one, temp, zero complex128
 	var i, i2, i3, ii, ip, j, j2, j3, jb, jj, jm, jp, ju, k2, km, kv, ldwork, nb, nbmax, nw int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -119,7 +121,7 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 				//              Find pivot and test for singularity. KM is the number of
 				//              subdiagonal elements in the current column.
 				km = minint(*kl, (*m)-jj)
-				jp = goblas.Izamax(toPtr(km+1), ab.CVector(kv+1-1, jj-1), func() *int { y := 1; return &y }())
+				jp = goblas.Izamax(km+1, ab.CVector(kv+1-1, jj-1), 1)
 				(*ipiv)[jj-1] = jp + jj - j
 				if ab.Get(kv+jp-1, jj-1) != zero {
 					ju = maxint(ju, minint(jj+(*ku)+jp-1, *n))
@@ -127,24 +129,24 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 						//                    Apply interchange to columns J to J+JB-1
 						if jp+jj-1 < j+(*kl) {
 
-							goblas.Zswap(&jb, ab.CVector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), ab.CVector(kv+jp+jj-j-1, j-1), toPtr((*ldab)-1))
+							goblas.Zswap(jb, ab.CVector(kv+1+jj-j-1, j-1), (*ldab)-1, ab.CVector(kv+jp+jj-j-1, j-1), (*ldab)-1)
 						} else {
 							//                       The interchange affects columns J to JJ-1 of A31
 							//                       which are stored in the work array WORK31
-							goblas.Zswap(toPtr(jj-j), ab.CVector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), work31.CVector(jp+jj-j-(*kl)-1, 0), &ldwork)
-							goblas.Zswap(toPtr(j+jb-jj), ab.CVector(kv+1-1, jj-1), toPtr((*ldab)-1), ab.CVector(kv+jp-1, jj-1), toPtr((*ldab)-1))
+							goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1), (*ldab)-1, work31.CVector(jp+jj-j-(*kl)-1, 0), ldwork)
+							goblas.Zswap(j+jb-jj, ab.CVector(kv+1-1, jj-1), (*ldab)-1, ab.CVector(kv+jp-1, jj-1), (*ldab)-1)
 						}
 					}
 
 					//                 Compute multipliers
-					goblas.Zscal(&km, toPtrc128(one/ab.Get(kv+1-1, jj-1)), ab.CVector(kv+2-1, jj-1), func() *int { y := 1; return &y }())
+					goblas.Zscal(km, one/ab.Get(kv+1-1, jj-1), ab.CVector(kv+2-1, jj-1), 1)
 
 					//                 Update trailing submatrix within the band and within
 					//                 the current block. JM is the index of the last column
 					//                 which needs to be updated.
 					jm = minint(ju, j+jb-1)
 					if jm > jj {
-						goblas.Zgeru(&km, toPtr(jm-jj), toPtrc128(-one), ab.CVector(kv+2-1, jj-1), func() *int { y := 1; return &y }(), ab.CVector(kv-1, jj+1-1), toPtr((*ldab)-1), ab.Off(kv+1-1, jj+1-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zgeru(km, jm-jj, -one, ab.CVector(kv+2-1, jj-1), 1, ab.CVector(kv-1, jj+1-1), (*ldab)-1, ab.Off(kv+1-1, jj+1-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 				} else {
 					//                 If pivot is zero, set INFO to the index of the pivot
@@ -157,7 +159,7 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 				//              Copy current column of A31 into the work array WORK31
 				nw = minint(jj-j+1, i3)
 				if nw > 0 {
-					goblas.Zcopy(&nw, ab.CVector(kv+(*kl)+1-jj+j-1, jj-1), func() *int { y := 1; return &y }(), work31.CVector(0, jj-j+1-1), func() *int { y := 1; return &y }())
+					goblas.Zcopy(nw, ab.CVector(kv+(*kl)+1-jj+j-1, jj-1), 1, work31.CVector(0, jj-j+1-1), 1)
 				}
 			}
 			if j+jb <= (*n) {
@@ -192,16 +194,16 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 				//              Update the relevant part of the trailing submatrix
 				if j2 > 0 {
 					//                 Update A12
-					goblas.Ztrsm(Left, Lower, NoTrans, Unit, &jb, &j2, &one, ab.Off(kv+1-1, j-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+					err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j2, one, ab.Off(kv+1-1, j-1).UpdateRows((*ldab)-1), (*ldab)-1, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), (*ldab)-1)
 
 					if i2 > 0 {
 						//                    Update A22
-						goblas.Zgemm(NoTrans, NoTrans, &i2, &j2, &jb, toPtrc128(-one), ab.Off(kv+1+jb-1, j-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), &one, ab.Off(kv+1-1, j+jb-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zgemm(NoTrans, NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows((*ldab)-1), (*ldab)-1, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), (*ldab)-1, one, ab.Off(kv+1-1, j+jb-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
 						//                    Update A32
-						goblas.Zgemm(NoTrans, NoTrans, &i3, &j2, &jb, toPtrc128(-one), work31, &ldwork, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), &one, ab.Off(kv+(*kl)+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zgemm(NoTrans, NoTrans, i3, j2, jb, -one, work31, ldwork, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), (*ldab)-1, one, ab.Off(kv+(*kl)+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 				}
 
@@ -215,16 +217,16 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 					}
 
 					//                 Update A13 in the work array
-					goblas.Ztrsm(Left, Lower, NoTrans, Unit, &jb, &j3, &one, ab.Off(kv+1-1, j-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), work13, &ldwork)
+					err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j3, one, ab.Off(kv+1-1, j-1).UpdateRows((*ldab)-1), (*ldab)-1, work13, ldwork)
 
 					if i2 > 0 {
 						//                    Update A23
-						goblas.Zgemm(NoTrans, NoTrans, &i2, &j3, &jb, toPtrc128(-one), ab.Off(kv+1+jb-1, j-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), work13, &ldwork, &one, ab.Off(1+jb-1, j+kv-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zgemm(NoTrans, NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows((*ldab)-1), (*ldab)-1, work13, ldwork, one, ab.Off(1+jb-1, j+kv-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
 						//                    Update A33
-						goblas.Zgemm(NoTrans, NoTrans, &i3, &j3, &jb, toPtrc128(-one), work31, &ldwork, work13, &ldwork, &one, ab.Off(1+(*kl)-1, j+kv-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zgemm(NoTrans, NoTrans, i3, j3, jb, -one, work31, ldwork, work13, ldwork, one, ab.Off(1+(*kl)-1, j+kv-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 
 					//                 Copy the lower triangle of A13 back into place
@@ -250,17 +252,17 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 					//                 Apply interchange to columns J to JJ-1
 					if jp+jj-1 < j+(*kl) {
 						//                    The interchange does not affect A31
-						goblas.Zswap(toPtr(jj-j), ab.CVector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), ab.CVector(kv+jp+jj-j-1, j-1), toPtr((*ldab)-1))
+						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1), (*ldab)-1, ab.CVector(kv+jp+jj-j-1, j-1), (*ldab)-1)
 					} else {
 						//                    The interchange does affect A31
-						goblas.Zswap(toPtr(jj-j), ab.CVector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), work31.CVector(jp+jj-j-(*kl)-1, 0), &ldwork)
+						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1), (*ldab)-1, work31.CVector(jp+jj-j-(*kl)-1, 0), ldwork)
 					}
 				}
 
 				//              Copy the current column of A31 back into place
 				nw = minint(i3, jj-j+1)
 				if nw > 0 {
-					goblas.Zcopy(&nw, work31.CVector(0, jj-j+1-1), func() *int { y := 1; return &y }(), ab.CVector(kv+(*kl)+1-jj+j-1, jj-1), func() *int { y := 1; return &y }())
+					goblas.Zcopy(nw, work31.CVector(0, jj-j+1-1), 1, ab.CVector(kv+(*kl)+1-jj+j-1, jj-1), 1)
 				}
 			}
 		}

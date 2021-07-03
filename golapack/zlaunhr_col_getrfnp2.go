@@ -74,6 +74,8 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 	var cone complex128
 	var one, sfmin float64
 	var i, iinfo, n1, n2 int
+	var err error
+	_ = err
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
@@ -125,7 +127,7 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 
 		//        Construct the subdiagonal elements of L
 		if Cabs1(a.Get(0, 0)) >= sfmin {
-			goblas.Zscal(toPtr((*m)-1), toPtrc128(cone/a.Get(0, 0)), a.CVector(1, 0), func() *int { y := 1; return &y }())
+			goblas.Zscal((*m)-1, cone/a.Get(0, 0), a.CVector(1, 0), 1)
 		} else {
 			for i = 2; i <= (*m); i++ {
 				a.Set(i-1, 0, a.Get(i-1, 0)/a.Get(0, 0))
@@ -141,14 +143,14 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 		Zlaunhrcolgetrfnp2(&n1, &n1, a, lda, d, &iinfo)
 
 		//        Solve for B21
-		goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, toPtr((*m)-n1), &n1, &cone, a, lda, a.Off(n1+1-1, 0), lda)
+		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, cone, a, *lda, a.Off(n1+1-1, 0), *lda)
 
 		//        Solve for B12
-		goblas.Ztrsm(Left, Lower, NoTrans, Unit, &n1, &n2, &cone, a, lda, a.Off(0, n1+1-1), lda)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, cone, a, *lda, a.Off(0, n1+1-1), *lda)
 
 		//        Update B22, i.e. compute the Schur complement
 		//        B22 := B22 - B21*B12
-		goblas.Zgemm(NoTrans, NoTrans, toPtr((*m)-n1), &n2, &n1, toPtrc128(-cone), a.Off(n1+1-1, 0), lda, a.Off(0, n1+1-1), lda, &cone, a.Off(n1+1-1, n1+1-1), lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -cone, a.Off(n1+1-1, 0), *lda, a.Off(0, n1+1-1), *lda, cone, a.Off(n1+1-1, n1+1-1), *lda)
 
 		//        Factor B22, recursive call
 		Zlaunhrcolgetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1+1-1, n1+1-1), lda, d.Off(n1+1-1), &iinfo)

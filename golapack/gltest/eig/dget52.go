@@ -54,6 +54,8 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	var normab, trans byte
 	var abmax, acoef, alfmax, anorm, bcoefi, bcoefr, betmax, bnorm, enorm, enrmer, errnrm, one, safmax, safmin, salfi, salfr, sbeta, scale, temp1, ten, ulp, zero float64
 	var j, jvec int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -106,8 +108,8 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 				scale = one / maxf64(math.Abs(salfr)*bnorm, math.Abs(sbeta)*anorm, safmin)
 				acoef = scale * sbeta
 				bcoefr = scale * salfr
-				goblas.Dgemv(mat.TransByte(trans), n, n, &acoef, a, lda, e.Vector(0, jvec-1), func() *int { y := 1; return &y }(), &zero, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(mat.TransByte(trans), n, n, toPtrf64(-bcoefr), b, lda, e.Vector(0, jvec-1), func() *int { y := 1; return &y }(), &one, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, *lda, e.Vector(0, jvec-1), 1, zero, work.Off((*n)*(jvec-1)+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, *lda, e.Vector(0, jvec-1), 1, one, work.Off((*n)*(jvec-1)+1-1), 1)
 			} else {
 				//              Complex conjugate pair
 				ilcplx = true
@@ -130,13 +132,13 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					bcoefi = -bcoefi
 				}
 
-				goblas.Dgemv(mat.TransByte(trans), n, n, &acoef, a, lda, e.Vector(0, jvec-1), func() *int { y := 1; return &y }(), &zero, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(mat.TransByte(trans), n, n, toPtrf64(-bcoefr), b, lda, e.Vector(0, jvec-1), func() *int { y := 1; return &y }(), &one, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(mat.TransByte(trans), n, n, &bcoefi, b, lda, e.Vector(0, jvec+1-1), func() *int { y := 1; return &y }(), &one, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, *lda, e.Vector(0, jvec-1), 1, zero, work.Off((*n)*(jvec-1)+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, *lda, e.Vector(0, jvec-1), 1, one, work.Off((*n)*(jvec-1)+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, bcoefi, b, *lda, e.Vector(0, jvec+1-1), 1, one, work.Off((*n)*(jvec-1)+1-1), 1)
 
-				goblas.Dgemv(mat.TransByte(trans), n, n, &acoef, a, lda, e.Vector(0, jvec+1-1), func() *int { y := 1; return &y }(), &zero, work.Off((*n)*jvec+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(mat.TransByte(trans), n, n, toPtrf64(-bcoefi), b, lda, e.Vector(0, jvec-1), func() *int { y := 1; return &y }(), &one, work.Off((*n)*jvec+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(mat.TransByte(trans), n, n, toPtrf64(-bcoefr), b, lda, e.Vector(0, jvec+1-1), func() *int { y := 1; return &y }(), &one, work.Off((*n)*jvec+1-1), func() *int { y := 1; return &y }())
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, *lda, e.Vector(0, jvec+1-1), 1, zero, work.Off((*n)*jvec+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefi, b, *lda, e.Vector(0, jvec-1), 1, one, work.Off((*n)*jvec+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, *lda, e.Vector(0, jvec+1-1), 1, one, work.Off((*n)*jvec+1-1), 1)
 			}
 		}
 	}

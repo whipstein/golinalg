@@ -12,6 +12,8 @@ func Dtptri(uplo, diag byte, n *int, ap *mat.Vector, info *int) {
 	var nounit, upper bool
 	var ajj, one, zero float64
 	var j, jc, jclast, jj int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -66,8 +68,8 @@ func Dtptri(uplo, diag byte, n *int, ap *mat.Vector, info *int) {
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			goblas.Dtpmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), toPtr(j-1), ap, ap.Off(jc-1), toPtr(1))
-			goblas.Dscal(toPtr(j-1), &ajj, ap.Off(jc-1), toPtr(1))
+			err = goblas.Dtpmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j-1, ap, ap.Off(jc-1), 1)
+			goblas.Dscal(j-1, ajj, ap.Off(jc-1), 1)
 			jc = jc + j
 		}
 
@@ -83,8 +85,8 @@ func Dtptri(uplo, diag byte, n *int, ap *mat.Vector, info *int) {
 			}
 			if j < (*n) {
 				//              Compute elements j+1:n of j-th column.
-				goblas.Dtpmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), toPtr((*n)-j), ap.Off(jclast-1), ap.Off(jc+1-1), toPtr(1))
-				goblas.Dscal(toPtr((*n)-j), &ajj, ap.Off(jc+1-1), toPtr(1))
+				err = goblas.Dtpmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j, ap.Off(jclast-1), ap.Off(jc+1-1), 1)
+				goblas.Dscal((*n)-j, ajj, ap.Off(jc+1-1), 1)
 			}
 			jclast = jc
 			jc = jc - (*n) + j - 2

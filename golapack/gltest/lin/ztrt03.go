@@ -15,8 +15,10 @@ import (
 //    norm(s*b - op(A)*x) / ( norm(op(A)) * norm(x) * EPS ),
 // where op(A) denotes A, A**T, or A**H, and EPS is the machine epsilon.
 func Ztrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, scale *float64, cnorm *mat.Vector, tscal *float64, x *mat.CMatrix, ldx *int, b *mat.CMatrix, ldb *int, work *mat.CVector, resid *float64) {
-	var eps, err, one, smlnum, tnorm, xnorm, xscal, zero float64
+	var eps, err2, one, smlnum, tnorm, xnorm, xscal, zero float64
 	var ix, j int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -46,35 +48,35 @@ func Ztrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, scal
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zcopy(n, x.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		ix = goblas.Izamax(n, work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
+		ix = goblas.Izamax(*n, work, 1)
 		xnorm = maxf64(one, x.GetMag(ix-1, j-1))
 		xscal = (one / xnorm) / float64(*n)
-		goblas.Zdscal(n, &xscal, work, func() *int { y := 1; return &y }())
-		goblas.Ztrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, a, lda, work, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(n, toPtrc128(complex(-(*scale)*xscal, 0)), b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		ix = goblas.Izamax(n, work, func() *int { y := 1; return &y }())
-		err = (*tscal) * work.GetMag(ix-1)
-		ix = goblas.Izamax(n, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, xscal, work, 1)
+		err = goblas.Ztrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work, 1)
+		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1), 1, work, 1)
+		ix = goblas.Izamax(*n, work, 1)
+		err2 = (*tscal) * work.GetMag(ix-1)
+		ix = goblas.Izamax(*n, x.CVector(0, j-1), 1)
 		xnorm = x.GetMag(ix-1, j-1)
-		if err*smlnum <= xnorm {
+		if err2*smlnum <= xnorm {
 			if xnorm > zero {
-				err = err / xnorm
+				err2 = err2 / xnorm
 			}
 		} else {
-			if err > zero {
-				err = one / eps
+			if err2 > zero {
+				err2 = one / eps
 			}
 		}
-		if err*smlnum <= tnorm {
+		if err2*smlnum <= tnorm {
 			if tnorm > zero {
-				err = err / tnorm
+				err2 = err2 / tnorm
 			}
 		} else {
-			if err > zero {
-				err = one / eps
+			if err2 > zero {
+				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err)
+		(*resid) = maxf64(*resid, err2)
 	}
 }

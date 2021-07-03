@@ -251,8 +251,8 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 			//           rows of A and B.
 			_error = zero
 			for i = 1; i <= minint(*l, (*m)-(*k)); i++ {
-				goblas.Zcopy(toPtr((*l)-i+1), a.CVector((*k)+i-1, (*n)-(*l)+i-1), lda, work, func() *int { y := 1; return &y }())
-				goblas.Zcopy(toPtr((*l)-i+1), b.CVector(i-1, (*n)-(*l)+i-1), ldb, work.Off((*l)+1-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy((*l)-i+1, a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda, work, 1)
+				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1), *ldb, work.Off((*l)+1-1), 1)
 				Zlapll(toPtr((*l)-i+1), work, func() *int { y := 1; return &y }(), work.Off((*l)+1-1), func() *int { y := 1; return &y }(), &ssmin)
 				_error = maxf64(_error, ssmin)
 			}
@@ -289,26 +289,26 @@ label50:
 			gamma = b1 / a1
 			//
 			if gamma < zero {
-				goblas.Zdscal(toPtr((*l)-i+1), toPtrf64(-one), b.CVector(i-1, (*n)-(*l)+i-1), ldb)
+				goblas.Zdscal((*l)-i+1, -one, b.CVector(i-1, (*n)-(*l)+i-1), *ldb)
 				if wantv {
-					goblas.Zdscal(p, toPtrf64(-one), v.CVector(0, i-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal(*p, -one, v.CVector(0, i-1), 1)
 				}
 			}
 
 			Dlartg(toPtrf64(math.Abs(gamma)), &one, beta.GetPtr((*k)+i-1), alpha.GetPtr((*k)+i-1), &rwk)
 
 			if alpha.Get((*k)+i-1) >= beta.Get((*k)+i-1) {
-				goblas.Zdscal(toPtr((*l)-i+1), toPtrf64(one/alpha.Get((*k)+i-1)), a.CVector((*k)+i-1, (*n)-(*l)+i-1), lda)
+				goblas.Zdscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda)
 			} else {
-				goblas.Zdscal(toPtr((*l)-i+1), toPtrf64(one/beta.Get((*k)+i-1)), b.CVector(i-1, (*n)-(*l)+i-1), ldb)
-				goblas.Zcopy(toPtr((*l)-i+1), b.CVector(i-1, (*n)-(*l)+i-1), ldb, a.CVector((*k)+i-1, (*n)-(*l)+i-1), lda)
+				goblas.Zdscal((*l)-i+1, one/beta.Get((*k)+i-1), b.CVector(i-1, (*n)-(*l)+i-1), *ldb)
+				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1), *ldb, a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda)
 			}
 
 		} else {
 
 			alpha.Set((*k)+i-1, zero)
 			beta.Set((*k)+i-1, one)
-			goblas.Zcopy(toPtr((*l)-i+1), b.CVector(i-1, (*n)-(*l)+i-1), ldb, a.CVector((*k)+i-1, (*n)-(*l)+i-1), lda)
+			goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1), *ldb, a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda)
 		}
 	}
 

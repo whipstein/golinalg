@@ -60,10 +60,10 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			sc = h.Get(i-1, i-1-1) / complex(cabs1(h.Get(i-1, i-1-1)), 0)
 			sc = cmplx.Conj(sc) / complex(cmplx.Abs(sc), 0)
 			h.SetRe(i-1, i-1-1, h.GetMag(i-1, i-1-1))
-			goblas.Zscal(toPtr(jhi-i+1), &sc, h.CVector(i-1, i-1), ldh)
-			goblas.Zscal(toPtr(minint(jhi, i+1)-jlo+1), toPtrc128(cmplx.Conj(sc)), h.CVector(jlo-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal(jhi-i+1, sc, h.CVector(i-1, i-1), *ldh)
+			goblas.Zscal(minint(jhi, i+1)-jlo+1, cmplx.Conj(sc), h.CVector(jlo-1, i-1), 1)
 			if wantz {
-				goblas.Zscal(toPtr((*ihiz)-(*iloz)+1), toPtrc128(cmplx.Conj(sc)), z.CVector((*iloz)-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*ihiz)-(*iloz)+1, cmplx.Conj(sc), z.CVector((*iloz)-1, i-1), 1)
 			}
 		}
 	}
@@ -228,7 +228,7 @@ label30:
 			//           V(2) is always real before the call to ZLARFG, and hence
 			//           after the call T2 ( = T1*V(2) ) is also real.
 			if k > m {
-				goblas.Zcopy(func() *int { y := 2; return &y }(), h.CVector(k-1, k-1-1), func() *int { y := 1; return &y }(), v, func() *int { y := 1; return &y }())
+				goblas.Zcopy(2, h.CVector(k-1, k-1-1), 1, v, 1)
 			}
 			Zlarfg(func() *int { y := 2; return &y }(), v.GetPtr(0), v.Off(1), func() *int { y := 1; return &y }(), &t1)
 			if k > m {
@@ -277,11 +277,11 @@ label30:
 				for j = m; j <= i; j++ {
 					if j != m+1 {
 						if i2 > j {
-							goblas.Zscal(toPtr(i2-j), &temp, h.CVector(j-1, j+1-1), ldh)
+							goblas.Zscal(i2-j, temp, h.CVector(j-1, j+1-1), *ldh)
 						}
-						goblas.Zscal(toPtr(j-i1), toPtrc128(cmplx.Conj(temp)), h.CVector(i1-1, j-1), func() *int { y := 1; return &y }())
+						goblas.Zscal(j-i1, cmplx.Conj(temp), h.CVector(i1-1, j-1), 1)
 						if wantz {
-							goblas.Zscal(&nz, toPtrc128(cmplx.Conj(temp)), z.CVector((*iloz)-1, j-1), func() *int { y := 1; return &y }())
+							goblas.Zscal(nz, cmplx.Conj(temp), z.CVector((*iloz)-1, j-1), 1)
 						}
 					}
 				}
@@ -295,11 +295,11 @@ label30:
 			h.SetRe(i-1, i-1-1, rtemp)
 			temp = temp / complex(rtemp, 0)
 			if i2 > i {
-				goblas.Zscal(toPtr(i2-i), toPtrc128(cmplx.Conj(temp)), h.CVector(i-1, i+1-1), ldh)
+				goblas.Zscal(i2-i, cmplx.Conj(temp), h.CVector(i-1, i+1-1), *ldh)
 			}
-			goblas.Zscal(toPtr(i-i1), &temp, h.CVector(i1-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal(i-i1, temp, h.CVector(i1-1, i-1), 1)
 			if wantz {
-				goblas.Zscal(&nz, &temp, z.CVector((*iloz)-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(nz, temp, z.CVector((*iloz)-1, i-1), 1)
 			}
 		}
 

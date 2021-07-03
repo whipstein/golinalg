@@ -141,7 +141,7 @@ func Dsyevd2stage(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(*n, one/sigma, w, 1)
 	}
 
 	work.Set(0, float64(lwmin))

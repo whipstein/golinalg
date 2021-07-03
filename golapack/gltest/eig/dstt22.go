@@ -22,6 +22,8 @@ import (
 func Dstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, ldu *int, work *mat.Matrix, ldwork *int, result *mat.Vector) {
 	var anorm, aukj, one, ulp, unfl, wnorm, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -90,7 +92,7 @@ func Dstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, ldu *in
 	//     Do Test 2
 	//
 	//     Compute  U'U - I
-	goblas.Dgemm(Trans, NoTrans, m, m, n, &one, u, ldu, u, ldu, &zero, work, m)
+	err = goblas.Dgemm(Trans, NoTrans, *m, *m, *n, one, u, *ldu, u, *ldu, zero, work, *m)
 
 	for j = 1; j <= (*m); j++ {
 		work.Set(j-1, j-1, work.Get(j-1, j-1)-one)

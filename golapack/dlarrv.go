@@ -139,7 +139,7 @@ func Dlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		//        The eigenvalue approximations will be refined when necessary as
 		//        high relative accuracy is required for the computation of the
 		//        corresponding eigenvectors.
-		goblas.Dcopy(&im, w.Off(wbegin-1), toPtr(1), work.Off(wbegin-1), toPtr(1))
+		goblas.Dcopy(im, w.Off(wbegin-1), 1, work.Off(wbegin-1), 1)
 		//        We store in W the eigenvalue approximations w.r.t. the original
 		//        matrix T.
 		for i = 1; i <= im; i++ {
@@ -210,8 +210,8 @@ func Dlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							j = wbegin + oldfst - 1
 						}
 					}
-					goblas.Dcopy(&in, z.Vector(ibegin-1, j-1), toPtr(1), d.Off(ibegin-1), toPtr(1))
-					goblas.Dcopy(toPtr(in-1), z.Vector(ibegin-1, j+1-1), toPtr(1), l.Off(ibegin-1), toPtr(1))
+					goblas.Dcopy(in, z.Vector(ibegin-1, j-1), 1, d.Off(ibegin-1), 1)
+					goblas.Dcopy(in-1, z.Vector(ibegin-1, j+1-1), 1, l.Off(ibegin-1), 1)
 					sigma = z.Get(iend-1, j+1-1)
 					//                 Set the corresponding entries in Z to zero
 					Dlaset('F', &in, func() *int { y := 2; return &y }(), &zero, &zero, z.Off(ibegin-1, j-1), ldz)
@@ -581,7 +581,7 @@ func Dlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 								z.Set(ii-1, windex-1, zero)
 							}
 						}
-						goblas.Dscal(toPtr(zto-zfrom+1), &nrminv, z.Vector(zfrom-1, windex-1), toPtr(1))
+						goblas.Dscal(zto-zfrom+1, nrminv, z.Vector(zfrom-1, windex-1), 1)
 					label125:
 						;
 						//                    Update W

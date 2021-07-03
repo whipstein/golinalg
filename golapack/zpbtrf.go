@@ -17,6 +17,8 @@ func Zpbtrf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 	var cone complex128
 	var one, zero float64
 	var i, i2, i3, ib, ii, j, jj, ldwork, nb, nbmax int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -99,10 +101,10 @@ func Zpbtrf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 
 					if i2 > 0 {
 						//                    Update A12
-						goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, &ib, &i2, &cone, ab.Off((*kd)+1-1, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), ab.Off((*kd)+1-ib-1, i+ib-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, ib, i2, cone, ab.Off((*kd)+1-1, i-1).UpdateRows((*ldab)-1), (*ldab)-1, ab.Off((*kd)+1-ib-1, i+ib-1).UpdateRows((*ldab)-1), (*ldab)-1)
 
 						//                    Update A22
-						goblas.Zherk(Upper, ConjTrans, &i2, &ib, toPtrf64(-one), ab.Off((*kd)+1-ib-1, i+ib-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), &one, ab.Off((*kd)+1-1, i+ib-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zherk(Upper, ConjTrans, i2, ib, -one, ab.Off((*kd)+1-ib-1, i+ib-1).UpdateRows((*ldab)-1), (*ldab)-1, one, ab.Off((*kd)+1-1, i+ib-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
@@ -114,15 +116,15 @@ func Zpbtrf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 						}
 
 						//                    Update A13 (in the work array).
-						goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, &ib, &i3, &cone, ab.Off((*kd)+1-1, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), work, &ldwork)
+						err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, ib, i3, cone, ab.Off((*kd)+1-1, i-1).UpdateRows((*ldab)-1), (*ldab)-1, work, ldwork)
 
 						//                    Update A23
 						if i2 > 0 {
-							goblas.Zgemm(ConjTrans, NoTrans, &i2, &i3, &ib, toPtrc128(-cone), ab.Off((*kd)+1-ib-1, i+ib-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), work, &ldwork, &cone, ab.Off(1+ib-1, i+(*kd)-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+							err = goblas.Zgemm(ConjTrans, NoTrans, i2, i3, ib, -cone, ab.Off((*kd)+1-ib-1, i+ib-1).UpdateRows((*ldab)-1), (*ldab)-1, work, ldwork, cone, ab.Off(1+ib-1, i+(*kd)-1).UpdateRows((*ldab)-1), (*ldab)-1)
 						}
 
 						//                    Update A33
-						goblas.Zherk(Upper, ConjTrans, &i3, &ib, toPtrf64(-one), work, &ldwork, &one, ab.Off((*kd)+1-1, i+(*kd)-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zherk(Upper, ConjTrans, i3, ib, -one, work, ldwork, one, ab.Off((*kd)+1-1, i+(*kd)-1).UpdateRows((*ldab)-1), (*ldab)-1)
 
 						//                    Copy the lower triangle of A13 back into place.
 						for jj = 1; jj <= i3; jj++ {
@@ -174,10 +176,10 @@ func Zpbtrf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 
 					if i2 > 0 {
 						//                    Update A21
-						goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, &i2, &ib, &cone, ab.Off(0, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), ab.Off(1+ib-1, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, i2, ib, cone, ab.Off(0, i-1).UpdateRows((*ldab)-1), (*ldab)-1, ab.Off(1+ib-1, i-1).UpdateRows((*ldab)-1), (*ldab)-1)
 
 						//                    Update A22
-						goblas.Zherk(Lower, NoTrans, &i2, &ib, toPtrf64(-one), ab.Off(1+ib-1, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), &one, ab.Off(0, i+ib-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zherk(Lower, NoTrans, i2, ib, -one, ab.Off(1+ib-1, i-1).UpdateRows((*ldab)-1), (*ldab)-1, one, ab.Off(0, i+ib-1).UpdateRows((*ldab)-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
@@ -189,15 +191,15 @@ func Zpbtrf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 						}
 
 						//                    Update A31 (in the work array).
-						goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, &i3, &ib, &cone, ab.Off(0, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), work, &ldwork)
+						err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, i3, ib, cone, ab.Off(0, i-1).UpdateRows((*ldab)-1), (*ldab)-1, work, ldwork)
 
 						//                    Update A32
 						if i2 > 0 {
-							goblas.Zgemm(NoTrans, ConjTrans, &i3, &i2, &ib, toPtrc128(-cone), work, &ldwork, ab.Off(1+ib-1, i-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), &cone, ab.Off(1+(*kd)-ib-1, i+ib-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+							err = goblas.Zgemm(NoTrans, ConjTrans, i3, i2, ib, -cone, work, ldwork, ab.Off(1+ib-1, i-1).UpdateRows((*ldab)-1), (*ldab)-1, cone, ab.Off(1+(*kd)-ib-1, i+ib-1).UpdateRows((*ldab)-1), (*ldab)-1)
 						}
 
 						//                    Update A33
-						goblas.Zherk(Lower, NoTrans, &i3, &ib, toPtrf64(-one), work, &ldwork, &one, ab.Off(0, i+(*kd)-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+						err = goblas.Zherk(Lower, NoTrans, i3, ib, -one, work, ldwork, one, ab.Off(0, i+(*kd)-1).UpdateRows((*ldab)-1), (*ldab)-1)
 
 						//                    Copy the upper triangle of A31 back into place.
 						for jj = 1; jj <= ib; jj++ {

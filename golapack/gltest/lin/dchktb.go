@@ -15,6 +15,8 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	var diag, norm, trans, uplo, xtype byte
 	var ainvnm, anorm, one, rcond, rcondc, rcondi, rcondo, scale, zero float64
 	var i, idiag, ik, imat, in, info, irhs, itran, iuplo, j, k, kd, lda, ldab, n, nerrs, nfail, nimat, nimat2, nk, nrhs, nrun, ntran, ntype1, ntypes int
+	var err error
+	_ = err
 
 	transs := make([]byte, 3)
 	uplos := make([]byte, 2)
@@ -101,11 +103,11 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					golapack.Dlaset('F', &n, &n, &zero, &one, ainv.Matrix(lda, opts), &lda)
 					if uplo == 'U' {
 						for j = 1; j <= n; j++ {
-							goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), &j, &kd, ab.Matrix(ldab, opts), &ldab, ainv.Off((j-1)*lda+1-1), toPtr(1))
+							err = goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), j, kd, ab.Matrix(ldab, opts), ldab, ainv.Off((j-1)*lda+1-1), 1)
 						}
 					} else {
 						for j = 1; j <= n; j++ {
-							goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), toPtr(n-j+1), &kd, ab.MatrixOff((j-1)*ldab+1-1, ldab, opts), &ldab, ainv.Off((j-1)*lda+j-1), toPtr(1))
+							err = goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), n-j+1, kd, ab.MatrixOff((j-1)*ldab+1-1, ldab, opts), ldab, ainv.Off((j-1)*lda+j-1), 1)
 						}
 					}
 
@@ -250,7 +252,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						//+    TEST 7
 						//                    Solve the system op(A)*x = b
 						*srnamt = "DLATBS"
-						goblas.Dcopy(&n, x, toPtr(1), b, toPtr(1))
+						goblas.Dcopy(n, x, 1, b, 1)
 						golapack.Dlatbs(uplo, trans, diag, 'N', &n, &kd, ab.Matrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from DLATBS.
@@ -262,7 +264,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 						//+    TEST 8
 						//                    Solve op(A)*x = b again with NORMIN = 'Y'.
-						goblas.Dcopy(&n, x, toPtr(1), b, toPtr(1))
+						goblas.Dcopy(n, x, 1, b, 1)
 						golapack.Dlatbs(uplo, trans, diag, 'Y', &n, &kd, ab.Matrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from DLATBS.

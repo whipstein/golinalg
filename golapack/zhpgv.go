@@ -15,6 +15,8 @@ func Zhpgv(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vect
 	var upper, wantz bool
 	var trans byte
 	var j, neig int
+	var err error
+	_ = err
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
@@ -69,7 +71,7 @@ func Zhpgv(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vect
 			}
 
 			for j = 1; j <= neig; j++ {
-				goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, bp, z.CVector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1), 1)
 			}
 
 		} else if (*itype) == 3 {
@@ -82,7 +84,7 @@ func Zhpgv(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vect
 			}
 
 			for j = 1; j <= neig; j++ {
-				goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, bp, z.CVector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1), 1)
 			}
 		}
 	}

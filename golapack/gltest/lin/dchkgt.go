@@ -87,10 +87,10 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				izero = 0
 
 				if n > 1 {
-					goblas.Dcopy(toPtr(n-1), af.Off(3), toPtr(3), a, toPtr(1))
-					goblas.Dcopy(toPtr(n-1), af.Off(2), toPtr(3), a.Off(n+m+1-1), toPtr(1))
+					goblas.Dcopy(n-1, af.Off(3), 3, a, 1)
+					goblas.Dcopy(n-1, af.Off(2), 3, a.Off(n+m+1-1), 1)
 				}
-				goblas.Dcopy(&n, af.Off(1), toPtr(3), a.Off(m+1-1), toPtr(1))
+				goblas.Dcopy(n, af.Off(1), 3, a.Off(m+1-1), 1)
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
@@ -98,7 +98,7 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//                 Generate a matrix with elements from [-1,1].
 					golapack.Dlarnv(toPtr(2), &iseed, toPtr(n+2*m), a)
 					if anorm != one {
-						goblas.Dscal(toPtr(n+2*m), &anorm, a, toPtr(1))
+						goblas.Dscal(n+2*m, anorm, a, 1)
 					}
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -150,7 +150,7 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			//+    TEST 1
 			//           Factor A as L*U and compute the ratio
 			//              norm(L*U - A) / (n * norm(A) * EPS )
-			goblas.Dcopy(toPtr(n+2*m), a, toPtr(1), af, toPtr(1))
+			goblas.Dcopy(n+2*m, a, 1, af, 1)
 			*srnamt = "DGTTRF"
 			golapack.Dgttrf(&n, af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, &info)
 
@@ -193,7 +193,7 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						}
 						x.Set(i-1, one)
 						golapack.Dgttrs(trans, &n, toPtr(1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.Matrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dasum(&n, x, toPtr(1)))
+						ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
 					}
 
 					//                 Compute RCONDC = 1 / (norm(A) * norm(inv(A))

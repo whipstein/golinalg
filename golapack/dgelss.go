@@ -26,6 +26,8 @@ func Dgelss(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 	var lquery bool
 	var anrm, bignum, bnrm, eps, one, sfmin, smlnum, thr, zero float64
 	var bdspac, bl, chunk, i, iascl, ibscl, ie, il, itau, itaup, itauq, iwork, ldwork, lworkDgebrd, lworkDgelqf, lworkDgeqrf, lworkDorgbr, lworkDormbr, lworkDormlq, lworkDormqr, maxmn, maxwrk, minmn, minwrk, mm, mnthr int
+	var err error
+	_ = err
 
 	dum := vf(1)
 	zero = 0.0
@@ -282,18 +284,18 @@ func Dgelss(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		//        Multiply B by right singular vectors
 		//        (Workspace: need N, prefer N*NRHS)
 		if (*lwork) >= (*ldb)*(*nrhs) && (*nrhs) > 1 {
-			goblas.Dgemm(Trans, NoTrans, n, nrhs, n, &one, a, lda, b, ldb, &zero, work.Matrix(*ldb, opts), ldb)
+			err = goblas.Dgemm(Trans, NoTrans, *n, *nrhs, *n, one, a, *lda, b, *ldb, zero, work.Matrix(*ldb, opts), *ldb)
 			Dlacpy('G', n, nrhs, work.Matrix(*ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = (*lwork) / (*n)
 			for i = 1; i <= (*nrhs); i += chunk {
 				bl = minint((*nrhs)-i+1, chunk)
-				goblas.Dgemm(Trans, NoTrans, n, &bl, n, &one, a, lda, b.Off(0, i-1), ldb, &zero, work.Matrix(*n, opts), n)
+				err = goblas.Dgemm(Trans, NoTrans, *n, bl, *n, one, a, *lda, b.Off(0, i-1), *ldb, zero, work.Matrix(*n, opts), *n)
 				Dlacpy('G', n, &bl, work.Matrix(*n, opts), n, b.Off(0, i-1), ldb)
 			}
 		} else {
-			goblas.Dgemv(Trans, n, n, &one, a, lda, b.VectorIdx(0), toPtr(1), &zero, work, toPtr(1))
-			goblas.Dcopy(n, work, toPtr(1), b.VectorIdx(0), toPtr(1))
+			err = goblas.Dgemv(Trans, *n, *n, one, a, *lda, b.VectorIdx(0), 1, zero, work, 1)
+			goblas.Dcopy(*n, work, 1, b.VectorIdx(0), 1)
 		}
 
 	} else if (*n) >= mnthr && (*lwork) >= 4*(*m)+(*m)*(*m)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)) {
@@ -360,18 +362,18 @@ func Dgelss(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		//        Multiply B by right singular vectors of L in WORK(IL)
 		//        (Workspace: need M*M+2*M, prefer M*M+M+M*NRHS)
 		if (*lwork) >= (*ldb)*(*nrhs)+iwork-1 && (*nrhs) > 1 {
-			goblas.Dgemm(Trans, NoTrans, m, nrhs, m, &one, work.MatrixOff(il-1, ldwork, opts), &ldwork, b, ldb, &zero, work.MatrixOff(iwork-1, *ldb, opts), ldb)
+			err = goblas.Dgemm(Trans, NoTrans, *m, *nrhs, *m, one, work.MatrixOff(il-1, ldwork, opts), ldwork, b, *ldb, zero, work.MatrixOff(iwork-1, *ldb, opts), *ldb)
 			Dlacpy('G', m, nrhs, work.MatrixOff(iwork-1, *ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = ((*lwork) - iwork + 1) / (*m)
 			for i = 1; i <= (*nrhs); i += chunk {
 				bl = minint((*nrhs)-i+1, chunk)
-				goblas.Dgemm(Trans, NoTrans, m, &bl, m, &one, work.MatrixOff(il-1, ldwork, opts), &ldwork, b.Off(0, i-1), ldb, &zero, work.MatrixOff(iwork-1, *m, opts), m)
+				err = goblas.Dgemm(Trans, NoTrans, *m, bl, *m, one, work.MatrixOff(il-1, ldwork, opts), ldwork, b.Off(0, i-1), *ldb, zero, work.MatrixOff(iwork-1, *m, opts), *m)
 				Dlacpy('G', m, &bl, work.MatrixOff(iwork-1, *m, opts), m, b.Off(0, i-1), ldb)
 			}
 		} else {
-			goblas.Dgemv(Trans, m, m, &one, work.MatrixOff(il-1, ldwork, opts), &ldwork, b.Vector(0, 0), toPtr(1), &zero, work.Off(iwork-1), toPtr(1))
-			goblas.Dcopy(m, work.Off(iwork-1), toPtr(1), b.Vector(0, 0), toPtr(1))
+			err = goblas.Dgemv(Trans, *m, *m, one, work.MatrixOff(il-1, ldwork, opts), ldwork, b.Vector(0, 0), 1, zero, work.Off(iwork-1), 1)
+			goblas.Dcopy(*m, work.Off(iwork-1), 1, b.Vector(0, 0), 1)
 		}
 
 		//        Zero out below first M rows of B
@@ -429,18 +431,18 @@ func Dgelss(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		//        Multiply B by right singular vectors of A
 		//        (Workspace: need N, prefer N*NRHS)
 		if (*lwork) >= (*ldb)*(*nrhs) && (*nrhs) > 1 {
-			goblas.Dgemm(Trans, NoTrans, n, nrhs, m, &one, a, lda, b, ldb, &zero, work.Matrix(*ldb, opts), ldb)
+			err = goblas.Dgemm(Trans, NoTrans, *n, *nrhs, *m, one, a, *lda, b, *ldb, zero, work.Matrix(*ldb, opts), *ldb)
 			Dlacpy('F', n, nrhs, work.Matrix(*ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = (*lwork) / (*n)
 			for i = 1; i <= (*nrhs); i += chunk {
 				bl = minint((*nrhs)-i+1, chunk)
-				goblas.Dgemm(Trans, NoTrans, n, &bl, m, &one, a, lda, b.Off(0, i-1), ldb, &zero, work.Matrix(*n, opts), n)
+				err = goblas.Dgemm(Trans, NoTrans, *n, bl, *m, one, a, *lda, b.Off(0, i-1), *ldb, zero, work.Matrix(*n, opts), *n)
 				Dlacpy('F', n, &bl, work.Matrix(*n, opts), n, b.Off(0, i-1), ldb)
 			}
 		} else {
-			goblas.Dgemv(Trans, m, n, &one, a, lda, b.VectorIdx(0), toPtr(1), &zero, work, toPtr(1))
-			goblas.Dcopy(n, work, toPtr(1), b.VectorIdx(0), toPtr(1))
+			err = goblas.Dgemv(Trans, *m, *n, one, a, *lda, b.VectorIdx(0), 1, zero, work, 1)
+			goblas.Dcopy(*n, work, 1, b.VectorIdx(0), 1)
 		}
 	}
 

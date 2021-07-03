@@ -12,6 +12,8 @@ func Zlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, s *mat.CVecto
 	var alpha, beta, one, refsum, zero complex128
 	var h11, h12, h21, h22, rone, rzero, safmax, safmin, scl, smlnum, tst1, tst2, ulp float64
 	var i2, i4, incol, j, j2, j4, jbot, jcol, jlen, jrow, jtop, k, k1, kdu, kms, knz, krcol, kzs, m, m22, mbot, mend, mstart, mtop, nbmps, ndcol, ns, nu int
+	var err error
+	_ = err
 	vt := cvf(3)
 
 	zero = (0.0 + 0.0*1i)
@@ -360,14 +362,14 @@ func Zlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, s *mat.CVecto
 				//              ==== Horizontal Multiply ====
 				for jcol = minint(ndcol, *kbot) + 1; jcol <= jbot; jcol += (*nh) {
 					jlen = minint(*nh, jbot-jcol+1)
-					goblas.Zgemm(ConjTrans, NoTrans, &nu, &jlen, &nu, &one, u.Off(k1-1, k1-1), ldu, h.Off(incol+k1-1, jcol-1), ldh, &zero, wh, ldwh)
+					err = goblas.Zgemm(ConjTrans, NoTrans, nu, jlen, nu, one, u.Off(k1-1, k1-1), *ldu, h.Off(incol+k1-1, jcol-1), *ldh, zero, wh, *ldwh)
 					Zlacpy('A', &nu, &jlen, wh, ldwh, h.Off(incol+k1-1, jcol-1), ldh)
 				}
 
 				//              ==== Vertical multiply ====
 				for jrow = jtop; jrow <= maxint(*ktop, incol)-1; jrow += (*nv) {
 					jlen = minint(*nv, maxint(*ktop, incol)-jrow)
-					goblas.Zgemm(NoTrans, NoTrans, &jlen, &nu, &nu, &one, h.Off(jrow-1, incol+k1-1), ldh, u.Off(k1-1, k1-1), ldu, &zero, wv, ldwv)
+					err = goblas.Zgemm(NoTrans, NoTrans, jlen, nu, nu, one, h.Off(jrow-1, incol+k1-1), *ldh, u.Off(k1-1, k1-1), *ldu, zero, wv, *ldwv)
 					Zlacpy('A', &jlen, &nu, wv, ldwv, h.Off(jrow-1, incol+k1-1), ldh)
 				}
 
@@ -375,7 +377,7 @@ func Zlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, s *mat.CVecto
 				if wantz {
 					for jrow = (*iloz); jrow <= (*ihiz); jrow += (*nv) {
 						jlen = minint(*nv, (*ihiz)-jrow+1)
-						goblas.Zgemm(NoTrans, NoTrans, &jlen, &nu, &nu, &one, z.Off(jrow-1, incol+k1-1), ldz, u.Off(k1-1, k1-1), ldu, &zero, wv, ldwv)
+						err = goblas.Zgemm(NoTrans, NoTrans, jlen, nu, nu, one, z.Off(jrow-1, incol+k1-1), *ldz, u.Off(k1-1, k1-1), *ldu, zero, wv, *ldwv)
 						Zlacpy('A', &jlen, &nu, wv, ldwv, z.Off(jrow-1, incol+k1-1), ldz)
 					}
 				}
@@ -404,19 +406,19 @@ func Zlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, s *mat.CVecto
 
 					//                 ==== Multiply by U21**H ====
 					Zlaset('A', &kzs, &jlen, &zero, &zero, wh, ldwh)
-					goblas.Ztrmm(Left, Upper, ConjTrans, NonUnit, &knz, &jlen, &one, u.Off(j2+1-1, 1+kzs-1), ldu, wh.Off(kzs+1-1, 0), ldwh)
+					err = goblas.Ztrmm(Left, Upper, ConjTrans, NonUnit, knz, jlen, one, u.Off(j2+1-1, 1+kzs-1), *ldu, wh.Off(kzs+1-1, 0), *ldwh)
 
 					//                 ==== Multiply top of H by U11**H ====
-					goblas.Zgemm(ConjTrans, NoTrans, &i2, &jlen, &j2, &one, u, ldu, h.Off(incol+1-1, jcol-1), ldh, &one, wh, ldwh)
+					err = goblas.Zgemm(ConjTrans, NoTrans, i2, jlen, j2, one, u, *ldu, h.Off(incol+1-1, jcol-1), *ldh, one, wh, *ldwh)
 
 					//                 ==== Copy top of H to bottom of WH ====
 					Zlacpy('A', &j2, &jlen, h.Off(incol+1-1, jcol-1), ldh, wh.Off(i2+1-1, 0), ldwh)
 
 					//                 ==== Multiply by U21**H ====
-					goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, &j2, &jlen, &one, u.Off(0, i2+1-1), ldu, wh.Off(i2+1-1, 0), ldwh)
+					err = goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, j2, jlen, one, u.Off(0, i2+1-1), *ldu, wh.Off(i2+1-1, 0), *ldwh)
 
 					//                 ==== Multiply by U22 ====
-					goblas.Zgemm(ConjTrans, NoTrans, toPtr(i4-i2), &jlen, toPtr(j4-j2), &one, u.Off(j2+1-1, i2+1-1), ldu, h.Off(incol+1+j2-1, jcol-1), ldh, &one, wh.Off(i2+1-1, 0), ldwh)
+					err = goblas.Zgemm(ConjTrans, NoTrans, i4-i2, jlen, j4-j2, one, u.Off(j2+1-1, i2+1-1), *ldu, h.Off(incol+1+j2-1, jcol-1), *ldh, one, wh.Off(i2+1-1, 0), *ldwh)
 
 					//                 ==== Copy it back ====
 					Zlacpy('A', &kdu, &jlen, wh, ldwh, h.Off(incol+1-1, jcol-1), ldh)
@@ -432,19 +434,19 @@ func Zlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, s *mat.CVecto
 
 					//                 ==== Multiply by U21 ====
 					Zlaset('A', &jlen, &kzs, &zero, &zero, wv, ldwv)
-					goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, &jlen, &knz, &one, u.Off(j2+1-1, 1+kzs-1), ldu, wv.Off(0, 1+kzs-1), ldwv)
+					err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2+1-1, 1+kzs-1), *ldu, wv.Off(0, 1+kzs-1), *ldwv)
 
 					//                 ==== Multiply by U11 ====
-					goblas.Zgemm(NoTrans, NoTrans, &jlen, &i2, &j2, &one, h.Off(jrow-1, incol+1-1), ldh, u, ldu, &one, wv, ldwv)
+					err = goblas.Zgemm(NoTrans, NoTrans, jlen, i2, j2, one, h.Off(jrow-1, incol+1-1), *ldh, u, *ldu, one, wv, *ldwv)
 
 					//                 ==== Copy left of H to right of scratch ====
 					Zlacpy('A', &jlen, &j2, h.Off(jrow-1, incol+1-1), ldh, wv.Off(0, 1+i2-1), ldwv)
 
 					//                 ==== Multiply by U21 ====
-					goblas.Ztrmm(Right, Lower, NoTrans, NonUnit, &jlen, toPtr(i4-i2), &one, u.Off(0, i2+1-1), ldu, wv.Off(0, 1+i2-1), ldwv)
+					err = goblas.Ztrmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2+1-1), *ldu, wv.Off(0, 1+i2-1), *ldwv)
 
 					//                 ==== Multiply by U22 ====
-					goblas.Zgemm(NoTrans, NoTrans, &jlen, toPtr(i4-i2), toPtr(j4-j2), &one, h.Off(jrow-1, incol+1+j2-1), ldh, u.Off(j2+1-1, i2+1-1), ldu, &one, wv.Off(0, 1+i2-1), ldwv)
+					err = goblas.Zgemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, h.Off(jrow-1, incol+1+j2-1), *ldh, u.Off(j2+1-1, i2+1-1), *ldu, one, wv.Off(0, 1+i2-1), *ldwv)
 
 					//                 ==== Copy it back ====
 					Zlacpy('A', &jlen, &kdu, wv, ldwv, h.Off(jrow-1, incol+1-1), ldh)
@@ -461,19 +463,19 @@ func Zlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, s *mat.CVecto
 
 						//                    ==== Multiply by U12 ====
 						Zlaset('A', &jlen, &kzs, &zero, &zero, wv, ldwv)
-						goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, &jlen, &knz, &one, u.Off(j2+1-1, 1+kzs-1), ldu, wv.Off(0, 1+kzs-1), ldwv)
+						err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2+1-1, 1+kzs-1), *ldu, wv.Off(0, 1+kzs-1), *ldwv)
 
 						//                    ==== Multiply by U11 ====
-						goblas.Zgemm(NoTrans, NoTrans, &jlen, &i2, &j2, &one, z.Off(jrow-1, incol+1-1), ldz, u, ldu, &one, wv, ldwv)
+						err = goblas.Zgemm(NoTrans, NoTrans, jlen, i2, j2, one, z.Off(jrow-1, incol+1-1), *ldz, u, *ldu, one, wv, *ldwv)
 
 						//                    ==== Copy left of Z to right of scratch ====
 						Zlacpy('A', &jlen, &j2, z.Off(jrow-1, incol+1-1), ldz, wv.Off(0, 1+i2-1), ldwv)
 
 						//                    ==== Multiply by U21 ====
-						goblas.Ztrmm(Right, Lower, NoTrans, NonUnit, &jlen, toPtr(i4-i2), &one, u.Off(0, i2+1-1), ldu, wv.Off(0, 1+i2-1), ldwv)
+						err = goblas.Ztrmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2+1-1), *ldu, wv.Off(0, 1+i2-1), *ldwv)
 
 						//                    ==== Multiply by U22 ====
-						goblas.Zgemm(NoTrans, NoTrans, &jlen, toPtr(i4-i2), toPtr(j4-j2), &one, z.Off(jrow-1, incol+1+j2-1), ldz, u.Off(j2+1-1, i2+1-1), ldu, &one, wv.Off(0, 1+i2-1), ldwv)
+						err = goblas.Zgemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, z.Off(jrow-1, incol+1+j2-1), *ldz, u.Off(j2+1-1, i2+1-1), *ldu, one, wv.Off(0, 1+i2-1), *ldwv)
 
 						//                    ==== Copy the result back to Z ====
 						Zlacpy('A', &jlen, &kdu, wv, ldwv, z.Off(jrow-1, incol+1-1), ldz)

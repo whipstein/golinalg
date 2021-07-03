@@ -37,7 +37,7 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		return
 	}
 
-	xnorm = goblas.Dnrm2(toPtr((*n)-1), x, incx)
+	xnorm = goblas.Dnrm2((*n)-1, x, *incx)
 
 	if xnorm == zero {
 		//        H  =  [+/-1, 0; I], sign chosen so ALPHA >= 0
@@ -66,7 +66,7 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		label10:
 			;
 			knt = knt + 1
-			goblas.Dscal(toPtr((*n)-1), &bignum, x, incx)
+			goblas.Dscal((*n)-1, bignum, x, *incx)
 			beta = beta * bignum
 			(*alpha) = (*alpha) * bignum
 			if (math.Abs(beta) < smlnum) && (knt < 20) {
@@ -74,7 +74,7 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 			}
 
 			//           New BETA is at most 1, at least SMLNUM
-			xnorm = goblas.Dnrm2(toPtr((*n)-1), x, incx)
+			xnorm = goblas.Dnrm2((*n)-1, x, *incx)
 			beta = math.Copysign(Dlapy2(alpha, &xnorm), *alpha)
 		}
 		savealpha = (*alpha)
@@ -107,7 +107,7 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 
 		} else {
 			//           This is the general case.
-			goblas.Dscal(toPtr((*n)-1), toPtrf64(one/(*alpha)), x, incx)
+			goblas.Dscal((*n)-1, one/(*alpha), x, *incx)
 
 		}
 

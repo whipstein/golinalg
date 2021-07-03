@@ -498,9 +498,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b21d.Set(imax-1, -b21d.Get(imax-1))
 			if wantv1t {
 				if colmajor {
-					goblas.Dscal(q, &negone, v1t.Vector(imax-1, 0), ldv1t)
+					goblas.Dscal(*q, negone, v1t.Vector(imax-1, 0), *ldv1t)
 				} else {
-					goblas.Dscal(q, &negone, v1t.Vector(0, imax-1), func() *int { y := 1; return &y }())
+					goblas.Dscal(*q, negone, v1t.Vector(0, imax-1), 1)
 				}
 			}
 		}
@@ -517,9 +517,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b12d.Set(imax-1, -b12d.Get(imax-1))
 			if wantu1 {
 				if colmajor {
-					goblas.Dscal(p, &negone, u1.Vector(0, imax-1), func() *int { y := 1; return &y }())
+					goblas.Dscal(*p, negone, u1.Vector(0, imax-1), 1)
 				} else {
-					goblas.Dscal(p, &negone, u1.Vector(imax-1, 0), ldu1)
+					goblas.Dscal(*p, negone, u1.Vector(imax-1, 0), *ldu1)
 				}
 			}
 		}
@@ -527,9 +527,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b22d.Set(imax-1, -b22d.Get(imax-1))
 			if wantu2 {
 				if colmajor {
-					goblas.Dscal(toPtr((*m)-(*p)), &negone, u2.Vector(0, imax-1), func() *int { y := 1; return &y }())
+					goblas.Dscal((*m)-(*p), negone, u2.Vector(0, imax-1), 1)
 				} else {
-					goblas.Dscal(toPtr((*m)-(*p)), &negone, u2.Vector(imax-1, 0), ldu2)
+					goblas.Dscal((*m)-(*p), negone, u2.Vector(imax-1, 0), *ldu2)
 				}
 			}
 		}
@@ -538,9 +538,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		if b12d.Get(imax-1)+b22d.Get(imax-1) < 0 {
 			if wantv2t {
 				if colmajor {
-					goblas.Dscal(toPtr((*m)-(*q)), &negone, v2t.Vector(imax-1, 0), ldv2t)
+					goblas.Dscal((*m)-(*q), negone, v2t.Vector(imax-1, 0), *ldv2t)
 				} else {
-					goblas.Dscal(toPtr((*m)-(*q)), &negone, v2t.Vector(0, imax-1), func() *int { y := 1; return &y }())
+					goblas.Dscal((*m)-(*q), negone, v2t.Vector(0, imax-1), 1)
 				}
 			}
 		}
@@ -602,29 +602,29 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			theta.Set(i-1, thetamin)
 			if colmajor {
 				if wantu1 {
-					goblas.Dswap(p, u1.Vector(0, i-1), func() *int { y := 1; return &y }(), u1.Vector(0, mini-1), func() *int { y := 1; return &y }())
+					goblas.Dswap(*p, u1.Vector(0, i-1), 1, u1.Vector(0, mini-1), 1)
 				}
 				if wantu2 {
-					goblas.Dswap(toPtr((*m)-(*p)), u2.Vector(0, i-1), func() *int { y := 1; return &y }(), u2.Vector(0, mini-1), func() *int { y := 1; return &y }())
+					goblas.Dswap((*m)-(*p), u2.Vector(0, i-1), 1, u2.Vector(0, mini-1), 1)
 				}
 				if wantv1t {
-					goblas.Dswap(q, v1t.Vector(i-1, 0), ldv1t, v1t.Vector(mini-1, 0), ldv1t)
+					goblas.Dswap(*q, v1t.Vector(i-1, 0), *ldv1t, v1t.Vector(mini-1, 0), *ldv1t)
 				}
 				if wantv2t {
-					goblas.Dswap(toPtr((*m)-(*q)), v2t.Vector(i-1, 0), ldv2t, v2t.Vector(mini-1, 0), ldv2t)
+					goblas.Dswap((*m)-(*q), v2t.Vector(i-1, 0), *ldv2t, v2t.Vector(mini-1, 0), *ldv2t)
 				}
 			} else {
 				if wantu1 {
-					goblas.Dswap(p, u1.Vector(i-1, 0), ldu1, u1.Vector(mini-1, 0), ldu1)
+					goblas.Dswap(*p, u1.Vector(i-1, 0), *ldu1, u1.Vector(mini-1, 0), *ldu1)
 				}
 				if wantu2 {
-					goblas.Dswap(toPtr((*m)-(*p)), u2.Vector(i-1, 0), ldu2, u2.Vector(mini-1, 0), ldu2)
+					goblas.Dswap((*m)-(*p), u2.Vector(i-1, 0), *ldu2, u2.Vector(mini-1, 0), *ldu2)
 				}
 				if wantv1t {
-					goblas.Dswap(q, v1t.Vector(0, i-1), func() *int { y := 1; return &y }(), v1t.Vector(0, mini-1), func() *int { y := 1; return &y }())
+					goblas.Dswap(*q, v1t.Vector(0, i-1), 1, v1t.Vector(0, mini-1), 1)
 				}
 				if wantv2t {
-					goblas.Dswap(toPtr((*m)-(*q)), v2t.Vector(0, i-1), func() *int { y := 1; return &y }(), v2t.Vector(0, mini-1), func() *int { y := 1; return &y }())
+					goblas.Dswap((*m)-(*q), v2t.Vector(0, i-1), 1, v2t.Vector(0, mini-1), 1)
 				}
 			}
 		}

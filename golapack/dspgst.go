@@ -22,6 +22,8 @@ func Dspgst(itype *int, uplo byte, n *int, ap, bp *mat.Vector, info *int) {
 	var upper bool
 	var ajj, akk, bjj, bkk, ct, half, one float64
 	var j, j1, j1j1, jj, k, k1, k1k1, kk int
+	var err error
+	_ = err
 
 	one = 1.0
 	half = 0.5
@@ -53,10 +55,10 @@ func Dspgst(itype *int, uplo byte, n *int, ap, bp *mat.Vector, info *int) {
 
 				//              Compute the j-th column of the upper triangle of A
 				bjj = bp.Get(jj - 1)
-				goblas.Dtpsv(mat.UploByte(uplo), Trans, NonUnit, &j, bp, ap.Off(j1-1), func() *int { y := 1; return &y }())
-				goblas.Dspmv(mat.UploByte(uplo), toPtr(j-1), toPtrf64(-one), ap, bp.Off(j1-1), func() *int { y := 1; return &y }(), &one, ap.Off(j1-1), func() *int { y := 1; return &y }())
-				goblas.Dscal(toPtr(j-1), toPtrf64(one/bjj), ap.Off(j1-1), func() *int { y := 1; return &y }())
-				ap.Set(jj-1, (ap.Get(jj-1)-goblas.Ddot(toPtr(j-1), ap.Off(j1-1), func() *int { y := 1; return &y }(), bp.Off(j1-1), func() *int { y := 1; return &y }()))/bjj)
+				err = goblas.Dtpsv(mat.UploByte(uplo), Trans, NonUnit, j, bp, ap.Off(j1-1), 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), j-1, -one, ap, bp.Off(j1-1), 1, one, ap.Off(j1-1), 1)
+				goblas.Dscal(j-1, one/bjj, ap.Off(j1-1), 1)
+				ap.Set(jj-1, (ap.Get(jj-1)-goblas.Ddot(j-1, ap.Off(j1-1), 1, bp.Off(j1-1), 1))/bjj)
 			}
 		} else {
 			//           Compute inv(L)*A*inv(L**T)
@@ -72,12 +74,12 @@ func Dspgst(itype *int, uplo byte, n *int, ap, bp *mat.Vector, info *int) {
 				akk = akk / math.Pow(bkk, 2)
 				ap.Set(kk-1, akk)
 				if k < (*n) {
-					goblas.Dscal(toPtr((*n)-k), toPtrf64(one/bkk), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
+					goblas.Dscal((*n)-k, one/bkk, ap.Off(kk+1-1), 1)
 					ct = -half * akk
-					goblas.Daxpy(toPtr((*n)-k), &ct, bp.Off(kk+1-1), func() *int { y := 1; return &y }(), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
-					goblas.Dspr2(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(-one), ap.Off(kk+1-1), func() *int { y := 1; return &y }(), bp.Off(kk+1-1), func() *int { y := 1; return &y }(), ap.Off(k1k1-1))
-					goblas.Daxpy(toPtr((*n)-k), &ct, bp.Off(kk+1-1), func() *int { y := 1; return &y }(), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
-					goblas.Dtpsv(mat.UploByte(uplo), NoTrans, NonUnit, toPtr((*n)-k), bp.Off(k1k1-1), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
+					goblas.Daxpy((*n)-k, ct, bp.Off(kk+1-1), 1, ap.Off(kk+1-1), 1)
+					err = goblas.Dspr2(mat.UploByte(uplo), (*n)-k, -one, ap.Off(kk+1-1), 1, bp.Off(kk+1-1), 1, ap.Off(k1k1-1))
+					goblas.Daxpy((*n)-k, ct, bp.Off(kk+1-1), 1, ap.Off(kk+1-1), 1)
+					err = goblas.Dtpsv(mat.UploByte(uplo), NoTrans, NonUnit, (*n)-k, bp.Off(k1k1-1), ap.Off(kk+1-1), 1)
 				}
 				kk = k1k1
 			}
@@ -95,12 +97,12 @@ func Dspgst(itype *int, uplo byte, n *int, ap, bp *mat.Vector, info *int) {
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = ap.Get(kk - 1)
 				bkk = bp.Get(kk - 1)
-				goblas.Dtpmv(mat.UploByte(uplo), NoTrans, NonUnit, toPtr(k-1), bp, ap.Off(k1-1), func() *int { y := 1; return &y }())
+				err = goblas.Dtpmv(mat.UploByte(uplo), NoTrans, NonUnit, k-1, bp, ap.Off(k1-1), 1)
 				ct = half * akk
-				goblas.Daxpy(toPtr(k-1), &ct, bp.Off(k1-1), func() *int { y := 1; return &y }(), ap.Off(k1-1), func() *int { y := 1; return &y }())
-				goblas.Dspr2(mat.UploByte(uplo), toPtr(k-1), &one, ap.Off(k1-1), func() *int { y := 1; return &y }(), bp.Off(k1-1), func() *int { y := 1; return &y }(), ap)
-				goblas.Daxpy(toPtr(k-1), &ct, bp.Off(k1-1), func() *int { y := 1; return &y }(), ap.Off(k1-1), func() *int { y := 1; return &y }())
-				goblas.Dscal(toPtr(k-1), &bkk, ap.Off(k1-1), func() *int { y := 1; return &y }())
+				goblas.Daxpy(k-1, ct, bp.Off(k1-1), 1, ap.Off(k1-1), 1)
+				err = goblas.Dspr2(mat.UploByte(uplo), k-1, one, ap.Off(k1-1), 1, bp.Off(k1-1), 1, ap)
+				goblas.Daxpy(k-1, ct, bp.Off(k1-1), 1, ap.Off(k1-1), 1)
+				goblas.Dscal(k-1, bkk, ap.Off(k1-1), 1)
 				ap.Set(kk-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -114,10 +116,10 @@ func Dspgst(itype *int, uplo byte, n *int, ap, bp *mat.Vector, info *int) {
 				//              Compute the j-th column of the lower triangle of A
 				ajj = ap.Get(jj - 1)
 				bjj = bp.Get(jj - 1)
-				ap.Set(jj-1, ajj*bjj+goblas.Ddot(toPtr((*n)-j), ap.Off(jj+1-1), func() *int { y := 1; return &y }(), bp.Off(jj+1-1), func() *int { y := 1; return &y }()))
-				goblas.Dscal(toPtr((*n)-j), &bjj, ap.Off(jj+1-1), func() *int { y := 1; return &y }())
-				goblas.Dspmv(mat.UploByte(uplo), toPtr((*n)-j), &one, ap.Off(j1j1-1), bp.Off(jj+1-1), func() *int { y := 1; return &y }(), &one, ap.Off(jj+1-1), func() *int { y := 1; return &y }())
-				goblas.Dtpmv(mat.UploByte(uplo), Trans, NonUnit, toPtr((*n)-j+1), bp.Off(jj-1), ap.Off(jj-1), func() *int { y := 1; return &y }())
+				ap.Set(jj-1, ajj*bjj+goblas.Ddot((*n)-j, ap.Off(jj+1-1), 1, bp.Off(jj+1-1), 1))
+				goblas.Dscal((*n)-j, bjj, ap.Off(jj+1-1), 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-j, one, ap.Off(j1j1-1), bp.Off(jj+1-1), 1, one, ap.Off(jj+1-1), 1)
+				err = goblas.Dtpmv(mat.UploByte(uplo), Trans, NonUnit, (*n)-j+1, bp.Off(jj-1), ap.Off(jj-1), 1)
 				jj = j1j1
 			}
 		}

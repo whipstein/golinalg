@@ -68,7 +68,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 	//     part of T to control overflow in triangular solver.
 	work.Set(0, zero)
 	for j = 2; j <= (*n); j++ {
-		work.Set(j-1, goblas.Dasum(toPtr(j-1), t.Vector(0, j-1), func() *int { y := 1; return &y }()))
+		work.Set(j-1, goblas.Dasum(j-1, t.Vector(0, j-1), 1))
 	}
 
 	if !lreal {
@@ -82,13 +82,13 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 	if !lreal {
 		n1 = n2
 	}
-	k = goblas.Idamax(&n1, x, func() *int { y := 1; return &y }())
+	k = goblas.Idamax(n1, x, 1)
 	xmax = math.Abs(x.Get(k - 1))
 	(*scale) = one
 
 	if xmax > bignum {
 		(*scale) = bignum / xmax
-		goblas.Dscal(&n1, scale, x, func() *int { y := 1; return &y }())
+		goblas.Dscal(n1, *scale, x, 1)
 		xmax = bignum
 	}
 
@@ -132,7 +132,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if tjj < one {
 						if xj > bignum*tjj {
 							rec = one / xj
-							goblas.Dscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -145,13 +145,13 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xj > one {
 						rec = one / xj
 						if work.Get(j1-1) > (bignum-xmax)*rec {
-							goblas.Dscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 						}
 					}
 					if j1 > 1 {
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get(j1-1)), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
-						k = goblas.Idamax(toPtr(j1-1), x, func() *int { y := 1; return &y }())
+						goblas.Daxpy(j1-1, -x.Get(j1-1), t.Vector(0, j1-1), 1, x, 1)
+						k = goblas.Idamax(j1-1, x, 1)
 						xmax = math.Abs(x.Get(k - 1))
 					}
 
@@ -168,7 +168,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					}
 
 					if scaloc != one {
-						goblas.Dscal(n, &scaloc, x, func() *int { y := 1; return &y }())
+						goblas.Dscal(*n, scaloc, x, 1)
 						(*scale) = (*scale) * scaloc
 					}
 					x.Set(j1-1, v.Get(0, 0))
@@ -180,16 +180,16 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xj > one {
 						rec = one / xj
 						if maxf64(work.Get(j1-1), work.Get(j2-1)) > (bignum-xmax)*rec {
-							goblas.Dscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 						}
 					}
 
 					//                 Update right-hand side
 					if j1 > 1 {
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get(j1-1)), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get(j2-1)), t.Vector(0, j2-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
-						k = goblas.Idamax(toPtr(j1-1), x, func() *int { y := 1; return &y }())
+						goblas.Daxpy(j1-1, -x.Get(j1-1), t.Vector(0, j1-1), 1, x, 1)
+						goblas.Daxpy(j1-1, -x.Get(j2-1), t.Vector(0, j2-1), 1, x, 1)
+						k = goblas.Idamax(j1-1, x, 1)
 						xmax = math.Abs(x.Get(k - 1))
 					}
 
@@ -224,13 +224,13 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xmax > one {
 						rec = one / xmax
 						if work.Get(j1-1) > (bignum-xj)*rec {
-							goblas.Dscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
 					}
 
-					x.Set(j1-1, x.Get(j1-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }()))
+					x.Set(j1-1, x.Get(j1-1)-goblas.Ddot(j1-1, t.Vector(0, j1-1), 1, x, 1))
 
 					xj = math.Abs(x.Get(j1 - 1))
 					tjj = math.Abs(t.Get(j1-1, j1-1))
@@ -244,7 +244,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if tjj < one {
 						if xj > bignum*tjj {
 							rec = one / xj
-							goblas.Dscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -261,14 +261,14 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xmax > one {
 						rec = one / xmax
 						if maxf64(work.Get(j2-1), work.Get(j1-1)) > (bignum-xj)*rec {
-							goblas.Dscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
 					}
 
-					d.Set(0, 0, x.Get(j1-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }()))
-					d.Set(1, 0, x.Get(j2-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j2-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }()))
+					d.Set(0, 0, x.Get(j1-1)-goblas.Ddot(j1-1, t.Vector(0, j1-1), 1, x, 1))
+					d.Set(1, 0, x.Get(j2-1)-goblas.Ddot(j1-1, t.Vector(0, j2-1), 1, x, 1))
 
 					Dlaln2(true, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, t.Off(j1-1, j1-1), ldt, &one, &one, d, func() *int { y := 2; return &y }(), &zero, &zero, v, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
 					if ierr != 0 {
@@ -276,7 +276,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					}
 
 					if scaloc != one {
-						goblas.Dscal(n, &scaloc, x, func() *int { y := 1; return &y }())
+						goblas.Dscal(*n, scaloc, x, 1)
 						(*scale) = (*scale) * scaloc
 					}
 					x.Set(j1-1, v.Get(0, 0))
@@ -332,7 +332,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if tjj < one {
 						if xj > bignum*tjj {
 							rec = one / xj
-							goblas.Dscal(&n2, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(n2, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -347,14 +347,14 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xj > one {
 						rec = one / xj
 						if work.Get(j1-1) > (bignum-xmax)*rec {
-							goblas.Dscal(&n2, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(n2, rec, x, 1)
 							(*scale) = (*scale) * rec
 						}
 					}
 
 					if j1 > 1 {
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get(j1-1)), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get((*n)+j1-1)), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x.Off((*n)+1-1), func() *int { y := 1; return &y }())
+						goblas.Daxpy(j1-1, -x.Get(j1-1), t.Vector(0, j1-1), 1, x, 1)
+						goblas.Daxpy(j1-1, -x.Get((*n)+j1-1), t.Vector(0, j1-1), 1, x.Off((*n)+1-1), 1)
 
 						x.Set(0, x.Get(0)+b.Get(j1-1)*x.Get((*n)+j1-1))
 						x.Set((*n)+1-1, x.Get((*n)+1-1)-b.Get(j1-1)*x.Get(j1-1))
@@ -377,7 +377,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					}
 
 					if scaloc != one {
-						goblas.Dscal(toPtr(2*(*n)), &scaloc, x, func() *int { y := 1; return &y }())
+						goblas.Dscal(2*(*n), scaloc, x, 1)
 						(*scale) = scaloc * (*scale)
 					}
 					x.Set(j1-1, v.Get(0, 0))
@@ -391,18 +391,18 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xj > one {
 						rec = one / xj
 						if maxf64(work.Get(j1-1), work.Get(j2-1)) > (bignum-xmax)*rec {
-							goblas.Dscal(&n2, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(n2, rec, x, 1)
 							(*scale) = (*scale) * rec
 						}
 					}
 
 					//                 Update the right-hand side.
 					if j1 > 1 {
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get(j1-1)), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get(j2-1)), t.Vector(0, j2-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
+						goblas.Daxpy(j1-1, -x.Get(j1-1), t.Vector(0, j1-1), 1, x, 1)
+						goblas.Daxpy(j1-1, -x.Get(j2-1), t.Vector(0, j2-1), 1, x, 1)
 
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get((*n)+j1-1)), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x.Off((*n)+1-1), func() *int { y := 1; return &y }())
-						goblas.Daxpy(toPtr(j1-1), toPtrf64(-x.Get((*n)+j2-1)), t.Vector(0, j2-1), func() *int { y := 1; return &y }(), x.Off((*n)+1-1), func() *int { y := 1; return &y }())
+						goblas.Daxpy(j1-1, -x.Get((*n)+j1-1), t.Vector(0, j1-1), 1, x.Off((*n)+1-1), 1)
+						goblas.Daxpy(j1-1, -x.Get((*n)+j2-1), t.Vector(0, j2-1), 1, x.Off((*n)+1-1), 1)
 
 						x.Set(0, x.Get(0)+b.Get(j1-1)*x.Get((*n)+j1-1)+b.Get(j2-1)*x.Get((*n)+j2-1))
 						x.Set((*n)+1-1, x.Get((*n)+1-1)-b.Get(j1-1)*x.Get(j1-1)-b.Get(j2-1)*x.Get(j2-1))
@@ -443,14 +443,14 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xmax > one {
 						rec = one / xmax
 						if work.Get(j1-1) > (bignum-xj)*rec {
-							goblas.Dscal(&n2, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(n2, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
 					}
 
-					x.Set(j1-1, x.Get(j1-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }()))
-					x.Set((*n)+j1-1, x.Get((*n)+j1-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x.Off((*n)+1-1), func() *int { y := 1; return &y }()))
+					x.Set(j1-1, x.Get(j1-1)-goblas.Ddot(j1-1, t.Vector(0, j1-1), 1, x, 1))
+					x.Set((*n)+j1-1, x.Get((*n)+j1-1)-goblas.Ddot(j1-1, t.Vector(0, j1-1), 1, x.Off((*n)+1-1), 1))
 					if j1 > 1 {
 						x.Set(j1-1, x.Get(j1-1)-b.Get(j1-1)*x.Get((*n)+1-1))
 						x.Set((*n)+j1-1, x.Get((*n)+j1-1)+b.Get(j1-1)*x.Get(0))
@@ -475,7 +475,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if tjj < one {
 						if xj > bignum*tjj {
 							rec = one / xj
-							goblas.Dscal(&n2, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(n2, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -494,16 +494,16 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					if xmax > one {
 						rec = one / xmax
 						if maxf64(work.Get(j1-1), work.Get(j2-1)) > (bignum-xj)/xmax {
-							goblas.Dscal(&n2, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Dscal(n2, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
 					}
 
-					d.Set(0, 0, x.Get(j1-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }()))
-					d.Set(1, 0, x.Get(j2-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j2-1), func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }()))
-					d.Set(0, 1, x.Get((*n)+j1-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j1-1), func() *int { y := 1; return &y }(), x.Off((*n)+1-1), func() *int { y := 1; return &y }()))
-					d.Set(1, 1, x.Get((*n)+j2-1)-goblas.Ddot(toPtr(j1-1), t.Vector(0, j2-1), func() *int { y := 1; return &y }(), x.Off((*n)+1-1), func() *int { y := 1; return &y }()))
+					d.Set(0, 0, x.Get(j1-1)-goblas.Ddot(j1-1, t.Vector(0, j1-1), 1, x, 1))
+					d.Set(1, 0, x.Get(j2-1)-goblas.Ddot(j1-1, t.Vector(0, j2-1), 1, x, 1))
+					d.Set(0, 1, x.Get((*n)+j1-1)-goblas.Ddot(j1-1, t.Vector(0, j1-1), 1, x.Off((*n)+1-1), 1))
+					d.Set(1, 1, x.Get((*n)+j2-1)-goblas.Ddot(j1-1, t.Vector(0, j2-1), 1, x.Off((*n)+1-1), 1))
 					d.Set(0, 0, d.Get(0, 0)-b.Get(j1-1)*x.Get((*n)+1-1))
 					d.Set(1, 0, d.Get(1, 0)-b.Get(j2-1)*x.Get((*n)+1-1))
 					d.Set(0, 1, d.Get(0, 1)+b.Get(j1-1)*x.Get(0))
@@ -515,7 +515,7 @@ func Dlaqtr(ltran, lreal bool, n *int, t *mat.Matrix, ldt *int, b *mat.Vector, w
 					}
 
 					if scaloc != one {
-						goblas.Dscal(&n2, &scaloc, x, func() *int { y := 1; return &y }())
+						goblas.Dscal(n2, scaloc, x, 1)
 						(*scale) = scaloc * (*scale)
 					}
 					x.Set(j1-1, v.Get(0, 0))

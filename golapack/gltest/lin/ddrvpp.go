@@ -132,7 +132,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				//              Save a copy of the matrix A in ASAV.
-				goblas.Dcopy(&npp, a.Off(0), toPtr(1), asav.Off(0), toPtr(1))
+				goblas.Dcopy(npp, a.Off(0), 1, asav.Off(0), 1)
 
 				for iequed = 1; iequed <= 2; iequed++ {
 					equed = equeds[iequed-1]
@@ -159,7 +159,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//                       the value returned by DPPSVX (FACT = 'N' reuses
 							//                       the condition number from the previous iteration
 							//                       with FACT = 'F').
-							goblas.Dcopy(&npp, asav.Off(0), toPtr(1), afac.Off(0), toPtr(1))
+							goblas.Dcopy(npp, asav.Off(0), 1, afac.Off(0), 1)
 							if equil || iequed > 1 {
 								//                          Compute row and column scale factors to
 								//                          equilibrate the matrix A.
@@ -187,7 +187,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							golapack.Dpptrf(uplo, &n, afac, &info)
 
 							//                       Form the inverse of A.
-							goblas.Dcopy(&npp, afac.Off(0), toPtr(1), a.Off(0), toPtr(1))
+							goblas.Dcopy(npp, afac.Off(0), 1, a.Off(0), 1)
 							golapack.Dpptri(uplo, &n, a, &info)
 
 							//                       Compute the 1-norm condition number of A.
@@ -200,7 +200,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 
 						//                    Restore the matrix A.
-						goblas.Dcopy(&npp, asav, toPtr(1), a, toPtr(1))
+						goblas.Dcopy(npp, asav, 1, a, 1)
 
 						//                    Form an exact solution and set the right hand side.
 						*srnamt = "DLARHS"
@@ -213,7 +213,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//
 							//                       Compute the L*L' or U'*U factorization of the
 							//                       matrix and solve the system.
-							goblas.Dcopy(&npp, a, toPtr(1), afac, toPtr(1))
+							goblas.Dcopy(npp, a, 1, afac, 1)
 							golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 
 							*srnamt = "DPPSV "

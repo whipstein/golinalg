@@ -20,6 +20,8 @@ func Zgetf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 	var one, zero complex128
 	var sfmin float64
 	var i, j, jp int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -48,18 +50,18 @@ func Zgetf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 
 	for j = 1; j <= minint(*m, *n); j++ {
 		//        Find pivot and test for singularity.
-		jp = j - 1 + goblas.Izamax(toPtr((*m)-j+1), a.CVector(j-1, j-1), func() *int { y := 1; return &y }())
+		jp = j - 1 + goblas.Izamax((*m)-j+1, a.CVector(j-1, j-1), 1)
 		(*ipiv)[j-1] = jp
 		if a.Get(jp-1, j-1) != zero {
 			//           Apply the interchange to columns 1:N.
 			if jp != j {
-				goblas.Zswap(n, a.CVector(j-1, 0), lda, a.CVector(jp-1, 0), lda)
+				goblas.Zswap(*n, a.CVector(j-1, 0), *lda, a.CVector(jp-1, 0), *lda)
 			}
 
 			//           Compute elements J+1:M of J-th column.
 			if j < (*m) {
 				if a.GetMag(j-1, j-1) >= sfmin {
-					goblas.Zscal(toPtr((*m)-j), toPtrc128(one/a.Get(j-1, j-1)), a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }())
+					goblas.Zscal((*m)-j, one/a.Get(j-1, j-1), a.CVector(j+1-1, j-1), 1)
 				} else {
 					for i = 1; i <= (*m)-j; i++ {
 						a.Set(j+i-1, j-1, a.Get(j+i-1, j-1)/a.Get(j-1, j-1))
@@ -74,7 +76,7 @@ func Zgetf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 
 		if j < minint(*m, *n) {
 			//           Update trailing submatrix.
-			goblas.Zgeru(toPtr((*m)-j), toPtr((*n)-j), toPtrc128(-one), a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }(), a.CVector(j-1, j+1-1), lda, a.Off(j+1-1, j+1-1), lda)
+			err = goblas.Zgeru((*m)-j, (*n)-j, -one, a.CVector(j+1-1, j-1), 1, a.CVector(j-1, j+1-1), *lda, a.Off(j+1-1, j+1-1), *lda)
 		}
 	}
 }

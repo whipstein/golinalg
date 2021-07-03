@@ -28,6 +28,8 @@ func Dort01(rowcol byte, m, n *int, u *mat.Matrix, ldu *int, work *mat.Vector, l
 	var transu byte
 	var eps, one, tmp, zero float64
 	var i, j, k, ldwork, mnmin int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -57,7 +59,7 @@ func Dort01(rowcol byte, m, n *int, u *mat.Matrix, ldu *int, work *mat.Vector, l
 	if ldwork > 0 {
 		//        Compute I - U*U' or I - U'*U.
 		golapack.Dlaset('U', &mnmin, &mnmin, &zero, &one, work.Matrix(ldwork, opts), &ldwork)
-		goblas.Dsyrk(Upper, mat.TransByte(transu), &mnmin, &k, toPtrf64(-one), u, ldu, &one, work.Matrix(ldwork, opts), &ldwork)
+		err = goblas.Dsyrk(Upper, mat.TransByte(transu), mnmin, k, -one, u, *ldu, one, work.Matrix(ldwork, opts), ldwork)
 
 		//        Compute norm( I - U*U' ) / ( K * EPS ) .
 		(*resid) = golapack.Dlansy('1', 'U', &mnmin, work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*mnmin+1-1))
@@ -71,7 +73,7 @@ func Dort01(rowcol byte, m, n *int, u *mat.Matrix, ldu *int, work *mat.Vector, l
 				} else {
 					tmp = one
 				}
-				tmp = tmp - goblas.Ddot(m, u.Vector(0, i-1), toPtr(1), u.Vector(0, j-1), toPtr(1))
+				tmp = tmp - goblas.Ddot(*m, u.Vector(0, i-1), 1, u.Vector(0, j-1), 1)
 				(*resid) = maxf64(*resid, math.Abs(tmp))
 			}
 		}
@@ -85,7 +87,7 @@ func Dort01(rowcol byte, m, n *int, u *mat.Matrix, ldu *int, work *mat.Vector, l
 				} else {
 					tmp = one
 				}
-				tmp = tmp - goblas.Ddot(n, u.Vector(j-1, 0), ldu, u.Vector(i-1, 0), ldu)
+				tmp = tmp - goblas.Ddot(*n, u.Vector(j-1, 0), *ldu, u.Vector(i-1, 0), *ldu)
 				(*resid) = maxf64(*resid, math.Abs(tmp))
 			}
 		}

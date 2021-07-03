@@ -14,6 +14,8 @@ func Zget02(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatri
 	var cone complex128
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var j, n1, n2 int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -42,14 +44,14 @@ func Zget02(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatri
 	}
 
 	//     Compute  B - A*X  (or  B - A'*X ) and store in B.
-	goblas.Zgemm(mat.TransByte(trans), NoTrans, &n1, nrhs, &n2, toPtrc128(-cone), a, lda, x, ldx, &cone, b, ldb)
+	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, n1, *nrhs, n2, -cone, a, *lda, x, *ldx, cone, b, *ldb)
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(&n1, b.CVector(0, j-1), func() *int { y := 1; return &y }())
-		xnorm = goblas.Dzasum(&n2, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1), 1)
+		xnorm = goblas.Dzasum(n2, x.CVector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

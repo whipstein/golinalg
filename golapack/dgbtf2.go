@@ -13,6 +13,8 @@ import (
 func Dgbtf2(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int) {
 	var one, zero float64
 	var i, j, jp, ju, km, kv int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -68,23 +70,23 @@ func Dgbtf2(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 		//        Find pivot and test for singularity. KM is the number of
 		//        subdiagonal elements in the current column.
 		km = minint(*kl, (*m)-j)
-		jp = goblas.Idamax(toPtr(km+1), ab.Vector(kv+1-1, j-1), toPtr(1))
+		jp = goblas.Idamax(km+1, ab.Vector(kv+1-1, j-1), 1)
 		(*ipiv)[j-1] = jp + j - 1
 		if ab.Get(kv+jp-1, j-1) != zero {
 			ju = maxint(ju, minint(j+(*ku)+jp-1, *n))
 
 			//           Apply interchange to columns J to JU.
 			if jp != 1 {
-				goblas.Dswap(toPtr(ju-j+1), ab.Vector(kv+jp-1, j-1), toPtr((*ldab)-1), ab.Vector(kv+1-1, j-1), toPtr((*ldab)-1))
+				goblas.Dswap(ju-j+1, ab.Vector(kv+jp-1, j-1), (*ldab)-1, ab.Vector(kv+1-1, j-1), (*ldab)-1)
 			}
 
 			if km > 0 {
 				//              Compute multipliers.
-				goblas.Dscal(&km, toPtrf64(one/ab.Get(kv+1-1, j-1)), ab.Vector(kv+2-1, j-1), toPtr(1))
+				goblas.Dscal(km, one/ab.Get(kv+1-1, j-1), ab.Vector(kv+2-1, j-1), 1)
 
 				//              Update trailing submatrix within the band.
 				if ju > j {
-					goblas.Dger(&km, toPtr(ju-j), toPtrf64(-one), ab.Vector(kv+2-1, j-1), toPtr(1), ab.Vector(kv-1, j+1-1), toPtr((*ldab)-1), ab.Off(kv+1-1, j+1-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+					err = goblas.Dger(km, ju-j, -one, ab.Vector(kv+2-1, j-1), 1, ab.Vector(kv-1, j+1-1), (*ldab)-1, ab.Off(kv+1-1, j+1-1).UpdateRows((*ldab)-1), (*ldab)-1)
 				}
 			}
 		} else {

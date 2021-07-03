@@ -55,12 +55,12 @@ func Dgtt01(n *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, ipiv *[]int, work 
 	lastj = (*n)
 	for i = (*n) - 1; i >= 1; i-- {
 		li = dlf.Get(i - 1)
-		goblas.Daxpy(toPtr(lastj-i+1), &li, work.Vector(i-1, i-1), ldwork, work.Vector(i+1-1, i-1), ldwork)
+		goblas.Daxpy(lastj-i+1, li, work.Vector(i-1, i-1), *ldwork, work.Vector(i+1-1, i-1), *ldwork)
 		ip = (*ipiv)[i-1]
 		if ip == i {
 			lastj = minint(i+2, *n)
 		} else {
-			goblas.Dswap(toPtr(lastj-i+1), work.Vector(i-1, i-1), ldwork, work.Vector(i+1-1, i-1), ldwork)
+			goblas.Dswap(lastj-i+1, work.Vector(i-1, i-1), *ldwork, work.Vector(i+1-1, i-1), *ldwork)
 		}
 	}
 

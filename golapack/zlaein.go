@@ -44,8 +44,8 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 		}
 	} else {
 		//        Scale supplied initial vector.
-		vnorm = goblas.Dznrm2(n, v, func() *int { y := 1; return &y }())
-		goblas.Zdscal(n, toPtrf64(((*eps3)*rootn)/maxf64(vnorm, nrmsml)), v, func() *int { y := 1; return &y }())
+		vnorm = goblas.Dznrm2(*n, v, 1)
+		goblas.Zdscal(*n, ((*eps3)*rootn)/maxf64(vnorm, nrmsml), v, 1)
 	}
 
 	if rightv {
@@ -125,7 +125,7 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 		normin = 'Y'
 
 		//        Test for sufficient growth in the norm of v.
-		vnorm = goblas.Dzasum(n, v, func() *int { y := 1; return &y }())
+		vnorm = goblas.Dzasum(*n, v, 1)
 		if vnorm >= growto*scale {
 			goto label120
 		}
@@ -146,6 +146,6 @@ label120:
 	;
 
 	//     Normalize eigenvector.
-	i = goblas.Izamax(n, v, func() *int { y := 1; return &y }())
-	goblas.Zdscal(n, toPtrf64(one/cabs1(v.Get(i-1))), v, func() *int { y := 1; return &y }())
+	i = goblas.Izamax(*n, v, 1)
+	goblas.Zdscal(*n, one/cabs1(v.Get(i-1)), v, 1)
 }

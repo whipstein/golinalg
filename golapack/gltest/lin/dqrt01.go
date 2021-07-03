@@ -15,6 +15,9 @@ import (
 func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *int, rwork, result *mat.Vector) {
 	var anorm, eps, one, resid, rogue, zero float64
 	var info, minmn int
+	var err error
+	_ = err
+
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	zero = 0.0
@@ -44,7 +47,7 @@ func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Ve
 	golapack.Dlacpy('U', m, n, af, lda, r, lda)
 
 	//     Compute R - Q'*A
-	goblas.Dgemm(mat.Trans, mat.NoTrans, m, n, m, toPtrf64(-one), q, lda, a, lda, &one, r, lda)
+	err = goblas.Dgemm(mat.Trans, mat.NoTrans, *m, *n, *m, -one, q, *lda, a, *lda, one, r, *lda)
 
 	//     Compute norm( R - Q'*A ) / ( M * norm(A) * EPS ) .
 	anorm = golapack.Dlange('1', m, n, a, lda, rwork)
@@ -57,7 +60,7 @@ func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Ve
 
 	//     Compute I - Q'*Q
 	golapack.Dlaset('F', m, m, &zero, &one, r, lda)
-	goblas.Dsyrk(mat.Upper, mat.Trans, m, m, toPtrf64(-one), q, lda, &one, r, lda)
+	err = goblas.Dsyrk(mat.Upper, mat.Trans, *m, *m, -one, q, *lda, one, r, *lda)
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
 	resid = golapack.Dlansy('1', 'U', m, r, lda, rwork)

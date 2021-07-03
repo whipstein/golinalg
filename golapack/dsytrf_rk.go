@@ -110,7 +110,7 @@ func DsytrfRk(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			for i = k; i >= (k - kb + 1); i-- {
 				ip = absint((*ipiv)[i-1])
 				if ip != i {
-					goblas.Dswap(toPtr((*n)-k), a.Vector(i-1, k+1-1), lda, a.Vector(ip-1, k+1-1), lda)
+					goblas.Dswap((*n)-k, a.Vector(i-1, k+1-1), *lda, a.Vector(ip-1, k+1-1), *lda)
 				}
 			}
 		}
@@ -178,7 +178,7 @@ func DsytrfRk(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			for i = k; i <= (k + kb - 1); i++ {
 				ip = absint((*ipiv)[i-1])
 				if ip != i {
-					goblas.Dswap(toPtr(k-1), a.Vector(i-1, 0), lda, a.Vector(ip-1, 0), lda)
+					goblas.Dswap(k-1, a.Vector(i-1, 0), *lda, a.Vector(ip-1, 0), *lda)
 				}
 			}
 		}

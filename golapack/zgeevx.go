@@ -274,14 +274,14 @@ func Zgeevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
-			scl = one / goblas.Dznrm2(n, vl.CVector(0, i-1), func() *int { y := 1; return &y }())
-			goblas.Zdscal(n, &scl, vl.CVector(0, i-1), func() *int { y := 1; return &y }())
+			scl = one / goblas.Dznrm2(*n, vl.CVector(0, i-1), 1)
+			goblas.Zdscal(*n, scl, vl.CVector(0, i-1), 1)
 			for k = 1; k <= (*n); k++ {
 				rwork.Set(k-1, math.Pow(vl.GetRe(k-1, i-1), 2)+math.Pow(vl.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(n, rwork, func() *int { y := 1; return &y }())
+			k = goblas.Idamax(*n, rwork, 1)
 			tmp = vl.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(k-1)), 0)
-			goblas.Zscal(n, &tmp, vl.CVector(0, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal(*n, tmp, vl.CVector(0, i-1), 1)
 			vl.SetRe(k-1, i-1, vl.GetRe(k-1, i-1))
 		}
 	}
@@ -292,14 +292,14 @@ func Zgeevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
-			scl = one / goblas.Dznrm2(n, vr.CVector(0, i-1), func() *int { y := 1; return &y }())
-			goblas.Zdscal(n, &scl, vr.CVector(0, i-1), func() *int { y := 1; return &y }())
+			scl = one / goblas.Dznrm2(*n, vr.CVector(0, i-1), 1)
+			goblas.Zdscal(*n, scl, vr.CVector(0, i-1), 1)
 			for k = 1; k <= (*n); k++ {
 				rwork.Set(k-1, math.Pow(vr.GetRe(k-1, i-1), 2)+math.Pow(vr.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(n, rwork, func() *int { y := 1; return &y }())
+			k = goblas.Idamax(*n, rwork, 1)
 			tmp = vr.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(k-1)), 0)
-			goblas.Zscal(n, &tmp, vr.CVector(0, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal(*n, tmp, vr.CVector(0, i-1), 1)
 			vr.SetRe(k-1, i-1, vr.GetRe(k-1, i-1))
 		}
 	}

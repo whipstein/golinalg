@@ -22,6 +22,8 @@ func Zunbdb6(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2
 	var negone, one, zero complex128
 	var alphasq, normsq1, normsq2, realone, realzero, scl1, scl2, ssq1, ssq2 float64
 	var i int
+	var err error
+	_ = err
 
 	alphasq = 0.01
 	realone = 1.0
@@ -70,13 +72,13 @@ func Zunbdb6(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2
 			work.Set(i-1, zero)
 		}
 	} else {
-		goblas.Zgemv(ConjTrans, m1, n, &one, q1, ldq1, x1, incx1, &zero, work, func() *int { y := 1; return &y }())
+		err = goblas.Zgemv(ConjTrans, *m1, *n, one, q1, *ldq1, x1, *incx1, zero, work, 1)
 	}
 
-	goblas.Zgemv(ConjTrans, m2, n, &one, q2, ldq2, x2, incx2, &one, work, func() *int { y := 1; return &y }())
+	err = goblas.Zgemv(ConjTrans, *m2, *n, one, q2, *ldq2, x2, *incx2, one, work, 1)
 
-	goblas.Zgemv(NoTrans, m1, n, &negone, q1, ldq1, work, func() *int { y := 1; return &y }(), &one, x1, incx1)
-	goblas.Zgemv(NoTrans, m2, n, &negone, q2, ldq2, work, func() *int { y := 1; return &y }(), &one, x2, incx2)
+	err = goblas.Zgemv(NoTrans, *m1, *n, negone, q1, *ldq1, work, 1, one, x1, *incx1)
+	err = goblas.Zgemv(NoTrans, *m2, *n, negone, q2, *ldq2, work, 1, one, x2, *incx2)
 
 	scl1 = realzero
 	ssq1 = realone
@@ -108,13 +110,13 @@ func Zunbdb6(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2
 			work.Set(i-1, zero)
 		}
 	} else {
-		goblas.Zgemv(ConjTrans, m1, n, &one, q1, ldq1, x1, incx1, &zero, work, func() *int { y := 1; return &y }())
+		err = goblas.Zgemv(ConjTrans, *m1, *n, one, q1, *ldq1, x1, *incx1, zero, work, 1)
 	}
 
-	goblas.Zgemv(ConjTrans, m2, n, &one, q2, ldq2, x2, incx2, &one, work, func() *int { y := 1; return &y }())
+	err = goblas.Zgemv(ConjTrans, *m2, *n, one, q2, *ldq2, x2, *incx2, one, work, 1)
 
-	goblas.Zgemv(NoTrans, m1, n, &negone, q1, ldq1, work, func() *int { y := 1; return &y }(), &one, x1, incx1)
-	goblas.Zgemv(NoTrans, m2, n, &negone, q2, ldq2, work, func() *int { y := 1; return &y }(), &one, x2, incx2)
+	err = goblas.Zgemv(NoTrans, *m1, *n, negone, q1, *ldq1, work, 1, one, x1, *incx1)
+	err = goblas.Zgemv(NoTrans, *m2, *n, negone, q2, *ldq2, work, 1, one, x2, *incx2)
 
 	scl1 = realzero
 	ssq1 = realone

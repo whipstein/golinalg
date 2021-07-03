@@ -17,6 +17,9 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 	var cone complex128
 	var eps, lstres, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, itmax, j, k, kase, kk, nz int
+	var err error
+	_ = err
+
 	isave := make([]int, 3)
 
 	itmax = 5
@@ -90,8 +93,8 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(n, b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Zgbmv(mat.TransByte(trans), n, n, kl, ku, toPtrc128(-cone), ab, ldab, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &cone, work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
+		err = goblas.Zgbmv(mat.TransByte(trans), *n, *n, *kl, *ku, -cone, ab, *ldab, x.CVector(0, j-1), 1, cone, work, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -142,7 +145,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zgbtrs(trans, n, kl, ku, func() *int { y := 1; return &y }(), afb, ldafb, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(n, &cone, work, func() *int { y := 1; return &y }(), x.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zaxpy(*n, cone, work, 1, x.CVector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

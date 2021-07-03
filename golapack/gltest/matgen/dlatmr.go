@@ -642,19 +642,19 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//           Scale carefully to avoid over / underflow
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(m, toPtrf64(one/onorm), a.Vector(0, j-1), toPtr(1))
-					goblas.Dscal(m, anorm, a.Vector(0, j-1), toPtr(1))
+					goblas.Dscal(*m, one/onorm, a.Vector(0, j-1), 1)
+					goblas.Dscal(*m, *anorm, a.Vector(0, j-1), 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Dscal(toPtr((*n)*((*n)+1)/2), toPtrf64(one/onorm), a.VectorIdx(0), toPtr(1))
-				goblas.Dscal(toPtr((*n)*((*n)+1)/2), anorm, a.VectorIdx(0), toPtr(1))
+				goblas.Dscal((*n)*((*n)+1)/2, one/onorm, a.VectorIdx(0), 1)
+				goblas.Dscal((*n)*((*n)+1)/2, *anorm, a.VectorIdx(0), 1)
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(toPtr(kll+kuu+1), toPtrf64(one/onorm), a.Vector(0, j-1), toPtr(1))
-					goblas.Dscal(toPtr(kll+kuu+1), anorm, a.Vector(0, j-1), toPtr(1))
+					goblas.Dscal(kll+kuu+1, one/onorm, a.Vector(0, j-1), 1)
+					goblas.Dscal(kll+kuu+1, *anorm, a.Vector(0, j-1), 1)
 				}
 
 			}
@@ -663,17 +663,17 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//           Scale straightforwardly
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(m, toPtrf64((*anorm)/onorm), a.Vector(0, j-1), toPtr(1))
+					goblas.Dscal(*m, (*anorm)/onorm, a.Vector(0, j-1), 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Dscal(toPtr((*n)*((*n)+1)/2), toPtrf64((*anorm)/onorm), a.VectorIdx(0), toPtr(1))
+				goblas.Dscal((*n)*((*n)+1)/2, (*anorm)/onorm, a.VectorIdx(0), 1)
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(toPtr(kll+kuu+1), toPtrf64((*anorm)/onorm), a.Vector(0, j-1), toPtr(1))
+					goblas.Dscal(kll+kuu+1, (*anorm)/onorm, a.Vector(0, j-1), 1)
 				}
 			}
 

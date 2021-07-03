@@ -13,6 +13,8 @@ func Zpptri(uplo byte, n *int, ap *mat.CVector, info *int) {
 	var upper bool
 	var ajj, one float64
 	var j, jc, jj, jjn int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -46,10 +48,10 @@ func Zpptri(uplo byte, n *int, ap *mat.CVector, info *int) {
 			jc = jj + 1
 			jj = jj + j
 			if j > 1 {
-				goblas.Zhpr(Upper, toPtr(j-1), &one, ap.Off(jc-1), func() *int { y := 1; return &y }(), ap)
+				err = goblas.Zhpr(Upper, j-1, one, ap.Off(jc-1), 1, ap)
 			}
 			ajj = ap.GetRe(jj - 1)
-			goblas.Zdscal(&j, &ajj, ap.Off(jc-1), func() *int { y := 1; return &y }())
+			goblas.Zdscal(j, ajj, ap.Off(jc-1), 1)
 		}
 
 	} else {
@@ -57,9 +59,9 @@ func Zpptri(uplo byte, n *int, ap *mat.CVector, info *int) {
 		jj = 1
 		for j = 1; j <= (*n); j++ {
 			jjn = jj + (*n) - j + 1
-			ap.SetRe(jj-1, real(goblas.Zdotc(toPtr((*n)-j+1), ap.Off(jj-1), func() *int { y := 1; return &y }(), ap.Off(jj-1), func() *int { y := 1; return &y }())))
+			ap.SetRe(jj-1, real(goblas.Zdotc((*n)-j+1, ap.Off(jj-1), 1, ap.Off(jj-1), 1)))
 			if j < (*n) {
-				goblas.Ztpmv(Lower, ConjTrans, NonUnit, toPtr((*n)-j), ap.Off(jjn-1), ap.Off(jj+1-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztpmv(Lower, ConjTrans, NonUnit, (*n)-j, ap.Off(jjn-1), ap.Off(jj+1-1), 1)
 			}
 			jj = jjn
 		}

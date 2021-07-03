@@ -15,6 +15,8 @@ import (
 func Dbdt02(m, n *int, b *mat.Matrix, ldb *int, c *mat.Matrix, ldc *int, u *mat.Matrix, ldu *int, work *mat.Vector, resid *float64) {
 	var bnorm, eps, one, realmn, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -29,9 +31,9 @@ func Dbdt02(m, n *int, b *mat.Matrix, ldb *int, c *mat.Matrix, ldc *int, u *mat.
 
 	//     Compute norm( B - U * C )
 	for j = 1; j <= (*n); j++ {
-		goblas.Dcopy(m, b.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		goblas.Dgemv(NoTrans, m, m, toPtrf64(-one), u, ldu, c.Vector(0, j-1), toPtr(1), &one, work, toPtr(1))
-		(*resid) = maxf64(*resid, goblas.Dasum(m, work, toPtr(1)))
+		goblas.Dcopy(*m, b.Vector(0, j-1), 1, work, 1)
+		err = goblas.Dgemv(NoTrans, *m, *m, -one, u, *ldu, c.Vector(0, j-1), 1, one, work, 1)
+		(*resid) = maxf64(*resid, goblas.Dasum(*m, work, 1))
 	}
 
 	//     Compute norm of B.

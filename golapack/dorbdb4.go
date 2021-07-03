@@ -81,7 +81,7 @@ func Dorbdb4(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *
 				phantom.Set(j-1, zero)
 			}
 			Dorbdb5(p, toPtr((*m)-(*p)), q, phantom, func() *int { y := 1; return &y }(), phantom.Off((*p)+1-1), func() *int { y := 1; return &y }(), x11, ldx11, x21, ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
-			goblas.Dscal(p, &negone, phantom, func() *int { y := 1; return &y }())
+			goblas.Dscal(*p, negone, phantom, 1)
 			Dlarfgp(p, phantom.GetPtr(0), phantom.Off(1), func() *int { y := 1; return &y }(), taup1.GetPtr(0))
 			Dlarfgp(toPtr((*m)-(*p)), phantom.GetPtr((*p)+1-1), phantom.Off((*p)+2-1), func() *int { y := 1; return &y }(), taup2.GetPtr(0))
 			theta.Set(i-1, math.Atan2(phantom.Get(0), phantom.Get((*p)+1-1)))
@@ -93,7 +93,7 @@ func Dorbdb4(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *
 			Dlarf('L', toPtr((*m)-(*p)), q, phantom.Off((*p)+1-1), func() *int { y := 1; return &y }(), taup2.GetPtr(0), x21, ldx21, work.Off(ilarf-1))
 		} else {
 			Dorbdb5(toPtr((*p)-i+1), toPtr((*m)-(*p)-i+1), toPtr((*q)-i+1), x11.Vector(i-1, i-1-1), func() *int { y := 1; return &y }(), x21.Vector(i-1, i-1-1), func() *int { y := 1; return &y }(), x11.Off(i-1, i-1), ldx11, x21.Off(i-1, i-1), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
-			goblas.Dscal(toPtr((*p)-i+1), &negone, x11.Vector(i-1, i-1-1), func() *int { y := 1; return &y }())
+			goblas.Dscal((*p)-i+1, negone, x11.Vector(i-1, i-1-1), 1)
 			Dlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1-1), x11.Vector(i+1-1, i-1-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
 			Dlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1-1), x21.Vector(i+1-1, i-1-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
 			theta.Set(i-1, math.Atan2(x11.Get(i-1, i-1-1), x21.Get(i-1, i-1-1)))
@@ -105,14 +105,14 @@ func Dorbdb4(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *
 			Dlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i+1), x21.Vector(i-1, i-1-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1), x21.Off(i-1, i-1), ldx21, work.Off(ilarf-1))
 		}
 
-		goblas.Drot(toPtr((*q)-i+1), x11.Vector(i-1, i-1), ldx11, x21.Vector(i-1, i-1), ldx21, &s, toPtrf64(-c))
+		goblas.Drot((*q)-i+1, x11.Vector(i-1, i-1), *ldx11, x21.Vector(i-1, i-1), *ldx21, s, -c)
 		Dlarfgp(toPtr((*q)-i+1), x21.GetPtr(i-1, i-1), x21.Vector(i-1, i+1-1), ldx21, tauq1.GetPtr(i-1))
 		c = x21.Get(i-1, i-1)
 		x21.Set(i-1, i-1, one)
 		Dlarf('R', toPtr((*p)-i), toPtr((*q)-i+1), x21.Vector(i-1, i-1), ldx21, tauq1.GetPtr(i-1), x11.Off(i+1-1, i-1), ldx11, work.Off(ilarf-1))
 		Dlarf('R', toPtr((*m)-(*p)-i), toPtr((*q)-i+1), x21.Vector(i-1, i-1), ldx21, tauq1.GetPtr(i-1), x21.Off(i+1-1, i-1), ldx21, work.Off(ilarf-1))
 		if i < (*m)-(*q) {
-			s = math.Sqrt(math.Pow(goblas.Dnrm2(toPtr((*p)-i), x11.Vector(i+1-1, i-1), func() *int { y := 1; return &y }()), 2) + math.Pow(goblas.Dnrm2(toPtr((*m)-(*p)-i), x21.Vector(i+1-1, i-1), func() *int { y := 1; return &y }()), 2))
+			s = math.Sqrt(math.Pow(goblas.Dnrm2((*p)-i, x11.Vector(i+1-1, i-1), 1), 2) + math.Pow(goblas.Dnrm2((*m)-(*p)-i, x21.Vector(i+1-1, i-1), 1), 2))
 			phi.Set(i-1, math.Atan2(s, c))
 		}
 

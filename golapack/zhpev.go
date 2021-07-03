@@ -70,7 +70,7 @@ func Zhpev(jobz, uplo byte, n *int, ap *mat.CVector, w *mat.Vector, z *mat.CMatr
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Zdscal(toPtr(((*n)*((*n)+1))/2), &sigma, ap, func() *int { y := 1; return &y }())
+		goblas.Zdscal(((*n)*((*n)+1))/2, sigma, ap, 1)
 	}
 
 	//     Call ZHPTRD to reduce Hermitian packed matrix to tridiagonal form.
@@ -96,6 +96,6 @@ func Zhpev(jobz, uplo byte, n *int, ap *mat.CVector, w *mat.Vector, z *mat.CMatr
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 }

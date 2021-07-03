@@ -21,6 +21,9 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	var one complex128
 	var eps, lstres, s, safe1, safe2, safmin, xk, zero float64
 	var i, j, k, kase, nz int
+	var err error
+	_ = err
+
 	isave := make([]int, 3)
 
 	zero = 0.0
@@ -86,9 +89,9 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(n, x.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kd, ab, ldab, work, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(n, toPtrc128(-one), b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
+		err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, work, 1)
+		goblas.Zaxpy(*n, -one, b.CVector(0, j-1), 1, work, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -225,7 +228,7 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
-				goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), n, kd, ab, ldab, work, func() *int { y := 1; return &y }())
+				err = goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, *kd, ab, *ldab, work, 1)
 				for i = 1; i <= (*n); i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
@@ -234,7 +237,7 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 				for i = 1; i <= (*n); i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
-				goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), n, kd, ab, ldab, work, func() *int { y := 1; return &y }())
+				err = goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), *n, *kd, ab, *ldab, work, 1)
 			}
 			goto label210
 		}

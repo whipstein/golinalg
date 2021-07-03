@@ -24,6 +24,8 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 	var lquery bool
 	var eps, one, orgnrm, p, tiny, two, zero float64
 	var finish, i, icompz, ii, j, k, lgn, liwmin, lwmin, m, smlsiz, start, storez, strtrw int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -200,7 +202,7 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 					//                 workspace and then multiply back into Z.
 					Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), work.Matrix(m, opts), &m, work.Off(m*m+1-1), info)
 					Dlacpy('A', n, &m, z.Off(0, start-1), ldz, work.MatrixOff(storez-1, *n, opts), n)
-					goblas.Dgemm(NoTrans, NoTrans, n, &m, &m, &one, work.MatrixOff(storez-1, *n, opts), n, work.Matrix(m, opts), &m, &zero, z.Off(0, start-1), ldz)
+					err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, work.MatrixOff(storez-1, *n, opts), *n, work.Matrix(m, opts), m, zero, z.Off(0, start-1), *ldz)
 				} else if icompz == 2 {
 					Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), z.Off(start-1, start-1), ldz, work, info)
 				} else {
@@ -236,7 +238,7 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 				if k != i {
 					d.Set(k-1, d.Get(i-1))
 					d.Set(i-1, p)
-					goblas.Dswap(n, z.Vector(0, i-1), toPtr(1), z.Vector(0, k-1), toPtr(1))
+					goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, k-1), 1)
 				}
 			}
 		}

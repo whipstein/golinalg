@@ -54,7 +54,7 @@ func Dorbdb5(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 	Dorbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, ldq1, q2, ldq2, work, lwork, &childinfo)
 
 	//     If the projection is nonzero, then return
-	if goblas.Dnrm2(m1, x1, incx1) != zero || goblas.Dnrm2(m2, x2, incx2) != zero {
+	if goblas.Dnrm2(*m1, x1, *incx1) != zero || goblas.Dnrm2(*m2, x2, *incx2) != zero {
 		return
 	}
 
@@ -69,7 +69,7 @@ func Dorbdb5(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 			x2.Set(j-1, zero)
 		}
 		Dorbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, ldq1, q2, ldq2, work, lwork, &childinfo)
-		if goblas.Dnrm2(m1, x1, incx1) != zero || goblas.Dnrm2(m2, x2, incx2) != zero {
+		if goblas.Dnrm2(*m1, x1, *incx1) != zero || goblas.Dnrm2(*m2, x2, *incx2) != zero {
 			return
 		}
 	}
@@ -85,7 +85,7 @@ func Dorbdb5(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 		}
 		x2.Set(i-1, one)
 		Dorbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, ldq1, q2, ldq2, work, lwork, &childinfo)
-		if goblas.Dnrm2(m1, x1, incx1) != zero || goblas.Dnrm2(m2, x2, incx2) != zero {
+		if goblas.Dnrm2(*m1, x1, *incx1) != zero || goblas.Dnrm2(*m2, x2, *incx2) != zero {
 			return
 		}
 	}

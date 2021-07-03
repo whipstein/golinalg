@@ -16,6 +16,8 @@ import (
 func Dgetc2(n *int, a *mat.Matrix, lda *int, ipiv, jpiv *[]int, info *int) {
 	var bignum, eps, one, smin, smlnum, xmax, zero float64
 	var i, ip, ipv, j, jp, jpv int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -64,13 +66,13 @@ func Dgetc2(n *int, a *mat.Matrix, lda *int, ipiv, jpiv *[]int, info *int) {
 
 		//        Swap rows
 		if ipv != i {
-			goblas.Dswap(n, a.Vector(ipv-1, 0), lda, a.Vector(i-1, 0), lda)
+			goblas.Dswap(*n, a.Vector(ipv-1, 0), *lda, a.Vector(i-1, 0), *lda)
 		}
 		(*ipiv)[i-1] = ipv
 
 		//        Swap columns
 		if jpv != i {
-			goblas.Dswap(n, a.Vector(0, jpv-1), func() *int { y := 1; return &y }(), a.Vector(0, i-1), func() *int { y := 1; return &y }())
+			goblas.Dswap(*n, a.Vector(0, jpv-1), 1, a.Vector(0, i-1), 1)
 		}
 		(*jpiv)[i-1] = jpv
 
@@ -82,7 +84,7 @@ func Dgetc2(n *int, a *mat.Matrix, lda *int, ipiv, jpiv *[]int, info *int) {
 		for j = i + 1; j <= (*n); j++ {
 			a.Set(j-1, i-1, a.Get(j-1, i-1)/a.Get(i-1, i-1))
 		}
-		goblas.Dger(toPtr((*n)-i), toPtr((*n)-i), toPtrf64(-one), a.Vector(i+1-1, i-1), func() *int { y := 1; return &y }(), a.Vector(i-1, i+1-1), lda, a.Off(i+1-1, i+1-1), lda)
+		err = goblas.Dger((*n)-i, (*n)-i, -one, a.Vector(i+1-1, i-1), 1, a.Vector(i-1, i+1-1), *lda, a.Off(i+1-1, i+1-1), *lda)
 	}
 
 	if math.Abs(a.Get((*n)-1, (*n)-1)) < smin {

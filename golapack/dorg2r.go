@@ -56,7 +56,7 @@ func Dorg2r(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 			Dlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.Vector(i-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), a.Off(i-1, i+1-1), lda, work)
 		}
 		if i < (*m) {
-			goblas.Dscal(toPtr((*m)-i), toPtrf64(-tau.Get(i-1)), a.Vector(i+1-1, i-1), toPtr(1))
+			goblas.Dscal((*m)-i, -tau.Get(i-1), a.Vector(i+1-1, i-1), 1)
 		}
 		a.Set(i-1, i-1, one-tau.Get(i-1))
 

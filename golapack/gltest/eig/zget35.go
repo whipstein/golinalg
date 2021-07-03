@@ -28,6 +28,9 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 	var cone, rmul complex128
 	var bignum, eps, large, one, res, res1, scale, smlnum, tnrm, two, xnrm, zero float64
 	var _i, i, imla, imlad, imlb, imlc, info, isgn, itrana, itranb, j, ldt, m, n int
+	var err error
+	_ = err
+
 	dum := vf(1)
 	vm1 := vf(3)
 	vm2 := vf(3)
@@ -297,8 +300,8 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 											rmul = cone / rmul
 										}
 									}
-									goblas.Zgemm(mat.TransByte(trana), NoTrans, &m, &n, &m, &rmul, a, &ldt, c, &ldt, toPtrc128(complex(-scale, 0)*rmul), csav, &ldt)
-									goblas.Zgemm(NoTrans, mat.TransByte(tranb), &m, &n, &n, toPtrc128(complex(float64(isgn), 0)*rmul), c, &ldt, b, &ldt, &cone, csav, &ldt)
+									err = goblas.Zgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, ldt, c, ldt, complex(-scale, 0)*rmul, csav, ldt)
+									err = goblas.Zgemm(NoTrans, mat.TransByte(tranb), m, n, n, complex(float64(isgn), 0)*rmul, c, ldt, b, ldt, cone, csav, ldt)
 									res1 = golapack.Zlange('M', &m, &n, csav, &ldt, dum)
 									res = res1 / maxf64(smlnum, smlnum*xnrm, ((cmplx.Abs(rmul)*tnrm)*eps)*xnrm)
 									if res > (*rmax) {

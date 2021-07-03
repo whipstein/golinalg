@@ -25,6 +25,8 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 	var ak, akm1, akm1k, bk, bkm1, denom, one complex128
 	var s float64
 	var i, j, k, kp int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -67,19 +69,19 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 		for k = (*n); k >= 1; k-- {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 		}
 
 		//        Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		goblas.Ztrsm(Left, Upper, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Compute D \ B -> B   [ D \ (U \P**T * B) ]
 		i = (*n)
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
 				s = real(one) / a.GetRe(i-1, i-1)
-				goblas.Zdscal(nrhs, &s, b.CVector(i-1, 0), ldb)
+				goblas.Zdscal(*nrhs, s, b.CVector(i-1, 0), *ldb)
 			} else if i > 1 {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1-1, i-1-1) / akm1k
@@ -97,7 +99,7 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 		}
 
 		//        Compute (U**H \ B) -> B   [ U**H \ (D \ (U \P**T * B) ) ]
-		goblas.Ztrsm(Left, Upper, ConjTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, ConjTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        P * B  [ P * (U**H \ (D \ (U \P**T * B) )) ]
 		//
@@ -110,7 +112,7 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 		for k = 1; k <= (*n); k++ {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 		}
 
@@ -129,19 +131,19 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 		for k = 1; k <= (*n); k++ {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 		}
 
 		//        Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Compute D \ B -> B   [ D \ (L \P**T * B) ]
 		i = 1
 		for i <= (*n) {
 			if (*ipiv)[i-1] > 0 {
 				s = real(one) / a.GetRe(i-1, i-1)
-				goblas.Zdscal(nrhs, &s, b.CVector(i-1, 0), ldb)
+				goblas.Zdscal(*nrhs, s, b.CVector(i-1, 0), *ldb)
 			} else if i < (*n) {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / cmplx.Conj(akm1k)
@@ -159,7 +161,7 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 		}
 
 		//        Compute (L**H \ B) -> B   [ L**H \ (D \ (L \P**T * B) ) ]
-		goblas.Ztrsm(Left, Lower, ConjTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, ConjTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        P * B  [ P * (L**H \ (D \ (L \P**T * B) )) ]
 		//
@@ -172,7 +174,7 @@ func Zhetrs3(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, e *mat.CVector, 
 		for k = (*n); k >= 1; k-- {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 		}
 

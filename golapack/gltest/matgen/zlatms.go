@@ -245,7 +245,7 @@ func Zlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			return
 		}
 
-		goblas.Dscal(&mnmin, &alpha, d, func() *int { y := 1; return &y }())
+		goblas.Dscal(mnmin, alpha, d, 1)
 
 	}
 

@@ -18,6 +18,8 @@ func Dsbgst(vect, uplo byte, n, ka, kb *int, ab *mat.Matrix, ldab *int, bb *mat.
 	var update, upper, wantx bool
 	var bii, one, ra, ra1, t, zero float64
 	var i, i0, i1, i2, inca, j, j1, j1t, j2, j2t, k, ka1, kb1, kbt, l, m, nr, nrt, nx int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -180,9 +182,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(toPtr((*n)-m), toPtrf64(one/bii), x.Vector(m+1-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*n)-m, one/bii, x.Vector(m+1-1, i-1), 1)
 				if kbt > 0 {
-					goblas.Dger(toPtr((*n)-m), &kbt, toPtrf64(-one), x.Vector(m+1-1, i-1), func() *int { y := 1; return &y }(), bb.Vector(kb1-kbt-1, i-1), func() *int { y := 1; return &y }(), x.Off(m+1-1, i-kbt-1), ldx)
+					err = goblas.Dger((*n)-m, kbt, -one, x.Vector(m+1-1, i-1), 1, bb.Vector(kb1-kbt-1, i-1), 1, x.Off(m+1-1, i-kbt-1), *ldx)
 				}
 			}
 
@@ -253,7 +255,7 @@ label10:
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(toPtr((*n)-m), x.Vector(m+1-1, j-1), func() *int { y := 1; return &y }(), x.Vector(m+1-1, j+1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+j-m-1), work.GetPtr(j-m-1))
+					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -330,7 +332,7 @@ label10:
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(toPtr((*n)-m), x.Vector(m+1-1, j-1), func() *int { y := 1; return &y }(), x.Vector(m+1-1, j+1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+j-1), work.GetPtr(j-1))
+					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -381,9 +383,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(toPtr((*n)-m), toPtrf64(one/bii), x.Vector(m+1-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*n)-m, one/bii, x.Vector(m+1-1, i-1), 1)
 				if kbt > 0 {
-					goblas.Dger(toPtr((*n)-m), &kbt, toPtrf64(-one), x.Vector(m+1-1, i-1), func() *int { y := 1; return &y }(), bb.Vector(kbt+1-1, i-kbt-1), toPtr((*ldbb)-1), x.Off(m+1-1, i-kbt-1), ldx)
+					err = goblas.Dger((*n)-m, kbt, -one, x.Vector(m+1-1, i-1), 1, bb.Vector(kbt+1-1, i-kbt-1), (*ldbb)-1, x.Off(m+1-1, i-kbt-1), *ldx)
 				}
 			}
 
@@ -454,7 +456,7 @@ label10:
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(toPtr((*n)-m), x.Vector(m+1-1, j-1), func() *int { y := 1; return &y }(), x.Vector(m+1-1, j+1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+j-m-1), work.GetPtr(j-m-1))
+					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -531,7 +533,7 @@ label10:
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(toPtr((*n)-m), x.Vector(m+1-1, j-1), func() *int { y := 1; return &y }(), x.Vector(m+1-1, j+1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+j-1), work.GetPtr(j-1))
+					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -636,9 +638,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(&nx, toPtrf64(one/bii), x.Vector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal(nx, one/bii, x.Vector(0, i-1), 1)
 				if kbt > 0 {
-					goblas.Dger(&nx, &kbt, toPtrf64(-one), x.Vector(0, i-1), func() *int { y := 1; return &y }(), bb.Vector((*kb)-1, i+1-1), toPtr((*ldbb)-1), x.Off(0, i+1-1), ldx)
+					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1), 1, bb.Vector((*kb)-1, i+1-1), (*ldbb)-1, x.Off(0, i+1-1), *ldx)
 				}
 			}
 
@@ -709,7 +711,7 @@ label490:
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(&nx, x.Vector(0, j-1), func() *int { y := 1; return &y }(), x.Vector(0, j-1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+j-1), work.GetPtr(j-1))
+					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -788,7 +790,7 @@ label490:
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(&nx, x.Vector(0, j-1), func() *int { y := 1; return &y }(), x.Vector(0, j-1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+m-(*kb)+j-1), work.GetPtr(m-(*kb)+j-1))
+					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+m-(*kb)+j-1), work.Get(m-(*kb)+j-1))
 				}
 			}
 		}
@@ -840,9 +842,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(&nx, toPtrf64(one/bii), x.Vector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal(nx, one/bii, x.Vector(0, i-1), 1)
 				if kbt > 0 {
-					goblas.Dger(&nx, &kbt, toPtrf64(-one), x.Vector(0, i-1), func() *int { y := 1; return &y }(), bb.Vector(1, i-1), func() *int { y := 1; return &y }(), x.Off(0, i+1-1), ldx)
+					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1), 1, bb.Vector(1, i-1), 1, x.Off(0, i+1-1), *ldx)
 				}
 			}
 
@@ -913,7 +915,7 @@ label490:
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(&nx, x.Vector(0, j-1), func() *int { y := 1; return &y }(), x.Vector(0, j-1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+j-1), work.GetPtr(j-1))
+					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -992,7 +994,7 @@ label490:
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(&nx, x.Vector(0, j-1), func() *int { y := 1; return &y }(), x.Vector(0, j-1-1), func() *int { y := 1; return &y }(), work.GetPtr((*n)+m-(*kb)+j-1), work.GetPtr(m-(*kb)+j-1))
+					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+m-(*kb)+j-1), work.Get(m-(*kb)+j-1))
 				}
 			}
 		}

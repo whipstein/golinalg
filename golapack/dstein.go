@@ -143,9 +143,9 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			Dlarnv(func() *int { y := 2; return &y }(), &iseed, &blksiz, work.Off(indrv1+1-1))
 
 			//           Copy the matrix T so it won't be destroyed in factorization.
-			goblas.Dcopy(&blksiz, d.Off(b1-1), toPtr(1), work.Off(indrv4+1-1), toPtr(1))
-			goblas.Dcopy(toPtr(blksiz-1), e.Off(b1-1), toPtr(1), work.Off(indrv2+2-1), toPtr(1))
-			goblas.Dcopy(toPtr(blksiz-1), e.Off(b1-1), toPtr(1), work.Off(indrv3+1-1), toPtr(1))
+			goblas.Dcopy(blksiz, d.Off(b1-1), 1, work.Off(indrv4+1-1), 1)
+			goblas.Dcopy(blksiz-1, e.Off(b1-1), 1, work.Off(indrv2+2-1), 1)
+			goblas.Dcopy(blksiz-1, e.Off(b1-1), 1, work.Off(indrv3+1-1), 1)
 
 			//           Compute LU factors with partial pivoting  ( PT = LU )
 			tol = zero
@@ -160,9 +160,9 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			}
 
 			//           Normalize and scale the righthand side vector Pb.
-			jmax = goblas.Idamax(&blksiz, work.Off(indrv1+1-1), toPtr(1))
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
 			scl = float64(blksiz) * onenrm * maxf64(eps, math.Abs(work.Get(indrv4+blksiz-1))) / math.Abs(work.Get(indrv1+jmax-1))
-			goblas.Dscal(&blksiz, &scl, work.Off(indrv1+1-1), toPtr(1))
+			goblas.Dscal(blksiz, scl, work.Off(indrv1+1-1), 1)
 
 			//           Solve the system LU = Pb.
 			Dlagts(toPtr(-1), &blksiz, work.Off(indrv4+1-1), work.Off(indrv2+2-1), work.Off(indrv3+1-1), work.Off(indrv5+1-1), iwork, work.Off(indrv1+1-1), &tol, &iinfo)
@@ -177,15 +177,15 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			}
 			if gpind != j {
 				for i = gpind; i <= j-1; i++ {
-					ztr = -goblas.Ddot(&blksiz, work.Off(indrv1+1-1), toPtr(1), z.Vector(b1-1, i-1), toPtr(1))
-					goblas.Daxpy(&blksiz, &ztr, z.Vector(b1-1, i-1), toPtr(1), work.Off(indrv1+1-1), toPtr(1))
+					ztr = -goblas.Ddot(blksiz, work.Off(indrv1+1-1), 1, z.Vector(b1-1, i-1), 1)
+					goblas.Daxpy(blksiz, ztr, z.Vector(b1-1, i-1), 1, work.Off(indrv1+1-1), 1)
 				}
 			}
 
 			//           Check the infinity norm of the iterate.
 		label90:
 			;
-			jmax = goblas.Idamax(&blksiz, work.Off(indrv1+1-1), toPtr(1))
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
 			nrm = math.Abs(work.Get(indrv1 + jmax - 1))
 
 			//           Continue for additional iterations after norm reaches
@@ -210,12 +210,12 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			//           Accept iterate as jth eigenvector.
 		label110:
 			;
-			scl = one / goblas.Dnrm2(&blksiz, work.Off(indrv1+1-1), toPtr(1))
-			jmax = goblas.Idamax(&blksiz, work.Off(indrv1+1-1), toPtr(1))
+			scl = one / goblas.Dnrm2(blksiz, work.Off(indrv1+1-1), 1)
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
 			if work.Get(indrv1+jmax-1) < zero {
 				scl = -scl
 			}
-			goblas.Dscal(&blksiz, &scl, work.Off(indrv1+1-1), toPtr(1))
+			goblas.Dscal(blksiz, scl, work.Off(indrv1+1-1), 1)
 		label120:
 			;
 			for i = 1; i <= (*n); i++ {

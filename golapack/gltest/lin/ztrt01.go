@@ -13,6 +13,8 @@ import (
 func Ztrt01(uplo, diag byte, n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix, ldainv *int, rcond *float64, rwork *mat.Vector, resid *float64) {
 	var ainvnm, anorm, eps, one, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -45,11 +47,11 @@ func Ztrt01(uplo, diag byte, n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix
 	//     Compute A * AINV, overwriting AINV.
 	if uplo == 'U' {
 		for j = 1; j <= (*n); j++ {
-			goblas.Ztrmv(Upper, NoTrans, mat.DiagByte(diag), &j, a, lda, ainv.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztrmv(Upper, NoTrans, mat.DiagByte(diag), j, a, *lda, ainv.CVector(0, j-1), 1)
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			goblas.Ztrmv(Lower, NoTrans, mat.DiagByte(diag), toPtr((*n)-j+1), a.Off(j-1, j-1), lda, ainv.CVector(j-1, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztrmv(Lower, NoTrans, mat.DiagByte(diag), (*n)-j+1, a.Off(j-1, j-1), *lda, ainv.CVector(j-1, j-1), 1)
 		}
 	}
 

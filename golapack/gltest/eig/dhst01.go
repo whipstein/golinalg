@@ -20,6 +20,8 @@ import (
 func Dhst01(n, ilo, ihi *int, a *mat.Matrix, lda *int, h *mat.Matrix, ldh *int, q *mat.Matrix, ldq *int, work *mat.Vector, lwork *int, result *mat.Vector) {
 	var anorm, eps, one, ovfl, smlnum, unfl, wnorm, zero float64
 	var ldwork int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -44,10 +46,10 @@ func Dhst01(n, ilo, ihi *int, a *mat.Matrix, lda *int, h *mat.Matrix, ldh *int, 
 	golapack.Dlacpy(' ', n, n, a, lda, work.Matrix(ldwork, opts), &ldwork)
 
 	//     Compute Q*H
-	goblas.Dgemm(NoTrans, NoTrans, n, n, n, &one, q, ldq, h, ldh, &zero, work.MatrixOff(ldwork*(*n)+1-1, ldwork, opts), &ldwork)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, q, *ldq, h, *ldh, zero, work.MatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork)
 
 	//     Compute A - Q*H*Q'
-	goblas.Dgemm(NoTrans, Trans, n, n, n, toPtrf64(-one), work.MatrixOff(ldwork*(*n)+1-1, ldwork, opts), &ldwork, q, ldq, &one, work.Matrix(ldwork, opts), &ldwork)
+	err = goblas.Dgemm(NoTrans, Trans, *n, *n, *n, -one, work.MatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork, q, *ldq, one, work.Matrix(ldwork, opts), ldwork)
 
 	anorm = maxf64(golapack.Dlange('1', n, n, a, lda, work.Off(ldwork*(*n)+1-1)), unfl)
 	wnorm = golapack.Dlange('1', n, n, work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)+1-1))

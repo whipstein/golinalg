@@ -42,7 +42,7 @@ func Zspsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b 
 
 	if nofact {
 		//        Compute the factorization A = U*D*U**T or A = L*D*L**T.
-		goblas.Zcopy(toPtr((*n)*((*n)+1)/2), ap, func() *int { y := 1; return &y }(), afp, func() *int { y := 1; return &y }())
+		goblas.Zcopy((*n)*((*n)+1)/2, ap, 1, afp, 1)
 		Zsptrf(uplo, n, afp, ipiv, info)
 
 		//        Return if INFO is non-zero.

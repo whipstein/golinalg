@@ -14,6 +14,8 @@ import (
 // computed by ZGELQF.
 func Zgelqs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
 	var cone, czero complex128
+	var err error
+	_ = err
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -44,7 +46,7 @@ func Zgelqs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	}
 
 	//     Solve L*X = B(1:m,:)
-	goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, m, nrhs, &cone, a, lda, b, ldb)
+	err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *m, *nrhs, cone, a, *lda, b, *ldb)
 
 	//     Set B(m+1:n,:) to zero
 	if (*m) < (*n) {

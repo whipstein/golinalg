@@ -17,7 +17,7 @@ func Dptts2(n, nrhs *int, d, e *mat.Vector, b *mat.Matrix, ldb *int) {
 	//     Quick return if possible
 	if (*n) <= 1 {
 		if (*n) == 1 {
-			goblas.Dscal(nrhs, toPtrf64(1./d.Get(0)), b.VectorIdx(0), ldb)
+			goblas.Dscal(*nrhs, 1./d.Get(0), b.VectorIdx(0), *ldb)
 		}
 		return
 	}

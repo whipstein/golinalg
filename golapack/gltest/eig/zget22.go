@@ -27,6 +27,8 @@ func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *ma
 	var cone, czero, wtemp complex128
 	var anorm, enorm, enrmax, enrmin, errnrm, one, temp1, ulp, unfl, zero float64
 	var itrnse, itrnsw, j, jcol, joff, jrow, jvec int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -128,7 +130,7 @@ func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *ma
 		joff = joff + (*n)
 	}
 
-	goblas.Zgemm(mat.TransByte(transa), mat.TransByte(transe), n, n, n, &cone, a, lda, e, lde, toPtrc128(-cone), work.CMatrix(*n, opts), n)
+	err = goblas.Zgemm(mat.TransByte(transa), mat.TransByte(transe), *n, *n, *n, cone, a, *lda, e, *lde, -cone, work.CMatrix(*n, opts), *n)
 
 	errnrm = golapack.Zlange('O', n, n, work.CMatrix(*n, opts), n, rwork) / enorm
 

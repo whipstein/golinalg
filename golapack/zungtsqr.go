@@ -99,7 +99,7 @@ func Zungtsqr(m, n, mb, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *
 	//     with the leading dimension LDC that starts at WORK(1) into
 	//     the output array A(1:M,1:N) column-by-column.
 	for j = 1; j <= (*n); j++ {
-		goblas.Zcopy(m, work.Off((j-1)*ldc+1-1), func() *int { y := 1; return &y }(), a.CVector(0, j-1), func() *int { y := 1; return &y }())
+		goblas.Zcopy(*m, work.Off((j-1)*ldc+1-1), 1, a.CVector(0, j-1), 1)
 	}
 
 	work.SetRe(0, float64(lworkopt))

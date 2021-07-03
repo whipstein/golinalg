@@ -19,6 +19,8 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	var bulge, sorted bool
 	var aa, bb, beta, cc, cs, dd, evi, evk, foo, one, s, safmax, safmin, smlnum, sn, tau, ulp, zero float64
 	var i, ifst, ilst, info, infqr, j, jw, k, kcol, kend, kln, krow, kwtop, ltop, lwk1, lwk2, lwk3, lwkopt, nmin int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -102,7 +104,7 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	//     .    the deflation window that converged using INFQR
 	//     .    here and there to keep track.) ====
 	Dlacpy('U', &jw, &jw, h.Off(kwtop-1, kwtop-1), ldh, t, ldt)
-	goblas.Dcopy(toPtr(jw-1), h.Vector(kwtop+1-1, kwtop-1), toPtr((*ldh)+1), t.Vector(1, 0), toPtr((*ldt)+1))
+	goblas.Dcopy(jw-1, h.Vector(kwtop+1-1, kwtop-1), (*ldh)+1, t.Vector(1, 0), (*ldt)+1)
 	//
 	Dlaset('A', &jw, &jw, &zero, &one, v, ldv)
 	nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("DLAQR3"), []byte("SV"), &jw, func() *int { y := 1; return &y }(), &jw, lwork)
@@ -270,7 +272,7 @@ label60:
 	if (*ns) < jw || s == zero {
 		if (*ns) > 1 && s != zero {
 			//           ==== Reflect spike back into lower triangle ====
-			goblas.Dcopy(ns, v.VectorIdx(0), ldv, work, toPtr(1))
+			goblas.Dcopy(*ns, v.VectorIdx(0), *ldv, work, 1)
 			beta = work.Get(0)
 			Dlarfg(ns, &beta, work.Off(1), func() *int { y := 1; return &y }(), &tau)
 			work.Set(0, one)
@@ -289,7 +291,7 @@ label60:
 			h.Set(kwtop-1, kwtop-1-1, s*v.Get(0, 0))
 		}
 		Dlacpy('U', &jw, &jw, t, ldt, h.Off(kwtop-1, kwtop-1), ldh)
-		goblas.Dcopy(toPtr(jw-1), t.Vector(1, 0), toPtr((*ldt)+1), h.Vector(kwtop+1-1, kwtop-1), toPtr((*ldh)+1))
+		goblas.Dcopy(jw-1, t.Vector(1, 0), (*ldt)+1, h.Vector(kwtop+1-1, kwtop-1), (*ldh)+1)
 
 		//        ==== Accumulate orthogonal matrix in order update
 		//        .    H and Z, if requested.  ====
@@ -305,7 +307,7 @@ label60:
 		}
 		for krow = ltop; krow <= kwtop-1; krow += (*nv) {
 			kln = minint(*nv, kwtop-krow)
-			goblas.Dgemm(NoTrans, NoTrans, &kln, &jw, &jw, &one, h.Off(krow-1, kwtop-1), ldh, v, ldv, &zero, wv, ldwv)
+			err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), *ldh, v, *ldv, zero, wv, *ldwv)
 			Dlacpy('A', &kln, &jw, wv, ldwv, h.Off(krow-1, kwtop-1), ldh)
 		}
 
@@ -313,7 +315,7 @@ label60:
 		if wantt {
 			for kcol = (*kbot) + 1; kcol <= (*n); kcol += (*nh) {
 				kln = minint(*nh, (*n)-kcol+1)
-				goblas.Dgemm(ConjTrans, NoTrans, &jw, &kln, &jw, &one, v, ldv, h.Off(kwtop-1, kcol-1), ldh, &zero, t, ldt)
+				err = goblas.Dgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, *ldv, h.Off(kwtop-1, kcol-1), *ldh, zero, t, *ldt)
 				Dlacpy('A', &jw, &kln, t, ldt, h.Off(kwtop-1, kcol-1), ldh)
 			}
 		}
@@ -322,7 +324,7 @@ label60:
 		if wantz {
 			for krow = (*iloz); krow <= (*ihiz); krow += (*nv) {
 				kln = minint(*nv, (*ihiz)-krow+1)
-				goblas.Dgemm(NoTrans, NoTrans, &kln, &jw, &jw, &one, z.Off(krow-1, kwtop-1), ldz, v, ldv, &zero, wv, ldwv)
+				err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), *ldz, v, *ldv, zero, wv, *ldwv)
 				Dlacpy('A', &kln, &jw, wv, ldwv, z.Off(krow-1, kwtop-1), ldz)
 			}
 		}

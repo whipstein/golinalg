@@ -173,7 +173,7 @@ func Zgees(jobvs, sort byte, _select func(complex128) bool, n *int, a *mat.CMatr
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Zlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Zcopy(n, a.CVector(0, 0), toPtr((*lda)+1), w, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, a.CVector(0, 0), (*lda)+1, w, 1)
 	}
 
 	work.SetRe(0, float64(maxwrk))

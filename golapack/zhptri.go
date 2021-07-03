@@ -14,6 +14,8 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 	var akkp1, cone, temp, zero complex128
 	var ak, akp1, d, one, t float64
 	var j, k, kc, kcnext, kp, kpc, kstep, kx, npp int
+	var err error
+	_ = err
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
@@ -83,9 +85,9 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Zcopy(toPtr(k-1), ap.Off(kc-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr(k-1), toPtrc128(-cone), ap, work, func() *int { y := 1; return &y }(), &zero, ap.Off(kc-1), func() *int { y := 1; return &y }())
-				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-complex(real(goblas.Zdotc(toPtr(k-1), work, func() *int { y := 1; return &y }(), ap.Off(kc-1), func() *int { y := 1; return &y }())), 0))
+				goblas.Zcopy(k-1, ap.Off(kc-1), 1, work, 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), k-1, -cone, ap, work, 1, zero, ap.Off(kc-1), 1)
+				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-complex(real(goblas.Zdotc(k-1, work, 1, ap.Off(kc-1), 1)), 0))
 			}
 			kstep = 1
 		} else {
@@ -103,13 +105,13 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Zcopy(toPtr(k-1), ap.Off(kc-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr(k-1), toPtrc128(-cone), ap, work, func() *int { y := 1; return &y }(), &zero, ap.Off(kc-1), func() *int { y := 1; return &y }())
-				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-complex(real(goblas.Zdotc(toPtr(k-1), work, func() *int { y := 1; return &y }(), ap.Off(kc-1), func() *int { y := 1; return &y }())), 0))
-				ap.Set(kcnext+k-1-1, ap.Get(kcnext+k-1-1)-goblas.Zdotc(toPtr(k-1), ap.Off(kc-1), func() *int { y := 1; return &y }(), ap.Off(kcnext-1), func() *int { y := 1; return &y }()))
-				goblas.Zcopy(toPtr(k-1), ap.Off(kcnext-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr(k-1), toPtrc128(-cone), ap, work, func() *int { y := 1; return &y }(), &zero, ap.Off(kcnext-1), func() *int { y := 1; return &y }())
-				ap.Set(kcnext+k-1, ap.Get(kcnext+k-1)-complex(real(goblas.Zdotc(toPtr(k-1), work, func() *int { y := 1; return &y }(), ap.Off(kcnext-1), func() *int { y := 1; return &y }())), 0))
+				goblas.Zcopy(k-1, ap.Off(kc-1), 1, work, 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), k-1, -cone, ap, work, 1, zero, ap.Off(kc-1), 1)
+				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-complex(real(goblas.Zdotc(k-1, work, 1, ap.Off(kc-1), 1)), 0))
+				ap.Set(kcnext+k-1-1, ap.Get(kcnext+k-1-1)-goblas.Zdotc(k-1, ap.Off(kc-1), 1, ap.Off(kcnext-1), 1))
+				goblas.Zcopy(k-1, ap.Off(kcnext-1), 1, work, 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), k-1, -cone, ap, work, 1, zero, ap.Off(kcnext-1), 1)
+				ap.Set(kcnext+k-1, ap.Get(kcnext+k-1)-complex(real(goblas.Zdotc(k-1, work, 1, ap.Off(kcnext-1), 1)), 0))
 			}
 			kstep = 2
 			kcnext = kcnext + k + 1
@@ -120,7 +122,7 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 			//           Interchange rows and columns K and KP in the leading
 			//           submatrix A(1:k+1,1:k+1)
 			kpc = (kp-1)*kp/2 + 1
-			goblas.Zswap(toPtr(kp-1), ap.Off(kc-1), func() *int { y := 1; return &y }(), ap.Off(kpc-1), func() *int { y := 1; return &y }())
+			goblas.Zswap(kp-1, ap.Off(kc-1), 1, ap.Off(kpc-1), 1)
 			kx = kpc + kp - 1
 			for j = kp + 1; j <= k-1; j++ {
 				kx = kx + j - 1
@@ -168,9 +170,9 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 
 			//           Compute column K of the inverse.
 			if k < (*n) {
-				goblas.Zcopy(toPtr((*n)-k), ap.Off(kc+1-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr((*n)-k), toPtrc128(-cone), ap.Off(kc+(*n)-k+1-1), work, func() *int { y := 1; return &y }(), &zero, ap.Off(kc+1-1), func() *int { y := 1; return &y }())
-				ap.Set(kc-1, ap.Get(kc-1)-complex(real(goblas.Zdotc(toPtr((*n)-k), work, func() *int { y := 1; return &y }(), ap.Off(kc+1-1), func() *int { y := 1; return &y }())), 0))
+				goblas.Zcopy((*n)-k, ap.Off(kc+1-1), 1, work, 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), (*n)-k, -cone, ap.Off(kc+(*n)-k+1-1), work, 1, zero, ap.Off(kc+1-1), 1)
+				ap.Set(kc-1, ap.Get(kc-1)-complex(real(goblas.Zdotc((*n)-k, work, 1, ap.Off(kc+1-1), 1)), 0))
 			}
 			kstep = 1
 		} else {
@@ -188,13 +190,13 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < (*n) {
-				goblas.Zcopy(toPtr((*n)-k), ap.Off(kc+1-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr((*n)-k), toPtrc128(-cone), ap.Off(kc+((*n)-k+1)-1), work, func() *int { y := 1; return &y }(), &zero, ap.Off(kc+1-1), func() *int { y := 1; return &y }())
-				ap.Set(kc-1, ap.Get(kc-1)-complex(real(goblas.Zdotc(toPtr((*n)-k), work, func() *int { y := 1; return &y }(), ap.Off(kc+1-1), func() *int { y := 1; return &y }())), 0))
-				ap.Set(kcnext+1-1, ap.Get(kcnext+1-1)-goblas.Zdotc(toPtr((*n)-k), ap.Off(kc+1-1), func() *int { y := 1; return &y }(), ap.Off(kcnext+2-1), func() *int { y := 1; return &y }()))
-				goblas.Zcopy(toPtr((*n)-k), ap.Off(kcnext+2-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr((*n)-k), toPtrc128(-cone), ap.Off(kc+((*n)-k+1)-1), work, func() *int { y := 1; return &y }(), &zero, ap.Off(kcnext+2-1), func() *int { y := 1; return &y }())
-				ap.Set(kcnext-1, ap.Get(kcnext-1)-complex(real(goblas.Zdotc(toPtr((*n)-k), work, func() *int { y := 1; return &y }(), ap.Off(kcnext+2-1), func() *int { y := 1; return &y }())), 0))
+				goblas.Zcopy((*n)-k, ap.Off(kc+1-1), 1, work, 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), (*n)-k, -cone, ap.Off(kc+((*n)-k+1)-1), work, 1, zero, ap.Off(kc+1-1), 1)
+				ap.Set(kc-1, ap.Get(kc-1)-complex(real(goblas.Zdotc((*n)-k, work, 1, ap.Off(kc+1-1), 1)), 0))
+				ap.Set(kcnext+1-1, ap.Get(kcnext+1-1)-goblas.Zdotc((*n)-k, ap.Off(kc+1-1), 1, ap.Off(kcnext+2-1), 1))
+				goblas.Zcopy((*n)-k, ap.Off(kcnext+2-1), 1, work, 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), (*n)-k, -cone, ap.Off(kc+((*n)-k+1)-1), work, 1, zero, ap.Off(kcnext+2-1), 1)
+				ap.Set(kcnext-1, ap.Get(kcnext-1)-complex(real(goblas.Zdotc((*n)-k, work, 1, ap.Off(kcnext+2-1), 1)), 0))
 			}
 			kstep = 2
 			kcnext = kcnext - ((*n) - k + 3)
@@ -206,7 +208,7 @@ func Zhptri(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, work *mat.CVector, 
 			//           submatrix A(k-1:n,k-1:n)
 			kpc = npp - ((*n)-kp+1)*((*n)-kp+2)/2 + 1
 			if kp < (*n) {
-				goblas.Zswap(toPtr((*n)-kp), ap.Off(kc+kp-k+1-1), func() *int { y := 1; return &y }(), ap.Off(kpc+1-1), func() *int { y := 1; return &y }())
+				goblas.Zswap((*n)-kp, ap.Off(kc+kp-k+1-1), 1, ap.Off(kpc+1-1), 1)
 			}
 			kx = kc + kp - k
 			for j = k + 1; j <= kp-1; j++ {

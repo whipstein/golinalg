@@ -28,6 +28,8 @@ import (
 func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *mat.Matrix, ldu *int, v *mat.Matrix, ldv *int, work *mat.Vector, result *float64) {
 	var anorm, one, ten, ulp, unfl, wnorm, zero float64
 	var jcol, jdiag, jrow int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -55,9 +57,9 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 		if (*itype) == 1 {
 			//           ITYPE=1: Compute W = A - UBV'
 			golapack.Dlacpy(' ', n, n, a, lda, work.Matrix(*n, opts), n)
-			goblas.Dgemm(NoTrans, NoTrans, n, n, n, &one, u, ldu, b, ldb, &zero, work.MatrixOff(int(math.Pow(float64(*n), 2))+1-1, *n, opts), n)
+			err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, u, *ldu, b, *ldb, zero, work.MatrixOff(int(math.Pow(float64(*n), 2))+1-1, *n, opts), *n)
 
-			goblas.Dgemm(NoTrans, ConjTrans, n, n, n, toPtrf64(-one), work.MatrixOff(int(math.Pow(float64(*n), 2))+1-1, *n, opts), n, v, ldv, &one, work.Matrix(*n, opts), n)
+			err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, -one, work.MatrixOff(int(math.Pow(float64(*n), 2))+1-1, *n, opts), *n, v, *ldv, one, work.Matrix(*n, opts), *n)
 
 		} else {
 			//           ITYPE=2: Compute W = A - B
@@ -87,7 +89,7 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  UU' - I
-		goblas.Dgemm(NoTrans, ConjTrans, n, n, n, &one, u, ldu, u, ldu, &zero, work.Matrix(*n, opts), n)
+		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
 
 		for jdiag = 1; jdiag <= (*n); jdiag++ {
 			work.Set(((*n)+1)*(jdiag-1)+1-1, work.Get(((*n)+1)*(jdiag-1)+1-1)-one)

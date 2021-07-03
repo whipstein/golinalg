@@ -133,11 +133,11 @@ func Dsyevx2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal(toPtr((*n)-j+1), &sigma, a.Vector(j-1, j-1), toPtr(1))
+				goblas.Dscal((*n)-j+1, sigma, a.Vector(j-1, j-1), 1)
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal(&j, &sigma, a.Vector(0, j-1), toPtr(1))
+				goblas.Dscal(j, sigma, a.Vector(0, j-1), 1)
 			}
 		}
 		if (*abstol) > 0 {
@@ -169,15 +169,15 @@ func Dsyevx2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(n, work.Off(indd-1), toPtr(1), w, toPtr(1))
+		goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
 		indee = indwrk + 2*(*n)
 		if !wantz {
-			goblas.Dcopy(toPtr((*n)-1), work.Off(inde-1), toPtr(1), work.Off(indee-1), toPtr(1))
+			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
 			Dlacpy('A', n, n, a, lda, z, ldz)
 			Dorgtr(uplo, n, z, ldz, work.Off(indtau-1), work.Off(indwrk-1), &llwork, &iinfo)
-			goblas.Dcopy(toPtr((*n)-1), work.Off(inde-1), toPtr(1), work.Off(indee-1), toPtr(1))
+			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
 			Dsteqr(jobz, n, w, work.Off(indee-1), z, ldz, work.Off(indwrk-1), info)
 			if (*info) == 0 {
 				for i = 1; i <= (*n); i++ {
@@ -222,7 +222,7 @@ label40:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -244,7 +244,7 @@ label40:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1), toPtr(1), z.Vector(0, j-1), toPtr(1))
+				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

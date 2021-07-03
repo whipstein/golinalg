@@ -96,7 +96,7 @@ func Dppsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.Vector, equed *byte, s *
 
 	if nofact || equil {
 		//        Compute the Cholesky factorization A = U**T * U or A = L * L**T.
-		goblas.Dcopy(toPtr((*n)*((*n)+1)/2), ap, toPtr(1), afp, toPtr(1))
+		goblas.Dcopy((*n)*((*n)+1)/2, ap, 1, afp, 1)
 		Dpptrf(uplo, n, afp, info)
 
 		//        Return if INFO is non-zero.

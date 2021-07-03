@@ -38,7 +38,7 @@ func Zlarfg(n *int, alpha *complex128, x *mat.CVector, incx *int, tau *complex12
 		return
 	}
 
-	xnorm = goblas.Dznrm2(toPtr((*n)-1), x, incx)
+	xnorm = goblas.Dznrm2((*n)-1, x, *incx)
 	alphr = real(*alpha)
 	alphi = imag(*alpha)
 
@@ -57,7 +57,7 @@ func Zlarfg(n *int, alpha *complex128, x *mat.CVector, incx *int, tau *complex12
 		label10:
 			;
 			knt = knt + 1
-			goblas.Zdscal(toPtr((*n)-1), &rsafmn, x, incx)
+			goblas.Zdscal((*n)-1, rsafmn, x, *incx)
 			beta = beta * rsafmn
 			alphi = alphi * rsafmn
 			alphr = alphr * rsafmn
@@ -66,13 +66,13 @@ func Zlarfg(n *int, alpha *complex128, x *mat.CVector, incx *int, tau *complex12
 			}
 
 			//           New BETA is at most 1, at least SAFMIN
-			xnorm = goblas.Dznrm2(toPtr((*n)-1), x, incx)
+			xnorm = goblas.Dznrm2((*n)-1, x, *incx)
 			(*alpha) = complex(alphr, alphi)
 			beta = -math.Copysign(Dlapy3(&alphr, &alphi, &xnorm), alphr)
 		}
 		(*tau) = complex((beta-alphr)/beta, -alphi/beta)
 		(*alpha) = Zladiv(toPtrc128(complex(one, 0)), toPtrc128((*alpha)-complex(beta, 0)))
-		goblas.Zscal(toPtr((*n)-1), alpha, x, incx)
+		goblas.Zscal((*n)-1, *alpha, x, *incx)
 
 		//        If ALPHA is subnormal, it may lose relative accuracy
 		for j = 1; j <= knt; j++ {

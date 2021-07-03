@@ -79,7 +79,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 1
 				//              Form the inverse of A.
 				if n > 0 {
-					goblas.Dcopy(&lap, ap, toPtr(1), ainvp, toPtr(1))
+					goblas.Dcopy(lap, ap, 1, ainvp, 1)
 				}
 				*srnamt = "DTPTRI"
 				golapack.Dtptri(uplo, diag, &n, ainvp, &info)
@@ -236,7 +236,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "DLATPS"
-					goblas.Dcopy(&n, x, toPtr(1), b, toPtr(1))
+					goblas.Dcopy(n, x, 1, b, 1)
 					golapack.Dlatps(uplo, trans, diag, 'N', &n, ap, b, &scale, rwork, &info)
 
 					//                 Check error code from DLATPS.
@@ -248,7 +248,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 					//+    TEST 9
 					//                 Solve op(A)*x = b again with NORMIN = 'Y'.
-					goblas.Dcopy(&n, x, toPtr(1), b.Off(n+1-1), toPtr(1))
+					goblas.Dcopy(n, x, 1, b.Off(n+1-1), 1)
 					golapack.Dlatps(uplo, trans, diag, 'Y', &n, ap, b.Off(n+1-1), &scale, rwork, &info)
 
 					//                 Check error code from DLATPS.

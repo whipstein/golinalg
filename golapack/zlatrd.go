@@ -19,6 +19,8 @@ import (
 func Zlatrd(uplo byte, n, nb *int, a *mat.CMatrix, lda *int, e *mat.Vector, tau *mat.CVector, w *mat.CMatrix, ldw *int) {
 	var alpha, half, one, zero complex128
 	var i, iw int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -37,10 +39,10 @@ func Zlatrd(uplo byte, n, nb *int, a *mat.CMatrix, lda *int, e *mat.Vector, tau 
 				//              Update A(1:i,i)
 				a.Set(i-1, i-1, a.GetReCmplx(i-1, i-1))
 				Zlacgv(toPtr((*n)-i), w.CVector(i-1, iw+1-1), ldw)
-				goblas.Zgemv(NoTrans, &i, toPtr((*n)-i), toPtrc128(-one), a.Off(0, i+1-1), lda, w.CVector(i-1, iw+1-1), ldw, &one, a.CVector(0, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, i, (*n)-i, -one, a.Off(0, i+1-1), *lda, w.CVector(i-1, iw+1-1), *ldw, one, a.CVector(0, i-1), 1)
 				Zlacgv(toPtr((*n)-i), w.CVector(i-1, iw+1-1), ldw)
 				Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
-				goblas.Zgemv(NoTrans, &i, toPtr((*n)-i), toPtrc128(-one), w.Off(0, iw+1-1), ldw, a.CVector(i-1, i+1-1), lda, &one, a.CVector(0, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, i, (*n)-i, -one, w.Off(0, iw+1-1), *ldw, a.CVector(i-1, i+1-1), *lda, one, a.CVector(0, i-1), 1)
 				Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
 				a.Set(i-1, i-1, a.GetReCmplx(i-1, i-1))
 			}
@@ -53,16 +55,16 @@ func Zlatrd(uplo byte, n, nb *int, a *mat.CMatrix, lda *int, e *mat.Vector, tau 
 				a.Set(i-1-1, i-1, one)
 
 				//              Compute W(1:i-1,i)
-				goblas.Zhemv(Upper, toPtr(i-1), &one, a, lda, a.CVector(0, i-1), func() *int { y := 1; return &y }(), &zero, w.CVector(0, iw-1), func() *int { y := 1; return &y }())
+				err = goblas.Zhemv(Upper, i-1, one, a, *lda, a.CVector(0, i-1), 1, zero, w.CVector(0, iw-1), 1)
 				if i < (*n) {
-					goblas.Zgemv(ConjTrans, toPtr(i-1), toPtr((*n)-i), &one, w.Off(0, iw+1-1), ldw, a.CVector(0, i-1), func() *int { y := 1; return &y }(), &zero, w.CVector(i+1-1, iw-1), func() *int { y := 1; return &y }())
-					goblas.Zgemv(NoTrans, toPtr(i-1), toPtr((*n)-i), toPtrc128(-one), a.Off(0, i+1-1), lda, w.CVector(i+1-1, iw-1), func() *int { y := 1; return &y }(), &one, w.CVector(0, iw-1), func() *int { y := 1; return &y }())
-					goblas.Zgemv(ConjTrans, toPtr(i-1), toPtr((*n)-i), &one, a.Off(0, i+1-1), lda, a.CVector(0, i-1), func() *int { y := 1; return &y }(), &zero, w.CVector(i+1-1, iw-1), func() *int { y := 1; return &y }())
-					goblas.Zgemv(NoTrans, toPtr(i-1), toPtr((*n)-i), toPtrc128(-one), w.Off(0, iw+1-1), ldw, w.CVector(i+1-1, iw-1), func() *int { y := 1; return &y }(), &one, w.CVector(0, iw-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(ConjTrans, i-1, (*n)-i, one, w.Off(0, iw+1-1), *ldw, a.CVector(0, i-1), 1, zero, w.CVector(i+1-1, iw-1), 1)
+					err = goblas.Zgemv(NoTrans, i-1, (*n)-i, -one, a.Off(0, i+1-1), *lda, w.CVector(i+1-1, iw-1), 1, one, w.CVector(0, iw-1), 1)
+					err = goblas.Zgemv(ConjTrans, i-1, (*n)-i, one, a.Off(0, i+1-1), *lda, a.CVector(0, i-1), 1, zero, w.CVector(i+1-1, iw-1), 1)
+					err = goblas.Zgemv(NoTrans, i-1, (*n)-i, -one, w.Off(0, iw+1-1), *ldw, w.CVector(i+1-1, iw-1), 1, one, w.CVector(0, iw-1), 1)
 				}
-				goblas.Zscal(toPtr(i-1), tau.GetPtr(i-1-1), w.CVector(0, iw-1), func() *int { y := 1; return &y }())
-				alpha = -half * tau.Get(i-1-1) * goblas.Zdotc(toPtr(i-1), w.CVector(0, iw-1), func() *int { y := 1; return &y }(), a.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(toPtr(i-1), &alpha, a.CVector(0, i-1), func() *int { y := 1; return &y }(), w.CVector(0, iw-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(i-1, tau.Get(i-1-1), w.CVector(0, iw-1), 1)
+				alpha = -half * tau.Get(i-1-1) * goblas.Zdotc(i-1, w.CVector(0, iw-1), 1, a.CVector(0, i-1), 1)
+				goblas.Zaxpy(i-1, alpha, a.CVector(0, i-1), 1, w.CVector(0, iw-1), 1)
 			}
 
 		}
@@ -72,10 +74,10 @@ func Zlatrd(uplo byte, n, nb *int, a *mat.CMatrix, lda *int, e *mat.Vector, tau 
 			//           Update A(i:n,i)
 			a.Set(i-1, i-1, a.GetReCmplx(i-1, i-1))
 			Zlacgv(toPtr(i-1), w.CVector(i-1, 0), ldw)
-			goblas.Zgemv(NoTrans, toPtr((*n)-i+1), toPtr(i-1), toPtrc128(-one), a.Off(i-1, 0), lda, w.CVector(i-1, 0), ldw, &one, a.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(NoTrans, (*n)-i+1, i-1, -one, a.Off(i-1, 0), *lda, w.CVector(i-1, 0), *ldw, one, a.CVector(i-1, i-1), 1)
 			Zlacgv(toPtr(i-1), w.CVector(i-1, 0), ldw)
 			Zlacgv(toPtr(i-1), a.CVector(i-1, 0), lda)
-			goblas.Zgemv(NoTrans, toPtr((*n)-i+1), toPtr(i-1), toPtrc128(-one), w.Off(i-1, 0), ldw, a.CVector(i-1, 0), lda, &one, a.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(NoTrans, (*n)-i+1, i-1, -one, w.Off(i-1, 0), *ldw, a.CVector(i-1, 0), *lda, one, a.CVector(i-1, i-1), 1)
 			Zlacgv(toPtr(i-1), a.CVector(i-1, 0), lda)
 			a.Set(i-1, i-1, a.GetReCmplx(i-1, i-1))
 			if i < (*n) {
@@ -88,14 +90,14 @@ func Zlatrd(uplo byte, n, nb *int, a *mat.CMatrix, lda *int, e *mat.Vector, tau 
 				a.Set(i+1-1, i-1, one)
 
 				//              Compute W(i+1:n,i)
-				goblas.Zhemv(Lower, toPtr((*n)-i), &one, a.Off(i+1-1, i+1-1), lda, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), &zero, w.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*n)-i), toPtr(i-1), &one, w.Off(i+1-1, 0), ldw, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), &zero, w.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*n)-i), toPtr(i-1), toPtrc128(-one), a.Off(i+1-1, 0), lda, w.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, w.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*n)-i), toPtr(i-1), &one, a.Off(i+1-1, 0), lda, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), &zero, w.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*n)-i), toPtr(i-1), toPtrc128(-one), w.Off(i+1-1, 0), ldw, w.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, w.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*n)-i), tau.GetPtr(i-1), w.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				alpha = -half * tau.Get(i-1) * goblas.Zdotc(toPtr((*n)-i), w.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(toPtr((*n)-i), &alpha, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), w.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zhemv(Lower, (*n)-i, one, a.Off(i+1-1, i+1-1), *lda, a.CVector(i+1-1, i-1), 1, zero, w.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*n)-i, i-1, one, w.Off(i+1-1, 0), *ldw, a.CVector(i+1-1, i-1), 1, zero, w.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*n)-i, i-1, -one, a.Off(i+1-1, 0), *lda, w.CVector(0, i-1), 1, one, w.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*n)-i, i-1, one, a.Off(i+1-1, 0), *lda, a.CVector(i+1-1, i-1), 1, zero, w.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*n)-i, i-1, -one, w.Off(i+1-1, 0), *ldw, w.CVector(0, i-1), 1, one, w.CVector(i+1-1, i-1), 1)
+				goblas.Zscal((*n)-i, tau.Get(i-1), w.CVector(i+1-1, i-1), 1)
+				alpha = -half * tau.Get(i-1) * goblas.Zdotc((*n)-i, w.CVector(i+1-1, i-1), 1, a.CVector(i+1-1, i-1), 1)
+				goblas.Zaxpy((*n)-i, alpha, a.CVector(i+1-1, i-1), 1, w.CVector(i+1-1, i-1), 1)
 			}
 
 		}

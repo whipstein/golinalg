@@ -17,6 +17,8 @@ func Dtptrs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	var nounit, upper bool
 	var zero float64
 	var j, jc int
+	var err error
+	_ = err
 
 	zero = 0.0
 
@@ -71,6 +73,6 @@ func Dtptrs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 
 	//     Solve A * x = b  or  A**T * x = b.
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, ap, b.Vector(0, j-1), toPtr(1))
+		err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, b.Vector(0, j-1), 1)
 	}
 }

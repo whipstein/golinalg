@@ -25,6 +25,8 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 	var trana, tranb byte
 	var bignum, cnrm, eps, four, one, res, res1, rmul, scale, smlnum, tnrm, two, xnrm, zero float64
 	var i, ima, imb, imlda1, imlda2, imldb1, imloff, info, isgn, itrana, itranb, j, m, n int
+	var err error
+	_ = err
 
 	dum := vf(1)
 	vm1 := vf(3)
@@ -132,8 +134,8 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 												rmul = one / maxf64(xnrm, tnrm)
 											}
 										}
-										goblas.Dgemm(mat.TransByte(trana), NoTrans, &m, &n, &m, &rmul, a, func() *int { y := 6; return &y }(), c, func() *int { y := 6; return &y }(), toPtrf64(-scale*rmul), cc, func() *int { y := 6; return &y }())
-										goblas.Dgemm(NoTrans, mat.TransByte(tranb), &m, &n, &n, toPtrf64(float64(isgn)*rmul), c, func() *int { y := 6; return &y }(), b, func() *int { y := 6; return &y }(), &one, cc, func() *int { y := 6; return &y }())
+										err = goblas.Dgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, 6, c, 6, -scale*rmul, cc, 6)
+										err = goblas.Dgemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, 6, b, 6, one, cc, 6)
 										res1 = golapack.Dlange('M', &m, &n, cc, func() *int { y := 6; return &y }(), dum)
 										res = res1 / maxf64(smlnum, smlnum*xnrm, ((rmul*tnrm)*eps)*xnrm)
 										if res > (*rmax) {

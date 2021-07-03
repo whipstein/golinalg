@@ -98,6 +98,8 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 	var sort byte
 	var anorm, eps, epsin, one, rcnde1, rcndv1, rconde, rcondv, smlnum, tmp, tol, tolin, ulp, ulpinv, v, vimin, vrmin, wnorm, zero float64
 	var i, iinfo, isort, itmp, j, kmin, knteig, liwork, rsub, sdim, sdim1 int
+	var err error
+	_ = err
 	ipnt := make([]int, 20)
 
 	zero = 0.0
@@ -170,8 +172,8 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			return
 		}
 		if isort == 0 {
-			goblas.Dcopy(n, wr, func() *int { y := 1; return &y }(), wrtmp, func() *int { y := 1; return &y }())
-			goblas.Dcopy(n, wi, func() *int { y := 1; return &y }(), witmp, func() *int { y := 1; return &y }())
+			goblas.Dcopy(*n, wr, 1, wrtmp, 1)
+			goblas.Dcopy(*n, wi, 1, witmp, 1)
 		}
 
 		//        Do Test (1) or Test (7)
@@ -202,10 +204,10 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 		golapack.Dlacpy(' ', n, n, a, lda, vs1, ldvs)
 
 		//        Compute Q*H and store in HT.
-		goblas.Dgemm(NoTrans, NoTrans, n, n, n, &one, vs, ldvs, h, lda, &zero, ht, lda)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, vs, *ldvs, h, *lda, zero, ht, *lda)
 
 		//        Compute A - Q*H*Q'
-		goblas.Dgemm(NoTrans, Trans, n, n, n, toPtrf64(-one), ht, lda, vs, ldvs, &one, vs1, ldvs)
+		err = goblas.Dgemm(NoTrans, Trans, *n, *n, *n, -one, ht, *lda, vs, *ldvs, one, vs1, *ldvs)
 
 		anorm = maxf64(golapack.Dlange('1', n, n, a, lda, work), smlnum)
 		wnorm = golapack.Dlange('1', n, n, vs1, ldvs, work)

@@ -50,6 +50,8 @@ import (
 func DlaorhrColGetrfnp(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info *int) {
 	var one float64
 	var iinfo, j, jb, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -87,10 +89,10 @@ func DlaorhrColGetrfnp(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info *
 
 			if j+jb <= (*n) {
 				//              Compute block row of U.
-				goblas.Dtrsm(Left, Lower, NoTrans, Unit, &jb, toPtr((*n)-j-jb+1), &one, a.Off(j-1, j-1), lda, a.Off(j-1, j+jb-1), lda)
+				err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					goblas.Dgemm(NoTrans, NoTrans, toPtr((*m)-j-jb+1), toPtr((*n)-j-jb+1), &jb, toPtrf64(-one), a.Off(j+jb-1, j-1), lda, a.Off(j-1, j+jb-1), lda, &one, a.Off(j+jb-1, j+jb-1), lda)
+					err = goblas.Dgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, one, a.Off(j+jb-1, j+jb-1), *lda)
 				}
 			}
 		}

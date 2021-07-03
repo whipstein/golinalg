@@ -17,6 +17,8 @@ import (
 //  RESULT = ||( A - U*S*V', B - U*T*V' )|| / (||( A, B )||*n*ulp )
 func Dget54(n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s *mat.Matrix, lds *int, t *mat.Matrix, ldt *int, u *mat.Matrix, ldu *int, v *mat.Matrix, ldv *int, work *mat.Vector, result *float64) {
 	var abnorm, one, ulp, unfl, wnorm, zero float64
+	var err error
+	_ = err
 
 	dum := vf(1)
 
@@ -39,15 +41,15 @@ func Dget54(n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s *mat.Mat
 
 	//     Compute W1 = A - U*S*V', and put in the array WORK(1:N*N)
 	golapack.Dlacpy(' ', n, n, a, lda, work.Matrix(*n, opts), n)
-	goblas.Dgemm(NoTrans, NoTrans, n, n, n, &one, u, ldu, s, lds, &zero, work.MatrixOff((*n)*(*n)+1-1, *n, opts), n)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, u, *ldu, s, *lds, zero, work.MatrixOff((*n)*(*n)+1-1, *n, opts), *n)
 
-	goblas.Dgemm(NoTrans, ConjTrans, n, n, n, toPtrf64(-one), work.MatrixOff((*n)*(*n)+1-1, *n, opts), n, v, ldv, &one, work.Matrix(*n, opts), n)
+	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, -one, work.MatrixOff((*n)*(*n)+1-1, *n, opts), *n, v, *ldv, one, work.Matrix(*n, opts), *n)
 
 	//     Compute W2 = B - U*T*V', and put in the workarray W(N*N+1:2*N*N)
 	golapack.Dlacpy(' ', n, n, b, ldb, work.MatrixOff((*n)*(*n)+1-1, *n, opts), n)
-	goblas.Dgemm(NoTrans, NoTrans, n, n, n, &one, u, ldu, t, ldt, &zero, work.MatrixOff(2*(*n)*(*n)+1-1, *n, opts), n)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, u, *ldu, t, *ldt, zero, work.MatrixOff(2*(*n)*(*n)+1-1, *n, opts), *n)
 
-	goblas.Dgemm(NoTrans, ConjTrans, n, n, n, toPtrf64(-one), work.MatrixOff(2*(*n)*(*n)+1-1, *n, opts), n, v, ldv, &one, work.MatrixOff((*n)*(*n)+1-1, *n, opts), n)
+	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, -one, work.MatrixOff(2*(*n)*(*n)+1-1, *n, opts), *n, v, *ldv, one, work.MatrixOff((*n)*(*n)+1-1, *n, opts), *n)
 
 	//     Compute norm(W)/ ( ulp*norm((A,B)) )
 	wnorm = golapack.Dlange('1', n, toPtr(2*(*n)), work.Matrix(*n, opts), n, dum)

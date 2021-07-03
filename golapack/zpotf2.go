@@ -22,6 +22,8 @@ func Zpotf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 	var cone complex128
 	var ajj, one, zero float64
 	var j int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -51,7 +53,7 @@ func Zpotf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		//        Compute the Cholesky factorization A = U**H *U.
 		for j = 1; j <= (*n); j++ {
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = a.GetRe(j-1, j-1) - real(goblas.Zdotc(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }(), a.CVector(0, j-1), func() *int { y := 1; return &y }()))
+			ajj = a.GetRe(j-1, j-1) - real(goblas.Zdotc(j-1, a.CVector(0, j-1), 1, a.CVector(0, j-1), 1))
 			if ajj <= zero || Disnan(int(ajj)) {
 				a.SetRe(j-1, j-1, ajj)
 				goto label30
@@ -62,16 +64,16 @@ func Zpotf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			//           Compute elements J+1:N of row J.
 			if j < (*n) {
 				Zlacgv(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(Trans, toPtr(j-1), toPtr((*n)-j), toPtrc128(-cone), a.Off(0, j+1-1), lda, a.CVector(0, j-1), func() *int { y := 1; return &y }(), &cone, a.CVector(j-1, j+1-1), lda)
+				err = goblas.Zgemv(Trans, j-1, (*n)-j, -cone, a.Off(0, j+1-1), *lda, a.CVector(0, j-1), 1, cone, a.CVector(j-1, j+1-1), *lda)
 				Zlacgv(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-				goblas.Zdscal(toPtr((*n)-j), toPtrf64(one/ajj), a.CVector(j-1, j+1-1), lda)
+				goblas.Zdscal((*n)-j, one/ajj, a.CVector(j-1, j+1-1), *lda)
 			}
 		}
 	} else {
 		//        Compute the Cholesky factorization A = L*L**H.
 		for j = 1; j <= (*n); j++ {
 			//           Compute L(J,J) and test for non-positive-definiteness.
-			ajj = a.GetRe(j-1, j-1) - real(goblas.Zdotc(toPtr(j-1), a.CVector(j-1, 0), lda, a.CVector(j-1, 0), lda))
+			ajj = a.GetRe(j-1, j-1) - real(goblas.Zdotc(j-1, a.CVector(j-1, 0), *lda, a.CVector(j-1, 0), *lda))
 			if ajj <= zero || Disnan(int(ajj)) {
 				a.SetRe(j-1, j-1, ajj)
 				goto label30
@@ -82,9 +84,9 @@ func Zpotf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			//           Compute elements J+1:N of column J.
 			if j < (*n) {
 				Zlacgv(toPtr(j-1), a.CVector(j-1, 0), lda)
-				goblas.Zgemv(NoTrans, toPtr((*n)-j), toPtr(j-1), toPtrc128(-cone), a.Off(j+1-1, 0), lda, a.CVector(j-1, 0), lda, &cone, a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*n)-j, j-1, -cone, a.Off(j+1-1, 0), *lda, a.CVector(j-1, 0), *lda, cone, a.CVector(j+1-1, j-1), 1)
 				Zlacgv(toPtr(j-1), a.CVector(j-1, 0), lda)
-				goblas.Zdscal(toPtr((*n)-j), toPtrf64(one/ajj), a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-j, one/ajj, a.CVector(j+1-1, j-1), 1)
 			}
 		}
 	}

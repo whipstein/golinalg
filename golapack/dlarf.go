@@ -17,6 +17,8 @@ func Dlarf(side byte, m, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.
 	var applyleft bool
 	var one, zero float64
 	var i, lastc, lastv int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -59,19 +61,19 @@ func Dlarf(side byte, m, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.
 		//        Form  H * C
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastv,1:lastc)**T * v(1:lastv,1)
-			goblas.Dgemv(Trans, &lastv, &lastc, &one, c, ldc, v, incv, &zero, work, func() *int { y := 1; return &y }())
+			err = goblas.Dgemv(Trans, lastv, lastc, one, c, *ldc, v, *incv, zero, work, 1)
 
 			//           C(1:lastv,1:lastc) := C(...) - v(1:lastv,1) * w(1:lastc,1)**T
-			goblas.Dger(&lastv, &lastc, toPtrf64(-(*tau)), v, incv, work, func() *int { y := 1; return &y }(), c, ldc)
+			err = goblas.Dger(lastv, lastc, -(*tau), v, *incv, work, 1, c, *ldc)
 		}
 	} else {
 		//        Form  C * H
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastc,1:lastv) * v(1:lastv,1)
-			goblas.Dgemv(NoTrans, &lastc, &lastv, &one, c, ldc, v, incv, &zero, work, func() *int { y := 1; return &y }())
+			err = goblas.Dgemv(NoTrans, lastc, lastv, one, c, *ldc, v, *incv, zero, work, 1)
 
 			//           C(1:lastc,1:lastv) := C(...) - w(1:lastc,1) * v(1:lastv,1)**T
-			goblas.Dger(&lastc, &lastv, toPtrf64(-(*tau)), work, func() *int { y := 1; return &y }(), v, incv, c, ldc)
+			err = goblas.Dger(lastc, lastv, -(*tau), work, 1, v, *incv, c, *ldc)
 		}
 	}
 }

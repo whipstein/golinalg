@@ -26,6 +26,8 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 	var almort, defr, errest, goscal, jracc, kill, l2aber, l2kill, l2pert, l2rank, l2tran, lsvec, noscal, rowpiv, rsvec, transp bool
 	var aapp, aaqq, aatmax, aatmin, big, big1, condOk, condr1, condr2, entra, entrat, epsln, maxprj, one, scalem, sconda, sfmin, small, temp1, uscal1, uscal2, xsc, zero float64
 	var ierr, n1, nr, numrank, p, q, warning int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -129,7 +131,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 			sva.Set(p-1, aapp*(aaqq*scalem))
 			if goscal {
 				goscal = false
-				goblas.Dscal(toPtr(p-1), &scalem, sva, toPtr(1))
+				goblas.Dscal(p-1, scalem, sva, 1)
 			}
 		}
 	}
@@ -197,7 +199,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 			if n1 != (*n) {
 				Dgeqrf(m, n, u, ldu, work, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
 				Dorgqr(m, &n1, toPtr(1), u, ldu, work, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
-				goblas.Dcopy(m, a.Vector(0, 0), toPtr(1), u.Vector(0, 0), toPtr(1))
+				goblas.Dcopy(*m, a.Vector(0, 0), 1, u.Vector(0, 0), 1)
 			}
 		}
 		if rsvec {
@@ -262,7 +264,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 			}
 		} else {
 			for p = 1; p <= (*m); p++ {
-				work.Set((*m)+(*n)+p-1, scalem*math.Abs(a.Get(p-1, goblas.Idamax(n, a.Vector(p-1, 1-1), lda)-1)))
+				work.Set((*m)+(*n)+p-1, scalem*math.Abs(a.Get(p-1, goblas.Idamax(*n, a.Vector(p-1, 1-1), *lda)-1)))
 				aatmax = maxf64(aatmax, work.Get((*m)+(*n)+p-1))
 				aatmin = minf64(aatmin, work.Get((*m)+(*n)+p-1))
 			}
@@ -410,7 +412,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		//        has similar effect as Powell-Reid complete pivoting.
 		//        The ell-infinity norms of A are made nonincreasing.
 		for p = 1; p <= (*m)-1; p++ {
-			q = goblas.Idamax(toPtr((*m)-p+1), work.Off((*m)+(*n)+p-1), toPtr(1)) + p - 1
+			q = goblas.Idamax((*m)-p+1, work.Off((*m)+(*n)+p-1), 1) + p - 1
 			(*iwork)[2*(*n)+p-1] = q
 			if p != q {
 				temp1 = work.Get((*m) + (*n) + p - 1)
@@ -517,7 +519,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				Dlacpy('U', n, n, a, lda, v, ldv)
 				for p = 1; p <= (*n); p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Dscal(&p, toPtrf64(one/temp1), v.Vector(0, p-1), toPtr(1))
+					goblas.Dscal(p, one/temp1, v.Vector(0, p-1), 1)
 				}
 				Dpocon('U', n, v, ldv, &one, &temp1, work.Off((*n)+1-1), toSlice(iwork, 2*(*n)+(*m)+1-1), &ierr)
 			} else if lsvec {
@@ -525,14 +527,14 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				Dlacpy('U', n, n, a, lda, u, ldu)
 				for p = 1; p <= (*n); p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Dscal(&p, toPtrf64(one/temp1), u.Vector(0, p-1), toPtr(1))
+					goblas.Dscal(p, one/temp1, u.Vector(0, p-1), 1)
 				}
 				Dpocon('U', n, u, ldu, &one, &temp1, work.Off((*n)+1-1), toSlice(iwork, 2*(*n)+(*m)+1-1), &ierr)
 			} else {
 				Dlacpy('U', n, n, a, lda, work.MatrixOff((*n)+1-1, *n, opts), n)
 				for p = 1; p <= (*n); p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Dscal(&p, toPtrf64(one/temp1), work.Off((*n)+(p-1)*(*n)+1-1), toPtr(1))
+					goblas.Dscal(p, one/temp1, work.Off((*n)+(p-1)*(*n)+1-1), 1)
 				}
 				//           .. the columns of R are scaled to have unit Euclidean lengths.
 				Dpocon('U', n, work.MatrixOff((*n)+1-1, *n, opts), n, &one, &temp1, work.Off((*n)+(*n)*(*n)+1-1), toSlice(iwork, 2*(*n)+(*m)+1-1), &ierr)
@@ -555,7 +557,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		//
 		//         .. transpose A(1:NR,1:N)
 		for p = 1; p <= minint((*n)-1, nr); p++ {
-			goblas.Dcopy(toPtr((*n)-p), a.Vector(p-1, p+1-1), lda, a.Vector(p+1-1, p-1), toPtr(1))
+			goblas.Dcopy((*n)-p, a.Vector(p-1, p+1-1), *lda, a.Vector(p+1-1, p-1), 1)
 		}
 
 		//        The following two DO-loops introduce small relative perturbation
@@ -591,7 +593,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 
 			//           .. and transpose upper to lower triangular
 			for p = 1; p <= nr-1; p++ {
-				goblas.Dcopy(toPtr(nr-p), a.Vector(p-1, p+1-1), lda, a.Vector(p+1-1, p-1), toPtr(1))
+				goblas.Dcopy(nr-p, a.Vector(p-1, p+1-1), *lda, a.Vector(p+1-1, p-1), 1)
 			}
 
 		}
@@ -628,7 +630,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		if almort {
 			//           .. in this case NR equals N
 			for p = 1; p <= nr; p++ {
-				goblas.Dcopy(toPtr((*n)-p+1), a.Vector(p-1, p-1), lda, v.Vector(p-1, p-1), toPtr(1))
+				goblas.Dcopy((*n)-p+1, a.Vector(p-1, p-1), *lda, v.Vector(p-1, p-1), 1)
 			}
 			Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, v.Off(0, 1), ldv)
 
@@ -644,7 +646,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 			Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, v.Off(0, 1), ldv)
 			Dgeqrf(&nr, &nr, v, ldv, work.Off((*n)+1-1), work.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), &ierr)
 			for p = 1; p <= nr; p++ {
-				goblas.Dcopy(toPtr(nr-p+1), v.Vector(p-1, p-1), ldv, v.Vector(p-1, p-1), toPtr(1))
+				goblas.Dcopy(nr-p+1, v.Vector(p-1, p-1), *ldv, v.Vector(p-1, p-1), 1)
 			}
 			Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, v.Off(0, 1), ldv)
 
@@ -662,7 +664,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		}
 
 		for p = 1; p <= (*n); p++ {
-			goblas.Dcopy(n, v.Vector(p-1, 0), ldv, a.Vector((*iwork)[p-1]-1, 0), lda)
+			goblas.Dcopy(*n, v.Vector(p-1, 0), *ldv, a.Vector((*iwork)[p-1]-1, 0), *lda)
 		}
 		Dlacpy('A', n, n, a, lda, v, ldv)
 
@@ -676,14 +678,14 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		//        .. second preconditioning step to avoid need to accumulate
 		//        Jacobi rotations in the Jacobi iterations.
 		for p = 1; p <= nr; p++ {
-			goblas.Dcopy(toPtr((*n)-p+1), a.Vector(p-1, p-1), lda, u.Vector(p-1, p-1), toPtr(1))
+			goblas.Dcopy((*n)-p+1, a.Vector(p-1, p-1), *lda, u.Vector(p-1, p-1), 1)
 		}
 		Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, u.Off(0, 1), ldu)
 
 		Dgeqrf(n, &nr, u, ldu, work.Off((*n)+1-1), work.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), &ierr)
 
 		for p = 1; p <= nr-1; p++ {
-			goblas.Dcopy(toPtr(nr-p), u.Vector(p-1, p+1-1), ldu, u.Vector(p+1-1, p-1), toPtr(1))
+			goblas.Dcopy(nr-p, u.Vector(p-1, p+1-1), *ldu, u.Vector(p+1-1, p-1), 1)
 		}
 		Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, u.Off(0, 1), ldu)
 
@@ -706,8 +708,8 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		}
 
 		for p = 1; p <= n1; p++ {
-			xsc = one / goblas.Dnrm2(m, u.Vector(0, p-1), toPtr(1))
-			goblas.Dscal(m, &xsc, u.Vector(0, p-1), toPtr(1))
+			xsc = one / goblas.Dnrm2(*m, u.Vector(0, p-1), 1)
+			goblas.Dscal(*m, xsc, u.Vector(0, p-1), 1)
 		}
 
 		if transp {
@@ -726,7 +728,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				//           transpose and use the QRF. This is subject to changes in an
 				//           optimized implementation of DGEJSV.
 				for p = 1; p <= nr; p++ {
-					goblas.Dcopy(toPtr((*n)-p+1), a.Vector(p-1, p-1), lda, v.Vector(p-1, p-1), toPtr(1))
+					goblas.Dcopy((*n)-p+1, a.Vector(p-1, p-1), *lda, v.Vector(p-1, p-1), 1)
 				}
 
 				//           .. the following two loops perturb small entries to avoid
@@ -762,8 +764,8 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				//           of the leading NR x NR submatrix is estimated.)
 				Dlacpy('L', &nr, &nr, v, ldv, work.MatrixOff(2*(*n)+1-1, nr, opts), &nr)
 				for p = 1; p <= nr; p++ {
-					temp1 = goblas.Dnrm2(toPtr(nr-p+1), work.Off(2*(*n)+(p-1)*nr+p-1), toPtr(1))
-					goblas.Dscal(toPtr(nr-p+1), toPtrf64(one/temp1), work.Off(2*(*n)+(p-1)*nr+p-1), toPtr(1))
+					temp1 = goblas.Dnrm2(nr-p+1, work.Off(2*(*n)+(p-1)*nr+p-1), 1)
+					goblas.Dscal(nr-p+1, one/temp1, work.Off(2*(*n)+(p-1)*nr+p-1), 1)
 				}
 				Dpocon('L', &nr, work.MatrixOff(2*(*n)+1-1, nr, opts), &nr, &one, &temp1, work.Off(2*(*n)+nr*nr+1-1), toSlice(iwork, (*m)+2*(*n)+1-1), &ierr)
 				condr1 = one / math.Sqrt(temp1)
@@ -800,7 +802,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 					//
 					//           .. this transposed copy should be better than naive
 					for p = 1; p <= nr-1; p++ {
-						goblas.Dcopy(toPtr(nr-p), v.Vector(p-1, p+1-1), ldv, v.Vector(p+1-1, p-1), toPtr(1))
+						goblas.Dcopy(nr-p, v.Vector(p-1, p+1-1), *ldv, v.Vector(p+1-1, p-1), 1)
 					}
 
 					condr2 = condr1
@@ -850,8 +852,8 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 					//              .. and estimate the condition number
 					Dlacpy('L', &nr, &nr, v, ldv, work.MatrixOff(2*(*n)+(*n)*nr+nr+1-1, nr, opts), &nr)
 					for p = 1; p <= nr; p++ {
-						temp1 = goblas.Dnrm2(&p, work.Off(2*(*n)+(*n)*nr+nr+p-1), &nr)
-						goblas.Dscal(&p, toPtrf64(one/temp1), work.Off(2*(*n)+(*n)*nr+nr+p-1), &nr)
+						temp1 = goblas.Dnrm2(p, work.Off(2*(*n)+(*n)*nr+nr+p-1), nr)
+						goblas.Dscal(p, one/temp1, work.Off(2*(*n)+(*n)*nr+nr+p-1), nr)
 					}
 					Dpocon('L', &nr, work.MatrixOff(2*(*n)+(*n)*nr+nr+1-1, nr, opts), &nr, &one, &temp1, work.Off(2*(*n)+(*n)*nr+nr+nr*nr+1-1), toSlice(iwork, (*m)+2*(*n)+1-1), &ierr)
 					condr2 = one / math.Sqrt(temp1)
@@ -892,8 +894,8 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 					scalem = work.Get(2*(*n) + (*n)*nr + nr + 1 - 1)
 					numrank = int(math.Round(work.Get(2*(*n) + (*n)*nr + nr + 2 - 1)))
 					for p = 1; p <= nr; p++ {
-						goblas.Dcopy(&nr, v.Vector(0, p-1), toPtr(1), u.Vector(0, p-1), toPtr(1))
-						goblas.Dscal(&nr, sva.GetPtr(p-1), v.Vector(0, p-1), toPtr(1))
+						goblas.Dcopy(nr, v.Vector(0, p-1), 1, u.Vector(0, p-1), 1)
+						goblas.Dscal(nr, sva.Get(p-1), v.Vector(0, p-1), 1)
 					}
 					//        .. pick the right matrix equation and solve it
 
@@ -902,13 +904,13 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 						//                 equation is Q2*V2 = the product of the Jacobi rotations
 						//                 used in DGESVJ, premultiplied with the orthogonal matrix
 						//                 from the second QR factorization.
-						goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, &nr, &nr, &one, a, lda, v, ldv)
+						err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, nr, nr, one, a, *lda, v, *ldv)
 					} else {
 						//                 .. R1 is well conditioned, but non-square. Transpose(R2)
 						//                 is inverted to get the product of the Jacobi rotations
 						//                 used in DGESVJ. The Q-factor from the second QR
 						//                 factorization is then built in explicitly.
-						goblas.Dtrsm(Left, Upper, Trans, NonUnit, &nr, &nr, &one, work.MatrixOff(2*(*n)+1-1, *n, opts), n, v, ldv)
+						err = goblas.Dtrsm(Left, Upper, Trans, NonUnit, nr, nr, one, work.MatrixOff(2*(*n)+1-1, *n, opts), *n, v, *ldv)
 						if nr < (*n) {
 							Dlaset('A', toPtr((*n)-nr), &nr, &zero, &zero, v.Off(nr+1-1, 0), ldv)
 							Dlaset('A', &nr, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr+1-1), ldv)
@@ -928,10 +930,10 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 					scalem = work.Get(2*(*n) + (*n)*nr + nr + 1 - 1)
 					numrank = int(math.Round(work.Get(2*(*n) + (*n)*nr + nr + 2 - 1)))
 					for p = 1; p <= nr; p++ {
-						goblas.Dcopy(&nr, v.Vector(0, p-1), toPtr(1), u.Vector(0, p-1), toPtr(1))
-						goblas.Dscal(&nr, sva.GetPtr(p-1), u.Vector(0, p-1), toPtr(1))
+						goblas.Dcopy(nr, v.Vector(0, p-1), 1, u.Vector(0, p-1), 1)
+						goblas.Dscal(nr, sva.Get(p-1), u.Vector(0, p-1), 1)
 					}
-					goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, &nr, &nr, &one, work.MatrixOff(2*(*n)+1-1, *n, opts), n, u, ldu)
+					err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, nr, nr, one, work.MatrixOff(2*(*n)+1-1, *n, opts), *n, u, *ldu)
 					//              .. apply the permutation from the second QR factorization
 					for q = 1; q <= nr; q++ {
 						for p = 1; p <= nr; p++ {
@@ -992,9 +994,9 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 					for p = 1; p <= (*n); p++ {
 						v.Set(p-1, q-1, work.Get(2*(*n)+(*n)*nr+nr+p-1))
 					}
-					xsc = one / goblas.Dnrm2(n, v.Vector(0, q-1), toPtr(1))
+					xsc = one / goblas.Dnrm2(*n, v.Vector(0, q-1), 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Dscal(n, &xsc, v.Vector(0, q-1), toPtr(1))
+						goblas.Dscal(*n, xsc, v.Vector(0, q-1), 1)
 					}
 				}
 				//           At this moment, V contains the right singular vectors of A.
@@ -1013,9 +1015,9 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				//           The columns of U are normalized. The cost is O(M*N) flops.
 				temp1 = math.Sqrt(float64(*m)) * epsln
 				for p = 1; p <= nr; p++ {
-					xsc = one / goblas.Dnrm2(m, u.Vector(0, p-1), toPtr(1))
+					xsc = one / goblas.Dnrm2(*m, u.Vector(0, p-1), 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Dscal(m, &xsc, u.Vector(0, p-1), toPtr(1))
+						goblas.Dscal(*m, xsc, u.Vector(0, p-1), 1)
 					}
 				}
 
@@ -1046,19 +1048,19 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				scalem = work.Get((*n) + (*n)*(*n) + 1 - 1)
 				numrank = int(math.Round(work.Get((*n) + (*n)*(*n) + 2 - 1)))
 				for p = 1; p <= (*n); p++ {
-					goblas.Dcopy(n, work.Off((*n)+(p-1)*(*n)+1-1), toPtr(1), u.Vector(0, p-1), toPtr(1))
-					goblas.Dscal(n, sva.GetPtr(p-1), work.Off((*n)+(p-1)*(*n)+1-1), toPtr(1))
+					goblas.Dcopy(*n, work.Off((*n)+(p-1)*(*n)+1-1), 1, u.Vector(0, p-1), 1)
+					goblas.Dscal(*n, sva.Get(p-1), work.Off((*n)+(p-1)*(*n)+1-1), 1)
 				}
 
-				goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, n, n, &one, a, lda, work.MatrixOff((*n)+1-1, *n, opts), n)
+				err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, *n, *n, one, a, *lda, work.MatrixOff((*n)+1-1, *n, opts), *n)
 				for p = 1; p <= (*n); p++ {
-					goblas.Dcopy(n, work.Off((*n)+p-1), n, v.Vector((*iwork)[p-1]-1, 0), ldv)
+					goblas.Dcopy(*n, work.Off((*n)+p-1), *n, v.Vector((*iwork)[p-1]-1, 0), *ldv)
 				}
 				temp1 = math.Sqrt(float64(*n)) * epsln
 				for p = 1; p <= (*n); p++ {
-					xsc = one / goblas.Dnrm2(n, v.Vector(0, p-1), toPtr(1))
+					xsc = one / goblas.Dnrm2(*n, v.Vector(0, p-1), 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Dscal(n, &xsc, v.Vector(0, p-1), toPtr(1))
+						goblas.Dscal(*n, xsc, v.Vector(0, p-1), 1)
 					}
 				}
 
@@ -1073,9 +1075,9 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				Dormqr('L', 'N', m, &n1, n, a, lda, work, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
 				temp1 = math.Sqrt(float64(*m)) * epsln
 				for p = 1; p <= n1; p++ {
-					xsc = one / goblas.Dnrm2(m, u.Vector(0, p-1), toPtr(1))
+					xsc = one / goblas.Dnrm2(*m, u.Vector(0, p-1), 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Dscal(m, &xsc, u.Vector(0, p-1), toPtr(1))
+						goblas.Dscal(*m, xsc, u.Vector(0, p-1), 1)
 					}
 				}
 
@@ -1097,7 +1099,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 			//        implementation of BLAS and some LAPACK procedures, capable of working
 			//        in presence of extreme values. Since that is not always the case, ...
 			for p = 1; p <= nr; p++ {
-				goblas.Dcopy(toPtr((*n)-p+1), a.Vector(p-1, p-1), lda, v.Vector(p-1, p-1), toPtr(1))
+				goblas.Dcopy((*n)-p+1, a.Vector(p-1, p-1), *lda, v.Vector(p-1, p-1), 1)
 			}
 
 			if l2pert {
@@ -1120,7 +1122,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 			Dlacpy('L', n, &nr, v, ldv, work.MatrixOff(2*(*n)+1-1, *n, opts), n)
 
 			for p = 1; p <= nr; p++ {
-				goblas.Dcopy(toPtr(nr-p+1), v.Vector(p-1, p-1), ldv, u.Vector(p-1, p-1), toPtr(1))
+				goblas.Dcopy(nr-p+1, v.Vector(p-1, p-1), *ldv, u.Vector(p-1, p-1), 1)
 			}
 			if l2pert {
 				xsc = math.Sqrt(small / epsln)
@@ -1154,9 +1156,9 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 				for p = 1; p <= (*n); p++ {
 					v.Set(p-1, q-1, work.Get(2*(*n)+(*n)*nr+nr+p-1))
 				}
-				xsc = one / goblas.Dnrm2(n, v.Vector(0, q-1), toPtr(1))
+				xsc = one / goblas.Dnrm2(*n, v.Vector(0, q-1), 1)
 				if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-					goblas.Dscal(n, &xsc, v.Vector(0, q-1), toPtr(1))
+					goblas.Dscal(*n, xsc, v.Vector(0, q-1), 1)
 				}
 			}
 
@@ -1180,7 +1182,7 @@ func Dgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.Matrix, l
 		if transp {
 			//           .. swap U and V because the procedure worked on A^t
 			for p = 1; p <= (*n); p++ {
-				goblas.Dswap(n, u.Vector(0, p-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
+				goblas.Dswap(*n, u.Vector(0, p-1), 1, v.Vector(0, p-1), 1)
 			}
 		}
 

@@ -34,7 +34,7 @@ func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVecto
 		return
 	}
 
-	nrmsvl = goblas.Dnrm2(&mn, s, func() *int { y := 1; return &y }())
+	nrmsvl = goblas.Dnrm2(mn, s, 1)
 
 	//     Copy upper triangle of A into work
 	golapack.Zlaset('F', m, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), work.CMatrix(*m, opts), m)
@@ -84,8 +84,8 @@ func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVecto
 	}
 
 	//     Compare s and singular values of work
-	goblas.Daxpy(&mn, toPtrf64(-one), s, func() *int { y := 1; return &y }(), rwork.Off(0), func() *int { y := 1; return &y }())
-	zqrt12Return = goblas.Dasum(&mn, rwork.Off(0), func() *int { y := 1; return &y }()) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	goblas.Daxpy(mn, -one, s, 1, rwork.Off(0), 1)
+	zqrt12Return = goblas.Dasum(mn, rwork.Off(0), 1) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
 	if nrmsvl != zero {
 		zqrt12Return = zqrt12Return / nrmsvl
 	}

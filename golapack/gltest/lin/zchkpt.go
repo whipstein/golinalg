@@ -109,10 +109,10 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(&n, d, func() *int { y := 1; return &y }())
+					ix = goblas.Idamax(n, d, 1)
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(&n, toPtrf64(anorm/dmax), d, func() *int { y := 1; return &y }())
-					goblas.Zdscal(toPtr(n-1), toPtrf64(anorm/dmax), e, func() *int { y := 1; return &y }())
+					goblas.Dscal(n, anorm/dmax, d, 1)
+					goblas.Zdscal(n-1, anorm/dmax, e, 1)
 
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -164,9 +164,9 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 			}
 
-			goblas.Dcopy(&n, d, func() *int { y := 1; return &y }(), d.Off(n+1-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
 			if n > 1 {
-				goblas.Zcopy(toPtr(n-1), e, func() *int { y := 1; return &y }(), e.Off(n+1-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy(n-1, e, 1, e.Off(n+1-1), 1)
 			}
 
 			//+    TEST 1
@@ -213,7 +213,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 				x.SetRe(i-1, one)
 				golapack.Zpttrs('L', &n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.CMatrix(lda, opts), &lda, &info)
-				ainvnm = maxf64(ainvnm, goblas.Dzasum(&n, x, func() *int { y := 1; return &y }()))
+				ainvnm = maxf64(ainvnm, goblas.Dzasum(n, x, 1))
 			}
 			rcondc = one / maxf64(one, anorm*ainvnm)
 

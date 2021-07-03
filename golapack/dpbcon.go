@@ -80,7 +80,7 @@ label10:
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Idamax(n, work, toPtr(1))
+			ix = goblas.Idamax(*n, work, 1)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

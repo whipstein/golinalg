@@ -395,8 +395,8 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 		//        Store the shift.
 		e.Set(iend-1, sigma)
 		//        Store D and L.
-		goblas.Dcopy(&in, work, toPtr(1), d.Off(ibegin-1), toPtr(1))
-		goblas.Dcopy(toPtr(in-1), work.Off(in+1-1), toPtr(1), e.Off(ibegin-1), toPtr(1))
+		goblas.Dcopy(in, work, 1, d.Off(ibegin-1), 1)
+		goblas.Dcopy(in-1, work.Off(in+1-1), 1, e.Off(ibegin-1), 1)
 		if mb > 1 {
 			//           Perturb each entry of the base representation by a small
 			//           (but random) relative amount to overcome difficulties with

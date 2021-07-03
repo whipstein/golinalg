@@ -20,6 +20,8 @@ import (
 func Zhst01(n, ilo, ihi *int, a *mat.CMatrix, lda *int, h *mat.CMatrix, ldh *int, q *mat.CMatrix, ldq *int, work *mat.CVector, lwork *int, rwork, result *mat.Vector) {
 	var anorm, eps, one, ovfl, smlnum, unfl, wnorm, zero float64
 	var ldwork int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -44,10 +46,10 @@ func Zhst01(n, ilo, ihi *int, a *mat.CMatrix, lda *int, h *mat.CMatrix, ldh *int
 	golapack.Zlacpy(' ', n, n, a, lda, work.CMatrix(ldwork, opts), &ldwork)
 
 	//     Compute Q*H
-	goblas.Zgemm(NoTrans, NoTrans, n, n, n, toPtrc128(complex(one, 0)), q, ldq, h, ldh, toPtrc128(complex(zero, 0)), work.CMatrixOff(ldwork*(*n)+1-1, ldwork, opts), &ldwork)
+	err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, complex(one, 0), q, *ldq, h, *ldh, complex(zero, 0), work.CMatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork)
 
 	//     Compute A - Q*H*Q'
-	goblas.Zgemm(NoTrans, ConjTrans, n, n, n, toPtrc128(complex(-one, 0)), work.CMatrixOff(ldwork*(*n)+1-1, ldwork, opts), &ldwork, q, ldq, toPtrc128(complex(one, 0)), work.CMatrix(ldwork, opts), &ldwork)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, complex(-one, 0), work.CMatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork, q, *ldq, complex(one, 0), work.CMatrix(ldwork, opts), ldwork)
 
 	anorm = maxf64(golapack.Zlange('1', n, n, a, lda, rwork), unfl)
 	wnorm = golapack.Zlange('1', n, n, work.CMatrix(ldwork, opts), &ldwork, rwork)

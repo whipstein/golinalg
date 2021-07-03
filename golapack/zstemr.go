@@ -278,8 +278,8 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 			scale = rmax / tnrm
 		}
 		if scale != one {
-			goblas.Dscal(n, &scale, d, func() *int { y := 1; return &y }())
-			goblas.Dscal(toPtr((*n)-1), &scale, e, func() *int { y := 1; return &y }())
+			goblas.Dscal(*n, scale, d, 1)
+			goblas.Dscal((*n)-1, scale, e, 1)
 			tnrm = tnrm * scale
 			if valeig {
 				//              If eigenvalues in interval have to be found,
@@ -314,7 +314,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 
 		if *tryrac {
 			//           Copy original diagonal, needed to guarantee relative accuracy
-			goblas.Dcopy(n, d, func() *int { y := 1; return &y }(), work.Off(indd-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy(*n, d, 1, work.Off(indd-1), 1)
 		}
 		//        Store the squares of the offdiagonal values of T
 		for j = 1; j <= (*n)-1; j++ {
@@ -396,7 +396,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 
 		//        If matrix was scaled, then rescale eigenvalues appropriately.
 		if scale != one {
-			goblas.Dscal(m, toPtrf64(one/scale), w, func() *int { y := 1; return &y }())
+			goblas.Dscal(*m, one/scale, w, 1)
 		}
 	}
 
@@ -423,7 +423,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 					w.Set(i-1, w.Get(j-1))
 					w.Set(j-1, tmp)
 					if wantz {
-						goblas.Zswap(n, z.CVector(0, i-1), func() *int { y := 1; return &y }(), z.CVector(0, j-1), func() *int { y := 1; return &y }())
+						goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, j-1), 1)
 						itmp = (*isuppz)[2*i-1-1]
 						(*isuppz)[2*i-1-1] = (*isuppz)[2*j-1-1]
 						(*isuppz)[2*j-1-1] = itmp

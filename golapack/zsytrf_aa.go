@@ -19,6 +19,8 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 	var lquery, upper bool
 	var alpha, one complex128
 	var j, j1, j2, j3, jb, k1, k2, lwkopt, mj, nb, nj int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -71,7 +73,7 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 		//        .....................................................
 		//
 		//        Copy first row A(1, 1:N) into H(1:n) (stored in WORK(1:N))
-		goblas.Zcopy(n, a.CVector(0, 0), lda, work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, a.CVector(0, 0), *lda, work, 1)
 
 		//        J is the main loop index, increasing from 1 to N in steps of
 		//        JB, where JB is the number of columns factorized by ZLASYF;
@@ -100,7 +102,7 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 		for j2 = j + 2; j2 <= minint(*n, j+jb+1); j2++ {
 			(*ipiv)[j2-1] = (*ipiv)[j2-1] + j
 			if (j2 != (*ipiv)[j2-1]) && ((j1 - k1) > 2) {
-				goblas.Zswap(toPtr(j1-k1-2), a.CVector(0, j2-1), func() *int { y := 1; return &y }(), a.CVector(0, (*ipiv)[j2-1]-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(j1-k1-2, a.CVector(0, j2-1), 1, a.CVector(0, (*ipiv)[j2-1]-1), 1)
 			}
 		}
 		j = j + jb
@@ -114,8 +116,8 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 				//              Merge rank-1 update with BLAS-3 update
 				alpha = a.Get(j-1, j+1-1)
 				a.Set(j-1, j+1-1, one)
-				goblas.Zcopy(toPtr((*n)-j), a.CVector(j-1-1, j+1-1), lda, work.Off((j+1-j1+1)+jb*(*n)-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*n)-j), &alpha, work.Off((j+1-j1+1)+jb*(*n)-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy((*n)-j, a.CVector(j-1-1, j+1-1), *lda, work.Off((j+1-j1+1)+jb*(*n)-1), 1)
+				goblas.Zscal((*n)-j, alpha, work.Off((j+1-j1+1)+jb*(*n)-1), 1)
 
 				//              K1 identifies if the previous column of the panel has been
 				//               explicitly stored, e.g., K1=1 and K2= 0 for the first panel,
@@ -137,12 +139,12 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 					//                 Update (J2, J2) diagonal block with ZGEMV
 					j3 = j2
 					for mj = nj - 1; mj >= 1; mj-- {
-						goblas.Zgemv(NoTrans, &mj, toPtr(jb+1), toPtrc128(-one), work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), n, a.CVector(j1-k2-1, j3-1), func() *int { y := 1; return &y }(), &one, a.CVector(j3-1, j3-1), lda)
+						err = goblas.Zgemv(NoTrans, mj, jb+1, -one, work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), *n, a.CVector(j1-k2-1, j3-1), 1, one, a.CVector(j3-1, j3-1), *lda)
 						j3 = j3 + 1
 					}
 
 					//                 Update off-diagonal block of J2-th block row with ZGEMM
-					goblas.Zgemm(Trans, Trans, &nj, toPtr((*n)-j3+1), toPtr(jb+1), toPtrc128(-one), a.Off(j1-k2-1, j2-1), lda, work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), n, &one, a.Off(j2-1, j3-1), lda)
+					err = goblas.Zgemm(Trans, Trans, nj, (*n)-j3+1, jb+1, -one, a.Off(j1-k2-1, j2-1), *lda, work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), *n, one, a.Off(j2-1, j3-1), *lda)
 				}
 
 				//              Recover T( J, J+1 )
@@ -150,7 +152,7 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 			}
 
 			//           WORK(J+1, 1) stores H(J+1, 1)
-			goblas.Zcopy(toPtr((*n)-j), a.CVector(j+1-1, j+1-1), lda, work, func() *int { y := 1; return &y }())
+			goblas.Zcopy((*n)-j, a.CVector(j+1-1, j+1-1), *lda, work, 1)
 		}
 		goto label10
 	} else {
@@ -160,7 +162,7 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 		//
 		//        copy first column A(1:N, 1) into H(1:N, 1)
 		//         (stored in WORK(1:N))
-		goblas.Zcopy(n, a.CVector(0, 0), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, a.CVector(0, 0), 1, work, 1)
 		//
 		//        J is the main loop index, increasing from 1 to N in steps of
 		//        JB, where JB is the number of columns factorized by ZLASYF;
@@ -189,7 +191,7 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 		for j2 = j + 2; j2 <= minint(*n, j+jb+1); j2++ {
 			(*ipiv)[j2-1] = (*ipiv)[j2-1] + j
 			if (j2 != (*ipiv)[j2-1]) && ((j1 - k1) > 2) {
-				goblas.Zswap(toPtr(j1-k1-2), a.CVector(j2-1, 0), lda, a.CVector((*ipiv)[j2-1]-1, 0), lda)
+				goblas.Zswap(j1-k1-2, a.CVector(j2-1, 0), *lda, a.CVector((*ipiv)[j2-1]-1, 0), *lda)
 			}
 		}
 		j = j + jb
@@ -203,8 +205,8 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 				//              Merge rank-1 update with BLAS-3 update
 				alpha = a.Get(j+1-1, j-1)
 				a.Set(j+1-1, j-1, one)
-				goblas.Zcopy(toPtr((*n)-j), a.CVector(j+1-1, j-1-1), func() *int { y := 1; return &y }(), work.Off((j+1-j1+1)+jb*(*n)-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*n)-j), &alpha, work.Off((j+1-j1+1)+jb*(*n)-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy((*n)-j, a.CVector(j+1-1, j-1-1), 1, work.Off((j+1-j1+1)+jb*(*n)-1), 1)
+				goblas.Zscal((*n)-j, alpha, work.Off((j+1-j1+1)+jb*(*n)-1), 1)
 
 				//              K1 identifies if the previous column of the panel has been
 				//               explicitly stored, e.g., K1=1 and K2= 0 for the first panel,
@@ -226,12 +228,12 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 					//                 Update (J2, J2) diagonal block with ZGEMV
 					j3 = j2
 					for mj = nj - 1; mj >= 1; mj-- {
-						goblas.Zgemv(NoTrans, &mj, toPtr(jb+1), toPtrc128(-one), work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), n, a.CVector(j3-1, j1-k2-1), lda, &one, a.CVector(j3-1, j3-1), func() *int { y := 1; return &y }())
+						err = goblas.Zgemv(NoTrans, mj, jb+1, -one, work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), *n, a.CVector(j3-1, j1-k2-1), *lda, one, a.CVector(j3-1, j3-1), 1)
 						j3 = j3 + 1
 					}
 
 					//                 Update off-diagonal block in J2-th block column with ZGEMM
-					goblas.Zgemm(NoTrans, Trans, toPtr((*n)-j3+1), &nj, toPtr(jb+1), toPtrc128(-one), work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), n, a.Off(j2-1, j1-k2-1), lda, &one, a.Off(j3-1, j2-1), lda)
+					err = goblas.Zgemm(NoTrans, Trans, (*n)-j3+1, nj, jb+1, -one, work.CMatrixOff(j3-j1+1+k1*(*n)-1, *n, opts), *n, a.Off(j2-1, j1-k2-1), *lda, one, a.Off(j3-1, j2-1), *lda)
 				}
 
 				//              Recover T( J+1, J )
@@ -239,7 +241,7 @@ func Zsytrfaa(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 			}
 
 			//           WORK(J+1, 1) stores H(J+1, 1)
-			goblas.Zcopy(toPtr((*n)-j), a.CVector(j+1-1, j+1-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+			goblas.Zcopy((*n)-j, a.CVector(j+1-1, j+1-1), 1, work, 1)
 		}
 		goto label11
 	}

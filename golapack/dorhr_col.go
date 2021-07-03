@@ -18,6 +18,8 @@ import (
 func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d *mat.Vector, info *int) {
 	var one, zero float64
 	var i, iinfo, j, jb, jbtemp1, jbtemp2, jnb, nplusone int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -63,7 +65,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 
 	//     (1-2) Solve for V2.
 	if (*m) > (*n) {
-		goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, toPtr((*m)-(*n)), n, &one, a, lda, a.Off((*n)+1-1, 0), lda)
+		err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, one, a, *lda, a.Off((*n)+1-1, 0), *lda)
 	}
 
 	//     (2) Reconstruct the block reflector T stored in T(1:NB, 1:N)
@@ -85,7 +87,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		//        column-by-column, total JNB*(JNB+1)/2 elements.
 		jbtemp1 = jb - 1
 		for j = jb; j <= jb+jnb-1; j++ {
-			goblas.Dcopy(toPtr(j-jbtemp1), a.Vector(jb-1, j-1), toPtr(1), t.Vector(0, j-1), toPtr(1))
+			goblas.Dcopy(j-jbtemp1, a.Vector(jb-1, j-1), 1, t.Vector(0, j-1), 1)
 		}
 
 		//        (2-2) Perform on the upper-triangular part of the current
@@ -100,7 +102,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		//        S(JB), i.e. S(J,J) that is stored in the array element D(J).
 		for j = jb; j <= jb+jnb-1; j++ {
 			if d.Get(j-1) == one {
-				goblas.Dscal(toPtr(j-jbtemp1), toPtrf64(-one), t.Vector(0, j-1), toPtr(1))
+				goblas.Dscal(j-jbtemp1, -one, t.Vector(0, j-1), 1)
 			}
 		}
 
@@ -147,7 +149,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		goblas.Dtrsm(Right, Lower, Trans, Unit, &jnb, &jnb, &one, a.Off(jb-1, jb-1), lda, t.Off(0, jb-1), ldt)
+		err = goblas.Dtrsm(Right, Lower, Trans, Unit, jnb, jnb, one, a.Off(jb-1, jb-1), *lda, t.Off(0, jb-1), *ldt)
 
 	}
 }

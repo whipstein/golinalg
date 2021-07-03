@@ -27,6 +27,8 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 	var lquery bool
 	var one float64
 	var lopt, lwkmin, lwkopt, mn, nb, nb1, nb2, nb3, nb4, nr int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -105,10 +107,10 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 		}
 
 		//        Put the solution in X
-		goblas.Dcopy(p, d, func() *int { y := 1; return &y }(), x.Off((*n)-(*p)+1-1), func() *int { y := 1; return &y }())
+		goblas.Dcopy(*p, d, 1, x.Off((*n)-(*p)+1-1), 1)
 
 		//        Update c1
-		goblas.Dgemv(NoTrans, toPtr((*n)-(*p)), p, toPtrf64(-one), a.Off(0, (*n)-(*p)+1-1), lda, d, func() *int { y := 1; return &y }(), &one, c, func() *int { y := 1; return &y }())
+		err = goblas.Dgemv(NoTrans, (*n)-(*p), *p, -one, a.Off(0, (*n)-(*p)+1-1), *lda, d, 1, one, c, 1)
 	}
 
 	//     Solve R11*x1 = c1 for x1
@@ -121,21 +123,21 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 		}
 
 		//        Put the solutions in X
-		goblas.Dcopy(toPtr((*n)-(*p)), c, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
+		goblas.Dcopy((*n)-(*p), c, 1, x, 1)
 	}
 
 	//     Compute the residual vector:
 	if (*m) < (*n) {
 		nr = (*m) + (*p) - (*n)
 		if nr > 0 {
-			goblas.Dgemv(NoTrans, &nr, toPtr((*n)-(*m)), toPtrf64(-one), a.Off((*n)-(*p)+1-1, (*m)+1-1), lda, d.Off(nr+1-1), func() *int { y := 1; return &y }(), &one, c.Off((*n)-(*p)+1-1), func() *int { y := 1; return &y }())
+			err = goblas.Dgemv(NoTrans, nr, (*n)-(*m), -one, a.Off((*n)-(*p)+1-1, (*m)+1-1), *lda, d.Off(nr+1-1), 1, one, c.Off((*n)-(*p)+1-1), 1)
 		}
 	} else {
 		nr = (*p)
 	}
 	if nr > 0 {
-		goblas.Dtrmv(Upper, NoTrans, NonUnit, &nr, a.Off((*n)-(*p)+1-1, (*n)-(*p)+1-1), lda, d, func() *int { y := 1; return &y }())
-		goblas.Daxpy(&nr, toPtrf64(-one), d, func() *int { y := 1; return &y }(), c.Off((*n)-(*p)+1-1), func() *int { y := 1; return &y }())
+		err = goblas.Dtrmv(Upper, NoTrans, NonUnit, nr, a.Off((*n)-(*p)+1-1, (*n)-(*p)+1-1), *lda, d, 1)
+		goblas.Daxpy(nr, -one, d, 1, c.Off((*n)-(*p)+1-1), 1)
 	}
 
 	//     Backward transformation x = Q**T*x

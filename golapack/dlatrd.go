@@ -19,6 +19,8 @@ import (
 func Dlatrd(uplo byte, n, nb *int, a *mat.Matrix, lda *int, e, tau *mat.Vector, w *mat.Matrix, ldw *int) {
 	var alpha, half, one, zero float64
 	var i, iw int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -35,8 +37,8 @@ func Dlatrd(uplo byte, n, nb *int, a *mat.Matrix, lda *int, e, tau *mat.Vector, 
 			iw = i - (*n) + (*nb)
 			if i < (*n) {
 				//              Update A(1:i,i)
-				goblas.Dgemv(NoTrans, &i, toPtr((*n)-i), toPtrf64(-one), a.Off(0, i+1-1), lda, w.Vector(i-1, iw+1-1), ldw, &one, a.Vector(0, i-1), toPtr(1))
-				goblas.Dgemv(NoTrans, &i, toPtr((*n)-i), toPtrf64(-one), w.Off(0, iw+1-1), ldw, a.Vector(i-1, i+1-1), lda, &one, a.Vector(0, i-1), toPtr(1))
+				err = goblas.Dgemv(NoTrans, i, (*n)-i, -one, a.Off(0, i+1-1), *lda, w.Vector(i-1, iw+1-1), *ldw, one, a.Vector(0, i-1), 1)
+				err = goblas.Dgemv(NoTrans, i, (*n)-i, -one, w.Off(0, iw+1-1), *ldw, a.Vector(i-1, i+1-1), *lda, one, a.Vector(0, i-1), 1)
 			}
 			if i > 1 {
 				//              Generate elementary reflector H(i) to annihilate
@@ -46,16 +48,16 @@ func Dlatrd(uplo byte, n, nb *int, a *mat.Matrix, lda *int, e, tau *mat.Vector, 
 				a.Set(i-1-1, i-1, one)
 
 				//              Compute W(1:i-1,i)
-				goblas.Dsymv(Upper, toPtr(i-1), &one, a, lda, a.Vector(0, i-1), toPtr(1), &zero, w.Vector(0, iw-1), toPtr(1))
+				err = goblas.Dsymv(Upper, i-1, one, a, *lda, a.Vector(0, i-1), 1, zero, w.Vector(0, iw-1), 1)
 				if i < (*n) {
-					goblas.Dgemv(Trans, toPtr(i-1), toPtr((*n)-i), &one, w.Off(0, iw+1-1), ldw, a.Vector(0, i-1), toPtr(1), &zero, w.Vector(i+1-1, iw-1), toPtr(1))
-					goblas.Dgemv(NoTrans, toPtr(i-1), toPtr((*n)-i), toPtrf64(-one), a.Off(0, i+1-1), lda, w.Vector(i+1-1, iw-1), toPtr(1), &one, w.Vector(0, iw-1), toPtr(1))
-					goblas.Dgemv(Trans, toPtr(i-1), toPtr((*n)-i), &one, a.Off(0, i+1-1), lda, a.Vector(0, i-1), toPtr(1), &zero, w.Vector(i+1-1, iw-1), toPtr(1))
-					goblas.Dgemv(NoTrans, toPtr(i-1), toPtr((*n)-i), toPtrf64(-one), w.Off(0, iw+1-1), ldw, w.Vector(i+1-1, iw-1), toPtr(1), &one, w.Vector(0, iw-1), toPtr(1))
+					err = goblas.Dgemv(Trans, i-1, (*n)-i, one, w.Off(0, iw+1-1), *ldw, a.Vector(0, i-1), 1, zero, w.Vector(i+1-1, iw-1), 1)
+					err = goblas.Dgemv(NoTrans, i-1, (*n)-i, -one, a.Off(0, i+1-1), *lda, w.Vector(i+1-1, iw-1), 1, one, w.Vector(0, iw-1), 1)
+					err = goblas.Dgemv(Trans, i-1, (*n)-i, one, a.Off(0, i+1-1), *lda, a.Vector(0, i-1), 1, zero, w.Vector(i+1-1, iw-1), 1)
+					err = goblas.Dgemv(NoTrans, i-1, (*n)-i, -one, w.Off(0, iw+1-1), *ldw, w.Vector(i+1-1, iw-1), 1, one, w.Vector(0, iw-1), 1)
 				}
-				goblas.Dscal(toPtr(i-1), tau.GetPtr(i-1-1), w.Vector(0, iw-1), toPtr(1))
-				alpha = -half * tau.Get(i-1-1) * goblas.Ddot(toPtr(i-1), w.Vector(0, iw-1), toPtr(1), a.Vector(0, i-1), toPtr(1))
-				goblas.Daxpy(toPtr(i-1), &alpha, a.Vector(0, i-1), toPtr(1), w.Vector(0, iw-1), toPtr(1))
+				goblas.Dscal(i-1, tau.Get(i-1-1), w.Vector(0, iw-1), 1)
+				alpha = -half * tau.Get(i-1-1) * goblas.Ddot(i-1, w.Vector(0, iw-1), 1, a.Vector(0, i-1), 1)
+				goblas.Daxpy(i-1, alpha, a.Vector(0, i-1), 1, w.Vector(0, iw-1), 1)
 			}
 
 		}
@@ -63,8 +65,8 @@ func Dlatrd(uplo byte, n, nb *int, a *mat.Matrix, lda *int, e, tau *mat.Vector, 
 		//        Reduce first NB columns of lower triangle
 		for i = 1; i <= (*nb); i++ {
 			//           Update A(i:n,i)
-			goblas.Dgemv(NoTrans, toPtr((*n)-i+1), toPtr(i-1), toPtrf64(-one), a.Off(i-1, 0), lda, w.Vector(i-1, 0), ldw, &one, a.Vector(i-1, i-1), toPtr(1))
-			goblas.Dgemv(NoTrans, toPtr((*n)-i+1), toPtr(i-1), toPtrf64(-one), w.Off(i-1, 0), ldw, a.Vector(i-1, 0), lda, &one, a.Vector(i-1, i-1), toPtr(1))
+			err = goblas.Dgemv(NoTrans, (*n)-i+1, i-1, -one, a.Off(i-1, 0), *lda, w.Vector(i-1, 0), *ldw, one, a.Vector(i-1, i-1), 1)
+			err = goblas.Dgemv(NoTrans, (*n)-i+1, i-1, -one, w.Off(i-1, 0), *ldw, a.Vector(i-1, 0), *lda, one, a.Vector(i-1, i-1), 1)
 			if i < (*n) {
 				//              Generate elementary reflector H(i) to annihilate
 				//              A(i+2:n,i)
@@ -73,14 +75,14 @@ func Dlatrd(uplo byte, n, nb *int, a *mat.Matrix, lda *int, e, tau *mat.Vector, 
 				a.Set(i+1-1, i-1, one)
 
 				//              Compute W(i+1:n,i)
-				goblas.Dsymv(Lower, toPtr((*n)-i), &one, a.Off(i+1-1, i+1-1), lda, a.Vector(i+1-1, i-1), toPtr(1), &zero, w.Vector(i+1-1, i-1), toPtr(1))
-				goblas.Dgemv(Trans, toPtr((*n)-i), toPtr(i-1), &one, w.Off(i+1-1, 0), ldw, a.Vector(i+1-1, i-1), toPtr(1), &zero, w.Vector(0, i-1), toPtr(1))
-				goblas.Dgemv(NoTrans, toPtr((*n)-i), toPtr(i-1), toPtrf64(-one), a.Off(i+1-1, 0), lda, w.Vector(0, i-1), toPtr(1), &one, w.Vector(i+1-1, i-1), toPtr(1))
-				goblas.Dgemv(Trans, toPtr((*n)-i), toPtr(i-1), &one, a.Off(i+1-1, 0), lda, a.Vector(i+1-1, i-1), toPtr(1), &zero, w.Vector(0, i-1), toPtr(1))
-				goblas.Dgemv(NoTrans, toPtr((*n)-i), toPtr(i-1), toPtrf64(-one), w.Off(i+1-1, 0), ldw, w.Vector(0, i-1), toPtr(1), &one, w.Vector(i+1-1, i-1), toPtr(1))
-				goblas.Dscal(toPtr((*n)-i), tau.GetPtr(i-1), w.Vector(i+1-1, i-1), toPtr(1))
-				alpha = -half * tau.Get(i-1) * goblas.Ddot(toPtr((*n)-i), w.Vector(i+1-1, i-1), toPtr(1), a.Vector(i+1-1, i-1), toPtr(1))
-				goblas.Daxpy(toPtr((*n)-i), &alpha, a.Vector(i+1-1, i-1), toPtr(1), w.Vector(i+1-1, i-1), toPtr(1))
+				err = goblas.Dsymv(Lower, (*n)-i, one, a.Off(i+1-1, i+1-1), *lda, a.Vector(i+1-1, i-1), 1, zero, w.Vector(i+1-1, i-1), 1)
+				err = goblas.Dgemv(Trans, (*n)-i, i-1, one, w.Off(i+1-1, 0), *ldw, a.Vector(i+1-1, i-1), 1, zero, w.Vector(0, i-1), 1)
+				err = goblas.Dgemv(NoTrans, (*n)-i, i-1, -one, a.Off(i+1-1, 0), *lda, w.Vector(0, i-1), 1, one, w.Vector(i+1-1, i-1), 1)
+				err = goblas.Dgemv(Trans, (*n)-i, i-1, one, a.Off(i+1-1, 0), *lda, a.Vector(i+1-1, i-1), 1, zero, w.Vector(0, i-1), 1)
+				err = goblas.Dgemv(NoTrans, (*n)-i, i-1, -one, w.Off(i+1-1, 0), *ldw, w.Vector(0, i-1), 1, one, w.Vector(i+1-1, i-1), 1)
+				goblas.Dscal((*n)-i, tau.Get(i-1), w.Vector(i+1-1, i-1), 1)
+				alpha = -half * tau.Get(i-1) * goblas.Ddot((*n)-i, w.Vector(i+1-1, i-1), 1, a.Vector(i+1-1, i-1), 1)
+				goblas.Daxpy((*n)-i, alpha, a.Vector(i+1-1, i-1), 1, w.Vector(i+1-1, i-1), 1)
 			}
 
 		}

@@ -235,7 +235,7 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 				jcnext = jc + j
 				ra = a.Get(jcnext + j - 1 - 1)
 				rb = two
-				goblas.Drotg(&ra, &rb, &c, &s)
+				ra, rb, c, s = goblas.Drotg(ra, rb, c, s)
 
 				//              Multiply by [ c  s; -s  c] on the left.
 				if (*n) > j+1 {
@@ -250,7 +250,7 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 
 				//              Multiply by [-c -s;  s -c] on the right.
 				if j > 1 {
-					goblas.Drot(toPtr(j-1), a.Off(jcnext-1), toPtr(1), a.Off(jc-1), toPtr(1), toPtrf64(-c), toPtrf64(-s))
+					goblas.Drot(j-1, a.Off(jcnext-1), 1, a.Off(jc-1), 1, -c, -s)
 				}
 
 				//              Negate A(J,J+1).
@@ -263,11 +263,11 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 				jcnext = jc + (*n) - j + 1
 				ra = a.Get(jc + 1 - 1)
 				rb = two
-				goblas.Drotg(&ra, &rb, &c, &s)
+				ra, rb, c, s = goblas.Drotg(ra, rb, c, s)
 
 				//              Multiply by [ c -s;  s  c] on the right.
 				if (*n) > j+1 {
-					goblas.Drot(toPtr((*n)-j-1), a.Off(jcnext+1-1), toPtr(1), a.Off(jc+2-1), toPtr(1), &c, toPtrf64(-s))
+					goblas.Drot((*n)-j-1, a.Off(jcnext+1-1), 1, a.Off(jc+2-1), 1, c, -s)
 				}
 
 				//              Multiply by [-c  s; -s -c] on the left.
@@ -312,10 +312,10 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Idamax(n, b, toPtr(1))
+		iy = goblas.Idamax(*n, b, 1)
 		bnorm = math.Abs(b.Get(iy - 1))
 		bscal = bignum / maxf64(one, bnorm)
-		goblas.Dscal(n, &bscal, b, toPtr(1))
+		goblas.Dscal(*n, bscal, b, 1)
 
 	} else if (*imat) == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
@@ -327,7 +327,7 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 			jc = 1
 			for j = 1; j <= (*n); j++ {
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr(j-1), a.Off(jc-1))
-				goblas.Dscal(toPtr(j-1), &tscal, a.Off(jc-1), toPtr(1))
+				goblas.Dscal(j-1, tscal, a.Off(jc-1), 1)
 				a.Set(jc+j-1-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
 				jc = jc + j
 			}
@@ -336,7 +336,7 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 			jc = 1
 			for j = 1; j <= (*n); j++ {
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*n)-j), a.Off(jc+1-1))
-				goblas.Dscal(toPtr((*n)-j), &tscal, a.Off(jc+1-1), toPtr(1))
+				goblas.Dscal((*n)-j, tscal, a.Off(jc+1-1), 1)
 				a.Set(jc-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
 				jc = jc + (*n) - j + 1
 			}
@@ -485,7 +485,7 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 			}
 		}
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Dscal(n, &two, b, toPtr(1))
+		goblas.Dscal(*n, two, b, 1)
 
 	} else if (*imat) == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -552,10 +552,10 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Idamax(n, b, toPtr(1))
+		iy = goblas.Idamax(*n, b, 1)
 		bnorm = math.Abs(b.Get(iy - 1))
 		bscal = bignum / maxf64(one, bnorm)
-		goblas.Dscal(n, &bscal, b, toPtr(1))
+		goblas.Dscal(*n, bscal, b, 1)
 
 	} else if (*imat) == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
@@ -583,7 +583,7 @@ func Dlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a, b,
 			}
 		}
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Dscal(n, &two, b, toPtr(1))
+		goblas.Dscal(*n, two, b, 1)
 	}
 
 	//     Flip the matrix across its counter-diagonal if the transpose will

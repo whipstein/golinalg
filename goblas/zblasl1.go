@@ -3,6 +3,7 @@ package goblas
 import (
 	"math"
 	"math/cmplx"
+	"sync"
 
 	"github.com/whipstein/golinalg/mat"
 )
@@ -16,28 +17,45 @@ func dcabs1(z complex128) (dcabs1Return float64) {
 
 // Dzasum takes the sum of the (|Re(.)| + |Im(.)|)'s of a complex vector and
 //    returns a single precision result.
-func Dzasum(n *int, zx *mat.CVector, incx *int) (dzasumReturn float64) {
-	var stemp float64
-	var i, nincx int
+func Dzasum(n int, zx *mat.CVector, incx int) (dzasumReturn float64) {
+	if n <= 0 || incx <= 0 {
+		return 0
+	}
 
-	dzasumReturn = 0.0
-	stemp = 0.0
-	if (*n) <= 0 || (*incx) <= 0 {
-		return
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		return dzasum(n, zx, incx)
 	}
-	if (*incx) == 1 {
-		//        code for increment equal to 1
-		for i = 1; i <= (*n); i++ {
-			stemp = stemp + dcabs1(zx.Get(i-1))
+
+	nblocks := blocks(n, blocksize)
+	xout := make([]float64, nblocks)
+	var wg sync.WaitGroup
+
+	for i := 0; i < nblocks; i++ {
+		size := blocksize
+		if (i+1)*blocksize > n {
+			size = n - i*blocksize
 		}
-	} else {
-		//        code for increment not equal to 1
-		nincx = (*n) * (*incx)
-		for i = 1; i <= nincx; i += (*incx) {
-			stemp = stemp + dcabs1(zx.Get(i-1))
-		}
+		wg.Add(1)
+		go func(i, size int) {
+			defer wg.Done()
+			xout[i] = dzasum(size, zx.Off(i*blocksize*incx), incx)
+		}(i, size)
 	}
-	dzasumReturn = stemp
+	wg.Wait()
+
+	for _, val := range xout {
+		dzasumReturn += val
+	}
+
+	return
+}
+func dzasum(n int, zx *mat.CVector, incx int) (dzasumReturn float64) {
+	for i := 0; i < n*incx; i += incx {
+		dzasumReturn += dcabs1(zx.Get(i))
+	}
+
 	return
 }
 
@@ -45,360 +63,433 @@ func Dzasum(n *int, zx *mat.CVector, incx *int) (dzasumReturn float64) {
 // name, so that
 //
 //    DZNRM2 := sqrt( x**H*x )
-func Dznrm2(n *int, x *mat.CVector, incx *int) (dznrm2Return float64) {
-	var norm, one, scale, ssq, temp, zero float64
-	var ix int
-
-	one = 1.0
-	zero = 0.0
-
-	if (*n) < 1 || (*incx) < 1 {
-		norm = zero
-	} else {
-		scale = zero
-		ssq = one
-		//        The following loop is equivalent to this call to the LAPACK
-		//        auxiliary routine:
-		//        CALL ZLASSQ( N, X, INCX, SCALE, SSQ )
-		for ix = 1; ix <= 1+((*n)-1)*(*incx); ix += (*incx) {
-			if real(x.Get(ix-1)) != zero {
-				temp = cmplx.Abs(x.GetReCmplx(ix - 1))
-				if scale < temp {
-					ssq = one + ssq*math.Pow(scale/temp, 2)
-					scale = temp
-				} else {
-					ssq = ssq + math.Pow(temp/scale, 2)
-				}
-			}
-			if imag(x.Get(ix-1)) != zero {
-				temp = cmplx.Abs(x.GetImCmplx(ix - 1))
-				if scale < temp {
-					ssq = one + ssq*math.Pow(scale/temp, 2)
-					scale = temp
-				} else {
-					ssq = ssq + math.Pow(temp/scale, 2)
-				}
-			}
-		}
-		norm = scale * math.Sqrt(ssq)
+func Dznrm2(n int, x *mat.CVector, incx int) (dznrm2Return float64) {
+	if n < 1 || incx < 1 {
+		return 0
 	}
 
-	dznrm2Return = norm
+	blocksize := 256
+
+	if n < minParBlocks*blocksize {
+		return dznrm2(n, x, incx)
+	}
+
+	nblocks := blocks(n, blocksize)
+	xout := make([]float64, nblocks)
+	var wg sync.WaitGroup
+
+	for i := 0; i < nblocks; i++ {
+		size := blocksize
+		if (i+1)*blocksize > n {
+			size = n - i*blocksize
+		}
+		wg.Add(1)
+		go func(i, size int) {
+			defer wg.Done()
+			xout[i] = dznrm2(size, x.Off(i*blocksize*incx), incx)
+		}(i, size)
+	}
+	wg.Wait()
+
+	for _, val := range xout {
+		dznrm2Return += val
+	}
+
 	return
+}
+func dznrm2(n int, x *mat.CVector, incx int) float64 {
+	var scale, ssq, temp float64
+	var ix int
+
+	ssq = 1
+	//        The following loop is equivalent to this call to the LAPACK
+	//        auxiliary routine:
+	//        CALL ZLASSQ( N, X, INCX, SCALE, SSQ )
+	for ix = 0; ix < 1+(n-1)*incx; ix += incx {
+		if real(x.Get(ix)) != 0 {
+			temp = cmplx.Abs(x.GetReCmplx(ix))
+			if scale < temp {
+				ssq = 1 + ssq*math.Pow(scale/temp, 2)
+				scale = temp
+			} else {
+				ssq += math.Pow(temp/scale, 2)
+			}
+		}
+		if imag(x.Get(ix)) != 0 {
+			temp = cmplx.Abs(x.GetImCmplx(ix))
+			if scale < temp {
+				ssq = 1 + ssq*math.Pow(scale/temp, 2)
+				scale = temp
+			} else {
+				ssq += math.Pow(temp/scale, 2)
+			}
+		}
+	}
+
+	return scale * math.Sqrt(ssq)
 }
 
 // Izamax finds the index of the first element having maximum |Re(.)| + |Im(.)|
-func Izamax(n *int, zx *mat.CVector, incx *int) (izamaxReturn int) {
+func Izamax(n int, zx *mat.CVector, incx int) (izamaxReturn int) {
 	var dmax float64
 	var i, ix int
 
-	izamaxReturn = 0
-	if (*n) < 1 || (*incx) <= 0 {
-		return
+	if n < 1 || incx <= 0 {
+		return 0
+	} else if n == 1 {
+		return 1
 	}
+
+	//        code for increment not equal to 1
 	izamaxReturn = 1
-	if (*n) == 1 {
-		return
-	}
-	if (*incx) == 1 {
-		//        code for increment equal to 1
-		dmax = dcabs1(zx.Get(0))
-		for i = 2; i <= (*n); i++ {
-			if dcabs1(zx.Get(i-1)) > dmax {
-				izamaxReturn = i
-				dmax = dcabs1(zx.Get(i - 1))
-			}
-		}
-	} else {
-		//        code for increment not equal to 1
-		ix = 1
-		dmax = dcabs1(zx.Get(0))
-		ix = ix + (*incx)
-		for i = 2; i <= (*n); i++ {
-			if dcabs1(zx.Get(ix-1)) > dmax {
-				izamaxReturn = i
-				dmax = dcabs1(zx.Get(ix - 1))
-			}
-			ix = ix + (*incx)
+	ix = 0
+	dmax = dcabs1(zx.Get(0))
+	for i, ix = 1, incx; i < n; i, ix = i+1, ix+incx {
+		if dcabs1(zx.Get(ix)) > dmax {
+			izamaxReturn = i + 1
+			dmax = dcabs1(zx.Get(ix))
 		}
 	}
 	return
 }
 
 // Zdscal scales a vector by a constant.
-func Zdscal(n *int, da *float64, zx *mat.CVector, incx *int) {
-	var i, nincx int
-
-	if (*n) <= 0 || (*incx) <= 0 {
+func Zdscal(n int, da float64, zx *mat.CVector, incx int) {
+	if n <= 0 || incx < 0 {
 		return
 	}
-	if (*incx) == 1 {
-		//        code for increment equal to 1
-		for i = 1; i <= (*n); i++ {
-			zx.Set(i-1, complex(*da, 0)*zx.Get(i-1))
-		}
+
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		zdscal(n, da, zx, incx)
 	} else {
-		//        code for increment not equal to 1
-		nincx = (*n) * (*incx)
-		for i = 1; i <= nincx; i += (*incx) {
-			zx.Set(i-1, complex(*da, 0)*zx.Get(i-1))
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				zdscal(size, da, zx.Off(i*blocksize*incx), incx)
+			}(i, size)
 		}
 	}
-	return
+}
+func zdscal(n int, da float64, zx *mat.CVector, incx int) {
+	for i := 0; i < n*incx; i += incx {
+		zx.Set(i, complex(da, 0)*zx.Get(i))
+	}
 }
 
 // Zscal scales a vector by a constant.
-func Zscal(n *int, za *complex128, zx *mat.CVector, incx *int) {
-	var i, nincx int
-
-	if (*n) <= 0 || (*incx) <= 0 {
+func Zscal(n int, za complex128, zx *mat.CVector, incx int) {
+	if n <= 0 || incx < 0 {
 		return
 	}
-	if (*incx) == 1 {
-		//        code for increment equal to 1
-		for i = 1; i <= (*n); i++ {
-			zx.Set(i-1, (*za)*zx.Get(i-1))
-		}
+
+	blocksize := 128
+
+	if n < minParBlocks*blocksize {
+		zscal(n, za, zx, incx)
 	} else {
-		//        code for increment not equal to 1
-		nincx = (*n) * (*incx)
-		for i = 1; i <= nincx; i += (*incx) {
-			zx.Set(i-1, (*za)*zx.Get(i-1))
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				zscal(size, za, zx.Off(i*blocksize*incx), incx)
+			}(i, size)
 		}
 	}
-	return
+}
+func zscal(n int, za complex128, zx *mat.CVector, incx int) {
+	for i := 0; i < n*incx; i += incx {
+		zx.Set(i, za*zx.Get(i))
+	}
 }
 
 // Zaxpy constant times a vector plus a vector.
-func Zaxpy(n *int, za *complex128, zx *mat.CVector, incx *int, zy *mat.CVector, incy *int) {
+func Zaxpy(n int, za complex128, zx *mat.CVector, incx int, zy *mat.CVector, incy int) {
+	if n <= 0 || dcabs1(za) == 0.0 {
+		return
+	}
+
+	blocksize := 256
+
+	if n < minParBlocks*blocksize {
+		zaxpy(n, za, zx, incx, zy, incy)
+	} else {
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				zaxpy(size, za, zx.Off(i*blocksize*incx), incx, zy.Off(i*blocksize*incy), incy)
+			}(i, size)
+		}
+	}
+}
+func zaxpy(n int, za complex128, zx *mat.CVector, incx int, zy *mat.CVector, incy int) {
 	var i, ix, iy int
 
-	if (*n) <= 0 {
-		return
+	if incx < 0 && n > 1 {
+		ix = (-n + 1) * incx
 	}
-	if dcabs1(*za) == 0.0 {
-		return
+	if incy < 0 && n > 1 {
+		iy = (-n + 1) * incy
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//        code for both increments equal to 1
-		for i = 1; i <= (*n); i++ {
-			zy.Set(i-1, zy.Get(i-1)+(*za)*zx.Get(i-1))
-		}
-	} else {
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			zy.Set(iy-1, zy.Get(iy-1)+(*za)*zx.Get(ix-1))
-			ix = ix + (*incx)
-			iy = iy + (*incy)
-		}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		zy.Set(iy, zy.Get(iy)+za*zx.Get(ix))
 	}
 }
 
 // Zcopy copies a vector, x, to a vector, y.
-func Zcopy(n *int, zx *mat.CVector, incx *int, zy *mat.CVector, incy *int) {
-	var i, ix, iy int
-
-	if (*n) <= 0 {
+func Zcopy(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) {
+	if n <= 0 {
 		return
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//        code for both increments equal to 1
-		for i = 1; i <= (*n); i++ {
-			zy.Set(i-1, zx.Get(i-1))
-		}
-	} else {
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			zy.Set(iy-1, zx.Get(ix-1))
-			ix = ix + (*incx)
-			iy = iy + (*incy)
-		}
+
+	var i, ix, iy int
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
-	return
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		zy.Set(iy, zx.Get(ix))
+	}
 }
 
 // Zdotc forms the dot product of two complex vectors
 //      ZDOTC = X^H * Y
-func Zdotc(n *int, zx *mat.CVector, incx *int, zy *mat.CVector, incy *int) (zdotcReturn complex128) {
-	var ztemp complex128
-	var i, ix, iy int
-
-	ztemp = (0.0 + 0.0*1i)
-	zdotcReturn = (0.0 + 0.0*1i)
-	if (*n) <= 0 {
+func Zdotc(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) (zdotcReturn complex128) {
+	if n <= 0 {
 		return
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//        code for both increments equal to 1
-		for i = 1; i <= (*n); i++ {
-			ztemp = ztemp + zx.GetConj(i-1)*zy.Get(i-1)
-		}
-	} else {
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			ztemp = ztemp + zx.GetConj(ix-1)*zy.Get(iy-1)
-			ix = ix + (*incx)
-			iy = iy + (*incy)
-		}
+
+	blocksize := 256
+
+	if n < minParBlocks*blocksize {
+		return zdotc(n, zx, incx, zy, incy)
 	}
-	zdotcReturn = ztemp
+
+	nblocks := blocks(n, blocksize)
+	x := make([]complex128, nblocks)
+	var wg sync.WaitGroup
+
+	for i := 0; i < nblocks; i++ {
+		size := blocksize
+		if (i+1)*blocksize > n {
+			size = n - i*blocksize
+		}
+		wg.Add(1)
+		go func(i, size int) {
+			defer wg.Done()
+			x[i] = zdotc(size, zx.Off(i*blocksize*incx), incx, zy.Off(i*blocksize*incy), incy)
+		}(i, size)
+	}
+	wg.Wait()
+
+	for _, val := range x {
+		zdotcReturn += val
+	}
+
+	return
+}
+func zdotc(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) (zdotcReturn complex128) {
+	var i, ix, iy int
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
+	}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		zdotcReturn += zx.GetConj(ix) * zy.Get(iy)
+	}
+
 	return
 }
 
 // Zdotu forms the dot product of two complex vectors
 //      ZDOTU = X^T * Y
-func Zdotu(n *int, zx *mat.CVector, incx *int, zy *mat.CVector, incy *int) (zdotuReturn complex128) {
-	var ztemp complex128
-	var i, ix, iy int
-
-	ztemp = (0.0 + 0.0*1i)
-	zdotuReturn = (0.0 + 0.0*1i)
-	if (*n) <= 0 {
+func Zdotu(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) (zdotuReturn complex128) {
+	if n <= 0 {
 		return
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//        code for both increments equal to 1
-		for i = 1; i <= (*n); i++ {
-			ztemp = ztemp + zx.Get(i-1)*zy.Get(i-1)
-		}
-	} else {
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			ztemp = ztemp + zx.Get(ix-1)*zy.Get(iy-1)
-			ix = ix + (*incx)
-			iy = iy + (*incy)
-		}
+
+	blocksize := 256
+
+	if n < minParBlocks*blocksize {
+		return zdotu(n, zx, incx, zy, incy)
 	}
-	zdotuReturn = ztemp
+
+	nblocks := blocks(n, blocksize)
+	x := make([]complex128, nblocks)
+	var wg sync.WaitGroup
+
+	for i := 0; i < nblocks; i++ {
+		size := blocksize
+		if (i+1)*blocksize > n {
+			size = n - i*blocksize
+		}
+		wg.Add(1)
+		go func(i, size int) {
+			defer wg.Done()
+			x[i] = zdotu(size, zx.Off(i*blocksize*incx), incx, zy.Off(i*blocksize*incy), incy)
+		}(i, size)
+	}
+	wg.Wait()
+
+	for _, val := range x {
+		zdotuReturn += val
+	}
+
+	return
+}
+func zdotu(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) (zdotuReturn complex128) {
+	var i, ix, iy int
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
+	}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 1; i <= n; i, ix, iy = i+1, ix+incx, iy+incy {
+		zdotuReturn += zx.Get(ix) * zy.Get(iy)
+	}
+
 	return
 }
 
 // Zswap interchanges two vectors.
-func Zswap(n *int, zx *mat.CVector, incx *int, zy *mat.CVector, incy *int) {
+func Zswap(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) {
+	if n <= 0 {
+		return
+	}
+
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		zswap(n, zx, incx, zy, incy)
+	} else {
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				zswap(size, zx.Off(i*blocksize*incx), incx, zy.Off(i*blocksize*incy), incy)
+			}(i, size)
+		}
+	}
+}
+func zswap(n int, zx *mat.CVector, incx int, zy *mat.CVector, incy int) {
 	var ztemp complex128
 	var i, ix, iy int
 
-	if (*n) <= 0 {
-		return
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//       code for both increments equal to 1
-		for i = 1; i <= (*n); i++ {
-			ztemp = zx.Get(i - 1)
-			zx.Set(i-1, zy.Get(i-1))
-			zy.Set(i-1, ztemp)
-		}
-	} else {
-		//       code for unequal increments or equal increments not equal
-		//         to 1
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			ztemp = zx.Get(ix - 1)
-			zx.Set(ix-1, zy.Get(iy-1))
-			zy.Set(iy-1, ztemp)
-			ix = ix + (*incx)
-			iy = iy + (*incy)
-		}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		ztemp = zx.Get(ix)
+		zx.Set(ix, zy.Get(iy))
+		zy.Set(iy, ztemp)
 	}
 }
 
 // Zdrot Applies a plane rotation, where the cos and sin (c and s) are real
 // and the vectors cx and cy are complex.
 // jack dongarra, linpack, 3/11/78.
-func Zdrot(n *int, cx *mat.CVector, incx *int, cy *mat.CVector, incy *int, c, s *float64) {
+func Zdrot(n int, cx *mat.CVector, incx int, cy *mat.CVector, incy int, c, s float64) {
+	if n <= 0 {
+		return
+	}
+
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		zdrot(n, cx, incx, cy, incy, c, s)
+	} else {
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				zdrot(size, cx.Off(i*blocksize*incx), incx, cy.Off(i*blocksize*incy), incy, c, s)
+			}(i, size)
+		}
+	}
+}
+func zdrot(n int, cx *mat.CVector, incx int, cy *mat.CVector, incy int, c, s float64) {
 	var ctemp complex128
 	var i, ix, iy int
 
-	if (*n) <= 0 {
-		return
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//        code for both increments equal to 1
-		for i = 1; i <= (*n); i++ {
-			ctemp = complex(*c, 0)*cx.Get(i-1) + complex(*s, 0)*cy.Get(i-1)
-			cy.Set(i-1, complex(*c, 0)*cy.Get(i-1)-complex(*s, 0)*cx.Get(i-1))
-			cx.Set(i-1, ctemp)
-		}
-	} else {
-		//        code for unequal increments or equal increments not equal
-		//          to 1
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			ctemp = complex(*c, 0)*cx.Get(ix-1) + complex(*s, 0)*cy.Get(iy-1)
-			cy.Set(iy-1, complex(*c, 0)*cy.Get(iy-1)-complex(*s, 0)*cx.Get(ix-1))
-			cx.Set(ix-1, ctemp)
-			ix = ix + (*incx)
-			iy = iy + (*incy)
-		}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		ctemp = complex(c, 0)*cx.Get(ix) + complex(s, 0)*cy.Get(iy)
+		cy.Set(iy, complex(c, 0)*cy.Get(iy)-complex(s, 0)*cx.Get(ix))
+		cx.Set(ix, ctemp)
 	}
 }
 
 // Zrotg determines a double complex Givens rotation.
-func Zrotg(ca, cb *complex128, c *float64, s *complex128) {
-	var alpha complex128
-	var norm, scale float64
-
-	if cmplx.Abs(*ca) == 0.0 {
-		(*c) = 0.0
-		(*s) = (1.0 + 0.0*1i)
-		(*ca) = (*cb)
-	} else {
-		scale = cmplx.Abs(*ca) + cmplx.Abs(*cb)
-		norm = scale * math.Sqrt(math.Pow(cmplx.Abs((*ca)/complex(scale, 0)), 2)+math.Pow(cmplx.Abs((*cb)/complex(scale, 0)), 2))
-		alpha = (*ca) / complex(cmplx.Abs(*ca), 0)
-		(*c) = cmplx.Abs(*ca) / norm
-		(*s) = alpha * cmplx.Conj(*cb) / complex(norm, 0)
-		(*ca) = alpha * complex(norm, 0)
+func Zrotg(ca, cb complex128, c float64, s complex128) (cReturn float64, sReturn, caReturn complex128) {
+	if cmplx.Abs(ca) == 0.0 {
+		return 0.0, 1.0 + 0.0i, cb
 	}
+
+	scale := cmplx.Abs(ca) + cmplx.Abs(cb)
+	norm := scale * math.Sqrt(math.Pow(cmplx.Abs((ca)/complex(scale, 0)), 2)+math.Pow(cmplx.Abs((cb)/complex(scale, 0)), 2))
+	alpha := ca / complex(cmplx.Abs(ca), 0)
+	cReturn = cmplx.Abs(ca) / norm
+	sReturn = alpha * cmplx.Conj(cb) / complex(norm, 0)
+	caReturn = alpha * complex(norm, 0)
+
 	return
 }

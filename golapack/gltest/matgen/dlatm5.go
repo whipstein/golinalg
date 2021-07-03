@@ -20,6 +20,8 @@ import (
 func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c *mat.Matrix, ldc *int, d *mat.Matrix, ldd *int, e *mat.Matrix, lde *int, f *mat.Matrix, ldf *int, r *mat.Matrix, ldr *int, l *mat.Matrix, ldl *int, alpha *float64, qblcka, qblckb *int) {
 	var half, imeps, one, reeps, twenty, two, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -218,8 +220,8 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	}
 
 	//     Compute rhs (C, F)
-	goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, a, lda, r, ldr, &zero, c, ldc)
-	goblas.Dgemm(NoTrans, NoTrans, m, n, n, toPtrf64(-one), l, ldl, b, ldb, &one, c, ldc)
-	goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, d, ldd, r, ldr, &zero, f, ldf)
-	goblas.Dgemm(NoTrans, NoTrans, m, n, n, toPtrf64(-one), l, ldl, e, lde, &one, f, ldf)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, a, *lda, r, *ldr, zero, c, *ldc)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, *ldl, b, *ldb, one, c, *ldc)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, d, *ldd, r, *ldr, zero, f, *ldf)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, *ldl, e, *lde, one, f, *ldf)
 }

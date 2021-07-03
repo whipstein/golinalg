@@ -58,7 +58,7 @@ func Zung2r(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 			Zlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), a.Off(i-1, i+1-1), lda, work)
 		}
 		if i < (*m) {
-			goblas.Zscal(toPtr((*m)-i), toPtrc128(-tau.Get(i-1)), a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal((*m)-i, -tau.Get(i-1), a.CVector(i+1-1, i-1), 1)
 		}
 		a.Set(i-1, i-1, one-tau.Get(i-1))
 

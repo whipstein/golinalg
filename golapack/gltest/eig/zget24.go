@@ -98,6 +98,8 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 	var cone, ctmp, czero complex128
 	var anorm, eps, epsin, one, rcnde1, rcndv1, rconde, rcondv, smlnum, tol, tolin, ulp, ulpinv, v, vricmp, vrimin, wnorm, zero float64
 	var i, iinfo, isort, itmp, j, kmin, knteig, rsub, sdim, sdim1 int
+	var err error
+	_ = err
 	ipnt := make([]int, 20)
 
 	czero = (0.0 + 0.0*1i)
@@ -171,7 +173,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			return
 		}
 		if isort == 0 {
-			goblas.Zcopy(n, w, func() *int { y := 1; return &y }(), wtmp, func() *int { y := 1; return &y }())
+			goblas.Zcopy(*n, w, 1, wtmp, 1)
 		}
 
 		//        Do Test (1) or Test (7)
@@ -190,10 +192,10 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 		golapack.Zlacpy(' ', n, n, a, lda, vs1, ldvs)
 
 		//        Compute Q*H and store in HT.
-		goblas.Zgemm(NoTrans, NoTrans, n, n, n, &cone, vs, ldvs, h, lda, &czero, ht, lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, vs, *ldvs, h, *lda, czero, ht, *lda)
 
 		//        Compute A - Q*H*Q'
-		goblas.Zgemm(NoTrans, ConjTrans, n, n, n, toPtrc128(-cone), ht, lda, vs, ldvs, &cone, vs1, ldvs)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, -cone, ht, *lda, vs, *ldvs, cone, vs1, *ldvs)
 
 		anorm = maxf64(golapack.Zlange('1', n, n, a, lda, rwork), smlnum)
 		wnorm = golapack.Zlange('1', n, n, vs1, ldvs, rwork)

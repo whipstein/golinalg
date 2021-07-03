@@ -109,11 +109,11 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(&n, d, toPtr(1))
+					ix = goblas.Idamax(n, d, 1)
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(&n, toPtrf64(anorm/dmax), d, toPtr(1))
+					goblas.Dscal(n, anorm/dmax, d, 1)
 					if n > 1 {
-						goblas.Dscal(toPtr(n-1), toPtrf64(anorm/dmax), e, toPtr(1))
+						goblas.Dscal(n-1, anorm/dmax, e, 1)
 					}
 
 				} else if izero > 0 {
@@ -195,9 +195,9 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Compute the 1-norm of A.
 					anorm = golapack.Dlanst('1', &n, d, e)
 
-					goblas.Dcopy(&n, d, toPtr(1), d.Off(n+1-1), toPtr(1))
+					goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
 					if n > 1 {
-						goblas.Dcopy(toPtr(n-1), e, toPtr(1), e.Off(n+1-1), toPtr(1))
+						goblas.Dcopy(n-1, e, 1, e.Off(n+1-1), 1)
 					}
 
 					//                 Factor the matrix A.
@@ -212,7 +212,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 						x.Set(i-1, one)
 						golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.Matrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dasum(&n, x, toPtr(1)))
+						ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
 					}
 
 					//                 Compute the 1-norm condition number of A.
@@ -225,9 +225,9 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 				if ifact == 2 {
 					//                 --- Test DPTSV --
-					goblas.Dcopy(&n, d, toPtr(1), d.Off(n+1-1), toPtr(1))
+					goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
 					if n > 1 {
-						goblas.Dcopy(toPtr(n-1), e, toPtr(1), e.Off(n+1-1), toPtr(1))
+						goblas.Dcopy(n-1, e, 1, e.Off(n+1-1), 1)
 					}
 					golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 

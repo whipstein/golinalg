@@ -180,8 +180,8 @@ label80:
 				givnum.Set((*givptr)-1, 1, (*c))
 				givnum.Set((*givptr)-1, 0, (*s))
 			}
-			goblas.Drot(toPtr(1), vf.Off(jprev-1), toPtr(1), vf.Off(j-1), toPtr(1), c, s)
-			goblas.Drot(toPtr(1), vl.Off(jprev-1), toPtr(1), vl.Off(j-1), toPtr(1), c, s)
+			goblas.Drot(1, vf.Off(jprev-1), 1, vf.Off(j-1), 1, *c, *s)
+			goblas.Drot(1, vl.Off(jprev-1), 1, vl.Off(j-1), 1, *c, *s)
 			k2 = k2 - 1
 			(*idxp)[k2-1] = jprev
 			jprev = j
@@ -227,7 +227,7 @@ label100:
 
 	//     The deflated singular values go back into the last N - K slots of
 	//     D.
-	goblas.Dcopy(toPtr(n-(*k)), dsigma.Off((*k)+1-1), toPtr(1), d.Off((*k)+1-1), toPtr(1))
+	goblas.Dcopy(n-(*k), dsigma.Off((*k)+1-1), 1, d.Off((*k)+1-1), 1)
 
 	//     Determine DSIGMA(1), DSIGMA(2), Z(1), VF(1), VL(1), VF(M), and
 	//     VL(M).
@@ -246,8 +246,8 @@ label100:
 			(*c) = z1 / z.Get(0)
 			(*s) = -z.Get(m-1) / z.Get(0)
 		}
-		goblas.Drot(toPtr(1), vf.Off(m-1), toPtr(1), vf, toPtr(1), c, s)
-		goblas.Drot(toPtr(1), vl.Off(m-1), toPtr(1), vl, toPtr(1), c, s)
+		goblas.Drot(1, vf.Off(m-1), 1, vf, 1, *c, *s)
+		goblas.Drot(1, vl.Off(m-1), 1, vl, 1, *c, *s)
 	} else {
 		if math.Abs(z1) <= tol {
 			z.Set(0, tol)
@@ -257,7 +257,7 @@ label100:
 	}
 
 	//     Restore Z, VF, and VL.
-	goblas.Dcopy(toPtr((*k)-1), zw.Off(1), toPtr(1), z.Off(1), toPtr(1))
-	goblas.Dcopy(toPtr(n-1), vfw.Off(1), toPtr(1), vf.Off(1), toPtr(1))
-	goblas.Dcopy(toPtr(n-1), vlw.Off(1), toPtr(1), vl.Off(1), toPtr(1))
+	goblas.Dcopy((*k)-1, zw.Off(1), 1, z.Off(1), 1)
+	goblas.Dcopy(n-1, vfw.Off(1), 1, vf.Off(1), 1)
+	goblas.Dcopy(n-1, vlw.Off(1), 1, vl.Off(1), 1)
 }

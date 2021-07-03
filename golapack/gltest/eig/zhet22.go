@@ -27,6 +27,8 @@ func Zhet22(itype *int, uplo byte, n, m, kband *int, a *mat.CMatrix, lda *int, d
 	var cone, czero complex128
 	var anorm, one, ulp, unfl, wnorm, zero float64
 	var j, jj, jj1, jj2, nn, nnp1 int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -50,10 +52,10 @@ func Zhet22(itype *int, uplo byte, n, m, kband *int, a *mat.CMatrix, lda *int, d
 	//     Compute error matrix:
 	//
 	//     ITYPE=1: error = U**H A U - S
-	goblas.Zhemm(Left, mat.UploByte(uplo), n, m, &cone, a, lda, u, ldu, &czero, work.CMatrix(*n, opts), n)
+	err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, *lda, u, *ldu, czero, work.CMatrix(*n, opts), *n)
 	nn = (*n) * (*n)
 	nnp1 = nn + 1
-	goblas.Zgemm(ConjTrans, NoTrans, m, m, n, &cone, u, ldu, work.CMatrix(*n, opts), n, &czero, work.CMatrixOff(nnp1-1, *n, opts), n)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *m, *n, cone, u, *ldu, work.CMatrix(*n, opts), *n, czero, work.CMatrixOff(nnp1-1, *n, opts), *n)
 	for j = 1; j <= (*m); j++ {
 		jj = nn + (j-1)*(*n) + j
 		work.Set(jj-1, work.Get(jj-1)-d.GetCmplx(j-1))

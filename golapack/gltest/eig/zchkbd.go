@@ -137,6 +137,8 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 	var cone, czero complex128
 	var amninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, two, ulp, ulpinv, unfl, zero float64
 	var i, iinfo, imode, itype, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mq, mtypes, n, nfail, nmax, ntest int
+	var err error
+	_ = err
 	dumma := vf(1)
 	result := vf(14)
 	ioldsd := make([]int, 4)
@@ -425,7 +427,7 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				}
 
 				//              Apply Q' to an M by NRHS matrix X:  Y := Q' * X.
-				goblas.Zgemm(ConjTrans, NoTrans, &m, nrhs, &m, &cone, q, ldq, x, ldx, &czero, y, ldx)
+				err = goblas.Zgemm(ConjTrans, NoTrans, m, *nrhs, m, cone, q, *ldq, x, *ldx, czero, y, *ldx)
 
 				//              Test 1:  Check the decomposition A := Q * B * PT
 				//                   2:  Check the orthogonality of Q
@@ -437,9 +439,9 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Use ZBDSQR to form the SVD of the bidiagonal matrix B:
 			//           B := U * S1 * VT, and compute Z = U' * Y.
-			goblas.Dcopy(&mnmin, bd, func() *int { y := 1; return &y }(), s1, func() *int { y := 1; return &y }())
+			goblas.Dcopy(mnmin, bd, 1, s1, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(mnmin-1, be, 1, rwork, 1)
 			}
 			golapack.Zlacpy(' ', &m, nrhs, y, ldx, z, ldx)
 			golapack.Zlaset('F', &mnmin, &mnmin, &czero, &cone, u, ldpt)
@@ -461,9 +463,9 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Use ZBDSQR to compute only the singular values of the
 			//           bidiagonal matrix B;  U, VT, and Z should not be modified.
-			goblas.Dcopy(&mnmin, bd, func() *int { y := 1; return &y }(), s2, func() *int { y := 1; return &y }())
+			goblas.Dcopy(mnmin, bd, 1, s2, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(mnmin-1, be, 1, rwork, 1)
 			}
 
 			golapack.Zbdsqr(uplo, &mnmin, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s2, rwork, vt, ldpt, u, ldpt, z, ldx, rwork.Off(mnmin+1-1), &iinfo)
@@ -535,9 +537,9 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			//           Use ZBDSQR to form the decomposition A := (QU) S (VT PT)
 			//           from the bidiagonal form A := Q B PT.
 			if !bidiag {
-				goblas.Dcopy(&mnmin, bd, func() *int { y := 1; return &y }(), s2, func() *int { y := 1; return &y }())
+				goblas.Dcopy(mnmin, bd, 1, s2, 1)
 				if mnmin > 0 {
-					goblas.Dcopy(toPtr(mnmin-1), be, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+					goblas.Dcopy(mnmin-1, be, 1, rwork, 1)
 				}
 
 				golapack.Zbdsqr(uplo, &mnmin, &n, &m, nrhs, s2, rwork, pt, ldpt, q, ldq, y, ldx, rwork.Off(mnmin+1-1), &iinfo)

@@ -13,6 +13,8 @@ func Zhptrd(uplo byte, n *int, ap *mat.CVector, d, e *mat.Vector, tau *mat.CVect
 	var upper bool
 	var alpha, half, one, taui, zero complex128
 	var i, i1, i1i1, ii int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -53,15 +55,15 @@ func Zhptrd(uplo byte, n *int, ap *mat.CVector, d, e *mat.Vector, tau *mat.CVect
 				ap.Set(i1+i-1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(1:i)
-				goblas.Zhpmv(mat.UploByte(uplo), &i, &taui, ap, ap.Off(i1-1), func() *int { y := 1; return &y }(), &zero, tau, func() *int { y := 1; return &y }())
+				err = goblas.Zhpmv(mat.UploByte(uplo), i, taui, ap, ap.Off(i1-1), 1, zero, tau, 1)
 
 				//              Compute  w := y - 1/2 * tau * (y**H *v) * v
-				alpha = -half * taui * goblas.Zdotc(&i, tau, func() *int { y := 1; return &y }(), ap.Off(i1-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(&i, &alpha, ap.Off(i1-1), func() *int { y := 1; return &y }(), tau, func() *int { y := 1; return &y }())
+				alpha = -half * taui * goblas.Zdotc(i, tau, 1, ap.Off(i1-1), 1)
+				goblas.Zaxpy(i, alpha, ap.Off(i1-1), 1, tau, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**H - w * v**H
-				goblas.Zhpr2(mat.UploByte(uplo), &i, toPtrc128(-one), ap.Off(i1-1), func() *int { y := 1; return &y }(), tau, func() *int { y := 1; return &y }(), ap)
+				err = goblas.Zhpr2(mat.UploByte(uplo), i, -one, ap.Off(i1-1), 1, tau, 1, ap)
 
 			}
 			ap.Set(i1+i-1-1, e.GetCmplx(i-1))
@@ -89,15 +91,15 @@ func Zhptrd(uplo byte, n *int, ap *mat.CVector, d, e *mat.Vector, tau *mat.CVect
 				ap.Set(ii+1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(i:n-1)
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr((*n)-i), &taui, ap.Off(i1i1-1), ap.Off(ii+1-1), func() *int { y := 1; return &y }(), &zero, tau.Off(i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zhpmv(mat.UploByte(uplo), (*n)-i, taui, ap.Off(i1i1-1), ap.Off(ii+1-1), 1, zero, tau.Off(i-1), 1)
 
 				//              Compute  w := y - 1/2 * tau * (y**H *v) * v
-				alpha = -half * taui * goblas.Zdotc(toPtr((*n)-i), tau.Off(i-1), func() *int { y := 1; return &y }(), ap.Off(ii+1-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(toPtr((*n)-i), &alpha, ap.Off(ii+1-1), func() *int { y := 1; return &y }(), tau.Off(i-1), func() *int { y := 1; return &y }())
+				alpha = -half * taui * goblas.Zdotc((*n)-i, tau.Off(i-1), 1, ap.Off(ii+1-1), 1)
+				goblas.Zaxpy((*n)-i, alpha, ap.Off(ii+1-1), 1, tau.Off(i-1), 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**H - w * v**H
-				goblas.Zhpr2(mat.UploByte(uplo), toPtr((*n)-i), toPtrc128(-one), ap.Off(ii+1-1), func() *int { y := 1; return &y }(), tau.Off(i-1), func() *int { y := 1; return &y }(), ap.Off(i1i1-1))
+				err = goblas.Zhpr2(mat.UploByte(uplo), (*n)-i, -one, ap.Off(ii+1-1), 1, tau.Off(i-1), 1, ap.Off(i1i1-1))
 
 			}
 			ap.Set(ii+1-1, e.GetCmplx(i-1))

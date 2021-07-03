@@ -42,7 +42,7 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 	four = 4.0
 
 	eps = Dlamch(Epsilon)
-	alpha = goblas.Ddot(j, x, toPtr(1), w, toPtr(1))
+	alpha = goblas.Ddot(*j, x, 1, w, 1)
 
 	absalp = math.Abs(alpha)
 	absgam = math.Abs(*gamma)

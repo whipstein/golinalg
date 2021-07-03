@@ -56,7 +56,7 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 	for j = 1; j <= (*n); j++ {
 		if (*jpvt)[j-1] != 0 {
 			if j != nfxd {
-				goblas.Dswap(m, a.Vector(0, j-1), toPtr(1), a.Vector(0, nfxd-1), toPtr(1))
+				goblas.Dswap(*m, a.Vector(0, j-1), 1, a.Vector(0, nfxd-1), 1)
 				(*jpvt)[j-1] = (*jpvt)[nfxd-1]
 				(*jpvt)[nfxd-1] = j
 			} else {
@@ -121,7 +121,7 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 		//        Initialize partial column norms. The first N elements of work
 		//        store the exact column norms.
 		for j = nfxd + 1; j <= (*n); j++ {
-			work.Set(j-1, goblas.Dnrm2(&sm, a.Vector(nfxd+1-1, j-1), toPtr(1)))
+			work.Set(j-1, goblas.Dnrm2(sm, a.Vector(nfxd+1-1, j-1), 1))
 			work.Set((*n)+j-1, work.Get(j-1))
 		}
 

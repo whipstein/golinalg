@@ -46,7 +46,7 @@ func Zrzt01(m, n *int, a, af *mat.CMatrix, lda *int, tau, work *mat.CVector, lwo
 
 	//     R = R - A
 	for i = 1; i <= (*n); i++ {
-		goblas.Zaxpy(m, toPtrc128(complex(-one, 0)), a.CVector(0, i-1), func() *int { y := 1; return &y }(), work.Off((i-1)*(*m)+1-1), func() *int { y := 1; return &y }())
+		goblas.Zaxpy(*m, complex(-one, 0), a.CVector(0, i-1), 1, work.Off((i-1)*(*m)+1-1), 1)
 	}
 
 	zrzt01Return = golapack.Zlange('O', m, n, work.CMatrix(*m, opts), m, rwork)

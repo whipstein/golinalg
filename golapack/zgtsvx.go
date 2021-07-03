@@ -43,10 +43,10 @@ func Zgtsvx(fact, trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CV
 
 	if nofact {
 		//        Compute the LU factorization of A.
-		goblas.Zcopy(n, d, func() *int { y := 1; return &y }(), df, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, d, 1, df, 1)
 		if (*n) > 1 {
-			goblas.Zcopy(toPtr((*n)-1), dl, func() *int { y := 1; return &y }(), dlf, func() *int { y := 1; return &y }())
-			goblas.Zcopy(toPtr((*n)-1), du, func() *int { y := 1; return &y }(), duf, func() *int { y := 1; return &y }())
+			goblas.Zcopy((*n)-1, dl, 1, dlf, 1)
+			goblas.Zcopy((*n)-1, du, 1, duf, 1)
 		}
 		Zgttrf(n, dlf, df, duf, du2, ipiv, info)
 

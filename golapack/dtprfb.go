@@ -12,6 +12,8 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 	var backward, column, forward, left, right, row bool
 	var one, zero float64
 	var i, j, kp, mp, np int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -77,9 +79,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set(i-1, j-1, b.Get((*m)-(*l)+i-1, j-1))
 			}
 		}
-		goblas.Dtrmm(Left, Upper, Trans, NonUnit, l, n, &one, v.Off(mp-1, 0), ldv, work, ldwork)
-		goblas.Dgemm(Trans, NoTrans, l, n, toPtr((*m)-(*l)), &one, v, ldv, b, ldb, &one, work, ldwork)
-		goblas.Dgemm(Trans, NoTrans, toPtr((*k)-(*l)), n, m, &one, v.Off(0, kp-1), ldv, b, ldb, &zero, work.Off(kp-1, 0), ldwork)
+		err = goblas.Dtrmm(Left, Upper, Trans, NonUnit, *l, *n, one, v.Off(mp-1, 0), *ldv, work, *ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, *l, *n, (*m)-(*l), one, v, *ldv, b, *ldb, one, work, *ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, (*k)-(*l), *n, *m, one, v.Off(0, kp-1), *ldv, b, *ldb, zero, work.Off(kp-1, 0), *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -87,7 +89,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Left, Upper, mat.TransByte(trans), NonUnit, k, n, &one, t, ldt, work, ldwork)
+		goblas.Dtrmm(Left, Upper, mat.TransByte(trans), NonUnit, *k, *n, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -95,9 +97,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*m)-(*l)), n, k, toPtrf64(-one), v, ldv, work, ldwork, &one, b, ldb)
-		goblas.Dgemm(NoTrans, NoTrans, l, n, toPtr((*k)-(*l)), toPtrf64(-one), v.Off(mp-1, kp-1), ldv, work.Off(kp-1, 0), ldwork, &one, b.Off(mp-1, 0), ldb)
-		goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, l, n, &one, v.Off(mp-1, 0), ldv, work, ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-(*l), *n, *k, -one, v, *ldv, work, *ldwork, one, b, *ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *l, *n, (*k)-(*l), -one, v.Off(mp-1, kp-1), *ldv, work.Off(kp-1, 0), *ldwork, one, b.Off(mp-1, 0), *ldb)
+		err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, *l, *n, one, v.Off(mp-1, 0), *ldv, work, *ldwork)
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*l); i++ {
 				b.Set((*m)-(*l)+i-1, j-1, b.Get((*m)-(*l)+i-1, j-1)-work.Get(i-1, j-1))
@@ -126,9 +128,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set(i-1, j-1, b.Get(i-1, (*n)-(*l)+j-1))
 			}
 		}
-		goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m, l, &one, v.Off(np-1, 0), ldv, work, ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, m, l, toPtr((*n)-(*l)), &one, b, ldb, v, ldv, &one, work, ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, m, toPtr((*k)-(*l)), n, &one, b, ldb, v.Off(0, kp-1), ldv, &zero, work.Off(0, kp-1), ldwork)
+		err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, *m, *l, one, v.Off(np-1, 0), *ldv, work, *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *l, (*n)-(*l), one, b, *ldb, v, *ldv, one, work, *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, (*k)-(*l), *n, one, b, *ldb, v.Off(0, kp-1), *ldv, zero, work.Off(0, kp-1), *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -136,7 +138,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Right, Upper, mat.TransByte(trans), NonUnit, m, k, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Right, Upper, mat.TransByte(trans), NonUnit, *m, *k, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -144,9 +146,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(NoTrans, Trans, m, toPtr((*n)-(*l)), k, toPtrf64(-one), work, ldwork, v, ldv, &one, b, ldb)
-		goblas.Dgemm(NoTrans, Trans, m, l, toPtr((*k)-(*l)), toPtrf64(-one), work.Off(0, kp-1), ldwork, v.Off(np-1, kp-1), ldv, &one, b.Off(0, np-1), ldb)
-		goblas.Dtrmm(Right, Upper, Trans, NonUnit, m, l, &one, v.Off(np-1, 0), ldv, work, ldwork)
+		err = goblas.Dgemm(NoTrans, Trans, *m, (*n)-(*l), *k, -one, work, *ldwork, v, *ldv, one, b, *ldb)
+		err = goblas.Dgemm(NoTrans, Trans, *m, *l, (*k)-(*l), -one, work.Off(0, kp-1), *ldwork, v.Off(np-1, kp-1), *ldv, one, b.Off(0, np-1), *ldb)
+		err = goblas.Dtrmm(Right, Upper, Trans, NonUnit, *m, *l, one, v.Off(np-1, 0), *ldv, work, *ldwork)
 		for j = 1; j <= (*l); j++ {
 			for i = 1; i <= (*m); i++ {
 				b.Set(i-1, (*n)-(*l)+j-1, b.Get(i-1, (*n)-(*l)+j-1)-work.Get(i-1, j-1))
@@ -177,9 +179,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Left, Lower, Trans, NonUnit, l, n, &one, v.Off(0, kp-1), ldv, work.Off(kp-1, 0), ldwork)
-		goblas.Dgemm(Trans, NoTrans, l, n, toPtr((*m)-(*l)), &one, v.Off(mp-1, kp-1), ldv, b.Off(mp-1, 0), ldb, &one, work.Off(kp-1, 0), ldwork)
-		goblas.Dgemm(Trans, NoTrans, toPtr((*k)-(*l)), n, m, &one, v, ldv, b, ldb, &zero, work, ldwork)
+		err = goblas.Dtrmm(Left, Lower, Trans, NonUnit, *l, *n, one, v.Off(0, kp-1), *ldv, work.Off(kp-1, 0), *ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, *l, *n, (*m)-(*l), one, v.Off(mp-1, kp-1), *ldv, b.Off(mp-1, 0), *ldb, one, work.Off(kp-1, 0), *ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, (*k)-(*l), *n, *m, one, v, *ldv, b, *ldb, zero, work, *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -187,7 +189,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Left, Lower, mat.TransByte(trans), NonUnit, k, n, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Left, Lower, mat.TransByte(trans), NonUnit, *k, *n, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -195,9 +197,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*m)-(*l)), n, k, toPtrf64(-one), v.Off(mp-1, 0), ldv, work, ldwork, &one, b.Off(mp-1, 0), ldb)
-		goblas.Dgemm(NoTrans, NoTrans, l, n, toPtr((*k)-(*l)), toPtrf64(-one), v, ldv, work, ldwork, &one, b, ldb)
-		goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, l, n, &one, v.Off(0, kp-1), ldv, work.Off(kp-1, 0), ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-(*l), *n, *k, -one, v.Off(mp-1, 0), *ldv, work, *ldwork, one, b.Off(mp-1, 0), *ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *l, *n, (*k)-(*l), -one, v, *ldv, work, *ldwork, one, b, *ldb)
+		err = goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, *l, *n, one, v.Off(0, kp-1), *ldv, work.Off(kp-1, 0), *ldwork)
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*l); i++ {
 				b.Set(i-1, j-1, b.Get(i-1, j-1)-work.Get((*k)-(*l)+i-1, j-1))
@@ -226,9 +228,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set(i-1, (*k)-(*l)+j-1, b.Get(i-1, j-1))
 			}
 		}
-		goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, m, l, &one, v.Off(0, kp-1), ldv, work.Off(0, kp-1), ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, m, l, toPtr((*n)-(*l)), &one, b.Off(0, np-1), ldb, v.Off(np-1, kp-1), ldv, &one, work.Off(0, kp-1), ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, m, toPtr((*k)-(*l)), n, &one, b, ldb, v, ldv, &zero, work, ldwork)
+		err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, *m, *l, one, v.Off(0, kp-1), *ldv, work.Off(0, kp-1), *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *l, (*n)-(*l), one, b.Off(0, np-1), *ldb, v.Off(np-1, kp-1), *ldv, one, work.Off(0, kp-1), *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, (*k)-(*l), *n, one, b, *ldb, v, *ldv, zero, work, *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -236,7 +238,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, m, k, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -244,9 +246,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(NoTrans, Trans, m, toPtr((*n)-(*l)), k, toPtrf64(-one), work, ldwork, v.Off(np-1, 0), ldv, &one, b.Off(0, np-1), ldb)
-		goblas.Dgemm(NoTrans, Trans, m, l, toPtr((*k)-(*l)), toPtrf64(-one), work, ldwork, v, ldv, &one, b, ldb)
-		goblas.Dtrmm(Right, Lower, Trans, NonUnit, m, l, &one, v.Off(0, kp-1), ldv, work.Off(0, kp-1), ldwork)
+		err = goblas.Dgemm(NoTrans, Trans, *m, (*n)-(*l), *k, -one, work, *ldwork, v.Off(np-1, 0), *ldv, one, b.Off(0, np-1), *ldb)
+		err = goblas.Dgemm(NoTrans, Trans, *m, *l, (*k)-(*l), -one, work, *ldwork, v, *ldv, one, b, *ldb)
+		err = goblas.Dtrmm(Right, Lower, Trans, NonUnit, *m, *l, one, v.Off(0, kp-1), *ldv, work.Off(0, kp-1), *ldwork)
 		for j = 1; j <= (*l); j++ {
 			for i = 1; i <= (*m); i++ {
 				b.Set(i-1, j-1, b.Get(i-1, j-1)-work.Get(i-1, (*k)-(*l)+j-1))
@@ -275,9 +277,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set(i-1, j-1, b.Get((*m)-(*l)+i-1, j-1))
 			}
 		}
-		goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, l, n, &one, v.Off(0, mp-1), ldv, work, ldb)
-		goblas.Dgemm(NoTrans, NoTrans, l, n, toPtr((*m)-(*l)), &one, v, ldv, b, ldb, &one, work, ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*k)-(*l)), n, m, &one, v.Off(kp-1, 0), ldv, b, ldb, &zero, work.Off(kp-1, 0), ldwork)
+		err = goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, *l, *n, one, v.Off(0, mp-1), *ldv, work, *ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *l, *n, (*m)-(*l), one, v, *ldv, b, *ldb, one, work, *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*k)-(*l), *n, *m, one, v.Off(kp-1, 0), *ldv, b, *ldb, zero, work.Off(kp-1, 0), *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -285,7 +287,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Left, Upper, mat.TransByte(trans), NonUnit, k, n, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Left, Upper, mat.TransByte(trans), NonUnit, *k, *n, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -293,9 +295,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(Trans, NoTrans, toPtr((*m)-(*l)), n, k, toPtrf64(-one), v, ldv, work, ldwork, &one, b, ldb)
-		goblas.Dgemm(Trans, NoTrans, l, n, toPtr((*k)-(*l)), toPtrf64(-one), v.Off(kp-1, mp-1), ldv, work.Off(kp-1, 0), ldwork, &one, b.Off(mp-1, 0), ldb)
-		goblas.Dtrmm(Left, Lower, Trans, NonUnit, l, n, &one, v.Off(0, mp-1), ldv, work, ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, (*m)-(*l), *n, *k, -one, v, *ldv, work, *ldwork, one, b, *ldb)
+		err = goblas.Dgemm(Trans, NoTrans, *l, *n, (*k)-(*l), -one, v.Off(kp-1, mp-1), *ldv, work.Off(kp-1, 0), *ldwork, one, b.Off(mp-1, 0), *ldb)
+		err = goblas.Dtrmm(Left, Lower, Trans, NonUnit, *l, *n, one, v.Off(0, mp-1), *ldv, work, *ldwork)
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*l); i++ {
 				b.Set((*m)-(*l)+i-1, j-1, b.Get((*m)-(*l)+i-1, j-1)-work.Get(i-1, j-1))
@@ -323,9 +325,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set(i-1, j-1, b.Get(i-1, (*n)-(*l)+j-1))
 			}
 		}
-		goblas.Dtrmm(Right, Lower, Trans, NonUnit, m, l, &one, v.Off(0, np-1), ldv, work, ldwork)
-		goblas.Dgemm(NoTrans, Trans, m, l, toPtr((*n)-(*l)), &one, b, ldb, v, ldv, &one, work, ldwork)
-		goblas.Dgemm(NoTrans, Trans, m, toPtr((*k)-(*l)), n, &one, b, ldb, v.Off(kp-1, 0), ldv, &zero, work.Off(0, kp-1), ldwork)
+		err = goblas.Dtrmm(Right, Lower, Trans, NonUnit, *m, *l, one, v.Off(0, np-1), *ldv, work, *ldwork)
+		err = goblas.Dgemm(NoTrans, Trans, *m, *l, (*n)-(*l), one, b, *ldb, v, *ldv, one, work, *ldwork)
+		err = goblas.Dgemm(NoTrans, Trans, *m, (*k)-(*l), *n, one, b, *ldb, v.Off(kp-1, 0), *ldv, zero, work.Off(0, kp-1), *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -333,7 +335,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Right, Upper, mat.TransByte(trans), NonUnit, m, k, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Right, Upper, mat.TransByte(trans), NonUnit, *m, *k, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -341,9 +343,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(NoTrans, NoTrans, m, toPtr((*n)-(*l)), k, toPtrf64(-one), work, ldwork, v, ldv, &one, b, ldb)
-		goblas.Dgemm(NoTrans, NoTrans, m, l, toPtr((*k)-(*l)), toPtrf64(-one), work.Off(0, kp-1), ldwork, v.Off(kp-1, np-1), ldv, &one, b.Off(0, np-1), ldb)
-		goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, m, l, &one, v.Off(0, np-1), ldv, work, ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, (*n)-(*l), *k, -one, work, *ldwork, v, *ldv, one, b, *ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *l, (*k)-(*l), -one, work.Off(0, kp-1), *ldwork, v.Off(kp-1, np-1), *ldv, one, b.Off(0, np-1), *ldb)
+		err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, *m, *l, one, v.Off(0, np-1), *ldv, work, *ldwork)
 		for j = 1; j <= (*l); j++ {
 			for i = 1; i <= (*m); i++ {
 				b.Set(i-1, (*n)-(*l)+j-1, b.Get(i-1, (*n)-(*l)+j-1)-work.Get(i-1, j-1))
@@ -372,9 +374,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set((*k)-(*l)+i-1, j-1, b.Get(i-1, j-1))
 			}
 		}
-		goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, l, n, &one, v.Off(kp-1, 0), ldv, work.Off(kp-1, 0), ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, l, n, toPtr((*m)-(*l)), &one, v.Off(kp-1, mp-1), ldv, b.Off(mp-1, 0), ldb, &one, work.Off(kp-1, 0), ldwork)
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*k)-(*l)), n, m, &one, v, ldv, b, ldb, &zero, work, ldwork)
+		err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, *l, *n, one, v.Off(kp-1, 0), *ldv, work.Off(kp-1, 0), *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *l, *n, (*m)-(*l), one, v.Off(kp-1, mp-1), *ldv, b.Off(mp-1, 0), *ldb, one, work.Off(kp-1, 0), *ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*k)-(*l), *n, *m, one, v, *ldv, b, *ldb, zero, work, *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -382,7 +384,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Left, Lower, mat.TransByte(trans), NonUnit, k, n, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Left, Lower, mat.TransByte(trans), NonUnit, *k, *n, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*k); i++ {
@@ -390,9 +392,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(Trans, NoTrans, toPtr((*m)-(*l)), n, k, toPtrf64(-one), v.Off(0, mp-1), ldv, work, ldwork, &one, b.Off(mp-1, 0), ldb)
-		goblas.Dgemm(Trans, NoTrans, l, n, toPtr((*k)-(*l)), toPtrf64(-one), v, ldv, work, ldwork, &one, b, ldb)
-		goblas.Dtrmm(Left, Upper, Trans, NonUnit, l, n, &one, v.Off(kp-1, 0), ldv, work.Off(kp-1, 0), ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, (*m)-(*l), *n, *k, -one, v.Off(0, mp-1), *ldv, work, *ldwork, one, b.Off(mp-1, 0), *ldb)
+		err = goblas.Dgemm(Trans, NoTrans, *l, *n, (*k)-(*l), -one, v, *ldv, work, *ldwork, one, b, *ldb)
+		err = goblas.Dtrmm(Left, Upper, Trans, NonUnit, *l, *n, one, v.Off(kp-1, 0), *ldv, work.Off(kp-1, 0), *ldwork)
 		for j = 1; j <= (*n); j++ {
 			for i = 1; i <= (*l); i++ {
 				b.Set(i-1, j-1, b.Get(i-1, j-1)-work.Get((*k)-(*l)+i-1, j-1))
@@ -420,9 +422,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 				work.Set(i-1, (*k)-(*l)+j-1, b.Get(i-1, j-1))
 			}
 		}
-		goblas.Dtrmm(Right, Upper, Trans, NonUnit, m, l, &one, v.Off(kp-1, 0), ldv, work.Off(0, kp-1), ldwork)
-		goblas.Dgemm(NoTrans, Trans, m, l, toPtr((*n)-(*l)), &one, b.Off(0, np-1), ldb, v.Off(kp-1, np-1), ldv, &one, work.Off(0, kp-1), ldwork)
-		goblas.Dgemm(NoTrans, Trans, m, toPtr((*k)-(*l)), n, &one, b, ldb, v, ldv, &zero, work, ldwork)
+		err = goblas.Dtrmm(Right, Upper, Trans, NonUnit, *m, *l, one, v.Off(kp-1, 0), *ldv, work.Off(0, kp-1), *ldwork)
+		err = goblas.Dgemm(NoTrans, Trans, *m, *l, (*n)-(*l), one, b.Off(0, np-1), *ldb, v.Off(kp-1, np-1), *ldv, one, work.Off(0, kp-1), *ldwork)
+		err = goblas.Dgemm(NoTrans, Trans, *m, (*k)-(*l), *n, one, b, *ldb, v, *ldv, zero, work, *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -430,7 +432,7 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, m, k, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, *ldt, work, *ldwork)
 
 		for j = 1; j <= (*k); j++ {
 			for i = 1; i <= (*m); i++ {
@@ -438,9 +440,9 @@ func Dtprfb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 			}
 		}
 
-		goblas.Dgemm(NoTrans, NoTrans, m, toPtr((*n)-(*l)), k, toPtrf64(-one), work, ldwork, v.Off(0, np-1), ldv, &one, b.Off(0, np-1), ldb)
-		goblas.Dgemm(NoTrans, NoTrans, m, l, toPtr((*k)-(*l)), toPtrf64(-one), work, ldwork, v, ldv, &one, b, ldb)
-		goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m, l, &one, v.Off(kp-1, 0), ldv, work.Off(0, kp-1), ldwork)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, (*n)-(*l), *k, -one, work, *ldwork, v.Off(0, np-1), *ldv, one, b.Off(0, np-1), *ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *l, (*k)-(*l), -one, work, *ldwork, v, *ldv, one, b, *ldb)
+		err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, *m, *l, one, v.Off(kp-1, 0), *ldv, work.Off(0, kp-1), *ldwork)
 		for j = 1; j <= (*l); j++ {
 			for i = 1; i <= (*m); i++ {
 				b.Set(i-1, j-1, b.Get(i-1, j-1)-work.Get(i-1, (*k)-(*l)+j-1))

@@ -68,8 +68,8 @@ label20:
 		goto label30
 	}
 
-	goblas.Zswap(&l, a.CVector(0, j-1), func() *int { y := 1; return &y }(), a.CVector(0, m-1), func() *int { y := 1; return &y }())
-	goblas.Zswap(toPtr((*n)-k+1), a.CVector(j-1, k-1), lda, a.CVector(m-1, k-1), lda)
+	goblas.Zswap(l, a.CVector(0, j-1), 1, a.CVector(0, m-1), 1)
+	goblas.Zswap((*n)-k+1, a.CVector(j-1, k-1), *lda, a.CVector(m-1, k-1), *lda)
 
 label30:
 	;
@@ -158,11 +158,11 @@ label140:
 
 	for i = k; i <= l; i++ {
 
-		c = goblas.Dznrm2(toPtr(l-k+1), a.CVector(k-1, i-1), func() *int { y := 1; return &y }())
-		r = goblas.Dznrm2(toPtr(l-k+1), a.CVector(i-1, k-1), lda)
-		ica = goblas.Izamax(&l, a.CVector(0, i-1), func() *int { y := 1; return &y }())
+		c = goblas.Dznrm2(l-k+1, a.CVector(k-1, i-1), 1)
+		r = goblas.Dznrm2(l-k+1, a.CVector(i-1, k-1), *lda)
+		ica = goblas.Izamax(l, a.CVector(0, i-1), 1)
 		ca = a.GetMag(ica-1, i-1)
-		ira = goblas.Izamax(toPtr((*n)-k+1), a.CVector(i-1, k-1), lda)
+		ira = goblas.Izamax((*n)-k+1, a.CVector(i-1, k-1), *lda)
 		ra = a.GetMag(i-1, ira+k-1-1)
 
 		//        Guard against zero C or R due to underflow.
@@ -227,8 +227,8 @@ label140:
 		scale.Set(i-1, scale.Get(i-1)*f)
 		noconv = true
 
-		goblas.Zdscal(toPtr((*n)-k+1), &g, a.CVector(i-1, k-1), lda)
-		goblas.Zdscal(&l, &f, a.CVector(0, i-1), func() *int { y := 1; return &y }())
+		goblas.Zdscal((*n)-k+1, g, a.CVector(i-1, k-1), *lda)
+		goblas.Zdscal(l, f, a.CVector(0, i-1), 1)
 
 	label200:
 	}

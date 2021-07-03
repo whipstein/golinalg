@@ -15,6 +15,8 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	var diag, norm, trans, uplo, xtype byte
 	var ainvnm, anorm, one, rcond, rcondc, rcondi, rcondo, scale, zero float64
 	var i, idiag, ik, imat, in, info, irhs, itran, iuplo, j, k, kd, lda, ldab, n, nerrs, nfail, nimat, nimat2, nk, nrhs, nrun, ntran, ntype1, ntypes int
+	var err error
+	_ = err
 
 	transs := make([]byte, 3)
 	uplos := make([]byte, 2)
@@ -103,11 +105,11 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					golapack.Zlaset('F', &n, &n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), ainv.CMatrix(lda, opts), &lda)
 					if uplo == 'U' {
 						for j = 1; j <= n; j++ {
-							goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), &j, &kd, ab.CMatrix(ldab, opts), &ldab, ainv.Off((j-1)*lda+1-1), func() *int { y := 1; return &y }())
+							err = goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), j, kd, ab.CMatrix(ldab, opts), ldab, ainv.Off((j-1)*lda+1-1), 1)
 						}
 					} else {
 						for j = 1; j <= n; j++ {
-							goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), toPtr(n-j+1), &kd, ab.CMatrixOff((j-1)*ldab+1-1, ldab, opts), &ldab, ainv.Off((j-1)*lda+j-1), func() *int { y := 1; return &y }())
+							err = goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), n-j+1, kd, ab.CMatrixOff((j-1)*ldab+1-1, ldab, opts), ldab, ainv.Off((j-1)*lda+j-1), 1)
 						}
 					}
 
@@ -252,7 +254,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						//+    TEST 7
 						//                    Solve the system op(A)*x = b
 						*srnamt = "ZLATBS"
-						goblas.Zcopy(&n, x, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }())
+						goblas.Zcopy(n, x, 1, b, 1)
 						golapack.Zlatbs(uplo, trans, diag, 'N', &n, &kd, ab.CMatrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from ZLATBS.
@@ -265,7 +267,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 						//+    TEST 8
 						//                    Solve op(A)*x = b again with NORMIN = 'Y'.
-						goblas.Zcopy(&n, x, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }())
+						goblas.Zcopy(n, x, 1, b, 1)
 						golapack.Zlatbs(uplo, trans, diag, 'Y', &n, &kd, ab.CMatrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from ZLATBS.

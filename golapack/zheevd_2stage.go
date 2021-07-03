@@ -153,7 +153,7 @@ func Zheevd2stage(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vect
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	work.SetRe(0, float64(lwmin))

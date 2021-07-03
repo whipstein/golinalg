@@ -136,7 +136,7 @@ func Dgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, a
 		for j = 1; j <= (*n); j++ {
 			j1 = maxint(j-(*ku), 1)
 			j2 = minint(j+(*kl), *n)
-			goblas.Dcopy(toPtr(j2-j1+1), ab.Vector((*ku)+1-j+j1-1, j-1), toPtr(1), afb.Vector((*kl)+(*ku)+1-j+j1-1, j-1), toPtr(1))
+			goblas.Dcopy(j2-j1+1, ab.Vector((*ku)+1-j+j1-1, j-1), 1, afb.Vector((*kl)+(*ku)+1-j+j1-1, j-1), 1)
 		}
 
 		Dgbtrf(n, n, kl, ku, afb, ldafb, ipiv, info)

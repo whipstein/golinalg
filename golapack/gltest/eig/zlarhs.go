@@ -17,6 +17,8 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 	var diag byte
 	var one, zero complex128
 	var j, mb, nx int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -80,26 +82,26 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 	//     matrix multiply routine.
 	if string(c2) == "GE" || string(c2) == "QR" || string(c2) == "LQ" || string(c2) == "QL" || string(c2) == "RQ" {
 		//        General matrix
-		goblas.Zgemm(mat.TransByte(trans), NoTrans, &mb, nrhs, &nx, &one, a, lda, x, ldx, &zero, b, ldb)
+		err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mb, *nrhs, nx, one, a, *lda, x, *ldx, zero, b, *ldb)
 
 	} else if string(c2) == "PO" || string(c2) == "HE" {
 		//        Hermitian matrix, 2-D storage
-		goblas.Zhemm(Left, mat.UploByte(uplo), n, nrhs, &one, a, lda, x, ldx, &zero, b, ldb)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, *lda, x, *ldx, zero, b, *ldb)
 
 	} else if string(c2) == "SY" {
 		//        Symmetric matrix, 2-D storage
-		goblas.Zsymm(Left, mat.UploByte(uplo), n, nrhs, &one, a, lda, x, ldx, &zero, b, ldb)
+		err = goblas.Zsymm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, *lda, x, *ldx, zero, b, *ldb)
 
 	} else if string(c2) == "GB" {
 		//        General matrix, band storage
 		for j = 1; j <= (*nrhs); j++ {
-			goblas.Zgbmv(mat.TransByte(trans), m, n, kl, ku, &one, a, lda, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &zero, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, one, a, *lda, x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1)
 		}
 
 	} else if string(c2) == "PB" || string(c2) == "HB" {
 		//        Hermitian matrix, band storage
 		for j = 1; j <= (*nrhs); j++ {
-			goblas.Zhbmv(mat.UploByte(uplo), n, kl, &one, a, lda, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &zero, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kl, one, a, *lda, x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1)
 		}
 
 	} else if string(c2) == "SB" {
@@ -111,7 +113,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 	} else if string(c2) == "PP" || string(c2) == "HP" {
 		//        Hermitian matrix, packed storage
 		for j = 1; j <= (*nrhs); j++ {
-			goblas.Zhpmv(mat.UploByte(uplo), n, &one, a.CVector(0, 0), x.CVector(0, j-1), func() *int { y := 1; return &y }(), &zero, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Zhpmv(mat.UploByte(uplo), *n, one, a.CVector(0, 0), x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1)
 		}
 
 	} else if string(c2) == "SP" {
@@ -130,7 +132,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 		} else {
 			diag = 'N'
 		}
-		goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, *lda, b, *ldb)
 
 	} else if string(c2) == "TP" {
 		//        Triangular matrix, packed storage
@@ -141,7 +143,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 			diag = 'N'
 		}
 		for j = 1; j <= (*nrhs); j++ {
-			goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, a.CVector(0, 0), b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a.CVector(0, 0), b.CVector(0, j-1), 1)
 		}
 
 	} else if string(c2) == "TB" {
@@ -153,7 +155,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 			diag = 'N'
 		}
 		for j = 1; j <= (*nrhs); j++ {
-			goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kl, a, lda, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kl, a, *lda, b.CVector(0, j-1), 1)
 		}
 
 	} else {

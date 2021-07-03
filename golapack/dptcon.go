@@ -71,7 +71,7 @@ func Dptcon(n *int, d, e *mat.Vector, anorm *float64, rcond *float64, work *mat.
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(n, work, toPtr(1))
+	ix = goblas.Idamax(*n, work, 1)
 	ainvnm = math.Abs(work.Get(ix - 1))
 
 	//     Compute the reciprocal condition number.

@@ -16,6 +16,8 @@ func Dtbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	var nounit, upper bool
 	var zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 
@@ -70,6 +72,6 @@ func Dtbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 
 	//     Solve A * X = B  or  A**T * X = B.
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kd, ab, ldab, b.Vector(0, j-1), toPtr(1))
+		err = goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
 	}
 }

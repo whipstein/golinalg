@@ -42,8 +42,8 @@ func Dgtt02(trans byte, n, nrhs *int, dl, d, du *mat.Vector, x *mat.Matrix, ldx 
 	golapack.Dlagtm(trans, n, nrhs, func() *float64 { y := -one; return &y }(), dl, d, du, x, ldx, &one, b, ldb)
 
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1), toPtr(1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1), toPtr(1))
+		bnorm = goblas.Dasum(*n, b.Vector(0, j-1), 1)
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

@@ -40,8 +40,8 @@ func Zptt02(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, x *mat.CMatr
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(n, b.CVector(0, j-1), func() *int { y := 1; return &y }())
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1), 1)
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

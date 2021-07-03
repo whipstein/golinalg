@@ -252,7 +252,7 @@ label100:
 	if shift == sleft {
 	} else if shift == sright {
 		//        store new L and D back into DPLUS, LPLUS
-		goblas.Dcopy(n, work, toPtr(1), dplus, toPtr(1))
-		goblas.Dcopy(toPtr((*n)-1), work.Off((*n)+1-1), toPtr(1), lplus, toPtr(1))
+		goblas.Dcopy(*n, work, 1, dplus, 1)
+		goblas.Dcopy((*n)-1, work.Off((*n)+1-1), 1, lplus, 1)
 	}
 }

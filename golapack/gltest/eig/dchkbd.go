@@ -215,6 +215,8 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 	var uplo byte
 	var amninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, two, ulp, ulpinv, unfl, vl, vu, zero float64
 	var i, iinfo, il, imode, itemp, itype, iu, iwbd, iwbe, iwbs, iwbz, iwwork, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mnmin2, mq, mtypes, n, nfail, nmax, ns1, ns2, ntest int
+	var err error
+	_ = err
 
 	dum := vf(1)
 	dumma := vf(1)
@@ -511,7 +513,7 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				}
 
 				//              Apply Q' to an M by NRHS matrix X:  Y := Q' * X.
-				goblas.Dgemm(Trans, NoTrans, &m, nrhs, &m, &one, q, ldq, x, ldx, &zero, y, ldx)
+				err = goblas.Dgemm(Trans, NoTrans, m, *nrhs, m, one, q, *ldq, x, *ldx, zero, y, *ldx)
 
 				//              Test 1:  Check the decomposition A := Q * B * PT
 				//                   2:  Check the orthogonality of Q
@@ -523,9 +525,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Use DBDSQR to form the SVD of the bidiagonal matrix B:
 			//           B := U * S1 * VT, and compute Z = U' * Y.
-			goblas.Dcopy(&mnmin, bd, toPtr(1), s1, toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, s1, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work, 1)
 			}
 			golapack.Dlacpy(' ', &m, nrhs, y, ldx, z, ldx)
 			golapack.Dlaset('F', &mnmin, &mnmin, &zero, &one, u, ldpt)
@@ -548,9 +550,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Use DBDSQR to compute only the singular values of the
 			//           bidiagonal matrix B;  U, VT, and Z should not be modified.
-			goblas.Dcopy(&mnmin, bd, toPtr(1), s2, toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, s2, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work, 1)
 			}
 
 			golapack.Dbdsqr(uplo, &mnmin, toPtr(0), toPtr(0), toPtr(0), s2, work, vt, ldpt, u, ldpt, z, ldx, work.Off(mnmin+1-1), &iinfo)
@@ -623,9 +625,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			//           Use DBDSQR to form the decomposition A := (QU) S (VT PT)
 			//           from the bidiagonal form A := Q B PT.
 			if !bidiag {
-				goblas.Dcopy(&mnmin, bd, toPtr(1), s2, toPtr(1))
+				goblas.Dcopy(mnmin, bd, 1, s2, 1)
 				if mnmin > 0 {
-					goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work, toPtr(1))
+					goblas.Dcopy(mnmin-1, be, 1, work, 1)
 				}
 
 				golapack.Dbdsqr(uplo, &mnmin, &n, &m, nrhs, s2, work, pt, ldpt, q, ldq, y, ldx, work.Off(mnmin+1-1), &iinfo)
@@ -642,9 +644,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Use DBDSDC to form the SVD of the bidiagonal matrix B:
 			//           B := U * S1 * VT
-			goblas.Dcopy(&mnmin, bd, toPtr(1), s1, toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, s1, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work, 1)
 			}
 			golapack.Dlaset('F', &mnmin, &mnmin, &zero, &one, u, ldpt)
 			golapack.Dlaset('F', &mnmin, &mnmin, &zero, &one, vt, ldpt)
@@ -666,9 +668,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Use DBDSDC to compute only the singular values of the
 			//           bidiagonal matrix B;  U and VT should not be modified.
-			goblas.Dcopy(&mnmin, bd, toPtr(1), s2, toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, s2, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work, 1)
 			}
 
 			golapack.Dbdsdc(uplo, 'N', &mnmin, s2, work, dum.Matrix(1, opts), toPtr(1), dum.Matrix(1, opts), toPtr(1), dum, &idum, work.Off(mnmin+1-1), iwork, &iinfo)
@@ -737,9 +739,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			iwwork = iwbz + 2*mnmin*(mnmin+1)
 			mnmin2 = maxint(1, mnmin*2)
 
-			goblas.Dcopy(&mnmin, bd, toPtr(1), work.Off(iwbd-1), toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, work.Off(iwbd-1), 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work.Off(iwbe-1), toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work.Off(iwbe-1), 1)
 			}
 
 			golapack.Dbdsvdx(uplo, 'V', 'A', &mnmin, work.Off(iwbd-1), work.Off(iwbe-1), &zero, &zero, toPtr(0), toPtr(0), &ns1, s1, work.MatrixOff(iwbz-1, mnmin2, opts), &mnmin2, work.Off(iwwork-1), iwork, &iinfo)
@@ -759,9 +761,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			j = iwbz
 			for i = 1; i <= ns1; i++ {
-				goblas.Dcopy(&mnmin, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+				goblas.Dcopy(mnmin, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 				j = j + mnmin
-				goblas.Dcopy(&mnmin, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldpt)
+				goblas.Dcopy(mnmin, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldpt)
 				j = j + mnmin
 			}
 
@@ -775,9 +777,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				goto label270
 			}
 
-			goblas.Dcopy(&mnmin, bd, toPtr(1), work.Off(iwbd-1), toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, work.Off(iwbd-1), 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work.Off(iwbe-1), toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work.Off(iwbe-1), 1)
 			}
 
 			golapack.Dbdsvdx(uplo, 'N', 'A', &mnmin, work.Off(iwbd-1), work.Off(iwbe-1), &zero, &zero, toPtr(0), toPtr(0), &ns2, s2, work.MatrixOff(iwbz-1, mnmin2, opts), &mnmin2, work.Off(iwwork-1), iwork, &iinfo)
@@ -796,7 +798,7 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			}
 
 			//           Save S1 for tests 30-34.
-			goblas.Dcopy(&mnmin, s1, toPtr(1), work.Off(iwbs-1), toPtr(1))
+			goblas.Dcopy(mnmin, s1, 1, work.Off(iwbs-1), 1)
 
 			//           Test 20:  Check the decomposition B := U * S1 * VT
 			//                21:  Check the orthogonality of U
@@ -850,9 +852,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				}
 			}
 
-			goblas.Dcopy(&mnmin, bd, toPtr(1), work.Off(iwbd-1), toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, work.Off(iwbd-1), 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work.Off(iwbe-1), toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work.Off(iwbe-1), 1)
 			}
 
 			golapack.Dbdsvdx(uplo, 'V', 'I', &mnmin, work.Off(iwbd-1), work.Off(iwbe-1), &zero, &zero, &il, &iu, &ns1, s1, work.MatrixOff(iwbz-1, mnmin2, opts), &mnmin2, work.Off(iwwork-1), iwork, &iinfo)
@@ -871,17 +873,17 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			j = iwbz
 			for i = 1; i <= ns1; i++ {
-				goblas.Dcopy(&mnmin, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+				goblas.Dcopy(mnmin, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 				j = j + mnmin
-				goblas.Dcopy(&mnmin, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldpt)
+				goblas.Dcopy(mnmin, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldpt)
 				j = j + mnmin
 			}
 
 			//           Use DBDSVDX to compute only the singular values of the
 			//           bidiagonal matrix B;  U and VT should not be modified.
-			goblas.Dcopy(&mnmin, bd, toPtr(1), work.Off(iwbd-1), toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, work.Off(iwbd-1), 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work.Off(iwbe-1), toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work.Off(iwbe-1), 1)
 			}
 
 			golapack.Dbdsvdx(uplo, 'N', 'I', &mnmin, work.Off(iwbd-1), work.Off(iwbe-1), &zero, &zero, &il, &iu, &ns2, s2, work.MatrixOff(iwbz-1, mnmin2, opts), &mnmin2, work.Off(iwwork-1), iwork, &iinfo)
@@ -934,7 +936,7 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			//           Use DBDSVDX with RANGE='V': determine the values VL and VU
 			//           of the IL-th and IU-th singular values and ask for all
 			//           singular values in this range.
-			goblas.Dcopy(&mnmin, work.Off(iwbs-1), toPtr(1), s1, toPtr(1))
+			goblas.Dcopy(mnmin, work.Off(iwbs-1), 1, s1, 1)
 
 			if mnmin > 0 {
 				if il != 1 {
@@ -957,9 +959,9 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				vu = one
 			}
 
-			goblas.Dcopy(&mnmin, bd, toPtr(1), work.Off(iwbd-1), toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, work.Off(iwbd-1), 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work.Off(iwbe-1), toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work.Off(iwbe-1), 1)
 			}
 
 			golapack.Dbdsvdx(uplo, 'V', 'V', &mnmin, work.Off(iwbd-1), work.Off(iwbe-1), &vl, &vu, toPtr(0), toPtr(0), &ns1, s1, work.MatrixOff(iwbz-1, mnmin2, opts), &mnmin2, work.Off(iwwork-1), iwork, &iinfo)
@@ -979,17 +981,17 @@ func Dchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			j = iwbz
 			for i = 1; i <= ns1; i++ {
-				goblas.Dcopy(&mnmin, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+				goblas.Dcopy(mnmin, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 				j = j + mnmin
-				goblas.Dcopy(&mnmin, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldpt)
+				goblas.Dcopy(mnmin, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldpt)
 				j = j + mnmin
 			}
 
 			//           Use DBDSVDX to compute only the singular values of the
 			//           bidiagonal matrix B;  U and VT should not be modified.
-			goblas.Dcopy(&mnmin, bd, toPtr(1), work.Off(iwbd-1), toPtr(1))
+			goblas.Dcopy(mnmin, bd, 1, work.Off(iwbd-1), 1)
 			if mnmin > 0 {
-				goblas.Dcopy(toPtr(mnmin-1), be, toPtr(1), work.Off(iwbe-1), toPtr(1))
+				goblas.Dcopy(mnmin-1, be, 1, work.Off(iwbe-1), 1)
 			}
 
 			golapack.Dbdsvdx(uplo, 'N', 'V', &mnmin, work.Off(iwbd-1), work.Off(iwbe-1), &vl, &vu, toPtr(0), toPtr(0), &ns2, s2, work.MatrixOff(iwbz-1, mnmin2, opts), &mnmin2, work.Off(iwwork-1), iwork, &iinfo)

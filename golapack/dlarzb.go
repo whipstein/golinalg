@@ -14,6 +14,8 @@ func Dlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 	var transt byte
 	var one float64
 	var i, info, j int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -45,17 +47,17 @@ func Dlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 		//
 		//        W( 1:n, 1:k ) = C( 1:k, 1:n )**T
 		for j = 1; j <= (*k); j++ {
-			goblas.Dcopy(n, c.Vector(j-1, 0), ldc, work.Vector(0, j-1), toPtr(1))
+			goblas.Dcopy(*n, c.Vector(j-1, 0), *ldc, work.Vector(0, j-1), 1)
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) + ...
 		//                        C( m-l+1:m, 1:n )**T * V( 1:k, 1:l )**T
 		if (*l) > 0 {
-			goblas.Dgemm(Trans, Trans, n, k, l, &one, c.Off((*m)-(*l)+1-1, 0), ldc, v, ldv, &one, work, ldwork)
+			err = goblas.Dgemm(Trans, Trans, *n, *k, *l, one, c.Off((*m)-(*l)+1-1, 0), *ldc, v, *ldv, one, work, *ldwork)
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) * T**T  or  W( 1:m, 1:k ) * T
-		goblas.Dtrmm(Right, Lower, mat.TransByte(transt), NonUnit, n, k, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Right, Lower, mat.TransByte(transt), NonUnit, *n, *k, one, t, *ldt, work, *ldwork)
 
 		//        C( 1:k, 1:n ) = C( 1:k, 1:n ) - W( 1:n, 1:k )**T
 		for j = 1; j <= (*n); j++ {
@@ -67,7 +69,7 @@ func Dlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 		//        C( m-l+1:m, 1:n ) = C( m-l+1:m, 1:n ) - ...
 		//                            V( 1:k, 1:l )**T * W( 1:n, 1:k )**T
 		if (*l) > 0 {
-			goblas.Dgemm(Trans, Trans, l, n, k, toPtrf64(-one), v, ldv, work, ldwork, &one, c.Off((*m)-(*l)+1-1, 0), ldc)
+			err = goblas.Dgemm(Trans, Trans, *l, *n, *k, -one, v, *ldv, work, *ldwork, one, c.Off((*m)-(*l)+1-1, 0), *ldc)
 		}
 
 	} else if side == 'R' {
@@ -75,17 +77,17 @@ func Dlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 		//
 		//        W( 1:m, 1:k ) = C( 1:m, 1:k )
 		for j = 1; j <= (*k); j++ {
-			goblas.Dcopy(m, c.Vector(0, j-1), toPtr(1), work.Vector(0, j-1), toPtr(1))
+			goblas.Dcopy(*m, c.Vector(0, j-1), 1, work.Vector(0, j-1), 1)
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) + ...
 		//                        C( 1:m, n-l+1:n ) * V( 1:k, 1:l )**T
 		if (*l) > 0 {
-			goblas.Dgemm(NoTrans, Trans, m, k, l, &one, c.Off(0, (*n)-(*l)+1-1), ldc, v, ldv, &one, work, ldwork)
+			err = goblas.Dgemm(NoTrans, Trans, *m, *k, *l, one, c.Off(0, (*n)-(*l)+1-1), *ldc, v, *ldv, one, work, *ldwork)
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) * T  or  W( 1:m, 1:k ) * T**T
-		goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, m, k, &one, t, ldt, work, ldwork)
+		err = goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, *ldt, work, *ldwork)
 
 		//        C( 1:m, 1:k ) = C( 1:m, 1:k ) - W( 1:m, 1:k )
 		for j = 1; j <= (*k); j++ {
@@ -97,7 +99,7 @@ func Dlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ld
 		//        C( 1:m, n-l+1:n ) = C( 1:m, n-l+1:n ) - ...
 		//                            W( 1:m, 1:k ) * V( 1:k, 1:l )
 		if (*l) > 0 {
-			goblas.Dgemm(NoTrans, NoTrans, m, l, k, toPtrf64(-one), work, ldwork, v, ldv, &one, c.Off(0, (*n)-(*l)+1-1), ldc)
+			err = goblas.Dgemm(NoTrans, NoTrans, *m, *l, *k, -one, work, *ldwork, v, *ldv, one, c.Off(0, (*n)-(*l)+1-1), *ldc)
 		}
 
 	}

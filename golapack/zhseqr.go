@@ -82,10 +82,10 @@ func Zhseqr(job, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *mat.
 	} else {
 		//        ==== copy eigenvalues isolated by ZGEBAL ====
 		if (*ilo) > 1 {
-			goblas.Zcopy(toPtr((*ilo)-1), h.CVector(0, 0), toPtr((*ldh)+1), w, func() *int { y := 1; return &y }())
+			goblas.Zcopy((*ilo)-1, h.CVector(0, 0), (*ldh)+1, w, 1)
 		}
 		if (*ihi) < (*n) {
-			goblas.Zcopy(toPtr((*n)-(*ihi)), h.CVector((*ihi)+1-1, (*ihi)+1-1), toPtr((*ldh)+1), w.Off((*ihi)+1-1), func() *int { y := 1; return &y }())
+			goblas.Zcopy((*n)-(*ihi), h.CVector((*ihi)+1-1, (*ihi)+1-1), (*ldh)+1, w.Off((*ihi)+1-1), 1)
 		}
 
 		//        ==== Initialize Z, if requested ====

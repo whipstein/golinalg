@@ -45,6 +45,8 @@ func Dlatme(n *int, dist byte, iseed *[]int, d *mat.Vector, mode *int, cond, dma
 	var badei, bads, useei bool
 	var alpha, half, one, tau, temp, xnorms, zero float64
 	var i, ic, icols, idist, iinfo, ir, irows, irsign, isim, iupper, j, jc, jcr, jr int
+	var err error
+	_ = err
 
 	tempa := vf(1)
 
@@ -201,12 +203,12 @@ func Dlatme(n *int, dist byte, iseed *[]int, d *mat.Vector, mode *int, cond, dma
 			alpha = zero
 		}
 
-		goblas.Dscal(n, &alpha, d, toPtr(1))
+		goblas.Dscal(*n, alpha, d, 1)
 
 	}
 
 	golapack.Dlaset('F', n, n, &zero, &zero, a, lda)
-	goblas.Dcopy(n, d, toPtr(1), a.VectorIdx(0), toPtr((*lda)+1))
+	goblas.Dcopy(*n, d, 1, a.VectorIdx(0), (*lda)+1)
 
 	//     Set up complex conjugate pairs
 	if (*mode) == 0 {
@@ -268,9 +270,9 @@ func Dlatme(n *int, dist byte, iseed *[]int, d *mat.Vector, mode *int, cond, dma
 
 		//        Multiply by S and (1/S)
 		for j = 1; j <= (*n); j++ {
-			goblas.Dscal(n, ds.GetPtr(j-1), a.Vector(j-1, 0), lda)
+			goblas.Dscal(*n, ds.Get(j-1), a.Vector(j-1, 0), *lda)
 			if ds.Get(j-1) != zero {
-				goblas.Dscal(n, toPtrf64(one/ds.Get(j-1)), a.Vector(0, j-1), toPtr(1))
+				goblas.Dscal(*n, one/ds.Get(j-1), a.Vector(0, j-1), 1)
 			} else {
 				(*info) = 5
 				return
@@ -293,16 +295,16 @@ func Dlatme(n *int, dist byte, iseed *[]int, d *mat.Vector, mode *int, cond, dma
 			irows = (*n) + 1 - jcr
 			icols = (*n) + (*kl) - jcr
 
-			goblas.Dcopy(&irows, a.Vector(jcr-1, ic-1), toPtr(1), work, toPtr(1))
+			goblas.Dcopy(irows, a.Vector(jcr-1, ic-1), 1, work, 1)
 			xnorms = work.Get(0)
 			golapack.Dlarfg(&irows, &xnorms, work.Off(1), func() *int { y := 1; return &y }(), &tau)
 			work.Set(0, one)
 
-			goblas.Dgemv(Trans, &irows, &icols, &one, a.Off(jcr-1, ic+1-1), lda, work, toPtr(1), &zero, work.Off(irows+1-1), toPtr(1))
-			goblas.Dger(&irows, &icols, toPtrf64(-tau), work, toPtr(1), work.Off(irows+1-1), toPtr(1), a.Off(jcr-1, ic+1-1), lda)
+			err = goblas.Dgemv(Trans, irows, icols, one, a.Off(jcr-1, ic+1-1), *lda, work, 1, zero, work.Off(irows+1-1), 1)
+			err = goblas.Dger(irows, icols, -tau, work, 1, work.Off(irows+1-1), 1, a.Off(jcr-1, ic+1-1), *lda)
 
-			goblas.Dgemv(NoTrans, n, &irows, &one, a.Off(0, jcr-1), lda, work, toPtr(1), &zero, work.Off(irows+1-1), toPtr(1))
-			goblas.Dger(n, &irows, toPtrf64(-tau), work.Off(irows+1-1), toPtr(1), work, toPtr(1), a.Off(0, jcr-1), lda)
+			err = goblas.Dgemv(NoTrans, *n, irows, one, a.Off(0, jcr-1), *lda, work, 1, zero, work.Off(irows+1-1), 1)
+			err = goblas.Dger(*n, irows, -tau, work.Off(irows+1-1), 1, work, 1, a.Off(0, jcr-1), *lda)
 
 			a.Set(jcr-1, ic-1, xnorms)
 			golapack.Dlaset('F', toPtr(irows-1), func() *int { y := 1; return &y }(), &zero, &zero, a.Off(jcr+1-1, ic-1), lda)
@@ -314,16 +316,16 @@ func Dlatme(n *int, dist byte, iseed *[]int, d *mat.Vector, mode *int, cond, dma
 			irows = (*n) + (*ku) - jcr
 			icols = (*n) + 1 - jcr
 
-			goblas.Dcopy(&icols, a.Vector(ir-1, jcr-1), lda, work, toPtr(1))
+			goblas.Dcopy(icols, a.Vector(ir-1, jcr-1), *lda, work, 1)
 			xnorms = work.Get(0)
 			golapack.Dlarfg(&icols, &xnorms, work.Off(1), func() *int { y := 1; return &y }(), &tau)
 			work.Set(0, one)
 
-			goblas.Dgemv(NoTrans, &irows, &icols, &one, a.Off(ir+1-1, jcr-1), lda, work, toPtr(1), &zero, work.Off(icols+1-1), toPtr(1))
-			goblas.Dger(&irows, &icols, toPtrf64(-tau), work.Off(icols+1-1), toPtr(1), work, toPtr(1), a.Off(ir+1-1, jcr-1), lda)
+			err = goblas.Dgemv(NoTrans, irows, icols, one, a.Off(ir+1-1, jcr-1), *lda, work, 1, zero, work.Off(icols+1-1), 1)
+			err = goblas.Dger(irows, icols, -tau, work.Off(icols+1-1), 1, work, 1, a.Off(ir+1-1, jcr-1), *lda)
 
-			goblas.Dgemv(ConjTrans, &icols, n, &one, a.Off(jcr-1, 0), lda, work, toPtr(1), &zero, work.Off(icols+1-1), toPtr(1))
-			goblas.Dger(&icols, n, toPtrf64(-tau), work, toPtr(1), work.Off(icols+1-1), toPtr(1), a.Off(jcr-1, 0), lda)
+			err = goblas.Dgemv(ConjTrans, icols, *n, one, a.Off(jcr-1, 0), *lda, work, 1, zero, work.Off(icols+1-1), 1)
+			err = goblas.Dger(icols, *n, -tau, work, 1, work.Off(icols+1-1), 1, a.Off(jcr-1, 0), *lda)
 
 			a.Set(ir-1, jcr-1, xnorms)
 			golapack.Dlaset('F', func() *int { y := 1; return &y }(), toPtr(icols-1), &zero, &zero, a.Off(ir-1, jcr+1-1), lda)
@@ -336,7 +338,7 @@ func Dlatme(n *int, dist byte, iseed *[]int, d *mat.Vector, mode *int, cond, dma
 		if temp > zero {
 			alpha = (*anorm) / temp
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal(n, &alpha, a.Vector(0, j-1), toPtr(1))
+				goblas.Dscal(*n, alpha, a.Vector(0, j-1), 1)
 			}
 		}
 	}

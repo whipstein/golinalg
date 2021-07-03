@@ -324,7 +324,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			}
 		}
 		for p = 1; p <= (*m)-1; p++ {
-			q = goblas.Idamax(toPtr((*m)-p+1), rwork.Off(p-1), toPtr(1)) + p - 1
+			q = goblas.Idamax((*m)-p+1, rwork.Off(p-1), 1) + p - 1
 			(*iwork)[(*n)+p-1] = q
 			if p != q {
 				rtmp = rwork.Get(p - 1)
@@ -466,8 +466,8 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//              expert level and obtain useful information in the sense of
 			//              perturbation theory.
 			for p = 1; p <= nr; p++ {
-				rtmp = goblas.Dnrm2(&p, v.Vector(0, p-1), toPtr(1))
-				goblas.Dscal(&p, toPtrf64(one/rtmp), v.Vector(0, p-1), toPtr(1))
+				rtmp = goblas.Dnrm2(p, v.Vector(0, p-1), 1)
+				goblas.Dscal(p, one/rtmp, v.Vector(0, p-1), 1)
 			}
 			if !(lsvec || rsvec) {
 				Dpocon('U', &nr, v, ldv, &one, &rtmp, work, toSlice(iwork, (*n)+iwoff-1), &ierr)

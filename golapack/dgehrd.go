@@ -12,6 +12,8 @@ func Dgehrd(n, ilo, ihi *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lw
 	var lquery bool
 	var ei, one, zero float64
 	var i, ib, iinfo, iwt, j, ldt, ldwork, lwkopt, nb, nbmax, nbmin, nh, nx, tsize int
+	var err error
+	_ = err
 
 	nbmax = 64
 	ldt = nbmax + 1
@@ -107,14 +109,14 @@ func Dgehrd(n, ilo, ihi *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lw
 			//           to 1
 			ei = a.Get(i+ib-1, i+ib-1-1)
 			a.Set(i+ib-1, i+ib-1-1, one)
-			goblas.Dgemm(NoTrans, Trans, ihi, toPtr((*ihi)-i-ib+1), &ib, toPtrf64(-one), work.Matrix(ldwork, opts), &ldwork, a.Off(i+ib-1, i-1), lda, &one, a.Off(0, i+ib-1), lda)
+			err = goblas.Dgemm(NoTrans, Trans, *ihi, (*ihi)-i-ib+1, ib, -one, work.Matrix(ldwork, opts), ldwork, a.Off(i+ib-1, i-1), *lda, one, a.Off(0, i+ib-1), *lda)
 			a.Set(i+ib-1, i+ib-1-1, ei)
 
 			//           Apply the block reflector H to A(1:i,i+1:i+ib-1) from the
 			//           right
-			goblas.Dtrmm(Right, Lower, Trans, Unit, &i, toPtr(ib-1), &one, a.Off(i+1-1, i-1), lda, work.Matrix(ldwork, opts), &ldwork)
+			err = goblas.Dtrmm(Right, Lower, Trans, Unit, i, ib-1, one, a.Off(i+1-1, i-1), *lda, work.Matrix(ldwork, opts), ldwork)
 			for j = 0; j <= ib-2; j++ {
-				goblas.Daxpy(&i, toPtrf64(-one), work.Off(ldwork*j+1-1), toPtr(1), a.Vector(0, i+j+1-1), toPtr(1))
+				goblas.Daxpy(i, -one, work.Off(ldwork*j+1-1), 1, a.Vector(0, i+j+1-1), 1)
 			}
 
 			//           Apply the block reflector H to A(i+1:ihi,i+ib:n) from the

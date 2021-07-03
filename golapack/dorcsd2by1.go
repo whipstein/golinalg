@@ -329,7 +329,7 @@ func Dorcsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.Matrix, ldx11 
 
 		//        Accumulate Householder reflectors
 		if wantu1 && (*p) > 0 {
-			goblas.Dcopy(p, work.Off(iorbdb-1), func() *int { y := 1; return &y }(), u1.VectorIdx(0), func() *int { y := 1; return &y }())
+			goblas.Dcopy(*p, work.Off(iorbdb-1), 1, u1.VectorIdx(0), 1)
 			for j = 2; j <= (*p); j++ {
 				u1.Set(0, j-1, zero)
 			}
@@ -337,7 +337,7 @@ func Dorcsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.Matrix, ldx11 
 			Dorgqr(p, p, toPtr((*m)-(*q)), u1, ldu1, work.Off(itaup1-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
 		}
 		if wantu2 && (*m)-(*p) > 0 {
-			goblas.Dcopy(toPtr((*m)-(*p)), work.Off(iorbdb+(*p)-1), func() *int { y := 1; return &y }(), u2.VectorIdx(0), func() *int { y := 1; return &y }())
+			goblas.Dcopy((*m)-(*p), work.Off(iorbdb+(*p)-1), 1, u2.VectorIdx(0), 1)
 			for j = 2; j <= (*m)-(*p); j++ {
 				u2.Set(0, j-1, zero)
 			}

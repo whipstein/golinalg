@@ -28,6 +28,8 @@ import (
 func Dlarzt(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Vector, t *mat.Matrix, ldt *int) {
 	var zero float64
 	var i, info, j int
+	var err error
+	_ = err
 
 	zero = 0.0
 
@@ -53,10 +55,10 @@ func Dlarzt(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 			//           general case
 			if i < (*k) {
 				//              T(i+1:k,i) = - tau(i) * V(i+1:k,1:n) * V(i,1:n)**T
-				goblas.Dgemv(NoTrans, toPtr((*k)-i), n, toPtrf64(-tau.Get(i-1)), v.Off(i+1-1, 0), ldv, v.Vector(i-1, 0), ldv, &zero, t.Vector(i+1-1, i-1), toPtr(1))
+				err = goblas.Dgemv(NoTrans, (*k)-i, *n, -tau.Get(i-1), v.Off(i+1-1, 0), *ldv, v.Vector(i-1, 0), *ldv, zero, t.Vector(i+1-1, i-1), 1)
 
 				//              T(i+1:k,i) = T(i+1:k,i+1:k) * T(i+1:k,i)
-				goblas.Dtrmv(Lower, NoTrans, NonUnit, toPtr((*k)-i), t.Off(i+1-1, i+1-1), ldt, t.Vector(i+1-1, i-1), toPtr(1))
+				err = goblas.Dtrmv(Lower, NoTrans, NonUnit, (*k)-i, t.Off(i+1-1, i+1-1), *ldt, t.Vector(i+1-1, i-1), 1)
 			}
 			t.Set(i-1, i-1, tau.Get(i-1))
 		}

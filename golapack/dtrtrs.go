@@ -15,6 +15,8 @@ import (
 func Dtrtrs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb, info *int) {
 	var nounit bool
 	var one, zero float64
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -58,5 +60,5 @@ func Dtrtrs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 	(*info) = 0
 
 	//     Solve A * x = b  or  A**T * x = b.
-	goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, nrhs, &one, a, lda, b, ldb)
+	err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, *lda, b, *ldb)
 }

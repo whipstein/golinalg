@@ -18,6 +18,8 @@ import (
 func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int, d *mat.CVector, info *int) {
 	var cone, czero complex128
 	var i, iinfo, j, jb, jbtemp1, jbtemp2, jnb, nplusone int
+	var err error
+	_ = err
 
 	cone = (1.0 + 0.0*1i)
 	czero = (0.0 + 0.0*1i)
@@ -63,7 +65,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 
 	//     (1-2) Solve for V2.
 	if (*m) > (*n) {
-		goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, toPtr((*m)-(*n)), n, &cone, a, lda, a.Off((*n)+1-1, 0), lda)
+		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, cone, a, *lda, a.Off((*n)+1-1, 0), *lda)
 	}
 
 	//     (2) Reconstruct the block reflector T stored in T(1:NB, 1:N)
@@ -85,7 +87,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		//        column-by-column, total JNB*(JNB+1)/2 elements.
 		jbtemp1 = jb - 1
 		for j = jb; j <= jb+jnb-1; j++ {
-			goblas.Zcopy(toPtr(j-jbtemp1), a.CVector(jb-1, j-1), func() *int { y := 1; return &y }(), t.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zcopy(j-jbtemp1, a.CVector(jb-1, j-1), 1, t.CVector(0, j-1), 1)
 		}
 
 		//        (2-2) Perform on the upper-triangular part of the current
@@ -100,7 +102,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		//        S(JB), i.e. S(J,J) that is stored in the array element D(J).
 		for j = jb; j <= jb+jnb-1; j++ {
 			if d.Get(j-1) == cone {
-				goblas.Zscal(toPtr(j-jbtemp1), toPtrc128(-cone), t.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(j-jbtemp1, -cone, t.CVector(0, j-1), 1)
 			}
 		}
 
@@ -147,7 +149,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		goblas.Ztrsm(Right, Lower, ConjTrans, Unit, &jnb, &jnb, &cone, a.Off(jb-1, jb-1), lda, t.Off(0, jb-1), ldt)
+		err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1), *lda, t.Off(0, jb-1), *ldt)
 
 	}
 }

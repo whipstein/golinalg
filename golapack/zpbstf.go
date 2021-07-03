@@ -25,6 +25,8 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, kld, km, m int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -71,8 +73,8 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 
 			//           Compute elements j-km:j-1 of the j-th column and update the
 			//           the leading submatrix within the band.
-			goblas.Zdscal(&km, toPtrf64(one/ajj), ab.CVector((*kd)+1-km-1, j-1), func() *int { y := 1; return &y }())
-			goblas.Zher(Upper, &km, toPtrf64(-one), ab.CVector((*kd)+1-km-1, j-1), func() *int { y := 1; return &y }(), ab.Off((*kd)+1-1, j-km-1).UpdateRows(kld), &kld)
+			goblas.Zdscal(km, one/ajj, ab.CVector((*kd)+1-km-1, j-1), 1)
+			err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)+1-km-1, j-1), 1, ab.Off((*kd)+1-1, j-km-1).UpdateRows(kld), kld)
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**H*U.
@@ -90,9 +92,9 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			//           Compute elements j+1:j+km of the j-th row and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Zdscal(&km, toPtrf64(one/ajj), ab.CVector((*kd)-1, j+1-1), &kld)
+				goblas.Zdscal(km, one/ajj, ab.CVector((*kd)-1, j+1-1), kld)
 				Zlacgv(&km, ab.CVector((*kd)-1, j+1-1), &kld)
-				goblas.Zher(Upper, &km, toPtrf64(-one), ab.CVector((*kd)-1, j+1-1), &kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), &kld)
+				err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)-1, j+1-1), kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), kld)
 				Zlacgv(&km, ab.CVector((*kd)-1, j+1-1), &kld)
 			}
 		}
@@ -111,9 +113,9 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 
 			//           Compute elements j-km:j-1 of the j-th row and update the
 			//           trailing submatrix within the band.
-			goblas.Zdscal(&km, toPtrf64(one/ajj), ab.CVector(km+1-1, j-km-1), &kld)
+			goblas.Zdscal(km, one/ajj, ab.CVector(km+1-1, j-km-1), kld)
 			Zlacgv(&km, ab.CVector(km+1-1, j-km-1), &kld)
-			goblas.Zher(Lower, &km, toPtrf64(-one), ab.CVector(km+1-1, j-km-1), &kld, ab.Off(0, j-km-1).UpdateRows(kld), &kld)
+			err = goblas.Zher(Lower, km, -one, ab.CVector(km+1-1, j-km-1), kld, ab.Off(0, j-km-1).UpdateRows(kld), kld)
 			Zlacgv(&km, ab.CVector(km+1-1, j-km-1), &kld)
 		}
 
@@ -132,8 +134,8 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			//           Compute elements j+1:j+km of the j-th column and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Zdscal(&km, toPtrf64(one/ajj), ab.CVector(1, j-1), func() *int { y := 1; return &y }())
-				goblas.Zher(Lower, &km, toPtrf64(-one), ab.CVector(1, j-1), func() *int { y := 1; return &y }(), ab.Off(0, j+1-1).UpdateRows(kld), &kld)
+				goblas.Zdscal(km, one/ajj, ab.CVector(1, j-1), 1)
+				err = goblas.Zher(Lower, km, -one, ab.CVector(1, j-1), 1, ab.Off(0, j+1-1).UpdateRows(kld), kld)
 			}
 		}
 	}

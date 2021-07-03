@@ -20,6 +20,8 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 	var upper bool
 	var absakk, alpha, colmax, d11, d12, d21, d22, eight, one, r1, rowmax, sevten, t, wk, wkm1, wkp1, zero float64
 	var i, imax, j, jmax, k, kc, kk, knc, kp, kpc, kstep, kx, npp int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -66,7 +68,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
 		if k > 1 {
-			imax = goblas.Idamax(toPtr(k-1), ap.Off(kc-1), toPtr(1))
+			imax = goblas.Idamax(k-1, ap.Off(kc-1), 1)
 			colmax = math.Abs(ap.Get(kc + imax - 1 - 1))
 		} else {
 			colmax = zero
@@ -96,7 +98,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				}
 				kpc = (imax-1)*imax/2 + 1
 				if imax > 1 {
-					jmax = goblas.Idamax(toPtr(imax-1), ap.Off(kpc-1), toPtr(1))
+					jmax = goblas.Idamax(imax-1, ap.Off(kpc-1), 1)
 					rowmax = maxf64(rowmax, math.Abs(ap.Get(kpc+jmax-1-1)))
 				}
 
@@ -122,7 +124,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
-				goblas.Dswap(toPtr(kp-1), ap.Off(knc-1), toPtr(1), ap.Off(kpc-1), toPtr(1))
+				goblas.Dswap(kp-1, ap.Off(knc-1), 1, ap.Off(kpc-1), 1)
 				kx = kpc + kp - 1
 				for j = kp + 1; j <= kk-1; j++ {
 					kx = kx + j - 1
@@ -152,10 +154,10 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				//
 				//              A := A - U(k)*D(k)*U(k)**T = A - W(k)*1/D(k)*W(k)**T
 				r1 = one / ap.Get(kc+k-1-1)
-				goblas.Dspr(mat.UploByte(uplo), toPtr(k-1), toPtrf64(-r1), ap.Off(kc-1), toPtr(1), ap)
+				err = goblas.Dspr(mat.UploByte(uplo), k-1, -r1, ap.Off(kc-1), 1, ap)
 
 				//              Store U(k) in column k
-				goblas.Dscal(toPtr(k-1), &r1, ap.Off(kc-1), toPtr(1))
+				goblas.Dscal(k-1, r1, ap.Off(kc-1), 1)
 			} else {
 				//              2-by-2 pivot block D(k): columns k and k-1 now hold
 				//
@@ -229,7 +231,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
 		if k < (*n) {
-			imax = k + goblas.Idamax(toPtr((*n)-k), ap.Off(kc+1-1), toPtr(1))
+			imax = k + goblas.Idamax((*n)-k, ap.Off(kc+1-1), 1)
 			colmax = math.Abs(ap.Get(kc + imax - k - 1))
 		} else {
 			colmax = zero
@@ -259,7 +261,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				}
 				kpc = npp - ((*n)-imax+1)*((*n)-imax+2)/2 + 1
 				if imax < (*n) {
-					jmax = imax + goblas.Idamax(toPtr((*n)-imax), ap.Off(kpc+1-1), toPtr(1))
+					jmax = imax + goblas.Idamax((*n)-imax, ap.Off(kpc+1-1), 1)
 					rowmax = maxf64(rowmax, math.Abs(ap.Get(kpc+jmax-imax-1)))
 				}
 
@@ -286,7 +288,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < (*n) {
-					goblas.Dswap(toPtr((*n)-kp), ap.Off(knc+kp-kk+1-1), toPtr(1), ap.Off(kpc+1-1), toPtr(1))
+					goblas.Dswap((*n)-kp, ap.Off(knc+kp-kk+1-1), 1, ap.Off(kpc+1-1), 1)
 				}
 				kx = knc + kp - kk
 				for j = kk + 1; j <= kp-1; j++ {
@@ -317,10 +319,10 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 					//
 					//                 A := A - L(k)*D(k)*L(k)**T = A - W(k)*(1/D(k))*W(k)**T
 					r1 = one / ap.Get(kc-1)
-					goblas.Dspr(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(-r1), ap.Off(kc+1-1), toPtr(1), ap.Off(kc+(*n)-k+1-1))
+					err = goblas.Dspr(mat.UploByte(uplo), (*n)-k, -r1, ap.Off(kc+1-1), 1, ap.Off(kc+(*n)-k+1-1))
 
 					//                 Store L(k) in column K
-					goblas.Dscal(toPtr((*n)-k), &r1, ap.Off(kc+1-1), toPtr(1))
+					goblas.Dscal((*n)-k, r1, ap.Off(kc+1-1), 1)
 				}
 			} else {
 				//              2-by-2 pivot block D(k): columns K and K+1 now hold

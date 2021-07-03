@@ -19,6 +19,8 @@ func Zpptrf(uplo byte, n *int, ap *mat.CVector, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, jc, jj int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -50,11 +52,11 @@ func Zpptrf(uplo byte, n *int, ap *mat.CVector, info *int) {
 
 			//           Compute elements 1:J-1 of column J.
 			if j > 1 {
-				goblas.Ztpsv(Upper, ConjTrans, NonUnit, toPtr(j-1), ap, ap.Off(jc-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztpsv(Upper, ConjTrans, NonUnit, j-1, ap, ap.Off(jc-1), 1)
 			}
 
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = real(ap.Get(jj-1) - goblas.Zdotc(toPtr(j-1), ap.Off(jc-1), func() *int { y := 1; return &y }(), ap.Off(jc-1), func() *int { y := 1; return &y }()))
+			ajj = real(ap.Get(jj-1) - goblas.Zdotc(j-1, ap.Off(jc-1), 1, ap.Off(jc-1), 1))
 			if ajj <= zero {
 				ap.SetRe(jj-1, ajj)
 				goto label30
@@ -77,8 +79,8 @@ func Zpptrf(uplo byte, n *int, ap *mat.CVector, info *int) {
 			//           Compute elements J+1:N of column J and update the trailing
 			//           submatrix.
 			if j < (*n) {
-				goblas.Zdscal(toPtr((*n)-j), toPtrf64(one/ajj), ap.Off(jj+1-1), func() *int { y := 1; return &y }())
-				goblas.Zhpr(Lower, toPtr((*n)-j), toPtrf64(-one), ap.Off(jj+1-1), func() *int { y := 1; return &y }(), ap.Off(jj+(*n)-j+1-1))
+				goblas.Zdscal((*n)-j, one/ajj, ap.Off(jj+1-1), 1)
+				err = goblas.Zhpr(Lower, (*n)-j, -one, ap.Off(jj+1-1), 1, ap.Off(jj+(*n)-j+1-1))
 				jj = jj + (*n) - j + 1
 			}
 		}

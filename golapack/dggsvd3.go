@@ -160,7 +160,7 @@ func Dggsvd3(jobu, jobv, jobq byte, m, n, p, k, l *int, a *mat.Matrix, lda *int,
 
 	//     Sort the singular values and store the pivot indices in IWORK
 	//     Copy ALPHA to WORK, then sort ALPHA in WORK
-	goblas.Dcopy(n, alpha, func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+	goblas.Dcopy(*n, alpha, 1, work, 1)
 	ibnd = minint(*l, (*m)-(*k))
 	for i = 1; i <= ibnd; i++ {
 		//        Scan for largest ALPHA(K+I)

@@ -70,8 +70,8 @@ label20:
 		goto label30
 	}
 
-	goblas.Dswap(&l, a.Vector(0, j-1), func() *int { y := 1; return &y }(), a.Vector(0, m-1), func() *int { y := 1; return &y }())
-	goblas.Dswap(toPtr((*n)-k+1), a.Vector(j-1, k-1), lda, a.Vector(m-1, k-1), lda)
+	goblas.Dswap(l, a.Vector(0, j-1), 1, a.Vector(0, m-1), 1)
+	goblas.Dswap((*n)-k+1, a.Vector(j-1, k-1), *lda, a.Vector(m-1, k-1), *lda)
 
 label30:
 	;
@@ -161,11 +161,11 @@ label140:
 
 	for i = k; i <= l; i++ {
 
-		c = goblas.Dnrm2(toPtr(l-k+1), a.Vector(k-1, i-1), func() *int { y := 1; return &y }())
-		r = goblas.Dnrm2(toPtr(l-k+1), a.Vector(i-1, k-1), lda)
-		ica = goblas.Idamax(&l, a.Vector(0, i-1), func() *int { y := 1; return &y }())
+		c = goblas.Dnrm2(l-k+1, a.Vector(k-1, i-1), 1)
+		r = goblas.Dnrm2(l-k+1, a.Vector(i-1, k-1), *lda)
+		ica = goblas.Idamax(l, a.Vector(0, i-1), 1)
 		ca = math.Abs(a.Get(ica-1, i-1))
-		ira = goblas.Idamax(toPtr((*n)-k+1), a.Vector(i-1, k-1), lda)
+		ira = goblas.Idamax((*n)-k+1, a.Vector(i-1, k-1), *lda)
 		ra = math.Abs(a.Get(i-1, ira+k-1-1))
 
 		//        Guard against zero C or R due to underflow.
@@ -230,8 +230,8 @@ label140:
 		scale.Set(i-1, scale.Get(i-1)*f)
 		noconv = true
 
-		goblas.Dscal(toPtr((*n)-k+1), &g, a.Vector(i-1, k-1), lda)
-		goblas.Dscal(&l, &f, a.Vector(0, i-1), func() *int { y := 1; return &y }())
+		goblas.Dscal((*n)-k+1, g, a.Vector(i-1, k-1), *lda)
+		goblas.Dscal(l, f, a.Vector(0, i-1), 1)
 
 	label200:
 	}

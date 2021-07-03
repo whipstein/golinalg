@@ -23,6 +23,8 @@ func Zhpgst(itype *int, uplo byte, n *int, ap *mat.CVector, bp *mat.CVector, inf
 	var cone, ct complex128
 	var ajj, akk, bjj, bkk, half, one float64
 	var j, j1, j1j1, jj, k, k1, k1k1, kk int
+	var err error
+	_ = err
 
 	one = 1.0
 	half = 0.5
@@ -56,10 +58,10 @@ func Zhpgst(itype *int, uplo byte, n *int, ap *mat.CVector, bp *mat.CVector, inf
 				//              Compute the j-th column of the upper triangle of A
 				ap.Set(jj-1, ap.GetReCmplx(jj-1))
 				bjj = bp.GetRe(jj - 1)
-				goblas.Ztpsv(mat.UploByte(uplo), ConjTrans, NonUnit, &j, bp, ap.Off(j1-1), func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr(j-1), toPtrc128(-cone), ap, bp.Off(j1-1), func() *int { y := 1; return &y }(), &cone, ap.Off(j1-1), func() *int { y := 1; return &y }())
-				goblas.Zdscal(toPtr(j-1), toPtrf64(one/bjj), ap.Off(j1-1), func() *int { y := 1; return &y }())
-				ap.Set(jj-1, (ap.Get(jj-1)-goblas.Zdotc(toPtr(j-1), ap.Off(j1-1), func() *int { y := 1; return &y }(), bp.Off(j1-1), func() *int { y := 1; return &y }()))/complex(bjj, 0))
+				err = goblas.Ztpsv(mat.UploByte(uplo), ConjTrans, NonUnit, j, bp, ap.Off(j1-1), 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), j-1, -cone, ap, bp.Off(j1-1), 1, cone, ap.Off(j1-1), 1)
+				goblas.Zdscal(j-1, one/bjj, ap.Off(j1-1), 1)
+				ap.Set(jj-1, (ap.Get(jj-1)-goblas.Zdotc(j-1, ap.Off(j1-1), 1, bp.Off(j1-1), 1))/complex(bjj, 0))
 			}
 		} else {
 			//           Compute inv(L)*A*inv(L**H)
@@ -75,12 +77,12 @@ func Zhpgst(itype *int, uplo byte, n *int, ap *mat.CVector, bp *mat.CVector, inf
 				akk = akk / math.Pow(bkk, 2)
 				ap.SetRe(kk-1, akk)
 				if k < (*n) {
-					goblas.Zdscal(toPtr((*n)-k), toPtrf64(one/bkk), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal((*n)-k, one/bkk, ap.Off(kk+1-1), 1)
 					ct = complex(-half*akk, 0)
-					goblas.Zaxpy(toPtr((*n)-k), &ct, bp.Off(kk+1-1), func() *int { y := 1; return &y }(), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
-					goblas.Zhpr2(mat.UploByte(uplo), toPtr((*n)-k), toPtrc128(-cone), ap.Off(kk+1-1), func() *int { y := 1; return &y }(), bp.Off(kk+1-1), func() *int { y := 1; return &y }(), ap.Off(k1k1-1))
-					goblas.Zaxpy(toPtr((*n)-k), &ct, bp.Off(kk+1-1), func() *int { y := 1; return &y }(), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
-					goblas.Ztpsv(mat.UploByte(uplo), NoTrans, NonUnit, toPtr((*n)-k), bp.Off(k1k1-1), ap.Off(kk+1-1), func() *int { y := 1; return &y }())
+					goblas.Zaxpy((*n)-k, ct, bp.Off(kk+1-1), 1, ap.Off(kk+1-1), 1)
+					err = goblas.Zhpr2(mat.UploByte(uplo), (*n)-k, -cone, ap.Off(kk+1-1), 1, bp.Off(kk+1-1), 1, ap.Off(k1k1-1))
+					goblas.Zaxpy((*n)-k, ct, bp.Off(kk+1-1), 1, ap.Off(kk+1-1), 1)
+					err = goblas.Ztpsv(mat.UploByte(uplo), NoTrans, NonUnit, (*n)-k, bp.Off(k1k1-1), ap.Off(kk+1-1), 1)
 				}
 				kk = k1k1
 			}
@@ -98,12 +100,12 @@ func Zhpgst(itype *int, uplo byte, n *int, ap *mat.CVector, bp *mat.CVector, inf
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = ap.GetRe(kk - 1)
 				bkk = bp.GetRe(kk - 1)
-				goblas.Ztpmv(mat.UploByte(uplo), NoTrans, NonUnit, toPtr(k-1), bp, ap.Off(k1-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztpmv(mat.UploByte(uplo), NoTrans, NonUnit, k-1, bp, ap.Off(k1-1), 1)
 				ct = complex(half*akk, 0)
-				goblas.Zaxpy(toPtr(k-1), &ct, bp.Off(k1-1), func() *int { y := 1; return &y }(), ap.Off(k1-1), func() *int { y := 1; return &y }())
-				goblas.Zhpr2(mat.UploByte(uplo), toPtr(k-1), &cone, ap.Off(k1-1), func() *int { y := 1; return &y }(), bp.Off(k1-1), func() *int { y := 1; return &y }(), ap)
-				goblas.Zaxpy(toPtr(k-1), &ct, bp.Off(k1-1), func() *int { y := 1; return &y }(), ap.Off(k1-1), func() *int { y := 1; return &y }())
-				goblas.Zdscal(toPtr(k-1), &bkk, ap.Off(k1-1), func() *int { y := 1; return &y }())
+				goblas.Zaxpy(k-1, ct, bp.Off(k1-1), 1, ap.Off(k1-1), 1)
+				err = goblas.Zhpr2(mat.UploByte(uplo), k-1, cone, ap.Off(k1-1), 1, bp.Off(k1-1), 1, ap)
+				goblas.Zaxpy(k-1, ct, bp.Off(k1-1), 1, ap.Off(k1-1), 1)
+				goblas.Zdscal(k-1, bkk, ap.Off(k1-1), 1)
 				ap.SetRe(kk-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -117,10 +119,10 @@ func Zhpgst(itype *int, uplo byte, n *int, ap *mat.CVector, bp *mat.CVector, inf
 				//              Compute the j-th column of the lower triangle of A
 				ajj = ap.GetRe(jj - 1)
 				bjj = bp.GetRe(jj - 1)
-				ap.Set(jj-1, complex(ajj*bjj, 0)+goblas.Zdotc(toPtr((*n)-j), ap.Off(jj+1-1), func() *int { y := 1; return &y }(), bp.Off(jj+1-1), func() *int { y := 1; return &y }()))
-				goblas.Zdscal(toPtr((*n)-j), &bjj, ap.Off(jj+1-1), func() *int { y := 1; return &y }())
-				goblas.Zhpmv(mat.UploByte(uplo), toPtr((*n)-j), &cone, ap.Off(j1j1-1), bp.Off(jj+1-1), func() *int { y := 1; return &y }(), &cone, ap.Off(jj+1-1), func() *int { y := 1; return &y }())
-				goblas.Ztpmv(mat.UploByte(uplo), ConjTrans, NonUnit, toPtr((*n)-j+1), bp.Off(jj-1), ap.Off(jj-1), func() *int { y := 1; return &y }())
+				ap.Set(jj-1, complex(ajj*bjj, 0)+goblas.Zdotc((*n)-j, ap.Off(jj+1-1), 1, bp.Off(jj+1-1), 1))
+				goblas.Zdscal((*n)-j, bjj, ap.Off(jj+1-1), 1)
+				err = goblas.Zhpmv(mat.UploByte(uplo), (*n)-j, cone, ap.Off(j1j1-1), bp.Off(jj+1-1), 1, cone, ap.Off(jj+1-1), 1)
+				err = goblas.Ztpmv(mat.UploByte(uplo), ConjTrans, NonUnit, (*n)-j+1, bp.Off(jj-1), ap.Off(jj-1), 1)
 				jj = j1j1
 			}
 		}

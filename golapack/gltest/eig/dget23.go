@@ -188,9 +188,9 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	for j = 1; j <= (*n); j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(n, vr.Vector(0, j-1), func() *int { y := 1; return &y }())
+			tnrm = goblas.Dnrm2(*n, vr.Vector(0, j-1), 1)
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(n, vr.Vector(0, j-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vr.Vector(0, j+1-1), func() *int { y := 1; return &y }())))
+			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j+1-1), 1)))
 		}
 		result.Set(2, maxf64(result.Get(2), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {
@@ -215,9 +215,9 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	for j = 1; j <= (*n); j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(n, vl.Vector(0, j-1), func() *int { y := 1; return &y }())
+			tnrm = goblas.Dnrm2(*n, vl.Vector(0, j-1), 1)
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(n, vl.Vector(0, j-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vl.Vector(0, j+1-1), func() *int { y := 1; return &y }())))
+			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j+1-1), 1)))
 		}
 		result.Set(3, maxf64(result.Get(3), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {

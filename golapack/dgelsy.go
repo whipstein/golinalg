@@ -48,6 +48,8 @@ func Dgelsy(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, j
 	var lquery bool
 	var anrm, bignum, bnrm, c1, c2, one, s1, s2, smax, smaxpr, smin, sminpr, smlnum, wsize, zero float64
 	var i, iascl, ibscl, imax, imin, ismax, ismin, j, lwkmin, lwkopt, mn, nb, nb1, nb2, nb3, nb4 int
+	var err error
+	_ = err
 
 	imax = 1
 	imin = 2
@@ -205,7 +207,7 @@ label10:
 	//     workspace: 2*MN+NB*NRHS.
 	//
 	//     B(1:RANK,1:NRHS) := inv(T11) * B(1:RANK,1:NRHS)
-	goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, &one, a, lda, b, ldb)
+	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, *rank, *nrhs, one, a, *lda, b, *ldb)
 
 	for j = 1; j <= (*nrhs); j++ {
 		for i = (*rank) + 1; i <= (*n); i++ {
@@ -225,7 +227,7 @@ label10:
 		for i = 1; i <= (*n); i++ {
 			work.Set((*jpvt)[i-1]-1, b.Get(i-1, j-1))
 		}
-		goblas.Dcopy(n, work, toPtr(1), b.Vector(0, j-1), toPtr(1))
+		goblas.Dcopy(*n, work, 1, b.Vector(0, j-1), 1)
 	}
 
 	//     workspace: N.

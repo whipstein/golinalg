@@ -12,6 +12,8 @@ import (
 func Dtpqrt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *mat.Matrix, ldt, info *int) {
 	var alpha, one, zero float64
 	var i, j, mp, np, p int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -50,14 +52,14 @@ func Dtpqrt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *
 			for j = 1; j <= (*n)-i; j++ {
 				t.Set(j-1, (*n)-1, a.Get(i-1, i+j-1))
 			}
-			goblas.Dgemv(Trans, &p, toPtr((*n)-i), &one, b.Off(0, i+1-1), ldb, b.Vector(0, i-1), func() *int { y := 1; return &y }(), &one, t.Vector(0, (*n)-1), func() *int { y := 1; return &y }())
+			err = goblas.Dgemv(Trans, p, (*n)-i, one, b.Off(0, i+1-1), *ldb, b.Vector(0, i-1), 1, one, t.Vector(0, (*n)-1), 1)
 
 			//           C(I:M,I+1:N) = C(I:m,I+1:N) + alpha*C(I:M,I)*W(1:N-1)^H
 			alpha = -t.Get(i-1, 0)
 			for j = 1; j <= (*n)-i; j++ {
 				a.Set(i-1, i+j-1, a.Get(i-1, i+j-1)+alpha*t.Get(j-1, (*n)-1))
 			}
-			goblas.Dger(&p, toPtr((*n)-i), &alpha, b.Vector(0, i-1), func() *int { y := 1; return &y }(), t.Vector(0, (*n)-1), func() *int { y := 1; return &y }(), b.Off(0, i+1-1), ldb)
+			err = goblas.Dger(p, (*n)-i, alpha, b.Vector(0, i-1), 1, t.Vector(0, (*n)-1), 1, b.Off(0, i+1-1), *ldb)
 		}
 	}
 
@@ -75,16 +77,16 @@ func Dtpqrt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *
 		for j = 1; j <= p; j++ {
 			t.Set(j-1, i-1, alpha*b.Get((*m)-(*l)+j-1, i-1))
 		}
-		goblas.Dtrmv(Upper, Trans, NonUnit, &p, b.Off(mp-1, 0), ldb, t.Vector(0, i-1), func() *int { y := 1; return &y }())
+		err = goblas.Dtrmv(Upper, Trans, NonUnit, p, b.Off(mp-1, 0), *ldb, t.Vector(0, i-1), 1)
 
 		//        Rectangular part of B2
-		goblas.Dgemv(Trans, l, toPtr(i-1-p), &alpha, b.Off(mp-1, np-1), ldb, b.Vector(mp-1, i-1), func() *int { y := 1; return &y }(), &zero, t.Vector(np-1, i-1), func() *int { y := 1; return &y }())
+		err = goblas.Dgemv(Trans, *l, i-1-p, alpha, b.Off(mp-1, np-1), *ldb, b.Vector(mp-1, i-1), 1, zero, t.Vector(np-1, i-1), 1)
 
 		//        B1
-		goblas.Dgemv(Trans, toPtr((*m)-(*l)), toPtr(i-1), &alpha, b, ldb, b.Vector(0, i-1), func() *int { y := 1; return &y }(), &one, t.Vector(0, i-1), func() *int { y := 1; return &y }())
+		err = goblas.Dgemv(Trans, (*m)-(*l), i-1, alpha, b, *ldb, b.Vector(0, i-1), 1, one, t.Vector(0, i-1), 1)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		goblas.Dtrmv(Upper, NoTrans, NonUnit, toPtr(i-1), t, ldt, t.Vector(0, i-1), func() *int { y := 1; return &y }())
+		err = goblas.Dtrmv(Upper, NoTrans, NonUnit, i-1, t, *ldt, t.Vector(0, i-1), 1)
 
 		//        T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(i-1, 0))

@@ -93,7 +93,7 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 						} else {
 							jend = j1 + (nr-1)*kd1
 							for _, jinc = range genIter(j1, jend, kd1) {
-								goblas.Drot(&kdm1, ab.Vector(1, jinc-1-1), func() *int { y := 1; return &y }(), ab.Vector(0, jinc-1), func() *int { y := 1; return &y }(), d.GetPtr(jinc-1), work.GetPtr(jinc-1))
+								goblas.Drot(kdm1, ab.Vector(1, jinc-1-1), 1, ab.Vector(0, jinc-1), 1, d.Get(jinc-1), work.Get(jinc-1))
 							}
 						}
 					}
@@ -106,7 +106,7 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 							ab.Set((*kd)-k+3-1, i+k-2-1, temp)
 
 							//                       apply rotation from the right
-							goblas.Drot(toPtr(k-3), ab.Vector((*kd)-k+4-1, i+k-2-1), func() *int { y := 1; return &y }(), ab.Vector((*kd)-k+3-1, i+k-1-1), func() *int { y := 1; return &y }(), d.GetPtr(i+k-1-1), work.GetPtr(i+k-1-1))
+							goblas.Drot(k-3, ab.Vector((*kd)-k+4-1, i+k-2-1), 1, ab.Vector((*kd)-k+3-1, i+k-1-1), 1, d.Get(i+k-1-1), work.Get(i+k-1-1))
 						}
 						nr = nr + 1
 						j1 = j1 - kdn - 1
@@ -137,13 +137,13 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 							j1end = j1 + kd1*(nr-2)
 							if j1end >= j1 {
 								for jin = j1; jin <= j1end; jin += kd1 {
-									goblas.Drot(toPtr((*kd)-1), ab.Vector((*kd)-1-1, jin+1-1), &incx, ab.Vector((*kd)-1, jin+1-1), &incx, d.GetPtr(jin-1), work.GetPtr(jin-1))
+									goblas.Drot((*kd)-1, ab.Vector((*kd)-1-1, jin+1-1), incx, ab.Vector((*kd)-1, jin+1-1), incx, d.Get(jin-1), work.Get(jin-1))
 								}
 							}
 							lend = minint(kdm1, (*n)-j2)
 							last = j1end + kd1
 							if lend > 0 {
-								goblas.Drot(&lend, ab.Vector((*kd)-1-1, last+1-1), &incx, ab.Vector((*kd)-1, last+1-1), &incx, d.GetPtr(last-1), work.GetPtr(last-1))
+								goblas.Drot(lend, ab.Vector((*kd)-1-1, last+1-1), incx, ab.Vector((*kd)-1, last+1-1), incx, d.Get(last-1), work.Get(last-1))
 							}
 						}
 					}
@@ -166,12 +166,12 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 								iqb = maxint(1, j-ibl)
 								nq = 1 + iqaend - iqb
 								iqaend = minint(iqaend+(*kd), iqend)
-								goblas.Drot(&nq, q.Vector(iqb-1, j-1-1), func() *int { y := 1; return &y }(), q.Vector(iqb-1, j-1), func() *int { y := 1; return &y }(), d.GetPtr(j-1), work.GetPtr(j-1))
+								goblas.Drot(nq, q.Vector(iqb-1, j-1-1), 1, q.Vector(iqb-1, j-1), 1, d.Get(j-1), work.Get(j-1))
 							}
 						} else {
 
 							for j = j1; j <= j2; j += kd1 {
-								goblas.Drot(n, q.Vector(0, j-1-1), func() *int { y := 1; return &y }(), q.Vector(0, j-1), func() *int { y := 1; return &y }(), d.GetPtr(j-1), work.GetPtr(j-1))
+								goblas.Drot(*n, q.Vector(0, j-1-1), 1, q.Vector(0, j-1), 1, d.Get(j-1), work.Get(j-1))
 							}
 						}
 
@@ -241,7 +241,7 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 						} else {
 							jend = j1 + kd1*(nr-1)
 							for jinc = j1; jinc <= jend; jinc += kd1 {
-								goblas.Drot(&kdm1, ab.Vector((*kd)-1, jinc-(*kd)-1), &incx, ab.Vector(kd1-1, jinc-(*kd)-1), &incx, d.GetPtr(jinc-1), work.GetPtr(jinc-1))
+								goblas.Drot(kdm1, ab.Vector((*kd)-1, jinc-(*kd)-1), incx, ab.Vector(kd1-1, jinc-(*kd)-1), incx, d.Get(jinc-1), work.Get(jinc-1))
 							}
 						}
 
@@ -255,7 +255,7 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 							ab.Set(k-1-1, i-1, temp)
 
 							//                       apply rotation from the left
-							goblas.Drot(toPtr(k-3), ab.Vector(k-2-1, i+1-1), toPtr((*ldab)-1), ab.Vector(k-1-1, i+1-1), toPtr((*ldab)-1), d.GetPtr(i+k-1-1), work.GetPtr(i+k-1-1))
+							goblas.Drot(k-3, ab.Vector(k-2-1, i+1-1), (*ldab)-1, ab.Vector(k-1-1, i+1-1), (*ldab)-1, d.Get(i+k-1-1), work.Get(i+k-1-1))
 						}
 						nr = nr + 1
 						j1 = j1 - kdn - 1
@@ -288,13 +288,13 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 							j1end = j1 + kd1*(nr-2)
 							if j1end >= j1 {
 								for j1inc = j1; j1inc <= j1end; j1inc += kd1 {
-									goblas.Drot(&kdm1, ab.Vector(2, j1inc-1-1), func() *int { y := 1; return &y }(), ab.Vector(1, j1inc-1), func() *int { y := 1; return &y }(), d.GetPtr(j1inc-1), work.GetPtr(j1inc-1))
+									goblas.Drot(kdm1, ab.Vector(2, j1inc-1-1), 1, ab.Vector(1, j1inc-1), 1, d.Get(j1inc-1), work.Get(j1inc-1))
 								}
 							}
 							lend = minint(kdm1, (*n)-j2)
 							last = j1end + kd1
 							if lend > 0 {
-								goblas.Drot(&lend, ab.Vector(2, last-1-1), func() *int { y := 1; return &y }(), ab.Vector(1, last-1), func() *int { y := 1; return &y }(), d.GetPtr(last-1), work.GetPtr(last-1))
+								goblas.Drot(lend, ab.Vector(2, last-1-1), 1, ab.Vector(1, last-1), 1, d.Get(last-1), work.Get(last-1))
 							}
 						}
 					}
@@ -317,12 +317,12 @@ func Dsbtrd(vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, d, e *mat.Ve
 								iqb = maxint(1, j-ibl)
 								nq = 1 + iqaend - iqb
 								iqaend = minint(iqaend+(*kd), iqend)
-								goblas.Drot(&nq, q.Vector(iqb-1, j-1-1), func() *int { y := 1; return &y }(), q.Vector(iqb-1, j-1), func() *int { y := 1; return &y }(), d.GetPtr(j-1), work.GetPtr(j-1))
+								goblas.Drot(nq, q.Vector(iqb-1, j-1-1), 1, q.Vector(iqb-1, j-1), 1, d.Get(j-1), work.Get(j-1))
 							}
 						} else {
 
 							for j = j1; j <= j2; j += kd1 {
-								goblas.Drot(n, q.Vector(0, j-1-1), func() *int { y := 1; return &y }(), q.Vector(0, j-1), func() *int { y := 1; return &y }(), d.GetPtr(j-1), work.GetPtr(j-1))
+								goblas.Drot(*n, q.Vector(0, j-1-1), 1, q.Vector(0, j-1), 1, d.Get(j-1), work.Get(j-1))
 							}
 						}
 					}

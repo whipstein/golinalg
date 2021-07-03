@@ -13,6 +13,8 @@ import (
 func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int) {
 	var one, temp, zero float64
 	var i, i2, i3, ii, ip, j, j2, j3, jb, jj, jm, jp, ju, k2, km, kv, ldwork, nb, nbmax, nw int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -118,31 +120,31 @@ func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 				//              Find pivot and test for singularity. KM is the number of
 				//              subdiagonal elements in the current column.
 				km = minint(*kl, (*m)-jj)
-				jp = goblas.Idamax(toPtr(km+1), ab.Vector(kv+1-1, jj-1), toPtr(1))
+				jp = goblas.Idamax(km+1, ab.Vector(kv+1-1, jj-1), 1)
 				(*ipiv)[jj-1] = jp + jj - j
 				if ab.Get(kv+jp-1, jj-1) != zero {
 					ju = maxint(ju, minint(jj+(*ku)+jp-1, *n))
 					if jp != 1 {
 						//                    Apply interchange to columns J to J+JB-1
 						if jp+jj-1 < j+(*kl) {
-							goblas.Dswap(&jb, ab.Vector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), ab.Vector(kv+jp+jj-j-1, j-1), toPtr((*ldab)-1))
+							goblas.Dswap(jb, ab.Vector(kv+1+jj-j-1, j-1), (*ldab)-1, ab.Vector(kv+jp+jj-j-1, j-1), (*ldab)-1)
 						} else {
 							//                       The interchange affects columns J to JJ-1 of A31
 							//                       which are stored in the work array WORK31
-							goblas.Dswap(toPtr(jj-j), ab.Vector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), work31.Vector(jp+jj-j-(*kl)-1, 0), &ldwork)
-							goblas.Dswap(toPtr(j+jb-jj), ab.Vector(kv+1-1, jj-1), toPtr((*ldab)-1), ab.Vector(kv+jp-1, jj-1), toPtr((*ldab)-1))
+							goblas.Dswap(jj-j, ab.Vector(kv+1+jj-j-1, j-1), (*ldab)-1, work31.Vector(jp+jj-j-(*kl)-1, 0), ldwork)
+							goblas.Dswap(j+jb-jj, ab.Vector(kv+1-1, jj-1), (*ldab)-1, ab.Vector(kv+jp-1, jj-1), (*ldab)-1)
 						}
 					}
 
 					//                 Compute multipliers
-					goblas.Dscal(&km, toPtrf64(one/ab.Get(kv+1-1, jj-1)), ab.Vector(kv+2-1, jj-1), toPtr(1))
+					goblas.Dscal(km, one/ab.Get(kv+1-1, jj-1), ab.Vector(kv+2-1, jj-1), 1)
 
 					//                 Update trailing submatrix within the band and within
 					//                 the current block. JM is the index of the last column
 					//                 which needs to be updated.
 					jm = minint(ju, j+jb-1)
 					if jm > jj {
-						goblas.Dger(&km, toPtr(jm-jj), toPtrf64(-one), ab.Vector(kv+2-1, jj-1), toPtr(1), ab.Vector(kv-1, jj+1-1), toPtr((*ldab)-1), ab.Off(kv+1-1, jj+1-1), toPtr((*ldab)-1))
+						err = goblas.Dger(km, jm-jj, -one, ab.Vector(kv+2-1, jj-1), 1, ab.Vector(kv-1, jj+1-1), (*ldab)-1, ab.Off(kv+1-1, jj+1-1), (*ldab)-1)
 					}
 				} else {
 					//                 If pivot is zero, set INFO to the index of the pivot
@@ -155,7 +157,7 @@ func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 				//              Copy current column of A31 into the work array WORK31
 				nw = minint(jj-j+1, i3)
 				if nw > 0 {
-					goblas.Dcopy(&nw, ab.Vector(kv+(*kl)+1-jj+j-1, jj-1), toPtr(1), work31.Vector(0, jj-j+1-1), toPtr(1))
+					goblas.Dcopy(nw, ab.Vector(kv+(*kl)+1-jj+j-1, jj-1), 1, work31.Vector(0, jj-j+1-1), 1)
 				}
 			}
 			if j+jb <= (*n) {
@@ -165,8 +167,7 @@ func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 
 				//              Use DLASWP to apply the row interchanges to A12, A22, and
 				//              A32.
-				_ipiv := (*ipiv)[j-1:]
-				Dlaswp(&j2, ab.Off(kv+1-jb-1, j+jb-1), toPtr((*ldab)-1), func() *int { y := 1; return &y }(), &jb, &_ipiv, func() *int { y := 1; return &y }())
+				Dlaswp(&j2, ab.Off(kv+1-jb-1, j+jb-1), toPtr((*ldab)-1), func() *int { y := 1; return &y }(), &jb, toSlice(ipiv, j-1), func() *int { y := 1; return &y }())
 
 				//              Adjust the pivot indices.
 				for i = j; i <= j+jb-1; i++ {
@@ -191,16 +192,16 @@ func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 				//              Update the relevant part of the trailing submatrix
 				if j2 > 0 {
 					//                 Update A12
-					goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, &jb, &j2, &one, ab.Off(kv+1-1, j-1), toPtr((*ldab)-1), ab.Off(kv+1-jb-1, j+jb-1), toPtr((*ldab)-1))
+					err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, jb, j2, one, ab.Off(kv+1-1, j-1), (*ldab)-1, ab.Off(kv+1-jb-1, j+jb-1), (*ldab)-1)
 
 					if i2 > 0 {
 						//                    Update A22
-						goblas.Dgemm(mat.NoTrans, mat.NoTrans, &i2, &j2, &jb, toPtrf64(-one), ab.Off(kv+1+jb-1, j-1), toPtr((*ldab)-1), ab.Off(kv+1-jb-1, j+jb-1), toPtr((*ldab)-1), &one, ab.Off(kv+1-1, j+jb-1), toPtr((*ldab)-1))
+						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1), (*ldab)-1, ab.Off(kv+1-jb-1, j+jb-1), (*ldab)-1, one, ab.Off(kv+1-1, j+jb-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
 						//                    Update A32
-						goblas.Dgemm(mat.NoTrans, mat.NoTrans, &i3, &j2, &jb, toPtrf64(-one), work31, &ldwork, ab.Off(kv+1-jb-1, j+jb-1), toPtr((*ldab)-1), &one, ab.Off(kv+(*kl)+1-jb-1, j+jb-1), toPtr((*ldab)-1))
+						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i3, j2, jb, -one, work31, ldwork, ab.Off(kv+1-jb-1, j+jb-1), (*ldab)-1, one, ab.Off(kv+(*kl)+1-jb-1, j+jb-1), (*ldab)-1)
 					}
 				}
 
@@ -214,16 +215,16 @@ func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 					}
 
 					//                 Update A13 in the work array
-					goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, &jb, &j3, &one, ab.Off(kv+1-1, j-1), toPtr((*ldab)-1), work13, &ldwork)
+					err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, jb, j3, one, ab.Off(kv+1-1, j-1), (*ldab)-1, work13, ldwork)
 
 					if i2 > 0 {
 						//                    Update A23
-						goblas.Dgemm(mat.NoTrans, mat.NoTrans, &i2, &j3, &jb, toPtrf64(-one), ab.Off(kv+1+jb-1, j-1), toPtr((*ldab)-1), work13, &ldwork, &one, ab.Off(1+jb-1, j+kv-1), toPtr((*ldab)-1))
+						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1), (*ldab)-1, work13, ldwork, one, ab.Off(1+jb-1, j+kv-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
 						//                    Update A33
-						goblas.Dgemm(mat.NoTrans, mat.NoTrans, &i3, &j3, &jb, toPtrf64(-one), work31, &ldwork, work13, &ldwork, &one, ab.Off(1+(*kl)-1, j+kv-1), toPtr((*ldab)-1))
+						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i3, j3, jb, -one, work31, ldwork, work13, ldwork, one, ab.Off(1+(*kl)-1, j+kv-1), (*ldab)-1)
 					}
 
 					//                 Copy the lower triangle of A13 back into place
@@ -249,17 +250,17 @@ func Dgbtrf(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, info *int
 					//                 Apply interchange to columns J to JJ-1
 					if jp+jj-1 < j+(*kl) {
 						//                    The interchange does not affect A31
-						goblas.Dswap(toPtr(jj-j), ab.Vector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), ab.Vector(kv+jp+jj-j-1, j-1), toPtr((*ldab)-1))
+						goblas.Dswap(jj-j, ab.Vector(kv+1+jj-j-1, j-1), (*ldab)-1, ab.Vector(kv+jp+jj-j-1, j-1), (*ldab)-1)
 					} else {
 						//                    The interchange does affect A31
-						goblas.Dswap(toPtr(jj-j), ab.Vector(kv+1+jj-j-1, j-1), toPtr((*ldab)-1), work31.Vector(jp+jj-j-(*kl)-1, 0), &ldwork)
+						goblas.Dswap(jj-j, ab.Vector(kv+1+jj-j-1, j-1), (*ldab)-1, work31.Vector(jp+jj-j-(*kl)-1, 0), ldwork)
 					}
 				}
 
 				//              Copy the current column of A31 back into place
 				nw = minint(i3, jj-j+1)
 				if nw > 0 {
-					goblas.Dcopy(&nw, work31.Vector(0, jj-j+1-1), toPtr(1), ab.Vector(kv+(*kl)+1-jj+j-1, jj-1), toPtr(1))
+					goblas.Dcopy(nw, work31.Vector(0, jj-j+1-1), 1, ab.Vector(kv+(*kl)+1-jj+j-1, jj-1), 1)
 				}
 			}
 		}

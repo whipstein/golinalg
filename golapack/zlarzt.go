@@ -28,6 +28,8 @@ import (
 func Zlarzt(direct, storev byte, n, k *int, v *mat.CMatrix, ldv *int, tau *mat.CVector, t *mat.CMatrix, ldt *int) {
 	var zero complex128
 	var i, info, j int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 
@@ -54,11 +56,11 @@ func Zlarzt(direct, storev byte, n, k *int, v *mat.CMatrix, ldv *int, tau *mat.C
 			if i < (*k) {
 				//              T(i+1:k,i) = - tau(i) * V(i+1:k,1:n) * V(i,1:n)**H
 				Zlacgv(n, v.CVector(i-1, 0), ldv)
-				goblas.Zgemv(NoTrans, toPtr((*k)-i), n, toPtrc128(-tau.Get(i-1)), v.Off(i+1-1, 0), ldv, v.CVector(i-1, 0), ldv, &zero, t.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*k)-i, *n, -tau.Get(i-1), v.Off(i+1-1, 0), *ldv, v.CVector(i-1, 0), *ldv, zero, t.CVector(i+1-1, i-1), 1)
 				Zlacgv(n, v.CVector(i-1, 0), ldv)
 
 				//              T(i+1:k,i) = T(i+1:k,i+1:k) * T(i+1:k,i)
-				goblas.Ztrmv(Lower, NoTrans, NonUnit, toPtr((*k)-i), t.Off(i+1-1, i+1-1), ldt, t.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztrmv(Lower, NoTrans, NonUnit, (*k)-i, t.Off(i+1-1, i+1-1), *ldt, t.CVector(i+1-1, i-1), 1)
 			}
 			t.Set(i-1, i-1, tau.Get(i-1))
 		}

@@ -151,9 +151,9 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			Dlarnv(func() *int { y := 2; return &y }(), &iseed, &blksiz, work.Off(indrv1+1-1))
 
 			//           Copy the matrix T so it won't be destroyed in factorization.
-			goblas.Dcopy(&blksiz, d.Off(b1-1), func() *int { y := 1; return &y }(), work.Off(indrv4+1-1), func() *int { y := 1; return &y }())
-			goblas.Dcopy(toPtr(blksiz-1), e.Off(b1-1), func() *int { y := 1; return &y }(), work.Off(indrv2+2-1), func() *int { y := 1; return &y }())
-			goblas.Dcopy(toPtr(blksiz-1), e.Off(b1-1), func() *int { y := 1; return &y }(), work.Off(indrv3+1-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy(blksiz, d.Off(b1-1), 1, work.Off(indrv4+1-1), 1)
+			goblas.Dcopy(blksiz-1, e.Off(b1-1), 1, work.Off(indrv2+2-1), 1)
+			goblas.Dcopy(blksiz-1, e.Off(b1-1), 1, work.Off(indrv3+1-1), 1)
 
 			//           Compute LU factors with partial pivoting  ( PT = LU )
 			tol = zero
@@ -168,9 +168,9 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			}
 
 			//           Normalize and scale the righthand side vector Pb.
-			jmax = goblas.Idamax(&blksiz, work.Off(indrv1+1-1), func() *int { y := 1; return &y }())
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
 			scl = float64(blksiz) * onenrm * maxf64(eps, work.GetMag(indrv4+blksiz-1)) / work.GetMag(indrv1+jmax-1)
-			goblas.Dscal(&blksiz, &scl, work.Off(indrv1+1-1), func() *int { y := 1; return &y }())
+			goblas.Dscal(blksiz, scl, work.Off(indrv1+1-1), 1)
 
 			//           Solve the system LU = Pb.
 			Dlagts(toPtr(-1), &blksiz, work.Off(indrv4+1-1), work.Off(indrv2+2-1), work.Off(indrv3+1-1), work.Off(indrv5+1-1), iwork, work.Off(indrv1+1-1), &tol, &iinfo)
@@ -198,7 +198,7 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			//           Check the infinity norm of the iterate.
 		label110:
 			;
-			jmax = goblas.Idamax(&blksiz, work.Off(indrv1+1-1), func() *int { y := 1; return &y }())
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
 			nrm = work.GetMag(indrv1 + jmax - 1)
 
 			//           Continue for additional iterations after norm reaches
@@ -223,12 +223,12 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			//           Accept iterate as jth eigenvector.
 		label130:
 			;
-			scl = one / goblas.Dnrm2(&blksiz, work.Off(indrv1+1-1), func() *int { y := 1; return &y }())
-			jmax = goblas.Idamax(&blksiz, work.Off(indrv1+1-1), func() *int { y := 1; return &y }())
+			scl = one / goblas.Dnrm2(blksiz, work.Off(indrv1+1-1), 1)
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
 			if work.Get(indrv1+jmax-1) < zero {
 				scl = -scl
 			}
-			goblas.Dscal(&blksiz, &scl, work.Off(indrv1+1-1), func() *int { y := 1; return &y }())
+			goblas.Dscal(blksiz, scl, work.Off(indrv1+1-1), 1)
 		label140:
 			;
 			for i = 1; i <= (*n); i++ {

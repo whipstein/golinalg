@@ -21,6 +21,8 @@ func Zstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *int,
 	var cone, czero complex128
 	var anorm, one, temp1, temp2, ulp, unfl, wnorm, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -58,12 +60,12 @@ func Zstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *int,
 
 	//     Norm of A - USU*
 	for j = 1; j <= (*n); j++ {
-		goblas.Zher(Lower, n, toPtrf64(-sd.Get(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), work.CMatrix(*n, opts), n)
+		err = goblas.Zher(Lower, *n, -sd.Get(j-1), u.CVector(0, j-1), 1, work.CMatrix(*n, opts), *n)
 	}
 
 	if (*n) > 1 && (*kband) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Zher2(Lower, n, toPtrc128(-se.GetCmplx(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), u.CVector(0, j+1-1), func() *int { y := 1; return &y }(), work.CMatrix(*n, opts), n)
+			err = goblas.Zher2(Lower, *n, -se.GetCmplx(j-1), u.CVector(0, j-1), 1, u.CVector(0, j+1-1), 1, work.CMatrix(*n, opts), *n)
 		}
 	}
 
@@ -82,7 +84,7 @@ func Zstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *int,
 	//     Do Test 2
 	//
 	//     Compute  U U**H - I
-	goblas.Zgemm(NoTrans, ConjTrans, n, n, n, &cone, u, ldu, u, ldu, &czero, work.CMatrix(*n, opts), n)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
 
 	for j = 1; j <= (*n); j++ {
 		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-cone)

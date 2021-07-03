@@ -79,7 +79,7 @@ func Zchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 1
 				//              Form the inverse of A.
 				if n > 0 {
-					goblas.Zcopy(&lap, ap, func() *int { y := 1; return &y }(), ainvp, func() *int { y := 1; return &y }())
+					goblas.Zcopy(lap, ap, 1, ainvp, 1)
 				}
 				*srnamt = "ZTPTRI"
 				golapack.Ztptri(uplo, diag, &n, ainvp, &info)
@@ -239,7 +239,7 @@ func Zchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "ZLATPS"
-					goblas.Zcopy(&n, x, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }())
+					goblas.Zcopy(n, x, 1, b, 1)
 					golapack.Zlatps(uplo, trans, diag, 'N', &n, ap, b, &scale, rwork, &info)
 
 					//                 Check error code from ZLATPS.
@@ -252,7 +252,7 @@ func Zchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 					//+    TEST 9
 					//                 Solve op(A)*x = b again with NORMIN = 'Y'.
-					goblas.Zcopy(&n, x, func() *int { y := 1; return &y }(), b.Off(n+1-1), func() *int { y := 1; return &y }())
+					goblas.Zcopy(n, x, 1, b.Off(n+1-1), 1)
 					golapack.Zlatps(uplo, trans, diag, 'Y', &n, ap, b.Off(n+1-1), &scale, rwork, &info)
 
 					//                 Check error code from ZLATPS.

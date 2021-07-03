@@ -14,6 +14,8 @@ import (
 func Dget01(m *int, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac *int, ipiv *[]int, rwork *mat.Vector, resid *float64) {
 	var anorm, eps, one, t, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -33,20 +35,20 @@ func Dget01(m *int, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac *i
 	//     column N.
 	for k = (*n); k >= 1; k-- {
 		if k > (*m) {
-			goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, m, afac, ldafac, afac.Vector(0, k-1), toPtr(1))
+			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, *m, afac, *ldafac, afac.Vector(0, k-1), 1)
 		} else {
 			//           Compute elements (K+1:M,K)
 			t = afac.Get(k-1, k-1)
 			if k+1 <= (*m) {
-				goblas.Dscal(toPtr((*m)-k), &t, afac.Vector(k+1-1, k-1), toPtr(1))
-				goblas.Dgemv(mat.NoTrans, toPtr((*m)-k), toPtr(k-1), &one, afac.Off(k+1-1, 0), ldafac, afac.Vector(0, k-1), toPtr(1), &one, afac.Vector(k+1-1, k-1), toPtr(1))
+				goblas.Dscal((*m)-k, t, afac.Vector(k+1-1, k-1), 1)
+				err = goblas.Dgemv(mat.NoTrans, (*m)-k, k-1, one, afac.Off(k+1-1, 0), *ldafac, afac.Vector(0, k-1), 1, one, afac.Vector(k+1-1, k-1), 1)
 			}
 
 			//           Compute the (K,K) element
-			afac.Set(k-1, k-1, t+goblas.Ddot(toPtr(k-1), afac.Vector(k-1, 0), ldafac, afac.Vector(0, k-1), toPtr(1)))
+			afac.Set(k-1, k-1, t+goblas.Ddot(k-1, afac.Vector(k-1, 0), *ldafac, afac.Vector(0, k-1), 1))
 
 			//           Compute elements (1:K-1,K)
-			goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, toPtr(k-1), afac, ldafac, afac.Vector(0, k-1), toPtr(1))
+			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, k-1, afac, *ldafac, afac.Vector(0, k-1), 1)
 		}
 	}
 	golapack.Dlaswp(n, afac, ldafac, func() *int { y := 1; return &y }(), toPtr(minint(*m, *n)), ipiv, toPtr(-1))

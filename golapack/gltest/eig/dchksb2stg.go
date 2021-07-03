@@ -363,9 +363,9 @@ func Dchksb2stg(nsizes *int, nn *[]int, nwdths *int, kk *[]int, ntypes *int, dot
 				//
 				//              Compute D1 from the DSBTRD and used as reference for the
 				//              DSYTRD_SB2ST
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d1, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d1, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 
 				golapack.Dsteqr('N', &n, d1, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)
@@ -393,9 +393,9 @@ func Dchksb2stg(nsizes *int, nn *[]int, nwdths *int, kk *[]int, ntypes *int, dot
 				golapack.DsytrdSb2st('N', 'N', 'U', &n, &k, u, ldu, sd, se, work, &lh, work.Off(lh+1-1), &lw, &iinfo)
 
 				//              Compute D2 from the DSYTRD_SB2ST Upper case
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d2, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d2, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 
 				golapack.Dsteqr('N', &n, d2, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)
@@ -458,9 +458,9 @@ func Dchksb2stg(nsizes *int, nn *[]int, nwdths *int, kk *[]int, ntypes *int, dot
 				golapack.DsytrdSb2st('N', 'N', 'L', &n, &k, u, ldu, sd, se, work, &lh, work.Off(lh+1-1), &lw, &iinfo)
 
 				//              Compute D3 from the 2-stage Upper case
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d3, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d3, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 
 				golapack.Dsteqr('N', &n, d3, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)

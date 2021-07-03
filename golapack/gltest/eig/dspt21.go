@@ -71,6 +71,8 @@ func Dspt21(itype *int, uplo byte, n, kband *int, ap, d, e *mat.Vector, u *mat.M
 	var cuplo byte
 	var anorm, half, one, temp, ten, ulp, unfl, vsave, wnorm, zero float64
 	var iinfo, j, jp, jp1, jr, lap int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -118,15 +120,15 @@ func Dspt21(itype *int, uplo byte, n, kband *int, ap, d, e *mat.Vector, u *mat.M
 	if (*itype) == 1 {
 		//        ITYPE=1: error = A - U S U**T
 		golapack.Dlaset('F', n, n, &zero, &zero, work.Matrix(*n, opts), n)
-		goblas.Dcopy(&lap, ap, toPtr(1), work, toPtr(1))
+		goblas.Dcopy(lap, ap, 1, work, 1)
 
 		for j = 1; j <= (*n); j++ {
-			goblas.Dspr(mat.UploByte(cuplo), n, toPtrf64(-d.Get(j-1)), u.Vector(0, j-1), toPtr(1), work)
+			err = goblas.Dspr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1), 1, work)
 		}
 
 		if (*n) > 1 && (*kband) == 1 {
 			for j = 1; j <= (*n)-1; j++ {
-				goblas.Dspr2(mat.UploByte(cuplo), n, toPtrf64(-e.Get(j-1)), u.Vector(0, j-1), toPtr(1), u.Vector(0, j+1-1), toPtr(1), work)
+				err = goblas.Dspr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work)
 			}
 		}
 		wnorm = golapack.Dlansp('1', cuplo, n, work, work.Off(int(math.Pow(float64(*n), 2))+1-1))
@@ -150,10 +152,10 @@ func Dspt21(itype *int, uplo byte, n, kband *int, ap, d, e *mat.Vector, u *mat.M
 				if tau.Get(j-1) != zero {
 					vsave = vp.Get(jp + j + 1 - 1)
 					vp.Set(jp+j+1-1, one)
-					goblas.Dspmv(Lower, toPtr((*n)-j), &one, work.Off(jp1+j+1-1), vp.Off(jp+j+1-1), toPtr(1), &zero, work.Off(lap+1-1), toPtr(1))
-					temp = -half * tau.Get(j-1) * goblas.Ddot(toPtr((*n)-j), work.Off(lap+1-1), toPtr(1), vp.Off(jp+j+1-1), toPtr(1))
-					goblas.Daxpy(toPtr((*n)-j), &temp, vp.Off(jp+j+1-1), toPtr(1), work.Off(lap+1-1), toPtr(1))
-					goblas.Dspr2(Lower, toPtr((*n)-j), toPtrf64(-tau.Get(j-1)), vp.Off(jp+j+1-1), toPtr(1), work.Off(lap+1-1), toPtr(1), work.Off(jp1+j+1-1))
+					err = goblas.Dspmv(Lower, (*n)-j, one, work.Off(jp1+j+1-1), vp.Off(jp+j+1-1), 1, zero, work.Off(lap+1-1), 1)
+					temp = -half * tau.Get(j-1) * goblas.Ddot((*n)-j, work.Off(lap+1-1), 1, vp.Off(jp+j+1-1), 1)
+					goblas.Daxpy((*n)-j, temp, vp.Off(jp+j+1-1), 1, work.Off(lap+1-1), 1)
+					err = goblas.Dspr2(Lower, (*n)-j, -tau.Get(j-1), vp.Off(jp+j+1-1), 1, work.Off(lap+1-1), 1, work.Off(jp1+j+1-1))
 					vp.Set(jp+j+1-1, vsave)
 				}
 				work.Set(jp+j-1, d.Get(j-1))
@@ -173,10 +175,10 @@ func Dspt21(itype *int, uplo byte, n, kband *int, ap, d, e *mat.Vector, u *mat.M
 				if tau.Get(j-1) != zero {
 					vsave = vp.Get(jp1 + j - 1)
 					vp.Set(jp1+j-1, one)
-					goblas.Dspmv(Upper, &j, &one, work, vp.Off(jp1+1-1), toPtr(1), &zero, work.Off(lap+1-1), toPtr(1))
-					temp = -half * tau.Get(j-1) * goblas.Ddot(&j, work.Off(lap+1-1), toPtr(1), vp.Off(jp1+1-1), toPtr(1))
-					goblas.Daxpy(&j, &temp, vp.Off(jp1+1-1), toPtr(1), work.Off(lap+1-1), toPtr(1))
-					goblas.Dspr2(Upper, &j, toPtrf64(-tau.Get(j-1)), vp.Off(jp1+1-1), toPtr(1), work.Off(lap+1-1), toPtr(1), work)
+					err = goblas.Dspmv(Upper, j, one, work, vp.Off(jp1+1-1), 1, zero, work.Off(lap+1-1), 1)
+					temp = -half * tau.Get(j-1) * goblas.Ddot(j, work.Off(lap+1-1), 1, vp.Off(jp1+1-1), 1)
+					goblas.Daxpy(j, temp, vp.Off(jp1+1-1), 1, work.Off(lap+1-1), 1)
+					err = goblas.Dspr2(Upper, j, -tau.Get(j-1), vp.Off(jp1+1-1), 1, work.Off(lap+1-1), 1, work)
 					vp.Set(jp1+j-1, vsave)
 				}
 				work.Set(jp1+j+1-1, d.Get(j+1-1))
@@ -221,7 +223,7 @@ func Dspt21(itype *int, uplo byte, n, kband *int, ap, d, e *mat.Vector, u *mat.M
 	//
 	//     Compute  U U**T - I
 	if (*itype) == 1 {
-		goblas.Dgemm(NoTrans, ConjTrans, n, n, n, &one, u, ldu, u, ldu, &zero, work.Matrix(*n, opts), n)
+		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
 
 		for j = 1; j <= (*n); j++ {
 			work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)

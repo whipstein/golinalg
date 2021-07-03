@@ -13,6 +13,8 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 	var upper bool
 	var ak, akm1, akm1k, bk, bkm1, denom, one complex128
 	var j, k, kp int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -61,15 +63,15 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			goblas.Zgeru(toPtr(k-1), nrhs, toPtrc128(-one), a.CVector(0, k-1), func() *int { y := 1; return &y }(), b.CVector(k-1, 0), ldb, b, ldb)
+			err = goblas.Zgeru(k-1, *nrhs, -one, a.CVector(0, k-1), 1, b.CVector(k-1, 0), *ldb, b, *ldb)
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Zscal(nrhs, toPtrc128(one/a.Get(k-1, k-1)), b.CVector(k-1, 0), ldb)
+			goblas.Zscal(*nrhs, one/a.Get(k-1, k-1), b.CVector(k-1, 0), *ldb)
 			k = k - 1
 		} else {
 			//           2 x 2 diagonal block
@@ -77,13 +79,13 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//           Interchange rows K-1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k-1 {
-				goblas.Zswap(nrhs, b.CVector(k-1-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in columns K-1 and K of A.
-			goblas.Zgeru(toPtr(k-2), nrhs, toPtrc128(-one), a.CVector(0, k-1), func() *int { y := 1; return &y }(), b.CVector(k-1, 0), ldb, b, ldb)
-			goblas.Zgeru(toPtr(k-2), nrhs, toPtrc128(-one), a.CVector(0, k-1-1), func() *int { y := 1; return &y }(), b.CVector(k-1-1, 0), ldb, b, ldb)
+			err = goblas.Zgeru(k-2, *nrhs, -one, a.CVector(0, k-1), 1, b.CVector(k-1, 0), *ldb, b, *ldb)
+			err = goblas.Zgeru(k-2, *nrhs, -one, a.CVector(0, k-1-1), 1, b.CVector(k-1-1, 0), *ldb, b, *ldb)
 
 			//           Multiply by the inverse of the diagonal block.
 			akm1k = a.Get(k-1-1, k-1)
@@ -121,12 +123,12 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//
 			//           Multiply by inv(U**T(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			goblas.Zgemv(Trans, toPtr(k-1), nrhs, toPtrc128(-one), b, ldb, a.CVector(0, k-1), func() *int { y := 1; return &y }(), &one, b.CVector(k-1, 0), ldb)
+			err = goblas.Zgemv(Trans, k-1, *nrhs, -one, b, *ldb, a.CVector(0, k-1), 1, one, b.CVector(k-1, 0), *ldb)
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 			k = k + 1
 		} else {
@@ -134,13 +136,13 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//
 			//           Multiply by inv(U**T(K+1)), where U(K+1) is the transformation
 			//           stored in columns K and K+1 of A.
-			goblas.Zgemv(Trans, toPtr(k-1), nrhs, toPtrc128(-one), b, ldb, a.CVector(0, k-1), func() *int { y := 1; return &y }(), &one, b.CVector(k-1, 0), ldb)
-			goblas.Zgemv(Trans, toPtr(k-1), nrhs, toPtrc128(-one), b, ldb, a.CVector(0, k+1-1), func() *int { y := 1; return &y }(), &one, b.CVector(k+1-1, 0), ldb)
+			err = goblas.Zgemv(Trans, k-1, *nrhs, -one, b, *ldb, a.CVector(0, k-1), 1, one, b.CVector(k-1, 0), *ldb)
+			err = goblas.Zgemv(Trans, k-1, *nrhs, -one, b, *ldb, a.CVector(0, k+1-1), 1, one, b.CVector(k+1-1, 0), *ldb)
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 			k = k + 2
 		}
@@ -169,17 +171,17 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < (*n) {
-				goblas.Zgeru(toPtr((*n)-k), nrhs, toPtrc128(-one), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), b.CVector(k-1, 0), ldb, b.Off(k+1-1, 0), ldb)
+				err = goblas.Zgeru((*n)-k, *nrhs, -one, a.CVector(k+1-1, k-1), 1, b.CVector(k-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Zscal(nrhs, toPtrc128(one/a.Get(k-1, k-1)), b.CVector(k-1, 0), ldb)
+			goblas.Zscal(*nrhs, one/a.Get(k-1, k-1), b.CVector(k-1, 0), *ldb)
 			k = k + 1
 		} else {
 			//           2 x 2 diagonal block
@@ -187,14 +189,14 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//           Interchange rows K+1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k+1 {
-				goblas.Zswap(nrhs, b.CVector(k+1-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k+1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k < (*n)-1 {
-				goblas.Zgeru(toPtr((*n)-k-1), nrhs, toPtrc128(-one), a.CVector(k+2-1, k-1), func() *int { y := 1; return &y }(), b.CVector(k-1, 0), ldb, b.Off(k+2-1, 0), ldb)
-				goblas.Zgeru(toPtr((*n)-k-1), nrhs, toPtrc128(-one), a.CVector(k+2-1, k+1-1), func() *int { y := 1; return &y }(), b.CVector(k+1-1, 0), ldb, b.Off(k+2-1, 0), ldb)
+				err = goblas.Zgeru((*n)-k-1, *nrhs, -one, a.CVector(k+2-1, k-1), 1, b.CVector(k-1, 0), *ldb, b.Off(k+2-1, 0), *ldb)
+				err = goblas.Zgeru((*n)-k-1, *nrhs, -one, a.CVector(k+2-1, k+1-1), 1, b.CVector(k+1-1, 0), *ldb, b.Off(k+2-1, 0), *ldb)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
@@ -234,13 +236,13 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//           Multiply by inv(L**T(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < (*n) {
-				goblas.Zgemv(Trans, toPtr((*n)-k), nrhs, toPtrc128(-one), b.Off(k+1-1, 0), ldb, a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), &one, b.CVector(k-1, 0), ldb)
+				err = goblas.Zgemv(Trans, (*n)-k, *nrhs, -one, b.Off(k+1-1, 0), *ldb, a.CVector(k+1-1, k-1), 1, one, b.CVector(k-1, 0), *ldb)
 			}
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 			k = k - 1
 		} else {
@@ -249,14 +251,14 @@ func Zsytrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *m
 			//           Multiply by inv(L**T(K-1)), where L(K-1) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k < (*n) {
-				goblas.Zgemv(Trans, toPtr((*n)-k), nrhs, toPtrc128(-one), b.Off(k+1-1, 0), ldb, a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), &one, b.CVector(k-1, 0), ldb)
-				goblas.Zgemv(Trans, toPtr((*n)-k), nrhs, toPtrc128(-one), b.Off(k+1-1, 0), ldb, a.CVector(k+1-1, k-1-1), func() *int { y := 1; return &y }(), &one, b.CVector(k-1-1, 0), ldb)
+				err = goblas.Zgemv(Trans, (*n)-k, *nrhs, -one, b.Off(k+1-1, 0), *ldb, a.CVector(k+1-1, k-1), 1, one, b.CVector(k-1, 0), *ldb)
+				err = goblas.Zgemv(Trans, (*n)-k, *nrhs, -one, b.Off(k+1-1, 0), *ldb, a.CVector(k+1-1, k-1-1), 1, one, b.CVector(k-1-1, 0), *ldb)
 			}
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+				goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 			}
 			k = k - 2
 		}

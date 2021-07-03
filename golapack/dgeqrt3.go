@@ -14,6 +14,8 @@ import (
 func Dgeqrt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) {
 	var one float64
 	var i, i1, iinfo, j, j1, n1, n2 int
+	var err error
+	_ = err
 
 	one = 1.0e+00
 
@@ -52,15 +54,15 @@ func Dgeqrt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 				t.Set(i-1, j+n1-1, a.Get(i-1, j+n1-1))
 			}
 		}
-		goblas.Dtrmm(Left, Lower, Trans, Unit, &n1, &n2, &one, a, lda, t.Off(0, j1-1), ldt)
+		err = goblas.Dtrmm(Left, Lower, Trans, Unit, n1, n2, one, a, *lda, t.Off(0, j1-1), *ldt)
 
-		goblas.Dgemm(Trans, NoTrans, &n1, &n2, toPtr((*m)-n1), &one, a.Off(j1-1, 0), lda, a.Off(j1-1, j1-1), lda, &one, t.Off(0, j1-1), ldt)
+		err = goblas.Dgemm(Trans, NoTrans, n1, n2, (*m)-n1, one, a.Off(j1-1, 0), *lda, a.Off(j1-1, j1-1), *lda, one, t.Off(0, j1-1), *ldt)
 
-		goblas.Dtrmm(Left, Upper, Trans, NonUnit, &n1, &n2, &one, t, ldt, t.Off(0, j1-1), ldt)
+		err = goblas.Dtrmm(Left, Upper, Trans, NonUnit, n1, n2, one, t, *ldt, t.Off(0, j1-1), *ldt)
 
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*m)-n1), &n2, &n1, toPtrf64(-one), a.Off(j1-1, 0), lda, t.Off(0, j1-1), ldt, &one, a.Off(j1-1, j1-1), lda)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(j1-1, 0), *lda, t.Off(0, j1-1), *ldt, one, a.Off(j1-1, j1-1), *lda)
 
-		goblas.Dtrmm(Left, Lower, NoTrans, Unit, &n1, &n2, &one, a, lda, t.Off(0, j1-1), ldt)
+		err = goblas.Dtrmm(Left, Lower, NoTrans, Unit, n1, n2, one, a, *lda, t.Off(0, j1-1), *ldt)
 
 		for j = 1; j <= n2; j++ {
 			for i = 1; i <= n1; i++ {
@@ -78,13 +80,13 @@ func Dgeqrt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 			}
 		}
 
-		goblas.Dtrmm(Right, Lower, NoTrans, Unit, &n1, &n2, &one, a.Off(j1-1, j1-1), lda, t.Off(0, j1-1), ldt)
+		err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, n1, n2, one, a.Off(j1-1, j1-1), *lda, t.Off(0, j1-1), *ldt)
 
-		goblas.Dgemm(Trans, NoTrans, &n1, &n2, toPtr((*m)-(*n)), &one, a.Off(i1-1, 0), lda, a.Off(i1-1, j1-1), lda, &one, t.Off(0, j1-1), ldt)
+		err = goblas.Dgemm(Trans, NoTrans, n1, n2, (*m)-(*n), one, a.Off(i1-1, 0), *lda, a.Off(i1-1, j1-1), *lda, one, t.Off(0, j1-1), *ldt)
 
-		goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, &n1, &n2, toPtrf64(-one), t, ldt, t.Off(0, j1-1), ldt)
+		err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, n1, n2, -one, t, *ldt, t.Off(0, j1-1), *ldt)
 
-		goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, &n1, &n2, &one, t.Off(j1-1, j1-1), ldt, t.Off(0, j1-1), ldt)
+		err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, n1, n2, one, t.Off(j1-1, j1-1), *ldt, t.Off(0, j1-1), *ldt)
 
 		//        Y = (Y1,Y2); R = [ R1  A(1:N1,J1:N) ];  T = [T1 T3]
 		//                         [  0        R2     ]       [ 0 T2]

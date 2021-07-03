@@ -25,6 +25,8 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 	var csumj, tjjs, uscal complex128
 	var bignum, grow, half, one, rec, smlnum, tjj, tmax, tscal, two, xbnd, xj, xmax, zero float64
 	var i, imax, j, jfirst, jinc, jlast, jlen, maind int
+	var err error
+	_ = err
 
 	zero = 0.0
 	half = 0.5
@@ -79,14 +81,14 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 			//           A is upper triangular.
 			for j = 1; j <= (*n); j++ {
 				jlen = minint(*kd, j-1)
-				cnorm.Set(j-1, goblas.Dzasum(&jlen, ab.CVector((*kd)+1-jlen-1, j-1), func() *int { y := 1; return &y }()))
+				cnorm.Set(j-1, goblas.Dzasum(jlen, ab.CVector((*kd)+1-jlen-1, j-1), 1))
 			}
 		} else {
 			//           A is lower triangular.
 			for j = 1; j <= (*n); j++ {
 				jlen = minint(*kd, (*n)-j)
 				if jlen > 0 {
-					cnorm.Set(j-1, goblas.Dzasum(&jlen, ab.CVector(1, j-1), func() *int { y := 1; return &y }()))
+					cnorm.Set(j-1, goblas.Dzasum(jlen, ab.CVector(1, j-1), 1))
 				} else {
 					cnorm.Set(j-1, zero)
 				}
@@ -96,13 +98,13 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 
 	//     Scale the column norms by TSCAL if the maximum element in CNORM is
 	//     greater than BIGNUM/2.
-	imax = goblas.Idamax(n, cnorm, func() *int { y := 1; return &y }())
+	imax = goblas.Idamax(*n, cnorm, 1)
 	tmax = cnorm.Get(imax - 1)
 	if tmax <= bignum*half {
 		tscal = one
 	} else {
 		tscal = half / (smlnum * tmax)
-		goblas.Dscal(n, &tscal, cnorm, func() *int { y := 1; return &y }())
+		goblas.Dscal(*n, tscal, cnorm, 1)
 	}
 
 	//     Compute a bound on the computed solution vector to see if the
@@ -252,14 +254,14 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 	if (grow * tscal) > smlnum {
 		//        Use the Level 2 BLAS solve if the reciprocal of the bound on
 		//        elements of X is not too small.
-		goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kd, ab, ldab, x, func() *int { y := 1; return &y }())
+		err = goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, x, 1)
 	} else {
 		//        Use a Level 1 BLAS solve, scaling intermediate results.
 		if xmax > bignum*half {
 			//           Scale X so that its components are less than or equal to
 			//           BIGNUM in absolute value.
 			(*scale) = (bignum * half) / xmax
-			goblas.Zdscal(n, scale, x, func() *int { y := 1; return &y }())
+			goblas.Zdscal(*n, *scale, x, 1)
 			xmax = bignum
 		} else {
 			xmax = xmax * two
@@ -285,7 +287,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 						if xj > tjj*bignum {
 							//                          Scale x by 1/b(j).
 							rec = one / xj
-							goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Zdscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -303,7 +305,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 							//                          multiplying x(j) times column j.
 							rec = rec / cnorm.Get(j-1)
 						}
-						goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+						goblas.Zdscal(*n, rec, x, 1)
 						(*scale) = (*scale) * rec
 						xmax = xmax * rec
 					}
@@ -330,12 +332,12 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 					if cnorm.Get(j-1) > (bignum-xmax)*rec {
 						//                    Scale x by 1/(2*abs(x(j))).
 						rec = rec * half
-						goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+						goblas.Zdscal(*n, rec, x, 1)
 						(*scale) = (*scale) * rec
 					}
 				} else if xj*cnorm.Get(j-1) > (bignum - xmax) {
 					//                 Scale x by 1/2.
-					goblas.Zdscal(n, &half, x, func() *int { y := 1; return &y }())
+					goblas.Zdscal(*n, half, x, 1)
 					(*scale) = (*scale) * half
 				}
 
@@ -345,8 +347,8 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 						//                       x(maxf64(1,j-kd):j-1) := x(maxf64(1,j-kd):j-1) -
 						//                                             x(j)* A(maxf64(1,j-kd):j-1,j)
 						jlen = minint(*kd, j-1)
-						goblas.Zaxpy(&jlen, toPtrc128(-x.Get(j-1)*complex(tscal, 0)), ab.CVector((*kd)+1-jlen-1, j-1), func() *int { y := 1; return &y }(), x.Off(j-jlen-1), func() *int { y := 1; return &y }())
-						i = goblas.Izamax(toPtr(j-1), x, func() *int { y := 1; return &y }())
+						goblas.Zaxpy(jlen, -x.Get(j-1)*complex(tscal, 0), ab.CVector((*kd)+1-jlen-1, j-1), 1, x.Off(j-jlen-1), 1)
+						i = goblas.Izamax(j-1, x, 1)
 						xmax = Cabs1(x.Get(i - 1))
 					}
 				} else if j < (*n) {
@@ -355,9 +357,9 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 					//                                          x(j) * A(j+1:minint(j+kd,n),j)
 					jlen = minint(*kd, (*n)-j)
 					if jlen > 0 {
-						goblas.Zaxpy(&jlen, toPtrc128(-x.Get(j-1)*complex(tscal, 0)), ab.CVector(1, j-1), func() *int { y := 1; return &y }(), x.Off(j+1-1), func() *int { y := 1; return &y }())
+						goblas.Zaxpy(jlen, -x.Get(j-1)*complex(tscal, 0), ab.CVector(1, j-1), 1, x.Off(j+1-1), 1)
 					}
-					i = j + goblas.Izamax(toPtr((*n)-j), x.Off(j+1-1), func() *int { y := 1; return &y }())
+					i = j + goblas.Izamax((*n)-j, x.Off(j+1-1), 1)
 					xmax = Cabs1(x.Get(i - 1))
 				}
 			}
@@ -385,7 +387,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 						uscal = Zladiv(&uscal, &tjjs)
 					}
 					if rec < one {
-						goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+						goblas.Zdscal(*n, rec, x, 1)
 						(*scale) = (*scale) * rec
 						xmax = xmax * rec
 					}
@@ -397,11 +399,11 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 					//                 call ZDOTU to perform the dot product.
 					if upper {
 						jlen = minint(*kd, j-1)
-						csumj = goblas.Zdotu(&jlen, ab.CVector((*kd)+1-jlen-1, j-1), func() *int { y := 1; return &y }(), x.Off(j-jlen-1), func() *int { y := 1; return &y }())
+						csumj = goblas.Zdotu(jlen, ab.CVector((*kd)+1-jlen-1, j-1), 1, x.Off(j-jlen-1), 1)
 					} else {
 						jlen = minint(*kd, (*n)-j)
 						if jlen > 1 {
-							csumj = goblas.Zdotu(&jlen, ab.CVector(1, j-1), func() *int { y := 1; return &y }(), x.Off(j+1-1), func() *int { y := 1; return &y }())
+							csumj = goblas.Zdotu(jlen, ab.CVector(1, j-1), 1, x.Off(j+1-1), 1)
 						}
 					}
 				} else {
@@ -440,7 +442,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 							if xj > tjj*bignum {
 								//                             Scale X by 1/abs(x(j)).
 								rec = one / xj
-								goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+								goblas.Zdscal(*n, rec, x, 1)
 								(*scale) = (*scale) * rec
 								xmax = xmax * rec
 							}
@@ -451,7 +453,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 						if xj > tjj*bignum {
 							//                          Scale x by (1/abs(x(j)))*abs(A(j,j))*BIGNUM.
 							rec = (tjj * bignum) / xj
-							goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Zdscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -498,7 +500,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 						uscal = Zladiv(&uscal, &tjjs)
 					}
 					if rec < one {
-						goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+						goblas.Zdscal(*n, rec, x, 1)
 						(*scale) = (*scale) * rec
 						xmax = xmax * rec
 					}
@@ -510,11 +512,11 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 					//                 call ZDOTC to perform the dot product.
 					if upper {
 						jlen = minint(*kd, j-1)
-						csumj = goblas.Zdotc(&jlen, ab.CVector((*kd)+1-jlen-1, j-1), func() *int { y := 1; return &y }(), x.Off(j-jlen-1), func() *int { y := 1; return &y }())
+						csumj = goblas.Zdotc(jlen, ab.CVector((*kd)+1-jlen-1, j-1), 1, x.Off(j-jlen-1), 1)
 					} else {
 						jlen = minint(*kd, (*n)-j)
 						if jlen > 1 {
-							csumj = goblas.Zdotc(&jlen, ab.CVector(1, j-1), func() *int { y := 1; return &y }(), x.Off(j+1-1), func() *int { y := 1; return &y }())
+							csumj = goblas.Zdotc(jlen, ab.CVector(1, j-1), 1, x.Off(j+1-1), 1)
 						}
 					}
 				} else {
@@ -553,7 +555,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 							if xj > tjj*bignum {
 								//                             Scale X by 1/abs(x(j)).
 								rec = one / xj
-								goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+								goblas.Zdscal(*n, rec, x, 1)
 								(*scale) = (*scale) * rec
 								xmax = xmax * rec
 							}
@@ -564,7 +566,7 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 						if xj > tjj*bignum {
 							//                          Scale x by (1/abs(x(j)))*abs(A(j,j))*BIGNUM.
 							rec = (tjj * bignum) / xj
-							goblas.Zdscal(n, &rec, x, func() *int { y := 1; return &y }())
+							goblas.Zdscal(*n, rec, x, 1)
 							(*scale) = (*scale) * rec
 							xmax = xmax * rec
 						}
@@ -593,6 +595,6 @@ func Zlatbs(uplo, trans, diag, normin byte, n, kd *int, ab *mat.CMatrix, ldab *i
 
 	//     Scale the column norms by 1/TSCAL for return.
 	if tscal != one {
-		goblas.Dscal(n, toPtrf64(one/tscal), cnorm, func() *int { y := 1; return &y }())
+		goblas.Dscal(*n, one/tscal, cnorm, 1)
 	}
 }

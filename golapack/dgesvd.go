@@ -26,6 +26,8 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 	var lquery, wntua, wntuas, wntun, wntuo, wntus, wntva, wntvas, wntvn, wntvo, wntvs bool
 	var anrm, bignum, eps, one, smlnum, zero float64
 	var bdspac, blk, chunk, i, ie, ierr, ir, iscl, itau, itaup, itauq, iu, iwork, ldwrkr, ldwrku, lworkDgebrd, lworkDgelqf, lworkDgeqrf, lworkDorgbrP, lworkDorgbrQ, lworkDorglqM, lworkDorglqN, lworkDorgqrM, lworkDorgqrN, maxwrk, minmn, minwrk, mnthr, ncu, ncvt, nru, nrvt, wrkbl int
+	var err error
+	_ = err
 
 	dum := vf(1)
 
@@ -483,7 +485,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 (Workspace: need N*N + 2*N, prefer N*N + M*N + N)
 					for i = 1; i <= (*m); i += ldwrku {
 						chunk = minint((*m)-i+1, ldwrku)
-						goblas.Dgemm(NoTrans, NoTrans, &chunk, n, n, &one, a.Off(i-1, 0), lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, &zero, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
+						err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), *lda, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, zero, work.MatrixOff(iu-1, ldwrku, opts), ldwrku)
 						Dlacpy('F', &chunk, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(i-1, 0), lda)
 					}
 
@@ -577,7 +579,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 (Workspace: need N*N + 2*N, prefer N*N + M*N + N)
 					for i = 1; i <= (*m); i += ldwrku {
 						chunk = minint((*m)-i+1, ldwrku)
-						goblas.Dgemm(NoTrans, NoTrans, &chunk, n, n, &one, a.Off(i-1, 0), lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, &zero, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
+						err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), *lda, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, zero, work.MatrixOff(iu-1, ldwrku, opts), ldwrku)
 						Dlacpy('F', &chunk, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(i-1, 0), lda)
 					}
 
@@ -677,7 +679,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IR), storing result in U
 						//                    (Workspace: need N*N)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, n, &one, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, &zero, u, ldu)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, *lda, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, zero, u, *ldu)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -786,7 +788,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IU), storing result in U
 						//                    (Workspace: need N*N)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, n, &one, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, &zero, u, ldu)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, *lda, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, zero, u, *ldu)
 
 						//                    Copy right singular vectors of R to A
 						//                    (Workspace: need N*N)
@@ -894,7 +896,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IU), storing result in U
 						//                    (Workspace: need N*N)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, n, &one, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, &zero, u, ldu)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, *lda, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, zero, u, *ldu)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -997,7 +999,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IR), storing result in A
 						//                    (Workspace: need N*N)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, n, &one, u, ldu, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, &zero, a, lda)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, *ldu, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, zero, a, *lda)
 
 						//                    Copy left singular vectors of A from A to U
 						Dlacpy('F', m, n, a, lda, u, ldu)
@@ -1111,7 +1113,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IU), storing result in A
 						//                    (Workspace: need N*N)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, n, &one, u, ldu, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, &zero, a, lda)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, *ldu, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, zero, a, *lda)
 
 						//                    Copy left singular vectors of A from A to U
 						Dlacpy('F', m, n, a, lda, u, ldu)
@@ -1223,7 +1225,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IU), storing result in A
 						//                    (Workspace: need N*N)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, n, &one, u, ldu, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, &zero, a, lda)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, *ldu, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, zero, a, *lda)
 
 						//                    Copy left singular vectors of A from A to U
 						Dlacpy('F', m, n, a, lda, u, ldu)
@@ -1467,7 +1469,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M*N + M)
 					for i = 1; i <= (*n); i += chunk {
 						blk = minint((*n)-i+1, chunk)
-						goblas.Dgemm(NoTrans, NoTrans, m, &blk, m, &one, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a.Off(0, i-1), lda, &zero, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, a.Off(0, i-1), *lda, zero, work.MatrixOff(iu-1, ldwrku, opts), ldwrku)
 						Dlacpy('F', m, &blk, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(0, i-1), lda)
 					}
 
@@ -1562,7 +1564,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M*N + M))
 					for i = 1; i <= (*n); i += chunk {
 						blk = minint((*n)-i+1, chunk)
-						goblas.Dgemm(NoTrans, NoTrans, m, &blk, m, &one, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a.Off(0, i-1), lda, &zero, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, a.Off(0, i-1), *lda, zero, work.MatrixOff(iu-1, ldwrku, opts), ldwrku)
 						Dlacpy('F', m, &blk, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(0, i-1), lda)
 					}
 
@@ -1661,7 +1663,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply right singular vectors of L in WORK(IR) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a, lda, &zero, vt, ldvt)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, a, *lda, zero, vt, *ldvt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1770,7 +1772,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a, lda, &zero, vt, ldvt)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, a, *lda, zero, vt, *ldvt)
 
 						//                    Copy left singular vectors of L to A
 						//                    (Workspace: need M*M)
@@ -1876,7 +1878,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a, lda, &zero, vt, ldvt)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, a, *lda, zero, vt, *ldvt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1978,7 +1980,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply right singular vectors of L in WORK(IR) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, vt, ldvt, &zero, a, lda)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, vt, *ldvt, zero, a, *lda)
 
 						//                    Copy right singular vectors of A from A to VT
 						Dlacpy('F', m, n, a, lda, vt, ldvt)
@@ -2090,7 +2092,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, vt, ldvt, &zero, a, lda)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, vt, *ldvt, zero, a, *lda)
 
 						//                    Copy right singular vectors of A from A to VT
 						Dlacpy('F', m, n, a, lda, vt, ldvt)
@@ -2199,7 +2201,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						goblas.Dgemm(NoTrans, NoTrans, m, n, m, &one, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, vt, ldvt, &zero, a, lda)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, vt, *ldvt, zero, a, *lda)
 
 						//                    Copy right singular vectors of A from A to VT
 						Dlacpy('F', m, n, a, lda, vt, ldvt)

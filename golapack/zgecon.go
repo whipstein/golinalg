@@ -86,7 +86,7 @@ label10:
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Izamax(n, work, func() *int { y := 1; return &y }())
+			ix = goblas.Izamax(*n, work, 1)
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

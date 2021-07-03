@@ -401,7 +401,7 @@ label160:
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Zswap(n, z.CVector(0, i-1), func() *int { y := 1; return &y }(), z.CVector(0, k-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, k-1), 1)
 			}
 		}
 	}

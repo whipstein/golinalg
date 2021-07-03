@@ -73,6 +73,8 @@ import (
 func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info *int) {
 	var one, sfmin float64
 	var i, iinfo, n1, n2 int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -121,7 +123,7 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 
 		//        Construct the subdiagonal elements of L
 		if math.Abs(a.Get(0, 0)) >= sfmin {
-			goblas.Dscal(toPtr((*m)-1), toPtrf64(one/a.Get(0, 0)), a.Vector(1, 0), toPtr(1))
+			goblas.Dscal((*m)-1, one/a.Get(0, 0), a.Vector(1, 0), 1)
 		} else {
 			for i = 2; i <= (*m); i++ {
 				a.Set(i-1, 0, a.Get(i-1, 0)/a.Get(0, 0))
@@ -137,14 +139,14 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 		DlaorhrColGetrfnp2(&n1, &n1, a, lda, d, &iinfo)
 
 		//        Solve for B21
-		goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, toPtr((*m)-n1), &n1, &one, a, lda, a.Off(n1+1-1, 0), lda)
+		err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, one, a, *lda, a.Off(n1+1-1, 0), *lda)
 
 		//        Solve for B12
-		goblas.Dtrsm(Left, Lower, NoTrans, Unit, &n1, &n2, &one, a, lda, a.Off(0, n1+1-1), lda)
+		err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, *lda, a.Off(0, n1+1-1), *lda)
 
 		//        Update B22, i.e. compute the Schur complement
 		//        B22 := B22 - B21*B12
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*m)-n1), &n2, &n1, toPtrf64(-one), a.Off(n1+1-1, 0), lda, a.Off(0, n1+1-1), lda, &one, a.Off(n1+1-1, n1+1-1), lda)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1+1-1, 0), *lda, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
 
 		//        Factor B22, recursive call
 		DlaorhrColGetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1+1-1, n1+1-1), lda, d.Off(n1+1-1), &iinfo)

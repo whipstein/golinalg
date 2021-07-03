@@ -14,6 +14,8 @@ func Dtrtri(uplo, diag byte, n *int, a *mat.Matrix, lda *int, info *int) {
 	var nounit, upper bool
 	var one, zero float64
 	var j, jb, nb, nn int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -64,8 +66,8 @@ func Dtrtri(uplo, diag byte, n *int, a *mat.Matrix, lda *int, info *int) {
 				jb = minint(nb, (*n)-j+1)
 
 				//              Compute rows 1:j-1 of current block column
-				goblas.Dtrmm(mat.Left, mat.Upper, mat.NoTrans, mat.DiagByte(diag), toPtr(j-1), &jb, &one, a, lda, a.Off(0, j-1), lda)
-				goblas.Dtrsm(mat.Right, mat.Upper, mat.NoTrans, mat.DiagByte(diag), toPtr(j-1), &jb, toPtrf64(-one), a.Off(j-1, j-1), lda, a.Off(0, j-1), lda)
+				err = goblas.Dtrmm(mat.Left, mat.Upper, mat.NoTrans, mat.DiagByte(diag), j-1, jb, one, a, *lda, a.Off(0, j-1), *lda)
+				err = goblas.Dtrsm(mat.Right, mat.Upper, mat.NoTrans, mat.DiagByte(diag), j-1, jb, -one, a.Off(j-1, j-1), *lda, a.Off(0, j-1), *lda)
 
 				//              Compute inverse of current diagonal block
 				Dtrti2('U', diag, &jb, a.Off(j-1, j-1), lda, info)
@@ -77,8 +79,8 @@ func Dtrtri(uplo, diag byte, n *int, a *mat.Matrix, lda *int, info *int) {
 				jb = minint(nb, (*n)-j+1)
 				if j+jb <= (*n) {
 					//                 Compute rows j+jb:n of current block column
-					goblas.Dtrmm(mat.Left, mat.Lower, mat.NoTrans, mat.DiagByte(diag), toPtr((*n)-j-jb+1), &jb, &one, a.Off(j+jb-1, j+jb-1), lda, a.Off(j+jb-1, j-1), lda)
-					goblas.Dtrsm(mat.Right, mat.Lower, mat.NoTrans, mat.DiagByte(diag), toPtr((*n)-j-jb+1), &jb, toPtrf64(-one), a.Off(j-1, j-1), lda, a.Off(j+jb-1, j-1), lda)
+					err = goblas.Dtrmm(mat.Left, mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j-jb+1, jb, one, a.Off(j+jb-1, j+jb-1), *lda, a.Off(j+jb-1, j-1), *lda)
+					err = goblas.Dtrsm(mat.Right, mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j-jb+1, jb, -one, a.Off(j-1, j-1), *lda, a.Off(j+jb-1, j-1), *lda)
 				}
 
 				//              Compute inverse of current diagonal block

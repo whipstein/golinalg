@@ -30,6 +30,8 @@ func Zpotrf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 	var cone complex128
 	var ajj, one, zero float64
 	var iinfo, n1, n2 int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -82,10 +84,10 @@ func Zpotrf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		//        Compute the Cholesky factorization A = U**H*U
 		if upper {
 			//           Update and scale A12
-			goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, &n1, &n2, &cone, a, lda, a.Off(0, n1+1-1), lda)
+			err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, n1, n2, cone, a, *lda, a.Off(0, n1+1-1), *lda)
 
 			//           Update and factor A22
-			goblas.Zherk(mat.UploByte(uplo), ConjTrans, &n2, &n1, toPtrf64(-one), a.Off(0, n1+1-1), lda, &one, a.Off(n1+1-1, n1+1-1), lda)
+			err = goblas.Zherk(mat.UploByte(uplo), ConjTrans, n2, n1, -one, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
 			Zpotrf2(uplo, &n2, a.Off(n1+1-1, n1+1-1), lda, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo + n1
@@ -95,10 +97,10 @@ func Zpotrf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			//        Compute the Cholesky factorization A = L*L**H
 		} else {
 			//           Update and scale A21
-			goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, &n2, &n1, &cone, a, lda, a.Off(n1+1-1, 0), lda)
+			err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, n2, n1, cone, a, *lda, a.Off(n1+1-1, 0), *lda)
 
 			//           Update and factor A22
-			goblas.Zherk(mat.UploByte(uplo), NoTrans, &n2, &n1, toPtrf64(-one), a.Off(n1+1-1, 0), lda, &one, a.Off(n1+1-1, n1+1-1), lda)
+			err = goblas.Zherk(mat.UploByte(uplo), NoTrans, n2, n1, -one, a.Off(n1+1-1, 0), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
 			Zpotrf2(uplo, &n2, a.Off(n1+1-1, n1+1-1), lda, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo + n1

@@ -21,6 +21,8 @@ func Zlauum(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 	var cone complex128
 	var one float64
 	var i, ib, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
@@ -57,22 +59,22 @@ func Zlauum(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			//           Compute the product U * U**H.
 			for i = 1; i <= (*n); i += nb {
 				ib = minint(nb, (*n)-i+1)
-				goblas.Ztrmm(Right, Upper, ConjTrans, NonUnit, toPtr(i-1), &ib, &cone, a.Off(i-1, i-1), lda, a.Off(0, i-1), lda)
+				err = goblas.Ztrmm(Right, Upper, ConjTrans, NonUnit, i-1, ib, cone, a.Off(i-1, i-1), *lda, a.Off(0, i-1), *lda)
 				Zlauu2('U', &ib, a.Off(i-1, i-1), lda, info)
 				if i+ib <= (*n) {
-					goblas.Zgemm(NoTrans, ConjTrans, toPtr(i-1), &ib, toPtr((*n)-i-ib+1), &cone, a.Off(0, i+ib-1), lda, a.Off(i-1, i+ib-1), lda, &cone, a.Off(0, i-1), lda)
-					goblas.Zherk(Upper, NoTrans, &ib, toPtr((*n)-i-ib+1), &one, a.Off(i-1, i+ib-1), lda, &one, a.Off(i-1, i-1), lda)
+					err = goblas.Zgemm(NoTrans, ConjTrans, i-1, ib, (*n)-i-ib+1, cone, a.Off(0, i+ib-1), *lda, a.Off(i-1, i+ib-1), *lda, cone, a.Off(0, i-1), *lda)
+					err = goblas.Zherk(Upper, NoTrans, ib, (*n)-i-ib+1, one, a.Off(i-1, i+ib-1), *lda, one, a.Off(i-1, i-1), *lda)
 				}
 			}
 		} else {
 			//           Compute the product L**H * L.
 			for i = 1; i <= (*n); i += nb {
 				ib = minint(nb, (*n)-i+1)
-				goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, &ib, toPtr(i-1), &cone, a.Off(i-1, i-1), lda, a.Off(i-1, 0), lda)
+				err = goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, ib, i-1, cone, a.Off(i-1, i-1), *lda, a.Off(i-1, 0), *lda)
 				Zlauu2('L', &ib, a.Off(i-1, i-1), lda, info)
 				if i+ib <= (*n) {
-					goblas.Zgemm(ConjTrans, NoTrans, &ib, toPtr(i-1), toPtr((*n)-i-ib+1), &cone, a.Off(i+ib-1, i-1), lda, a.Off(i+ib-1, 0), lda, &cone, a.Off(i-1, 0), lda)
-					goblas.Zherk(Lower, ConjTrans, &ib, toPtr((*n)-i-ib+1), &one, a.Off(i+ib-1, i-1), lda, &one, a.Off(i-1, i-1), lda)
+					err = goblas.Zgemm(ConjTrans, NoTrans, ib, i-1, (*n)-i-ib+1, cone, a.Off(i+ib-1, i-1), *lda, a.Off(i+ib-1, 0), *lda, cone, a.Off(i-1, 0), *lda)
+					err = goblas.Zherk(Lower, ConjTrans, ib, (*n)-i-ib+1, one, a.Off(i+ib-1, i-1), *lda, one, a.Off(i-1, i-1), *lda)
 				}
 			}
 		}

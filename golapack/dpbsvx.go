@@ -106,12 +106,12 @@ func Dpbsvx(fact, uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *m
 		if upper {
 			for j = 1; j <= (*n); j++ {
 				j1 = maxint(j-(*kd), 1)
-				goblas.Dcopy(toPtr(j-j1+1), ab.Vector((*kd)+1-j+j1-1, j-1), toPtr(1), afb.Vector((*kd)+1-j+j1-1, j-1), toPtr(1))
+				goblas.Dcopy(j-j1+1, ab.Vector((*kd)+1-j+j1-1, j-1), 1, afb.Vector((*kd)+1-j+j1-1, j-1), 1)
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
 				j2 = minint(j+(*kd), *n)
-				goblas.Dcopy(toPtr(j2-j+1), ab.Vector(0, j-1), toPtr(1), afb.Vector(0, j-1), toPtr(1))
+				goblas.Dcopy(j2-j+1, ab.Vector(0, j-1), 1, afb.Vector(0, j-1), 1)
 			}
 		}
 

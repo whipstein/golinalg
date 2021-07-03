@@ -38,7 +38,7 @@ func Dlarfg(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		return
 	}
 
-	xnorm = goblas.Dnrm2(toPtr((*n)-1), x, incx)
+	xnorm = goblas.Dnrm2((*n)-1, x, *incx)
 
 	if xnorm == zero {
 		//        H  =  I
@@ -54,7 +54,7 @@ func Dlarfg(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		label10:
 			;
 			knt = knt + 1
-			goblas.Dscal(toPtr((*n)-1), &rsafmn, x, incx)
+			goblas.Dscal((*n)-1, rsafmn, x, *incx)
 			beta = beta * rsafmn
 			(*alpha) = (*alpha) * rsafmn
 			if (math.Abs(beta) < safmin) && (knt < 20) {
@@ -62,11 +62,11 @@ func Dlarfg(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 			}
 
 			//           New BETA is at most 1, at least SAFMIN
-			xnorm = goblas.Dnrm2(toPtr((*n)-1), x, incx)
+			xnorm = goblas.Dnrm2((*n)-1, x, *incx)
 			beta = -math.Copysign(Dlapy2(alpha, &xnorm), *alpha)
 		}
 		(*tau) = (beta - (*alpha)) / beta
-		goblas.Dscal(toPtr((*n)-1), toPtrf64(one/((*alpha)-beta)), x, incx)
+		goblas.Dscal((*n)-1, one/((*alpha)-beta), x, *incx)
 
 		//        If ALPHA is subnormal, it may lose relative accuracy
 		for j = 1; j <= knt; j++ {

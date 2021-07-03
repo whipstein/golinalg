@@ -14,6 +14,8 @@ func Zgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 	var cone complex128
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var i1, i2, j, kd, n1 int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -31,7 +33,7 @@ func Zgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 	for j = 1; j <= (*n); j++ {
 		i1 = maxint(kd+1-j, 1)
 		i2 = minint(kd+(*m)-j, (*kl)+kd)
-		anorm = maxf64(anorm, goblas.Dzasum(toPtr(i2-i1+1), a.CVector(i1-1, j-1), func() *int { y := 1; return &y }()))
+		anorm = maxf64(anorm, goblas.Dzasum(i2-i1+1, a.CVector(i1-1, j-1), 1))
 	}
 	if anorm <= zero {
 		(*resid) = one / eps
@@ -46,15 +48,15 @@ func Zgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 
 	//     Compute  B - A*X (or  B - A'*X )
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zgbmv(mat.TransByte(trans), m, n, kl, ku, toPtrc128(-cone), a, lda, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &cone, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+		err = goblas.Zgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, -cone, a, *lda, x.CVector(0, j-1), 1, cone, b.CVector(0, j-1), 1)
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(&n1, b.CVector(0, j-1), func() *int { y := 1; return &y }())
-		xnorm = goblas.Dzasum(&n1, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1), 1)
+		xnorm = goblas.Dzasum(n1, x.CVector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

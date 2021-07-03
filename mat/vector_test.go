@@ -67,3 +67,25 @@ func TestVectorFactory(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkVectorSet(b *testing.B) {
+	vf := VectorFactory()
+	dx := vf(b.N)
+	da := 0.4
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		dx.Set(i, da)
+	}
+}
+
+func BenchmarkCVectorSet(b *testing.B) {
+	cvf := CVectorFactory()
+	cx := cvf(b.N)
+	ca := 0.4 - 0.7i
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cx.Set(i, ca)
+	}
+}

@@ -13,6 +13,8 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 	var lquery, upper bool
 	var one float64
 	var i, iinfo, iws, j, kk, ldwork, lwkopt, nb, nbmin, nx int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -89,7 +91,7 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 
 			//           Update the unreduced submatrix A(1:i-1,1:i-1), using an
 			//           update of the form:  A := A - V*W**T - W*V**T
-			goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, toPtr(i-1), &nb, toPtrf64(-one), a.Off(0, i-1), lda, work.Matrix(ldwork, opts), &ldwork, &one, a, lda)
+			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, i-1, nb, -one, a.Off(0, i-1), *lda, work.Matrix(ldwork, opts), ldwork, one, a, *lda)
 
 			//           Copy superdiagonal elements back into A, and diagonal
 			//           elements into D
@@ -111,7 +113,7 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 
 			//           Update the unreduced submatrix A(i+ib:n,i+ib:n), using
 			//           an update of the form:  A := A - V*W**T - W*V**T
-			goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, toPtr((*n)-i-nb+1), &nb, toPtrf64(-one), a.Off(i+nb-1, i-1), lda, work.MatrixOff(nb+1-1, ldwork, opts), &ldwork, &one, a.Off(i+nb-1, i+nb-1), lda)
+			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, (*n)-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), *lda, work.MatrixOff(nb+1-1, ldwork, opts), ldwork, one, a.Off(i+nb-1, i+nb-1), *lda)
 
 			//           Copy subdiagonal elements back into A, and diagonal
 			//           elements into D

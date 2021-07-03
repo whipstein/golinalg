@@ -178,7 +178,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Dlascl('H', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Dcopy(n, a.VectorIdx(0), toPtr((*lda)+1), wr, func() *int { y := 1; return &y }())
+		goblas.Dcopy(*n, a.VectorIdx(0), (*lda)+1, wr, 1)
 		if cscale == smlnum {
 			//           If scaling back towards underflow, adjust WI if an
 			//           offdiagonal element of a 2-by-2 block in the Schur form
@@ -209,13 +209,13 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 						wi.Set(i-1, zero)
 						wi.Set(i+1-1, zero)
 						if i > 1 {
-							goblas.Dswap(toPtr(i-1), a.Vector(0, i-1), func() *int { y := 1; return &y }(), a.Vector(0, i+1-1), func() *int { y := 1; return &y }())
+							goblas.Dswap(i-1, a.Vector(0, i-1), 1, a.Vector(0, i+1-1), 1)
 						}
 						if (*n) > i+1 {
-							goblas.Dswap(toPtr((*n)-i-1), a.Vector(i-1, i+2-1), lda, a.Vector(i+1-1, i+2-1), lda)
+							goblas.Dswap((*n)-i-1, a.Vector(i-1, i+2-1), *lda, a.Vector(i+1-1, i+2-1), *lda)
 						}
 						if wantvs {
-							goblas.Dswap(n, vs.Vector(0, i-1), func() *int { y := 1; return &y }(), vs.Vector(0, i+1-1), func() *int { y := 1; return &y }())
+							goblas.Dswap(*n, vs.Vector(0, i-1), 1, vs.Vector(0, i+1-1), 1)
 						}
 						a.Set(i-1, i+1-1, a.Get(i+1-1, i-1))
 						a.Set(i+1-1, i-1, zero)

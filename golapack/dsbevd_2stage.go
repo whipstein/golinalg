@@ -23,6 +23,8 @@ func Dsbevd2stage(jobz, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, w *mat
 	var lower, lquery, wantz bool
 	var anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, zero float64
 	var ib, iinfo, inde, indhous, indwk2, indwrk, iscale, lhtrd, liwmin, llwork, llwrk2, lwmin, lwtrd int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -134,13 +136,13 @@ func Dsbevd2stage(jobz, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, w *mat
 		Dsterf(n, w, work.Off(inde-1), info)
 	} else {
 		Dstedc('I', n, w, work.Off(inde-1), work.MatrixOff(indwrk-1, *n, opts), n, work.Off(indwk2-1), &llwrk2, iwork, liwork, info)
-		goblas.Dgemm(NoTrans, NoTrans, n, n, n, &one, z, ldz, work.MatrixOff(indwrk-1, *n, opts), n, &zero, work.MatrixOff(indwk2-1, *n, opts), n)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, z, *ldz, work.MatrixOff(indwrk-1, *n, opts), *n, zero, work.MatrixOff(indwk2-1, *n, opts), *n)
 		Dlacpy('A', n, n, work.MatrixOff(indwk2-1, *n, opts), n, z, ldz)
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(*n, one/sigma, w, 1)
 	}
 
 	work.Set(0, float64(lwmin))

@@ -14,6 +14,8 @@ import (
 // computed by DGERQF.
 func Dgerqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Matrix, ldb *int, work *mat.Vector, lwork, info *int) {
 	var one, zero float64
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -44,7 +46,7 @@ func Dgerqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 	}
 
 	//     Solve R*X = B((*n)-(*m)+1:(*n),:)
-	goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, m, nrhs, &one, a.Off(0, (*n)-(*m)+1-1), lda, b.Off((*n)-(*m)+1-1, 0), ldb)
+	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, *m, *nrhs, one, a.Off(0, (*n)-(*m)+1-1), *lda, b.Off((*n)-(*m)+1-1, 0), *ldb)
 
 	//     Set B(1:(*n)-(*m),:) to zero
 	golapack.Dlaset('F', toPtr((*n)-(*m)), &(*nrhs), &zero, &zero, b, &(*ldb))

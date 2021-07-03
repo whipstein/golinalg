@@ -17,7 +17,7 @@ func Zptts2(iuplo, n, nrhs *int, d *mat.Vector, e *mat.CVector, b *mat.CMatrix, 
 	//     Quick return if possible
 	if (*n) <= 1 {
 		if (*n) == 1 {
-			goblas.Zdscal(nrhs, toPtrf64(1./d.Get(0)), b.CVector(0, 0), ldb)
+			goblas.Zdscal(*nrhs, 1./d.Get(0), b.CVector(0, 0), *ldb)
 		}
 		return
 	}

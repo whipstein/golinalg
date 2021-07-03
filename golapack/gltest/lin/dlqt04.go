@@ -10,6 +10,9 @@ import (
 func Dlqt04(m, n, nb *int, result *mat.Vector) {
 	var anorm, cnorm, dnorm, eps, one, resid, zero float64
 	var info, j, k, ldt, ll, lwork int
+	var err error
+	_ = err
+
 	iseed := make([]int, 4)
 
 	zero = 0.0
@@ -55,7 +58,7 @@ func Dlqt04(m, n, nb *int, result *mat.Vector) {
 	golapack.Dlacpy('L', m, n, af, m, l, &ll)
 
 	//     Compute |L - A*Q'| / |A| and store in RESULT(1)
-	goblas.Dgemm(NoTrans, Trans, m, n, n, toPtrf64(-one), a, m, q, n, &one, l, &ll)
+	err = goblas.Dgemm(NoTrans, Trans, *m, *n, *n, -one, a, *m, q, *n, one, l, ll)
 	anorm = golapack.Dlange('1', m, n, a, m, rwork)
 	resid = golapack.Dlange('1', m, n, l, &ll, rwork)
 	if anorm > zero {
@@ -66,7 +69,7 @@ func Dlqt04(m, n, nb *int, result *mat.Vector) {
 
 	//     Compute |I - Q'*Q| and store in RESULT(2)
 	golapack.Dlaset('F', n, n, &zero, &one, l, &ll)
-	goblas.Dsyrk(Upper, ConjTrans, n, n, toPtrf64(-one), q, n, &one, l, &ll)
+	err = goblas.Dsyrk(Upper, ConjTrans, *n, *n, -one, q, *n, one, l, ll)
 	resid = golapack.Dlansy('1', 'U', n, l, &ll, rwork)
 	result.Set(1, resid/(eps*float64(maxint(1, *n))))
 
@@ -81,7 +84,7 @@ func Dlqt04(m, n, nb *int, result *mat.Vector) {
 	golapack.Dgemlqt('L', 'N', n, m, &k, nb, af, m, t, nb, df, n, work, &info)
 
 	//     Compute |Q*D - Q*D| / |D|
-	goblas.Dgemm(NoTrans, NoTrans, n, m, n, toPtrf64(-one), q, n, d, n, &one, df, n)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *m, *n, -one, q, *n, d, *n, one, df, *n)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
 		result.Set(2, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -96,7 +99,7 @@ func Dlqt04(m, n, nb *int, result *mat.Vector) {
 	golapack.Dgemlqt('L', 'T', n, m, &k, nb, af, m, t, nb, df, n, work, &info)
 
 	//     Compute |QT*D - QT*D| / |D|
-	goblas.Dgemm(Trans, NoTrans, n, m, n, toPtrf64(-one), q, n, d, n, &one, df, n)
+	err = goblas.Dgemm(Trans, NoTrans, *n, *m, *n, -one, q, *n, d, *n, one, df, *n)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
 		result.Set(3, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -115,7 +118,7 @@ func Dlqt04(m, n, nb *int, result *mat.Vector) {
 	golapack.Dgemlqt('R', 'N', m, n, &k, nb, af, m, t, nb, cf, m, work, &info)
 
 	//     Compute |C*Q - C*Q| / |C|
-	goblas.Dgemm(NoTrans, NoTrans, m, n, n, toPtrf64(-one), c, m, q, n, &one, cf, m)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, c, *m, q, *n, one, cf, *m)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if cnorm > zero {
 		result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -130,7 +133,7 @@ func Dlqt04(m, n, nb *int, result *mat.Vector) {
 	golapack.Dgemlqt('R', 'T', m, n, &k, nb, af, m, t, nb, cf, m, work, &info)
 
 	//     Compute |C*QT - C*QT| / |C|
-	goblas.Dgemm(NoTrans, Trans, m, n, n, toPtrf64(-one), c, m, q, n, &one, cf, m)
+	err = goblas.Dgemm(NoTrans, Trans, *m, *n, *n, -one, c, *m, q, *n, one, cf, *m)
 	resid = golapack.Dlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
 		result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))

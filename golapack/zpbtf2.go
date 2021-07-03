@@ -22,6 +22,8 @@ func Zpbtf2(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, kld, kn int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -66,9 +68,9 @@ func Zpbtf2(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			//           trailing submatrix within the band.
 			kn = minint(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Zdscal(&kn, toPtrf64(one/ajj), ab.CVector((*kd)-1, j+1-1), &kld)
+				goblas.Zdscal(kn, one/ajj, ab.CVector((*kd)-1, j+1-1), kld)
 				Zlacgv(&kn, ab.CVector((*kd)-1, j+1-1), &kld)
-				goblas.Zher(Upper, &kn, toPtrf64(-one), ab.CVector((*kd)-1, j+1-1), &kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), &kld)
+				err = goblas.Zher(Upper, kn, -one, ab.CVector((*kd)-1, j+1-1), kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), kld)
 				Zlacgv(&kn, ab.CVector((*kd)-1, j+1-1), &kld)
 			}
 		}
@@ -88,8 +90,8 @@ func Zpbtf2(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			//           trailing submatrix within the band.
 			kn = minint(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Zdscal(&kn, toPtrf64(one/ajj), ab.CVector(1, j-1), func() *int { y := 1; return &y }())
-				goblas.Zher(Lower, &kn, toPtrf64(-one), ab.CVector(1, j-1), func() *int { y := 1; return &y }(), ab.Off(0, j+1-1).UpdateRows(kld), &kld)
+				goblas.Zdscal(kn, one/ajj, ab.CVector(1, j-1), 1)
+				err = goblas.Zher(Lower, kn, -one, ab.CVector(1, j-1), 1, ab.Off(0, j+1-1).UpdateRows(kld), kld)
 			}
 		}
 	}

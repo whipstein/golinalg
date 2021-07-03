@@ -266,7 +266,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			golapack.Zlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Zdscal(&n, &vmul, t.CVector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(n, vmul, t.CVector(0, i-1), 1)
 			}
 			if tnrm == zero {
 				vmul = one

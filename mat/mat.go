@@ -124,7 +124,7 @@ func (t MatTrans) String() string {
 	case ConjTrans:
 		return "ConjTrans"
 	}
-	return ""
+	return string(t)
 }
 func (t MatTrans) IsValid() bool {
 	if t == NoTrans || t == Trans || t == ConjTrans {
@@ -180,7 +180,7 @@ func (u MatUplo) String() string {
 	case Upper:
 		return "Upper"
 	}
-	return ""
+	return string(u)
 }
 func (u MatUplo) IsValid() bool {
 	if u == Lower || u == Upper || u == Full {
@@ -227,7 +227,7 @@ func (d MatDiag) String() string {
 	case Unit:
 		return "Unit"
 	}
-	return ""
+	return string(d)
 }
 func (d MatDiag) IsValid() bool {
 	if d == NonUnit || d == Unit {
@@ -272,7 +272,7 @@ func (s MatSide) String() string {
 	case Right:
 		return "Right"
 	}
-	return ""
+	return string(s)
 }
 func (s MatSide) IsValid() bool {
 	if s == Left || s == Right {
@@ -528,6 +528,38 @@ func (m *Matrix) UpdateCols(c int) *Matrix {
 func (m *Matrix) UpdateRows(r int) *Matrix {
 	m.Rows = r
 	m.Cols = len(m.Data) / m.Rows
+	return m
+}
+func (m *Matrix) ToColMajor() *Matrix {
+	if m.Opts.Major == Col {
+		return m
+	}
+
+	optsNew := m.Opts.DeepCopy()
+	optsNew.Major = Col
+	a := &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]float64, m.Rows*m.Cols)}
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			a.Set(i, j, m.Get(i, j))
+		}
+	}
+	m = a.Copy(0, 0)
+	return m
+}
+func (m *Matrix) ToRowMajor() *Matrix {
+	if m.Opts.Major == Row {
+		return m
+	}
+
+	optsNew := m.Opts.DeepCopy()
+	optsNew.Major = Row
+	a := &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]float64, m.Rows*m.Cols)}
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			a.Set(i, j, m.Get(i, j))
+		}
+	}
+	m = a.Copy(0, 0)
 	return m
 }
 
@@ -807,6 +839,38 @@ func (m *CMatrix) UpdateCols(c int) *CMatrix {
 func (m *CMatrix) UpdateRows(r int) *CMatrix {
 	m.Rows = r
 	m.Cols = len(m.Data) / m.Rows
+	return m
+}
+func (m *CMatrix) ToColMajor() *CMatrix {
+	if m.Opts.Major == Col {
+		return m
+	}
+
+	optsNew := m.Opts.DeepCopy()
+	optsNew.Major = Col
+	a := &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]complex128, m.Rows*m.Cols)}
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			a.Set(i, j, m.Get(i, j))
+		}
+	}
+	m = a.Copy(0, 0)
+	return m
+}
+func (m *CMatrix) ToRowMajor() *CMatrix {
+	if m.Opts.Major == Row {
+		return m
+	}
+
+	optsNew := m.Opts.DeepCopy()
+	optsNew.Major = Row
+	a := &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]complex128, m.Rows*m.Cols)}
+	for i := 0; i < m.Rows; i++ {
+		for j := 0; j < m.Cols; j++ {
+			a.Set(i, j, m.Get(i, j))
+		}
+	}
+	m = a.Copy(0, 0)
 	return m
 }
 

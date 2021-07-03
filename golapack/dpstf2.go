@@ -23,6 +23,8 @@ func Dpstf2(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 	var upper bool
 	var ajj, dstop, dtemp, one, zero float64
 	var i, itemp, j, pvt int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -111,11 +113,11 @@ func Dpstf2(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 			if j != pvt {
 				//              Pivot OK, so can now swap pivot rows and columns
 				a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-				goblas.Dswap(toPtr(j-1), a.Vector(0, j-1), toPtr(1), a.Vector(0, pvt-1), toPtr(1))
+				goblas.Dswap(j-1, a.Vector(0, j-1), 1, a.Vector(0, pvt-1), 1)
 				if pvt < (*n) {
-					goblas.Dswap(toPtr((*n)-pvt), a.Vector(j-1, pvt+1-1), lda, a.Vector(pvt-1, pvt+1-1), lda)
+					goblas.Dswap((*n)-pvt, a.Vector(j-1, pvt+1-1), *lda, a.Vector(pvt-1, pvt+1-1), *lda)
 				}
-				goblas.Dswap(toPtr(pvt-j-1), a.Vector(j-1, j+1-1), lda, a.Vector(j+1-1, pvt-1), toPtr(1))
+				goblas.Dswap(pvt-j-1, a.Vector(j-1, j+1-1), *lda, a.Vector(j+1-1, pvt-1), 1)
 
 				//              Swap dot products and PIV
 				dtemp = work.Get(j - 1)
@@ -131,8 +133,8 @@ func Dpstf2(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 
 			//           Compute elements J+1:N of row J
 			if j < (*n) {
-				goblas.Dgemv(mat.Trans, toPtr(j-1), toPtr((*n)-j), toPtrf64(-one), a.Off(0, j+1-1), lda, a.Vector(0, j-1), toPtr(1), &one, a.Vector(j-1, j+1-1), lda)
-				goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), a.Vector(j-1, j+1-1), lda)
+				err = goblas.Dgemv(mat.Trans, j-1, (*n)-j, -one, a.Off(0, j+1-1), *lda, a.Vector(0, j-1), 1, one, a.Vector(j-1, j+1-1), *lda)
+				goblas.Dscal((*n)-j, one/ajj, a.Vector(j-1, j+1-1), *lda)
 			}
 
 		}
@@ -169,11 +171,11 @@ func Dpstf2(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 			if j != pvt {
 				//              Pivot OK, so can now swap pivot rows and columns
 				a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-				goblas.Dswap(toPtr(j-1), a.Vector(j-1, 0), lda, a.Vector(pvt-1, 0), lda)
+				goblas.Dswap(j-1, a.Vector(j-1, 0), *lda, a.Vector(pvt-1, 0), *lda)
 				if pvt < (*n) {
-					goblas.Dswap(toPtr((*n)-pvt), a.Vector(pvt+1-1, j-1), toPtr(1), a.Vector(pvt+1-1, pvt-1), toPtr(1))
+					goblas.Dswap((*n)-pvt, a.Vector(pvt+1-1, j-1), 1, a.Vector(pvt+1-1, pvt-1), 1)
 				}
-				goblas.Dswap(toPtr(pvt-j-1), a.Vector(j+1-1, j-1), toPtr(1), a.Vector(pvt-1, j+1-1), lda)
+				goblas.Dswap(pvt-j-1, a.Vector(j+1-1, j-1), 1, a.Vector(pvt-1, j+1-1), *lda)
 
 				//              Swap dot products and PIV
 				dtemp = work.Get(j - 1)
@@ -189,8 +191,8 @@ func Dpstf2(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 
 			//           Compute elements J+1:N of column J
 			if j < (*n) {
-				goblas.Dgemv(mat.NoTrans, toPtr((*n)-j), toPtr(j-1), toPtrf64(-one), a.Off(j+1-1, 0), lda, a.Vector(j-1, 0), lda, &one, a.Vector(j+1-1, j-1), toPtr(1))
-				goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), a.Vector(j+1-1, j-1), toPtr(1))
+				err = goblas.Dgemv(NoTrans, (*n)-j, j-1, -one, a.Off(j+1-1, 0), *lda, a.Vector(j-1, 0), *lda, one, a.Vector(j+1-1, j-1), 1)
+				goblas.Dscal((*n)-j, one/ajj, a.Vector(j+1-1, j-1), 1)
 			}
 
 		}

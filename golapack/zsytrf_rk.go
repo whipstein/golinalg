@@ -110,7 +110,7 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			for i = k; i >= (k - kb + 1); i-- {
 				ip = absint((*ipiv)[i-1])
 				if ip != i {
-					goblas.Zswap(toPtr((*n)-k), a.CVector(i-1, k+1-1), lda, a.CVector(ip-1, k+1-1), lda)
+					goblas.Zswap((*n)-k, a.CVector(i-1, k+1-1), *lda, a.CVector(ip-1, k+1-1), *lda)
 				}
 			}
 		}
@@ -174,7 +174,7 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			for i = k; i <= (k + kb - 1); i++ {
 				ip = absint((*ipiv)[i-1])
 				if ip != i {
-					goblas.Zswap(toPtr(k-1), a.CVector(i-1, 0), lda, a.CVector(ip-1, 0), lda)
+					goblas.Zswap(k-1, a.CVector(i-1, 0), *lda, a.CVector(ip-1, 0), *lda)
 				}
 			}
 		}

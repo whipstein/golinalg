@@ -13,6 +13,8 @@ import (
 func Zgbtf2(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *int) {
 	var one, zero complex128
 	var i, j, jp, ju, km, kv int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -68,22 +70,22 @@ func Zgbtf2(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 		//        Find pivot and test for singularity. KM is the number of
 		//        subdiagonal elements in the current column.
 		km = minint(*kl, (*m)-j)
-		jp = goblas.Izamax(toPtr(km+1), ab.CVector(kv+1-1, j-1), func() *int { y := 1; return &y }())
+		jp = goblas.Izamax(km+1, ab.CVector(kv+1-1, j-1), 1)
 		(*ipiv)[j-1] = jp + j - 1
 		if ab.Get(kv+jp-1, j-1) != zero {
 			ju = maxint(ju, minint(j+(*ku)+jp-1, *n))
 
 			//           Apply interchange to columns J to JU.
 			if jp != 1 {
-				goblas.Zswap(toPtr(ju-j+1), ab.CVector(kv+jp-1, j-1), toPtr((*ldab)-1), ab.CVector(kv+1-1, j-1), toPtr((*ldab)-1))
+				goblas.Zswap(ju-j+1, ab.CVector(kv+jp-1, j-1), (*ldab)-1, ab.CVector(kv+1-1, j-1), (*ldab)-1)
 			}
 			if km > 0 {
 				//              Compute multipliers.
-				goblas.Zscal(&km, toPtrc128(one/ab.Get(kv+1-1, j-1)), ab.CVector(kv+2-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(km, one/ab.Get(kv+1-1, j-1), ab.CVector(kv+2-1, j-1), 1)
 
 				//              Update trailing submatrix within the band.
 				if ju > j {
-					goblas.Zgeru(&km, toPtr(ju-j), toPtrc128(-one), ab.CVector(kv+2-1, j-1), func() *int { y := 1; return &y }(), ab.CVector(kv-1, j+1-1), toPtr((*ldab)-1), ab.Off(kv+1-1, j+1-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1))
+					err = goblas.Zgeru(km, ju-j, -one, ab.CVector(kv+2-1, j-1), 1, ab.CVector(kv-1, j+1-1), (*ldab)-1, ab.Off(kv+1-1, j+1-1).UpdateRows((*ldab)-1), (*ldab)-1)
 				}
 			}
 		} else {

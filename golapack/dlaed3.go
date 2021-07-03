@@ -24,6 +24,8 @@ import (
 func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64, dlamda, q2 *mat.Vector, indx, ctot *[]int, w, s *mat.Vector, info *int) {
 	var one, temp, zero float64
 	var i, ii, iq2, j, n12, n2, n23 int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -93,10 +95,10 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(k, w, toPtr(1), s, toPtr(1))
+	goblas.Dcopy(*k, w, 1, s, 1)
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(k, q.VectorIdx(0), toPtr((*ldq)+1), w, toPtr(1))
+	goblas.Dcopy(*k, q.VectorIdx(0), (*ldq)+1, w, 1)
 	for j = 1; j <= (*k); j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
@@ -114,7 +116,7 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 		for i = 1; i <= (*k); i++ {
 			s.Set(i-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(k, s, toPtr(1))
+		temp = goblas.Dnrm2(*k, s, 1)
 		for i = 1; i <= (*k); i++ {
 			ii = (*indx)[i-1]
 			q.Set(i-1, j-1, s.Get(ii-1)/temp)
@@ -132,14 +134,14 @@ label110:
 	Dlacpy('A', &n23, k, q.Off((*ctot)[0]+1-1, 0), ldq, s.Matrix(n23, opts), &n23)
 	iq2 = (*n1)*n12 + 1
 	if n23 != 0 {
-		goblas.Dgemm(NoTrans, NoTrans, &n2, k, &n23, &one, q2.MatrixOff(iq2-1, n2, opts), &n2, s.Matrix(n23, opts), &n23, &zero, q.Off((*n1)+1-1, 0), ldq)
+		err = goblas.Dgemm(NoTrans, NoTrans, n2, *k, n23, one, q2.MatrixOff(iq2-1, n2, opts), n2, s.Matrix(n23, opts), n23, zero, q.Off((*n1)+1-1, 0), *ldq)
 	} else {
 		Dlaset('A', &n2, k, &zero, &zero, q.Off((*n1)+1-1, 0), ldq)
 	}
 
 	Dlacpy('A', &n12, k, q, ldq, s.Matrix(n12, opts), &n12)
 	if n12 != 0 {
-		goblas.Dgemm(NoTrans, NoTrans, n1, k, &n12, &one, q2.Matrix(*n1, opts), n1, s.Matrix(n12, opts), &n12, &zero, q, ldq)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n1, *k, n12, one, q2.Matrix(*n1, opts), *n1, s.Matrix(n12, opts), n12, zero, q, *ldq)
 	} else {
 		Dlaset('A', n1, k, &zero, &zero, q.Off(0, 0), ldq)
 	}

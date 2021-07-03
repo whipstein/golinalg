@@ -15,6 +15,8 @@ func Dgetri(n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Matrix, lwor
 	var lquery bool
 	var one, zero float64
 	var i, iws, j, jb, jj, jp, ldwork, lwkopt, nb, nbmin, nn int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -75,7 +77,7 @@ func Dgetri(n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Matrix, lwor
 
 			//           Compute current column of inv(A).
 			if j < (*n) {
-				goblas.Dgemv(mat.NoTrans, n, toPtr((*n)-j), toPtrf64(-one), a.Off(0, j+1-1), lda, work.VectorIdx(j+1-1), toPtr(1), &one, a.Vector(0, j-1), toPtr(1))
+				err = goblas.Dgemv(NoTrans, *n, (*n)-j, -one, a.Off(0, j+1-1), *lda, work.VectorIdx(j+1-1), 1, one, a.Vector(0, j-1), 1)
 			}
 		}
 	} else {
@@ -95,9 +97,9 @@ func Dgetri(n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Matrix, lwor
 
 			//           Compute current block column of inv(A).
 			if j+jb <= (*n) {
-				goblas.Dgemm(mat.NoTrans, mat.NoTrans, n, &jb, toPtr((*n)-j-jb+1), toPtrf64(-one), a.Off(0, j+jb-1), lda, work.OffIdx(j+jb-1), &ldwork, &one, a.Off(0, j-1), lda)
+				err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, *n, jb, (*n)-j-jb+1, -one, a.Off(0, j+jb-1), *lda, work.OffIdx(j+jb-1), ldwork, one, a.Off(0, j-1), *lda)
 			}
-			goblas.Dtrsm(mat.Right, mat.Lower, mat.NoTrans, mat.Unit, n, &jb, &one, work.OffIdx(j-1), &ldwork, a.Off(0, j-1), lda)
+			err = goblas.Dtrsm(mat.Right, mat.Lower, mat.NoTrans, mat.Unit, *n, jb, one, work.OffIdx(j-1), ldwork, a.Off(0, j-1), *lda)
 		}
 	}
 
@@ -105,7 +107,7 @@ func Dgetri(n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Matrix, lwor
 	for j = (*n) - 1; j >= 1; j-- {
 		jp = (*ipiv)[j-1]
 		if jp != j {
-			goblas.Dswap(n, a.Vector(0, j-1), toPtr(1), a.Vector(0, jp-1), toPtr(1))
+			goblas.Dswap(*n, a.Vector(0, j-1), 1, a.Vector(0, jp-1), 1)
 		}
 	}
 

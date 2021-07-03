@@ -81,7 +81,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(n, b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
 		Zlagtm(trans, n, func() *int { y := 1; return &y }(), toPtrf64(-one), dl, d, du, x.Off(0, j-1), ldx, &one, work.CMatrix(*n, opts), n)
 
 		//        Compute abs(op(A))*abs(x) + abs(b) for use in the backward
@@ -134,7 +134,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zgttrs(trans, n, func() *int { y := 1; return &y }(), dlf, df, duf, du2, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(n, toPtrc128(complex(one, 0)), work, func() *int { y := 1; return &y }(), x.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zaxpy(*n, complex(one, 0), work, 1, x.CVector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

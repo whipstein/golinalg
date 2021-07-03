@@ -143,7 +143,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		//        The eigenvalue approximations will be refined when necessary as
 		//        high relative accuracy is required for the computation of the
 		//        corresponding eigenvectors.
-		goblas.Dcopy(&im, w.Off(wbegin-1), func() *int { y := 1; return &y }(), work.Off(wbegin-1), func() *int { y := 1; return &y }())
+		goblas.Dcopy(im, w.Off(wbegin-1), 1, work.Off(wbegin-1), 1)
 		//        We store in W the eigenvalue approximations w.r.t. the original
 		//        matrix T.
 		for i = 1; i <= im; i++ {
@@ -590,7 +590,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 								z.SetRe(ii-1, windex-1, zero)
 							}
 						}
-						goblas.Zdscal(toPtr(zto-zfrom+1), &nrminv, z.CVector(zfrom-1, windex-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(zto-zfrom+1, nrminv, z.CVector(zfrom-1, windex-1), 1)
 					label125:
 						;
 						//                    Update W

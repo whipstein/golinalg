@@ -12,6 +12,8 @@ import (
 func Dget03(n *int, a *mat.Matrix, lda *int, ainv *mat.Matrix, ldainv *int, work *mat.Matrix, ldwork *int, rwork *mat.Vector, rcond *float64, resid *float64) {
 	var ainvnm, anorm, eps, one, zero float64
 	var i int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -35,7 +37,7 @@ func Dget03(n *int, a *mat.Matrix, lda *int, ainv *mat.Matrix, ldainv *int, work
 	(*rcond) = (one / anorm) / ainvnm
 
 	//     Compute I - A * AINV
-	goblas.Dgemm(mat.NoTrans, mat.NoTrans, n, n, n, toPtrf64(-one), ainv, ldainv, a, lda, &zero, work, ldwork)
+	err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, *n, *n, *n, -one, ainv, *ldainv, a, *lda, zero, work, *ldwork)
 	for i = 1; i <= (*n); i++ {
 		work.Set(i-1, i-1, one+work.Get(i-1, i-1))
 	}

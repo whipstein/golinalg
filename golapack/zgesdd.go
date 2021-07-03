@@ -34,6 +34,9 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 	var cone, czero complex128
 	var anrm, bignum, eps, one, smlnum, zero float64
 	var blk, chunk, i, ie, ierr, il, ir, iru, irvt, iscl, itau, itaup, itauq, iu, ivt, ldwkvt, ldwrkl, ldwrkr, ldwrku, lworkZgebrdMm, lworkZgebrdMn, lworkZgebrdNn, lworkZgelqfMn, lworkZgeqrfMn, lworkZungbrPMn, lworkZungbrPNn, lworkZungbrQMm, lworkZungbrQMn, lworkZunglqMn, lworkZunglqNn, lworkZungqrMm, lworkZungqrMn, lworkZunmbrPrcMm, lworkZunmbrPrcMn, lworkZunmbrPrcNn, lworkZunmbrQlnMm, lworkZunmbrQlnMn, lworkZunmbrQlnNn, maxwrk, minmn, minwrk, mnthr1, mnthr2, nrwork, nwork, wrkbl int
+	var err error
+	_ = err
+
 	cdum := cvf(100)
 	dum := vf(100)
 	idum := make([]int, 1)
@@ -467,9 +470,8 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 				//              RWorkspace: need   0
 				for i = 1; i <= (*m); i += ldwrkr {
 					chunk = minint((*m)-i+1, ldwrkr)
-					goblas.Zgemm(NoTrans, NoTrans, &chunk, n, n, &cone, a.Off(i-1, 0), lda, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku, &czero, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+					err = goblas.Zgemm(NoTrans, NoTrans, chunk, *n, *n, cone, a.Off(i-1, 0), *lda, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, czero, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr)
 					Zlacpy('F', &chunk, n, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a.Off(i-1, 0), lda)
-					//Label10:
 				}
 
 			} else if wntqs {
@@ -540,7 +542,7 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 				//              CWorkspace: need   N*N [R]
 				//              RWorkspace: need   0
 				Zlacpy('F', n, n, u, ldu, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-				goblas.Zgemm(NoTrans, NoTrans, m, n, n, &cone, a, lda, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr, &czero, u, ldu)
+				err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, *lda, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, czero, u, *ldu)
 
 			} else if wntqa {
 				//              Path 4 (M >> N, JOBZ='A')
@@ -609,7 +611,7 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 				//              WORK(IU), storing result in A
 				//              CWorkspace: need   N*N [U]
 				//              RWorkspace: need   0
-				goblas.Zgemm(NoTrans, NoTrans, m, n, n, &cone, u, ldu, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku, &czero, a, lda)
+				err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, *ldu, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, czero, a, *lda)
 
 				//              Copy left singular vectors of A from A to U
 				Zlacpy('F', m, n, a, lda, u, ldu)
@@ -1046,7 +1048,7 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 				//              RWorkspace: need   0
 				for i = 1; i <= (*n); i += chunk {
 					blk = minint((*n)-i+1, chunk)
-					goblas.Zgemm(NoTrans, NoTrans, m, &blk, m, &cone, work.CMatrixOff(ivt-1, *m, opts), m, a.Off(0, i-1), lda, &czero, work.CMatrixOff(il-1, ldwrkl, opts), &ldwrkl)
+					err = goblas.Zgemm(NoTrans, NoTrans, *m, blk, *m, cone, work.CMatrixOff(ivt-1, *m, opts), *m, a.Off(0, i-1), *lda, czero, work.CMatrixOff(il-1, ldwrkl, opts), ldwrkl)
 					Zlacpy('F', m, &blk, work.CMatrixOff(il-1, ldwrkl, opts), &ldwrkl, a.Off(0, i-1), lda)
 				}
 
@@ -1118,7 +1120,7 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 				//              CWorkspace: need   M*M [L]
 				//              RWorkspace: need   0
 				Zlacpy('F', m, m, vt, ldvt, work.CMatrixOff(il-1, ldwrkl, opts), &ldwrkl)
-				goblas.Zgemm(NoTrans, NoTrans, m, n, m, &cone, work.CMatrixOff(il-1, ldwrkl, opts), &ldwrkl, a, lda, &czero, vt, ldvt)
+				err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(il-1, ldwrkl, opts), ldwrkl, a, *lda, czero, vt, *ldvt)
 
 			} else if wntqa {
 				//              Path 4t (N >> M, JOBZ='A')
@@ -1187,7 +1189,7 @@ func Zgesdd(jobz byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, u *ma
 				//              Q in VT, storing result in A
 				//              CWorkspace: need   M*M [VT]
 				//              RWorkspace: need   0
-				goblas.Zgemm(NoTrans, NoTrans, m, n, m, &cone, work.CMatrixOff(ivt-1, ldwkvt, opts), &ldwkvt, vt, ldvt, &czero, a, lda)
+				err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(ivt-1, ldwkvt, opts), ldwkvt, vt, *ldvt, czero, a, *lda)
 
 				//              Copy right singular vectors of A from A to VT
 				Zlacpy('F', m, n, a, lda, vt, ldvt)

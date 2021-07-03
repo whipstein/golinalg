@@ -178,7 +178,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 	//     Do Test (3)
 	for j = 1; j <= (*n); j++ {
-		tnrm = goblas.Dznrm2(n, vr.CVector(0, j-1), func() *int { y := 1; return &y }())
+		tnrm = goblas.Dznrm2(*n, vr.CVector(0, j-1), 1)
 		result.Set(2, maxf64(result.Get(2), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
 		vmx = zero
 		vrmx = zero
@@ -198,7 +198,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 	//     Do Test (4)
 	for j = 1; j <= (*n); j++ {
-		tnrm = goblas.Dznrm2(n, vl.CVector(0, j-1), func() *int { y := 1; return &y }())
+		tnrm = goblas.Dznrm2(*n, vl.CVector(0, j-1), 1)
 		result.Set(3, maxf64(result.Get(3), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
 		vmx = zero
 		vrmx = zero

@@ -12,6 +12,8 @@ import (
 func Zpotrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb, info *int) {
 	var upper bool
 	var one complex128
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -43,17 +45,17 @@ func Zpotrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, l
 		//        Solve A*X = B where A = U**H *U.
 		//
 		//        Solve U**H *X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Solve U*X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 	} else {
 		//        Solve A*X = B where A = L*L**H.
 		//
 		//        Solve L*X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Solve L**H *X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Lower, ConjTrans, NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, ConjTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 	}
 }

@@ -24,6 +24,8 @@ func Zpstf2(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 	var cone, ztemp complex128
 	var ajj, dstop, dtemp, one, zero float64
 	var i, itemp, j, pvt int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -114,9 +116,9 @@ func Zpstf2(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 			if j != pvt {
 				//              Pivot OK, so can now swap pivot rows and columns
 				a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-				goblas.Zswap(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }(), a.CVector(0, pvt-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(j-1, a.CVector(0, j-1), 1, a.CVector(0, pvt-1), 1)
 				if pvt < (*n) {
-					goblas.Zswap(toPtr((*n)-pvt), a.CVector(j-1, pvt+1-1), lda, a.CVector(pvt-1, pvt+1-1), lda)
+					goblas.Zswap((*n)-pvt, a.CVector(j-1, pvt+1-1), *lda, a.CVector(pvt-1, pvt+1-1), *lda)
 				}
 				for i = j + 1; i <= pvt-1; i++ {
 					ztemp = a.GetConj(j-1, i-1)
@@ -140,9 +142,9 @@ func Zpstf2(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 			//           Compute elements J+1:N of row J
 			if j < (*n) {
 				Zlacgv(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(Trans, toPtr(j-1), toPtr((*n)-j), toPtrc128(-cone), a.Off(0, j+1-1), lda, a.CVector(0, j-1), func() *int { y := 1; return &y }(), &cone, a.CVector(j-1, j+1-1), lda)
+				err = goblas.Zgemv(Trans, j-1, (*n)-j, -cone, a.Off(0, j+1-1), *lda, a.CVector(0, j-1), 1, cone, a.CVector(j-1, j+1-1), *lda)
 				Zlacgv(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-				goblas.Zdscal(toPtr((*n)-j), toPtrf64(one/ajj), a.CVector(j-1, j+1-1), lda)
+				goblas.Zdscal((*n)-j, one/ajj, a.CVector(j-1, j+1-1), *lda)
 			}
 
 		}
@@ -179,9 +181,9 @@ func Zpstf2(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 			if j != pvt {
 				//              Pivot OK, so can now swap pivot rows and columns
 				a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-				goblas.Zswap(toPtr(j-1), a.CVector(j-1, 0), lda, a.CVector(pvt-1, 0), lda)
+				goblas.Zswap(j-1, a.CVector(j-1, 0), *lda, a.CVector(pvt-1, 0), *lda)
 				if pvt < (*n) {
-					goblas.Zswap(toPtr((*n)-pvt), a.CVector(pvt+1-1, j-1), func() *int { y := 1; return &y }(), a.CVector(pvt+1-1, pvt-1), func() *int { y := 1; return &y }())
+					goblas.Zswap((*n)-pvt, a.CVector(pvt+1-1, j-1), 1, a.CVector(pvt+1-1, pvt-1), 1)
 				}
 				for i = j + 1; i <= pvt-1; i++ {
 					ztemp = a.GetConj(i-1, j-1)
@@ -205,9 +207,9 @@ func Zpstf2(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 			//           Compute elements J+1:N of column J
 			if j < (*n) {
 				Zlacgv(toPtr(j-1), a.CVector(j-1, 0), lda)
-				goblas.Zgemv(NoTrans, toPtr((*n)-j), toPtr(j-1), toPtrc128(-cone), a.Off(j+1-1, 0), lda, a.CVector(j-1, 0), lda, &cone, a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*n)-j, j-1, -cone, a.Off(j+1-1, 0), *lda, a.CVector(j-1, 0), *lda, cone, a.CVector(j+1-1, j-1), 1)
 				Zlacgv(toPtr(j-1), a.CVector(j-1, 0), lda)
-				goblas.Zdscal(toPtr((*n)-j), toPtrf64(one/ajj), a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-j, one/ajj, a.CVector(j+1-1, j-1), 1)
 			}
 
 		}

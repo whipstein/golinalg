@@ -12,6 +12,8 @@ import (
 func Dtplqt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *mat.Matrix, ldt, info *int) {
 	var alpha, one, zero float64
 	var i, j, mp, np, p int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -50,14 +52,14 @@ func Dtplqt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *
 			for j = 1; j <= (*m)-i; j++ {
 				t.Set((*m)-1, j-1, a.Get(i+j-1, i-1))
 			}
-			goblas.Dgemv(NoTrans, toPtr((*m)-i), &p, &one, b.Off(i+1-1, 0), ldb, b.Vector(i-1, 0), ldb, &one, t.Vector((*m)-1, 0), ldt)
+			err = goblas.Dgemv(NoTrans, (*m)-i, p, one, b.Off(i+1-1, 0), *ldb, b.Vector(i-1, 0), *ldb, one, t.Vector((*m)-1, 0), *ldt)
 
 			//           C(I+1:M,I:N) = C(I+1:M,I:N) + alpha * C(I,I:N)*W(M-1:1)^H
 			alpha = -t.Get(0, i-1)
 			for j = 1; j <= (*m)-i; j++ {
 				a.Set(i+j-1, i-1, a.Get(i+j-1, i-1)+alpha*t.Get((*m)-1, j-1))
 			}
-			goblas.Dger(toPtr((*m)-i), &p, &alpha, t.Vector((*m)-1, 0), ldt, b.Vector(i-1, 0), ldb, b.Off(i+1-1, 0), ldb)
+			err = goblas.Dger((*m)-i, p, alpha, t.Vector((*m)-1, 0), *ldt, b.Vector(i-1, 0), *ldb, b.Off(i+1-1, 0), *ldb)
 		}
 	}
 
@@ -75,16 +77,16 @@ func Dtplqt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *
 		for j = 1; j <= p; j++ {
 			t.Set(i-1, j-1, alpha*b.Get(i-1, (*n)-(*l)+j-1))
 		}
-		goblas.Dtrmv(Lower, NoTrans, NonUnit, &p, b.Off(0, np-1), ldb, t.Vector(i-1, 0), ldt)
+		err = goblas.Dtrmv(Lower, NoTrans, NonUnit, p, b.Off(0, np-1), *ldb, t.Vector(i-1, 0), *ldt)
 
 		//        Rectangular part of B2
-		goblas.Dgemv(NoTrans, toPtr(i-1-p), l, &alpha, b.Off(mp-1, np-1), ldb, b.Vector(i-1, np-1), ldb, &zero, t.Vector(i-1, mp-1), ldt)
+		err = goblas.Dgemv(NoTrans, i-1-p, *l, alpha, b.Off(mp-1, np-1), *ldb, b.Vector(i-1, np-1), *ldb, zero, t.Vector(i-1, mp-1), *ldt)
 
 		//        B1
-		goblas.Dgemv(NoTrans, toPtr(i-1), toPtr((*n)-(*l)), &alpha, b, ldb, b.Vector(i-1, 0), ldb, &one, t.Vector(i-1, 0), ldt)
+		err = goblas.Dgemv(NoTrans, i-1, (*n)-(*l), alpha, b, *ldb, b.Vector(i-1, 0), *ldb, one, t.Vector(i-1, 0), *ldt)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(I,1:I-1)
-		goblas.Dtrmv(Lower, Trans, NonUnit, toPtr(i-1), t, ldt, t.Vector(i-1, 0), ldt)
+		err = goblas.Dtrmv(Lower, Trans, NonUnit, i-1, t, *ldt, t.Vector(i-1, 0), *ldt)
 
 		//        T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(0, i-1))

@@ -160,13 +160,13 @@ func Dlasdq(uplo byte, sqre, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.M
 			d.Set(isub-1, d.Get(i-1))
 			d.Set(i-1, smin)
 			if (*ncvt) > 0 {
-				goblas.Dswap(ncvt, vt.Vector(isub-1, 0), ldvt, vt.Vector(i-1, 0), ldvt)
+				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), *ldvt, vt.Vector(i-1, 0), *ldvt)
 			}
 			if (*nru) > 0 {
-				goblas.Dswap(nru, u.Vector(0, isub-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+				goblas.Dswap(*nru, u.Vector(0, isub-1), 1, u.Vector(0, i-1), 1)
 			}
 			if (*ncc) > 0 {
-				goblas.Dswap(ncc, c.Vector(isub-1, 0), ldc, c.Vector(i-1, 0), ldc)
+				goblas.Dswap(*ncc, c.Vector(isub-1, 0), *ldc, c.Vector(i-1, 0), *ldc)
 			}
 		}
 	}

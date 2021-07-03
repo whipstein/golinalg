@@ -14,6 +14,8 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 	var cone complex128
 	var one float64
 	var i, iinfo, iws, j, kk, ldwork, lwkopt, nb, nbmin, nx int
+	var err error
+	_ = err
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
@@ -91,7 +93,7 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 
 			//           Update the unreduced submatrix A(1:i-1,1:i-1), using an
 			//           update of the form:  A := A - V*W**H - W*V**H
-			goblas.Zher2k(mat.UploByte(uplo), NoTrans, toPtr(i-1), &nb, toPtrc128(-cone), a.Off(0, i-1), lda, work.CMatrix(ldwork, opts), &ldwork, &one, a, lda)
+			err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, i-1, nb, -cone, a.Off(0, i-1), *lda, work.CMatrix(ldwork, opts), ldwork, one, a, *lda)
 
 			//           Copy superdiagonal elements back into A, and diagonal
 			//           elements into D
@@ -113,7 +115,7 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 
 			//           Update the unreduced submatrix A(i+nb:n,i+nb:n), using
 			//           an update of the form:  A := A - V*W**H - W*V**H
-			goblas.Zher2k(mat.UploByte(uplo), NoTrans, toPtr((*n)-i-nb+1), &nb, toPtrc128(-cone), a.Off(i+nb-1, i-1), lda, work.CMatrixOff(nb+1-1, ldwork, opts), &ldwork, &one, a.Off(i+nb-1, i+nb-1), lda)
+			err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, (*n)-i-nb+1, nb, -cone, a.Off(i+nb-1, i-1), *lda, work.CMatrixOff(nb+1-1, ldwork, opts), ldwork, one, a.Off(i+nb-1, i+nb-1), *lda)
 
 			//           Copy subdiagonal elements back into A, and diagonal
 			//           elements into D

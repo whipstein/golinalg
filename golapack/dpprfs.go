@@ -16,6 +16,8 @@ func Dpprfs(uplo byte, n, nrhs *int, ap, afp *mat.Vector, b *mat.Matrix, ldb *in
 	var upper bool
 	var eps, lstres, one, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, ik, itmax, j, k, kase, kk, nz int
+	var err error
+	_ = err
 	isave := make([]int, 3)
 
 	itmax = 5
@@ -70,8 +72,8 @@ func Dpprfs(uplo byte, n, nrhs *int, ap, afp *mat.Vector, b *mat.Matrix, ldb *in
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Dcopy(n, b.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
-		goblas.Dspmv(mat.UploByte(uplo), n, toPtrf64(-one), ap, x.Vector(0, j-1), toPtr(1), &one, work.Off((*n)+1-1), toPtr(1))
+		goblas.Dcopy(*n, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
+		err = goblas.Dspmv(mat.UploByte(uplo), *n, -one, ap, x.Vector(0, j-1), 1, one, work.Off((*n)+1-1), 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -133,7 +135,7 @@ func Dpprfs(uplo byte, n, nrhs *int, ap, afp *mat.Vector, b *mat.Matrix, ldb *in
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Dpptrs(uplo, n, func() *int { y := 1; return &y }(), afp, work.MatrixOff((*n)+1-1, *n, opts), n, info)
-			goblas.Daxpy(n, &one, work.Off((*n)+1-1), toPtr(1), x.Vector(0, j-1), toPtr(1))
+			goblas.Daxpy(*n, one, work.Off((*n)+1-1), 1, x.Vector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

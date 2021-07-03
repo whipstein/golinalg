@@ -135,6 +135,8 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	var badnn, match bool
 	var aninv, anorm, cond, conds, one, ovfl, rtovfl, rtulp, rtulpi, rtunfl, temp1, temp2, ulp, ulpinv, unfl, zero float64
 	var i, ihi, iinfo, ilo, imode, in, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, nselc, nselr, ntest, ntestt int
+	var err error
+	_ = err
 	adumma := make([]byte, 1)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
@@ -393,7 +395,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					h.Set(i-1, j-1, zero)
 				}
 			}
-			goblas.Dcopy(toPtr(n-1), work, toPtr(1), tau, toPtr(1))
+			goblas.Dcopy(n-1, work, 1, tau, 1)
 			golapack.Dorghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n+1-1), toPtr((*nwork)-n), &iinfo)
 			ntest = 2
 
@@ -441,7 +443,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			}
 
 			//           Compute Z = U' UZ
-			goblas.Dgemm(Trans, NoTrans, &n, &n, &n, &one, u, ldu, uz, ldu, &zero, z, ldu)
+			err = goblas.Dgemm(Trans, NoTrans, n, n, n, one, u, *ldu, uz, *ldu, zero, z, *ldu)
 			ntest = 8
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )

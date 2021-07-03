@@ -21,6 +21,8 @@ func Zlauu2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 	var one complex128
 	var aii float64
 	var i int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -49,12 +51,12 @@ func Zlauu2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		for i = 1; i <= (*n); i++ {
 			aii = real(a.Get(i-1, i-1))
 			if i < (*n) {
-				a.SetRe(i-1, i-1, aii*aii+real(goblas.Zdotc(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda, a.CVector(i-1, i+1-1), lda)))
+				a.SetRe(i-1, i-1, aii*aii+real(goblas.Zdotc((*n)-i, a.CVector(i-1, i+1-1), *lda, a.CVector(i-1, i+1-1), *lda)))
 				Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
-				goblas.Zgemv(NoTrans, toPtr(i-1), toPtr((*n)-i), &one, a.Off(0, i+1-1), lda, a.CVector(i-1, i+1-1), lda, toPtrc128(complex(aii, 0)), a.CVector(0, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, i-1, (*n)-i, one, a.Off(0, i+1-1), *lda, a.CVector(i-1, i+1-1), *lda, complex(aii, 0), a.CVector(0, i-1), 1)
 				Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
 			} else {
-				goblas.Zdscal(&i, &aii, a.CVector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(i, aii, a.CVector(0, i-1), 1)
 			}
 		}
 
@@ -63,12 +65,12 @@ func Zlauu2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		for i = 1; i <= (*n); i++ {
 			aii = real(a.Get(i-1, i-1))
 			if i < (*n) {
-				a.SetRe(i-1, i-1, aii*aii+real(goblas.Zdotc(toPtr((*n)-i), a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())))
+				a.SetRe(i-1, i-1, aii*aii+real(goblas.Zdotc((*n)-i, a.CVector(i+1-1, i-1), 1, a.CVector(i+1-1, i-1), 1)))
 				Zlacgv(toPtr(i-1), a.CVector(i-1, 0), lda)
-				goblas.Zgemv(ConjTrans, toPtr((*n)-i), toPtr(i-1), &one, a.Off(i+1-1, 0), lda, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), toPtrc128(complex(aii, 0)), a.CVector(i-1, 0), lda)
+				err = goblas.Zgemv(ConjTrans, (*n)-i, i-1, one, a.Off(i+1-1, 0), *lda, a.CVector(i+1-1, i-1), 1, complex(aii, 0), a.CVector(i-1, 0), *lda)
 				Zlacgv(toPtr(i-1), a.CVector(i-1, 0), lda)
 			} else {
-				goblas.Zdscal(&i, &aii, a.CVector(i-1, 0), lda)
+				goblas.Zdscal(i, aii, a.CVector(i-1, 0), *lda)
 			}
 		}
 	}

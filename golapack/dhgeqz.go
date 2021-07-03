@@ -290,10 +290,10 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 						temp = h.Get(jch-1, jch-1)
 						Dlartg(&temp, h.GetPtr(jch+1-1, jch-1), &c, &s, h.GetPtr(jch-1, jch-1))
 						h.Set(jch+1-1, jch-1, zero)
-						goblas.Drot(toPtr(ilastm-jch), h.Vector(jch-1, jch+1-1), ldh, h.Vector(jch+1-1, jch+1-1), ldh, &c, &s)
-						goblas.Drot(toPtr(ilastm-jch), t.Vector(jch-1, jch+1-1), ldt, t.Vector(jch+1-1, jch+1-1), ldt, &c, &s)
+						goblas.Drot(ilastm-jch, h.Vector(jch-1, jch+1-1), *ldh, h.Vector(jch+1-1, jch+1-1), *ldh, c, s)
+						goblas.Drot(ilastm-jch, t.Vector(jch-1, jch+1-1), *ldt, t.Vector(jch+1-1, jch+1-1), *ldt, c, s)
 						if ilq {
-							goblas.Drot(n, q.Vector(0, jch-1), func() *int { y := 1; return &y }(), q.Vector(0, jch+1-1), func() *int { y := 1; return &y }(), &c, &s)
+							goblas.Drot(*n, q.Vector(0, jch-1), 1, q.Vector(0, jch+1-1), 1, c, s)
 						}
 						if ilazr2 {
 							h.Set(jch-1, jch-1-1, h.Get(jch-1, jch-1-1)*c)
@@ -318,19 +318,19 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 						Dlartg(&temp, t.GetPtr(jch+1-1, jch+1-1), &c, &s, t.GetPtr(jch-1, jch+1-1))
 						t.Set(jch+1-1, jch+1-1, zero)
 						if jch < ilastm-1 {
-							goblas.Drot(toPtr(ilastm-jch-1), t.Vector(jch-1, jch+2-1), ldt, t.Vector(jch+1-1, jch+2-1), ldt, &c, &s)
+							goblas.Drot(ilastm-jch-1, t.Vector(jch-1, jch+2-1), *ldt, t.Vector(jch+1-1, jch+2-1), *ldt, c, s)
 						}
-						goblas.Drot(toPtr(ilastm-jch+2), h.Vector(jch-1, jch-1-1), ldh, h.Vector(jch+1-1, jch-1-1), ldh, &c, &s)
+						goblas.Drot(ilastm-jch+2, h.Vector(jch-1, jch-1-1), *ldh, h.Vector(jch+1-1, jch-1-1), *ldh, c, s)
 						if ilq {
-							goblas.Drot(n, q.Vector(0, jch-1), func() *int { y := 1; return &y }(), q.Vector(0, jch+1-1), func() *int { y := 1; return &y }(), &c, &s)
+							goblas.Drot(*n, q.Vector(0, jch-1), 1, q.Vector(0, jch+1-1), 1, c, s)
 						}
 						temp = h.Get(jch+1-1, jch-1)
 						Dlartg(&temp, h.GetPtr(jch+1-1, jch-1-1), &c, &s, h.GetPtr(jch+1-1, jch-1))
 						h.Set(jch+1-1, jch-1-1, zero)
-						goblas.Drot(toPtr(jch+1-ifrstm), h.Vector(ifrstm-1, jch-1), func() *int { y := 1; return &y }(), h.Vector(ifrstm-1, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
-						goblas.Drot(toPtr(jch-ifrstm), t.Vector(ifrstm-1, jch-1), func() *int { y := 1; return &y }(), t.Vector(ifrstm-1, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
+						goblas.Drot(jch+1-ifrstm, h.Vector(ifrstm-1, jch-1), 1, h.Vector(ifrstm-1, jch-1-1), 1, c, s)
+						goblas.Drot(jch-ifrstm, t.Vector(ifrstm-1, jch-1), 1, t.Vector(ifrstm-1, jch-1-1), 1, c, s)
 						if ilz {
-							goblas.Drot(n, z.Vector(0, jch-1), func() *int { y := 1; return &y }(), z.Vector(0, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
+							goblas.Drot(*n, z.Vector(0, jch-1), 1, z.Vector(0, jch-1-1), 1, c, s)
 						}
 					}
 					goto label70
@@ -354,10 +354,10 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 		temp = h.Get(ilast-1, ilast-1)
 		Dlartg(&temp, h.GetPtr(ilast-1, ilast-1-1), &c, &s, h.GetPtr(ilast-1, ilast-1))
 		h.Set(ilast-1, ilast-1-1, zero)
-		goblas.Drot(toPtr(ilast-ifrstm), h.Vector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }(), h.Vector(ifrstm-1, ilast-1-1), func() *int { y := 1; return &y }(), &c, &s)
-		goblas.Drot(toPtr(ilast-ifrstm), t.Vector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }(), t.Vector(ifrstm-1, ilast-1-1), func() *int { y := 1; return &y }(), &c, &s)
+		goblas.Drot(ilast-ifrstm, h.Vector(ifrstm-1, ilast-1), 1, h.Vector(ifrstm-1, ilast-1-1), 1, c, s)
+		goblas.Drot(ilast-ifrstm, t.Vector(ifrstm-1, ilast-1), 1, t.Vector(ifrstm-1, ilast-1-1), 1, c, s)
 		if ilz {
-			goblas.Drot(n, z.Vector(0, ilast-1), func() *int { y := 1; return &y }(), z.Vector(0, ilast-1-1), func() *int { y := 1; return &y }(), &c, &s)
+			goblas.Drot(*n, z.Vector(0, ilast-1), 1, z.Vector(0, ilast-1-1), 1, c, s)
 		}
 
 		//        H(ILAST,ILAST-1)=0 -- Standardize B, set ALPHAR, ALPHAI,
@@ -563,21 +563,21 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				b22 = -b22
 			}
 
-			goblas.Drot(toPtr(ilastm+1-ifirst), h.Vector(ilast-1-1, ilast-1-1), ldh, h.Vector(ilast-1, ilast-1-1), ldh, &cl, &sl)
-			goblas.Drot(toPtr(ilast+1-ifrstm), h.Vector(ifrstm-1, ilast-1-1), func() *int { y := 1; return &y }(), h.Vector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }(), &cr, &sr)
+			goblas.Drot(ilastm+1-ifirst, h.Vector(ilast-1-1, ilast-1-1), *ldh, h.Vector(ilast-1, ilast-1-1), *ldh, cl, sl)
+			goblas.Drot(ilast+1-ifrstm, h.Vector(ifrstm-1, ilast-1-1), 1, h.Vector(ifrstm-1, ilast-1), 1, cr, sr)
 
 			if ilast < ilastm {
-				goblas.Drot(toPtr(ilastm-ilast), t.Vector(ilast-1-1, ilast+1-1), ldt, t.Vector(ilast-1, ilast+1-1), ldt, &cl, &sl)
+				goblas.Drot(ilastm-ilast, t.Vector(ilast-1-1, ilast+1-1), *ldt, t.Vector(ilast-1, ilast+1-1), *ldt, cl, sl)
 			}
 			if ifrstm < ilast-1 {
-				goblas.Drot(toPtr(ifirst-ifrstm), t.Vector(ifrstm-1, ilast-1-1), func() *int { y := 1; return &y }(), t.Vector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }(), &cr, &sr)
+				goblas.Drot(ifirst-ifrstm, t.Vector(ifrstm-1, ilast-1-1), 1, t.Vector(ifrstm-1, ilast-1), 1, cr, sr)
 			}
 
 			if ilq {
-				goblas.Drot(n, q.Vector(0, ilast-1-1), func() *int { y := 1; return &y }(), q.Vector(0, ilast-1), func() *int { y := 1; return &y }(), &cl, &sl)
+				goblas.Drot(*n, q.Vector(0, ilast-1-1), 1, q.Vector(0, ilast-1), 1, cl, sl)
 			}
 			if ilz {
-				goblas.Drot(n, z.Vector(0, ilast-1-1), func() *int { y := 1; return &y }(), z.Vector(0, ilast-1), func() *int { y := 1; return &y }(), &cr, &sr)
+				goblas.Drot(*n, z.Vector(0, ilast-1-1), 1, z.Vector(0, ilast-1), 1, cr, sr)
 			}
 
 			t.Set(ilast-1-1, ilast-1-1, b11)

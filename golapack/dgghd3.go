@@ -42,6 +42,8 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 	var compq2, compz2 byte
 	var c, c1, c2, one, s, s1, s2, temp, temp1, temp2, temp3, zero float64
 	var cola, i, ierr, j, j0, jcol, jj, jrow, k, kacc22, len, lwkopt, n2nb, nb, nblst, nbmin, nh, nnb, nx, ppw, ppwo, pw, top, topq int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -222,7 +224,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 						temp = b.Get(jj+1-1, jj+1-1)
 						Dlartg(&temp, b.GetPtr(jj+1-1, jj-1), &c, &s, b.GetPtr(jj+1-1, jj+1-1))
 						b.Set(jj+1-1, jj-1, zero)
-						goblas.Drot(toPtr(jj-top), b.Vector(top+1-1, jj+1-1), func() *int { y := 1; return &y }(), b.Vector(top+1-1, jj-1), func() *int { y := 1; return &y }(), &c, &s)
+						goblas.Drot(jj-top, b.Vector(top+1-1, jj+1-1), 1, b.Vector(top+1-1, jj-1), 1, c, s)
 						a.Set(jj+1-1, j-1, c)
 						b.Set(jj+1-1, j-1, -s)
 					}
@@ -259,7 +261,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 
 				if jj > 0 {
 					for i = jj; i >= 1; i-- {
-						goblas.Drot(toPtr((*ihi)-top), a.Vector(top+1-1, j+i+1-1), func() *int { y := 1; return &y }(), a.Vector(top+1-1, j+i-1), func() *int { y := 1; return &y }(), a.GetPtr(j+1+i-1, j-1), toPtrf64(-b.Get(j+1+i-1, j-1)))
+						goblas.Drot((*ihi)-top, a.Vector(top+1-1, j+i+1-1), 1, a.Vector(top+1-1, j+i-1), 1, a.Get(j+1+i-1, j-1), -b.Get(j+1+i-1, j-1))
 					}
 				}
 
@@ -277,14 +279,14 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 					//                 where U21 is a LEN-by-LEN matrix and U12 is lower
 					//                 triangular.
 					jrow = (*ihi) - nblst + 1
-					goblas.Dgemv(Trans, &nblst, &len, &one, work.Matrix(nblst, opts), &nblst, a.Vector(jrow-1, j+1-1), func() *int { y := 1; return &y }(), &zero, work.Off(pw-1), func() *int { y := 1; return &y }())
+					err = goblas.Dgemv(Trans, nblst, len, one, work.Matrix(nblst, opts), nblst, a.Vector(jrow-1, j+1-1), 1, zero, work.Off(pw-1), 1)
 					ppw = pw + len
 					for i = jrow; i <= jrow+nblst-len-1; i++ {
 						work.Set(ppw-1, a.Get(i-1, j+1-1))
 						ppw = ppw + 1
 					}
-					goblas.Dtrmv(Lower, NoTrans, NonUnit, toPtr(nblst-len), work.MatrixOff(len*nblst+1-1, nblst, opts), &nblst, work.Off(pw+len-1), func() *int { y := 1; return &y }())
-					goblas.Dgemv(Trans, &len, toPtr(nblst-len), &one, work.MatrixOff((len+1)*nblst-len+1-1, nblst, opts), &nblst, a.Vector(jrow+nblst-len-1, j+1-1), func() *int { y := 1; return &y }(), &one, work.Off(pw+len-1), func() *int { y := 1; return &y }())
+					err = goblas.Dtrmv(Lower, NoTrans, NonUnit, nblst-len, work.MatrixOff(len*nblst+1-1, nblst, opts), nblst, work.Off(pw+len-1), 1)
+					err = goblas.Dgemv(Trans, len, nblst-len, one, work.MatrixOff((len+1)*nblst-len+1-1, nblst, opts), nblst, a.Vector(jrow+nblst-len-1, j+1-1), 1, one, work.Off(pw+len-1), 1)
 					ppw = pw
 					for i = jrow; i <= jrow+nblst-1; i++ {
 						a.Set(i-1, j+1-1, work.Get(ppw-1))
@@ -316,10 +318,10 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 							work.Set(ppw-1, a.Get(i-1, j+1-1))
 							ppw = ppw + 1
 						}
-						goblas.Dtrmv(Upper, NoTrans, NonUnit, &len, work.MatrixOff(ppwo+nnb-1, 2*nnb, opts), toPtr(2*nnb), work.Off(pw-1), func() *int { y := 1; return &y }())
-						goblas.Dtrmv(Lower, NoTrans, NonUnit, &nnb, work.MatrixOff(ppwo+2*len*nnb-1, 2*nnb, opts), toPtr(2*nnb), work.Off(pw+len-1), func() *int { y := 1; return &y }())
-						goblas.Dgemv(Trans, &nnb, &len, &one, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), a.Vector(jrow-1, j+1-1), func() *int { y := 1; return &y }(), &one, work.Off(pw-1), func() *int { y := 1; return &y }())
-						goblas.Dgemv(Trans, &len, &nnb, &one, work.MatrixOff(ppwo+2*len*nnb+nnb-1, 2*nnb, opts), toPtr(2*nnb), a.Vector(jrow+nnb-1, j+1-1), func() *int { y := 1; return &y }(), &one, work.Off(pw+len-1), func() *int { y := 1; return &y }())
+						err = goblas.Dtrmv(Upper, NoTrans, NonUnit, len, work.MatrixOff(ppwo+nnb-1, 2*nnb, opts), 2*nnb, work.Off(pw-1), 1)
+						err = goblas.Dtrmv(Lower, NoTrans, NonUnit, nnb, work.MatrixOff(ppwo+2*len*nnb-1, 2*nnb, opts), 2*nnb, work.Off(pw+len-1), 1)
+						err = goblas.Dgemv(Trans, nnb, len, one, work.MatrixOff(ppwo-1, 2*nnb, opts), 2*nnb, a.Vector(jrow-1, j+1-1), 1, one, work.Off(pw-1), 1)
+						err = goblas.Dgemv(Trans, len, nnb, one, work.MatrixOff(ppwo+2*len*nnb+nnb-1, 2*nnb, opts), 2*nnb, a.Vector(jrow+nnb-1, j+1-1), 1, one, work.Off(pw+len-1), 1)
 						ppw = pw
 						for i = jrow; i <= jrow+len+nnb-1; i++ {
 							a.Set(i-1, j+1-1, work.Get(ppw-1))
@@ -333,7 +335,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 			//           Apply accumulated orthogonal matrices to A.
 			cola = (*n) - jcol - nnb + 1
 			j = (*ihi) - nblst + 1
-			goblas.Dgemm(Trans, NoTrans, &nblst, &cola, &nblst, &one, work.Matrix(nblst, opts), &nblst, a.Off(j-1, jcol+nnb-1), lda, &zero, work.MatrixOff(pw-1, nblst, opts), &nblst)
+			err = goblas.Dgemm(Trans, NoTrans, nblst, cola, nblst, one, work.Matrix(nblst, opts), nblst, a.Off(j-1, jcol+nnb-1), *lda, zero, work.MatrixOff(pw-1, nblst, opts), nblst)
 			Dlacpy('A', &nblst, &cola, work.MatrixOff(pw-1, nblst, opts), &nblst, a.Off(j-1, jcol+nnb-1), lda)
 			ppwo = nblst*nblst + 1
 			j0 = j - nnb
@@ -350,7 +352,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 					Dorm22('L', 'T', toPtr(2*nnb), &cola, &nnb, &nnb, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), a.Off(j-1, jcol+nnb-1), lda, work.Off(pw-1), toPtr((*lwork)-pw+1), &ierr)
 				} else {
 					//                 Ignore the structure of U.
-					goblas.Dgemm(Trans, NoTrans, toPtr(2*nnb), &cola, toPtr(2*nnb), &one, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), a.Off(j-1, jcol+nnb-1), lda, &zero, work.MatrixOff(pw-1, 2*nnb, opts), toPtr(2*nnb))
+					err = goblas.Dgemm(Trans, NoTrans, 2*nnb, cola, 2*nnb, one, work.MatrixOff(ppwo-1, 2*nnb, opts), 2*nnb, a.Off(j-1, jcol+nnb-1), *lda, zero, work.MatrixOff(pw-1, 2*nnb, opts), 2*nnb)
 					Dlacpy('A', toPtr(2*nnb), &cola, work.MatrixOff(pw-1, 2*nnb, opts), toPtr(2*nnb), a.Off(j-1, jcol+nnb-1), lda)
 				}
 				ppwo = ppwo + 4*nnb*nnb
@@ -366,7 +368,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 					topq = 1
 					nh = (*n)
 				}
-				goblas.Dgemm(NoTrans, NoTrans, &nh, &nblst, &nblst, &one, q.Off(topq-1, j-1), ldq, work.Matrix(nblst, opts), &nblst, &zero, work.MatrixOff(pw-1, nh, opts), &nh)
+				err = goblas.Dgemm(NoTrans, NoTrans, nh, nblst, nblst, one, q.Off(topq-1, j-1), *ldq, work.Matrix(nblst, opts), nblst, zero, work.MatrixOff(pw-1, nh, opts), nh)
 				Dlacpy('A', &nh, &nblst, work.MatrixOff(pw-1, nh, opts), &nh, q.Off(topq-1, j-1), ldq)
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
@@ -380,7 +382,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 						Dorm22('R', 'N', &nh, toPtr(2*nnb), &nnb, &nnb, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), q.Off(topq-1, j-1), ldq, work.Off(pw-1), toPtr((*lwork)-pw+1), &ierr)
 					} else {
 						//                    Ignore the structure of U.
-						goblas.Dgemm(NoTrans, NoTrans, &nh, toPtr(2*nnb), toPtr(2*nnb), &one, q.Off(topq-1, j-1), ldq, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), &zero, work.MatrixOff(pw-1, nh, opts), &nh)
+						err = goblas.Dgemm(NoTrans, NoTrans, nh, 2*nnb, 2*nnb, one, q.Off(topq-1, j-1), *ldq, work.MatrixOff(ppwo-1, 2*nnb, opts), 2*nnb, zero, work.MatrixOff(pw-1, nh, opts), nh)
 						Dlacpy('A', &nh, toPtr(2*nnb), work.MatrixOff(pw-1, nh, opts), &nh, q.Off(topq-1, j-1), ldq)
 					}
 					ppwo = ppwo + 4*nnb*nnb
@@ -447,7 +449,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 			//           Apply accumulated orthogonal matrices to A and B.
 			if top > 0 {
 				j = (*ihi) - nblst + 1
-				goblas.Dgemm(NoTrans, NoTrans, &top, &nblst, &nblst, &one, a.Off(0, j-1), lda, work.Matrix(nblst, opts), &nblst, &zero, work.MatrixOff(pw-1, top, opts), &top)
+				err = goblas.Dgemm(NoTrans, NoTrans, top, nblst, nblst, one, a.Off(0, j-1), *lda, work.Matrix(nblst, opts), nblst, zero, work.MatrixOff(pw-1, top, opts), top)
 				Dlacpy('A', &top, &nblst, work.MatrixOff(pw-1, top, opts), &top, a.Off(0, j-1), lda)
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
@@ -457,14 +459,14 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 						Dorm22('R', 'N', &top, toPtr(2*nnb), &nnb, &nnb, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), a.Off(0, j-1), lda, work.Off(pw-1), toPtr((*lwork)-pw+1), &ierr)
 					} else {
 						//                    Ignore the structure of U.
-						goblas.Dgemm(NoTrans, NoTrans, &top, toPtr(2*nnb), toPtr(2*nnb), &one, a.Off(0, j-1), lda, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), &zero, work.MatrixOff(pw-1, top, opts), &top)
+						goblas.Dgemm(NoTrans, NoTrans, top, 2*nnb, 2*nnb, one, a.Off(0, j-1), *lda, work.MatrixOff(ppwo-1, 2*nnb, opts), 2*nnb, zero, work.MatrixOff(pw-1, top, opts), top)
 						Dlacpy('A', &top, toPtr(2*nnb), work.MatrixOff(pw-1, top, opts), &top, a.Off(0, j-1), lda)
 					}
 					ppwo = ppwo + 4*nnb*nnb
 				}
 
 				j = (*ihi) - nblst + 1
-				goblas.Dgemm(NoTrans, NoTrans, &top, &nblst, &nblst, &one, b.Off(0, j-1), ldb, work.Matrix(nblst, opts), &nblst, &zero, work.MatrixOff(pw-1, top, opts), &top)
+				err = goblas.Dgemm(NoTrans, NoTrans, top, nblst, nblst, one, b.Off(0, j-1), *ldb, work.Matrix(nblst, opts), nblst, zero, work.MatrixOff(pw-1, top, opts), top)
 				Dlacpy('A', &top, &nblst, work.MatrixOff(pw-1, top, opts), &top, b.Off(0, j-1), ldb)
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
@@ -474,7 +476,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 						Dorm22('R', 'N', &top, toPtr(2*nnb), &nnb, &nnb, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), b.Off(0, j-1), ldb, work.Off(pw-1), toPtr((*lwork)-pw+1), &ierr)
 					} else {
 						//                    Ignore the structure of U.
-						goblas.Dgemm(NoTrans, NoTrans, &top, toPtr(2*nnb), toPtr(2*nnb), &one, b.Off(0, j-1), ldb, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), &zero, work.MatrixOff(pw-1, top, opts), &top)
+						err = goblas.Dgemm(NoTrans, NoTrans, top, 2*nnb, 2*nnb, one, b.Off(0, j-1), *ldb, work.MatrixOff(ppwo-1, 2*nnb, opts), 2*nnb, zero, work.MatrixOff(pw-1, top, opts), top)
 						Dlacpy('A', &top, toPtr(2*nnb), work.MatrixOff(pw-1, top, opts), &top, b.Off(0, j-1), ldb)
 					}
 					ppwo = ppwo + 4*nnb*nnb
@@ -491,7 +493,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 					topq = 1
 					nh = (*n)
 				}
-				goblas.Dgemm(NoTrans, NoTrans, &nh, &nblst, &nblst, &one, z.Off(topq-1, j-1), ldz, work.Matrix(nblst, opts), &nblst, &zero, work.MatrixOff(pw-1, nh, opts), &nh)
+				err = goblas.Dgemm(NoTrans, NoTrans, nh, nblst, nblst, one, z.Off(topq-1, j-1), *ldz, work.Matrix(nblst, opts), nblst, zero, work.MatrixOff(pw-1, nh, opts), nh)
 				Dlacpy('A', &nh, &nblst, work.MatrixOff(pw-1, nh, opts), &nh, z.Off(topq-1, j-1), ldz)
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
@@ -505,7 +507,7 @@ func Dgghd3(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 						Dorm22('R', 'N', &nh, toPtr(2*nnb), &nnb, &nnb, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), z.Off(topq-1, j-1), ldz, work.Off(pw-1), toPtr((*lwork)-pw+1), &ierr)
 					} else {
 						//                    Ignore the structure of U.
-						goblas.Dgemm(NoTrans, NoTrans, &nh, toPtr(2*nnb), toPtr(2*nnb), &one, z.Off(topq-1, j-1), ldz, work.MatrixOff(ppwo-1, 2*nnb, opts), toPtr(2*nnb), &zero, work.MatrixOff(pw-1, nh, opts), &nh)
+						err = goblas.Dgemm(NoTrans, NoTrans, nh, 2*nnb, 2*nnb, one, z.Off(topq-1, j-1), *ldz, work.MatrixOff(ppwo-1, 2*nnb, opts), 2*nnb, zero, work.MatrixOff(pw-1, nh, opts), nh)
 						Dlacpy('A', &nh, toPtr(2*nnb), work.MatrixOff(pw-1, nh, opts), &nh, z.Off(topq-1, j-1), ldz)
 					}
 					ppwo = ppwo + 4*nnb*nnb

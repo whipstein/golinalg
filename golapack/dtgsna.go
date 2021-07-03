@@ -21,6 +21,8 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 	var lquery, pair, somcon, wantbh, wantdf, wants bool
 	var alphai, alphar, alprqt, beta, c1, c2, cond, eps, four, lnrm, one, rnrm, root1, root2, scale, smlnum, tmpii, tmpir, tmpri, tmprr, two, uhav, uhavi, uhbv, uhbvi, zero float64
 	var difdri, i, ierr, ifst, ilst, iz, k, ks, lwmin, n1, n2 int
+	var err error
+	_ = err
 
 	dummy := vf(1)
 	dummy1 := vf(1)
@@ -153,22 +155,22 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 			//           eigenvalue.
 			if pair {
 				//              Complex eigenvalue pair.
-				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(n, vr.Vector(0, ks-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vr.Vector(0, ks+1-1), func() *int { y := 1; return &y }())))
-				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(n, vl.Vector(0, ks-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())))
-				goblas.Dgemv(NoTrans, n, n, &one, a, lda, vr.Vector(0, ks-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-				tmprr = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				tmpri = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(NoTrans, n, n, &one, a, lda, vr.Vector(0, ks+1-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-				tmpii = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())
-				tmpir = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
+				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks+1-1), 1)))
+				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks+1-1), 1)))
+				err = goblas.Dgemv(NoTrans, *n, *n, one, a, *lda, vr.Vector(0, ks-1), 1, zero, work, 1)
+				tmprr = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
+				tmpri = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, one, a, *lda, vr.Vector(0, ks+1-1), 1, zero, work, 1)
+				tmpii = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
+				tmpir = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
 				uhav = tmprr + tmpii
 				uhavi = tmpir - tmpri
-				goblas.Dgemv(NoTrans, n, n, &one, b, ldb, vr.Vector(0, ks-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-				tmprr = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				tmpri = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(NoTrans, n, n, &one, b, ldb, vr.Vector(0, ks+1-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-				tmpii = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())
-				tmpir = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
+				err = goblas.Dgemv(NoTrans, *n, *n, one, b, *ldb, vr.Vector(0, ks-1), 1, zero, work, 1)
+				tmprr = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
+				tmpri = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, one, b, *ldb, vr.Vector(0, ks+1-1), 1, zero, work, 1)
+				tmpii = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
+				tmpir = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
 				uhbv = tmprr + tmpii
 				uhbvi = tmpir - tmpri
 				uhav = Dlapy2(&uhav, &uhavi)
@@ -179,12 +181,12 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 
 			} else {
 				//              Real eigenvalue.
-				rnrm = goblas.Dnrm2(n, vr.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				lnrm = goblas.Dnrm2(n, vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(NoTrans, n, n, &one, a, lda, vr.Vector(0, ks-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-				uhav = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				goblas.Dgemv(NoTrans, n, n, &one, b, ldb, vr.Vector(0, ks-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-				uhbv = goblas.Ddot(n, work, func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
+				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)
+				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, one, a, *lda, vr.Vector(0, ks-1), 1, zero, work, 1)
+				uhav = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, one, b, *ldb, vr.Vector(0, ks-1), 1, zero, work, 1)
+				uhbv = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
 				cond = Dlapy2(&uhav, &uhbv)
 				if cond == zero {
 					s.Set(ks-1, -one)

@@ -98,19 +98,19 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 		for i = 1; i <= (*q); i++ {
 
 			if i == 1 {
-				goblas.Dscal(toPtr((*p)-i+1), &z1, x11.Vector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*p)-i+1, z1, x11.Vector(i-1, i-1), 1)
 			} else {
-				goblas.Dscal(toPtr((*p)-i+1), toPtrf64(z1*math.Cos(phi.Get(i-1-1))), x11.Vector(i-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Daxpy(toPtr((*p)-i+1), toPtrf64(-z1*z3*z4*math.Sin(phi.Get(i-1-1))), x12.Vector(i-1, i-1-1), func() *int { y := 1; return &y }(), x11.Vector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*p)-i+1, z1*math.Cos(phi.Get(i-1-1)), x11.Vector(i-1, i-1), 1)
+				goblas.Daxpy((*p)-i+1, -z1*z3*z4*math.Sin(phi.Get(i-1-1)), x12.Vector(i-1, i-1-1), 1, x11.Vector(i-1, i-1), 1)
 			}
 			if i == 1 {
-				goblas.Dscal(toPtr((*m)-(*p)-i+1), &z2, x21.Vector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*m)-(*p)-i+1, z2, x21.Vector(i-1, i-1), 1)
 			} else {
-				goblas.Dscal(toPtr((*m)-(*p)-i+1), toPtrf64(z2*math.Cos(phi.Get(i-1-1))), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Daxpy(toPtr((*m)-(*p)-i+1), toPtrf64(-z2*z3*z4*math.Sin(phi.Get(i-1-1))), x22.Vector(i-1, i-1-1), func() *int { y := 1; return &y }(), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*m)-(*p)-i+1, z2*math.Cos(phi.Get(i-1-1)), x21.Vector(i-1, i-1), 1)
+				goblas.Daxpy((*m)-(*p)-i+1, -z2*z3*z4*math.Sin(phi.Get(i-1-1)), x22.Vector(i-1, i-1-1), 1, x21.Vector(i-1, i-1), 1)
 			}
 
-			theta.Set(i-1, math.Atan2(goblas.Dnrm2(toPtr((*m)-(*p)-i+1), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }()), goblas.Dnrm2(toPtr((*p)-i+1), x11.Vector(i-1, i-1), func() *int { y := 1; return &y }())))
+			theta.Set(i-1, math.Atan2(goblas.Dnrm2((*m)-(*p)-i+1, x21.Vector(i-1, i-1), 1), goblas.Dnrm2((*p)-i+1, x11.Vector(i-1, i-1), 1)))
 
 			if (*p) > i {
 				Dlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1), x11.Vector(i+1-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
@@ -139,14 +139,14 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 			}
 
 			if i < (*q) {
-				goblas.Dscal(toPtr((*q)-i), toPtrf64(-z1*z3*math.Sin(theta.Get(i-1))), x11.Vector(i-1, i+1-1), ldx11)
-				goblas.Daxpy(toPtr((*q)-i), toPtrf64(z2*z3*math.Cos(theta.Get(i-1))), x21.Vector(i-1, i+1-1), ldx21, x11.Vector(i-1, i+1-1), ldx11)
+				goblas.Dscal((*q)-i, -z1*z3*math.Sin(theta.Get(i-1)), x11.Vector(i-1, i+1-1), *ldx11)
+				goblas.Daxpy((*q)-i, z2*z3*math.Cos(theta.Get(i-1)), x21.Vector(i-1, i+1-1), *ldx21, x11.Vector(i-1, i+1-1), *ldx11)
 			}
-			goblas.Dscal(toPtr((*m)-(*q)-i+1), toPtrf64(-z1*z4*math.Sin(theta.Get(i-1))), x12.Vector(i-1, i-1), ldx12)
-			goblas.Daxpy(toPtr((*m)-(*q)-i+1), toPtrf64(z2*z4*math.Cos(theta.Get(i-1))), x22.Vector(i-1, i-1), ldx22, x12.Vector(i-1, i-1), ldx12)
+			goblas.Dscal((*m)-(*q)-i+1, -z1*z4*math.Sin(theta.Get(i-1)), x12.Vector(i-1, i-1), *ldx12)
+			goblas.Daxpy((*m)-(*q)-i+1, z2*z4*math.Cos(theta.Get(i-1)), x22.Vector(i-1, i-1), *ldx22, x12.Vector(i-1, i-1), *ldx12)
 			//
 			if i < (*q) {
-				phi.Set(i-1, math.Atan2(goblas.Dnrm2(toPtr((*q)-i), x11.Vector(i-1, i+1-1), ldx11), goblas.Dnrm2(toPtr((*m)-(*q)-i+1), x12.Vector(i-1, i-1), ldx12)))
+				phi.Set(i-1, math.Atan2(goblas.Dnrm2((*q)-i, x11.Vector(i-1, i+1-1), *ldx11), goblas.Dnrm2((*m)-(*q)-i+1, x12.Vector(i-1, i-1), *ldx12)))
 			}
 
 			if i < (*q) {
@@ -182,7 +182,7 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 		//        Reduce columns Q + 1, ..., P of X12, X22
 		for i = (*q) + 1; i <= (*p); i++ {
 
-			goblas.Dscal(toPtr((*m)-(*q)-i+1), toPtrf64(-z1*z4), x12.Vector(i-1, i-1), ldx12)
+			goblas.Dscal((*m)-(*q)-i+1, -z1*z4, x12.Vector(i-1, i-1), *ldx12)
 			if i >= (*m)-(*q) {
 				Dlarfgp(toPtr((*m)-(*q)-i+1), x12.GetPtr(i-1, i-1), x12.Vector(i-1, i-1), ldx12, tauq2.GetPtr(i-1))
 			} else {
@@ -202,7 +202,7 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 		//        Reduce columns P + 1, ..., M - Q of X12, X22
 		for i = 1; i <= (*m)-(*p)-(*q); i++ {
 
-			goblas.Dscal(toPtr((*m)-(*p)-(*q)-i+1), toPtrf64(z2*z4), x22.Vector((*q)+i-1, (*p)+i-1), ldx22)
+			goblas.Dscal((*m)-(*p)-(*q)-i+1, z2*z4, x22.Vector((*q)+i-1, (*p)+i-1), *ldx22)
 			if i == (*m)-(*p)-(*q) {
 				Dlarfgp(toPtr((*m)-(*p)-(*q)-i+1), x22.GetPtr((*q)+i-1, (*p)+i-1), x22.Vector((*q)+i-1, (*p)+i-1), ldx22, tauq2.GetPtr((*p)+i-1))
 			} else {
@@ -220,19 +220,19 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 		for i = 1; i <= (*q); i++ {
 
 			if i == 1 {
-				goblas.Dscal(toPtr((*p)-i+1), &z1, x11.Vector(i-1, i-1), ldx11)
+				goblas.Dscal((*p)-i+1, z1, x11.Vector(i-1, i-1), *ldx11)
 			} else {
-				goblas.Dscal(toPtr((*p)-i+1), toPtrf64(z1*math.Cos(phi.Get(i-1-1))), x11.Vector(i-1, i-1), ldx11)
-				goblas.Daxpy(toPtr((*p)-i+1), toPtrf64(-z1*z3*z4*math.Sin(phi.Get(i-1-1))), x12.Vector(i-1-1, i-1), ldx12, x11.Vector(i-1, i-1), ldx11)
+				goblas.Dscal((*p)-i+1, z1*math.Cos(phi.Get(i-1-1)), x11.Vector(i-1, i-1), *ldx11)
+				goblas.Daxpy((*p)-i+1, -z1*z3*z4*math.Sin(phi.Get(i-1-1)), x12.Vector(i-1-1, i-1), *ldx12, x11.Vector(i-1, i-1), *ldx11)
 			}
 			if i == 1 {
-				goblas.Dscal(toPtr((*m)-(*p)-i+1), &z2, x21.Vector(i-1, i-1), ldx21)
+				goblas.Dscal((*m)-(*p)-i+1, z2, x21.Vector(i-1, i-1), *ldx21)
 			} else {
-				goblas.Dscal(toPtr((*m)-(*p)-i+1), toPtrf64(z2*math.Cos(phi.Get(i-1-1))), x21.Vector(i-1, i-1), ldx21)
-				goblas.Daxpy(toPtr((*m)-(*p)-i+1), toPtrf64(-z2*z3*z4*math.Sin(phi.Get(i-1-1))), x22.Vector(i-1-1, i-1), ldx22, x21.Vector(i-1, i-1), ldx21)
+				goblas.Dscal((*m)-(*p)-i+1, z2*math.Cos(phi.Get(i-1-1)), x21.Vector(i-1, i-1), *ldx21)
+				goblas.Daxpy((*m)-(*p)-i+1, -z2*z3*z4*math.Sin(phi.Get(i-1-1)), x22.Vector(i-1-1, i-1), *ldx22, x21.Vector(i-1, i-1), *ldx21)
 			}
 
-			theta.Set(i-1, math.Atan2(goblas.Dnrm2(toPtr((*m)-(*p)-i+1), x21.Vector(i-1, i-1), ldx21), goblas.Dnrm2(toPtr((*p)-i+1), x11.Vector(i-1, i-1), ldx11)))
+			theta.Set(i-1, math.Atan2(goblas.Dnrm2((*m)-(*p)-i+1, x21.Vector(i-1, i-1), *ldx21), goblas.Dnrm2((*p)-i+1, x11.Vector(i-1, i-1), *ldx11)))
 
 			Dlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1), x11.Vector(i-1, i+1-1), ldx11, taup1.GetPtr(i-1))
 			x11.Set(i-1, i-1, one)
@@ -257,14 +257,14 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 			}
 
 			if i < (*q) {
-				goblas.Dscal(toPtr((*q)-i), toPtrf64(-z1*z3*math.Sin(theta.Get(i-1))), x11.Vector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Daxpy(toPtr((*q)-i), toPtrf64(z2*z3*math.Cos(theta.Get(i-1))), x21.Vector(i+1-1, i-1), func() *int { y := 1; return &y }(), x11.Vector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal((*q)-i, -z1*z3*math.Sin(theta.Get(i-1)), x11.Vector(i+1-1, i-1), 1)
+				goblas.Daxpy((*q)-i, z2*z3*math.Cos(theta.Get(i-1)), x21.Vector(i+1-1, i-1), 1, x11.Vector(i+1-1, i-1), 1)
 			}
-			goblas.Dscal(toPtr((*m)-(*q)-i+1), toPtrf64(-z1*z4*math.Sin(theta.Get(i-1))), x12.Vector(i-1, i-1), func() *int { y := 1; return &y }())
-			goblas.Daxpy(toPtr((*m)-(*q)-i+1), toPtrf64(z2*z4*math.Cos(theta.Get(i-1))), x22.Vector(i-1, i-1), func() *int { y := 1; return &y }(), x12.Vector(i-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Dscal((*m)-(*q)-i+1, -z1*z4*math.Sin(theta.Get(i-1)), x12.Vector(i-1, i-1), 1)
+			goblas.Daxpy((*m)-(*q)-i+1, z2*z4*math.Cos(theta.Get(i-1)), x22.Vector(i-1, i-1), 1, x12.Vector(i-1, i-1), 1)
 
 			if i < (*q) {
-				phi.Set(i-1, math.Atan2(goblas.Dnrm2(toPtr((*q)-i), x11.Vector(i+1-1, i-1), func() *int { y := 1; return &y }()), goblas.Dnrm2(toPtr((*m)-(*q)-i+1), x12.Vector(i-1, i-1), func() *int { y := 1; return &y }())))
+				phi.Set(i-1, math.Atan2(goblas.Dnrm2((*q)-i, x11.Vector(i+1-1, i-1), 1), goblas.Dnrm2((*m)-(*q)-i+1, x12.Vector(i-1, i-1), 1)))
 			}
 
 			if i < (*q) {
@@ -296,7 +296,7 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 		//        Reduce columns Q + 1, ..., P of X12, X22
 		for i = (*q) + 1; i <= (*p); i++ {
 
-			goblas.Dscal(toPtr((*m)-(*q)-i+1), toPtrf64(-z1*z4), x12.Vector(i-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Dscal((*m)-(*q)-i+1, -z1*z4, x12.Vector(i-1, i-1), 1)
 			Dlarfgp(toPtr((*m)-(*q)-i+1), x12.GetPtr(i-1, i-1), x12.Vector(i+1-1, i-1), func() *int { y := 1; return &y }(), tauq2.GetPtr(i-1))
 			x12.Set(i-1, i-1, one)
 
@@ -312,7 +312,7 @@ func Dorbdb(trans, signs byte, m, p, q *int, x11 *mat.Matrix, ldx11 *int, x12 *m
 		//        Reduce columns P + 1, ..., M - Q of X12, X22
 		for i = 1; i <= (*m)-(*p)-(*q); i++ {
 
-			goblas.Dscal(toPtr((*m)-(*p)-(*q)-i+1), toPtrf64(z2*z4), x22.Vector((*p)+i-1, (*q)+i-1), func() *int { y := 1; return &y }())
+			goblas.Dscal((*m)-(*p)-(*q)-i+1, z2*z4, x22.Vector((*p)+i-1, (*q)+i-1), 1)
 			if (*m)-(*p)-(*q) == i {
 				Dlarfgp(toPtr((*m)-(*p)-(*q)-i+1), x22.GetPtr((*p)+i-1, (*q)+i-1), x22.Vector((*p)+i-1, (*q)+i-1), func() *int { y := 1; return &y }(), tauq2.GetPtr((*p)+i-1))
 			} else {

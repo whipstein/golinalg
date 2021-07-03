@@ -14,6 +14,8 @@ func Zget01(m, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldafac *int,
 	var cone, t complex128
 	var anorm, eps, one, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -34,20 +36,20 @@ func Zget01(m, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldafac *int,
 	//     column N.
 	for k = (*n); k >= 1; k-- {
 		if k > (*m) {
-			goblas.Ztrmv(Lower, NoTrans, Unit, m, afac, ldafac, afac.CVector(0, k-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztrmv(Lower, NoTrans, Unit, *m, afac, *ldafac, afac.CVector(0, k-1), 1)
 		} else {
 			//           Compute elements (K+1:M,K)
 			t = afac.Get(k-1, k-1)
 			if k+1 <= (*m) {
-				goblas.Zscal(toPtr((*m)-k), &t, afac.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*m)-k), toPtr(k-1), &cone, afac.Off(k+1-1, 0), ldafac, afac.CVector(0, k-1), func() *int { y := 1; return &y }(), &cone, afac.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*m)-k, t, afac.CVector(k+1-1, k-1), 1)
+				err = goblas.Zgemv(NoTrans, (*m)-k, k-1, cone, afac.Off(k+1-1, 0), *ldafac, afac.CVector(0, k-1), 1, cone, afac.CVector(k+1-1, k-1), 1)
 			}
 
 			//           Compute the (K,K) element
-			afac.Set(k-1, k-1, t+goblas.Zdotu(toPtr(k-1), afac.CVector(k-1, 0), ldafac, afac.CVector(0, k-1), func() *int { y := 1; return &y }()))
+			afac.Set(k-1, k-1, t+goblas.Zdotu(k-1, afac.CVector(k-1, 0), *ldafac, afac.CVector(0, k-1), 1))
 
 			//           Compute elements (1:K-1,K)
-			goblas.Ztrmv(Lower, NoTrans, Unit, toPtr(k-1), afac, ldafac, afac.CVector(0, k-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztrmv(Lower, NoTrans, Unit, k-1, afac, *ldafac, afac.CVector(0, k-1), 1)
 		}
 	}
 	golapack.Zlaswp(n, afac, ldafac, func() *int { y := 1; return &y }(), toPtr(minint(*m, *n)), ipiv, toPtr(-1))

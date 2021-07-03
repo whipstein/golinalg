@@ -525,9 +525,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//
 			//           Compute D1 from the 1-stage and used as reference for the
 			//           2-stage
-			goblas.Dcopy(&n, sd, toPtr(1), d1, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 
 			golapack.Dsteqr('N', &n, d1, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)
@@ -554,9 +554,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			golapack.Dsytrd2stage('N', 'U', &n, v, ldu, sd, se, tau, work, &lh, work.Off(lh+1-1), &lw, &iinfo)
 
 			//           Compute D2 from the 2-stage Upper case
-			goblas.Dcopy(&n, sd, toPtr(1), d2, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d2, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 
 			golapack.Dsteqr('N', &n, d2, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)
@@ -581,9 +581,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			golapack.Dsytrd2stage('N', 'L', &n, v, ldu, sd, se, tau, work, &lh, work.Off(lh+1-1), &lw, &iinfo)
 
 			//           Compute D3 from the 2-stage Upper case
-			goblas.Dcopy(&n, sd, toPtr(1), d3, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d3, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 
 			golapack.Dsteqr('N', &n, d3, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)
@@ -626,7 +626,7 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Call DSPTRD and DOPGTR to compute S and U from AP
-			goblas.Dcopy(&nap, ap, toPtr(1), vp, toPtr(1))
+			goblas.Dcopy(nap, ap, 1, vp, 1)
 
 			ntest = 5
 			golapack.Dsptrd('U', &n, vp, sd, se, tau, &iinfo)
@@ -669,7 +669,7 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Call DSPTRD and DOPGTR to compute S and U from AP
-			goblas.Dcopy(&nap, ap, toPtr(1), vp, toPtr(1))
+			goblas.Dcopy(nap, ap, 1, vp, 1)
 
 			ntest = 7
 			golapack.Dsptrd('L', &n, vp, sd, se, tau, &iinfo)
@@ -704,9 +704,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call DSTEQR to compute D1, D2, and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(&n, sd, toPtr(1), d1, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -724,9 +724,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Compute D2
-			goblas.Dcopy(&n, sd, toPtr(1), d2, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d2, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 
 			ntest = 11
@@ -743,9 +743,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Compute D3 (using PWK method)
-			goblas.Dcopy(&n, sd, toPtr(1), d3, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d3, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 
 			ntest = 12
@@ -801,9 +801,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           and do tests 14, 15, and 16 .
 			if jtype > 15 {
 				//              Compute D4 and Z4
-				goblas.Dcopy(&n, sd, toPtr(1), d4, toPtr(1))
+				goblas.Dcopy(n, sd, 1, d4, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 				golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -824,9 +824,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				Dstt21(&n, func() *int { y := 0; return &y }(), sd, se, d4, dumma, z, ldu, work, result.Off(13))
 
 				//              Compute D5
-				goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 
 				ntest = 16
@@ -1028,9 +1028,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call DSTEDC(I) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(&n, sd, toPtr(1), d1, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1053,9 +1053,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call DSTEDC(V) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(&n, sd, toPtr(1), d1, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1078,9 +1078,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call DSTEDC(N) to compute D2, do tests.
 			//
 			//           Compute D2
-			goblas.Dcopy(&n, sd, toPtr(1), d2, toPtr(1))
+			goblas.Dcopy(n, sd, 1, d2, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+				goblas.Dcopy(n-1, se, 1, work, 1)
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1187,9 +1187,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//           Call DSTEMR(V,I) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 				golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1220,9 +1220,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Call DSTEMR to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+					goblas.Dcopy(n, sd, 1, d5, 1)
 					if n > 0 {
-						goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+						goblas.Dcopy(n-1, se, 1, work, 1)
 					}
 
 					ntest = 31
@@ -1252,9 +1252,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Call DSTEMR(V,V) to compute D1 and Z, do tests.
 					//
 					//           Compute D1 and Z
-					goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+					goblas.Dcopy(n, sd, 1, d5, 1)
 					if n > 0 {
-						goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+						goblas.Dcopy(n-1, se, 1, work, 1)
 					}
 					golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1294,9 +1294,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Call DSTEMR to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+					goblas.Dcopy(n, sd, 1, d5, 1)
 					if n > 0 {
-						goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+						goblas.Dcopy(n-1, se, 1, work, 1)
 					}
 
 					ntest = 34
@@ -1334,9 +1334,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//           Call DSTEMR(V,A) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 
 				ntest = 35
@@ -1359,9 +1359,9 @@ func Dchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//           Call DSTEMR to compute D2, do tests.
 				//
 				//           Compute D2
-				goblas.Dcopy(&n, sd, toPtr(1), d5, toPtr(1))
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, toPtr(1), work, toPtr(1))
+					goblas.Dcopy(n-1, se, 1, work, 1)
 				}
 
 				ntest = 37

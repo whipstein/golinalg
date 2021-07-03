@@ -270,10 +270,10 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 			temp1 = b.GetConj(k-1, k-1) / complex(dscale, 0)
 			temp2 = b.Get(k-1, k-1) / complex(dscale, 0)
 			b.SetRe(k-1, k-1, dscale)
-			goblas.Zscal(toPtr((*n)-k), &temp1, b.CVector(k-1, k+1-1), ldb)
-			goblas.Zscal(toPtr((*n)-k+1), &temp1, a.CVector(k-1, k-1), lda)
+			goblas.Zscal((*n)-k, temp1, b.CVector(k-1, k+1-1), *ldb)
+			goblas.Zscal((*n)-k+1, temp1, a.CVector(k-1, k-1), *lda)
 			if wantq {
-				goblas.Zscal(n, &temp2, q.CVector(0, k-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(*n, temp2, q.CVector(0, k-1), 1)
 			}
 		} else {
 			b.SetRe(k-1, k-1, zero)

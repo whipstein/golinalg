@@ -12,6 +12,8 @@ import (
 func Zpbtrs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMatrix, ldb, info *int) {
 	var upper bool
 	var j int
+	var err error
+	_ = err
 
 	//     Test the input parameters.
 	(*info) = 0
@@ -43,19 +45,19 @@ func Zpbtrs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMat
 		//        Solve A*X = B where A = U**H *U.
 		for j = 1; j <= (*nrhs); j++ {
 			//           Solve U**H *X = B, overwriting B with X.
-			goblas.Ztbsv(Upper, ConjTrans, NonUnit, n, kd, ab, ldab, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztbsv(Upper, ConjTrans, NonUnit, *n, *kd, ab, *ldab, b.CVector(0, j-1), 1)
 
 			//           Solve U*X = B, overwriting B with X.
-			goblas.Ztbsv(Upper, NoTrans, NonUnit, n, kd, ab, ldab, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztbsv(Upper, NoTrans, NonUnit, *n, *kd, ab, *ldab, b.CVector(0, j-1), 1)
 		}
 	} else {
 		//        Solve A*X = B where A = L*L**H.
 		for j = 1; j <= (*nrhs); j++ {
 			//           Solve L*X = B, overwriting B with X.
-			goblas.Ztbsv(Lower, NoTrans, NonUnit, n, kd, ab, ldab, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztbsv(Lower, NoTrans, NonUnit, *n, *kd, ab, *ldab, b.CVector(0, j-1), 1)
 
 			//           Solve L**H *X = B, overwriting B with X.
-			goblas.Ztbsv(Lower, ConjTrans, NonUnit, n, kd, ab, ldab, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Ztbsv(Lower, ConjTrans, NonUnit, *n, *kd, ab, *ldab, b.CVector(0, j-1), 1)
 		}
 	}
 }

@@ -21,6 +21,8 @@ func Dpotf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -49,7 +51,7 @@ func Dpotf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		//        Compute the Cholesky factorization A = U**T *U.
 		for j = 1; j <= (*n); j++ {
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = a.Get(j-1, j-1) - goblas.Ddot(toPtr(j-1), a.Vector(0, j-1), toPtr(1), a.Vector(0, j-1), toPtr(1))
+			ajj = a.Get(j-1, j-1) - goblas.Ddot(j-1, a.Vector(0, j-1), 1, a.Vector(0, j-1), 1)
 			if ajj <= zero || Disnan(int(ajj)) {
 				a.Set(j-1, j-1, ajj)
 				goto label30
@@ -59,15 +61,15 @@ func Dpotf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 
 			//           Compute elements J+1:N of row J.
 			if j < (*n) {
-				goblas.Dgemv(mat.Trans, toPtr(j-1), toPtr((*n)-j), toPtrf64(-one), a.Off(0, j+1-1), lda, a.Vector(0, j-1), toPtr(1), &one, a.Vector(j-1, j+1-1), lda)
-				goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), a.Vector(j-1, j+1-1), lda)
+				err = goblas.Dgemv(Trans, j-1, (*n)-j, -one, a.Off(0, j+1-1), *lda, a.Vector(0, j-1), 1, one, a.Vector(j-1, j+1-1), *lda)
+				goblas.Dscal((*n)-j, one/ajj, a.Vector(j-1, j+1-1), *lda)
 			}
 		}
 	} else {
 		//        Compute the Cholesky factorization A = L*L**T.
 		for j = 1; j <= (*n); j++ {
 			//           Compute L(J,J) and test for non-positive-definiteness.
-			ajj = a.Get(j-1, j-1) - goblas.Ddot(toPtr(j-1), a.Vector(j-1, 0), lda, a.Vector(j-1, 0), lda)
+			ajj = a.Get(j-1, j-1) - goblas.Ddot(j-1, a.Vector(j-1, 0), *lda, a.Vector(j-1, 0), *lda)
 			if ajj <= zero || Disnan(int(ajj)) {
 				a.Set(j-1, j-1, ajj)
 				goto label30
@@ -77,8 +79,8 @@ func Dpotf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 
 			//           Compute elements J+1:N of column J.
 			if j < (*n) {
-				goblas.Dgemv(mat.NoTrans, toPtr((*n)-j), toPtr(j-1), toPtrf64(-one), a.Off(j+1-1, 0), lda, a.Vector(j-1, 0), lda, &one, a.Vector(j+1-1, j-1), toPtr(1))
-				goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), a.Vector(j+1-1, j-1), toPtr(1))
+				err = goblas.Dgemv(NoTrans, (*n)-j, j-1, -one, a.Off(j+1-1, 0), *lda, a.Vector(j-1, 0), *lda, one, a.Vector(j+1-1, j-1), 1)
+				goblas.Dscal((*n)-j, one/ajj, a.Vector(j+1-1, j-1), 1)
 			}
 		}
 	}

@@ -23,6 +23,8 @@ func Zhbevd(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat.Vect
 	var cone, czero complex128
 	var anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, zero float64
 	var iinfo, imax, inde, indwk2, indwrk, iscale, liwmin, llrwk, llwk2, lrwmin, lwmin int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -137,7 +139,7 @@ func Zhbevd(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat.Vect
 		Dsterf(n, w, rwork.Off(inde-1), info)
 	} else {
 		Zstedc('I', n, w, rwork.Off(inde-1), work.CMatrix(*n, opts), n, work.Off(indwk2-1), &llwk2, rwork.Off(indwrk-1), &llrwk, iwork, liwork, info)
-		goblas.Zgemm(NoTrans, NoTrans, n, n, n, &cone, z, ldz, work.CMatrix(*n, opts), n, &czero, work.CMatrixOff(indwk2-1, *n, opts), n)
+		err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, z, *ldz, work.CMatrix(*n, opts), *n, czero, work.CMatrixOff(indwk2-1, *n, opts), *n)
 		Zlacpy('A', n, n, work.CMatrixOff(indwk2-1, *n, opts), n, z, ldz)
 	}
 
@@ -148,7 +150,7 @@ func Zhbevd(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat.Vect
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	work.SetRe(0, float64(lwmin))

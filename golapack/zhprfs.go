@@ -17,6 +17,9 @@ func Zhprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 	var one complex128
 	var eps, lstres, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, ik, itmax, j, k, kase, kk, nz int
+	var err error
+	_ = err
+
 	isave := make([]int, 3)
 
 	itmax = 5
@@ -73,8 +76,8 @@ func Zhprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Zcopy(n, b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Zhpmv(mat.UploByte(uplo), n, toPtrc128(-one), ap, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &one, work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
+		err = goblas.Zhpmv(mat.UploByte(uplo), *n, -one, ap, x.CVector(0, j-1), 1, one, work, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -137,7 +140,7 @@ func Zhprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zhptrs(uplo, n, func() *int { y := 1; return &y }(), afp, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(n, &one, work, func() *int { y := 1; return &y }(), x.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zaxpy(*n, one, work, 1, x.CVector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

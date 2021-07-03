@@ -18,6 +18,8 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	var cone, czero complex128
 	var eps, norma, normb, one, rcond, zero float64
 	var crank, i, im, imb, in, inb, info, ins, irank, iscale, itran, itype, j, k, lda, ldb, ldwork, liwork, lrwork, lrworkZgelsd, lrworkZgelss, lrworkZgelsy, lwlsy, lwork, lworkZgels, lworkZgelsd, lworkZgelss, lworkZgelsy, lworkZgetsls, m, mb, mmax, mnmin, n, nb, ncols, nerrs, nfail, nmax, nrhs, nrows, nrun, nsmax, rank, smlsiz int
+	var err error
+	_ = err
 
 	wq := cvf(1)
 	result := vf(16)
@@ -202,9 +204,9 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 									//                             Set up a consistent rhs
 									if ncols > 0 {
 										golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
-										goblas.Zdscal(toPtr(ncols*nrhs), toPtrf64(one/float64(ncols)), work, func() *int { y := 1; return &y }())
+										goblas.Zdscal(ncols*nrhs, one/float64(ncols), work, 1)
 									}
-									goblas.Zgemm(mat.TransByte(trans), NoTrans, &nrows, &nrhs, &ncols, &cone, copya.CMatrix(lda, opts), &lda, work.CMatrix(ldwork, opts), &ldwork, &czero, b.CMatrix(ldb, opts), &ldb)
+									err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), lda, work.CMatrix(ldwork, opts), ldwork, czero, b.CMatrix(ldb, opts), ldb)
 									golapack.Zlacpy('F', &nrows, &nrhs, b.CMatrix(ldb, opts), &ldb, copyb.CMatrix(ldb, opts), &ldb)
 
 									//                             Solve LS or overdetermined system
@@ -277,9 +279,9 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 										//                             Set up a consistent rhs
 										if ncols > 0 {
 											golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
-											goblas.Zscal(toPtr(ncols*nrhs), toPtrc128(complex(one/float64(ncols), 0)), work, func() *int { y := 1; return &y }())
+											goblas.Zscal(ncols*nrhs, complex(one/float64(ncols), 0), work, 1)
 										}
-										goblas.Zgemm(mat.TransByte(trans), NoTrans, &nrows, &nrhs, &ncols, &cone, copya.CMatrix(lda, opts), &lda, work.CMatrix(ldwork, opts), &ldwork, &czero, b.CMatrix(ldb, opts), &ldb)
+										err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), lda, work.CMatrix(ldwork, opts), ldwork, czero, b.CMatrix(ldb, opts), ldb)
 										golapack.Zlacpy('F', &nrows, &nrhs, b.CMatrix(ldb, opts), &ldb, copyb.CMatrix(ldb, opts), &ldb)
 
 										//                             Solve LS or overdetermined system
@@ -406,8 +408,8 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//
 							//                       Test 7:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(&mnmin, toPtrf64(-one), copys, func() *int { y := 1; return &y }(), s, func() *int { y := 1; return &y }())
-								result.Set(6, goblas.Dasum(&mnmin, s, func() *int { y := 1; return &y }())/goblas.Dasum(&mnmin, copys, func() *int { y := 1; return &y }())/(eps*float64(mnmin)))
+								goblas.Daxpy(mnmin, -one, copys, 1, s, 1)
+								result.Set(6, goblas.Dasum(mnmin, s, 1)/goblas.Dasum(mnmin, copys, 1)/(eps*float64(mnmin)))
 							} else {
 								result.Set(6, zero)
 							}
@@ -447,8 +449,8 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 							//                       Test 11:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(&mnmin, toPtrf64(-one), copys, func() *int { y := 1; return &y }(), s, func() *int { y := 1; return &y }())
-								result.Set(10, goblas.Dasum(&mnmin, s, func() *int { y := 1; return &y }())/goblas.Dasum(&mnmin, copys, func() *int { y := 1; return &y }())/(eps*float64(mnmin)))
+								goblas.Daxpy(mnmin, -one, copys, 1, s, 1)
+								result.Set(10, goblas.Dasum(mnmin, s, 1)/goblas.Dasum(mnmin, copys, 1)/(eps*float64(mnmin)))
 							} else {
 								result.Set(10, zero)
 							}

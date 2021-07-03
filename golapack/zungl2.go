@@ -61,7 +61,7 @@ func Zungl2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 				a.Set(i-1, i-1, one)
 				Zlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.CVector(i-1, i-1), lda, toPtrc128(tau.GetConj(i-1)), a.Off(i+1-1, i-1), lda, work)
 			}
-			goblas.Zscal(toPtr((*n)-i), toPtrc128(-tau.Get(i-1)), a.CVector(i-1, i+1-1), lda)
+			goblas.Zscal((*n)-i, -tau.Get(i-1), a.CVector(i-1, i+1-1), *lda)
 			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
 		}
 		a.Set(i-1, i-1, one-tau.GetConj(i-1))

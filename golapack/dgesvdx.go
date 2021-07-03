@@ -245,7 +245,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(n, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+					goblas.Dcopy(*n, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 					j = j + (*n)*2
 				}
 				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n)+1-1, 0), ldu)
@@ -263,7 +263,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*n)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(n, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldvt)
+					goblas.Dcopy(*n, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
 					j = j + (*n)*2
 				}
 
@@ -296,7 +296,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(n, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+					goblas.Dcopy(*n, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 					j = j + (*n)*2
 				}
 				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n)+1-1, 0), ldu)
@@ -310,7 +310,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*n)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(n, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldvt)
+					goblas.Dcopy(*n, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
 					j = j + (*n)*2
 				}
 
@@ -357,7 +357,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(m, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+					goblas.Dcopy(*m, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 					j = j + (*m)*2
 				}
 
@@ -370,7 +370,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*m)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(m, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldvt)
+					goblas.Dcopy(*m, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
 					j = j + (*m)*2
 				}
 				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)+1-1), ldvt)
@@ -408,7 +408,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(m, work.Off(j-1), toPtr(1), u.Vector(0, i-1), toPtr(1))
+					goblas.Dcopy(*m, work.Off(j-1), 1, u.Vector(0, i-1), 1)
 					j = j + (*m)*2
 				}
 
@@ -421,7 +421,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*m)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(m, work.Off(j-1), toPtr(1), vt.Vector(i-1, 0), ldvt)
+					goblas.Dcopy(*m, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
 					j = j + (*m)*2
 				}
 				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)+1-1), ldvt)

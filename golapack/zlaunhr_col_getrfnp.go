@@ -50,6 +50,8 @@ import (
 func Zlaunhrcolgetrfnp(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, info *int) {
 	var cone complex128
 	var iinfo, j, jb, nb int
+	var err error
+	_ = err
 
 	cone = (1.0 + 0.0*1i)
 
@@ -87,10 +89,10 @@ func Zlaunhrcolgetrfnp(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, info
 
 			if j+jb <= (*n) {
 				//              Compute block row of U.
-				goblas.Ztrsm(Left, Lower, NoTrans, Unit, &jb, toPtr((*n)-j-jb+1), &cone, a.Off(j-1, j-1), lda, a.Off(j-1, j+jb-1), lda)
+				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					goblas.Zgemm(NoTrans, NoTrans, toPtr((*m)-j-jb+1), toPtr((*n)-j-jb+1), &jb, toPtrc128(-cone), a.Off(j+jb-1, j-1), lda, a.Off(j-1, j+jb-1), lda, &cone, a.Off(j+jb-1, j+jb-1), lda)
+					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -cone, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, cone, a.Off(j+jb-1, j+jb-1), *lda)
 				}
 			}
 		}

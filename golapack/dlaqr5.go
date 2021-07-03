@@ -13,6 +13,8 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, sr, si *mat.V
 	var accum, blk22, bmp22 bool
 	var alpha, beta, h11, h12, h21, h22, one, refsum, safmax, safmin, scl, smlnum, swap, tst1, tst2, ulp, zero float64
 	var i, i2, i4, incol, j, j2, j4, jbot, jcol, jlen, jrow, jtop, k, k1, kdu, kms, knz, krcol, kzs, m, m22, mbot, mend, mstart, mtop, nbmps, ndcol, ns, nu int
+	var err error
+	_ = err
 
 	vt := vf(3)
 
@@ -381,14 +383,14 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, sr, si *mat.V
 				//              ==== Horizontal Multiply ====
 				for jcol = minint(ndcol, *kbot) + 1; jcol <= jbot; jcol += (*nh) {
 					jlen = minint(*nh, jbot-jcol+1)
-					goblas.Dgemm(ConjTrans, NoTrans, &nu, &jlen, &nu, &one, u.Off(k1-1, k1-1), ldu, h.Off(incol+k1-1, jcol-1), ldh, &zero, wh, ldwh)
+					err = goblas.Dgemm(ConjTrans, NoTrans, nu, jlen, nu, one, u.Off(k1-1, k1-1), *ldu, h.Off(incol+k1-1, jcol-1), *ldh, zero, wh, *ldwh)
 					Dlacpy('A', &nu, &jlen, wh, ldwh, h.Off(incol+k1-1, jcol-1), ldh)
 				}
 
 				//              ==== Vertical multiply ====
 				for jrow = jtop; jrow <= maxint(*ktop, incol)-1; jrow += (*nv) {
 					jlen = minint(*nv, maxint(*ktop, incol)-jrow)
-					goblas.Dgemm(NoTrans, NoTrans, &jlen, &nu, &nu, &one, h.Off(jrow-1, incol+k1-1), ldh, u.Off(k1-1, k1-1), ldu, &zero, wv, ldwv)
+					err = goblas.Dgemm(NoTrans, NoTrans, jlen, nu, nu, one, h.Off(jrow-1, incol+k1-1), *ldh, u.Off(k1-1, k1-1), *ldu, zero, wv, *ldwv)
 					Dlacpy('A', &jlen, &nu, wv, ldwv, h.Off(jrow-1, incol+k1-1), ldh)
 				}
 
@@ -396,7 +398,7 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, sr, si *mat.V
 				if wantz {
 					for jrow = (*iloz); jrow <= (*ihiz); jrow += (*nv) {
 						jlen = minint(*nv, (*ihiz)-jrow+1)
-						goblas.Dgemm(NoTrans, NoTrans, &jlen, &nu, &nu, &one, z.Off(jrow-1, incol+k1-1), ldz, u.Off(k1-1, k1-1), ldu, &zero, wv, ldwv)
+						err = goblas.Dgemm(NoTrans, NoTrans, jlen, nu, nu, one, z.Off(jrow-1, incol+k1-1), *ldz, u.Off(k1-1, k1-1), *ldu, zero, wv, *ldwv)
 						Dlacpy('A', &jlen, &nu, wv, ldwv, z.Off(jrow-1, incol+k1-1), ldz)
 					}
 				}
@@ -425,19 +427,19 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, sr, si *mat.V
 
 					//                 ==== Multiply by U21**T ====
 					Dlaset('A', &kzs, &jlen, &zero, &zero, wh, ldwh)
-					goblas.Dtrmm(Left, Upper, ConjTrans, NonUnit, &knz, &jlen, &one, u.Off(j2+1-1, 1+kzs-1), ldu, wh.Off(kzs+1-1, 0), ldwh)
+					err = goblas.Dtrmm(Left, Upper, ConjTrans, NonUnit, knz, jlen, one, u.Off(j2+1-1, 1+kzs-1), *ldu, wh.Off(kzs+1-1, 0), *ldwh)
 
 					//                 ==== Multiply top of H by U11**T ====
-					goblas.Dgemm(ConjTrans, NoTrans, &i2, &jlen, &j2, &one, u, ldu, h.Off(incol+1-1, jcol-1), ldh, &one, wh, ldwh)
+					err = goblas.Dgemm(ConjTrans, NoTrans, i2, jlen, j2, one, u, *ldu, h.Off(incol+1-1, jcol-1), *ldh, one, wh, *ldwh)
 
 					//                 ==== Copy top of H to bottom of WH ====
 					Dlacpy('A', &j2, &jlen, h.Off(incol+1-1, jcol-1), ldh, wh.Off(i2+1-1, 0), ldwh)
 
 					//                 ==== Multiply by U21**T ====
-					goblas.Dtrmm(Left, Lower, ConjTrans, NonUnit, &j2, &jlen, &one, u.Off(0, i2+1-1), ldu, wh.Off(i2+1-1, 0), ldwh)
+					err = goblas.Dtrmm(Left, Lower, ConjTrans, NonUnit, j2, jlen, one, u.Off(0, i2+1-1), *ldu, wh.Off(i2+1-1, 0), *ldwh)
 
 					//                 ==== Multiply by U22 ====
-					goblas.Dgemm(ConjTrans, NoTrans, toPtr(i4-i2), &jlen, toPtr(j4-j2), &one, u.Off(j2+1-1, i2+1-1), ldu, h.Off(incol+1+j2-1, jcol-1), ldh, &one, wh.Off(i2+1-1, 0), ldwh)
+					err = goblas.Dgemm(ConjTrans, NoTrans, i4-i2, jlen, j4-j2, one, u.Off(j2+1-1, i2+1-1), *ldu, h.Off(incol+1+j2-1, jcol-1), *ldh, one, wh.Off(i2+1-1, 0), *ldwh)
 
 					//                 ==== Copy it back ====
 					Dlacpy('A', &kdu, &jlen, wh, ldwh, h.Off(incol+1-1, jcol-1), ldh)
@@ -453,19 +455,19 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, sr, si *mat.V
 
 					//                 ==== Multiply by U21 ====
 					Dlaset('A', &jlen, &kzs, &zero, &zero, wv, ldwv)
-					goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, &jlen, &knz, &one, u.Off(j2+1-1, 1+kzs-1), ldu, wv.Off(0, 1+kzs-1), ldwv)
+					err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2+1-1, 1+kzs-1), *ldu, wv.Off(0, 1+kzs-1), *ldwv)
 
 					//                 ==== Multiply by U11 ====
-					goblas.Dgemm(NoTrans, NoTrans, &jlen, &i2, &j2, &one, h.Off(jrow-1, incol+1-1), ldh, u, ldu, &one, wv, ldwv)
+					err = goblas.Dgemm(NoTrans, NoTrans, jlen, i2, j2, one, h.Off(jrow-1, incol+1-1), *ldh, u, *ldu, one, wv, *ldwv)
 
 					//                 ==== Copy left of H to right of scratch ====
 					Dlacpy('A', &jlen, &j2, h.Off(jrow-1, incol+1-1), ldh, wv.Off(0, 1+i2-1), ldwv)
 
 					//                 ==== Multiply by U21 ====
-					goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, &jlen, toPtr(i4-i2), &one, u.Off(0, i2+1-1), ldu, wv.Off(0, 1+i2-1), ldwv)
+					err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2+1-1), *ldu, wv.Off(0, 1+i2-1), *ldwv)
 
 					//                 ==== Multiply by U22 ====
-					goblas.Dgemm(NoTrans, NoTrans, &jlen, toPtr(i4-i2), toPtr(j4-j2), &one, h.Off(jrow-1, incol+1+j2-1), ldh, u.Off(j2+1-1, i2+1-1), ldu, &one, wv.Off(0, 1+i2-1), ldwv)
+					err = goblas.Dgemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, h.Off(jrow-1, incol+1+j2-1), *ldh, u.Off(j2+1-1, i2+1-1), *ldu, one, wv.Off(0, 1+i2-1), *ldwv)
 
 					//                 ==== Copy it back ====
 					Dlacpy('A', &jlen, &kdu, wv, ldwv, h.Off(jrow-1, incol+1-1), ldh)
@@ -482,19 +484,19 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts *int, sr, si *mat.V
 
 						//                    ==== Multiply by U12 ====
 						Dlaset('A', &jlen, &kzs, &zero, &zero, wv, ldwv)
-						goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, &jlen, &knz, &one, u.Off(j2+1-1, 1+kzs-1), ldu, wv.Off(0, 1+kzs-1), ldwv)
+						err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2+1-1, 1+kzs-1), *ldu, wv.Off(0, 1+kzs-1), *ldwv)
 
 						//                    ==== Multiply by U11 ====
-						goblas.Dgemm(NoTrans, NoTrans, &jlen, &i2, &j2, &one, z.Off(jrow-1, incol+1-1), ldz, u, ldu, &one, wv, ldwv)
+						err = goblas.Dgemm(NoTrans, NoTrans, jlen, i2, j2, one, z.Off(jrow-1, incol+1-1), *ldz, u, *ldu, one, wv, *ldwv)
 
 						//                    ==== Copy left of Z to right of scratch ====
 						Dlacpy('A', &jlen, &j2, z.Off(jrow-1, incol+1-1), ldz, wv.Off(0, 1+i2-1), ldwv)
 
 						//                    ==== Multiply by U21 ====
-						goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, &jlen, toPtr(i4-i2), &one, u.Off(0, i2+1-1), ldu, wv.Off(0, 1+i2-1), ldwv)
+						err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2+1-1), *ldu, wv.Off(0, 1+i2-1), *ldwv)
 
 						//                    ==== Multiply by U22 ====
-						goblas.Dgemm(NoTrans, NoTrans, &jlen, toPtr(i4-i2), toPtr(j4-j2), &one, z.Off(jrow-1, incol+1+j2-1), ldz, u.Off(j2+1-1, i2+1-1), ldu, &one, wv.Off(0, 1+i2-1), ldwv)
+						err = goblas.Dgemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, z.Off(jrow-1, incol+1+j2-1), *ldz, u.Off(j2+1-1, i2+1-1), *ldu, one, wv.Off(0, 1+i2-1), *ldwv)
 
 						//                    ==== Copy the result back to Z ====
 						Dlacpy('A', &jlen, &kdu, wv, ldwv, z.Off(jrow-1, incol+1-1), ldz)

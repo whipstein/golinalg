@@ -32,6 +32,8 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 	var cone, czero complex128
 	var one, ovfl, remax, scale, smin, smlnum, ulp, unfl, zero float64
 	var i, ii, is, iv, j, k, ki, maxwrk, nb, nbmax, nbmin int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -125,7 +127,7 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 	//     part of T to control overflow in triangular solver.
 	rwork.Set(0, zero)
 	for j = 2; j <= (*n); j++ {
-		rwork.Set(j-1, goblas.Dzasum(toPtr(j-1), t.CVector(0, j-1), func() *int { y := 1; return &y }()))
+		rwork.Set(j-1, goblas.Dzasum(j-1, t.CVector(0, j-1), 1))
 	}
 
 	if rightv {
@@ -173,11 +175,11 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 			if !over {
 				//              ------------------------------
 				//              no back-transform: copy x to VR and normalize.
-				goblas.Zcopy(&ki, work.Off(1+iv*(*n)-1), func() *int { y := 1; return &y }(), vr.CVector(0, is-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy(ki, work.Off(1+iv*(*n)-1), 1, vr.CVector(0, is-1), 1)
 				//
-				ii = goblas.Izamax(&ki, vr.CVector(0, is-1), func() *int { y := 1; return &y }())
+				ii = goblas.Izamax(ki, vr.CVector(0, is-1), 1)
 				remax = one / cabs1(vr.Get(ii-1, is-1))
-				goblas.Zdscal(&ki, &remax, vr.CVector(0, is-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(ki, remax, vr.CVector(0, is-1), 1)
 
 				for k = ki + 1; k <= (*n); k++ {
 					vr.Set(k-1, is-1, czero)
@@ -187,12 +189,12 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 				//              ------------------------------
 				//              version 1: back-transform each vector with GEMV, Q*x.
 				if ki > 1 {
-					goblas.Zgemv(NoTrans, n, toPtr(ki-1), &cone, vr, ldvr, work.Off(1+iv*(*n)-1), func() *int { y := 1; return &y }(), toPtrc128(complex(scale, 0)), vr.CVector(0, ki-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(NoTrans, *n, ki-1, cone, vr, *ldvr, work.Off(1+iv*(*n)-1), 1, complex(scale, 0), vr.CVector(0, ki-1), 1)
 				}
 
-				ii = goblas.Izamax(n, vr.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				ii = goblas.Izamax(*n, vr.CVector(0, ki-1), 1)
 				remax = one / cabs1(vr.Get(ii-1, ki-1))
-				goblas.Zdscal(n, &remax, vr.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(*n, remax, vr.CVector(0, ki-1), 1)
 
 			} else {
 				//              ------------------------------
@@ -206,12 +208,12 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 				//              When the number of vectors stored reaches NB,
 				//              or if this was last vector, do the GEMM
 				if (iv == 1) || (ki == 1) {
-					goblas.Zgemm(NoTrans, NoTrans, n, toPtr(nb-iv+1), toPtr(ki+nb-iv), &cone, vr, ldvr, work.CMatrixOff(1+iv*(*n)-1, *n, opts), n, &czero, work.CMatrixOff(1+(nb+iv)*(*n)-1, *n, opts), n)
+					err = goblas.Zgemm(NoTrans, NoTrans, *n, nb-iv+1, ki+nb-iv, cone, vr, *ldvr, work.CMatrixOff(1+iv*(*n)-1, *n, opts), *n, czero, work.CMatrixOff(1+(nb+iv)*(*n)-1, *n, opts), *n)
 					//                 normalize vectors
 					for k = iv; k <= nb; k++ {
-						ii = goblas.Izamax(n, work.Off(1+(nb+k)*(*n)-1), func() *int { y := 1; return &y }())
+						ii = goblas.Izamax(*n, work.Off(1+(nb+k)*(*n)-1), 1)
 						remax = one / cabs1(work.Get(ii+(nb+k)*(*n)-1))
-						goblas.Zdscal(n, &remax, work.Off(1+(nb+k)*(*n)-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(*n, remax, work.Off(1+(nb+k)*(*n)-1), 1)
 					}
 					Zlacpy('F', n, toPtr(nb-iv+1), work.CMatrixOff(1+(nb+iv)*(*n)-1, *n, opts), n, vr.Off(0, ki-1), ldvr)
 					iv = nb
@@ -276,11 +278,11 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 			if !over {
 				//              ------------------------------
 				//              no back-transform: copy x to VL and normalize.
-				goblas.Zcopy(toPtr((*n)-ki+1), work.Off(ki+iv*(*n)-1), func() *int { y := 1; return &y }(), vl.CVector(ki-1, is-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy((*n)-ki+1, work.Off(ki+iv*(*n)-1), 1, vl.CVector(ki-1, is-1), 1)
 				//
-				ii = goblas.Izamax(toPtr((*n)-ki+1), vl.CVector(ki-1, is-1), func() *int { y := 1; return &y }()) + ki - 1
+				ii = goblas.Izamax((*n)-ki+1, vl.CVector(ki-1, is-1), 1) + ki - 1
 				remax = one / cabs1(vl.Get(ii-1, is-1))
-				goblas.Zdscal(toPtr((*n)-ki+1), &remax, vl.CVector(ki-1, is-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-ki+1, remax, vl.CVector(ki-1, is-1), 1)
 				//
 				for k = 1; k <= ki-1; k++ {
 					vl.Set(k-1, is-1, czero)
@@ -290,12 +292,12 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 				//              ------------------------------
 				//              version 1: back-transform each vector with GEMV, Q*x.
 				if ki < (*n) {
-					goblas.Zgemv(NoTrans, n, toPtr((*n)-ki), &cone, vl.Off(0, ki+1-1), ldvl, work.Off(ki+1+iv*(*n)-1), func() *int { y := 1; return &y }(), toPtrc128(complex(scale, 0)), vl.CVector(0, ki-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(NoTrans, *n, (*n)-ki, cone, vl.Off(0, ki+1-1), *ldvl, work.Off(ki+1+iv*(*n)-1), 1, complex(scale, 0), vl.CVector(0, ki-1), 1)
 				}
 
-				ii = goblas.Izamax(n, vl.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				ii = goblas.Izamax(*n, vl.CVector(0, ki-1), 1)
 				remax = one / cabs1(vl.Get(ii-1, ki-1))
-				goblas.Zdscal(n, &remax, vl.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(*n, remax, vl.CVector(0, ki-1), 1)
 
 			} else {
 				//              ------------------------------
@@ -310,12 +312,12 @@ func Ztrevc3(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int
 				//              When the number of vectors stored reaches NB,
 				//              or if this was last vector, do the GEMM
 				if (iv == nb) || (ki == (*n)) {
-					goblas.Zgemm(NoTrans, NoTrans, n, &iv, toPtr((*n)-ki+iv), &cone, vl.Off(0, ki-iv+1-1), ldvl, work.CMatrixOff(ki-iv+1+1*(*n)-1, *n, opts), n, &czero, work.CMatrixOff(1+(nb+1)*(*n)-1, *n, opts), n)
+					err = goblas.Zgemm(NoTrans, NoTrans, *n, iv, (*n)-ki+iv, cone, vl.Off(0, ki-iv+1-1), *ldvl, work.CMatrixOff(ki-iv+1+1*(*n)-1, *n, opts), *n, czero, work.CMatrixOff(1+(nb+1)*(*n)-1, *n, opts), *n)
 					//                 normalize vectors
 					for k = 1; k <= iv; k++ {
-						ii = goblas.Izamax(n, work.Off(1+(nb+k)*(*n)-1), func() *int { y := 1; return &y }())
+						ii = goblas.Izamax(*n, work.Off(1+(nb+k)*(*n)-1), 1)
 						remax = one / cabs1(work.Get(ii+(nb+k)*(*n)-1))
-						goblas.Zdscal(n, &remax, work.Off(1+(nb+k)*(*n)-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(*n, remax, work.Off(1+(nb+k)*(*n)-1), 1)
 					}
 					Zlacpy('F', n, &iv, work.CMatrixOff(1+(nb+1)*(*n)-1, *n, opts), n, vl.Off(0, ki-iv+1-1), ldvl)
 					iv = 1

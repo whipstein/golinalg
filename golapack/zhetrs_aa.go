@@ -13,6 +13,8 @@ func Zhetrsaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b 
 	var lquery, upper bool
 	var one complex128
 	var k, kp, lwkopt int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -55,12 +57,12 @@ func Zhetrsaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b 
 			for k = 1; k <= (*n); k++ {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 			}
 
 			//           Compute U**H \ B -> B    [ (U**H \P**T * B) ]
-			goblas.Ztrsm(Left, Upper, ConjTrans, Unit, toPtr((*n)-1), nrhs, &one, a.Off(0, 1), lda, b.Off(1, 0), ldb)
+			err = goblas.Ztrsm(Left, Upper, ConjTrans, Unit, (*n)-1, *nrhs, one, a.Off(0, 1), *lda, b.Off(1, 0), *ldb)
 		}
 
 		//        2) Solve with triangular matrix T
@@ -77,13 +79,13 @@ func Zhetrsaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b 
 		//        3) Backward substitution with U
 		if (*n) > 1 {
 			//           Compute U \ B -> B   [ U \ (T \ (U**H \P**T * B) ) ]
-			goblas.Ztrsm(Left, Upper, NoTrans, Unit, toPtr((*n)-1), nrhs, &one, a.Off(0, 1), lda, b.Off(1, 0), ldb)
+			err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, (*n)-1, *nrhs, one, a.Off(0, 1), *lda, b.Off(1, 0), *ldb)
 
 			//           Pivot, P * B  [ P * (U**H \ (T \ (U \P**T * B) )) ]
 			for k = (*n); k >= 1; k-- {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 			}
 		}
@@ -97,12 +99,12 @@ func Zhetrsaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b 
 			for k = 1; k <= (*n); k++ {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 			}
 
 			//           Compute L \ B -> B    [ (L \P**T * B) ]
-			goblas.Ztrsm(Left, Lower, NoTrans, Unit, toPtr((*n)-1), nrhs, &one, a.Off(1, 0), lda, b.Off(1, 0), ldb)
+			err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, (*n)-1, *nrhs, one, a.Off(1, 0), *lda, b.Off(1, 0), *ldb)
 		}
 
 		//        2) Solve with triangular matrix T
@@ -119,13 +121,13 @@ func Zhetrsaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b 
 		//        3) Backward substitution with L**H
 		if (*n) > 1 {
 			//           Compute L**H \ B -> B   [ L**H \ (T \ (L \P**T * B) ) ]
-			goblas.Ztrsm(Left, Lower, ConjTrans, Unit, toPtr((*n)-1), nrhs, &one, a.Off(1, 0), lda, b.Off(1, 0), ldb)
+			err = goblas.Ztrsm(Left, Lower, ConjTrans, Unit, (*n)-1, *nrhs, one, a.Off(1, 0), *lda, b.Off(1, 0), *ldb)
 
 			//           Pivot, P * B  [ P * (L**H \ (T \ (L \P**T * B) )) ]
 			for k = (*n); k >= 1; k-- {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 			}
 		}

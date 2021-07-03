@@ -17,6 +17,8 @@ func Dgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, afb *ma
 	var eps, lstres, one, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, itmax, j, k, kase, kk, nz int
 	isave := make([]int, 3)
+	var err error
+	_ = err
 
 	itmax = 5
 	zero = 0.0
@@ -85,8 +87,8 @@ func Dgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, afb *ma
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Dcopy(n, b.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
-		goblas.Dgbmv(mat.TransByte(trans), n, n, kl, ku, toPtrf64(-one), ab, ldab, x.Vector(0, j-1), toPtr(1), &one, work.Off((*n)+1-1), toPtr(1))
+		goblas.Dcopy(*n, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
+		err = goblas.Dgbmv(mat.TransByte(trans), *n, *n, *kl, *ku, -one, ab, *ldab, x.Vector(0, j-1), 1, one, work.Off((*n)+1-1), 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -137,7 +139,7 @@ func Dgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, afb *ma
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Dgbtrs(trans, n, kl, ku, func() *int { y := 1; return &y }(), afb, ldafb, ipiv, work.MatrixOff((*n)+1-1, *n, opts), n, info)
-			goblas.Daxpy(n, &one, work.Off((*n)+1-1), toPtr(1), x.Vector(0, j-1), toPtr(1))
+			goblas.Daxpy(*n, one, work.Off((*n)+1-1), 1, x.Vector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count++
 			goto label20

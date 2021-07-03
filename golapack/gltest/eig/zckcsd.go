@@ -96,7 +96,7 @@ func Zckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 				for i = 1; i <= m; i++ {
 					j = int(matgen.Dlaran(iseed)*float64(m)) + 1
 					if j != i {
-						goblas.Zdrot(&m, x.Off(1+(i-1)*ldx-1), func() *int { y := 1; return &y }(), x.Off(1+(j-1)*ldx-1), func() *int { y := 1; return &y }(), &realzero, &realone)
+						goblas.Zdrot(m, x.Off(1+(i-1)*ldx-1), 1, x.Off(1+(j-1)*ldx-1), 1, realzero, realone)
 					}
 				}
 			}

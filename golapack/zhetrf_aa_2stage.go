@@ -21,6 +21,8 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 	var tquery, upper, wquery bool
 	var one, piv, zero complex128
 	var i, i1, i2, iinfo, j, jb, k, kb, ldtb, nb, nt, td int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -103,7 +105,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 					} else {
 						jb = 2 * nb
 					}
-					goblas.Zgemm(NoTrans, NoTrans, &nb, &kb, &jb, &one, tb.CMatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off((i-1)*nb+1-1, j*nb+1-1), lda, &zero, work.CMatrixOff(i*nb+1-1, *n, opts), n)
+					err = goblas.Zgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.CMatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off((i-1)*nb+1-1, j*nb+1-1), *lda, zero, work.CMatrixOff(i*nb+1-1, *n, opts), *n)
 				} else {
 					//                 H(I,J) = T(I,I-1)*U(I-1,J) + T(I,I)*U(I,J) + T(I,I+1)*U(I+1,J)
 					if i == (j - 1) {
@@ -111,7 +113,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 					} else {
 						jb = 3 * nb
 					}
-					goblas.Zgemm(NoTrans, NoTrans, &nb, &kb, &jb, &one, tb.CMatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off((i-2)*nb+1-1, j*nb+1-1), lda, &zero, work.CMatrixOff(i*nb+1-1, *n, opts), n)
+					err = goblas.Zgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.CMatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off((i-2)*nb+1-1, j*nb+1-1), *lda, zero, work.CMatrixOff(i*nb+1-1, *n, opts), *n)
 				}
 			}
 
@@ -119,10 +121,10 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 			Zlacpy('U', &kb, &kb, a.Off(j*nb+1-1, j*nb+1-1), lda, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
 			if j > 1 {
 				//              T(J,J) = U(1:J,J)'*H(1:J)
-				goblas.Zgemm(ConjTrans, NoTrans, &kb, &kb, toPtr((j-1)*nb), toPtrc128(-one), a.Off(0, j*nb+1-1), lda, work.CMatrixOff(nb+1-1, *n, opts), n, &one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+				err = goblas.Zgemm(ConjTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(0, j*nb+1-1), *lda, work.CMatrixOff(nb+1-1, *n, opts), *n, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1)
 				//              T(J,J) += U(J,J)'*T(J,J-1)*U(J-1,J)
-				goblas.Zgemm(ConjTrans, NoTrans, &kb, &nb, &kb, &one, a.Off((j-1)*nb+1-1, j*nb+1-1), lda, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), &zero, work.CMatrix(*n, opts), n)
-				goblas.Zgemm(NoTrans, NoTrans, &kb, &kb, &nb, toPtrc128(-one), work.CMatrix(*n, opts), n, a.Off((j-2)*nb+1-1, j*nb+1-1), lda, &one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+				err = goblas.Zgemm(ConjTrans, NoTrans, kb, nb, kb, one, a.Off((j-1)*nb+1-1, j*nb+1-1), *lda, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), ldtb-1, zero, work.CMatrix(*n, opts), *n)
+				err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, nb, -one, work.CMatrix(*n, opts), *n, a.Off((j-2)*nb+1-1, j*nb+1-1), *lda, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1)
 			}
 			if j > 0 {
 				Zhegst(func() *int { y := 1; return &y }(), 'U', &kb, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off((j-1)*nb+1-1, j*nb+1-1), lda, &iinfo)
@@ -140,18 +142,18 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 				if j > 0 {
 					//                 Compute H(J,J)
 					if j == 1 {
-						goblas.Zgemm(NoTrans, NoTrans, &kb, &kb, &kb, &one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off((j-1)*nb+1-1, j*nb+1-1), lda, &zero, work.CMatrixOff(j*nb+1-1, *n, opts), n)
+						err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, kb, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off((j-1)*nb+1-1, j*nb+1-1), *lda, zero, work.CMatrixOff(j*nb+1-1, *n, opts), *n)
 					} else {
-						goblas.Zgemm(NoTrans, NoTrans, &kb, &kb, toPtr(nb+kb), &one, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off((j-2)*nb+1-1, j*nb+1-1), lda, &zero, work.CMatrixOff(j*nb+1-1, *n, opts), n)
+						err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, nb+kb, one, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off((j-2)*nb+1-1, j*nb+1-1), *lda, zero, work.CMatrixOff(j*nb+1-1, *n, opts), *n)
 					}
 
 					//                 Update with the previous column
-					goblas.Zgemm(ConjTrans, NoTrans, &nb, toPtr((*n)-(j+1)*nb), toPtr(j*nb), toPtrc128(-one), work.CMatrixOff(nb+1-1, *n, opts), n, a.Off(0, (j+1)*nb+1-1), lda, &one, a.Off(j*nb+1-1, (j+1)*nb+1-1), lda)
+					err = goblas.Zgemm(ConjTrans, NoTrans, nb, (*n)-(j+1)*nb, j*nb, -one, work.CMatrixOff(nb+1-1, *n, opts), *n, a.Off(0, (j+1)*nb+1-1), *lda, one, a.Off(j*nb+1-1, (j+1)*nb+1-1), *lda)
 				}
 
 				//              Copy panel to workspace to call ZGETRF
 				for k = 1; k <= nb; k++ {
-					goblas.Zcopy(toPtr((*n)-(j+1)*nb), a.CVector(j*nb+k-1, (j+1)*nb+1-1), lda, work.Off(1+(k-1)*(*n)-1), func() *int { y := 1; return &y }())
+					goblas.Zcopy((*n)-(j+1)*nb, a.CVector(j*nb+k-1, (j+1)*nb+1-1), *lda, work.Off(1+(k-1)*(*n)-1), 1)
 				}
 
 				//              Factorize panel
@@ -163,7 +165,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 				//              Copy panel back
 				for k = 1; k <= nb; k++ {
 					//                  Copy only L-factor
-					goblas.Zcopy(toPtr((*n)-k-(j+1)*nb), work.Off(k+1+(k-1)*(*n)-1), func() *int { y := 1; return &y }(), a.CVector(j*nb+k-1, (j+1)*nb+k+1-1), lda)
+					goblas.Zcopy((*n)-k-(j+1)*nb, work.Off(k+1+(k-1)*(*n)-1), 1, a.CVector(j*nb+k-1, (j+1)*nb+k+1-1), *lda)
 
 					//                  Transpose U-factor to be copied back into T(J+1, J)
 					Zlacgv(&k, work.Off(1+(k-1)*(*n)-1), func() *int { y := 1; return &y }())
@@ -174,7 +176,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 				Zlaset('F', &kb, &nb, &zero, &zero, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
 				Zlacpy('U', &kb, &nb, work.CMatrix(*n, opts), n, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
 				if j > 0 {
-					goblas.Ztrsm(Right, Upper, NoTrans, Unit, &kb, &nb, &one, a.Off((j-1)*nb+1-1, j*nb+1-1), lda, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+					err = goblas.Ztrsm(Right, Upper, NoTrans, Unit, kb, nb, one, a.Off((j-1)*nb+1-1, j*nb+1-1), *lda, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1)
 				}
 
 				//              Copy T(J,J+1) into T(J+1, J), both upper/lower for GEMM
@@ -195,16 +197,16 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 					i2 = (*ipiv)[(j+1)*nb+k-1]
 					if i1 != i2 {
 						//                    > Apply pivots to previous columns of L
-						goblas.Zswap(toPtr(k-1), a.CVector((j+1)*nb+1-1, i1-1), func() *int { y := 1; return &y }(), a.CVector((j+1)*nb+1-1, i2-1), func() *int { y := 1; return &y }())
+						goblas.Zswap(k-1, a.CVector((j+1)*nb+1-1, i1-1), 1, a.CVector((j+1)*nb+1-1, i2-1), 1)
 						//                    > Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 						if i2 > (i1 + 1) {
-							goblas.Zswap(toPtr(i2-i1-1), a.CVector(i1-1, i1+1-1), lda, a.CVector(i1+1-1, i2-1), func() *int { y := 1; return &y }())
+							goblas.Zswap(i2-i1-1, a.CVector(i1-1, i1+1-1), *lda, a.CVector(i1+1-1, i2-1), 1)
 							Zlacgv(toPtr(i2-i1-1), a.CVector(i1+1-1, i2-1), func() *int { y := 1; return &y }())
 						}
 						Zlacgv(toPtr(i2-i1), a.CVector(i1-1, i1+1-1), lda)
 						//                    > Swap A(I2+1:M, I1) with A(I2+1:M, I2)
 						if i2 < (*n) {
-							goblas.Zswap(toPtr((*n)-i2), a.CVector(i1-1, i2+1-1), lda, a.CVector(i2-1, i2+1-1), lda)
+							goblas.Zswap((*n)-i2, a.CVector(i1-1, i2+1-1), *lda, a.CVector(i2-1, i2+1-1), *lda)
 						}
 						//                    > Swap A(I1, I1) with A(I2, I2)
 						piv = a.Get(i1-1, i1-1)
@@ -212,7 +214,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 						a.Set(i2-1, i2-1, piv)
 						//                    > Apply pivots to previous columns of L
 						if j > 0 {
-							goblas.Zswap(toPtr(j*nb), a.CVector(0, i1-1), func() *int { y := 1; return &y }(), a.CVector(0, i2-1), func() *int { y := 1; return &y }())
+							goblas.Zswap(j*nb, a.CVector(0, i1-1), 1, a.CVector(0, i2-1), 1)
 						}
 					}
 				}
@@ -233,7 +235,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 					} else {
 						jb = 2 * nb
 					}
-					goblas.Zgemm(NoTrans, ConjTrans, &nb, &kb, &jb, &one, tb.CMatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off(j*nb+1-1, (i-1)*nb+1-1), lda, &zero, work.CMatrixOff(i*nb+1-1, *n, opts), n)
+					err = goblas.Zgemm(NoTrans, ConjTrans, nb, kb, jb, one, tb.CMatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off(j*nb+1-1, (i-1)*nb+1-1), *lda, zero, work.CMatrixOff(i*nb+1-1, *n, opts), *n)
 				} else {
 					//                 H(I,J) = T(I,I-1)*L(J,I-1)' + T(I,I)*L(J,I)' + T(I,I+1)*L(J,I+1)'
 					if i == (j - 1) {
@@ -241,7 +243,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 					} else {
 						jb = 3 * nb
 					}
-					goblas.Zgemm(NoTrans, ConjTrans, &nb, &kb, &jb, &one, tb.CMatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off(j*nb+1-1, (i-2)*nb+1-1), lda, &zero, work.CMatrixOff(i*nb+1-1, *n, opts), n)
+					err = goblas.Zgemm(NoTrans, ConjTrans, nb, kb, jb, one, tb.CMatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off(j*nb+1-1, (i-2)*nb+1-1), *lda, zero, work.CMatrixOff(i*nb+1-1, *n, opts), *n)
 				}
 			}
 
@@ -249,10 +251,10 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 			Zlacpy('L', &kb, &kb, a.Off(j*nb+1-1, j*nb+1-1), lda, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
 			if j > 1 {
 				//              T(J,J) = L(J,1:J)*H(1:J)
-				goblas.Zgemm(NoTrans, NoTrans, &kb, &kb, toPtr((j-1)*nb), toPtrc128(-one), a.Off(j*nb+1-1, 0), lda, work.CMatrixOff(nb+1-1, *n, opts), n, &one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+				err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(j*nb+1-1, 0), *lda, work.CMatrixOff(nb+1-1, *n, opts), *n, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1)
 				//              T(J,J) += L(J,J)*T(J,J-1)*L(J,J-1)'
-				goblas.Zgemm(NoTrans, NoTrans, &kb, &nb, &kb, &one, a.Off(j*nb+1-1, (j-1)*nb+1-1), lda, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), &zero, work.CMatrix(*n, opts), n)
-				goblas.Zgemm(NoTrans, ConjTrans, &kb, &kb, &nb, toPtrc128(-one), work.CMatrix(*n, opts), n, a.Off(j*nb+1-1, (j-2)*nb+1-1), lda, &one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+				err = goblas.Zgemm(NoTrans, NoTrans, kb, nb, kb, one, a.Off(j*nb+1-1, (j-1)*nb+1-1), *lda, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), ldtb-1, zero, work.CMatrix(*n, opts), *n)
+				err = goblas.Zgemm(NoTrans, ConjTrans, kb, kb, nb, -one, work.CMatrix(*n, opts), *n, a.Off(j*nb+1-1, (j-2)*nb+1-1), *lda, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1)
 			}
 			if j > 0 {
 				Zhegst(func() *int { y := 1; return &y }(), 'L', &kb, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off(j*nb+1-1, (j-1)*nb+1-1), lda, &iinfo)
@@ -270,13 +272,13 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 				if j > 0 {
 					//                 Compute H(J,J)
 					if j == 1 {
-						goblas.Zgemm(NoTrans, ConjTrans, &kb, &kb, &kb, &one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off(j*nb+1-1, (j-1)*nb+1-1), lda, &zero, work.CMatrixOff(j*nb+1-1, *n, opts), n)
+						err = goblas.Zgemm(NoTrans, ConjTrans, kb, kb, kb, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off(j*nb+1-1, (j-1)*nb+1-1), *lda, zero, work.CMatrixOff(j*nb+1-1, *n, opts), *n)
 					} else {
-						goblas.Zgemm(NoTrans, ConjTrans, &kb, &kb, toPtr(nb+kb), &one, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off(j*nb+1-1, (j-2)*nb+1-1), lda, &zero, work.CMatrixOff(j*nb+1-1, *n, opts), n)
+						err = goblas.Zgemm(NoTrans, ConjTrans, kb, kb, nb+kb, one, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), ldtb-1, a.Off(j*nb+1-1, (j-2)*nb+1-1), *lda, zero, work.CMatrixOff(j*nb+1-1, *n, opts), *n)
 					}
 
 					//                 Update with the previous column
-					goblas.Zgemm(NoTrans, NoTrans, toPtr((*n)-(j+1)*nb), &nb, toPtr(j*nb), toPtrc128(-one), a.Off((j+1)*nb+1-1, 0), lda, work.CMatrixOff(nb+1-1, *n, opts), n, &one, a.Off((j+1)*nb+1-1, j*nb+1-1), lda)
+					err = goblas.Zgemm(NoTrans, NoTrans, (*n)-(j+1)*nb, nb, j*nb, -one, a.Off((j+1)*nb+1-1, 0), *lda, work.CMatrixOff(nb+1-1, *n, opts), *n, one, a.Off((j+1)*nb+1-1, j*nb+1-1), *lda)
 				}
 
 				//              Factorize panel
@@ -290,7 +292,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 				Zlaset('F', &kb, &nb, &zero, &zero, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
 				Zlacpy('U', &kb, &nb, a.Off((j+1)*nb+1-1, j*nb+1-1), lda, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
 				if j > 0 {
-					goblas.Ztrsm(Right, Lower, ConjTrans, Unit, &kb, &nb, &one, a.Off(j*nb+1-1, (j-1)*nb+1-1), lda, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+					err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, kb, nb, one, a.Off(j*nb+1-1, (j-1)*nb+1-1), *lda, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), ldtb-1)
 				}
 
 				//              Copy T(J+1,J) into T(J, J+1), both upper/lower for GEMM
@@ -311,16 +313,16 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 					i2 = (*ipiv)[(j+1)*nb+k-1]
 					if i1 != i2 {
 						//                    > Apply pivots to previous columns of L
-						goblas.Zswap(toPtr(k-1), a.CVector(i1-1, (j+1)*nb+1-1), lda, a.CVector(i2-1, (j+1)*nb+1-1), lda)
+						goblas.Zswap(k-1, a.CVector(i1-1, (j+1)*nb+1-1), *lda, a.CVector(i2-1, (j+1)*nb+1-1), *lda)
 						//                    > Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 						if i2 > (i1 + 1) {
-							goblas.Zswap(toPtr(i2-i1-1), a.CVector(i1+1-1, i1-1), func() *int { y := 1; return &y }(), a.CVector(i2-1, i1+1-1), lda)
+							goblas.Zswap(i2-i1-1, a.CVector(i1+1-1, i1-1), 1, a.CVector(i2-1, i1+1-1), *lda)
 							Zlacgv(toPtr(i2-i1-1), a.CVector(i2-1, i1+1-1), lda)
 						}
 						Zlacgv(toPtr(i2-i1), a.CVector(i1+1-1, i1-1), func() *int { y := 1; return &y }())
 						//                    > Swap A(I2+1:M, I1) with A(I2+1:M, I2)
 						if i2 < (*n) {
-							goblas.Zswap(toPtr((*n)-i2), a.CVector(i2+1-1, i1-1), func() *int { y := 1; return &y }(), a.CVector(i2+1-1, i2-1), func() *int { y := 1; return &y }())
+							goblas.Zswap((*n)-i2, a.CVector(i2+1-1, i1-1), 1, a.CVector(i2+1-1, i2-1), 1)
 						}
 						//                    > Swap A(I1, I1) with A(I2, I2)
 						piv = a.Get(i1-1, i1-1)
@@ -328,7 +330,7 @@ func Zhetrfaa2stage(uplo byte, n *int, a *mat.CMatrix, lda *int, tb *mat.CVector
 						a.Set(i2-1, i2-1, piv)
 						//                    > Apply pivots to previous columns of L
 						if j > 0 {
-							goblas.Zswap(toPtr(j*nb), a.CVector(i1-1, 0), lda, a.CVector(i2-1, 0), lda)
+							goblas.Zswap(j*nb, a.CVector(i1-1, 0), *lda, a.CVector(i2-1, 0), *lda)
 						}
 					}
 				}

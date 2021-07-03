@@ -23,6 +23,8 @@ func Zhegs2(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 	var cone, ct complex128
 	var akk, bkk, half, one float64
 	var k int
+	var err error
+	_ = err
 
 	one = 1.0
 	half = 0.5
@@ -57,15 +59,15 @@ func Zhegs2(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 				akk = akk / math.Pow(bkk, 2)
 				a.SetRe(k-1, k-1, akk)
 				if k < (*n) {
-					goblas.Zdscal(toPtr((*n)-k), toPtrf64(one/bkk), a.CVector(k-1, k+1-1), lda)
+					goblas.Zdscal((*n)-k, one/bkk, a.CVector(k-1, k+1-1), *lda)
 					ct = complex(-half*akk, 0)
 					Zlacgv(toPtr((*n)-k), a.CVector(k-1, k+1-1), lda)
 					Zlacgv(toPtr((*n)-k), b.CVector(k-1, k+1-1), ldb)
-					goblas.Zaxpy(toPtr((*n)-k), &ct, b.CVector(k-1, k+1-1), ldb, a.CVector(k-1, k+1-1), lda)
-					goblas.Zher2(mat.UploByte(uplo), toPtr((*n)-k), toPtrc128(-cone), a.CVector(k-1, k+1-1), lda, b.CVector(k-1, k+1-1), ldb, a.Off(k+1-1, k+1-1), lda)
-					goblas.Zaxpy(toPtr((*n)-k), &ct, b.CVector(k-1, k+1-1), ldb, a.CVector(k-1, k+1-1), lda)
+					goblas.Zaxpy((*n)-k, ct, b.CVector(k-1, k+1-1), *ldb, a.CVector(k-1, k+1-1), *lda)
+					err = goblas.Zher2(mat.UploByte(uplo), (*n)-k, -cone, a.CVector(k-1, k+1-1), *lda, b.CVector(k-1, k+1-1), *ldb, a.Off(k+1-1, k+1-1), *lda)
+					goblas.Zaxpy((*n)-k, ct, b.CVector(k-1, k+1-1), *ldb, a.CVector(k-1, k+1-1), *lda)
 					Zlacgv(toPtr((*n)-k), b.CVector(k-1, k+1-1), ldb)
-					goblas.Ztrsv(mat.UploByte(uplo), ConjTrans, NonUnit, toPtr((*n)-k), b.Off(k+1-1, k+1-1), ldb, a.CVector(k-1, k+1-1), lda)
+					err = goblas.Ztrsv(mat.UploByte(uplo), ConjTrans, NonUnit, (*n)-k, b.Off(k+1-1, k+1-1), *ldb, a.CVector(k-1, k+1-1), *lda)
 					Zlacgv(toPtr((*n)-k), a.CVector(k-1, k+1-1), lda)
 				}
 			}
@@ -78,12 +80,12 @@ func Zhegs2(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 				akk = akk / math.Pow(bkk, 2)
 				a.SetRe(k-1, k-1, akk)
 				if k < (*n) {
-					goblas.Zdscal(toPtr((*n)-k), toPtrf64(one/bkk), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal((*n)-k, one/bkk, a.CVector(k+1-1, k-1), 1)
 					ct = complex(-half*akk, 0)
-					goblas.Zaxpy(toPtr((*n)-k), &ct, b.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
-					goblas.Zher2(mat.UploByte(uplo), toPtr((*n)-k), toPtrc128(-cone), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), b.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.Off(k+1-1, k+1-1), lda)
-					goblas.Zaxpy(toPtr((*n)-k), &ct, b.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
-					goblas.Ztrsv(mat.UploByte(uplo), NoTrans, NonUnit, toPtr((*n)-k), b.Off(k+1-1, k+1-1), ldb, a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
+					goblas.Zaxpy((*n)-k, ct, b.CVector(k+1-1, k-1), 1, a.CVector(k+1-1, k-1), 1)
+					err = goblas.Zher2(mat.UploByte(uplo), (*n)-k, -cone, a.CVector(k+1-1, k-1), 1, b.CVector(k+1-1, k-1), 1, a.Off(k+1-1, k+1-1), *lda)
+					goblas.Zaxpy((*n)-k, ct, b.CVector(k+1-1, k-1), 1, a.CVector(k+1-1, k-1), 1)
+					err = goblas.Ztrsv(mat.UploByte(uplo), NoTrans, NonUnit, (*n)-k, b.Off(k+1-1, k+1-1), *ldb, a.CVector(k+1-1, k-1), 1)
 				}
 			}
 		}
@@ -94,12 +96,12 @@ func Zhegs2(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = a.GetRe(k-1, k-1)
 				bkk = b.GetRe(k-1, k-1)
-				goblas.Ztrmv(mat.UploByte(uplo), NoTrans, NonUnit, toPtr(k-1), b, ldb, a.CVector(0, k-1), func() *int { y := 1; return &y }())
+				err = goblas.Ztrmv(mat.UploByte(uplo), NoTrans, NonUnit, k-1, b, *ldb, a.CVector(0, k-1), 1)
 				ct = complex(half*akk, 0)
-				goblas.Zaxpy(toPtr(k-1), &ct, b.CVector(0, k-1), func() *int { y := 1; return &y }(), a.CVector(0, k-1), func() *int { y := 1; return &y }())
-				goblas.Zher2(mat.UploByte(uplo), toPtr(k-1), &cone, a.CVector(0, k-1), func() *int { y := 1; return &y }(), b.CVector(0, k-1), func() *int { y := 1; return &y }(), a, lda)
-				goblas.Zaxpy(toPtr(k-1), &ct, b.CVector(0, k-1), func() *int { y := 1; return &y }(), a.CVector(0, k-1), func() *int { y := 1; return &y }())
-				goblas.Zdscal(toPtr(k-1), &bkk, a.CVector(0, k-1), func() *int { y := 1; return &y }())
+				goblas.Zaxpy(k-1, ct, b.CVector(0, k-1), 1, a.CVector(0, k-1), 1)
+				err = goblas.Zher2(mat.UploByte(uplo), k-1, cone, a.CVector(0, k-1), 1, b.CVector(0, k-1), 1, a, *lda)
+				goblas.Zaxpy(k-1, ct, b.CVector(0, k-1), 1, a.CVector(0, k-1), 1)
+				goblas.Zdscal(k-1, bkk, a.CVector(0, k-1), 1)
 				a.SetRe(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -111,14 +113,14 @@ func Zhegs2(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 				akk = a.GetRe(k-1, k-1)
 				bkk = b.GetRe(k-1, k-1)
 				Zlacgv(toPtr(k-1), a.CVector(k-1, 0), lda)
-				goblas.Ztrmv(mat.UploByte(uplo), ConjTrans, NonUnit, toPtr(k-1), b, ldb, a.CVector(k-1, 0), lda)
+				err = goblas.Ztrmv(mat.UploByte(uplo), ConjTrans, NonUnit, k-1, b, *ldb, a.CVector(k-1, 0), *lda)
 				ct = complex(half*akk, 0)
 				Zlacgv(toPtr(k-1), b.CVector(k-1, 0), ldb)
-				goblas.Zaxpy(toPtr(k-1), &ct, b.CVector(k-1, 0), ldb, a.CVector(k-1, 0), lda)
-				goblas.Zher2(mat.UploByte(uplo), toPtr(k-1), &cone, a.CVector(k-1, 0), lda, b.CVector(k-1, 0), ldb, a, lda)
-				goblas.Zaxpy(toPtr(k-1), &ct, b.CVector(k-1, 0), ldb, a.CVector(k-1, 0), lda)
+				goblas.Zaxpy(k-1, ct, b.CVector(k-1, 0), *ldb, a.CVector(k-1, 0), *lda)
+				err = goblas.Zher2(mat.UploByte(uplo), k-1, cone, a.CVector(k-1, 0), *lda, b.CVector(k-1, 0), *ldb, a, *lda)
+				goblas.Zaxpy(k-1, ct, b.CVector(k-1, 0), *ldb, a.CVector(k-1, 0), *lda)
 				Zlacgv(toPtr(k-1), b.CVector(k-1, 0), ldb)
-				goblas.Zdscal(toPtr(k-1), &bkk, a.CVector(k-1, 0), lda)
+				goblas.Zdscal(k-1, bkk, a.CVector(k-1, 0), *lda)
 				Zlacgv(toPtr(k-1), a.CVector(k-1, 0), lda)
 				a.SetRe(k-1, k-1, akk*math.Pow(bkk, 2))
 			}

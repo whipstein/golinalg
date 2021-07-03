@@ -26,9 +26,9 @@ func Zget10(m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, work 
 
 	wnorm = zero
 	for j = 1; j <= (*n); j++ {
-		goblas.Zcopy(m, a.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(m, toPtrc128(complex(-one, 0)), b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		wnorm = maxf64(wnorm, goblas.Dzasum(n, work, func() *int { y := 1; return &y }()))
+		goblas.Zcopy(*m, a.CVector(0, j-1), 1, work, 1)
+		goblas.Zaxpy(*m, complex(-one, 0), b.CVector(0, j-1), 1, work, 1)
+		wnorm = maxf64(wnorm, goblas.Dzasum(*n, work, 1))
 	}
 
 	anorm = maxf64(golapack.Zlange('1', m, n, a, lda, rwork), unfl)

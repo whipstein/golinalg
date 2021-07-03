@@ -11,6 +11,8 @@ import (
 func Dgeqrt2(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) {
 	var aii, alpha, one, zero float64
 	var i, k int
+	var err error
+	_ = err
 
 	one = 1.0e+00
 	zero = 0.0e+00
@@ -42,11 +44,11 @@ func Dgeqrt2(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 			a.Set(i-1, i-1, one)
 
 			//           W(1:N-I) := A(I:M,I+1:N)^H * A(I:M,I) [W = T(:,N)]
-			goblas.Dgemv(Trans, toPtr((*m)-i+1), toPtr((*n)-i), &one, a.Off(i-1, i+1-1), lda, a.Vector(i-1, i-1), toPtr(1), &zero, t.Vector(0, (*n)-1), toPtr(1))
+			err = goblas.Dgemv(Trans, (*m)-i+1, (*n)-i, one, a.Off(i-1, i+1-1), *lda, a.Vector(i-1, i-1), 1, zero, t.Vector(0, (*n)-1), 1)
 
 			//           A(I:M,I+1:N) = A(I:m,I+1:N) + alpha*A(I:M,I)*W(1:N-1)^H
 			alpha = -t.Get(i-1, 0)
-			goblas.Dger(toPtr((*m)-i+1), toPtr((*n)-i), &alpha, a.Vector(i-1, i-1), toPtr(1), t.Vector(0, (*n)-1), toPtr(1), a.Off(i-1, i+1-1), lda)
+			err = goblas.Dger((*m)-i+1, (*n)-i, alpha, a.Vector(i-1, i-1), 1, t.Vector(0, (*n)-1), 1, a.Off(i-1, i+1-1), *lda)
 			a.Set(i-1, i-1, aii)
 		}
 	}
@@ -57,11 +59,11 @@ func Dgeqrt2(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 
 		//        T(1:I-1,I) := alpha * A(I:M,1:I-1)**T * A(I:M,I)
 		alpha = -t.Get(i-1, 0)
-		goblas.Dgemv(Trans, toPtr((*m)-i+1), toPtr(i-1), &alpha, a.Off(i-1, 0), lda, a.Vector(i-1, i-1), toPtr(1), &zero, t.Vector(0, i-1), toPtr(1))
+		err = goblas.Dgemv(Trans, (*m)-i+1, i-1, alpha, a.Off(i-1, 0), *lda, a.Vector(i-1, i-1), 1, zero, t.Vector(0, i-1), 1)
 		a.Set(i-1, i-1, aii)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		goblas.Dtrmv(Upper, NoTrans, NonUnit, toPtr(i-1), t, ldt, t.Vector(0, i-1), toPtr(1))
+		err = goblas.Dtrmv(Upper, NoTrans, NonUnit, i-1, t, *ldt, t.Vector(0, i-1), 1)
 
 		//           T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(i-1, 0))

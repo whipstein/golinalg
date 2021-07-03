@@ -109,7 +109,7 @@ func Dspevx(jobz, _range, uplo byte, n *int, ap *mat.Vector, vl, vu *float64, il
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(toPtr(((*n)*((*n)+1))/2), &sigma, ap, toPtr(1))
+		goblas.Dscal(((*n)*((*n)+1))/2, sigma, ap, 1)
 		if (*abstol) > 0 {
 			abstll = (*abstol) * sigma
 		}
@@ -136,14 +136,14 @@ func Dspevx(jobz, _range, uplo byte, n *int, ap *mat.Vector, vl, vu *float64, il
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(n, work.Off(indd-1), toPtr(1), w, toPtr(1))
+		goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
 		indee = indwrk + 2*(*n)
 		if !wantz {
-			goblas.Dcopy(toPtr((*n)-1), work.Off(inde-1), toPtr(1), work.Off(indee-1), toPtr(1))
+			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
 			Dopgtr(uplo, n, ap, work.Off(indtau-1), z, ldz, work.Off(indwrk-1), &iinfo)
-			goblas.Dcopy(toPtr((*n)-1), work.Off(inde-1), toPtr(1), work.Off(indee-1), toPtr(1))
+			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
 			Dsteqr(jobz, n, w, work.Off(indee-1), z, ldz, work.Off(indwrk-1), info)
 			if (*info) == 0 {
 				for i = 1; i <= (*n); i++ {
@@ -186,7 +186,7 @@ label20:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -208,7 +208,7 @@ label20:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1), toPtr(1), z.Vector(0, j-1), toPtr(1))
+				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

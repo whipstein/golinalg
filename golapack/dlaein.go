@@ -45,8 +45,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			}
 		} else {
 			//           Scale supplied initial vector.
-			vnorm = goblas.Dnrm2(n, vr, toPtr(1))
-			goblas.Dscal(n, toPtrf64(((*eps3)*rootn)/maxf64(vnorm, nrmsml)), vr, toPtr(1))
+			vnorm = goblas.Dnrm2(*n, vr, 1)
+			goblas.Dscal(*n, ((*eps3)*rootn)/maxf64(vnorm, nrmsml), vr, 1)
 		}
 
 		if rightv {
@@ -126,7 +126,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			normin = 'Y'
 
 			//           Test for sufficient growth in the norm of v.
-			vnorm = goblas.Dasum(n, vr, toPtr(1))
+			vnorm = goblas.Dasum(*n, vr, 1)
 			if vnorm >= growto*scale {
 				goto label120
 			}
@@ -147,8 +147,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 		;
 
 		//        Normalize eigenvector.
-		i = goblas.Idamax(n, vr, toPtr(1))
-		goblas.Dscal(n, toPtrf64(one/math.Abs(vr.Get(i-1))), vr, toPtr(1))
+		i = goblas.Idamax(*n, vr, 1)
+		goblas.Dscal(*n, one/math.Abs(vr.Get(i-1)), vr, 1)
 	} else {
 		//        Complex eigenvalue.
 		if noinit {
@@ -159,10 +159,10 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			}
 		} else {
 			//           Scale supplied initial vector.
-			norm = Dlapy2(func() *float64 { y := goblas.Dnrm2(n, vr, toPtr(1)); return &y }(), func() *float64 { y := goblas.Dnrm2(n, vi, toPtr(1)); return &y }())
+			norm = Dlapy2(func() *float64 { y := goblas.Dnrm2(*n, vr, 1); return &y }(), func() *float64 { y := goblas.Dnrm2(*n, vi, 1); return &y }())
 			rec = ((*eps3) * rootn) / maxf64(norm, nrmsml)
-			goblas.Dscal(n, &rec, vr, toPtr(1))
-			goblas.Dscal(n, &rec, vi, toPtr(1))
+			goblas.Dscal(*n, rec, vr, 1)
+			goblas.Dscal(*n, rec, vi, 1)
 		}
 
 		if rightv {
@@ -213,7 +213,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 				}
 
 				//              Compute 1-norm of offdiagonal elements of i-th row.
-				work.Set(i-1, goblas.Dasum(toPtr((*n)-i), b.Vector(i-1, i+1-1), ldb)+goblas.Dasum(toPtr((*n)-i), b.Vector(i+2-1, i-1), toPtr(1)))
+				work.Set(i-1, goblas.Dasum((*n)-i, b.Vector(i-1, i+1-1), *ldb)+goblas.Dasum((*n)-i, b.Vector(i+2-1, i-1), 1))
 			}
 			if b.Get((*n)-1, (*n)-1) == zero && b.Get((*n)+1-1, (*n)-1) == zero {
 				b.Set((*n)-1, (*n)-1, *eps3)
@@ -271,7 +271,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 				}
 
 				//              Compute 1-norm of offdiagonal elements of j-th column.
-				work.Set(j-1, goblas.Dasum(toPtr(j-1), b.Vector(0, j-1), toPtr(1))+goblas.Dasum(toPtr(j-1), b.Vector(j+1-1, 0), ldb))
+				work.Set(j-1, goblas.Dasum(j-1, b.Vector(0, j-1), 1)+goblas.Dasum(j-1, b.Vector(j+1-1, 0), *ldb))
 			}
 			if b.Get(0, 0) == zero && b.Get(1, 0) == zero {
 				b.Set(0, 0, *eps3)
@@ -295,8 +295,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 
 				if work.Get(i-1) > vcrit {
 					rec = one / vmax
-					goblas.Dscal(n, &rec, vr, toPtr(1))
-					goblas.Dscal(n, &rec, vi, toPtr(1))
+					goblas.Dscal(*n, rec, vr, 1)
+					goblas.Dscal(*n, rec, vi, 1)
 					scale = scale * rec
 					vmax = one
 					vcrit = (*bignum)
@@ -322,8 +322,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 						w1 = math.Abs(xr) + math.Abs(xi)
 						if w1 > w*(*bignum) {
 							rec = one / w1
-							goblas.Dscal(n, &rec, vr, toPtr(1))
-							goblas.Dscal(n, &rec, vi, toPtr(1))
+							goblas.Dscal(*n, rec, vr, 1)
+							goblas.Dscal(*n, rec, vi, 1)
 							xr = vr.Get(i - 1)
 							xi = vi.Get(i - 1)
 							scale = scale * rec
@@ -349,7 +349,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			}
 
 			//           Test for sufficient growth in the norm of (VR,VI).
-			vnorm = goblas.Dasum(n, vr, toPtr(1)) + goblas.Dasum(n, vi, toPtr(1))
+			vnorm = goblas.Dasum(*n, vr, 1) + goblas.Dasum(*n, vi, 1)
 			if vnorm >= growto*scale {
 				goto label280
 			}
@@ -377,8 +377,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 		for i = 1; i <= (*n); i++ {
 			vnorm = maxf64(vnorm, math.Abs(vr.Get(i-1))+math.Abs(vi.Get(i-1)))
 		}
-		goblas.Dscal(n, toPtrf64(one/vnorm), vr, toPtr(1))
-		goblas.Dscal(n, toPtrf64(one/vnorm), vi, toPtr(1))
+		goblas.Dscal(*n, one/vnorm, vr, 1)
+		goblas.Dscal(*n, one/vnorm, vi, 1)
 
 	}
 }

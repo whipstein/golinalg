@@ -22,6 +22,8 @@ import (
 func Dstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, ldu *int, work, result *mat.Vector) {
 	var anorm, one, temp1, temp2, ulp, unfl, wnorm, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -57,12 +59,12 @@ func Dstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, ldu *int, 
 
 	//     Norm of A - USU'
 	for j = 1; j <= (*n); j++ {
-		goblas.Dsyr(Lower, n, toPtrf64(-sd.Get(j-1)), u.Vector(0, j-1), toPtr(1), work.Matrix(*n, opts), n)
+		err = goblas.Dsyr(Lower, *n, -sd.Get(j-1), u.Vector(0, j-1), 1, work.Matrix(*n, opts), *n)
 	}
 
 	if (*n) > 1 && (*kband) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Dsyr2(Lower, n, toPtrf64(-se.Get(j-1)), u.Vector(0, j-1), toPtr(1), u.Vector(0, j+1-1), toPtr(1), work.Matrix(*n, opts), n)
+			err = goblas.Dsyr2(Lower, *n, -se.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work.Matrix(*n, opts), *n)
 		}
 	}
 
@@ -81,7 +83,7 @@ func Dstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, ldu *int, 
 	//     Do Test 2
 	//
 	//     Compute  UU' - I
-	goblas.Dgemm(NoTrans, ConjTrans, n, n, n, &one, u, ldu, u, ldu, &zero, work.Matrix(*n, opts), n)
+	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
 
 	for j = 1; j <= (*n); j++ {
 		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)

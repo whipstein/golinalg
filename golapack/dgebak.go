@@ -62,14 +62,14 @@ func Dgebak(job, side byte, n, ilo, ihi *int, scale *mat.Vector, m *int, v *mat.
 		if rightv {
 			for i = (*ilo); i <= (*ihi); i++ {
 				s = scale.Get(i - 1)
-				goblas.Dscal(m, &s, v.Vector(i-1, 0), ldv)
+				goblas.Dscal(*m, s, v.Vector(i-1, 0), *ldv)
 			}
 		}
 
 		if leftv {
 			for i = (*ilo); i <= (*ihi); i++ {
 				s = one / scale.Get(i-1)
-				goblas.Dscal(m, &s, v.Vector(i-1, 0), ldv)
+				goblas.Dscal(*m, s, v.Vector(i-1, 0), *ldv)
 			}
 		}
 
@@ -95,7 +95,7 @@ label30:
 				if k == i {
 					goto label40
 				}
-				goblas.Dswap(m, v.Vector(i-1, 0), ldv, v.Vector(k-1, 0), ldv)
+				goblas.Dswap(*m, v.Vector(i-1, 0), *ldv, v.Vector(k-1, 0), *ldv)
 			label40:
 			}
 		}
@@ -113,7 +113,7 @@ label30:
 				if k == i {
 					goto label50
 				}
-				goblas.Dswap(m, v.Vector(i-1, 0), ldv, v.Vector(k-1, 0), ldv)
+				goblas.Dswap(*m, v.Vector(i-1, 0), *ldv, v.Vector(k-1, 0), *ldv)
 			label50:
 			}
 		}

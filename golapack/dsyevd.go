@@ -138,7 +138,7 @@ func Dsyevd(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.Vecto
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(*n, one/sigma, w, 1)
 	}
 
 	work.Set(0, float64(lopt))

@@ -39,6 +39,8 @@ func Zget52(left bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 	var acoeff, alphai, bcoeff, betai, cone, czero complex128
 	var abmax, alfmax, anorm, betmax, bnorm, enorm, enrmer, errnrm, one, safmax, safmin, scale, temp1, ulp, zero float64
 	var j, jvec int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -88,8 +90,8 @@ func Zget52(left bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			acoeff = cmplx.Conj(acoeff)
 			bcoeff = cmplx.Conj(bcoeff)
 		}
-		goblas.Zgemv(mat.TransByte(trans), n, n, &acoeff, a, lda, e.CVector(0, jvec-1), func() *int { y := 1; return &y }(), &czero, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
-		goblas.Zgemv(mat.TransByte(trans), n, n, toPtrc128(-bcoeff), b, lda, e.CVector(0, jvec-1), func() *int { y := 1; return &y }(), &cone, work.Off((*n)*(jvec-1)+1-1), func() *int { y := 1; return &y }())
+		err = goblas.Zgemv(mat.TransByte(trans), *n, *n, acoeff, a, *lda, e.CVector(0, jvec-1), 1, czero, work.Off((*n)*(jvec-1)+1-1), 1)
+		err = goblas.Zgemv(mat.TransByte(trans), *n, *n, -bcoeff, b, *lda, e.CVector(0, jvec-1), 1, cone, work.Off((*n)*(jvec-1)+1-1), 1)
 	}
 
 	errnrm = golapack.Zlange('O', n, n, work.CMatrix(*n, opts), n, rwork) / enorm

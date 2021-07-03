@@ -77,9 +77,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Zcopy(toPtr(k-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+				goblas.Zcopy(k-1, a.CVector(0, k-1), 1, work, 1)
 				Zsymv(uplo, toPtr(k-1), toPtrc128(-cone), a, lda, work, func() *int { y := 1; return &y }(), &czero, a.CVector(0, k-1), func() *int { y := 1; return &y }())
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(toPtr(k-1), work, func() *int { y := 1; return &y }(), a.CVector(0, k-1), func() *int { y := 1; return &y }()))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(k-1, work, 1, a.CVector(0, k-1), 1))
 			}
 			kstep = 1
 		} else {
@@ -97,13 +97,13 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Zcopy(toPtr(k-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+				goblas.Zcopy(k-1, a.CVector(0, k-1), 1, work, 1)
 				Zsymv(uplo, toPtr(k-1), toPtrc128(-cone), a, lda, work, func() *int { y := 1; return &y }(), &czero, a.CVector(0, k-1), func() *int { y := 1; return &y }())
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(toPtr(k-1), work, func() *int { y := 1; return &y }(), a.CVector(0, k-1), func() *int { y := 1; return &y }()))
-				a.Set(k-1, k+1-1, a.Get(k-1, k+1-1)-goblas.Zdotu(toPtr(k-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), a.CVector(0, k+1-1), func() *int { y := 1; return &y }()))
-				goblas.Zcopy(toPtr(k-1), a.CVector(0, k+1-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(k-1, work, 1, a.CVector(0, k-1), 1))
+				a.Set(k-1, k+1-1, a.Get(k-1, k+1-1)-goblas.Zdotu(k-1, a.CVector(0, k-1), 1, a.CVector(0, k+1-1), 1))
+				goblas.Zcopy(k-1, a.CVector(0, k+1-1), 1, work, 1)
 				Zsymv(uplo, toPtr(k-1), toPtrc128(-cone), a, lda, work, func() *int { y := 1; return &y }(), &czero, a.CVector(0, k+1-1), func() *int { y := 1; return &y }())
-				a.Set(k+1-1, k+1-1, a.Get(k+1-1, k+1-1)-goblas.Zdotu(toPtr(k-1), work, func() *int { y := 1; return &y }(), a.CVector(0, k+1-1), func() *int { y := 1; return &y }()))
+				a.Set(k+1-1, k+1-1, a.Get(k+1-1, k+1-1)-goblas.Zdotu(k-1, work, 1, a.CVector(0, k+1-1), 1))
 			}
 			kstep = 2
 		}
@@ -114,9 +114,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 			kp = (*ipiv)[k-1]
 			if kp != k {
 				if kp > 1 {
-					goblas.Zswap(toPtr(kp-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), a.CVector(0, kp-1), func() *int { y := 1; return &y }())
+					goblas.Zswap(kp-1, a.CVector(0, k-1), 1, a.CVector(0, kp-1), 1)
 				}
-				goblas.Zswap(toPtr(k-kp-1), a.CVector(kp+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp-1, kp+1-1), lda)
+				goblas.Zswap(k-kp-1, a.CVector(kp+1-1, k-1), 1, a.CVector(kp-1, kp+1-1), *lda)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -127,9 +127,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp > 1 {
-					goblas.Zswap(toPtr(kp-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), a.CVector(0, kp-1), func() *int { y := 1; return &y }())
+					goblas.Zswap(kp-1, a.CVector(0, k-1), 1, a.CVector(0, kp-1), 1)
 				}
-				goblas.Zswap(toPtr(k-kp-1), a.CVector(kp+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp-1, kp+1-1), lda)
+				goblas.Zswap(k-kp-1, a.CVector(kp+1-1, k-1), 1, a.CVector(kp-1, kp+1-1), *lda)
 
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
@@ -143,9 +143,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp > 1 {
-					goblas.Zswap(toPtr(kp-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), a.CVector(0, kp-1), func() *int { y := 1; return &y }())
+					goblas.Zswap(kp-1, a.CVector(0, k-1), 1, a.CVector(0, kp-1), 1)
 				}
-				goblas.Zswap(toPtr(k-kp-1), a.CVector(kp+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp-1, kp+1-1), lda)
+				goblas.Zswap(k-kp-1, a.CVector(kp+1-1, k-1), 1, a.CVector(kp-1, kp+1-1), *lda)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -177,9 +177,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 
 			//           Compute column K of the inverse.
 			if k < (*n) {
-				goblas.Zcopy(toPtr((*n)-k), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+				goblas.Zcopy((*n)-k, a.CVector(k+1-1, k-1), 1, work, 1)
 				Zsymv(uplo, toPtr((*n)-k), toPtrc128(-cone), a.Off(k+1-1, k+1-1), lda, work, func() *int { y := 1; return &y }(), &czero, a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(toPtr((*n)-k), work, func() *int { y := 1; return &y }(), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }()))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu((*n)-k, work, 1, a.CVector(k+1-1, k-1), 1))
 			}
 			kstep = 1
 		} else {
@@ -197,13 +197,13 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < (*n) {
-				goblas.Zcopy(toPtr((*n)-k), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+				goblas.Zcopy((*n)-k, a.CVector(k+1-1, k-1), 1, work, 1)
 				Zsymv(uplo, toPtr((*n)-k), toPtrc128(-cone), a.Off(k+1-1, k+1-1), lda, work, func() *int { y := 1; return &y }(), &czero, a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }())
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(toPtr((*n)-k), work, func() *int { y := 1; return &y }(), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }()))
-				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotu(toPtr((*n)-k), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(k+1-1, k-1-1), func() *int { y := 1; return &y }()))
-				goblas.Zcopy(toPtr((*n)-k), a.CVector(k+1-1, k-1-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu((*n)-k, work, 1, a.CVector(k+1-1, k-1), 1))
+				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotu((*n)-k, a.CVector(k+1-1, k-1), 1, a.CVector(k+1-1, k-1-1), 1))
+				goblas.Zcopy((*n)-k, a.CVector(k+1-1, k-1-1), 1, work, 1)
 				Zsymv(uplo, toPtr((*n)-k), toPtrc128(-cone), a.Off(k+1-1, k+1-1), lda, work, func() *int { y := 1; return &y }(), &czero, a.CVector(k+1-1, k-1-1), func() *int { y := 1; return &y }())
-				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Zdotu(toPtr((*n)-k), work, func() *int { y := 1; return &y }(), a.CVector(k+1-1, k-1-1), func() *int { y := 1; return &y }()))
+				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Zdotu((*n)-k, work, 1, a.CVector(k+1-1, k-1-1), 1))
 			}
 			kstep = 2
 		}
@@ -214,9 +214,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 			kp = (*ipiv)[k-1]
 			if kp != k {
 				if kp < (*n) {
-					goblas.Zswap(toPtr((*n)-kp), a.CVector(kp+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp+1-1, kp-1), func() *int { y := 1; return &y }())
+					goblas.Zswap((*n)-kp, a.CVector(kp+1-1, k-1), 1, a.CVector(kp+1-1, kp-1), 1)
 				}
-				goblas.Zswap(toPtr(kp-k-1), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp-1, k+1-1), lda)
+				goblas.Zswap(kp-k-1, a.CVector(k+1-1, k-1), 1, a.CVector(kp-1, k+1-1), *lda)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -227,9 +227,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp < (*n) {
-					goblas.Zswap(toPtr((*n)-kp), a.CVector(kp+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp+1-1, kp-1), func() *int { y := 1; return &y }())
+					goblas.Zswap((*n)-kp, a.CVector(kp+1-1, k-1), 1, a.CVector(kp+1-1, kp-1), 1)
 				}
-				goblas.Zswap(toPtr(kp-k-1), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp-1, k+1-1), lda)
+				goblas.Zswap(kp-k-1, a.CVector(k+1-1, k-1), 1, a.CVector(kp-1, k+1-1), *lda)
 
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
@@ -243,9 +243,9 @@ func Zsytrirook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp < (*n) {
-					goblas.Zswap(toPtr((*n)-kp), a.CVector(kp+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp+1-1, kp-1), func() *int { y := 1; return &y }())
+					goblas.Zswap((*n)-kp, a.CVector(kp+1-1, k-1), 1, a.CVector(kp+1-1, kp-1), 1)
 				}
-				goblas.Zswap(toPtr(kp-k-1), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.CVector(kp-1, k+1-1), lda)
+				goblas.Zswap(kp-k-1, a.CVector(k+1-1, k-1), 1, a.CVector(kp-1, k+1-1), *lda)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)

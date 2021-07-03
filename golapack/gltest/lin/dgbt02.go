@@ -13,6 +13,8 @@ import (
 func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix, ldx *int, b *mat.Matrix, ldb *int, resid *float64) {
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var i1, i2, j, kd, n1 int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -30,7 +32,7 @@ func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat
 	for j = 1; j <= (*n); j++ {
 		i1 = maxint(kd+1-j, 1)
 		i2 = minint(kd+(*m)-j, (*kl)+kd)
-		anorm = maxf64(anorm, goblas.Dasum(toPtr(i2-i1+1), a.Vector(i1-1, j-1), toPtr(1)))
+		anorm = maxf64(anorm, goblas.Dasum(i2-i1+1, a.Vector(i1-1, j-1), 1))
 	}
 	if anorm <= zero {
 		(*resid) = one / eps
@@ -45,7 +47,7 @@ func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat
 
 	//     Compute  B - A*X (or  B - A'*X )
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dgbmv(mat.TransByte(trans), m, n, kl, ku, toPtrf64(-one), a, lda, x.Vector(0, j-1), toPtr(1), &one, b.Vector(0, j-1), toPtr(1))
+		err = goblas.Dgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, -one, a, *lda, x.Vector(0, j-1), 1, one, b.Vector(0, j-1), 1)
 	}
 	//
 	//     Compute the maximum over the number of right hand sides of
@@ -53,8 +55,8 @@ func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat
 	//
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(&n1, b.Vector(0, j-1), toPtr(1))
-		xnorm = goblas.Dasum(&n1, x.Vector(0, j-1), toPtr(1))
+		bnorm = goblas.Dasum(n1, b.Vector(0, j-1), 1)
+		xnorm = goblas.Dasum(n1, x.Vector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

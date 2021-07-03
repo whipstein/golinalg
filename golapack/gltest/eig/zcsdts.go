@@ -45,6 +45,8 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 	var one, zero complex128
 	var eps2, piover2, realone, realzero, resid, ulp, ulpinv float64
 	var i, info, r int
+	var err error
+	_ = err
 
 	piover2 = 1.57079632679489662
 	realone = 1.0
@@ -57,7 +59,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     The first half of the routine checks the 2-by-2 CSD
 	golapack.Zlaset('F', m, m, &zero, &one, work.CMatrix(*ldx, opts), ldx)
-	goblas.Zherk(Upper, ConjTrans, m, m, toPtrf64(-realone), x, ldx, &realone, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zherk(Upper, ConjTrans, *m, *m, -realone, x, *ldx, realone, work.CMatrix(*ldx, opts), *ldx)
 	if (*m) > 0 {
 		eps2 = maxf64(ulp, golapack.Zlange('1', m, m, work.CMatrix(*ldx, opts), ldx, rwork)/float64(*m))
 	} else {
@@ -74,9 +76,9 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 	//     Compute XF := diag(U1,U2)'*X*diag(V1,V2) - [D11 D12; D21 D22]
 	golapack.Zlacpy('F', m, m, x, ldx, xf, ldx)
 
-	goblas.Zgemm(NoTrans, ConjTrans, p, q, q, &one, xf, ldx, v1t, ldv1t, &zero, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *p, *q, *q, one, xf, *ldx, v1t, *ldv1t, zero, work.CMatrix(*ldx, opts), *ldx)
 
-	goblas.Zgemm(ConjTrans, NoTrans, p, q, p, &one, u1, ldu1, work.CMatrix(*ldx, opts), ldx, &zero, xf, ldx)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *p, *q, *p, one, u1, *ldu1, work.CMatrix(*ldx, opts), *ldx, zero, xf, *ldx)
 
 	for i = 1; i <= minint(*p, *q)-r; i++ {
 		xf.Set(i-1, i-1, xf.Get(i-1, i-1)-one)
@@ -85,9 +87,9 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 		xf.Set(minint(*p, *q)-r+i-1, minint(*p, *q)-r+i-1, xf.Get(minint(*p, *q)-r+i-1, minint(*p, *q)-r+i-1)-toCmplx(math.Cos(theta.Get(i-1))))
 	}
 
-	goblas.Zgemm(NoTrans, ConjTrans, p, toPtr((*m)-(*q)), toPtr((*m)-(*q)), &one, xf.Off(0, (*q)+1-1), ldx, v2t, ldv2t, &zero, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *p, (*m)-(*q), (*m)-(*q), one, xf.Off(0, (*q)+1-1), *ldx, v2t, *ldv2t, zero, work.CMatrix(*ldx, opts), *ldx)
 
-	goblas.Zgemm(ConjTrans, NoTrans, p, toPtr((*m)-(*q)), p, &one, u1, ldu1, work.CMatrix(*ldx, opts), ldx, &zero, xf.Off(0, (*q)+1-1), ldx)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *p, (*m)-(*q), *p, one, u1, *ldu1, work.CMatrix(*ldx, opts), *ldx, zero, xf.Off(0, (*q)+1-1), *ldx)
 
 	for i = 1; i <= minint(*p, (*m)-(*q))-r; i++ {
 		xf.Set((*p)-i+1-1, (*m)-i+1-1, xf.Get((*p)-i+1-1, (*m)-i+1-1)+one)
@@ -96,9 +98,9 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 		xf.Set((*p)-(minint(*p, (*m)-(*q))-r)+1-i-1, (*m)-(minint(*p, (*m)-(*q))-r)+1-i-1, xf.Get((*p)-(minint(*p, (*m)-(*q))-r)+1-i-1, (*m)-(minint(*p, (*m)-(*q))-r)+1-i-1)+toCmplx(math.Sin(theta.Get(r-i+1-1))))
 	}
 
-	goblas.Zgemm(NoTrans, ConjTrans, toPtr((*m)-(*p)), q, q, &one, xf.Off((*p)+1-1, 0), ldx, v1t, ldv1t, &zero, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zgemm(NoTrans, ConjTrans, (*m)-(*p), *q, *q, one, xf.Off((*p)+1-1, 0), *ldx, v1t, *ldv1t, zero, work.CMatrix(*ldx, opts), *ldx)
 
-	goblas.Zgemm(ConjTrans, NoTrans, toPtr((*m)-(*p)), q, toPtr((*m)-(*p)), &one, u2, ldu2, work.CMatrix(*ldx, opts), ldx, &zero, xf.Off((*p)+1-1, 0), ldx)
+	err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-(*p), *q, (*m)-(*p), one, u2, *ldu2, work.CMatrix(*ldx, opts), *ldx, zero, xf.Off((*p)+1-1, 0), *ldx)
 
 	for i = 1; i <= minint((*m)-(*p), *q)-r; i++ {
 		xf.Set((*m)-i+1-1, (*q)-i+1-1, xf.Get((*m)-i+1-1, (*q)-i+1-1)-one)
@@ -107,9 +109,9 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 		xf.Set((*m)-(minint((*m)-(*p), *q)-r)+1-i-1, (*q)-(minint((*m)-(*p), *q)-r)+1-i-1, xf.Get((*m)-(minint((*m)-(*p), *q)-r)+1-i-1, (*q)-(minint((*m)-(*p), *q)-r)+1-i-1)-toCmplx(math.Sin(theta.Get(r-i+1-1))))
 	}
 
-	goblas.Zgemm(NoTrans, ConjTrans, toPtr((*m)-(*p)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), &one, xf.Off((*p)+1-1, (*q)+1-1), ldx, v2t, ldv2t, &zero, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zgemm(NoTrans, ConjTrans, (*m)-(*p), (*m)-(*q), (*m)-(*q), one, xf.Off((*p)+1-1, (*q)+1-1), *ldx, v2t, *ldv2t, zero, work.CMatrix(*ldx, opts), *ldx)
 
-	goblas.Zgemm(ConjTrans, NoTrans, toPtr((*m)-(*p)), toPtr((*m)-(*q)), toPtr((*m)-(*p)), &one, u2, ldu2, work.CMatrix(*ldx, opts), ldx, &zero, xf.Off((*p)+1-1, (*q)+1-1), ldx)
+	err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-(*p), (*m)-(*q), (*m)-(*p), one, u2, *ldu2, work.CMatrix(*ldx, opts), *ldx, zero, xf.Off((*p)+1-1, (*q)+1-1), *ldx)
 
 	for i = 1; i <= minint((*m)-(*p), (*m)-(*q))-r; i++ {
 		xf.Set((*p)+i-1, (*q)+i-1, xf.Get((*p)+i-1, (*q)+i-1)-one)
@@ -136,7 +138,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - U1'*U1
 	golapack.Zlaset('F', p, p, &zero, &one, work.CMatrix(*ldu1, opts), ldu1)
-	goblas.Zherk(Upper, ConjTrans, p, p, toPtrf64(-realone), u1, ldu1, &realone, work.CMatrix(*ldu1, opts), ldu1)
+	err = goblas.Zherk(Upper, ConjTrans, *p, *p, -realone, u1, *ldu1, realone, work.CMatrix(*ldu1, opts), *ldu1)
 
 	//     Compute norm( I - U'*U ) / ( maxint(1,P) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', p, work.CMatrix(*ldu1, opts), ldu1, rwork)
@@ -144,7 +146,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - U2'*U2
 	golapack.Zlaset('F', toPtr((*m)-(*p)), toPtr((*m)-(*p)), &zero, &one, work.CMatrix(*ldu2, opts), ldu2)
-	goblas.Zherk(Upper, ConjTrans, toPtr((*m)-(*p)), toPtr((*m)-(*p)), toPtrf64(-realone), u2, ldu2, &realone, work.CMatrix(*ldu2, opts), ldu2)
+	err = goblas.Zherk(Upper, ConjTrans, (*m)-(*p), (*m)-(*p), -realone, u2, *ldu2, realone, work.CMatrix(*ldu2, opts), *ldu2)
 
 	//     Compute norm( I - U2'*U2 ) / ( maxint(1,M-P) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', toPtr((*m)-(*p)), work.CMatrix(*ldu2, opts), ldu2, rwork)
@@ -152,7 +154,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - V1T*V1T'
 	golapack.Zlaset('F', q, q, &zero, &one, work.CMatrix(*ldv1t, opts), ldv1t)
-	goblas.Zherk(Upper, NoTrans, q, q, toPtrf64(-realone), v1t, ldv1t, &realone, work.CMatrix(*ldv1t, opts), ldv1t)
+	err = goblas.Zherk(Upper, NoTrans, *q, *q, -realone, v1t, *ldv1t, realone, work.CMatrix(*ldv1t, opts), *ldv1t)
 
 	//     Compute norm( I - V1T*V1T' ) / ( maxint(1,Q) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', q, work.CMatrix(*ldv1t, opts), ldv1t, rwork)
@@ -160,7 +162,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - V2T*V2T'
 	golapack.Zlaset('F', toPtr((*m)-(*q)), toPtr((*m)-(*q)), &zero, &one, work.CMatrix(*ldv2t, opts), ldv2t)
-	goblas.Zherk(Upper, NoTrans, toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtrf64(-realone), v2t, ldv2t, &realone, work.CMatrix(*ldv2t, opts), ldv2t)
+	err = goblas.Zherk(Upper, NoTrans, (*m)-(*q), (*m)-(*q), -realone, v2t, *ldv2t, realone, work.CMatrix(*ldv2t, opts), *ldv2t)
 
 	//     Compute norm( I - V2T*V2T' ) / ( maxint(1,M-Q) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', toPtr((*m)-(*q)), work.CMatrix(*ldv2t, opts), ldv2t, rwork)
@@ -181,7 +183,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     The second half of the routine checks the 2-by-1 CSD
 	golapack.Zlaset('F', q, q, &zero, &one, work.CMatrix(*ldx, opts), ldx)
-	goblas.Zherk(Upper, ConjTrans, q, m, toPtrf64(-realone), x, ldx, &realone, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zherk(Upper, ConjTrans, *q, *m, -realone, x, *ldx, realone, work.CMatrix(*ldx, opts), *ldx)
 	if (*m) > 0 {
 		eps2 = maxf64(ulp, golapack.Zlange('1', q, q, work.CMatrix(*ldx, opts), ldx, rwork)/float64(*m))
 	} else {
@@ -196,9 +198,9 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 	golapack.Zuncsd2by1('Y', 'Y', 'Y', m, p, q, xf.Off(0, 0), ldx, xf.Off((*p)+1-1, 0), ldx, theta, u1, ldu1, u2, ldu2, v1t, ldv1t, work, lwork, rwork, toPtr(17*(r+2)), iwork, &info)
 
 	//     Compute [X11;X21] := diag(U1,U2)'*[X11;X21]*V1 - [D11;D21]
-	goblas.Zgemm(NoTrans, ConjTrans, p, q, q, &one, x, ldx, v1t, ldv1t, &zero, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *p, *q, *q, one, x, *ldx, v1t, *ldv1t, zero, work.CMatrix(*ldx, opts), *ldx)
 
-	goblas.Zgemm(ConjTrans, NoTrans, p, q, p, &one, u1, ldu1, work.CMatrix(*ldx, opts), ldx, &zero, x, ldx)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *p, *q, *p, one, u1, *ldu1, work.CMatrix(*ldx, opts), *ldx, zero, x, *ldx)
 
 	for i = 1; i <= minint(*p, *q)-r; i++ {
 		x.Set(i-1, i-1, x.Get(i-1, i-1)-one)
@@ -207,9 +209,9 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 		x.Set(minint(*p, *q)-r+i-1, minint(*p, *q)-r+i-1, x.Get(minint(*p, *q)-r+i-1, minint(*p, *q)-r+i-1)-toCmplx(math.Cos(theta.Get(i-1))))
 	}
 
-	goblas.Zgemm(NoTrans, ConjTrans, toPtr((*m)-(*p)), q, q, &one, x.Off((*p)+1-1, 0), ldx, v1t, ldv1t, &zero, work.CMatrix(*ldx, opts), ldx)
+	err = goblas.Zgemm(NoTrans, ConjTrans, (*m)-(*p), *q, *q, one, x.Off((*p)+1-1, 0), *ldx, v1t, *ldv1t, zero, work.CMatrix(*ldx, opts), *ldx)
 
-	goblas.Zgemm(ConjTrans, NoTrans, toPtr((*m)-(*p)), q, toPtr((*m)-(*p)), &one, u2, ldu2, work.CMatrix(*ldx, opts), ldx, &zero, x.Off((*p)+1-1, 0), ldx)
+	err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-(*p), *q, (*m)-(*p), one, u2, *ldu2, work.CMatrix(*ldx, opts), *ldx, zero, x.Off((*p)+1-1, 0), *ldx)
 
 	for i = 1; i <= minint((*m)-(*p), *q)-r; i++ {
 		x.Set((*m)-i+1-1, (*q)-i+1-1, x.Get((*m)-i+1-1, (*q)-i+1-1)-one)
@@ -228,7 +230,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - U1'*U1
 	golapack.Zlaset('F', p, p, &zero, &one, work.CMatrix(*ldu1, opts), ldu1)
-	goblas.Zherk(Upper, ConjTrans, p, p, toPtrf64(-realone), u1, ldu1, &realone, work.CMatrix(*ldu1, opts), ldu1)
+	err = goblas.Zherk(Upper, ConjTrans, *p, *p, -realone, u1, *ldu1, realone, work.CMatrix(*ldu1, opts), *ldu1)
 
 	//     Compute norm( I - U'*U ) / ( maxint(1,P) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', p, work.CMatrix(*ldu1, opts), ldu1, rwork)
@@ -236,7 +238,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - U2'*U2
 	golapack.Zlaset('F', toPtr((*m)-(*p)), toPtr((*m)-(*p)), &zero, &one, work.CMatrix(*ldu2, opts), ldu2)
-	goblas.Zherk(Upper, ConjTrans, toPtr((*m)-(*p)), toPtr((*m)-(*p)), toPtrf64(-realone), u2, ldu2, &realone, work.CMatrix(*ldu2, opts), ldu2)
+	err = goblas.Zherk(Upper, ConjTrans, (*m)-(*p), (*m)-(*p), -realone, u2, *ldu2, realone, work.CMatrix(*ldu2, opts), *ldu2)
 
 	//     Compute norm( I - U2'*U2 ) / ( maxint(1,M-P) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', toPtr((*m)-(*p)), work.CMatrix(*ldu2, opts), ldu2, rwork)
@@ -244,7 +246,7 @@ func Zcsdts(m, p, q *int, x, xf *mat.CMatrix, ldx *int, u1 *mat.CMatrix, ldu1 *i
 
 	//     Compute I - V1T*V1T'
 	golapack.Zlaset('F', q, q, &zero, &one, work.CMatrix(*ldv1t, opts), ldv1t)
-	goblas.Zherk(Upper, NoTrans, q, q, toPtrf64(-realone), v1t, ldv1t, &realone, work.CMatrix(*ldv1t, opts), ldv1t)
+	err = goblas.Zherk(Upper, NoTrans, *q, *q, -realone, v1t, *ldv1t, realone, work.CMatrix(*ldv1t, opts), *ldv1t)
 
 	//     Compute norm( I - V1T*V1T' ) / ( maxint(1,Q) * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', q, work.CMatrix(*ldv1t, opts), ldv1t, rwork)

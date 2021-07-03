@@ -18,6 +18,8 @@ import (
 func Ztpt02(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, x *mat.CMatrix, ldx *int, b *mat.CMatrix, ldb *int, work *mat.CVector, rwork *mat.Vector, resid *float64) {
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -46,11 +48,11 @@ func Ztpt02(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, x *mat.CMatri
 	//        norm(op(A)*x - b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zcopy(n, x.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, ap, work, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(n, toPtrc128(complex(-one, 0)), b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		bnorm = goblas.Dzasum(n, work, func() *int { y := 1; return &y }())
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
+		err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work, 1)
+		goblas.Zaxpy(*n, complex(-one, 0), b.CVector(0, j-1), 1, work, 1)
+		bnorm = goblas.Dzasum(*n, work, 1)
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

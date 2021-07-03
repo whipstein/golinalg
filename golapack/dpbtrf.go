@@ -16,6 +16,8 @@ import (
 func Dpbtrf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 	var one, zero float64
 	var i, i2, i3, ib, ii, j, jj, ldwork, nb, nbmax int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -97,10 +99,10 @@ func Dpbtrf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 
 					if i2 > 0 {
 						//                    Update A12
-						goblas.Dtrsm(Left, Upper, Trans, NonUnit, &ib, &i2, &one, ab.Off((*kd)+1-1, i-1), toPtr((*ldab)-1), ab.Off((*kd)+1-ib-1, i+ib-1), toPtr((*ldab)-1))
+						err = goblas.Dtrsm(Left, Upper, Trans, NonUnit, ib, i2, one, ab.Off((*kd)+1-1, i-1), (*ldab)-1, ab.Off((*kd)+1-ib-1, i+ib-1), (*ldab)-1)
 
 						//                    Update A22
-						goblas.Dsyrk(Upper, Trans, &i2, &ib, toPtrf64(-one), ab.Off((*kd)+1-ib-1, i+ib-1), toPtr((*ldab)-1), &one, ab.Off((*kd)+1-1, i+ib-1), toPtr((*ldab)-1))
+						err = goblas.Dsyrk(Upper, Trans, i2, ib, -one, ab.Off((*kd)+1-ib-1, i+ib-1), (*ldab)-1, one, ab.Off((*kd)+1-1, i+ib-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
@@ -112,15 +114,15 @@ func Dpbtrf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 						}
 
 						//                    Update A13 (in the work array).
-						goblas.Dtrsm(Left, Upper, Trans, NonUnit, &ib, &i3, &one, ab.Off((*kd)+1-1, i-1), toPtr((*ldab)-1), work, &ldwork)
+						err = goblas.Dtrsm(Left, Upper, Trans, NonUnit, ib, i3, one, ab.Off((*kd)+1-1, i-1), (*ldab)-1, work, ldwork)
 
 						//                    Update A23
 						if i2 > 0 {
-							goblas.Dgemm(Trans, NoTrans, &i2, &i3, &ib, toPtrf64(-one), ab.Off((*kd)+1-ib-1, i+ib-1), toPtr((*ldab)-1), work, &ldwork, &one, ab.Off(1+ib-1, i+(*kd)-1), toPtr((*ldab)-1))
+							err = goblas.Dgemm(Trans, NoTrans, i2, i3, ib, -one, ab.Off((*kd)+1-ib-1, i+ib-1), (*ldab)-1, work, ldwork, one, ab.Off(1+ib-1, i+(*kd)-1), (*ldab)-1)
 						}
 
 						//                    Update A33
-						goblas.Dsyrk(Upper, Trans, &i3, &ib, toPtrf64(-one), work, &ldwork, &one, ab.Off((*kd)+1-1, i+(*kd)-1), toPtr((*ldab)-1))
+						err = goblas.Dsyrk(Upper, Trans, i3, ib, -one, work, ldwork, one, ab.Off((*kd)+1-1, i+(*kd)-1), (*ldab)-1)
 
 						//                    Copy the lower triangle of A13 back into place.
 						for jj = 1; jj <= i3; jj++ {
@@ -172,10 +174,10 @@ func Dpbtrf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 
 					if i2 > 0 {
 						//                    Update A21
-						goblas.Dtrsm(Right, Lower, Trans, NonUnit, &i2, &ib, &one, ab.Off(0, i-1), toPtr((*ldab)-1), ab.Off(1+ib-1, i-1), toPtr((*ldab)-1))
+						err = goblas.Dtrsm(Right, Lower, Trans, NonUnit, i2, ib, one, ab.Off(0, i-1), (*ldab)-1, ab.Off(1+ib-1, i-1), (*ldab)-1)
 
 						//                    Update A22
-						goblas.Dsyrk(Lower, NoTrans, &i2, &ib, toPtrf64(-one), ab.Off(1+ib-1, i-1), toPtr((*ldab)-1), &one, ab.Off(0, i+ib-1), toPtr((*ldab)-1))
+						err = goblas.Dsyrk(Lower, NoTrans, i2, ib, -one, ab.Off(1+ib-1, i-1), (*ldab)-1, one, ab.Off(0, i+ib-1), (*ldab)-1)
 					}
 
 					if i3 > 0 {
@@ -187,15 +189,15 @@ func Dpbtrf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 						}
 
 						//                    Update A31 (in the work array).
-						goblas.Dtrsm(Right, Lower, Trans, NonUnit, &i3, &ib, &one, ab.Off(0, i-1), toPtr((*ldab)-1), work, &ldwork)
+						err = goblas.Dtrsm(Right, Lower, Trans, NonUnit, i3, ib, one, ab.Off(0, i-1), (*ldab)-1, work, ldwork)
 
 						//                    Update A32
 						if i2 > 0 {
-							goblas.Dgemm(NoTrans, Trans, &i3, &i2, &ib, toPtrf64(-one), work, &ldwork, ab.Off(1+ib-1, i-1), toPtr((*ldab)-1), &one, ab.Off(1+(*kd)-ib-1, i+ib-1), toPtr((*ldab)-1))
+							err = goblas.Dgemm(NoTrans, Trans, i3, i2, ib, -one, work, ldwork, ab.Off(1+ib-1, i-1), (*ldab)-1, one, ab.Off(1+(*kd)-ib-1, i+ib-1), (*ldab)-1)
 						}
 
 						//                    Update A33
-						goblas.Dsyrk(Lower, NoTrans, &i3, &ib, toPtrf64(-one), work, &ldwork, &one, ab.Off(0, i+(*kd)-1), toPtr((*ldab)-1))
+						err = goblas.Dsyrk(Lower, NoTrans, i3, ib, -one, work, ldwork, one, ab.Off(0, i+(*kd)-1), (*ldab)-1)
 
 						//                    Copy the upper triangle of A31 back into place.
 						for jj = 1; jj <= ib; jj++ {

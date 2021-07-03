@@ -16,6 +16,9 @@ func Dlqt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 	var side, trans byte
 	var cnorm, eps, one, resid, rogue float64
 	var info, iside, itrans, j, mc, nc int
+	var err error
+	_ = err
+
 	iseed := make([]int, 4)
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
@@ -70,9 +73,9 @@ func Dlqt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 
 			//           Form explicit product and subtract
 			if side == 'L' {
-				goblas.Dgemm(mat.TransByte(trans), NoTrans, &mc, &nc, &mc, toPtrf64(-one), q, lda, c, lda, &one, cc, lda)
+				err = goblas.Dgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, -one, q, *lda, c, *lda, one, cc, *lda)
 			} else {
-				goblas.Dgemm(NoTrans, mat.TransByte(trans), &mc, &nc, &nc, toPtrf64(-one), c, lda, q, lda, &one, cc, lda)
+				err = goblas.Dgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, *lda, q, *lda, one, cc, *lda)
 			}
 
 			//           Compute error in the difference

@@ -14,6 +14,8 @@ func Zsyt03(uplo byte, n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix, ldai
 	var cone, czero complex128
 	var ainvnm, anorm, eps, one, zero float64
 	var i, j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -53,7 +55,7 @@ func Zsyt03(uplo byte, n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix, ldai
 			}
 		}
 	}
-	goblas.Zsymm(Left, mat.UploByte(uplo), n, n, toPtrc128(-cone), a, lda, ainv, ldainv, &czero, work, ldwork)
+	err = goblas.Zsymm(Left, mat.UploByte(uplo), *n, *n, -cone, a, *lda, ainv, *ldainv, czero, work, *ldwork)
 
 	//     Add the identity matrix to WORK .
 	for i = 1; i <= (*n); i++ {

@@ -30,6 +30,11 @@ const (
 	Unit      = mat.Unit
 )
 
+const (
+	blocksize    = 64
+	minParBlocks = 4
+)
+
 func toPtr(n int) *int {
 	y := n
 	return &y
@@ -60,4 +65,29 @@ func passL2(name string, n, x int, t *testing.T) {
 	} else {
 		fmt.Printf(" %6s passed %6d computational tests\n", name, n)
 	}
+}
+
+func genIter(a, b, inc int) []int {
+	iter := make([]int, 0)
+
+	if inc < 0 {
+		for i := a; i >= b; i += inc {
+			iter = append(iter, i)
+		}
+	} else {
+		for i := a; i <= b; i += inc {
+			iter = append(iter, i)
+		}
+	}
+	return iter
+}
+
+// blocks returns the number of divisions of the dimension length with the given
+// block size.
+func blocks(dim int, bsize ...int) int {
+	size := blocksize
+	if len(bsize) > 0 {
+		size = bsize[0]
+	}
+	return (dim + size - 1) / size
 }

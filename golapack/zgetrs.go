@@ -13,6 +13,8 @@ import (
 func Zgetrs(trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *mat.CMatrix, ldb, info *int) {
 	var notran bool
 	var one complex128
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -47,18 +49,18 @@ func Zgetrs(trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		Zlaswp(nrhs, b, ldb, func() *int { y := 1; return &y }(), n, ipiv, func() *int { y := 1; return &y }())
 
 		//        Solve L*X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Solve U*X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 	} else {
 		//        Solve A**T * X = B  or A**H * X = B.
 		//
 		//        Solve U**T *X = B or U**H *X = B, overwriting B with X.
-		goblas.Ztrsm(Left, Upper, mat.TransByte(trans), NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, mat.TransByte(trans), NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Solve L**T *X = B, or L**H *X = B overwriting B with X.
-		goblas.Ztrsm(Left, Lower, mat.TransByte(trans), Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, mat.TransByte(trans), Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Apply row interchanges to the solution vectors.
 		Zlaswp(nrhs, b, ldb, func() *int { y := 1; return &y }(), n, ipiv, toPtr(-1))

@@ -40,9 +40,9 @@ func Zptsvx(fact byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 
 	if nofact {
 		//        Compute the L*D*L**H (or U**H*D*U) factorization of A.
-		goblas.Dcopy(n, d, func() *int { y := 1; return &y }(), df, func() *int { y := 1; return &y }())
+		goblas.Dcopy(*n, d, 1, df, 1)
 		if (*n) > 1 {
-			goblas.Zcopy(toPtr((*n)-1), e, func() *int { y := 1; return &y }(), ef, func() *int { y := 1; return &y }())
+			goblas.Zcopy((*n)-1, e, 1, ef, 1)
 		}
 		Zpttrf(n, df, ef, info)
 

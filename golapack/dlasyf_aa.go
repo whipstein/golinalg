@@ -20,6 +20,8 @@ import (
 func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h *mat.Matrix, ldh *int, work *mat.Vector) {
 	var alpha, one, piv, zero float64
 	var i1, i2, j, k, k1, mj int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -60,17 +62,17 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 			//           columns
 			//         > for the rest of the columns, K is J+1, skipping only the
 			//           first column
-			goblas.Dgemv(mat.NoTrans, &mj, toPtr(j-k1), toPtrf64(-one), h.Off(j-1, k1-1), ldh, a.Vector(0, j-1), toPtr(1), &one, h.Vector(j-1, j-1), toPtr(1))
+			err = goblas.Dgemv(mat.NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), *ldh, a.Vector(0, j-1), 1, one, h.Vector(j-1, j-1), 1)
 		}
 
 		//        Copy H(i:M, i) into WORK
-		goblas.Dcopy(&mj, h.Vector(j-1, j-1), toPtr(1), work, toPtr(1))
+		goblas.Dcopy(mj, h.Vector(j-1, j-1), 1, work, 1)
 
 		if j > k1 {
 			//           Compute WORK := WORK - L(J-1, J:M) * T(J-1,J),
 			//            where A(J-1, J) stores T(J-1, J) and A(J-2, J:M) stores U(J-1, J:M)
 			alpha = -a.Get(k-1-1, j-1)
-			goblas.Daxpy(&mj, &alpha, a.Vector(k-2-1, j-1), lda, work, toPtr(1))
+			goblas.Daxpy(mj, alpha, a.Vector(k-2-1, j-1), *lda, work, 1)
 		}
 
 		//        Set A(J, J) = T(J, J)
@@ -81,11 +83,11 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 			//            where A(J, J) stores T(J, J) and A(J-1, (J+1):M) stores U(J, (J+1):M)
 			if k > 1 {
 				alpha = -a.Get(k-1, j-1)
-				goblas.Daxpy(toPtr((*m)-j), &alpha, a.Vector(k-1-1, j+1-1), lda, work.Off(1), toPtr(1))
+				goblas.Daxpy((*m)-j, alpha, a.Vector(k-1-1, j+1-1), *lda, work.Off(1), 1)
 			}
 
 			//           Find max(|WORK(2:M)|)
-			i2 = goblas.Idamax(toPtr((*m)-j), work.Off(1), toPtr(1)) + 1
+			i2 = goblas.Idamax((*m)-j, work.Off(1), 1) + 1
 			piv = work.Get(i2 - 1)
 
 			//           Apply symmetric pivot
@@ -98,11 +100,11 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 				//              Swap A(I1, I1+1:M) with A(I1+1:M, I2)
 				i1 = i1 + j - 1
 				i2 = i2 + j - 1
-				goblas.Dswap(toPtr(i2-i1-1), a.Vector((*j1)+i1-1-1, i1+1-1), lda, a.Vector((*j1)+i1-1, i2-1), toPtr(1))
+				goblas.Dswap(i2-i1-1, a.Vector((*j1)+i1-1-1, i1+1-1), *lda, a.Vector((*j1)+i1-1, i2-1), 1)
 
 				//              Swap A(I1, I2+1:M) with A(I2, I2+1:M)
 				if i2 < (*m) {
-					goblas.Dswap(toPtr((*m)-i2), a.Vector((*j1)+i1-1-1, i2+1-1), lda, a.Vector((*j1)+i2-1-1, i2+1-1), lda)
+					goblas.Dswap((*m)-i2, a.Vector((*j1)+i1-1-1, i2+1-1), *lda, a.Vector((*j1)+i2-1-1, i2+1-1), *lda)
 				}
 
 				//              Swap A(I1, I1) with A(I2,I2)
@@ -111,13 +113,13 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 				a.Set((*j1)+i2-1-1, i2-1, piv)
 
 				//              Swap H(I1, 1:J1) with H(I2, 1:J1)
-				goblas.Dswap(toPtr(i1-1), h.Vector(i1-1, 0), ldh, h.Vector(i2-1, 0), ldh)
+				goblas.Dswap(i1-1, h.Vector(i1-1, 0), *ldh, h.Vector(i2-1, 0), *ldh)
 				(*ipiv)[i1-1] = i2
 
 				if i1 > (k1 - 1) {
 					//                 Swap L(1:I1-1, I1) with L(1:I1-1, I2),
 					//                  skipping the first column
-					goblas.Dswap(toPtr(i1-k1+1), a.Vector(0, i1-1), toPtr(1), a.Vector(0, i2-1), toPtr(1))
+					goblas.Dswap(i1-k1+1, a.Vector(0, i1-1), 1, a.Vector(0, i2-1), 1)
 				}
 			} else {
 				(*ipiv)[j+1-1] = j + 1
@@ -128,7 +130,7 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 
 			if j < (*nb) {
 				//              Copy A(J+1:M, J+1) into H(J:M, J),
-				goblas.Dcopy(toPtr((*m)-j), a.Vector(k+1-1, j+1-1), lda, h.Vector(j+1-1, j+1-1), toPtr(1))
+				goblas.Dcopy((*m)-j, a.Vector(k+1-1, j+1-1), *lda, h.Vector(j+1-1, j+1-1), 1)
 			}
 
 			//           Compute L(J+2, J+1) = WORK( 3:M ) / T(J, J+1),
@@ -136,8 +138,8 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 			if j < ((*m) - 1) {
 				if a.Get(k-1, j+1-1) != zero {
 					alpha = one / a.Get(k-1, j+1-1)
-					goblas.Dcopy(toPtr((*m)-j-1), work.Off(2), toPtr(1), a.Vector(k-1, j+2-1), lda)
-					goblas.Dscal(toPtr((*m)-j-1), &alpha, a.Vector(k-1, j+2-1), lda)
+					goblas.Dcopy((*m)-j-1, work.Off(2), 1, a.Vector(k-1, j+2-1), *lda)
+					goblas.Dscal((*m)-j-1, alpha, a.Vector(k-1, j+2-1), *lda)
 				} else {
 					Dlaset('F', toPtr(1), toPtr((*m)-j-1), &zero, &zero, a.Off(k-1, j+2-1), lda)
 				}
@@ -177,17 +179,17 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 			//           columns
 			//         > for the rest of the columns, K is J+1, skipping only the
 			//           first column
-			goblas.Dgemv(mat.NoTrans, &mj, toPtr(j-k1), toPtrf64(-one), h.Off(j-1, k1-1), ldh, a.Vector(j-1, 0), lda, &one, h.Vector(j-1, j-1), toPtr(1))
+			err = goblas.Dgemv(mat.NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), *ldh, a.Vector(j-1, 0), *lda, one, h.Vector(j-1, j-1), 1)
 		}
 
 		//        Copy H(J:M, J) into WORK
-		goblas.Dcopy(&mj, h.Vector(j-1, j-1), toPtr(1), work, toPtr(1))
+		goblas.Dcopy(mj, h.Vector(j-1, j-1), 1, work, 1)
 
 		if j > k1 {
 			//           Compute WORK := WORK - L(J:M, J-1) * T(J-1,J),
 			//            where A(J-1, J) = T(J-1, J) and A(J, J-2) = L(J, J-1)
 			alpha = -a.Get(j-1, k-1-1)
-			goblas.Daxpy(&mj, &alpha, a.Vector(j-1, k-2-1), toPtr(1), work, toPtr(1))
+			goblas.Daxpy(mj, alpha, a.Vector(j-1, k-2-1), 1, work, 1)
 		}
 
 		//        Set A(J, J) = T(J, J)
@@ -198,11 +200,11 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 			//            where A(J, J) = T(J, J) and A((J+1):M, J-1) = L((J+1):M, J)
 			if k > 1 {
 				alpha = -a.Get(j-1, k-1)
-				goblas.Daxpy(toPtr((*m)-j), &alpha, a.Vector(j+1-1, k-1-1), toPtr(1), work.Off(1), toPtr(1))
+				goblas.Daxpy((*m)-j, alpha, a.Vector(j+1-1, k-1-1), 1, work.Off(1), 1)
 			}
 
 			//           Find max(|WORK(2:M)|)
-			i2 = goblas.Idamax(toPtr((*m)-j), work.Off(1), toPtr(1)) + 1
+			i2 = goblas.Idamax((*m)-j, work.Off(1), 1) + 1
 			piv = work.Get(i2 - 1)
 
 			//           Apply symmetric pivot
@@ -215,11 +217,11 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 				//              Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 				i1 = i1 + j - 1
 				i2 = i2 + j - 1
-				goblas.Dswap(toPtr(i2-i1-1), a.Vector(i1+1-1, (*j1)+i1-1-1), toPtr(1), a.Vector(i2-1, (*j1)+i1-1), lda)
+				goblas.Dswap(i2-i1-1, a.Vector(i1+1-1, (*j1)+i1-1-1), 1, a.Vector(i2-1, (*j1)+i1-1), *lda)
 
 				//              Swap A(I2+1:M, I1) with A(I2+1:M, I2)
 				if i2 < (*m) {
-					goblas.Dswap(toPtr((*m)-i2), a.Vector(i2+1-1, (*j1)+i1-1-1), toPtr(1), a.Vector(i2+1-1, (*j1)+i2-1-1), toPtr(1))
+					goblas.Dswap((*m)-i2, a.Vector(i2+1-1, (*j1)+i1-1-1), 1, a.Vector(i2+1-1, (*j1)+i2-1-1), 1)
 				}
 
 				//              Swap A(I1, I1) with A(I2, I2)
@@ -228,13 +230,13 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 				a.Set(i2-1, (*j1)+i2-1-1, piv)
 
 				//              Swap H(I1, I1:J1) with H(I2, I2:J1)
-				goblas.Dswap(toPtr(i1-1), h.Vector(i1-1, 0), ldh, h.Vector(i2-1, 0), ldh)
+				goblas.Dswap(i1-1, h.Vector(i1-1, 0), *ldh, h.Vector(i2-1, 0), *ldh)
 				(*ipiv)[i1-1] = i2
 
 				if i1 > (k1 - 1) {
 					//                 Swap L(1:I1-1, I1) with L(1:I1-1, I2),
 					//                  skipping the first column
-					goblas.Dswap(toPtr(i1-k1+1), a.Vector(i1-1, 0), lda, a.Vector(i2-1, 0), lda)
+					goblas.Dswap(i1-k1+1, a.Vector(i1-1, 0), *lda, a.Vector(i2-1, 0), *lda)
 				}
 			} else {
 				(*ipiv)[j+1-1] = j + 1
@@ -245,7 +247,7 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 
 			if j < (*nb) {
 				//              Copy A(J+1:M, J+1) into H(J+1:M, J),
-				goblas.Dcopy(toPtr((*m)-j), a.Vector(j+1-1, k+1-1), toPtr(1), h.Vector(j+1-1, j+1-1), toPtr(1))
+				goblas.Dcopy((*m)-j, a.Vector(j+1-1, k+1-1), 1, h.Vector(j+1-1, j+1-1), 1)
 			}
 
 			//           Compute L(J+2, J+1) = WORK( 3:M ) / T(J, J+1),
@@ -253,8 +255,8 @@ func DlasyfAa(uplo byte, j1, m, nb *int, a *mat.Matrix, lda *int, ipiv *[]int, h
 			if j < ((*m) - 1) {
 				if a.Get(j+1-1, k-1) != zero {
 					alpha = one / a.Get(j+1-1, k-1)
-					goblas.Dcopy(toPtr((*m)-j-1), work.Off(2), toPtr(1), a.Vector(j+2-1, k-1), toPtr(1))
-					goblas.Dscal(toPtr((*m)-j-1), &alpha, a.Vector(j+2-1, k-1), toPtr(1))
+					goblas.Dcopy((*m)-j-1, work.Off(2), 1, a.Vector(j+2-1, k-1), 1)
+					goblas.Dscal((*m)-j-1, alpha, a.Vector(j+2-1, k-1), 1)
 				} else {
 					Dlaset('F', toPtr((*m)-j-1), toPtr(1), &zero, &zero, a.Off(j+2-1, k-1), lda)
 				}

@@ -104,9 +104,9 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			prod = goblas.Zdotc(n, vr.CVector(0, ks-1), func() *int { y := 1; return &y }(), vl.CVector(0, ks-1), func() *int { y := 1; return &y }())
-			rnrm = goblas.Dznrm2(n, vr.CVector(0, ks-1), func() *int { y := 1; return &y }())
-			lnrm = goblas.Dznrm2(n, vl.CVector(0, ks-1), func() *int { y := 1; return &y }())
+			prod = goblas.Zdotc(*n, vr.CVector(0, ks-1), 1, vl.CVector(0, ks-1), 1)
+			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1), 1)
+			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1), 1)
 			s.Set(ks-1, cmplx.Abs(prod)/(rnrm*lnrm))
 
 		}
@@ -147,7 +147,7 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 				if scale != one {
 					//                 Multiply by 1/SCALE if doing so will not cause
 					//                 overflow.
-					ix = goblas.Izamax(toPtr((*n)-1), work.CVector(0, 0), func() *int { y := 1; return &y }())
+					ix = goblas.Izamax((*n)-1, work.CVector(0, 0), 1)
 					xnorm = cabs1(work.Get(ix-1, 0))
 					if scale < xnorm*smlnum || scale == zero {
 						goto label40

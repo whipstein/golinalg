@@ -38,6 +38,7 @@ type memory struct {
 		j  int
 	}
 	infoc struct {
+		errt  error
 		infot int
 		nout  *writer
 		nunit int

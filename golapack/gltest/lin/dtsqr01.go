@@ -12,6 +12,9 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 	var testzeros, ts bool
 	var anorm, cnorm, dnorm, eps, one, resid, zero float64
 	var info, j, k, l, lwork, mnb, tsize int
+	var err error
+	_ = err
+
 	srnamt := &gltest.Common.Srnamc.Srnamt
 	iseed := make([]int, 4)
 
@@ -96,7 +99,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dlacpy('U', m, n, af, m, r, m)
 
 		//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-		goblas.Dgemm(Trans, NoTrans, m, n, m, toPtrf64(-one), q, m, a, m, &one, r, m)
+		err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, *m, a, *m, one, r, *m)
 		anorm = golapack.Dlange('1', m, n, a, m, rwork)
 		resid = golapack.Dlange('1', m, n, r, m, rwork)
 		if anorm > zero {
@@ -107,7 +110,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 
 		//     Compute |I - Q'*Q| and store in RESULT(2)
 		golapack.Dlaset('F', m, m, &zero, &one, r, m)
-		goblas.Dsyrk(Upper, ConjTrans, m, m, toPtrf64(-one), q, m, &one, r, m)
+		err = goblas.Dsyrk(Upper, ConjTrans, *m, *m, -one, q, *m, one, r, *m)
 		resid = golapack.Dlansy('1', 'U', m, r, m, rwork)
 		result.Set(1, resid/(eps*float64(maxint(1, *m))))
 
@@ -123,7 +126,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemqr('L', 'N', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |Q*C - Q*C| / |C|
-		goblas.Dgemm(NoTrans, NoTrans, m, n, m, toPtrf64(-one), q, m, c, m, &one, cf, m)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
 		resid = golapack.Dlange('1', m, n, cf, m, rwork)
 		if cnorm > zero {
 			result.Set(2, resid/(eps*float64(maxint(1, *m))*cnorm))
@@ -139,7 +142,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemqr('L', 'T', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |QT*C - QT*C| / |C|
-		goblas.Dgemm(Trans, NoTrans, m, n, m, toPtrf64(-one), q, m, c, m, &one, cf, m)
+		err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
 		resid = golapack.Dlange('1', m, n, cf, m, rwork)
 		if cnorm > zero {
 			result.Set(3, resid/(eps*float64(maxint(1, *m))*cnorm))
@@ -159,7 +162,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemqr('R', 'N', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |D*Q - D*Q| / |D|
-		goblas.Dgemm(NoTrans, NoTrans, n, m, m, toPtrf64(-one), d, n, q, m, &one, df, n)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
 		resid = golapack.Dlange('1', n, m, df, n, rwork)
 		if dnorm > zero {
 			result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -174,7 +177,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemqr('R', 'T', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |D*QT - D*QT| / |D|
-		goblas.Dgemm(NoTrans, Trans, n, m, m, toPtrf64(-one), d, n, q, m, &one, df, n)
+		err = goblas.Dgemm(NoTrans, Trans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
 		resid = golapack.Dlange('1', n, m, df, n, rwork)
 		if cnorm > zero {
 			result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -217,7 +220,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dlacpy('L', m, n, af, m, lq, &l)
 
 		//     Compute |L - A*Q'| / |A| and store in RESULT(1)
-		goblas.Dgemm(NoTrans, Trans, m, n, n, toPtrf64(-one), a, m, q, n, &one, lq, &l)
+		err = goblas.Dgemm(NoTrans, Trans, *m, *n, *n, -one, a, *m, q, *n, one, lq, l)
 		anorm = golapack.Dlange('1', m, n, a, m, rwork)
 		resid = golapack.Dlange('1', m, n, lq, &l, rwork)
 		if anorm > zero {
@@ -228,7 +231,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 
 		//     Compute |I - Q'*Q| and store in RESULT(2)
 		golapack.Dlaset('F', n, n, &zero, &one, lq, &l)
-		goblas.Dsyrk(Upper, ConjTrans, n, n, toPtrf64(-one), q, n, &one, lq, &l)
+		err = goblas.Dsyrk(Upper, ConjTrans, *n, *n, -one, q, *n, one, lq, l)
 		resid = golapack.Dlansy('1', 'U', n, lq, &l, rwork)
 		result.Set(1, resid/(eps*float64(maxint(1, *n))))
 
@@ -243,7 +246,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemlq('L', 'N', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |Q*D - Q*D| / |D|
-		goblas.Dgemm(NoTrans, NoTrans, n, m, n, toPtrf64(-one), q, n, d, n, &one, df, n)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *m, *n, -one, q, *n, d, *n, one, df, *n)
 		resid = golapack.Dlange('1', n, m, df, n, rwork)
 		if dnorm > zero {
 			result.Set(2, resid/(eps*float64(maxint(1, *n))*dnorm))
@@ -258,7 +261,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemlq('L', 'T', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |QT*D - QT*D| / |D|
-		goblas.Dgemm(Trans, NoTrans, n, m, n, toPtrf64(-one), q, n, d, n, &one, df, n)
+		err = goblas.Dgemm(Trans, NoTrans, *n, *m, *n, -one, q, *n, d, *n, one, df, *n)
 		resid = golapack.Dlange('1', n, m, df, n, rwork)
 		if dnorm > zero {
 			result.Set(3, resid/(eps*float64(maxint(1, *n))*dnorm))
@@ -277,7 +280,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemlq('R', 'N', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |C*Q - C*Q| / |C|
-		goblas.Dgemm(NoTrans, NoTrans, m, n, n, toPtrf64(-one), c, m, q, n, &one, cf, m)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, c, *m, q, *n, one, cf, *m)
 		resid = golapack.Dlange('1', n, m, df, n, rwork)
 		if cnorm > zero {
 			result.Set(4, resid/(eps*float64(maxint(1, *n))*cnorm))
@@ -292,7 +295,7 @@ func Dtsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Dgemlq('R', 'T', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |C*QT - C*QT| / |C|
-		goblas.Dgemm(NoTrans, Trans, m, n, n, toPtrf64(-one), c, m, q, n, &one, cf, m)
+		err = goblas.Dgemm(NoTrans, Trans, *m, *n, *n, -one, c, *m, q, *n, one, cf, *m)
 		resid = golapack.Dlange('1', m, n, cf, m, rwork)
 		if cnorm > zero {
 			result.Set(5, resid/(eps*float64(maxint(1, *n))*cnorm))

@@ -30,6 +30,8 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 	var cmone, cmzero complex128
 	var one, ovfl, remax, scale, smin, smlnum, ulp, unfl, zero float64
 	var i, ii, is, j, k, ki int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -100,7 +102,7 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 	//     part of T to control overflow in triangular solver.
 	rwork.Set(0, zero)
 	for j = 2; j <= (*n); j++ {
-		rwork.Set(j-1, goblas.Dzasum(toPtr(j-1), t.CVector(0, j-1), func() *int { y := 1; return &y }()))
+		rwork.Set(j-1, goblas.Dzasum(j-1, t.CVector(0, j-1), 1))
 	}
 
 	if rightv {
@@ -138,23 +140,23 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 
 			//           Copy the vector x or Q*x to VR and normalize.
 			if !over {
-				goblas.Zcopy(&ki, work.Off(0), func() *int { y := 1; return &y }(), vr.CVector(0, is-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy(ki, work.Off(0), 1, vr.CVector(0, is-1), 1)
 
-				ii = goblas.Izamax(&ki, vr.CVector(0, is-1), func() *int { y := 1; return &y }())
+				ii = goblas.Izamax(ki, vr.CVector(0, is-1), 1)
 				remax = one / cabs1(vr.Get(ii-1, is-1))
-				goblas.Zdscal(&ki, &remax, vr.CVector(0, is-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(ki, remax, vr.CVector(0, is-1), 1)
 
 				for k = ki + 1; k <= (*n); k++ {
 					vr.Set(k-1, is-1, cmzero)
 				}
 			} else {
 				if ki > 1 {
-					goblas.Zgemv(NoTrans, n, toPtr(ki-1), &cmone, vr, ldvr, work.Off(0), func() *int { y := 1; return &y }(), toPtrc128(complex(scale, 0)), vr.CVector(0, ki-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(NoTrans, *n, ki-1, cmone, vr, *ldvr, work.Off(0), 1, complex(scale, 0), vr.CVector(0, ki-1), 1)
 				}
 
-				ii = goblas.Izamax(n, vr.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				ii = goblas.Izamax(*n, vr.CVector(0, ki-1), 1)
 				remax = one / cabs1(vr.Get(ii-1, ki-1))
-				goblas.Zdscal(n, &remax, vr.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(*n, remax, vr.CVector(0, ki-1), 1)
 			}
 
 			//           Set back the original diagonal elements of T.
@@ -202,23 +204,23 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 
 			//           Copy the vector x or Q*x to VL and normalize.
 			if !over {
-				goblas.Zcopy(toPtr((*n)-ki+1), work.Off(ki-1), func() *int { y := 1; return &y }(), vl.CVector(ki-1, is-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy((*n)-ki+1, work.Off(ki-1), 1, vl.CVector(ki-1, is-1), 1)
 
-				ii = goblas.Izamax(toPtr((*n)-ki+1), vl.CVector(ki-1, is-1), func() *int { y := 1; return &y }()) + ki - 1
+				ii = goblas.Izamax((*n)-ki+1, vl.CVector(ki-1, is-1), 1) + ki - 1
 				remax = one / cabs1(vl.Get(ii-1, is-1))
-				goblas.Zdscal(toPtr((*n)-ki+1), &remax, vl.CVector(ki-1, is-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-ki+1, remax, vl.CVector(ki-1, is-1), 1)
 
 				for k = 1; k <= ki-1; k++ {
 					vl.Set(k-1, is-1, cmzero)
 				}
 			} else {
 				if ki < (*n) {
-					goblas.Zgemv('N', n, toPtr((*n)-ki), &cmone, vl.Off(0, ki+1-1), ldvl, work.Off(ki+1-1), func() *int { y := 1; return &y }(), toPtrc128(complex(scale, 0)), vl.CVector(0, ki-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(NoTrans, *n, (*n)-ki, cmone, vl.Off(0, ki+1-1), *ldvl, work.Off(ki+1-1), 1, complex(scale, 0), vl.CVector(0, ki-1), 1)
 				}
 
-				ii = goblas.Izamax(n, vl.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				ii = goblas.Izamax(*n, vl.CVector(0, ki-1), 1)
 				remax = one / cabs1(vl.Get(ii-1, ki-1))
-				goblas.Zdscal(n, &remax, vl.CVector(0, ki-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(*n, remax, vl.CVector(0, ki-1), 1)
 			}
 
 			//           Set back the original diagonal elements of T.

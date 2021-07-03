@@ -52,7 +52,7 @@ label10:
 	}
 
 	//     Scale the vector X by MUL
-	goblas.Dscal(n, &mul, sx, incx)
+	goblas.Dscal(*n, mul, sx, *incx)
 
 	if !done {
 		goto label10

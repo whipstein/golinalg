@@ -103,7 +103,7 @@ func Dspevd(jobz, uplo byte, n *int, ap, w *mat.Vector, z *mat.Matrix, ldz *int,
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(toPtr(((*n)*((*n)+1))/2), &sigma, ap, toPtr(1))
+		goblas.Dscal(((*n)*((*n)+1))/2, sigma, ap, 1)
 	}
 
 	//     Call DSPTRD to reduce symmetric packed matrix to tridiagonal form.
@@ -126,7 +126,7 @@ func Dspevd(jobz, uplo byte, n *int, ap, w *mat.Vector, z *mat.Matrix, ldz *int,
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(*n, one/sigma, w, 1)
 	}
 
 	work.Set(0, float64(lwmin))

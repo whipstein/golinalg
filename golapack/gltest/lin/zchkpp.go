@@ -133,7 +133,7 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*L' or U'*U factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Zcopy(&npp, a, func() *int { y := 1; return &y }(), afac, func() *int { y := 1; return &y }())
+				goblas.Zcopy(npp, a, 1, afac, 1)
 				*srnamt = "ZPPTRF"
 				golapack.Zpptrf(uplo, &n, afac, &info)
 
@@ -151,12 +151,12 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//+    TEST 1
 				//              Reconstruct matrix from factors and compute residual.
-				goblas.Zcopy(&npp, afac, func() *int { y := 1; return &y }(), ainv, func() *int { y := 1; return &y }())
+				goblas.Zcopy(npp, afac, 1, ainv, 1)
 				Zppt01(uplo, &n, a, ainv, rwork, result.GetPtr(0))
 
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
-				goblas.Zcopy(&npp, afac, func() *int { y := 1; return &y }(), ainv, func() *int { y := 1; return &y }())
+				goblas.Zcopy(npp, afac, 1, ainv, 1)
 				*srnamt = "ZPPTRI"
 				golapack.Zpptri(uplo, &n, ainv, &info)
 

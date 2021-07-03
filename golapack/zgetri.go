@@ -15,6 +15,8 @@ func Zgetri(n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.CVector, lw
 	var lquery bool
 	var one, zero complex128
 	var i, iws, j, jb, jj, jp, ldwork, lwkopt, nb, nbmin, nn int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -75,7 +77,7 @@ func Zgetri(n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.CVector, lw
 
 			//           Compute current column of inv(A).
 			if j < (*n) {
-				goblas.Zgemv(NoTrans, n, toPtr((*n)-j), toPtrc128(-one), a.Off(0, j+1-1), lda, work.Off(j+1-1), func() *int { y := 1; return &y }(), &one, a.CVector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, *n, (*n)-j, -one, a.Off(0, j+1-1), *lda, work.Off(j+1-1), 1, one, a.CVector(0, j-1), 1)
 			}
 		}
 	} else {
@@ -95,9 +97,9 @@ func Zgetri(n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.CVector, lw
 
 			//           Compute current block column of inv(A).
 			if j+jb <= (*n) {
-				goblas.Zgemm(NoTrans, NoTrans, n, &jb, toPtr((*n)-j-jb+1), toPtrc128(-one), a.Off(0, j+jb-1), lda, work.CMatrixOff(j+jb-1, ldwork, opts), &ldwork, &one, a.Off(0, j-1), lda)
+				err = goblas.Zgemm(NoTrans, NoTrans, *n, jb, (*n)-j-jb+1, -one, a.Off(0, j+jb-1), *lda, work.CMatrixOff(j+jb-1, ldwork, opts), ldwork, one, a.Off(0, j-1), *lda)
 			}
-			goblas.Ztrsm(Right, Lower, NoTrans, Unit, n, &jb, &one, work.CMatrixOff(j-1, ldwork, opts), &ldwork, a.Off(0, j-1), lda)
+			err = goblas.Ztrsm(Right, Lower, NoTrans, Unit, *n, jb, one, work.CMatrixOff(j-1, ldwork, opts), ldwork, a.Off(0, j-1), *lda)
 		}
 	}
 
@@ -105,7 +107,7 @@ func Zgetri(n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.CVector, lw
 	for j = (*n) - 1; j >= 1; j-- {
 		jp = (*ipiv)[j-1]
 		if jp != j {
-			goblas.Zswap(n, a.CVector(0, j-1), func() *int { y := 1; return &y }(), a.CVector(0, jp-1), func() *int { y := 1; return &y }())
+			goblas.Zswap(*n, a.CVector(0, j-1), 1, a.CVector(0, jp-1), 1)
 		}
 	}
 

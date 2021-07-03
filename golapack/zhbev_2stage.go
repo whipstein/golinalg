@@ -129,7 +129,7 @@ func Zhbev2stage(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     Set WORK(1) to optimal workspace size.

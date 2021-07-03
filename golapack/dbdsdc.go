@@ -92,8 +92,8 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 	wstart = 1
 	qstart = 3
 	if icompq == 1 {
-		goblas.Dcopy(n, d, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }())
-		goblas.Dcopy(toPtr((*n)-1), e, func() *int { y := 1; return &y }(), q.Off((*n)+1-1), func() *int { y := 1; return &y }())
+		goblas.Dcopy(*n, d, 1, q, 1)
+		goblas.Dcopy((*n)-1, e, 1, q.Off((*n)+1-1), 1)
 	}
 	if iuplo == 2 {
 		qstart = 5
@@ -243,8 +243,8 @@ label40:
 			if icompq == 1 {
 				(*iq)[i-1] = kk
 			} else if icompq == 2 {
-				goblas.Dswap(n, u.Vector(0, i-1), func() *int { y := 1; return &y }(), u.Vector(0, kk-1), func() *int { y := 1; return &y }())
-				goblas.Dswap(n, vt.Vector(i-1, 0), ldvt, vt.Vector(kk-1, 0), ldvt)
+				goblas.Dswap(*n, u.Vector(0, i-1), 1, u.Vector(0, kk-1), 1)
+				goblas.Dswap(*n, vt.Vector(i-1, 0), *ldvt, vt.Vector(kk-1, 0), *ldvt)
 			}
 		} else if icompq == 1 {
 			(*iq)[i-1] = i

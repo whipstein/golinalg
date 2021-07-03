@@ -153,7 +153,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*D*L' or U*D*U' factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Dcopy(&npp, a, toPtr(1), afac, toPtr(1))
+				goblas.Dcopy(npp, a, 1, afac, 1)
 				*srnamt = "DSPTRF"
 				golapack.Dsptrf(uplo, &n, afac, iwork, &info)
 
@@ -192,7 +192,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
 				if !trfcon {
-					goblas.Dcopy(&npp, afac, toPtr(1), ainv, toPtr(1))
+					goblas.Dcopy(npp, afac, 1, ainv, 1)
 					*srnamt = "DSPTRI"
 					golapack.Dsptri(uplo, &n, ainv, iwork, work, &info)
 

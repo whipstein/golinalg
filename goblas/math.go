@@ -14,6 +14,7 @@ const (
 	bias     = 127
 	signMask = 1 << 31
 	fracMask = 1<<shift - 1
+	eps      = 2.2204460492503131e-016
 )
 
 func absint(a int) int {
@@ -37,7 +38,17 @@ func epsilonf64() float64 {
 	// return float32(1.1920929e-07)
 }
 
-func maxf64(a ...float64) float64 {
+// func maxf64(a ...float64) float64 {
+// 	maxval := a[0]
+// 	for _, val := range a {
+// 		if val > maxval {
+// 			maxval = val
+// 		}
+// 	}
+// 	return maxval
+// }
+
+func max(a ...int) int {
 	maxval := a[0]
 	for _, val := range a {
 		if val > maxval {
@@ -47,17 +58,7 @@ func maxf64(a ...float64) float64 {
 	return maxval
 }
 
-func maxint(a ...int) int {
-	maxval := a[0]
-	for _, val := range a {
-		if val > maxval {
-			maxval = val
-		}
-	}
-	return maxval
-}
-
-func maxintslice(a []int) int {
+func maxslice(a []int) int {
 	var out int
 
 	for _, val := range a {
@@ -80,17 +81,17 @@ func maxlocf64(a ...float64) int {
 	return maxloc + 1
 }
 
-func minf64(a ...float64) float64 {
-	minval := a[0]
-	for _, val := range a {
-		if val < minval {
-			minval = val
-		}
-	}
-	return minval
-}
+// func minf64(a ...float64) float64 {
+// 	minval := a[0]
+// 	for _, val := range a {
+// 		if val < minval {
+// 			minval = val
+// 		}
+// 	}
+// 	return minval
+// }
 
-func minint(a ...int) int {
+func min(a ...int) int {
 	minval := a[0]
 	for _, val := range a {
 		if val < minval {

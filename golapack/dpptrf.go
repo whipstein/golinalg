@@ -19,6 +19,8 @@ func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, jc, jj int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -50,11 +52,11 @@ func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
 
 			//           Compute elements 1:J-1 of column J.
 			if j > 1 {
-				goblas.Dtpsv(mat.Upper, mat.Trans, mat.NonUnit, toPtr(j-1), ap, ap.Off(jc-1), toPtr(1))
+				err = goblas.Dtpsv(mat.Upper, mat.Trans, mat.NonUnit, j-1, ap, ap.Off(jc-1), 1)
 			}
 
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = ap.Get(jj-1) - goblas.Ddot(toPtr(j-1), ap.Off(jc-1), toPtr(1), ap.Off(jc-1), toPtr(1))
+			ajj = ap.Get(jj-1) - goblas.Ddot(j-1, ap.Off(jc-1), 1, ap.Off(jc-1), 1)
 			if ajj <= zero {
 				ap.Set(jj-1, ajj)
 				goto label30
@@ -77,8 +79,8 @@ func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
 			//           Compute elements J+1:N of column J and update the trailing
 			//           submatrix.
 			if j < (*n) {
-				goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), ap.Off(jj+1-1), toPtr(1))
-				goblas.Dspr(mat.Lower, toPtr((*n)-j), toPtrf64(-one), ap.Off(jj+1-1), toPtr(1), ap.Off(jj+(*n)-j+1-1))
+				goblas.Dscal((*n)-j, one/ajj, ap.Off(jj+1-1), 1)
+				err = goblas.Dspr(mat.Lower, (*n)-j, -one, ap.Off(jj+1-1), 1, ap.Off(jj+(*n)-j+1-1))
 				jj = jj + (*n) - j + 1
 			}
 		}

@@ -13,6 +13,8 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 	var upper bool
 	var ak, akm1, akm1k, bk, bkm1, denom, one float64
 	var j, k, kp int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -61,15 +63,15 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			goblas.Dger(toPtr(k-1), nrhs, toPtrf64(-one), a.Vector(0, k-1), func() *int { y := 1; return &y }(), b.Vector(k-1, 0), ldb, b.Off(0, 0), ldb)
+			err = goblas.Dger(k-1, *nrhs, -one, a.Vector(0, k-1), 1, b.Vector(k-1, 0), *ldb, b.Off(0, 0), *ldb)
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Dscal(nrhs, toPtrf64(one/a.Get(k-1, k-1)), b.Vector(k-1, 0), ldb)
+			goblas.Dscal(*nrhs, one/a.Get(k-1, k-1), b.Vector(k-1, 0), *ldb)
 			k = k - 1
 		} else {
 			//           2 x 2 diagonal block
@@ -77,13 +79,13 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//           Interchange rows K-1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k-1 {
-				goblas.Dswap(nrhs, b.Vector(k-1-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in columns K-1 and K of A.
-			goblas.Dger(toPtr(k-2), nrhs, toPtrf64(-one), a.Vector(0, k-1), func() *int { y := 1; return &y }(), b.Vector(k-1, 0), ldb, b.Off(0, 0), ldb)
-			goblas.Dger(toPtr(k-2), nrhs, toPtrf64(-one), a.Vector(0, k-1-1), func() *int { y := 1; return &y }(), b.Vector(k-1-1, 0), ldb, b.Off(0, 0), ldb)
+			err = goblas.Dger(k-2, *nrhs, -one, a.Vector(0, k-1), 1, b.Vector(k-1, 0), *ldb, b.Off(0, 0), *ldb)
+			err = goblas.Dger(k-2, *nrhs, -one, a.Vector(0, k-1-1), 1, b.Vector(k-1-1, 0), *ldb, b.Off(0, 0), *ldb)
 
 			//           Multiply by the inverse of the diagonal block.
 			akm1k = a.Get(k-1-1, k-1)
@@ -121,12 +123,12 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//
 			//           Multiply by inv(U**T(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			goblas.Dgemv(Trans, toPtr(k-1), nrhs, toPtrf64(-one), b, ldb, a.Vector(0, k-1), func() *int { y := 1; return &y }(), &one, b.Vector(k-1, 0), ldb)
+			err = goblas.Dgemv(Trans, k-1, *nrhs, -one, b, *ldb, a.Vector(0, k-1), 1, one, b.Vector(k-1, 0), *ldb)
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 			k = k + 1
 		} else {
@@ -134,13 +136,13 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//
 			//           Multiply by inv(U**T(K+1)), where U(K+1) is the transformation
 			//           stored in columns K and K+1 of A.
-			goblas.Dgemv(Trans, toPtr(k-1), nrhs, toPtrf64(-one), b, ldb, a.Vector(0, k-1), func() *int { y := 1; return &y }(), &one, b.Vector(k-1, 0), ldb)
-			goblas.Dgemv(Trans, toPtr(k-1), nrhs, toPtrf64(-one), b, ldb, a.Vector(0, k+1-1), func() *int { y := 1; return &y }(), &one, b.Vector(k+1-1, 0), ldb)
+			err = goblas.Dgemv(Trans, k-1, *nrhs, -one, b, *ldb, a.Vector(0, k-1), 1, one, b.Vector(k-1, 0), *ldb)
+			err = goblas.Dgemv(Trans, k-1, *nrhs, -one, b, *ldb, a.Vector(0, k+1-1), 1, one, b.Vector(k+1-1, 0), *ldb)
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 			k = k + 2
 		}
@@ -169,17 +171,17 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < (*n) {
-				goblas.Dger(toPtr((*n)-k), nrhs, toPtrf64(-one), a.Vector(k+1-1, k-1), func() *int { y := 1; return &y }(), b.Vector(k-1, 0), ldb, b.Off(k+1-1, 0), ldb)
+				err = goblas.Dger((*n)-k, *nrhs, -one, a.Vector(k+1-1, k-1), 1, b.Vector(k-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Dscal(nrhs, toPtrf64(one/a.Get(k-1, k-1)), b.Vector(k-1, 0), ldb)
+			goblas.Dscal(*nrhs, one/a.Get(k-1, k-1), b.Vector(k-1, 0), *ldb)
 			k = k + 1
 		} else {
 			//           2 x 2 diagonal block
@@ -187,14 +189,14 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//           Interchange rows K+1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k+1 {
-				goblas.Dswap(nrhs, b.Vector(k+1-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k+1-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k < (*n)-1 {
-				goblas.Dger(toPtr((*n)-k-1), nrhs, toPtrf64(-one), a.Vector(k+2-1, k-1), func() *int { y := 1; return &y }(), b.Vector(k-1, 0), ldb, b.Off(k+2-1, 0), ldb)
-				goblas.Dger(toPtr((*n)-k-1), nrhs, toPtrf64(-one), a.Vector(k+2-1, k+1-1), func() *int { y := 1; return &y }(), b.Vector(k+1-1, 0), ldb, b.Off(k+2-1, 0), ldb)
+				err = goblas.Dger((*n)-k-1, *nrhs, -one, a.Vector(k+2-1, k-1), 1, b.Vector(k-1, 0), *ldb, b.Off(k+2-1, 0), *ldb)
+				err = goblas.Dger((*n)-k-1, *nrhs, -one, a.Vector(k+2-1, k+1-1), 1, b.Vector(k+1-1, 0), *ldb, b.Off(k+2-1, 0), *ldb)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
@@ -234,13 +236,13 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//           Multiply by inv(L**T(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < (*n) {
-				goblas.Dgemv(Trans, toPtr((*n)-k), nrhs, toPtrf64(-one), b.Off(k+1-1, 0), ldb, a.Vector(k+1-1, k-1), func() *int { y := 1; return &y }(), &one, b.Vector(k-1, 0), ldb)
+				err = goblas.Dgemv(Trans, (*n)-k, *nrhs, -one, b.Off(k+1-1, 0), *ldb, a.Vector(k+1-1, k-1), 1, one, b.Vector(k-1, 0), *ldb)
 			}
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 			k = k - 1
 		} else {
@@ -249,14 +251,14 @@ func Dsytrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int, b *ma
 			//           Multiply by inv(L**T(K-1)), where L(K-1) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k < (*n) {
-				goblas.Dgemv(Trans, toPtr((*n)-k), nrhs, toPtrf64(-one), b.Off(k+1-1, 0), ldb, a.Vector(k+1-1, k-1), func() *int { y := 1; return &y }(), &one, b.Vector(k-1, 0), ldb)
-				goblas.Dgemv(Trans, toPtr((*n)-k), nrhs, toPtrf64(-one), b.Off(k+1-1, 0), ldb, a.Vector(k+1-1, k-1-1), func() *int { y := 1; return &y }(), &one, b.Vector(k-1-1, 0), ldb)
+				err = goblas.Dgemv(Trans, (*n)-k, *nrhs, -one, b.Off(k+1-1, 0), *ldb, a.Vector(k+1-1, k-1), 1, one, b.Vector(k-1, 0), *ldb)
+				err = goblas.Dgemv(Trans, (*n)-k, *nrhs, -one, b.Off(k+1-1, 0), *ldb, a.Vector(k+1-1, k-1-1), 1, one, b.Vector(k-1-1, 0), *ldb)
 			}
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 			k = k - 2
 		}

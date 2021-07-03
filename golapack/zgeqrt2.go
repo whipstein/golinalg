@@ -11,6 +11,8 @@ import (
 func Zgeqrt2(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int) {
 	var aii, alpha, one, zero complex128
 	var i, k int
+	var err error
+	_ = err
 
 	one = (1.0e+00 + 0.0e+00*1i)
 	zero = (0.0e+00 + 0.0e+00*1i)
@@ -42,11 +44,11 @@ func Zgeqrt2(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int
 			a.Set(i-1, i-1, one)
 
 			//           W(1:N-I) := A(I:M,I+1:N)^H * A(I:M,I) [W = T(:,N)]
-			goblas.Zgemv(ConjTrans, toPtr((*m)-i+1), toPtr((*n)-i), &one, a.Off(i-1, i+1-1), lda, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), &zero, t.CVector(0, (*n)-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(ConjTrans, (*m)-i+1, (*n)-i, one, a.Off(i-1, i+1-1), *lda, a.CVector(i-1, i-1), 1, zero, t.CVector(0, (*n)-1), 1)
 
 			//           A(I:M,I+1:N) = A(I:m,I+1:N) + alpha*A(I:M,I)*W(1:N-1)^H
 			alpha = -t.GetConj(i-1, 0)
-			goblas.Zgerc(toPtr((*m)-i+1), toPtr((*n)-i), &alpha, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), t.CVector(0, (*n)-1), func() *int { y := 1; return &y }(), a.Off(i-1, i+1-1), lda)
+			err = goblas.Zgerc((*m)-i+1, (*n)-i, alpha, a.CVector(i-1, i-1), 1, t.CVector(0, (*n)-1), 1, a.Off(i-1, i+1-1), *lda)
 			a.Set(i-1, i-1, aii)
 		}
 	}
@@ -57,11 +59,11 @@ func Zgeqrt2(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int
 
 		//        T(1:I-1,I) := alpha * A(I:M,1:I-1)**H * A(I:M,I)
 		alpha = -t.Get(i-1, 0)
-		goblas.Zgemv(ConjTrans, toPtr((*m)-i+1), toPtr(i-1), &alpha, a.Off(i-1, 0), lda, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), &zero, t.CVector(0, i-1), func() *int { y := 1; return &y }())
+		err = goblas.Zgemv(ConjTrans, (*m)-i+1, i-1, alpha, a.Off(i-1, 0), *lda, a.CVector(i-1, i-1), 1, zero, t.CVector(0, i-1), 1)
 		a.Set(i-1, i-1, aii)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		goblas.Ztrmv(Upper, NoTrans, NonUnit, toPtr(i-1), t, ldt, t.CVector(0, i-1), func() *int { y := 1; return &y }())
+		err = goblas.Ztrmv(Upper, NoTrans, NonUnit, i-1, t, *ldt, t.CVector(0, i-1), 1)
 
 		//           T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(i-1, 0))

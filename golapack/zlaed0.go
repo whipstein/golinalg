@@ -178,7 +178,7 @@ label80:
 	for i = 1; i <= (*n); i++ {
 		j = (*iwork)[indxq+i-1]
 		rwork.Set(i-1, d.Get(j-1))
-		goblas.Zcopy(qsiz, qstore.CVector(0, j-1), func() *int { y := 1; return &y }(), q.CVector(0, i-1), func() *int { y := 1; return &y }())
+		goblas.Zcopy(*qsiz, qstore.CVector(0, j-1), 1, q.CVector(0, i-1), 1)
 	}
-	goblas.Dcopy(n, rwork, func() *int { y := 1; return &y }(), d, func() *int { y := 1; return &y }())
+	goblas.Dcopy(*n, rwork, 1, d, 1)
 }

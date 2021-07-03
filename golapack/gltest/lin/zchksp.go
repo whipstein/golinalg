@@ -160,7 +160,7 @@ func Zchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*D*L' or U*D*U' factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Zcopy(&npp, a, func() *int { y := 1; return &y }(), afac, func() *int { y := 1; return &y }())
+				goblas.Zcopy(npp, a, 1, afac, 1)
 				*srnamt = "ZSPTRF"
 				golapack.Zsptrf(uplo, &n, afac, iwork, &info)
 
@@ -200,7 +200,7 @@ func Zchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
 				if !trfcon {
-					goblas.Zcopy(&npp, afac, func() *int { y := 1; return &y }(), ainv, func() *int { y := 1; return &y }())
+					goblas.Zcopy(npp, afac, 1, ainv, 1)
 					*srnamt = "ZSPTRI"
 					golapack.Zsptri(uplo, &n, ainv, iwork, work, &info)
 

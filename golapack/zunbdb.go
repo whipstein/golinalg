@@ -99,19 +99,19 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 		for i = 1; i <= (*q); i++ {
 
 			if i == 1 {
-				goblas.Zscal(toPtr((*p)-i+1), toCmplxPtr(z1), x11.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*p)-i+1, complex(z1, 0), x11.CVector(i-1, i-1), 1)
 			} else {
-				goblas.Zscal(toPtr((*p)-i+1), toCmplxPtr(z1*math.Cos(phi.Get(i-1-1))), x11.CVector(i-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(toPtr((*p)-i+1), toCmplxPtr(-z1*z3*z4*math.Sin(phi.Get(i-1-1))), x12.CVector(i-1, i-1-1), func() *int { y := 1; return &y }(), x11.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*p)-i+1, complex(z1*math.Cos(phi.Get(i-1-1)), 0), x11.CVector(i-1, i-1), 1)
+				goblas.Zaxpy((*p)-i+1, complex(-z1*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x12.CVector(i-1, i-1-1), 1, x11.CVector(i-1, i-1), 1)
 			}
 			if i == 1 {
-				goblas.Zscal(toPtr((*m)-(*p)-i+1), toCmplxPtr(z2), x21.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*m)-(*p)-i+1, complex(z2, 0), x21.CVector(i-1, i-1), 1)
 			} else {
-				goblas.Zscal(toPtr((*m)-(*p)-i+1), toCmplxPtr(z2*math.Cos(phi.Get(i-1-1))), x21.CVector(i-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(toPtr((*m)-(*p)-i+1), toCmplxPtr(-z2*z3*z4*math.Sin(phi.Get(i-1-1))), x22.CVector(i-1, i-1-1), func() *int { y := 1; return &y }(), x21.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*m)-(*p)-i+1, complex(z2*math.Cos(phi.Get(i-1-1)), 0), x21.CVector(i-1, i-1), 1)
+				goblas.Zaxpy((*m)-(*p)-i+1, complex(-z2*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x22.CVector(i-1, i-1-1), 1, x21.CVector(i-1, i-1), 1)
 			}
 
-			theta.Set(i-1, math.Atan2(goblas.Dznrm2(toPtr((*m)-(*p)-i+1), x21.CVector(i-1, i-1), func() *int { y := 1; return &y }()), goblas.Dznrm2(toPtr((*p)-i+1), x11.CVector(i-1, i-1), func() *int { y := 1; return &y }())))
+			theta.Set(i-1, math.Atan2(goblas.Dznrm2((*m)-(*p)-i+1, x21.CVector(i-1, i-1), 1), goblas.Dznrm2((*p)-i+1, x11.CVector(i-1, i-1), 1)))
 
 			if (*p) > i {
 				Zlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1), x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
@@ -136,14 +136,14 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 			}
 
 			if i < (*q) {
-				goblas.Zscal(toPtr((*q)-i), toCmplxPtr(-z1*z3*math.Sin(theta.Get(i-1))), x11.CVector(i-1, i+1-1), ldx11)
-				goblas.Zaxpy(toPtr((*q)-i), toCmplxPtr(z2*z3*math.Cos(theta.Get(i-1))), x21.CVector(i-1, i+1-1), ldx21, x11.CVector(i-1, i+1-1), ldx11)
+				goblas.Zscal((*q)-i, complex(-z1*z3*math.Sin(theta.Get(i-1)), 0), x11.CVector(i-1, i+1-1), *ldx11)
+				goblas.Zaxpy((*q)-i, complex(z2*z3*math.Cos(theta.Get(i-1)), 0), x21.CVector(i-1, i+1-1), *ldx21, x11.CVector(i-1, i+1-1), *ldx11)
 			}
-			goblas.Zscal(toPtr((*m)-(*q)-i+1), toCmplxPtr(-z1*z4*math.Sin(theta.Get(i-1))), x12.CVector(i-1, i-1), ldx12)
-			goblas.Zaxpy(toPtr((*m)-(*q)-i+1), toCmplxPtr(z2*z4*math.Cos(theta.Get(i-1))), x22.CVector(i-1, i-1), ldx22, x12.CVector(i-1, i-1), ldx12)
+			goblas.Zscal((*m)-(*q)-i+1, complex(-z1*z4*math.Sin(theta.Get(i-1)), 0), x12.CVector(i-1, i-1), *ldx12)
+			goblas.Zaxpy((*m)-(*q)-i+1, complex(z2*z4*math.Cos(theta.Get(i-1)), 0), x22.CVector(i-1, i-1), *ldx22, x12.CVector(i-1, i-1), *ldx12)
 
 			if i < (*q) {
-				phi.Set(i-1, math.Atan2(goblas.Dznrm2(toPtr((*q)-i), x11.CVector(i-1, i+1-1), ldx11), goblas.Dznrm2(toPtr((*m)-(*q)-i+1), x12.CVector(i-1, i-1), ldx12)))
+				phi.Set(i-1, math.Atan2(goblas.Dznrm2((*q)-i, x11.CVector(i-1, i+1-1), *ldx11), goblas.Dznrm2((*m)-(*q)-i+1, x12.CVector(i-1, i-1), *ldx12)))
 			}
 
 			if i < (*q) {
@@ -186,7 +186,7 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 		//        Reduce columns Q + 1, ..., P of X12, X22
 		for i = (*q) + 1; i <= (*p); i++ {
 
-			goblas.Zscal(toPtr((*m)-(*q)-i+1), toCmplxPtr(-z1*z4), x12.CVector(i-1, i-1), ldx12)
+			goblas.Zscal((*m)-(*q)-i+1, complex(-z1*z4, 0), x12.CVector(i-1, i-1), *ldx12)
 			Zlacgv(toPtr((*m)-(*q)-i+1), x12.CVector(i-1, i-1), ldx12)
 			if i >= (*m)-(*q) {
 				Zlarfgp(toPtr((*m)-(*q)-i+1), x12.GetPtr(i-1, i-1), x12.CVector(i-1, i-1), ldx12, tauq2.GetPtr(i-1))
@@ -209,7 +209,7 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 		//        Reduce columns P + 1, ..., M - Q of X12, X22
 		for i = 1; i <= (*m)-(*p)-(*q); i++ {
 
-			goblas.Zscal(toPtr((*m)-(*p)-(*q)-i+1), toCmplxPtr(z2*z4), x22.CVector((*q)+i-1, (*p)+i-1), ldx22)
+			goblas.Zscal((*m)-(*p)-(*q)-i+1, complex(z2*z4, 0), x22.CVector((*q)+i-1, (*p)+i-1), *ldx22)
 			Zlacgv(toPtr((*m)-(*p)-(*q)-i+1), x22.CVector((*q)+i-1, (*p)+i-1), ldx22)
 			Zlarfgp(toPtr((*m)-(*p)-(*q)-i+1), x22.GetPtr((*q)+i-1, (*p)+i-1), x22.CVector((*q)+i-1, (*p)+i+1-1), ldx22, tauq2.GetPtr((*p)+i-1))
 			x22.Set((*q)+i-1, (*p)+i-1, one)
@@ -224,19 +224,19 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 		for i = 1; i <= (*q); i++ {
 
 			if i == 1 {
-				goblas.Zscal(toPtr((*p)-i+1), toCmplxPtr(z1), x11.CVector(i-1, i-1), ldx11)
+				goblas.Zscal((*p)-i+1, complex(z1, 0), x11.CVector(i-1, i-1), *ldx11)
 			} else {
-				goblas.Zscal(toPtr((*p)-i+1), toCmplxPtr(z1*math.Cos(phi.Get(i-1-1))), x11.CVector(i-1, i-1), ldx11)
-				goblas.Zaxpy(toPtr((*p)-i+1), toCmplxPtr(-z1*z3*z4*math.Sin(phi.Get(i-1-1))), x12.CVector(i-1-1, i-1), ldx12, x11.CVector(i-1, i-1), ldx11)
+				goblas.Zscal((*p)-i+1, complex(z1*math.Cos(phi.Get(i-1-1)), 0), x11.CVector(i-1, i-1), *ldx11)
+				goblas.Zaxpy((*p)-i+1, complex(-z1*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x12.CVector(i-1-1, i-1), *ldx12, x11.CVector(i-1, i-1), *ldx11)
 			}
 			if i == 1 {
-				goblas.Zscal(toPtr((*m)-(*p)-i+1), toCmplxPtr(z2), x21.CVector(i-1, i-1), ldx21)
+				goblas.Zscal((*m)-(*p)-i+1, complex(z2, 0), x21.CVector(i-1, i-1), *ldx21)
 			} else {
-				goblas.Zscal(toPtr((*m)-(*p)-i+1), toCmplxPtr(z2*math.Cos(phi.Get(i-1-1))), x21.CVector(i-1, i-1), ldx21)
-				goblas.Zaxpy(toPtr((*m)-(*p)-i+1), toCmplxPtr(-z2*z3*z4*math.Sin(phi.Get(i-1-1))), x22.CVector(i-1-1, i-1), ldx22, x21.CVector(i-1, i-1), ldx21)
+				goblas.Zscal((*m)-(*p)-i+1, complex(z2*math.Cos(phi.Get(i-1-1)), 0), x21.CVector(i-1, i-1), *ldx21)
+				goblas.Zaxpy((*m)-(*p)-i+1, complex(-z2*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x22.CVector(i-1-1, i-1), *ldx22, x21.CVector(i-1, i-1), *ldx21)
 			}
 
-			theta.Set(i-1, math.Atan2(goblas.Dznrm2(toPtr((*m)-(*p)-i+1), x21.CVector(i-1, i-1), ldx21), goblas.Dznrm2(toPtr((*p)-i+1), x11.CVector(i-1, i-1), ldx11)))
+			theta.Set(i-1, math.Atan2(goblas.Dznrm2((*m)-(*p)-i+1, x21.CVector(i-1, i-1), *ldx21), goblas.Dznrm2((*p)-i+1, x11.CVector(i-1, i-1), *ldx11)))
 
 			Zlacgv(toPtr((*p)-i+1), x11.CVector(i-1, i-1), ldx11)
 			Zlacgv(toPtr((*m)-(*p)-i+1), x21.CVector(i-1, i-1), ldx21)
@@ -259,14 +259,14 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 			Zlacgv(toPtr((*m)-(*p)-i+1), x21.CVector(i-1, i-1), ldx21)
 
 			if i < (*q) {
-				goblas.Zscal(toPtr((*q)-i), toCmplxPtr(-z1*z3*math.Sin(theta.Get(i-1))), x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zaxpy(toPtr((*q)-i), toCmplxPtr(z2*z3*math.Cos(theta.Get(i-1))), x21.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zscal((*q)-i, complex(-z1*z3*math.Sin(theta.Get(i-1)), 0), x11.CVector(i+1-1, i-1), 1)
+				goblas.Zaxpy((*q)-i, complex(z2*z3*math.Cos(theta.Get(i-1)), 0), x21.CVector(i+1-1, i-1), 1, x11.CVector(i+1-1, i-1), 1)
 			}
-			goblas.Zscal(toPtr((*m)-(*q)-i+1), toCmplxPtr(-z1*z4*math.Sin(theta.Get(i-1))), x12.CVector(i-1, i-1), func() *int { y := 1; return &y }())
-			goblas.Zaxpy(toPtr((*m)-(*q)-i+1), toCmplxPtr(z2*z4*math.Cos(theta.Get(i-1))), x22.CVector(i-1, i-1), func() *int { y := 1; return &y }(), x12.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal((*m)-(*q)-i+1, complex(-z1*z4*math.Sin(theta.Get(i-1)), 0), x12.CVector(i-1, i-1), 1)
+			goblas.Zaxpy((*m)-(*q)-i+1, complex(z2*z4*math.Cos(theta.Get(i-1)), 0), x22.CVector(i-1, i-1), 1, x12.CVector(i-1, i-1), 1)
 
 			if i < (*q) {
-				phi.Set(i-1, math.Atan2(goblas.Dznrm2(toPtr((*q)-i), x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }()), goblas.Dznrm2(toPtr((*m)-(*q)-i+1), x12.CVector(i-1, i-1), func() *int { y := 1; return &y }())))
+				phi.Set(i-1, math.Atan2(goblas.Dznrm2((*q)-i, x11.CVector(i+1-1, i-1), 1), goblas.Dznrm2((*m)-(*q)-i+1, x12.CVector(i-1, i-1), 1)))
 			}
 
 			if i < (*q) {
@@ -290,7 +290,7 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 		//        Reduce columns Q + 1, ..., P of X12, X22
 		for i = (*q) + 1; i <= (*p); i++ {
 
-			goblas.Zscal(toPtr((*m)-(*q)-i+1), toCmplxPtr(-z1*z4), x12.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal((*m)-(*q)-i+1, complex(-z1*z4, 0), x12.CVector(i-1, i-1), 1)
 			Zlarfgp(toPtr((*m)-(*q)-i+1), x12.GetPtr(i-1, i-1), x12.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), tauq2.GetPtr(i-1))
 			x12.Set(i-1, i-1, one)
 
@@ -306,7 +306,7 @@ func Zunbdb(trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *
 		//        Reduce columns P + 1, ..., M - Q of X12, X22
 		for i = 1; i <= (*m)-(*p)-(*q); i++ {
 
-			goblas.Zscal(toPtr((*m)-(*p)-(*q)-i+1), toCmplxPtr(z2*z4), x22.CVector((*p)+i-1, (*q)+i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal((*m)-(*p)-(*q)-i+1, complex(z2*z4, 0), x22.CVector((*p)+i-1, (*q)+i-1), 1)
 			Zlarfgp(toPtr((*m)-(*p)-(*q)-i+1), x22.GetPtr((*p)+i-1, (*q)+i-1), x22.CVector((*p)+i+1-1, (*q)+i-1), func() *int { y := 1; return &y }(), tauq2.GetPtr((*p)+i-1))
 			x22.Set((*p)+i-1, (*q)+i-1, one)
 

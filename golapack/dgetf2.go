@@ -21,6 +21,8 @@ import (
 func Dgetf2(m, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 	var one, sfmin, zero float64
 	var i, j, jp int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -49,18 +51,18 @@ func Dgetf2(m, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 	//
 	for j = 1; j <= minint(*m, *n); j++ {
 		//        Find pivot and test for singularity.
-		jp = j - 1 + goblas.Idamax(toPtr((*m)-j+1), a.Vector(j-1, j-1), toPtr(1))
+		jp = j - 1 + goblas.Idamax((*m)-j+1, a.Vector(j-1, j-1), 1)
 		(*ipiv)[j-1] = jp
 		if a.Get(jp-1, j-1) != zero {
 			//           Apply the interchange to columns 1:N.
 			if jp != j {
-				goblas.Dswap(n, a.Vector(j-1, 0), lda, a.Vector(jp-1, 0), lda)
+				goblas.Dswap(*n, a.Vector(j-1, 0), *lda, a.Vector(jp-1, 0), *lda)
 			}
 
 			//           Compute elements J+1:M of J-th column.
 			if j < (*m) {
 				if math.Abs(a.Get(j-1, j-1)) >= sfmin {
-					goblas.Dscal(toPtr((*m)-j), toPtrf64(one/a.Get(j-1, j-1)), a.Vector(j+1-1, j-1), toPtr(1))
+					goblas.Dscal((*m)-j, one/a.Get(j-1, j-1), a.Vector(j+1-1, j-1), 1)
 				} else {
 					for i = 1; i <= (*m)-j; i++ {
 						a.Set(j+i-1, j-1, a.Get(j+i-1, j-1)/a.Get(j-1, j-1))
@@ -74,7 +76,7 @@ func Dgetf2(m, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 
 		if j < minint(*m, *n) {
 			//           Update trailing submatrix.
-			goblas.Dger(toPtr((*m)-j), toPtr((*n)-j), toPtrf64(-one), a.Vector(j+1-1, j-1), toPtr(1), a.Vector(j-1, j+1-1), lda, a.Off(j+1-1, j+1-1), lda)
+			err = goblas.Dger((*m)-j, (*n)-j, -one, a.Vector(j+1-1, j-1), 1, a.Vector(j-1, j+1-1), *lda, a.Off(j+1-1, j+1-1), *lda)
 		}
 	}
 }

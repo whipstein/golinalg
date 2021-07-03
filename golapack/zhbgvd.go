@@ -23,6 +23,8 @@ func Zhbgvd(jobz, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int, bb *mat
 	var vect byte
 	var cone, czero complex128
 	var iinfo, inde, indwk2, indwrk, liwmin, llrwk, llwk2, lrwmin, lwmin int
+	var err error
+	_ = err
 
 	cone = (1.0 + 0.0*1i)
 	czero = (0.0 + 0.0*1i)
@@ -118,7 +120,7 @@ func Zhbgvd(jobz, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int, bb *mat
 		Dsterf(n, w, rwork.Off(inde-1), info)
 	} else {
 		Zstedc('I', n, w, rwork.Off(inde-1), work.CMatrix(*n, opts), n, work.Off(indwk2-1), &llwk2, rwork.Off(indwrk-1), &llrwk, iwork, liwork, info)
-		goblas.Zgemm(NoTrans, NoTrans, n, n, n, &cone, z, ldz, work.CMatrix(*n, opts), n, &czero, work.CMatrixOff(indwk2-1, *n, opts), n)
+		err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, z, *ldz, work.CMatrix(*n, opts), *n, czero, work.CMatrixOff(indwk2-1, *n, opts), *n)
 		Zlacpy('A', n, n, work.CMatrixOff(indwk2-1, *n, opts), n, z, ldz)
 	}
 

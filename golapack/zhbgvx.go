@@ -18,6 +18,8 @@ func Zhbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int,
 	var cone, czero complex128
 	var tmp1, zero float64
 	var i, iinfo, indd, inde, indee, indibl, indisp, indiwk, indrwk, indwrk, itmp1, j, jj, nsplit int
+	var err error
+	_ = err
 
 	zero = 0.0
 	czero = (0.0 + 0.0*1i)
@@ -112,9 +114,9 @@ func Zhbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int,
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(n, rwork.Off(indd-1), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }())
+		goblas.Dcopy(*n, rwork.Off(indd-1), 1, w, 1)
 		indee = indrwk + 2*(*n)
-		goblas.Dcopy(toPtr((*n)-1), rwork.Off(inde-1), func() *int { y := 1; return &y }(), rwork.Off(indee-1), func() *int { y := 1; return &y }())
+		goblas.Dcopy((*n)-1, rwork.Off(inde-1), 1, rwork.Off(indee-1), 1)
 		if !wantz {
 			Dsterf(n, w, rwork.Off(indee-1), info)
 		} else {
@@ -151,8 +153,8 @@ func Zhbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int,
 		//        Apply unitary matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by ZSTEIN.
 		for j = 1; j <= (*m); j++ {
-			goblas.Zcopy(n, z.CVector(0, j-1), func() *int { y := 1; return &y }(), work.Off(0), func() *int { y := 1; return &y }())
-			goblas.Zgemv(NoTrans, n, n, &cone, q, ldq, work, func() *int { y := 1; return &y }(), &czero, z.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zcopy(*n, z.CVector(0, j-1), 1, work.Off(0), 1)
+			err = goblas.Zgemv(NoTrans, *n, *n, cone, q, *ldq, work, 1, czero, z.CVector(0, j-1), 1)
 		}
 	}
 
@@ -178,7 +180,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(n, z.CVector(0, i-1), func() *int { y := 1; return &y }(), z.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, j-1), 1)
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

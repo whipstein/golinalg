@@ -227,7 +227,7 @@ label20:
 			//           submatrix. NR is the order of G.
 			nr = minint(3, i-k+1)
 			if k > m {
-				goblas.Dcopy(&nr, h.Vector(k-1, k-1-1), toPtr(1), v, toPtr(1))
+				goblas.Dcopy(nr, h.Vector(k-1, k-1-1), 1, v, 1)
 			}
 			Dlarfg(&nr, v.GetPtr(0), v.Off(1), func() *int { y := 1; return &y }(), &t1)
 			if k > m {
@@ -328,13 +328,13 @@ label150:
 		if wantt {
 			//           Apply the transformation to the rest of H.
 			if i2 > i {
-				goblas.Drot(toPtr(i2-i), h.Vector(i-1-1, i+1-1), ldh, h.Vector(i-1, i+1-1), ldh, &cs, &sn)
+				goblas.Drot(i2-i, h.Vector(i-1-1, i+1-1), *ldh, h.Vector(i-1, i+1-1), *ldh, cs, sn)
 			}
-			goblas.Drot(toPtr(i-i1-1), h.Vector(i1-1, i-1-1), toPtr(1), h.Vector(i1-1, i-1), toPtr(1), &cs, &sn)
+			goblas.Drot(i-i1-1, h.Vector(i1-1, i-1-1), 1, h.Vector(i1-1, i-1), 1, cs, sn)
 		}
 		if wantz {
 			//           Apply the transformation to Z.
-			goblas.Drot(&nz, z.Vector((*iloz)-1, i-1-1), toPtr(1), z.Vector((*iloz)-1, i-1), toPtr(1), &cs, &sn)
+			goblas.Drot(nz, z.Vector((*iloz)-1, i-1-1), 1, z.Vector((*iloz)-1, i-1), 1, cs, sn)
 		}
 	}
 

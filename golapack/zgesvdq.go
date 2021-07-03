@@ -317,7 +317,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			}
 		}
 		for p = 1; p <= (*m)-1; p++ {
-			q = goblas.Idamax(toPtr((*m)-p+1), rwork.Off(p-1), func() *int { y := 1; return &y }()) + p - 1
+			q = goblas.Idamax((*m)-p+1, rwork.Off(p-1), 1) + p - 1
 			(*iwork)[(*n)+p-1] = q
 			if p != q {
 				rtmp = rwork.Get(p - 1)
@@ -459,8 +459,8 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//              expert level and obtain useful information in the sense of
 			//              perturbation theory.
 			for p = 1; p <= nr; p++ {
-				rtmp = goblas.Dznrm2(&p, v.CVector(0, p-1), func() *int { y := 1; return &y }())
-				goblas.Zdscal(&p, toPtrf64(one/rtmp), v.CVector(0, p-1), func() *int { y := 1; return &y }())
+				rtmp = goblas.Dznrm2(p, v.CVector(0, p-1), 1)
+				goblas.Zdscal(p, one/rtmp, v.CVector(0, p-1), 1)
 			}
 			if !(lsvec || rsvec) {
 				Zpocon('U', &nr, v, ldv, &one, &rtmp, cwork, rwork, &ierr)

@@ -95,8 +95,8 @@ func Dstevd(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(n, &sigma, d, toPtr(1))
-		goblas.Dscal(toPtr((*n)-1), &sigma, e, toPtr(1))
+		goblas.Dscal(*n, sigma, d, 1)
+		goblas.Dscal((*n)-1, sigma, e, 1)
 	}
 
 	//     For eigenvalues only, call DSTERF.  For eigenvalues and
@@ -109,7 +109,7 @@ func Dstevd(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, toPtrf64(one/sigma), d, toPtr(1))
+		goblas.Dscal(*n, one/sigma, d, 1)
 	}
 
 	work.Set(0, float64(lwmin))

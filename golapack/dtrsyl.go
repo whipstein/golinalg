@@ -136,8 +136,8 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(toPtr((*m)-k1), a.Vector(k1-1, minint(k1+1, *m)-1), lda, c.Vector(minint(k1+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k1, a.Vector(k1-1, minint(k1+1, *m)-1), *lda, c.Vector(minint(k1+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -158,7 +158,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -166,12 +166,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k1-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k2, a.Vector(k1-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k2-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k2-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k2, a.Vector(k2-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					Dlaln2(false, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, a.Off(k1-1, k1-1), lda, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*b.Get(l1-1, l1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -181,7 +181,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -190,12 +190,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(toPtr((*m)-k1), a.Vector(k1-1, minint(k1+1, *m)-1), lda, c.Vector(minint(k1+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k1, a.Vector(k1-1, minint(k1+1, *m)-1), *lda, c.Vector(minint(k1+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(toPtr((*m)-k1), a.Vector(k1-1, minint(k1+1, *m)-1), lda, c.Vector(minint(k1+1, *m)-1, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l2-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k1, a.Vector(k1-1, minint(k1+1, *m)-1), *lda, c.Vector(minint(k1+1, *m)-1, l2-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l2-1), 1)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					Dlaln2(true, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, b.Off(l1-1, l1-1), ldb, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*a.Get(k1-1, k1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -205,7 +205,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -214,20 +214,20 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k1-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k2, a.Vector(k1-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k1-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l2-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k2, a.Vector(k1-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l2-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l2-1), 1)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k2-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k2-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k2, a.Vector(k2-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k2-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k2-1, 0), ldc, b.Vector(0, l2-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot((*m)-k2, a.Vector(k2-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l2-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), *ldc, b.Vector(0, l2-1), 1)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					Dlasy2(false, false, isgn, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a.Off(k1-1, k1-1), lda, b.Off(l1-1, l1-1), ldb, vec, func() *int { y := 2; return &y }(), &scaloc, x, func() *int { y := 2; return &y }(), &xnorm, &ierr)
@@ -237,7 +237,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -311,8 +311,8 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -333,7 +333,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -341,12 +341,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k2-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k2-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					Dlaln2(true, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, a.Off(k1-1, k1-1), lda, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*b.Get(l1-1, l1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -356,7 +356,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -365,12 +365,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l2-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l2-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l2-1), 1)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					Dlaln2(true, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, b.Off(l1-1, l1-1), ldb, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*a.Get(k1-1, k1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -380,7 +380,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -389,20 +389,20 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k1-1, 0), ldc, b.Vector(0, l2-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l2-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), *ldc, b.Vector(0, l2-1), 1)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k2-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k2-1, 0), ldc, b.Vector(0, l1-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), *ldc, b.Vector(0, l1-1), 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k2-1), func() *int { y := 1; return &y }(), c.Vector(0, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr(l1-1), c.Vector(k2-1, 0), ldc, b.Vector(0, l2-1), func() *int { y := 1; return &y }())
+					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1), 1, c.Vector(0, l2-1), 1)
+					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), *ldc, b.Vector(0, l2-1), 1)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					Dlasy2(true, false, isgn, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a.Off(k1-1, k1-1), lda, b.Off(l1-1, l1-1), ldb, vec, func() *int { y := 2; return &y }(), &scaloc, x, func() *int { y := 2; return &y }(), &xnorm, &ierr)
@@ -412,7 +412,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -485,8 +485,8 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l1), c.Vector(k1-1, minint(l1+1, *n)-1), ldc, b.Vector(l1-1, minint(l1+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l1, c.Vector(k1-1, minint(l1+1, *n)-1), *ldc, b.Vector(l1-1, minint(l1+1, *n)-1), *ldb)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -507,7 +507,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -515,12 +515,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k2-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k2-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k2-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					Dlaln2(true, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, a.Off(k1-1, k1-1), lda, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*b.Get(l1-1, l1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -530,7 +530,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -539,12 +539,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l2-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l2-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l2-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					Dlaln2(false, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, b.Off(l1-1, l1-1), ldb, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*a.Get(k1-1, k1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -554,7 +554,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -563,20 +563,20 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k1-1), func() *int { y := 1; return &y }(), c.Vector(0, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l2-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1), 1, c.Vector(0, l2-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l2-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k2-1), func() *int { y := 1; return &y }(), c.Vector(0, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k2-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1), 1, c.Vector(0, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k2-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr(k1-1), a.Vector(0, k2-1), func() *int { y := 1; return &y }(), c.Vector(0, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k2-1, minint(l2+1, *n)-1), ldc, b.Vector(l2-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1), 1, c.Vector(0, l2-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k2-1, minint(l2+1, *n)-1), *ldc, b.Vector(l2-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					Dlasy2(true, true, isgn, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a.Off(k1-1, k1-1), lda, b.Off(l1-1, l1-1), ldb, vec, func() *int { y := 2; return &y }(), &scaloc, x, func() *int { y := 2; return &y }(), &xnorm, &ierr)
@@ -586,7 +586,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -659,8 +659,8 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(toPtr((*m)-k1), a.Vector(k1-1, minint(k1+1, *m)-1), lda, c.Vector(minint(k1+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l1), c.Vector(k1-1, minint(l1+1, *n)-1), ldc, b.Vector(l1-1, minint(l1+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k1, a.Vector(k1-1, minint(k1+1, *m)-1), *lda, c.Vector(minint(k1+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l1, c.Vector(k1-1, minint(l1+1, *n)-1), *ldc, b.Vector(l1-1, minint(l1+1, *n)-1), *ldb)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -681,7 +681,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -689,12 +689,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k1-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k2, a.Vector(k1-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k2-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k2-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k2, a.Vector(k2-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k2-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					Dlaln2(false, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, a.Off(k1-1, k1-1), lda, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*b.Get(l1-1, l1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -704,7 +704,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -713,12 +713,12 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(toPtr((*m)-k1), a.Vector(k1-1, minint(k1+1, *m)-1), lda, c.Vector(minint(k1+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k1, a.Vector(k1-1, minint(k1+1, *m)-1), *lda, c.Vector(minint(k1+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(toPtr((*m)-k1), a.Vector(k1-1, minint(k1+1, *m)-1), lda, c.Vector(minint(k1+1, *m)-1, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l2-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k1, a.Vector(k1-1, minint(k1+1, *m)-1), *lda, c.Vector(minint(k1+1, *m)-1, l2-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l2-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					Dlaln2(false, func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), &smin, &one, b.Off(l1-1, l1-1), ldb, &one, &one, vec, func() *int { y := 2; return &y }(), toPtrf64(-sgn*a.Get(k1-1, k1-1)), &zero, x, func() *int { y := 2; return &y }(), &scaloc, &xnorm, &ierr)
@@ -728,7 +728,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -737,20 +737,20 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k1-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k2, a.Vector(k1-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k1-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k1-1, minint(l2+1, *n)-1), ldc, b.Vector(l2-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k2, a.Vector(k1-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l2-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k1-1, minint(l2+1, *n)-1), *ldc, b.Vector(l2-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k2-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l1-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k2-1, minint(l2+1, *n)-1), ldc, b.Vector(l1-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k2, a.Vector(k2-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l1-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k2-1, minint(l2+1, *n)-1), *ldc, b.Vector(l1-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(toPtr((*m)-k2), a.Vector(k2-1, minint(k2+1, *m)-1), lda, c.Vector(minint(k2+1, *m)-1, l2-1), func() *int { y := 1; return &y }())
-					sumr = goblas.Ddot(toPtr((*n)-l2), c.Vector(k2-1, minint(l2+1, *n)-1), ldc, b.Vector(l2-1, minint(l2+1, *n)-1), ldb)
+					suml = goblas.Ddot((*m)-k2, a.Vector(k2-1, minint(k2+1, *m)-1), *lda, c.Vector(minint(k2+1, *m)-1, l2-1), 1)
+					sumr = goblas.Ddot((*n)-l2, c.Vector(k2-1, minint(l2+1, *n)-1), *ldc, b.Vector(l2-1, minint(l2+1, *n)-1), *ldb)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					Dlasy2(false, true, isgn, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a.Off(k1-1, k1-1), lda, b.Off(l1-1, l1-1), ldb, vec, func() *int { y := 2; return &y }(), &scaloc, x, func() *int { y := 2; return &y }(), &xnorm, &ierr)
@@ -760,7 +760,7 @@ func Dtrsyl(trana, tranb byte, isgn, m, n *int, a *mat.Matrix, lda *int, b *mat.
 
 					if scaloc != one {
 						for j = 1; j <= (*n); j++ {
-							goblas.Dscal(m, &scaloc, c.Vector(0, j-1), func() *int { y := 1; return &y }())
+							goblas.Dscal(*m, scaloc, c.Vector(0, j-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}

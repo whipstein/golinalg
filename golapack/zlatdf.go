@@ -43,8 +43,8 @@ func Zlatdf(ijob, n *int, z *mat.CMatrix, ldz *int, rhs *mat.CVector, rdsum, rds
 
 			//           Lockahead for L- part RHS(1:N-1) = +-1
 			//           SPLUS and SMIN computed more efficiently than in BSOLVE[1].
-			splus = splus + real(goblas.Zdotc(toPtr((*n)-j), z.CVector(j+1-1, j-1), func() *int { y := 1; return &y }(), z.CVector(j+1-1, j-1), func() *int { y := 1; return &y }()))
-			sminu = real(goblas.Zdotc(toPtr((*n)-j), z.CVector(j+1-1, j-1), func() *int { y := 1; return &y }(), rhs.Off(j+1-1), func() *int { y := 1; return &y }()))
+			splus = splus + real(goblas.Zdotc((*n)-j, z.CVector(j+1-1, j-1), 1, z.CVector(j+1-1, j-1), 1))
+			sminu = real(goblas.Zdotc((*n)-j, z.CVector(j+1-1, j-1), 1, rhs.Off(j+1-1), 1))
 			splus = splus * rhs.GetRe(j-1)
 			if splus > sminu {
 				rhs.Set(j-1, bp)
@@ -62,14 +62,14 @@ func Zlatdf(ijob, n *int, z *mat.CMatrix, ldz *int, rhs *mat.CVector, rdsum, rds
 
 			//           Compute the remaining r.h.s.
 			temp = -rhs.Get(j - 1)
-			goblas.Zaxpy(toPtr((*n)-j), &temp, z.CVector(j+1-1, j-1), func() *int { y := 1; return &y }(), rhs.Off(j+1-1), func() *int { y := 1; return &y }())
+			goblas.Zaxpy((*n)-j, temp, z.CVector(j+1-1, j-1), 1, rhs.Off(j+1-1), 1)
 		}
 
 		//        Solve for U- part, lockahead for RHS(N) = +-1. This is not done
 		//        In BSOLVE and will hopefully give us a better estimate because
 		//        any ill-conditioning of the original matrix is transferred to U
 		//        and not to L. U(N, N) is an approximation to sigma_min(LU).
-		goblas.Zcopy(toPtr((*n)-1), rhs, func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		goblas.Zcopy((*n)-1, rhs, 1, work, 1)
 		work.Set((*n)-1, rhs.Get((*n)-1)+cone)
 		rhs.Set((*n)-1, rhs.Get((*n)-1)-cone)
 		splus = zero
@@ -86,7 +86,7 @@ func Zlatdf(ijob, n *int, z *mat.CMatrix, ldz *int, rhs *mat.CVector, rdsum, rds
 			sminu = sminu + rhs.GetMag(i-1)
 		}
 		if splus > sminu {
-			goblas.Zcopy(n, work, func() *int { y := 1; return &y }(), rhs, func() *int { y := 1; return &y }())
+			goblas.Zcopy(*n, work, 1, rhs, 1)
 		}
 
 		//        Apply the permutations JPIV to the computed solution (RHS)
@@ -101,19 +101,19 @@ func Zlatdf(ijob, n *int, z *mat.CMatrix, ldz *int, rhs *mat.CVector, rdsum, rds
 	//
 	//     Compute approximate nullvector XM of Z
 	Zgecon('I', n, z, ldz, &one, &rtemp, work, rwork, &info)
-	goblas.Zcopy(n, work.Off((*n)+1-1), func() *int { y := 1; return &y }(), xm, func() *int { y := 1; return &y }())
+	goblas.Zcopy(*n, work.Off((*n)+1-1), 1, xm, 1)
 
 	//     Compute RHS
 	Zlaswp(func() *int { y := 1; return &y }(), xm.CMatrix(*ldz, opts), ldz, func() *int { y := 1; return &y }(), toPtr((*n)-1), ipiv, toPtr(-1))
-	temp = cone / cmplx.Sqrt(goblas.Zdotc(n, xm, func() *int { y := 1; return &y }(), xm, func() *int { y := 1; return &y }()))
-	goblas.Zscal(n, &temp, xm, func() *int { y := 1; return &y }())
-	goblas.Zcopy(n, xm, func() *int { y := 1; return &y }(), xp, func() *int { y := 1; return &y }())
-	goblas.Zaxpy(n, &cone, rhs, func() *int { y := 1; return &y }(), xp, func() *int { y := 1; return &y }())
-	goblas.Zaxpy(n, toPtrc128(-cone), xm, func() *int { y := 1; return &y }(), rhs, func() *int { y := 1; return &y }())
+	temp = cone / cmplx.Sqrt(goblas.Zdotc(*n, xm, 1, xm, 1))
+	goblas.Zscal(*n, temp, xm, 1)
+	goblas.Zcopy(*n, xm, 1, xp, 1)
+	goblas.Zaxpy(*n, cone, rhs, 1, xp, 1)
+	goblas.Zaxpy(*n, -cone, xm, 1, rhs, 1)
 	Zgesc2(n, z, ldz, rhs, ipiv, jpiv, &scale)
 	Zgesc2(n, z, ldz, xp, ipiv, jpiv, &scale)
-	if goblas.Dzasum(n, xp, func() *int { y := 1; return &y }()) > goblas.Dzasum(n, rhs, func() *int { y := 1; return &y }()) {
-		goblas.Zcopy(n, xp, func() *int { y := 1; return &y }(), rhs, func() *int { y := 1; return &y }())
+	if goblas.Dzasum(*n, xp, 1) > goblas.Dzasum(*n, rhs, 1) {
+		goblas.Zcopy(*n, xp, 1, rhs, 1)
 	}
 
 	//     Compute the sum of squares

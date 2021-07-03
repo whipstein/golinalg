@@ -38,8 +38,8 @@ func TestMaxMinint(t *testing.T) {
 			} else {
 				wantint = valinti
 			}
-			if got := maxint(valinti, valintj); got != wantint {
-				t.Errorf("maxint: values do not match: expected %d got %d", wantint, got)
+			if got := max(valinti, valintj); got != wantint {
+				t.Errorf("max: values do not match: expected %d got %d", wantint, got)
 			}
 
 			if valinti > valintj {
@@ -47,8 +47,8 @@ func TestMaxMinint(t *testing.T) {
 			} else {
 				wantint = valinti
 			}
-			if got := minint(valinti, valintj); got != wantint {
-				t.Errorf("maxint: values do not match: expected %d got %d", wantint, got)
+			if got := min(valinti, valintj); got != wantint {
+				t.Errorf("max: values do not match: expected %d got %d", wantint, got)
 			}
 		}
 	}

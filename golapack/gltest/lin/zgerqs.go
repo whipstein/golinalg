@@ -14,6 +14,8 @@ import (
 // computed by ZGERQF.
 func Zgerqs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
 	var cone, czero complex128
+	var err error
+	_ = err
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -44,7 +46,7 @@ func Zgerqs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	}
 
 	//     Solve R*X = B(n-m+1:n,:)
-	goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, m, nrhs, &cone, a.Off(0, (*n)-(*m)+1-1), lda, b.Off((*n)-(*m)+1-1, 0), ldb)
+	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *m, *nrhs, cone, a.Off(0, (*n)-(*m)+1-1), *lda, b.Off((*n)-(*m)+1-1, 0), *ldb)
 
 	//     Set B(1:n-m,:) to zero
 	golapack.Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b, ldb)

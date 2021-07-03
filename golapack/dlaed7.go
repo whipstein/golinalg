@@ -43,6 +43,8 @@ import (
 func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *float64, cutpnt *int, qstore *mat.Vector, qptr, prmptr, perm, givptr, givcol *[]int, givnum *mat.Matrix, work *mat.Vector, iwork *[]int, info *int) {
 	var one, zero float64
 	var coltyp, curr, i, idlmda, indx, indxc, indxp, iq2, is, iw, iz, k, ldq2, n1, n2, ptr int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -121,7 +123,7 @@ func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.M
 			return
 		}
 		if (*icompq) == 1 {
-			goblas.Dgemm(NoTrans, NoTrans, qsiz, &k, &k, &one, work.MatrixOff(iq2-1, ldq2, opts), &ldq2, qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), &k, &zero, q, ldq)
+			err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, k, k, one, work.MatrixOff(iq2-1, ldq2, opts), ldq2, qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), k, zero, q, *ldq)
 		}
 		(*qptr)[curr+1-1] = (*qptr)[curr-1] + int(math.Pow(float64(k), 2))
 

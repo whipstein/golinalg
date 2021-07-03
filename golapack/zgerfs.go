@@ -17,6 +17,9 @@ func Zgerfs(trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMatrix,
 	var one complex128
 	var eps, lstres, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, itmax, j, k, kase, nz int
+	var err error
+	_ = err
+
 	isave := make([]int, 3)
 
 	itmax = 5
@@ -85,8 +88,8 @@ func Zgerfs(trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMatrix,
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - op(A) * X,
-		goblas.Zcopy(n, b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Zgemv(mat.TransByte(trans), n, n, toPtrc128(-one), a, lda, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &one, work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
+		err = goblas.Zgemv(mat.TransByte(trans), *n, *n, -one, a, *lda, x.CVector(0, j-1), 1, one, work, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -135,7 +138,7 @@ func Zgerfs(trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMatrix,
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(n, &one, work, func() *int { y := 1; return &y }(), x.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zaxpy(*n, one, work, 1, x.CVector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

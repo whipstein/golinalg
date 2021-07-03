@@ -181,8 +181,8 @@ label100:
 			if idxj <= nlp1 {
 				idxj = idxj - 1
 			}
-			goblas.Drot(&n, u.Vector(0, idxjp-1), toPtr(1), u.Vector(0, idxj-1), toPtr(1), &c, &s)
-			goblas.Drot(&m, vt.Vector(idxjp-1, 0), ldvt, vt.Vector(idxj-1, 0), ldvt, &c, &s)
+			goblas.Drot(n, u.Vector(0, idxjp-1), 1, u.Vector(0, idxj-1), 1, c, s)
+			goblas.Drot(m, vt.Vector(idxjp-1, 0), *ldvt, vt.Vector(idxj-1, 0), *ldvt, c, s)
 			if (*coltyp)[j-1] != (*coltyp)[jprev-1] {
 				(*coltyp)[j-1] = 3
 			}
@@ -253,8 +253,8 @@ label120:
 		if idxj <= nlp1 {
 			idxj = idxj - 1
 		}
-		goblas.Dcopy(&n, u.Vector(0, idxj-1), toPtr(1), u2.Vector(0, j-1), toPtr(1))
-		goblas.Dcopy(&m, vt.Vector(idxj-1, 0), ldvt, vt2.Vector(j-1, 0), ldvt2)
+		goblas.Dcopy(n, u.Vector(0, idxj-1), 1, u2.Vector(0, j-1), 1)
+		goblas.Dcopy(m, vt.Vector(idxj-1, 0), *ldvt, vt2.Vector(j-1, 0), *ldvt2)
 	}
 
 	//     Determine DSIGMA(1), DSIGMA(2) and Z(1)
@@ -282,7 +282,7 @@ label120:
 	}
 
 	//     Move the rest of the updating row to Z.
-	goblas.Dcopy(toPtr((*k)-1), u2.Vector(1, 0), toPtr(1), z.Off(1), toPtr(1))
+	goblas.Dcopy((*k)-1, u2.Vector(1, 0), 1, z.Off(1), 1)
 
 	//     Determine the first column of U2, the first row of VT2 and the
 	//     last row of VT.
@@ -298,16 +298,16 @@ label120:
 			vt.Set(m-1, i-1, c*vt.Get(m-1, i-1))
 		}
 	} else {
-		goblas.Dcopy(&m, vt.Vector(nlp1-1, 0), ldvt, vt2.Vector(0, 0), ldvt2)
+		goblas.Dcopy(m, vt.Vector(nlp1-1, 0), *ldvt, vt2.Vector(0, 0), *ldvt2)
 	}
 	if m > n {
-		goblas.Dcopy(&m, vt.Vector(m-1, 0), ldvt, vt2.Vector(m-1, 0), ldvt2)
+		goblas.Dcopy(m, vt.Vector(m-1, 0), *ldvt, vt2.Vector(m-1, 0), *ldvt2)
 	}
 
 	//     The deflated singular values and their corresponding vectors go
 	//     into the back of D, U, and V respectively.
 	if n > (*k) {
-		goblas.Dcopy(toPtr(n-(*k)), dsigma.Off((*k)+1-1), toPtr(1), d.Off((*k)+1-1), toPtr(1))
+		goblas.Dcopy(n-(*k), dsigma.Off((*k)+1-1), 1, d.Off((*k)+1-1), 1)
 		Dlacpy('A', &n, toPtr(n-(*k)), u2.Off(0, (*k)+1-1), ldu2, u.Off(0, (*k)+1-1), ldu)
 		Dlacpy('A', toPtr(n-(*k)), &m, vt2.Off((*k)+1-1, 0), ldvt2, vt.Off((*k)+1-1, 0), ldvt)
 	}

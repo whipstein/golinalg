@@ -21,6 +21,8 @@ func Zlarf(side byte, m, n *int, v *mat.CVector, incv *int, tau *complex128, c *
 	var applyleft bool
 	var one, zero complex128
 	var i, lastc, lastv int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -60,19 +62,19 @@ func Zlarf(side byte, m, n *int, v *mat.CVector, incv *int, tau *complex128, c *
 		//        Form  H * C
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastv,1:lastc)**H * v(1:lastv,1)
-			goblas.Zgemv(ConjTrans, &lastv, &lastc, &one, c, ldc, v, incv, &zero, work, func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(ConjTrans, lastv, lastc, one, c, *ldc, v, *incv, zero, work, 1)
 
 			//           C(1:lastv,1:lastc) := C(...) - v(1:lastv,1) * w(1:lastc,1)**H
-			goblas.Zgerc(&lastv, &lastc, toPtrc128(-(*tau)), v, incv, work, func() *int { y := 1; return &y }(), c, ldc)
+			err = goblas.Zgerc(lastv, lastc, -(*tau), v, *incv, work, 1, c, *ldc)
 		}
 	} else {
 		//        Form  C * H
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastc,1:lastv) * v(1:lastv,1)
-			goblas.Zgemv(NoTrans, &lastc, &lastv, &one, c, ldc, v, incv, &zero, work, func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(NoTrans, lastc, lastv, one, c, *ldc, v, *incv, zero, work, 1)
 
 			//           C(1:lastc,1:lastv) := C(...) - w(1:lastc,1) * v(1:lastv,1)**H
-			goblas.Zgerc(&lastc, &lastv, toPtrc128(-(*tau)), work, func() *int { y := 1; return &y }(), v, incv, c, ldc)
+			err = goblas.Zgerc(lastc, lastv, -(*tau), work, 1, v, *incv, c, *ldc)
 		}
 	}
 }

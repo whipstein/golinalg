@@ -14,6 +14,8 @@ func Dgebrd(m, n *int, a *mat.Matrix, lda *int, d, e, tauq, taup, work *mat.Vect
 	var lquery bool
 	var one float64
 	var i, iinfo, j, ldwrkx, ldwrky, lwkopt, minmn, nb, nbmin, nx, ws int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -81,8 +83,8 @@ func Dgebrd(m, n *int, a *mat.Matrix, lda *int, d, e, tauq, taup, work *mat.Vect
 
 		//        Update the trailing submatrix A(i+nb:m,i+nb:n), using an update
 		//        of the form  A := A - V*Y**T - X*U**T
-		goblas.Dgemm(NoTrans, Trans, toPtr((*m)-i-nb+1), toPtr((*n)-i-nb+1), &nb, toPtrf64(-one), a.Off(i+nb-1, i-1), lda, work.MatrixOff(ldwrkx*nb+nb+1-1, ldwrky, opts), &ldwrky, &one, a.Off(i+nb-1, i+nb-1), lda)
-		goblas.Dgemm(NoTrans, NoTrans, toPtr((*m)-i-nb+1), toPtr((*n)-i-nb+1), &nb, toPtrf64(-one), work.MatrixOff(nb+1-1, ldwrkx, opts), &ldwrkx, a.Off(i-1, i+nb-1), lda, &one, a.Off(i+nb-1, i+nb-1), lda)
+		err = goblas.Dgemm(NoTrans, Trans, (*m)-i-nb+1, (*n)-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), *lda, work.MatrixOff(ldwrkx*nb+nb+1-1, ldwrky, opts), ldwrky, one, a.Off(i+nb-1, i+nb-1), *lda)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-i-nb+1, (*n)-i-nb+1, nb, -one, work.MatrixOff(nb+1-1, ldwrkx, opts), ldwrkx, a.Off(i-1, i+nb-1), *lda, one, a.Off(i+nb-1, i+nb-1), *lda)
 
 		//        Copy diagonal and off-diagonal elements of B back into A
 		if (*m) >= (*n) {

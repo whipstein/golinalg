@@ -15,6 +15,8 @@ func Zlaghe(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 	var alpha, half, one, tau, wa, wb, zero complex128
 	var wn float64
 	var i, j int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -48,13 +50,13 @@ func Zlaghe(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 	for i = (*n) - 1; i >= 1; i-- {
 		//        generate random reflection
 		golapack.Zlarnv(func() *int { y := 3; return &y }(), iseed, toPtr((*n)-i+1), work)
-		wn = goblas.Dznrm2(toPtr((*n)-i+1), work, func() *int { y := 1; return &y }())
+		wn = goblas.Dznrm2((*n)-i+1, work, 1)
 		wa = complex(wn/work.GetMag(0), 0) * work.Get(0)
 		if complex(wn, 0) == zero {
 			tau = zero
 		} else {
 			wb = work.Get(0) + wa
-			goblas.Zscal(toPtr((*n)-i), toPtrc128(one/wb), work.Off(1), func() *int { y := 1; return &y }())
+			goblas.Zscal((*n)-i, one/wb, work.Off(1), 1)
 			work.Set(0, one)
 			tau = complex(real(wb/wa), 0)
 		}
@@ -63,45 +65,45 @@ func Zlaghe(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 		//        and the right
 		//
 		//        compute  y := tau * A * u
-		goblas.Zhemv(Lower, toPtr((*n)-i+1), &tau, a.Off(i-1, i-1), lda, work, func() *int { y := 1; return &y }(), &zero, work.Off((*n)+1-1), func() *int { y := 1; return &y }())
+		err = goblas.Zhemv(Lower, (*n)-i+1, tau, a.Off(i-1, i-1), *lda, work, 1, zero, work.Off((*n)+1-1), 1)
 
 		//        compute  v := y - 1/2 * tau * ( y, u ) * u
-		alpha = -half * tau * goblas.Zdotc(toPtr((*n)-i+1), work.Off((*n)+1-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(toPtr((*n)-i+1), &alpha, work, func() *int { y := 1; return &y }(), work.Off((*n)+1-1), func() *int { y := 1; return &y }())
+		alpha = -half * tau * goblas.Zdotc((*n)-i+1, work.Off((*n)+1-1), 1, work, 1)
+		goblas.Zaxpy((*n)-i+1, alpha, work, 1, work.Off((*n)+1-1), 1)
 
 		//        apply the transformation as a rank-2 update to A(i:n,i:n)
-		goblas.Zher2(Lower, toPtr((*n)-i+1), toPtrc128(-one), work, func() *int { y := 1; return &y }(), work.Off((*n)+1-1), func() *int { y := 1; return &y }(), a.Off(i-1, i-1), lda)
+		err = goblas.Zher2(Lower, (*n)-i+1, -one, work, 1, work.Off((*n)+1-1), 1, a.Off(i-1, i-1), *lda)
 	}
 
 	//     Reduce number of subdiagonals to K
 	for i = 1; i <= (*n)-1-(*k); i++ {
 		//        generate reflection to annihilate A(k+i+1:n,i)
-		wn = goblas.Dznrm2(toPtr((*n)-(*k)-i+1), a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }())
+		wn = goblas.Dznrm2((*n)-(*k)-i+1, a.CVector((*k)+i-1, i-1), 1)
 		wa = complex(wn/a.GetMag((*k)+i-1, i-1), 0) * a.Get((*k)+i-1, i-1)
 		if complex(wn, 0) == zero {
 			tau = zero
 		} else {
 			wb = a.Get((*k)+i-1, i-1) + wa
-			goblas.Zscal(toPtr((*n)-(*k)-i), toPtrc128(one/wb), a.CVector((*k)+i+1-1, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal((*n)-(*k)-i, one/wb, a.CVector((*k)+i+1-1, i-1), 1)
 			a.Set((*k)+i-1, i-1, one)
 			tau = complex(real(wb/wa), 0)
 		}
 
 		//        apply reflection to A(k+i:n,i+1:k+i-1) from the left
-		goblas.Zgemv(ConjTrans, toPtr((*n)-(*k)-i+1), toPtr((*k)-1), &one, a.Off((*k)+i-1, i+1-1), lda, a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
-		goblas.Zgerc(toPtr((*n)-(*k)-i+1), toPtr((*k)-1), toPtrc128(-tau), a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }(), a.Off((*k)+i-1, i+1-1), lda)
+		err = goblas.Zgemv(ConjTrans, (*n)-(*k)-i+1, (*k)-1, one, a.Off((*k)+i-1, i+1-1), *lda, a.CVector((*k)+i-1, i-1), 1, zero, work, 1)
+		err = goblas.Zgerc((*n)-(*k)-i+1, (*k)-1, -tau, a.CVector((*k)+i-1, i-1), 1, work, 1, a.Off((*k)+i-1, i+1-1), *lda)
 
 		//        apply reflection to A(k+i:n,k+i:n) from the left and the right
 		//
 		//        compute  y := tau * A * u
-		goblas.Zhemv(Lower, toPtr((*n)-(*k)-i+1), &tau, a.Off((*k)+i-1, (*k)+i-1), lda, a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }(), &zero, work, func() *int { y := 1; return &y }())
+		err = goblas.Zhemv(Lower, (*n)-(*k)-i+1, tau, a.Off((*k)+i-1, (*k)+i-1), *lda, a.CVector((*k)+i-1, i-1), 1, zero, work, 1)
 
 		//        compute  v := y - 1/2 * tau * ( y, u ) * u
-		alpha = -half * tau * goblas.Zdotc(toPtr((*n)-(*k)-i+1), work, func() *int { y := 1; return &y }(), a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }())
-		goblas.Zaxpy(toPtr((*n)-(*k)-i+1), &alpha, a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		alpha = -half * tau * goblas.Zdotc((*n)-(*k)-i+1, work, 1, a.CVector((*k)+i-1, i-1), 1)
+		goblas.Zaxpy((*n)-(*k)-i+1, alpha, a.CVector((*k)+i-1, i-1), 1, work, 1)
 
 		//        apply hermitian rank-2 update to A(k+i:n,k+i:n)
-		goblas.Zher2(Lower, toPtr((*n)-(*k)-i+1), toPtrc128(-one), a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }(), a.Off((*k)+i-1, (*k)+i-1), lda)
+		err = goblas.Zher2(Lower, (*n)-(*k)-i+1, -one, a.CVector((*k)+i-1, i-1), 1, work, 1, a.Off((*k)+i-1, (*k)+i-1), *lda)
 
 		a.Set((*k)+i-1, i-1, -wa)
 		for j = (*k) + i + 1; j <= (*n); j++ {

@@ -17,6 +17,9 @@ func Zqlt03(m, n, k *int, af, c, cc, q *mat.CMatrix, lda *int, tau, work *mat.CV
 	var rogue complex128
 	var cnorm, eps, one, resid, zero float64
 	var info, iside, itrans, j, mc, minmn, nc int
+	var err error
+	_ = err
+
 	iseed := make([]int, 4)
 
 	zero = 0.0
@@ -89,9 +92,9 @@ func Zqlt03(m, n, k *int, af, c, cc, q *mat.CMatrix, lda *int, tau, work *mat.CV
 
 			//           Form explicit product and subtract
 			if side == 'L' {
-				goblas.Zgemm(mat.TransByte(trans), NoTrans, &mc, &nc, &mc, toPtrc128(complex(-one, 0)), q, lda, c, lda, toPtrc128(complex(one, 0)), cc, lda)
+				err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, complex(-one, 0), q, *lda, c, *lda, complex(one, 0), cc, *lda)
 			} else {
-				goblas.Zgemm(NoTrans, mat.TransByte(trans), &mc, &nc, &nc, toPtrc128(complex(-one, 0)), c, lda, q, lda, toPtrc128(complex(one, 0)), cc, lda)
+				err = goblas.Zgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, complex(-one, 0), c, *lda, q, *lda, complex(one, 0), cc, *lda)
 			}
 
 			//           Compute error in the difference

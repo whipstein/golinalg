@@ -345,7 +345,7 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11
 
 		//        Accumulate Householder reflectors
 		if wantu1 && (*p) > 0 {
-			goblas.Zcopy(p, work.Off(iorbdb-1), func() *int { y := 1; return &y }(), u1.CVector(0, 0), func() *int { y := 1; return &y }())
+			goblas.Zcopy(*p, work.Off(iorbdb-1), 1, u1.CVector(0, 0), 1)
 			for j = 2; j <= (*p); j++ {
 				u1.Set(0, j-1, zero)
 			}
@@ -353,7 +353,7 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11
 			Zungqr(p, p, toPtr((*m)-(*q)), u1, ldu1, work.Off(itaup1-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
 		}
 		if wantu2 && (*m)-(*p) > 0 {
-			goblas.Zcopy(toPtr((*m)-(*p)), work.Off(iorbdb+(*p)-1), func() *int { y := 1; return &y }(), u2.CVector(0, 0), func() *int { y := 1; return &y }())
+			goblas.Zcopy((*m)-(*p), work.Off(iorbdb+(*p)-1), 1, u2.CVector(0, 0), 1)
 			for j = 2; j <= (*m)-(*p); j++ {
 				u2.Set(0, j-1, zero)
 			}

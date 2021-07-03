@@ -40,7 +40,7 @@ func Zget04(n, nrhs *int, x *mat.CMatrix, ldx *int, xact *mat.CMatrix, ldxact *i
 	//     over all the vectors X and XACT .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		ix = goblas.Izamax(n, xact.CVector(0, j-1), func() *int { y := 1; return &y }())
+		ix = goblas.Izamax(*n, xact.CVector(0, j-1), 1)
 		xnorm = Cabs1(xact.Get(ix-1, j-1))
 		diffnm = zero
 		for i = 1; i <= (*n); i++ {

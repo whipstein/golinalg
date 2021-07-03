@@ -86,7 +86,7 @@ label10:
 						work.Set(jp-1, work.Get(j-1))
 						work.Set(j-1, t)
 					}
-					goblas.Zaxpy(&lm, toPtrc128(-t), ab.CVector(kd+1-1, j-1), func() *int { y := 1; return &y }(), work.Off(j+1-1), func() *int { y := 1; return &y }())
+					goblas.Zaxpy(lm, -t, ab.CVector(kd+1-1, j-1), 1, work.Off(j+1-1), 1)
 				}
 			}
 
@@ -100,7 +100,7 @@ label10:
 			if lnoti {
 				for j = (*n) - 1; j >= 1; j-- {
 					lm = minint(*kl, (*n)-j)
-					work.Set(j-1, work.Get(j-1)-goblas.Zdotc(&lm, ab.CVector(kd+1-1, j-1), func() *int { y := 1; return &y }(), work.Off(j+1-1), func() *int { y := 1; return &y }()))
+					work.Set(j-1, work.Get(j-1)-goblas.Zdotc(lm, ab.CVector(kd+1-1, j-1), 1, work.Off(j+1-1), 1))
 					jp = (*ipiv)[j-1]
 					if jp != j {
 						t = work.Get(jp - 1)
@@ -114,7 +114,7 @@ label10:
 		//        Divide X by 1/SCALE if doing so will not cause overflow.
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Izamax(n, work, func() *int { y := 1; return &y }())
+			ix = goblas.Izamax(*n, work, 1)
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

@@ -13,6 +13,8 @@ import (
 func Dpot03(uplo byte, n *int, a *mat.Matrix, lda *int, ainv *mat.Matrix, ldainv *int, work *mat.Matrix, ldwork *int, rwork *mat.Vector, rcond *float64, resid *float64) {
 	var ainvnm, anorm, eps, one, zero float64
 	var i, j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -50,7 +52,7 @@ func Dpot03(uplo byte, n *int, a *mat.Matrix, lda *int, ainv *mat.Matrix, ldainv
 			}
 		}
 	}
-	goblas.Dsymm(mat.Left, mat.UploByte(uplo), n, n, toPtrf64(-one), a, lda, ainv, ldainv, &zero, work, ldwork)
+	err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), *n, *n, -one, a, *lda, ainv, *ldainv, zero, work, *ldwork)
 
 	//     Add the identity matrix to WORK .
 	for i = 1; i <= (*n); i++ {

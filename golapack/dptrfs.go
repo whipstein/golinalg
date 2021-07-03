@@ -118,7 +118,7 @@ func Dptrfs(n, nrhs *int, d, e, df, ef *mat.Vector, b *mat.Matrix, ldb *int, x *
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Dpttrs(n, func() *int { y := 1; return &y }(), df, ef, work.MatrixOff((*n)+1-1, *n, opts), n, info)
-			goblas.Daxpy(n, &one, work.Off((*n)+1-1), toPtr(1), x.Vector(0, j-1), toPtr(1))
+			goblas.Daxpy(*n, one, work.Off((*n)+1-1), 1, x.Vector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -148,7 +148,7 @@ func Dptrfs(n, nrhs *int, d, e, df, ef *mat.Vector, b *mat.Matrix, ldb *int, x *
 				work.Set(i-1, math.Abs(work.Get((*n)+i-1))+float64(nz)*eps*work.Get(i-1)+safe1)
 			}
 		}
-		ix = goblas.Idamax(n, work, toPtr(1))
+		ix = goblas.Idamax(*n, work, 1)
 		ferr.Set(j-1, work.Get(ix-1))
 
 		//        Estimate the norm of inv(A).
@@ -173,7 +173,7 @@ func Dptrfs(n, nrhs *int, d, e, df, ef *mat.Vector, b *mat.Matrix, ldb *int, x *
 		}
 
 		//        Compute norm(inv(A)) = max(x(i)), 1<=i<=n.
-		ix = goblas.Idamax(n, work, toPtr(1))
+		ix = goblas.Idamax(*n, work, 1)
 		ferr.Set(j-1, ferr.Get(j-1)*math.Abs(work.Get(ix-1)))
 
 		//        Normalize error.

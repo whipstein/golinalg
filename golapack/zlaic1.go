@@ -44,7 +44,7 @@ func Zlaic1(job, j *int, x *mat.CVector, sest *float64, w *mat.CVector, gamma *c
 	four = 4.0
 
 	eps = Dlamch(Epsilon)
-	alpha = goblas.Zdotc(j, x, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }())
+	alpha = goblas.Zdotc(*j, x, 1, w, 1)
 
 	absalp = cmplx.Abs(alpha)
 	absgam = cmplx.Abs(*gamma)

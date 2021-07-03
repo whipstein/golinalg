@@ -20,6 +20,8 @@ func Dtbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	var transt byte
 	var eps, lstres, one, s, safe1, safe2, safmin, xk, zero float64
 	var i, j, k, kase, nz int
+	var err error
+	_ = err
 	isave := make([]int, 3)
 
 	zero = 0.0
@@ -81,9 +83,9 @@ func Dtbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A or A**T, depending on TRANS.
-		goblas.Dcopy(n, x.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
-		goblas.Dtbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kd, ab, ldab, work.Off((*n)+1-1), toPtr(1))
-		goblas.Daxpy(n, toPtrf64(-one), b.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
+		err = goblas.Dtbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, work.Off((*n)+1-1), 1)
+		goblas.Daxpy(*n, -one, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -220,7 +222,7 @@ func Dtbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), n, kd, ab, ldab, work.Off((*n)+1-1), toPtr(1))
+				err = goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, *kd, ab, *ldab, work.Off((*n)+1-1), 1)
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
@@ -229,7 +231,7 @@ func Dtbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
-				goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kd, ab, ldab, work.Off((*n)+1-1), toPtr(1))
+				err = goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, work.Off((*n)+1-1), 1)
 			}
 			goto label210
 		}

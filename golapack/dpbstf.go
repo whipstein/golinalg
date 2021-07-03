@@ -25,6 +25,8 @@ func Dpbstf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, kld, km, m int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -70,8 +72,8 @@ func Dpbstf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 
 			//           Compute elements j-km:j-1 of the j-th column and update the
 			//           the leading submatrix within the band.
-			goblas.Dscal(&km, toPtrf64(one/ajj), ab.Vector((*kd)+1-km-1, j-1), func() *int { y := 1; return &y }())
-			goblas.Dsyr(Upper, &km, toPtrf64(-one), ab.Vector((*kd)+1-km-1, j-1), func() *int { y := 1; return &y }(), ab.OffIdx((*kd)+1-1+(j-km-1)*(*ldab)).UpdateRows(kld), &kld)
+			goblas.Dscal(km, one/ajj, ab.Vector((*kd)+1-km-1, j-1), 1)
+			err = goblas.Dsyr(Upper, km, -one, ab.Vector((*kd)+1-km-1, j-1), 1, ab.OffIdx((*kd)+1-1+(j-km-1)*(*ldab)).UpdateRows(kld), kld)
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**T*U.
@@ -88,8 +90,8 @@ func Dpbstf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 			//           Compute elements j+1:j+km of the j-th row and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Dscal(&km, toPtrf64(one/ajj), ab.Vector((*kd)-1, j+1-1), &kld)
-				goblas.Dsyr(Upper, &km, toPtrf64(-one), ab.Vector((*kd)-1, j+1-1), &kld, ab.OffIdx((*kd)+1-1+(j+1-1)*(*ldab)).UpdateRows(kld), &kld)
+				goblas.Dscal(km, one/ajj, ab.Vector((*kd)-1, j+1-1), kld)
+				err = goblas.Dsyr(Upper, km, -one, ab.Vector((*kd)-1, j+1-1), kld, ab.OffIdx((*kd)+1-1+(j+1-1)*(*ldab)).UpdateRows(kld), kld)
 			}
 		}
 	} else {
@@ -106,8 +108,8 @@ func Dpbstf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 
 			//           Compute elements j-km:j-1 of the j-th row and update the
 			//           trailing submatrix within the band.
-			goblas.Dscal(&km, toPtrf64(one/ajj), ab.Vector(km+1-1, j-km-1), &kld)
-			goblas.Dsyr(Lower, &km, toPtrf64(-one), ab.Vector(km+1-1, j-km-1), &kld, ab.OffIdx(0+(j-km-1)*(*ldab)).UpdateRows(kld), &kld)
+			goblas.Dscal(km, one/ajj, ab.Vector(km+1-1, j-km-1), kld)
+			err = goblas.Dsyr(Lower, km, -one, ab.Vector(km+1-1, j-km-1), kld, ab.OffIdx(0+(j-km-1)*(*ldab)).UpdateRows(kld), kld)
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**T*U.
@@ -124,8 +126,8 @@ func Dpbstf(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 			//           Compute elements j+1:j+km of the j-th column and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Dscal(&km, toPtrf64(one/ajj), ab.Vector(1, j-1), func() *int { y := 1; return &y }())
-				goblas.Dsyr(Lower, &km, toPtrf64(-one), ab.Vector(1, j-1), func() *int { y := 1; return &y }(), ab.OffIdx(0+(j+1-1)*(*ldab)).UpdateRows(kld), &kld)
+				goblas.Dscal(km, one/ajj, ab.Vector(1, j-1), 1)
+				err = goblas.Dsyr(Lower, km, -one, ab.Vector(1, j-1), 1, ab.OffIdx(0+(j+1-1)*(*ldab)).UpdateRows(kld), kld)
 			}
 		}
 	}

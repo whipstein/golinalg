@@ -19,6 +19,8 @@ import (
 func Zgetrf(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 	var one complex128
 	var i, iinfo, j, jb, nb int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -71,10 +73,10 @@ func Zgetrf(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 				Zlaswp(toPtr((*n)-j-jb+1), a.Off(0, j+jb-1), lda, &j, toPtr(j+jb-1), ipiv, func() *int { y := 1; return &y }())
 
 				//              Compute block row of U.
-				goblas.Ztrsm(Left, Lower, NoTrans, Unit, &jb, toPtr((*n)-j-jb+1), &one, a.Off(j-1, j-1), lda, a.Off(j-1, j+jb-1), lda)
+				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					goblas.Zgemm(NoTrans, NoTrans, toPtr((*m)-j-jb+1), toPtr((*n)-j-jb+1), &jb, toPtrc128(-one), a.Off(j+jb-1, j-1), lda, a.Off(j-1, j+jb-1), lda, &one, a.Off(j+jb-1, j+jb-1), lda)
+					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, one, a.Off(j+jb-1, j+jb-1), *lda)
 				}
 			}
 		}

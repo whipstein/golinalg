@@ -138,7 +138,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				//              Save a copy of the matrix A in ASAV.
-				goblas.Zcopy(&npp, a, func() *int { y := 1; return &y }(), asav, func() *int { y := 1; return &y }())
+				goblas.Zcopy(npp, a, 1, asav, 1)
 
 				for iequed = 1; iequed <= 2; iequed++ {
 					equed = equeds[iequed-1]
@@ -166,7 +166,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//                       the value returned by ZPPSVX (FACT = 'N' reuses
 							//                       the condition number from the previous iteration
 							//                          with FACT = 'F').
-							goblas.Zcopy(&npp, asav, func() *int { y := 1; return &y }(), afac, func() *int { y := 1; return &y }())
+							goblas.Zcopy(npp, asav, 1, afac, 1)
 							if equil || iequed > 1 {
 								//                          Compute row and column scale factors to
 								//                          equilibrate the matrix A.
@@ -194,7 +194,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							golapack.Zpptrf(uplo, &n, afac, &info)
 
 							//                       Form the inverse of A.
-							goblas.Zcopy(&npp, afac, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }())
+							goblas.Zcopy(npp, afac, 1, a, 1)
 							golapack.Zpptri(uplo, &n, a, &info)
 
 							//                       Compute the 1-norm condition number of A.
@@ -207,7 +207,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 
 						//                    Restore the matrix A.
-						goblas.Zcopy(&npp, asav, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }())
+						goblas.Zcopy(npp, asav, 1, a, 1)
 
 						//                    Form an exact solution and set the right hand side.
 						*srnamt = "ZLARHS"
@@ -220,7 +220,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//
 							//                       Compute the L*L' or U'*U factorization of the
 							//                       matrix and solve the system.
-							goblas.Zcopy(&npp, a, func() *int { y := 1; return &y }(), afac, func() *int { y := 1; return &y }())
+							goblas.Zcopy(npp, a, 1, afac, 1)
 							golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 							*srnamt = "ZPPSV "

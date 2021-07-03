@@ -15,6 +15,8 @@ import (
 func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s *mat.Vector, rank *int, norma, normb *float64, iseed *[]int, work *mat.Vector, lwork *int) {
 	var bignum, eps, one, smlnum, svmin, temp, two, zero float64
 	var info, j, mn int
+	var err error
+	_ = err
 
 	dummy := vf(1)
 
@@ -64,7 +66,7 @@ func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, m, work)
-		goblas.Dscal(m, toPtrf64(one/goblas.Dnrm2(m, work, toPtr(1))), work, toPtr(1))
+		goblas.Dscal(*m, one/goblas.Dnrm2(*m, work, 1), work, 1)
 		golapack.Dlaset('F', m, rank, &zero, &one, a, lda)
 		golapack.Dlarf('L', m, rank, work, func() *int { y := 1; return &y }(), &two, a, lda, work.Off((*m)+1-1))
 
@@ -72,13 +74,13 @@ func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 		//
 		//        Generate consistent rhs in the range space of A
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*rank)*(*nrhs)), work)
-		goblas.Dgemm(NoTrans, NoTrans, m, nrhs, rank, &one, a, lda, work.Matrix(*rank, opts), rank, &zero, b, ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *nrhs, *rank, one, a, *lda, work.Matrix(*rank, opts), *rank, zero, b, *ldb)
 
 		//        work space used: <= mn *nrhs
 		//
 		//        generate (unscaled) matrix A
 		for j = 1; j <= (*rank); j++ {
-			goblas.Dscal(m, s.GetPtr(j-1), a.Vector(0, j-1), toPtr(1))
+			goblas.Dscal(*m, s.Get(j-1), a.Vector(0, j-1), 1)
 		}
 		if (*rank) < (*n) {
 			golapack.Dlaset('F', m, toPtr((*n)-(*rank)), &zero, &zero, a.Off(0, (*rank)+1-1), lda)
@@ -118,6 +120,6 @@ func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 		}
 	}
 
-	(*norma) = goblas.Dasum(&mn, s, toPtr(1))
+	(*norma) = goblas.Dasum(mn, s, 1)
 	(*normb) = golapack.Dlange('O', m, nrhs, b, ldb, dummy)
 }

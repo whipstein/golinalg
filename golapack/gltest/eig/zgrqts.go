@@ -12,6 +12,8 @@ func Zgrqts(m, p, n *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector,
 	var cone, crogue, czero complex128
 	var anorm, bnorm, one, resid, ulp, unfl, zero float64
 	var info int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -69,7 +71,7 @@ func Zgrqts(m, p, n *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector,
 	golapack.Zlacpy('U', p, n, bf, ldb, t, ldb)
 
 	//     Compute R - A*Q'
-	goblas.Zgemm(NoTrans, ConjTrans, m, n, n, toPtrc128(-cone), a, lda, q, lda, &cone, r, lda)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -cone, a, *lda, q, *lda, cone, r, *lda)
 
 	//     Compute norm( R - A*Q' ) / ( maxint(M,N)*norm(A)*ULP ) .
 	resid = golapack.Zlange('1', m, n, r, lda, rwork)
@@ -80,8 +82,8 @@ func Zgrqts(m, p, n *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector,
 	}
 
 	//     Compute T*Q - Z'*B
-	goblas.Zgemm(ConjTrans, NoTrans, p, n, p, &cone, z, ldb, b, ldb, &czero, bwk, ldb)
-	goblas.Zgemm(NoTrans, NoTrans, p, n, n, &cone, t, ldb, q, lda, toPtrc128(-cone), bwk, ldb)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *p, *n, *p, cone, z, *ldb, b, *ldb, czero, bwk, *ldb)
+	err = goblas.Zgemm(NoTrans, NoTrans, *p, *n, *n, cone, t, *ldb, q, *lda, -cone, bwk, *ldb)
 
 	//     Compute norm( T*Q - Z'*B ) / ( maxint(P,N)*norm(A)*ULP ) .
 	resid = golapack.Zlange('1', p, n, bwk, ldb, rwork)
@@ -93,7 +95,7 @@ func Zgrqts(m, p, n *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector,
 
 	//     Compute I - Q*Q'
 	golapack.Zlaset('F', n, n, &czero, &cone, r, lda)
-	goblas.Zherk(Upper, NoTrans, n, n, toPtrf64(-one), q, lda, &one, r, lda)
+	err = goblas.Zherk(Upper, NoTrans, *n, *n, -one, q, *lda, one, r, *lda)
 
 	//     Compute norm( I - Q'*Q ) / ( N * ULP ) .
 	resid = golapack.Zlanhe('1', 'U', n, r, lda, rwork)
@@ -101,7 +103,7 @@ func Zgrqts(m, p, n *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector,
 
 	//     Compute I - Z'*Z
 	golapack.Zlaset('F', p, p, &czero, &cone, t, ldb)
-	goblas.Zherk(Upper, ConjTrans, p, p, toPtrf64(-one), z, ldb, &one, t, ldb)
+	err = goblas.Zherk(Upper, ConjTrans, *p, *p, -one, z, *ldb, one, t, *ldb)
 
 	//     Compute norm( I - Z'*Z ) / ( P*ULP ) .
 	resid = golapack.Zlanhe('1', 'U', p, t, ldb, rwork)

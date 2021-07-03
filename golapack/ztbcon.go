@@ -89,7 +89,7 @@ func Ztbcon(norm, uplo, diag byte, n, kd *int, ab *mat.CMatrix, ldab *int, rcond
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Izamax(n, work, func() *int { y := 1; return &y }())
+				ix = goblas.Izamax(*n, work, 1)
 				xnorm = Cabs1(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return

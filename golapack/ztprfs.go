@@ -21,6 +21,9 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 	var one complex128
 	var eps, lstres, s, safe1, safe2, safmin, xk, zero float64
 	var i, j, k, kase, kc, nz int
+	var err error
+	_ = err
+
 	isave := make([]int, 3)
 
 	zero = 0.0
@@ -82,9 +85,9 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//
-		goblas.Zcopy(n, x.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, ap, work, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(n, toPtrc128(-one), b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
+		err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work, 1)
+		goblas.Zaxpy(*n, -one, b.CVector(0, j-1), 1, work, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -233,7 +236,7 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
-				goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), n, ap, work, func() *int { y := 1; return &y }())
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, ap, work, 1)
 				for i = 1; i <= (*n); i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
@@ -242,7 +245,7 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 				for i = 1; i <= (*n); i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
-				goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), n, ap, work, func() *int { y := 1; return &y }())
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), *n, ap, work, 1)
 			}
 			goto label210
 		}

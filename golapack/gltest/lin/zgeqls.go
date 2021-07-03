@@ -14,6 +14,8 @@ import (
 // computed by ZGEQLF.
 func Zgeqls(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
 	var one complex128
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -46,5 +48,5 @@ func Zgeqls(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	golapack.Zunmql('L', 'C', m, nrhs, n, a, lda, tau, b, ldb, work, lwork, info)
 
 	//     Solve L*X = B(m-n+1:m,:)
-	goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, n, nrhs, &one, a.Off((*m)-(*n)+1-1, 0), lda, b.Off((*m)-(*n)+1-1, 0), ldb)
+	err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *n, *nrhs, one, a.Off((*m)-(*n)+1-1, 0), *lda, b.Off((*m)-(*n)+1-1, 0), *ldb)
 }

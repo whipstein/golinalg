@@ -12,6 +12,8 @@ import (
 func Dpptrs(uplo byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix, ldb, info *int) {
 	var upper bool
 	var i int
+	var err error
+	_ = err
 
 	//     Test the input parameters.
 	(*info) = 0
@@ -39,19 +41,19 @@ func Dpptrs(uplo byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix, ldb, info *i
 		//        Solve A*X = B where A = U**T * U.
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve U**T *X = B, overwriting B with X.
-			goblas.Dtpsv(mat.Upper, mat.Trans, mat.NonUnit, n, ap, b.Vector(0, i-1), toPtr(1))
+			err = goblas.Dtpsv(mat.Upper, mat.Trans, mat.NonUnit, *n, ap, b.Vector(0, i-1), 1)
 
 			//           Solve U*X = B, overwriting B with X.
-			goblas.Dtpsv(mat.Upper, mat.NoTrans, mat.NonUnit, n, ap, b.Vector(0, i-1), toPtr(1))
+			err = goblas.Dtpsv(mat.Upper, mat.NoTrans, mat.NonUnit, *n, ap, b.Vector(0, i-1), 1)
 		}
 	} else {
 		//        Solve A*X = B where A = L * L**T.
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve L*Y = B, overwriting B with X.
-			goblas.Dtpsv(mat.Lower, mat.NoTrans, mat.NonUnit, n, ap, b.Vector(0, i-1), toPtr(1))
+			err = goblas.Dtpsv(mat.Lower, mat.NoTrans, mat.NonUnit, *n, ap, b.Vector(0, i-1), 1)
 
 			//           Solve L**T *X = Y, overwriting B with X.
-			goblas.Dtpsv(mat.Lower, mat.Trans, mat.NonUnit, n, ap, b.Vector(0, i-1), toPtr(1))
+			err = goblas.Dtpsv(mat.Lower, mat.Trans, mat.NonUnit, *n, ap, b.Vector(0, i-1), 1)
 		}
 	}
 }

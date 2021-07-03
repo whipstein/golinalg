@@ -34,6 +34,8 @@ func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 	var one, temp, zero complex128
 	var sfmin float64
 	var i, iinfo, n1, n2 int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -72,7 +74,7 @@ func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Find pivot and test for singularity
-		i = goblas.Izamax(m, a.CVector(0, 0), func() *int { y := 1; return &y }())
+		i = goblas.Izamax(*m, a.CVector(0, 0), 1)
 		(*ipiv)[0] = i
 		if a.Get(i-1, 0) != zero {
 			//           Apply the interchange
@@ -84,7 +86,7 @@ func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 
 			//           Compute elements 2:M of the column
 			if a.GetMag(0, 0) >= sfmin {
-				goblas.Zscal(toPtr((*m)-1), toPtrc128(one/a.Get(0, 0)), a.CVector(1, 0), func() *int { y := 1; return &y }())
+				goblas.Zscal((*m)-1, one/a.Get(0, 0), a.CVector(1, 0), 1)
 			} else {
 				for i = 1; i <= (*m)-1; i++ {
 					a.Set(1+i-1, 0, a.Get(1+i-1, 0)/a.Get(0, 0))
@@ -113,10 +115,10 @@ func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 		Zlaswp(&n2, a.Off(0, n1+1-1), lda, func() *int { y := 1; return &y }(), &n1, ipiv, func() *int { y := 1; return &y }())
 
 		//        Solve A12
-		goblas.Ztrsm(Left, Lower, NoTrans, Unit, &n1, &n2, &one, a, lda, a.Off(0, n1+1-1), lda)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, *lda, a.Off(0, n1+1-1), *lda)
 
 		//        Update A22
-		goblas.Zgemm(NoTrans, NoTrans, toPtr((*m)-n1), &n2, &n1, toPtrc128(-one), a.Off(n1+1-1, 0), lda, a.Off(0, n1+1-1), lda, &one, a.Off(n1+1-1, n1+1-1), lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1+1-1, 0), *lda, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
 
 		//        Factor A22
 		Zgetrf2(toPtr((*m)-n1), &n2, a.Off(n1+1-1, n1+1-1), lda, toSlice(ipiv, n1+1-1), &iinfo)

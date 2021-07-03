@@ -80,7 +80,7 @@ label10:
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Izamax(n, work, func() *int { y := 1; return &y }())
+			ix = goblas.Izamax(*n, work, 1)
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

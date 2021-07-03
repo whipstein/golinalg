@@ -13,6 +13,8 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, u01IJ, u01Ip1J, u11IJ, u11Ip1J, zero complex128
 	var count, cut, i, iinfo, invd, ip, j, k, nnb, u11 int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -175,7 +177,7 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 			}
 
 			//       U11**T*invD1*U11->U11
-			goblas.Ztrmm(Left, Upper, Trans, Unit, &nnb, &nnb, &one, a.Off(cut+1-1, cut+1-1), lda, work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+			err = goblas.Ztrmm(Left, Upper, Trans, Unit, nnb, nnb, one, a.Off(cut+1-1, cut+1-1), *lda, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
@@ -184,7 +186,7 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 			}
 
 			//          U01**T*invD*U01->A(CUT+I,CUT+J)
-			goblas.Zgemm(Trans, NoTrans, &nnb, &nnb, &cut, &one, a.Off(0, cut+1-1), lda, work, toPtr((*n)+(*nb)+1), &zero, work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+			err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, cut, one, a.Off(0, cut+1-1), *lda, work, (*n)+(*nb)+1, zero, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 			//        U11 =  U11**T*invD1*U11 + U01**T*invD*U01
 			for i = 1; i <= nnb; i++ {
@@ -194,7 +196,7 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 			}
 
 			//        U01 =  U00**T*invD0*U01
-			goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, &cut, &nnb, &one, a, lda, work, toPtr((*n)+(*nb)+1))
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, cut, nnb, one, a, *lda, work, (*n)+(*nb)+1)
 
 			//        Update U01
 			for i = 1; i <= cut; i++ {
@@ -335,7 +337,7 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 			}
 
 			//       L11**T*invD1*L11->L11
-			goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, &nnb, &nnb, &one, a.Off(cut+1-1, cut+1-1), lda, work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, nnb, nnb, one, a.Off(cut+1-1, cut+1-1), *lda, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 			for i = 1; i <= nnb; i++ {
 				for j = 1; j <= i; j++ {
@@ -345,7 +347,7 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 
 			if (cut + nnb) < (*n) {
 				//          L21**T*invD2*L21->A(CUT+I,CUT+J)
-				goblas.Zgemm(Trans, NoTrans, &nnb, &nnb, toPtr((*n)-nnb-cut), &one, a.Off(cut+nnb+1-1, cut+1-1), lda, work, toPtr((*n)+(*nb)+1), &zero, work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+				err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, (*n)-nnb-cut, one, a.Off(cut+nnb+1-1, cut+1-1), *lda, work, (*n)+(*nb)+1, zero, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 				//        L11 =  L11**T*invD1*L11 + U01**T*invD*U01
 				for i = 1; i <= nnb; i++ {
@@ -355,7 +357,7 @@ func Zsytri2x(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *ma
 				}
 
 				//        U01 =  L22**T*invD2*L21
-				goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, toPtr((*n)-nnb-cut), &nnb, &one, a.Off(cut+nnb+1-1, cut+nnb+1-1), lda, work, toPtr((*n)+(*nb)+1))
+				err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, (*n)-nnb-cut, nnb, one, a.Off(cut+nnb+1-1, cut+nnb+1-1), *lda, work, (*n)+(*nb)+1)
 				//      Update L21
 				for i = 1; i <= (*n)-cut-nnb; i++ {
 					for j = 1; j <= nnb; j++ {

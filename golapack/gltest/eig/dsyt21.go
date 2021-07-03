@@ -43,6 +43,8 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 	var cuplo byte
 	var anorm, one, ten, ulp, unfl, vsave, wnorm, zero float64
 	var iinfo, j, jcol, jr, jrow int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -89,12 +91,12 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 		golapack.Dlacpy(cuplo, n, n, a, lda, work.Matrix(*n, opts), n)
 
 		for j = 1; j <= (*n); j++ {
-			goblas.Dsyr(mat.UploByte(cuplo), n, toPtrf64(-d.Get(j-1)), u.Vector(0, j-1), toPtr(1), work.Matrix(*n, opts), n)
+			err = goblas.Dsyr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1), 1, work.Matrix(*n, opts), *n)
 		}
 
 		if (*n) > 1 && (*kband) == 1 {
 			for j = 1; j <= (*n)-1; j++ {
-				goblas.Dsyr2(mat.UploByte(cuplo), n, toPtrf64(-e.Get(j-1)), u.Vector(0, j-1), toPtr(1), u.Vector(0, j+1-1), toPtr(1), work.Matrix(*n, opts), n)
+				err = goblas.Dsyr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work.Matrix(*n, opts), *n)
 			}
 		}
 		wnorm = golapack.Dlansy('1', cuplo, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
@@ -187,7 +189,7 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 	//
 	//     Compute  U U**T - I
 	if (*itype) == 1 {
-		goblas.Dgemm(NoTrans, ConjTrans, n, n, n, &one, u, ldu, u, ldu, &zero, work.Matrix(*n, opts), n)
+		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
 
 		for j = 1; j <= (*n); j++ {
 			work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)

@@ -34,7 +34,7 @@ func Dgbt01(m, n, kl, ku *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 		i1 = maxint(kd+1-j, 1)
 		i2 = minint(kd+(*m)-j, (*kl)+kd)
 		if i2 >= i1 {
-			anorm = maxf64(anorm, goblas.Dasum(toPtr(i2-i1+1), a.Vector(i1-1, j-1), toPtr(1)))
+			anorm = maxf64(anorm, goblas.Dasum(i2-i1+1, a.Vector(i1-1, j-1), 1))
 		}
 	}
 
@@ -46,7 +46,7 @@ func Dgbt01(m, n, kl, ku *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 		jl = minint(*kl, (*m)-j)
 		lenj = minint(*m, j) - j + ju + 1
 		if lenj > 0 {
-			goblas.Dcopy(&lenj, afac.Vector(kd-ju-1, j-1), toPtr(1), work, toPtr(1))
+			goblas.Dcopy(lenj, afac.Vector(kd-ju-1, j-1), 1, work, 1)
 			for i = lenj + 1; i <= ju+jl+1; i++ {
 				work.Set(i-1, zero)
 			}
@@ -58,7 +58,7 @@ func Dgbt01(m, n, kl, ku *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 				if il > 0 {
 					iw = i - j + ju + 1
 					t = work.Get(iw - 1)
-					goblas.Daxpy(&il, &t, afac.Vector(kd+1-1, i-1), toPtr(1), work.Off(iw+1-1), toPtr(1))
+					goblas.Daxpy(il, t, afac.Vector(kd+1-1, i-1), 1, work.Off(iw+1-1), 1)
 					ip = (*ipiv)[i-1]
 					if i != ip {
 						ip = ip - j + ju + 1
@@ -71,11 +71,11 @@ func Dgbt01(m, n, kl, ku *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 			//           Subtract the corresponding column of A.
 			jua = minint(ju, *ku)
 			if jua+jl+1 > 0 {
-				goblas.Daxpy(toPtr(jua+jl+1), toPtrf64(-one), a.Vector((*ku)+1-jua-1, j-1), toPtr(1), work.Off(ju+1-jua-1), toPtr(1))
+				goblas.Daxpy(jua+jl+1, -one, a.Vector((*ku)+1-jua-1, j-1), 1, work.Off(ju+1-jua-1), 1)
 			}
 
 			//           Compute the 1-norm of the column.
-			(*resid) = maxf64(*resid, goblas.Dasum(toPtr(ju+jl+1), work, toPtr(1)))
+			(*resid) = maxf64(*resid, goblas.Dasum(ju+jl+1, work, 1))
 		}
 	}
 

@@ -16,6 +16,8 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 	var cone, czero complex128
 	var bignum, eps, one, smlnum, svmin, temp, two, zero float64
 	var info, j, mn int
+	var err error
+	_ = err
 
 	dummy := vf(1)
 
@@ -68,7 +70,7 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, m, work)
-		goblas.Zdscal(m, toPtrf64(one/goblas.Dznrm2(m, work, func() *int { y := 1; return &y }())), work, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*m, one/goblas.Dznrm2(*m, work, 1), work, 1)
 		golapack.Zlaset('F', m, rank, &czero, &cone, a, lda)
 		golapack.Zlarf('L', m, rank, work, func() *int { y := 1; return &y }(), toPtrc128(complex(two, 0)), a, lda, work.Off((*m)+1-1))
 
@@ -76,13 +78,13 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 		//
 		//        Generate consistent rhs in the range space of A
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*rank)*(*nrhs)), work)
-		goblas.Zgemm(NoTrans, NoTrans, m, nrhs, rank, &cone, a, lda, work.CMatrix(*rank, opts), rank, &czero, b, ldb)
+		err = goblas.Zgemm(NoTrans, NoTrans, *m, *nrhs, *rank, cone, a, *lda, work.CMatrix(*rank, opts), *rank, czero, b, *ldb)
 
 		//        work space used: <= mn *nrhs
 		//
 		//        generate (unscaled) matrix A
 		for j = 1; j <= (*rank); j++ {
-			goblas.Zdscal(m, s.GetPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zdscal(*m, s.Get(j-1), a.CVector(0, j-1), 1)
 		}
 		if (*rank) < (*n) {
 			golapack.Zlaset('F', m, toPtr((*n)-(*rank)), &czero, &czero, a.Off(0, (*rank)+1-1), lda)
@@ -122,6 +124,6 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 		}
 	}
 
-	(*norma) = goblas.Dasum(&mn, s, func() *int { y := 1; return &y }())
+	(*norma) = goblas.Dasum(mn, s, 1)
 	(*normb) = golapack.Zlange('O', m, nrhs, b, ldb, dummy)
 }

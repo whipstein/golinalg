@@ -14,6 +14,8 @@ import (
 func Dchkgk(t *testing.T) {
 	var anorm, bnorm, eps, one, rmax, vmax, zero float64
 	var _i, i, ihi, ilo, info, j, knt, lda, ldb, lde, ldf, ldvl, ldvr, ldwork, m, n, ninfo int
+	var err error
+	_ = err
 
 	lscale := vf(50)
 	rscale := vf(50)
@@ -385,11 +387,11 @@ func Dchkgk(t *testing.T) {
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
-		goblas.Dgemm(NoTrans, NoTrans, &n, &m, &n, &one, af, &lda, vr, &ldvr, &zero, work, &ldwork)
-		goblas.Dgemm(Trans, NoTrans, &m, &m, &n, &one, vl, &ldvl, work, &ldwork, &zero, e, &lde)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, af, lda, vr, ldvr, zero, work, ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, ldvl, work, ldwork, zero, e, lde)
 
-		goblas.Dgemm(NoTrans, NoTrans, &n, &m, &n, &one, a, &lda, vrf, &ldvr, &zero, work, &ldwork)
-		goblas.Dgemm(Trans, NoTrans, &m, &m, &n, &one, vlf, &ldvl, work, &ldwork, &zero, f, &ldf)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, a, lda, vrf, ldvr, zero, work, ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, ldvl, work, ldwork, zero, f, ldf)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
@@ -404,11 +406,11 @@ func Dchkgk(t *testing.T) {
 		}
 
 		//     Check tilde(VL)'*B*tilde(VR) - VL'*tilde(B)*VR
-		goblas.Dgemm(NoTrans, NoTrans, &n, &m, &n, &one, bf, &ldb, vr, &ldvr, &zero, work, &ldwork)
-		goblas.Dgemm(Trans, NoTrans, &m, &m, &n, &one, vl, &ldvl, work, &ldwork, &zero, e, &lde)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, bf, ldb, vr, ldvr, zero, work, ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, ldvl, work, ldwork, zero, e, lde)
 
-		goblas.Dgemm(NoTrans, NoTrans, &n, &m, &n, &one, b, &ldb, vrf, &ldvr, &zero, work, &ldwork)
-		goblas.Dgemm(Trans, NoTrans, &m, &m, &n, &one, vlf, &ldvl, work, &ldwork, &zero, f, &ldf)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, b, ldb, vrf, ldvr, zero, work, ldwork)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, ldvl, work, ldwork, zero, f, ldf)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {

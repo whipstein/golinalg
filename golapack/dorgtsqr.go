@@ -99,7 +99,7 @@ func Dorgtsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *in
 	//     with the leading dimension LDC that starts at WORK(1) into
 	//     the output array A(1:M,1:N) column-by-column.
 	for j = 1; j <= (*n); j++ {
-		goblas.Dcopy(m, work.Off((j-1)*ldc+1-1), toPtr(1), a.Vector(0, j-1), toPtr(1))
+		goblas.Dcopy(*m, work.Off((j-1)*ldc+1-1), 1, a.Vector(0, j-1), 1)
 	}
 
 	work.Set(0, float64(lworkopt))

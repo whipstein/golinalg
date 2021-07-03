@@ -106,12 +106,12 @@ func Zpbsvx(fact, uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *
 		if upper {
 			for j = 1; j <= (*n); j++ {
 				j1 = maxint(j-(*kd), 1)
-				goblas.Zcopy(toPtr(j-j1+1), ab.CVector((*kd)+1-j+j1-1, j-1), func() *int { y := 1; return &y }(), afb.CVector((*kd)+1-j+j1-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy(j-j1+1, ab.CVector((*kd)+1-j+j1-1, j-1), 1, afb.CVector((*kd)+1-j+j1-1, j-1), 1)
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
 				j2 = minint(j+(*kd), *n)
-				goblas.Zcopy(toPtr(j2-j+1), ab.CVector(0, j-1), func() *int { y := 1; return &y }(), afb.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy(j2-j+1, ab.CVector(0, j-1), 1, afb.CVector(0, j-1), 1)
 			}
 		}
 

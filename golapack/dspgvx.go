@@ -17,6 +17,8 @@ func Dspgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.Vector, vl,
 	var alleig, indeig, upper, valeig, wantz bool
 	var trans byte
 	var j int
+	var err error
+	_ = err
 
 	//     Test the input parameters.
 	upper = uplo == 'U'
@@ -92,7 +94,7 @@ func Dspgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.Vector, vl,
 			}
 
 			for j = 1; j <= (*m); j++ {
-				goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, bp, z.Vector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
 			}
 
 		} else if (*itype) == 3 {
@@ -105,7 +107,7 @@ func Dspgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.Vector, vl,
 			}
 
 			for j = 1; j <= (*m); j++ {
-				goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, bp, z.Vector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
 			}
 		}
 	}

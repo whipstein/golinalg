@@ -14,6 +14,8 @@ func Zhet01aa(uplo byte, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ld
 	var cone, czero complex128
 	var anorm, eps, one, zero float64
 	var i, j int
+	var err error
+	_ = err
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -46,29 +48,29 @@ func Zhet01aa(uplo byte, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ld
 
 		//        Call ZTRMM to form the product U' * D (or L * D ).
 		if uplo == 'U' {
-			goblas.Ztrmm(Left, mat.UploByte(uplo), ConjTrans, Unit, toPtr((*n)-1), n, &cone, afac.Off(0, 1), ldafac, c.Off(1, 0), ldc)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), ConjTrans, Unit, (*n)-1, *n, cone, afac.Off(0, 1), *ldafac, c.Off(1, 0), *ldc)
 		} else {
-			goblas.Ztrmm(Left, mat.UploByte(uplo), NoTrans, Unit, toPtr((*n)-1), n, &cone, afac.Off(1, 0), ldafac, c.Off(1, 0), ldc)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), NoTrans, Unit, (*n)-1, *n, cone, afac.Off(1, 0), *ldafac, c.Off(1, 0), *ldc)
 		}
 
 		//        Call ZTRMM again to multiply by U (or L ).
 		if uplo == 'U' {
-			goblas.Ztrmm(Right, mat.UploByte(uplo), NoTrans, Unit, n, toPtr((*n)-1), &cone, afac.Off(0, 1), ldafac, c.Off(0, 1), ldc)
+			err = goblas.Ztrmm(Right, mat.UploByte(uplo), NoTrans, Unit, *n, (*n)-1, cone, afac.Off(0, 1), *ldafac, c.Off(0, 1), *ldc)
 		} else {
-			goblas.Ztrmm(Right, mat.UploByte(uplo), ConjTrans, Unit, n, toPtr((*n)-1), &cone, afac.Off(1, 0), ldafac, c.Off(0, 1), ldc)
+			err = goblas.Ztrmm(Right, mat.UploByte(uplo), ConjTrans, Unit, *n, (*n)-1, cone, afac.Off(1, 0), *ldafac, c.Off(0, 1), *ldc)
 		}
 
 		//        Apply hermitian pivots
 		for j = (*n); j >= 1; j-- {
 			i = (*ipiv)[j-1]
 			if i != j {
-				goblas.Zswap(n, c.CVector(j-1, 0), ldc, c.CVector(i-1, 0), ldc)
+				goblas.Zswap(*n, c.CVector(j-1, 0), *ldc, c.CVector(i-1, 0), *ldc)
 			}
 		}
 		for j = (*n); j >= 1; j-- {
 			i = (*ipiv)[j-1]
 			if i != j {
-				goblas.Zswap(n, c.CVector(0, j-1), func() *int { y := 1; return &y }(), c.CVector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(*n, c.CVector(0, j-1), 1, c.CVector(0, i-1), 1)
 			}
 		}
 	}

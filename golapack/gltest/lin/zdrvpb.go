@@ -124,15 +124,15 @@ func Zdrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						iw = 2*lda + 1
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Zcopy(toPtr(izero-i1), work.Off(iw-1), func() *int { y := 1; return &y }(), a.Off(ioff-izero+i1-1), func() *int { y := 1; return &y }())
+							goblas.Zcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff-izero+i1-1), 1)
 							iw = iw + izero - i1
-							goblas.Zcopy(toPtr(i2-izero+1), work.Off(iw-1), func() *int { y := 1; return &y }(), a.Off(ioff-1), toPtr(maxint(ldab-1, 1)))
+							goblas.Zcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), maxint(ldab-1, 1))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Zcopy(toPtr(izero-i1), work.Off(iw-1), func() *int { y := 1; return &y }(), a.Off(ioff+izero-i1-1), toPtr(maxint(ldab-1, 1)))
+							goblas.Zcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Zcopy(toPtr(i2-izero+1), work.Off(iw-1), func() *int { y := 1; return &y }(), a.Off(ioff-1), func() *int { y := 1; return &y }())
+							goblas.Zcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), 1)
 						}
 					}
 
@@ -159,15 +159,15 @@ func Zdrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Zswap(toPtr(izero-i1), a.Off(ioff-izero+i1-1), func() *int { y := 1; return &y }(), work.Off(iw-1), func() *int { y := 1; return &y }())
+							goblas.Zswap(izero-i1, a.Off(ioff-izero+i1-1), 1, work.Off(iw-1), 1)
 							iw = iw + izero - i1
-							goblas.Zswap(toPtr(i2-izero+1), a.Off(ioff-1), toPtr(maxint(ldab-1, 1)), work.Off(iw-1), func() *int { y := 1; return &y }())
+							goblas.Zswap(i2-izero+1, a.Off(ioff-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Zswap(toPtr(izero-i1), a.Off(ioff+izero-i1-1), toPtr(maxint(ldab-1, 1)), work.Off(iw-1), func() *int { y := 1; return &y }())
+							goblas.Zswap(izero-i1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Zswap(toPtr(i2-izero+1), a.Off(ioff-1), func() *int { y := 1; return &y }(), work.Off(iw-1), func() *int { y := 1; return &y }())
+							goblas.Zswap(i2-izero+1, a.Off(ioff-1), 1, work.Off(iw-1), 1)
 						}
 					}
 

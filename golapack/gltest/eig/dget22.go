@@ -44,6 +44,8 @@ func Dget22(transa, transe, transw byte, n *int, a *mat.Matrix, lda *int, e *mat
 	var norma, norme byte
 	var anorm, enorm, enrmax, enrmin, errnrm, one, temp1, ulp, unfl, zero float64
 	var iecol, ierow, ince, ipair, itrnse, j, jcol, jvec int
+	var err error
+	_ = err
 
 	wmat := mf(2, 2, opts)
 
@@ -167,20 +169,20 @@ func Dget22(transa, transe, transw byte, n *int, a *mat.Matrix, lda *int, e *mat
 			wmat.Set(1, 0, -wi.Get(jcol-1))
 			wmat.Set(0, 1, wi.Get(jcol-1))
 			wmat.Set(1, 1, wr.Get(jcol-1))
-			goblas.Dgemm(mat.TransByte(transe), mat.TransByte(transw), n, toPtr(2), toPtr(2), &one, e.Off(ierow-1, iecol-1), lde, wmat, toPtr(2), &zero, work.MatrixOff((*n)*(jcol-1)+1-1, *n, opts), n)
+			err = goblas.Dgemm(mat.TransByte(transe), mat.TransByte(transw), *n, 2, 2, one, e.Off(ierow-1, iecol-1), *lde, wmat, 2, zero, work.MatrixOff((*n)*(jcol-1)+1-1, *n, opts), *n)
 			ipair = 2
 		} else if ipair == 2 {
 			ipair = 0
 
 		} else {
 
-			goblas.Daxpy(n, wr.GetPtr(jcol-1), e.Vector(ierow-1, iecol-1), &ince, work.Off((*n)*(jcol-1)+1-1), toPtr(1))
+			goblas.Daxpy(*n, wr.Get(jcol-1), e.Vector(ierow-1, iecol-1), ince, work.Off((*n)*(jcol-1)+1-1), 1)
 			ipair = 0
 		}
 
 	}
 
-	goblas.Dgemm(mat.TransByte(transa), mat.TransByte(transe), n, n, n, &one, a, lda, e, lde, toPtrf64(-one), work.Matrix(*n, opts), n)
+	err = goblas.Dgemm(mat.TransByte(transa), mat.TransByte(transe), *n, *n, *n, one, a, *lda, e, *lde, -one, work.Matrix(*n, opts), *n)
 
 	errnrm = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, work.Off((*n)*(*n)+1-1)) / enorm
 

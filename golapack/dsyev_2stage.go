@@ -119,7 +119,7 @@ func Dsyev2stage(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     Set WORK(1) to optimal workspace size.

@@ -66,8 +66,8 @@ func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
 	eps = Dlamch(Precision)
 	safmin = Dlamch(SafeMinimum)
 	scale = math.Sqrt(eps / safmin)
-	goblas.Dcopy(n, d, toPtr(1), work, toPtr(2))
-	goblas.Dcopy(toPtr((*n)-1), e, toPtr(1), work.Off(1), toPtr(2))
+	goblas.Dcopy(*n, d, 1, work, 2)
+	goblas.Dcopy((*n)-1, e, 1, work.Off(1), 2)
 	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &sigmx, &scale, toPtr(2*(*n)-1), func() *int { y := 1; return &y }(), work.Matrix(2*(*n)-1, opts), toPtr(2*(*n)-1), &iinfo)
 
 	//     Compute the q's and e's.

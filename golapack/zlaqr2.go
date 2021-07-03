@@ -24,6 +24,8 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 	var beta, one, s, tau, zero complex128
 	var foo, rone, rzero, safmax, safmin, smlnum, ulp float64
 	var i, ifst, ilst, info, infqr, j, jw, kcol, kln, knt, krow, kwtop, ltop, lwk1, lwk2, lwkopt int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -104,7 +106,7 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 	//     .    the deflation window that converged using INFQR
 	//     .    here and there to keep track.) ====
 	Zlacpy('U', &jw, &jw, h.Off(kwtop-1, kwtop-1), ldh, t, ldt)
-	goblas.Zcopy(toPtr(jw-1), h.CVector(kwtop+1-1, kwtop-1), toPtr((*ldh)+1), t.CVector(1, 0), toPtr((*ldt)+1))
+	goblas.Zcopy(jw-1, h.CVector(kwtop+1-1, kwtop-1), (*ldh)+1, t.CVector(1, 0), (*ldt)+1)
 
 	Zlaset('A', &jw, &jw, &zero, &one, v, ldv)
 	Zlahqr(true, true, &jw, func() *int { y := 1; return &y }(), &jw, t, ldt, sh.Off(kwtop-1), func() *int { y := 1; return &y }(), &jw, v, ldv, &infqr)
@@ -160,7 +162,7 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 	if (*ns) < jw || s == zero {
 		if (*ns) > 1 && s != zero {
 			//           ==== Reflect spike back into lower triangle ====
-			goblas.Zcopy(ns, v.CVector(0, 0), ldv, work, func() *int { y := 1; return &y }())
+			goblas.Zcopy(*ns, v.CVector(0, 0), *ldv, work, 1)
 			for i = 1; i <= (*ns); i++ {
 				work.Set(i-1, work.GetConj(i-1))
 			}
@@ -182,7 +184,7 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 			h.Set(kwtop-1, kwtop-1-1, s*v.GetConj(0, 0))
 		}
 		Zlacpy('U', &jw, &jw, t, ldt, h.Off(kwtop-1, kwtop-1), ldh)
-		goblas.Zcopy(toPtr(jw-1), t.CVector(1, 0), toPtr((*ldt)+1), h.CVector(kwtop+1-1, kwtop-1), toPtr((*ldh)+1))
+		goblas.Zcopy(jw-1, t.CVector(1, 0), (*ldt)+1, h.CVector(kwtop+1-1, kwtop-1), (*ldh)+1)
 
 		//        ==== Accumulate orthogonal matrix in order update
 		//        .    H and Z, if requested.  ====
@@ -198,7 +200,7 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 		}
 		for krow = ltop; krow <= kwtop-1; krow += (*nv) {
 			kln = minint(*nv, kwtop-krow)
-			goblas.Zgemm('N', 'N', &kln, &jw, &jw, &one, h.Off(krow-1, kwtop-1), ldh, v, ldv, &zero, wv, ldwv)
+			err = goblas.Zgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), *ldh, v, *ldv, zero, wv, *ldwv)
 			Zlacpy('A', &kln, &jw, wv, ldwv, h.Off(krow-1, kwtop-1), ldh)
 		}
 
@@ -206,7 +208,7 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 		if wantt {
 			for kcol = (*kbot) + 1; kcol <= (*n); kcol += (*nh) {
 				kln = minint(*nh, (*n)-kcol+1)
-				goblas.Zgemm('C', 'N', &jw, &kln, &jw, &one, v, ldv, h.Off(kwtop-1, kcol-1), ldh, &zero, t, ldt)
+				err = goblas.Zgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, *ldv, h.Off(kwtop-1, kcol-1), *ldh, zero, t, *ldt)
 				Zlacpy('A', &jw, &kln, t, ldt, h.Off(kwtop-1, kcol-1), ldh)
 			}
 		}
@@ -215,7 +217,7 @@ func Zlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 		if wantz {
 			for krow = (*iloz); krow <= (*ihiz); krow += (*nv) {
 				kln = minint(*nv, (*ihiz)-krow+1)
-				goblas.Zgemm('N', 'N', &kln, &jw, &jw, &one, z.Off(krow-1, kwtop-1), ldz, v, ldv, &zero, wv, ldwv)
+				err = goblas.Zgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), *ldz, v, *ldv, zero, wv, *ldwv)
 				Zlacpy('A', &kln, &jw, wv, ldwv, z.Off(krow-1, kwtop-1), ldz)
 			}
 		}

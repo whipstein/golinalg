@@ -22,6 +22,8 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 	var d12, d21, t, wk, wkm1, wkp1 complex128
 	var absakk, alpha, colmax, d, d11, d22, eight, one, r1, rowmax, sevten, tt, zero float64
 	var i, imax, j, jmax, k, kc, kk, knc, kp, kpc, kstep, kx, npp int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -70,7 +72,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
 		if k > 1 {
-			imax = goblas.Izamax(toPtr(k-1), ap.Off(kc-1), func() *int { y := 1; return &y }())
+			imax = goblas.Izamax(k-1, ap.Off(kc-1), 1)
 			colmax = Cabs1(ap.Get(kc + imax - 1 - 1))
 		} else {
 			colmax = zero
@@ -102,7 +104,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				}
 				kpc = (imax-1)*imax/2 + 1
 				if imax > 1 {
-					jmax = goblas.Izamax(toPtr(imax-1), ap.Off(kpc-1), func() *int { y := 1; return &y }())
+					jmax = goblas.Izamax(imax-1, ap.Off(kpc-1), 1)
 					rowmax = maxf64(rowmax, Cabs1(ap.Get(kpc+jmax-1-1)))
 				}
 
@@ -128,7 +130,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
-				goblas.Zswap(toPtr(kp-1), ap.Off(knc-1), func() *int { y := 1; return &y }(), ap.Off(kpc-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(kp-1, ap.Off(knc-1), 1, ap.Off(kpc-1), 1)
 				kx = kpc + kp - 1
 				for j = kp + 1; j <= kk-1; j++ {
 					kx = kx + j - 1
@@ -165,10 +167,10 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				//
 				//              A := A - U(k)*D(k)*U(k)**H = A - W(k)*1/D(k)*W(k)**H
 				r1 = one / ap.GetRe(kc+k-1-1)
-				goblas.Zhpr(mat.UploByte(uplo), toPtr(k-1), toPtrf64(-r1), ap.Off(kc-1), func() *int { y := 1; return &y }(), ap)
+				err = goblas.Zhpr(mat.UploByte(uplo), k-1, -r1, ap.Off(kc-1), 1, ap)
 
 				//              Store U(k) in column k
-				goblas.Zdscal(toPtr(k-1), &r1, ap.Off(kc-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(k-1, r1, ap.Off(kc-1), 1)
 			} else {
 				//              2-by-2 pivot block D(k): columns k and k-1 now hold
 				//
@@ -244,7 +246,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
 		if k < (*n) {
-			imax = k + goblas.Izamax(toPtr((*n)-k), ap.Off(kc+1-1), func() *int { y := 1; return &y }())
+			imax = k + goblas.Izamax((*n)-k, ap.Off(kc+1-1), 1)
 			colmax = Cabs1(ap.Get(kc + imax - k - 1))
 		} else {
 			colmax = zero
@@ -275,7 +277,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				}
 				kpc = npp - ((*n)-imax+1)*((*n)-imax+2)/2 + 1
 				if imax < (*n) {
-					jmax = imax + goblas.Izamax(toPtr((*n)-imax), ap.Off(kpc+1-1), func() *int { y := 1; return &y }())
+					jmax = imax + goblas.Izamax((*n)-imax, ap.Off(kpc+1-1), 1)
 					rowmax = maxf64(rowmax, Cabs1(ap.Get(kpc+jmax-imax-1)))
 				}
 
@@ -302,7 +304,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < (*n) {
-					goblas.Zswap(toPtr((*n)-kp), ap.Off(knc+kp-kk+1-1), func() *int { y := 1; return &y }(), ap.Off(kpc+1-1), func() *int { y := 1; return &y }())
+					goblas.Zswap((*n)-kp, ap.Off(knc+kp-kk+1-1), 1, ap.Off(kpc+1-1), 1)
 				}
 				kx = knc + kp - kk
 				for j = kk + 1; j <= kp-1; j++ {
@@ -340,10 +342,10 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 					//
 					//                 A := A - L(k)*D(k)*L(k)**H = A - W(k)*(1/D(k))*W(k)**H
 					r1 = one / ap.GetRe(kc-1)
-					goblas.Zhpr(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(-r1), ap.Off(kc+1-1), func() *int { y := 1; return &y }(), ap.Off(kc+(*n)-k+1-1))
+					err = goblas.Zhpr(mat.UploByte(uplo), (*n)-k, -r1, ap.Off(kc+1-1), 1, ap.Off(kc+(*n)-k+1-1))
 
 					//                 Store L(k) in column K
-					goblas.Zdscal(toPtr((*n)-k), &r1, ap.Off(kc+1-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal((*n)-k, r1, ap.Off(kc+1-1), 1)
 				}
 			} else {
 				//              2-by-2 pivot block D(k): columns K and K+1 now hold

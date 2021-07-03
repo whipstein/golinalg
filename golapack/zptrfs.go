@@ -153,7 +153,7 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zpttrs(uplo, n, func() *int { y := 1; return &y }(), df, ef, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(n, toPtrc128(complex(one, 0)), work, func() *int { y := 1; return &y }(), x.CVector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Zaxpy(*n, complex(one, 0), work, 1, x.CVector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -183,7 +183,7 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 				rwork.Set(i-1, Cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
 			}
 		}
-		ix = goblas.Idamax(n, rwork, func() *int { y := 1; return &y }())
+		ix = goblas.Idamax(*n, rwork, 1)
 		ferr.Set(j-1, rwork.Get(ix-1))
 
 		//        Estimate the norm of inv(A).
@@ -208,7 +208,7 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		}
 
 		//        Compute norm(inv(A)) = max(x(i)), 1<=i<=n.
-		ix = goblas.Idamax(n, rwork, func() *int { y := 1; return &y }())
+		ix = goblas.Idamax(*n, rwork, 1)
 		ferr.Set(j-1, ferr.Get(j-1)*rwork.GetMag(ix-1))
 
 		//        Normalize error.

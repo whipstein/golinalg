@@ -16,8 +16,10 @@ import (
 //    alpha = ||B|| if IRESID = 1 (zero-residual problem)
 //    alpha = ||R|| if IRESID = 2 (otherwise).
 func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatrix, ldx *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, work *mat.CVector, lwork *int) (zqrt17Return float64) {
-	var err, norma, normb, normrs, one, smlnum, zero float64
+	var err2, norma, normb, normrs, one, smlnum, zero float64
 	var info, iscl, ncols, nrows int
+	var err error
+	_ = err
 
 	rwork := vf(1)
 
@@ -53,7 +55,7 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 
 	//     compute residual and scale it
 	golapack.Zlacpy('A', &nrows, nrhs, b, ldb, c, ldb)
-	goblas.Zgemm(mat.TransByte(trans), NoTrans, &nrows, nrhs, &ncols, toPtrc128(complex(-one, 0)), a, lda, x, ldx, toPtrc128(complex(one, 0)), c, ldb)
+	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, *nrhs, ncols, complex(-one, 0), a, *lda, x, *ldx, complex(one, 0), c, *ldb)
 	normrs = golapack.Zlange('M', &nrows, nrhs, c, ldb, rwork)
 	if normrs > smlnum {
 		iscl = 1
@@ -61,29 +63,29 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 	}
 
 	//     compute R'*A
-	goblas.Zgemm(ConjTrans, mat.TransByte(trans), nrhs, &ncols, &nrows, toPtrc128(complex(one, 0)), c, ldb, a, lda, toPtrc128(complex(zero, 0)), work.CMatrix(*nrhs, opts), nrhs)
+	err = goblas.Zgemm(ConjTrans, mat.TransByte(trans), *nrhs, ncols, nrows, complex(one, 0), c, *ldb, a, *lda, complex(zero, 0), work.CMatrix(*nrhs, opts), *nrhs)
 
 	//     compute and properly scale error
-	err = golapack.Zlange('O', nrhs, &ncols, work.CMatrix(*nrhs, opts), nrhs, rwork)
+	err2 = golapack.Zlange('O', nrhs, &ncols, work.CMatrix(*nrhs, opts), nrhs, rwork)
 	if norma != zero {
-		err = err / norma
+		err2 = err2 / norma
 	}
 
 	if iscl == 1 {
-		err = err * normrs
+		err2 = err2 * normrs
 	}
 
 	if (*iresid) == 1 {
 		normb = golapack.Zlange('O', &nrows, nrhs, b, ldb, rwork)
 		if normb != zero {
-			err = err / normb
+			err2 = err2 / normb
 		}
 	} else {
 		if normrs != zero {
-			err = err / normrs
+			err2 = err2 / normrs
 		}
 	}
 
-	zqrt17Return = err / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n, *nrhs)))
+	zqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n, *nrhs)))
 	return
 }

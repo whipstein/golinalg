@@ -118,8 +118,8 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 					Zgesc2(&ldz, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 					if scaloc != one {
 						for k = 1; k <= (*n); k++ {
-							goblas.Zscal(m, toPtrc128(complex(scaloc, zero)), c.CVector(0, k-1), func() *int { y := 1; return &y }())
-							goblas.Zscal(m, toPtrc128(complex(scaloc, zero)), f.CVector(0, k-1), func() *int { y := 1; return &y }())
+							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
+							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -134,12 +134,12 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				//              Substitute R(I, J) and L(I, J) into remaining equation.
 				if i > 1 {
 					alpha = -rhs.Get(0)
-					goblas.Zaxpy(toPtr(i-1), &alpha, a.CVector(0, i-1), func() *int { y := 1; return &y }(), c.CVector(0, j-1), func() *int { y := 1; return &y }())
-					goblas.Zaxpy(toPtr(i-1), &alpha, d.CVector(0, i-1), func() *int { y := 1; return &y }(), f.CVector(0, j-1), func() *int { y := 1; return &y }())
+					goblas.Zaxpy(i-1, alpha, a.CVector(0, i-1), 1, c.CVector(0, j-1), 1)
+					goblas.Zaxpy(i-1, alpha, d.CVector(0, i-1), 1, f.CVector(0, j-1), 1)
 				}
 				if j < (*n) {
-					goblas.Zaxpy(toPtr((*n)-j), rhs.GetPtr(1), b.CVector(j-1, j+1-1), ldb, c.CVector(i-1, j+1-1), ldc)
-					goblas.Zaxpy(toPtr((*n)-j), rhs.GetPtr(1), e.CVector(j-1, j+1-1), lde, f.CVector(i-1, j+1-1), ldf)
+					goblas.Zaxpy((*n)-j, rhs.Get(1), b.CVector(j-1, j+1-1), *ldb, c.CVector(i-1, j+1-1), *ldc)
+					goblas.Zaxpy((*n)-j, rhs.Get(1), e.CVector(j-1, j+1-1), *lde, f.CVector(i-1, j+1-1), *ldf)
 				}
 
 			}
@@ -171,8 +171,8 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				Zgesc2(&ldz, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 				if scaloc != one {
 					for k = 1; k <= (*n); k++ {
-						goblas.Zscal(m, toPtrc128(complex(scaloc, zero)), c.CVector(0, k-1), func() *int { y := 1; return &y }())
-						goblas.Zscal(m, toPtrc128(complex(scaloc, zero)), f.CVector(0, k-1), func() *int { y := 1; return &y }())
+						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
+						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
 					}
 					(*scale) = (*scale) * scaloc
 				}

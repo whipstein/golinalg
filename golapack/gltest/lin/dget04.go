@@ -38,7 +38,7 @@ func Dget04(n *int, nrhs *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact
 	//     over all the vectors X and XACT .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		ix = goblas.Idamax(n, xact.Vector(0, j-1), toPtr(1))
+		ix = goblas.Idamax(*n, xact.Vector(0, j-1), 1)
 		xnorm = math.Abs(xact.Get(ix-1, j-1))
 		diffnm = zero
 		for i = 1; i <= (*n); i++ {

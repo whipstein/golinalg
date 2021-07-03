@@ -15,6 +15,8 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, temp, zero float64
 	var k, kp, kstep int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -78,9 +80,9 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 			a.Set(k-1, k-1, one/a.Get(k-1, k-1))
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Dcopy(toPtr(k-1), a.Vector(0, k-1), toPtr(1), work, toPtr(1))
-				goblas.Dsymv(mat.UploByte(uplo), toPtr(k-1), toPtrf64(one), a, lda, work, toPtr(1), &zero, a.Vector(0, k-1), toPtr(1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(toPtr(k-1), work, toPtr(1), a.Vector(0, k-1), toPtr(1)))
+				goblas.Dcopy(k-1, a.Vector(0, k-1), 1, work, 1)
+				err = goblas.Dsymv(mat.UploByte(uplo), k-1, one, a, *lda, work, 1, zero, a.Vector(0, k-1), 1)
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(k-1, work, 1, a.Vector(0, k-1), 1))
 			}
 			kstep = 1
 		} else {
@@ -98,13 +100,13 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Dcopy(toPtr(k-1), a.Vector(0, k-1), toPtr(1), work, toPtr(1))
-				goblas.Dsymv(mat.UploByte(uplo), toPtr(k-1), toPtrf64(one), a, lda, work, toPtr(1), &zero, a.Vector(0, k-1), toPtr(1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(toPtr(k-1), work, toPtr(1), a.Vector(0, k-1), toPtr(1)))
-				a.Set(k-1, k+1-1, a.Get(k-1, k+1-1)-goblas.Ddot(toPtr(k-1), a.Vector(0, k-1), toPtr(1), a.Vector(0, k+1-1), toPtr(1)))
-				goblas.Dcopy(toPtr(k-1), a.Vector(0, k+1-1), toPtr(1), work, toPtr(1))
-				goblas.Dsymv(mat.UploByte(uplo), toPtr(k-1), toPtrf64(one), a, lda, work, toPtr(1), &zero, a.Vector(0, k+1-1), toPtr(1))
-				a.Set(k+1-1, k+1-1, a.Get(k+1-1, k+1-1)-goblas.Ddot(toPtr(k-1), work, toPtr(1), a.Vector(0, k+1-1), toPtr(1)))
+				goblas.Dcopy(k-1, a.Vector(0, k-1), 1, work, 1)
+				err = goblas.Dsymv(mat.UploByte(uplo), k-1, one, a, *lda, work, 1, zero, a.Vector(0, k-1), 1)
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(k-1, work, 1, a.Vector(0, k-1), 1))
+				a.Set(k-1, k+1-1, a.Get(k-1, k+1-1)-goblas.Ddot(k-1, a.Vector(0, k-1), 1, a.Vector(0, k+1-1), 1))
+				goblas.Dcopy(k-1, a.Vector(0, k+1-1), 1, work, 1)
+				err = goblas.Dsymv(mat.UploByte(uplo), k-1, one, a, *lda, work, 1, zero, a.Vector(0, k+1-1), 1)
+				a.Set(k+1-1, k+1-1, a.Get(k+1-1, k+1-1)-goblas.Ddot(k-1, work, 1, a.Vector(0, k+1-1), 1))
 			}
 			kstep = 2
 		}
@@ -113,8 +115,8 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 		if kp != k {
 			//           Interchange rows and columns K and KP in the leading
 			//           submatrix A(1:k+1,1:k+1)
-			goblas.Dswap(toPtr(kp-1), a.Vector(0, k-1), toPtr(1), a.Vector(0, kp-1), toPtr(1))
-			goblas.Dswap(toPtr(k-kp-1), a.Vector(kp+1-1, k-1), toPtr(1), a.Vector(kp-1, kp+1-1), lda)
+			goblas.Dswap(kp-1, a.Vector(0, k-1), 1, a.Vector(0, kp-1), 1)
+			goblas.Dswap(k-kp-1, a.Vector(kp+1-1, k-1), 1, a.Vector(kp-1, kp+1-1), *lda)
 			temp = a.Get(k-1, k-1)
 			a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 			a.Set(kp-1, kp-1, temp)
@@ -150,9 +152,9 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 
 			//           Compute column K of the inverse.
 			if k < (*n) {
-				goblas.Dcopy(toPtr((*n)-k), a.Vector(k+1-1, k-1), toPtr(1), work, toPtr(1))
-				goblas.Dsymv(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(one), a.Off(k+1-1, k+1-1), lda, work, toPtr(1), &zero, a.Vector(k+1-1, k-1), toPtr(1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(toPtr((*n)-k), work, toPtr(1), a.Vector(k+1-1, k-1), toPtr(1)))
+				goblas.Dcopy((*n)-k, a.Vector(k+1-1, k-1), 1, work, 1)
+				err = goblas.Dsymv(mat.UploByte(uplo), (*n)-k, one, a.Off(k+1-1, k+1-1), *lda, work, 1, zero, a.Vector(k+1-1, k-1), 1)
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot((*n)-k, work, 1, a.Vector(k+1-1, k-1), 1))
 			}
 			kstep = 1
 		} else {
@@ -170,13 +172,13 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < (*n) {
-				goblas.Dcopy(toPtr((*n)-k), a.Vector(k+1-1, k-1), toPtr(1), work, toPtr(1))
-				goblas.Dsymv(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(one), a.Off(k+1-1, k+1-1), lda, work, toPtr(1), &zero, a.Vector(k+1-1, k-1), toPtr(1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(toPtr((*n)-k), work, toPtr(1), a.Vector(k+1-1, k-1), toPtr(1)))
-				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Ddot(toPtr((*n)-k), a.Vector(k+1-1, k-1), toPtr(1), a.Vector(k+1-1, k-1-1), toPtr(1)))
-				goblas.Dcopy(toPtr((*n)-k), a.Vector(k+1-1, k-1-1), toPtr(1), work, toPtr(1))
-				goblas.Dsymv(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(one), a.Off(k+1-1, k+1-1), lda, work, toPtr(1), &zero, a.Vector(k+1-1, k-1-1), toPtr(1))
-				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Ddot(toPtr((*n)-k), work, toPtr(1), a.Vector(k+1-1, k-1-1), toPtr(1)))
+				goblas.Dcopy((*n)-k, a.Vector(k+1-1, k-1), 1, work, 1)
+				err = goblas.Dsymv(mat.UploByte(uplo), (*n)-k, one, a.Off(k+1-1, k+1-1), *lda, work, 1, zero, a.Vector(k+1-1, k-1), 1)
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot((*n)-k, work, 1, a.Vector(k+1-1, k-1), 1))
+				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Ddot((*n)-k, a.Vector(k+1-1, k-1), 1, a.Vector(k+1-1, k-1-1), 1))
+				goblas.Dcopy((*n)-k, a.Vector(k+1-1, k-1-1), 1, work, 1)
+				err = goblas.Dsymv(mat.UploByte(uplo), (*n)-k, one, a.Off(k+1-1, k+1-1), *lda, work, 1, zero, a.Vector(k+1-1, k-1-1), 1)
+				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Ddot((*n)-k, work, 1, a.Vector(k+1-1, k-1-1), 1))
 			}
 			kstep = 2
 		}
@@ -186,9 +188,9 @@ func Dsytri(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 			//           Interchange rows and columns K and KP in the trailing
 			//           submatrix A(k-1:n,k-1:n)
 			if kp < (*n) {
-				goblas.Dswap(toPtr((*n)-kp), a.Vector(kp+1-1, k-1), toPtr(1), a.Vector(kp+1-1, kp-1), toPtr(1))
+				goblas.Dswap((*n)-kp, a.Vector(kp+1-1, k-1), 1, a.Vector(kp+1-1, kp-1), 1)
 			}
-			goblas.Dswap(toPtr(kp-k-1), a.Vector(k+1-1, k-1), toPtr(1), a.Vector(kp-1, k+1-1), lda)
+			goblas.Dswap(kp-k-1, a.Vector(k+1-1, k-1), 1, a.Vector(kp-1, k+1-1), *lda)
 			temp = a.Get(k-1, k-1)
 			a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 			a.Set(kp-1, kp-1, temp)

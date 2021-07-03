@@ -14,6 +14,8 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 	var cone, czero complex128
 	var ainvnm, anorm, eps, one, zero float64
 	var i, j, jj int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -46,7 +48,7 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 		//        Copy AINV
 		jj = 1
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Zcopy(&j, ainv.Off(jj-1), func() *int { y := 1; return &y }(), work.CVector(0, j+1-1), func() *int { y := 1; return &y }())
+			goblas.Zcopy(j, ainv.Off(jj-1), 1, work.CVector(0, j+1-1), 1)
 			for i = 1; i <= j-1; i++ {
 				work.Set(j-1, i+1-1, ainv.GetConj(jj+i-1-1))
 			}
@@ -59,9 +61,9 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 
 		//        Multiply by A
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Zhpmv(Upper, n, toPtrc128(-cone), a, work.CVector(0, j+1-1), func() *int { y := 1; return &y }(), &czero, work.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Zhpmv(Upper, *n, -cone, a, work.CVector(0, j+1-1), 1, czero, work.CVector(0, j-1), 1)
 		}
-		goblas.Zhpmv(Upper, n, toPtrc128(-cone), a, ainv.Off(jj-1), func() *int { y := 1; return &y }(), &czero, work.CVector(0, (*n)-1), func() *int { y := 1; return &y }())
+		err = goblas.Zhpmv(Upper, *n, -cone, a, ainv.Off(jj-1), 1, czero, work.CVector(0, (*n)-1), 1)
 
 		//     UPLO = 'L':
 		//     Copy the trailing N-1 x N-1 submatrix of AINV to WORK(1:N,1:N-1)
@@ -73,7 +75,7 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 		}
 		jj = (*n) + 1
 		for j = 2; j <= (*n); j++ {
-			goblas.Zcopy(toPtr((*n)-j+1), ainv.Off(jj-1), func() *int { y := 1; return &y }(), work.CVector(j-1, j-1-1), func() *int { y := 1; return &y }())
+			goblas.Zcopy((*n)-j+1, ainv.Off(jj-1), 1, work.CVector(j-1, j-1-1), 1)
 			for i = 1; i <= (*n)-j; i++ {
 				work.Set(j-1, j+i-1-1, ainv.GetConj(jj+i-1))
 			}
@@ -82,9 +84,9 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 
 		//        Multiply by A
 		for j = (*n); j >= 2; j-- {
-			goblas.Zhpmv(Lower, n, toPtrc128(-cone), a, work.CVector(0, j-1-1), func() *int { y := 1; return &y }(), &czero, work.CVector(0, j-1), func() *int { y := 1; return &y }())
+			err = goblas.Zhpmv(Lower, *n, -cone, a, work.CVector(0, j-1-1), 1, czero, work.CVector(0, j-1), 1)
 		}
-		goblas.Zhpmv(Lower, n, toPtrc128(-cone), a, ainv.Off(0), func() *int { y := 1; return &y }(), &czero, work.CVector(0, 0), func() *int { y := 1; return &y }())
+		err = goblas.Zhpmv(Lower, *n, -cone, a, ainv.Off(0), 1, czero, work.CVector(0, 0), 1)
 
 	}
 

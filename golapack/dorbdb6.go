@@ -21,6 +21,8 @@ import (
 func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *int, q1 *mat.Matrix, ldq1 *int, q2 *mat.Matrix, ldq2 *int, work *mat.Vector, lwork, info *int) {
 	var alphasq, negone, normsq1, normsq2, one, realone, realzero, scl1, scl2, ssq1, ssq2, zero float64
 	var i int
+	var err error
+	_ = err
 
 	alphasq = 0.01
 	realone = 1.0
@@ -69,13 +71,13 @@ func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 			work.Set(i-1, zero)
 		}
 	} else {
-		goblas.Dgemv(ConjTrans, m1, n, &one, q1, ldq1, x1, incx1, &zero, work, func() *int { y := 1; return &y }())
+		err = goblas.Dgemv(ConjTrans, *m1, *n, one, q1, *ldq1, x1, *incx1, zero, work, 1)
 	}
 
-	goblas.Dgemv(ConjTrans, m2, n, &one, q2, ldq2, x2, incx2, &one, work, func() *int { y := 1; return &y }())
+	err = goblas.Dgemv(ConjTrans, *m2, *n, one, q2, *ldq2, x2, *incx2, one, work, 1)
 
-	goblas.Dgemv(NoTrans, m1, n, &negone, q1, ldq1, work, func() *int { y := 1; return &y }(), &one, x1, incx1)
-	goblas.Dgemv(NoTrans, m2, n, &negone, q2, ldq2, work, func() *int { y := 1; return &y }(), &one, x2, incx2)
+	err = goblas.Dgemv(NoTrans, *m1, *n, negone, q1, *ldq1, work, 1, one, x1, *incx1)
+	err = goblas.Dgemv(NoTrans, *m2, *n, negone, q2, *ldq2, work, 1, one, x2, *incx2)
 
 	scl1 = realzero
 	ssq1 = realone
@@ -107,13 +109,13 @@ func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 			work.Set(i-1, zero)
 		}
 	} else {
-		goblas.Dgemv(ConjTrans, m1, n, &one, q1, ldq1, x1, incx1, &zero, work, func() *int { y := 1; return &y }())
+		err = goblas.Dgemv(ConjTrans, *m1, *n, one, q1, *ldq1, x1, *incx1, zero, work, 1)
 	}
 
-	goblas.Dgemv(ConjTrans, m2, n, &one, q2, ldq2, x2, incx2, &one, work, func() *int { y := 1; return &y }())
+	err = goblas.Dgemv(ConjTrans, *m2, *n, one, q2, *ldq2, x2, *incx2, one, work, 1)
 
-	goblas.Dgemv(NoTrans, m1, n, &negone, q1, ldq1, work, func() *int { y := 1; return &y }(), &one, x1, incx1)
-	goblas.Dgemv(NoTrans, m2, n, &negone, q2, ldq2, work, func() *int { y := 1; return &y }(), &one, x2, incx2)
+	err = goblas.Dgemv(NoTrans, *m1, *n, negone, q1, *ldq1, work, 1, one, x1, *incx1)
+	err = goblas.Dgemv(NoTrans, *m2, *n, negone, q2, *ldq2, work, 1, one, x2, *incx2)
 
 	scl1 = realzero
 	ssq1 = realone

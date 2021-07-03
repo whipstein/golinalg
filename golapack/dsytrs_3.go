@@ -22,6 +22,8 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 	var upper bool
 	var ak, akm1, akm1k, bk, bkm1, denom, one float64
 	var i, j, k, kp int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -64,18 +66,18 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		for k = (*n); k >= 1; k-- {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 		}
 
 		//        Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Compute D \ B -> B   [ D \ (U \P**T * B) ]
 		i = (*n)
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Dscal(nrhs, toPtrf64(one/a.Get(i-1, i-1)), b.Vector(i-1, 0), ldb)
+				goblas.Dscal(*nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0), *ldb)
 			} else if i > 1 {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1-1, i-1-1) / akm1k
@@ -93,7 +95,7 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		}
 
 		//        Compute (U**T \ B) -> B   [ U**T \ (D \ (U \P**T * B) ) ]
-		goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        P * B  [ P * (U**T \ (D \ (U \P**T * B) )) ]
 		//
@@ -106,7 +108,7 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		for k = 1; k <= (*n); k++ {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 		}
 
@@ -125,18 +127,18 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		for k = 1; k <= (*n); k++ {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 		}
 
 		//        Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Compute D \ B -> B   [ D \ (L \P**T * B) ]
 		i = 1
 		for i <= (*n) {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Dscal(nrhs, toPtrf64(one/a.Get(i-1, i-1)), b.Vector(i-1, 0), ldb)
+				goblas.Dscal(*nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0), *ldb)
 			} else if i < (*n) {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / akm1k
@@ -154,7 +156,7 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		}
 
 		//        Compute (L**T \ B) -> B   [ L**T \ (D \ (L \P**T * B) ) ]
-		goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        P * B  [ P * (L**T \ (D \ (L \P**T * B) )) ]
 		//
@@ -167,7 +169,7 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		for k = (*n); k >= 1; k-- {
 			kp = absint((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), ldb, b.Vector(kp-1, 0), ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
 			}
 		}
 

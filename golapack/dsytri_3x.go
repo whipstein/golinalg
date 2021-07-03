@@ -21,6 +21,8 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, u01IJ, u01Ip1J, u11IJ, u11Ip1J, zero float64
 	var cut, i, icount, invd, ip, j, k, nnb, u11 int
+	var err error
+	_ = err
 
 	_work := work.Matrix((*n)+(*nb)+1, opts)
 
@@ -190,7 +192,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           U11**T * invD1 * U11 -> U11
-			goblas.Dtrmm(mat.Left, mat.Upper, mat.Trans, mat.Unit, &nnb, &nnb, &one, a.Off(cut+1-1, cut+1-1), lda, _work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+			err = goblas.Dtrmm(mat.Left, mat.Upper, mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut+1-1, cut+1-1), *lda, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
@@ -199,7 +201,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           U01**T * invD * U01 -> A( CUT+I, CUT+J )
-			goblas.Dgemm(mat.Trans, mat.NoTrans, &nnb, &nnb, &cut, &one, a.Off(0, cut+1-1), lda, _work, toPtr((*n)+(*nb)+1), &zero, _work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+			err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, cut, one, a.Off(0, cut+1-1), *lda, _work, (*n)+(*nb)+1, zero, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 			//           U11 =  U11**T * invD1 * U11 + U01**T * invD * U01
 			for i = 1; i <= nnb; i++ {
@@ -209,7 +211,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           U01 =  U00**T * invD0 * U01
-			goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, &cut, &nnb, &one, a, lda, _work, toPtr((*n)+(*nb)+1))
+			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, cut, nnb, one, a, *lda, _work, (*n)+(*nb)+1)
 
 			//           Update U01
 			for i = 1; i <= cut; i++ {
@@ -351,7 +353,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           L11**T * invD1 * L11 -> L11
-			goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, &nnb, &nnb, &one, a.Off(cut+1-1, cut+1-1), lda, _work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut+1-1, cut+1-1), *lda, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 			for i = 1; i <= nnb; i++ {
 				for j = 1; j <= i; j++ {
@@ -361,7 +363,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 
 			if (cut + nnb) < (*n) {
 				//              L21**T * invD2*L21 -> A( CUT+I, CUT+J )
-				goblas.Dgemm(mat.Trans, mat.NoTrans, &nnb, &nnb, toPtr((*n)-nnb-cut), &one, a.Off(cut+nnb+1-1, cut+1-1), lda, _work, toPtr((*n)+(*nb)+1), &zero, _work.Off(u11+1-1, 0), toPtr((*n)+(*nb)+1))
+				err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, (*n)-nnb-cut, one, a.Off(cut+nnb+1-1, cut+1-1), *lda, _work, (*n)+(*nb)+1, zero, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
 
 				//              L11 =  L11**T * invD1 * L11 + U01**T * invD * U01
 				for i = 1; i <= nnb; i++ {
@@ -371,7 +373,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 				}
 
 				//              L01 =  L22**T * invD2 * L21
-				goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, toPtr((*n)-nnb-cut), &nnb, &one, a.Off(cut+nnb+1-1, cut+nnb+1-1), lda, _work, toPtr((*n)+(*nb)+1))
+				err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, (*n)-nnb-cut, nnb, one, a.Off(cut+nnb+1-1, cut+nnb+1-1), *lda, _work, (*n)+(*nb)+1)
 
 				//              Update L21
 				for i = 1; i <= (*n)-cut-nnb; i++ {

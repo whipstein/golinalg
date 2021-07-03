@@ -15,6 +15,8 @@ import (
 func Zbdt02(m, n *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, ldc *int, u *mat.CMatrix, ldu *int, work *mat.CVector, rwork *mat.Vector, resid *float64) {
 	var bnorm, eps, one, realmn, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -29,9 +31,9 @@ func Zbdt02(m, n *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, ldc *int, u *ma
 
 	//     Compute norm( B - U * C )
 	for j = 1; j <= (*n); j++ {
-		goblas.Zcopy(m, b.CVector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-		goblas.Zgemv(NoTrans, m, m, toPtrc128(-complex(one, 0)), u, ldu, c.CVector(0, j-1), func() *int { y := 1; return &y }(), toPtrc128(complex(one, 0)), work, func() *int { y := 1; return &y }())
-		(*resid) = maxf64(*resid, goblas.Dzasum(m, work, func() *int { y := 1; return &y }()))
+		goblas.Zcopy(*m, b.CVector(0, j-1), 1, work, 1)
+		err = goblas.Zgemv(NoTrans, *m, *m, -complex(one, 0), u, *ldu, c.CVector(0, j-1), 1, complex(one, 0), work, 1)
+		(*resid) = maxf64(*resid, goblas.Dzasum(*m, work, 1))
 	}
 
 	//     Compute norm of B.

@@ -11,6 +11,8 @@ import (
 func Dgrqts(m *int, p *int, n *int, a, af, q, r *mat.Matrix, lda *int, taua *mat.Vector, b, bf, z, t, bwk *mat.Matrix, ldb *int, taub, work *mat.Vector, lwork *int, rwork, result *mat.Vector) {
 	var anorm, bnorm, one, resid, rogue, ulp, unfl, zero float64
 	var info int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -66,7 +68,7 @@ func Dgrqts(m *int, p *int, n *int, a, af, q, r *mat.Matrix, lda *int, taua *mat
 	golapack.Dlacpy('U', p, n, bf, ldb, t, ldb)
 
 	//     Compute R - A*Q'
-	goblas.Dgemm(NoTrans, Trans, m, n, n, toPtrf64(-one), a, lda, q, lda, &one, r, lda)
+	err = goblas.Dgemm(NoTrans, Trans, *m, *n, *n, -one, a, *lda, q, *lda, one, r, *lda)
 
 	//     Compute norm( R - A*Q' ) / ( maxf64(M,N)*norm(A)*ULP ) .
 	resid = golapack.Dlange('1', m, n, r, lda, rwork)
@@ -77,8 +79,8 @@ func Dgrqts(m *int, p *int, n *int, a, af, q, r *mat.Matrix, lda *int, taua *mat
 	}
 
 	//     Compute T*Q - Z'*B
-	goblas.Dgemm(Trans, NoTrans, p, n, p, &one, z, ldb, b, ldb, &zero, bwk, ldb)
-	goblas.Dgemm(NoTrans, NoTrans, p, n, n, &one, t, ldb, q, lda, toPtrf64(-one), bwk, ldb)
+	err = goblas.Dgemm(Trans, NoTrans, *p, *n, *p, one, z, *ldb, b, *ldb, zero, bwk, *ldb)
+	err = goblas.Dgemm(NoTrans, NoTrans, *p, *n, *n, one, t, *ldb, q, *lda, -one, bwk, *ldb)
 
 	//     Compute norm( T*Q - Z'*B ) / ( maxf64(P,N)*norm(A)*ULP ) .
 	resid = golapack.Dlange('1', p, n, bwk, ldb, rwork)
@@ -90,7 +92,7 @@ func Dgrqts(m *int, p *int, n *int, a, af, q, r *mat.Matrix, lda *int, taua *mat
 
 	//     Compute I - Q*Q'
 	golapack.Dlaset('F', n, n, &zero, &one, r, lda)
-	goblas.Dsyrk(Upper, NoTrans, n, n, toPtrf64(-one), q, lda, &one, r, lda)
+	err = goblas.Dsyrk(Upper, NoTrans, *n, *n, -one, q, *lda, one, r, *lda)
 
 	//     Compute norm( I - Q'*Q ) / ( N * ULP ) .
 	resid = golapack.Dlansy('1', 'U', n, r, lda, rwork)
@@ -98,7 +100,7 @@ func Dgrqts(m *int, p *int, n *int, a, af, q, r *mat.Matrix, lda *int, taua *mat
 
 	//     Compute I - Z'*Z
 	golapack.Dlaset('F', p, p, &zero, &one, t, ldb)
-	goblas.Dsyrk(Upper, Trans, p, p, toPtrf64(-one), z, ldb, &one, t, ldb)
+	err = goblas.Dsyrk(Upper, Trans, *p, *p, -one, z, *ldb, one, t, *ldb)
 
 	//     Compute norm( I - Z'*Z ) / ( P*ULP ) .
 	resid = golapack.Dlansy('1', 'U', p, t, ldb, rwork)

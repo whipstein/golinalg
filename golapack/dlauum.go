@@ -20,6 +20,8 @@ func Dlauum(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 	var upper bool
 	var one float64
 	var i, ib, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -55,22 +57,22 @@ func Dlauum(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 			//           Compute the product U * U**T.
 			for i = 1; i <= (*n); i += nb {
 				ib = minint(nb, (*n)-i+1)
-				goblas.Dtrmm(mat.Right, mat.Upper, mat.Trans, mat.NonUnit, toPtr(i-1), &ib, &one, a.Off(i-1, i-1), lda, a.Off(0, i-1), lda)
+				err = goblas.Dtrmm(mat.Right, mat.Upper, mat.Trans, mat.NonUnit, i-1, ib, one, a.Off(i-1, i-1), *lda, a.Off(0, i-1), *lda)
 				Dlauu2('U', &ib, a.Off(i-1, i-1), lda, info)
 				if i+ib <= (*n) {
-					goblas.Dgemm(mat.NoTrans, mat.Trans, toPtr(i-1), &ib, toPtr((*n)-i-ib+1), &one, a.Off(0, i+ib-1), lda, a.Off(i-1, i+ib-1), lda, &one, a.Off(0, i-1), lda)
-					goblas.Dsyrk(mat.Upper, mat.NoTrans, &ib, toPtr((*n)-i-ib+1), &one, a.Off(i-1, i+ib-1), lda, &one, a.Off(i-1, i-1), lda)
+					err = goblas.Dgemm(mat.NoTrans, mat.Trans, i-1, ib, (*n)-i-ib+1, one, a.Off(0, i+ib-1), *lda, a.Off(i-1, i+ib-1), *lda, one, a.Off(0, i-1), *lda)
+					err = goblas.Dsyrk(mat.Upper, mat.NoTrans, ib, (*n)-i-ib+1, one, a.Off(i-1, i+ib-1), *lda, one, a.Off(i-1, i-1), *lda)
 				}
 			}
 		} else {
 			//           Compute the product L**T * L.
 			for i = 1; i <= (*n); i += nb {
 				ib = minint(nb, (*n)-i+1)
-				goblas.Dtrmm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, &ib, toPtr(i-1), &one, a.Off(i-1, i-1), lda, a.Off(i-1, 0), lda)
+				err = goblas.Dtrmm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, ib, i-1, one, a.Off(i-1, i-1), *lda, a.Off(i-1, 0), *lda)
 				Dlauu2('L', &ib, a.Off(i-1, i-1), lda, info)
 				if i+ib <= (*n) {
-					goblas.Dgemm(mat.Trans, mat.NoTrans, &ib, toPtr(i-1), toPtr((*n)-i-ib+1), &one, a.Off(i+ib-1, i-1), lda, a.Off(i+ib-1, 0), lda, &one, a.Off(i-1, 0), lda)
-					goblas.Dsyrk(mat.Lower, mat.Trans, &ib, toPtr((*n)-i-ib+1), &one, a.Off(i+ib-1, i-1), lda, &one, a.Off(i-1, i-1), lda)
+					err = goblas.Dgemm(mat.Trans, mat.NoTrans, ib, i-1, (*n)-i-ib+1, one, a.Off(i+ib-1, i-1), *lda, a.Off(i+ib-1, 0), *lda, one, a.Off(i-1, 0), *lda)
+					err = goblas.Dsyrk(mat.Lower, mat.Trans, ib, (*n)-i-ib+1, one, a.Off(i+ib-1, i-1), *lda, one, a.Off(i-1, i-1), *lda)
 				}
 			}
 		}

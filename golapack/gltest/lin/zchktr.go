@@ -248,7 +248,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "ZLATRS"
-					goblas.Zcopy(&n, x, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }())
+					goblas.Zcopy(n, x, 1, b, 1)
 					golapack.Zlatrs(uplo, trans, diag, 'N', &n, a.CMatrix(lda, opts), &lda, b, &scale, rwork, &info)
 
 					//                 Check error code from ZLATRS.
@@ -261,7 +261,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 					//+    TEST 9
 					//                 Solve op(A)*X = b again with NORMIN = 'Y'.
-					goblas.Zcopy(&n, x, func() *int { y := 1; return &y }(), b.Off(n+1-1), func() *int { y := 1; return &y }())
+					goblas.Zcopy(n, x, 1, b.Off(n+1-1), 1)
 					golapack.Zlatrs(uplo, trans, diag, 'Y', &n, a.CMatrix(lda, opts), &lda, b.Off(n+1-1), &scale, rwork, &info)
 
 					//                 Check error code from ZLATRS.

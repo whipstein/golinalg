@@ -36,6 +36,8 @@ func Dggglm(n, m, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, d, x
 	var lquery bool
 	var one, zero float64
 	var i, lopt, lwkmin, lwkopt, nb, nb1, nb2, nb3, nb4, np int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -114,7 +116,7 @@ func Dggglm(n, m, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, d, x
 			return
 		}
 
-		goblas.Dcopy(toPtr((*n)-(*m)), d.Off((*m)+1-1), func() *int { y := 1; return &y }(), y.Off((*m)+(*p)-(*n)+1-1), func() *int { y := 1; return &y }())
+		goblas.Dcopy((*n)-(*m), d.Off((*m)+1-1), 1, y.Off((*m)+(*p)-(*n)+1-1), 1)
 	}
 
 	//     Set y1 = 0
@@ -123,7 +125,7 @@ func Dggglm(n, m, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, d, x
 	}
 
 	//     Update d1 = d1 - T12*y2
-	goblas.Dgemv(NoTrans, m, toPtr((*n)-(*m)), toPtrf64(-one), b.Off(0, (*m)+(*p)-(*n)+1-1), ldb, y.Off((*m)+(*p)-(*n)+1-1), func() *int { y := 1; return &y }(), &one, d, func() *int { y := 1; return &y }())
+	err = goblas.Dgemv(NoTrans, *m, (*n)-(*m), -one, b.Off(0, (*m)+(*p)-(*n)+1-1), *ldb, y.Off((*m)+(*p)-(*n)+1-1), 1, one, d, 1)
 
 	//     Solve triangular system: R11*x = d1
 	if (*m) > 0 {
@@ -135,7 +137,7 @@ func Dggglm(n, m, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, d, x
 		}
 
 		//        Copy D to X
-		goblas.Dcopy(m, d, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
+		goblas.Dcopy(*m, d, 1, x, 1)
 	}
 
 	//     Backward transformation y = Z**T *y

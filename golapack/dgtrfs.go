@@ -79,7 +79,7 @@ func Dgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, 
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Dcopy(n, b.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+		goblas.Dcopy(*n, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
 		Dlagtm(trans, n, func() *int { y := 1; return &y }(), func() *float64 { y := -one; return &y }(), dl, d, du, x.Off(0, j-1), ldx, &one, work.MatrixOff((*n)+1-1, *n, opts), n)
 		//
 		//        Compute math.Abs(op(A))*math.Abs(x) + math.Abs(b) for use in the backward
@@ -133,7 +133,7 @@ func Dgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, 
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Dgttrs(trans, n, func() *int { y := 1; return &y }(), dlf, df, duf, du2, ipiv, work.MatrixOff((*n)+1-1, *n, opts), n, info)
-			goblas.Daxpy(n, &one, work.Off((*n)+1-1), toPtr(1), x.Vector(0, j-1), toPtr(1))
+			goblas.Daxpy(*n, one, work.Off((*n)+1-1), 1, x.Vector(0, j-1), 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

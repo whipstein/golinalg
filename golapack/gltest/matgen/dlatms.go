@@ -238,7 +238,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			return
 		}
 
-		goblas.Dscal(&mnmin, &alpha, d, func() *int { y := 1; return &y }())
+		goblas.Dscal(mnmin, alpha, d, 1)
 
 	}
 
@@ -273,7 +273,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	//     Diagonal Matrix -- We are done, unless it
 	//     is to be stored SP/PP/TP (PACK='R' or 'C')
 	if llb == 0 && uub == 0 {
-		goblas.Dcopy(&mnmin, d, func() *int { y := 1; return &y }(), a.Vector(1-iskew+ioffst-1, 0), toPtr(ilda+1))
+		goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffst-1, 0), ilda+1)
 		if ipack <= 2 || ipack >= 5 {
 			ipackg = ipack
 		}
@@ -289,7 +289,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				ipackg = 0
 			}
 
-			goblas.Dcopy(&mnmin, d, func() *int { y := 1; return &y }(), a.Vector(1-iskew+ioffst-1, 0), toPtr(ilda+1))
+			goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffst-1, 0), ilda+1)
 
 			if topdwn {
 				jkl = 0
@@ -471,7 +471,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				} else {
 					ipackg = 1
 				}
-				goblas.Dcopy(&mnmin, d, func() *int { y := 1; return &y }(), a.Vector(1-iskew+ioffg-1, 0), toPtr(ilda+1))
+				goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffg-1, 0), ilda+1)
 
 				for k = 1; k <= uub; k++ {
 					for jc = 1; jc <= (*n)-1; jc++ {
@@ -532,7 +532,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				} else {
 					ipackg = 2
 				}
-				goblas.Dcopy(&mnmin, d, func() *int { y := 1; return &y }(), a.Vector(1-iskew+ioffg-1, 0), toPtr(ilda+1))
+				goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffg-1, 0), ilda+1)
 
 				for k = 1; k <= uub; k++ {
 					for jc = (*n) - 1; jc >= 1; jc-- {

@@ -25,6 +25,8 @@ func Dspgvd(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.M
 	var lquery, upper, wantz bool
 	var trans byte
 	var j, liwmin, lwmin, neig int
+	var err error
+	_ = err
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
@@ -107,7 +109,7 @@ func Dspgvd(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.M
 			}
 
 			for j = 1; j <= neig; j++ {
-				goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, bp, z.Vector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
 			}
 
 		} else if (*itype) == 3 {
@@ -120,7 +122,7 @@ func Dspgvd(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.M
 			}
 
 			for j = 1; j <= neig; j++ {
-				goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, bp, z.Vector(0, j-1), func() *int { y := 1; return &y }())
+				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
 			}
 		}
 	}

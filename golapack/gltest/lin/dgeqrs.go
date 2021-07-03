@@ -14,6 +14,8 @@ import (
 // computed by DGEQRF.
 func Dgeqrs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Matrix, ldb *int, work *mat.Vector, lwork, info *int) {
 	var one float64
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -46,5 +48,5 @@ func Dgeqrs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 	golapack.Dormqr('L', 'T', m, nrhs, n, a, lda, tau, b, ldb, work, lwork, info)
 
 	//     Solve R*X = B(1:n,:)
-	goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, n, nrhs, &one, a, lda, b, ldb)
+	err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 }

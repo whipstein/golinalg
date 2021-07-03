@@ -57,7 +57,7 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 	for j = 1; j <= (*n); j++ {
 		if (*jpvt)[j-1] != 0 {
 			if j != nfxd {
-				goblas.Zswap(m, a.CVector(0, j-1), func() *int { y := 1; return &y }(), a.CVector(0, nfxd-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(*m, a.CVector(0, j-1), 1, a.CVector(0, nfxd-1), 1)
 				(*jpvt)[j-1] = (*jpvt)[nfxd-1]
 				(*jpvt)[nfxd-1] = j
 			} else {
@@ -123,7 +123,7 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 		//        Initialize partial column norms. The first N elements of work
 		//        store the exact column norms.
 		for j = nfxd + 1; j <= (*n); j++ {
-			rwork.Set(j-1, goblas.Dznrm2(&sm, a.CVector(nfxd+1-1, j-1), func() *int { y := 1; return &y }()))
+			rwork.Set(j-1, goblas.Dznrm2(sm, a.CVector(nfxd+1-1, j-1), 1))
 			rwork.Set((*n)+j-1, rwork.Get(j-1))
 		}
 

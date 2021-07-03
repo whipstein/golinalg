@@ -36,6 +36,8 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 	var compl, compr, il2by2, ilabad, ilall, ilback, ilbbad, ilcomp, ilcplx, lsa, lsb bool
 	var acoef, acoefa, anorm, ascale, bcoefa, bcoefi, bcoefr, big, bignum, bnorm, bscale, cim2a, cim2b, cimaga, cimagb, cre2a, cre2b, creala, crealb, dmin, one, safety, safmin, salfar, sbeta, scale, small, temp, temp2, temp2i, temp2r, ulp, xmax, xscale, zero float64
 	var i, ibeg, ieig, iend, ihwmny, iinfo, im, iside, j, ja, jc, je, jr, jw, na, nw int
+	var err error
+	_ = err
 
 	bdiag := vf(2)
 	sum := mf(2, 2, opts)
@@ -451,7 +453,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			ieig = ieig + 1
 			if ilback {
 				for jw = 0; jw <= nw-1; jw++ {
-					goblas.Dgemv(NoTrans, n, toPtr((*n)+1-je), &one, vl.Off(0, je-1), ldvl, work.Off((jw+2)*(*n)+je-1), func() *int { y := 1; return &y }(), &zero, work.Off((jw+4)*(*n)+1-1), func() *int { y := 1; return &y }())
+					err = goblas.Dgemv(NoTrans, *n, (*n)+1-je, one, vl.Off(0, je-1), *ldvl, work.Off((jw+2)*(*n)+je-1), 1, zero, work.Off((jw+4)*(*n)+1-1), 1)
 				}
 				Dlacpy(' ', n, &nw, work.MatrixOff(4*(*n)+1-1, *n, opts), n, vl.Off(0, je-1), ldvl)
 				ibeg = 1

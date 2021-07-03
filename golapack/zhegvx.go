@@ -17,6 +17,8 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 	var trans byte
 	var cone complex128
 	var lwkopt, nb int
+	var err error
+	_ = err
 
 	cone = (1.0 + 0.0*1i)
 
@@ -109,7 +111,7 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 			} else {
 				trans = 'C'
 			}
-			goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, m, &cone, b, ldb, z, ldz)
+			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, cone, b, *ldb, z, *ldz)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -120,7 +122,7 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 				trans = 'N'
 			}
 
-			goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, m, &cone, b, ldb, z, ldz)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, cone, b, *ldb, z, *ldz)
 		}
 	}
 

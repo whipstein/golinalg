@@ -20,6 +20,8 @@ import (
 func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, ldc *int, d *mat.CMatrix, ldd *int, e *mat.CMatrix, lde *int, f *mat.CMatrix, ldf *int, r *mat.CMatrix, ldr *int, l *mat.CMatrix, ldl *int, alpha *float64, qblcka, qblckb *int) {
 	var half, imeps, one, reeps, twenty, two, zero complex128
 	var i, j, k int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 	two = (2.0 + 0.0*1i)
@@ -218,8 +220,8 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 	}
 
 	//     Compute rhs (C, F)
-	goblas.Zgemm(NoTrans, NoTrans, m, n, m, &one, a, lda, r, ldr, &zero, c, ldc)
-	goblas.Zgemm(NoTrans, NoTrans, m, n, n, toPtrc128(-one), l, ldl, b, ldb, &one, c, ldc)
-	goblas.Zgemm(NoTrans, NoTrans, m, n, m, &one, d, ldd, r, ldr, &zero, f, ldf)
-	goblas.Zgemm(NoTrans, NoTrans, m, n, n, toPtrc128(-one), l, ldl, e, lde, &one, f, ldf)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, one, a, *lda, r, *ldr, zero, c, *ldc)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, *ldl, b, *ldb, one, c, *ldc)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, one, d, *ldd, r, *ldr, zero, f, *ldf)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, *ldl, e, *lde, one, f, *ldf)
 }

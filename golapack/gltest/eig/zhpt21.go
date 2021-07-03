@@ -70,6 +70,8 @@ func Zhpt21(itype *int, uplo byte, n, kband *int, ap *mat.CVector, d, e *mat.Vec
 	var cone, czero, temp, vsave complex128
 	var anorm, half, one, ten, ulp, unfl, wnorm, zero float64
 	var iinfo, j, jp, jp1, jr, lap int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -119,15 +121,15 @@ func Zhpt21(itype *int, uplo byte, n, kband *int, ap *mat.CVector, d, e *mat.Vec
 	if (*itype) == 1 {
 		//        ITYPE=1: error = A - U S U**H
 		golapack.Zlaset('F', n, n, &czero, &czero, work.CMatrix(*n, opts), n)
-		goblas.Zcopy(&lap, ap, func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(lap, ap, 1, work, 1)
 
 		for j = 1; j <= (*n); j++ {
-			goblas.Zhpr(mat.UploByte(cuplo), n, toPtrf64(-d.Get(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), work)
+			err = goblas.Zhpr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.CVector(0, j-1), 1, work)
 		}
 
 		if (*n) > 1 && (*kband) == 1 {
 			for j = 1; j <= (*n)-1; j++ {
-				goblas.Zhpr2(mat.UploByte(cuplo), n, toPtrc128(-e.GetCmplx(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), u.CVector(0, j-1-1), func() *int { y := 1; return &y }(), work)
+				err = goblas.Zhpr2(mat.UploByte(cuplo), *n, -e.GetCmplx(j-1), u.CVector(0, j-1), 1, u.CVector(0, j-1-1), 1, work)
 			}
 		}
 		wnorm = golapack.Zlanhp('1', cuplo, n, work, rwork)
@@ -151,10 +153,10 @@ func Zhpt21(itype *int, uplo byte, n, kband *int, ap *mat.CVector, d, e *mat.Vec
 				if tau.Get(j-1) != czero {
 					vsave = vp.Get(jp + j + 1 - 1)
 					vp.Set(jp+j+1-1, cone)
-					goblas.Zhpmv(Lower, toPtr((*n)-j), &cone, work.Off(jp1+j+1-1), vp.Off(jp+j+1-1), func() *int { y := 1; return &y }(), &czero, work.Off(lap+1-1), func() *int { y := 1; return &y }())
-					temp = complex(-half, 0) * tau.Get(j-1) * goblas.Zdotc(toPtr((*n)-j), work.Off(lap+1-1), func() *int { y := 1; return &y }(), vp.Off(jp+j+1-1), func() *int { y := 1; return &y }())
-					goblas.Zaxpy(toPtr((*n)-j), &temp, vp.Off(jp+j+1-1), func() *int { y := 1; return &y }(), work.Off(lap+1-1), func() *int { y := 1; return &y }())
-					goblas.Zhpr2(Lower, toPtr((*n)-j), toPtrc128(-tau.Get(j-1)), vp.Off(jp+j+1-1), func() *int { y := 1; return &y }(), work.Off(lap+1-1), func() *int { y := 1; return &y }(), work.Off(jp1+j+1-1))
+					err = goblas.Zhpmv(Lower, (*n)-j, cone, work.Off(jp1+j+1-1), vp.Off(jp+j+1-1), 1, czero, work.Off(lap+1-1), 1)
+					temp = complex(-half, 0) * tau.Get(j-1) * goblas.Zdotc((*n)-j, work.Off(lap+1-1), 1, vp.Off(jp+j+1-1), 1)
+					goblas.Zaxpy((*n)-j, temp, vp.Off(jp+j+1-1), 1, work.Off(lap+1-1), 1)
+					err = goblas.Zhpr2(Lower, (*n)-j, -tau.Get(j-1), vp.Off(jp+j+1-1), 1, work.Off(lap+1-1), 1, work.Off(jp1+j+1-1))
 
 					vp.Set(jp+j+1-1, vsave)
 				}
@@ -175,10 +177,10 @@ func Zhpt21(itype *int, uplo byte, n, kband *int, ap *mat.CVector, d, e *mat.Vec
 				if tau.Get(j-1) != czero {
 					vsave = vp.Get(jp1 + j - 1)
 					vp.Set(jp1+j-1, cone)
-					goblas.Zhpmv(Upper, &j, &cone, work, vp.Off(jp1+1-1), func() *int { y := 1; return &y }(), &czero, work.Off(lap+1-1), func() *int { y := 1; return &y }())
-					temp = complex(-half, 0) * tau.Get(j-1) * goblas.Zdotc(&j, work.Off(lap+1-1), func() *int { y := 1; return &y }(), vp.Off(jp1+1-1), func() *int { y := 1; return &y }())
-					goblas.Zaxpy(&j, &temp, vp.Off(jp1+1-1), func() *int { y := 1; return &y }(), work.Off(lap+1-1), func() *int { y := 1; return &y }())
-					goblas.Zhpr2(Upper, &j, toPtrc128(-tau.Get(j-1)), vp.Off(jp1+1-1), func() *int { y := 1; return &y }(), work.Off(lap+1-1), func() *int { y := 1; return &y }(), work)
+					err = goblas.Zhpmv(Upper, j, cone, work, vp.Off(jp1+1-1), 1, czero, work.Off(lap+1-1), 1)
+					temp = complex(-half, 0) * tau.Get(j-1) * goblas.Zdotc(j, work.Off(lap+1-1), 1, vp.Off(jp1+1-1), 1)
+					goblas.Zaxpy(j, temp, vp.Off(jp1+1-1), 1, work.Off(lap+1-1), 1)
+					err = goblas.Zhpr2(Upper, j, -tau.Get(j-1), vp.Off(jp1+1-1), 1, work.Off(lap+1-1), 1, work)
 					vp.Set(jp1+j-1, vsave)
 				}
 				work.Set(jp1+j+1-1, d.GetCmplx(j+1-1))
@@ -223,7 +225,7 @@ func Zhpt21(itype *int, uplo byte, n, kband *int, ap *mat.CVector, d, e *mat.Vec
 	//
 	//     Compute  U U**H - I
 	if (*itype) == 1 {
-		goblas.Zgemm(NoTrans, ConjTrans, n, n, n, &cone, u, ldu, u, ldu, &czero, work.CMatrix(*n, opts), n)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
 
 		for j = 1; j <= (*n); j++ {
 			work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-cone)

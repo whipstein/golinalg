@@ -12,6 +12,8 @@ import (
 func Dpbtrs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matrix, ldb, info *int) {
 	var upper bool
 	var j int
+	var err error
+	_ = err
 
 	//     Test the input parameters.
 	(*info) = 0
@@ -43,19 +45,19 @@ func Dpbtrs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matri
 		//        Solve A*X = B where A = U**T *U.
 		for j = 1; j <= (*nrhs); j++ {
 			//           Solve U**T *X = B, overwriting B with X.
-			goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, n, kd, ab, ldab, b.Vector(0, j-1), toPtr(1))
+			err = goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
 
 			//           Solve U*X = B, overwriting B with X.
-			goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, n, kd, ab, ldab, b.Vector(0, j-1), toPtr(1))
+			err = goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
 		}
 	} else {
 		//        Solve A*X = B where A = L*L**T.
 		for j = 1; j <= (*nrhs); j++ {
 			//           Solve L*X = B, overwriting B with X.
-			goblas.Dtbsv(mat.Lower, mat.NoTrans, mat.NonUnit, n, kd, ab, ldab, b.Vector(0, j-1), toPtr(1))
+			err = goblas.Dtbsv(mat.Lower, mat.NoTrans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
 
 			//           Solve L**T *X = B, overwriting B with X.
-			goblas.Dtbsv(mat.Lower, mat.Trans, mat.NonUnit, n, kd, ab, ldab, b.Vector(0, j-1), toPtr(1))
+			err = goblas.Dtbsv(mat.Lower, mat.Trans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
 		}
 	}
 }

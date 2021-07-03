@@ -21,6 +21,8 @@ import (
 func Dlalsa(icompq, smlsiz, n, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Matrix, ldbx *int, u *mat.Matrix, ldu *int, vt *mat.Matrix, k *[]int, difl, difr, z, poles *mat.Matrix, givptr *[]int, givcol *[]int, ldgcol *int, perm *[]int, givnum *mat.Matrix, c, s, work *mat.Vector, iwork *[]int, info *int) {
 	var one, zero float64
 	var i, i1, ic, im1, inode, j, lf, ll, lvl, lvl2, nd, ndb1, ndiml, ndimr, nl, nlf, nlp1, nlvl, nr, nrf, nrp1, sqre int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -80,15 +82,15 @@ func Dlalsa(icompq, smlsiz, n, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Matri
 		nr = (*iwork)[ndimr+i1-1]
 		nlf = ic - nl
 		nrf = ic + 1
-		goblas.Dgemm(Trans, NoTrans, &nl, nrhs, &nl, &one, u.Off(nlf-1, 0), ldu, b.Off(nlf-1, 0), ldb, &zero, bx.Off(nlf-1, 0), ldbx)
-		goblas.Dgemm(Trans, NoTrans, &nr, nrhs, &nr, &one, u.Off(nrf-1, 0), ldu, b.Off(nrf-1, 0), ldb, &zero, bx.Off(nrf-1, 0), ldbx)
+		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), *ldu, b.Off(nlf-1, 0), *ldb, zero, bx.Off(nlf-1, 0), *ldbx)
+		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), *ldu, b.Off(nrf-1, 0), *ldb, zero, bx.Off(nrf-1, 0), *ldbx)
 	}
 
 	//     Next copy the rows of B that correspond to unchanged rows
 	//     in the bidiagonal matrix to BX.
 	for i = 1; i <= nd; i++ {
 		ic = (*iwork)[inode+i-1-1]
-		goblas.Dcopy(nrhs, b.Vector(ic-1, 0), ldb, bx.Vector(ic-1, 0), ldbx)
+		goblas.Dcopy(*nrhs, b.Vector(ic-1, 0), *ldb, bx.Vector(ic-1, 0), *ldbx)
 	}
 
 	//     Finally go through the left singular vector matrices of all
@@ -178,7 +180,7 @@ label50:
 		}
 		nlf = ic - nl
 		nrf = ic + 1
-		goblas.Dgemm(Trans, NoTrans, &nlp1, nrhs, &nlp1, &one, vt.Off(nlf-1, 0), ldu, b.Off(nlf-1, 0), ldb, &zero, bx.Off(nlf-1, 0), ldbx)
-		goblas.Dgemm(Trans, NoTrans, &nrp1, nrhs, &nrp1, &one, vt.Off(nrf-1, 0), ldu, b.Off(nrf-1, 0), ldb, &zero, bx.Off(nrf-1, 0), ldbx)
+		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), *ldu, b.Off(nlf-1, 0), *ldb, zero, bx.Off(nlf-1, 0), *ldbx)
+		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), *ldu, b.Off(nrf-1, 0), *ldb, zero, bx.Off(nrf-1, 0), *ldbx)
 	}
 }

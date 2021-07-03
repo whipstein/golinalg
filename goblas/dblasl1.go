@@ -2,228 +2,103 @@ package goblas
 
 import (
 	"math"
+	"sync"
 
 	"github.com/whipstein/golinalg/mat"
 )
 
 // Dasum takes the sum of the absolute values
-func Dasum(n *int, dx *mat.Vector, incx *int) (dasumReturn float64) {
-	var i, m, mp1, nincx int
-
-	if (*n) <= 0 || (*incx) <= 0 {
+func Dasum(n int, dx *mat.Vector, incx int) (dasumReturn float64) {
+	if n <= 0 || incx <= 0 {
 		return
 	}
-	if (*incx) == 1 {
-		//        code for increment equal to 1
-		m = (*n) % 6
-		if m != 0 {
-			for i = 1; i <= m; i++ {
-				dasumReturn += math.Abs(dx.Get(i - 1))
-			}
-			if (*n) < 6 {
-				return
-			}
-		}
-		mp1 = m + 1
-		for i = mp1; i <= (*n); i += 6 {
-			dasumReturn += math.Abs(dx.Get(i-1)) + math.Abs(dx.Get(i+1-1)) + math.Abs(dx.Get(i+2-1)) + math.Abs(dx.Get(i+3-1)) + math.Abs(dx.Get(i+4-1)) + math.Abs(dx.Get(i+5-1))
-		}
-	} else {
-		//
-		//        code for increment not equal to 1
-		//
-		nincx = (*n) * (*incx)
-		for i = 1; i <= nincx; i += (*incx) {
-			dasumReturn += math.Abs(dx.Get(i - 1))
-		}
+
+	for i := 0; i < n*incx; i += incx {
+		dasumReturn += math.Abs(dx.Get(i))
 	}
 	return
 }
 
 // Daxpy constant times a vector plus a vector.
-func Daxpy(n *int, da *float64, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int) {
-	var i, ix, iy, m, mp1 int
+func Daxpy(n int, da float64, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
+	var i, ix, iy int
 
-	if (*n) <= 0 {
+	if n <= 0 || da == 0 {
 		return
 	}
-	if (*da) == 0.0 {
-		return
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//
-		//        code for both increments equal to 1
-		//
-		//
-		//        clean-up loop
-		//
-		m = (*n) % 4
-		if m != 0 {
-			for i = 1; i <= m; i++ {
-				dy.Set(i-1, dy.Get(i-1)+(*da)*dx.Get(i-1))
-			}
-		}
-		if (*n) < 4 {
-			return
-		}
-		mp1 = m + 1
-		for i = mp1; i <= (*n); i += 4 {
-			dy.Set(i-1, dy.Get(i-1)+(*da)*dx.Get(i-1))
-			dy.Set(i+1-1, dy.Get(i+1-1)+(*da)*dx.Get(i+1-1))
-			dy.Set(i+2-1, dy.Get(i+2-1)+(*da)*dx.Get(i+2-1))
-			dy.Set(i+3-1, dy.Get(i+3-1)+(*da)*dx.Get(i+3-1))
-		}
-	} else {
-		//
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		//
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			dy.Set(iy-1, dy.Get(iy-1)+(*da)*dx.Get(ix-1))
-			ix += (*incx)
-			iy += (*incy)
-		}
+	if incy < 0 {
+		iy = (-n + 1) * incy
 	}
-	return
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		dy.Set(iy, dy.Get(iy)+da*dx.Get(ix))
+	}
 }
 
 // Dcopy copies a vector, x, to a vector, y.
-func Dcopy(n *int, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int) {
-	var i, ix, iy, m, mp1 int
+func Dcopy(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
+	var i, ix, iy int
 
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//
-		//        code for both increments equal to 1
-		//
-		//
-		//        clean-up loop
-		//
-		m = (*n) % 7
-		if m != 0 {
-			for i = 1; i <= m; i++ {
-				dy.Set(i-1, dx.Get(i-1))
-			}
-			if (*n) < 7 {
-				return
-			}
-		}
-		mp1 = m + 1
-		for i = mp1; i <= (*n); i += 7 {
-			dy.Set(i-1, dx.Get(i-1))
-			dy.Set(i+1-1, dx.Get(i+1-1))
-			dy.Set(i+2-1, dx.Get(i+2-1))
-			dy.Set(i+3-1, dx.Get(i+3-1))
-			dy.Set(i+4-1, dx.Get(i+4-1))
-			dy.Set(i+5-1, dx.Get(i+5-1))
-			dy.Set(i+6-1, dx.Get(i+6-1))
-		}
-	} else {
-		//
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		//
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			dy.Set(iy-1, dx.Get(ix-1))
-			ix += (*incx)
-			iy += (*incy)
-		}
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
-	return
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		dy.Set(iy, dx.Get(ix))
+	}
 }
 
 // Ddot forms the dot product of two vectors.
-func Ddot(n *int, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int) (ddotReturn float64) {
-	var i, ix, iy, m, mp1 int
+func Ddot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) (ddotReturn float64) {
+	var i, ix, iy int
 
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//
-		//        code for both increments equal to 1
-		//
-		//
-		//        clean-up loop
-		//
-		m = (*n) % 5
-		if m != 0 {
-			for i = 1; i <= m; i++ {
-				ddotReturn += dx.Get(i-1) * dy.Get(i-1)
-			}
-			if (*n) < 5 {
-				return
-			}
-		}
-		mp1 = m + 1
-		for i = mp1; i <= (*n); i += 5 {
-			ddotReturn += dx.Get(i-1)*dy.Get(i-1) + dx.Get(i+1-1)*dy.Get(i+1-1) + dx.Get(i+2-1)*dy.Get(i+2-1) + dx.Get(i+3-1)*dy.Get(i+3-1) + dx.Get(i+4-1)*dy.Get(i+4-1)
-		}
-	} else {
-		//
-		//        code for unequal increments or equal increments
-		//          not equal to 1
-		//
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			ddotReturn += dx.Get(ix-1) * dy.Get(iy-1)
-			ix += (*incx)
-			iy += (*incy)
-		}
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		ddotReturn += dx.Get(ix) * dy.Get(iy)
+	}
+
 	return
 }
 
 // Dnrm2 returns the euclidean norm of a vector via the function
 // name, so that Dnrm2 := sqrt( x'*x )
-func Dnrm2(n *int, x *mat.Vector, incx *int) (dnrm2Return float64) {
-	var absxi, one, scale, ssq, zero float64
+func Dnrm2(n int, x *mat.Vector, incx int) (dnrm2Return float64) {
+	var absxi, scale, ssq float64
 	var ix int
 
-	one = 1.0
-	zero = 0.0
-
-	if (*n) < 1 || (*incx) < 1 {
-		dnrm2Return = zero
-	} else if (*n) == 1 {
-		dnrm2Return = math.Abs(x.Get(0))
+	if n < 1 || incx < 1 {
+		return
+	} else if n == 1 {
+		return math.Abs(x.Get(0))
 	} else {
-		scale = zero
-		ssq = one
+		ssq = 1
 		//        The following loop is equivalent to this call to the LAPACK
 		//        auxiliary routine:
 		//        CALL DLASSQ( N, X, INCX, SCALE, SSQ )
 		//
-		for ix = 1; ix <= 1+((*n)-1)*(*incx); ix += (*incx) {
-			if x.Get(ix-1) != zero {
-				absxi = math.Abs(x.Get(ix - 1))
+		for ix = 0; ix <= (n-1)*incx; ix += incx {
+			if x.Get(ix) != 0 {
+				absxi = math.Abs(x.Get(ix))
 				if scale < absxi {
-					ssq = one + ssq*math.Pow(scale/absxi, 2)
+					ssq = 1 + ssq*math.Pow(scale/absxi, 2)
 					scale = absxi
 				} else {
 					ssq += math.Pow(absxi/scale, 2)
@@ -237,74 +112,79 @@ func Dnrm2(n *int, x *mat.Vector, incx *int) (dnrm2Return float64) {
 }
 
 // Drot applies a plane rotation
-func Drot(n *int, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int, c, s *float64) {
+func Drot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, c, s float64) {
+	if n <= 0 {
+		return
+	}
+
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		drot(n, dx, incx, dy, incy, c, s)
+	} else {
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				drot(size, dx.Off(i*blocksize*incx), incx, dy.Off(i*blocksize*incy), incy, c, s)
+			}(i, size)
+		}
+	}
+}
+func drot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, c, s float64) {
 	var dtemp float64
 	var i, ix, iy int
 
-	if (*n) <= 0 {
-		return
+	if incx < 0 {
+		ix = (-n + 1) * incx
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//
-		//       code for both increments equal to 1
-		//
-		for i = 1; i <= (*n); i++ {
-			dtemp = (*c)*dx.Get(i-1) + (*s)*dy.Get(i-1)
-			dy.Set(i-1, (*c)*dy.Get(i-1)-(*s)*dx.Get(i-1))
-			dx.Set(i-1, dtemp)
-		}
-	} else {
-		//
-		//       code for unequal increments or equal increments not equal
-		//         to 1
-		//
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			dtemp = (*c)*dx.Get(ix-1) + (*s)*dy.Get(iy-1)
-			dy.Set(iy-1, (*c)*dy.Get(iy-1)-(*s)*dx.Get(ix-1))
-			dx.Set(ix-1, dtemp)
-			ix += (*incx)
-			iy += (*incy)
-		}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		dtemp = c*dx.Get(ix) + s*dy.Get(iy)
+		dy.Set(iy, c*dy.Get(iy)-s*dx.Get(ix))
+		dx.Set(ix, dtemp)
 	}
 }
 
 // Drotg construct givens plane rotation
-func Drotg(da, db, c, s *float64) {
-	var r, roe, scale, z float64
+func Drotg(da, db, c, s float64) (daReturn, dbReturn, cReturn, sReturn float64) {
+	var roe, scale float64
 
-	roe = *db
-	if math.Abs(*da) > math.Abs(*db) {
-		roe = *da
+	roe = db
+	if math.Abs(da) > math.Abs(db) {
+		roe = da
 	}
-	scale = math.Abs(*da) + math.Abs(*db)
+	scale = math.Abs(da) + math.Abs(db)
 	if scale == 0.0 {
-		(*c) = 1.0
-		(*s) = 0.0
-		r = 0.0
-		z = 0.0
+		cReturn = 1.0
+		sReturn = 0.0
+		daReturn = 0.0
+		dbReturn = 0.0
 	} else {
-		r = scale * math.Sqrt(math.Pow((*da)/scale, 2)+math.Pow((*db)/scale, 2))
-		r = math.Copysign(1, roe) * r
-		*c = (*da) / r
-		*s = (*db) / r
-		z = 1.0
-		if math.Abs(*da) > math.Abs(*db) {
-			z = (*s)
+		daReturn = scale * math.Sqrt(math.Pow(da/scale, 2)+math.Pow(db/scale, 2))
+		daReturn *= math.Copysign(1, roe)
+		cReturn = da / daReturn
+		sReturn = db / daReturn
+		dbReturn = 1.0
+		if math.Abs(da) > math.Abs(db) {
+			dbReturn = sReturn
 		}
-		if math.Abs(*db) >= math.Abs(*da) && (*c) != 0.0 {
-			z = 1.0 / (*c)
+		if math.Abs(db) >= math.Abs(da) && cReturn != 0.0 {
+			dbReturn = 1.0 / cReturn
 		}
 	}
-	*da = r
-	*db = z
+
+	return
 }
 
 // Drotm applies the modified Givens transformation, H, to the 2 x n matrix
@@ -321,91 +201,83 @@ func Drotg(da, db, c, s *float64) {
 //    H=(          )    (          )    (          )    (          )
 //      (DH21  DH22),   (DH21  1.D0),   (-1.D0 DH22),   (0.D0  1.D0).
 //    SEE DROTMG FOR A DESCRIPTION OF DATA STORAGE IN DPARAM.
-func Drotm(n *int, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int, dparam *mat.DrotMatrix) {
+func Drotm(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, dparam *mat.DrotMatrix) {
 	var dh11, dh12, dh21, dh22, w, z float64
 	var dflag, i, kx, ky, nsteps int
 
 	dflag = dparam.Flag
-	if (*n) <= 0 || (dflag+2 == 0) {
+	if n <= 0 || (dflag+2 == 0) {
 		return
 	}
-	if (*incx) == (*incy) && (*incx) > 0 {
+	if incx == incy && incx > 0 {
 
-		nsteps = (*n) * (*incx)
+		nsteps = n * incx
 		if dflag < 0 {
 			dh11 = dparam.H11
 			dh12 = dparam.H12
 			dh21 = dparam.H21
 			dh22 = dparam.H22
-			for i = 1; i <= nsteps; i += (*incx) {
-				w = dx.Get(i - 1)
-				z = dy.Get(i - 1)
-				dx.Set(i-1, w*dh11+z*dh12)
-				dy.Set(i-1, w*dh21+z*dh22)
+			for i = 0; i < nsteps; i += incx {
+				w = dx.Get(i)
+				z = dy.Get(i)
+				dx.Set(i, w*dh11+z*dh12)
+				dy.Set(i, w*dh21+z*dh22)
 			}
 		} else if dflag == 0 {
 			dh12 = dparam.H12
 			dh21 = dparam.H21
-			for i = 1; i <= nsteps; i += (*incx) {
-				w = dx.Get(i - 1)
-				z = dy.Get(i - 1)
-				dx.Set(i-1, w+z*dh12)
-				dy.Set(i-1, w*dh21+z)
+			for i = 0; i < nsteps; i += incx {
+				w = dx.Get(i)
+				z = dy.Get(i)
+				dx.Set(i, w+z*dh12)
+				dy.Set(i, w*dh21+z)
 			}
 		} else {
 			dh11 = dparam.H11
 			dh22 = dparam.H22
-			for i = 1; i <= nsteps; i += (*incx) {
-				w = dx.Get(i - 1)
-				z = dy.Get(i - 1)
-				dx.Set(i-1, w*dh11+z)
-				dy.Set(i-1, -w+dh22*z)
+			for i = 0; i < nsteps; i += incx {
+				w = dx.Get(i)
+				z = dy.Get(i)
+				dx.Set(i, w*dh11+z)
+				dy.Set(i, -w+dh22*z)
 			}
 		}
 	} else {
-		kx = 1
-		ky = 1
-		if (*incx) < 0 {
-			kx = 1 + (1-(*n))*(*incx)
+		if incx < 0 {
+			kx = (1 - n) * incx
 		}
-		if (*incy) < 0 {
-			ky = 1 + (1-(*n))*(*incy)
+		if incy < 0 {
+			ky = (1 - n) * incy
 		}
-		//
+
 		if dflag < 0 {
 			dh11 = dparam.H11
 			dh12 = dparam.H12
 			dh21 = dparam.H21
 			dh22 = dparam.H22
-			for i = 1; i <= (*n); i++ {
-				w = dx.Get(kx - 1)
-				z = dy.Get(ky - 1)
-				dx.Set(kx-1, w*dh11+z*dh12)
-				dy.Set(ky-1, w*dh21+z*dh22)
-				kx += (*incx)
-				ky += (*incy)
+			for i = 0; i < n; i, kx, ky = i+1, kx+incx, ky+incy {
+				w = dx.Get(kx)
+				z = dy.Get(ky)
+				dx.Set(kx, w*dh11+z*dh12)
+				dy.Set(ky, w*dh21+z*dh22)
 			}
 		} else if dflag == 0 {
 			dh12 = dparam.H12
 			dh21 = dparam.H21
-			for i = 1; i <= (*n); i++ {
-				w = dx.Get(kx - 1)
-				z = dy.Get(ky - 1)
-				dx.Set(kx-1, w+z*dh12)
-				dy.Set(ky-1, w*dh21+z)
-				kx += (*incx)
-				ky += (*incy)
+			for i = 0; i < n; i, kx, ky = i+1, kx+incx, ky+incy {
+				w = dx.Get(kx)
+				z = dy.Get(ky)
+				dx.Set(kx, w+z*dh12)
+				dy.Set(ky, w*dh21+z)
 			}
 		} else {
 			dh11 = dparam.H11
 			dh22 = dparam.H22
-			for i = 1; i <= (*n); i++ {
-				w = dx.Get(kx - 1)
-				z = dy.Get(ky - 1)
-				dx.Set(kx-1, w*dh11+z)
-				dy.Set(ky-1, -w+dh22*z)
-				kx += (*incx)
-				ky += (*incy)
+			for i = 0; i < n; i, kx, ky = i+1, kx+incx, ky+incy {
+				w = dx.Get(kx)
+				z = dy.Get(ky)
+				dx.Set(kx, w*dh11+z)
+				dy.Set(ky, -w+dh22*z)
 			}
 		}
 	}
@@ -428,115 +300,113 @@ func Drotm(n *int, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int, dparam 
 //    THE VALUES OF GAMSQ AND RGAMSQ SET IN THE DATA STATEMENT MAY BE
 //    INEXACT.  THIS IS OK AS THEY ARE ONLY USED FOR TESTING THE SIZE
 //    OF DD1 AND DD2.  ALL ACTUAL SCALING OF DATA IS DONE USING GAM.
-func Drotmg(dd1, dd2, dx1, dy1 *float64, dparam *mat.DrotMatrix) {
-	var dh11, dh12, dh21, dh22, dp1, dp2, dq1, dq2, dtemp, du, gam, gamsq, one, rgamsq, zero float64
+func Drotmg(dd1, dd2, dx1, dy1 float64) (dd1Return, dd2Return, dx1Return float64, dparamReturn *mat.DrotMatrix) {
+	var dh11, dh12, dh21, dh22, dp1, dp2, dq1, dq2, du, gam, gamsq, rgamsq float64
 	var dflag int
-	dmb := mat.CreateDrotMatrixBuilder(dparam)
+	dmb := mat.NewDrotMatrixBuilder()
+	dd1Return, dd2Return, dx1Return = dd1, dd2, dx1
 
-	zero, one = 0., 1.
 	gam, gamsq, rgamsq = 4096., 16777216., 5.9604645e-8
 
-	if *dd1 < zero {
+	if dd1Return < 0 {
 		//        GO ZERO-H-D-AND-DX1..
 		dflag = -1
-		dh11 = zero
-		dh12 = zero
-		dh21 = zero
-		dh22 = zero
+		dh11 = 0
+		dh12 = 0
+		dh21 = 0
+		dh22 = 0
 
-		*dd1 = zero
-		*dd2 = zero
-		*dx1 = zero
+		dd1Return = 0
+		dd2Return = 0
+		dx1Return = 0
 	} else {
 		//        CASE-DD1-NONNEGATIVE
-		dp2 = (*dd2) * (*dy1)
-		if dp2 == zero {
+		dp2 = dd2Return * dy1
+		if dp2 == 0 {
 			dflag = -2
-			dparam = dmb.Flag(dflag).H([4]float64{dh11, dh21, dh12, dh22}).Build()
+			dparamReturn = dmb.Flag(dflag).H([4]float64{dh11, dh21, dh12, dh22}).Build()
 			return
 		}
 		//        REGULAR-CASE..
-		dp1 = (*dd1) * (*dx1)
-		dq2 = dp2 * (*dy1)
-		dq1 = dp1 * (*dx1)
+		dp1 = dd1 * dx1Return
+		dq2 = dp2 * dy1
+		dq1 = dp1 * dx1Return
 		//
 		if math.Abs(dq1) > math.Abs(dq2) {
-			dh21 = -(*dy1) / (*dx1)
+			dh21 = -dy1 / dx1Return
 			dh12 = dp2 / dp1
-			//
-			du = one - dh12*dh21
-			//
-			if du > zero {
+
+			du = 1 - dh12*dh21
+
+			if du > 0 {
 				dflag = 0
-				*dd1 /= du
-				*dd2 /= du
-				*dx1 *= du
+				dd1Return /= du
+				dd2Return /= du
+				dx1Return *= du
 			}
 		} else {
-			if dq2 < zero {
+			if dq2 < 0 {
 				//              GO ZERO-H-D-AND-DX1..
 				dflag = -1
-				dh11 = zero
-				dh12 = zero
-				dh21 = zero
-				dh22 = zero
+				dh11 = 0
+				dh12 = 0
+				dh21 = 0
+				dh22 = 0
 
-				*dd1 = zero
-				*dd2 = zero
-				*dx1 = zero
+				dd1Return = 0
+				dd2Return = 0
+				dx1Return = 0
 			} else {
 				dflag = 1
 				dh11 = dp1 / dp2
-				dh22 = (*dx1) / (*dy1)
-				du = one + dh11*dh22
-				dtemp = (*dd2) / du
-				*dd2 = (*dd1) / du
-				*dd1 = dtemp
-				*dx1 = (*dy1) * du
+				dh22 = dx1Return / dy1
+				du = 1 + dh11*dh22
+				dd1Return, dd2Return = dd2Return/du, dd1Return/du
+				dx1Return = dy1 * du
 			}
 		}
 		//     PROCEDURE..SCALE-CHECK
-		if *dd1 != zero {
-			for (*dd1 <= rgamsq) || (*dd1 >= gamsq) {
+		if dd1Return != 0 {
+			for (dd1Return <= rgamsq) || (dd1Return >= gamsq) {
 				if dflag == 0 {
-					dh11 = one
-					dh22 = one
+					dh11 = 1
+					dh22 = 1
 					dflag = -1
 				} else {
-					dh21 = -one
-					dh12 = one
+					dh21 = -1
+					dh12 = 1
 					dflag = -1
 				}
-				if *dd1 <= rgamsq {
-					*dd1 *= math.Pow(gam, 2)
-					*dx1 /= gam
+				if dd1Return <= rgamsq {
+					dd1Return *= math.Pow(gam, 2)
+					dx1Return /= gam
 					dh11 /= gam
 					dh12 /= gam
 				} else {
-					*dd1 /= math.Pow(gam, 2)
-					*dx1 *= gam
+					dd1Return /= math.Pow(gam, 2)
+					dx1Return *= gam
 					dh11 *= gam
 					dh12 *= gam
 				}
 			}
 		}
-		if *dd2 != zero {
-			for (math.Abs(*dd2) <= rgamsq) || (math.Abs(*dd2) >= gamsq) {
+		if dd2Return != 0 {
+			for (math.Abs(dd2Return) <= rgamsq) || (math.Abs(dd2Return) >= gamsq) {
 				if dflag == 0 {
-					dh11 = one
-					dh22 = one
+					dh11 = 1
+					dh22 = 1
 					dflag = -1
 				} else {
-					dh21 = -one
-					dh12 = one
+					dh21 = -1
+					dh12 = 1
 					dflag = -1
 				}
-				if math.Abs(*dd2) <= rgamsq {
-					*dd2 *= math.Pow(gam, 2)
+				if math.Abs(dd2Return) <= rgamsq {
+					dd2Return *= math.Pow(gam, 2)
 					dh21 /= gam
 					dh22 /= gam
 				} else {
-					*dd2 /= math.Pow(gam, 2)
+					dd2Return /= math.Pow(gam, 2)
 					dh21 *= gam
 					dh22 *= gam
 				}
@@ -544,157 +414,115 @@ func Drotmg(dd1, dd2, dx1, dy1 *float64, dparam *mat.DrotMatrix) {
 		}
 	}
 	if dflag < 0 {
-		dmb.Flag(dflag).H([4]float64{dh11, dh21, dh12, dh22}).Build()
+		dparamReturn = dmb.Flag(dflag).H([4]float64{dh11, dh21, dh12, dh22}).Build()
 	} else if dflag == 0 {
-		dmb.Flag(dflag).H([4]float64{0, dh21, dh12, 0}).Build()
+		dparamReturn = dmb.Flag(dflag).H([4]float64{0, dh21, dh12, 0}).Build()
 	} else {
-		dmb.Flag(dflag).H([4]float64{dh11, 0, 0, dh22}).Build()
+		dparamReturn = dmb.Flag(dflag).H([4]float64{dh11, 0, 0, dh22}).Build()
 	}
 	return
 }
 
 // Dscal scales a vector by a constant
-func Dscal(n *int, da *float64, dx *mat.Vector, incx *int) {
-	var i, m, mp1, nincx int
-
-	if (*n) <= 0 || (*incx) <= 0 {
+func Dscal(n int, da float64, dx *mat.Vector, incx int) {
+	if n <= 0 || incx <= 0 {
 		return
 	}
-	if (*incx) == 1 {
-		//
-		//        code for increment equal to 1
-		//
-		//
-		//        clean-up loop
-		//
-		m = (*n) % 5
-		if m != 0 {
-			for i = 1; i <= m; i++ {
-				dx.Set(i-1, (*da)*dx.Get(i-1))
-			}
-			if (*n) < 5 {
-				return
-			}
-		}
-		mp1 = m + 1
-		for i = mp1; i <= (*n); i += 5 {
-			dx.Set(i-1, (*da)*dx.Get(i-1))
-			dx.Set(i+1-1, (*da)*dx.Get(i+1-1))
-			dx.Set(i+2-1, (*da)*dx.Get(i+2-1))
-			dx.Set(i+3-1, (*da)*dx.Get(i+3-1))
-			dx.Set(i+4-1, (*da)*dx.Get(i+4-1))
-		}
+
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		dscal(n, da, dx, incx)
 	} else {
-		//
-		//        code for increment not equal to 1
-		//
-		nincx = (*n) * (*incx)
-		for i = 1; i <= nincx; i += (*incx) {
-			dx.Set(i-1, (*da)*dx.Get(i-1))
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				dscal(size, da, dx.Off(i*blocksize*incx), incx)
+			}(i, size)
 		}
 	}
-	return
+}
+func dscal(n int, da float64, dx *mat.Vector, incx int) {
+
+	for i := 0; i < n*incx; i += incx {
+		dx.Set(i, da*dx.Get(i))
+	}
 }
 
 // Dswap interchanges two vectors
-func Dswap(n *int, dx *mat.Vector, incx *int, dy *mat.Vector, incy *int) {
-	var dtemp float64
-	var i, ix, iy, m, mp1 int
-
-	if (*n) <= 0 {
+func Dswap(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
+	if n <= 0 {
 		return
 	}
-	if (*incx) == 1 && (*incy) == 1 {
-		//
-		//       code for both increments equal to 1
-		//
-		//
-		//       clean-up loop
-		//
-		m = (*n) % 3
-		if m != 0 {
-			for i = 1; i <= m; i++ {
-				dtemp = dx.Get(i - 1)
-				dx.Set(i-1, dy.Get(i-1))
-				dy.Set(i-1, dtemp)
-			}
-			if (*n) < 3 {
-				return
-			}
-		}
-		mp1 = m + 1
-		for i = mp1; i <= (*n); i += 3 {
-			dtemp = dx.Get(i - 1)
-			dx.Set(i-1, dy.Get(i-1))
-			dy.Set(i-1, dtemp)
-			dtemp = dx.Get(i + 1 - 1)
-			dx.Set(i+1-1, dy.Get(i+1-1))
-			dy.Set(i+1-1, dtemp)
-			dtemp = dx.Get(i + 2 - 1)
-			dx.Set(i+2-1, dy.Get(i+2-1))
-			dy.Set(i+2-1, dtemp)
-		}
+
+	blocksize := 512
+
+	if n < minParBlocks*blocksize {
+		dswap(n, dx, incx, dy, incy)
 	} else {
-		//
-		//       code for unequal increments or equal increments not equal
-		//         to 1
-		//
-		ix = 1
-		iy = 1
-		if (*incx) < 0 {
-			ix = (-(*n)+1)*(*incx) + 1
-		}
-		if (*incy) < 0 {
-			iy = (-(*n)+1)*(*incy) + 1
-		}
-		for i = 1; i <= (*n); i++ {
-			dtemp = dx.Get(ix - 1)
-			dx.Set(ix-1, dy.Get(iy-1))
-			dy.Set(iy-1, dtemp)
-			ix += (*incx)
-			iy += (*incy)
+		nblocks := blocks(n, blocksize)
+		var wg sync.WaitGroup
+		defer wg.Wait()
+
+		for i := 0; i < nblocks; i++ {
+			size := blocksize
+			if (i+1)*blocksize > n {
+				size = n - i*blocksize
+			}
+			wg.Add(1)
+			go func(i, size int) {
+				defer wg.Done()
+				dswap(size, dx.Off(i*blocksize*incx), incx, dy.Off(i*blocksize*incy), incy)
+			}(i, size)
 		}
 	}
-	return
+}
+func dswap(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
+	var dtemp float64
+	var i, ix, iy int
+
+	if incx < 0 {
+		ix = (-n + 1) * incx
+	}
+	if incy < 0 {
+		iy = (-n + 1) * incy
+	}
+	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
+		dtemp = dx.Get(ix)
+		dx.Set(ix, dy.Get(iy))
+		dy.Set(iy, dtemp)
+	}
 }
 
 // Idamax finds the index of the first element having maximum absolute value
-func Idamax(n *int, dx *mat.Vector, incx *int) (idamaxReturn int) {
+func Idamax(n int, dx *mat.Vector, incx int) (idamaxReturn int) {
 	var dmax float64
 	var i, ix int
 
-	if (*n) < 1 || (*incx) <= 0 {
-		return
+	if n < 1 || incx <= 0 {
+		return 0
 	}
+	if n == 1 {
+		return 1
+	}
+
 	idamaxReturn = 1
-	if (*n) == 1 {
-		return
-	}
-	if (*incx) == 1 {
-		//
-		//        code for increment equal to 1
-		//
-		dmax = math.Abs(dx.Get(0))
-		for i = 2; i <= (*n); i++ {
-			if math.Abs(dx.Get(i-1)) > dmax {
-				idamaxReturn = i
-				dmax = math.Abs(dx.Get(i - 1))
-			}
-		}
-	} else {
-		//
-		//        code for increment not equal to 1
-		//
-		ix = 1
-		dmax = math.Abs(dx.Get(0))
-		ix += (*incx)
-		for i = 2; i <= (*n); i++ {
-			if math.Abs(dx.Get(ix-1)) > dmax {
-				idamaxReturn = i
-				dmax = math.Abs(dx.Get(ix - 1))
-			}
-			ix += (*incx)
+	dmax = math.Abs(dx.Get(0))
+	for i, ix = 1, incx; i < n; i, ix = i+1, ix+incx {
+		if math.Abs(dx.Get(ix)) > dmax {
+			idamaxReturn = i + 1
+			dmax = math.Abs(dx.Get(ix))
 		}
 	}
+
 	return
 }

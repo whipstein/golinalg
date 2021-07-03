@@ -156,7 +156,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						} else if izero > 0 {
 							//                       Use the same matrix for types 3 and 4 as for
 							//                       _type 2 by copying back the zeroed out column.
-							goblas.Dcopy(toPtr(i2-i1+1), b, func() *int { y := 1; return &y }(), a.Off(ioff+i1-1), func() *int { y := 1; return &y }())
+							goblas.Dcopy(i2-i1+1, b, 1, a.Off(ioff+i1-1), 1)
 						}
 
 						//                    For types 2, 3, and 4, zero one or more columns of
@@ -175,7 +175,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 								//                          Store the column to be zeroed out in B.
 								i1 = maxint(1, ku+2-izero)
 								i2 = minint(kl+ku+1, ku+1+(m-izero))
-								goblas.Dcopy(toPtr(i2-i1+1), a.Off(ioff+i1-1), func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }())
+								goblas.Dcopy(i2-i1+1, a.Off(ioff+i1-1), 1, b, 1)
 
 								for i = i1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)

@@ -13,6 +13,8 @@ func Dsptrd(uplo byte, n *int, ap, d, e, tau *mat.Vector, info *int) {
 	var upper bool
 	var alpha, half, one, taui, zero float64
 	var i, i1, i1i1, ii int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -51,15 +53,15 @@ func Dsptrd(uplo byte, n *int, ap, d, e, tau *mat.Vector, info *int) {
 				ap.Set(i1+i-1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(1:i)
-				goblas.Dspmv(mat.UploByte(uplo), &i, &taui, ap, ap.Off(i1-1), toPtr(1), &zero, tau, toPtr(1))
+				err = goblas.Dspmv(mat.UploByte(uplo), i, taui, ap, ap.Off(i1-1), 1, zero, tau, 1)
 
 				//              Compute  w := y - 1/2 * tau * (y**T *v) * v
-				alpha = -half * taui * goblas.Ddot(&i, tau, toPtr(1), ap.Off(i1-1), toPtr(1))
-				goblas.Daxpy(&i, &alpha, ap.Off(i1-1), toPtr(1), tau, toPtr(1))
+				alpha = -half * taui * goblas.Ddot(i, tau, 1, ap.Off(i1-1), 1)
+				goblas.Daxpy(i, alpha, ap.Off(i1-1), 1, tau, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				goblas.Dspr2(mat.UploByte(uplo), &i, toPtrf64(-one), ap.Off(i1-1), toPtr(1), tau, toPtr(1), ap)
+				err = goblas.Dspr2(mat.UploByte(uplo), i, -one, ap.Off(i1-1), 1, tau, 1, ap)
 
 				ap.Set(i1+i-1-1, e.Get(i-1))
 			}
@@ -85,15 +87,15 @@ func Dsptrd(uplo byte, n *int, ap, d, e, tau *mat.Vector, info *int) {
 				ap.Set(ii+1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(i:n-1)
-				goblas.Dspmv(mat.UploByte(uplo), toPtr((*n)-i), &taui, ap.Off(i1i1-1), ap.Off(ii+1-1), toPtr(1), &zero, tau.Off(i-1), toPtr(1))
+				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-i, taui, ap.Off(i1i1-1), ap.Off(ii+1-1), 1, zero, tau.Off(i-1), 1)
 
 				//              Compute  w := y - 1/2 * tau * (y**T *v) * v
-				alpha = -half * taui * goblas.Ddot(toPtr((*n)-i), tau.Off(i-1), toPtr(1), ap.Off(ii+1-1), toPtr(1))
-				goblas.Daxpy(toPtr((*n)-i), &alpha, ap.Off(ii+1-1), toPtr(1), tau.Off(i-1), toPtr(1))
+				alpha = -half * taui * goblas.Ddot((*n)-i, tau.Off(i-1), 1, ap.Off(ii+1-1), 1)
+				goblas.Daxpy((*n)-i, alpha, ap.Off(ii+1-1), 1, tau.Off(i-1), 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				goblas.Dspr2(mat.UploByte(uplo), toPtr((*n)-i), toPtrf64(-one), ap.Off(ii+1-1), toPtr(1), tau.Off(i-1), toPtr(1), ap.Off(i1i1-1))
+				err = goblas.Dspr2(mat.UploByte(uplo), (*n)-i, -one, ap.Off(ii+1-1), 1, tau.Off(i-1), 1, ap.Off(i1i1-1))
 
 				ap.Set(ii+1-1, e.Get(i-1))
 			}

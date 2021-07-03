@@ -15,6 +15,8 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, temp, zero float64
 	var j, k, kc, kcnext, kp, kpc, kstep, kx, npp int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -83,9 +85,9 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Dcopy(toPtr(k-1), ap.Off(kc-1), toPtr(1), work, toPtr(1))
-				goblas.Dspmv(mat.UploByte(uplo), toPtr(k-1), toPtrf64(-one), ap, work, toPtr(1), &zero, ap.Off(kc-1), toPtr(1))
-				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-goblas.Ddot(toPtr(k-1), work, toPtr(1), ap.Off(kc-1), toPtr(1)))
+				goblas.Dcopy(k-1, ap.Off(kc-1), 1, work, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), k-1, -one, ap, work, 1, zero, ap.Off(kc-1), 1)
+				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-goblas.Ddot(k-1, work, 1, ap.Off(kc-1), 1))
 			}
 			kstep = 1
 		} else {
@@ -103,13 +105,13 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Dcopy(toPtr(k-1), ap.Off(kc-1), toPtr(1), work, toPtr(1))
-				goblas.Dspmv(mat.UploByte(uplo), toPtr(k-1), toPtrf64(-one), ap, work, toPtr(1), &zero, ap.Off(kc-1), toPtr(1))
-				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-goblas.Ddot(toPtr(k-1), work, toPtr(1), ap.Off(kc-1), toPtr(1)))
-				ap.Set(kcnext+k-1-1, ap.Get(kcnext+k-1-1)-goblas.Ddot(toPtr(k-1), ap.Off(kc-1), toPtr(1), ap.Off(kcnext-1), toPtr(1)))
-				goblas.Dcopy(toPtr(k-1), ap.Off(kcnext-1), toPtr(1), work, toPtr(1))
-				goblas.Dspmv(mat.UploByte(uplo), toPtr(k-1), toPtrf64(-one), ap, work, toPtr(1), &zero, ap.Off(kcnext-1), toPtr(1))
-				ap.Set(kcnext+k-1, ap.Get(kcnext+k-1)-goblas.Ddot(toPtr((k-1)), work, toPtr(1), ap.Off(kcnext-1), toPtr(1)))
+				goblas.Dcopy(k-1, ap.Off(kc-1), 1, work, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), k-1, -one, ap, work, 1, zero, ap.Off(kc-1), 1)
+				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-goblas.Ddot(k-1, work, 1, ap.Off(kc-1), 1))
+				ap.Set(kcnext+k-1-1, ap.Get(kcnext+k-1-1)-goblas.Ddot(k-1, ap.Off(kc-1), 1, ap.Off(kcnext-1), 1))
+				goblas.Dcopy(k-1, ap.Off(kcnext-1), 1, work, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), k-1, -one, ap, work, 1, zero, ap.Off(kcnext-1), 1)
+				ap.Set(kcnext+k-1, ap.Get(kcnext+k-1)-goblas.Ddot(k-1, work, 1, ap.Off(kcnext-1), 1))
 			}
 			kstep = 2
 			kcnext = kcnext + k + 1
@@ -120,7 +122,7 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 			//           Interchange rows and columns K and KP in the leading
 			//           submatrix A(1:k+1,1:k+1)
 			kpc = (kp-1)*kp/2 + 1
-			goblas.Dswap(toPtr(kp-1), ap.Off(kc-1), toPtr(1), ap.Off(kpc-1), toPtr(1))
+			goblas.Dswap(kp-1, ap.Off(kc-1), 1, ap.Off(kpc-1), 1)
 			kx = kpc + kp - 1
 			for j = kp + 1; j <= k-1; j++ {
 				kx = kx + j - 1
@@ -167,9 +169,9 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 
 			//           Compute column K of the inverse.
 			if k < (*n) {
-				goblas.Dcopy(toPtr((*n)-k), ap.Off(kc+1-1), toPtr(1), work, toPtr(1))
-				goblas.Dspmv(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(-one), ap.Off(kc+(*n)-k+1-1), work, toPtr(1), &zero, ap.Off(kc+1-1), toPtr(1))
-				ap.Set(kc-1, ap.Get(kc-1)-goblas.Ddot(toPtr((*n)-k), work, toPtr(1), ap.Off(kc+1-1), toPtr(1)))
+				goblas.Dcopy((*n)-k, ap.Off(kc+1-1), 1, work, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-k, -one, ap.Off(kc+(*n)-k+1-1), work, 1, zero, ap.Off(kc+1-1), 1)
+				ap.Set(kc-1, ap.Get(kc-1)-goblas.Ddot((*n)-k, work, 1, ap.Off(kc+1-1), 1))
 			}
 			kstep = 1
 		} else {
@@ -187,13 +189,13 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < (*n) {
-				goblas.Dcopy(toPtr((*n)-k), ap.Off(kc+1-1), toPtr(1), work, toPtr(1))
-				goblas.Dspmv(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(-one), ap.Off(kc+((*n)-k+1)-1), work, toPtr(1), &zero, ap.Off(kc+1-1), toPtr(1))
-				ap.Set(kc-1, ap.Get(kc-1)-goblas.Ddot(toPtr((*n)-k), work, toPtr(1), ap.Off(kc+1-1), toPtr(1)))
-				ap.Set(kcnext+1-1, ap.Get(kcnext+1-1)-goblas.Ddot(toPtr((*n)-k), ap.Off(kc+1-1), toPtr(1), ap.Off(kcnext+2-1), toPtr(1)))
-				goblas.Dcopy(toPtr((*n)-k), ap.Off(kcnext+2-1), toPtr(1), work, toPtr(1))
-				goblas.Dspmv(mat.UploByte(uplo), toPtr((*n)-k), toPtrf64(-one), ap.Off(kc+((*n)-k+1)-1), work, toPtr(1), &zero, ap.Off(kcnext+2-1), toPtr(1))
-				ap.Set(kcnext-1, ap.Get(kcnext-1)-goblas.Ddot(toPtr((*n)-k), work, toPtr(1), ap.Off(kcnext+2-1), toPtr(1)))
+				goblas.Dcopy((*n)-k, ap.Off(kc+1-1), 1, work, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-k, -one, ap.Off(kc+((*n)-k+1)-1), work, 1, zero, ap.Off(kc+1-1), 1)
+				ap.Set(kc-1, ap.Get(kc-1)-goblas.Ddot((*n)-k, work, 1, ap.Off(kc+1-1), 1))
+				ap.Set(kcnext+1-1, ap.Get(kcnext+1-1)-goblas.Ddot((*n)-k, ap.Off(kc+1-1), 1, ap.Off(kcnext+2-1), 1))
+				goblas.Dcopy((*n)-k, ap.Off(kcnext+2-1), 1, work, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-k, -one, ap.Off(kc+((*n)-k+1)-1), work, 1, zero, ap.Off(kcnext+2-1), 1)
+				ap.Set(kcnext-1, ap.Get(kcnext-1)-goblas.Ddot((*n)-k, work, 1, ap.Off(kcnext+2-1), 1))
 			}
 			kstep = 2
 			kcnext = kcnext - ((*n) - k + 3)
@@ -205,7 +207,7 @@ func Dsptri(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, work *mat.Vector, in
 			//           submatrix A(k-1:n,k-1:n)
 			kpc = npp - ((*n)-kp+1)*((*n)-kp+2)/2 + 1
 			if kp < (*n) {
-				goblas.Dswap(toPtr((*n)-kp), ap.Off(kc+kp-k+1-1), toPtr(1), ap.Off(kpc+1-1), toPtr(1))
+				goblas.Dswap((*n)-kp, ap.Off(kc+kp-k+1-1), 1, ap.Off(kpc+1-1), 1)
 			}
 			kx = kc + kp - k
 			for j = k + 1; j <= kp-1; j++ {

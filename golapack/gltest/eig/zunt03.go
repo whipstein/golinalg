@@ -75,7 +75,7 @@ func Zunt03(rc byte, mu, mv, n, k *int, u *mat.CMatrix, ldu *int, v *mat.CMatrix
 		//        Compare rows
 		res1 = zero
 		for i = 1; i <= (*k); i++ {
-			lmx = goblas.Izamax(n, u.CVector(i-1, 0), ldu)
+			lmx = goblas.Izamax(*n, u.CVector(i-1, 0), *ldu)
 			if v.Get(i-1, lmx-1) == complex(zero, 0) {
 				sv = complex(one, 0)
 			} else {
@@ -100,7 +100,7 @@ func Zunt03(rc byte, mu, mv, n, k *int, u *mat.CMatrix, ldu *int, v *mat.CMatrix
 		//        Compare columns
 		res1 = zero
 		for i = 1; i <= (*k); i++ {
-			lmx = goblas.Izamax(n, u.CVector(0, i-1), func() *int { y := 1; return &y }())
+			lmx = goblas.Izamax(*n, u.CVector(0, i-1), 1)
 			if v.Get(lmx-1, i-1) == complex(zero, 0) {
 				sv = complex(one, 0)
 			} else {

@@ -238,13 +238,13 @@ label90:
 
 		//        Compute singular vectors, if desired
 		if (*ncvt) > 0 {
-			goblas.Drot(ncvt, vt.Vector(m-1-1, 0), ldvt, vt.Vector(m-1, 0), ldvt, &cosr, &sinr)
+			goblas.Drot(*ncvt, vt.Vector(m-1-1, 0), *ldvt, vt.Vector(m-1, 0), *ldvt, cosr, sinr)
 		}
 		if (*nru) > 0 {
-			goblas.Drot(nru, u.Vector(0, m-1-1), toPtr(1), u.Vector(0, m-1), toPtr(1), &cosl, &sinl)
+			goblas.Drot(*nru, u.Vector(0, m-1-1), 1, u.Vector(0, m-1), 1, cosl, sinl)
 		}
 		if (*ncc) > 0 {
-			goblas.Drot(ncc, c.Vector(m-1-1, 0), ldc, c.Vector(m-1, 0), ldc, &cosl, &sinl)
+			goblas.Drot(*ncc, c.Vector(m-1-1, 0), *ldc, c.Vector(m-1, 0), *ldc, cosl, sinl)
 		}
 		m = m - 2
 		goto label60
@@ -518,7 +518,7 @@ label160:
 
 			//           Change sign of singular vectors, if desired
 			if (*ncvt) > 0 {
-				goblas.Dscal(ncvt, &negone, vt.Vector(i-1, 0), ldvt)
+				goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0), *ldvt)
 			}
 		}
 	}
@@ -540,13 +540,13 @@ label160:
 			d.Set(isub-1, d.Get((*n)+1-i-1))
 			d.Set((*n)+1-i-1, smin)
 			if (*ncvt) > 0 {
-				goblas.Dswap(ncvt, vt.Vector(isub-1, 0), ldvt, vt.Vector((*n)+1-i-1, 0), ldvt)
+				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), *ldvt, vt.Vector((*n)+1-i-1, 0), *ldvt)
 			}
 			if (*nru) > 0 {
-				goblas.Dswap(nru, u.Vector(0, isub-1), toPtr(1), u.Vector(0, (*n)+1-i-1), toPtr(1))
+				goblas.Dswap(*nru, u.Vector(0, isub-1), 1, u.Vector(0, (*n)+1-i-1), 1)
 			}
 			if (*ncc) > 0 {
-				goblas.Dswap(ncc, c.Vector(isub-1, 0), ldc, c.Vector((*n)+1-i-1, 0), ldc)
+				goblas.Dswap(*ncc, c.Vector(isub-1, 0), *ldc, c.Vector((*n)+1-i-1, 0), *ldc)
 			}
 		}
 	}

@@ -335,7 +335,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			golapack.Dlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Dscal(&n, &vmul, t.Vector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Dscal(n, vmul, t.Vector(0, i-1), 1)
 			}
 			if tnrm == zero {
 				vmul = one
@@ -367,8 +367,8 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 				ipnt[i-1] = i
 				_select[i-1] = false
 			}
-			goblas.Dcopy(&n, wr, func() *int { y := 1; return &y }(), wrtmp, func() *int { y := 1; return &y }())
-			goblas.Dcopy(&n, wi, func() *int { y := 1; return &y }(), witmp, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, wr, 1, wrtmp, 1)
+			goblas.Dcopy(n, wi, 1, witmp, 1)
 			for i = 1; i <= n-1; i++ {
 				kmin = i
 				vrmin = wrtmp.Get(i - 1)

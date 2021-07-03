@@ -184,9 +184,9 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 
 		if upper {
 			if (*n) > 3 {
-				goblas.Zcopy(toPtr((*n)-3), work, func() *int { y := 1; return &y }(), a.CVector(1, 2), toPtr((*lda)+1))
+				goblas.Zcopy((*n)-3, work, 1, a.CVector(1, 2), (*lda)+1)
 				if (*n) > 4 {
-					goblas.Zcopy(toPtr((*n)-4), work.Off((*n)+1-1), func() *int { y := 1; return &y }(), a.CVector(1, 3), toPtr((*lda)+1))
+					goblas.Zcopy((*n)-4, work.Off((*n)+1-1), 1, a.CVector(1, 3), (*lda)+1)
 				}
 			}
 			for j = 2; j <= (*n)-1; j++ {
@@ -196,9 +196,9 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			a.SetRe(0, (*n)-1, z)
 		} else {
 			if (*n) > 3 {
-				goblas.Zcopy(toPtr((*n)-3), work, func() *int { y := 1; return &y }(), a.CVector(2, 1), toPtr((*lda)+1))
+				goblas.Zcopy((*n)-3, work, 1, a.CVector(2, 1), (*lda)+1)
 				if (*n) > 4 {
-					goblas.Zcopy(toPtr((*n)-4), work.Off((*n)+1-1), func() *int { y := 1; return &y }(), a.CVector(3, 1), toPtr((*lda)+1))
+					goblas.Zcopy((*n)-4, work.Off((*n)+1-1), 1, a.CVector(3, 1), (*lda)+1)
 				}
 			}
 			for j = 2; j <= (*n)-1; j++ {
@@ -213,7 +213,7 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			for j = 1; j <= (*n)-1; j++ {
 				ra = a.Get(j-1, j+1-1)
 				rb = 2.0
-				goblas.Zrotg(&ra, &rb, &c, &s)
+				c, s, ra = goblas.Zrotg(ra, rb, c, s)
 
 				//              Multiply by [ c  s; -conjg(s)  c] on the left.
 				if (*n) > j+1 {
@@ -232,7 +232,7 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			for j = 1; j <= (*n)-1; j++ {
 				ra = a.Get(j+1-1, j-1)
 				rb = 2.0
-				goblas.Zrotg(&ra, &rb, &c, &s)
+				c, s, ra = goblas.Zrotg(ra, rb, c, s)
 				s = cmplx.Conj(s)
 
 				//              Multiply by [ c -s;  conjg(s) c] on the right.
@@ -273,10 +273,10 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Izamax(n, b, func() *int { y := 1; return &y }())
+		iy = goblas.Izamax(*n, b, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / maxf64(one, bnorm)
-		goblas.Zdscal(n, &bscal, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, bscal, b, 1)
 
 	} else if (*imat) == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
@@ -287,7 +287,7 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 		if upper {
 			for j = 1; j <= (*n); j++ {
 				golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, toPtr(j-1), a.CVector(0, j-1))
-				goblas.Zdscal(toPtr(j-1), &tscal, a.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(j-1, tscal, a.CVector(0, j-1), 1)
 				a.Set(j-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
 			a.Set((*n)-1, (*n)-1, complex(smlnum, 0)*a.Get((*n)-1, (*n)-1))
@@ -295,7 +295,7 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			for j = 1; j <= (*n); j++ {
 				if j < (*n) {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, toPtr((*n)-j), a.CVector(j+1-1, j-1))
-					goblas.Zdscal(toPtr((*n)-j), &tscal, a.CVector(j+1-1, j-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal((*n)-j, tscal, a.CVector(j+1-1, j-1), 1)
 				}
 				a.Set(j-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
@@ -432,7 +432,7 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			}
 		}
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Zdscal(n, &two, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, two, b, 1)
 
 	} else if (*imat) == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -491,10 +491,10 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Izamax(n, b, func() *int { y := 1; return &y }())
+		iy = goblas.Izamax(*n, b, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / maxf64(one, bnorm)
-		goblas.Zdscal(n, &bscal, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, bscal, b, 1)
 
 	} else if (*imat) == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
@@ -521,18 +521,18 @@ func Zlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			}
 		}
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Zdscal(n, &two, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, two, b, 1)
 	}
 
 	//     Flip the matrix if the transpose will be used.
 	if trans != 'N' {
 		if upper {
 			for j = 1; j <= (*n)/2; j++ {
-				goblas.Zswap(toPtr((*n)-2*j+1), a.CVector(j-1, j-1), lda, a.CVector(j+1-1, (*n)-j+1-1), toPtr(-1))
+				goblas.Zswap((*n)-2*j+1, a.CVector(j-1, j-1), *lda, a.CVector(j+1-1, (*n)-j+1-1), -1)
 			}
 		} else {
 			for j = 1; j <= (*n)/2; j++ {
-				goblas.Zswap(toPtr((*n)-2*j+1), a.CVector(j-1, j-1), func() *int { y := 1; return &y }(), a.CVector((*n)-j+1-1, j+1-1), toPtr(-(*lda)))
+				goblas.Zswap((*n)-2*j+1, a.CVector(j-1, j-1), 1, a.CVector((*n)-j+1-1, j+1-1), -(*lda))
 			}
 		}
 	}

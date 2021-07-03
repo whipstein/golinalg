@@ -18,6 +18,8 @@ import (
 func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s *mat.Vector, vt *mat.Matrix, ldvt *int, work *mat.Vector, resid *float64) {
 	var bnorm, eps, one, zero float64
 	var i, j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -38,7 +40,7 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, s.Get(i-1)*vt.Get(i-1, j-1))
 				}
-				goblas.Dgemv(NoTrans, n, n, toPtrf64(-one), u, ldu, work.Off((*n)+1-1), toPtr(1), &zero, work, toPtr(1))
+				err = goblas.Dgemv(NoTrans, *n, *n, -one, u, *ldu, work.Off((*n)+1-1), 1, zero, work, 1)
 				work.Set(j-1, work.Get(j-1)+d.Get(j-1))
 				if j > 1 {
 					work.Set(j-1-1, work.Get(j-1-1)+e.Get(j-1-1))
@@ -46,7 +48,7 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 				} else {
 					bnorm = maxf64(bnorm, math.Abs(d.Get(j-1)))
 				}
-				(*resid) = maxf64(*resid, goblas.Dasum(n, work, toPtr(1)))
+				(*resid) = maxf64(*resid, goblas.Dasum(*n, work, 1))
 			}
 		} else {
 			//           B is lower bidiagonal.
@@ -54,7 +56,7 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, s.Get(i-1)*vt.Get(i-1, j-1))
 				}
-				goblas.Dgemv(NoTrans, n, n, toPtrf64(-one), u, ldu, work.Off((*n)+1-1), toPtr(1), &zero, work, toPtr(1))
+				err = goblas.Dgemv(NoTrans, *n, *n, -one, u, *ldu, work.Off((*n)+1-1), 1, zero, work, 1)
 				work.Set(j-1, work.Get(j-1)+d.Get(j-1))
 				if j < (*n) {
 					work.Set(j+1-1, work.Get(j+1-1)+e.Get(j-1))
@@ -62,7 +64,7 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 				} else {
 					bnorm = maxf64(bnorm, math.Abs(d.Get(j-1)))
 				}
-				(*resid) = maxf64(*resid, goblas.Dasum(n, work, toPtr(1)))
+				(*resid) = maxf64(*resid, goblas.Dasum(*n, work, 1))
 			}
 		}
 	} else {
@@ -71,11 +73,11 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 			for i = 1; i <= (*n); i++ {
 				work.Set((*n)+i-1, s.Get(i-1)*vt.Get(i-1, j-1))
 			}
-			goblas.Dgemv(NoTrans, n, n, toPtrf64(-one), u, ldu, work.Off((*n)+1-1), toPtr(1), &zero, work, toPtr(1))
+			err = goblas.Dgemv(NoTrans, *n, *n, -one, u, *ldu, work.Off((*n)+1-1), 1, zero, work, 1)
 			work.Set(j-1, work.Get(j-1)+d.Get(j-1))
-			(*resid) = maxf64(*resid, goblas.Dasum(n, work, toPtr(1)))
+			(*resid) = maxf64(*resid, goblas.Dasum(*n, work, 1))
 		}
-		j = goblas.Idamax(n, d, toPtr(1))
+		j = goblas.Idamax(*n, d, 1)
 		bnorm = math.Abs(d.Get(j - 1))
 	}
 

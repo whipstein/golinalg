@@ -13,6 +13,8 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 	var upper bool
 	var ak, akm1, akm1k, bk, bkm1, denom, one complex128
 	var i, iinfo, j, k, kp int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -53,7 +55,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 1
 			} else {
@@ -61,20 +63,20 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if kp == -(*ipiv)[k-1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 2
 			}
 		}
 
 		//  Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		goblas.Ztrsm(Left, Upper, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//  Compute D \ B -> B   [ D \ (U \P**T * B) ]
 		i = (*n)
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Zscal(nrhs, toPtrc128(one/a.Get(i-1, i-1)), b.CVector(i-1, 0), ldb)
+				goblas.Zscal(*nrhs, one/a.Get(i-1, i-1), b.CVector(i-1, 0), *ldb)
 			} else if i > 1 {
 				if (*ipiv)[i-1-1] == (*ipiv)[i-1] {
 					akm1k = work.Get(i - 1)
@@ -94,7 +96,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		}
 
 		//      Compute (U**T \ B) -> B   [ U**T \ (D \ (U \P**T * B) ) ]
-		goblas.Ztrsm(Left, Upper, Trans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, Trans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//       P * B  [ P * (U**T \ (D \ (U \P**T * B) )) ]
 		k = 1
@@ -104,7 +106,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 1
 			} else {
@@ -112,7 +114,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k < (*n) && kp == -(*ipiv)[k+1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 2
 			}
@@ -129,7 +131,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 1
 			} else {
@@ -137,20 +139,20 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and -IPIV(K+1).
 				kp = -(*ipiv)[k+1-1]
 				if kp == -(*ipiv)[k-1] {
-					goblas.Zswap(nrhs, b.CVector(k+1-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k+1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 2
 			}
 		}
 
 		//  Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//  Compute D \ B -> B   [ D \ (L \P**T * B) ]
 		i = 1
 		for i <= (*n) {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Zscal(nrhs, toPtrc128(one/a.Get(i-1, i-1)), b.CVector(i-1, 0), ldb)
+				goblas.Zscal(*nrhs, one/a.Get(i-1, i-1), b.CVector(i-1, 0), *ldb)
 			} else {
 				akm1k = work.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / akm1k
@@ -168,7 +170,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		}
 
 		//  Compute (L**T \ B) -> B   [ L**T \ (D \ (L \P**T * B) ) ]
-		goblas.Ztrsm(Left, Lower, Trans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, Trans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//       P * B  [ P * (L**T \ (D \ (L \P**T * B) )) ]
 		k = (*n)
@@ -178,7 +180,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 1
 			} else {
@@ -186,7 +188,7 @@ func Zsytrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k > 1 && kp == -(*ipiv)[k-1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 2
 			}

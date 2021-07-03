@@ -134,7 +134,7 @@ func Zgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, 
 		for j = 1; j <= (*n); j++ {
 			j1 = maxint(j-(*ku), 1)
 			j2 = minint(j+(*kl), *n)
-			goblas.Zcopy(toPtr(j2-j1+1), ab.CVector((*ku)+1-j+j1-1, j-1), func() *int { y := 1; return &y }(), afb.CVector((*kl)+(*ku)+1-j+j1-1, j-1), func() *int { y := 1; return &y }())
+			goblas.Zcopy(j2-j1+1, ab.CVector((*ku)+1-j+j1-1, j-1), 1, afb.CVector((*kl)+(*ku)+1-j+j1-1, j-1), 1)
 		}
 
 		Zgbtrf(n, n, kl, ku, afb, ldafb, ipiv, info)

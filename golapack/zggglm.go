@@ -36,6 +36,8 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 	var lquery bool
 	var cone, czero complex128
 	var i, lopt, lwkmin, lwkopt, nb, nb1, nb2, nb3, nb4, np int
+	var err error
+	_ = err
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -114,7 +116,7 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 			return
 		}
 
-		goblas.Zcopy(toPtr((*n)-(*m)), d.Off((*m)+1-1), func() *int { y := 1; return &y }(), y.Off((*m)+(*p)-(*n)+1-1), func() *int { y := 1; return &y }())
+		goblas.Zcopy((*n)-(*m), d.Off((*m)+1-1), 1, y.Off((*m)+(*p)-(*n)+1-1), 1)
 	}
 
 	//     Set y1 = 0
@@ -123,7 +125,7 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 	}
 
 	//     Update d1 = d1 - T12*y2
-	goblas.Zgemv(NoTrans, m, toPtr((*n)-(*m)), toPtrc128(-cone), b.Off(0, (*m)+(*p)-(*n)+1-1), ldb, y.Off((*m)+(*p)-(*n)+1-1), func() *int { y := 1; return &y }(), &cone, d, func() *int { y := 1; return &y }())
+	err = goblas.Zgemv(NoTrans, *m, (*n)-(*m), -cone, b.Off(0, (*m)+(*p)-(*n)+1-1), *ldb, y.Off((*m)+(*p)-(*n)+1-1), 1, cone, d, 1)
 
 	//     Solve triangular system: R11*x = d1
 	if (*m) > 0 {
@@ -135,7 +137,7 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 		}
 
 		//        Copy D to X
-		goblas.Zcopy(m, d, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*m, d, 1, x, 1)
 	}
 
 	//     Backward transformation y = Z**H *y

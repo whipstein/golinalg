@@ -42,7 +42,7 @@ func Dspsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.Vector, ipiv *[]int, b *
 
 	if nofact {
 		//        Compute the factorization A = U*D*U**T or A = L*D*L**T.
-		goblas.Dcopy(toPtr((*n)*((*n)+1)/2), ap.Off(0), toPtr(1), afp.Off(0), toPtr(1))
+		goblas.Dcopy((*n)*((*n)+1)/2, ap.Off(0), 1, afp.Off(0), 1)
 		Dsptrf(uplo, n, afp, ipiv, info)
 
 		//        Return if INFO is non-zero.

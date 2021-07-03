@@ -56,12 +56,12 @@ func Zgtt01(n *int, dl, d, du, dlf, df, duf, du2 *mat.CVector, ipiv *[]int, work
 	lastj = (*n)
 	for i = (*n) - 1; i >= 1; i-- {
 		li = dlf.Get(i - 1)
-		goblas.Zaxpy(toPtr(lastj-i+1), &li, work.CVector(i-1, i-1), ldwork, work.CVector(i+1-1, i-1), ldwork)
+		goblas.Zaxpy(lastj-i+1, li, work.CVector(i-1, i-1), *ldwork, work.CVector(i+1-1, i-1), *ldwork)
 		ip = (*ipiv)[i-1]
 		if ip == i {
 			lastj = minint(i+2, *n)
 		} else {
-			goblas.Zswap(toPtr(lastj-i+1), work.CVector(i-1, i-1), ldwork, work.CVector(i+1-1, i-1), ldwork)
+			goblas.Zswap(lastj-i+1, work.CVector(i-1, i-1), *ldwork, work.CVector(i+1-1, i-1), *ldwork)
 		}
 	}
 

@@ -16,8 +16,10 @@ import (
 //    norm(s*b - op(A)*x) / ( norm(op(A)) * norm(x) * EPS ),
 // where op(A) denotes A or A' and EPS is the machine epsilon.
 func Dtrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, scale *float64, cnorm *mat.Vector, tscal *float64, x *mat.Matrix, ldx *int, b *mat.Matrix, ldb *int, work *mat.Vector, resid *float64) {
-	var bignum, eps, err, one, smlnum, tnorm, xnorm, xscal, zero float64
+	var bignum, eps, err2, one, smlnum, tnorm, xnorm, xscal, zero float64
 	var ix, j int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -49,35 +51,35 @@ func Dtrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, scale
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dcopy(n, x.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		ix = goblas.Idamax(n, work, toPtr(1))
+		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work, 1)
+		ix = goblas.Idamax(*n, work, 1)
 		xnorm = maxf64(one, math.Abs(x.Get(ix-1, j-1)))
 		xscal = (one / xnorm) / float64(*n)
-		goblas.Dscal(n, &xscal, work, toPtr(1))
-		goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, a, lda, work, toPtr(1))
-		goblas.Daxpy(n, toPtrf64(-(*scale)*xscal), b.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		ix = goblas.Idamax(n, work, toPtr(1))
-		err = (*tscal) * math.Abs(work.Get(ix-1))
-		ix = goblas.Idamax(n, x.Vector(0, j-1), toPtr(1))
+		goblas.Dscal(*n, xscal, work, 1)
+		err = goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work, 1)
+		goblas.Daxpy(*n, -(*scale)*xscal, b.Vector(0, j-1), 1, work, 1)
+		ix = goblas.Idamax(*n, work, 1)
+		err2 = (*tscal) * math.Abs(work.Get(ix-1))
+		ix = goblas.Idamax(*n, x.Vector(0, j-1), 1)
 		xnorm = math.Abs(x.Get(ix-1, j-1))
-		if err*smlnum <= xnorm {
+		if err2*smlnum <= xnorm {
 			if xnorm > zero {
-				err = err / xnorm
+				err2 = err2 / xnorm
 			}
 		} else {
-			if err > zero {
-				err = one / eps
+			if err2 > zero {
+				err2 = one / eps
 			}
 		}
-		if err*smlnum <= tnorm {
+		if err2*smlnum <= tnorm {
 			if tnorm > zero {
-				err = err / tnorm
+				err2 = err2 / tnorm
 			}
 		} else {
-			if err > zero {
-				err = one / eps
+			if err2 > zero {
+				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err)
+		(*resid) = maxf64(*resid, err2)
 	}
 }

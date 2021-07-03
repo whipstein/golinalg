@@ -12,6 +12,9 @@ func Zgehrd(n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, 
 	var lquery bool
 	var ei, one, zero complex128
 	var i, ib, iinfo, iwt, j, ldt, ldwork, lwkopt, nb, nbmax, nbmin, nh, nx, tsize int
+	var err error
+	_ = err
+
 	opts := mat.NewMatOptsCol()
 
 	nbmax = 64
@@ -108,14 +111,14 @@ func Zgehrd(n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, 
 			//           to 1
 			ei = a.Get(i+ib-1, i+ib-1-1)
 			a.Set(i+ib-1, i+ib-1-1, one)
-			goblas.Zgemm(NoTrans, ConjTrans, ihi, toPtr((*ihi)-i-ib+1), &ib, toPtrc128(-one), work.CMatrix(ldwork, opts), &ldwork, a.Off(i+ib-1, i-1), lda, &one, a.Off(0, i+ib-1), lda)
+			err = goblas.Zgemm(NoTrans, ConjTrans, *ihi, (*ihi)-i-ib+1, ib, -one, work.CMatrix(ldwork, opts), ldwork, a.Off(i+ib-1, i-1), *lda, one, a.Off(0, i+ib-1), *lda)
 			a.Set(i+ib-1, i+ib-1-1, ei)
 
 			//           Apply the block reflector H to A(1:i,i+1:i+ib-1) from the
 			//           right
-			goblas.Ztrmm(Right, Lower, ConjTrans, Unit, &i, toPtr(ib-1), &one, a.Off(i+1-1, i-1), lda, work.CMatrix(ldwork, opts), &ldwork)
+			err = goblas.Ztrmm(Right, Lower, ConjTrans, Unit, i, ib-1, one, a.Off(i+1-1, i-1), *lda, work.CMatrix(ldwork, opts), ldwork)
 			for j = 0; j <= ib-2; j++ {
-				goblas.Zaxpy(&i, toPtrc128(-one), work.Off(ldwork*j+1-1), func() *int { y := 1; return &y }(), a.CVector(0, i+j+1-1), func() *int { y := 1; return &y }())
+				goblas.Zaxpy(i, -one, work.Off(ldwork*j+1-1), 1, a.CVector(0, i+j+1-1), 1)
 			}
 
 			//           Apply the block reflector H to A(i+1:ihi,i+ib:n) from the

@@ -38,6 +38,8 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 	var bcoeff, ca, cb, cone, czero, d, salpha, sum, suma, sumb complex128
 	var acoefa, acoeff, anorm, ascale, bcoefa, big, bignum, bnorm, bscale, dmin, one, safmin, sbeta, scale, small, temp, ulp, xmax, zero float64
 	var i, ibeg, ieig, iend, ihwmny, im, iside, isrc, j, je, jr int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -283,7 +285,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					goblas.Zgemv(NoTrans, n, toPtr((*n)+1-je), &cone, vl.Off(0, je-1), ldvl, work.Off(je-1), func() *int { y := 1; return &y }(), &czero, work.Off((*n)+1-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(NoTrans, *n, (*n)+1-je, cone, vl.Off(0, je-1), *ldvl, work.Off(je-1), 1, czero, work.Off((*n)+1-1), 1)
 					isrc = 2
 					ibeg = 1
 				} else {
@@ -431,7 +433,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					goblas.Zgemv(NoTrans, n, &je, &cone, vr, ldvr, work, func() *int { y := 1; return &y }(), &czero, work.Off((*n)+1-1), func() *int { y := 1; return &y }())
+					err = goblas.Zgemv(NoTrans, *n, je, cone, vr, *ldvr, work, 1, czero, work.Off((*n)+1-1), 1)
 					isrc = 2
 					iend = (*n)
 				} else {

@@ -27,6 +27,8 @@ func Zgglse(m, n, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c,
 	var lquery bool
 	var cone complex128
 	var lopt, lwkmin, lwkopt, mn, nb, nb1, nb2, nb3, nb4, nr int
+	var err error
+	_ = err
 
 	cone = (1.0 + 0.0*1i)
 
@@ -105,10 +107,10 @@ func Zgglse(m, n, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c,
 		}
 
 		//        Put the solution in X
-		goblas.Zcopy(p, d, func() *int { y := 1; return &y }(), x.Off((*n)-(*p)+1-1), func() *int { y := 1; return &y }())
+		goblas.Zcopy(*p, d, 1, x.Off((*n)-(*p)+1-1), 1)
 
 		//        Update c1
-		goblas.Zgemv(NoTrans, toPtr((*n)-(*p)), p, toPtrc128(-cone), a.Off(0, (*n)-(*p)+1-1), lda, d, func() *int { y := 1; return &y }(), &cone, c, func() *int { y := 1; return &y }())
+		err = goblas.Zgemv(NoTrans, (*n)-(*p), *p, -cone, a.Off(0, (*n)-(*p)+1-1), *lda, d, 1, cone, c, 1)
 	}
 	//
 	//     Solve R11*x1 = c1 for x1
@@ -122,21 +124,21 @@ func Zgglse(m, n, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c,
 		}
 
 		//        Put the solutions in X
-		goblas.Zcopy(toPtr((*n)-(*p)), c, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }())
+		goblas.Zcopy((*n)-(*p), c, 1, x, 1)
 	}
 
 	//     Compute the residual vector:
 	if (*m) < (*n) {
 		nr = (*m) + (*p) - (*n)
 		if nr > 0 {
-			goblas.Zgemv(NoTrans, &nr, toPtr((*n)-(*m)), toPtrc128(-cone), a.Off((*n)-(*p)+1-1, (*m)+1-1), lda, d.Off(nr+1-1), func() *int { y := 1; return &y }(), &cone, c.Off((*n)-(*p)+1-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(NoTrans, nr, (*n)-(*m), -cone, a.Off((*n)-(*p)+1-1, (*m)+1-1), *lda, d.Off(nr+1-1), 1, cone, c.Off((*n)-(*p)+1-1), 1)
 		}
 	} else {
 		nr = (*p)
 	}
 	if nr > 0 {
-		goblas.Ztrmv(Upper, NoTrans, NonUnit, &nr, a.Off((*n)-(*p)+1-1, (*n)-(*p)+1-1), lda, d, func() *int { y := 1; return &y }())
-		goblas.Zaxpy(&nr, toPtrc128(-cone), d, func() *int { y := 1; return &y }(), c.Off((*n)-(*p)+1-1), func() *int { y := 1; return &y }())
+		err = goblas.Ztrmv(Upper, NoTrans, NonUnit, nr, a.Off((*n)-(*p)+1-1, (*n)-(*p)+1-1), *lda, d, 1)
+		goblas.Zaxpy(nr, -cone, d, 1, c.Off((*n)-(*p)+1-1), 1)
 	}
 	//
 	//     Backward transformation x = Q**H*x

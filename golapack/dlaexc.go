@@ -55,16 +55,16 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 
 		//        Apply transformation to the matrix T.
 		if j3 <= (*n) {
-			goblas.Drot(toPtr((*n)-(*j1)-1), t.Vector((*j1)-1, j3-1), ldt, t.Vector(j2-1, j3-1), ldt, &cs, &sn)
+			goblas.Drot((*n)-(*j1)-1, t.Vector((*j1)-1, j3-1), *ldt, t.Vector(j2-1, j3-1), *ldt, cs, sn)
 		}
-		goblas.Drot(toPtr((*j1)-1), t.Vector(0, (*j1)-1), toPtr(1), t.Vector(0, j2-1), toPtr(1), &cs, &sn)
+		goblas.Drot((*j1)-1, t.Vector(0, (*j1)-1), 1, t.Vector(0, j2-1), 1, cs, sn)
 
 		t.Set((*j1)-1, (*j1)-1, t22)
 		t.Set(j2-1, j2-1, t11)
 
 		if wantq {
 			//           Accumulate transformation in the matrix Q.
-			goblas.Drot(n, q.Vector(0, (*j1)-1), toPtr(1), q.Vector(0, j2-1), toPtr(1), &cs, &sn)
+			goblas.Drot(*n, q.Vector(0, (*j1)-1), 1, q.Vector(0, j2-1), 1, cs, sn)
 		}
 
 	} else {
@@ -227,10 +227,10 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 		if (*n2) == 2 {
 			//           Standardize new 2-by-2 block T11
 			Dlanv2(t.GetPtr((*j1)-1, (*j1)-1), t.GetPtr((*j1)-1, j2-1), t.GetPtr(j2-1, (*j1)-1), t.GetPtr(j2-1, j2-1), &wr1, &wi1, &wr2, &wi2, &cs, &sn)
-			goblas.Drot(toPtr((*n)-(*j1)-1), t.Vector((*j1)-1, (*j1)+2-1), ldt, t.Vector(j2-1, (*j1)+2-1), ldt, &cs, &sn)
-			goblas.Drot(toPtr((*j1)-1), t.Vector(0, (*j1)-1), toPtr(1), t.Vector(0, j2-1), toPtr(1), &cs, &sn)
+			goblas.Drot((*n)-(*j1)-1, t.Vector((*j1)-1, (*j1)+2-1), *ldt, t.Vector(j2-1, (*j1)+2-1), *ldt, cs, sn)
+			goblas.Drot((*j1)-1, t.Vector(0, (*j1)-1), 1, t.Vector(0, j2-1), 1, cs, sn)
 			if wantq {
-				goblas.Drot(n, q.Vector(0, (*j1)-1), toPtr(1), q.Vector(0, j2-1), toPtr(1), &cs, &sn)
+				goblas.Drot(*n, q.Vector(0, (*j1)-1), 1, q.Vector(0, j2-1), 1, cs, sn)
 			}
 		}
 
@@ -240,11 +240,11 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 			j4 = j3 + 1
 			Dlanv2(t.GetPtr(j3-1, j3-1), t.GetPtr(j3-1, j4-1), t.GetPtr(j4-1, j3-1), t.GetPtr(j4-1, j4-1), &wr1, &wi1, &wr2, &wi2, &cs, &sn)
 			if j3+2 <= (*n) {
-				goblas.Drot(toPtr((*n)-j3-1), t.Vector(j3-1, j3+2-1), ldt, t.Vector(j4-1, j3+2-1), ldt, &cs, &sn)
+				goblas.Drot((*n)-j3-1, t.Vector(j3-1, j3+2-1), *ldt, t.Vector(j4-1, j3+2-1), *ldt, cs, sn)
 			}
-			goblas.Drot(toPtr(j3-1), t.Vector(0, j3-1), toPtr(1), t.Vector(0, j4-1), toPtr(1), &cs, &sn)
+			goblas.Drot(j3-1, t.Vector(0, j3-1), 1, t.Vector(0, j4-1), 1, cs, sn)
 			if wantq {
-				goblas.Drot(n, q.Vector(0, j3-1), toPtr(1), q.Vector(0, j4-1), toPtr(1), &cs, &sn)
+				goblas.Drot(*n, q.Vector(0, j3-1), 1, q.Vector(0, j4-1), 1, cs, sn)
 			}
 		}
 

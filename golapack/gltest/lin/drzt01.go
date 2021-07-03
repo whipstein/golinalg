@@ -46,7 +46,7 @@ func Drzt01(m, n *int, a, af *mat.Matrix, lda *int, tau, work *mat.Vector, lwork
 
 	//     R = R - A
 	for i = 1; i <= (*n); i++ {
-		goblas.Daxpy(m, toPtrf64(-one), a.Vector(0, i-1), toPtr(1), work.Off((i-1)*(*m)+1-1), toPtr(1))
+		goblas.Daxpy(*m, -one, a.Vector(0, i-1), 1, work.Off((i-1)*(*m)+1-1), 1)
 	}
 
 	drzt01Return = golapack.Dlange('O', m, n, work.Matrix(*m, opts), m, rwork)

@@ -76,9 +76,9 @@ func Dlaed1(n *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *f
 
 	//     Form the z-vector which consists of the last row of Q_1 and the
 	//     first row of Q_2.
-	goblas.Dcopy(cutpnt, q.Vector((*cutpnt)-1, 0), ldq, work.Off(iz-1), toPtr(1))
+	goblas.Dcopy(*cutpnt, q.Vector((*cutpnt)-1, 0), *ldq, work.Off(iz-1), 1)
 	zpp1 = (*cutpnt) + 1
-	goblas.Dcopy(toPtr((*n)-(*cutpnt)), q.Vector(zpp1-1, zpp1-1), ldq, work.Off(iz+(*cutpnt)-1), toPtr(1))
+	goblas.Dcopy((*n)-(*cutpnt), q.Vector(zpp1-1, zpp1-1), *ldq, work.Off(iz+(*cutpnt)-1), 1)
 
 	//     Deflate eigenvalues.
 	Dlaed2(&k, n, cutpnt, d, q, ldq, indxq, rho, work.Off(iz-1), work.Off(idlmda-1), work.Off(iw-1), work.Off(iq2-1), toSlice(iwork, indx-1), toSlice(iwork, indxc-1), toSlice(iwork, indxp-1), toSlice(iwork, coltyp-1), info)

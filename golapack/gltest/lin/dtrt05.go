@@ -47,7 +47,7 @@ func Dtrt05(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(n, x.Vector(0, j-1), toPtr(1))
+		imax = goblas.Idamax(*n, x.Vector(0, j-1), 1)
 		xnorm = maxf64(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {

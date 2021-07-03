@@ -34,7 +34,7 @@ func Dqrt12(m, n *int, a *mat.Matrix, lda *int, s, work *mat.Vector, lwork *int)
 		return
 	}
 
-	nrmsvl = goblas.Dnrm2(&mn, s, toPtr(1))
+	nrmsvl = goblas.Dnrm2(mn, s, 1)
 
 	//     Copy upper triangle of A into work
 	golapack.Dlaset('F', m, n, &zero, &zero, work.Matrix(*m, opts), m)
@@ -84,8 +84,8 @@ func Dqrt12(m, n *int, a *mat.Matrix, lda *int, s, work *mat.Vector, lwork *int)
 	}
 
 	//     Compare s and singular values of work
-	goblas.Daxpy(&mn, toPtrf64(-one), s, toPtr(1), work.Off((*m)*(*n)+1-1), toPtr(1))
-	dqrt12Return = goblas.Dasum(&mn, work.Off((*m)*(*n)+1-1), toPtr(1)) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	goblas.Daxpy(mn, -one, s, 1, work.Off((*m)*(*n)+1-1), 1)
+	dqrt12Return = goblas.Dasum(mn, work.Off((*m)*(*n)+1-1), 1) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
 	if nrmsvl != zero {
 		dqrt12Return = dqrt12Return / nrmsvl
 	}

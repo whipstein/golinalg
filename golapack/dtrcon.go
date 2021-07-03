@@ -85,7 +85,7 @@ func Dtrcon(norm, uplo, diag byte, n *int, a *mat.Matrix, lda *int, rcond *float
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Idamax(n, work, toPtr(1))
+				ix = goblas.Idamax(*n, work, 1)
 				xnorm = math.Abs(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return

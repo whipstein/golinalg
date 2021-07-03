@@ -150,8 +150,8 @@ func Dlarot(lrows, lleft, lright bool, nl *int, c, s *float64, a *mat.Vector, ld
 	}
 
 	//     Rotate
-	goblas.Drot(toPtr((*nl)-nt), a.Off(ix-1), &iinc, a.Off(iy-1), &iinc, c, s)
-	goblas.Drot(&nt, xt, toPtr(1), yt, toPtr(1), c, s)
+	goblas.Drot((*nl)-nt, a.Off(ix-1), iinc, a.Off(iy-1), iinc, *c, *s)
+	goblas.Drot(nt, xt, 1, yt, 1, *c, *s)
 
 	//     Stuff values back into XLEFT, XRIGHT, etc.
 	if lleft {

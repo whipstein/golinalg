@@ -20,6 +20,8 @@ import (
 func Dlaqps(m, n, offset, nb, kb *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, vn1, vn2, auxv *mat.Vector, f *mat.Matrix, ldf *int) {
 	var akk, one, temp, temp2, tol3z, zero float64
 	var itemp, j, k, lastrk, lsticc, pvt, rk int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -37,10 +39,10 @@ label10:
 		rk = (*offset) + k
 
 		//        Determine ith pivot column and swap if necessary
-		pvt = (k - 1) + goblas.Idamax(toPtr((*n)-k+1), vn1.Off(k-1), toPtr(1))
+		pvt = (k - 1) + goblas.Idamax((*n)-k+1, vn1.Off(k-1), 1)
 		if pvt != k {
-			goblas.Dswap(m, a.Vector(0, pvt-1), toPtr(1), a.Vector(0, k-1), toPtr(1))
-			goblas.Dswap(toPtr(k-1), f.Vector(pvt-1, 0), ldf, f.Vector(k-1, 0), ldf)
+			goblas.Dswap(*m, a.Vector(0, pvt-1), 1, a.Vector(0, k-1), 1)
+			goblas.Dswap(k-1, f.Vector(pvt-1, 0), *ldf, f.Vector(k-1, 0), *ldf)
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[k-1]
 			(*jpvt)[k-1] = itemp
@@ -51,7 +53,7 @@ label10:
 		//        Apply previous Householder reflectors to column K:
 		//        A(RK:M,K) := A(RK:M,K) - A(RK:M,1:K-1)*F(K,1:K-1)**T.
 		if k > 1 {
-			goblas.Dgemv(NoTrans, toPtr((*m)-rk+1), toPtr(k-1), toPtrf64(-one), a.Off(rk-1, 0), lda, f.Vector(k-1, 0), ldf, &one, a.Vector(rk-1, k-1), toPtr(1))
+			err = goblas.Dgemv(NoTrans, (*m)-rk+1, k-1, -one, a.Off(rk-1, 0), *lda, f.Vector(k-1, 0), *ldf, one, a.Vector(rk-1, k-1), 1)
 		}
 
 		//        Generate elementary reflector H(k).
@@ -68,7 +70,7 @@ label10:
 		//
 		//        Compute  F(K+1:N,K) := tau(K)*A(RK:M,K+1:N)**T*A(RK:M,K).
 		if k < (*n) {
-			goblas.Dgemv(Trans, toPtr((*m)-rk+1), toPtr((*n)-k), tau.GetPtr(k-1), a.Off(rk-1, k+1-1), lda, a.Vector(rk-1, k-1), toPtr(1), &zero, f.Vector(k+1-1, k-1), toPtr(1))
+			err = goblas.Dgemv(Trans, (*m)-rk+1, (*n)-k, tau.Get(k-1), a.Off(rk-1, k+1-1), *lda, a.Vector(rk-1, k-1), 1, zero, f.Vector(k+1-1, k-1), 1)
 		}
 
 		//        Padding F(1:K,K) with zeros.
@@ -80,15 +82,15 @@ label10:
 		//        F(1:N,K) := F(1:N,K) - tau(K)*F(1:N,1:K-1)*A(RK:M,1:K-1)**T
 		//                    *A(RK:M,K).
 		if k > 1 {
-			goblas.Dgemv(Trans, toPtr((*m)-rk+1), toPtr(k-1), toPtrf64(-tau.Get(k-1)), a.Off(rk-1, 0), lda, a.Vector(rk-1, k-1), toPtr(1), &zero, auxv, toPtr(1))
+			err = goblas.Dgemv(Trans, (*m)-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), *lda, a.Vector(rk-1, k-1), 1, zero, auxv, 1)
 
-			goblas.Dgemv(NoTrans, n, toPtr(k-1), &one, f.Off(0, 0), ldf, auxv, toPtr(1), &one, f.Vector(0, k-1), toPtr(1))
+			err = goblas.Dgemv(NoTrans, *n, k-1, one, f.Off(0, 0), *ldf, auxv, 1, one, f.Vector(0, k-1), 1)
 		}
 
 		//        Update the current row of A:
 		//        A(RK,K+1:N) := A(RK,K+1:N) - A(RK,1:K)*F(K+1:N,1:K)**T.
 		if k < (*n) {
-			goblas.Dgemv(NoTrans, toPtr((*n)-k), &k, toPtrf64(-one), f.Off(k+1-1, 0), ldf, a.Vector(rk-1, 0), lda, &one, a.Vector(rk-1, k+1-1), lda)
+			err = goblas.Dgemv(NoTrans, (*n)-k, k, -one, f.Off(k+1-1, 0), *ldf, a.Vector(rk-1, 0), *lda, one, a.Vector(rk-1, k+1-1), *lda)
 		}
 
 		//        Update partial column norms.
@@ -122,7 +124,7 @@ label10:
 	//     A(OFFSET+KB+1:M,KB+1:N) := A(OFFSET+KB+1:M,KB+1:N) -
 	//                         A(OFFSET+KB+1:M,1:KB)*F(KB+1:N,1:KB)**T.
 	if (*kb) < minint(*n, (*m)-(*offset)) {
-		goblas.Dgemm(NoTrans, Trans, toPtr((*m)-rk), toPtr((*n)-(*kb)), kb, toPtrf64(-one), a.Off(rk+1-1, 0), lda, f.Off((*kb)+1-1, 0), ldf, &one, a.Off(rk+1-1, (*kb)+1-1), lda)
+		err = goblas.Dgemm(NoTrans, Trans, (*m)-rk, (*n)-(*kb), *kb, -one, a.Off(rk+1-1, 0), *lda, f.Off((*kb)+1-1, 0), *ldf, one, a.Off(rk+1-1, (*kb)+1-1), *lda)
 	}
 
 	//     Recomputation of difficult columns.
@@ -130,7 +132,7 @@ label40:
 	;
 	if lsticc > 0 {
 		itemp = int(math.Round(vn2.Get(lsticc - 1)))
-		vn1.Set(lsticc-1, goblas.Dnrm2(toPtr((*m)-rk), a.Vector(rk+1-1, lsticc-1), toPtr(1)))
+		vn1.Set(lsticc-1, goblas.Dnrm2((*m)-rk, a.Vector(rk+1-1, lsticc-1), 1))
 
 		//        NOTE: The computation of VN1( LSTICC ) relies on the fact that
 		//        SNRM2 does not fail on vectors with norm below the value of

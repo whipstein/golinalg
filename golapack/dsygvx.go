@@ -17,6 +17,8 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 	var trans byte
 	var one float64
 	var lwkmin, lwkopt, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -111,7 +113,7 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 				trans = 'T'
 			}
 
-			goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, m, &one, b, ldb, z, ldz)
+			err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, one, b, *ldb, z, *ldz)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -122,7 +124,7 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 				trans = 'N'
 			}
 
-			goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, n, m, &one, b, ldb, z, ldz)
+			err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, one, b, *ldb, z, *ldz)
 		}
 	}
 

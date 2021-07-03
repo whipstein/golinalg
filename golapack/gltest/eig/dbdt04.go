@@ -18,6 +18,8 @@ import (
 func Dbdt04(uplo byte, n *int, d, e, s *mat.Vector, ns *int, u *mat.Matrix, ldu *int, vt *mat.Matrix, ldvt *int, work *mat.Vector, resid *float64) {
 	var bnorm, eps, one, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -65,13 +67,13 @@ func Dbdt04(uplo byte, n *int, d, e, s *mat.Vector, ns *int, u *mat.Matrix, ldu 
 		}
 	}
 
-	goblas.Dgemm(Trans, NoTrans, ns, ns, n, toPtrf64(-one), u, ldu, work.Matrix(*n, opts), n, &zero, work.MatrixOff(1+(*n)*(*ns)-1, *ns, opts), ns)
+	err = goblas.Dgemm(Trans, NoTrans, *ns, *ns, *n, -one, u, *ldu, work.Matrix(*n, opts), *n, zero, work.MatrixOff(1+(*n)*(*ns)-1, *ns, opts), *ns)
 
 	//     norm(S - U' * B * V)
 	k = (*n) * (*ns)
 	for i = 1; i <= (*ns); i++ {
 		work.Set(k+i-1, work.Get(k+i-1)+s.Get(i-1))
-		(*resid) = maxf64(*resid, goblas.Dasum(ns, work.Off(k+1-1), toPtr(1)))
+		(*resid) = maxf64(*resid, goblas.Dasum(*ns, work.Off(k+1-1), 1))
 		k = k + (*ns)
 	}
 

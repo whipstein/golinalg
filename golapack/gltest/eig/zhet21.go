@@ -43,6 +43,8 @@ func Zhet21(itype *int, uplo byte, n, kband *int, a *mat.CMatrix, lda *int, d, e
 	var cone, czero, vsave complex128
 	var anorm, one, ten, ulp, unfl, wnorm, zero float64
 	var iinfo, j, jcol, jr, jrow int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -91,12 +93,12 @@ func Zhet21(itype *int, uplo byte, n, kband *int, a *mat.CMatrix, lda *int, d, e
 		golapack.Zlacpy(cuplo, n, n, a, lda, work.CMatrix(*n, opts), n)
 
 		for j = 1; j <= (*n); j++ {
-			goblas.Zher(mat.UploByte(cuplo), n, toPtrf64(-d.Get(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), work.CMatrix(*n, opts), n)
+			err = goblas.Zher(mat.UploByte(cuplo), *n, -d.Get(j-1), u.CVector(0, j-1), 1, work.CMatrix(*n, opts), *n)
 		}
 
 		if (*n) > 1 && (*kband) == 1 {
 			for j = 1; j <= (*n)-1; j++ {
-				goblas.Zher2(mat.UploByte(cuplo), n, toPtrc128(-complex(e.Get(j-1), 0)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), u.CVector(0, j-1-1), func() *int { y := 1; return &y }(), work.CMatrix(*n, opts), n)
+				err = goblas.Zher2(mat.UploByte(cuplo), *n, -complex(e.Get(j-1), 0), u.CVector(0, j-1), 1, u.CVector(0, j-1-1), 1, work.CMatrix(*n, opts), *n)
 			}
 		}
 		wnorm = golapack.Zlanhe('1', cuplo, n, work.CMatrix(*n, opts), n, rwork)
@@ -189,7 +191,7 @@ func Zhet21(itype *int, uplo byte, n, kband *int, a *mat.CMatrix, lda *int, d, e
 	//
 	//     Compute  U U**H - I
 	if (*itype) == 1 {
-		goblas.Zgemm(NoTrans, ConjTrans, n, n, n, &cone, u, ldu, u, ldu, &czero, work.CMatrix(*n, opts), n)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
 
 		for j = 1; j <= (*n); j++ {
 			work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-cone)

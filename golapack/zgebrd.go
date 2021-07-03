@@ -14,6 +14,8 @@ func Zgebrd(m, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, taup, w
 	var lquery bool
 	var one complex128
 	var i, iinfo, j, ldwrkx, ldwrky, lwkopt, minmn, nb, nbmin, nx, ws int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -81,8 +83,8 @@ func Zgebrd(m, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, taup, w
 
 		//        Update the trailing submatrix A(i+ib:m,i+ib:n), using
 		//        an update of the form  A := A - V*Y**H - X*U**H
-		goblas.Zgemm(NoTrans, ConjTrans, toPtr((*m)-i-nb+1), toPtr((*n)-i-nb+1), &nb, toPtrc128(-one), a.Off(i+nb-1, i-1), lda, work.CMatrixOff(ldwrkx*nb+nb+1-1, ldwrky, opts), &ldwrky, &one, a.Off(i+nb-1, i+nb-1), lda)
-		goblas.Zgemm(NoTrans, NoTrans, toPtr((*m)-i-nb+1), toPtr((*n)-i-nb+1), &nb, toPtrc128(-one), work.CMatrixOff(nb+1-1, ldwrkx, opts), &ldwrkx, a.Off(i-1, i+nb-1), lda, &one, a.Off(i+nb-1, i+nb-1), lda)
+		err = goblas.Zgemm(NoTrans, ConjTrans, (*m)-i-nb+1, (*n)-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), *lda, work.CMatrixOff(ldwrkx*nb+nb+1-1, ldwrky, opts), ldwrky, one, a.Off(i+nb-1, i+nb-1), *lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-i-nb+1, (*n)-i-nb+1, nb, -one, work.CMatrixOff(nb+1-1, ldwrkx, opts), ldwrkx, a.Off(i-1, i+nb-1), *lda, one, a.Off(i+nb-1, i+nb-1), *lda)
 
 		//        Copy diagonal and off-diagonal elements of B back into A
 		if (*m) >= (*n) {

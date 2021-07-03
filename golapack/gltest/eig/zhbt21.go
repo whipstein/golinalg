@@ -24,6 +24,8 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 	var cone, czero complex128
 	var anorm, one, ulp, unfl, wnorm, zero float64
 	var ika, j, jc, jr int
+	var err error
+	_ = err
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -84,12 +86,12 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 	}
 
 	for j = 1; j <= (*n); j++ {
-		goblas.Zhpr(mat.UploByte(cuplo), n, toPtrf64(-d.Get(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), work)
+		err = goblas.Zhpr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.CVector(0, j-1), 1, work)
 	}
 
 	if (*n) > 1 && (*ks) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Zhpr2(mat.UploByte(cuplo), n, toPtrc128(-e.GetCmplx(j-1)), u.CVector(0, j-1), func() *int { y := 1; return &y }(), u.CVector(0, j+1-1), func() *int { y := 1; return &y }(), work)
+			err = goblas.Zhpr2(mat.UploByte(cuplo), *n, -e.GetCmplx(j-1), u.CVector(0, j-1), 1, u.CVector(0, j+1-1), 1, work)
 		}
 	}
 	wnorm = golapack.Zlanhp('1', cuplo, n, work, rwork)
@@ -107,7 +109,7 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 	//     Do Test 2
 	//
 	//     Compute  U U**H - I
-	goblas.Zgemm(NoTrans, ConjTrans, n, n, n, &cone, u, ldu, u, ldu, &czero, work.CMatrix(*n, opts), n)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
 
 	for j = 1; j <= (*n); j++ {
 		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-cone)

@@ -25,6 +25,8 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 	var cuplo byte
 	var anorm, one, ulp, unfl, wnorm, zero float64
 	var ika, j, jc, jr, lw int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -84,12 +86,12 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 	}
 
 	for j = 1; j <= (*n); j++ {
-		goblas.Dspr(mat.UploByte(cuplo), n, toPtrf64(-d.Get(j-1)), u.Vector(0, j-1), func() *int { y := 1; return &y }(), work)
+		err = goblas.Dspr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1), 1, work)
 	}
 
 	if (*n) > 1 && (*ks) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Dspr2(mat.UploByte(cuplo), n, toPtrf64(-e.Get(j-1)), u.Vector(0, j-1), func() *int { y := 1; return &y }(), u.Vector(0, j+1-1), func() *int { y := 1; return &y }(), work)
+			err = goblas.Dspr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work)
 		}
 	}
 	wnorm = golapack.Dlansp('1', cuplo, n, work, work.Off(lw+1-1))
@@ -107,7 +109,7 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 	//     Do Test 2
 	//
 	//     Compute  U U**T - I
-	goblas.Dgemm(NoTrans, ConjTrans, n, n, n, &one, u, ldu, u, ldu, &zero, work.Matrix(*n, opts), n)
+	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
 
 	for j = 1; j <= (*n); j++ {
 		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)

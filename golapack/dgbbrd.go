@@ -127,7 +127,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.Matrix, ldab *int, d, e *
 						Dlartg(ab.GetPtr((*ku)+ml-1-1, i-1), ab.GetPtr((*ku)+ml-1, i-1), work.GetPtr(mn+i+ml-1-1), work.GetPtr(i+ml-1-1), &ra)
 						ab.Set((*ku)+ml-1-1, i-1, ra)
 						if i < (*n) {
-							goblas.Drot(toPtr(minint((*ku)+ml-2, (*n)-i)), ab.Vector((*ku)+ml-2-1, i+1-1), toPtr((*ldab)-1), ab.Vector((*ku)+ml-1-1, i+1-1), toPtr((*ldab)-1), work.GetPtr(mn+i+ml-1-1), work.GetPtr(i+ml-1-1))
+							goblas.Drot(minint((*ku)+ml-2, (*n)-i), ab.Vector((*ku)+ml-2-1, i+1-1), (*ldab)-1, ab.Vector((*ku)+ml-1-1, i+1-1), (*ldab)-1, work.Get(mn+i+ml-1-1), work.Get(i+ml-1-1))
 						}
 					}
 					nr = nr + 1
@@ -137,14 +137,14 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.Matrix, ldab *int, d, e *
 				if wantq {
 					//                 accumulate product of plane rotations in Q
 					for j = j1; j <= j2; j += kb1 {
-						goblas.Drot(m, q.Vector(0, j-1-1), func() *int { y := 1; return &y }(), q.Vector(0, j-1), func() *int { y := 1; return &y }(), work.GetPtr(mn+j-1), work.GetPtr(j-1))
+						goblas.Drot(*m, q.Vector(0, j-1-1), 1, q.Vector(0, j-1), 1, work.Get(mn+j-1), work.Get(j-1))
 					}
 				}
 
 				if wantc {
 					//                 apply plane rotations to C
 					for j = j1; j <= j2; j += kb1 {
-						goblas.Drot(ncc, c.Vector(j-1-1, 0), ldc, c.Vector(j-1, 0), ldc, work.GetPtr(mn+j-1), work.GetPtr(j-1))
+						goblas.Drot(*ncc, c.Vector(j-1-1, 0), *ldc, c.Vector(j-1, 0), *ldc, work.Get(mn+j-1), work.Get(j-1))
 					}
 				}
 
@@ -185,7 +185,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.Matrix, ldab *int, d, e *
 						//                    within the band, and apply rotation from the right
 						Dlartg(ab.GetPtr((*ku)-mu+3-1, i+mu-2-1), ab.GetPtr((*ku)-mu+2-1, i+mu-1-1), work.GetPtr(mn+i+mu-1-1), work.GetPtr(i+mu-1-1), &ra)
 						ab.Set((*ku)-mu+3-1, i+mu-2-1, ra)
-						goblas.Drot(toPtr(minint((*kl)+mu-2, (*m)-i)), ab.Vector((*ku)-mu+4-1, i+mu-2-1), func() *int { y := 1; return &y }(), ab.Vector((*ku)-mu+3-1, i+mu-1-1), func() *int { y := 1; return &y }(), work.GetPtr(mn+i+mu-1-1), work.GetPtr(i+mu-1-1))
+						goblas.Drot(minint((*kl)+mu-2, (*m)-i), ab.Vector((*ku)-mu+4-1, i+mu-2-1), 1, ab.Vector((*ku)-mu+3-1, i+mu-1-1), 1, work.Get(mn+i+mu-1-1), work.Get(i+mu-1-1))
 					}
 					nr = nr + 1
 					j1 = j1 - kb1
@@ -194,7 +194,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.Matrix, ldab *int, d, e *
 				if wantpt {
 					//                 accumulate product of plane rotations in P**T
 					for j = j1; j <= j2; j += kb1 {
-						goblas.Drot(n, pt.Vector(j+kun-1-1, 0), ldpt, pt.Vector(j+kun-1, 0), ldpt, work.GetPtr(mn+j+kun-1), work.GetPtr(j+kun-1))
+						goblas.Drot(*n, pt.Vector(j+kun-1-1, 0), *ldpt, pt.Vector(j+kun-1, 0), *ldpt, work.Get(mn+j+kun-1), work.Get(j+kun-1))
 					}
 				}
 
@@ -234,10 +234,10 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.Matrix, ldab *int, d, e *
 				ab.Set(0, i+1-1, rc*ab.Get(0, i+1-1))
 			}
 			if wantq {
-				goblas.Drot(m, q.Vector(0, i-1), func() *int { y := 1; return &y }(), q.Vector(0, i+1-1), func() *int { y := 1; return &y }(), &rc, &rs)
+				goblas.Drot(*m, q.Vector(0, i-1), 1, q.Vector(0, i+1-1), 1, rc, rs)
 			}
 			if wantc {
-				goblas.Drot(ncc, c.Vector(i-1, 0), ldc, c.Vector(i+1-1, 0), ldc, &rc, &rs)
+				goblas.Drot(*ncc, c.Vector(i-1, 0), *ldc, c.Vector(i+1-1, 0), *ldc, rc, rs)
 			}
 		}
 		if (*m) <= (*n) {
@@ -258,7 +258,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.Matrix, ldab *int, d, e *
 					e.Set(i-1-1, rc*ab.Get((*ku)-1, i-1))
 				}
 				if wantpt {
-					goblas.Drot(n, pt.Vector(i-1, 0), ldpt, pt.Vector((*m)+1-1, 0), ldpt, &rc, &rs)
+					goblas.Drot(*n, pt.Vector(i-1, 0), *ldpt, pt.Vector((*m)+1-1, 0), *ldpt, rc, rs)
 				}
 			}
 		} else {

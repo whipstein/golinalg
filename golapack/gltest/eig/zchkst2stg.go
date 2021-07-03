@@ -536,9 +536,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//
 			//           Compute D1 from the 1-stage and used as reference for the
 			//           2-stage
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d1, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork, 1)
 			}
 
 			golapack.Zsteqr('N', &n, d1, rwork, work.CMatrix(*ldu, opts), ldu, rwork.Off(n+1-1), &iinfo)
@@ -566,9 +566,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			golapack.Zhetrd2stage('N', 'U', &n, v, ldu, sd, se, tau, work, &lh, work.Off(lh+1-1), &lw, &iinfo)
 
 			//           Compute D2 from the 2-stage Upper case
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d2, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d2, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork, 1)
 			}
 
 			ntest = 3
@@ -595,9 +595,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			golapack.Zhetrd2stage('N', 'L', &n, v, ldu, sd, se, tau, work, &lh, work.Off(lh+1-1), &lw, &iinfo)
 
 			//           Compute D3 from the 2-stage Upper case
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d3, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d3, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork, 1)
 			}
 
 			ntest = 4
@@ -642,7 +642,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Call ZHPTRD and ZUPGTR to compute S and U from AP
-			goblas.Zcopy(&nap, ap, func() *int { y := 1; return &y }(), vp, func() *int { y := 1; return &y }())
+			goblas.Zcopy(nap, ap, 1, vp, 1)
 
 			ntest = 5
 			golapack.Zhptrd('U', &n, vp, sd, se, tau, &iinfo)
@@ -687,7 +687,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Call ZHPTRD and ZUPGTR to compute S and U from AP
-			goblas.Zcopy(&nap, ap, func() *int { y := 1; return &y }(), vp, func() *int { y := 1; return &y }())
+			goblas.Zcopy(nap, ap, 1, vp, 1)
 
 			ntest = 7
 			golapack.Zhptrd('L', &n, vp, sd, se, tau, &iinfo)
@@ -724,9 +724,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call ZSTEQR to compute D1, D2, and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d1, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork, 1)
 			}
 			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 
@@ -745,9 +745,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Compute D2
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d2, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d2, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork, 1)
 			}
 
 			ntest = 11
@@ -765,9 +765,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Compute D3 (using PWK method)
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d3, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d3, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork, 1)
 			}
 
 			ntest = 12
@@ -824,9 +824,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           and do tests 14, 15, and 16 .
 			if jtype > 15 {
 				//              Compute D4 and Z4
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d4, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d4, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, rwork, 1)
 				}
 				golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 
@@ -848,9 +848,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				Zstt21(&n, func() *int { y := 0; return &y }(), sd, se, d4, dumma, z, ldu, work, rwork, result.Off(13))
 
 				//              Compute D5
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, rwork, 1)
 				}
 
 				ntest = 16
@@ -1061,9 +1061,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Compute D1 and Z
 			inde = 1
 			indrwk = inde + n
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d1, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork.Off(inde-1), func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork.Off(inde-1), 1)
 			}
 			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 
@@ -1087,9 +1087,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call ZSTEDC(V) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d1, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d1, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork.Off(inde-1), func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork.Off(inde-1), 1)
 			}
 			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 
@@ -1113,9 +1113,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Call ZSTEDC(N) to compute D2, do tests.
 			//
 			//           Compute D2
-			goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d2, func() *int { y := 1; return &y }())
+			goblas.Dcopy(n, sd, 1, d2, 1)
 			if n > 0 {
-				goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork.Off(inde-1), func() *int { y := 1; return &y }())
+				goblas.Dcopy(n-1, se, 1, rwork.Off(inde-1), 1)
 			}
 			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 			//
@@ -1225,9 +1225,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//           Call ZSTEMR(V,I) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, rwork, 1)
 				}
 				golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 
@@ -1259,9 +1259,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Call ZSTEMR to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n, sd, 1, d5, 1)
 					if n > 0 {
-						goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+						goblas.Dcopy(n-1, se, 1, rwork, 1)
 					}
 
 					ntest = 31
@@ -1292,9 +1292,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Call ZSTEMR(V,V) to compute D1 and Z, do tests.
 					//
 					//           Compute D1 and Z
-					goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n, sd, 1, d5, 1)
 					if n > 0 {
-						goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+						goblas.Dcopy(n-1, se, 1, rwork, 1)
 					}
 					golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
 
@@ -1335,9 +1335,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Call ZSTEMR to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n, sd, 1, d5, 1)
 					if n > 0 {
-						goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+						goblas.Dcopy(n-1, se, 1, rwork, 1)
 					}
 
 					ntest = 34
@@ -1376,9 +1376,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//           Call ZSTEMR(V,A) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, rwork, 1)
 				}
 
 				ntest = 35
@@ -1402,9 +1402,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//           Call ZSTEMR to compute D2, do tests.
 				//
 				//           Compute D2
-				goblas.Dcopy(&n, sd, func() *int { y := 1; return &y }(), d5, func() *int { y := 1; return &y }())
+				goblas.Dcopy(n, sd, 1, d5, 1)
 				if n > 0 {
-					goblas.Dcopy(toPtr(n-1), se, func() *int { y := 1; return &y }(), rwork, func() *int { y := 1; return &y }())
+					goblas.Dcopy(n-1, se, 1, rwork, 1)
 				}
 
 				ntest = 37

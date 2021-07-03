@@ -15,6 +15,8 @@ import (
 func Dpst01(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac *int, perm *mat.Matrix, ldperm *int, piv *[]int, rwork *mat.Vector, resid *float64, rank *int) {
 	var anorm, eps, one, t, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -46,11 +48,11 @@ func Dpst01(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 
 		for k = (*n); k >= 1; k-- {
 			//           Compute the (K,K) element of the result.
-			t = goblas.Ddot(&k, afac.Vector(0, k-1), toPtr(1), afac.Vector(0, k-1), toPtr(1))
+			t = goblas.Ddot(k, afac.Vector(0, k-1), 1, afac.Vector(0, k-1), 1)
 			afac.SetIdx(k-1+(k-1)*(*ldafac), t)
 
 			//           Compute the rest of column K.
-			goblas.Dtrmv(mat.Upper, mat.Trans, mat.NonUnit, toPtr(k-1), afac, ldafac, afac.Vector(0, k-1), toPtr(1))
+			err = goblas.Dtrmv(mat.Upper, mat.Trans, mat.NonUnit, k-1, afac, *ldafac, afac.Vector(0, k-1), 1)
 
 		}
 
@@ -68,12 +70,12 @@ func Dpst01(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if k+1 <= (*n) {
-				goblas.Dsyr(mat.Lower, toPtr((*n)-k), &one, afac.Vector(k+1-1, k-1), toPtr(1), afac.Off(k+1-1, k+1-1), ldafac)
+				err = goblas.Dsyr(mat.Lower, (*n)-k, one, afac.Vector(k+1-1, k-1), 1, afac.Off(k+1-1, k+1-1), *ldafac)
 			}
 
 			//           Scale column K by the diagonal element.
 			t = afac.Get(k-1, k-1)
-			goblas.Dscal(toPtr((*n)-k+1), &t, afac.Vector(k-1, k-1), toPtr(1))
+			goblas.Dscal((*n)-k+1, t, afac.Vector(k-1, k-1), 1)
 		}
 
 	}

@@ -46,7 +46,7 @@ func Zspt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldw *int
 			//           Code when J <= I
 			for j = 1; j <= i; j++ {
 				jcol = ((j-1)*j)/2 + 1
-				t = goblas.Zdotu(&j, a.Off(icol-1), func() *int { y := 1; return &y }(), ainv.Off(jcol-1), func() *int { y := 1; return &y }())
+				t = goblas.Zdotu(j, a.Off(icol-1), 1, ainv.Off(jcol-1), 1)
 				jcol = jcol + 2*j - 1
 				kcol = icol - 1
 				for k = j + 1; k <= i; k++ {
@@ -65,7 +65,7 @@ func Zspt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldw *int
 			//           Code when J > I
 			for j = i + 1; j <= (*n); j++ {
 				jcol = ((j-1)*j)/2 + 1
-				t = goblas.Zdotu(&i, a.Off(icol-1), func() *int { y := 1; return &y }(), ainv.Off(jcol-1), func() *int { y := 1; return &y }())
+				t = goblas.Zdotu(i, a.Off(icol-1), 1, ainv.Off(jcol-1), 1)
 				jcol = jcol - 1
 				kcol = icol + 2*i - 1
 				for k = i + 1; k <= j; k++ {
@@ -89,7 +89,7 @@ func Zspt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldw *int
 			icol = nall - (((*n)-i+1)*((*n)-i+2))/2 + 1
 			for j = 1; j <= i; j++ {
 				jcol = nall - (((*n)-j)*((*n)-j+1))/2 - ((*n) - i)
-				t = goblas.Zdotu(toPtr((*n)-i+1), a.Off(icol-1), func() *int { y := 1; return &y }(), ainv.Off(jcol-1), func() *int { y := 1; return &y }())
+				t = goblas.Zdotu((*n)-i+1, a.Off(icol-1), 1, ainv.Off(jcol-1), 1)
 				kcol = i
 				jcol = j
 				for k = 1; k <= j-1; k++ {
@@ -109,7 +109,7 @@ func Zspt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldw *int
 			icol = nall - (((*n)-i)*((*n)-i+1))/2
 			for j = i + 1; j <= (*n); j++ {
 				jcol = nall - (((*n)-j+1)*((*n)-j+2))/2 + 1
-				t = goblas.Zdotu(toPtr((*n)-j+1), a.Off(icol-(*n)+j-1), func() *int { y := 1; return &y }(), ainv.Off(jcol-1), func() *int { y := 1; return &y }())
+				t = goblas.Zdotu((*n)-j+1, a.Off(icol-(*n)+j-1), 1, ainv.Off(jcol-1), 1)
 				kcol = i
 				jcol = j
 				for k = 1; k <= i-1; k++ {

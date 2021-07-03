@@ -84,7 +84,7 @@ label10:
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(n, work, toPtr(1))
+			ix = goblas.Idamax(*n, work, 1)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				goto label20
 			}

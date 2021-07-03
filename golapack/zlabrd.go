@@ -17,6 +17,8 @@ import (
 func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, taup *mat.CVector, x *mat.CMatrix, ldx *int, y *mat.CMatrix, ldy *int) {
 	var alpha, one, zero complex128
 	var i int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -31,9 +33,9 @@ func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, tau
 		for i = 1; i <= (*nb); i++ {
 			//           Update A(i:m,i)
 			Zlacgv(toPtr(i-1), y.CVector(i-1, 0), ldy)
-			goblas.Zgemv(NoTrans, toPtr((*m)-i+1), toPtr(i-1), toPtrc128(-one), a.Off(i-1, 0), lda, y.CVector(i-1, 0), ldy, &one, a.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(NoTrans, (*m)-i+1, i-1, -one, a.Off(i-1, 0), *lda, y.CVector(i-1, 0), *ldy, one, a.CVector(i-1, i-1), 1)
 			Zlacgv(toPtr(i-1), y.CVector(i-1, 0), ldy)
-			goblas.Zgemv(NoTrans, toPtr((*m)-i+1), toPtr(i-1), toPtrc128(-one), x.Off(i-1, 0), ldx, a.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, a.CVector(i-1, i-1), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(NoTrans, (*m)-i+1, i-1, -one, x.Off(i-1, 0), *ldx, a.CVector(0, i-1), 1, one, a.CVector(i-1, i-1), 1)
 
 			//           Generate reflection Q(i) to annihilate A(i+1:m,i)
 			alpha = a.Get(i-1, i-1)
@@ -43,20 +45,20 @@ func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, tau
 				a.Set(i-1, i-1, one)
 
 				//              Compute Y(i+1:n,i)
-				goblas.Zgemv(ConjTrans, toPtr((*m)-i+1), toPtr((*n)-i), &one, a.Off(i-1, i+1-1), lda, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), &zero, y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*m)-i+1), toPtr(i-1), &one, a.Off(i-1, 0), lda, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), &zero, y.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*n)-i), toPtr(i-1), toPtrc128(-one), y.Off(i+1-1, 0), ldy, y.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*m)-i+1), toPtr(i-1), &one, x.Off(i-1, 0), ldx, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), &zero, y.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr(i-1), toPtr((*n)-i), toPtrc128(-one), a.Off(0, i+1-1), lda, y.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*n)-i), tauq.GetPtr(i-1), y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(ConjTrans, (*m)-i+1, (*n)-i, one, a.Off(i-1, i+1-1), *lda, a.CVector(i-1, i-1), 1, zero, y.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*m)-i+1, i-1, one, a.Off(i-1, 0), *lda, a.CVector(i-1, i-1), 1, zero, y.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*n)-i, i-1, -one, y.Off(i+1-1, 0), *ldy, y.CVector(0, i-1), 1, one, y.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*m)-i+1, i-1, one, x.Off(i-1, 0), *ldx, a.CVector(i-1, i-1), 1, zero, y.CVector(0, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, i-1, (*n)-i, -one, a.Off(0, i+1-1), *lda, y.CVector(0, i-1), 1, one, y.CVector(i+1-1, i-1), 1)
+				goblas.Zscal((*n)-i, tauq.Get(i-1), y.CVector(i+1-1, i-1), 1)
 
 				//              Update A(i,i+1:n)
 				Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
 				Zlacgv(&i, a.CVector(i-1, 0), lda)
-				goblas.Zgemv(NoTrans, toPtr((*n)-i), &i, toPtrc128(-one), y.Off(i+1-1, 0), ldy, a.CVector(i-1, 0), lda, &one, a.CVector(i-1, i+1-1), lda)
+				err = goblas.Zgemv(NoTrans, (*n)-i, i, -one, y.Off(i+1-1, 0), *ldy, a.CVector(i-1, 0), *lda, one, a.CVector(i-1, i+1-1), *lda)
 				Zlacgv(&i, a.CVector(i-1, 0), lda)
 				Zlacgv(toPtr(i-1), x.CVector(i-1, 0), ldx)
-				goblas.Zgemv(ConjTrans, toPtr(i-1), toPtr((*n)-i), toPtrc128(-one), a.Off(0, i+1-1), lda, x.CVector(i-1, 0), ldx, &one, a.CVector(i-1, i+1-1), lda)
+				err = goblas.Zgemv(ConjTrans, i-1, (*n)-i, -one, a.Off(0, i+1-1), *lda, x.CVector(i-1, 0), *ldx, one, a.CVector(i-1, i+1-1), *lda)
 				Zlacgv(toPtr(i-1), x.CVector(i-1, 0), ldx)
 
 				//              Generate reflection P(i) to annihilate A(i,i+2:n)
@@ -66,12 +68,12 @@ func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, tau
 				a.Set(i-1, i+1-1, one)
 
 				//              Compute X(i+1:m,i)
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), toPtr((*n)-i), &one, a.Off(i+1-1, i+1-1), lda, a.CVector(i-1, i+1-1), lda, &zero, x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*n)-i), &i, &one, y.Off(i+1-1, 0), ldy, a.CVector(i-1, i+1-1), lda, &zero, x.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), &i, toPtrc128(-one), a.Off(i+1-1, 0), lda, x.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr(i-1), toPtr((*n)-i), &one, a.Off(0, i+1-1), lda, a.CVector(i-1, i+1-1), lda, &zero, x.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), toPtr(i-1), toPtrc128(-one), x.Off(i+1-1, 0), ldx, x.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*m)-i), taup.GetPtr(i-1), x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*m)-i, (*n)-i, one, a.Off(i+1-1, i+1-1), *lda, a.CVector(i-1, i+1-1), *lda, zero, x.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*n)-i, i, one, y.Off(i+1-1, 0), *ldy, a.CVector(i-1, i+1-1), *lda, zero, x.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*m)-i, i, -one, a.Off(i+1-1, 0), *lda, x.CVector(0, i-1), 1, one, x.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(NoTrans, i-1, (*n)-i, one, a.Off(0, i+1-1), *lda, a.CVector(i-1, i+1-1), *lda, zero, x.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*m)-i, i-1, -one, x.Off(i+1-1, 0), *ldx, x.CVector(0, i-1), 1, one, x.CVector(i+1-1, i-1), 1)
+				goblas.Zscal((*m)-i, taup.Get(i-1), x.CVector(i+1-1, i-1), 1)
 				Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
 			}
 		}
@@ -81,10 +83,10 @@ func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, tau
 			//           Update A(i,i:n)
 			Zlacgv(toPtr((*n)-i+1), a.CVector(i-1, i-1), lda)
 			Zlacgv(toPtr(i-1), a.CVector(i-1, 0), lda)
-			goblas.Zgemv(NoTrans, toPtr((*n)-i+1), toPtr(i-1), toPtrc128(-one), y.Off(i-1, 0), ldy, a.CVector(i-1, 0), lda, &one, a.CVector(i-1, i-1), lda)
+			err = goblas.Zgemv(NoTrans, (*n)-i+1, i-1, -one, y.Off(i-1, 0), *ldy, a.CVector(i-1, 0), *lda, one, a.CVector(i-1, i-1), *lda)
 			Zlacgv(toPtr(i-1), a.CVector(i-1, 0), lda)
 			Zlacgv(toPtr(i-1), x.CVector(i-1, 0), ldx)
-			goblas.Zgemv(ConjTrans, toPtr(i-1), toPtr((*n)-i+1), toPtrc128(-one), a.Off(0, i-1), lda, x.CVector(i-1, 0), ldx, &one, a.CVector(i-1, i-1), lda)
+			err = goblas.Zgemv(ConjTrans, i-1, (*n)-i+1, -one, a.Off(0, i-1), *lda, x.CVector(i-1, 0), *ldx, one, a.CVector(i-1, i-1), *lda)
 			Zlacgv(toPtr(i-1), x.CVector(i-1, 0), ldx)
 
 			//           Generate reflection P(i) to annihilate A(i,i+1:n)
@@ -95,19 +97,19 @@ func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, tau
 				a.Set(i-1, i-1, one)
 
 				//              Compute X(i+1:m,i)
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), toPtr((*n)-i+1), &one, a.Off(i+1-1, i-1), lda, a.CVector(i-1, i-1), lda, &zero, x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*n)-i+1), toPtr(i-1), &one, y.Off(i-1, 0), ldy, a.CVector(i-1, i-1), lda, &zero, x.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), toPtr(i-1), toPtrc128(-one), a.Off(i+1-1, 0), lda, x.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr(i-1), toPtr((*n)-i+1), &one, a.Off(0, i-1), lda, a.CVector(i-1, i-1), lda, &zero, x.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), toPtr(i-1), toPtrc128(-one), x.Off(i+1-1, 0), ldx, x.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*m)-i), taup.GetPtr(i-1), x.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*m)-i, (*n)-i+1, one, a.Off(i+1-1, i-1), *lda, a.CVector(i-1, i-1), *lda, zero, x.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*n)-i+1, i-1, one, y.Off(i-1, 0), *ldy, a.CVector(i-1, i-1), *lda, zero, x.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*m)-i, i-1, -one, a.Off(i+1-1, 0), *lda, x.CVector(0, i-1), 1, one, x.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(NoTrans, i-1, (*n)-i+1, one, a.Off(0, i-1), *lda, a.CVector(i-1, i-1), *lda, zero, x.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*m)-i, i-1, -one, x.Off(i+1-1, 0), *ldx, x.CVector(0, i-1), 1, one, x.CVector(i+1-1, i-1), 1)
+				goblas.Zscal((*m)-i, taup.Get(i-1), x.CVector(i+1-1, i-1), 1)
 				Zlacgv(toPtr((*n)-i+1), a.CVector(i-1, i-1), lda)
 
 				//              Update A(i+1:m,i)
 				Zlacgv(toPtr(i-1), y.CVector(i-1, 0), ldy)
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), toPtr(i-1), toPtrc128(-one), a.Off(i+1-1, 0), lda, y.CVector(i-1, 0), ldy, &one, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*m)-i, i-1, -one, a.Off(i+1-1, 0), *lda, y.CVector(i-1, 0), *ldy, one, a.CVector(i+1-1, i-1), 1)
 				Zlacgv(toPtr(i-1), y.CVector(i-1, 0), ldy)
-				goblas.Zgemv(NoTrans, toPtr((*m)-i), &i, toPtrc128(-one), x.Off(i+1-1, 0), ldx, a.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(NoTrans, (*m)-i, i, -one, x.Off(i+1-1, 0), *ldx, a.CVector(0, i-1), 1, one, a.CVector(i+1-1, i-1), 1)
 
 				//              Generate reflection Q(i) to annihilate A(i+2:m,i)
 				alpha = a.Get(i+1-1, i-1)
@@ -116,12 +118,12 @@ func Zlabrd(m, n, nb *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tauq, tau
 				a.Set(i+1-1, i-1, one)
 
 				//              Compute Y(i+1:n,i)
-				goblas.Zgemv(ConjTrans, toPtr((*m)-i), toPtr((*n)-i), &one, a.Off(i+1-1, i+1-1), lda, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), &zero, y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*m)-i), toPtr(i-1), &one, a.Off(i+1-1, 0), lda, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), &zero, y.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(NoTrans, toPtr((*n)-i), toPtr(i-1), toPtrc128(-one), y.Off(i+1-1, 0), ldy, y.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, toPtr((*m)-i), &i, &one, x.Off(i+1-1, 0), ldx, a.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), &zero, y.CVector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Zgemv(ConjTrans, &i, toPtr((*n)-i), toPtrc128(-one), a.Off(0, i+1-1), lda, y.CVector(0, i-1), func() *int { y := 1; return &y }(), &one, y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr((*n)-i), tauq.GetPtr(i-1), y.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+				err = goblas.Zgemv(ConjTrans, (*m)-i, (*n)-i, one, a.Off(i+1-1, i+1-1), *lda, a.CVector(i+1-1, i-1), 1, zero, y.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*m)-i, i-1, one, a.Off(i+1-1, 0), *lda, a.CVector(i+1-1, i-1), 1, zero, y.CVector(0, i-1), 1)
+				err = goblas.Zgemv(NoTrans, (*n)-i, i-1, -one, y.Off(i+1-1, 0), *ldy, y.CVector(0, i-1), 1, one, y.CVector(i+1-1, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, (*m)-i, i, one, x.Off(i+1-1, 0), *ldx, a.CVector(i+1-1, i-1), 1, zero, y.CVector(0, i-1), 1)
+				err = goblas.Zgemv(ConjTrans, i, (*n)-i, -one, a.Off(0, i+1-1), *lda, y.CVector(0, i-1), 1, one, y.CVector(i+1-1, i-1), 1)
+				goblas.Zscal((*n)-i, tauq.Get(i-1), y.CVector(i+1-1, i-1), 1)
 			} else {
 				Zlacgv(toPtr((*n)-i+1), a.CVector(i-1, i-1), lda)
 			}

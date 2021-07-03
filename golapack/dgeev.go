@@ -210,18 +210,18 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(n, vl.Vector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Dscal(n, &scl, vl.Vector(0, i-1), func() *int { y := 1; return &y }())
+				scl = one / goblas.Dnrm2(*n, vl.Vector(0, i-1), 1)
+				goblas.Dscal(*n, scl, vl.Vector(0, i-1), 1)
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(n, vl.Vector(0, i-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vl.Vector(0, i+1-1), func() *int { y := 1; return &y }())))
-				goblas.Dscal(n, &scl, vl.Vector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Dscal(n, &scl, vl.Vector(0, i+1-1), func() *int { y := 1; return &y }())
+				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i+1-1), 1)))
+				goblas.Dscal(*n, scl, vl.Vector(0, i-1), 1)
+				goblas.Dscal(*n, scl, vl.Vector(0, i+1-1), 1)
 				for k = 1; k <= (*n); k++ {
 					work.Set(iwrk+k-1-1, math.Pow(vl.Get(k-1, i-1), 2)+math.Pow(vl.Get(k-1, i+1-1), 2))
 				}
-				k = goblas.Idamax(n, work.Off(iwrk-1), func() *int { y := 1; return &y }())
+				k = goblas.Idamax(*n, work.Off(iwrk-1), 1)
 				Dlartg(vl.GetPtr(k-1, i-1), vl.GetPtr(k-1, i+1-1), &cs, &sn, &r)
-				goblas.Drot(n, vl.Vector(0, i-1), func() *int { y := 1; return &y }(), vl.Vector(0, i+1-1), func() *int { y := 1; return &y }(), &cs, &sn)
+				goblas.Drot(*n, vl.Vector(0, i-1), 1, vl.Vector(0, i+1-1), 1, cs, sn)
 				vl.Set(k-1, i+1-1, zero)
 			}
 		}
@@ -235,18 +235,18 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(n, vr.Vector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Dscal(n, &scl, vr.Vector(0, i-1), func() *int { y := 1; return &y }())
+				scl = one / goblas.Dnrm2(*n, vr.Vector(0, i-1), 1)
+				goblas.Dscal(*n, scl, vr.Vector(0, i-1), 1)
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(n, vr.Vector(0, i-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vr.Vector(0, i+1-1), func() *int { y := 1; return &y }())))
-				goblas.Dscal(n, &scl, vr.Vector(0, i-1), func() *int { y := 1; return &y }())
-				goblas.Dscal(n, &scl, vr.Vector(0, i+1-1), func() *int { y := 1; return &y }())
+				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i+1-1), 1)))
+				goblas.Dscal(*n, scl, vr.Vector(0, i-1), 1)
+				goblas.Dscal(*n, scl, vr.Vector(0, i+1-1), 1)
 				for k = 1; k <= (*n); k++ {
 					work.Set(iwrk+k-1-1, math.Pow(vr.Get(k-1, i-1), 2)+math.Pow(vr.Get(k-1, i+1-1), 2))
 				}
-				k = goblas.Idamax(n, work.Off(iwrk-1), func() *int { y := 1; return &y }())
+				k = goblas.Idamax(*n, work.Off(iwrk-1), 1)
 				Dlartg(vr.GetPtr(k-1, i-1), vr.GetPtr(k-1, i+1-1), &cs, &sn, &r)
-				goblas.Drot(n, vr.Vector(0, i-1), func() *int { y := 1; return &y }(), vr.Vector(0, i+1-1), func() *int { y := 1; return &y }(), &cs, &sn)
+				goblas.Drot(*n, vr.Vector(0, i-1), 1, vr.Vector(0, i+1-1), 1, cs, sn)
 				vr.Set(k-1, i+1-1, zero)
 			}
 		}

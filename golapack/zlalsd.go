@@ -28,6 +28,8 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 	var czero complex128
 	var cs, eps, one, orgnrm, r, rcnd, sn, tol, two, zero float64
 	var bx, bxst, c, difl, difr, givcol, givnum, givptr, i, icmpq1, icmpq2, irwb, irwib, irwrb, irwu, irwvt, irwwrk, iwk, j, jcol, jimag, jreal, jrow, k, nlvl, nm1, nrwork, nsize, nsub, perm, poles, s, sizei, smlszp, sqre, st, st1, u, vt, z int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -82,7 +84,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 			e.Set(i-1, sn*d.Get(i+1-1))
 			d.Set(i+1-1, cs*d.Get(i+1-1))
 			if (*nrhs) == 1 {
-				goblas.Zdrot(func() *int { y := 1; return &y }(), b.CVector(i-1, 0), func() *int { y := 1; return &y }(), b.CVector(i+1-1, 0), func() *int { y := 1; return &y }(), &cs, &sn)
+				goblas.Zdrot(1, b.CVector(i-1, 0), 1, b.CVector(i+1-1, 0), 1, cs, sn)
 			} else {
 				rwork.Set(i*2-1-1, cs)
 				rwork.Set(i*2-1, sn)
@@ -93,7 +95,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 				for j = 1; j <= (*n)-1; j++ {
 					cs = rwork.Get(j*2 - 1 - 1)
 					sn = rwork.Get(j*2 - 1)
-					goblas.Zdrot(func() *int { y := 1; return &y }(), b.CVector(j-1, i-1), func() *int { y := 1; return &y }(), b.CVector(j+1-1, i-1), func() *int { y := 1; return &y }(), &cs, &sn)
+					goblas.Zdrot(1, b.CVector(j-1, i-1), 1, b.CVector(j+1-1, i-1), 1, cs, sn)
 				}
 			}
 		}
@@ -136,7 +138,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		goblas.Dgemm(Trans, NoTrans, n, nrhs, n, &one, rwork.MatrixOff(irwu-1, *n, opts), n, rwork.MatrixOff(irwb-1, *n, opts), n, &zero, rwork.MatrixOff(irwrb-1, *n, opts), n)
+		err = goblas.Dgemm(Trans, NoTrans, *n, *nrhs, *n, one, rwork.MatrixOff(irwu-1, *n, opts), *n, rwork.MatrixOff(irwb-1, *n, opts), *n, zero, rwork.MatrixOff(irwrb-1, *n, opts), *n)
 		j = irwb - 1
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
 			for jrow = 1; jrow <= (*n); jrow++ {
@@ -144,7 +146,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		goblas.Dgemm(Trans, NoTrans, n, nrhs, n, &one, rwork.MatrixOff(irwu-1, *n, opts), n, rwork.MatrixOff(irwb-1, *n, opts), n, &zero, rwork.MatrixOff(irwib-1, *n, opts), n)
+		err = goblas.Dgemm(Trans, NoTrans, *n, *nrhs, *n, one, rwork.MatrixOff(irwu-1, *n, opts), *n, rwork.MatrixOff(irwb-1, *n, opts), *n, zero, rwork.MatrixOff(irwib-1, *n, opts), *n)
 		jreal = irwrb - 1
 		jimag = irwib - 1
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -155,7 +157,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 			}
 		}
 
-		tol = rcnd * d.GetMag(goblas.Idamax(n, d, func() *int { y := 1; return &y }())-1)
+		tol = rcnd * d.GetMag(goblas.Idamax(*n, d, 1)-1)
 		for i = 1; i <= (*n); i++ {
 			if d.Get(i-1) <= tol {
 				Zlaset('A', func() *int { y := 1; return &y }(), nrhs, &czero, &czero, b.Off(i-1, 0), ldb)
@@ -178,7 +180,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		goblas.Dgemm(Trans, NoTrans, n, nrhs, n, &one, rwork.MatrixOff(irwvt-1, *n, opts), n, rwork.MatrixOff(irwb-1, *n, opts), n, &zero, rwork.MatrixOff(irwrb-1, *n, opts), n)
+		err = goblas.Dgemm(Trans, NoTrans, *n, *nrhs, *n, one, rwork.MatrixOff(irwvt-1, *n, opts), *n, rwork.MatrixOff(irwb-1, *n, opts), *n, zero, rwork.MatrixOff(irwrb-1, *n, opts), *n)
 		j = irwb - 1
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
 			for jrow = 1; jrow <= (*n); jrow++ {
@@ -186,7 +188,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		goblas.Dgemm(Trans, NoTrans, n, nrhs, n, &one, rwork.MatrixOff(irwvt-1, *n, opts), n, rwork.MatrixOff(irwb-1, *n, opts), n, &zero, rwork.MatrixOff(irwib-1, *n, opts), n)
+		err = goblas.Dgemm(Trans, NoTrans, *n, *nrhs, *n, one, rwork.MatrixOff(irwvt-1, *n, opts), *n, rwork.MatrixOff(irwb-1, *n, opts), *n, zero, rwork.MatrixOff(irwib-1, *n, opts), *n)
 		jreal = irwrb - 1
 		jimag = irwib - 1
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -269,13 +271,13 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 				nsub = nsub + 1
 				(*iwork)[nsub-1] = (*n)
 				(*iwork)[sizei+nsub-1-1] = 1
-				goblas.Zcopy(nrhs, b.CVector((*n)-1, 0), ldb, work.Off(bx+nm1-1), n)
+				goblas.Zcopy(*nrhs, b.CVector((*n)-1, 0), *ldb, work.Off(bx+nm1-1), *n)
 			}
 			st1 = st - 1
 			if nsize == 1 {
 				//              This is a 1-by-1 subproblem and is not solved
 				//              explicitly.
-				goblas.Zcopy(nrhs, b.CVector(st-1, 0), ldb, work.Off(bx+st1-1), n)
+				goblas.Zcopy(*nrhs, b.CVector(st-1, 0), *ldb, work.Off(bx+st1-1), *n)
 			} else if nsize <= (*smlsiz) {
 				//              This is a small subproblem and is solved by DLASDQ.
 				Dlaset('A', &nsize, &nsize, &zero, &one, rwork.MatrixOff(vt+st1-1, *n, opts), n)
@@ -295,7 +297,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 						rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 					}
 				}
-				goblas.Dgemm(Trans, NoTrans, &nsize, nrhs, &nsize, &one, rwork.MatrixOff(u+st1-1, *n, opts), n, rwork.MatrixOff(irwb-1, nsize, opts), &nsize, &zero, rwork.MatrixOff(irwrb-1, nsize, opts), &nsize)
+				err = goblas.Dgemm(Trans, NoTrans, nsize, *nrhs, nsize, one, rwork.MatrixOff(u+st1-1, *n, opts), *n, rwork.MatrixOff(irwb-1, nsize, opts), nsize, zero, rwork.MatrixOff(irwrb-1, nsize, opts), nsize)
 				j = irwb - 1
 				for jcol = 1; jcol <= (*nrhs); jcol++ {
 					for jrow = st; jrow <= st+nsize-1; jrow++ {
@@ -303,7 +305,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 						rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 					}
 				}
-				goblas.Dgemm(Trans, NoTrans, &nsize, nrhs, &nsize, &one, rwork.MatrixOff(u+st1-1, *n, opts), n, rwork.MatrixOff(irwb-1, nsize, opts), &nsize, &zero, rwork.MatrixOff(irwib-1, nsize, opts), &nsize)
+				err = goblas.Dgemm(Trans, NoTrans, nsize, *nrhs, nsize, one, rwork.MatrixOff(u+st1-1, *n, opts), *n, rwork.MatrixOff(irwb-1, nsize, opts), nsize, zero, rwork.MatrixOff(irwib-1, nsize, opts), nsize)
 				jreal = irwrb - 1
 				jimag = irwib - 1
 				for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -332,7 +334,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 	}
 
 	//     Apply the singular values and treat the tiny ones as zero.
-	tol = rcnd * d.GetMag(goblas.Idamax(n, d, func() *int { y := 1; return &y }())-1)
+	tol = rcnd * d.GetMag(goblas.Idamax(*n, d, 1)-1)
 
 	for i = 1; i <= (*n); i++ {
 		//        Some of the elements in D can be negative because 1-by-1
@@ -354,7 +356,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 		nsize = (*iwork)[sizei+i-1-1]
 		bxst = bx + st1
 		if nsize == 1 {
-			goblas.Zcopy(nrhs, work.Off(bxst-1), n, b.CVector(st-1, 0), ldb)
+			goblas.Zcopy(*nrhs, work.Off(bxst-1), *n, b.CVector(st-1, 0), *ldb)
 		} else if nsize <= (*smlsiz) {
 			//           Since B and BX are complex, the following call to DGEMM
 			//           is performed in two steps (real and imaginary parts).
@@ -371,7 +373,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 					rwork.Set(jreal-1, work.GetRe(j+jrow-1))
 				}
 			}
-			goblas.Dgemm(Trans, NoTrans, &nsize, nrhs, &nsize, &one, rwork.MatrixOff(vt+st1-1, *n, opts), n, rwork.MatrixOff(irwb-1, nsize, opts), &nsize, &zero, rwork.MatrixOff(irwrb-1, nsize, opts), &nsize)
+			err = goblas.Dgemm(Trans, NoTrans, nsize, *nrhs, nsize, one, rwork.MatrixOff(vt+st1-1, *n, opts), *n, rwork.MatrixOff(irwb-1, nsize, opts), nsize, zero, rwork.MatrixOff(irwrb-1, nsize, opts), nsize)
 			j = bxst - (*n) - 1
 			jimag = irwb - 1
 			for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -381,7 +383,7 @@ func Zlalsd(uplo byte, smlsiz, n, nrhs *int, d, e *mat.Vector, b *mat.CMatrix, l
 					rwork.Set(jimag-1, work.GetIm(j+jrow-1))
 				}
 			}
-			goblas.Dgemm(Trans, NoTrans, &nsize, nrhs, &nsize, &one, rwork.MatrixOff(vt+st1-1, *n, opts), n, rwork.MatrixOff(irwb-1, nsize, opts), &nsize, &zero, rwork.MatrixOff(irwib-1, nsize, opts), &nsize)
+			err = goblas.Dgemm(Trans, NoTrans, nsize, *nrhs, nsize, one, rwork.MatrixOff(vt+st1-1, *n, opts), *n, rwork.MatrixOff(irwb-1, nsize, opts), nsize, zero, rwork.MatrixOff(irwib-1, nsize, opts), nsize)
 			jreal = irwrb - 1
 			jimag = irwib - 1
 			for jcol = 1; jcol <= (*nrhs); jcol++ {

@@ -42,8 +42,8 @@ func Zgtt02(trans byte, n, nrhs *int, dl, d, du *mat.CVector, x *mat.CMatrix, ld
 	golapack.Zlagtm(trans, n, nrhs, toPtrf64(-one), dl, d, du, x, ldx, &one, b, ldb)
 
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(n, b.CVector(0, j-1), func() *int { y := 1; return &y }())
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1), 1)
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

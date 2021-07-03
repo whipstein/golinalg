@@ -720,20 +720,20 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			//           Scale carefully to avoid over / underflow
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(m, toPtrf64(one/onorm), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-					goblas.Zdscal(m, anorm, a.CVector(0, j-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal(*m, one/onorm, a.CVector(0, j-1), 1)
+					goblas.Zdscal(*m, *anorm, a.CVector(0, j-1), 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Zdscal(toPtr((*n)*((*n)+1)/2), toPtrf64(one/onorm), a.CVector(0, 0), func() *int { y := 1; return &y }())
-				goblas.Zdscal(toPtr((*n)*((*n)+1)/2), anorm, a.CVector(0, 0), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)*((*n)+1)/2, one/onorm, a.CVector(0, 0), 1)
+				goblas.Zdscal((*n)*((*n)+1)/2, *anorm, a.CVector(0, 0), 1)
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(toPtr(kll+kuu+1), toPtrf64(one/onorm), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-					goblas.Zdscal(toPtr(kll+kuu+1), anorm, a.CVector(0, j-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal(kll+kuu+1, one/onorm, a.CVector(0, j-1), 1)
+					goblas.Zdscal(kll+kuu+1, *anorm, a.CVector(0, j-1), 1)
 				}
 
 			}
@@ -742,17 +742,17 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			//           Scale straightforwardly
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(m, toPtrf64((*anorm)/onorm), a.CVector(0, j-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal(*m, (*anorm)/onorm, a.CVector(0, j-1), 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Zdscal(toPtr((*n)*((*n)+1)/2), toPtrf64((*anorm)/onorm), a.CVector(0, 0), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)*((*n)+1)/2, (*anorm)/onorm, a.CVector(0, 0), 1)
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(toPtr(kll+kuu+1), toPtrf64((*anorm)/onorm), a.CVector(0, j-1), func() *int { y := 1; return &y }())
+					goblas.Zdscal(kll+kuu+1, (*anorm)/onorm, a.CVector(0, j-1), 1)
 				}
 			}
 

@@ -152,18 +152,18 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 			//           eigenvalue.
 			if !pair {
 				//              Real eigenvalue.
-				prod = goblas.Ddot(n, vr.Vector(0, ks-1), func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				rnrm = goblas.Dnrm2(n, vr.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				lnrm = goblas.Dnrm2(n, vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
+				prod = goblas.Ddot(*n, vr.Vector(0, ks-1), 1, vl.Vector(0, ks-1), 1)
+				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)
+				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)
 				s.Set(ks-1, math.Abs(prod)/(rnrm*lnrm))
 			} else {
 				//              Complex eigenvalue.
-				prod1 = goblas.Ddot(n, vr.Vector(0, ks-1), func() *int { y := 1; return &y }(), vl.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				prod1 = prod1 + goblas.Ddot(n, vr.Vector(0, ks+1-1), func() *int { y := 1; return &y }(), vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())
-				prod2 = goblas.Ddot(n, vl.Vector(0, ks-1), func() *int { y := 1; return &y }(), vr.Vector(0, ks+1-1), func() *int { y := 1; return &y }())
-				prod2 = prod2 - goblas.Ddot(n, vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }(), vr.Vector(0, ks-1), func() *int { y := 1; return &y }())
-				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(n, vr.Vector(0, ks-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vr.Vector(0, ks+1-1), func() *int { y := 1; return &y }())))
-				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(n, vl.Vector(0, ks-1), func() *int { y := 1; return &y }())), toPtrf64(goblas.Dnrm2(n, vl.Vector(0, ks+1-1), func() *int { y := 1; return &y }())))
+				prod1 = goblas.Ddot(*n, vr.Vector(0, ks-1), 1, vl.Vector(0, ks-1), 1)
+				prod1 = prod1 + goblas.Ddot(*n, vr.Vector(0, ks+1-1), 1, vl.Vector(0, ks+1-1), 1)
+				prod2 = goblas.Ddot(*n, vl.Vector(0, ks-1), 1, vr.Vector(0, ks+1-1), 1)
+				prod2 = prod2 - goblas.Ddot(*n, vl.Vector(0, ks+1-1), 1, vr.Vector(0, ks-1), 1)
+				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks+1-1), 1)))
+				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks+1-1), 1)))
 				cond = Dlapy2(&prod1, &prod2) / (rnrm * lnrm)
 				s.Set(ks-1, cond)
 				s.Set(ks+1-1, cond)

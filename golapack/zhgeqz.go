@@ -167,13 +167,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
 			t.SetRe(j-1, j-1, absb)
 			if ilschr {
-				goblas.Zscal(toPtr(j-1), &signbc, t.CVector(0, j-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(&j, &signbc, h.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(j-1, signbc, t.CVector(0, j-1), 1)
+				goblas.Zscal(j, signbc, h.CVector(0, j-1), 1)
 			} else {
-				goblas.Zscal(func() *int { y := 1; return &y }(), &signbc, h.CVector(j-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(1, signbc, h.CVector(j-1, j-1), 1)
 			}
 			if ilz {
-				goblas.Zscal(n, &signbc, z.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(*n, signbc, z.CVector(0, j-1), 1)
 			}
 		} else {
 			t.Set(j-1, j-1, czero)
@@ -355,13 +355,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 			signbc = cmplx.Conj(t.Get(ilast-1, ilast-1) / complex(absb, 0))
 			t.SetRe(ilast-1, ilast-1, absb)
 			if ilschr {
-				goblas.Zscal(toPtr(ilast-ifrstm), &signbc, t.CVector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(toPtr(ilast+1-ifrstm), &signbc, h.CVector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(ilast-ifrstm, signbc, t.CVector(ifrstm-1, ilast-1), 1)
+				goblas.Zscal(ilast+1-ifrstm, signbc, h.CVector(ifrstm-1, ilast-1), 1)
 			} else {
-				goblas.Zscal(func() *int { y := 1; return &y }(), &signbc, h.CVector(ilast-1, ilast-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(1, signbc, h.CVector(ilast-1, ilast-1), 1)
 			}
 			if ilz {
-				goblas.Zscal(n, &signbc, z.CVector(0, ilast-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(*n, signbc, z.CVector(0, ilast-1), 1)
 			}
 		} else {
 			t.Set(ilast-1, ilast-1, czero)
@@ -524,13 +524,13 @@ label190:
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
 			t.SetRe(j-1, j-1, absb)
 			if ilschr {
-				goblas.Zscal(toPtr(j-1), &signbc, t.CVector(0, j-1), func() *int { y := 1; return &y }())
-				goblas.Zscal(&j, &signbc, h.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(j-1, signbc, t.CVector(0, j-1), 1)
+				goblas.Zscal(j, signbc, h.CVector(0, j-1), 1)
 			} else {
-				goblas.Zscal(func() *int { y := 1; return &y }(), &signbc, h.CVector(j-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(1, signbc, h.CVector(j-1, j-1), 1)
 			}
 			if ilz {
-				goblas.Zscal(n, &signbc, z.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zscal(*n, signbc, z.CVector(0, j-1), 1)
 			}
 		} else {
 			t.Set(j-1, j-1, czero)

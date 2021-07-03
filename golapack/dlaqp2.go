@@ -26,10 +26,10 @@ func Dlaqp2(m, n, offset *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, vn1, v
 		offpi = (*offset) + i
 
 		//        Determine ith pivot column and swap if necessary.
-		pvt = (i - 1) + goblas.Idamax(toPtr((*n)-i+1), vn1.Off(i-1), toPtr(1))
+		pvt = (i - 1) + goblas.Idamax((*n)-i+1, vn1.Off(i-1), 1)
 
 		if pvt != i {
-			goblas.Dswap(m, a.Vector(0, pvt-1), toPtr(1), a.Vector(0, i-1), toPtr(1))
+			goblas.Dswap(*m, a.Vector(0, pvt-1), 1, a.Vector(0, i-1), 1)
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[i-1]
 			(*jpvt)[i-1] = itemp
@@ -62,7 +62,7 @@ func Dlaqp2(m, n, offset *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, vn1, v
 				temp2 = temp * math.Pow(vn1.Get(j-1)/vn2.Get(j-1), 2)
 				if temp2 <= tol3z {
 					if offpi < (*m) {
-						vn1.Set(j-1, goblas.Dnrm2(toPtr((*m)-offpi), a.Vector(offpi+1-1, j-1), toPtr(1)))
+						vn1.Set(j-1, goblas.Dnrm2((*m)-offpi, a.Vector(offpi+1-1, j-1), 1))
 						vn2.Set(j-1, vn1.Get(j-1))
 					} else {
 						vn1.Set(j-1, zero)

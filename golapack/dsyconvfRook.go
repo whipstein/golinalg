@@ -87,7 +87,7 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip = (*ipiv)[i-1]
 					if i < (*n) {
 						if ip != i {
-							goblas.Dswap(toPtr((*n)-i), a.Vector(i-1, i+1-1), lda, a.Vector(ip-1, i+1-1), lda)
+							goblas.Dswap((*n)-i, a.Vector(i-1, i+1-1), *lda, a.Vector(ip-1, i+1-1), *lda)
 						}
 					}
 
@@ -100,10 +100,10 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip2 = -(*ipiv)[i-1-1]
 					if i < (*n) {
 						if ip != i {
-							goblas.Dswap(toPtr((*n)-i), a.Vector(i-1, i+1-1), lda, a.Vector(ip-1, i+1-1), lda)
+							goblas.Dswap((*n)-i, a.Vector(i-1, i+1-1), *lda, a.Vector(ip-1, i+1-1), *lda)
 						}
 						if ip2 != (i - 1) {
-							goblas.Dswap(toPtr((*n)-i), a.Vector(i-1-1, i+1-1), lda, a.Vector(ip2-1, i+1-1), lda)
+							goblas.Dswap((*n)-i, a.Vector(i-1-1, i+1-1), *lda, a.Vector(ip2-1, i+1-1), *lda)
 						}
 					}
 					i = i - 1
@@ -129,7 +129,7 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip = (*ipiv)[i-1]
 					if i < (*n) {
 						if ip != i {
-							goblas.Dswap(toPtr((*n)-i), a.Vector(ip-1, i+1-1), lda, a.Vector(i-1, i+1-1), lda)
+							goblas.Dswap((*n)-i, a.Vector(ip-1, i+1-1), *lda, a.Vector(i-1, i+1-1), *lda)
 						}
 					}
 
@@ -143,10 +143,10 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip2 = -(*ipiv)[i-1-1]
 					if i < (*n) {
 						if ip2 != (i - 1) {
-							goblas.Dswap(toPtr((*n)-i), a.Vector(ip2-1, i+1-1), lda, a.Vector(i-1-1, i+1-1), lda)
+							goblas.Dswap((*n)-i, a.Vector(ip2-1, i+1-1), *lda, a.Vector(i-1-1, i+1-1), *lda)
 						}
 						if ip != i {
-							goblas.Dswap(toPtr((*n)-i), a.Vector(ip-1, i+1-1), lda, a.Vector(i-1, i+1-1), lda)
+							goblas.Dswap((*n)-i, a.Vector(ip-1, i+1-1), *lda, a.Vector(i-1, i+1-1), *lda)
 						}
 					}
 
@@ -205,7 +205,7 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip = (*ipiv)[i-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Dswap(toPtr(i-1), a.Vector(i-1, 0), lda, a.Vector(ip-1, 0), lda)
+							goblas.Dswap(i-1, a.Vector(i-1, 0), *lda, a.Vector(ip-1, 0), *lda)
 						}
 					}
 
@@ -218,10 +218,10 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip2 = -(*ipiv)[i+1-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Dswap(toPtr(i-1), a.Vector(i-1, 0), lda, a.Vector(ip-1, 0), lda)
+							goblas.Dswap(i-1, a.Vector(i-1, 0), *lda, a.Vector(ip-1, 0), *lda)
 						}
 						if ip2 != (i + 1) {
-							goblas.Dswap(toPtr(i-1), a.Vector(i+1-1, 0), lda, a.Vector(ip2-1, 0), lda)
+							goblas.Dswap(i-1, a.Vector(i+1-1, 0), *lda, a.Vector(ip2-1, 0), *lda)
 						}
 					}
 					i = i + 1
@@ -247,7 +247,7 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip = (*ipiv)[i-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Dswap(toPtr(i-1), a.Vector(ip-1, 0), lda, a.Vector(i-1, 0), lda)
+							goblas.Dswap(i-1, a.Vector(ip-1, 0), *lda, a.Vector(i-1, 0), *lda)
 						}
 					}
 
@@ -261,10 +261,10 @@ func DsyconvfRook(uplo, way byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector
 					ip2 = -(*ipiv)[i+1-1]
 					if i > 1 {
 						if ip2 != (i + 1) {
-							goblas.Dswap(toPtr(i-1), a.Vector(ip2-1, 0), lda, a.Vector(i+1-1, 0), lda)
+							goblas.Dswap(i-1, a.Vector(ip2-1, 0), *lda, a.Vector(i+1-1, 0), *lda)
 						}
 						if ip != i {
-							goblas.Dswap(toPtr(i-1), a.Vector(ip-1, 0), lda, a.Vector(i-1, 0), lda)
+							goblas.Dswap(i-1, a.Vector(ip-1, 0), *lda, a.Vector(i-1, 0), *lda)
 						}
 					}
 

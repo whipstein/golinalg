@@ -16,6 +16,8 @@ import (
 func Dppt02(uplo byte, n, nrhs *int, a *mat.Vector, x *mat.Matrix, ldx *int, b *mat.Matrix, ldb *int, rwork *mat.Vector, resid *float64) {
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -36,15 +38,15 @@ func Dppt02(uplo byte, n, nrhs *int, a *mat.Vector, x *mat.Matrix, ldx *int, b *
 
 	//     Compute  B - A*X  for the matrix of right hand sides B.
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dspmv(mat.UploByte(uplo), n, toPtrf64(-one), a, x.Vector(0, j-1), toPtr(1), &one, b.Vector(0, j-1), toPtr(1))
+		err = goblas.Dspmv(mat.UploByte(uplo), *n, -one, a, x.Vector(0, j-1), 1, one, b.Vector(0, j-1), 1)
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1), toPtr(1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1), toPtr(1))
+		bnorm = goblas.Dasum(*n, b.Vector(0, j-1), 1)
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

@@ -398,7 +398,7 @@ label160:
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Dswap(n, z.Vector(0, i-1), toPtr(1), z.Vector(0, k-1), toPtr(1))
+				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, k-1), 1)
 			}
 		}
 	}

@@ -104,6 +104,6 @@ func Dsbev(jobz, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, w *mat.Vector
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, toPtr(1))
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 }

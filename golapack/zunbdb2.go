@@ -76,7 +76,7 @@ func Zunbdb2(m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x21 *mat.CMatrix, ldx21
 	for i = 1; i <= (*p); i++ {
 
 		if i > 1 {
-			goblas.Zdrot(toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11, x21.CVector(i-1-1, i-1), ldx21, &c, &s)
+			goblas.Zdrot((*q)-i+1, x11.CVector(i-1, i-1), *ldx11, x21.CVector(i-1-1, i-1), *ldx21, c, s)
 		}
 		Zlacgv(toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11)
 		Zlarfgp(toPtr((*q)-i+1), x11.GetPtr(i-1, i-1), x11.CVector(i-1, i+1-1), ldx11, tauq1.GetPtr(i-1))
@@ -85,11 +85,11 @@ func Zunbdb2(m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x21 *mat.CMatrix, ldx21
 		Zlarf('R', toPtr((*p)-i), toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11, tauq1.GetPtr(i-1), x11.Off(i+1-1, i-1), ldx11, work.Off(ilarf-1))
 		Zlarf('R', toPtr((*m)-(*p)-i+1), toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11, tauq1.GetPtr(i-1), x21.Off(i-1, i-1), ldx21, work.Off(ilarf-1))
 		Zlacgv(toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11)
-		s = math.Sqrt(math.Pow(goblas.Dznrm2(toPtr((*p)-i), x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }()), 2) + math.Pow(goblas.Dznrm2(toPtr((*m)-(*p)-i+1), x21.CVector(i-1, i-1), func() *int { y := 1; return &y }()), 2))
+		s = math.Sqrt(math.Pow(goblas.Dznrm2((*p)-i, x11.CVector(i+1-1, i-1), 1), 2) + math.Pow(goblas.Dznrm2((*m)-(*p)-i+1, x21.CVector(i-1, i-1), 1), 2))
 		theta.Set(i-1, math.Atan2(s, c))
 
 		Zunbdb5(toPtr((*p)-i), toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), x21.CVector(i-1, i-1), func() *int { y := 1; return &y }(), x11.Off(i+1-1, i+1-1), ldx11, x21.Off(i-1, i+1-1), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
-		goblas.Zscal(toPtr((*p)-i), &negone, x11.CVector(i+1-1, i-1), func() *int { y := 1; return &y }())
+		goblas.Zscal((*p)-i, negone, x11.CVector(i+1-1, i-1), 1)
 		Zlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1), x21.CVector(i+1-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
 		if i < (*p) {
 			Zlarfgp(toPtr((*p)-i), x11.GetPtr(i+1-1, i-1), x11.CVector(i+2-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))

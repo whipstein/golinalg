@@ -16,6 +16,8 @@ import (
 func Dtrt02(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix, ldx *int, b *mat.Matrix, ldb *int, work *mat.Vector, resid *float64) {
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -44,11 +46,11 @@ func Dtrt02(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, x *ma
 	//        norm(op(A)*x - b) / ( norm(op(A)) * norm(x) * EPS )
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dcopy(n, x.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, a, lda, work, toPtr(1))
-		goblas.Daxpy(n, toPtrf64(-one), b.Vector(0, j-1), toPtr(1), work, toPtr(1))
-		bnorm = goblas.Dasum(n, work, toPtr(1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1), toPtr(1))
+		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work, 1)
+		err = goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work, 1)
+		goblas.Daxpy(*n, -one, b.Vector(0, j-1), 1, work, 1)
+		bnorm = goblas.Dasum(*n, work, 1)
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

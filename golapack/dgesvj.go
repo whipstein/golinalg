@@ -406,11 +406,11 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 
 				for p = igl; p <= minint(igl+kbl-1, (*n)-1); p++ {
 					//     .. de Rijk's pivoting
-					q = goblas.Idamax(toPtr((*n)-p+1), sva.Off(p-1), toPtr(1)) + p - 1
+					q = goblas.Idamax((*n)-p+1, sva.Off(p-1), 1) + p - 1
 					if p != q {
-						goblas.Dswap(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+						goblas.Dswap(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
 						if rsvec {
-							goblas.Dswap(&mvl, v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
+							goblas.Dswap(mvl, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
 						}
 						temp1 = sva.Get(p - 1)
 						sva.Set(p-1, sva.Get(q-1))
@@ -433,7 +433,7 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 						//        If properly implemented DNRM2 is available, the IF-THEN-ELSE
 						//        below should read "AAPP = DNRM2( M, A(1,p), 1 ) * WORK(p)".
 						if (sva.Get(p-1) < rootbig) && (sva.Get(p-1) > rootsfmin) {
-							sva.Set(p-1, goblas.Dnrm2(m, a.Vector(0, p-1), toPtr(1))*work.Get(p-1))
+							sva.Set(p-1, goblas.Dnrm2(*m, a.Vector(0, p-1), 1)*work.Get(p-1))
 						} else {
 							temp1 = zero
 							aapp = one
@@ -459,20 +459,20 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 								if aaqq >= one {
 									rotok = (small * aapp) <= aaqq
 									if aapp < (big / aaqq) {
-										aapq = (goblas.Ddot(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1)) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
+										aapq = (goblas.Ddot(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
 									} else {
-										goblas.Dcopy(m, a.Vector(0, p-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+										goblas.Dcopy(*m, a.Vector(0, p-1), 1, work.Off((*n)+1-1), 1)
 										Dlascl('G', toPtr(0), toPtr(0), &aapp, work.GetPtr(p-1), m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
-										aapq = goblas.Ddot(m, work.Off((*n)+1-1), toPtr(1), a.Vector(0, q-1), toPtr(1)) * work.Get(q-1) / aaqq
+										aapq = goblas.Ddot(*m, work.Off((*n)+1-1), 1, a.Vector(0, q-1), 1) * work.Get(q-1) / aaqq
 									}
 								} else {
 									rotok = aapp <= (aaqq / small)
 									if aapp > (small / aaqq) {
-										aapq = (goblas.Ddot(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1)) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
+										aapq = (goblas.Ddot(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
 									} else {
-										goblas.Dcopy(m, a.Vector(0, q-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+										goblas.Dcopy(*m, a.Vector(0, q-1), 1, work.Off((*n)+1-1), 1)
 										Dlascl('G', toPtr(0), toPtr(0), &aaqq, work.GetPtr(q-1), m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
-										aapq = goblas.Ddot(m, work.Off((*n)+1-1), toPtr(1), a.Vector(0, p-1), toPtr(1)) * work.Get(p-1) / aapp
+										aapq = goblas.Ddot(*m, work.Off((*n)+1-1), 1, a.Vector(0, p-1), 1) * work.Get(p-1) / aapp
 									}
 								}
 
@@ -499,9 +499,9 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 											t = half / theta
 											fastr.H21 = t * work.Get(p-1) / work.Get(q-1)
 											fastr.H12 = -t * work.Get(q-1) / work.Get(p-1)
-											goblas.Drotm(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1), fastr)
+											goblas.Drotm(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1, fastr)
 											if rsvec {
-												goblas.Drotm(&mvl, v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1), fastr)
+												goblas.Drotm(mvl, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1, fastr)
 											}
 											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one+t*apoaq*aapq)))
 											aapp = aapp * math.Sqrt(maxf64(zero, one-t*aqoap*aapq))
@@ -526,48 +526,48 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 													fastr.H12 = -t * aqoap
 													work.Set(p-1, work.Get(p-1)*cs)
 													work.Set(q-1, work.Get(q-1)*cs)
-													goblas.Drotm(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1), fastr)
+													goblas.Drotm(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1, fastr)
 													if rsvec {
-														goblas.Drotm(&mvl, v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1), fastr)
+														goblas.Drotm(mvl, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1, fastr)
 													}
 												} else {
-													goblas.Daxpy(m, toPtrf64(-t*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
-													goblas.Daxpy(m, toPtrf64(cs*sn*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+													goblas.Daxpy(*m, -t*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
+													goblas.Daxpy(*m, cs*sn*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
 													work.Set(p-1, work.Get(p-1)*cs)
 													work.Set(q-1, work.Get(q-1)/cs)
 													if rsvec {
-														goblas.Daxpy(&mvl, toPtrf64(-t*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
-														goblas.Daxpy(&mvl, toPtrf64(cs*sn*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
+														goblas.Daxpy(mvl, -t*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
+														goblas.Daxpy(mvl, cs*sn*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
 													}
 												}
 											} else {
 												if work.Get(q-1) >= one {
-													goblas.Daxpy(m, toPtrf64(t*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
-													goblas.Daxpy(m, toPtrf64(-cs*sn*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
+													goblas.Daxpy(*m, t*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
+													goblas.Daxpy(*m, -cs*sn*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
 													work.Set(p-1, work.Get(p-1)/cs)
 													work.Set(q-1, work.Get(q-1)*cs)
 													if rsvec {
-														goblas.Daxpy(&mvl, toPtrf64(t*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
-														goblas.Daxpy(&mvl, toPtrf64(-cs*sn*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
+														goblas.Daxpy(mvl, t*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
+														goblas.Daxpy(mvl, -cs*sn*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
 													}
 												} else {
 													if work.Get(p-1) >= work.Get(q-1) {
-														goblas.Daxpy(m, toPtrf64(-t*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
-														goblas.Daxpy(m, toPtrf64(cs*sn*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+														goblas.Daxpy(*m, -t*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
+														goblas.Daxpy(*m, cs*sn*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
 														work.Set(p-1, work.Get(p-1)*cs)
 														work.Set(q-1, work.Get(q-1)/cs)
 														if rsvec {
-															goblas.Daxpy(&mvl, toPtrf64(-t*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
-															goblas.Daxpy(&mvl, toPtrf64(cs*sn*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
+															goblas.Daxpy(mvl, -t*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
+															goblas.Daxpy(mvl, cs*sn*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
 														}
 													} else {
-														goblas.Daxpy(m, toPtrf64(t*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
-														goblas.Daxpy(m, toPtrf64(-cs*sn*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
+														goblas.Daxpy(*m, t*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
+														goblas.Daxpy(*m, -cs*sn*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
 														work.Set(p-1, work.Get(p-1)/cs)
 														work.Set(q-1, work.Get(q-1)*cs)
 														if rsvec {
-															goblas.Daxpy(&mvl, toPtrf64(t*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
-															goblas.Daxpy(&mvl, toPtrf64(-cs*sn*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
+															goblas.Daxpy(mvl, t*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
+															goblas.Daxpy(mvl, -cs*sn*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
 														}
 													}
 												}
@@ -576,11 +576,11 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 
 									} else {
 										//              .. have to use modified Gram-Schmidt like transformation
-										goblas.Dcopy(m, a.Vector(0, p-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+										goblas.Dcopy(*m, a.Vector(0, p-1), 1, work.Off((*n)+1-1), 1)
 										Dlascl('G', toPtr(0), toPtr(0), &aapp, &one, m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
 										Dlascl('G', toPtr(0), toPtr(0), &aaqq, &one, m, toPtr(1), a.Off(0, q-1), lda, &ierr)
 										temp1 = -aapq * work.Get(p-1) / work.Get(q-1)
-										goblas.Daxpy(m, &temp1, work.Off((*n)+1-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+										goblas.Daxpy(*m, temp1, work.Off((*n)+1-1), 1, a.Vector(0, q-1), 1)
 										Dlascl('G', toPtr(0), toPtr(0), &one, &aaqq, m, toPtr(1), a.Off(0, q-1), lda, &ierr)
 										sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one-aapq*aapq)))
 										mxsinj = maxf64(mxsinj, sfmin)
@@ -592,7 +592,7 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 
 									if math.Pow(sva.Get(q-1)/aaqq, 2) <= rooteps {
 										if (aaqq < rootbig) && (aaqq > rootsfmin) {
-											sva.Set(q-1, goblas.Dnrm2(m, a.Vector(0, q-1), toPtr(1))*work.Get(q-1))
+											sva.Set(q-1, goblas.Dnrm2(*m, a.Vector(0, q-1), 1)*work.Get(q-1))
 										} else {
 											t = zero
 											aaqq = one
@@ -602,7 +602,7 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 									}
 									if (aapp / aapp0) <= rooteps {
 										if (aapp < rootbig) && (aapp > rootsfmin) {
-											aapp = goblas.Dnrm2(m, a.Vector(0, p-1), toPtr(1)) * work.Get(p-1)
+											aapp = goblas.Dnrm2(*m, a.Vector(0, p-1), 1) * work.Get(p-1)
 										} else {
 											t = zero
 											aapp = one
@@ -690,11 +690,11 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 										rotok = (small * aaqq) <= aapp
 									}
 									if aapp < (big / aaqq) {
-										aapq = (goblas.Ddot(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1)) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
+										aapq = (goblas.Ddot(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
 									} else {
-										goblas.Dcopy(m, a.Vector(0, p-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+										goblas.Dcopy(*m, a.Vector(0, p-1), 1, work.Off((*n)+1-1), 1)
 										Dlascl('G', toPtr(0), toPtr(0), &aapp, work.GetPtr(p-1), m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
-										aapq = goblas.Ddot(m, work.Off((*n)+1-1), toPtr(1), a.Vector(0, q-1), toPtr(1)) * work.Get(q-1) / aaqq
+										aapq = goblas.Ddot(*m, work.Off((*n)+1-1), 1, a.Vector(0, q-1), 1) * work.Get(q-1) / aaqq
 									}
 								} else {
 									if aapp >= aaqq {
@@ -703,11 +703,11 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 										rotok = aaqq <= (aapp / small)
 									}
 									if aapp > (small / aaqq) {
-										aapq = (goblas.Ddot(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1)) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
+										aapq = (goblas.Ddot(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1) * work.Get(p-1) * work.Get(q-1) / aaqq) / aapp
 									} else {
-										goblas.Dcopy(m, a.Vector(0, q-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+										goblas.Dcopy(*m, a.Vector(0, q-1), 1, work.Off((*n)+1-1), 1)
 										Dlascl('G', toPtr(0), toPtr(0), &aaqq, work.GetPtr(q-1), m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
-										aapq = goblas.Ddot(m, work.Off((*n)+1-1), toPtr(1), a.Vector(0, p-1), toPtr(1)) * work.Get(p-1) / aapp
+										aapq = goblas.Ddot(*m, work.Off((*n)+1-1), 1, a.Vector(0, p-1), 1) * work.Get(p-1) / aapp
 									}
 								}
 
@@ -733,9 +733,9 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 											t = half / theta
 											fastr.H21 = t * work.Get(p-1) / work.Get(q-1)
 											fastr.H12 = -t * work.Get(q-1) / work.Get(p-1)
-											goblas.Drotm(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1), fastr)
+											goblas.Drotm(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1, fastr)
 											if rsvec {
-												goblas.Drotm(&mvl, v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1), fastr)
+												goblas.Drotm(mvl, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1, fastr)
 											}
 											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one+t*apoaq*aapq)))
 											aapp = aapp * math.Sqrt(maxf64(zero, one-t*aqoap*aapq))
@@ -762,48 +762,48 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 													fastr.H12 = -t * aqoap
 													work.Set(p-1, work.Get(p-1)*cs)
 													work.Set(q-1, work.Get(q-1)*cs)
-													goblas.Drotm(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1), fastr)
+													goblas.Drotm(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1, fastr)
 													if rsvec {
-														goblas.Drotm(&mvl, v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1), fastr)
+														goblas.Drotm(mvl, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1, fastr)
 													}
 												} else {
-													goblas.Daxpy(m, toPtrf64(-t*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
-													goblas.Daxpy(m, toPtrf64(cs*sn*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+													goblas.Daxpy(*m, -t*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
+													goblas.Daxpy(*m, cs*sn*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
 													if rsvec {
-														goblas.Daxpy(&mvl, toPtrf64(-t*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
-														goblas.Daxpy(&mvl, toPtrf64(cs*sn*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
+														goblas.Daxpy(mvl, -t*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
+														goblas.Daxpy(mvl, cs*sn*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
 													}
 													work.Set(p-1, work.Get(p-1)*cs)
 													work.Set(q-1, work.Get(q-1)/cs)
 												}
 											} else {
 												if work.Get(q-1) >= one {
-													goblas.Daxpy(m, toPtrf64(t*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
-													goblas.Daxpy(m, toPtrf64(-cs*sn*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
+													goblas.Daxpy(*m, t*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
+													goblas.Daxpy(*m, -cs*sn*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
 													if rsvec {
-														goblas.Daxpy(&mvl, toPtrf64(t*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
-														goblas.Daxpy(&mvl, toPtrf64(-cs*sn*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
+														goblas.Daxpy(mvl, t*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
+														goblas.Daxpy(mvl, -cs*sn*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
 													}
 													work.Set(p-1, work.Get(p-1)/cs)
 													work.Set(q-1, work.Get(q-1)*cs)
 												} else {
 													if work.Get(p-1) >= work.Get(q-1) {
-														goblas.Daxpy(m, toPtrf64(-t*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
-														goblas.Daxpy(m, toPtrf64(cs*sn*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+														goblas.Daxpy(*m, -t*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
+														goblas.Daxpy(*m, cs*sn*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
 														work.Set(p-1, work.Get(p-1)*cs)
 														work.Set(q-1, work.Get(q-1)/cs)
 														if rsvec {
-															goblas.Daxpy(&mvl, toPtrf64(-t*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
-															goblas.Daxpy(&mvl, toPtrf64(cs*sn*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
+															goblas.Daxpy(mvl, -t*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
+															goblas.Daxpy(mvl, cs*sn*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
 														}
 													} else {
-														goblas.Daxpy(m, toPtrf64(t*apoaq), a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
-														goblas.Daxpy(m, toPtrf64(-cs*sn*aqoap), a.Vector(0, q-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
+														goblas.Daxpy(*m, t*apoaq, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
+														goblas.Daxpy(*m, -cs*sn*aqoap, a.Vector(0, q-1), 1, a.Vector(0, p-1), 1)
 														work.Set(p-1, work.Get(p-1)/cs)
 														work.Set(q-1, work.Get(q-1)*cs)
 														if rsvec {
-															goblas.Daxpy(&mvl, toPtrf64(t*apoaq), v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
-															goblas.Daxpy(&mvl, toPtrf64(-cs*sn*aqoap), v.Vector(0, q-1), toPtr(1), v.Vector(0, p-1), toPtr(1))
+															goblas.Daxpy(mvl, t*apoaq, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
+															goblas.Daxpy(mvl, -cs*sn*aqoap, v.Vector(0, q-1), 1, v.Vector(0, p-1), 1)
 														}
 													}
 												}
@@ -812,20 +812,20 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 
 									} else {
 										if aapp > aaqq {
-											goblas.Dcopy(m, a.Vector(0, p-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+											goblas.Dcopy(*m, a.Vector(0, p-1), 1, work.Off((*n)+1-1), 1)
 											Dlascl('G', toPtr(0), toPtr(0), &aapp, &one, m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
 											Dlascl('G', toPtr(0), toPtr(0), &aaqq, &one, m, toPtr(1), a.Off(0, q-1), lda, &ierr)
 											temp1 = -aapq * work.Get(p-1) / work.Get(q-1)
-											goblas.Daxpy(m, &temp1, work.Off((*n)+1-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+											goblas.Daxpy(*m, temp1, work.Off((*n)+1-1), 1, a.Vector(0, q-1), 1)
 											Dlascl('G', toPtr(0), toPtr(0), &one, &aaqq, m, toPtr(1), a.Off(0, q-1), lda, &ierr)
 											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one-aapq*aapq)))
 											mxsinj = maxf64(mxsinj, sfmin)
 										} else {
-											goblas.Dcopy(m, a.Vector(0, q-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+											goblas.Dcopy(*m, a.Vector(0, q-1), 1, work.Off((*n)+1-1), 1)
 											Dlascl('G', toPtr(0), toPtr(0), &aaqq, &one, m, toPtr(1), work.MatrixOff((*n)+1-1, *lda, opts), lda, &ierr)
 											Dlascl('G', toPtr(0), toPtr(0), &aapp, &one, m, toPtr(1), a.Off(0, p-1), lda, &ierr)
 											temp1 = -aapq * work.Get(q-1) / work.Get(p-1)
-											goblas.Daxpy(m, &temp1, work.Off((*n)+1-1), toPtr(1), a.Vector(0, p-1), toPtr(1))
+											goblas.Daxpy(*m, temp1, work.Off((*n)+1-1), 1, a.Vector(0, p-1), 1)
 											Dlascl('G', toPtr(0), toPtr(0), &one, &aapp, m, toPtr(1), a.Off(0, p-1), lda, &ierr)
 											sva.Set(p-1, aapp*math.Sqrt(maxf64(zero, one-aapq*aapq)))
 											mxsinj = maxf64(mxsinj, sfmin)
@@ -837,7 +837,7 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 									//           .. recompute SVA(q)
 									if math.Pow(sva.Get(q-1)/aaqq, 2) <= rooteps {
 										if (aaqq < rootbig) && (aaqq > rootsfmin) {
-											sva.Set(q-1, goblas.Dnrm2(m, a.Vector(0, q-1), toPtr(1))*work.Get(q-1))
+											sva.Set(q-1, goblas.Dnrm2(*m, a.Vector(0, q-1), 1)*work.Get(q-1))
 										} else {
 											t = zero
 											aaqq = one
@@ -847,7 +847,7 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 									}
 									if math.Pow(aapp/aapp0, 2) <= rooteps {
 										if (aapp < rootbig) && (aapp > rootsfmin) {
-											aapp = goblas.Dnrm2(m, a.Vector(0, p-1), toPtr(1)) * work.Get(p-1)
+											aapp = goblas.Dnrm2(*m, a.Vector(0, p-1), 1) * work.Get(p-1)
 										} else {
 											t = zero
 											aapp = one
@@ -914,7 +914,7 @@ func Dgesvj(joba, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *int, sva *mat.
 		//
 		//     .. update SVA(N)
 		if (sva.Get((*n)-1) < rootbig) && (sva.Get((*n)-1) > rootsfmin) {
-			sva.Set((*n)-1, goblas.Dnrm2(m, a.Vector(0, (*n)-1), toPtr(1))*work.Get((*n)-1))
+			sva.Set((*n)-1, goblas.Dnrm2(*m, a.Vector(0, (*n)-1), 1)*work.Get((*n)-1))
 		} else {
 			t = zero
 			aapp = one
@@ -957,7 +957,7 @@ label1995:
 	n2 = 0
 	n4 = 0
 	for p = 1; p <= (*n)-1; p++ {
-		q = goblas.Idamax(toPtr((*n)-p+1), sva.Off(p-1), toPtr(1)) + p - 1
+		q = goblas.Idamax((*n)-p+1, sva.Off(p-1), 1) + p - 1
 		if p != q {
 			temp1 = sva.Get(p - 1)
 			sva.Set(p-1, sva.Get(q-1))
@@ -965,9 +965,9 @@ label1995:
 			temp1 = work.Get(p - 1)
 			work.Set(p-1, work.Get(q-1))
 			work.Set(q-1, temp1)
-			goblas.Dswap(m, a.Vector(0, p-1), toPtr(1), a.Vector(0, q-1), toPtr(1))
+			goblas.Dswap(*m, a.Vector(0, p-1), 1, a.Vector(0, q-1), 1)
 			if rsvec {
-				goblas.Dswap(&mvl, v.Vector(0, p-1), toPtr(1), v.Vector(0, q-1), toPtr(1))
+				goblas.Dswap(mvl, v.Vector(0, p-1), 1, v.Vector(0, q-1), 1)
 			}
 		}
 		if sva.Get(p-1) != zero {
@@ -987,7 +987,7 @@ label1995:
 	//     Normalize the left singular vectors.
 	if lsvec || uctol {
 		for p = 1; p <= n2; p++ {
-			goblas.Dscal(m, toPtrf64(work.Get(p-1)/sva.Get(p-1)), a.Vector(0, p-1), toPtr(1))
+			goblas.Dscal(*m, work.Get(p-1)/sva.Get(p-1), a.Vector(0, p-1), 1)
 		}
 	}
 
@@ -995,12 +995,12 @@ label1995:
 	if rsvec {
 		if applv {
 			for p = 1; p <= (*n); p++ {
-				goblas.Dscal(&mvl, work.GetPtr(p-1), v.Vector(0, p-1), toPtr(1))
+				goblas.Dscal(mvl, work.Get(p-1), v.Vector(0, p-1), 1)
 			}
 		} else {
 			for p = 1; p <= (*n); p++ {
-				temp1 = one / goblas.Dnrm2(&mvl, v.Vector(0, p-1), toPtr(1))
-				goblas.Dscal(&mvl, &temp1, v.Vector(0, p-1), toPtr(1))
+				temp1 = one / goblas.Dnrm2(mvl, v.Vector(0, p-1), 1)
+				goblas.Dscal(mvl, temp1, v.Vector(0, p-1), 1)
 			}
 		}
 	}

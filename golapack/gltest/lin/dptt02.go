@@ -40,8 +40,8 @@ func Dptt02(n, nrhs *int, d, e *mat.Vector, x *mat.Matrix, ldx *int, b *mat.Matr
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1), toPtr(1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1), toPtr(1))
+		bnorm = goblas.Dasum(*n, b.Vector(0, j-1), 1)
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

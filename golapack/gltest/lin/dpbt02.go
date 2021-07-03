@@ -13,6 +13,8 @@ import (
 func Dpbt02(uplo byte, n, kd, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix, ldx *int, b *mat.Matrix, ldb *int, rwork *mat.Vector, resid *float64) {
 	var anorm, bnorm, eps, one, xnorm, zero float64
 	var j int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -33,15 +35,15 @@ func Dpbt02(uplo byte, n, kd, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix,
 
 	//     Compute  B - A*X
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dsbmv(mat.UploByte(uplo), n, kd, toPtrf64(-one), a, lda, x.Vector(0, j-1), toPtr(1), &one, b.Vector(0, j-1), toPtr(1))
+		err = goblas.Dsbmv(mat.UploByte(uplo), *n, *kd, -one, a, *lda, x.Vector(0, j-1), 1, one, b.Vector(0, j-1), 1)
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//          norm( B - A*X ) / ( norm(A) * norm(X) * EPS )
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1), toPtr(1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1), toPtr(1))
+		bnorm = goblas.Dasum(*n, b.Vector(0, j-1), 1)
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {

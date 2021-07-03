@@ -203,7 +203,7 @@ func Zgeesx(jobvs, sort byte, _select func(complex128) bool, sense byte, n *int,
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Zlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Zcopy(n, a.CVector(0, 0), toPtr((*lda)+1), w, func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, a.CVector(0, 0), (*lda)+1, w, 1)
 		if (wantsv || wantsb) && (*info) == 0 {
 			dum.Set(0, (*rcondv))
 			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), &ierr)

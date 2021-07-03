@@ -276,10 +276,10 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 			t = cone
 		}
 		if wantq {
-			goblas.Zscal(m, &t, q.CVector(0, i-1), func() *int { y := 1; return &y }())
+			goblas.Zscal(*m, t, q.CVector(0, i-1), 1)
 		}
 		if wantc {
-			goblas.Zscal(ncc, toPtrc128(cmplx.Conj(t)), c.CVector(i-1, 0), ldc)
+			goblas.Zscal(*ncc, cmplx.Conj(t), c.CVector(i-1, 0), *ldc)
 		}
 		if i < minmn {
 			if (*ku) == 0 && (*kl) == 0 {
@@ -299,7 +299,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 					t = cone
 				}
 				if wantpt {
-					goblas.Zscal(n, &t, pt.CVector(i+1-1, 0), ldpt)
+					goblas.Zscal(*n, t, pt.CVector(i+1-1, 0), *ldpt)
 				}
 				t = ab.Get((*ku)+1-1, i+1-1) * cmplx.Conj(t)
 			}

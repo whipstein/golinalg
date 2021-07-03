@@ -85,8 +85,8 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 		//                  I=K+1                      J=1
 		for l = 1; l <= (*n); l++ {
 			for k = (*m); k >= 1; k-- {
-				suml = goblas.Zdotu(toPtr((*m)-k), a.CVector(k-1, minint(k+1, *m)-1), lda, c.CVector(minint(k+1, *m)-1, l-1), func() *int { y := 1; return &y }())
-				sumr = goblas.Zdotu(toPtr(l-1), c.CVector(k-1, 0), ldc, b.CVector(0, l-1), func() *int { y := 1; return &y }())
+				suml = goblas.Zdotu((*m)-k, a.CVector(k-1, minint(k+1, *m)-1), *lda, c.CVector(minint(k+1, *m)-1, l-1), 1)
+				sumr = goblas.Zdotu(l-1, c.CVector(k-1, 0), *ldc, b.CVector(0, l-1), 1)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*sumr)
 
 				scaloc = one
@@ -107,7 +107,7 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 
 				if scaloc != one {
 					for j = 1; j <= (*n); j++ {
-						goblas.Zdscal(m, &scaloc, c.CVector(0, j-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(*m, scaloc, c.CVector(0, j-1), 1)
 					}
 					(*scale) = (*scale) * scaloc
 				}
@@ -131,8 +131,8 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 		for l = 1; l <= (*n); l++ {
 			for k = 1; k <= (*m); k++ {
 
-				suml = goblas.Zdotc(toPtr(k-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), c.CVector(0, l-1), func() *int { y := 1; return &y }())
-				sumr = goblas.Zdotu(toPtr(l-1), c.CVector(k-1, 0), ldc, b.CVector(0, l-1), func() *int { y := 1; return &y }())
+				suml = goblas.Zdotc(k-1, a.CVector(0, k-1), 1, c.CVector(0, l-1), 1)
+				sumr = goblas.Zdotu(l-1, c.CVector(k-1, 0), *ldc, b.CVector(0, l-1), 1)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*sumr)
 
 				scaloc = one
@@ -154,7 +154,7 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 
 				if scaloc != one {
 					for j = 1; j <= (*n); j++ {
-						goblas.Zdscal(m, &scaloc, c.CVector(0, j-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(*m, scaloc, c.CVector(0, j-1), 1)
 					}
 					(*scale) = (*scale) * scaloc
 				}
@@ -181,8 +181,8 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 		for l = (*n); l >= 1; l-- {
 			for k = 1; k <= (*m); k++ {
 
-				suml = goblas.Zdotc(toPtr(k-1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), c.CVector(0, l-1), func() *int { y := 1; return &y }())
-				sumr = goblas.Zdotc(toPtr((*n)-l), c.CVector(k-1, minint(l+1, *n)-1), ldc, b.CVector(l-1, minint(l+1, *n)-1), ldb)
+				suml = goblas.Zdotc(k-1, a.CVector(0, k-1), 1, c.CVector(0, l-1), 1)
+				sumr = goblas.Zdotc((*n)-l, c.CVector(k-1, minint(l+1, *n)-1), *ldc, b.CVector(l-1, minint(l+1, *n)-1), *ldb)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*cmplx.Conj(sumr))
 
 				scaloc = one
@@ -204,7 +204,7 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 
 				if scaloc != one {
 					for j = 1; j <= (*n); j++ {
-						goblas.Zdscal(m, &scaloc, c.CVector(0, j-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(*m, scaloc, c.CVector(0, j-1), 1)
 					}
 					(*scale) = (*scale) * scaloc
 				}
@@ -228,8 +228,8 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 		for l = (*n); l >= 1; l-- {
 			for k = (*m); k >= 1; k-- {
 
-				suml = goblas.Zdotu(toPtr((*m)-k), a.CVector(k-1, minint(k+1, *m)-1), lda, c.CVector(minint(k+1, *m)-1, l-1), func() *int { y := 1; return &y }())
-				sumr = goblas.Zdotc(toPtr((*n)-l), c.CVector(k-1, minint(l+1, *n)-1), ldc, b.CVector(l-1, minint(l+1, *n)-1), ldb)
+				suml = goblas.Zdotu((*m)-k, a.CVector(k-1, minint(k+1, *m)-1), *lda, c.CVector(minint(k+1, *m)-1, l-1), 1)
+				sumr = goblas.Zdotc((*n)-l, c.CVector(k-1, minint(l+1, *n)-1), *ldc, b.CVector(l-1, minint(l+1, *n)-1), *ldb)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*cmplx.Conj(sumr))
 
 				scaloc = one
@@ -251,7 +251,7 @@ func Ztrsyl(trana, tranb byte, isgn, m, n *int, a *mat.CMatrix, lda *int, b *mat
 
 				if scaloc != one {
 					for j = 1; j <= (*n); j++ {
-						goblas.Zdscal(m, &scaloc, c.CVector(0, j-1), func() *int { y := 1; return &y }())
+						goblas.Zdscal(*m, scaloc, c.CVector(0, j-1), 1)
 					}
 					(*scale) = (*scale) * scaloc
 				}

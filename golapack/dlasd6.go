@@ -119,8 +119,8 @@ func Dlasd6(icompq, nl, nr, sqre *int, d, vf, vl *mat.Vector, alpha, beta *float
 
 	//     Save the poles if ICOMPQ = 1.
 	if (*icompq) == 1 {
-		goblas.Dcopy(k, d, toPtr(1), poles.VectorIdx(0), toPtr(1))
-		goblas.Dcopy(k, work.Off(isigma-1), toPtr(1), poles.Vector(0, 1), toPtr(1))
+		goblas.Dcopy(*k, d, 1, poles.VectorIdx(0), 1)
+		goblas.Dcopy(*k, work.Off(isigma-1), 1, poles.Vector(0, 1), 1)
 	}
 
 	//     Unscale.

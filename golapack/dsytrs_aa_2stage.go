@@ -13,6 +13,8 @@ func DsytrsAa2stage(uplo byte, n *int, nrhs *int, a *mat.Matrix, lda *int, tb *m
 	var upper bool
 	var one float64
 	var ldtb, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -52,7 +54,7 @@ func DsytrsAa2stage(uplo byte, n *int, nrhs *int, a *mat.Matrix, lda *int, tb *m
 			Dlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, func() *int { y := 1; return &y }())
 
 			//           Compute (U**T \ B) -> B    [ (U**T \P**T * B) ]
-			goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.Unit, toPtr((*n)-nb), nrhs, &one, a.Off(0, nb+1-1), lda, b.Off(nb+1-1, 0), ldb)
+			err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.Unit, (*n)-nb, *nrhs, one, a.Off(0, nb+1-1), *lda, b.Off(nb+1-1, 0), *ldb)
 
 		}
 
@@ -60,7 +62,7 @@ func DsytrsAa2stage(uplo byte, n *int, nrhs *int, a *mat.Matrix, lda *int, tb *m
 		Dgbtrs('N', n, &nb, &nb, nrhs, tb.Matrix(ldtb, opts), &ldtb, ipiv2, b, ldb, info)
 		if (*n) > nb {
 			//           Compute (U \ B) -> B   [ U \ (T \ (U**T \P**T * B) ) ]
-			goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.Unit, toPtr((*n)-nb), nrhs, &one, a.Off(0, nb+1-1), lda, b.Off(nb+1-1, 0), ldb)
+			err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.Unit, (*n)-nb, *nrhs, one, a.Off(0, nb+1-1), *lda, b.Off(nb+1-1, 0), *ldb)
 
 			//           Pivot, P * B -> B  [ P * (U \ (T \ (U**T \P**T * B) )) ]
 			Dlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, toPtr(-1))
@@ -74,7 +76,7 @@ func DsytrsAa2stage(uplo byte, n *int, nrhs *int, a *mat.Matrix, lda *int, tb *m
 			Dlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, func() *int { y := 1; return &y }())
 
 			//           Compute (L \ B) -> B    [ (L \P**T * B) ]
-			goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, toPtr((*n)-nb), nrhs, &one, a.Off(nb+1-1, 0), lda, b.Off(nb+1-1, 0), ldb)
+			err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, (*n)-nb, *nrhs, one, a.Off(nb+1-1, 0), *lda, b.Off(nb+1-1, 0), *ldb)
 
 		}
 
@@ -82,7 +84,7 @@ func DsytrsAa2stage(uplo byte, n *int, nrhs *int, a *mat.Matrix, lda *int, tb *m
 		Dgbtrs('N', n, &nb, &nb, nrhs, tb.Matrix(ldtb, opts), &ldtb, ipiv2, b, ldb, info)
 		if (*n) > nb {
 			//           Compute (L**T \ B) -> B   [ L**T \ (T \ (L \P**T * B) ) ]
-			goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, toPtr((*n)-nb), nrhs, &one, a.Off(nb+1-1, 0), lda, b.Off(nb+1-1, 0), ldb)
+			err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, (*n)-nb, *nrhs, one, a.Off(nb+1-1, 0), *lda, b.Off(nb+1-1, 0), *ldb)
 
 			//           Pivot, P * B -> B  [ P * (L**T \ (T \ (L \P**T * B) )) ]
 			Dlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, toPtr(-1))

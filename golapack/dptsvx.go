@@ -40,9 +40,9 @@ func Dptsvx(fact byte, n, nrhs *int, d, e, df, ef *mat.Vector, b *mat.Matrix, ld
 
 	if nofact {
 		//        Compute the L*D*L**T (or U**T*D*U) factorization of A.
-		goblas.Dcopy(n, d, toPtr(1), df, toPtr(1))
+		goblas.Dcopy(*n, d, 1, df, 1)
 		if (*n) > 1 {
-			goblas.Dcopy(toPtr((*n)-1), e, toPtr(1), ef, toPtr(1))
+			goblas.Dcopy((*n)-1, e, 1, ef, 1)
 		}
 		Dpttrf(n, df, ef, info)
 

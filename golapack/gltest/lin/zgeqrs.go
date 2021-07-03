@@ -14,6 +14,8 @@ import (
 // computed by ZGEQRF.
 func Zgeqrs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
 	var one complex128
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -46,5 +48,5 @@ func Zgeqrs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	golapack.Zunmqr('L', 'C', m, nrhs, n, a, lda, tau, b, ldb, work, lwork, info)
 
 	//     Solve R*X = B(1:n,:)
-	goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, n, nrhs, &one, a, lda, b, ldb)
+	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 }

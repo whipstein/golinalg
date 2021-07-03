@@ -52,7 +52,7 @@ label10:
 	}
 
 	//     Scale the vector X by MUL
-	goblas.Zdscal(n, &mul, sx, incx)
+	goblas.Zdscal(*n, mul, sx, *incx)
 
 	if !done {
 		goto label10

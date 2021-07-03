@@ -1326,3 +1326,29 @@ func TestZlin(t *testing.T) {
 
 	fmt.Printf("\n End of tests\n")
 }
+
+func TestMatrixInverse(t *testing.T) {
+	var info int
+	a := cmf(2, 2, opts)
+	a.Opts.Major = mat.Row
+	a.Set(0, 0, 1+0i)
+	a.Set(0, 1, 1-2i)
+	a.Set(1, 0, 8-2i)
+	a.Set(1, 1, 4+2i)
+	lwork := a.Rows
+	work := cvf(lwork)
+	ipiv := make([]int, lwork)
+
+	golapack.Zgetrf(&a.Rows, &a.Cols, a, &a.Cols, &ipiv, &info)
+	if info != 0 {
+		panic(info)
+	}
+
+	a = a.ToColMajor()
+
+	golapack.Zgetri(&a.Cols, a, &a.Cols, &ipiv, work, &lwork, &info)
+	if info != 0 {
+		panic(info)
+	}
+	a = a.ToRowMajor()
+}

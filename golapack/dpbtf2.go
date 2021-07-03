@@ -22,6 +22,8 @@ func Dpbtf2(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, kld, kn int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -65,8 +67,8 @@ func Dpbtf2(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 			//           trailing submatrix within the band.
 			kn = minint(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Dscal(&kn, toPtrf64(one/ajj), ab.Vector((*kd)-1, j+1-1), &kld)
-				goblas.Dsyr(Upper, &kn, toPtrf64(-one), ab.Vector((*kd)-1, j+1-1), &kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), &kld)
+				goblas.Dscal(kn, one/ajj, ab.Vector((*kd)-1, j+1-1), kld)
+				err = goblas.Dsyr(Upper, kn, -one, ab.Vector((*kd)-1, j+1-1), kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), kld)
 				ab.UpdateRows(*ldab)
 			}
 		}
@@ -85,8 +87,8 @@ func Dpbtf2(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 			//           trailing submatrix within the band.
 			kn = minint(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Dscal(&kn, toPtrf64(one/ajj), ab.Vector(1, j-1), func() *int { y := 1; return &y }())
-				goblas.Dsyr(Lower, &kn, toPtrf64(-one), ab.Vector(1, j-1), func() *int { y := 1; return &y }(), ab.Off(0, j+1-1).UpdateRows(kld), &kld)
+				goblas.Dscal(kn, one/ajj, ab.Vector(1, j-1), 1)
+				err = goblas.Dsyr(Lower, kn, -one, ab.Vector(1, j-1), 1, ab.Off(0, j+1-1).UpdateRows(kld), kld)
 				ab.UpdateRows(*ldab)
 			}
 		}

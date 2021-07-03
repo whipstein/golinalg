@@ -19,6 +19,8 @@ func Zhbgst(vect, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int, bb *mat
 	var cone, czero, ra, ra1, t complex128
 	var bii, one float64
 	var i, i0, i1, i2, inca, j, j1, j1t, j2, j2t, k, ka1, kb1, kbt, l, m, nr, nrt, nx int
+	var err error
+	_ = err
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -181,9 +183,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(toPtr((*n)-m), toPtrf64(one/bii), x.CVector(m+1-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-m, one/bii, x.CVector(m+1-1, i-1), 1)
 				if kbt > 0 {
-					goblas.Zgerc(toPtr((*n)-m), &kbt, toPtrc128(-cone), x.CVector(m+1-1, i-1), func() *int { y := 1; return &y }(), bb.CVector(kb1-kbt-1, i-1), func() *int { y := 1; return &y }(), x.Off(m+1-1, i-kbt-1), ldx)
+					err = goblas.Zgerc((*n)-m, kbt, -cone, x.CVector(m+1-1, i-1), 1, bb.CVector(kb1-kbt-1, i-1), 1, x.Off(m+1-1, i-kbt-1), *ldx)
 				}
 			}
 
@@ -385,9 +387,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(toPtr((*n)-m), toPtrf64(one/bii), x.CVector(m+1-1, i-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-m, one/bii, x.CVector(m+1-1, i-1), 1)
 				if kbt > 0 {
-					goblas.Zgeru(toPtr((*n)-m), &kbt, toPtrc128(-cone), x.CVector(m+1-1, i-1), func() *int { y := 1; return &y }(), bb.CVector(kbt+1-1, i-kbt-1), toPtr((*ldbb)-1), x.Off(m+1-1, i-kbt-1), ldx)
+					err = goblas.Zgeru((*n)-m, kbt, -cone, x.CVector(m+1-1, i-1), 1, bb.CVector(kbt+1-1, i-kbt-1), (*ldbb)-1, x.Off(m+1-1, i-kbt-1), *ldx)
 				}
 			}
 
@@ -643,9 +645,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(&nx, toPtrf64(one/bii), x.CVector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(nx, one/bii, x.CVector(0, i-1), 1)
 				if kbt > 0 {
-					goblas.Zgeru(&nx, &kbt, toPtrc128(-cone), x.CVector(0, i-1), func() *int { y := 1; return &y }(), bb.CVector((*kb)-1, i+1-1), toPtr((*ldbb)-1), x.Off(0, i+1-1), ldx)
+					err = goblas.Zgeru(nx, kbt, -cone, x.CVector(0, i-1), 1, bb.CVector((*kb)-1, i+1-1), (*ldbb)-1, x.Off(0, i+1-1), *ldx)
 				}
 			}
 
@@ -850,9 +852,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(&nx, toPtrf64(one/bii), x.CVector(0, i-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(nx, one/bii, x.CVector(0, i-1), 1)
 				if kbt > 0 {
-					goblas.Zgerc(&nx, &kbt, toPtrc128(-cone), x.CVector(0, i-1), func() *int { y := 1; return &y }(), bb.CVector(1, i-1), func() *int { y := 1; return &y }(), x.Off(0, i+1-1), ldx)
+					err = goblas.Zgerc(nx, kbt, -cone, x.CVector(0, i-1), 1, bb.CVector(1, i-1), 1, x.Off(0, i+1-1), *ldx)
 				}
 			}
 

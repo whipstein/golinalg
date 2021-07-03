@@ -109,10 +109,10 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(&n, d, toPtr(1))
+					ix = goblas.Idamax(n, d, 1)
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(toPtr(n), toPtrf64(anorm/dmax), d, toPtr(1))
-					goblas.Dscal(toPtr(n-1), toPtrf64(anorm/dmax), e, toPtr(1))
+					goblas.Dscal(n, anorm/dmax, d, 1)
+					goblas.Dscal(n-1, anorm/dmax, e, 1)
 
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -164,9 +164,9 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 			}
 
-			goblas.Dcopy(&n, d, toPtr(1), d.Off(n+1-1), toPtr(1))
+			goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
 			if n > 1 {
-				goblas.Dcopy(toPtr(n-1), e, toPtr(1), e.Off(n+1-1), toPtr(1))
+				goblas.Dcopy(n-1, e, 1, e.Off(n+1-1), 1)
 			}
 
 			//+    TEST 1
@@ -212,7 +212,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 				x.Set(i-1, one)
 				golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.Matrix(lda, opts), &lda, &info)
-				ainvnm = maxf64(ainvnm, goblas.Dasum(&n, x, toPtr(1)))
+				ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
 			}
 			rcondc = one / maxf64(one, anorm*ainvnm)
 

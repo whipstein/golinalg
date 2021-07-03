@@ -14,6 +14,8 @@ import (
 // computed by DGELQF.
 func Dgelqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Matrix, ldb *int, work *mat.Vector, lwork, info *int) {
 	var one, zero float64
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -44,7 +46,7 @@ func Dgelqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 	}
 
 	//     Solve L*X = B(1:m,:)
-	goblas.Dtrsm(Left, Lower, NoTrans, NonUnit, m, nrhs, &one, a, lda, b, ldb)
+	err = goblas.Dtrsm(Left, Lower, NoTrans, NonUnit, *m, *nrhs, one, a, *lda, b, *ldb)
 
 	//     Set B(m+1:n,:) to zero
 	if (*m) < (*n) {

@@ -35,7 +35,7 @@ func Zgbt01(m, n, kl, ku *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldaf
 		i1 = maxint(kd+1-j, 1)
 		i2 = minint(kd+(*m)-j, (*kl)+kd)
 		if i2 >= i1 {
-			anorm = maxf64(anorm, goblas.Dzasum(toPtr(i2-i1+1), a.CVector(i1-1, j-1), func() *int { y := 1; return &y }()))
+			anorm = maxf64(anorm, goblas.Dzasum(i2-i1+1, a.CVector(i1-1, j-1), 1))
 		}
 	}
 
@@ -47,7 +47,7 @@ func Zgbt01(m, n, kl, ku *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldaf
 		jl = minint(*kl, (*m)-j)
 		lenj = minint(*m, j) - j + ju + 1
 		if lenj > 0 {
-			goblas.Zcopy(&lenj, afac.CVector(kd-ju-1, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
+			goblas.Zcopy(lenj, afac.CVector(kd-ju-1, j-1), 1, work, 1)
 			for i = lenj + 1; i <= ju+jl+1; i++ {
 				work.SetRe(i-1, zero)
 			}
@@ -59,7 +59,7 @@ func Zgbt01(m, n, kl, ku *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldaf
 				if il > 0 {
 					iw = i - j + ju + 1
 					t = work.Get(iw - 1)
-					goblas.Zaxpy(&il, &t, afac.CVector(kd+1-1, i-1), func() *int { y := 1; return &y }(), work.Off(iw+1-1), func() *int { y := 1; return &y }())
+					goblas.Zaxpy(il, t, afac.CVector(kd+1-1, i-1), 1, work.Off(iw+1-1), 1)
 					ip = (*ipiv)[i-1]
 					if i != ip {
 						ip = ip - j + ju + 1
@@ -72,11 +72,11 @@ func Zgbt01(m, n, kl, ku *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldaf
 			//           Subtract the corresponding column of A.
 			jua = minint(ju, *ku)
 			if jua+jl+1 > 0 {
-				goblas.Zaxpy(toPtr(jua+jl+1), toPtrc128(-complex(one, 0)), a.CVector((*ku)+1-jua-1, j-1), func() *int { y := 1; return &y }(), work.Off(ju+1-jua-1), func() *int { y := 1; return &y }())
+				goblas.Zaxpy(jua+jl+1, -complex(one, 0), a.CVector((*ku)+1-jua-1, j-1), 1, work.Off(ju+1-jua-1), 1)
 			}
 
 			//           Compute the 1-norm of the column.
-			(*resid) = maxf64(*resid, goblas.Dzasum(toPtr(ju+jl+1), work, func() *int { y := 1; return &y }()))
+			(*resid) = maxf64(*resid, goblas.Dzasum(ju+jl+1, work, 1))
 		}
 	}
 

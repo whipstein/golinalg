@@ -17,6 +17,8 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	var cone, czero complex128
 	var anorm, cnorm, dnorm, eps, resid, zero float64
 	var i, info, j, k, l, lwork, nb1Ub, nb2Ub, nrb int
+	var err error
+	_ = err
 
 	workquery := cvf(1)
 	iseed := make([]int, 4)
@@ -118,7 +120,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	for i = 1; i <= (*n); i++ {
 		if diag.Get(i-1) == -cone {
-			goblas.Zscal(toPtr((*n)+1-i), toPtrc128(-cone), af.CVector(i-1, i-1), m)
+			goblas.Zscal((*n)+1-i, -cone, af.CVector(i-1, i-1), *m)
 		}
 	}
 
@@ -138,7 +140,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 1
 	//     Compute |R - (Q**H)*a| / ( eps * m * |a| ) and store in RESULT(1)
-	goblas.Zgemm(ConjTrans, NoTrans, m, n, m, toPtrc128(-cone), q, m, a, m, &cone, r, m)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -cone, q, *m, a, *m, cone, r, *m)
 
 	anorm = golapack.Zlange('1', m, n, a, m, rwork)
 	resid = golapack.Zlange('1', m, n, r, m, rwork)
@@ -151,7 +153,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//     TEST 2
 	//     Compute |I - (Q**H)*Q| / ( eps * m ) and store in RESULT(2)
 	golapack.Zlaset('F', m, m, &czero, &cone, r, m)
-	goblas.Zherk(Upper, ConjTrans, m, m, toPtrf64(real(-cone)), q, m, toPtrf64(real(cone)), r, m)
+	err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-cone), q, *m, real(cone), r, *m)
 	resid = golapack.Zlansy('1', 'U', m, r, m, rwork)
 	result.Set(1, resid/(eps*float64(maxint(1, *m))))
 
@@ -168,7 +170,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 3
 	//     Compute |CF - Q*C| / ( eps *  m * |C| )
-	goblas.Zgemm(NoTrans, NoTrans, m, n, m, toPtrc128(-cone), q, m, c, m, &cone, cf, m)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -cone, q, *m, c, *m, cone, cf, *m)
 	resid = golapack.Zlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
 		result.Set(2, resid/(eps*float64(maxint(1, *m))*cnorm))
@@ -185,7 +187,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 4
 	//     Compute |CF - (Q**H)*C| / ( eps * m * |C|)
-	goblas.Zgemm(ConjTrans, NoTrans, m, n, m, toPtrc128(-cone), q, m, c, m, &cone, cf, m)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -cone, q, *m, c, *m, cone, cf, *m)
 	resid = golapack.Zlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
 		result.Set(3, resid/(eps*float64(maxint(1, *m))*cnorm))
@@ -206,7 +208,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 5
 	//     Compute |DF - D*Q| / ( eps * m * |D| )
-	goblas.Zgemm(NoTrans, NoTrans, n, m, m, toPtrc128(-cone), d, n, q, m, &cone, df, n)
+	err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -cone, d, *n, q, *m, cone, df, *n)
 	resid = golapack.Zlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
 		result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
@@ -223,7 +225,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 6
 	//     Compute |DF - D*(Q**H)| / ( eps * m * |D| )
-	goblas.Zgemm(NoTrans, ConjTrans, n, m, m, toPtrc128(-cone), d, n, q, m, &cone, df, n)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -cone, d, *n, q, *m, cone, df, *n)
 	resid = golapack.Zlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
 		result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))

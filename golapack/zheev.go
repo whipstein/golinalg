@@ -113,7 +113,7 @@ func Zheev(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vector, wor
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     Set WORK(1) to optimal complex workspace size.

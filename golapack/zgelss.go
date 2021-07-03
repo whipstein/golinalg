@@ -27,6 +27,8 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	var cone, czero complex128
 	var anrm, bignum, bnrm, eps, one, sfmin, smlnum, thr, zero float64
 	var bl, chunk, i, iascl, ibscl, ie, il, irwork, itau, itaup, itauq, iwork, ldwork, lworkZgebrd, lworkZgelqf, lworkZungbr, lworkZunmbr, lworkZunmlq, maxmn, maxwrk, minmn, minwrk, mm, mnthr int
+	var err error
+	_ = err
 
 	dum := cvf(1)
 
@@ -285,18 +287,18 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        (CWorkspace: need N, prefer N*NRHS)
 		//        (RWorkspace: none)
 		if (*lwork) >= (*ldb)*(*nrhs) && (*nrhs) > 1 {
-			goblas.Zgemm(ConjTrans, NoTrans, n, nrhs, n, &cone, a, lda, b, ldb, &czero, work.CMatrix(*ldb, opts), ldb)
+			err = goblas.Zgemm(ConjTrans, NoTrans, *n, *nrhs, *n, cone, a, *lda, b, *ldb, czero, work.CMatrix(*ldb, opts), *ldb)
 			Zlacpy('G', n, nrhs, work.CMatrix(*ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = (*lwork) / (*n)
 			for i = 1; i <= (*nrhs); i += chunk {
 				bl = minint((*nrhs)-i+1, chunk)
-				goblas.Zgemm(ConjTrans, NoTrans, n, &bl, n, &cone, a, lda, b.Off(0, i-1), ldb, &czero, work.CMatrix(*n, opts), n)
+				err = goblas.Zgemm(ConjTrans, NoTrans, *n, bl, *n, cone, a, *lda, b.Off(0, i-1), *ldb, czero, work.CMatrix(*n, opts), *n)
 				Zlacpy('G', n, &bl, work.CMatrix(*n, opts), n, b.Off(0, i-1), ldb)
 			}
 		} else {
-			goblas.Zgemv(ConjTrans, n, n, &cone, a, lda, b.CVector(0, 0), func() *int { y := 1; return &y }(), &czero, work, func() *int { y := 1; return &y }())
-			goblas.Zcopy(n, work, func() *int { y := 1; return &y }(), b.CVector(0, 0), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(ConjTrans, *n, *n, cone, a, *lda, b.CVector(0, 0), 1, czero, work, 1)
+			goblas.Zcopy(*n, work, 1, b.CVector(0, 0), 1)
 		}
 
 	} else if (*n) >= mnthr && (*lwork) >= 3*(*m)+(*m)*(*m)+maxint(*m, *nrhs, (*n)-2*(*m)) {
@@ -371,18 +373,18 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        (CWorkspace: need M*M+2*M, prefer M*M+M+M*NRHS)
 		//        (RWorkspace: none)
 		if (*lwork) >= (*ldb)*(*nrhs)+iwork-1 && (*nrhs) > 1 {
-			goblas.Zgemm(ConjTrans, NoTrans, m, nrhs, m, &cone, work.CMatrixOff(il-1, ldwork, opts), &ldwork, b, ldb, &czero, work.CMatrixOff(iwork-1, *ldb, opts), ldb)
+			err = goblas.Zgemm(ConjTrans, NoTrans, *m, *nrhs, *m, cone, work.CMatrixOff(il-1, ldwork, opts), ldwork, b, *ldb, czero, work.CMatrixOff(iwork-1, *ldb, opts), *ldb)
 			Zlacpy('G', m, nrhs, work.CMatrixOff(iwork-1, *ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = ((*lwork) - iwork + 1) / (*m)
 			for i = 1; i <= (*nrhs); i += chunk {
 				bl = minint((*nrhs)-i+1, chunk)
-				goblas.Zgemm(ConjTrans, NoTrans, m, &bl, m, &cone, work.CMatrixOff(il-1, ldwork, opts), &ldwork, b.Off(0, i-1), ldb, &czero, work.CMatrixOff(iwork-1, *m, opts), m)
+				err = goblas.Zgemm(ConjTrans, NoTrans, *m, bl, *m, cone, work.CMatrixOff(il-1, ldwork, opts), ldwork, b.Off(0, i-1), *ldb, czero, work.CMatrixOff(iwork-1, *m, opts), *m)
 				Zlacpy('G', m, &bl, work.CMatrixOff(iwork-1, *m, opts), m, b.Off(0, i-1), ldb)
 			}
 		} else {
-			goblas.Zgemv(ConjTrans, m, m, &cone, work.CMatrixOff(il-1, ldwork, opts), &ldwork, b.CVector(0, 0), func() *int { y := 1; return &y }(), &czero, work.Off(iwork-1), func() *int { y := 1; return &y }())
-			goblas.Zcopy(m, work.Off(iwork-1), func() *int { y := 1; return &y }(), b.CVector(0, 0), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(ConjTrans, *m, *m, cone, work.CMatrixOff(il-1, ldwork, opts), ldwork, b.CVector(0, 0), 1, czero, work.Off(iwork-1), 1)
+			goblas.Zcopy(*m, work.Off(iwork-1), 1, b.CVector(0, 0), 1)
 		}
 
 		//        Zero out below first M rows of B
@@ -446,18 +448,18 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        (CWorkspace: need N, prefer N*NRHS)
 		//        (RWorkspace: none)
 		if (*lwork) >= (*ldb)*(*nrhs) && (*nrhs) > 1 {
-			goblas.Zgemm(ConjTrans, NoTrans, n, nrhs, m, &cone, a, lda, b, ldb, &czero, work.CMatrix(*ldb, opts), ldb)
+			err = goblas.Zgemm(ConjTrans, NoTrans, *n, *nrhs, *m, cone, a, *lda, b, *ldb, czero, work.CMatrix(*ldb, opts), *ldb)
 			Zlacpy('G', n, nrhs, work.CMatrix(*ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = (*lwork) / (*n)
 			for i = 1; i <= (*nrhs); i += chunk {
 				bl = minint((*nrhs)-i+1, chunk)
-				goblas.Zgemm(ConjTrans, NoTrans, n, &bl, m, &cone, a, lda, b.Off(0, i-1), ldb, &czero, work.CMatrix(*n, opts), n)
+				err = goblas.Zgemm(ConjTrans, NoTrans, *n, bl, *m, cone, a, *lda, b.Off(0, i-1), *ldb, czero, work.CMatrix(*n, opts), *n)
 				Zlacpy('F', n, &bl, work.CMatrix(*n, opts), n, b.Off(0, i-1), ldb)
 			}
 		} else {
-			goblas.Zgemv(ConjTrans, m, n, &cone, a, lda, b.CVector(0, 0), func() *int { y := 1; return &y }(), &czero, work, func() *int { y := 1; return &y }())
-			goblas.Zcopy(n, work, func() *int { y := 1; return &y }(), b.CVector(0, 0), func() *int { y := 1; return &y }())
+			err = goblas.Zgemv(ConjTrans, *m, *n, cone, a, *lda, b.CVector(0, 0), 1, czero, work, 1)
+			goblas.Zcopy(*n, work, 1, b.CVector(0, 0), 1)
 		}
 	}
 

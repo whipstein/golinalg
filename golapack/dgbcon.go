@@ -83,7 +83,7 @@ label10:
 						work.Set(jp-1, work.Get(j-1))
 						work.Set(j-1, t)
 					}
-					goblas.Daxpy(&lm, toPtrf64(-t), ab.Vector(kd+1-1, j-1), toPtr(1), work.Off(j+1-1), toPtr(1))
+					goblas.Daxpy(lm, -t, ab.Vector(kd+1-1, j-1), 1, work.Off(j+1-1), 1)
 				}
 			}
 
@@ -99,7 +99,7 @@ label10:
 			if lnoti {
 				for j = (*n) - 1; j >= 1; j-- {
 					lm = minint(*kl, (*n)-j)
-					work.Set(j-1, work.Get(j-1)-goblas.Ddot(&lm, ab.Vector(kd+1-1, j-1), toPtr(1), work.Off(j+1-1), toPtr(1)))
+					work.Set(j-1, work.Get(j-1)-goblas.Ddot(lm, ab.Vector(kd+1-1, j-1), 1, work.Off(j+1-1), 1))
 					jp = (*ipiv)[j-1]
 					if jp != j {
 						t = work.Get(jp - 1)
@@ -113,7 +113,7 @@ label10:
 		//        Divide X by 1/SCALE if doing so will not cause overflow.
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(n, work, toPtr(1))
+			ix = goblas.Idamax(*n, work, 1)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				goto label40
 			}

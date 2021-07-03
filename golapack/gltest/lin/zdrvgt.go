@@ -79,10 +79,10 @@ func Zdrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				izero = 0
 
 				if n > 1 {
-					goblas.Zcopy(toPtr(n-1), af.Off(3), func() *int { y := 3; return &y }(), a, func() *int { y := 1; return &y }())
-					goblas.Zcopy(toPtr(n-1), af.Off(2), func() *int { y := 3; return &y }(), a.Off(n+m+1-1), func() *int { y := 1; return &y }())
+					goblas.Zcopy(n-1, af.Off(3), 3, a, 1)
+					goblas.Zcopy(n-1, af.Off(2), 3, a.Off(n+m+1-1), 1)
 				}
-				goblas.Zcopy(&n, af.Off(1), func() *int { y := 3; return &y }(), a.Off(m+1-1), func() *int { y := 1; return &y }())
+				goblas.Zcopy(n, af.Off(1), 3, a.Off(m+1-1), 1)
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
@@ -90,7 +90,7 @@ func Zdrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Generate a matrix with elements from [-1,1].
 					golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(n+2*m), a)
 					if anorm != one {
-						goblas.Zdscal(toPtr(n+2*m), &anorm, a, func() *int { y := 1; return &y }())
+						goblas.Zdscal(n+2*m, anorm, a, 1)
 					}
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -155,7 +155,7 @@ func Zdrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					rcondi = zero
 					//
 				} else if ifact == 1 {
-					goblas.Zcopy(toPtr(n+2*m), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }())
+					goblas.Zcopy(n+2*m, a, 1, af, 1)
 
 					//                 Compute the 1-norm and infinity-norm of A.
 					anormo = golapack.Zlangt('1', &n, a, a.Off(m+1-1), a.Off(n+m+1-1))
@@ -173,7 +173,7 @@ func Zdrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 						x.SetRe(i-1, one)
 						golapack.Zgttrs('N', &n, func() *int { y := 1; return &y }(), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.CMatrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dzasum(&n, x, func() *int { y := 1; return &y }()))
+						ainvnm = maxf64(ainvnm, goblas.Dzasum(n, x, 1))
 					}
 
 					//                 Compute the 1-norm condition number of A.
@@ -192,7 +192,7 @@ func Zdrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 						x.SetRe(i-1, one)
 						golapack.Zgttrs('C', &n, func() *int { y := 1; return &y }(), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.CMatrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dzasum(&n, x, func() *int { y := 1; return &y }()))
+						ainvnm = maxf64(ainvnm, goblas.Dzasum(n, x, 1))
 					}
 
 					//                 Compute the infinity-norm condition number of A.
@@ -226,7 +226,7 @@ func Zdrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//
 						//                    Solve the system using Gaussian elimination with
 						//                    partial pivoting.
-						goblas.Zcopy(toPtr(n+2*m), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }())
+						goblas.Zcopy(n+2*m, a, 1, af, 1)
 						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 						*srnamt = "ZGTSV "

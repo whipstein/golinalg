@@ -236,7 +236,7 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 				jcnext = jc + j
 				ra = ap.Get(jcnext + j - 1 - 1)
 				rb = complex(two, 0)
-				goblas.Zrotg(&ra, &rb, &c, &s)
+				c, s, ra = goblas.Zrotg(ra, rb, c, s)
 
 				//              Multiply by [ c  s; -conjg(s)  c] on the left.
 				if (*n) > j+1 {
@@ -264,7 +264,7 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 				jcnext = jc + (*n) - j + 1
 				ra = ap.Get(jc + 1 - 1)
 				rb = complex(two, 0)
-				goblas.Zrotg(&ra, &rb, &c, &s)
+				c, s, ra = goblas.Zrotg(ra, rb, c, s)
 				s = cmplx.Conj(s)
 
 				//              Multiply by [ c -s;  conjg(s) c] on the right.
@@ -316,10 +316,10 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Izamax(n, b, func() *int { y := 1; return &y }())
+		iy = goblas.Izamax(*n, b, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / maxf64(one, bnorm)
-		goblas.Zdscal(n, &bscal, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, bscal, b, 1)
 
 	} else if (*imat) == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
@@ -331,7 +331,7 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 			jc = 1
 			for j = 1; j <= (*n); j++ {
 				golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, toPtr(j-1), ap.Off(jc-1))
-				goblas.Zdscal(toPtr(j-1), &tscal, ap.Off(jc-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(j-1, tscal, ap.Off(jc-1), 1)
 				ap.Set(jc+j-1-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 				jc = jc + j
 			}
@@ -340,7 +340,7 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 			jc = 1
 			for j = 1; j <= (*n); j++ {
 				golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*n)-j), ap.Off(jc+1-1))
-				goblas.Zdscal(toPtr((*n)-j), &tscal, ap.Off(jc+1-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-j, tscal, ap.Off(jc+1-1), 1)
 				ap.Set(jc-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 				jc = jc + (*n) - j + 1
 			}
@@ -489,7 +489,7 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 			}
 		}
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Zdscal(n, &two, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, two, b, 1)
 
 	} else if (*imat) == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -556,10 +556,10 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Izamax(n, b, func() *int { y := 1; return &y }())
+		iy = goblas.Izamax(*n, b, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / maxf64(one, bnorm)
-		goblas.Zdscal(n, &bscal, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, bscal, b, 1)
 
 	} else if (*imat) == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
@@ -590,7 +590,7 @@ func Zlattp(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, ap, b
 			}
 		}
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Zdscal(n, &two, b, func() *int { y := 1; return &y }())
+		goblas.Zdscal(*n, two, b, 1)
 	}
 
 	//     Flip the matrix across its counter-diagonal if the transpose will

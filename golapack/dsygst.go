@@ -20,6 +20,8 @@ func Dsygst(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 	var upper bool
 	var half, one float64
 	var k, kb, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 	half = 0.5
@@ -64,11 +66,11 @@ func Dsygst(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 					//                 Update the upper triangle of A(k:n,k:n)
 					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 					if k+kb <= (*n) {
-						goblas.Dtrsm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.NonUnit, &kb, toPtr((*n)-k-kb+1), &one, b.Off(k-1, k-1), ldb, a.Off(k-1, k+kb-1), lda)
-						goblas.Dsymm(mat.Left, mat.UploByte(uplo), &kb, toPtr((*n)-k-kb+1), toPtrf64(half), a.Off(k-1, k-1), lda, b.Off(k-1, k+kb-1), ldb, &one, a.Off(k-1, k+kb-1), lda)
-						goblas.Dsyr2k(mat.UploByte(uplo), mat.Trans, toPtr((*n)-k-kb+1), &kb, toPtrf64(one), a.Off(k-1, k+kb-1), lda, b.Off(k-1, k+kb-1), ldb, &one, a.Off(k+kb-1, k+kb-1), lda)
-						goblas.Dsymm(mat.Left, mat.UploByte(uplo), &kb, toPtr((*n)-k-kb+1), toPtrf64(half), a.Off(k-1, k-1), lda, b.Off(k-1, k+kb-1), ldb, &one, a.Off(k-1, k+kb-1), lda)
-						goblas.Dtrsm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, &kb, toPtr((*n)-k-kb+1), &one, b.Off(k+kb-1, k+kb-1), ldb, a.Off(k-1, k+kb-1), lda)
+						err = goblas.Dtrsm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.NonUnit, kb, (*n)-k-kb+1, one, b.Off(k-1, k-1), *ldb, a.Off(k-1, k+kb-1), *lda)
+						err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, half, a.Off(k-1, k-1), *lda, b.Off(k-1, k+kb-1), *ldb, one, a.Off(k-1, k+kb-1), *lda)
+						err = goblas.Dsyr2k(mat.UploByte(uplo), mat.Trans, (*n)-k-kb+1, kb, one, a.Off(k-1, k+kb-1), *lda, b.Off(k-1, k+kb-1), *ldb, one, a.Off(k+kb-1, k+kb-1), *lda)
+						err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, half, a.Off(k-1, k-1), *lda, b.Off(k-1, k+kb-1), *ldb, one, a.Off(k-1, k+kb-1), *lda)
+						err = goblas.Dtrsm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, kb, (*n)-k-kb+1, one, b.Off(k+kb-1, k+kb-1), *ldb, a.Off(k-1, k+kb-1), *lda)
 					}
 				}
 			} else {
@@ -78,11 +80,11 @@ func Dsygst(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 					//                 Update the lower triangle of A(k:n,k:n)
 					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 					if k+kb <= (*n) {
-						goblas.Dtrsm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.NonUnit, toPtr((*n)-k-kb+1), &kb, &one, b.Off(k-1, k-1), ldb, a.Off(k+kb-1, k-1), lda)
-						goblas.Dsymm(mat.Right, mat.UploByte(uplo), toPtr((*n)-k-kb+1), &kb, toPtrf64(half), a.Off(k-1, k-1), lda, b.Off(k+kb-1, k-1), ldb, &one, a.Off(k+kb-1, k-1), lda)
-						goblas.Dsyr2k(mat.UploByte(uplo), mat.NoTrans, toPtr((*n)-k-kb+1), &kb, toPtrf64(one), a.Off(k+kb-1, k-1), lda, b.Off(k+kb-1, k-1), ldb, &one, a.Off(k+kb-1, k+kb-1), lda)
-						goblas.Dsymm(mat.Right, mat.UploByte(uplo), toPtr((*n)-k-kb+1), &kb, toPtrf64(half), a.Off(k-1, k-1), lda, b.Off(k+kb-1, k-1), ldb, &one, a.Off(k+kb-1, k-1), lda)
-						goblas.Dtrsm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, toPtr((*n)-k-kb+1), &kb, &one, b.Off(k+kb-1, k+kb-1), ldb, a.Off(k+kb-1, k-1), lda)
+						err = goblas.Dtrsm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.NonUnit, (*n)-k-kb+1, kb, one, b.Off(k-1, k-1), *ldb, a.Off(k+kb-1, k-1), *lda)
+						err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, half, a.Off(k-1, k-1), *lda, b.Off(k+kb-1, k-1), *ldb, one, a.Off(k+kb-1, k-1), *lda)
+						err = goblas.Dsyr2k(mat.UploByte(uplo), mat.NoTrans, (*n)-k-kb+1, kb, one, a.Off(k+kb-1, k-1), *lda, b.Off(k+kb-1, k-1), *ldb, one, a.Off(k+kb-1, k+kb-1), *lda)
+						err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, half, a.Off(k-1, k-1), *lda, b.Off(k+kb-1, k-1), *ldb, one, a.Off(k+kb-1, k-1), *lda)
+						err = goblas.Dtrsm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, (*n)-k-kb+1, kb, one, b.Off(k+kb-1, k+kb-1), *ldb, a.Off(k+kb-1, k-1), *lda)
 					}
 				}
 			}
@@ -92,11 +94,11 @@ func Dsygst(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 				for k = 1; k <= (*n); k += nb {
 					kb = minint((*n)-k+1, nb)
 					//                 Update the upper triangle of A(1:k+kb-1,1:k+kb-1)
-					goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, toPtr(k-1), &kb, &one, b, ldb, a.Off(0, k-1), lda)
-					goblas.Dsymm(mat.Right, mat.UploByte(uplo), toPtr(k-1), &kb, &half, a.Off(k-1, k-1), lda, b.Off(0, k-1), ldb, &one, a.Off(0, k-1), lda)
-					goblas.Dsyr2k(mat.UploByte(uplo), mat.NoTrans, toPtr(k-1), &kb, &one, a.Off(0, k-1), lda, b.Off(0, k-1), ldb, &one, a, lda)
-					goblas.Dsymm(mat.Right, mat.UploByte(uplo), toPtr(k-1), &kb, &half, a.Off(k-1, k-1), lda, b.Off(0, k-1), ldb, &one, a.Off(0, k-1), lda)
-					goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.NonUnit, toPtr(k-1), &kb, &one, b.Off(k-1, k-1), ldb, a.Off(0, k-1), lda)
+					err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, k-1, kb, one, b, *ldb, a.Off(0, k-1), *lda)
+					err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), *lda, b.Off(0, k-1), *ldb, one, a.Off(0, k-1), *lda)
+					err = goblas.Dsyr2k(mat.UploByte(uplo), mat.NoTrans, k-1, kb, one, a.Off(0, k-1), *lda, b.Off(0, k-1), *ldb, one, a, *lda)
+					err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), *lda, b.Off(0, k-1), *ldb, one, a.Off(0, k-1), *lda)
+					err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.NonUnit, k-1, kb, one, b.Off(k-1, k-1), *ldb, a.Off(0, k-1), *lda)
 					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 				}
 			} else {
@@ -104,11 +106,11 @@ func Dsygst(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 				for k = 1; k <= (*n); k += nb {
 					kb = minint((*n)-k+1, nb)
 					//                 Update the lower triangle of A(1:k+kb-1,1:k+kb-1)
-					goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, &kb, toPtr(k-1), &one, b, ldb, a.Off(k-1, 0), lda)
-					goblas.Dsymm(mat.Left, mat.UploByte(uplo), &kb, toPtr(k-1), &half, a.Off(k-1, k-1), lda, b.Off(k-1, 0), ldb, &one, a.Off(k-1, 0), lda)
-					goblas.Dsyr2k(mat.UploByte(uplo), mat.Trans, toPtr(k-1), &kb, &one, a.Off(k-1, 0), lda, b.Off(k-1, 0), ldb, &one, a, lda)
-					goblas.Dsymm(mat.Left, mat.UploByte(uplo), &kb, toPtr(k-1), &half, a.Off(k-1, k-1), lda, b.Off(k-1, 0), ldb, &one, a.Off(k-1, 0), lda)
-					goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.NonUnit, &kb, toPtr(k-1), &one, b.Off(k-1, k-1), ldb, a.Off(k-1, 0), lda)
+					err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, kb, k-1, one, b, *ldb, a.Off(k-1, 0), *lda)
+					err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), *lda, b.Off(k-1, 0), *ldb, one, a.Off(k-1, 0), *lda)
+					err = goblas.Dsyr2k(mat.UploByte(uplo), mat.Trans, k-1, kb, one, a.Off(k-1, 0), *lda, b.Off(k-1, 0), *ldb, one, a, *lda)
+					err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), *lda, b.Off(k-1, 0), *ldb, one, a.Off(k-1, 0), *lda)
+					err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.NonUnit, kb, k-1, one, b.Off(k-1, k-1), *ldb, a.Off(k-1, 0), *lda)
 					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 				}
 			}

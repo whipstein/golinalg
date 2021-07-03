@@ -47,6 +47,8 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	var c1, c2, cone, czero, s1, s2 complex128
 	var anrm, bignum, bnrm, one, smax, smaxpr, smin, sminpr, smlnum, wsize, zero float64
 	var i, iascl, ibscl, imax, imin, ismax, ismin, j, lwkopt, mn, nb, nb1, nb2, nb3, nb4 int
+	var err error
+	_ = err
 
 	imax = 1
 	imin = 2
@@ -194,7 +196,7 @@ label10:
 	//     complex workspace: 2*MN+NB*NRHS.
 	//
 	//     B(1:RANK,1:NRHS) := inv(T11) * B(1:RANK,1:NRHS)
-	goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, &cone, a, lda, b, ldb)
+	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *rank, *nrhs, cone, a, *lda, b, *ldb)
 
 	for j = 1; j <= (*nrhs); j++ {
 		for i = (*rank) + 1; i <= (*n); i++ {
@@ -214,7 +216,7 @@ label10:
 		for i = 1; i <= (*n); i++ {
 			work.Set((*jpvt)[i-1]-1, b.Get(i-1, j-1))
 		}
-		goblas.Zcopy(n, work.Off(0), func() *int { y := 1; return &y }(), b.CVector(0, j-1), func() *int { y := 1; return &y }())
+		goblas.Zcopy(*n, work.Off(0), 1, b.CVector(0, j-1), 1)
 	}
 
 	//     complex workspace: N.

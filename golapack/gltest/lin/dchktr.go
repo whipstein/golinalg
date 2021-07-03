@@ -247,7 +247,7 @@ func Dchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "DLATRS"
-					goblas.Dcopy(&n, x, toPtr(1), b, toPtr(1))
+					goblas.Dcopy(n, x, 1, b, 1)
 					golapack.Dlatrs(uplo, trans, diag, 'N', &n, a.Matrix(lda, opts), &lda, b, &scale, rwork, &info)
 
 					//                 Check error code from DLATRS.
@@ -259,7 +259,7 @@ func Dchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 					//+    TEST 9
 					//                 Solve op(A)*X = b again with NORMIN = 'Y'.
-					goblas.Dcopy(&n, x, toPtr(1), b.Off(n+1-1), toPtr(1))
+					goblas.Dcopy(n, x, 1, b.Off(n+1-1), 1)
 					golapack.Dlatrs(uplo, trans, diag, 'Y', &n, a.Matrix(lda, opts), &lda, b.Off(n+1-1), &scale, rwork, &info)
 
 					//                 Check error code from DLATRS.

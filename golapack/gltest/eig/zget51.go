@@ -27,6 +27,8 @@ func Zget51(itype, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, u
 	var cone, czero complex128
 	var anorm, one, ten, ulp, unfl, wnorm, zero float64
 	var jcol, jdiag, jrow int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -56,9 +58,9 @@ func Zget51(itype, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, u
 		if (*itype) == 1 {
 			//           ITYPE=1: Compute W = A - U B V**H
 			golapack.Zlacpy(' ', n, n, a, lda, work.CMatrix(*n, opts), n)
-			goblas.Zgemm(NoTrans, NoTrans, n, n, n, &cone, u, ldu, b, ldb, &czero, work.CMatrixOff(powint(*n, 2)+1-1, *n, opts), n)
+			err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, u, *ldu, b, *ldb, czero, work.CMatrixOff(powint(*n, 2)+1-1, *n, opts), *n)
 
-			goblas.Zgemm(NoTrans, ConjTrans, n, n, n, toPtrc128(-cone), work.CMatrixOff(powint(*n, 2)+1-1, *n, opts), n, v, ldv, &cone, work.CMatrix(*n, opts), n)
+			err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, -cone, work.CMatrixOff(powint(*n, 2)+1-1, *n, opts), *n, v, *ldv, cone, work.CMatrix(*n, opts), *n)
 
 		} else {
 			//           ITYPE=2: Compute W = A - B
@@ -88,7 +90,7 @@ func Zget51(itype, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, u
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  U U**H - I
-		goblas.Zgemm(NoTrans, ConjTrans, n, n, n, &cone, u, ldu, u, ldu, &czero, work.CMatrix(*n, opts), n)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
 
 		for jdiag = 1; jdiag <= (*n); jdiag++ {
 			work.Set(((*n)+1)*(jdiag-1)+1-1, work.Get(((*n)+1)*(jdiag-1)+1-1)-cone)

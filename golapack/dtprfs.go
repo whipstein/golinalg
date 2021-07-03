@@ -21,6 +21,8 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	var eps, lstres, one, s, safe1, safe2, safmin, xk, zero float64
 	var i, j, k, kase, kc, nz int
 	isave := make([]int, 3)
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -77,9 +79,9 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A or A**T, depending on TRANS.
-		goblas.Dcopy(n, x.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
-		goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, ap, work.Off((*n)+1-1), toPtr(1))
-		goblas.Daxpy(n, toPtrf64(-one), b.Vector(0, j-1), toPtr(1), work.Off((*n)+1-1), toPtr(1))
+		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
+		err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off((*n)+1-1), 1)
+		goblas.Daxpy(*n, -one, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -228,7 +230,7 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), n, ap, work.Off((*n)+1-1), toPtr(1))
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, ap, work.Off((*n)+1-1), 1)
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
@@ -237,7 +239,7 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
-				goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, ap, work.Off((*n)+1-1), toPtr(1))
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off((*n)+1-1), 1)
 			}
 			goto label210
 		}

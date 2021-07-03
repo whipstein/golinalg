@@ -19,6 +19,8 @@ func Zlqt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVe
 	var rogue complex128
 	var anorm, eps, one, resid, zero float64
 	var info int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -40,7 +42,7 @@ func Zlqt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVe
 	golapack.Zlacpy('L', k, m, af, lda, l, lda)
 
 	//     Compute L(1:k,1:m) - A(1:k,1:n) * Q(1:m,1:n)'
-	goblas.Zgemm(NoTrans, ConjTrans, k, m, n, toPtrc128(complex(-one, 0)), a, lda, q, lda, toPtrc128(complex(one, 0)), l, lda)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *k, *m, *n, complex(-one, 0), a, *lda, q, *lda, complex(one, 0), l, *lda)
 
 	//     Compute norm( L - A*Q' ) / ( N * norm(A) * EPS ) .
 	anorm = golapack.Zlange('1', k, n, a, lda, rwork)
@@ -53,7 +55,7 @@ func Zlqt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVe
 
 	//     Compute I - Q*Q'
 	golapack.Zlaset('F', m, m, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), l, lda)
-	goblas.Zherk(Upper, NoTrans, m, n, toPtrf64(-one), q, lda, &one, l, lda)
+	err = goblas.Zherk(Upper, NoTrans, *m, *n, -one, q, *lda, one, l, *lda)
 
 	//     Compute norm( I - Q*Q' ) / ( N * EPS ) .
 	resid = golapack.Zlansy('1', 'U', m, l, lda, rwork)

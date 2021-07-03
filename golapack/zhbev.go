@@ -104,6 +104,6 @@ func Zhbev(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat.Vecto
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 }

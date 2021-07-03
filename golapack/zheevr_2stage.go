@@ -198,11 +198,11 @@ func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl,
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= (*n); j++ {
-				goblas.Zdscal(toPtr((*n)-j+1), &sigma, a.CVector(j-1, j-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal((*n)-j+1, sigma, a.CVector(j-1, j-1), 1)
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				goblas.Zdscal(&j, &sigma, a.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zdscal(j, sigma, a.CVector(0, j-1), 1)
 			}
 		}
 		if (*abstol) > 0 {
@@ -266,12 +266,12 @@ func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl,
 	}
 	if (alleig || test) && (ieeeok == 1) {
 		if !wantz {
-			goblas.Dcopy(n, rwork.Off(indrd-1), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }())
-			goblas.Dcopy(toPtr((*n)-1), rwork.Off(indre-1), func() *int { y := 1; return &y }(), rwork.Off(indree-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy(*n, rwork.Off(indrd-1), 1, w, 1)
+			goblas.Dcopy((*n)-1, rwork.Off(indre-1), 1, rwork.Off(indree-1), 1)
 			Dsterf(n, w, rwork.Off(indree-1), info)
 		} else {
-			goblas.Dcopy(toPtr((*n)-1), rwork.Off(indre-1), func() *int { y := 1; return &y }(), rwork.Off(indree-1), func() *int { y := 1; return &y }())
-			goblas.Dcopy(n, rwork.Off(indrd-1), func() *int { y := 1; return &y }(), rwork.Off(indrdd-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy((*n)-1, rwork.Off(indre-1), 1, rwork.Off(indree-1), 1)
+			goblas.Dcopy(*n, rwork.Off(indrd-1), 1, rwork.Off(indrdd-1), 1)
 
 			if (*abstol) <= two*float64(*n)*eps {
 				tryrac = true
@@ -324,7 +324,7 @@ label30:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -346,7 +346,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(n, z.CVector(0, i-1), func() *int { y := 1; return &y }(), z.CVector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, j-1), 1)
 			}
 		}
 	}

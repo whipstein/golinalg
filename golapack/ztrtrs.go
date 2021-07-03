@@ -15,6 +15,8 @@ import (
 func Ztrtrs(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb, info *int) {
 	var nounit bool
 	var one, zero complex128
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -58,5 +60,5 @@ func Ztrtrs(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 	(*info) = 0
 
 	//     Solve A * x = b,  A**T * x = b,  or  A**H * x = b.
-	goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, nrhs, &one, a, lda, b, ldb)
+	err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, *lda, b, *ldb)
 }

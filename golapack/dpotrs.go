@@ -11,6 +11,8 @@ import (
 // A = U**T*U or A = L*L**T computed by DPOTRF.
 func Dpotrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb, info *int) {
 	var upper bool
+	var err error
+	_ = err
 
 	one := 1.0
 
@@ -42,17 +44,17 @@ func Dpotrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb
 		//        Solve A*X = B where A = U**T *U.
 		//
 		//        Solve U**T *X = B, overwriting B with X.
-		goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Solve U*X = B, overwriting B with X.
-		goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 	} else {
 		//        Solve A*X = B where A = L*L**T.
 		//
 		//        Solve L*X = B, overwriting B with X.
-		goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//        Solve L**T *X = B, overwriting B with X.
-		goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
 	}
 }

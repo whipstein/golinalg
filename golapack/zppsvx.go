@@ -96,7 +96,7 @@ func Zppsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.CVector, equed *byte, s 
 
 	if nofact || equil {
 		//        Compute the Cholesky factorization A = U**H * U or A = L * L**H.
-		goblas.Zcopy(toPtr((*n)*((*n)+1)/2), ap, func() *int { y := 1; return &y }(), afp, func() *int { y := 1; return &y }())
+		goblas.Zcopy((*n)*((*n)+1)/2, ap, 1, afp, 1)
 		Zpptrf(uplo, n, afp, info)
 
 		//        Return if INFO is non-zero.

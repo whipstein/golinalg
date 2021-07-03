@@ -47,7 +47,7 @@ func Zptt05(n, nrhs *int, d *mat.Vector, e *mat.CVector, b *mat.CMatrix, ldb *in
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Izamax(n, x.CVector(0, j-1), func() *int { y := 1; return &y }())
+		imax = goblas.Izamax(*n, x.CVector(0, j-1), 1)
 		xnorm = maxf64(Cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {

@@ -16,6 +16,8 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 	var ak, akm1, akm1k, bk, bkm1, denom, one complex128
 	var s float64
 	var i, iinfo, j, k, kp int
+	var err error
+	_ = err
 
 	one = (1.0 + 0.0*1i)
 
@@ -56,7 +58,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 1
 			} else {
@@ -64,21 +66,21 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if kp == -(*ipiv)[k-1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 2
 			}
 		}
 
 		//  Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		goblas.Ztrsm(Left, Upper, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//  Compute D \ B -> B   [ D \ (U \P**T * B) ]
 		i = (*n)
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
 				s = real(one) / a.GetRe(i-1, i-1)
-				goblas.Zdscal(nrhs, &s, b.CVector(i-1, 0), ldb)
+				goblas.Zdscal(*nrhs, s, b.CVector(i-1, 0), *ldb)
 			} else if i > 1 {
 				if (*ipiv)[i-1-1] == (*ipiv)[i-1] {
 					akm1k = work.Get(i - 1)
@@ -98,7 +100,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		}
 
 		//      Compute (U**H \ B) -> B   [ U**H \ (D \ (U \P**T * B) ) ]
-		goblas.Ztrsm(Left, Upper, ConjTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Upper, ConjTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//       P * B  [ P * (U**H \ (D \ (U \P**T * B) )) ]
 		k = 1
@@ -108,7 +110,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 1
 			} else {
@@ -116,7 +118,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k < (*n) && kp == -(*ipiv)[k+1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 2
 			}
@@ -133,7 +135,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 1
 			} else {
@@ -141,21 +143,21 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and -IPIV(K+1).
 				kp = -(*ipiv)[k+1-1]
 				if kp == -(*ipiv)[k-1] {
-					goblas.Zswap(nrhs, b.CVector(k+1-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k+1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k + 2
 			}
 		}
 
 		//  Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//  Compute D \ B -> B   [ D \ (L \P**T * B) ]
 		i = 1
 		for i <= (*n) {
 			if (*ipiv)[i-1] > 0 {
 				s = real(one) / a.GetRe(i-1, i-1)
-				goblas.Zdscal(nrhs, &s, b.CVector(i-1, 0), ldb)
+				goblas.Zdscal(*nrhs, s, b.CVector(i-1, 0), *ldb)
 			} else {
 				akm1k = work.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / cmplx.Conj(akm1k)
@@ -173,7 +175,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		}
 
 		//  Compute (L**H \ B) -> B   [ L**H \ (D \ (L \P**T * B) ) ]
-		goblas.Ztrsm(Left, Lower, ConjTrans, Unit, n, nrhs, &one, a, lda, b, ldb)
+		err = goblas.Ztrsm(Left, Lower, ConjTrans, Unit, *n, *nrhs, one, a, *lda, b, *ldb)
 
 		//       P * B  [ P * (L**H \ (D \ (L \P**T * B) )) ]
 		k = (*n)
@@ -183,7 +185,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 1
 			} else {
@@ -191,7 +193,7 @@ func Zhetrs2(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k > 1 && kp == -(*ipiv)[k-1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), ldb, b.CVector(kp-1, 0), ldb)
+					goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
 				}
 				k = k - 2
 			}

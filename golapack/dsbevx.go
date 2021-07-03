@@ -17,6 +17,8 @@ func Dsbevx(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, q *m
 	var order byte
 	var abstll, anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, tmp1, vll, vuu, zero float64
 	var i, iinfo, imax, indd, inde, indee, indibl, indisp, indiwo, indwrk, iscale, itmp1, j, jj, nsplit int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -151,14 +153,14 @@ func Dsbevx(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, q *m
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(n, work.Off(indd-1), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }())
+		goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
 		indee = indwrk + 2*(*n)
 		if !wantz {
-			goblas.Dcopy(toPtr((*n)-1), work.Off(inde-1), func() *int { y := 1; return &y }(), work.Off(indee-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
 			Dlacpy('A', n, n, q, ldq, z, ldz)
-			goblas.Dcopy(toPtr((*n)-1), work.Off(inde-1), func() *int { y := 1; return &y }(), work.Off(indee-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
 			Dsteqr(jobz, n, w, work.Off(indee-1), z, ldz, work.Off(indwrk-1), info)
 			if (*info) == 0 {
 				for i = 1; i <= (*n); i++ {
@@ -190,8 +192,8 @@ func Dsbevx(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, q *m
 		//        Apply orthogonal matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by DSTEIN.
 		for j = 1; j <= (*m); j++ {
-			goblas.Dcopy(n, z.Vector(0, j-1), func() *int { y := 1; return &y }(), work, func() *int { y := 1; return &y }())
-			goblas.Dgemv(NoTrans, n, n, &one, q, ldq, work, func() *int { y := 1; return &y }(), &zero, z.Vector(0, j-1), func() *int { y := 1; return &y }())
+			goblas.Dcopy(*n, z.Vector(0, j-1), 1, work, 1)
+			err = goblas.Dgemv(NoTrans, *n, *n, one, q, *ldq, work, 1, zero, z.Vector(0, j-1), 1)
 		}
 	}
 
@@ -204,7 +206,7 @@ label30:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(&imax, toPtrf64(one/sigma), w, func() *int { y := 1; return &y }())
+		goblas.Dscal(imax, one/sigma, w, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -226,7 +228,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1), func() *int { y := 1; return &y }(), z.Vector(0, j-1), func() *int { y := 1; return &y }())
+				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

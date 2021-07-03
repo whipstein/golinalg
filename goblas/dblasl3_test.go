@@ -17,6 +17,8 @@ func TestDblasLevel3(t *testing.T) {
 	var fatal, left, null, tran, same, upper bool
 	var alpha, als, beta, bls, bets, err float64
 	var i, j, n int
+	var err2 error
+	_ = err2
 	var _a, __a, _ab, _c, _cc, a, aa, ab, b, bb, c, cc, w *mat.Matrix
 	var ct, g *mat.Vector
 	ok := true
@@ -43,13 +45,14 @@ func TestDblasLevel3(t *testing.T) {
 	ct = vf(nmax * nmax)
 	g = vf(nmax)
 	snames := []string{"Dgemm", "Dsymm", "Dtrmm", "Dtrsm", "Dsyrk", "Dsyr2k"}
+	fmt.Printf("\n***** DBLAS Level 3 Tests *****\n")
 
-	n = minint(32, nmax)
+	n = min(32, nmax)
 	for j = 1; j <= n; j++ {
 		for i = 1; i <= n; i++ {
-			a.Set(i-1, j-1, float64(maxint(i-j+1, 0)))
-			ab.Set(i-1, j-1, float64(maxint(i-j+1, 0)))
-			b.Set(i-1, j-1, float64(maxint(i-j+1, 0)))
+			a.Set(i-1, j-1, float64(max(i-j+1, 0)))
+			ab.Set(i-1, j-1, float64(max(i-j+1, 0)))
+			b.Set(i-1, j-1, float64(max(i-j+1, 0)))
 		}
 		a.Set(j-1, nmax, float64(j))
 		a.Set(0, nmax+j-1, float64(j))
@@ -108,6 +111,7 @@ func TestDblasLevel3(t *testing.T) {
 
 			opts.Style = mat.General
 			optsfull.Style = mat.General
+			dchkeLevel3("Dgemm")
 
 			for _, m = range idim {
 
@@ -205,7 +209,7 @@ func TestDblasLevel3(t *testing.T) {
 										ldcs = ldc
 
 										//                          Call the subroutine.
-										Dgemm(transa, transb, &m, &n, &k, &alpha, aa, &lda, bb, &ldb, &beta, cc, &ldc)
+										err2 = Dgemm(transa, transb, m, n, k, alpha, aa, lda, bb, ldb, beta, cc, ldc)
 
 										//                          Check if error-exit was taken incorrectly.
 										if !ok {
@@ -250,7 +254,7 @@ func TestDblasLevel3(t *testing.T) {
 										if !null {
 											//                             Check the result.
 											dmmch(transa, transb, m, n, k, alpha, a, nmax, b, nmax, beta, c, nmax, ct, g, cc, ldc, eps, &err, &fatal, true, t)
-											errmax = maxf64(errmax, err)
+											errmax = math.Max(errmax, err)
 											//                             If got really bad answer, report and
 											//                             return.
 											if fatal {
@@ -290,6 +294,7 @@ func TestDblasLevel3(t *testing.T) {
 
 			opts.Style = mat.Symmetric
 			optsfull.Style = mat.Symmetric
+			dchkeLevel3("Dsymm")
 
 			for _, m = range idim {
 
@@ -376,7 +381,7 @@ func TestDblasLevel3(t *testing.T) {
 									ldcs = ldc
 
 									//                       Call the subroutine.
-									Dsymm(side, uplo, &m, &n, &alpha, aa, &lda, bb, &ldb, &beta, cc, &ldc)
+									err2 = Dsymm(side, uplo, m, n, alpha, aa, lda, bb, ldb, beta, cc, ldc)
 
 									//                       Check if error-exit was taken incorrectly.
 									if !ok {
@@ -422,7 +427,7 @@ func TestDblasLevel3(t *testing.T) {
 										} else {
 											dmmch(mat.NoTrans, mat.NoTrans, m, n, n, alpha, b, nmax, a, nmax, beta, c, nmax, ct, g, cc, ldc, eps, &err, &fatal, true, t)
 										}
-										errmax = maxf64(errmax, err)
+										errmax = math.Max(errmax, err)
 										//                          If got really bad answer, report and
 										//                          return.
 										if fatal {
@@ -461,6 +466,7 @@ func TestDblasLevel3(t *testing.T) {
 
 			opts.Style = mat.Triangular
 			optsfull.Style = mat.Triangular
+			dchkeLevel3(sname)
 
 			//     Set up zero matrix for SMMCH.
 			for j = 1; j <= nmax; j++ {
@@ -543,9 +549,9 @@ func TestDblasLevel3(t *testing.T) {
 
 										//                          Call the subroutine.
 										if sname[3:5] == "mm" {
-											Dtrmm(side, uplo, transa, diag, &m, &n, &alpha, aa, &lda, bb, &ldb)
+											err2 = Dtrmm(side, uplo, transa, diag, m, n, alpha, aa, lda, bb, ldb)
 										} else if sname[3:5] == "sm" {
-											Dtrsm(side, uplo, transa, diag, &m, &n, &alpha, aa, &lda, bb, &ldb)
+											err2 = Dtrsm(side, uplo, transa, diag, m, n, alpha, aa, lda, bb, ldb)
 										}
 
 										//                          Check if error-exit was taken incorrectly.
@@ -613,7 +619,7 @@ func TestDblasLevel3(t *testing.T) {
 													dmmch(mat.NoTrans, transa, m, n, n, 1.0, c, nmax, a, nmax, 0.0, b, nmax, ct, g, bb, ldb, eps, &err, &fatal, false, t)
 												}
 											}
-											errmax = maxf64(errmax, err)
+											errmax = math.Max(errmax, err)
 											//                             If got really bad answer, report and
 											//                             return.
 											if fatal {
@@ -655,6 +661,7 @@ func TestDblasLevel3(t *testing.T) {
 
 			opts.Style = mat.Symmetric
 			optsfull.Style = mat.Symmetric
+			dchkeLevel3("Dsyrk")
 
 			for _, n = range idim {
 				//        Set LDC to 1 more than minimum value if room.
@@ -725,7 +732,7 @@ func TestDblasLevel3(t *testing.T) {
 									ldcs = ldc
 
 									//                       Call the subroutine.
-									Dsyrk(uplo, trans, &n, &k, &alpha, aa, &lda, &beta, cc, &ldc)
+									err2 = Dsyrk(uplo, trans, n, k, alpha, aa, lda, beta, cc, ldc)
 
 									//                       Check if error-exit was taken incorrectly.
 									if !ok {
@@ -789,7 +796,7 @@ func TestDblasLevel3(t *testing.T) {
 											} else {
 												jc += ldc + 1
 											}
-											errmax = maxf64(errmax, err)
+											errmax = math.Max(errmax, err)
 											//                             If got really bad answer, report and
 											//                             return.
 											if fatal {
@@ -835,6 +842,7 @@ func TestDblasLevel3(t *testing.T) {
 
 			opts.Style = mat.Symmetric
 			optsfull.Style = mat.Symmetric
+			dchkeLevel3("Dsyr2k")
 
 			for _, n = range idim {
 				//        Set LDC to 1 more than minimum value if room.
@@ -924,7 +932,7 @@ func TestDblasLevel3(t *testing.T) {
 									ldcs = ldc
 
 									//                       Call the subroutine.
-									Dsyr2k(uplo, trans, &n, &k, &alpha, aa, &lda, bb, &ldb, &beta, cc, &ldc)
+									err2 = Dsyr2k(uplo, trans, n, k, alpha, aa, lda, bb, ldb, beta, cc, ldc)
 
 									//                       Check if error-exit was taken incorrectly.
 									if !ok {
@@ -1001,7 +1009,7 @@ func TestDblasLevel3(t *testing.T) {
 													jjab += 2 * nmax
 												}
 											}
-											errmax = maxf64(errmax, err)
+											errmax = math.Max(errmax, err)
 											//                             If got really bad answer, report and
 											//                             return.
 											if fatal {
@@ -1105,7 +1113,7 @@ func dmmch(transa, transb mat.MatTrans, m, n, kk int, alpha float64, a *mat.Matr
 			if g.Get(i-1) != zero {
 				erri /= g.Get(i - 1)
 			}
-			(*err) = maxf64(*err, erri)
+			(*err) = math.Max(*err, erri)
 			if (*err)*math.Sqrt(eps) >= one {
 				goto label130
 			}
@@ -1215,4 +1223,547 @@ func dmakeL3(style mat.MatStyle, uplo mat.MatUplo, diag mat.MatDiag, m, n int, a
 			}
 		}
 	}
+}
+
+func dchkeLevel3(srnamt string) {
+	var alpha, beta, one, two float64
+	var err error
+	a := mf(2, 1, opts)
+	b := mf(2, 1, opts)
+	c := mf(2, 1, opts)
+
+	//
+	//  Tests the error exits from the Level 3 Blas.
+	//  Requires a special version of the error-handling routine XERBLA.
+	//  A, B and C should not need to be defined.
+	//
+	//  Auxiliary routine for test program for Level 3 Blas.
+	//
+	//  -- Written on 8-February-1989.
+	//     Jack Dongarra, Argonne National Laboratory.
+	//     Iain Duff, AERE Harwell.
+	//     Jeremy Du Croz, Numerical Algorithms Group Ltd.
+	//     Sven Hammarling, Numerical Algorithms Group Ltd.
+	//
+	//  3-19-92:  Initialize ALPHA and BETA  (eca)
+	//  3-19-92:  Fix argument 12 in calls to SSYMM with INFOT = 9  (eca)
+	one = 1.0
+	two = 2.0
+
+	errt := &common.infoc.errt
+	ok := &common.infoc.ok
+	lerr := &common.infoc.lerr
+
+	*lerr = true
+
+	alpha = one
+	beta = two
+
+	switch srnamt {
+	case "Dgemm":
+		*ok = true
+		*errt = fmt.Errorf("transa invalid: /")
+		err = Dgemm('/', NoTrans, 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("transa invalid: /")
+		err = Dgemm('/', Trans, 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("transb invalid: /")
+		err = Dgemm(NoTrans, '/', 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("transb invalid: /")
+		err = Dgemm(Trans, '/', 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dgemm(NoTrans, NoTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dgemm(NoTrans, Trans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dgemm(Trans, NoTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dgemm(Trans, Trans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dgemm(NoTrans, NoTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dgemm(NoTrans, Trans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dgemm(Trans, NoTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dgemm(Trans, Trans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dgemm(NoTrans, NoTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dgemm(NoTrans, Trans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dgemm(Trans, NoTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dgemm(Trans, Trans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dgemm(NoTrans, NoTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dgemm(NoTrans, Trans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dgemm(Trans, NoTrans, 0, 0, 2, alpha, a, 1, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dgemm(Trans, Trans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dgemm(NoTrans, NoTrans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dgemm(Trans, NoTrans, 0, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dgemm(NoTrans, Trans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dgemm(Trans, Trans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dgemm(NoTrans, NoTrans, 2, 0, 0, alpha, a, 2, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dgemm(NoTrans, Trans, 2, 0, 0, alpha, a, 2, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dgemm(Trans, NoTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dgemm(Trans, Trans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+	case "Dsymm":
+		*ok = true
+		*errt = fmt.Errorf("side invalid: /")
+		err = Dsymm('/', Upper, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("uplo invalid: /")
+		err = Dsymm(Left, '/', 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dsymm(Left, Upper, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dsymm(Right, Upper, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dsymm(Left, Lower, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dsymm(Right, Lower, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsymm(Left, Upper, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsymm(Right, Upper, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsymm(Left, Lower, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsymm(Right, Lower, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsymm(Left, Upper, 2, 0, alpha, a, 1, b, 2, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsymm(Right, Upper, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsymm(Left, Lower, 2, 0, alpha, a, 1, b, 2, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsymm(Right, Lower, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsymm(Left, Upper, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsymm(Right, Upper, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsymm(Left, Lower, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsymm(Right, Lower, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsymm(Left, Upper, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsymm(Right, Upper, 2, 0, alpha, a, 1, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsymm(Left, Lower, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsymm(Right, Lower, 2, 0, alpha, a, 1, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+	case "Dtrmm":
+		*ok = true
+		*errt = fmt.Errorf("side invalid: /")
+		err = Dtrmm('/', Upper, NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("uplo invalid: /")
+		err = Dtrmm(Left, '/', NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("transa invalid: /")
+		err = Dtrmm(Left, Upper, '/', NonUnit, 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("diag invalid: /")
+		err = Dtrmm(Left, Upper, NoTrans, '/', 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Left, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Left, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Right, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Right, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Left, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Left, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Right, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrmm(Right, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Left, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Left, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Right, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Right, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Left, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Left, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Right, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrmm(Right, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Right, Upper, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Right, Upper, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Right, Lower, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrmm(Right, Lower, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Right, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Right, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Right, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrmm(Right, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+	case "Dtrsm":
+		*ok = true
+		*errt = fmt.Errorf("side invalid: /")
+		err = Dtrsm('/', Upper, NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("uplo invalid: /")
+		err = Dtrsm(Left, '/', NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("transa invalid: /")
+		err = Dtrsm(Left, Upper, '/', NonUnit, 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("diag invalid: /")
+		err = Dtrsm(Left, Upper, NoTrans, '/', 0, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Left, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Left, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Right, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Right, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Left, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Left, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Right, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		err = Dtrsm(Right, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Left, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Left, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Right, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Right, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Left, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Left, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Right, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dtrsm(Right, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Right, Upper, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Right, Upper, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Right, Lower, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dtrsm(Right, Lower, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Right, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Right, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Right, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dtrsm(Right, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		Chkxer(srnamt, err)
+	case "Dsyrk":
+		*ok = true
+		*errt = fmt.Errorf("uplo invalid: /")
+		err = Dsyrk('/', NoTrans, 0, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("trans invalid: /")
+		err = Dsyrk(Upper, '/', 0, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyrk(Upper, NoTrans, -1, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyrk(Upper, Trans, -1, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyrk(Lower, NoTrans, -1, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyrk(Lower, Trans, -1, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyrk(Upper, NoTrans, 0, -1, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyrk(Upper, Trans, 0, -1, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyrk(Lower, NoTrans, 0, -1, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyrk(Lower, Trans, 0, -1, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyrk(Upper, NoTrans, 2, 0, alpha, a, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyrk(Upper, Trans, 0, 2, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyrk(Lower, NoTrans, 2, 0, alpha, a, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyrk(Lower, Trans, 0, 2, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyrk(Upper, NoTrans, 2, 0, alpha, a, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyrk(Upper, Trans, 2, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyrk(Lower, NoTrans, 2, 0, alpha, a, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyrk(Lower, Trans, 2, 0, alpha, a, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+	case "Dsyr2k":
+		*ok = true
+		*errt = fmt.Errorf("uplo invalid: /")
+		err = Dsyr2k('/', NoTrans, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("trans invalid: /")
+		err = Dsyr2k(Upper, '/', 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyr2k(Upper, NoTrans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyr2k(Upper, Trans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyr2k(Lower, NoTrans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("n invalid: -1")
+		err = Dsyr2k(Lower, Trans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyr2k(Upper, NoTrans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyr2k(Upper, Trans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyr2k(Lower, NoTrans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("k invalid: -1")
+		err = Dsyr2k(Lower, Trans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyr2k(Upper, NoTrans, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyr2k(Upper, Trans, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyr2k(Lower, NoTrans, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("lda invalid: 1")
+		err = Dsyr2k(Lower, Trans, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsyr2k(Upper, NoTrans, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsyr2k(Upper, Trans, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsyr2k(Lower, NoTrans, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldb invalid: 1")
+		err = Dsyr2k(Lower, Trans, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyr2k(Upper, NoTrans, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyr2k(Upper, Trans, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyr2k(Lower, NoTrans, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("ldc invalid: 1")
+		err = Dsyr2k(Lower, Trans, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		Chkxer(srnamt, err)
+	}
+
+	if *ok {
+		fmt.Printf(" %6s passed the tests of error-exits\n", srnamt)
+	} else {
+		fmt.Printf(" ******* %6s FAILED THE TESTS OF ERROR-EXITS *******\n", srnamt)
+	}
+	return
 }

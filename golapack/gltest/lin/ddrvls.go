@@ -17,6 +17,8 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	var trans byte
 	var eps, norma, normb, one, rcond, zero float64
 	var crank, i, im, imb, in, inb, info, ins, irank, iscale, itran, itype, j, k, lda, ldb, ldwork, liwork, lwlsy, lwork, lworkDgels, lworkDgelsd, lworkDgelss, lworkDgelsy, lworkDgetsls, m, mb, mmax, mnmin, n, nb, ncols, nerrs, nfail, nmax, nrhs, nrows, nrun, nsmax, rank, smlsiz int
+	var err error
+	_ = err
 
 	result := vf(16)
 	iseed := make([]int, 4)
@@ -191,9 +193,9 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 									//                             Set up a consistent rhs
 									if ncols > 0 {
 										golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
-										goblas.Dscal(toPtr(ncols*nrhs), toPtrf64(one/float64(ncols)), work, toPtr(1))
+										goblas.Dscal(ncols*nrhs, one/float64(ncols), work, 1)
 									}
-									goblas.Dgemm(mat.TransByte(trans), NoTrans, &nrows, &nrhs, &ncols, &one, copya.Matrix(lda, opts), &lda, work.Matrix(ldwork, opts), &ldwork, &zero, b.Matrix(ldb, opts), &ldb)
+									err = goblas.Dgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, one, copya.Matrix(lda, opts), lda, work.Matrix(ldwork, opts), ldwork, zero, b.Matrix(ldb, opts), ldb)
 									golapack.Dlacpy('F', &nrows, &nrhs, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb)
 
 									//                             Solve LS or overdetermined system
@@ -264,9 +266,9 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 										//                             Set up a consistent rhs
 										if ncols > 0 {
 											golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
-											goblas.Dscal(toPtr(ncols*nrhs), toPtrf64(one/float64(ncols)), work, toPtr(1))
+											goblas.Dscal(ncols*nrhs, one/float64(ncols), work, 1)
 										}
-										goblas.Dgemm(mat.TransByte(trans), NoTrans, &nrows, &nrhs, &ncols, &one, copya.Matrix(lda, opts), &lda, work.Matrix(ldwork, opts), &ldwork, &zero, b.Matrix(ldb, opts), &ldb)
+										err = goblas.Dgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, one, copya.Matrix(lda, opts), lda, work.Matrix(ldwork, opts), ldwork, zero, b.Matrix(ldb, opts), ldb)
 										golapack.Dlacpy('F', &nrows, &nrhs, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb)
 
 										//                             Solve LS or overdetermined system
@@ -388,8 +390,8 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//
 							//                       Test 7:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(&mnmin, toPtrf64(-one), copys, toPtr(1), s, toPtr(1))
-								result.Set(6, goblas.Dasum(&mnmin, s, toPtr(1))/goblas.Dasum(&mnmin, copys, toPtr(1))/(eps*float64(mnmin)))
+								goblas.Daxpy(mnmin, -one, copys, 1, s, 1)
+								result.Set(6, goblas.Dasum(mnmin, s, 1)/goblas.Dasum(mnmin, copys, 1)/(eps*float64(mnmin)))
 							} else {
 								result.Set(6, zero)
 							}
@@ -432,8 +434,8 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 							//                       Test 11:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(&mnmin, toPtrf64(-one), copys, toPtr(1), s, toPtr(1))
-								result.Set(10, goblas.Dasum(&mnmin, s, toPtr(1))/goblas.Dasum(&mnmin, copys, toPtr(1))/(eps*float64(mnmin)))
+								goblas.Daxpy(mnmin, -one, copys, 1, s, 1)
+								result.Set(10, goblas.Dasum(mnmin, s, 1)/goblas.Dasum(mnmin, copys, 1)/(eps*float64(mnmin)))
 							} else {
 								result.Set(10, zero)
 							}

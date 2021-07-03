@@ -76,7 +76,7 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 	iwk3i = iwk3 - 1
 
 	//     Normalize Z.
-	rho = goblas.Dnrm2(k, z, toPtr(1))
+	rho = goblas.Dnrm2(*k, z, 1)
 	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &rho, &one, k, func() *int { y := 1; return &y }(), z.Matrix(*k, opts), k, info)
 	rho = rho * rho
 
@@ -124,14 +124,14 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 		for i = j + 1; i <= (*k); i++ {
 			work.Set(i-1, z.Get(i-1)/(Dlamc3(dsigma.GetPtr(i-1), &dsigjp)+difrj)/(dsigma.Get(i-1)+dj))
 		}
-		temp = goblas.Dnrm2(k, work, toPtr(1))
-		work.Set(iwk2i+j-1, goblas.Ddot(k, work, toPtr(1), vf, toPtr(1))/temp)
-		work.Set(iwk3i+j-1, goblas.Ddot(k, work, toPtr(1), vl, toPtr(1))/temp)
+		temp = goblas.Dnrm2(*k, work, 1)
+		work.Set(iwk2i+j-1, goblas.Ddot(*k, work, 1, vf, 1)/temp)
+		work.Set(iwk3i+j-1, goblas.Ddot(*k, work, 1, vl, 1)/temp)
 		if (*icompq) == 1 {
 			difr.Set(j-1, 1, temp)
 		}
 	}
 
-	goblas.Dcopy(k, work.Off(iwk2-1), toPtr(1), vf, toPtr(1))
-	goblas.Dcopy(k, work.Off(iwk3-1), toPtr(1), vl, toPtr(1))
+	goblas.Dcopy(*k, work.Off(iwk2-1), 1, vf, 1)
+	goblas.Dcopy(*k, work.Off(iwk3-1), 1, vl, 1)
 }

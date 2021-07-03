@@ -23,6 +23,8 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 	var upper bool
 	var ajj, dstop, dtemp, one, zero float64
 	var i, itemp, j, jb, k, nb, pvt int
+	var err error
+	_ = err
 
 	one = 1.0
 	zero = 0.0
@@ -119,11 +121,11 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 					if j != pvt {
 						//                    Pivot OK, so can now swap pivot rows and columns
 						a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-						goblas.Dswap(toPtr(j-1), a.Vector(0, j-1), toPtr(1), a.Vector(0, pvt-1), toPtr(1))
+						goblas.Dswap(j-1, a.Vector(0, j-1), 1, a.Vector(0, pvt-1), 1)
 						if pvt < (*n) {
-							goblas.Dswap(toPtr((*n)-pvt), a.Vector(j-1, pvt+1-1), lda, a.Vector(pvt-1, pvt+1-1), lda)
+							goblas.Dswap((*n)-pvt, a.Vector(j-1, pvt+1-1), *lda, a.Vector(pvt-1, pvt+1-1), *lda)
 						}
-						goblas.Dswap(toPtr(pvt-j-1), a.Vector(j-1, j+1-1), lda, a.Vector(j+1-1, pvt-1), toPtr(1))
+						goblas.Dswap(pvt-j-1, a.Vector(j-1, j+1-1), *lda, a.Vector(j+1-1, pvt-1), 1)
 
 						//                    Swap dot products and PIV
 						dtemp = work.Get(j - 1)
@@ -139,15 +141,15 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 
 					//                 Compute elements J+1:N of row J.
 					if j < (*n) {
-						goblas.Dgemv(mat.Trans, toPtr(j-k), toPtr((*n)-j), toPtrf64(-one), a.Off(k-1, j+1-1), lda, a.Vector(k-1, j-1), toPtr(1), &one, a.Vector(j-1, j+1-1), lda)
-						goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), a.Vector(j-1, j+1-1), lda)
+						err = goblas.Dgemv(Trans, j-k, (*n)-j, -one, a.Off(k-1, j+1-1), *lda, a.Vector(k-1, j-1), 1, one, a.Vector(j-1, j+1-1), *lda)
+						goblas.Dscal((*n)-j, one/ajj, a.Vector(j-1, j+1-1), *lda)
 					}
 
 				}
 
 				//              Update trailing matrix, J already incremented
 				if k+jb <= (*n) {
-					goblas.Dsyrk(mat.Upper, mat.Trans, toPtr((*n)-j+1), &jb, toPtrf64(-one), a.Off(k-1, j-1), lda, &one, a.Off(j-1, j-1), lda)
+					err = goblas.Dsyrk(mat.Upper, mat.Trans, (*n)-j+1, jb, -one, a.Off(k-1, j-1), *lda, one, a.Off(j-1, j-1), *lda)
 				}
 
 			}
@@ -190,11 +192,11 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 					if j != pvt {
 						//                    Pivot OK, so can now swap pivot rows and columns
 						a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-						goblas.Dswap(toPtr(j-1), a.Vector(j-1, 0), lda, a.Vector(pvt-1, 0), lda)
+						goblas.Dswap(j-1, a.Vector(j-1, 0), *lda, a.Vector(pvt-1, 0), *lda)
 						if pvt < (*n) {
-							goblas.Dswap(toPtr((*n)-pvt), a.Vector(pvt+1-1, j-1), toPtr(1), a.Vector(pvt+1-1, pvt-1), toPtr(1))
+							goblas.Dswap((*n)-pvt, a.Vector(pvt+1-1, j-1), 1, a.Vector(pvt+1-1, pvt-1), 1)
 						}
-						goblas.Dswap(toPtr(pvt-j-1), a.Vector(j+1-1, j-1), toPtr(1), a.Vector(pvt-1, j+1-1), lda)
+						goblas.Dswap(pvt-j-1, a.Vector(j+1-1, j-1), 1, a.Vector(pvt-1, j+1-1), *lda)
 
 						//                    Swap dot products and PIV
 						dtemp = work.Get(j - 1)
@@ -210,15 +212,15 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 
 					//                 Compute elements J+1:N of column J.
 					if j < (*n) {
-						goblas.Dgemv(mat.NoTrans, toPtr((*n)-j), toPtr(j-k), toPtrf64(-one), a.Off(j+1-1, k-1), lda, a.Vector(j-1, k-1), lda, &one, a.Vector(j+1-1, j-1), toPtr(1))
-						goblas.Dscal(toPtr((*n)-j), toPtrf64(one/ajj), a.Vector(j+1-1, j-1), toPtr(1))
+						err = goblas.Dgemv(NoTrans, (*n)-j, j-k, -one, a.Off(j+1-1, k-1), *lda, a.Vector(j-1, k-1), *lda, one, a.Vector(j+1-1, j-1), 1)
+						goblas.Dscal((*n)-j, one/ajj, a.Vector(j+1-1, j-1), 1)
 					}
 
 				}
 
 				//              Update trailing matrix, J already incremented
 				if k+jb <= (*n) {
-					goblas.Dsyrk(mat.Lower, mat.NoTrans, toPtr((*n)-j+1), &jb, toPtrf64(-one), a.Off(j-1, k-1), lda, &one, a.Off(j-1, j-1), lda)
+					err = goblas.Dsyrk(mat.Lower, mat.NoTrans, (*n)-j+1, jb, -one, a.Off(j-1, k-1), *lda, one, a.Off(j-1, j-1), *lda)
 				}
 
 			}

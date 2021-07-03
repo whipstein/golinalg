@@ -173,11 +173,11 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						anorm = golapack.Dlansp('1', uplo, &n, a, rwork)
 
 						//                    Factor the matrix A.
-						goblas.Dcopy(&npp, a, toPtr(1), afac, toPtr(1))
+						goblas.Dcopy(npp, a, 1, afac, 1)
 						golapack.Dsptrf(uplo, &n, afac, iwork, &info)
 
 						//                    Compute inv(A) and take its norm.
-						goblas.Dcopy(&npp, afac, toPtr(1), ainv, toPtr(1))
+						goblas.Dcopy(npp, afac, 1, ainv, 1)
 						golapack.Dsptri(uplo, &n, ainv, iwork, work, &info)
 						ainvnm = golapack.Dlansp('1', uplo, &n, ainv, rwork)
 
@@ -196,7 +196,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 					//                 --- Test DSPSV  ---
 					if ifact == 2 {
-						goblas.Dcopy(&npp, a, toPtr(1), afac, toPtr(1))
+						goblas.Dcopy(npp, a, 1, afac, 1)
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 
 						//                    Factor the matrix and solve the system using DSPSV.

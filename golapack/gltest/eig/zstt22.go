@@ -21,6 +21,8 @@ func Zstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *i
 	var aukj, cone, czero complex128
 	var anorm, one, ulp, unfl, wnorm, zero float64
 	var i, j, k int
+	var err error
+	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -91,7 +93,7 @@ func Zstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *i
 	//     Do Test 2
 	//
 	//     Compute  U*U - I
-	goblas.Zgemm(Trans, NoTrans, m, m, n, &cone, u, ldu, u, ldu, &czero, work, m)
+	err = goblas.Zgemm(Trans, NoTrans, *m, *m, *n, cone, u, *ldu, u, *ldu, czero, work, *m)
 
 	for j = 1; j <= (*m); j++ {
 		work.Set(j-1, j-1, work.Get(j-1, j-1)-complex(one, 0))

@@ -217,7 +217,7 @@ func Zhbtrd(vect, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, d, e *mat.V
 					ab.Set((*kd)-1, i+2-1, ab.Get((*kd)-1, i+2-1)*t)
 				}
 				if wantq {
-					goblas.Zscal(n, toPtrc128(cmplx.Conj(t)), q.CVector(0, i+1-1), func() *int { y := 1; return &y }())
+					goblas.Zscal(*n, cmplx.Conj(t), q.CVector(0, i+1-1), 1)
 				}
 			}
 		} else {
@@ -385,7 +385,7 @@ func Zhbtrd(vect, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, d, e *mat.V
 					ab.Set(1, i+1-1, ab.Get(1, i+1-1)*t)
 				}
 				if wantq {
-					goblas.Zscal(n, &t, q.CVector(0, i+1-1), func() *int { y := 1; return &y }())
+					goblas.Zscal(*n, t, q.CVector(0, i+1-1), 1)
 				}
 			}
 		} else {

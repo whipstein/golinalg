@@ -69,7 +69,7 @@ func Zptcon(n *int, d *mat.Vector, e *mat.CVector, anorm, rcond *float64, rwork 
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(n, rwork, func() *int { y := 1; return &y }())
+	ix = goblas.Idamax(*n, rwork, 1)
 	ainvnm = rwork.GetMag(ix - 1)
 
 	//     Compute the reciprocal condition number.

@@ -127,7 +127,7 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*L' or U'*U factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Dcopy(&npp, a, toPtr(1), afac, toPtr(1))
+				goblas.Dcopy(npp, a, 1, afac, 1)
 				*srnamt = "DPPTRF"
 				golapack.Dpptrf(uplo, &n, afac, &info)
 
@@ -144,12 +144,12 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//+    TEST 1
 				//              Reconstruct matrix from factors and compute residual.
-				goblas.Dcopy(&npp, afac, toPtr(1), ainv, toPtr(1))
+				goblas.Dcopy(npp, afac, 1, ainv, 1)
 				Dppt01(uplo, &n, a, ainv, rwork, result.GetPtr(0))
 
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
-				goblas.Dcopy(&npp, afac, toPtr(1), ainv, toPtr(1))
+				goblas.Dcopy(npp, afac, 1, ainv, 1)
 				*srnamt = "DPPTRI"
 				golapack.Dpptri(uplo, &n, ainv, &info)
 

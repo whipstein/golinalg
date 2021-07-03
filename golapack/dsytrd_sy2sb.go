@@ -13,6 +13,8 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 	var lquery, upper bool
 	var half, one, rone, zero float64
 	var i, iinfo, j, lds1, lds2, ldt, ldw, lk, ls1, ls2, lt, lw, lwmin, pk, pn, s1pos, s2pos, tpos, wpos int
+	var err error
+	_ = err
 
 	rone = 1.0
 	zero = 0.0
@@ -53,12 +55,12 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 		if upper {
 			for i = 1; i <= (*n); i++ {
 				lk = minint((*kd)+1, i)
-				goblas.Dcopy(&lk, a.Vector(i-lk+1-1, i-1), toPtr(1), ab.Vector((*kd)+1-lk+1-1, i-1), toPtr(1))
+				goblas.Dcopy(lk, a.Vector(i-lk+1-1, i-1), 1, ab.Vector((*kd)+1-lk+1-1, i-1), 1)
 			}
 		} else {
 			for i = 1; i <= (*n); i++ {
 				lk = minint((*kd)+1, (*n)-i+1)
-				goblas.Dcopy(&lk, a.Vector(i-1, i-1), toPtr(1), ab.Vector(0, i-1), toPtr(1))
+				goblas.Dcopy(lk, a.Vector(i-1, i-1), 1, ab.Vector(0, i-1), 1)
 			}
 		}
 		work.Set(0, 1)
@@ -100,7 +102,7 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 			//            Copy the upper portion of A into AB
 			for j = i; j <= i+pk-1; j++ {
 				lk = minint(*kd, (*n)-j) + 1
-				goblas.Dcopy(&lk, a.Vector(j-1, j-1), lda, ab.Vector((*kd)+1-1, j-1), toPtr((*ldab)-1))
+				goblas.Dcopy(lk, a.Vector(j-1, j-1), *lda, ab.Vector((*kd)+1-1, j-1), (*ldab)-1)
 			}
 
 			Dlaset('L', &pk, &pk, &zero, &one, a.Off(i-1, i+(*kd)-1), lda)
@@ -109,23 +111,23 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 			Dlarft('F', 'R', &pn, &pk, a.Off(i-1, i+(*kd)-1), lda, tau.Off(i-1), work.MatrixOff(tpos-1, ldt, opts), &ldt)
 
 			//            Compute W:
-			goblas.Dgemm(ConjTrans, NoTrans, &pk, &pn, &pk, &one, work.MatrixOff(tpos-1, ldt, opts), &ldt, a.Off(i-1, i+(*kd)-1), lda, &zero, work.MatrixOff(s2pos-1, lds2, opts), &lds2)
+			err = goblas.Dgemm(ConjTrans, NoTrans, pk, pn, pk, one, work.MatrixOff(tpos-1, ldt, opts), ldt, a.Off(i-1, i+(*kd)-1), *lda, zero, work.MatrixOff(s2pos-1, lds2, opts), lds2)
 
-			goblas.Dsymm(Right, mat.UploByte(uplo), &pk, &pn, &one, a.Off(i+(*kd)-1, i+(*kd)-1), lda, work.MatrixOff(s2pos-1, lds2, opts), &lds2, &zero, work.MatrixOff(wpos-1, ldw, opts), &ldw)
+			err = goblas.Dsymm(Right, mat.UploByte(uplo), pk, pn, one, a.Off(i+(*kd)-1, i+(*kd)-1), *lda, work.MatrixOff(s2pos-1, lds2, opts), lds2, zero, work.MatrixOff(wpos-1, ldw, opts), ldw)
 
-			goblas.Dgemm(NoTrans, ConjTrans, &pk, &pk, &pn, &one, work.MatrixOff(wpos-1, ldw, opts), &ldw, work.MatrixOff(s2pos-1, lds2, opts), &lds2, &zero, work.MatrixOff(s1pos-1, lds1, opts), &lds1)
+			err = goblas.Dgemm(NoTrans, ConjTrans, pk, pk, pn, one, work.MatrixOff(wpos-1, ldw, opts), ldw, work.MatrixOff(s2pos-1, lds2, opts), lds2, zero, work.MatrixOff(s1pos-1, lds1, opts), lds1)
 
-			goblas.Dgemm(NoTrans, NoTrans, &pk, &pn, &pk, toPtrf64(half), work.MatrixOff(s1pos-1, lds1, opts), &lds1, a.Off(i-1, i+(*kd)-1), lda, &one, work.MatrixOff(wpos-1, ldw, opts), &ldw)
+			err = goblas.Dgemm(NoTrans, NoTrans, pk, pn, pk, half, work.MatrixOff(s1pos-1, lds1, opts), lds1, a.Off(i-1, i+(*kd)-1), *lda, one, work.MatrixOff(wpos-1, ldw, opts), ldw)
 
 			//            Update the unreduced submatrix A(i+kd:n,i+kd:n), using
 			//            an update of the form:  A := A - V'*W - W'*V
-			goblas.Dsyr2k(mat.UploByte(uplo), ConjTrans, &pn, &pk, toPtrf64(one), a.Off(i-1, i+(*kd)-1), lda, work.MatrixOff(wpos-1, ldw, opts), &ldw, &rone, a.Off(i+(*kd)-1, i+(*kd)-1), lda)
+			err = goblas.Dsyr2k(mat.UploByte(uplo), ConjTrans, pn, pk, one, a.Off(i-1, i+(*kd)-1), *lda, work.MatrixOff(wpos-1, ldw, opts), ldw, rone, a.Off(i+(*kd)-1, i+(*kd)-1), *lda)
 		}
 
 		//        Copy the upper band to AB which is the band storage matrix
 		for j = (*n) - (*kd) + 1; j <= (*n); j++ {
 			lk = minint(*kd, (*n)-j) + 1
-			goblas.Dcopy(&lk, a.Vector(j-1, j-1), lda, ab.Vector((*kd)+1-1, j-1), toPtr((*ldab)-1))
+			goblas.Dcopy(lk, a.Vector(j-1, j-1), *lda, ab.Vector((*kd)+1-1, j-1), (*ldab)-1)
 		}
 
 	} else {
@@ -140,7 +142,7 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 			//            Copy the upper portion of A into AB
 			for j = i; j <= i+pk-1; j++ {
 				lk = minint(*kd, (*n)-j) + 1
-				goblas.Dcopy(&lk, a.Vector(j-1, j-1), toPtr(1), ab.Vector(0, j-1), toPtr(1))
+				goblas.Dcopy(lk, a.Vector(j-1, j-1), 1, ab.Vector(0, j-1), 1)
 			}
 
 			Dlaset('U', &pk, &pk, &zero, &one, a.Off(i+(*kd)-1, i-1), lda)
@@ -149,17 +151,17 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 			Dlarft('F', 'C', &pn, &pk, a.Off(i+(*kd)-1, i-1), lda, tau.Off(i-1), work.MatrixOff(tpos-1, ldt, opts), &ldt)
 
 			//            Compute W:
-			goblas.Dgemm(NoTrans, NoTrans, &pn, &pk, &pk, &one, a.Off(i+(*kd)-1, i-1), lda, work.MatrixOff(tpos-1, ldt, opts), &ldt, &zero, work.MatrixOff(s2pos-1, lds2, opts), &lds2)
+			err = goblas.Dgemm(NoTrans, NoTrans, pn, pk, pk, one, a.Off(i+(*kd)-1, i-1), *lda, work.MatrixOff(tpos-1, ldt, opts), ldt, zero, work.MatrixOff(s2pos-1, lds2, opts), lds2)
 
-			goblas.Dsymm(Left, mat.UploByte(uplo), &pn, &pk, &one, a.Off(i+(*kd)-1, i+(*kd)-1), lda, work.MatrixOff(s2pos-1, lds2, opts), &lds2, &zero, work.MatrixOff(wpos-1, ldw, opts), &ldw)
+			err = goblas.Dsymm(Left, mat.UploByte(uplo), pn, pk, one, a.Off(i+(*kd)-1, i+(*kd)-1), *lda, work.MatrixOff(s2pos-1, lds2, opts), lds2, zero, work.MatrixOff(wpos-1, ldw, opts), ldw)
 
-			goblas.Dgemm(ConjTrans, NoTrans, &pk, &pk, &pn, &one, work.MatrixOff(s2pos-1, lds2, opts), &lds2, work.MatrixOff(wpos-1, ldw, opts), &ldw, &zero, work.MatrixOff(s1pos-1, lds1, opts), &lds1)
+			err = goblas.Dgemm(ConjTrans, NoTrans, pk, pk, pn, one, work.MatrixOff(s2pos-1, lds2, opts), lds2, work.MatrixOff(wpos-1, ldw, opts), ldw, zero, work.MatrixOff(s1pos-1, lds1, opts), lds1)
 
-			goblas.Dgemm(NoTrans, NoTrans, &pn, &pk, &pk, toPtrf64(half), a.Off(i+(*kd)-1, i-1), lda, work.MatrixOff(s1pos-1, lds1, opts), &lds1, &one, work.MatrixOff(wpos-1, ldw, opts), &ldw)
+			err = goblas.Dgemm(NoTrans, NoTrans, pn, pk, pk, half, a.Off(i+(*kd)-1, i-1), *lda, work.MatrixOff(s1pos-1, lds1, opts), lds1, one, work.MatrixOff(wpos-1, ldw, opts), ldw)
 
 			//            Update the unreduced submatrix A(i+kd:n,i+kd:n), using
 			//            an update of the form:  A := A - V*W' - W*V'
-			goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, &pn, &pk, toPtrf64(one), a.Off(i+(*kd)-1, i-1), lda, work.MatrixOff(wpos-1, ldw, opts), &ldw, &rone, a.Off(i+(*kd)-1, i+(*kd)-1), lda)
+			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, pn, pk, one, a.Off(i+(*kd)-1, i-1), *lda, work.MatrixOff(wpos-1, ldw, opts), ldw, rone, a.Off(i+(*kd)-1, i+(*kd)-1), *lda)
 			//            ==================================================================
 			//            RESTORE A FOR COMPARISON AND CHECKING TO BE REMOVED
 			//             DO 45 J = I, I+PK-1
@@ -172,7 +174,7 @@ func DsytrdSy2sb(uplo byte, n, kd *int, a *mat.Matrix, lda *int, ab *mat.Matrix,
 		//        Copy the lower band to AB which is the band storage matrix
 		for j = (*n) - (*kd) + 1; j <= (*n); j++ {
 			lk = minint(*kd, (*n)-j) + 1
-			goblas.Dcopy(&lk, a.Vector(j-1, j-1), toPtr(1), ab.Vector(0, j-1), toPtr(1))
+			goblas.Dcopy(lk, a.Vector(j-1, j-1), 1, ab.Vector(0, j-1), 1)
 		}
 	}
 

@@ -19,6 +19,8 @@ import (
 func Dgetrf(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 	var one float64
 	var i, iinfo, j, jb, nb int
+	var err error
+	_ = err
 
 	one = 1.0
 
@@ -72,10 +74,10 @@ func Dgetrf(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 				Dlaswp(toPtr((*n)-j-jb+1), a.Off(0, j+jb-1), lda, &j, toPtr(j+jb-1), ipiv, func() *int { y := 1; return &y }())
 
 				//              Compute block row of U.
-				goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, &jb, toPtr((*n)-j-jb+1), &one, a.Off(j-1, j-1), lda, a.Off(j-1, j+jb-1), lda)
+				err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					goblas.Dgemm(mat.NoTrans, mat.NoTrans, toPtr((*m)-j-jb+1), toPtr((*n)-j-jb+1), &jb, toPtrf64(-one), a.Off(j+jb-1, j-1), lda, a.Off(j-1, j+jb-1), lda, &one, a.Off(j+jb-1, j+jb-1), lda)
+					err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, one, a.Off(j+jb-1, j+jb-1), *lda)
 				}
 			}
 		}

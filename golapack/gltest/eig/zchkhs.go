@@ -147,6 +147,8 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	var cone, czero complex128
 	var aninv, anorm, cond, conds, one, ovfl, rtovfl, rtulp, rtulpi, rtunfl, temp1, temp2, ulp, ulpinv, unfl, zero float64
 	var i, ihi, iinfo, ilo, imode, in, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, ntest, ntestt int
+	var err error
+	_ = err
 	cdumma := cvf(4)
 	dumma := vf(4)
 	idumma := make([]int, 1)
@@ -402,7 +404,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					h.Set(i-1, j-1, czero)
 				}
 			}
-			goblas.Zcopy(toPtr(n-1), work, func() *int { y := 1; return &y }(), tau, func() *int { y := 1; return &y }())
+			goblas.Zcopy(n-1, work, 1, tau, 1)
 			golapack.Zunghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n+1-1), toPtr((*nwork)-n), &iinfo)
 			ntest = 2
 
@@ -449,7 +451,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			}
 
 			//           Compute Z = U' UZ
-			goblas.Zgemm(ConjTrans, NoTrans, &n, &n, &n, &cone, u, ldu, uz, ldu, &czero, z, ldu)
+			err = goblas.Zgemm(ConjTrans, NoTrans, n, n, n, cone, u, *ldu, uz, *ldu, czero, z, *ldu)
 			ntest = 8
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )

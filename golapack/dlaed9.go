@@ -81,10 +81,10 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(k, w, toPtr(1), s.VectorIdx(0), toPtr(1))
+	goblas.Dcopy(*k, w, 1, s.VectorIdx(0), 1)
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(k, q.VectorIdx(0), toPtr((*ldq)+1), w, toPtr(1))
+	goblas.Dcopy(*k, q.VectorIdx(0), (*ldq)+1, w, 1)
 	for j = 1; j <= (*k); j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
@@ -102,7 +102,7 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 		for i = 1; i <= (*k); i++ {
 			q.Set(i-1, j-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(k, q.Vector(0, j-1), toPtr(1))
+		temp = goblas.Dnrm2(*k, q.Vector(0, j-1), 1)
 		for i = 1; i <= (*k); i++ {
 			s.Set(i-1, j-1, q.Get(i-1, j-1)/temp)
 		}

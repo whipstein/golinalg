@@ -16,6 +16,8 @@ func Ztbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	var nounit, upper bool
 	var zero complex128
 	var j int
+	var err error
+	_ = err
 
 	zero = (0.0 + 0.0*1i)
 
@@ -70,6 +72,6 @@ func Ztbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 
 	//     Solve A * X = B,  A**T * X = B,  or  A**H * X = B.
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), n, kd, ab, ldab, b.CVector(0, j-1), func() *int { y := 1; return &y }())
+		err = goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, b.CVector(0, j-1), 1)
 	}
 }
