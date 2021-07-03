@@ -124,7 +124,7 @@ func (t MatTrans) String() string {
 	case ConjTrans:
 		return "ConjTrans"
 	}
-	return string(t)
+	return string(byte(t))
 }
 func (t MatTrans) IsValid() bool {
 	if t == NoTrans || t == Trans || t == ConjTrans {
@@ -180,7 +180,7 @@ func (u MatUplo) String() string {
 	case Upper:
 		return "Upper"
 	}
-	return string(u)
+	return string(byte(u))
 }
 func (u MatUplo) IsValid() bool {
 	if u == Lower || u == Upper || u == Full {
@@ -227,7 +227,7 @@ func (d MatDiag) String() string {
 	case Unit:
 		return "Unit"
 	}
-	return string(d)
+	return string(byte(d))
 }
 func (d MatDiag) IsValid() bool {
 	if d == NonUnit || d == Unit {
@@ -272,7 +272,7 @@ func (s MatSide) String() string {
 	case Right:
 		return "Right"
 	}
-	return string(s)
+	return string(byte(s))
 }
 func (s MatSide) IsValid() bool {
 	if s == Left || s == Right {
