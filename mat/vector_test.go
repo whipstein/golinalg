@@ -45,8 +45,8 @@ func TestVector(t *testing.T) {
 	x = vdf(y)
 	xx = vdf(yy, 2)
 	xxx = vdf(yy, -2)
-	ixx := xx.genIter(len(y))
-	ixxx := xxx.genIter(len(y))
+	ixx := xx.Iter(len(y))
+	ixxx := xxx.Iter(len(y))
 
 	// Setup data that uses same memory address for multiple vectors
 	for i, val := range y {
@@ -78,8 +78,8 @@ func TestVector(t *testing.T) {
 	x = vf(len(y))
 	xx = vf(len(yy), 2)
 	xxx = vf(len(yy), -2)
-	ixx = xx.genIter(len(y))
-	ixxx = xxx.genIter(len(y))
+	ixx = xx.Iter(len(y))
+	ixxx = xxx.Iter(len(y))
 	for i, val := range y {
 		x.Set(i, val)
 		xx.Set(i, val)

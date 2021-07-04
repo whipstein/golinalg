@@ -70,7 +70,7 @@ func (v *Vector) CVector() *CVector {
 	}
 	return y
 }
-func (v *Vector) genIter(n int) []int {
+func (v *Vector) Iter(n int) []int {
 	iter := make([]int, 0)
 
 	if v.Inc > 0 {
@@ -237,7 +237,7 @@ func (v *CVector) DeepCopy() *CVector {
 func (v *CVector) Off(idx int) *CVector {
 	return &CVector{Size: v.Size, Data: v.Data[idx:]}
 }
-func (v *CVector) genIter(n int) []int {
+func (v *CVector) Iter(n int) []int {
 	iter := make([]int, 0)
 
 	if v.Inc > 0 {
