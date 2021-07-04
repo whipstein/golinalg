@@ -3,6 +3,7 @@ package mat
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"log"
 	"math"
 	"math/cmplx"
@@ -35,13 +36,16 @@ func (m MatStyle) String() string {
 	case Triangular:
 		return "Triangular"
 	}
-	return "Unrecognized"
+	return fmt.Sprintf("Unrecognized: %c", byte(m))
 }
 func (m MatStyle) IsValid() bool {
 	if m == General || m == Symmetric || m == Hermitian || m == Triangular {
 		return true
 	}
 	return false
+}
+func IterMatStyle() []MatStyle {
+	return []MatStyle{General, Symmetric, Hermitian, Triangular}
 }
 
 type MatStorage int
@@ -61,13 +65,16 @@ func (m MatStorage) String() string {
 	case Packed:
 		return "Packed"
 	}
-	return "Unrecognized"
+	return fmt.Sprintf("Unrecognized: %c", byte(m))
 }
 func (m MatStorage) IsValid() bool {
 	if m == Dense || m == Banded || m == Packed {
 		return true
 	}
 	return false
+}
+func IterMatStorage() []MatStorage {
+	return []MatStorage{Dense, Banded, Packed}
 }
 
 type MatMajor int
@@ -84,7 +91,7 @@ func (m MatMajor) String() string {
 	case Col:
 		return "Col"
 	}
-	return "Unrecognized"
+	return fmt.Sprintf("Unrecognized: %c", byte(m))
 }
 func (m MatMajor) IsValid() bool {
 	if m == Row || m == Col {
@@ -92,7 +99,7 @@ func (m MatMajor) IsValid() bool {
 	}
 	return false
 }
-func MajorIter() []MatMajor {
+func IterMatMajor() []MatMajor {
 	return []MatMajor{Row, Col}
 }
 
@@ -124,7 +131,7 @@ func (t MatTrans) String() string {
 	case ConjTrans:
 		return "ConjTrans"
 	}
-	return string(byte(t))
+	return fmt.Sprintf("Unrecognized: %c", byte(t))
 }
 func (t MatTrans) IsValid() bool {
 	if t == NoTrans || t == Trans || t == ConjTrans {
@@ -140,17 +147,23 @@ func (t MatTrans) IsTrans() bool {
 }
 func TransByte(b byte) MatTrans {
 	switch b {
+	case 'n':
+		return NoTrans
 	case 'N':
 		return NoTrans
+	case 't':
+		return Trans
 	case 'T':
 		return Trans
+	case 'c':
+		return ConjTrans
 	case 'C':
 		return ConjTrans
 	default:
-		return 0
+		return -1
 	}
 }
-func TransIter() []MatTrans {
+func IterMatTrans() []MatTrans {
 	return []MatTrans{NoTrans, Trans, ConjTrans}
 }
 
@@ -180,7 +193,7 @@ func (u MatUplo) String() string {
 	case Upper:
 		return "Upper"
 	}
-	return string(byte(u))
+	return fmt.Sprintf("Unrecognized: %c", byte(u))
 }
 func (u MatUplo) IsValid() bool {
 	if u == Lower || u == Upper || u == Full {
@@ -190,17 +203,19 @@ func (u MatUplo) IsValid() bool {
 }
 func UploByte(b byte) MatUplo {
 	switch b {
-	case 'F':
-		return Full
+	case 'u':
+		return Upper
 	case 'U':
 		return Upper
+	case 'l':
+		return Lower
 	case 'L':
 		return Lower
 	default:
-		return 0
+		return Full
 	}
 }
-func UploIter() []MatUplo {
+func IterMatUplo() []MatUplo {
 	return []MatUplo{Lower, Upper, Full}
 }
 
@@ -227,7 +242,7 @@ func (d MatDiag) String() string {
 	case Unit:
 		return "Unit"
 	}
-	return string(byte(d))
+	return fmt.Sprintf("Unrecognized: %c", byte(d))
 }
 func (d MatDiag) IsValid() bool {
 	if d == NonUnit || d == Unit {
@@ -237,15 +252,19 @@ func (d MatDiag) IsValid() bool {
 }
 func DiagByte(b byte) MatDiag {
 	switch b {
+	case 'n':
+		return NonUnit
 	case 'N':
 		return NonUnit
+	case 'u':
+		return Unit
 	case 'U':
 		return Unit
 	default:
-		return 0
+		return -1
 	}
 }
-func DiagIter() []MatDiag {
+func IterMatDiag() []MatDiag {
 	return []MatDiag{NonUnit, Unit}
 }
 
@@ -272,7 +291,7 @@ func (s MatSide) String() string {
 	case Right:
 		return "Right"
 	}
-	return string(byte(s))
+	return fmt.Sprintf("Unrecognized: %c", byte(s))
 }
 func (s MatSide) IsValid() bool {
 	if s == Left || s == Right {
@@ -282,15 +301,19 @@ func (s MatSide) IsValid() bool {
 }
 func SideByte(b byte) MatSide {
 	switch b {
+	case 'l':
+		return Left
 	case 'L':
 		return Left
+	case 'r':
+		return Right
 	case 'R':
 		return Right
 	default:
-		return 0
+		return -1
 	}
 }
-func SideIter() []MatSide {
+func IterMatSide() []MatSide {
 	return []MatSide{Left, Right}
 }
 
@@ -311,7 +334,8 @@ func NewMatOpts() *MatOpts {
 		Uplo:    Full,
 		Diag:    NonUnit,
 		Side:    Left,
-		Major:   Row}
+		Major:   Row,
+	}
 }
 func NewMatOptsCol() *MatOpts {
 	return &MatOpts{
@@ -320,7 +344,8 @@ func NewMatOptsCol() *MatOpts {
 		Uplo:    Full,
 		Diag:    NonUnit,
 		Side:    Left,
-		Major:   Col}
+		Major:   Col,
+	}
 }
 func (m *MatOpts) DeepCopy() *MatOpts {
 	b := bytes.Buffer{}
@@ -563,9 +588,12 @@ func (m *Matrix) ToRowMajor() *Matrix {
 	return m
 }
 
-func MatrixFactory() func(int, int, *MatOpts) *Matrix {
-	return func(r, c int, opts *MatOpts) *Matrix {
-		return &Matrix{Rows: r, Cols: c, Opts: opts, Data: make([]float64, r*c)}
+func MatrixFactory() func(int, int, ...*MatOpts) *Matrix {
+	return func(r, c int, opts ...*MatOpts) *Matrix {
+		if opts[0] != nil {
+			return &Matrix{Rows: r, Cols: c, Opts: opts[0], Data: make([]float64, r*c)}
+		}
+		return &Matrix{Rows: r, Cols: c, Opts: NewMatOpts(), Data: make([]float64, r*c)}
 	}
 }
 
@@ -874,9 +902,12 @@ func (m *CMatrix) ToRowMajor() *CMatrix {
 	return m
 }
 
-func CMatrixFactory() func(int, int, *MatOpts) *CMatrix {
-	return func(r, c int, opts *MatOpts) *CMatrix {
-		return &CMatrix{Rows: r, Cols: c, Opts: opts, Data: make([]complex128, r*c)}
+func CMatrixFactory() func(int, int, ...*MatOpts) *CMatrix {
+	return func(r, c int, opts ...*MatOpts) *CMatrix {
+		if opts[0] != nil {
+			return &CMatrix{Rows: r, Cols: c, Opts: opts[0], Data: make([]complex128, r*c)}
+		}
+		return &CMatrix{Rows: r, Cols: c, Opts: NewMatOpts(), Data: make([]complex128, r*c)}
 	}
 }
 

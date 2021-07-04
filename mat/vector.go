@@ -9,11 +9,12 @@ import (
 
 type Vector struct {
 	Size int
+	Inc  int
 	Data []float64
 }
 
 func (v *Vector) Append(x float64) {
-	v.Size += 1
+	v.Size++
 	v.Data = append(v.Data, x)
 }
 func (v *Vector) Get(n int) float64 {
@@ -32,8 +33,8 @@ func (v *Vector) Set(n int, x float64) {
 	v.Data[n] = x
 }
 func (v *Vector) SetAll(x float64) {
-	for i := range v.Data {
-		v.Data[i] = x
+	for i := 0; i < v.Size; i++ {
+		v.Set(i, x)
 	}
 }
 func (v *Vector) Copy(idx int) *Vector {
@@ -59,15 +60,29 @@ func (v *Vector) DeepCopy() *Vector {
 	return &result
 }
 func (v *Vector) Off(idx int) *Vector {
-	return &Vector{Size: v.Size, Data: v.Data[idx:]}
+	return &Vector{Size: v.Size - idx, Data: v.Data[idx:]}
 }
 func (v *Vector) CVector() *CVector {
 	cvf := CVectorFactory()
-	y := cvf(v.Size)
-	for i, val := range v.Data {
-		y.Set(i, complex(val, 0))
+	y := cvf(v.Size, v.Inc)
+	for i := 0; i < v.Size; i++ {
+		y.Set(i, complex(v.Get(i), 0))
 	}
 	return y
+}
+func (v *Vector) genIter(n int) []int {
+	iter := make([]int, 0)
+
+	if v.Inc > 0 {
+		for i := 0; i < n; i++ {
+			iter = append(iter, i*v.Inc)
+		}
+	} else {
+		for i := 0; i < n; i++ {
+			iter = append(iter, (-n+1+i)*v.Inc)
+		}
+	}
+	return iter
 }
 
 // Matrix references same data in memory
@@ -100,26 +115,44 @@ func (v *Vector) MatrixOff(idx, r int, opts *MatOpts) *Matrix {
 	return mat
 }
 
-func VectorFactory() func(int) *Vector {
-	return func(n int) *Vector {
-		return &Vector{Size: n, Data: make([]float64, n)}
+func VectorFactory() func(...int) *Vector {
+	return func(n ...int) *Vector {
+		size := n[0]
+		inc := 1
+		if len(n) > 1 {
+			if n[1] == 0 {
+				panic("VectorFactory: cannot have an increment of 0")
+			}
+			inc = n[1]
+			return &Vector{Size: n[0], Inc: inc, Data: make([]float64, size)}
+		}
+		return &Vector{Size: n[0], Inc: inc, Data: make([]float64, size)}
 	}
 }
 
 // NewDataVectorFactory creates a new Vectorer with same data memory location
-func VectorDataFactory() func([]float64) *Vector {
-	return func(d []float64) *Vector {
-		return &Vector{Size: len(d), Data: d}
+func VectorDataFactory() func([]float64, ...int) *Vector {
+	return func(d []float64, n ...int) *Vector {
+		size := len(d)
+		if n == nil {
+			return &Vector{Size: size, Inc: 1, Data: d}
+		}
+		if n[0] == 0 {
+			panic("VectorDataFactory: cannot have an increment of 0")
+		}
+		inc := n[0]
+		return &Vector{Size: size, Inc: inc, Data: d}
 	}
 }
 
 type CVector struct {
 	Size int
+	Inc  int
 	Data []complex128
 }
 
 func (v *CVector) Append(x complex128) {
-	v.Size += 1
+	v.Size++
 	v.Data = append(v.Data, x)
 }
 func (v *CVector) Get(n int) complex128 {
@@ -204,6 +237,20 @@ func (v *CVector) DeepCopy() *CVector {
 func (v *CVector) Off(idx int) *CVector {
 	return &CVector{Size: v.Size, Data: v.Data[idx:]}
 }
+func (v *CVector) genIter(n int) []int {
+	iter := make([]int, 0)
+
+	if v.Inc > 0 {
+		for i := 0; i < n; i++ {
+			iter = append(iter, i*v.Inc)
+		}
+	} else {
+		for i := 0; i < n; i++ {
+			iter = append(iter, (-n+1+i)*v.Inc)
+		}
+	}
+	return iter
+}
 
 // CMatrix references same data in memory
 func (v *CVector) CMatrix(r int, opts *MatOpts) *CMatrix {
@@ -235,15 +282,37 @@ func (v *CVector) CMatrixOff(idx, r int, opts *MatOpts) *CMatrix {
 	return mat
 }
 
-func CVectorFactory() func(int) *CVector {
-	return func(n int) *CVector {
-		return &CVector{Size: n, Data: make([]complex128, n)}
+func CVectorFactory() func(...int) *CVector {
+	return func(n ...int) *CVector {
+		size := n[0]
+		if len(n) > 1 {
+			if n[1] == 0 {
+				panic("CVectorFactory: cannot have an increment of 0")
+			}
+			inc := n[1]
+			if inc < 0 {
+				size = (-size+1)*inc + 1
+			}
+			return &CVector{Size: n[0], Inc: inc, Data: make([]complex128, size)}
+		}
+		return &CVector{Size: n[0], Inc: 1, Data: make([]complex128, size)}
 	}
 }
 
 // NewDataVectorFactory creates a new Vectorer with same data memory location
-func CVectorDataFactory() func([]complex128) *CVector {
-	return func(d []complex128) *CVector {
-		return &CVector{Size: len(d), Data: d}
+func CVectorDataFactory() func([]complex128, ...int) *CVector {
+	return func(d []complex128, n ...int) *CVector {
+		size := len(d)
+		if n == nil {
+			return &CVector{Size: size, Inc: 1, Data: d}
+		}
+		if n[0] == 0 {
+			panic("VectorDataFactory: cannot have an increment of 0")
+		}
+		inc := n[0]
+		if inc < 0 {
+			size = 1 - (size-1)/inc
+		}
+		return &CVector{Size: size, Inc: inc, Data: d}
 	}
 }
