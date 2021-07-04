@@ -130,7 +130,7 @@ func TestDblasLevel3(t *testing.T) {
 
 					for _, k = range idim {
 
-						for _, transa = range mat.TransIter() {
+						for _, transa = range mat.IterMatTrans() {
 							trana = transa.IsTrans()
 
 							if trana {
@@ -156,7 +156,7 @@ func TestDblasLevel3(t *testing.T) {
 							aa = mf(lda, na, opts)
 							dmakeL3(mat.General, mat.Lower, mat.NonUnit, ma, na, a, nmax, aa, lda, &reset, 0.0)
 
-							for _, transb = range mat.TransIter() {
+							for _, transb = range mat.IterMatTrans() {
 								tranb = transb.IsTrans()
 
 								if tranb {

@@ -144,7 +144,7 @@ func TestDblasLevel2(t *testing.T) {
 						aa = mf(lda, n, opts)
 						dmakeL2M(m, n, a, nmax, aa, lda, kl, ku, &reset, 0.0)
 
-						for _, trans := range mat.TransIter() {
+						for _, trans := range mat.IterMatTrans() {
 							tran = trans.IsTrans()
 
 							if tran {
