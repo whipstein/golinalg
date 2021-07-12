@@ -91,17 +91,17 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		//         ZUNMLQ for computing N x N matrix, ZUNMQR for computing N x N
 		//         matrix, ZUNMQR for computing M x N matrix, respectively.
 		lwqp3 = (*n) + 1
-		lwqrf = maxint(1, *n)
-		lwlqf = maxint(1, *n)
-		lwunmlq = maxint(1, *n)
-		lwunmqr = maxint(1, *n)
-		lwunmqrm = maxint(1, *m)
+		lwqrf = max(1, *n)
+		lwlqf = max(1, *n)
+		lwunmlq = max(1, *n)
+		lwunmqr = max(1, *n)
+		lwunmqrm = max(1, *m)
 		//        .. minimal workspace length for ZPOCON of an N x N matrix
 		lwcon = 2 * (*n)
 		//        .. minimal workspace length for ZGESVJ of an N x N matrix,
 		//         without and with explicit accumulation of Jacobi rotations
-		lwsvdj = maxint(2*(*n), 1)
-		lwsvdjv = maxint(2*(*n), 1)
+		lwsvdj = max(2*(*n), 1)
+		lwsvdjv = max(2*(*n), 1)
 		//         .. minimal REAL workspace length for ZGEQP3, ZPOCON, ZGESVJ
 		lrwqp3 = 2 * (*n)
 		lrwcon = (*n)
@@ -121,30 +121,30 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			//             .. minimal and optimal sizes of the complex workspace if
 			//             only the singular values are requested
 			if errest {
-				minwrk = maxint((*n)+lwqp3, powint(*n, 2)+lwcon, (*n)+lwqrf, lwsvdj)
+				minwrk = max((*n)+lwqp3, pow(*n, 2)+lwcon, (*n)+lwqrf, lwsvdj)
 			} else {
-				minwrk = maxint((*n)+lwqp3, (*n)+lwqrf, lwsvdj)
+				minwrk = max((*n)+lwqp3, (*n)+lwqrf, lwsvdj)
 			}
 			if lquery {
 				Zgesvj('L', 'N', 'N', n, n, a, lda, sva, n, v, ldv, cdummy, toPtr(-1), rdummy, toPtr(-1), &ierr)
 				lwrkZgesvj = int(cdummy.GetRe(0))
 				if errest {
-					optwrk = maxint((*n)+lwrkZgeqp3, powint(*n, 2)+lwcon, (*n)+lwrkZgeqrf, lwrkZgesvj)
+					optwrk = max((*n)+lwrkZgeqp3, pow(*n, 2)+lwcon, (*n)+lwrkZgeqrf, lwrkZgesvj)
 				} else {
-					optwrk = maxint((*n)+lwrkZgeqp3, (*n)+lwrkZgeqrf, lwrkZgesvj)
+					optwrk = max((*n)+lwrkZgeqp3, (*n)+lwrkZgeqrf, lwrkZgesvj)
 				}
 			}
 			if l2tran || rowpiv {
 				if errest {
-					minrwrk = maxint(7, 2*(*m), lrwqp3, lrwcon, lrwsvdj)
+					minrwrk = max(7, 2*(*m), lrwqp3, lrwcon, lrwsvdj)
 				} else {
-					minrwrk = maxint(7, 2*(*m), lrwqp3, lrwsvdj)
+					minrwrk = max(7, 2*(*m), lrwqp3, lrwsvdj)
 				}
 			} else {
 				if errest {
-					minrwrk = maxint(7, lrwqp3, lrwcon, lrwsvdj)
+					minrwrk = max(7, lrwqp3, lrwcon, lrwsvdj)
 				} else {
-					minrwrk = maxint(7, lrwqp3, lrwsvdj)
+					minrwrk = max(7, lrwqp3, lrwsvdj)
 				}
 			}
 			if rowpiv || l2tran {
@@ -154,9 +154,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			//            .. minimal and optimal sizes of the complex workspace if the
 			//            singular values and the right singular vectors are requested
 			if errest {
-				minwrk = maxint((*n)+lwqp3, lwcon, lwsvdj, (*n)+lwlqf, 2*(*n)+lwqrf, (*n)+lwsvdj, (*n)+lwunmlq)
+				minwrk = max((*n)+lwqp3, lwcon, lwsvdj, (*n)+lwlqf, 2*(*n)+lwqrf, (*n)+lwsvdj, (*n)+lwunmlq)
 			} else {
-				minwrk = maxint((*n)+lwqp3, lwsvdj, (*n)+lwlqf, 2*(*n)+lwqrf, (*n)+lwsvdj, (*n)+lwunmlq)
+				minwrk = max((*n)+lwqp3, lwsvdj, (*n)+lwlqf, 2*(*n)+lwqrf, (*n)+lwsvdj, (*n)+lwunmlq)
 			}
 			if lquery {
 				Zgesvj('L', 'U', 'N', n, n, u, ldu, sva, n, a, lda, cdummy, toPtr(-1), rdummy, toPtr(-1), &ierr)
@@ -164,22 +164,22 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				Zunmlq('L', 'C', n, n, n, a, lda, cdummy, v, ldv, cdummy, toPtr(-1), &ierr)
 				lwrkZunmlq = int(cdummy.GetRe(0))
 				if errest {
-					optwrk = maxint((*n)+lwrkZgeqp3, lwcon, lwrkZgesvj, (*n)+lwrkZgelqf, 2*(*n)+lwrkZgeqrf, (*n)+lwrkZgesvj, (*n)+lwrkZunmlq)
+					optwrk = max((*n)+lwrkZgeqp3, lwcon, lwrkZgesvj, (*n)+lwrkZgelqf, 2*(*n)+lwrkZgeqrf, (*n)+lwrkZgesvj, (*n)+lwrkZunmlq)
 				} else {
-					optwrk = maxint((*n)+lwrkZgeqp3, lwrkZgesvj, (*n)+lwrkZgelqf, 2*(*n)+lwrkZgeqrf, (*n)+lwrkZgesvj, (*n)+lwrkZunmlq)
+					optwrk = max((*n)+lwrkZgeqp3, lwrkZgesvj, (*n)+lwrkZgelqf, 2*(*n)+lwrkZgeqrf, (*n)+lwrkZgesvj, (*n)+lwrkZunmlq)
 				}
 			}
 			if l2tran || rowpiv {
 				if errest {
-					minrwrk = maxint(7, 2*(*m), lrwqp3, lrwsvdj, lrwcon)
+					minrwrk = max(7, 2*(*m), lrwqp3, lrwsvdj, lrwcon)
 				} else {
-					minrwrk = maxint(7, 2*(*m), lrwqp3, lrwsvdj)
+					minrwrk = max(7, 2*(*m), lrwqp3, lrwsvdj)
 				}
 			} else {
 				if errest {
-					minrwrk = maxint(7, lrwqp3, lrwsvdj, lrwcon)
+					minrwrk = max(7, lrwqp3, lrwsvdj, lrwcon)
 				} else {
-					minrwrk = maxint(7, lrwqp3, lrwsvdj)
+					minrwrk = max(7, lrwqp3, lrwsvdj)
 				}
 			}
 			if rowpiv || l2tran {
@@ -189,9 +189,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			//            .. minimal and optimal sizes of the complex workspace if the
 			//            singular values and the left singular vectors are requested
 			if errest {
-				minwrk = (*n) + maxint(lwqp3, lwcon, (*n)+lwqrf, lwsvdj, lwunmqrm)
+				minwrk = (*n) + max(lwqp3, lwcon, (*n)+lwqrf, lwsvdj, lwunmqrm)
 			} else {
-				minwrk = (*n) + maxint(lwqp3, (*n)+lwqrf, lwsvdj, lwunmqrm)
+				minwrk = (*n) + max(lwqp3, (*n)+lwqrf, lwsvdj, lwunmqrm)
 			}
 			if lquery {
 				Zgesvj('L', 'U', 'N', n, n, u, ldu, sva, n, a, lda, cdummy, toPtr(-1), rdummy, toPtr(-1), &ierr)
@@ -199,22 +199,22 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				Zunmqr('L', 'N', m, n, n, a, lda, cdummy, u, ldu, cdummy, toPtr(-1), &ierr)
 				lwrkZunmqrm = int(cdummy.GetRe(0))
 				if errest {
-					optwrk = (*n) + maxint(lwrkZgeqp3, lwcon, (*n)+lwrkZgeqrf, lwrkZgesvj, lwrkZunmqrm)
+					optwrk = (*n) + max(lwrkZgeqp3, lwcon, (*n)+lwrkZgeqrf, lwrkZgesvj, lwrkZunmqrm)
 				} else {
-					optwrk = (*n) + maxint(lwrkZgeqp3, (*n)+lwrkZgeqrf, lwrkZgesvj, lwrkZunmqrm)
+					optwrk = (*n) + max(lwrkZgeqp3, (*n)+lwrkZgeqrf, lwrkZgesvj, lwrkZunmqrm)
 				}
 			}
 			if l2tran || rowpiv {
 				if errest {
-					minrwrk = maxint(7, 2*(*m), lrwqp3, lrwsvdj, lrwcon)
+					minrwrk = max(7, 2*(*m), lrwqp3, lrwsvdj, lrwcon)
 				} else {
-					minrwrk = maxint(7, 2*(*m), lrwqp3, lrwsvdj)
+					minrwrk = max(7, 2*(*m), lrwqp3, lrwsvdj)
 				}
 			} else {
 				if errest {
-					minrwrk = maxint(7, lrwqp3, lrwsvdj, lrwcon)
+					minrwrk = max(7, lrwqp3, lrwsvdj, lrwcon)
 				} else {
-					minrwrk = maxint(7, lrwqp3, lrwsvdj)
+					minrwrk = max(7, lrwqp3, lrwsvdj)
 				}
 			}
 			if rowpiv || l2tran {
@@ -225,9 +225,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			//            full SVD is requested
 			if !jracc {
 				if errest {
-					minwrk = maxint((*n)+lwqp3, (*n)+lwcon, 2*(*n)+powint(*n, 2)+lwcon, 2*(*n)+lwqrf, 2*(*n)+lwqp3, 2*(*n)+powint(*n, 2)+(*n)+lwlqf, 2*(*n)+powint(*n, 2)+(*n)+powint(*n, 2)+lwcon, 2*(*n)+powint(*n, 2)+(*n)+lwsvdj, 2*(*n)+powint(*n, 2)+(*n)+lwsvdjv, 2*(*n)+powint(*n, 2)+(*n)+lwunmqr, 2*(*n)+powint(*n, 2)+(*n)+lwunmlq, (*n)+powint(*n, 2)+lwsvdj, (*n)+lwunmqrm)
+					minwrk = max((*n)+lwqp3, (*n)+lwcon, 2*(*n)+pow(*n, 2)+lwcon, 2*(*n)+lwqrf, 2*(*n)+lwqp3, 2*(*n)+pow(*n, 2)+(*n)+lwlqf, 2*(*n)+pow(*n, 2)+(*n)+pow(*n, 2)+lwcon, 2*(*n)+pow(*n, 2)+(*n)+lwsvdj, 2*(*n)+pow(*n, 2)+(*n)+lwsvdjv, 2*(*n)+pow(*n, 2)+(*n)+lwunmqr, 2*(*n)+pow(*n, 2)+(*n)+lwunmlq, (*n)+pow(*n, 2)+lwsvdj, (*n)+lwunmqrm)
 				} else {
-					minwrk = maxint((*n)+lwqp3, 2*(*n)+powint(*n, 2)+lwcon, 2*(*n)+lwqrf, 2*(*n)+lwqp3, 2*(*n)+powint(*n, 2)+(*n)+lwlqf, 2*(*n)+powint(*n, 2)+(*n)+powint(*n, 2)+lwcon, 2*(*n)+powint(*n, 2)+(*n)+lwsvdj, 2*(*n)+powint(*n, 2)+(*n)+lwsvdjv, 2*(*n)+powint(*n, 2)+(*n)+lwunmqr, 2*(*n)+powint(*n, 2)+(*n)+lwunmlq, (*n)+powint(*n, 2)+lwsvdj, (*n)+lwunmqrm)
+					minwrk = max((*n)+lwqp3, 2*(*n)+pow(*n, 2)+lwcon, 2*(*n)+lwqrf, 2*(*n)+lwqp3, 2*(*n)+pow(*n, 2)+(*n)+lwlqf, 2*(*n)+pow(*n, 2)+(*n)+pow(*n, 2)+lwcon, 2*(*n)+pow(*n, 2)+(*n)+lwsvdj, 2*(*n)+pow(*n, 2)+(*n)+lwsvdjv, 2*(*n)+pow(*n, 2)+(*n)+lwunmqr, 2*(*n)+pow(*n, 2)+(*n)+lwunmlq, (*n)+pow(*n, 2)+lwsvdj, (*n)+lwunmqrm)
 				}
 				miniwrk = miniwrk + (*n)
 				if rowpiv || l2tran {
@@ -235,9 +235,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				}
 			} else {
 				if errest {
-					minwrk = maxint((*n)+lwqp3, (*n)+lwcon, 2*(*n)+lwqrf, 2*(*n)+powint(*n, 2)+lwsvdjv, 2*(*n)+powint(*n, 2)+(*n)+lwunmqr, (*n)+lwunmqrm)
+					minwrk = max((*n)+lwqp3, (*n)+lwcon, 2*(*n)+lwqrf, 2*(*n)+pow(*n, 2)+lwsvdjv, 2*(*n)+pow(*n, 2)+(*n)+lwunmqr, (*n)+lwunmqrm)
 				} else {
-					minwrk = maxint((*n)+lwqp3, 2*(*n)+lwqrf, 2*(*n)+powint(*n, 2)+lwsvdjv, 2*(*n)+powint(*n, 2)+(*n)+lwunmqr, (*n)+lwunmqrm)
+					minwrk = max((*n)+lwqp3, 2*(*n)+lwqrf, 2*(*n)+pow(*n, 2)+lwsvdjv, 2*(*n)+pow(*n, 2)+(*n)+lwunmqr, (*n)+lwunmqrm)
 				}
 				if rowpiv || l2tran {
 					miniwrk = miniwrk + (*m)
@@ -260,9 +260,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					Zunmlq('L', 'C', n, n, n, a, lda, cdummy, v, ldv, cdummy, toPtr(-1), &ierr)
 					lwrkZunmlq = int(cdummy.GetRe(0))
 					if errest {
-						optwrk = maxint((*n)+lwrkZgeqp3, (*n)+lwcon, 2*(*n)+powint(*n, 2)+lwcon, 2*(*n)+lwrkZgeqrf, 2*(*n)+lwrkZgeqp3n, 2*(*n)+powint(*n, 2)+(*n)+lwrkZgelqf, 2*(*n)+powint(*n, 2)+(*n)+powint(*n, 2)+lwcon, 2*(*n)+powint(*n, 2)+(*n)+lwrkZgesvj, 2*(*n)+powint(*n, 2)+(*n)+lwrkZgesvjv, 2*(*n)+powint(*n, 2)+(*n)+lwrkZunmqr, 2*(*n)+powint(*n, 2)+(*n)+lwrkZunmlq, (*n)+powint(*n, 2)+lwrkZgesvju, (*n)+lwrkZunmqrm)
+						optwrk = max((*n)+lwrkZgeqp3, (*n)+lwcon, 2*(*n)+pow(*n, 2)+lwcon, 2*(*n)+lwrkZgeqrf, 2*(*n)+lwrkZgeqp3n, 2*(*n)+pow(*n, 2)+(*n)+lwrkZgelqf, 2*(*n)+pow(*n, 2)+(*n)+pow(*n, 2)+lwcon, 2*(*n)+pow(*n, 2)+(*n)+lwrkZgesvj, 2*(*n)+pow(*n, 2)+(*n)+lwrkZgesvjv, 2*(*n)+pow(*n, 2)+(*n)+lwrkZunmqr, 2*(*n)+pow(*n, 2)+(*n)+lwrkZunmlq, (*n)+pow(*n, 2)+lwrkZgesvju, (*n)+lwrkZunmqrm)
 					} else {
-						optwrk = maxint((*n)+lwrkZgeqp3, 2*(*n)+powint(*n, 2)+lwcon, 2*(*n)+lwrkZgeqrf, 2*(*n)+lwrkZgeqp3n, 2*(*n)+powint(*n, 2)+(*n)+lwrkZgelqf, 2*(*n)+powint(*n, 2)+(*n)+powint(*n, 2)+lwcon, 2*(*n)+powint(*n, 2)+(*n)+lwrkZgesvj, 2*(*n)+powint(*n, 2)+(*n)+lwrkZgesvjv, 2*(*n)+powint(*n, 2)+(*n)+lwrkZunmqr, 2*(*n)+powint(*n, 2)+(*n)+lwrkZunmlq, (*n)+powint(*n, 2)+lwrkZgesvju, (*n)+lwrkZunmqrm)
+						optwrk = max((*n)+lwrkZgeqp3, 2*(*n)+pow(*n, 2)+lwcon, 2*(*n)+lwrkZgeqrf, 2*(*n)+lwrkZgeqp3n, 2*(*n)+pow(*n, 2)+(*n)+lwrkZgelqf, 2*(*n)+pow(*n, 2)+(*n)+pow(*n, 2)+lwcon, 2*(*n)+pow(*n, 2)+(*n)+lwrkZgesvj, 2*(*n)+pow(*n, 2)+(*n)+lwrkZgesvjv, 2*(*n)+pow(*n, 2)+(*n)+lwrkZunmqr, 2*(*n)+pow(*n, 2)+(*n)+lwrkZunmlq, (*n)+pow(*n, 2)+lwrkZgesvju, (*n)+lwrkZunmqrm)
 					}
 				} else {
 					Zgesvj('L', 'U', 'V', n, n, u, ldu, sva, n, v, ldv, cdummy, toPtr(-1), rdummy, toPtr(-1), &ierr)
@@ -272,20 +272,20 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					Zunmqr('L', 'N', m, n, n, a, lda, cdummy, u, ldu, cdummy, toPtr(-1), &ierr)
 					lwrkZunmqrm = int(cdummy.GetRe(0))
 					if errest {
-						optwrk = maxint((*n)+lwrkZgeqp3, (*n)+lwcon, 2*(*n)+lwrkZgeqrf, 2*(*n)+powint(*n, 2), 2*(*n)+powint(*n, 2)+lwrkZgesvjv, 2*(*n)+powint(*n, 2)+(*n)+lwrkZunmqr, (*n)+lwrkZunmqrm)
+						optwrk = max((*n)+lwrkZgeqp3, (*n)+lwcon, 2*(*n)+lwrkZgeqrf, 2*(*n)+pow(*n, 2), 2*(*n)+pow(*n, 2)+lwrkZgesvjv, 2*(*n)+pow(*n, 2)+(*n)+lwrkZunmqr, (*n)+lwrkZunmqrm)
 					} else {
-						optwrk = maxint((*n)+lwrkZgeqp3, 2*(*n)+lwrkZgeqrf, 2*(*n)+powint(*n, 2), 2*(*n)+powint(*n, 2)+lwrkZgesvjv, 2*(*n)+powint(*n, 2)+(*n)+lwrkZunmqr, (*n)+lwrkZunmqrm)
+						optwrk = max((*n)+lwrkZgeqp3, 2*(*n)+lwrkZgeqrf, 2*(*n)+pow(*n, 2), 2*(*n)+pow(*n, 2)+lwrkZgesvjv, 2*(*n)+pow(*n, 2)+(*n)+lwrkZunmqr, (*n)+lwrkZunmqrm)
 					}
 				}
 			}
 			if l2tran || rowpiv {
-				minrwrk = maxint(7, 2*(*m), lrwqp3, lrwsvdj, lrwcon)
+				minrwrk = max(7, 2*(*m), lrwqp3, lrwsvdj, lrwcon)
 			} else {
-				minrwrk = maxint(7, lrwqp3, lrwsvdj, lrwcon)
+				minrwrk = max(7, lrwqp3, lrwsvdj, lrwcon)
 			}
 		}
-		minwrk = maxint(2, minwrk)
-		optwrk = maxint(minwrk, optwrk)
+		minwrk = max(2, minwrk)
+		optwrk = max(minwrk, optwrk)
 		if (*lwork) < minwrk && (!lquery) {
 			(*info) = -17
 		}
@@ -302,7 +302,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		cwork.SetRe(0, float64(optwrk))
 		cwork.SetRe(1, float64(minwrk))
 		rwork.Set(0, float64(minrwrk))
-		(*iwork)[0] = maxint(4, miniwrk)
+		(*iwork)[0] = max(4, miniwrk)
 		return
 	}
 
@@ -355,7 +355,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			sva.Set(p-1, aapp*(aaqq*scalem))
 			if goscal {
 				goscal = false
-				goblas.Dscal(p-1, scalem, sva, 1)
+				goblas.Dscal(p-1, scalem, sva.Off(0, 1))
 			}
 		}
 	}
@@ -367,9 +367,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 	aapp = zero
 	aaqq = big
 	for p = 1; p <= (*n); p++ {
-		aapp = maxf64(aapp, sva.Get(p-1))
+		aapp = math.Max(aapp, sva.Get(p-1))
 		if sva.Get(p-1) != zero {
-			aaqq = minf64(aaqq, sva.Get(p-1))
+			aaqq = math.Min(aaqq, sva.Get(p-1))
 		}
 	}
 
@@ -419,9 +419,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			Zlacpy('A', m, func() *int { y := 1; return &y }(), a, lda, u, ldu)
 			//           computing all M left singular vectors of the M x 1 matrix
 			if n1 != (*n) {
-				Zgeqrf(m, n, u, ldu, cwork, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
-				Zungqr(m, &n1, func() *int { y := 1; return &y }(), u, ldu, cwork, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
-				goblas.Zcopy(*m, a.CVector(0, 0), 1, u.CVector(0, 0), 1)
+				Zgeqrf(m, n, u, ldu, cwork, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
+				Zungqr(m, &n1, func() *int { y := 1; return &y }(), u, ldu, cwork, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
+				goblas.Zcopy(*m, a.CVector(0, 0, 1), u.CVector(0, 0, 1))
 			}
 		}
 		if rsvec {
@@ -479,16 +479,16 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				//              in one pass through the vector
 				rwork.Set((*m)+p-1, xsc*scalem)
 				rwork.Set(p-1, xsc*(scalem*math.Sqrt(temp1)))
-				aatmax = maxf64(aatmax, rwork.Get(p-1))
+				aatmax = math.Max(aatmax, rwork.Get(p-1))
 				if rwork.Get(p-1) != zero {
-					aatmin = minf64(aatmin, rwork.Get(p-1))
+					aatmin = math.Min(aatmin, rwork.Get(p-1))
 				}
 			}
 		} else {
 			for p = 1; p <= (*m); p++ {
-				rwork.Set((*m)+p-1, scalem*a.GetMag(p-1, goblas.Izamax(*n, a.CVector(p-1, 0), *lda)-1))
-				aatmax = maxf64(aatmax, rwork.Get((*m)+p-1))
-				aatmin = minf64(aatmin, rwork.Get((*m)+p-1))
+				rwork.Set((*m)+p-1, scalem*a.GetMag(p-1, goblas.Izamax(*n, a.CVector(p-1, 0, *lda))-1))
+				aatmax = math.Max(aatmax, rwork.Get((*m)+p-1))
+				aatmin = math.Min(aatmin, rwork.Get((*m)+p-1))
 			}
 		}
 
@@ -646,7 +646,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			iwoff = (*n)
 		}
 		for p = 1; p <= (*m)-1; p++ {
-			q = goblas.Idamax((*m)-p+1, rwork.Off((*m)+p-1), 1) + p - 1
+			q = goblas.Idamax((*m)-p+1, rwork.Off((*m)+p-1, 1)) + p - 1
 			(*iwork)[iwoff+p-1] = q
 			if p != q {
 				temp1 = rwork.Get((*m) + p - 1)
@@ -654,7 +654,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				rwork.Set((*m)+q-1, temp1)
 			}
 		}
-		Zlaswp(n, a, lda, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff+1-1), func() *int { y := 1; return &y }())
+		Zlaswp(n, a, lda, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff), func() *int { y := 1; return &y }())
 	}
 
 	//     End of the preparation phase (scaling, optional sorting and
@@ -676,7 +676,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		//        .. all columns are free columns
 		(*iwork)[p-1] = 0
 	}
-	Zgeqp3(m, n, a, lda, iwork, cwork, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), rwork, &ierr)
+	Zgeqp3(m, n, a, lda, iwork, cwork, cwork.Off((*n)), toPtr((*lwork)-(*n)), rwork, &ierr)
 
 	//     The upper triangular matrix R1 from the first QRF is inspected for
 	//     rank deficiency and possibilities for deflation, or possible
@@ -735,7 +735,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		maxprj = one
 		for p = 2; p <= (*n); p++ {
 			temp1 = a.GetMag(p-1, p-1) / sva.Get((*iwork)[p-1]-1)
-			maxprj = minf64(maxprj, temp1)
+			maxprj = math.Min(maxprj, temp1)
 		}
 		if math.Pow(maxprj, 2) >= one-float64(*n)*epsln {
 			almort = true
@@ -753,10 +753,10 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				Zlacpy('U', n, n, a, lda, v, ldv)
 				for p = 1; p <= (*n); p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Zdscal(p, one/temp1, v.CVector(0, p-1), 1)
+					goblas.Zdscal(p, one/temp1, v.CVector(0, p-1, 1))
 				}
 				if lsvec {
-					Zpocon('U', n, v, ldv, &one, &temp1, cwork.Off((*n)+1-1), rwork, &ierr)
+					Zpocon('U', n, v, ldv, &one, &temp1, cwork.Off((*n)), rwork, &ierr)
 				} else {
 					Zpocon('U', n, v, ldv, &one, &temp1, cwork, rwork, &ierr)
 				}
@@ -766,9 +766,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				Zlacpy('U', n, n, a, lda, u, ldu)
 				for p = 1; p <= (*n); p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Zdscal(p, one/temp1, u.CVector(0, p-1), 1)
+					goblas.Zdscal(p, one/temp1, u.CVector(0, p-1, 1))
 				}
-				Zpocon('U', n, u, ldu, &one, &temp1, cwork.Off((*n)+1-1), rwork, &ierr)
+				Zpocon('U', n, u, ldu, &one, &temp1, cwork.Off((*n)), rwork, &ierr)
 			} else {
 				Zlacpy('U', n, n, a, lda, cwork.CMatrix(*n, opts), n)
 				//[]            CALL ZLACPY( 'U', N, N, A, LDA, CWORK(N+1), N )
@@ -777,12 +777,12 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				for p = 1; p <= (*n); p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
 					//[]               CALL ZDSCAL( p, ONE/TEMP1, CWORK(N+(p-1)*N+1), 1 )
-					goblas.Zdscal(p, one/temp1, cwork.Off((p-1)*(*n)+1-1), 1)
+					goblas.Zdscal(p, one/temp1, cwork.Off((p-1)*(*n), 1))
 				}
 				//           .. the columns of R are scaled to have unit Euclidean lengths.
 				//[]               CALL ZPOCON( 'U', N, CWORK(N+1), N, ONE, TEMP1,
 				//[]     $              CWORK(N+N*N+1), RWORK, IERR )
-				Zpocon('U', n, cwork.CMatrix(*n, opts), n, &one, &temp1, cwork.Off((*n)*(*n)+1-1), rwork, &ierr)
+				Zpocon('U', n, cwork.CMatrix(*n, opts), n, &one, &temp1, cwork.Off((*n)*(*n)), rwork, &ierr)
 
 			}
 			if temp1 != zero {
@@ -805,8 +805,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		//         Singular Values only
 		//
 		//         .. transpose A(1:NR,1:N)
-		for p = 1; p <= minint((*n)-1, nr); p++ {
-			goblas.Zcopy((*n)-p, a.CVector(p-1, p+1-1), *lda, a.CVector(p+1-1, p-1), 1)
+		for p = 1; p <= min((*n)-1, nr); p++ {
+			goblas.Zcopy((*n)-p, a.CVector(p-1, p, *lda), a.CVector(p, p-1, 1))
 			Zlacgv(toPtr((*n)-p+1), a.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 		}
 		if nr == (*n) {
@@ -843,11 +843,11 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			}
 
 			//            .. second preconditioning using the QR factorization
-			Zgeqrf(n, &nr, a, lda, cwork, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+			Zgeqrf(n, &nr, a, lda, cwork, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 
 			//           .. and transpose upper to lower triangular
 			for p = 1; p <= nr-1; p++ {
-				goblas.Zcopy(nr-p, a.CVector(p-1, p+1-1), *lda, a.CVector(p+1-1, p-1), 1)
+				goblas.Zcopy(nr-p, a.CVector(p-1, p, *lda), a.CVector(p, p-1, 1))
 				Zlacgv(toPtr(nr-p+1), a.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 			}
 
@@ -886,7 +886,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		if almort {
 			//           .. in this case NR equals N
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1), *lda, v.CVector(p-1, p-1), 1)
+				goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1, *lda), v.CVector(p-1, p-1, 1))
 				Zlacgv(toPtr((*n)-p+1), v.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 			}
 			Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
@@ -898,26 +898,26 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			//        .. two more QR factorizations ( one QRF is not enough, two require
 			//        accumulated product of Jacobi rotations, three are perfect )
 			Zlaset('L', toPtr(nr-1), toPtr(nr-1), &czero, &czero, a.Off(1, 0), lda)
-			Zgelqf(&nr, n, a, lda, cwork, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+			Zgelqf(&nr, n, a, lda, cwork, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 			Zlacpy('L', &nr, &nr, a, lda, v, ldv)
 			Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
-			Zgeqrf(&nr, &nr, v, ldv, cwork.Off((*n)+1-1), cwork.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), &ierr)
+			Zgeqrf(&nr, &nr, v, ldv, cwork.Off((*n)), cwork.Off(2*(*n)), toPtr((*lwork)-2*(*n)), &ierr)
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy(nr-p+1, v.CVector(p-1, p-1), *ldv, v.CVector(p-1, p-1), 1)
+				goblas.Zcopy(nr-p+1, v.CVector(p-1, p-1, *ldv), v.CVector(p-1, p-1, 1))
 				Zlacgv(toPtr(nr-p+1), v.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 			}
 			Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
 
-			Zgesvj('L', 'U', 'N', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), rwork, lrwork, info)
+			Zgesvj('L', 'U', 'N', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off((*n)), toPtr((*lwork)-(*n)), rwork, lrwork, info)
 			scalem = rwork.Get(0)
 			numrank = int(math.Round(rwork.Get(1)))
 			if nr < (*n) {
-				Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-				Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-				Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
+				Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+				Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+				Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
 			}
 
-			Zunmlq('L', 'C', n, n, &nr, a, lda, cwork, v, ldv, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+			Zunmlq('L', 'C', n, n, &nr, a, lda, cwork, v, ldv, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 
 		}
 		//         .. permute the rows of V
@@ -946,40 +946,40 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 		//        .. second preconditioning step to avoid need to accumulate
 		//        Jacobi rotations in the Jacobi iterations.
 		for p = 1; p <= nr; p++ {
-			goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1), *lda, u.CVector(p-1, p-1), 1)
+			goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1, *lda), u.CVector(p-1, p-1, 1))
 			Zlacgv(toPtr((*n)-p+1), u.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 		}
 		Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, u.Off(0, 1), ldu)
 
-		Zgeqrf(n, &nr, u, ldu, cwork.Off((*n)+1-1), cwork.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), &ierr)
+		Zgeqrf(n, &nr, u, ldu, cwork.Off((*n)), cwork.Off(2*(*n)), toPtr((*lwork)-2*(*n)), &ierr)
 
 		for p = 1; p <= nr-1; p++ {
-			goblas.Zcopy(nr-p, u.CVector(p-1, p+1-1), *ldu, u.CVector(p+1-1, p-1), 1)
+			goblas.Zcopy(nr-p, u.CVector(p-1, p, *ldu), u.CVector(p, p-1, 1))
 			Zlacgv(toPtr((*n)-p+1), u.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 		}
 		Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, u.Off(0, 1), ldu)
 
-		Zgesvj('L', 'U', 'N', &nr, &nr, u, ldu, sva, &nr, a, lda, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), rwork, lrwork, info)
+		Zgesvj('L', 'U', 'N', &nr, &nr, u, ldu, sva, &nr, a, lda, cwork.Off((*n)), toPtr((*lwork)-(*n)), rwork, lrwork, info)
 		scalem = rwork.Get(0)
 		numrank = int(math.Round(rwork.Get(1)))
 
 		if nr < (*m) {
-			Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+			Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 			if nr < n1 {
-				Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-				Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+				Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+				Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 			}
 		}
 
-		Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+		Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 
 		if rowpiv {
-			Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff+1-1), toPtr(-1))
+			Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff), toPtr(-1))
 		}
 
 		for p = 1; p <= n1; p++ {
-			xsc = one / goblas.Dznrm2(*m, u.CVector(0, p-1), 1)
-			goblas.Zdscal(*m, xsc, u.CVector(0, p-1), 1)
+			xsc = one / goblas.Dznrm2(*m, u.CVector(0, p-1, 1))
+			goblas.Zdscal(*m, xsc, u.CVector(0, p-1, 1))
 		}
 
 		if transp {
@@ -998,7 +998,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				//           transpose and use the QRF. This is subject to changes in an
 				//           optimized implementation of ZGEJSV.
 				for p = 1; p <= nr; p++ {
-					goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1), *lda, v.CVector(p-1, p-1), 1)
+					goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1, *lda), v.CVector(p-1, p-1, 1))
 					Zlacgv(toPtr((*n)-p+1), v.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 				}
 
@@ -1034,12 +1034,12 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				//           Estimate the row scaled condition number of R1
 				//           (If R1 is rectangular, N > NR, then the condition number
 				//           of the leading NR x NR submatrix is estimated.)
-				Zlacpy('L', &nr, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+1-1, nr, opts), &nr)
+				Zlacpy('L', &nr, &nr, v, ldv, cwork.CMatrixOff(2*(*n), nr, opts), &nr)
 				for p = 1; p <= nr; p++ {
-					temp1 = goblas.Dznrm2(nr-p+1, cwork.Off(2*(*n)+(p-1)*nr+p-1), 1)
-					goblas.Zdscal(nr-p+1, one/temp1, cwork.Off(2*(*n)+(p-1)*nr+p-1), 1)
+					temp1 = goblas.Dznrm2(nr-p+1, cwork.Off(2*(*n)+(p-1)*nr+p-1, 1))
+					goblas.Zdscal(nr-p+1, one/temp1, cwork.Off(2*(*n)+(p-1)*nr+p-1, 1))
 				}
-				Zpocon('L', &nr, cwork.CMatrixOff(2*(*n)+1-1, nr, opts), &nr, &one, &temp1, cwork.Off(2*(*n)+nr*nr+1-1), rwork, &ierr)
+				Zpocon('L', &nr, cwork.CMatrixOff(2*(*n), nr, opts), &nr, &one, &temp1, cwork.Off(2*(*n)+nr*nr), rwork, &ierr)
 				condr1 = one / math.Sqrt(temp1)
 				//           .. here need a second opinion on the condition number
 				//           .. then assume worst case scenario
@@ -1053,13 +1053,13 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					//              implementation, this QRF should be implemented as the QRF
 					//              of a lower triangular matrix.
 					//              R1^* = Q2 * R2
-					Zgeqrf(n, &nr, v, ldv, cwork.Off((*n)+1-1), cwork.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), &ierr)
+					Zgeqrf(n, &nr, v, ldv, cwork.Off((*n)), cwork.Off(2*(*n)), toPtr((*lwork)-2*(*n)), &ierr)
 
 					if l2pert {
 						xsc = math.Sqrt(small) / epsln
 						for p = 2; p <= nr; p++ {
 							for q = 1; q <= p-1; q++ {
-								ctemp = complex(xsc*minf64(v.GetMag(p-1, p-1), v.GetMag(q-1, q-1)), zero)
+								ctemp = complex(xsc*math.Min(v.GetMag(p-1, p-1), v.GetMag(q-1, q-1)), zero)
 								if v.GetMag(q-1, p-1) <= temp1 {
 								}
 								//     $                     V(q,p) = TEMP1 * ( V(q,p) / ABS(V(q,p)) )
@@ -1069,13 +1069,13 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					}
 
 					if nr != (*n) {
-						Zlacpy('A', n, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n)
+						Zlacpy('A', n, &nr, v, ldv, cwork.CMatrixOff(2*(*n), *n, opts), n)
 					}
 					//              .. save ...
 					//
 					//           .. this transposed copy should be better than naive
 					for p = 1; p <= nr-1; p++ {
-						goblas.Zcopy(nr-p, v.CVector(p-1, p+1-1), *ldv, v.CVector(p+1-1, p-1), 1)
+						goblas.Zcopy(nr-p, v.CVector(p-1, p, *ldv), v.CVector(p, p-1, 1))
 						Zlacgv(toPtr(nr-p+1), v.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 					}
 					v.Set(nr-1, nr-1, v.GetConj(nr-1, nr-1))
@@ -1094,14 +1094,14 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					for p = 1; p <= nr; p++ {
 						(*iwork)[(*n)+p-1] = 0
 					}
-					Zgeqp3(n, &nr, v, ldv, toSlice(iwork, (*n)+1-1), cwork.Off((*n)+1-1), cwork.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), rwork, &ierr)
+					Zgeqp3(n, &nr, v, ldv, toSlice(iwork, (*n)), cwork.Off((*n)), cwork.Off(2*(*n)), toPtr((*lwork)-2*(*n)), rwork, &ierr)
 					//*               CALL ZGEQRF( N, NR, V, LDV, CWORK(N+1), CWORK(2*N+1),
 					//*     $              LWORK-2*N, IERR )
 					if l2pert {
 						xsc = math.Sqrt(small)
 						for p = 2; p <= nr; p++ {
 							for q = 1; q <= p-1; q++ {
-								ctemp = complex(xsc*minf64(v.GetMag(p-1, p-1), v.GetMag(q-1, q-1)), zero)
+								ctemp = complex(xsc*math.Min(v.GetMag(p-1, p-1), v.GetMag(q-1, q-1)), zero)
 								if v.GetMag(q-1, p-1) <= temp1 {
 								}
 								//     $                     V(q,p) = TEMP1 * ( V(q,p) / ABS(V(q,p)) )
@@ -1110,13 +1110,13 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 						}
 					}
 
-					Zlacpy('A', n, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n)
+					Zlacpy('A', n, &nr, v, ldv, cwork.CMatrixOff(2*(*n), *n, opts), n)
 
 					if l2pert {
 						xsc = math.Sqrt(small)
 						for p = 2; p <= nr; p++ {
 							for q = 1; q <= p-1; q++ {
-								ctemp = complex(xsc*minf64(v.GetMag(p-1, p-1), v.GetMag(q-1, q-1)), zero)
+								ctemp = complex(xsc*math.Min(v.GetMag(p-1, p-1), v.GetMag(q-1, q-1)), zero)
 								//                        V(p,q) = - TEMP1*( V(q,p) / ABS(V(q,p)) )
 								v.Set(p-1, q-1, -ctemp)
 							}
@@ -1125,14 +1125,14 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 						Zlaset('L', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(1, 0), ldv)
 					}
 					//              Now, compute R2 = L3 * Q3, the LQ factorization.
-					Zgelqf(&nr, &nr, v, ldv, cwork.Off(2*(*n)+(*n)*nr+1-1), cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
+					Zgelqf(&nr, &nr, v, ldv, cwork.Off(2*(*n)+(*n)*nr), cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
 					//              .. and estimate the condition number
-					Zlacpy('L', &nr, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+(*n)*nr+nr+1-1, nr, opts), &nr)
+					Zlacpy('L', &nr, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+(*n)*nr+nr, nr, opts), &nr)
 					for p = 1; p <= nr; p++ {
-						temp1 = goblas.Dznrm2(p, cwork.Off(2*(*n)+(*n)*nr+nr+p-1), nr)
-						goblas.Zdscal(p, one/temp1, cwork.Off(2*(*n)+(*n)*nr+nr+p-1), nr)
+						temp1 = goblas.Dznrm2(p, cwork.Off(2*(*n)+(*n)*nr+nr+p-1, nr))
+						goblas.Zdscal(p, one/temp1, cwork.Off(2*(*n)+(*n)*nr+nr+p-1, nr))
 					}
-					Zpocon('L', &nr, cwork.CMatrixOff(2*(*n)+(*n)*nr+nr+1-1, nr, opts), &nr, &one, &temp1, cwork.Off(2*(*n)+(*n)*nr+nr+nr*nr+1-1), rwork, &ierr)
+					Zpocon('L', &nr, cwork.CMatrixOff(2*(*n)+(*n)*nr+nr, nr, opts), &nr, &one, &temp1, cwork.Off(2*(*n)+(*n)*nr+nr+nr*nr), rwork, &ierr)
 					condr2 = one / math.Sqrt(temp1)
 
 					if condr2 >= condOk {
@@ -1140,7 +1140,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 						//                 (this overwrites the copy of R2, as it will not be
 						//                 needed in this branch, but it does not overwritte the
 						//                 Huseholder vectors of Q2.).
-						Zlacpy('U', &nr, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n)
+						Zlacpy('U', &nr, &nr, v, ldv, cwork.CMatrixOff(2*(*n), *n, opts), n)
 						//                 .. and the rest of the information on Q3 is in
 						//                 WORK(2*N+N*NR+1:2*N+N*NR+N)
 					}
@@ -1167,12 +1167,12 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				//        conditioned triangular matrix equation.
 				if condr1 < condOk {
 
-					Zgesvj('L', 'U', 'N', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), rwork, lrwork, info)
+					Zgesvj('L', 'U', 'N', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), rwork, lrwork, info)
 					scalem = rwork.Get(0)
 					numrank = int(math.Round(rwork.Get(1)))
 					for p = 1; p <= nr; p++ {
-						goblas.Zcopy(nr, v.CVector(0, p-1), 1, u.CVector(0, p-1), 1)
-						goblas.Zdscal(nr, sva.Get(p-1), v.CVector(0, p-1), 1)
+						goblas.Zcopy(nr, v.CVector(0, p-1, 1), u.CVector(0, p-1, 1))
+						goblas.Zdscal(nr, sva.Get(p-1), v.CVector(0, p-1, 1))
 					}
 					//        .. pick the right matrix equation and solve it
 
@@ -1181,19 +1181,19 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 						//                 equation is Q2*V2 = the product of the Jacobi rotations
 						//                 used in ZGESVJ, premultiplied with the orthogonal matrix
 						//                 from the second QR factorization.
-						err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, a, *lda, v, *ldv)
+						err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, a, v)
 					} else {
 						//                 .. R1 is well conditioned, but non-square. Adjoint of R2
 						//                 is inverted to get the product of the Jacobi rotations
 						//                 used in ZGESVJ. The Q-factor from the second QR
 						//                 factorization is then built in explicitly.
-						err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, nr, nr, cone, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), *n, v, *ldv)
+						err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, nr, nr, cone, cwork.CMatrixOff(2*(*n), *n, opts), v)
 						if nr < (*n) {
-							Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-							Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-							Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
+							Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+							Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+							Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
 						}
-						Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n, cwork.Off((*n)+1-1), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
+						Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n), *n, opts), n, cwork.Off((*n)), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
 					}
 
 				} else if condr2 < condOk {
@@ -1201,14 +1201,14 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					//              is Q3^* * V3 = the product of the Jacobi rotations (appplied to
 					//              the lower triangular L3 from the LQ factorization of
 					//              R2=L3*Q3), pre-multiplied with the transposed Q3.
-					Zgesvj('L', 'U', 'N', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), rwork, lrwork, info)
+					Zgesvj('L', 'U', 'N', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), rwork, lrwork, info)
 					scalem = rwork.Get(0)
 					numrank = int(math.Round(rwork.Get(1)))
 					for p = 1; p <= nr; p++ {
-						goblas.Zcopy(nr, v.CVector(0, p-1), 1, u.CVector(0, p-1), 1)
-						goblas.Zdscal(nr, sva.Get(p-1), u.CVector(0, p-1), 1)
+						goblas.Zcopy(nr, v.CVector(0, p-1, 1), u.CVector(0, p-1, 1))
+						goblas.Zdscal(nr, sva.Get(p-1), u.CVector(0, p-1, 1))
 					}
-					err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), *n, u, *ldu)
+					err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, cwork.CMatrixOff(2*(*n), *n, opts), u)
 					//              .. apply the permutation from the second QR factorization
 					for q = 1; q <= nr; q++ {
 						for p = 1; p <= nr; p++ {
@@ -1219,11 +1219,11 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 						}
 					}
 					if nr < (*n) {
-						Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-						Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-						Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
+						Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+						Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+						Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
 					}
-					Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n, cwork.Off((*n)+1-1), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
+					Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n), *n, opts), n, cwork.Off((*n)), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
 				} else {
 					//              Last line of defense.
 					// #:(          This is a rather pathological case: no scaled condition
@@ -1236,17 +1236,17 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					//              defense ensures that ZGEJSV completes the task.
 					//              Compute the full SVD of L3 using ZGESVJ with explicit
 					//              accumulation of Jacobi rotations.
-					Zgesvj('L', 'U', 'V', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), rwork, lrwork, info)
+					Zgesvj('L', 'U', 'V', &nr, &nr, v, ldv, sva, &nr, u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), rwork, lrwork, info)
 					scalem = rwork.Get(0)
 					numrank = int(math.Round(rwork.Get(1)))
 					if nr < (*n) {
-						Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-						Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-						Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
+						Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+						Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+						Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
 					}
-					Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n, cwork.Off((*n)+1-1), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
+					Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n), *n, opts), n, cwork.Off((*n)), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
 
-					Zunmlq('L', 'C', &nr, &nr, &nr, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n, cwork.Off(2*(*n)+(*n)*nr+1-1), u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
+					Zunmlq('L', 'C', &nr, &nr, &nr, cwork.CMatrixOff(2*(*n), *n, opts), n, cwork.Off(2*(*n)+(*n)*nr), u, ldu, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
 					for q = 1; q <= nr; q++ {
 						for p = 1; p <= nr; p++ {
 							cwork.Set(2*(*n)+(*n)*nr+nr+(*iwork)[(*n)+p-1]-1, u.Get(p-1, q-1))
@@ -1269,44 +1269,44 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					for p = 1; p <= (*n); p++ {
 						v.Set(p-1, q-1, cwork.Get(2*(*n)+(*n)*nr+nr+p-1))
 					}
-					xsc = one / goblas.Dznrm2(*n, v.CVector(0, q-1), 1)
+					xsc = one / goblas.Dznrm2(*n, v.CVector(0, q-1, 1))
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(*n, xsc, v.CVector(0, q-1), 1)
+						goblas.Zdscal(*n, xsc, v.CVector(0, q-1, 1))
 					}
 				}
 				//           At this moment, V contains the right singular vectors of A.
 				//           Next, assemble the left singular vector matrix U (M x N).
 				if nr < (*m) {
-					Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+					Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 					if nr < n1 {
-						Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-						Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+						Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+						Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 					}
 				}
 
 				//           The Q matrix from the first QRF is built into the left singular
 				//           matrix U. This applies to all cases.
 				//
-				Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+				Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 				//           The columns of U are normalized. The cost is O(M*N) flops.
 				temp1 = math.Sqrt(float64(*m)) * epsln
 				for p = 1; p <= nr; p++ {
-					xsc = one / goblas.Dznrm2(*m, u.CVector(0, p-1), 1)
+					xsc = one / goblas.Dznrm2(*m, u.CVector(0, p-1, 1))
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(*m, xsc, u.CVector(0, p-1), 1)
+						goblas.Zdscal(*m, xsc, u.CVector(0, p-1, 1))
 					}
 				}
 
 				//           If the initial QRF is computed with row pivoting, the left
 				//           singular vectors must be adjusted.
 				if rowpiv {
-					Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff+1-1), toPtr(-1))
+					Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff), toPtr(-1))
 				}
 
 			} else {
 				//        .. the initial matrix A has almost orthogonal columns and
 				//        the second QRF is not needed
-				Zlacpy('U', n, n, a, lda, cwork.CMatrixOff((*n)+1-1, *n, opts), n)
+				Zlacpy('U', n, n, a, lda, cwork.CMatrixOff((*n), *n, opts), n)
 				if l2pert {
 					xsc = math.Sqrt(small)
 					for p = 2; p <= (*n); p++ {
@@ -1321,46 +1321,46 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 					Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, cwork.CMatrixOff((*n)+2-1, *n, opts), n)
 				}
 
-				Zgesvj('U', 'U', 'N', n, n, cwork.CMatrixOff((*n)+1-1, *n, opts), n, sva, n, u, ldu, cwork.Off((*n)+(*n)*(*n)+1-1), toPtr((*lwork)-(*n)-(*n)*(*n)), rwork, lrwork, info)
+				Zgesvj('U', 'U', 'N', n, n, cwork.CMatrixOff((*n), *n, opts), n, sva, n, u, ldu, cwork.Off((*n)+(*n)*(*n)), toPtr((*lwork)-(*n)-(*n)*(*n)), rwork, lrwork, info)
 
 				scalem = rwork.Get(0)
 				numrank = int(math.Round(rwork.Get(1)))
 				for p = 1; p <= (*n); p++ {
-					goblas.Zcopy(*n, cwork.Off((*n)+(p-1)*(*n)+1-1), 1, u.CVector(0, p-1), 1)
-					goblas.Zdscal(*n, sva.Get(p-1), cwork.Off((*n)+(p-1)*(*n)+1-1), 1)
+					goblas.Zcopy(*n, cwork.Off((*n)+(p-1)*(*n), 1), u.CVector(0, p-1, 1))
+					goblas.Zdscal(*n, sva.Get(p-1), cwork.Off((*n)+(p-1)*(*n), 1))
 				}
 
-				err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *n, cone, a, *lda, cwork.CMatrixOff((*n)+1-1, *n, opts), *n)
+				err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *n, cone, a, cwork.CMatrixOff((*n), *n, opts))
 				for p = 1; p <= (*n); p++ {
-					goblas.Zcopy(*n, cwork.Off((*n)+p-1), *n, v.CVector((*iwork)[p-1]-1, 0), *ldv)
+					goblas.Zcopy(*n, cwork.Off((*n)+p-1, *n), v.CVector((*iwork)[p-1]-1, 0, *ldv))
 				}
 				temp1 = math.Sqrt(float64(*n)) * epsln
 				for p = 1; p <= (*n); p++ {
-					xsc = one / goblas.Dznrm2(*n, v.CVector(0, p-1), 1)
+					xsc = one / goblas.Dznrm2(*n, v.CVector(0, p-1, 1))
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(*n, xsc, v.CVector(0, p-1), 1)
+						goblas.Zdscal(*n, xsc, v.CVector(0, p-1, 1))
 					}
 				}
 
 				//           Assemble the left singular vector matrix U (M x N).
 				if (*n) < (*m) {
-					Zlaset('A', toPtr((*m)-(*n)), n, &czero, &czero, u.Off((*n)+1-1, 0), ldu)
+					Zlaset('A', toPtr((*m)-(*n)), n, &czero, &czero, u.Off((*n), 0), ldu)
 					if (*n) < n1 {
-						Zlaset('A', n, toPtr(n1-(*n)), &czero, &czero, u.Off(0, (*n)+1-1), ldu)
-						Zlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &czero, &cone, u.Off((*n)+1-1, (*n)+1-1), ldu)
+						Zlaset('A', n, toPtr(n1-(*n)), &czero, &czero, u.Off(0, (*n)), ldu)
+						Zlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &czero, &cone, u.Off((*n), (*n)), ldu)
 					}
 				}
-				Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+				Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 				temp1 = math.Sqrt(float64(*m)) * epsln
 				for p = 1; p <= n1; p++ {
-					xsc = one / goblas.Dznrm2(*m, u.CVector(0, p-1), 1)
+					xsc = one / goblas.Dznrm2(*m, u.CVector(0, p-1, 1))
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(*m, xsc, u.CVector(0, p-1), 1)
+						goblas.Zdscal(*m, xsc, u.CVector(0, p-1, 1))
 					}
 				}
 
 				if rowpiv {
-					Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff+1-1), toPtr(-1))
+					Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff), toPtr(-1))
 				}
 
 			}
@@ -1378,7 +1378,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			//        in presence of extreme values, e.g. when the singular values spread from
 			//        the underflow to the overflow threshold.
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1), *lda, v.CVector(p-1, p-1), 1)
+				goblas.Zcopy((*n)-p+1, a.CVector(p-1, p-1, *lda), v.CVector(p-1, p-1, 1))
 				Zlacgv(toPtr((*n)-p+1), v.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 			}
 
@@ -1399,18 +1399,18 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			} else {
 				Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
 			}
-			Zgeqrf(n, &nr, v, ldv, cwork.Off((*n)+1-1), cwork.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), &ierr)
-			Zlacpy('L', n, &nr, v, ldv, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n)
+			Zgeqrf(n, &nr, v, ldv, cwork.Off((*n)), cwork.Off(2*(*n)), toPtr((*lwork)-2*(*n)), &ierr)
+			Zlacpy('L', n, &nr, v, ldv, cwork.CMatrixOff(2*(*n), *n, opts), n)
 
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy(nr-p+1, v.CVector(p-1, p-1), *ldv, u.CVector(p-1, p-1), 1)
+				goblas.Zcopy(nr-p+1, v.CVector(p-1, p-1, *ldv), u.CVector(p-1, p-1, 1))
 				Zlacgv(toPtr(nr-p+1), u.CVector(p-1, p-1), func() *int { y := 1; return &y }())
 			}
 			if l2pert {
 				xsc = math.Sqrt(small / epsln)
 				for q = 2; q <= nr; q++ {
 					for p = 1; p <= q-1; p++ {
-						ctemp = complex(xsc*minf64(u.GetMag(p-1, p-1), u.GetMag(q-1, q-1)), zero)
+						ctemp = complex(xsc*math.Min(u.GetMag(p-1, p-1), u.GetMag(q-1, q-1)), zero)
 						//                  U(p,q) = - TEMP1 * ( U(q,p) / ABS(U(q,p)) )
 						u.Set(p-1, q-1, -ctemp)
 					}
@@ -1418,15 +1418,15 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 			} else {
 				Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, u.Off(0, 1), ldu)
 			}
-			Zgesvj('L', 'U', 'V', &nr, &nr, u, ldu, sva, n, v, ldv, cwork.Off(2*(*n)+(*n)*nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr), rwork, lrwork, info)
+			Zgesvj('L', 'U', 'V', &nr, &nr, u, ldu, sva, n, v, ldv, cwork.Off(2*(*n)+(*n)*nr), toPtr((*lwork)-2*(*n)-(*n)*nr), rwork, lrwork, info)
 			scalem = rwork.Get(0)
 			numrank = int(math.Round(rwork.Get(1)))
 			if nr < (*n) {
-				Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-				Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-				Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
+				Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+				Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+				Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
 			}
-			Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n)+1-1, *n, opts), n, cwork.Off((*n)+1-1), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr+1-1), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
+			Zunmqr('L', 'N', n, n, &nr, cwork.CMatrixOff(2*(*n), *n, opts), n, cwork.Off((*n)), v, ldv, cwork.Off(2*(*n)+(*n)*nr+nr), toPtr((*lwork)-2*(*n)-(*n)*nr-nr), &ierr)
 
 			//           Permute the rows of V using the (column) permutation from the
 			//           first QRF. Also, scale the columns to make them unit in
@@ -1439,33 +1439,33 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n *int, a *mat.CMatrix, 
 				for p = 1; p <= (*n); p++ {
 					v.Set(p-1, q-1, cwork.Get(2*(*n)+(*n)*nr+nr+p-1))
 				}
-				xsc = one / goblas.Dznrm2(*n, v.CVector(0, q-1), 1)
+				xsc = one / goblas.Dznrm2(*n, v.CVector(0, q-1, 1))
 				if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-					goblas.Zdscal(*n, xsc, v.CVector(0, q-1), 1)
+					goblas.Zdscal(*n, xsc, v.CVector(0, q-1, 1))
 				}
 			}
 
 			//           At this moment, V contains the right singular vectors of A.
 			//           Next, assemble the left singular vector matrix U (M x N).
 			if nr < (*m) {
-				Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+				Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 				if nr < n1 {
-					Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-					Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+					Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+					Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 				}
 			}
 
-			Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+			Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 
 			if rowpiv {
-				Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff+1-1), toPtr(-1))
+				Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, iwoff), toPtr(-1))
 			}
 
 		}
 		if transp {
 			//           .. swap U and V because the procedure worked on A^*
 			for p = 1; p <= (*n); p++ {
-				goblas.Zswap(*n, u.CVector(0, p-1), 1, v.CVector(0, p-1), 1)
+				goblas.Zswap(*n, u.CVector(0, p-1, 1), v.CVector(0, p-1, 1))
 			}
 		}
 

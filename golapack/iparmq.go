@@ -33,7 +33,7 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 			ns = 10
 		}
 		if nh >= 150 {
-			ns = maxint(10, nh/int(math.Round(math.Log(float64(nh))/math.Log(two))))
+			ns = max(10, nh/int(math.Round(math.Log(float64(nh))/math.Log(two))))
 		}
 		if nh >= 590 {
 			ns = 64
@@ -44,7 +44,7 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 		if nh >= 6000 {
 			ns = 256
 		}
-		ns = maxint(2, ns-ns%2)
+		ns = max(2, ns-ns%2)
 	}
 
 	if (*ispec) == inmin {

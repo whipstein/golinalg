@@ -27,10 +27,10 @@ func Dlatrz(m, n, l *int, a *mat.Matrix, lda *int, tau, work *mat.Vector) {
 	for i = (*m); i >= 1; i-- {
 		//        Generate elementary reflector H(i) to annihilate
 		//        [ A(i,i) A(i,n-l+1:n) ]
-		Dlarfg(toPtr((*l)+1), a.GetPtr(i-1, i-1), a.Vector(i-1, (*n)-(*l)+1-1), lda, tau.GetPtr(i-1))
+		Dlarfg(toPtr((*l)+1), a.GetPtr(i-1, i-1), a.Vector(i-1, (*n)-(*l)), lda, tau.GetPtr(i-1))
 
 		//        Apply H(i) to A(1:i-1,i:n) from the right
-		Dlarz('R', toPtr(i-1), toPtr((*n)-i+1), l, a.Off(i-1, (*n)-(*l)+1-1), lda, tau.GetPtr(i-1), a.Off(0, i-1), lda, work)
+		Dlarz('R', toPtr(i-1), toPtr((*n)-i+1), l, a.Off(i-1, (*n)-(*l)), lda, tau.GetPtr(i-1), a.Off(0, i-1), lda, work)
 
 	}
 }

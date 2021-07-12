@@ -28,7 +28,7 @@ func Dpbtrs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matri
 		(*info) = -4
 	} else if (*ldab) < (*kd)+1 {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -45,19 +45,19 @@ func Dpbtrs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matri
 		//        Solve A*X = B where A = U**T *U.
 		for j = 1; j <= (*nrhs); j++ {
 			//           Solve U**T *X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
+			err = goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, *n, *kd, ab, b.Vector(0, j-1, 1))
 
 			//           Solve U*X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
+			err = goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, *n, *kd, ab, b.Vector(0, j-1, 1))
 		}
 	} else {
 		//        Solve A*X = B where A = L*L**T.
 		for j = 1; j <= (*nrhs); j++ {
 			//           Solve L*X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Lower, mat.NoTrans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
+			err = goblas.Dtbsv(mat.Lower, mat.NoTrans, mat.NonUnit, *n, *kd, ab, b.Vector(0, j-1, 1))
 
 			//           Solve L**T *X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Lower, mat.Trans, mat.NonUnit, *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
+			err = goblas.Dtbsv(mat.Lower, mat.Trans, mat.NonUnit, *n, *kd, ab, b.Vector(0, j-1, 1))
 		}
 	}
 }

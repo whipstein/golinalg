@@ -41,7 +41,7 @@ func Ztrcon(norm, uplo, diag byte, n *int, a *mat.CMatrix, lda *int, rcond *floa
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	}
 	if (*info) != 0 {
@@ -56,7 +56,7 @@ func Ztrcon(norm, uplo, diag byte, n *int, a *mat.CMatrix, lda *int, rcond *floa
 	}
 
 	(*rcond) = zero
-	smlnum = Dlamch(SafeMinimum) * float64(maxint(1, *n))
+	smlnum = Dlamch(SafeMinimum) * float64(max(1, *n))
 
 	//     Compute the norm of the triangular matrix A.
 	anorm = Zlantr(norm, uplo, diag, n, n, a, lda, rwork)
@@ -74,7 +74,7 @@ func Ztrcon(norm, uplo, diag byte, n *int, a *mat.CMatrix, lda *int, rcond *floa
 		kase = 0
 	label10:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 		if kase != 0 {
 			if kase == kase1 {
 				//              Multiply by inv(A).
@@ -87,7 +87,7 @@ func Ztrcon(norm, uplo, diag byte, n *int, a *mat.CMatrix, lda *int, rcond *floa
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Izamax(*n, work, 1)
+				ix = goblas.Izamax(*n, work.Off(0, 1))
 				xnorm = Cabs1(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return

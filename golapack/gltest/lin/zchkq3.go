@@ -44,13 +44,13 @@ func Zchkq3(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	for im = 1; im <= (*nm); im++ {
 		//        Do for each value of M in MVAL.
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 
 		for in = 1; in <= (*nn); in++ {
 			//           Do for each value of N in NVAL.
 			n = (*nval)[in-1]
-			mnmin = minint(m, n)
-			lwork = maxint(1, m*maxint(m, n)+4*mnmin+maxint(m, n))
+			mnmin = min(m, n)
+			lwork = max(1, m*max(m, n)+4*mnmin+max(m, n))
 			//
 			for imode = 1; imode <= ntypes; imode++ {
 				if !(*dotype)[imode-1] {
@@ -85,9 +85,9 @@ func Zchkq3(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						if imode == 4 {
 							ilow = 1
 							istep = 1
-							ihigh = maxint(1, n/2)
+							ihigh = max(1, n/2)
 						} else if imode == 5 {
-							ilow = maxint(1, n/2)
+							ilow = max(1, n/2)
 							istep = 1
 							ihigh = n
 						} else if imode == 6 {
@@ -112,19 +112,19 @@ func Zchkq3(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 					//                 Save A and its singular values and a copy of
 					//                 vector IWORK.
 					golapack.Zlacpy('A', &m, &n, copya.CMatrix(lda, opts), &lda, a.CMatrix(lda, opts), &lda)
-					Icopy(n, toSlice(iwork, 0), 1, toSlice(iwork, n+1-1), 1)
+					Icopy(n, toSlice(iwork, 0), 1, toSlice(iwork, n), 1)
 
 					//                 Workspace needed.
 					lw = nb * (n + 1)
 
 					*srnamt = "ZGEQP3"
-					golapack.Zgeqp3(&m, &n, a.CMatrix(lda, opts), &lda, toSlice(iwork, n+1-1), tau, work, &lw, rwork, &info)
+					golapack.Zgeqp3(&m, &n, a.CMatrix(lda, opts), &lda, toSlice(iwork, n), tau, work, &lw, rwork, &info)
 
 					//                 Compute norm(svd(a) - svd(r))
 					result.Set(0, Zqrt12(&m, &n, a.CMatrix(lda, opts), &lda, s, work, &lwork, rwork))
 
 					//                 Compute norm( A*P - Q*R )
-					result.Set(1, Zqpt01(&m, &n, &mnmin, copya.CMatrix(lda, opts), a.CMatrix(lda, opts), &lda, tau, toSlice(iwork, n+1-1), work, &lwork))
+					result.Set(1, Zqpt01(&m, &n, &mnmin, copya.CMatrix(lda, opts), a.CMatrix(lda, opts), &lda, tau, toSlice(iwork, n), work, &lwork))
 
 					//                 Compute Q'*Q
 					result.Set(2, Zqrt11(&m, &mnmin, a.CMatrix(lda, opts), &lda, tau, work, &lwork))

@@ -39,9 +39,9 @@ func Zpprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, b *mat.CMatrix, ldb *
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -76,8 +76,8 @@ func Zpprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, b *mat.CMatrix, ldb *
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
-		err = goblas.Zhpmv(mat.UploByte(uplo), *n, -cone, ap, x.CVector(0, j-1), 1, cone, work, 1)
+		goblas.Zcopy(*n, b.CVector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Zhpmv(mat.UploByte(uplo), *n, -cone, ap, x.CVector(0, j-1, 1), cone, work.Off(0, 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -124,9 +124,9 @@ func Zpprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, b *mat.CMatrix, ldb *
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -139,7 +139,7 @@ func Zpprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, b *mat.CMatrix, ldb *
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zpptrs(uplo, n, func() *int { y := 1; return &y }(), afp, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, cone, work, 1, x.CVector(0, j-1), 1)
+			goblas.Zaxpy(*n, cone, work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -177,7 +177,7 @@ func Zpprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, b *mat.CMatrix, ldb *
 		kase = 0
 	label100:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, ferr.GetPtr(j-1), &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(A**H).
@@ -198,7 +198,7 @@ func Zpprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, b *mat.CMatrix, ldb *
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, Cabs1(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

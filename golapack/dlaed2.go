@@ -31,9 +31,9 @@ func Dlaed2(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int,
 
 	if (*n) < 0 {
 		(*info) = -2
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -6
-	} else if minint(1, (*n)/2) > (*n1) || ((*n)/2) < (*n1) {
+	} else if min(1, (*n)/2) > (*n1) || ((*n)/2) < (*n1) {
 		(*info) = -3
 	}
 	if (*info) != 0 {
@@ -50,13 +50,13 @@ func Dlaed2(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int,
 	n1p1 = (*n1) + 1
 
 	if (*rho) < zero {
-		goblas.Dscal(n2, mone, z.Off(n1p1-1), 1)
+		goblas.Dscal(n2, mone, z.Off(n1p1-1))
 	}
 
 	//     Normalize z so that norm(z) = 1.  Since z is the concatenation of
 	//     two normalized vectors, norm2(z) = math.Sqrt(2).
 	t = one / math.Sqrt(two)
-	goblas.Dscal(*n, t, z, 1)
+	goblas.Dscal(*n, t, z)
 
 	//     RHO = ABS( norm(z)**2 * RHO )
 	(*rho) = math.Abs(two * (*rho))
@@ -76,10 +76,10 @@ func Dlaed2(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int,
 	}
 
 	//     Calculate the allowable deflation tolerance
-	imax = goblas.Idamax(*n, z, 1)
-	jmax = goblas.Idamax(*n, d, 1)
+	imax = goblas.Idamax(*n, z)
+	jmax = goblas.Idamax(*n, d)
 	eps = Dlamch(Epsilon)
-	tol = eight * eps * maxf64(math.Abs(d.Get(jmax-1)), math.Abs(z.Get(imax-1)))
+	tol = eight * eps * math.Max(math.Abs(d.Get(jmax-1)), math.Abs(z.Get(imax-1)))
 
 	//     If the rank-1 modifier is small enough, no more needs to be done
 	//     except to reorganize Q so that its columns correspond with the
@@ -89,12 +89,12 @@ func Dlaed2(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int,
 		iq2 = 1
 		for j = 1; j <= (*n); j++ {
 			i = (*indx)[j-1]
-			goblas.Dcopy(*n, q.Vector(0, i-1), 1, q2.Off(iq2-1), 1)
+			goblas.Dcopy(*n, q.Vector(0, i-1, 1), q2.Off(iq2-1))
 			dlamda.Set(j-1, d.Get(i-1))
 			iq2 = iq2 + (*n)
 		}
 		Dlacpy('A', n, n, q2.Matrix(*n, opts), n, q, ldq)
-		goblas.Dcopy(*n, dlamda, 1, d, 1)
+		goblas.Dcopy(*n, dlamda, d)
 		return
 	}
 
@@ -158,7 +158,7 @@ label80:
 				(*coltyp)[nj-1] = 2
 			}
 			(*coltyp)[pj-1] = 4
-			goblas.Drot(*n, q.Vector(0, pj-1), 1, q.Vector(0, nj-1), 1, c, s)
+			goblas.Drot(*n, q.Vector(0, pj-1, 1), q.Vector(0, nj-1, 1), c, s)
 			t = d.Get(pj-1)*math.Pow(c, 2) + d.Get(nj-1)*math.Pow(s, 2)
 			d.Set(nj-1, d.Get(pj-1)*math.Pow(s, 2)+d.Get(nj-1)*math.Pow(c, 2))
 			d.Set(pj-1, t)
@@ -236,7 +236,7 @@ label100:
 	iq2 = 1 + (ctot[0]+ctot[1])*(*n1)
 	for j = 1; j <= ctot[0]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(*n1, q.Vector(0, js-1), 1, q2.Off(iq1-1), 1)
+		goblas.Dcopy(*n1, q.Vector(0, js-1, 1), q2.Off(iq1-1))
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
 		iq1 = iq1 + (*n1)
@@ -244,8 +244,8 @@ label100:
 
 	for j = 1; j <= ctot[1]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(*n1, q.Vector(0, js-1), 1, q2.Off(iq1-1), 1)
-		goblas.Dcopy(n2, q.Vector((*n1)+1-1, js-1), 1, q2.Off(iq2-1), 1)
+		goblas.Dcopy(*n1, q.Vector(0, js-1, 1), q2.Off(iq1-1))
+		goblas.Dcopy(n2, q.Vector((*n1), js-1, 1), q2.Off(iq2-1))
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
 		iq1 = iq1 + (*n1)
@@ -254,7 +254,7 @@ label100:
 
 	for j = 1; j <= ctot[2]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(n2, q.Vector((*n1)+1-1, js-1), 1, q2.Off(iq2-1), 1)
+		goblas.Dcopy(n2, q.Vector((*n1), js-1, 1), q2.Off(iq2-1))
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
 		iq2 = iq2 + n2
@@ -263,7 +263,7 @@ label100:
 	iq1 = iq2
 	for j = 1; j <= ctot[3]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(*n, q.Vector(0, js-1), 1, q2.Off(iq2-1), 1)
+		goblas.Dcopy(*n, q.Vector(0, js-1, 1), q2.Off(iq2-1))
 		iq2 = iq2 + (*n)
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
@@ -272,8 +272,8 @@ label100:
 	//     The deflated eigenvalues and their corresponding vectors go back
 	//     into the last N - K slots of D and Q respectively.
 	if (*k) < (*n) {
-		Dlacpy('A', n, &(ctot[3]), q2.MatrixOff(iq1-1, *n, opts), n, q.Off(0, (*k)+1-1), ldq)
-		goblas.Dcopy((*n)-(*k), z.Off((*k)+1-1), 1, d.Off((*k)+1-1), 1)
+		Dlacpy('A', n, &(ctot[3]), q2.MatrixOff(iq1-1, *n, opts), n, q.Off(0, (*k)), ldq)
+		goblas.Dcopy((*n)-(*k), z.Off((*k)), d.Off((*k)))
 	}
 
 	//     Copy CTOT into COLTYP for referencing in DLAED3.

@@ -46,7 +46,7 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -74,7 +74,7 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Find pivot and test for singularity
-		i = goblas.Idamax(*m, a.Vector(0, 0), 1)
+		i = goblas.Idamax(*m, a.Vector(0, 0, 1))
 		(*ipiv)[0] = i
 		if a.Get(i-1, 0) != zero {
 			//           Apply the interchange
@@ -86,7 +86,7 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 
 			//           Compute elements 2:M of the column
 			if math.Abs(a.Get(0, 0)) >= sfmin {
-				goblas.Dscal((*m)-1, one/a.Get(0, 0), a.Vector(1, 0), 1)
+				goblas.Dscal((*m)-1, one/a.Get(0, 0), a.Vector(1, 0, 1))
 			} else {
 				for i = 1; i <= (*m)-1; i++ {
 					a.Set(1+i-1, 0, a.Get(1+i-1, 0)/a.Get(0, 0))
@@ -99,7 +99,7 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 
 	} else {
 		//        Use recursive code
-		n1 = minint(*m, *n) / 2
+		n1 = min(*m, *n) / 2
 		n2 = (*n) - n1
 
 		//               [ A11 ]
@@ -113,28 +113,28 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 		//                              [ A12 ]
 		//        Apply interchanges to [ --- ]
 		//                              [ A22 ]
-		Dlaswp(&n2, a.Off(0, n1+1-1), lda, func() *int { y := 1; return &y }(), &n1, ipiv, func() *int { y := 1; return &y }())
+		Dlaswp(&n2, a.Off(0, n1), lda, func() *int { y := 1; return &y }(), &n1, ipiv, func() *int { y := 1; return &y }())
 
 		//        Solve A12
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, n1, n2, one, a, *lda, a.Off(0, n1+1-1), *lda)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, n1, n2, one, a, a.Off(0, n1))
 
 		//        Update A22
-		err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1+1-1, 0), *lda, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
+		err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1))
 
 		//        Factor A22
-		_ipiv := (*ipiv)[n1+1-1:]
-		Dgetrf2(toPtr((*m)-n1), &n2, a.Off(n1+1-1, n1+1-1), lda, &_ipiv, &iinfo)
+		_ipiv := (*ipiv)[n1:]
+		Dgetrf2(toPtr((*m)-n1), &n2, a.Off(n1, n1), lda, &_ipiv, &iinfo)
 
 		//        Adjust INFO and the pivot indices
 		if (*info) == 0 && iinfo > 0 {
 			(*info) = iinfo + n1
 		}
-		for i = n1 + 1; i <= minint(*m, *n); i++ {
+		for i = n1 + 1; i <= min(*m, *n); i++ {
 			(*ipiv)[i-1] = (*ipiv)[i-1] + n1
 		}
 
 		//        Apply interchanges to A21
-		Dlaswp(&n1, a, lda, toPtr(n1+1), toPtr(minint(*m, *n)), ipiv, func() *int { y := 1; return &y }())
+		Dlaswp(&n1, a, lda, toPtr(n1+1), toPtr(min(*m, *n)), ipiv, func() *int { y := 1; return &y }())
 
 	}
 }

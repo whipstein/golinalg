@@ -17,7 +17,7 @@ const (
 	eps      = 2.2204460492503131e-016
 )
 
-func absint(a int) int {
+func abs(a int) int {
 	if a < 0 {
 		return -a
 	}
@@ -38,7 +38,7 @@ func epsilonf64() float64 {
 	// return float32(1.1920929e-07)
 }
 
-// func maxf64(a ...float64) float64 {
+// func math.Max(a ...float64) float64 {
 // 	maxval := a[0]
 // 	for _, val := range a {
 // 		if val > maxval {
@@ -81,7 +81,7 @@ func maxlocf64(a ...float64) int {
 	return maxloc + 1
 }
 
-// func minf64(a ...float64) float64 {
+// func math.Min(a ...float64) float64 {
 // 	minval := a[0]
 // 	for _, val := range a {
 // 		if val < minval {

@@ -8,71 +8,56 @@ import (
 )
 
 // Dasum takes the sum of the absolute values
-func Dasum(n int, dx *mat.Vector, incx int) (dasumReturn float64) {
-	if n <= 0 || incx <= 0 {
+func Dasum(n int, dx *mat.Vector) (dasumReturn float64) {
+	if n <= 0 {
 		return
 	}
 
-	for i := 0; i < n*incx; i += incx {
-		dasumReturn += math.Abs(dx.Get(i))
+	for _, ix := range dx.Iter(n) {
+		dasumReturn += math.Abs(dx.Get(ix))
 	}
 	return
 }
 
 // Daxpy constant times a vector plus a vector.
-func Daxpy(n int, da float64, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
-	var i, ix, iy int
-
+func Daxpy(n int, da float64, dx *mat.Vector, dy *mat.Vector) {
 	if n <= 0 || da == 0 {
 		return
 	}
 
-	if incx < 0 {
-		ix = (-n + 1) * incx
-	}
-	if incy < 0 {
-		iy = (-n + 1) * incy
-	}
-	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
-		dy.Set(iy, dy.Get(iy)+da*dx.Get(ix))
+	ix := dx.Iter(n)
+	iy := dy.Iter(n)
+
+	for i := 0; i < n; i++ {
+		dy.Set(iy[i], dy.Get(iy[i])+da*dx.Get(ix[i]))
 	}
 }
 
 // Dcopy copies a vector, x, to a vector, y.
-func Dcopy(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
-	var i, ix, iy int
-
+func Dcopy(n int, dx *mat.Vector, dy *mat.Vector) {
 	if n <= 0 {
 		return
 	}
 
-	if incx < 0 {
-		ix = (-n + 1) * incx
-	}
-	if incy < 0 {
-		iy = (-n + 1) * incy
-	}
-	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
-		dy.Set(iy, dx.Get(ix))
+	ix := dx.Iter(n)
+	iy := dy.Iter(n)
+
+	for i := 0; i < n; i++ {
+		dy.Set(iy[i], dx.Get(ix[i]))
 	}
 }
 
 // Ddot forms the dot product of two vectors.
-func Ddot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) (ddotReturn float64) {
-	var i, ix, iy int
-
+func Ddot(n int, dx *mat.Vector, dy *mat.Vector) (ddotReturn float64) {
 	if n <= 0 {
 		return
 	}
 
-	if incx < 0 {
-		ix = (-n + 1) * incx
-	}
-	if incy < 0 {
-		iy = (-n + 1) * incy
-	}
-	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
-		ddotReturn += dx.Get(ix) * dy.Get(iy)
+	ix := dx.Iter(n)
+	iy := dy.Iter(n)
+
+	for i := 0; i < n; i++ {
+		ddotReturn += dx.Get(ix[i]) * dy.Get(iy[i])
 	}
 
 	return
@@ -80,11 +65,11 @@ func Ddot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) (ddotReturn
 
 // Dnrm2 returns the euclidean norm of a vector via the function
 // name, so that Dnrm2 := sqrt( x'*x )
-func Dnrm2(n int, x *mat.Vector, incx int) (dnrm2Return float64) {
+func Dnrm2(n int, x *mat.Vector) (dnrm2Return float64) {
 	var absxi, scale, ssq float64
 	var ix int
 
-	if n < 1 || incx < 1 {
+	if n < 1 || x.Inc < 1 {
 		return
 	} else if n == 1 {
 		return math.Abs(x.Get(0))
@@ -94,7 +79,7 @@ func Dnrm2(n int, x *mat.Vector, incx int) (dnrm2Return float64) {
 		//        auxiliary routine:
 		//        CALL DLASSQ( N, X, INCX, SCALE, SSQ )
 		//
-		for ix = 0; ix <= (n-1)*incx; ix += incx {
+		for _, ix = range x.Iter(n) {
 			if x.Get(ix) != 0 {
 				absxi = math.Abs(x.Get(ix))
 				if scale < absxi {
@@ -112,7 +97,7 @@ func Dnrm2(n int, x *mat.Vector, incx int) (dnrm2Return float64) {
 }
 
 // Drot applies a plane rotation
-func Drot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, c, s float64) {
+func Drot(n int, dx *mat.Vector, dy *mat.Vector, c, s float64) {
 	if n <= 0 {
 		return
 	}
@@ -120,7 +105,7 @@ func Drot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, c, s float6
 	blocksize := 512
 
 	if n < minParBlocks*blocksize {
-		drot(n, dx, incx, dy, incy, c, s)
+		drot(n, dx, dy, c, s)
 	} else {
 		nblocks := blocks(n, blocksize)
 		var wg sync.WaitGroup
@@ -134,25 +119,21 @@ func Drot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, c, s float6
 			wg.Add(1)
 			go func(i, size int) {
 				defer wg.Done()
-				drot(size, dx.Off(i*blocksize*incx), incx, dy.Off(i*blocksize*incy), incy, c, s)
+				drot(size, dx.Off(i*blocksize*dx.Inc), dy.Off(i*blocksize*dy.Inc), c, s)
 			}(i, size)
 		}
 	}
 }
-func drot(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, c, s float64) {
+func drot(n int, dx *mat.Vector, dy *mat.Vector, c, s float64) {
 	var dtemp float64
-	var i, ix, iy int
 
-	if incx < 0 {
-		ix = (-n + 1) * incx
-	}
-	if incy < 0 {
-		iy = (-n + 1) * incy
-	}
-	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
-		dtemp = c*dx.Get(ix) + s*dy.Get(iy)
-		dy.Set(iy, c*dy.Get(iy)-s*dx.Get(ix))
-		dx.Set(ix, dtemp)
+	ix := dx.Iter(n)
+	iy := dy.Iter(n)
+
+	for i := 0; i < n; i++ {
+		dtemp = c*dx.Get(ix[i]) + s*dy.Get(iy[i])
+		dy.Set(iy[i], c*dy.Get(iy[i])-s*dx.Get(ix[i]))
+		dx.Set(ix[i], dtemp)
 	}
 }
 
@@ -201,23 +182,22 @@ func Drotg(da, db, c, s float64) (daReturn, dbReturn, cReturn, sReturn float64) 
 //    H=(          )    (          )    (          )    (          )
 //      (DH21  DH22),   (DH21  1.D0),   (-1.D0 DH22),   (0.D0  1.D0).
 //    SEE DROTMG FOR A DESCRIPTION OF DATA STORAGE IN DPARAM.
-func Drotm(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, dparam *mat.DrotMatrix) {
+func Drotm(n int, dx *mat.Vector, dy *mat.Vector, dparam *mat.DrotMatrix) {
 	var dh11, dh12, dh21, dh22, w, z float64
-	var dflag, i, kx, ky, nsteps int
+	var dflag, i int
 
 	dflag = dparam.Flag
 	if n <= 0 || (dflag+2 == 0) {
 		return
 	}
-	if incx == incy && incx > 0 {
+	if dx.Inc == dy.Inc && dx.Inc > 0 {
 
-		nsteps = n * incx
 		if dflag < 0 {
 			dh11 = dparam.H11
 			dh12 = dparam.H12
 			dh21 = dparam.H21
 			dh22 = dparam.H22
-			for i = 0; i < nsteps; i += incx {
+			for _, i = range dx.Iter(n) {
 				w = dx.Get(i)
 				z = dy.Get(i)
 				dx.Set(i, w*dh11+z*dh12)
@@ -226,7 +206,7 @@ func Drotm(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, dparam *ma
 		} else if dflag == 0 {
 			dh12 = dparam.H12
 			dh21 = dparam.H21
-			for i = 0; i < nsteps; i += incx {
+			for _, i = range dx.Iter(n) {
 				w = dx.Get(i)
 				z = dy.Get(i)
 				dx.Set(i, w+z*dh12)
@@ -235,7 +215,7 @@ func Drotm(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, dparam *ma
 		} else {
 			dh11 = dparam.H11
 			dh22 = dparam.H22
-			for i = 0; i < nsteps; i += incx {
+			for _, i = range dx.Iter(n) {
 				w = dx.Get(i)
 				z = dy.Get(i)
 				dx.Set(i, w*dh11+z)
@@ -243,41 +223,37 @@ func Drotm(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int, dparam *ma
 			}
 		}
 	} else {
-		if incx < 0 {
-			kx = (1 - n) * incx
-		}
-		if incy < 0 {
-			ky = (1 - n) * incy
-		}
+		kx := dx.Iter(n)
+		ky := dy.Iter(n)
 
 		if dflag < 0 {
 			dh11 = dparam.H11
 			dh12 = dparam.H12
 			dh21 = dparam.H21
 			dh22 = dparam.H22
-			for i = 0; i < n; i, kx, ky = i+1, kx+incx, ky+incy {
-				w = dx.Get(kx)
-				z = dy.Get(ky)
-				dx.Set(kx, w*dh11+z*dh12)
-				dy.Set(ky, w*dh21+z*dh22)
+			for i = 0; i < n; i++ {
+				w = dx.Get(kx[i])
+				z = dy.Get(ky[i])
+				dx.Set(kx[i], w*dh11+z*dh12)
+				dy.Set(ky[i], w*dh21+z*dh22)
 			}
 		} else if dflag == 0 {
 			dh12 = dparam.H12
 			dh21 = dparam.H21
-			for i = 0; i < n; i, kx, ky = i+1, kx+incx, ky+incy {
-				w = dx.Get(kx)
-				z = dy.Get(ky)
-				dx.Set(kx, w+z*dh12)
-				dy.Set(ky, w*dh21+z)
+			for i = 0; i < n; i++ {
+				w = dx.Get(kx[i])
+				z = dy.Get(ky[i])
+				dx.Set(kx[i], w+z*dh12)
+				dy.Set(ky[i], w*dh21+z)
 			}
 		} else {
 			dh11 = dparam.H11
 			dh22 = dparam.H22
-			for i = 0; i < n; i, kx, ky = i+1, kx+incx, ky+incy {
-				w = dx.Get(kx)
-				z = dy.Get(ky)
-				dx.Set(kx, w*dh11+z)
-				dy.Set(ky, -w+dh22*z)
+			for i = 0; i < n; i++ {
+				w = dx.Get(kx[i])
+				z = dy.Get(ky[i])
+				dx.Set(kx[i], w*dh11+z)
+				dy.Set(ky[i], -w+dh22*z)
 			}
 		}
 	}
@@ -424,15 +400,15 @@ func Drotmg(dd1, dd2, dx1, dy1 float64) (dd1Return, dd2Return, dx1Return float64
 }
 
 // Dscal scales a vector by a constant
-func Dscal(n int, da float64, dx *mat.Vector, incx int) {
-	if n <= 0 || incx <= 0 {
+func Dscal(n int, da float64, dx *mat.Vector) {
+	if n <= 0 || dx.Inc <= 0 {
 		return
 	}
 
 	blocksize := 512
 
 	if n < minParBlocks*blocksize {
-		dscal(n, da, dx, incx)
+		dscal(n, da, dx)
 	} else {
 		nblocks := blocks(n, blocksize)
 		var wg sync.WaitGroup
@@ -446,20 +422,19 @@ func Dscal(n int, da float64, dx *mat.Vector, incx int) {
 			wg.Add(1)
 			go func(i, size int) {
 				defer wg.Done()
-				dscal(size, da, dx.Off(i*blocksize*incx), incx)
+				dscal(size, da, dx.Off(i*blocksize*dx.Inc))
 			}(i, size)
 		}
 	}
 }
-func dscal(n int, da float64, dx *mat.Vector, incx int) {
-
-	for i := 0; i < n*incx; i += incx {
+func dscal(n int, da float64, dx *mat.Vector) {
+	for _, i := range dx.Iter(n) {
 		dx.Set(i, da*dx.Get(i))
 	}
 }
 
 // Dswap interchanges two vectors
-func Dswap(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
+func Dswap(n int, dx *mat.Vector, dy *mat.Vector) {
 	if n <= 0 {
 		return
 	}
@@ -467,7 +442,7 @@ func Dswap(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
 	blocksize := 512
 
 	if n < minParBlocks*blocksize {
-		dswap(n, dx, incx, dy, incy)
+		dswap(n, dx, dy)
 	} else {
 		nblocks := blocks(n, blocksize)
 		var wg sync.WaitGroup
@@ -481,34 +456,29 @@ func Dswap(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
 			wg.Add(1)
 			go func(i, size int) {
 				defer wg.Done()
-				dswap(size, dx.Off(i*blocksize*incx), incx, dy.Off(i*blocksize*incy), incy)
+				dswap(size, dx.Off(i*blocksize*dx.Inc), dy.Off(i*blocksize*dy.Inc))
 			}(i, size)
 		}
 	}
 }
-func dswap(n int, dx *mat.Vector, incx int, dy *mat.Vector, incy int) {
+func dswap(n int, dx *mat.Vector, dy *mat.Vector) {
 	var dtemp float64
-	var i, ix, iy int
 
-	if incx < 0 {
-		ix = (-n + 1) * incx
-	}
-	if incy < 0 {
-		iy = (-n + 1) * incy
-	}
-	for i = 0; i < n; i, ix, iy = i+1, ix+incx, iy+incy {
-		dtemp = dx.Get(ix)
-		dx.Set(ix, dy.Get(iy))
-		dy.Set(iy, dtemp)
+	ix := dx.Iter(n)
+	iy := dy.Iter(n)
+
+	for i := 0; i < n; i++ {
+		dtemp = dx.Get(ix[i])
+		dx.Set(ix[i], dy.Get(iy[i]))
+		dy.Set(iy[i], dtemp)
 	}
 }
 
 // Idamax finds the index of the first element having maximum absolute value
-func Idamax(n int, dx *mat.Vector, incx int) (idamaxReturn int) {
+func Idamax(n int, dx *mat.Vector) (idamaxReturn int) {
 	var dmax float64
-	var i, ix int
 
-	if n < 1 || incx <= 0 {
+	if n < 1 || dx.Inc <= 0 {
 		return 0
 	}
 	if n == 1 {
@@ -517,7 +487,7 @@ func Idamax(n int, dx *mat.Vector, incx int) (idamaxReturn int) {
 
 	idamaxReturn = 1
 	dmax = math.Abs(dx.Get(0))
-	for i, ix = 1, incx; i < n; i, ix = i+1, ix+incx {
+	for i, ix := range dx.Iter(n) {
 		if math.Abs(dx.Get(ix)) > dmax {
 			idamaxReturn = i + 1
 			dmax = math.Abs(dx.Get(ix))

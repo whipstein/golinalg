@@ -14,10 +14,10 @@ import (
 //      A = U * SIGMA * transpose(V)
 //
 //  where SIGMA is an M-by-N matrix which is zero except for its
-//  minint(m,n) diagonal elements, U is an M-by-M unitary matrix, and
+//  min(m,n) diagonal elements, U is an M-by-M unitary matrix, and
 //  V is an N-by-N unitary matrix.  The diagonal elements of SIGMA
 //  are the singular values of A; they are real and non-negative, and
-//  are returned in descending order.  The first minint(m,n) columns of
+//  are returned in descending order.  The first min(m,n) columns of
 //  U and V are the left and right singular vectors of A.
 //
 //  ZGESVDX uses an eigenvalue problem for obtaining the SVD, which
@@ -42,7 +42,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 	(*info) = 0
 	// abstol = 2 * Dlamch(SafeMinimum)
 	lquery = ((*lwork) == -1)
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 	wantu = jobu == 'V'
 	wantvt = jobvt == 'V'
 	if wantu || wantvt {
@@ -75,9 +75,9 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 				(*info) = -9
 			}
 		} else if inds {
-			if (*il) < 1 || (*il) > maxint(1, minmn) {
+			if (*il) < 1 || (*il) > max(1, minmn) {
 				(*info) = -10
-			} else if (*iu) < minint(minmn, *il) || (*iu) > minmn {
+			} else if (*iu) < min(minmn, *il) || (*iu) > minmn {
 				(*info) = -11
 			}
 		}
@@ -112,16 +112,16 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 					//                 Path 1 (M much larger than N)
 					minwrk = (*n) * ((*n) + 5)
 					maxwrk = (*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = maxint(maxwrk, (*n)*(*n)+2*(*n)+2*(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+					maxwrk = max(maxwrk, (*n)*(*n)+2*(*n)+2*(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
 					if wantu || wantvt {
-						maxwrk = maxint(maxwrk, (*n)*(*n)+2*(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), n, n, n, toPtr(-1)))
+						maxwrk = max(maxwrk, (*n)*(*n)+2*(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), n, n, n, toPtr(-1)))
 					}
 				} else {
 					//                 Path 2 (M at least N, but not much larger)
 					minwrk = 3*(*n) + (*m)
 					maxwrk = 2*(*n) + ((*m)+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 					if wantu || wantvt {
-						maxwrk = maxint(maxwrk, 2*(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), n, n, n, toPtr(-1)))
+						maxwrk = max(maxwrk, 2*(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), n, n, n, toPtr(-1)))
 					}
 				}
 			} else {
@@ -130,21 +130,21 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 					//                 Path 1t (N much larger than M)
 					minwrk = (*m) * ((*m) + 5)
 					maxwrk = (*m) + (*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = maxint(maxwrk, (*m)*(*m)+2*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+					maxwrk = max(maxwrk, (*m)*(*m)+2*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
 					if wantu || wantvt {
-						maxwrk = maxint(maxwrk, (*m)*(*m)+2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), m, m, m, toPtr(-1)))
+						maxwrk = max(maxwrk, (*m)*(*m)+2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), m, m, m, toPtr(-1)))
 					}
 				} else {
 					//                 Path 2t (N greater than M, but not much larger)
 					minwrk = 3*(*m) + (*n)
 					maxwrk = 2*(*m) + ((*m)+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 					if wantu || wantvt {
-						maxwrk = maxint(maxwrk, 2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), m, m, m, toPtr(-1)))
+						maxwrk = max(maxwrk, 2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), m, m, m, toPtr(-1)))
 					}
 				}
 			}
 		}
-		maxwrk = maxint(maxwrk, minwrk)
+		maxwrk = max(maxwrk, minwrk)
 		work.SetRe(0, float64(maxwrk))
 
 		if (*lwork) < minwrk && !lquery {
@@ -168,7 +168,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 	if alls {
 		rngtgk = 'I'
 		iltgk = 1
-		iutgk = minint(*m, *n)
+		iutgk = min(*m, *n)
 	} else if inds {
 		rngtgk = 'I'
 		iltgk = (*il)
@@ -184,7 +184,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 	smlnum = math.Sqrt(Dlamch(SafeMinimum)) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside _range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside _range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', m, n, a, lda, dum)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
@@ -221,7 +221,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 			ie = id + (*n)
 			itgkz = ie + (*n)
 			Zlacpy('U', n, n, a, lda, work.CMatrixOff(iqrf-1, *n, opts), n)
-			Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iqrf+1-1, *n, opts), n)
+			Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iqrf, *n, opts), n)
 			Zgebrd(n, n, work.CMatrixOff(iqrf-1, *n, opts), n, rwork.Off(id-1), rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
 			itempr = itgkz + (*n)*((*n)*2+1)
 
@@ -239,7 +239,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 					}
 					k = k + (*n)
 				}
-				Zlaset('A', toPtr((*m)-(*n)), ns, &czero, &czero, u.Off((*n)+1-1, 0), ldu)
+				Zlaset('A', toPtr((*m)-(*n)), ns, &czero, &czero, u.Off((*n), 0), ldu)
 
 				//              Call ZUNMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
@@ -296,7 +296,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 					}
 					k = k + (*n)
 				}
-				Zlaset('A', toPtr((*m)-(*n)), ns, &czero, &czero, u.Off((*n)+1-1, 0), ldu)
+				Zlaset('A', toPtr((*m)-(*n)), ns, &czero, &czero, u.Off((*n), 0), ldu)
 
 				//              Call ZUNMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
@@ -377,7 +377,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 					}
 					k = k + (*m)
 				}
-				Zlaset('A', ns, toPtr((*n)-(*m)), &czero, &czero, vt.Off(0, (*m)+1-1), ldvt)
+				Zlaset('A', ns, toPtr((*n)-(*m)), &czero, &czero, vt.Off(0, (*m)), ldvt)
 
 				//              Call ZUNMBR to compute (VB**T)*(PB**T)
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
@@ -434,7 +434,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.CMatrix, lda *int, vl, 
 					}
 					k = k + (*m)
 				}
-				Zlaset('A', ns, toPtr((*n)-(*m)), &czero, &czero, vt.Off(0, (*m)+1-1), ldvt)
+				Zlaset('A', ns, toPtr((*n)-(*m)), &czero, &czero, vt.Off(0, (*m)), ldvt)
 
 				//              Call ZUNMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)

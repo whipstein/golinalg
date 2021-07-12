@@ -37,9 +37,9 @@ func Dsygs2(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -57,12 +57,12 @@ func Dsygs2(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 				akk = akk / math.Pow(bkk, 2)
 				a.Set(k-1, k-1, akk)
 				if k < (*n) {
-					goblas.Dscal((*n)-k, one/bkk, a.Vector(k-1, k+1-1), *lda)
+					goblas.Dscal((*n)-k, one/bkk, a.Vector(k-1, k, *lda))
 					ct = -half * akk
-					goblas.Daxpy((*n)-k, ct, b.Vector(k-1, k+1-1), *ldb, a.Vector(k-1, k+1-1), *lda)
-					err = goblas.Dsyr2(mat.UploByte(uplo), (*n)-k, -one, a.Vector(k-1, k+1-1), *lda, b.Vector(k-1, k+1-1), *ldb, a.Off(k+1-1, k+1-1), *lda)
-					goblas.Daxpy((*n)-k, ct, b.Vector(k-1, k+1-1), *ldb, a.Vector(k-1, k+1-1), *lda)
-					err = goblas.Dtrsv(mat.UploByte(uplo), mat.Trans, mat.NonUnit, (*n)-k, b.Off(k+1-1, k+1-1), *ldb, a.Vector(k-1, k+1-1), *lda)
+					goblas.Daxpy((*n)-k, ct, b.Vector(k-1, k, *ldb), a.Vector(k-1, k, *lda))
+					err = goblas.Dsyr2(mat.UploByte(uplo), (*n)-k, -one, a.Vector(k-1, k, *lda), b.Vector(k-1, k, *ldb), a.Off(k, k))
+					goblas.Daxpy((*n)-k, ct, b.Vector(k-1, k, *ldb), a.Vector(k-1, k, *lda))
+					err = goblas.Dtrsv(mat.UploByte(uplo), mat.Trans, mat.NonUnit, (*n)-k, b.Off(k, k), a.Vector(k-1, k, *lda))
 				}
 			}
 		} else {
@@ -74,12 +74,12 @@ func Dsygs2(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 				akk = akk / math.Pow(bkk, 2)
 				a.Set(k-1, k-1, akk)
 				if k < (*n) {
-					goblas.Dscal((*n)-k, one/bkk, a.Vector(k+1-1, k-1), 1)
+					goblas.Dscal((*n)-k, one/bkk, a.Vector(k, k-1, 1))
 					ct = -half * akk
-					goblas.Daxpy((*n)-k, ct, b.Vector(k+1-1, k-1), 1, a.Vector(k+1-1, k-1), 1)
-					err = goblas.Dsyr2(mat.UploByte(uplo), (*n)-k, -one, a.Vector(k+1-1, k-1), 1, b.Vector(k+1-1, k-1), 1, a.Off(k+1-1, k+1-1), *lda)
-					goblas.Daxpy((*n)-k, ct, b.Vector(k+1-1, k-1), 1, a.Vector(k+1-1, k-1), 1)
-					err = goblas.Dtrsv(mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, (*n)-k, b.Off(k+1-1, k+1-1), *ldb, a.Vector(k+1-1, k-1), 1)
+					goblas.Daxpy((*n)-k, ct, b.Vector(k, k-1, 1), a.Vector(k, k-1, 1))
+					err = goblas.Dsyr2(mat.UploByte(uplo), (*n)-k, -one, a.Vector(k, k-1, 1), b.Vector(k, k-1, 1), a.Off(k, k))
+					goblas.Daxpy((*n)-k, ct, b.Vector(k, k-1, 1), a.Vector(k, k-1, 1))
+					err = goblas.Dtrsv(mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, (*n)-k, b.Off(k, k), a.Vector(k, k-1, 1))
 				}
 			}
 		}
@@ -90,12 +90,12 @@ func Dsygs2(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = a.Get(k-1, k-1)
 				bkk = b.Get(k-1, k-1)
-				err = goblas.Dtrmv(mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, k-1, b, *ldb, a.Vector(0, k-1), 1)
+				err = goblas.Dtrmv(mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, k-1, b, a.Vector(0, k-1, 1))
 				ct = half * akk
-				goblas.Daxpy(k-1, ct, b.Vector(0, k-1), 1, a.Vector(0, k-1), 1)
-				err = goblas.Dsyr2(mat.UploByte(uplo), k-1, one, a.Vector(0, k-1), 1, b.Vector(0, k-1), 1, a, *lda)
-				goblas.Daxpy(k-1, ct, b.Vector(0, k-1), 1, a.Vector(0, k-1), 1)
-				goblas.Dscal(k-1, bkk, a.Vector(0, k-1), 1)
+				goblas.Daxpy(k-1, ct, b.Vector(0, k-1, 1), a.Vector(0, k-1, 1))
+				err = goblas.Dsyr2(mat.UploByte(uplo), k-1, one, a.Vector(0, k-1, 1), b.Vector(0, k-1, 1), a)
+				goblas.Daxpy(k-1, ct, b.Vector(0, k-1, 1), a.Vector(0, k-1, 1))
+				goblas.Dscal(k-1, bkk, a.Vector(0, k-1, 1))
 				a.Set(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -104,12 +104,12 @@ func Dsygs2(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matri
 				//              Update the lower triangle of A(1:k,1:k)
 				akk = a.Get(k-1, k-1)
 				bkk = b.Get(k-1, k-1)
-				err = goblas.Dtrmv(mat.UploByte(uplo), mat.Trans, mat.NonUnit, k-1, b, *ldb, a.Vector(k-1, 0), *lda)
+				err = goblas.Dtrmv(mat.UploByte(uplo), mat.Trans, mat.NonUnit, k-1, b, a.Vector(k-1, 0, *lda))
 				ct = half * akk
-				goblas.Daxpy(k-1, ct, b.Vector(k-1, 0), *ldb, a.Vector(k-1, 0), *lda)
-				err = goblas.Dsyr2(mat.UploByte(uplo), k-1, one, a.Vector(k-1, 0), *lda, b.Vector(k-1, 0), *ldb, a, *lda)
-				goblas.Daxpy(k-1, ct, b.Vector(k-1, 0), *ldb, a.Vector(k-1, 0), *lda)
-				goblas.Dscal(k-1, bkk, a.Vector(k-1, 0), *lda)
+				goblas.Daxpy(k-1, ct, b.Vector(k-1, 0, *ldb), a.Vector(k-1, 0, *lda))
+				err = goblas.Dsyr2(mat.UploByte(uplo), k-1, one, a.Vector(k-1, 0, *lda), b.Vector(k-1, 0, *ldb), a)
+				goblas.Daxpy(k-1, ct, b.Vector(k-1, 0, *ldb), a.Vector(k-1, 0, *lda))
+				goblas.Dscal(k-1, bkk, a.Vector(k-1, 0, *lda))
 				a.Set(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		}

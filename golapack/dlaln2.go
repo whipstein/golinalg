@@ -55,7 +55,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 	//     Compute BIGNUM
 	smlnum = two * Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	smini = maxf64(*smin, smlnum)
+	smini = math.Max(*smin, smlnum)
 
 	//     Don't check for input errors
 	(*info) = 0
@@ -151,7 +151,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 
 			//           If norm(C) < SMINI, use SMINI*identity.
 			if cmax < smini {
-				bnorm = maxf64(math.Abs(b.Get(0, 0)), math.Abs(b.Get(1, 0)))
+				bnorm = math.Max(math.Abs(b.Get(0, 0)), math.Abs(b.Get(1, 0)))
 				if smini < one && bnorm > one {
 					if bnorm > bignum*smini {
 						(*scale) = one / bnorm
@@ -187,7 +187,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				br2 = b.Get(1, 0)
 			}
 			br2 = br2 - lr21*br1
-			bbnd = maxf64(math.Abs(br1*(ur22*ur11r)), math.Abs(br2))
+			bbnd = math.Max(math.Abs(br1*(ur22*ur11r)), math.Abs(br2))
 			if bbnd > one && math.Abs(ur22) < one {
 				if bbnd >= bignum*math.Abs(ur22) {
 					(*scale) = one / bbnd
@@ -203,7 +203,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				x.Set(0, 0, xr1)
 				x.Set(1, 0, xr2)
 			}
-			(*xnorm) = maxf64(math.Abs(xr1), math.Abs(xr2))
+			(*xnorm) = math.Max(math.Abs(xr1), math.Abs(xr2))
 
 			//           Further scaling if  norm(A) norm(X) > overflow
 			if (*xnorm) > one && cmax > one {
@@ -235,7 +235,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 
 			//           If norm(C) < SMINI, use SMINI*identity.
 			if cmax < smini {
-				bnorm = maxf64(math.Abs(b.Get(0, 0))+math.Abs(b.Get(0, 1)), math.Abs(b.Get(1, 0))+math.Abs(b.Get(1, 1)))
+				bnorm = math.Max(math.Abs(b.Get(0, 0))+math.Abs(b.Get(0, 1)), math.Abs(b.Get(1, 0))+math.Abs(b.Get(1, 1)))
 				if smini < one && bnorm > one {
 					if bnorm > bignum*smini {
 						(*scale) = one / bnorm
@@ -309,7 +309,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 			}
 			br2 = br2 - lr21*br1 + li21*bi1
 			bi2 = bi2 - li21*br1 - lr21*bi1
-			bbnd = maxf64((math.Abs(br1)+math.Abs(bi1))*(u22abs*(math.Abs(ur11r)+math.Abs(ui11r))), math.Abs(br2)+math.Abs(bi2))
+			bbnd = math.Max((math.Abs(br1)+math.Abs(bi1))*(u22abs*(math.Abs(ur11r)+math.Abs(ui11r))), math.Abs(br2)+math.Abs(bi2))
 			if bbnd > one && u22abs < one {
 				if bbnd >= bignum*u22abs {
 					(*scale) = one / bbnd
@@ -334,7 +334,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				x.Set(0, 1, xi1)
 				x.Set(1, 1, xi2)
 			}
-			(*xnorm) = maxf64(math.Abs(xr1)+math.Abs(xi1), math.Abs(xr2)+math.Abs(xi2))
+			(*xnorm) = math.Max(math.Abs(xr1)+math.Abs(xi1), math.Abs(xr2)+math.Abs(xi2))
 
 			//           Further scaling if  norm(A) norm(X) > overflow
 			if (*xnorm) > one && cmax > one {

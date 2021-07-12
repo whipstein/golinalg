@@ -31,7 +31,7 @@ func Dptt01(n *int, d, e, df, ef, work *mat.Vector, resid *float64) {
 	for i = 1; i <= (*n)-1; i++ {
 		de = df.Get(i-1) * ef.Get(i-1)
 		work.Set((*n)+i-1, de-e.Get(i-1))
-		work.Set(1+i-1, de*ef.Get(i-1)+df.Get(i+1-1)-d.Get(i+1-1))
+		work.Set(1+i-1, de*ef.Get(i-1)+df.Get(i)-d.Get(i))
 	}
 
 	//     Compute the 1-norms of the tridiagonal matrices A and WORK.
@@ -39,11 +39,11 @@ func Dptt01(n *int, d, e, df, ef, work *mat.Vector, resid *float64) {
 		anorm = d.Get(0)
 		(*resid) = math.Abs(work.Get(0))
 	} else {
-		anorm = maxf64(d.Get(0)+math.Abs(e.Get(0)), d.Get((*n)-1)+math.Abs(e.Get((*n)-1-1)))
-		(*resid) = maxf64(math.Abs(work.Get(0))+math.Abs(work.Get((*n)+1-1)), math.Abs(work.Get((*n)-1))+math.Abs(work.Get(2*(*n)-1-1)))
+		anorm = math.Max(d.Get(0)+math.Abs(e.Get(0)), d.Get((*n)-1)+math.Abs(e.Get((*n)-1-1)))
+		(*resid) = math.Max(math.Abs(work.Get(0))+math.Abs(work.Get((*n))), math.Abs(work.Get((*n)-1))+math.Abs(work.Get(2*(*n)-1-1)))
 		for i = 2; i <= (*n)-1; i++ {
-			anorm = maxf64(anorm, d.Get(i-1)+math.Abs(e.Get(i-1))+math.Abs(e.Get(i-1-1)))
-			(*resid) = maxf64(*resid, math.Abs(work.Get(i-1))+math.Abs(work.Get((*n)+i-1-1))+math.Abs(work.Get((*n)+i-1)))
+			anorm = math.Max(anorm, d.Get(i-1)+math.Abs(e.Get(i-1))+math.Abs(e.Get(i-1-1)))
+			(*resid) = math.Max(*resid, math.Abs(work.Get(i-1))+math.Abs(work.Get((*n)+i-1-1))+math.Abs(work.Get((*n)+i-1)))
 		}
 	}
 

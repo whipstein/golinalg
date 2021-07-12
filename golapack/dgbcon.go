@@ -70,36 +70,36 @@ func Dgbcon(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, a
 	kase = 0
 label10:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(L).
 			if lnoti {
 				for j = 1; j <= (*n)-1; j++ {
-					lm = minint(*kl, (*n)-j)
+					lm = min(*kl, (*n)-j)
 					jp = (*ipiv)[j-1]
 					t = work.Get(jp - 1)
 					if jp != j {
 						work.Set(jp-1, work.Get(j-1))
 						work.Set(j-1, t)
 					}
-					goblas.Daxpy(lm, -t, ab.Vector(kd+1-1, j-1), 1, work.Off(j+1-1), 1)
+					goblas.Daxpy(lm, -t, ab.Vector(kd, j-1, 1), work.Off(j, 1))
 				}
 			}
 
 			//           Multiply by inv(U).
 			klku := (*kl) + (*ku)
-			Dlatbs('U', 'N', 'N', normin, n, &klku, ab, ldab, work, &scale, work.Off(2*(*n)+1-1), info)
+			Dlatbs('U', 'N', 'N', normin, n, &klku, ab, ldab, work, &scale, work.Off(2*(*n)), info)
 		} else {
 			//           Multiply by inv(U**T).
 			klku := (*kl) + (*ku)
-			Dlatbs('U', 'T', 'N', normin, n, &klku, ab, ldab, work, &scale, work.Off(2*(*n)+1-1), info)
+			Dlatbs('U', 'T', 'N', normin, n, &klku, ab, ldab, work, &scale, work.Off(2*(*n)), info)
 
 			//           Multiply by inv(L**T).
 			if lnoti {
 				for j = (*n) - 1; j >= 1; j-- {
-					lm = minint(*kl, (*n)-j)
-					work.Set(j-1, work.Get(j-1)-goblas.Ddot(lm, ab.Vector(kd+1-1, j-1), 1, work.Off(j+1-1), 1))
+					lm = min(*kl, (*n)-j)
+					work.Set(j-1, work.Get(j-1)-goblas.Ddot(lm, ab.Vector(kd, j-1, 1), work.Off(j, 1)))
 					jp = (*ipiv)[j-1]
 					if jp != j {
 						t = work.Get(jp - 1)
@@ -113,7 +113,7 @@ label10:
 		//        Divide X by 1/SCALE if doing so will not cause overflow.
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(*n, work, 1)
+			ix = goblas.Idamax(*n, work)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				goto label40
 			}

@@ -160,8 +160,8 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			work.Set(j-1, plus1)
 			work.Set((*n)+j-1, star1)
 			if j+1 <= (*n) {
-				work.Set(j+1-1, plus2)
-				work.Set((*n)+j+1-1, zero)
+				work.Set(j, plus2)
+				work.Set((*n)+j, zero)
 				plus1 = star1 / plus2
 				rexp = matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)
 				star1 = star1 * math.Pow(sfac, rexp)
@@ -183,9 +183,9 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 
 		if upper {
 			if (*n) > 3 {
-				goblas.Dcopy((*n)-3, work, 1, a.Vector(1, 2), (*lda)+1)
+				goblas.Dcopy((*n)-3, work.Off(0, 1), a.Vector(1, 2, (*lda)+1))
 				if (*n) > 4 {
-					goblas.Dcopy((*n)-4, work.Off((*n)+1-1), 1, a.Vector(1, 3), (*lda)+1)
+					goblas.Dcopy((*n)-4, work.Off((*n), 1), a.Vector(1, 3, (*lda)+1))
 				}
 			}
 			for j = 2; j <= (*n)-1; j++ {
@@ -195,9 +195,9 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			a.Set(0, (*n)-1, z)
 		} else {
 			if (*n) > 3 {
-				goblas.Dcopy((*n)-3, work, 1, a.Vector(2, 1), (*lda)+1)
+				goblas.Dcopy((*n)-3, work.Off(0, 1), a.Vector(2, 1, (*lda)+1))
 				if (*n) > 4 {
-					goblas.Dcopy((*n)-4, work.Off((*n)+1-1), 1, a.Vector(3, 1), (*lda)+1)
+					goblas.Dcopy((*n)-4, work.Off((*n), 1), a.Vector(3, 1, (*lda)+1))
 				}
 			}
 			for j = 2; j <= (*n)-1; j++ {
@@ -210,41 +210,41 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 		//        Fill in the zeros using Givens rotations.
 		if upper {
 			for j = 1; j <= (*n)-1; j++ {
-				ra = a.Get(j-1, j+1-1)
+				ra = a.Get(j-1, j)
 				rb = 2.0
 				ra, rb, c, s = goblas.Drotg(ra, rb, c, s)
 
 				//              Multiply by [ c  s; -s  c] on the left.
 				if (*n) > j+1 {
-					goblas.Drot((*n)-j-1, a.Vector(j-1, j+2-1), *lda, a.Vector(j+1-1, j+2-1), *lda, c, s)
+					goblas.Drot((*n)-j-1, a.Vector(j-1, j+2-1, *lda), a.Vector(j, j+2-1, *lda), c, s)
 				}
 
 				//              Multiply by [-c -s;  s -c] on the right.
 				if j > 1 {
-					goblas.Drot(j-1, a.Vector(0, j+1-1), 1, a.Vector(0, j-1), 1, -c, -s)
+					goblas.Drot(j-1, a.Vector(0, j, 1), a.Vector(0, j-1, 1), -c, -s)
 				}
 
 				//              Negate A(J,J+1).
-				a.Set(j-1, j+1-1, -a.Get(j-1, j+1-1))
+				a.Set(j-1, j, -a.Get(j-1, j))
 			}
 		} else {
 			for j = 1; j <= (*n)-1; j++ {
-				ra = a.Get(j+1-1, j-1)
+				ra = a.Get(j, j-1)
 				rb = 2.0
 				ra, rb, c, s = goblas.Drotg(ra, rb, c, s)
 
 				//              Multiply by [ c -s;  s  c] on the right.
 				if (*n) > j+1 {
-					goblas.Drot((*n)-j-1, a.Vector(j+2-1, j+1-1), 1, a.Vector(j+2-1, j-1), 1, c, -s)
+					goblas.Drot((*n)-j-1, a.Vector(j+2-1, j, 1), a.Vector(j+2-1, j-1, 1), c, -s)
 				}
 
 				//              Multiply by [-c  s; -s -c] on the left.
 				if j > 1 {
-					goblas.Drot(j-1, a.Vector(j-1, 0), *lda, a.Vector(j+1-1, 0), *lda, -c, s)
+					goblas.Drot(j-1, a.Vector(j-1, 0, *lda), a.Vector(j, 0, *lda), -c, s)
 				}
 
 				//              Negate A(J+1,J).
-				a.Set(j+1-1, j-1, -a.Get(j+1-1, j-1))
+				a.Set(j, j-1, -a.Get(j, j-1))
 			}
 		}
 
@@ -269,21 +269,21 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Idamax(*n, b, 1)
+		iy = goblas.Idamax(*n, b.Off(0, 1))
 		bnorm = math.Abs(b.Get(iy - 1))
-		bscal = bignum / maxf64(one, bnorm)
-		goblas.Dscal(*n, bscal, b, 1)
+		bscal = bignum / math.Max(one, bnorm)
+		goblas.Dscal(*n, bscal, b.Off(0, 1))
 
 	} else if (*imat) == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
 		//        cause immediate overflow when dividing by T(j,j).
 		//        In _type 12, the offdiagonal elements are small (CNORM(j) < 1).
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		tscal = one / maxf64(one, float64((*n)-1))
+		tscal = one / math.Max(one, float64((*n)-1))
 		if upper {
 			for j = 1; j <= (*n); j++ {
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &j, a.Vector(0, j-1))
-				goblas.Dscal(j-1, tscal, a.Vector(0, j-1), 1)
+				goblas.Dscal(j-1, tscal, a.Vector(0, j-1, 1))
 				a.Set(j-1, j-1, math.Copysign(one, a.Get(j-1, j-1)))
 			}
 			a.Set((*n)-1, (*n)-1, smlnum*a.Get((*n)-1, (*n)-1))
@@ -291,7 +291,7 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			for j = 1; j <= (*n); j++ {
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*n)-j+1), a.Vector(j-1, j-1))
 				if (*n) > j {
-					goblas.Dscal((*n)-j, tscal, a.Vector(j+1-1, j-1), 1)
+					goblas.Dscal((*n)-j, tscal, a.Vector(j, j-1, 1))
 				}
 				a.Set(j-1, j-1, math.Copysign(one, a.Get(j-1, j-1)))
 			}
@@ -366,7 +366,7 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			b.Set((*n)-1, zero)
 			for i = 1; i <= (*n)-1; i += 2 {
 				b.Set(i-1, zero)
-				b.Set(i+1-1, smlnum)
+				b.Set(i, smlnum)
 			}
 		}
 
@@ -374,7 +374,7 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 		//        Type 15:  Make the diagonal elements small to cause gradual
 		//        overflow when dividing by T(j,j).  To control the amount of
 		//        scaling needed, the matrix is bidiagonal.
-		texp = one / maxf64(one, float64((*n)-1))
+		texp = one / math.Max(one, float64((*n)-1))
 		tscal = math.Pow(smlnum, texp)
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
 		if upper {
@@ -394,7 +394,7 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 					a.Set(i-1, j-1, 0.)
 				}
 				if j < (*n) {
-					a.Set(j+1-1, j-1, -one)
+					a.Set(j, j-1, -one)
 				}
 				a.Set(j-1, j-1, tscal)
 			}
@@ -425,7 +425,7 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			}
 		}
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Dscal(*n, two, b, 1)
+		goblas.Dscal(*n, two, b.Off(0, 1))
 
 	} else if (*imat) == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -456,9 +456,9 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 				a.Set((*n)-1, j-1, -tscal/float64((*n)+1))
 				a.Set(j-1, j-1, one)
 				b.Set(j-1, texp*(one-ulp))
-				a.Set((*n)-1, j+1-1, -(tscal/float64((*n)+1))/float64((*n)+2))
-				a.Set(j+1-1, j+1-1, one)
-				b.Set(j+1-1, texp*float64((*n)*(*n)+(*n)-1))
+				a.Set((*n)-1, j, -(tscal/float64((*n)+1))/float64((*n)+2))
+				a.Set(j, j, one)
+				b.Set(j, texp*float64((*n)*(*n)+(*n)-1))
 				texp = texp * 2.
 			}
 			b.Set((*n)-1, (float64((*n)+1)/float64((*n)+2))*tscal)
@@ -476,7 +476,7 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 		} else {
 			for j = 1; j <= (*n); j++ {
 				if j < (*n) {
-					golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*n)-j), a.Vector(j+1-1, j-1))
+					golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*n)-j), a.Vector(j, j-1))
 				}
 				a.Set(j-1, j-1, zero)
 			}
@@ -484,18 +484,18 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Idamax(*n, b, 1)
+		iy = goblas.Idamax(*n, b.Off(0, 1))
 		bnorm = math.Abs(b.Get(iy - 1))
-		bscal = bignum / maxf64(one, bnorm)
-		goblas.Dscal(*n, bscal, b, 1)
+		bscal = bignum / math.Max(one, bnorm)
+		goblas.Dscal(*n, bscal, b.Off(0, 1))
 
 	} else if (*imat) == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
 		//        BIGNUM/(n-1) and BIGNUM so that at least one of the column
 		//        norms will exceed BIGNUM.
 		//        1/3/91:  DLATRS no longer can handle this case
-		tleft = bignum / maxf64(one, float64((*n)-1))
-		tscal = bignum * (float64((*n)-1) / maxf64(one, float64(*n)))
+		tleft = bignum / math.Max(one, float64((*n)-1))
+		tscal = bignum * (float64((*n)-1) / math.Max(one, float64(*n)))
 		if upper {
 			for j = 1; j <= (*n); j++ {
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &j, a.Vector(0, j-1))
@@ -512,18 +512,18 @@ func Dlattr(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n *int, a *ma
 			}
 		}
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Dscal(*n, two, b, 1)
+		goblas.Dscal(*n, two, b.Off(0, 1))
 	}
 
 	//     Flip the matrix if the transpose will be used.
 	if trans != 'N' {
 		if upper {
 			for j = 1; j <= (*n)/2; j++ {
-				goblas.Dswap((*n)-2*j+1, a.Vector(j-1, j-1), *lda, a.Vector(j+1-1, (*n)-j+1-1), -1)
+				goblas.Dswap((*n)-2*j+1, a.Vector(j-1, j-1, *lda), a.Vector(j, (*n)-j, -1))
 			}
 		} else {
 			for j = 1; j <= (*n)/2; j++ {
-				goblas.Dswap((*n)-2*j+1, a.Vector(j-1, j-1), 1, a.Vector((*n)-j+1-1, j+1-1), -(*lda))
+				goblas.Dswap((*n)-2*j+1, a.Vector(j-1, j-1, 1), a.Vector((*n)-j, j, -(*lda)))
 			}
 		}
 	}

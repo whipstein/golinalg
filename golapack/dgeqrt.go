@@ -19,9 +19,9 @@ func Dgeqrt(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, wor
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*nb) < 1 || ((*nb) > minint(*m, *n) && minint(*m, *n) > 0) {
+	} else if (*nb) < 1 || ((*nb) > min(*m, *n) && min(*m, *n) > 0) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	} else if (*ldt) < (*nb) {
 		(*info) = -7
@@ -32,14 +32,14 @@ func Dgeqrt(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, wor
 	}
 
 	//     Quick return if possible
-	k = minint(*m, *n)
+	k = min(*m, *n)
 	if k == 0 {
 		return
 	}
 
 	//     Blocked loop of length K
 	for i = 1; i <= k; i += (*nb) {
-		ib = minint(k-i+1, *nb)
+		ib = min(k-i+1, *nb)
 
 		//     Compute the QR factorization of the current block A(I:M,I:I+IB-1)
 		if useRecursiveQr {

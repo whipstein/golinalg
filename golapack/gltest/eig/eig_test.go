@@ -237,7 +237,7 @@ func TestDeig(t *testing.T) {
 				Xlaenv(1, nbval[i-1])
 				Xlaenv(2, nbmin[i-1])
 				Xlaenv(3, nxval[i-1])
-				Xlaenv(12, maxint(11, inmin[i-1]))
+				Xlaenv(12, max(11, inmin[i-1]))
 				Xlaenv(13, inwin[i-1])
 				Xlaenv(14, inibl[i-1])
 				Xlaenv(15, ishfts[i-1])
@@ -248,7 +248,7 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], maxint(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
+				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
 				Dchkhs(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], &nmax, a[5], a[6], d[0], d[1], d[2], d[3], d[4], d[5], a[7], a[8], a[9], a[10], a[11], d[6], work, &lwork, &iwork, &logwrk, result, &info, t)
 				if info != 0 {
 					t.Fail()
@@ -279,7 +279,7 @@ func TestDeig(t *testing.T) {
 			ntypes = 21
 			Alareq(&ntypes, &dotype)
 			dotype[8] = false
-			ntypes = minint(maxtyp, ntypes)
+			ntypes = min(maxtyp, ntypes)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			Xlaenv(1, 1)
 			Xlaenv(9, 25)
@@ -460,7 +460,7 @@ func TestDeig(t *testing.T) {
 			Xlaenv(1, nbval[0])
 			Xlaenv(2, nbmin[0])
 			Xlaenv(3, nxval[0])
-			Xlaenv(12, maxint(11, inmin[0]))
+			Xlaenv(12, max(11, inmin[0]))
 			Xlaenv(13, inwin[0])
 			Xlaenv(14, inibl[0])
 			Xlaenv(15, ishfts[0])
@@ -506,7 +506,7 @@ func TestDeig(t *testing.T) {
 			Xlaenv(1, nbval[0])
 			Xlaenv(2, nbmin[0])
 			Xlaenv(3, nxval[0])
-			Xlaenv(12, maxint(11, inmin[0]))
+			Xlaenv(12, max(11, inmin[0]))
 			Xlaenv(13, inwin[0])
 			Xlaenv(14, inibl[0])
 			Xlaenv(15, ishfts[0])
@@ -551,7 +551,7 @@ func TestDeig(t *testing.T) {
 			Xlaenv(1, nbval[0])
 			Xlaenv(2, nbmin[0])
 			Xlaenv(3, nxval[0])
-			Xlaenv(12, maxint(11, inmin[0]))
+			Xlaenv(12, max(11, inmin[0]))
 			Xlaenv(13, inwin[0])
 			Xlaenv(14, inibl[0])
 			Xlaenv(15, ishfts[0])
@@ -596,7 +596,7 @@ func TestDeig(t *testing.T) {
 			Xlaenv(1, nbval[0])
 			Xlaenv(2, nbmin[0])
 			Xlaenv(3, nxval[0])
-			Xlaenv(12, maxint(11, inmin[0]))
+			Xlaenv(12, max(11, inmin[0]))
 			Xlaenv(13, inwin[0])
 			Xlaenv(14, inibl[0])
 			Xlaenv(15, ishfts[0])
@@ -2167,7 +2167,6 @@ func TestZeig(t *testing.T) {
 	fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "precision", eps)
 
 	//     Read the first line and set the 3-character test path
-	// []string{"NEP", "SEP", "SE2", "SVD", "ZEC", "ZES", "ZEV", "ZSX", "ZVX", "ZGG", "ZGV", "ZGS", "ZGX", "ZXV", "ZHB", "ZSG", "ZBL", "ZBK", "ZGL", "ZGK", "ZBB", "GLM", "GQR", "GSV", "CSD", "LSE"}
 	for _, path := range []string{"NEP", "SEP", "SE2", "SVD", "ZEC", "ZES", "ZEV", "ZSX", "ZVX", "ZGG", "ZGV", "ZGS", "ZGX", "ZXV", "ZHB", "ZSG", "ZBL", "ZBK", "ZGL", "ZGK", "ZBB", "GLM", "GQR", "GSV", "CSD", "LSE"} {
 		nep = string(path) == "NEP" || string(path) == "ZHS"
 		sep = string(path) == "SEP" || string(path) == "ZST" || string(path) == "ZSG" || string(path) == "SE2"
@@ -2308,7 +2307,7 @@ func TestZeig(t *testing.T) {
 				Xlaenv(1, nbval[i-1])
 				Xlaenv(2, nbmin[i-1])
 				Xlaenv(3, nxval[i-1])
-				Xlaenv(12, maxint(11, inmin[i-1]))
+				Xlaenv(12, max(11, inmin[i-1]))
 				Xlaenv(13, inwin[i-1])
 				Xlaenv(14, inibl[i-1])
 				Xlaenv(15, ishfts[i-1])
@@ -2319,7 +2318,7 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1], maxint(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
+				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
 				Zchkhs(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], &nmax, a[5], a[6], dc[0], dc[1], a[7], a[8], a[9], a[10], a[11], dc[2], work, &lwork, rwork, &iwork, &logwrk, result, &info, t)
 				if info != 0 {
 					t.Fail()
@@ -2349,7 +2348,7 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nparms = len(nbval)
 			maxtyp = 21
-			ntypes = minint(maxtyp, ntypes)
+			ntypes = min(maxtyp, ntypes)
 			Alareq(&ntypes, &dotype)
 			dotype[8] = false
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)

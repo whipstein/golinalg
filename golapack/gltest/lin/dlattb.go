@@ -45,7 +45,7 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 	if upper {
 		Dlatb4(path, imat, n, n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
 		ku = (*kd)
-		ioff = 1 + maxint(0, (*kd)-(*n)+1)
+		ioff = 1 + max(0, (*kd)-(*n)+1)
 		kl = 0
 		packit = 'Q'
 	} else {
@@ -67,15 +67,15 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 	} else if (*imat) == 6 {
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint(1, (*kd)+2-j); i <= (*kd); i++ {
+				for i = max(1, (*kd)+2-j); i <= (*kd); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
-				ab.Set((*kd)+1-1, j-1, float64(j))
+				ab.Set((*kd), j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
 				ab.Set(0, j-1, float64(j))
-				for i = 2; i <= minint((*kd)+1, (*n)-j+1); i++ {
+				for i = 2; i <= min((*kd)+1, (*n)-j+1); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
 			}
@@ -91,14 +91,14 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		//        Initialize AB to zero.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint(1, (*kd)+2-j); i <= (*kd); i++ {
+				for i = max(1, (*kd)+2-j); i <= (*kd); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
-				ab.Set((*kd)+1-1, j-1, float64(j))
+				ab.Set((*kd), j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				for i = 2; i <= minint((*kd)+1, (*n)-j+1); i++ {
+				for i = 2; i <= min((*kd)+1, (*n)-j+1); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
 				ab.Set(0, j-1, float64(j))
@@ -120,7 +120,7 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 				lenj = ((*n) - 3) / 2
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, work)
 				for j = 1; j <= lenj; j++ {
-					ab.Set(1, 2*j+1-1, tnorm*work.Get(j-1))
+					ab.Set(1, 2*j, tnorm*work.Get(j-1))
 				}
 			}
 		} else if (*kd) > 1 {
@@ -147,8 +147,8 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 				work.Set(j-1, plus1)
 				work.Set((*n)+j-1, star1)
 				if j+1 <= (*n) {
-					work.Set(j+1-1, plus2)
-					work.Set((*n)+j+1-1, zero)
+					work.Set(j, plus2)
+					work.Set((*n)+j, zero)
 					plus1 = star1 / plus2
 
 					//                 Generate a new *-value with norm between math.Sqrt(TNORM)
@@ -164,11 +164,11 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 
 			//           Copy the tridiagonal T to AB.
 			if upper {
-				goblas.Dcopy((*n)-1, work, 1, ab.Vector((*kd)-1, 1), *ldab)
-				goblas.Dcopy((*n)-2, work.Off((*n)+1-1), 1, ab.Vector((*kd)-1-1, 2), *ldab)
+				goblas.Dcopy((*n)-1, work.Off(0, 1), ab.Vector((*kd)-1, 1, *ldab))
+				goblas.Dcopy((*n)-2, work.Off((*n), 1), ab.Vector((*kd)-1-1, 2, *ldab))
 			} else {
-				goblas.Dcopy((*n)-1, work, 1, ab.Vector(1, 0), *ldab)
-				goblas.Dcopy((*n)-2, work.Off((*n)+1-1), 1, ab.Vector(2, 0), *ldab)
+				goblas.Dcopy((*n)-1, work.Off(0, 1), ab.Vector(1, 0, *ldab))
+				goblas.Dcopy((*n)-2, work.Off((*n), 1), ab.Vector(2, 0, *ldab))
 			}
 		}
 
@@ -181,13 +181,13 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		//        Make the right hand side large so that it requires scaling.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector((*kd)+2-lenj-1, j-1))
-				ab.Set((*kd)+1-1, j-1, math.Copysign(two, ab.Get((*kd)+1-1, j-1)))
+				ab.Set((*kd), j-1, math.Copysign(two, ab.Get((*kd), j-1)))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				if lenj > 0 {
 					golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector(0, j-1))
 				}
@@ -197,10 +197,10 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Idamax(*n, b, 1)
+		iy = goblas.Idamax(*n, b.Off(0, 1))
 		bnorm = math.Abs(b.Get(iy - 1))
-		bscal = bignum / maxf64(one, bnorm)
-		goblas.Dscal(*n, bscal, b, 1)
+		bscal = bignum / math.Max(one, bnorm)
+		goblas.Dscal(*n, bscal, b.Off(0, 1))
 
 	} else if (*imat) == 11 {
 		//        Type 11:  Make the first diagonal element in the solve small to
@@ -210,18 +210,18 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		tscal = one / float64((*kd)+1)
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector((*kd)+2-lenj-1, j-1))
-				goblas.Dscal(lenj-1, tscal, ab.Vector((*kd)+2-lenj-1, j-1), 1)
-				ab.Set((*kd)+1-1, j-1, math.Copysign(one, ab.Get((*kd)+1-1, j-1)))
+				goblas.Dscal(lenj-1, tscal, ab.Vector((*kd)+2-lenj-1, j-1, 1))
+				ab.Set((*kd), j-1, math.Copysign(one, ab.Get((*kd), j-1)))
 			}
-			ab.Set((*kd)+1-1, (*n)-1, smlnum*ab.Get((*kd)+1-1, (*n)-1))
+			ab.Set((*kd), (*n)-1, smlnum*ab.Get((*kd), (*n)-1))
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector(0, j-1))
 				if lenj > 1 {
-					goblas.Dscal(lenj-1, tscal, ab.Vector(1, j-1), 1)
+					goblas.Dscal(lenj-1, tscal, ab.Vector(1, j-1, 1))
 				}
 				ab.Set(0, j-1, math.Copysign(one, ab.Get(0, j-1)))
 			}
@@ -235,14 +235,14 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector((*kd)+2-lenj-1, j-1))
-				ab.Set((*kd)+1-1, j-1, math.Copysign(one, ab.Get((*kd)+1-1, j-1)))
+				ab.Set((*kd), j-1, math.Copysign(one, ab.Get((*kd), j-1)))
 			}
-			ab.Set((*kd)+1-1, (*n)-1, smlnum*ab.Get((*kd)+1-1, (*n)-1))
+			ab.Set((*kd), (*n)-1, smlnum*ab.Get((*kd), (*n)-1))
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector(0, j-1))
 				ab.Set(0, j-1, math.Copysign(one, ab.Get(0, j-1)))
 			}
@@ -256,13 +256,13 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		if upper {
 			jcount = 1
 			for j = (*n); j >= 1; j-- {
-				for i = maxint(1, (*kd)+1-(j-1)); i <= (*kd); i++ {
+				for i = max(1, (*kd)+1-(j-1)); i <= (*kd); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
 				if jcount <= 2 {
-					ab.Set((*kd)+1-1, j-1, smlnum)
+					ab.Set((*kd), j-1, smlnum)
 				} else {
-					ab.Set((*kd)+1-1, j-1, one)
+					ab.Set((*kd), j-1, one)
 				}
 				jcount = jcount + 1
 				if jcount > 4 {
@@ -272,7 +272,7 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		} else {
 			jcount = 1
 			for j = 1; j <= (*n); j++ {
-				for i = 2; i <= minint((*n)-j+1, (*kd)+1); i++ {
+				for i = 2; i <= min((*n)-j+1, (*kd)+1); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
 				if jcount <= 2 {
@@ -298,7 +298,7 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			b.Set((*n)-1, zero)
 			for i = 1; i <= (*n)-1; i += 2 {
 				b.Set(i-1, zero)
-				b.Set(i+1-1, smlnum)
+				b.Set(i, smlnum)
 			}
 		}
 
@@ -311,18 +311,18 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint(1, (*kd)+2-j); i <= (*kd); i++ {
+				for i = max(1, (*kd)+2-j); i <= (*kd); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
 				if j > 1 && (*kd) > 0 {
 					ab.Set((*kd)-1, j-1, -one)
 				}
-				ab.Set((*kd)+1-1, j-1, tscal)
+				ab.Set((*kd), j-1, tscal)
 			}
 			b.Set((*n)-1, one)
 		} else {
 			for j = 1; j <= (*n); j++ {
-				for i = 3; i <= minint((*n)-j+1, (*kd)+1); i++ {
+				for i = 3; i <= min((*n)-j+1, (*kd)+1); i++ {
 					ab.Set(i-1, j-1, zero)
 				}
 				if j < (*n) && (*kd) > 0 {
@@ -338,17 +338,17 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		iy = (*n)/2 + 1
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector((*kd)+2-lenj-1, j-1))
 				if j != iy {
-					ab.Set((*kd)+1-1, j-1, math.Copysign(two, ab.Get((*kd)+1-1, j-1)))
+					ab.Set((*kd), j-1, math.Copysign(two, ab.Get((*kd), j-1)))
 				} else {
-					ab.Set((*kd)+1-1, j-1, zero)
+					ab.Set((*kd), j-1, zero)
 				}
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector(0, j-1))
 				if j != iy {
 					ab.Set(0, j-1, math.Copysign(two, ab.Get(0, j-1)))
@@ -358,7 +358,7 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			}
 		}
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Dscal(*n, two, b, 1)
+		goblas.Dscal(*n, two, b.Off(0, 1))
 
 	} else if (*imat) == 16 {
 		//        Type 16:  Make the offdiagonal elements large to cause overflow
@@ -376,35 +376,35 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		if (*kd) > 0 {
 			if upper {
 				for j = (*n); j >= 1; j -= *kd {
-					for i = j; i >= maxint(1, j-(*kd)+1); i -= 2 {
+					for i = j; i >= max(1, j-(*kd)+1); i -= 2 {
 						ab.Set(1+(j-i)-1, i-1, -tscal/float64((*kd)+2))
-						ab.Set((*kd)+1-1, i-1, one)
+						ab.Set((*kd), i-1, one)
 						b.Set(i-1, texp*(one-ulp))
-						if i > maxint(1, j-(*kd)+1) {
+						if i > max(1, j-(*kd)+1) {
 							ab.Set(2+(j-i)-1, i-1-1, -(tscal/float64((*kd)+2))/float64((*kd)+3))
-							ab.Set((*kd)+1-1, i-1-1, one)
+							ab.Set((*kd), i-1-1, one)
 							b.Set(i-1-1, texp*float64(((*kd)+1)*((*kd)+1)+(*kd)))
 						}
 						texp = texp * two
 					}
-					b.Set(maxint(1, j-(*kd)+1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
+					b.Set(max(1, j-(*kd)+1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
 				}
 			} else {
 				for j = 1; j <= (*n); j += (*kd) {
 					texp = one
-					lenj = minint((*kd)+1, (*n)-j+1)
-					for i = j; i <= minint(*n, j+(*kd)-1); i += 2 {
+					lenj = min((*kd)+1, (*n)-j+1)
+					for i = j; i <= min(*n, j+(*kd)-1); i += 2 {
 						ab.Set(lenj-(i-j)-1, j-1, -tscal/float64((*kd)+2))
 						ab.Set(0, j-1, one)
 						b.Set(j-1, texp*(one-ulp))
-						if i < minint(*n, j+(*kd)-1) {
-							ab.Set(lenj-(i-j+1)-1, i+1-1, -(tscal/float64((*kd)+2))/float64((*kd)+3))
-							ab.Set(0, i+1-1, one)
-							b.Set(i+1-1, texp*float64(((*kd)+1)*((*kd)+1)+(*kd)))
+						if i < min(*n, j+(*kd)-1) {
+							ab.Set(lenj-(i-j+1)-1, i, -(tscal/float64((*kd)+2))/float64((*kd)+3))
+							ab.Set(0, i, one)
+							b.Set(i, texp*float64(((*kd)+1)*((*kd)+1)+(*kd)))
 						}
 						texp = texp * two
 					}
-					b.Set(minint(*n, j+(*kd)-1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
+					b.Set(min(*n, j+(*kd)-1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
 				}
 			}
 		} else {
@@ -420,13 +420,13 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		//        requires scaling.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j-1, *kd)
+				lenj = min(j-1, *kd)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector((*kd)+1-lenj-1, j-1))
-				ab.Set((*kd)+1-1, j-1, float64(j))
+				ab.Set((*kd), j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j, *kd)
+				lenj = min((*n)-j, *kd)
 				if lenj > 0 {
 					golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector(1, j-1))
 				}
@@ -436,20 +436,20 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Idamax(*n, b, 1)
+		iy = goblas.Idamax(*n, b.Off(0, 1))
 		bnorm = math.Abs(b.Get(iy - 1))
-		bscal = bignum / maxf64(one, bnorm)
-		goblas.Dscal(*n, bscal, b, 1)
+		bscal = bignum / math.Max(one, bnorm)
+		goblas.Dscal(*n, bscal, b.Off(0, 1))
 
 	} else if (*imat) == 18 {
 		//        Type 18:  Generate a triangular matrix with elements between
 		//        BIGNUM/KD and BIGNUM so that at least one of the column
 		//        norms will exceed BIGNUM.
-		tleft = bignum / maxf64(one, float64(*kd))
+		tleft = bignum / math.Max(one, float64(*kd))
 		tscal = bignum * (float64(*kd) / float64((*kd)+1))
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector((*kd)+2-lenj-1, j-1))
 				for i = (*kd) + 2 - lenj; i <= (*kd)+1; i++ {
 					ab.Set(i-1, j-1, math.Copysign(tleft, ab.Get(i-1, j-1))+tscal*ab.Get(i-1, j-1))
@@ -457,7 +457,7 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, ab.Vector(0, j-1))
 				for i = 1; i <= lenj; i++ {
 					ab.Set(i-1, j-1, math.Copysign(tleft, ab.Get(i-1, j-1))+tscal*ab.Get(i-1, j-1))
@@ -465,20 +465,20 @@ func Dlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			}
 		}
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Dscal(*n, two, b, 1)
+		goblas.Dscal(*n, two, b.Off(0, 1))
 	}
 
 	//     Flip the matrix if the transpose will be used.
 	if trans != 'N' {
 		if upper {
 			for j = 1; j <= (*n)/2; j++ {
-				lenj = minint((*n)-2*j+1, (*kd)+1)
-				goblas.Dswap(lenj, ab.Vector((*kd)+1-1, j-1), (*ldab)-1, ab.Vector((*kd)+2-lenj-1, (*n)-j+1-1), -1)
+				lenj = min((*n)-2*j+1, (*kd)+1)
+				goblas.Dswap(lenj, ab.Vector((*kd), j-1, (*ldab)-1), ab.Vector((*kd)+2-lenj-1, (*n)-j, -1))
 			}
 		} else {
 			for j = 1; j <= (*n)/2; j++ {
-				lenj = minint((*n)-2*j+1, (*kd)+1)
-				goblas.Dswap(lenj, ab.Vector(0, j-1), 1, ab.Vector(lenj-1, (*n)-j+2-lenj-1), -(*ldab)+1)
+				lenj = min((*n)-2*j+1, (*kd)+1)
+				goblas.Dswap(lenj, ab.Vector(0, j-1, 1), ab.Vector(lenj-1, (*n)-j+2-lenj-1, -(*ldab)+1))
 			}
 		}
 	}

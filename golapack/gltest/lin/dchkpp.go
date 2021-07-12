@@ -51,7 +51,7 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -127,7 +127,7 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*L' or U'*U factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Dcopy(npp, a, 1, afac, 1)
+				goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 				*srnamt = "DPPTRF"
 				golapack.Dpptrf(uplo, &n, afac, &info)
 
@@ -144,12 +144,12 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//+    TEST 1
 				//              Reconstruct matrix from factors and compute residual.
-				goblas.Dcopy(npp, afac, 1, ainv, 1)
+				goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 				Dppt01(uplo, &n, a, ainv, rwork, result.GetPtr(0))
 
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
-				goblas.Dcopy(npp, afac, 1, ainv, 1)
+				goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 				*srnamt = "DPPTRI"
 				golapack.Dpptri(uplo, &n, ainv, &info)
 
@@ -200,7 +200,7 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TESTS 5, 6, and 7
 					//              Use iterative refinement to improve the solution.
 					*srnamt = "DPPRFS"
-					golapack.Dpprfs(uplo, &n, &nrhs, a, afac, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, iwork, &info)
+					golapack.Dpprfs(uplo, &n, &nrhs, a, afac, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, iwork, &info)
 
 					//              Check error code from DPPRFS.
 					if info != 0 {
@@ -208,7 +208,7 @@ func Dchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-					Dppt05(uplo, &n, &nrhs, a, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(5))
+					Dppt05(uplo, &n, &nrhs, a, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

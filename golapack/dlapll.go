@@ -30,8 +30,8 @@ func Dlapll(n *int, x *mat.Vector, incx *int, y *mat.Vector, incy *int, ssmin *f
 	a11 = x.Get(0)
 	x.Set(0, one)
 
-	c = -tau * goblas.Ddot(*n, x, *incx, y, *incy)
-	goblas.Daxpy(*n, c, x, *incx, y, *incy)
+	c = -tau * goblas.Ddot(*n, x, y)
+	goblas.Daxpy(*n, c, x, y)
 
 	Dlarfg(toPtr((*n)-1), y.GetPtr(1+(*incy)-1), y.Off(1+2*(*incy)-1), incy, &tau)
 

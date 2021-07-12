@@ -41,14 +41,14 @@ func Dbdt04(uplo byte, n *int, d, e, s *mat.Vector, ns *int, u *mat.Matrix, ldu 
 		for i = 1; i <= (*ns); i++ {
 			for j = 1; j <= (*n)-1; j++ {
 				k = k + 1
-				work.Set(k-1, d.Get(j-1)*vt.Get(i-1, j-1)+e.Get(j-1)*vt.Get(i-1, j+1-1))
+				work.Set(k-1, d.Get(j-1)*vt.Get(i-1, j-1)+e.Get(j-1)*vt.Get(i-1, j))
 			}
 			k = k + 1
 			work.Set(k-1, d.Get((*n)-1)*vt.Get(i-1, (*n)-1))
 		}
 		bnorm = math.Abs(d.Get(0))
 		for i = 2; i <= (*n); i++ {
-			bnorm = maxf64(bnorm, math.Abs(d.Get(i-1))+math.Abs(e.Get(i-1-1)))
+			bnorm = math.Max(bnorm, math.Abs(d.Get(i-1))+math.Abs(e.Get(i-1-1)))
 		}
 	} else {
 		//        B is lower bidiagonal.
@@ -58,22 +58,22 @@ func Dbdt04(uplo byte, n *int, d, e, s *mat.Vector, ns *int, u *mat.Matrix, ldu 
 			work.Set(k-1, d.Get(0)*vt.Get(i-1, 0))
 			for j = 1; j <= (*n)-1; j++ {
 				k = k + 1
-				work.Set(k-1, e.Get(j-1)*vt.Get(i-1, j-1)+d.Get(j+1-1)*vt.Get(i-1, j+1-1))
+				work.Set(k-1, e.Get(j-1)*vt.Get(i-1, j-1)+d.Get(j)*vt.Get(i-1, j))
 			}
 		}
 		bnorm = math.Abs(d.Get((*n) - 1))
 		for i = 1; i <= (*n)-1; i++ {
-			bnorm = maxf64(bnorm, math.Abs(d.Get(i-1))+math.Abs(e.Get(i-1)))
+			bnorm = math.Max(bnorm, math.Abs(d.Get(i-1))+math.Abs(e.Get(i-1)))
 		}
 	}
 
-	err = goblas.Dgemm(Trans, NoTrans, *ns, *ns, *n, -one, u, *ldu, work.Matrix(*n, opts), *n, zero, work.MatrixOff(1+(*n)*(*ns)-1, *ns, opts), *ns)
+	err = goblas.Dgemm(Trans, NoTrans, *ns, *ns, *n, -one, u, work.Matrix(*n, opts), zero, work.MatrixOff(1+(*n)*(*ns)-1, *ns, opts))
 
 	//     norm(S - U' * B * V)
 	k = (*n) * (*ns)
 	for i = 1; i <= (*ns); i++ {
 		work.Set(k+i-1, work.Get(k+i-1)+s.Get(i-1))
-		(*resid) = maxf64(*resid, goblas.Dasum(*ns, work.Off(k+1-1), 1))
+		(*resid) = math.Max(*resid, goblas.Dasum(*ns, work.Off(k, 1)))
 		k = k + (*ns)
 	}
 
@@ -86,9 +86,9 @@ func Dbdt04(uplo byte, n *int, d, e, s *mat.Vector, ns *int, u *mat.Matrix, ldu 
 			(*resid) = ((*resid) / bnorm) / (float64(*n) * eps)
 		} else {
 			if bnorm < one {
-				(*resid) = (minf64(*resid, float64(*n)*bnorm) / bnorm) / (float64(*n) * eps)
+				(*resid) = (math.Min(*resid, float64(*n)*bnorm) / bnorm) / (float64(*n) * eps)
 			} else {
-				(*resid) = minf64((*resid)/bnorm, float64(*n)) / (float64(*n) * eps)
+				(*resid) = math.Min((*resid)/bnorm, float64(*n)) / (float64(*n) * eps)
 			}
 		}
 	}

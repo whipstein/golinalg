@@ -49,31 +49,31 @@ func Zsgt01(itype *int, uplo byte, n, m *int, a *mat.CMatrix, lda *int, b *mat.C
 
 	if (*itype) == 1 {
 		//        Norm of AZ - BZD
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, *lda, z, *ldz, czero, work.CMatrix(*n, opts), *n)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, z, czero, work.CMatrix(*n, opts))
 		for i = 1; i <= (*m); i++ {
-			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1), 1)
+			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1, 1))
 		}
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, *ldb, z, *ldz, -cone, work.CMatrix(*n, opts), *n)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, z, -cone, work.CMatrix(*n, opts))
 
 		result.Set(0, (golapack.Zlange('1', n, m, work.CMatrix(*n, opts), n, rwork)/anorm)/(float64(*n)*ulp))
 
 	} else if (*itype) == 2 {
 		//        Norm of ABZ - ZD
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, *ldb, z, *ldz, czero, work.CMatrix(*n, opts), *n)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, z, czero, work.CMatrix(*n, opts))
 		for i = 1; i <= (*m); i++ {
-			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1), 1)
+			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1, 1))
 		}
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, *lda, work.CMatrix(*n, opts), *n, -cone, z, *ldz)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, work.CMatrix(*n, opts), -cone, z)
 
 		result.Set(0, (golapack.Zlange('1', n, m, z, ldz, rwork)/anorm)/(float64(*n)*ulp))
 
 	} else if (*itype) == 3 {
 		//        Norm of BAZ - ZD
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, *lda, z, *ldz, czero, work.CMatrix(*n, opts), *n)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, z, czero, work.CMatrix(*n, opts))
 		for i = 1; i <= (*m); i++ {
-			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1), 1)
+			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1, 1))
 		}
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, *ldb, work.CMatrix(*n, opts), *n, -cone, z, *ldz)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, work.CMatrix(*n, opts), -cone, z)
 
 		result.Set(0, (golapack.Zlange('1', n, m, z, ldz, rwork)/anorm)/(float64(*n)*ulp))
 	}

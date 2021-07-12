@@ -34,9 +34,9 @@ func Dggbal(job byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb, ilo, 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -6
 	}
 	if (*info) != 0 {
@@ -162,8 +162,8 @@ label160:
 	if i == m {
 		goto label170
 	}
-	goblas.Dswap((*n)-k+1, a.Vector(i-1, k-1), *lda, a.Vector(m-1, k-1), *lda)
-	goblas.Dswap((*n)-k+1, b.Vector(i-1, k-1), *ldb, b.Vector(m-1, k-1), *ldb)
+	goblas.Dswap((*n)-k+1, a.Vector(i-1, k-1), a.Vector(m-1, k-1))
+	goblas.Dswap((*n)-k+1, b.Vector(i-1, k-1), b.Vector(m-1, k-1))
 
 	//     Permute columns M and J
 label170:
@@ -172,8 +172,8 @@ label170:
 	if j == m {
 		goto label180
 	}
-	goblas.Dswap(l, a.Vector(0, j-1), 1, a.Vector(0, m-1), 1)
-	goblas.Dswap(l, b.Vector(0, j-1), 1, b.Vector(0, m-1), 1)
+	goblas.Dswap(l, a.Vector(0, j-1, 1), a.Vector(0, m-1, 1))
+	goblas.Dswap(l, b.Vector(0, j-1, 1), b.Vector(0, m-1, 1))
 
 label180:
 	;
@@ -249,7 +249,7 @@ label190:
 label250:
 	;
 
-	gamma = goblas.Ddot(nr, work.Off((*ilo)+4*(*n)-1), 1, work.Off((*ilo)+4*(*n)-1), 1) + goblas.Ddot(nr, work.Off((*ilo)+5*(*n)-1), 1, work.Off((*ilo)+5*(*n)-1), 1)
+	gamma = goblas.Ddot(nr, work.Off((*ilo)+4*(*n)-1, 1), work.Off((*ilo)+4*(*n)-1, 1)) + goblas.Ddot(nr, work.Off((*ilo)+5*(*n)-1, 1), work.Off((*ilo)+5*(*n)-1, 1))
 
 	ew = zero
 	ewc = zero
@@ -268,11 +268,11 @@ label250:
 	t = coef5 * (ewc - three*ew)
 	tc = coef5 * (ew - three*ewc)
 
-	goblas.Dscal(nr, beta, work.Off((*ilo)-1), 1)
-	goblas.Dscal(nr, beta, work.Off((*ilo)+(*n)-1), 1)
+	goblas.Dscal(nr, beta, work.Off((*ilo)-1, 1))
+	goblas.Dscal(nr, beta, work.Off((*ilo)+(*n)-1, 1))
 
-	goblas.Daxpy(nr, coef, work.Off((*ilo)+4*(*n)-1), 1, work.Off((*ilo)+(*n)-1), 1)
-	goblas.Daxpy(nr, coef, work.Off((*ilo)+5*(*n)-1), 1, work.Off((*ilo)-1), 1)
+	goblas.Daxpy(nr, coef, work.Off((*ilo)+4*(*n)-1, 1), work.Off((*ilo)+(*n)-1, 1))
+	goblas.Daxpy(nr, coef, work.Off((*ilo)+5*(*n)-1, 1), work.Off((*ilo)-1, 1))
 
 	for i = (*ilo); i <= (*ihi); i++ {
 		work.Set(i-1, work.Get(i-1)+tc)
@@ -323,7 +323,7 @@ label250:
 
 	}
 
-	sum = goblas.Ddot(nr, work.Off((*ilo)+(*n)-1), 1, work.Off((*ilo)+2*(*n)-1), 1) + goblas.Ddot(nr, work.Off((*ilo)-1), 1, work.Off((*ilo)+3*(*n)-1), 1)
+	sum = goblas.Ddot(nr, work.Off((*ilo)+(*n)-1, 1), work.Off((*ilo)+2*(*n)-1, 1)) + goblas.Ddot(nr, work.Off((*ilo)-1, 1), work.Off((*ilo)+3*(*n)-1, 1))
 	alpha = gamma / sum
 
 	//     Determine correction to current iteration
@@ -344,8 +344,8 @@ label250:
 		goto label350
 	}
 
-	goblas.Daxpy(nr, -alpha, work.Off((*ilo)+2*(*n)-1), 1, work.Off((*ilo)+4*(*n)-1), 1)
-	goblas.Daxpy(nr, -alpha, work.Off((*ilo)+3*(*n)-1), 1, work.Off((*ilo)+5*(*n)-1), 1)
+	goblas.Daxpy(nr, -alpha, work.Off((*ilo)+2*(*n)-1, 1), work.Off((*ilo)+4*(*n)-1, 1))
+	goblas.Daxpy(nr, -alpha, work.Off((*ilo)+3*(*n)-1, 1), work.Off((*ilo)+5*(*n)-1, 1))
 
 	pgamma = gamma
 	it = it + 1
@@ -361,33 +361,33 @@ label350:
 	lsfmin = int(math.Log10(sfmin)/basl + one)
 	lsfmax = int(math.Log10(sfmax) / basl)
 	for i = (*ilo); i <= (*ihi); i++ {
-		irab = goblas.Idamax((*n)-(*ilo)+1, a.Vector(i-1, (*ilo)-1), *lda)
+		irab = goblas.Idamax((*n)-(*ilo)+1, a.Vector(i-1, (*ilo)-1))
 		rab = math.Abs(a.Get(i-1, irab+(*ilo)-1-1))
-		irab = goblas.Idamax((*n)-(*ilo)+1, b.Vector(i-1, (*ilo)-1), *ldb)
-		rab = maxf64(rab, math.Abs(b.Get(i-1, irab+(*ilo)-1-1)))
+		irab = goblas.Idamax((*n)-(*ilo)+1, b.Vector(i-1, (*ilo)-1))
+		rab = math.Max(rab, math.Abs(b.Get(i-1, irab+(*ilo)-1-1)))
 		lrab = int(math.Log10(rab+sfmin)/basl + one)
-		ir = int(lscale.Get(i-1) + signf64(half, lscale.Get(i-1)))
-		ir = minint(maxint(ir, lsfmin), lsfmax, lsfmax-lrab)
+		ir = int(lscale.Get(i-1) + math.Copysign(half, lscale.Get(i-1)))
+		ir = min(max(ir, lsfmin), lsfmax, lsfmax-lrab)
 		lscale.Set(i-1, math.Pow(sclfac, float64(ir)))
-		icab = goblas.Idamax(*ihi, a.Vector(0, i-1), 1)
+		icab = goblas.Idamax(*ihi, a.Vector(0, i-1, 1))
 		cab = math.Abs(a.Get(icab-1, i-1))
-		icab = goblas.Idamax(*ihi, b.Vector(0, i-1), 1)
-		cab = maxf64(cab, math.Abs(b.Get(icab-1, i-1)))
+		icab = goblas.Idamax(*ihi, b.Vector(0, i-1, 1))
+		cab = math.Max(cab, math.Abs(b.Get(icab-1, i-1)))
 		lcab = int(math.Log10(cab+sfmin)/basl + one)
-		jc = int(rscale.Get(i-1) + signf64(half, rscale.Get(i-1)))
-		jc = minint(maxint(jc, lsfmin), lsfmax, lsfmax-lcab)
+		jc = int(rscale.Get(i-1) + math.Copysign(half, rscale.Get(i-1)))
+		jc = min(max(jc, lsfmin), lsfmax, lsfmax-lcab)
 		rscale.Set(i-1, math.Pow(sclfac, float64(jc)))
 	}
 
 	//     Row scaling of matrices A and B
 	for i = (*ilo); i <= (*ihi); i++ {
-		goblas.Dscal((*n)-(*ilo)+1, lscale.Get(i-1), a.Vector(i-1, (*ilo)-1), *lda)
-		goblas.Dscal((*n)-(*ilo)+1, lscale.Get(i-1), b.Vector(i-1, (*ilo)-1), *ldb)
+		goblas.Dscal((*n)-(*ilo)+1, lscale.Get(i-1), a.Vector(i-1, (*ilo)-1))
+		goblas.Dscal((*n)-(*ilo)+1, lscale.Get(i-1), b.Vector(i-1, (*ilo)-1))
 	}
 
 	//     Column scaling of matrices A and B
 	for j = (*ilo); j <= (*ihi); j++ {
-		goblas.Dscal(*ihi, rscale.Get(j-1), a.Vector(0, j-1), 1)
-		goblas.Dscal(*ihi, rscale.Get(j-1), b.Vector(0, j-1), 1)
+		goblas.Dscal(*ihi, rscale.Get(j-1), a.Vector(0, j-1, 1))
+		goblas.Dscal(*ihi, rscale.Get(j-1), b.Vector(0, j-1, 1))
 	}
 }

@@ -163,7 +163,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 0
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -216,13 +216,13 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		if n == 0 {
 			goto label270
 		}
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		aninv = one / float64(n1)
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -319,11 +319,11 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -336,23 +336,23 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				adumma[0] = ' '
-				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n+1-1), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n+1-1), &iinfo)
+				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else {
 
@@ -362,7 +362,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -377,26 +377,26 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ilo = 1
 			ihi = n
 
-			golapack.Dgehrd(&n, &ilo, &ihi, h, lda, work, work.Off(n+1-1), toPtr((*nwork)-n), &iinfo)
+			golapack.Dgehrd(&n, &ilo, &ihi, h, lda, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
 
 			if iinfo != 0 {
 				t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEHRD", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
 			for j = 1; j <= n-1; j++ {
-				uu.Set(j+1-1, j-1, zero)
+				uu.Set(j, j-1, zero)
 				for i = j + 2; i <= n; i++ {
 					u.Set(i-1, j-1, h.Get(i-1, j-1))
 					uu.Set(i-1, j-1, h.Get(i-1, j-1))
 					h.Set(i-1, j-1, zero)
 				}
 			}
-			goblas.Dcopy(n-1, work, 1, tau, 1)
-			golapack.Dorghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n+1-1), toPtr((*nwork)-n), &iinfo)
+			goblas.Dcopy(n-1, work.Off(0, 1), tau.Off(0, 1))
+			golapack.Dorghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
 			ntest = 2
 
 			Dhst01(&n, &ilo, &ihi, a, lda, h, lda, u, ldu, work, nwork, result)
@@ -413,7 +413,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEQR(E)", iinfo, n, jtype, ioldsd)
 				if iinfo <= n+2 {
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					goto label250
 				}
 			}
@@ -425,7 +425,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 && iinfo <= n+2 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEQR(S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
@@ -438,12 +438,12 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 && iinfo <= n+2 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEQR(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
 			//           Compute Z = U' UZ
-			err = goblas.Dgemm(Trans, NoTrans, n, n, n, one, u, *ldu, uz, *ldu, zero, z, *ldu)
+			err = goblas.Dgemm(Trans, NoTrans, n, n, n, one, u, uz, zero, z)
 			ntest = 8
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )
@@ -457,15 +457,15 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Do Test 7: | T2 - T1 | / ( |T| n ulp )
 			Dget10(&n, &n, t2, lda, t1, lda, work, result.GetPtr(6))
 
-			//           Do Test 8: | W2 - W1 | / ( maxf64(|W1|,|W2|) ulp )
+			//           Do Test 8: | W2 - W1 | / ( math.Max(|W1|,|W2|) ulp )
 			temp1 = zero
 			temp2 = zero
 			for j = 1; j <= n; j++ {
-				temp1 = maxf64(temp1, math.Abs(wr1.Get(j-1))+math.Abs(wi1.Get(j-1)), math.Abs(wr2.Get(j-1))+math.Abs(wi2.Get(j-1)))
-				temp2 = maxf64(temp2, math.Abs(wr1.Get(j-1)-wr2.Get(j-1))+math.Abs(wi1.Get(j-1)-wi2.Get(j-1)))
+				temp1 = math.Max(temp1, math.Max(math.Abs(wr1.Get(j-1))+math.Abs(wi1.Get(j-1)), math.Abs(wr2.Get(j-1))+math.Abs(wi2.Get(j-1))))
+				temp2 = math.Max(temp2, math.Abs(wr1.Get(j-1)-wr2.Get(j-1))+math.Abs(wi1.Get(j-1)-wi2.Get(j-1)))
 			}
 
-			result.Set(7, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+			result.Set(7, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			//           Compute the Left and Right Eigenvectors of T
 			//
@@ -473,14 +473,14 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ntest = 9
 			result.Set(8, ulpinv)
 
-			//           Select last maxf64(N/4,1) real, maxf64(N/4,1) complex eigenvectors
+			//           Select last math.Max(N/4,1) real, math.Max(N/4,1) complex eigenvectors
 			nselc = 0
 			nselr = 0
 			j = n
 		label140:
 			;
 			if wi1.Get(j-1) == zero {
-				if nselr < maxint(n/4, 1) {
+				if nselr < max(n/4, 1) {
 					nselr = nselr + 1
 					(*_select)[j-1] = true
 				} else {
@@ -488,7 +488,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 				j = j - 1
 			} else {
-				if nselc < maxint(n/4, 1) {
+				if nselc < max(n/4, 1) {
 					nselc = nselc + 1
 					(*_select)[j-1] = true
 					(*_select)[j-1-1] = false
@@ -506,7 +506,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(R,A)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
@@ -524,7 +524,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(R,S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
@@ -541,7 +541,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					k = k + 1
 				} else if (*_select)[j-1] && wi1.Get(j-1) != zero {
 					for jj = 1; jj <= n; jj++ {
-						if evectr.Get(jj-1, j-1) != evectl.Get(jj-1, k-1) || evectr.Get(jj-1, j+1-1) != evectl.Get(jj-1, k+1-1) {
+						if evectr.Get(jj-1, j-1) != evectl.Get(jj-1, k-1) || evectr.Get(jj-1, j) != evectl.Get(jj-1, k) {
 							match = false
 							goto label180
 						}
@@ -563,7 +563,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(L,A)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
@@ -581,7 +581,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(L,S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label250
 			}
 
@@ -598,7 +598,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					k = k + 1
 				} else if (*_select)[j-1] && wi1.Get(j-1) != zero {
 					for jj = 1; jj <= n; jj++ {
-						if evectl.Get(jj-1, j-1) != evectr.Get(jj-1, k-1) || evectl.Get(jj-1, j+1-1) != evectr.Get(jj-1, k+1-1) {
+						if evectl.Get(jj-1, j-1) != evectr.Get(jj-1, k-1) || evectl.Get(jj-1, j) != evectr.Get(jj-1, k) {
 							match = false
 							goto label220
 						}
@@ -624,7 +624,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEIN(R)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label250
 				}
@@ -653,7 +653,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEIN(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label250
 				}
@@ -679,7 +679,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORMHR(R)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label250
 				}
@@ -701,7 +701,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORMHR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label250
 				}

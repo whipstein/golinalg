@@ -34,7 +34,7 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 	//     Find largest entry
 	mx = s.GetMag(0)
 	for i = 1; i <= (*n)-1; i++ {
-		mx = maxf64(mx, s.GetMag(i+1-1), e.GetMag(i-1))
+		mx = math.Max(mx, math.Max(s.GetMag(i), e.GetMag(i-1)))
 	}
 
 	if mx == zero {
@@ -99,7 +99,7 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 				u = sun
 			}
 		}
-		tmp = (s.Get(i+1-1) * m1) * m2
+		tmp = (s.Get(i) * m1) * m2
 		u = -tmp*(tmp/u) - sshift
 		if u <= sun {
 			if u <= zero {

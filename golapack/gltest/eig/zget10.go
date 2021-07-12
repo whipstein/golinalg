@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -26,20 +28,20 @@ func Zget10(m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, work 
 
 	wnorm = zero
 	for j = 1; j <= (*n); j++ {
-		goblas.Zcopy(*m, a.CVector(0, j-1), 1, work, 1)
-		goblas.Zaxpy(*m, complex(-one, 0), b.CVector(0, j-1), 1, work, 1)
-		wnorm = maxf64(wnorm, goblas.Dzasum(*n, work, 1))
+		goblas.Zcopy(*m, a.CVector(0, j-1, 1), work.Off(0, 1))
+		goblas.Zaxpy(*m, complex(-one, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
+		wnorm = math.Max(wnorm, goblas.Dzasum(*n, work.Off(0, 1)))
 	}
 
-	anorm = maxf64(golapack.Zlange('1', m, n, a, lda, rwork), unfl)
+	anorm = math.Max(golapack.Zlange('1', m, n, a, lda, rwork), unfl)
 
 	if anorm > wnorm {
 		(*result) = (wnorm / anorm) / (float64(*m) * eps)
 	} else {
 		if anorm < one {
-			(*result) = (minf64(wnorm, float64(*m)*anorm) / anorm) / (float64(*m) * eps)
+			(*result) = (math.Min(wnorm, float64(*m)*anorm) / anorm) / (float64(*m) * eps)
 		} else {
-			(*result) = minf64(wnorm/anorm, float64(*m)) / (float64(*m) * eps)
+			(*result) = math.Min(wnorm/anorm, float64(*m)) / (float64(*m) * eps)
 		}
 	}
 }

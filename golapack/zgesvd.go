@@ -15,10 +15,10 @@ import (
 //      A = U * SIGMA * conjugate-transpose(V)
 //
 // where SIGMA is an M-by-N matrix which is zero except for its
-// minint(m,n) diagonal elements, U is an M-by-M unitary matrix, and
+// min(m,n) diagonal elements, U is an M-by-M unitary matrix, and
 // V is an N-by-N unitary matrix.  The diagonal elements of SIGMA
 // are the singular values of A; they are real and non-negative, and
-// are returned in descending order.  The first minint(m,n) columns of
+// are returned in descending order.  The first min(m,n) columns of
 // U and V are the left and right singular vectors of A.
 //
 // Note that the routine returns V**H, not V.
@@ -40,7 +40,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 	//     Test the input arguments
 	(*info) = 0
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 	wntua = jobu == 'A'
 	wntus = jobu == 'S'
 	wntuas = wntua || wntus
@@ -61,7 +61,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
 	} else if (*ldu) < 1 || (wntuas && (*ldu) < (*m)) {
 		(*info) = -9
@@ -103,81 +103,81 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if wntun {
 					//                 Path 1 (M much larger than N, JOBU='N')
 					maxwrk = (*n) + lworkZgeqrf
-					maxwrk = maxint(maxwrk, 2*(*n)+lworkZgebrd)
+					maxwrk = max(maxwrk, 2*(*n)+lworkZgebrd)
 					if wntvo || wntvas {
-						maxwrk = maxint(maxwrk, 2*(*n)+lworkZungbrP)
+						maxwrk = max(maxwrk, 2*(*n)+lworkZungbrP)
 					}
 					minwrk = 3 * (*n)
 				} else if wntuo && wntvn {
 					//                 Path 2 (M much larger than N, JOBU='O', JOBVT='N')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrN)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
-					maxwrk = maxint((*n)*(*n)+wrkbl, (*n)*(*n)+(*m)*(*n))
+					wrkbl = max(wrkbl, (*n)+lworkZungqrN)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
+					maxwrk = max((*n)*(*n)+wrkbl, (*n)*(*n)+(*m)*(*n))
 					minwrk = 2*(*n) + (*m)
 				} else if wntuo && wntvas {
 					//                 Path 3 (M much larger than N, JOBU='O', JOBVT='S' or
 					//                 'A')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrN)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrP)
-					maxwrk = maxint((*n)*(*n)+wrkbl, (*n)*(*n)+(*m)*(*n))
+					wrkbl = max(wrkbl, (*n)+lworkZungqrN)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrP)
+					maxwrk = max((*n)*(*n)+wrkbl, (*n)*(*n)+(*m)*(*n))
 					minwrk = 2*(*n) + (*m)
 				} else if wntus && wntvn {
 					//                 Path 4 (M much larger than N, JOBU='S', JOBVT='N')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrN)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, (*n)+lworkZungqrN)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
 					maxwrk = (*n)*(*n) + wrkbl
 					minwrk = 2*(*n) + (*m)
 				} else if wntus && wntvo {
 					//                 Path 5 (M much larger than N, JOBU='S', JOBVT='O')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrN)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrP)
+					wrkbl = max(wrkbl, (*n)+lworkZungqrN)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrP)
 					maxwrk = 2*(*n)*(*n) + wrkbl
 					minwrk = 2*(*n) + (*m)
 				} else if wntus && wntvas {
 					//                 Path 6 (M much larger than N, JOBU='S', JOBVT='S' or
 					//                 'A')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrN)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrP)
+					wrkbl = max(wrkbl, (*n)+lworkZungqrN)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrP)
 					maxwrk = (*n)*(*n) + wrkbl
 					minwrk = 2*(*n) + (*m)
 				} else if wntua && wntvn {
 					//                 Path 7 (M much larger than N, JOBU='A', JOBVT='N')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrM)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, (*n)+lworkZungqrM)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
 					maxwrk = (*n)*(*n) + wrkbl
 					minwrk = 2*(*n) + (*m)
 				} else if wntua && wntvo {
 					//                 Path 8 (M much larger than N, JOBU='A', JOBVT='O')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrM)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrP)
+					wrkbl = max(wrkbl, (*n)+lworkZungqrM)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrP)
 					maxwrk = 2*(*n)*(*n) + wrkbl
 					minwrk = 2*(*n) + (*m)
 				} else if wntua && wntvas {
 					//                 Path 9 (M much larger than N, JOBU='A', JOBVT='S' or
 					//                 'A')
 					wrkbl = (*n) + lworkZgeqrf
-					wrkbl = maxint(wrkbl, (*n)+lworkZungqrM)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrQ)
-					wrkbl = maxint(wrkbl, 2*(*n)+lworkZungbrP)
+					wrkbl = max(wrkbl, (*n)+lworkZungqrM)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrQ)
+					wrkbl = max(wrkbl, 2*(*n)+lworkZungbrP)
 					maxwrk = (*n)*(*n) + wrkbl
 					minwrk = 2*(*n) + (*m)
 				}
@@ -189,15 +189,15 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if wntus || wntuo {
 					Zungbr('Q', m, n, n, a, lda, cdum, cdum, toPtr(-1), &ierr)
 					lworkZungbrQ = int(cdum.GetRe(0))
-					maxwrk = maxint(maxwrk, 2*(*n)+lworkZungbrQ)
+					maxwrk = max(maxwrk, 2*(*n)+lworkZungbrQ)
 				}
 				if wntua {
 					Zungbr('Q', m, m, n, a, lda, cdum, cdum, toPtr(-1), &ierr)
 					lworkZungbrQ = int(cdum.GetRe(0))
-					maxwrk = maxint(maxwrk, 2*(*n)+lworkZungbrQ)
+					maxwrk = max(maxwrk, 2*(*n)+lworkZungbrQ)
 				}
 				if !wntvn {
-					maxwrk = maxint(maxwrk, 2*(*n)+lworkZungbrP)
+					maxwrk = max(maxwrk, 2*(*n)+lworkZungbrP)
 				}
 				minwrk = 2*(*n) + (*m)
 			}
@@ -225,81 +225,81 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if wntvn {
 					//                 Path 1t(N much larger than M, JOBVT='N')
 					maxwrk = (*m) + lworkZgelqf
-					maxwrk = maxint(maxwrk, 2*(*m)+lworkZgebrd)
+					maxwrk = max(maxwrk, 2*(*m)+lworkZgebrd)
 					if wntuo || wntuas {
-						maxwrk = maxint(maxwrk, 2*(*m)+lworkZungbrQ)
+						maxwrk = max(maxwrk, 2*(*m)+lworkZungbrQ)
 					}
 					minwrk = 3 * (*m)
 				} else if wntvo && wntun {
 					//                 Path 2t(N much larger than M, JOBU='N', JOBVT='O')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqM)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
-					maxwrk = maxint((*m)*(*m)+wrkbl, (*m)*(*m)+(*m)*(*n))
+					wrkbl = max(wrkbl, (*m)+lworkZunglqM)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
+					maxwrk = max((*m)*(*m)+wrkbl, (*m)*(*m)+(*m)*(*n))
 					minwrk = 2*(*m) + (*n)
 				} else if wntvo && wntuas {
 					//                 Path 3t(N much larger than M, JOBU='S' or 'A',
 					//                 JOBVT='O')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqM)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrQ)
-					maxwrk = maxint((*m)*(*m)+wrkbl, (*m)*(*m)+(*m)*(*n))
+					wrkbl = max(wrkbl, (*m)+lworkZunglqM)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrQ)
+					maxwrk = max((*m)*(*m)+wrkbl, (*m)*(*m)+(*m)*(*n))
 					minwrk = 2*(*m) + (*n)
 				} else if wntvs && wntun {
 					//                 Path 4t(N much larger than M, JOBU='N', JOBVT='S')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqM)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, (*m)+lworkZunglqM)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
 					maxwrk = (*m)*(*m) + wrkbl
 					minwrk = 2*(*m) + (*n)
 				} else if wntvs && wntuo {
 					//                 Path 5t(N much larger than M, JOBU='O', JOBVT='S')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqM)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrQ)
+					wrkbl = max(wrkbl, (*m)+lworkZunglqM)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrQ)
 					maxwrk = 2*(*m)*(*m) + wrkbl
 					minwrk = 2*(*m) + (*n)
 				} else if wntvs && wntuas {
 					//                 Path 6t(N much larger than M, JOBU='S' or 'A',
 					//                 JOBVT='S')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqM)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrQ)
+					wrkbl = max(wrkbl, (*m)+lworkZunglqM)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrQ)
 					maxwrk = (*m)*(*m) + wrkbl
 					minwrk = 2*(*m) + (*n)
 				} else if wntva && wntun {
 					//                 Path 7t(N much larger than M, JOBU='N', JOBVT='A')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqN)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, (*m)+lworkZunglqN)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
 					maxwrk = (*m)*(*m) + wrkbl
 					minwrk = 2*(*m) + (*n)
 				} else if wntva && wntuo {
 					//                 Path 8t(N much larger than M, JOBU='O', JOBVT='A')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqN)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrQ)
+					wrkbl = max(wrkbl, (*m)+lworkZunglqN)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrQ)
 					maxwrk = 2*(*m)*(*m) + wrkbl
 					minwrk = 2*(*m) + (*n)
 				} else if wntva && wntuas {
 					//                 Path 9t(N much larger than M, JOBU='S' or 'A',
 					//                 JOBVT='A')
 					wrkbl = (*m) + lworkZgelqf
-					wrkbl = maxint(wrkbl, (*m)+lworkZunglqN)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZgebrd)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrP)
-					wrkbl = maxint(wrkbl, 2*(*m)+lworkZungbrQ)
+					wrkbl = max(wrkbl, (*m)+lworkZunglqN)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZgebrd)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrP)
+					wrkbl = max(wrkbl, 2*(*m)+lworkZungbrQ)
 					maxwrk = (*m)*(*m) + wrkbl
 					minwrk = 2*(*m) + (*n)
 				}
@@ -312,20 +312,20 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                Compute space needed for ZUNGBR P
 					Zungbr('P', m, n, m, a, n, cdum, cdum, toPtr(-1), &ierr)
 					lworkZungbrP = int(cdum.GetRe(0))
-					maxwrk = maxint(maxwrk, 2*(*m)+lworkZungbrP)
+					maxwrk = max(maxwrk, 2*(*m)+lworkZungbrP)
 				}
 				if wntva {
 					Zungbr('P', n, n, m, a, n, cdum, cdum, toPtr(-1), &ierr)
 					lworkZungbrP = int(cdum.GetRe(0))
-					maxwrk = maxint(maxwrk, 2*(*m)+lworkZungbrP)
+					maxwrk = max(maxwrk, 2*(*m)+lworkZungbrP)
 				}
 				if !wntun {
-					maxwrk = maxint(maxwrk, 2*(*m)+lworkZungbrQ)
+					maxwrk = max(maxwrk, 2*(*m)+lworkZungbrQ)
 				}
 				minwrk = 2*(*m) + (*n)
 			}
 		}
-		maxwrk = maxint(maxwrk, minwrk)
+		maxwrk = max(maxwrk, minwrk)
 		work.SetRe(0, float64(maxwrk))
 
 		if (*lwork) < minwrk && !lquery {
@@ -350,7 +350,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 	smlnum = math.Sqrt(Dlamch(SafeMinimum)) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', m, n, a, lda, dum)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
@@ -419,11 +419,11 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if (*lwork) >= (*n)*(*n)+3*(*n) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*lda)*(*n) {
+					if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*lda)*(*n) {
 						//                    WORK(IU) is LDA by N, WORK(IR) is LDA by N
 						ldwrku = (*lda)
 						ldwrkr = (*lda)
-					} else if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*n)*(*n) {
+					} else if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*n)*(*n) {
 						//                    WORK(IU) is LDA by N, WORK(IR) is N by N
 						ldwrku = (*lda)
 						ldwrkr = (*n)
@@ -442,7 +442,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 					//                 Copy R to WORK(IR) and zero out below it
 					Zlacpy('U', n, n, a, lda, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-					Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(ir+1-1, ldwrkr, opts), &ldwrkr)
+					Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(ir, ldwrkr, opts), &ldwrkr)
 
 					//                 Generate Q in A
 					//                 (CWorkspace: need N*N+2*N, prefer N*N+N+N*NB)
@@ -476,8 +476,8 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 (CWorkspace: need N*N+N, prefer N*N+M*N)
 					//                 (RWorkspace: 0)
 					for i = 1; i <= (*m); i += ldwrku {
-						chunk = minint((*m)-i+1, ldwrku)
-						err = goblas.Zgemm(NoTrans, NoTrans, chunk, *n, *n, cone, a.Off(i-1, 0), *lda, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, czero, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku)
+						chunk = min((*m)-i+1, ldwrku)
+						err = goblas.Zgemm(NoTrans, NoTrans, chunk, *n, *n, cone, a.Off(i-1, 0), work.CMatrixOff(ir-1, ldwrkr, opts), czero, work.CMatrixOff(iu-1, ldwrku, opts))
 						Zlacpy('F', &chunk, n, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(i-1, 0), lda)
 					}
 
@@ -514,11 +514,11 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if (*lwork) >= (*n)*(*n)+3*(*n) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*lda)*(*n) {
+					if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*lda)*(*n) {
 						//                    WORK(IU) is LDA by N and WORK(IR) is LDA by N
 						ldwrku = (*lda)
 						ldwrkr = (*lda)
-					} else if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*n)*(*n) {
+					} else if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*n)*(*n) {
 						//                    WORK(IU) is LDA by N and WORK(IR) is N by N
 						ldwrku = (*lda)
 						ldwrkr = (*n)
@@ -580,8 +580,8 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 (CWorkspace: need N*N+N, prefer N*N+M*N)
 					//                 (RWorkspace: 0)
 					for i = 1; i <= (*m); i += ldwrku {
-						chunk = minint((*m)-i+1, ldwrku)
-						err = goblas.Zgemm(NoTrans, NoTrans, chunk, *n, *n, cone, a.Off(i-1, 0), *lda, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, czero, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku)
+						chunk = min((*m)-i+1, ldwrku)
+						err = goblas.Zgemm(NoTrans, NoTrans, chunk, *n, *n, cone, a.Off(i-1, 0), work.CMatrixOff(ir-1, ldwrkr, opts), czero, work.CMatrixOff(iu-1, ldwrku, opts))
 						Zlacpy('F', &chunk, n, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(i-1, 0), lda)
 					}
 
@@ -661,7 +661,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 						//                    Copy R to WORK(IR), zeroing out below it
 						Zlacpy('U', n, n, a, lda, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(ir+1-1, ldwrkr, opts), &ldwrkr)
+						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(ir, ldwrkr, opts), &ldwrkr)
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need N*N+2*N, prefer N*N+N+N*NB)
@@ -693,7 +693,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    WORK(IR), storing result in U
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, *lda, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, czero, u, *ldu)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, work.CMatrixOff(ir-1, ldwrkr, opts), czero, u)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -772,7 +772,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 						//                    Copy R to WORK(IU), zeroing out below it
 						Zlacpy('U', n, n, a, lda, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu+1-1, ldwrku, opts), &ldwrku)
+						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu, ldwrku, opts), &ldwrku)
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need 2*N*N+2*N, prefer 2*N*N+N+N*NB)
@@ -814,7 +814,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    WORK(IU), storing result in U
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, *lda, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, czero, u, *ldu)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, work.CMatrixOff(iu-1, ldwrku, opts), czero, u)
 
 						//                    Copy right singular vectors of R to A
 						//                    (CWorkspace: need N*N)
@@ -896,7 +896,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 						//                    Copy R to WORK(IU), zeroing out below it
 						Zlacpy('U', n, n, a, lda, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu+1-1, ldwrku, opts), &ldwrku)
+						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu, ldwrku, opts), &ldwrku)
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need N*N+2*N, prefer N*N+N+N*NB)
@@ -936,7 +936,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    WORK(IU), storing result in U
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, *lda, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, czero, u, *ldu)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, a, work.CMatrixOff(iu-1, ldwrku, opts), czero, u)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -998,7 +998,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 Path 7 (M much larger than N, JOBU='A', JOBVT='N')
 					//                 M left singular vectors to be computed in U and
 					//                 no right singular vectors to be computed
-					if (*lwork) >= (*n)*(*n)+maxint((*n)+(*m), 3*(*n)) {
+					if (*lwork) >= (*n)*(*n)+max((*n)+(*m), 3*(*n)) {
 						//                    Sufficient workspace for a fast algorithm
 						ir = 1
 						if (*lwork) >= wrkbl+(*lda)*(*n) {
@@ -1019,7 +1019,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 						//                    Copy R to WORK(IR), zeroing out below it
 						Zlacpy('U', n, n, a, lda, work.CMatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(ir+1-1, ldwrkr, opts), &ldwrkr)
+						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(ir, ldwrkr, opts), &ldwrkr)
 
 						//                    Generate Q in U
 						//                    (CWorkspace: need N*N+N+M, prefer N*N+N+M*NB)
@@ -1051,7 +1051,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    WORK(IR), storing result in A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, *ldu, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, czero, a, *lda)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, work.CMatrixOff(ir-1, ldwrkr, opts), czero, a)
 
 						//                    Copy left singular vectors of A from A to U
 						Zlacpy('F', m, n, a, lda, u, ldu)
@@ -1105,7 +1105,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 Path 8 (M much larger than N, JOBU='A', JOBVT='O')
 					//                 M left singular vectors to be computed in U and
 					//                 N right singular vectors to be overwritten on A
-					if (*lwork) >= 2*(*n)*(*n)+maxint((*n)+(*m), 3*(*n)) {
+					if (*lwork) >= 2*(*n)*(*n)+max((*n)+(*m), 3*(*n)) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
 						if (*lwork) >= wrkbl+2*(*lda)*(*n) {
@@ -1140,7 +1140,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 						//                    Copy R to WORK(IU), zeroing out below it
 						Zlacpy('U', n, n, a, lda, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu+1-1, ldwrku, opts), &ldwrku)
+						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu, ldwrku, opts), &ldwrku)
 						ie = 1
 						itauq = itau
 						itaup = itauq + (*n)
@@ -1177,7 +1177,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    WORK(IU), storing result in A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, *ldu, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, czero, a, *lda)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, work.CMatrixOff(iu-1, ldwrku, opts), czero, a)
 
 						//                    Copy left singular vectors of A from A to U
 						Zlacpy('F', m, n, a, lda, u, ldu)
@@ -1241,7 +1241,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                         or 'A')
 					//                 M left singular vectors to be computed in U and
 					//                 N right singular vectors to be computed in VT
-					if (*lwork) >= (*n)*(*n)+maxint((*n)+(*m), 3*(*n)) {
+					if (*lwork) >= (*n)*(*n)+max((*n)+(*m), 3*(*n)) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
 						if (*lwork) >= wrkbl+(*lda)*(*n) {
@@ -1267,7 +1267,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 
 						//                    Copy R to WORK(IU), zeroing out below it
 						Zlacpy('U', n, n, a, lda, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu+1-1, ldwrku, opts), &ldwrku)
+						Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, work.CMatrixOff(iu, ldwrku, opts), &ldwrku)
 						ie = 1
 						itauq = itau
 						itaup = itauq + (*n)
@@ -1302,7 +1302,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    WORK(IU), storing result in A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, *ldu, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, czero, a, *lda)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, cone, u, work.CMatrixOff(iu-1, ldwrku, opts), czero, a)
 
 						//                    Copy left singular vectors of A from A to U
 						Zlacpy('F', m, n, a, lda, u, ldu)
@@ -1509,12 +1509,12 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if (*lwork) >= (*m)*(*m)+3*(*m) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*lda)*(*m) {
+					if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*lda)*(*m) {
 						//                    WORK(IU) is LDA by N and WORK(IR) is LDA by M
 						ldwrku = (*lda)
 						chunk = (*n)
 						ldwrkr = (*lda)
-					} else if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*m)*(*m) {
+					} else if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*m)*(*m) {
 						//                    WORK(IU) is LDA by N and WORK(IR) is M by M
 						ldwrku = (*lda)
 						chunk = (*n)
@@ -1569,8 +1569,8 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 (CWorkspace: need M*M+M, prefer M*M+M*N)
 					//                 (RWorkspace: 0)
 					for i = 1; i <= (*n); i += chunk {
-						blk = minint((*n)-i+1, chunk)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, blk, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, a.Off(0, i-1), *lda, czero, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku)
+						blk = min((*n)-i+1, chunk)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, blk, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), czero, work.CMatrixOff(iu-1, ldwrku, opts))
 						Zlacpy('F', m, &blk, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(0, i-1), lda)
 					}
 
@@ -1608,12 +1608,12 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 				if (*lwork) >= (*m)*(*m)+3*(*m) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*lda)*(*m) {
+					if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*lda)*(*m) {
 						//                    WORK(IU) is LDA by N and WORK(IR) is LDA by M
 						ldwrku = (*lda)
 						chunk = (*n)
 						ldwrkr = (*lda)
-					} else if (*lwork) >= maxint(wrkbl, (*lda)*(*n))+(*m)*(*m) {
+					} else if (*lwork) >= max(wrkbl, (*lda)*(*n))+(*m)*(*m) {
 						//                    WORK(IU) is LDA by N and WORK(IR) is M by M
 						ldwrku = (*lda)
 						chunk = (*n)
@@ -1675,8 +1675,8 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 (CWorkspace: need M*M+M, prefer M*M+M*N))
 					//                 (RWorkspace: 0)
 					for i = 1; i <= (*n); i += chunk {
-						blk = minint((*n)-i+1, chunk)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, blk, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, a.Off(0, i-1), *lda, czero, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku)
+						blk = min((*n)-i+1, chunk)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, blk, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), czero, work.CMatrixOff(iu-1, ldwrku, opts))
 						Zlacpy('F', m, &blk, work.CMatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(0, i-1), lda)
 					}
 
@@ -1788,7 +1788,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    Q in A, storing result in VT
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, a, *lda, czero, vt, *ldvt)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), a, czero, vt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1909,7 +1909,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    Q in A, storing result in VT
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, a, *lda, czero, vt, *ldvt)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), a, czero, vt)
 
 						//                    Copy left singular vectors of L to A
 						//                    (CWorkspace: need M*M)
@@ -2029,7 +2029,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    Q in A, storing result in VT
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, a, *lda, czero, vt, *ldvt)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), a, czero, vt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -2089,7 +2089,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 Path 7t(N much larger than M, JOBU='N', JOBVT='A')
 					//                 N right singular vectors to be computed in VT and
 					//                 no left singular vectors to be computed
-					if (*lwork) >= (*m)*(*m)+maxint((*n)+(*m), 3*(*m)) {
+					if (*lwork) >= (*m)*(*m)+max((*n)+(*m), 3*(*m)) {
 						//                    Sufficient workspace for a fast algorithm
 						ir = 1
 						if (*lwork) >= wrkbl+(*lda)*(*m) {
@@ -2143,7 +2143,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    Q in VT, storing result in A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), ldwrkr, vt, *ldvt, czero, a, *lda)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), vt, czero, a)
 
 						//                    Copy right singular vectors of A from A to VT
 						Zlacpy('F', m, n, a, lda, vt, ldvt)
@@ -2195,7 +2195,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                 Path 8t(N much larger than M, JOBU='O', JOBVT='A')
 					//                 N right singular vectors to be computed in VT and
 					//                 M left singular vectors to be overwritten on A
-					if (*lwork) >= 2*(*m)*(*m)+maxint((*n)+(*m), 3*(*m)) {
+					if (*lwork) >= 2*(*m)*(*m)+max((*n)+(*m), 3*(*m)) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
 						if (*lwork) >= wrkbl+2*(*lda)*(*m) {
@@ -2267,7 +2267,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    Q in VT, storing result in A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, vt, *ldvt, czero, a, *lda)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), vt, czero, a)
 
 						//                    Copy right singular vectors of A from A to VT
 						Zlacpy('F', m, n, a, lda, vt, ldvt)
@@ -2329,7 +2329,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 					//                         JOBVT='A')
 					//                 N right singular vectors to be computed in VT and
 					//                 M left singular vectors to be computed in U
-					if (*lwork) >= (*m)*(*m)+maxint((*n)+(*m), 3*(*m)) {
+					if (*lwork) >= (*m)*(*m)+max((*n)+(*m), 3*(*m)) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
 						if (*lwork) >= wrkbl+(*lda)*(*m) {
@@ -2389,7 +2389,7 @@ func Zgesvd(jobu, jobvt byte, m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector
 						//                    Q in VT, storing result in A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), ldwrku, vt, *ldvt, czero, a, *lda)
+						err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, cone, work.CMatrixOff(iu-1, ldwrku, opts), vt, czero, a)
 
 						//                    Copy right singular vectors of A from A to VT
 						Zlacpy('F', m, n, a, lda, vt, ldvt)

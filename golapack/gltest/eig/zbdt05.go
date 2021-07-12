@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -29,7 +31,7 @@ func Zbdt05(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, ns *int, u *mat.
 
 	//     Quick return if possible.
 	(*resid) = zero
-	if minint(*m, *n) <= 0 || (*ns) <= 0 {
+	if min(*m, *n) <= 0 || (*ns) <= 0 {
 		return
 	}
 
@@ -37,14 +39,14 @@ func Zbdt05(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, ns *int, u *mat.
 	anorm = golapack.Zlange('M', m, n, a, lda, dum)
 
 	//     Compute U' * A * V.
-	err = goblas.Zgemm(NoTrans, ConjTrans, *m, *ns, *n, cone, a, *lda, vt, *ldvt, czero, work.CMatrixOff(1+(*ns)*(*ns)-1, *m, opts), *m)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *ns, *ns, *m, -cone, u.CMatrix(*ldu, opts), *ldu, work.CMatrixOff(1+(*ns)*(*ns)-1, *m, opts), *m, czero, work.CMatrix(*ns, opts), *ns)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *m, *ns, *n, cone, a, vt, czero, work.CMatrixOff(1+(*ns)*(*ns)-1, *m, opts))
+	err = goblas.Zgemm(ConjTrans, NoTrans, *ns, *ns, *m, -cone, u.CMatrix(*ldu, opts), work.CMatrixOff(1+(*ns)*(*ns)-1, *m, opts), czero, work.CMatrix(*ns, opts))
 
 	//     norm(S - U' * B * V)
 	j = 0
 	for i = 1; i <= (*ns); i++ {
 		work.Set(j+i-1, work.Get(j+i-1)+complex(s.Get(i-1), zero))
-		(*resid) = maxf64(*resid, goblas.Dzasum(*ns, work.Off(j+1-1), 1))
+		(*resid) = math.Max(*resid, goblas.Dzasum(*ns, work.Off(j, 1)))
 		j = j + (*ns)
 	}
 
@@ -57,9 +59,9 @@ func Zbdt05(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, ns *int, u *mat.
 			(*resid) = ((*resid) / anorm) / (float64(*n) * eps)
 		} else {
 			if anorm < one {
-				(*resid) = (minf64(*resid, float64(*n)*anorm) / anorm) / (float64(*n) * eps)
+				(*resid) = (math.Min(*resid, float64(*n)*anorm) / anorm) / (float64(*n) * eps)
 			} else {
-				(*resid) = minf64((*resid)/anorm, float64(*n)) / (float64(*n) * eps)
+				(*resid) = math.Min((*resid)/anorm, float64(*n)) / (float64(*n) * eps)
 			}
 		}
 	}

@@ -85,21 +85,21 @@ func Dlals0(icompq, nl, nr, sqre, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Ma
 		//
 		//        Step (1L): apply back the Givens rotations performed.
 		for i = 1; i <= (*givptr); i++ {
-			goblas.Drot(*nrhs, b.Vector((*givcol)[i-1+(2-1)*(*ldgcol)]-1, 0), *ldb, b.Vector((*givcol)[i-1+(1-1)*(*ldgcol)]-1, 0), *ldb, givnum.Get(i-1, 1), givnum.Get(i-1, 0))
+			goblas.Drot(*nrhs, b.Vector((*givcol)[i-1+(2-1)*(*ldgcol)]-1, 0), b.Vector((*givcol)[i-1+(1-1)*(*ldgcol)]-1, 0), givnum.Get(i-1, 1), givnum.Get(i-1, 0))
 		}
 
 		//        Step (2L): permute rows of B.
-		goblas.Dcopy(*nrhs, b.Vector(nlp1-1, 0), *ldb, bx.Vector(0, 0), *ldbx)
+		goblas.Dcopy(*nrhs, b.Vector(nlp1-1, 0), bx.Vector(0, 0))
 		for i = 2; i <= n; i++ {
-			goblas.Dcopy(*nrhs, b.Vector((*perm)[i-1]-1, 0), *ldb, bx.Vector(i-1, 0), *ldbx)
+			goblas.Dcopy(*nrhs, b.Vector((*perm)[i-1]-1, 0), bx.Vector(i-1, 0))
 		}
 
 		//        Step (3L): apply the inverse of the left singular vector
 		//        matrix to BX.
 		if (*k) == 1 {
-			goblas.Dcopy(*nrhs, bx.VectorIdx(0), *ldbx, b.VectorIdx(0), *ldb)
+			goblas.Dcopy(*nrhs, bx.VectorIdx(0), b.VectorIdx(0))
 			if z.Get(0) < zero {
-				goblas.Dscal(*nrhs, negone, b.VectorIdx(0), *ldb)
+				goblas.Dscal(*nrhs, negone, b.VectorIdx(0))
 			}
 		} else {
 			for j = 1; j <= (*k); j++ {
@@ -108,7 +108,7 @@ func Dlals0(icompq, nl, nr, sqre, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Ma
 				dsigj = -poles.Get(j-1, 1)
 				if j < (*k) {
 					difrj = -difr.Get(j-1, 0)
-					dsigjp = -poles.Get(j+1-1, 1)
+					dsigjp = -poles.Get(j, 1)
 				}
 				if (z.Get(j-1) == zero) || (poles.Get(j-1, 1) == zero) {
 					work.Set(j-1, zero)
@@ -130,15 +130,15 @@ func Dlals0(icompq, nl, nr, sqre, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Ma
 					}
 				}
 				work.Set(0, negone)
-				temp = goblas.Dnrm2(*k, work, 1)
-				err = goblas.Dgemv(Trans, *k, *nrhs, one, bx, *ldbx, work, 1, zero, b.Vector(j-1, 0), *ldb)
+				temp = goblas.Dnrm2(*k, work)
+				err = goblas.Dgemv(Trans, *k, *nrhs, one, bx, work, zero, b.Vector(j-1, 0))
 				Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &temp, &one, func() *int { y := 1; return &y }(), nrhs, b.Off(j-1, 0), ldb, info)
 			}
 		}
 
 		//        Move the deflated rows of BX to B also.
-		if (*k) < maxint(m, n) {
-			Dlacpy('A', toPtr(n-(*k)), nrhs, bx.Off((*k)+1-1, 0), ldbx, b.Off((*k)+1-1, 0), ldb)
+		if (*k) < max(m, n) {
+			Dlacpy('A', toPtr(n-(*k)), nrhs, bx.Off((*k), 0), ldbx, b.Off((*k), 0), ldb)
 		}
 	} else {
 		//        Apply back the right orthogonal transformations.
@@ -146,7 +146,7 @@ func Dlals0(icompq, nl, nr, sqre, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Ma
 		//        Step (1R): apply back the new right singular vector matrix
 		//        to B.
 		if (*k) == 1 {
-			goblas.Dcopy(*nrhs, b.VectorIdx(0), *ldb, bx.VectorIdx(0), *ldbx)
+			goblas.Dcopy(*nrhs, b.VectorIdx(0), bx.VectorIdx(0))
 		} else {
 			for j = 1; j <= (*k); j++ {
 				dsigj = poles.Get(j-1, 1)
@@ -159,7 +159,7 @@ func Dlals0(icompq, nl, nr, sqre, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Ma
 					if z.Get(j-1) == zero {
 						work.Set(i-1, zero)
 					} else {
-						work.Set(i-1, z.Get(j-1)/(Dlamc3(&dsigj, func() *float64 { y := -poles.Get(i+1-1, 1); return &y }())-difr.Get(i-1, 0))/(dsigj+poles.Get(i-1, 0))/difr.Get(i-1, 1))
+						work.Set(i-1, z.Get(j-1)/(Dlamc3(&dsigj, func() *float64 { y := -poles.Get(i, 1); return &y }())-difr.Get(i-1, 0))/(dsigj+poles.Get(i-1, 0))/difr.Get(i-1, 1))
 					}
 				}
 				for i = j + 1; i <= (*k); i++ {
@@ -169,32 +169,32 @@ func Dlals0(icompq, nl, nr, sqre, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Ma
 						work.Set(i-1, z.Get(j-1)/(Dlamc3(&dsigj, func() *float64 { y := -poles.Get(i-1, 1); return &y }())-difl.Get(i-1))/(dsigj+poles.Get(i-1, 0))/difr.Get(i-1, 1))
 					}
 				}
-				err = goblas.Dgemv(Trans, *k, *nrhs, one, b, *ldb, work, 1, zero, bx.Vector(j-1, 0), *ldbx)
+				err = goblas.Dgemv(Trans, *k, *nrhs, one, b, work, zero, bx.Vector(j-1, 0))
 			}
 		}
 
 		//        Step (2R): if SQRE = 1, apply back the rotation that is
 		//        related to the right null space of the subproblem.
 		if (*sqre) == 1 {
-			goblas.Dcopy(*nrhs, b.Vector(m-1, 0), *ldb, bx.Vector(m-1, 0), *ldbx)
-			goblas.Drot(*nrhs, bx.Vector(0, 0), *ldbx, bx.Vector(m-1, 0), *ldbx, *c, *s)
+			goblas.Dcopy(*nrhs, b.Vector(m-1, 0), bx.Vector(m-1, 0))
+			goblas.Drot(*nrhs, bx.Vector(0, 0), bx.Vector(m-1, 0), *c, *s)
 		}
-		if (*k) < maxint(m, n) {
-			Dlacpy('A', toPtr(n-(*k)), nrhs, b.Off((*k)+1-1, 0), ldb, bx.Off((*k)+1-1, 0), ldbx)
+		if (*k) < max(m, n) {
+			Dlacpy('A', toPtr(n-(*k)), nrhs, b.Off((*k), 0), ldb, bx.Off((*k), 0), ldbx)
 		}
 
 		//        Step (3R): permute rows of B.
-		goblas.Dcopy(*nrhs, bx.VectorIdx(0), *ldbx, b.Vector(nlp1-1, 0), *ldb)
+		goblas.Dcopy(*nrhs, bx.VectorIdx(0), b.Vector(nlp1-1, 0))
 		if (*sqre) == 1 {
-			goblas.Dcopy(*nrhs, bx.Vector(m-1, 0), *ldbx, b.Vector(m-1, 0), *ldb)
+			goblas.Dcopy(*nrhs, bx.Vector(m-1, 0), b.Vector(m-1, 0))
 		}
 		for i = 2; i <= n; i++ {
-			goblas.Dcopy(*nrhs, bx.Vector(i-1, 0), *ldbx, b.Vector((*perm)[i-1]-1, 0), *ldb)
+			goblas.Dcopy(*nrhs, bx.Vector(i-1, 0), b.Vector((*perm)[i-1]-1, 0))
 		}
 
 		//        Step (4R): apply back the Givens rotations performed.
 		for i = (*givptr); i >= 1; i-- {
-			goblas.Drot(*nrhs, b.Vector((*givcol)[i-1+(2-1)*(*ldgcol)]-1, 0), *ldb, b.Vector((*givcol)[i-1+(1-1)*(*ldgcol)]-1, 0), *ldb, givnum.Get(i-1, 1), -givnum.Get(i-1, 0))
+			goblas.Drot(*nrhs, b.Vector((*givcol)[i-1+(2-1)*(*ldgcol)]-1, 0), b.Vector((*givcol)[i-1+(1-1)*(*ldgcol)]-1, 0), givnum.Get(i-1, 1), -givnum.Get(i-1, 0))
 		}
 	}
 }

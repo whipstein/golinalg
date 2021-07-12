@@ -51,12 +51,12 @@ func Zlascl(_type byte, kl, ku *int, cfrom, cto *float64, m, n *int, a *mat.CMat
 		(*info) = -6
 	} else if (*n) < 0 || (itype == 4 && (*n) != (*m)) || (itype == 5 && (*n) != (*m)) {
 		(*info) = -7
-	} else if itype <= 3 && (*lda) < maxint(1, *m) {
+	} else if itype <= 3 && (*lda) < max(1, *m) {
 		(*info) = -9
 	} else if itype >= 4 {
-		if (*kl) < 0 || (*kl) > maxint((*m)-1, 0) {
+		if (*kl) < 0 || (*kl) > max((*m)-1, 0) {
 			(*info) = -2
-		} else if (*ku) < 0 || (*ku) > maxint((*n)-1, 0) || ((itype == 4 || itype == 5) && (*kl) != (*ku)) {
+		} else if (*ku) < 0 || (*ku) > max((*n)-1, 0) || ((itype == 4 || itype == 5) && (*kl) != (*ku)) {
 			(*info) = -3
 		} else if (itype == 4 && (*lda) < (*kl)+1) || (itype == 5 && (*lda) < (*ku)+1) || (itype == 6 && (*lda) < 2*(*kl)+(*ku)+1) {
 			(*info) = -9
@@ -134,7 +134,7 @@ label10:
 	} else if itype == 2 {
 		//        Upper triangular matrix
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(j, *m); i++ {
+			for i = 1; i <= min(j, *m); i++ {
 				a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(mul, 0))
 			}
 		}
@@ -142,7 +142,7 @@ label10:
 	} else if itype == 3 {
 		//        Upper Hessenberg matrix
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(j+1, *m); i++ {
+			for i = 1; i <= min(j+1, *m); i++ {
 				a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(mul, 0))
 			}
 		}
@@ -152,7 +152,7 @@ label10:
 		k3 = (*kl) + 1
 		k4 = (*n) + 1
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(k3, k4-j); i++ {
+			for i = 1; i <= min(k3, k4-j); i++ {
 				a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(mul, 0))
 			}
 		}
@@ -162,7 +162,7 @@ label10:
 		k1 = (*ku) + 2
 		k3 = (*ku) + 1
 		for j = 1; j <= (*n); j++ {
-			for i = maxint(k1-j, 1); i <= k3; i++ {
+			for i = max(k1-j, 1); i <= k3; i++ {
 				a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(mul, 0))
 			}
 		}
@@ -174,7 +174,7 @@ label10:
 		k3 = 2*(*kl) + (*ku) + 1
 		k4 = (*kl) + (*ku) + 1 + (*m)
 		for j = 1; j <= (*n); j++ {
-			for i = maxint(k1-j, k2); i <= minint(k3, k4-j); i++ {
+			for i = max(k1-j, k2); i <= min(k3, k4-j); i++ {
 				a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(mul, 0))
 			}
 		}

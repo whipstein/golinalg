@@ -8,7 +8,7 @@ import (
 )
 
 // Zgelqs Compute a minimum-norm solution
-//     minint || A*X - B ||
+//     min || A*X - B ||
 // using the LQ factorization
 //     A = L*Q
 // computed by ZGELQF.
@@ -28,9 +28,9 @@ func Zgelqs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	} else if (*lwork) < 1 || (*lwork) < (*nrhs) && (*m) > 0 && (*n) > 0 {
 		(*info) = -10
@@ -46,11 +46,11 @@ func Zgelqs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	}
 
 	//     Solve L*X = B(1:m,:)
-	err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *m, *nrhs, cone, a, *lda, b, *ldb)
+	err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *m, *nrhs, cone, a, b)
 
 	//     Set B(m+1:n,:) to zero
 	if (*m) < (*n) {
-		golapack.Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m)+1-1, 0), ldb)
+		golapack.Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m), 0), ldb)
 	}
 
 	//     B := Q' * B

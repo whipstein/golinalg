@@ -35,7 +35,7 @@ func Dchktsqr(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval
 		//        Do for each value of N in NVAL.
 		for j = 1; j <= (*nn); j++ {
 			n = (*nval)[j-1]
-			if minint(m, n) != 0 {
+			if min(m, n) != 0 {
 				for inb = 1; inb <= (*nnb); inb++ {
 					mb = (*nbval)[inb-1]
 					Xlaenv(1, mb)
@@ -72,7 +72,7 @@ func Dchktsqr(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval
 		//        Do for each value of N in NVAL.
 		for j = 1; j <= (*nn); j++ {
 			n = (*nval)[j-1]
-			if minint(m, n) != 0 {
+			if min(m, n) != 0 {
 				for inb = 1; inb <= (*nnb); inb++ {
 					mb = (*nbval)[inb-1]
 					Xlaenv(1, mb)

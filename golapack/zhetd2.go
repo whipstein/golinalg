@@ -27,7 +27,7 @@ func Zhetd2(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau *
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -46,30 +46,30 @@ func Zhetd2(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau *
 		for i = (*n) - 1; i >= 1; i-- { //
 			//           Generate elementary reflector H(i) = I - tau * v * v**H
 			//           to annihilate A(1:i-1,i+1)
-			alpha = a.Get(i-1, i+1-1)
-			Zlarfg(&i, &alpha, a.CVector(0, i+1-1), func() *int { y := 1; return &y }(), &taui)
+			alpha = a.Get(i-1, i)
+			Zlarfg(&i, &alpha, a.CVector(0, i), func() *int { y := 1; return &y }(), &taui)
 			e.Set(i-1, real(alpha))
 
 			if taui != zero {
 				//              Apply H(i) from both sides to A(1:i,1:i)
-				a.Set(i-1, i+1-1, one)
+				a.Set(i-1, i, one)
 
 				//              Compute  x := tau * A * v  storing x in TAU(1:i)
-				err = goblas.Zhemv(mat.UploByte(uplo), i, taui, a, *lda, a.CVector(0, i+1-1), 1, zero, tau, 1)
+				err = goblas.Zhemv(mat.UploByte(uplo), i, taui, a, a.CVector(0, i, 1), zero, tau.Off(0, 1))
 
 				//              Compute  w := x - 1/2 * tau * (x**H * v) * v
-				alpha = -half * taui * goblas.Zdotc(i, tau, 1, a.CVector(0, i+1-1), 1)
-				goblas.Zaxpy(i, alpha, a.CVector(0, i+1-1), 1, tau, 1)
+				alpha = -half * taui * goblas.Zdotc(i, tau.Off(0, 1), a.CVector(0, i, 1))
+				goblas.Zaxpy(i, alpha, a.CVector(0, i, 1), tau.Off(0, 1))
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**H - w * v**H
-				err = goblas.Zher2(mat.UploByte(uplo), i, -one, a.CVector(0, i+1-1), 1, tau, 1, a, *lda)
+				err = goblas.Zher2(mat.UploByte(uplo), i, -one, a.CVector(0, i, 1), tau.Off(0, 1), a)
 
 			} else {
 				a.Set(i-1, i-1, a.GetReCmplx(i-1, i-1))
 			}
-			a.Set(i-1, i+1-1, e.GetCmplx(i-1))
-			d.Set(i+1-1, a.GetRe(i+1-1, i+1-1))
+			a.Set(i-1, i, e.GetCmplx(i-1))
+			d.Set(i, a.GetRe(i, i))
 			tau.Set(i-1, taui)
 		}
 		d.Set(0, a.GetRe(0, 0))
@@ -79,29 +79,29 @@ func Zhetd2(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau *
 		for i = 1; i <= (*n)-1; i++ {
 			//           Generate elementary reflector H(i) = I - tau * v * v**H
 			//           to annihilate A(i+2:n,i)
-			alpha = a.Get(i+1-1, i-1)
-			Zlarfg(toPtr((*n)-i), &alpha, a.CVector(minint(i+2, *n)-1, i-1), func() *int { y := 1; return &y }(), &taui)
+			alpha = a.Get(i, i-1)
+			Zlarfg(toPtr((*n)-i), &alpha, a.CVector(min(i+2, *n)-1, i-1), func() *int { y := 1; return &y }(), &taui)
 			e.Set(i-1, real(alpha))
 
 			if taui != zero {
 				//              Apply H(i) from both sides to A(i+1:n,i+1:n)
-				a.Set(i+1-1, i-1, one)
+				a.Set(i, i-1, one)
 
 				//              Compute  x := tau * A * v  storing y in TAU(i:n-1)
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-i, taui, a.Off(i+1-1, i+1-1), *lda, a.CVector(i+1-1, i-1), 1, zero, tau.Off(i-1), 1)
+				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-i, taui, a.Off(i, i), a.CVector(i, i-1, 1), zero, tau.Off(i-1, 1))
 
 				//              Compute  w := x - 1/2 * tau * (x**H * v) * v
-				alpha = -half * taui * goblas.Zdotc((*n)-i, tau.Off(i-1), 1, a.CVector(i+1-1, i-1), 1)
-				goblas.Zaxpy((*n)-i, alpha, a.CVector(i+1-1, i-1), 1, tau.Off(i-1), 1)
+				alpha = -half * taui * goblas.Zdotc((*n)-i, tau.Off(i-1, 1), a.CVector(i, i-1, 1))
+				goblas.Zaxpy((*n)-i, alpha, a.CVector(i, i-1, 1), tau.Off(i-1, 1))
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**H - w * v**H
-				err = goblas.Zher2(mat.UploByte(uplo), (*n)-i, -one, a.CVector(i+1-1, i-1), 1, tau.Off(i-1), 1, a.Off(i+1-1, i+1-1), *lda)
+				err = goblas.Zher2(mat.UploByte(uplo), (*n)-i, -one, a.CVector(i, i-1, 1), tau.Off(i-1, 1), a.Off(i, i))
 
 			} else {
-				a.Set(i+1-1, i+1-1, a.GetReCmplx(i+1-1, i+1-1))
+				a.Set(i, i, a.GetReCmplx(i, i))
 			}
-			a.Set(i+1-1, i-1, e.GetCmplx(i-1))
+			a.Set(i, i-1, e.GetCmplx(i-1))
 			d.Set(i-1, a.GetRe(i-1, i-1))
 			tau.Set(i-1, taui)
 		}

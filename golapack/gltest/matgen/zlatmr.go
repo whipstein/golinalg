@@ -1,6 +1,7 @@
 package matgen
 
 import (
+	"math"
 	"math/cmplx"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -131,10 +132,10 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 		npvts = (*n)
 	} else if pivtng == 'B' {
 		ipvtng = 3
-		npvts = minint(*n, *m)
+		npvts = min(*n, *m)
 	} else if pivtng == 'F' {
 		ipvtng = 3
-		npvts = minint(*n, *m)
+		npvts = min(*n, *m)
 	} else {
 		ipvtng = -1
 	}
@@ -180,9 +181,9 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 	}
 
 	//     Set certain internal parameters
-	mnmin = minint(*m, *n)
-	kll = minint(*kl, (*m)-1)
-	kuu = minint(*ku, (*n)-1)
+	mnmin = min(*m, *n)
+	kll = min(*kl, (*m)-1)
+	kuu = min(*ku, (*n)-1)
 
 	//     If inv(DL) is used, check to see if DL has a zero entry.
 	dzero = false
@@ -245,7 +246,7 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 		(*info) = -22
 	} else if ipack == -1 || ((ipack == 1 || ipack == 2 || ipack == 5 || ipack == 6) && isym == 1) || (ipack == 3 && isym == 1 && ((*kl) != 0 || (*m) != (*n))) || (ipack == 4 && isym == 1 && ((*ku) != 0 || (*m) != (*n))) {
 		(*info) = -24
-	} else if ((ipack == 0 || ipack == 1 || ipack == 2) && (*lda) < maxint(1, *m)) || ((ipack == 3 || ipack == 4) && (*lda) < 1) || ((ipack == 5 || ipack == 6) && (*lda) < kuu+1) || (ipack == 7 && (*lda) < kll+kuu+1) {
+	} else if ((ipack == 0 || ipack == 1 || ipack == 2) && (*lda) < max(1, *m)) || ((ipack == 3 || ipack == 4) && (*lda) < 1) || ((ipack == 5 || ipack == 6) && (*lda) < kuu+1) || (ipack == 7 && (*lda) < kll+kuu+1) {
 		(*info) = -26
 	}
 
@@ -262,7 +263,7 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 
 	//     Initialize random number generator
 	for i = 1; i <= 4; i++ {
-		(*iseed)[i-1] = absint((*iseed)[i-1]) % 4096
+		(*iseed)[i-1] = abs((*iseed)[i-1]) % 4096
 	}
 
 	(*iseed)[3] = 2*((*iseed)[3]/2) + 1
@@ -279,7 +280,7 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 		//        Scale by DMAX
 		temp = d.GetMag(0)
 		for i = 2; i <= mnmin; i++ {
-			temp = maxf64(temp, d.GetMag(i-1))
+			temp = math.Max(temp, d.GetMag(i-1))
 		}
 		if temp == zero && (*dmax) != czero {
 			(*info) = 2
@@ -381,8 +382,8 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			for j = 1; j <= (*n); j++ {
 				for i = 1; i <= j; i++ {
 					ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					if mxsub == isub && isym == 0 {
 						a.Set(mnsub-1, mxsub-1, cmplx.Conj(ctemp))
 					} else {
@@ -399,8 +400,8 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			for j = 1; j <= (*n); j++ {
 				for i = 1; i <= j; i++ {
 					ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					if mxsub == jsub && isym == 0 {
 						a.Set(mxsub-1, mnsub-1, cmplx.Conj(ctemp))
 					} else {
@@ -420,8 +421,8 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 
 					//                 Compute K = location of (ISUB,JSUB) entry in packed
 					//                 array
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					k = mxsub*(mxsub-1)/2 + mnsub
 
 					//                 Convert K to (IISUB,JJSUB) location
@@ -443,8 +444,8 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 					ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
 
 					//                 Compute K = location of (I,J) entry in packed array
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					if mnsub == 1 {
 						k = mxsub
 					} else {
@@ -468,15 +469,15 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
 					if i < 1 {
-						a.Set(j-i+1-1, i+(*n)-1, czero)
+						a.Set(j-i, i+(*n)-1, czero)
 					} else {
 						ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-						mnsub = minint(isub, jsub)
-						mxsub = maxint(isub, jsub)
+						mnsub = min(isub, jsub)
+						mxsub = max(isub, jsub)
 						if mxsub == jsub && isym == 0 {
-							a.Set(mxsub-mnsub+1-1, mnsub-1, cmplx.Conj(ctemp))
+							a.Set(mxsub-mnsub, mnsub-1, cmplx.Conj(ctemp))
 						} else {
-							a.Set(mxsub-mnsub+1-1, mnsub-1, ctemp)
+							a.Set(mxsub-mnsub, mnsub-1, ctemp)
 						}
 					}
 				}
@@ -487,12 +488,12 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
 					ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					if mxsub == isub && isym == 0 {
-						a.Set(mnsub-mxsub+kuu+1-1, mxsub-1, cmplx.Conj(ctemp))
+						a.Set(mnsub-mxsub+kuu, mxsub-1, cmplx.Conj(ctemp))
 					} else {
-						a.Set(mnsub-mxsub+kuu+1-1, mxsub-1, ctemp)
+						a.Set(mnsub-mxsub+kuu, mxsub-1, ctemp)
 					}
 				}
 			}
@@ -503,15 +504,15 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j; i++ {
 						ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-						mnsub = minint(isub, jsub)
-						mxsub = maxint(isub, jsub)
+						mnsub = min(isub, jsub)
+						mxsub = max(isub, jsub)
 						if i < 1 {
 							a.Set(j-i+1+kuu-1, i+(*n)-1, czero)
 						}
 						if mxsub == isub && isym == 0 {
-							a.Set(mnsub-mxsub+kuu+1-1, mxsub-1, cmplx.Conj(ctemp))
+							a.Set(mnsub-mxsub+kuu, mxsub-1, cmplx.Conj(ctemp))
 						} else {
-							a.Set(mnsub-mxsub+kuu+1-1, mxsub-1, ctemp)
+							a.Set(mnsub-mxsub+kuu, mxsub-1, ctemp)
 						}
 						if i >= 1 && mnsub != mxsub {
 							if mnsub == isub && isym == 0 {
@@ -526,7 +527,7 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j+kll; i++ {
 						ctemp = Zlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-						a.Set(isub-jsub+kuu+1-1, jsub-1, ctemp)
+						a.Set(isub-jsub+kuu, jsub-1, ctemp)
 					}
 				}
 			}
@@ -641,12 +642,12 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
 					if i < 1 {
-						a.Set(j-i+1-1, i+(*n)-1, czero)
+						a.Set(j-i, i+(*n)-1, czero)
 					} else {
 						if isym == 0 {
-							a.Set(j-i+1-1, i-1, cmplx.Conj(Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)))
+							a.Set(j-i, i-1, cmplx.Conj(Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)))
 						} else {
-							a.Set(j-i+1-1, i-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+							a.Set(j-i, i-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 						}
 					}
 				}
@@ -656,7 +657,7 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
-					a.Set(i-j+kuu+1-1, j-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+					a.Set(i-j+kuu, j-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 				}
 			}
 
@@ -665,15 +666,15 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			if isym != 1 {
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j; i++ {
-						a.Set(i-j+kuu+1-1, j-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+						a.Set(i-j+kuu, j-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 						if i < 1 {
 							a.Set(j-i+1+kuu-1, i+(*n)-1, czero)
 						}
 						if i >= 1 && i != j {
 							if isym == 0 {
-								a.Set(j-i+1+kuu-1, i-1, cmplx.Conj(a.Get(i-j+kuu+1-1, j-1)))
+								a.Set(j-i+1+kuu-1, i-1, cmplx.Conj(a.Get(i-j+kuu, j-1)))
 							} else {
-								a.Set(j-i+1+kuu-1, i-1, a.Get(i-j+kuu+1-1, j-1))
+								a.Set(j-i+1+kuu-1, i-1, a.Get(i-j+kuu, j-1))
 							}
 						}
 					}
@@ -681,7 +682,7 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			} else if isym == 1 {
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j+kll; i++ {
-						a.Set(i-j+kuu+1-1, j-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+						a.Set(i-j+kuu, j-1, Zlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 					}
 				}
 			}
@@ -720,20 +721,20 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			//           Scale carefully to avoid over / underflow
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(*m, one/onorm, a.CVector(0, j-1), 1)
-					goblas.Zdscal(*m, *anorm, a.CVector(0, j-1), 1)
+					goblas.Zdscal(*m, one/onorm, a.CVector(0, j-1, 1))
+					goblas.Zdscal(*m, *anorm, a.CVector(0, j-1, 1))
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Zdscal((*n)*((*n)+1)/2, one/onorm, a.CVector(0, 0), 1)
-				goblas.Zdscal((*n)*((*n)+1)/2, *anorm, a.CVector(0, 0), 1)
+				goblas.Zdscal((*n)*((*n)+1)/2, one/onorm, a.CVector(0, 0, 1))
+				goblas.Zdscal((*n)*((*n)+1)/2, *anorm, a.CVector(0, 0, 1))
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(kll+kuu+1, one/onorm, a.CVector(0, j-1), 1)
-					goblas.Zdscal(kll+kuu+1, *anorm, a.CVector(0, j-1), 1)
+					goblas.Zdscal(kll+kuu+1, one/onorm, a.CVector(0, j-1, 1))
+					goblas.Zdscal(kll+kuu+1, *anorm, a.CVector(0, j-1, 1))
 				}
 
 			}
@@ -742,17 +743,17 @@ func Zlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode *
 			//           Scale straightforwardly
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(*m, (*anorm)/onorm, a.CVector(0, j-1), 1)
+					goblas.Zdscal(*m, (*anorm)/onorm, a.CVector(0, j-1, 1))
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Zdscal((*n)*((*n)+1)/2, (*anorm)/onorm, a.CVector(0, 0), 1)
+				goblas.Zdscal((*n)*((*n)+1)/2, (*anorm)/onorm, a.CVector(0, 0, 1))
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Zdscal(kll+kuu+1, (*anorm)/onorm, a.CVector(0, j-1), 1)
+					goblas.Zdscal(kll+kuu+1, (*anorm)/onorm, a.CVector(0, j-1, 1))
 				}
 			}
 

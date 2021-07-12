@@ -35,11 +35,11 @@ func Zhesvaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.CV
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	} else if (*ltb) < (4*(*n)) && !tquery {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -11
 	} else if (*lwork) < (*n) && !wquery {
 		(*info) = -13

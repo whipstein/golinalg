@@ -36,7 +36,7 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -88,7 +88,7 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 			//           Compute the Cholesky factorization P**T * A * P = U**T * U
 			for k = 1; k <= (*n); k += nb {
 				//              Account for last block not being NB wide
-				jb = minint(nb, (*n)-k+1)
+				jb = min(nb, (*n)-k+1)
 
 				//              Set relevant part of first half of WORK to zero,
 				//              holds dot products
@@ -121,11 +121,11 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 					if j != pvt {
 						//                    Pivot OK, so can now swap pivot rows and columns
 						a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-						goblas.Dswap(j-1, a.Vector(0, j-1), 1, a.Vector(0, pvt-1), 1)
+						goblas.Dswap(j-1, a.Vector(0, j-1, 1), a.Vector(0, pvt-1, 1))
 						if pvt < (*n) {
-							goblas.Dswap((*n)-pvt, a.Vector(j-1, pvt+1-1), *lda, a.Vector(pvt-1, pvt+1-1), *lda)
+							goblas.Dswap((*n)-pvt, a.Vector(j-1, pvt, *lda), a.Vector(pvt-1, pvt, *lda))
 						}
-						goblas.Dswap(pvt-j-1, a.Vector(j-1, j+1-1), *lda, a.Vector(j+1-1, pvt-1), 1)
+						goblas.Dswap(pvt-j-1, a.Vector(j-1, j, *lda), a.Vector(j, pvt-1, 1))
 
 						//                    Swap dot products and PIV
 						dtemp = work.Get(j - 1)
@@ -141,15 +141,15 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 
 					//                 Compute elements J+1:N of row J.
 					if j < (*n) {
-						err = goblas.Dgemv(Trans, j-k, (*n)-j, -one, a.Off(k-1, j+1-1), *lda, a.Vector(k-1, j-1), 1, one, a.Vector(j-1, j+1-1), *lda)
-						goblas.Dscal((*n)-j, one/ajj, a.Vector(j-1, j+1-1), *lda)
+						err = goblas.Dgemv(Trans, j-k, (*n)-j, -one, a.Off(k-1, j), a.Vector(k-1, j-1, 1), one, a.Vector(j-1, j, *lda))
+						goblas.Dscal((*n)-j, one/ajj, a.Vector(j-1, j, *lda))
 					}
 
 				}
 
 				//              Update trailing matrix, J already incremented
 				if k+jb <= (*n) {
-					err = goblas.Dsyrk(mat.Upper, mat.Trans, (*n)-j+1, jb, -one, a.Off(k-1, j-1), *lda, one, a.Off(j-1, j-1), *lda)
+					err = goblas.Dsyrk(mat.Upper, mat.Trans, (*n)-j+1, jb, -one, a.Off(k-1, j-1), one, a.Off(j-1, j-1))
 				}
 
 			}
@@ -158,7 +158,7 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 			//        Compute the Cholesky factorization P**T * A * P = L * L**T
 			for k = 1; k <= (*n); k += nb {
 				//              Account for last block not being NB wide
-				jb = minint(nb, (*n)-k+1)
+				jb = min(nb, (*n)-k+1)
 
 				//              Set relevant part of first half of WORK to zero,
 				//              holds dot products
@@ -192,11 +192,11 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 					if j != pvt {
 						//                    Pivot OK, so can now swap pivot rows and columns
 						a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-						goblas.Dswap(j-1, a.Vector(j-1, 0), *lda, a.Vector(pvt-1, 0), *lda)
+						goblas.Dswap(j-1, a.Vector(j-1, 0, *lda), a.Vector(pvt-1, 0, *lda))
 						if pvt < (*n) {
-							goblas.Dswap((*n)-pvt, a.Vector(pvt+1-1, j-1), 1, a.Vector(pvt+1-1, pvt-1), 1)
+							goblas.Dswap((*n)-pvt, a.Vector(pvt, j-1, 1), a.Vector(pvt, pvt-1, 1))
 						}
-						goblas.Dswap(pvt-j-1, a.Vector(j+1-1, j-1), 1, a.Vector(pvt-1, j+1-1), *lda)
+						goblas.Dswap(pvt-j-1, a.Vector(j, j-1, 1), a.Vector(pvt-1, j, *lda))
 
 						//                    Swap dot products and PIV
 						dtemp = work.Get(j - 1)
@@ -212,15 +212,15 @@ func Dpstrf(uplo byte, n *int, a *mat.Matrix, lda *int, piv *[]int, rank *int, t
 
 					//                 Compute elements J+1:N of column J.
 					if j < (*n) {
-						err = goblas.Dgemv(NoTrans, (*n)-j, j-k, -one, a.Off(j+1-1, k-1), *lda, a.Vector(j-1, k-1), *lda, one, a.Vector(j+1-1, j-1), 1)
-						goblas.Dscal((*n)-j, one/ajj, a.Vector(j+1-1, j-1), 1)
+						err = goblas.Dgemv(NoTrans, (*n)-j, j-k, -one, a.Off(j, k-1), a.Vector(j-1, k-1, *lda), one, a.Vector(j, j-1, 1))
+						goblas.Dscal((*n)-j, one/ajj, a.Vector(j, j-1, 1))
 					}
 
 				}
 
 				//              Update trailing matrix, J already incremented
 				if k+jb <= (*n) {
-					err = goblas.Dsyrk(mat.Lower, mat.NoTrans, (*n)-j+1, jb, -one, a.Off(j-1, k-1), *lda, one, a.Off(j-1, j-1), *lda)
+					err = goblas.Dsyrk(mat.Lower, mat.NoTrans, (*n)-j+1, jb, -one, a.Off(j-1, k-1), one, a.Off(j-1, j-1))
 				}
 
 			}

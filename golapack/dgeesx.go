@@ -58,7 +58,7 @@ func Dgeesx(jobvs, sort byte, _select func(*float64, *float64) bool, sense byte,
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvs) < 1 || (wantvs && (*ldvs) < (*n)) {
 		(*info) = -12
@@ -90,14 +90,14 @@ func Dgeesx(jobvs, sort byte, _select func(*float64, *float64) bool, sense byte,
 			hswork = int(work.Get(0))
 
 			if !wantvs {
-				maxwrk = maxint(maxwrk, (*n)+hswork)
+				maxwrk = max(maxwrk, (*n)+hswork)
 			} else {
-				maxwrk = maxint(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*n)+hswork)
+				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)+hswork)
 			}
 			lwrk = maxwrk
 			if !wantsn {
-				lwrk = maxint(lwrk, (*n)+((*n)*(*n))/2)
+				lwrk = max(lwrk, (*n)+((*n)*(*n))/2)
 			}
 			if wantsv || wantsb {
 				liwrk = ((*n) * (*n)) / 4
@@ -196,7 +196,7 @@ func Dgeesx(jobvs, sort byte, _select func(*float64, *float64) bool, sense byte,
 		//                     otherwise, need 0 )
 		Dtrsen(sense, jobvs, *bwork, n, a, lda, vs, ldvs, wr, wi, sdim, rconde, rcondv, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), iwork, liwork, &icond)
 		if !wantsn {
-			maxwrk = maxint(maxwrk, (*n)+2*(*sdim)*((*n)-(*sdim)))
+			maxwrk = max(maxwrk, (*n)+2*(*sdim)*((*n)-(*sdim)))
 		}
 		if icond == -15 {
 			//           Not enough real workspace
@@ -219,7 +219,7 @@ func Dgeesx(jobvs, sort byte, _select func(*float64, *float64) bool, sense byte,
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Dlascl('H', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Dcopy(*n, a.Vector(0, 0), (*lda)+1, wr, 1)
+		goblas.Dcopy(*n, a.Vector(0, 0, (*lda)+1), wr)
 		if (wantsv || wantsb) && (*info) == 0 {
 			dum.Set(0, (*rcondv))
 			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), &ierr)
@@ -248,30 +248,30 @@ func Dgeesx(jobvs, sort byte, _select func(*float64, *float64) bool, sense byte,
 				if wi.Get(i-1) == zero {
 					inxt = i + 1
 				} else {
-					if a.Get(i+1-1, i-1) == zero {
+					if a.Get(i, i-1) == zero {
 						wi.Set(i-1, zero)
-						wi.Set(i+1-1, zero)
-					} else if a.Get(i+1-1, i-1) != zero && a.Get(i-1, i+1-1) == zero {
+						wi.Set(i, zero)
+					} else if a.Get(i, i-1) != zero && a.Get(i-1, i) == zero {
 						wi.Set(i-1, zero)
-						wi.Set(i+1-1, zero)
+						wi.Set(i, zero)
 						if i > 1 {
-							goblas.Dswap(i-1, a.Vector(0, i-1), 1, a.Vector(0, i+1-1), 1)
+							goblas.Dswap(i-1, a.Vector(0, i-1, 1), a.Vector(0, i, 1))
 						}
 						if (*n) > i+1 {
-							goblas.Dswap((*n)-i-1, a.Vector(i-1, i+2-1), *lda, a.Vector(i+1-1, i+2-1), *lda)
+							goblas.Dswap((*n)-i-1, a.Vector(i-1, i+2-1), a.Vector(i, i+2-1))
 						}
 						if wantvs {
-							goblas.Dswap(*n, vs.Vector(0, i-1), 1, vs.Vector(0, i+1-1), 1)
+							goblas.Dswap(*n, vs.Vector(0, i-1, 1), vs.Vector(0, i, 1))
 						}
-						a.Set(i-1, i+1-1, a.Get(i+1-1, i-1))
-						a.Set(i+1-1, i-1, zero)
+						a.Set(i-1, i, a.Get(i, i-1))
+						a.Set(i, i-1, zero)
 					}
 					inxt = i + 2
 				}
 			label20:
 			}
 		}
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-ieval), func() *int { y := 1; return &y }(), wi.MatrixOff(ieval+1-1, maxint((*n)-ieval, 1), opts), toPtr(maxint((*n)-ieval, 1)), &ierr)
+		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-ieval), func() *int { y := 1; return &y }(), wi.MatrixOff(ieval, max((*n)-ieval, 1), opts), toPtr(max((*n)-ieval, 1)), &ierr)
 	}
 
 	if wantst && (*info) == 0 {
@@ -314,7 +314,7 @@ func Dgeesx(jobvs, sort byte, _select func(*float64, *float64) bool, sense byte,
 
 	work.Set(0, float64(maxwrk))
 	if wantsv || wantsb {
-		(*iwork)[0] = maxint(1, (*sdim)*((*n)-(*sdim)))
+		(*iwork)[0] = max(1, (*sdim)*((*n)-(*sdim)))
 	} else {
 		(*iwork)[0] = 1
 	}

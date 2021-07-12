@@ -10,7 +10,7 @@ import (
 // Zqrt12 computes the singular values `svlues' of the upper trapezoid
 // of A(1:M,1:N) and returns the ratio
 //
-//      || s - svlues||/(||svlues||*eps*maxint(M,N))
+//      || s - svlues||/(||svlues||*eps*max(M,N))
 func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVector, lwork *int, rwork *mat.Vector) (zqrt12Return float64) {
 	var anrm, bignum, nrmsvl, one, smlnum, zero float64
 	var i, info, iscl, j, mn int
@@ -23,23 +23,23 @@ func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVecto
 	zqrt12Return = zero
 
 	//     Test that enough workspace is supplied
-	if (*lwork) < (*m)*(*n)+2*minint(*m, *n)+maxint(*m, *n) {
+	if (*lwork) < (*m)*(*n)+2*min(*m, *n)+max(*m, *n) {
 		gltest.Xerbla([]byte("ZQRT12"), 7)
 		return
 	}
 
 	//     Quick return if possible
-	mn = minint(*m, *n)
+	mn = min(*m, *n)
 	if mn <= int(zero) {
 		return
 	}
 
-	nrmsvl = goblas.Dnrm2(mn, s, 1)
+	nrmsvl = goblas.Dnrm2(mn, s.Off(0, 1))
 
 	//     Copy upper triangle of A into work
 	golapack.Zlaset('F', m, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), work.CMatrix(*m, opts), m)
 	for j = 1; j <= (*n); j++ {
-		for i = 1; i <= minint(j, *m); i++ {
+		for i = 1; i <= min(j, *m); i++ {
 			work.Set((j-1)*(*m)+i-1, a.Get(i-1, j-1))
 		}
 	}
@@ -49,7 +49,7 @@ func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVecto
 	bignum = one / smlnum
 	golapack.Dlabad(&smlnum, &bignum)
 
-	//     Scale work if maxint entry outside range [SMLNUM,BIGNUM]
+	//     Scale work if max entry outside range [SMLNUM,BIGNUM]
 	anrm = golapack.Zlange('M', m, n, work.CMatrix(*m, opts), m, dummy)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
@@ -64,8 +64,8 @@ func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVecto
 
 	if anrm != zero {
 		//        Compute SVD of work
-		golapack.Zgebd2(m, n, work.CMatrix(*m, opts), m, rwork.Off(0), rwork.Off(mn+1-1), work.Off((*m)*(*n)+1-1), work.Off((*m)*(*n)+mn+1-1), work.Off((*m)*(*n)+2*mn+1-1), &info)
-		golapack.Dbdsqr('U', &mn, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), rwork.Off(0), rwork.Off(mn+1-1), dummy.Matrix(mn, opts), &mn, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), dummy.Matrix(mn, opts), &mn, rwork.Off(2*mn+1-1), &info)
+		golapack.Zgebd2(m, n, work.CMatrix(*m, opts), m, rwork.Off(0), rwork.Off(mn), work.Off((*m)*(*n)), work.Off((*m)*(*n)+mn), work.Off((*m)*(*n)+2*mn), &info)
+		golapack.Dbdsqr('U', &mn, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), rwork.Off(0), rwork.Off(mn), dummy.Matrix(mn, opts), &mn, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), dummy.Matrix(mn, opts), &mn, rwork.Off(2*mn), &info)
 
 		if iscl == 1 {
 			if anrm > bignum {
@@ -84,8 +84,8 @@ func Zqrt12(m, n *int, a *mat.CMatrix, lda *int, s *mat.Vector, work *mat.CVecto
 	}
 
 	//     Compare s and singular values of work
-	goblas.Daxpy(mn, -one, s, 1, rwork.Off(0), 1)
-	zqrt12Return = goblas.Dasum(mn, rwork.Off(0), 1) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	goblas.Daxpy(mn, -one, s.Off(0, 1), rwork.Off(0, 1))
+	zqrt12Return = goblas.Dasum(mn, rwork.Off(0, 1)) / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
 	if nrmsvl != zero {
 		zqrt12Return = zqrt12Return / nrmsvl
 	}

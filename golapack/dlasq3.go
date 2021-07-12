@@ -114,10 +114,10 @@ label50:
 				z.Set(4*(*n0)+(*pp)-1-1, z.Get(4*(*i0)+(*pp)-1-1))
 				z.Set(4*(*n0)-(*pp)-1, z.Get(4*(*i0)-(*pp)-1))
 			}
-			(*dmin2) = minf64(*dmin2, z.Get(4*(*n0)+(*pp)-1-1))
-			z.Set(4*(*n0)+(*pp)-1-1, minf64(z.Get(4*(*n0)+(*pp)-1-1), z.Get(4*(*i0)+(*pp)-1-1), z.Get(4*(*i0)+(*pp)+3-1)))
-			z.Set(4*(*n0)-(*pp)-1, minf64(z.Get(4*(*n0)-(*pp)-1), z.Get(4*(*i0)-(*pp)-1), z.Get(4*(*i0)-(*pp)+4-1)))
-			(*qmax) = maxf64(*qmax, z.Get(4*(*i0)+(*pp)-3-1), z.Get(4*(*i0)+(*pp)+1-1))
+			(*dmin2) = math.Min(*dmin2, z.Get(4*(*n0)+(*pp)-1-1))
+			z.Set(4*(*n0)+(*pp)-1-1, math.Min(z.Get(4*(*n0)+(*pp)-1-1), math.Min(z.Get(4*(*i0)+(*pp)-1-1), z.Get(4*(*i0)+(*pp)+3-1))))
+			z.Set(4*(*n0)-(*pp)-1, math.Min(z.Get(4*(*n0)-(*pp)-1), math.Min(z.Get(4*(*i0)-(*pp)-1), z.Get(4*(*i0)-(*pp)+4-1))))
+			(*qmax) = math.Max(*qmax, math.Max(z.Get(4*(*i0)+(*pp)-3-1), z.Get(4*(*i0)+(*pp))))
 			(*dmin) = -zero
 		}
 	}

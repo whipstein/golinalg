@@ -32,7 +32,7 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -60,7 +60,7 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 	//     Find the maximum element in each row.
 	for j = 1; j <= (*n); j++ {
 		for i = 1; i <= (*m); i++ {
-			r.Set(i-1, maxf64(r.Get(i-1), Cabs1(a.Get(i-1, j-1))))
+			r.Set(i-1, math.Max(r.Get(i-1), Cabs1(a.Get(i-1, j-1))))
 		}
 	}
 
@@ -68,8 +68,8 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 	rcmin = bignum
 	rcmax = zero
 	for i = 1; i <= (*m); i++ {
-		rcmax = maxf64(rcmax, r.Get(i-1))
-		rcmin = minf64(rcmin, r.Get(i-1))
+		rcmax = math.Max(rcmax, r.Get(i-1))
+		rcmin = math.Min(rcmin, r.Get(i-1))
 	}
 	(*amax) = rcmax
 
@@ -84,11 +84,11 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 	} else {
 		//        Invert the scale factors.
 		for i = 1; i <= (*m); i++ {
-			r.Set(i-1, one/minf64(maxf64(r.Get(i-1), smlnum), bignum))
+			r.Set(i-1, one/math.Min(math.Max(r.Get(i-1), smlnum), bignum))
 		}
 
-		//        Compute ROWCND = minint(R(I)) / maxint(R(I))
-		(*rowcnd) = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+		//        Compute ROWCND = min(R(I)) / max(R(I))
+		(*rowcnd) = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 	}
 
 	//     Compute column scale factors
@@ -100,7 +100,7 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 	//     assuming the row scaling computed above.
 	for j = 1; j <= (*n); j++ {
 		for i = 1; i <= (*m); i++ {
-			c.Set(j-1, maxf64(c.Get(j-1), Cabs1(a.Get(i-1, j-1))*r.Get(i-1)))
+			c.Set(j-1, math.Max(c.Get(j-1), Cabs1(a.Get(i-1, j-1))*r.Get(i-1)))
 		}
 	}
 
@@ -108,8 +108,8 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 	rcmin = bignum
 	rcmax = zero
 	for j = 1; j <= (*n); j++ {
-		rcmin = minf64(rcmin, c.Get(j-1))
-		rcmax = maxf64(rcmax, c.Get(j-1))
+		rcmin = math.Min(rcmin, c.Get(j-1))
+		rcmax = math.Max(rcmax, c.Get(j-1))
 	}
 
 	if rcmin == zero {
@@ -123,10 +123,10 @@ func Zgeequ(m, n *int, a *mat.CMatrix, lda *int, r, c *mat.Vector, rowcnd, colcn
 	} else {
 		//        Invert the scale factors.
 		for j = 1; j <= (*n); j++ {
-			c.Set(j-1, one/minf64(maxf64(c.Get(j-1), smlnum), bignum))
+			c.Set(j-1, one/math.Min(math.Max(c.Get(j-1), smlnum), bignum))
 		}
 
-		//        Compute COLCND = minint(C(J)) / maxint(C(J))
-		(*colcnd) = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+		//        Compute COLCND = min(C(J)) / max(C(J))
+		(*colcnd) = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 	}
 }

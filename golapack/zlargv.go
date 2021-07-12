@@ -43,7 +43,7 @@ func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat
 		g = y.Get(iy - 1)
 
 		//        Use identical algorithm as in ZLARTG
-		scale = maxf64(abs1(f), abs1(g))
+		scale = math.Max(abs1(f), abs1(g))
 		fs = f
 		gs = g
 		count = 0
@@ -76,7 +76,7 @@ func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat
 		}
 		f2 = abssq(fs)
 		g2 = abssq(gs)
-		if f2 <= maxf64(g2, one)*safmin {
+		if f2 <= math.Max(g2, one)*safmin {
 			//           This is a rare case: F is very small.
 			if f == czero {
 				cs = zero

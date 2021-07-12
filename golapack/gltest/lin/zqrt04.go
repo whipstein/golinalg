@@ -23,9 +23,9 @@ func Zqrt04(m, n, nb *int, result *mat.Vector) {
 	iseed[0], iseed[1], iseed[2], iseed[3] = 1988, 1989, 1990, 1991
 
 	eps = golapack.Dlamch(Epsilon)
-	k = minint(*m, *n)
-	l = maxint(*m, *n)
-	lwork = maxint(2, l) * maxint(2, l) * (*nb)
+	k = min(*m, *n)
+	l = max(*m, *n)
+	lwork = max(2, l) * max(2, l) * (*nb)
 
 	//     Dynamically allocate local arrays
 	a := cmf(*m, *n, opts)
@@ -59,20 +59,20 @@ func Zqrt04(m, n, nb *int, result *mat.Vector) {
 	golapack.Zlacpy('U', m, n, af, m, r, m)
 
 	//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, *m, a, *m, one, r, *m)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, a, one, r)
 	anorm = golapack.Zlange('1', m, n, a, m, rwork)
 	resid = golapack.Zlange('1', m, n, r, m, rwork)
 	if anorm > zero {
-		result.Set(0, resid/(eps*float64(maxint(1, *m))*anorm))
+		result.Set(0, resid/(eps*float64(max(1, *m))*anorm))
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute |I - Q'*Q| and store in RESULT(2)
 	golapack.Zlaset('F', m, m, &czero, &one, r, m)
-	err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-one), q, *m, real(one), r, *m)
+	err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-one), q, real(one), r)
 	resid = golapack.Zlansy('1', 'U', m, r, m, rwork)
-	result.Set(1, resid/(eps*float64(maxint(1, *m))))
+	result.Set(1, resid/(eps*float64(max(1, *m))))
 	//
 	//     Generate random m-by-n matrix C and a copy CF
 	//
@@ -88,10 +88,10 @@ func Zqrt04(m, n, nb *int, result *mat.Vector) {
 	//
 	//     Compute |Q*C - Q*C| / |C|
 	//
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
 	resid = golapack.Zlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
-		result.Set(2, resid/(eps*float64(maxint(1, *m))*cnorm))
+		result.Set(2, resid/(eps*float64(max(1, *m))*cnorm))
 	} else {
 		result.Set(2, zero)
 	}
@@ -106,10 +106,10 @@ func Zqrt04(m, n, nb *int, result *mat.Vector) {
 	//
 	//     Compute |QT*C - QT*C| / |C|
 	//
-	goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
+	goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
 	resid = golapack.Zlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
-		result.Set(3, resid/(eps*float64(maxint(1, *m))*cnorm))
+		result.Set(3, resid/(eps*float64(max(1, *m))*cnorm))
 	} else {
 		result.Set(3, zero)
 	}
@@ -128,10 +128,10 @@ func Zqrt04(m, n, nb *int, result *mat.Vector) {
 	//
 	//     Compute |D*Q - D*Q| / |D|
 	//
-	err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
+	err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, q, one, df)
 	resid = golapack.Zlange('1', n, m, df, n, rwork)
 	if cnorm > zero {
-		result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
+		result.Set(4, resid/(eps*float64(max(1, *m))*dnorm))
 	} else {
 		result.Set(4, zero)
 	}
@@ -146,10 +146,10 @@ func Zqrt04(m, n, nb *int, result *mat.Vector) {
 	//
 	//     Compute |D*QT - D*QT| / |D|
 	//
-	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -one, d, q, one, df)
 	resid = golapack.Zlange('1', n, m, df, n, rwork)
 	if cnorm > zero {
-		result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))
+		result.Set(5, resid/(eps*float64(max(1, *m))*dnorm))
 	} else {
 		result.Set(5, zero)
 	}

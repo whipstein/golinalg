@@ -41,7 +41,7 @@ func Dsyevd(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.Vecto
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 
@@ -59,7 +59,7 @@ func Dsyevd(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.Vecto
 				liwmin = 1
 				lwmin = 2*(*n) + 1
 			}
-			lopt = maxint(lwmin, 2*(*n)+Ilaenv(toPtr(1), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+			lopt = max(lwmin, 2*(*n)+Ilaenv(toPtr(1), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 			liopt = liwmin
 		}
 		work.Set(0, float64(lopt))
@@ -138,7 +138,7 @@ func Dsyevd(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.Vecto
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(*n, one/sigma, w, 1)
+		goblas.Dscal(*n, one/sigma, w.Off(0, 1))
 	}
 
 	work.Set(0, float64(lopt))

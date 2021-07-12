@@ -44,19 +44,19 @@ func Dorbdb1(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *
 		(*info) = -2
 	} else if (*q) < 0 || (*m)-(*q) < (*q) {
 		(*info) = -3
-	} else if (*ldx11) < maxint(1, *p) {
+	} else if (*ldx11) < max(1, *p) {
 		(*info) = -5
-	} else if (*ldx21) < maxint(1, (*m)-(*p)) {
+	} else if (*ldx21) < max(1, (*m)-(*p)) {
 		(*info) = -7
 	}
 
 	//     Compute workspace
 	if (*info) == 0 {
 		ilarf = 2
-		llarf = maxint((*p)-1, (*m)-(*p)-1, (*q)-1)
+		llarf = max((*p)-1, (*m)-(*p)-1, (*q)-1)
 		iorbdb5 = 2
 		lorbdb5 = (*q) - 2
-		lworkopt = maxint(ilarf+llarf-1, iorbdb5+lorbdb5-1)
+		lworkopt = max(ilarf+llarf-1, iorbdb5+lorbdb5-1)
 		lworkmin = lworkopt
 		work.Set(0, float64(lworkopt))
 		if (*lwork) < lworkmin && !lquery {
@@ -73,26 +73,26 @@ func Dorbdb1(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *
 	//     Reduce columns 1, ..., Q of X11 and X21
 	for i = 1; i <= (*q); i++ {
 
-		Dlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1), x11.Vector(i+1-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
-		Dlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1), x21.Vector(i+1-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
+		Dlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1), x11.Vector(i, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
+		Dlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1), x21.Vector(i, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
 		theta.Set(i-1, math.Atan2(x21.Get(i-1, i-1), x11.Get(i-1, i-1)))
 		c = math.Cos(theta.Get(i - 1))
 		s = math.Sin(theta.Get(i - 1))
 		x11.Set(i-1, i-1, one)
 		x21.Set(i-1, i-1, one)
-		Dlarf('L', toPtr((*p)-i+1), toPtr((*q)-i), x11.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1), x11.Off(i-1, i+1-1), ldx11, work.Off(ilarf-1))
-		Dlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1), x21.Off(i-1, i+1-1), ldx21, work.Off(ilarf-1))
+		Dlarf('L', toPtr((*p)-i+1), toPtr((*q)-i), x11.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1), x11.Off(i-1, i), ldx11, work.Off(ilarf-1))
+		Dlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1), x21.Off(i-1, i), ldx21, work.Off(ilarf-1))
 
 		if i < (*q) {
-			goblas.Drot((*q)-i, x11.Vector(i-1, i+1-1), *ldx11, x21.Vector(i-1, i+1-1), *ldx21, c, s)
-			Dlarfgp(toPtr((*q)-i), x21.GetPtr(i-1, i+1-1), x21.Vector(i-1, i+2-1), ldx21, tauq1.GetPtr(i-1))
-			s = x21.Get(i-1, i+1-1)
-			x21.Set(i-1, i+1-1, one)
-			Dlarf('R', toPtr((*p)-i), toPtr((*q)-i), x21.Vector(i-1, i+1-1), ldx21, tauq1.GetPtr(i-1), x11.Off(i+1-1, i+1-1), ldx11, work.Off(ilarf-1))
-			Dlarf('R', toPtr((*m)-(*p)-i), toPtr((*q)-i), x21.Vector(i-1, i+1-1), ldx21, tauq1.GetPtr(i-1), x21.Off(i+1-1, i+1-1), ldx21, work.Off(ilarf-1))
-			c = math.Sqrt(math.Pow(goblas.Dnrm2((*p)-i, x11.Vector(i+1-1, i+1-1), 1), 2) + math.Pow(goblas.Dnrm2((*m)-(*p)-i, x21.Vector(i+1-1, i+1-1), 1), 2))
+			goblas.Drot((*q)-i, x11.Vector(i-1, i), x21.Vector(i-1, i), c, s)
+			Dlarfgp(toPtr((*q)-i), x21.GetPtr(i-1, i), x21.Vector(i-1, i+2-1), ldx21, tauq1.GetPtr(i-1))
+			s = x21.Get(i-1, i)
+			x21.Set(i-1, i, one)
+			Dlarf('R', toPtr((*p)-i), toPtr((*q)-i), x21.Vector(i-1, i), ldx21, tauq1.GetPtr(i-1), x11.Off(i, i), ldx11, work.Off(ilarf-1))
+			Dlarf('R', toPtr((*m)-(*p)-i), toPtr((*q)-i), x21.Vector(i-1, i), ldx21, tauq1.GetPtr(i-1), x21.Off(i, i), ldx21, work.Off(ilarf-1))
+			c = math.Sqrt(math.Pow(goblas.Dnrm2((*p)-i, x11.Vector(i, i, 1)), 2) + math.Pow(goblas.Dnrm2((*m)-(*p)-i, x21.Vector(i, i, 1)), 2))
 			phi.Set(i-1, math.Atan2(s, c))
-			Dorbdb5(toPtr((*p)-i), toPtr((*m)-(*p)-i), toPtr((*q)-i-1), x11.Vector(i+1-1, i+1-1), func() *int { y := 1; return &y }(), x21.Vector(i+1-1, i+1-1), func() *int { y := 1; return &y }(), x11.Off(i+1-1, i+2-1), ldx11, x21.Off(i+1-1, i+2-1), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
+			Dorbdb5(toPtr((*p)-i), toPtr((*m)-(*p)-i), toPtr((*q)-i-1), x11.Vector(i, i), func() *int { y := 1; return &y }(), x21.Vector(i, i), func() *int { y := 1; return &y }(), x11.Off(i, i+2-1), ldx11, x21.Off(i, i+2-1), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
 		}
 
 	}

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -36,11 +38,11 @@ func Ztrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, scal
 	tnorm = zero
 	if diag == 'N' {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)*a.GetMag(j-1, j-1)+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)*a.GetMag(j-1, j-1)+cnorm.Get(j-1))
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)+cnorm.Get(j-1))
 		}
 	}
 
@@ -48,16 +50,16 @@ func Ztrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, scal
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
-		ix = goblas.Izamax(*n, work, 1)
-		xnorm = maxf64(one, x.GetMag(ix-1, j-1))
+		goblas.Zcopy(*n, x.CVector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Izamax(*n, work.Off(0, 1))
+		xnorm = math.Max(one, x.GetMag(ix-1, j-1))
 		xscal = (one / xnorm) / float64(*n)
-		goblas.Zdscal(*n, xscal, work, 1)
-		err = goblas.Ztrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work, 1)
-		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1), 1, work, 1)
-		ix = goblas.Izamax(*n, work, 1)
+		goblas.Zdscal(*n, xscal, work.Off(0, 1))
+		err = goblas.Ztrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, work.Off(0, 1))
+		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Izamax(*n, work.Off(0, 1))
 		err2 = (*tscal) * work.GetMag(ix-1)
-		ix = goblas.Izamax(*n, x.CVector(0, j-1), 1)
+		ix = goblas.Izamax(*n, x.CVector(0, j-1, 1))
 		xnorm = x.GetMag(ix-1, j-1)
 		if err2*smlnum <= xnorm {
 			if xnorm > zero {
@@ -77,6 +79,6 @@ func Ztrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, scal
 				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err2)
+		(*resid) = math.Max(*resid, err2)
 	}
 }

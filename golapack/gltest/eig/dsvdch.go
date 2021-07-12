@@ -42,7 +42,7 @@ func Dsvdch(n *int, s, e, svd *mat.Vector, tol *float64, info *int) {
 	unflep = (math.Sqrt(math.Sqrt(unfl))/math.Sqrt(ovfl))*svd.Get(0) + unfl/eps
 
 	//     The value of EPS works best when TOL .GE. 10.
-	eps = (*tol) * float64(maxint((*n)/10, 1)) * eps
+	eps = (*tol) * float64(max((*n)/10, 1)) * eps
 
 	//     TPNT points to singular value at right endpoint of interval
 	//     BPNT points to singular value at left  endpoint of interval
@@ -64,7 +64,7 @@ label20:
 	if bpnt == (*n) {
 		goto label30
 	}
-	tuppr = (one+eps)*svd.Get(bpnt+1-1) + unflep
+	tuppr = (one+eps)*svd.Get(bpnt) + unflep
 	if tuppr < lower {
 		goto label30
 	}

@@ -101,9 +101,9 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 		(*info) = -5
 	} else if (*n) < 0 {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
 	} else if (*ldvsl) < 1 || (ilvsl && (*ldvsl) < (*n)) {
 		(*info) = -16
@@ -119,15 +119,15 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	//       following subroutine, as returned by ILAENV.)
 	if (*info) == 0 {
 		if (*n) > 0 {
-			minwrk = maxint(8*(*n), 6*(*n)+16)
+			minwrk = max(8*(*n), 6*(*n)+16)
 			maxwrk = minwrk - (*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
-			maxwrk = maxint(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+			maxwrk = max(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 			if ilvsl {
-				maxwrk = maxint(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 			}
 			lwrk = maxwrk
 			if ijob >= 1 {
-				lwrk = maxint(lwrk, (*n)*(*n)/2)
+				lwrk = max(lwrk, (*n)*(*n)/2)
 			}
 		} else {
 			minwrk = 1
@@ -170,7 +170,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	smlnum = math.Sqrt(safmin) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Dlange('M', n, n, a, lda, work)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
@@ -184,7 +184,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
 	}
 
-	//     Scale B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale B if max element outside range [SMLNUM,BIGNUM]
 	bnrm = Dlange('M', n, n, b, ldb, work)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
@@ -222,7 +222,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	if ilvsl {
 		Dlaset('F', n, n, &zero, &one, vsl, ldvsl)
 		if irows > 1 {
-			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vsl.Off(ilo+1-1, ilo-1), ldvsl)
+			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vsl.Off(ilo, ilo-1), ldvsl)
 		}
 		Dorgqr(&irows, &irows, &irows, vsl.Off(ilo-1, ilo-1), ldvsl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -277,7 +277,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 		Dtgsen(&ijob, ilvsl, ilvsr, *bwork, n, a, lda, b, ldb, alphar, alphai, beta, vsl, ldvsl, vsr, ldvsr, sdim, &pl, &pr, dif, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), iwork, liwork, &ierr)
 
 		if ijob >= 1 {
-			maxwrk = maxint(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
+			maxwrk = max(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
 		}
 		if ierr == -22 {
 			//            not enough real workspace
@@ -320,7 +320,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 					alphar.Set(i-1, alphar.Get(i-1)*work.Get(0))
 					alphai.Set(i-1, alphai.Get(i-1)*work.Get(0))
 				} else if (alphai.Get(i-1)/safmax) > (anrmto/anrm) || (safmin/alphai.Get(i-1)) > (anrm/anrmto) {
-					work.Set(0, math.Abs(a.Get(i-1, i+1-1)/alphai.Get(i-1)))
+					work.Set(0, math.Abs(a.Get(i-1, i)/alphai.Get(i-1)))
 					beta.Set(i-1, beta.Get(i-1)*work.Get(0))
 					alphar.Set(i-1, alphar.Get(i-1)*work.Get(0))
 					alphai.Set(i-1, alphai.Get(i-1)*work.Get(0))

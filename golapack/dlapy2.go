@@ -23,8 +23,8 @@ func Dlapy2(x, y *float64) (dlapy2Return float64) {
 	if !(xIsNan || yIsNan) {
 		xabs = math.Abs(*x)
 		yabs = math.Abs(*y)
-		w = maxf64(xabs, yabs)
-		z = minf64(xabs, yabs)
+		w = math.Max(xabs, yabs)
+		z = math.Min(xabs, yabs)
 		if z == zero {
 			dlapy2Return = w
 		} else {

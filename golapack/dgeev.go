@@ -44,7 +44,7 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	} else if (*ldvl) < 1 || (wantvl && (*ldvl) < (*n)) {
 		(*info) = -9
@@ -69,31 +69,31 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 			maxwrk = 2*(*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEHRD"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
 			if wantvl {
 				minwrk = 4 * (*n)
-				maxwrk = maxint(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 				Dhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vl, ldvl, work, toPtr(-1), info)
 				hswork = int(work.Get(0))
-				maxwrk = maxint(maxwrk, (*n)+1, (*n)+hswork)
+				maxwrk = max(maxwrk, (*n)+1, (*n)+hswork)
 				Dtrevc3('L', 'B', &_select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), &ierr)
 				lworkTrevc = int(work.Get(0))
-				maxwrk = maxint(maxwrk, (*n)+lworkTrevc)
-				maxwrk = maxint(maxwrk, 4*(*n))
+				maxwrk = max(maxwrk, (*n)+lworkTrevc)
+				maxwrk = max(maxwrk, 4*(*n))
 			} else if wantvr {
 				minwrk = 4 * (*n)
-				maxwrk = maxint(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 				Dhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vr, ldvr, work, toPtr(-1), info)
 				hswork = int(work.Get(0))
-				maxwrk = maxint(maxwrk, (*n)+1, (*n)+hswork)
+				maxwrk = max(maxwrk, (*n)+1, (*n)+hswork)
 				Dtrevc3('R', 'B', &_select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), &ierr)
 				lworkTrevc = int(work.Get(0))
-				maxwrk = maxint(maxwrk, (*n)+lworkTrevc)
-				maxwrk = maxint(maxwrk, 4*(*n))
+				maxwrk = max(maxwrk, (*n)+lworkTrevc)
+				maxwrk = max(maxwrk, 4*(*n))
 			} else {
 				minwrk = 3 * (*n)
 				Dhseqr('E', 'N', n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vr, ldvr, work, toPtr(-1), info)
 				hswork = int(work.Get(0))
-				maxwrk = maxint(maxwrk, (*n)+1, (*n)+hswork)
+				maxwrk = max(maxwrk, (*n)+1, (*n)+hswork)
 			}
-			maxwrk = maxint(maxwrk, minwrk)
+			maxwrk = max(maxwrk, minwrk)
 		}
 		work.Set(0, float64(maxwrk))
 
@@ -122,7 +122,7 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Dlange('M', n, n, a, lda, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
@@ -210,19 +210,19 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(*n, vl.Vector(0, i-1), 1)
-				goblas.Dscal(*n, scl, vl.Vector(0, i-1), 1)
+				scl = one / goblas.Dnrm2(*n, vl.Vector(0, i-1, 1))
+				goblas.Dscal(*n, scl, vl.Vector(0, i-1, 1))
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i+1-1), 1)))
-				goblas.Dscal(*n, scl, vl.Vector(0, i-1), 1)
-				goblas.Dscal(*n, scl, vl.Vector(0, i+1-1), 1)
+				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i, 1))))
+				goblas.Dscal(*n, scl, vl.Vector(0, i-1, 1))
+				goblas.Dscal(*n, scl, vl.Vector(0, i, 1))
 				for k = 1; k <= (*n); k++ {
-					work.Set(iwrk+k-1-1, math.Pow(vl.Get(k-1, i-1), 2)+math.Pow(vl.Get(k-1, i+1-1), 2))
+					work.Set(iwrk+k-1-1, math.Pow(vl.Get(k-1, i-1), 2)+math.Pow(vl.Get(k-1, i), 2))
 				}
-				k = goblas.Idamax(*n, work.Off(iwrk-1), 1)
-				Dlartg(vl.GetPtr(k-1, i-1), vl.GetPtr(k-1, i+1-1), &cs, &sn, &r)
-				goblas.Drot(*n, vl.Vector(0, i-1), 1, vl.Vector(0, i+1-1), 1, cs, sn)
-				vl.Set(k-1, i+1-1, zero)
+				k = goblas.Idamax(*n, work.Off(iwrk-1))
+				Dlartg(vl.GetPtr(k-1, i-1), vl.GetPtr(k-1, i), &cs, &sn, &r)
+				goblas.Drot(*n, vl.Vector(0, i-1, 1), vl.Vector(0, i, 1), cs, sn)
+				vl.Set(k-1, i, zero)
 			}
 		}
 	}
@@ -235,19 +235,19 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(*n, vr.Vector(0, i-1), 1)
-				goblas.Dscal(*n, scl, vr.Vector(0, i-1), 1)
+				scl = one / goblas.Dnrm2(*n, vr.Vector(0, i-1, 1))
+				goblas.Dscal(*n, scl, vr.Vector(0, i-1, 1))
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i+1-1), 1)))
-				goblas.Dscal(*n, scl, vr.Vector(0, i-1), 1)
-				goblas.Dscal(*n, scl, vr.Vector(0, i+1-1), 1)
+				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i, 1))))
+				goblas.Dscal(*n, scl, vr.Vector(0, i-1, 1))
+				goblas.Dscal(*n, scl, vr.Vector(0, i, 1))
 				for k = 1; k <= (*n); k++ {
-					work.Set(iwrk+k-1-1, math.Pow(vr.Get(k-1, i-1), 2)+math.Pow(vr.Get(k-1, i+1-1), 2))
+					work.Set(iwrk+k-1-1, math.Pow(vr.Get(k-1, i-1), 2)+math.Pow(vr.Get(k-1, i), 2))
 				}
-				k = goblas.Idamax(*n, work.Off(iwrk-1), 1)
-				Dlartg(vr.GetPtr(k-1, i-1), vr.GetPtr(k-1, i+1-1), &cs, &sn, &r)
-				goblas.Drot(*n, vr.Vector(0, i-1), 1, vr.Vector(0, i+1-1), 1, cs, sn)
-				vr.Set(k-1, i+1-1, zero)
+				k = goblas.Idamax(*n, work.Off(iwrk-1))
+				Dlartg(vr.GetPtr(k-1, i-1), vr.GetPtr(k-1, i), &cs, &sn, &r)
+				goblas.Drot(*n, vr.Vector(0, i-1, 1), vr.Vector(0, i, 1), cs, sn)
+				vr.Set(k-1, i, zero)
 			}
 		}
 	}
@@ -256,8 +256,8 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 label50:
 	;
 	if scalea {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), wr.MatrixOff((*info)+1-1, maxint((*n)-(*info), 1), opts), toPtr(maxint((*n)-(*info), 1)), &ierr)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), wi.MatrixOff((*info)+1-1, maxint((*n)-(*info), 1), opts), toPtr(maxint((*n)-(*info), 1)), &ierr)
+		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), wr.MatrixOff((*info), max((*n)-(*info), 1), opts), toPtr(max((*n)-(*info), 1)), &ierr)
+		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), wi.MatrixOff((*info), max((*n)-(*info), 1), opts), toPtr(max((*n)-(*info), 1)), &ierr)
 		if (*info) > 0 {
 			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wr.Matrix(*n, opts), n, &ierr)
 			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wi.Matrix(*n, opts), n, &ierr)

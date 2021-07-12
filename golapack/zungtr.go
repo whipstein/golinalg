@@ -28,9 +28,9 @@ func Zungtr(uplo byte, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector,
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
-	} else if (*lwork) < maxint(1, (*n)-1) && !lquery {
+	} else if (*lwork) < max(1, (*n)-1) && !lquery {
 		(*info) = -7
 	}
 
@@ -40,7 +40,7 @@ func Zungtr(uplo byte, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector,
 		} else {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, toPtr((*n)-1), toPtr((*n)-1), toPtr((*n)-1), toPtr(-1))
 		}
-		lwkopt = maxint(1, (*n)-1) * nb
+		lwkopt = max(1, (*n)-1) * nb
 		work.SetRe(0, float64(lwkopt))
 	}
 
@@ -65,7 +65,7 @@ func Zungtr(uplo byte, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector,
 		//        those of the unit matrix
 		for j = 1; j <= (*n)-1; j++ {
 			for i = 1; i <= j-1; i++ {
-				a.Set(i-1, j-1, a.Get(i-1, j+1-1))
+				a.Set(i-1, j-1, a.Get(i-1, j))
 			}
 			a.Set((*n)-1, j-1, zero)
 		}

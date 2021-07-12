@@ -174,7 +174,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	badnn = false
 	nmax = 0
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -191,11 +191,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 		(*info) = -9
 	} else if (*ldz) <= 1 || (*ldz) < nmax {
 		(*info) = -16
-	} else if 2*powint(maxint(nmax, 2), 2) > (*nwork) {
+	} else if 2*pow(max(nmax, 2), 2) > (*nwork) {
 		(*info) = -21
-	} else if 2*powint(maxint(nmax, 2), 2) > (*lrwork) {
+	} else if 2*pow(max(nmax, 2), 2) > (*lrwork) {
 		(*info) = -23
-	} else if 2*powint(maxint(nmax, 2), 2) > (*liwork) {
+	} else if 2*pow(max(nmax, 2), 2) > (*liwork) {
 		(*info) = -25
 	}
 
@@ -228,12 +228,12 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		aninv = one / float64(maxint(1, n))
+		aninv = one / float64(max(1, n))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		ka9 = 0
@@ -325,7 +325,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 			} else if itype == 5 {
 				//              Hermitian, eigenvalues specified
-				ka = maxint(0, n-1)
+				ka = max(0, n-1)
 				kb = ka
 				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work, &iinfo)
 
@@ -333,13 +333,13 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Diagonal, random eigenvalues
 				ka = 0
 				kb = 0
-				matgen.Zlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Hermitian, random eigenvalues
-				ka = maxint(0, n-1)
+				ka = max(0, n-1)
 				kb = ka
-				matgen.Zlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              Hermitian banded, eigenvalues specified
@@ -357,8 +357,8 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					ka9 = ka9 + 1
 					kb9 = 1
 				}
-				ka = maxint(0, minint(n-1, ka9))
-				kb = maxint(0, minint(n-1, kb9))
+				ka = max(0, min(n-1, ka9))
+				kb = max(0, min(n-1, kb9))
 				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &ka, &ka, 'N', a, lda, work, &iinfo)
 
 			} else {
@@ -369,7 +369,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -409,7 +409,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 					//                 Generate random well-conditioned positive definite
 					//                 matrix B, of bandwidth not greater than that of A.
-					matgen.Zlatms(&n, &n, 'U', iseed, 'P', rwork, func() *int { y := 5; return &y }(), &ten, &one, &kb, &kb, uplo, b, ldb, work.Off(n+1-1), &iinfo)
+					matgen.Zlatms(&n, &n, 'U', iseed, 'P', rwork, func() *int { y := 5; return &y }(), &ten, &one, &kb, &kb, uplo, b, ldb, work.Off(n), &iinfo)
 
 					//                 Test ZHEGV
 					ntest = ntest + 1
@@ -421,7 +421,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHEGV(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -443,7 +443,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHEGV_2STAGE(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -463,11 +463,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					temp1 = zero
 					temp2 = zero
 					for j = 1; j <= n; j++ {
-						temp1 = maxf64(temp1, d.GetMag(j-1), d2.GetMag(j-1))
-						temp2 = maxf64(temp2, math.Abs(d.Get(j-1)-d2.Get(j-1)))
+						temp1 = math.Max(temp1, math.Max(d.GetMag(j-1), d2.GetMag(j-1)))
+						temp2 = math.Max(temp2, math.Abs(d.Get(j-1)-d2.Get(j-1)))
 					}
 
-					result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+					result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 					//                 Test ZHEGVD
 					ntest = ntest + 1
@@ -479,7 +479,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHEGVD(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -497,11 +497,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					golapack.Zlacpy(' ', &n, &n, a, lda, ab, lda)
 					golapack.Zlacpy(uplo, &n, &n, b, ldb, bb, ldb)
 
-					golapack.Zhegvx(&ibtype, 'V', 'A', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, rwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+					golapack.Zhegvx(&ibtype, 'V', 'A', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, rwork, toSlice(iwork, n), iwork, &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHEGVX(V,A"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -524,11 +524,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//                 in this interval.
 					vl = zero
 					vu = anorm
-					golapack.Zhegvx(&ibtype, 'V', 'V', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, rwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+					golapack.Zhegvx(&ibtype, 'V', 'V', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, rwork, toSlice(iwork, n), iwork, &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHEGVX(V,V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -545,11 +545,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					golapack.Zlacpy(' ', &n, &n, a, lda, ab, lda)
 					golapack.Zlacpy(uplo, &n, &n, b, ldb, bb, ldb)
 
-					golapack.Zhegvx(&ibtype, 'V', 'I', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, rwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+					golapack.Zhegvx(&ibtype, 'V', 'I', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, rwork, toSlice(iwork, n), iwork, &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHEGVX(V,I,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -592,7 +592,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHPGV(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -632,7 +632,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHPGVD(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -668,11 +668,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						}
 					}
 
-					golapack.Zhpgvx(&ibtype, 'V', 'A', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n+1-1), iwork, info)
+					golapack.Zhpgvx(&ibtype, 'V', 'A', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n), iwork, info)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHPGVX(V,A"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -709,11 +709,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 					vl = zero
 					vu = anorm
-					golapack.Zhpgvx(&ibtype, 'V', 'V', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n+1-1), iwork, info)
+					golapack.Zhpgvx(&ibtype, 'V', 'V', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n), iwork, info)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHPGVX(V,V"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -748,11 +748,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						}
 					}
 
-					golapack.Zhpgvx(&ibtype, 'V', 'I', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n+1-1), iwork, info)
+					golapack.Zhpgvx(&ibtype, 'V', 'I', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n), iwork, info)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHPGVX(V,I"), uplo, ')'), iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -773,19 +773,19 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
@@ -795,7 +795,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHBGV(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -813,19 +813,19 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
@@ -835,7 +835,7 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHBGVD(V,"), uplo, ')'), iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -853,29 +853,29 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						}
 
-						golapack.Zhbgvx('V', 'A', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.CMatrix(maxint(1, n), opts), toPtr(maxint(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+						golapack.Zhbgvx('V', 'A', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.CMatrix(max(1, n), opts), toPtr(max(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n), iwork, &iinfo)
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHBGVX(V,A"), uplo, ')'), iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -892,19 +892,19 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
@@ -912,11 +912,11 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 						vl = zero
 						vu = anorm
-						golapack.Zhbgvx('V', 'V', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.CMatrix(maxint(1, n), opts), toPtr(maxint(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+						golapack.Zhbgvx('V', 'V', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.CMatrix(max(1, n), opts), toPtr(max(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n), iwork, &iinfo)
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHBGVX(V,V"), uplo, ')'), iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -933,29 +933,29 @@ func Zdrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						}
 
-						golapack.Zhbgvx('V', 'I', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.CMatrix(maxint(1, n), opts), toPtr(maxint(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+						golapack.Zhbgvx('V', 'I', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.CMatrix(max(1, n), opts), toPtr(max(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, rwork, toSlice(iwork, n), iwork, &iinfo)
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" ZDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", append([]byte("ZHBGVX(V,I"), uplo, ')'), iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {

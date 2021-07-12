@@ -39,7 +39,7 @@ func Zchkunhrcol(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, n
 			n = (*nval)[j-1]
 
 			//           Only for M >= N
-			if minint(m, n) > 0 && m >= n {
+			if min(m, n) > 0 && m >= n {
 				//              Do for each possible value of MB1
 				for imb1 = 1; imb1 <= (*nnb); imb1++ {
 					mb1 = (*nbval)[imb1-1]

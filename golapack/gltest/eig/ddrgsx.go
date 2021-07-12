@@ -57,12 +57,12 @@ import (
 //       if alpha(j) is real:
 //                     |alpha(j) - S(j,j)|        |beta(j) - T(j,j)|
 //           D(j) = ------------------------ + -----------------------
-//                  maxint(|alpha(j)|,|S(j,j)|)   maxint(|beta(j)|,|T(j,j)|)
+//                  max(|alpha(j)|,|S(j,j)|)   max(|beta(j)|,|T(j,j)|)
 //
 //       if alpha(j) is complex:
 //                                 | det( s S - w T ) |
 //           D(j) = ---------------------------------------------------
-//                  ulp maxint( s norm(S), |w| norm(T) )*norm( s S - w T )
+//                  ulp max( s norm(S), |w| norm(T) )*norm( s S - w T )
 //
 //           and S and T are here the 2 x 2 diagonal blocks of S and T
 //           corresponding to the j-th and j+1-th eigenvalues.
@@ -200,18 +200,18 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 	//       following subroutine, as returned by ILAENV.)
 	minwrk = 1
 	if (*info) == 0 && (*lwork) >= 1 {
-		minwrk = maxint(10*((*nsize)+1), 5*(*nsize)*(*nsize)/2)
+		minwrk = max(10*((*nsize)+1), 5*(*nsize)*(*nsize)/2)
 
 		//        workspace for sggesx
 		maxwrk = 9*((*nsize)+1) + (*nsize)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, func() *int { y := 0; return &y }())
-		maxwrk = maxint(maxwrk, 9*((*nsize)+1)+(*nsize)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, toPtr(-1)))
+		maxwrk = max(maxwrk, 9*((*nsize)+1)+(*nsize)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, toPtr(-1)))
 
 		//        workspace for dgesvd
 		bdspac = 5 * (*nsize) * (*nsize) / 2
-		maxwrk = maxint(maxwrk, 3*(*nsize)*(*nsize)/2+(*nsize)*(*nsize)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, toPtr((*nsize)*(*nsize)/2), toPtr((*nsize)*(*nsize)/2), toPtr(-1), toPtr(-1)))
-		maxwrk = maxint(maxwrk, bdspac)
+		maxwrk = max(maxwrk, 3*(*nsize)*(*nsize)/2+(*nsize)*(*nsize)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, toPtr((*nsize)*(*nsize)/2), toPtr((*nsize)*(*nsize)/2), toPtr(-1), toPtr(-1)))
+		maxwrk = max(maxwrk, bdspac)
 
-		maxwrk = maxint(maxwrk, minwrk)
+		maxwrk = max(maxwrk, minwrk)
 
 		work.Set(0, float64(maxwrk))
 	}
@@ -261,7 +261,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 					golapack.Dlaset('F', mplusn, mplusn, &zero, &zero, ai, lda)
 					golapack.Dlaset('F', mplusn, mplusn, &zero, &zero, bi, lda)
 
-					matgen.Dlatm5(&prtype, m, n, ai, lda, ai.Off((*m)+1-1, (*m)+1-1), lda, ai.Off(0, (*m)+1-1), lda, bi, lda, bi.Off((*m)+1-1, (*m)+1-1), lda, bi.Off(0, (*m)+1-1), lda, q, lda, z, lda, &weight, &qba, &qbb)
+					matgen.Dlatm5(&prtype, m, n, ai, lda, ai.Off((*m), (*m)), lda, ai.Off(0, (*m)), lda, bi, lda, bi.Off((*m), (*m)), lda, bi.Off(0, (*m)), lda, q, lda, z, lda, &weight, &qba, &qbb)
 
 					//                 Compute the Schur factorization and swapping the
 					//                 m-by-m (1,1)-blocks with n-by-n (2,2)-blocks.
@@ -291,7 +291,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 
 					//                 Compute the norm(A, B)
 					golapack.Dlacpy('F', mplusn, mplusn, ai, lda, work.Matrix(*mplusn, opts), mplusn)
-					golapack.Dlacpy('F', mplusn, mplusn, bi, lda, work.MatrixOff((*mplusn)*(*mplusn)+1-1, *mplusn, opts), mplusn)
+					golapack.Dlacpy('F', mplusn, mplusn, bi, lda, work.MatrixOff((*mplusn)*(*mplusn), *mplusn, opts), mplusn)
 					abnrm = golapack.Dlange('F', mplusn, toPtr(2*(*mplusn)), work.Matrix(*mplusn, opts), mplusn, work)
 
 					//                 Do tests (1) to (4)
@@ -310,9 +310,9 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 					for j = 1; j <= (*mplusn); j++ {
 						ilabad = false
 						if alphai.Get(j-1) == zero {
-							temp2 = (math.Abs(alphar.Get(j-1)-ai.Get(j-1, j-1))/maxf64(smlnum, math.Abs(alphar.Get(j-1)), math.Abs(ai.Get(j-1, j-1))) + math.Abs(beta.Get(j-1)-bi.Get(j-1, j-1))/maxf64(smlnum, math.Abs(beta.Get(j-1)), math.Abs(bi.Get(j-1, j-1)))) / ulp
+							temp2 = (math.Abs(alphar.Get(j-1)-ai.Get(j-1, j-1))/math.Max(smlnum, math.Max(math.Abs(alphar.Get(j-1)), math.Abs(ai.Get(j-1, j-1)))) + math.Abs(beta.Get(j-1)-bi.Get(j-1, j-1))/math.Max(smlnum, math.Max(math.Abs(beta.Get(j-1)), math.Abs(bi.Get(j-1, j-1))))) / ulp
 							if j < (*mplusn) {
-								if ai.Get(j+1-1, j-1) != zero {
+								if ai.Get(j, j-1) != zero {
 									ilabad = true
 									result.Set(4, ulpinv)
 								}
@@ -332,7 +332,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 							if i1 <= 0 || i1 >= (*mplusn) {
 								ilabad = true
 							} else if i1 < (*mplusn)-1 {
-								if ai.Get(i1+2-1, i1+1-1) != zero {
+								if ai.Get(i1+2-1, i1) != zero {
 									ilabad = true
 									result.Set(4, ulpinv)
 								}
@@ -347,13 +347,13 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 								if iinfo >= 3 {
 									t.Fail()
 									fmt.Printf(" DDRGSX: DGET53 returned INFO=%1d for eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", iinfo, j, *mplusn, prtype)
-									(*info) = absint(iinfo)
+									(*info) = abs(iinfo)
 								}
 							} else {
 								temp2 = ulpinv
 							}
 						}
-						temp1 = maxf64(temp1, temp2)
+						temp1 = math.Max(temp1, temp2)
 						if ilabad {
 							t.Fail()
 							fmt.Printf(" DDRGSX: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", j, *mplusn, prtype)
@@ -378,7 +378,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 					if ifunc >= 2 && mn2 <= (*ncmax)*(*ncmax) {
 						//                    Note: for either following two causes, there are
 						//                    almost same number of test cases fail the test.
-						matgen.Dlakf2(&mm, toPtr((*mplusn)-mm), ai, lda, ai.Off(mm+1-1, mm+1-1), bi, bi.Off(mm+1-1, mm+1-1), c, ldc)
+						matgen.Dlakf2(&mm, toPtr((*mplusn)-mm), ai, lda, ai.Off(mm, mm), bi, bi.Off(mm, mm), c, ldc)
 
 						golapack.Dgesvd('N', 'N', &mn2, &mn2, c, ldc, s, work.Matrix(1, opts), func() *int { y := 1; return &y }(), work.MatrixOff(1, 1, opts), func() *int { y := 1; return &y }(), work.Off(2), toPtr((*lwork)-2), info)
 						diftru = s.Get(mn2 - 1)
@@ -392,7 +392,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 								result.Set(7, ulpinv)
 							}
 						} else if (diftru > thrsh2*difest.Get(1)) || (diftru*thrsh2 < difest.Get(1)) {
-							result.Set(7, maxf64(diftru/difest.Get(1), difest.Get(1)/diftru))
+							result.Set(7, math.Max(diftru/difest.Get(1), difest.Get(1)/diftru))
 						}
 						ntest = ntest + 1
 					}
@@ -514,7 +514,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 		//     Compute the norm(A, B)
 		//        (should this be norm of (A,B) or (AI,BI)?)
 		golapack.Dlacpy('F', mplusn, mplusn, ai, lda, work.Matrix(*mplusn, opts), mplusn)
-		golapack.Dlacpy('F', mplusn, mplusn, bi, lda, work.MatrixOff((*mplusn)*(*mplusn)+1-1, *mplusn, opts), mplusn)
+		golapack.Dlacpy('F', mplusn, mplusn, bi, lda, work.MatrixOff((*mplusn)*(*mplusn), *mplusn, opts), mplusn)
 		abnrm = golapack.Dlange('F', mplusn, toPtr(2*(*mplusn)), work.Matrix(*mplusn, opts), mplusn, work)
 
 		//     Do tests (1) to (4)
@@ -533,9 +533,9 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 		for j = 1; j <= (*mplusn); j++ {
 			ilabad = false
 			if alphai.Get(j-1) == zero {
-				temp2 = (math.Abs(alphar.Get(j-1)-ai.Get(j-1, j-1))/maxf64(smlnum, math.Abs(alphar.Get(j-1)), math.Abs(ai.Get(j-1, j-1))) + math.Abs(beta.Get(j-1)-bi.Get(j-1, j-1))/maxf64(smlnum, math.Abs(beta.Get(j-1)), math.Abs(bi.Get(j-1, j-1)))) / ulp
+				temp2 = (math.Abs(alphar.Get(j-1)-ai.Get(j-1, j-1))/math.Max(smlnum, math.Max(math.Abs(alphar.Get(j-1)), math.Abs(ai.Get(j-1, j-1)))) + math.Abs(beta.Get(j-1)-bi.Get(j-1, j-1))/math.Max(smlnum, math.Max(math.Abs(beta.Get(j-1)), math.Abs(bi.Get(j-1, j-1))))) / ulp
 				if j < (*mplusn) {
-					if ai.Get(j+1-1, j-1) != zero {
+					if ai.Get(j, j-1) != zero {
 						ilabad = true
 						result.Set(4, ulpinv)
 					}
@@ -555,7 +555,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 				if i1 <= 0 || i1 >= (*mplusn) {
 					ilabad = true
 				} else if i1 < (*mplusn)-1 {
-					if ai.Get(i1+2-1, i1+1-1) != zero {
+					if ai.Get(i1+2-1, i1) != zero {
 						ilabad = true
 						result.Set(4, ulpinv)
 					}
@@ -570,13 +570,13 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 					if iinfo >= 3 {
 						t.Fail()
 						fmt.Printf(" DDRGSX: DGET53 returned INFO=%1d for eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", iinfo, j, *mplusn, nptknt)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 					}
 				} else {
 					temp2 = ulpinv
 				}
 			}
-			temp1 = maxf64(temp1, temp2)
+			temp1 = math.Max(temp1, temp2)
 			if ilabad {
 				t.Fail()
 				fmt.Printf(" DDRGSX: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", j, *mplusn, nptknt)
@@ -603,7 +603,7 @@ func Ddrgsx(nsize *int, ncmax *int, thresh *float64, nin *util.Reader, nout *int
 				result.Set(7, ulpinv)
 			}
 		} else if (diftru > thrsh2*difest.Get(1)) || (diftru*thrsh2 < difest.Get(1)) {
-			result.Set(7, maxf64(diftru/difest.Get(1), difest.Get(1)/diftru))
+			result.Set(7, math.Max(diftru/difest.Get(1), difest.Get(1)/diftru))
 		}
 
 		//     Test (9)

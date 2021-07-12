@@ -35,14 +35,14 @@ func Zgelq(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 	}
 
 	//     Determine the block size
-	if minint(*m, *n) > 0 {
+	if min(*m, *n) > 0 {
 		mb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGELQ "), []byte{' '}, m, n, func() *int { y := 1; return &y }(), toPtr(-1))
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGELQ "), []byte{' '}, m, n, func() *int { y := 2; return &y }(), toPtr(-1))
 	} else {
 		mb = 1
 		nb = (*n)
 	}
-	if mb > minint(*m, *n) || mb < 1 {
+	if mb > min(*m, *n) || mb < 1 {
 		mb = 1
 	}
 	if nb > (*n) || nb <= (*m) {
@@ -61,8 +61,8 @@ func Zgelq(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 
 	//     Determine if the workspace size satisfies minimal size
 	lminws = false
-	if ((*tsize) < maxint(1, mb*(*m)*nblcks+5) || (*lwork) < mb*(*m)) && ((*lwork) >= (*m)) && ((*tsize) >= mintsz) && (!lquery) {
-		if (*tsize) < maxint(1, mb*(*m)*nblcks+5) {
+	if ((*tsize) < max(1, mb*(*m)*nblcks+5) || (*lwork) < mb*(*m)) && ((*lwork) >= (*m)) && ((*tsize) >= mintsz) && (!lquery) {
+		if (*tsize) < max(1, mb*(*m)*nblcks+5) {
 			lminws = true
 			mb = 1
 			nb = (*n)
@@ -77,11 +77,11 @@ func Zgelq(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
-	} else if (*tsize) < maxint(1, mb*(*m)*nblcks+5) && (!lquery) && (!lminws) {
+	} else if (*tsize) < max(1, mb*(*m)*nblcks+5) && (!lquery) && (!lminws) {
 		(*info) = -6
-	} else if ((*lwork) < maxint(1, (*m)*mb)) && (!lquery) && (!lminws) {
+	} else if ((*lwork) < max(1, (*m)*mb)) && (!lquery) && (!lminws) {
 		(*info) = -8
 	}
 
@@ -94,9 +94,9 @@ func Zgelq(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 		t.SetRe(1, float64(mb))
 		t.SetRe(2, float64(nb))
 		if minw {
-			work.SetRe(0, float64(maxint(1, *n)))
+			work.SetRe(0, float64(max(1, *n)))
 		} else {
-			work.SetRe(0, float64(maxint(1, mb*(*m))))
+			work.SetRe(0, float64(max(1, mb*(*m))))
 		}
 	}
 	if (*info) != 0 {
@@ -107,7 +107,7 @@ func Zgelq(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -118,5 +118,5 @@ func Zgelq(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 		Zlaswlq(m, n, &mb, &nb, a, lda, t.CMatrixOff(5, mb, opts), &mb, work, lwork, info)
 	}
 
-	work.SetRe(0, float64(maxint(1, mb*(*m))))
+	work.SetRe(0, float64(max(1, mb*(*m))))
 }

@@ -32,16 +32,16 @@ func Zheev(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vector, wor
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 
 	if (*info) == 0 {
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = maxint(1, (nb+1)*(*n))
+		lwkopt = max(1, (nb+1)*(*n))
 		work.SetRe(0, float64(lwkopt))
 
-		if (*lwork) < maxint(1, 2*(*n)-1) && !lquery {
+		if (*lwork) < max(1, 2*(*n)-1) && !lquery {
 			(*info) = -8
 		}
 	}
@@ -113,7 +113,7 @@ func Zheev(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vector, wor
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     Set WORK(1) to optimal complex workspace size.

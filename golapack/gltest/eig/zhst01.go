@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -42,20 +44,20 @@ func Zhst01(n, ilo, ihi *int, a *mat.CMatrix, lda *int, h *mat.CMatrix, ldh *int
 	//     Test 1:  Compute norm( A - Q*H*Q' ) / ( norm(A) * N * EPS )
 	//
 	//     Copy A to WORK
-	ldwork = maxint(1, *n)
+	ldwork = max(1, *n)
 	golapack.Zlacpy(' ', n, n, a, lda, work.CMatrix(ldwork, opts), &ldwork)
 
 	//     Compute Q*H
-	err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, complex(one, 0), q, *ldq, h, *ldh, complex(zero, 0), work.CMatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork)
+	err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, complex(one, 0), q, h, complex(zero, 0), work.CMatrixOff(ldwork*(*n), ldwork, opts))
 
 	//     Compute A - Q*H*Q'
-	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, complex(-one, 0), work.CMatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork, q, *ldq, complex(one, 0), work.CMatrix(ldwork, opts), ldwork)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, complex(-one, 0), work.CMatrixOff(ldwork*(*n), ldwork, opts), q, complex(one, 0), work.CMatrix(ldwork, opts))
 
-	anorm = maxf64(golapack.Zlange('1', n, n, a, lda, rwork), unfl)
+	anorm = math.Max(golapack.Zlange('1', n, n, a, lda, rwork), unfl)
 	wnorm = golapack.Zlange('1', n, n, work.CMatrix(ldwork, opts), &ldwork, rwork)
 
 	//     Note that RESULT(1) cannot overflow and is bounded by 1/(N*EPS)
-	result.Set(0, minf64(wnorm, anorm)/maxf64(smlnum, anorm*eps)/float64(*n))
+	result.Set(0, math.Min(wnorm, anorm)/math.Max(smlnum, anorm*eps)/float64(*n))
 
 	//     Test 2:  Compute norm( I - Q'*Q ) / ( N * EPS )
 	Zunt01('C', n, n, q, ldq, work, lwork, rwork, result.GetPtr(1))

@@ -30,9 +30,9 @@ func Dspsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.Vector, ipiv *[]int, b *
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -42,7 +42,7 @@ func Dspsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.Vector, ipiv *[]int, b *
 
 	if nofact {
 		//        Compute the factorization A = U*D*U**T or A = L*D*L**T.
-		goblas.Dcopy((*n)*((*n)+1)/2, ap.Off(0), 1, afp.Off(0), 1)
+		goblas.Dcopy((*n)*((*n)+1)/2, ap.Off(0, 1), afp.Off(0, 1))
 		Dsptrf(uplo, n, afp, ipiv, info)
 
 		//        Return if INFO is non-zero.

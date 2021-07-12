@@ -28,9 +28,9 @@ func Dgerqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, (*m)) {
+	} else if (*lda) < max(1, (*m)) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, (*n)) {
+	} else if (*ldb) < max(1, (*n)) {
 		(*info) = -8
 	} else if (*lwork) < 1 || (*lwork) < (*nrhs) && (*m) > 0 && (*n) > 0 {
 		(*info) = -10
@@ -46,7 +46,7 @@ func Dgerqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 	}
 
 	//     Solve R*X = B((*n)-(*m)+1:(*n),:)
-	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, *m, *nrhs, one, a.Off(0, (*n)-(*m)+1-1), *lda, b.Off((*n)-(*m)+1-1, 0), *ldb)
+	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, *m, *nrhs, one, a.Off(0, (*n)-(*m)), b.Off((*n)-(*m), 0))
 
 	//     Set B(1:(*n)-(*m),:) to zero
 	golapack.Dlaset('F', toPtr((*n)-(*m)), &(*nrhs), &zero, &zero, b, &(*ldb))

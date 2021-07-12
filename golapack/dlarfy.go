@@ -29,12 +29,12 @@ func Dlarfy(uplo byte, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.Ma
 	}
 
 	//     Form  w:= C * v
-	err = goblas.Dsymv(mat.UploByte(uplo), *n, one, c, *ldc, v, *incv, zero, work, 1)
+	err = goblas.Dsymv(mat.UploByte(uplo), *n, one, c, v, zero, work)
 
-	alpha = -half * (*tau) * goblas.Ddot(*n, work, 1, v, *incv)
-	goblas.Daxpy(*n, alpha, v, *incv, work, 1)
+	alpha = -half * (*tau) * goblas.Ddot(*n, work, v)
+	goblas.Daxpy(*n, alpha, v, work)
 
 	//     C := C - v * w' - w * v'
 
-	err = goblas.Dsyr2(mat.UploByte(uplo), *n, -(*tau), v, *incv, work, 1, c, *ldc)
+	err = goblas.Dsyr2(mat.UploByte(uplo), *n, -(*tau), v, work, c)
 }

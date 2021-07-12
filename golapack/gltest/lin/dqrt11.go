@@ -43,10 +43,10 @@ func Dqrt11(m, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *in
 	golapack.Dlaset('F', m, m, &zero, &one, work.Matrix(*m, opts), m)
 
 	//     Form Q
-	golapack.Dorm2r('L', 'N', m, m, k, a, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*m)+1-1), &info)
+	golapack.Dorm2r('L', 'N', m, m, k, a, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*m)), &info)
 
 	//     Form Q'*Q
-	golapack.Dorm2r('L', 'T', m, m, k, a, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*m)+1-1), &info)
+	golapack.Dorm2r('L', 'T', m, m, k, a, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*m)), &info)
 
 	for j = 1; j <= (*m); j++ {
 		work.Set((j-1)*(*m)+j-1, work.Get((j-1)*(*m)+j-1)-one)

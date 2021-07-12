@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -57,21 +59,21 @@ func Dpbsvx(fact, uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *m
 			smin = bignum
 			smax = zero
 			for j = 1; j <= (*n); j++ {
-				smin = minf64(smin, s.Get(j-1))
-				smax = maxf64(smax, s.Get(j-1))
+				smin = math.Min(smin, s.Get(j-1))
+				smax = math.Max(smax, s.Get(j-1))
 			}
 			if smin <= zero {
 				(*info) = -11
 			} else if (*n) > 0 {
-				scond = maxf64(smin, smlnum) / minf64(smax, bignum)
+				scond = math.Max(smin, smlnum) / math.Min(smax, bignum)
 			} else {
 				scond = one
 			}
 		}
 		if (*info) == 0 {
-			if (*ldb) < maxint(1, *n) {
+			if (*ldb) < max(1, *n) {
 				(*info) = -13
-			} else if (*ldx) < maxint(1, *n) {
+			} else if (*ldx) < max(1, *n) {
 				(*info) = -15
 			}
 		}
@@ -105,13 +107,13 @@ func Dpbsvx(fact, uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *m
 		//        Compute the Cholesky factorization A = U**T *U or A = L*L**T.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				j1 = maxint(j-(*kd), 1)
-				goblas.Dcopy(j-j1+1, ab.Vector((*kd)+1-j+j1-1, j-1), 1, afb.Vector((*kd)+1-j+j1-1, j-1), 1)
+				j1 = max(j-(*kd), 1)
+				goblas.Dcopy(j-j1+1, ab.Vector((*kd)+1-j+j1-1, j-1, 1), afb.Vector((*kd)+1-j+j1-1, j-1, 1))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				j2 = minint(j+(*kd), *n)
-				goblas.Dcopy(j2-j+1, ab.Vector(0, j-1), 1, afb.Vector(0, j-1), 1)
+				j2 = min(j+(*kd), *n)
+				goblas.Dcopy(j2-j+1, ab.Vector(0, j-1, 1), afb.Vector(0, j-1, 1))
 			}
 		}
 

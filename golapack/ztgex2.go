@@ -55,18 +55,18 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	scale = real(czero)
 	sum = real(cone)
 	Zlacpy('F', &m, &m, s, &ldst, work.CMatrix(m, opts), &m)
-	Zlacpy('F', &m, &m, t, &ldst, work.CMatrixOff(m*m+1-1, m, opts), &m)
+	Zlacpy('F', &m, &m, t, &ldst, work.CMatrixOff(m*m, m, opts), &m)
 	Zlassq(toPtr(2*m*m), work, func() *int { y := 1; return &y }(), &scale, &sum)
 	sa = scale * math.Sqrt(sum)
 
 	//     THRES has been changed from
-	//        THRESH = maxint( TEN*EPS*SA, SMLNUM )
+	//        THRESH = max( TEN*EPS*SA, SMLNUM )
 	//     to
-	//        THRESH = maxint( TWENTY*EPS*SA, SMLNUM )
+	//        THRESH = max( TWENTY*EPS*SA, SMLNUM )
 	//     on 04/01/10.
 	//     "Bug" reported by Ondra Kamenik, confirmed by Julie Langou, fixed by
 	//     Jim Demmel and Guillaume Revy. See forum post 1783.
-	thresh = maxf64(twenty*eps*sa, smlnum)
+	thresh = math.Max(twenty*eps*sa, smlnum)
 
 	//     Compute unitary QL and RQ that swap 1-by-1 and 1-by-1 blocks
 	//     using Givens rotations and perform the swap tentatively.
@@ -97,16 +97,16 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 		//        Strong stability test:
 		//           F-norm((A-QL**H*S*QR, B-QL**H*T*QR)) <= O(EPS*F-norm((A, B)))
 		Zlacpy('F', &m, &m, s, &ldst, work.CMatrix(m, opts), &m)
-		Zlacpy('F', &m, &m, t, &ldst, work.CMatrixOff(m*m+1-1, m, opts), &m)
+		Zlacpy('F', &m, &m, t, &ldst, work.CMatrixOff(m*m, m, opts), &m)
 		Zrot(func() *int { y := 2; return &y }(), work, func() *int { y := 1; return &y }(), work.Off(2), func() *int { y := 1; return &y }(), &cz, toPtrc128(-cmplx.Conj(sz)))
 		Zrot(func() *int { y := 2; return &y }(), work.Off(4), func() *int { y := 1; return &y }(), work.Off(6), func() *int { y := 1; return &y }(), &cz, toPtrc128(-cmplx.Conj(sz)))
 		Zrot(func() *int { y := 2; return &y }(), work, func() *int { y := 2; return &y }(), work.Off(1), func() *int { y := 2; return &y }(), &cq, toPtrc128(-sq))
 		Zrot(func() *int { y := 2; return &y }(), work.Off(4), func() *int { y := 2; return &y }(), work.Off(5), func() *int { y := 2; return &y }(), &cq, toPtrc128(-sq))
 		for i = 1; i <= 2; i++ {
 			work.Set(i-1, work.Get(i-1)-a.Get((*j1)+i-1-1, (*j1)-1))
-			work.Set(i+2-1, work.Get(i+2-1)-a.Get((*j1)+i-1-1, (*j1)+1-1))
+			work.Set(i+2-1, work.Get(i+2-1)-a.Get((*j1)+i-1-1, (*j1)))
 			work.Set(i+4-1, work.Get(i+4-1)-b.Get((*j1)+i-1-1, (*j1)-1))
-			work.Set(i+6-1, work.Get(i+6-1)-b.Get((*j1)+i-1-1, (*j1)+1-1))
+			work.Set(i+6-1, work.Get(i+6-1)-b.Get((*j1)+i-1-1, (*j1)))
 		}
 		scale = real(czero)
 		sum = real(cone)
@@ -120,21 +120,21 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 
 	//     If the swap is accepted ("weakly" and "strongly"), apply the
 	//     equivalence transformations to the original matrix pair (A,B)
-	Zrot(toPtr((*j1)+1), a.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), a.CVector(0, (*j1)+1-1), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
-	Zrot(toPtr((*j1)+1), b.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), b.CVector(0, (*j1)+1-1), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
-	Zrot(toPtr((*n)-(*j1)+1), a.CVector((*j1)-1, (*j1)-1), lda, a.CVector((*j1)+1-1, (*j1)-1), lda, &cq, &sq)
-	Zrot(toPtr((*n)-(*j1)+1), b.CVector((*j1)-1, (*j1)-1), ldb, b.CVector((*j1)+1-1, (*j1)-1), ldb, &cq, &sq)
+	Zrot(toPtr((*j1)+1), a.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), a.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
+	Zrot(toPtr((*j1)+1), b.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), b.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
+	Zrot(toPtr((*n)-(*j1)+1), a.CVector((*j1)-1, (*j1)-1), lda, a.CVector((*j1), (*j1)-1), lda, &cq, &sq)
+	Zrot(toPtr((*n)-(*j1)+1), b.CVector((*j1)-1, (*j1)-1), ldb, b.CVector((*j1), (*j1)-1), ldb, &cq, &sq)
 
 	//     Set  N1 by N2 (2,1) blocks to 0
-	a.Set((*j1)+1-1, (*j1)-1, czero)
-	b.Set((*j1)+1-1, (*j1)-1, czero)
+	a.Set((*j1), (*j1)-1, czero)
+	b.Set((*j1), (*j1)-1, czero)
 
 	//     Accumulate transformations into Q and Z if requested.
 	if wantz {
-		Zrot(n, z.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), z.CVector(0, (*j1)+1-1), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
+		Zrot(n, z.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), z.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
 	}
 	if wantq {
-		Zrot(n, q.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), q.CVector(0, (*j1)+1-1), func() *int { y := 1; return &y }(), &cq, toPtrc128(cmplx.Conj(sq)))
+		Zrot(n, q.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), q.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cq, toPtrc128(cmplx.Conj(sq)))
 	}
 
 	//     Exit with INFO = 0 if swap was successfully performed.

@@ -11,7 +11,7 @@ func Dlasdt(n, lvl, nd *int, inode, ndiml, ndimr *[]int, msub *int) {
 	two = 2.0
 
 	//     Find the number of levels on the tree.
-	maxn = maxint(1, *n)
+	maxn = max(1, *n)
 	temp = math.Log(float64(maxn)/float64((*msub)+1)) / math.Log(two)
 	(*lvl) = int(temp) + 1
 

@@ -49,8 +49,8 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 
 	//     Test the input arguments.
 	(*info) = 0
-	minmn = minint(*m, *n)
-	maxmn = maxint(*m, *n)
+	minmn = min(*m, *n)
+	maxmn = max(*m, *n)
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
 		(*info) = -1
@@ -58,9 +58,9 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, maxmn) {
+	} else if (*ldb) < max(1, maxmn) {
 		(*info) = -7
 	}
 
@@ -78,56 +78,56 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		if minmn > 0 {
 			smlsiz = Ilaenv(func() *int { y := 9; return &y }(), []byte("ZGELSD"), []byte{' '}, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }())
 			mnthr = Ilaenv(func() *int { y := 6; return &y }(), []byte("ZGELSD"), []byte{' '}, m, n, nrhs, toPtr(-1))
-			nlvl = maxint(int(math.Log(float64(minmn)/float64(smlsiz+1))/math.Log(two))+1, 0)
+			nlvl = max(int(math.Log(float64(minmn)/float64(smlsiz+1))/math.Log(two))+1, 0)
 			liwork = 3*minmn*nlvl + 11*minmn
 			mm = (*m)
 			if (*m) >= (*n) && (*m) >= mnthr {
 				//              Path 1a - overdetermined, with many more rows than
 				//                        columns.
 				mm = (*n)
-				maxwrk = maxint(maxwrk, (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+				maxwrk = max(maxwrk, (*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
 			}
 			if (*m) >= (*n) {
 				//              Path 1 - overdetermined or exactly determined.
-				lrwork = 10*(*n) + 2*(*n)*smlsiz + 8*(*n)*nlvl + 3*smlsiz*(*nrhs) + maxint(int(math.Pow(float64(smlsiz+1), 2)), (*n)*(1+(*nrhs))+2*(*nrhs))
-				maxwrk = maxint(maxwrk, 2*(*n)+(mm+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, &mm, n, toPtr(-1), toPtr(-1)))
-				maxwrk = maxint(maxwrk, 2*(*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), &mm, nrhs, n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("PLN"), n, nrhs, n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, 2*(*n)+(*n)*(*nrhs))
-				minwrk = maxint(2*(*n)+mm, 2*(*n)+(*n)*(*nrhs))
+				lrwork = 10*(*n) + 2*(*n)*smlsiz + 8*(*n)*nlvl + 3*smlsiz*(*nrhs) + max(int(math.Pow(float64(smlsiz+1), 2)), (*n)*(1+(*nrhs))+2*(*nrhs))
+				maxwrk = max(maxwrk, 2*(*n)+(mm+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, &mm, n, toPtr(-1), toPtr(-1)))
+				maxwrk = max(maxwrk, 2*(*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), &mm, nrhs, n, toPtr(-1)))
+				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("PLN"), n, nrhs, n, toPtr(-1)))
+				maxwrk = max(maxwrk, 2*(*n)+(*n)*(*nrhs))
+				minwrk = max(2*(*n)+mm, 2*(*n)+(*n)*(*nrhs))
 			}
 			if (*n) > (*m) {
-				lrwork = 10*(*m) + 2*(*m)*smlsiz + 8*(*m)*nlvl + 3*smlsiz*(*nrhs) + maxint(int(math.Pow(float64(smlsiz+1), 2)), (*n)*(1+(*nrhs))+2*(*nrhs))
+				lrwork = 10*(*m) + 2*(*m)*smlsiz + 8*(*m)*nlvl + 3*smlsiz*(*nrhs) + max(int(math.Pow(float64(smlsiz+1), 2)), (*n)*(1+(*nrhs))+2*(*nrhs))
 				if (*n) >= mnthr {
 					//                 Path 2a - underdetermined, with many more columns
 					//                           than rows.
 					maxwrk = (*m) + (*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
-					maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), m, nrhs, m, toPtr(-1)))
-					maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+((*m)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LC"), n, nrhs, m, toPtr(-1)))
+					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), m, nrhs, m, toPtr(-1)))
+					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+((*m)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LC"), n, nrhs, m, toPtr(-1)))
 					if (*nrhs) > 1 {
-						maxwrk = maxint(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
+						maxwrk = max(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
 					} else {
-						maxwrk = maxint(maxwrk, (*m)*(*m)+2*(*m))
+						maxwrk = max(maxwrk, (*m)*(*m)+2*(*m))
 					}
-					maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+(*m)*(*nrhs))
+					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+(*m)*(*nrhs))
 					//!     XXX: Ensure the Path 2a case below is triggered.  The workspace
 
 					//!     calculation should use queries for all routines eventually.
 
-					maxwrk = maxint(maxwrk, 4*(*m)+(*m)*(*m)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)))
+					maxwrk = max(maxwrk, 4*(*m)+(*m)*(*m)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)))
 				} else {
 					//                 Path 2 - underdetermined.
 					maxwrk = 2*(*m) + ((*n)+(*m))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = maxint(maxwrk, 2*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), m, nrhs, m, toPtr(-1)))
-					maxwrk = maxint(maxwrk, 2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("PLN"), n, nrhs, m, toPtr(-1)))
-					maxwrk = maxint(maxwrk, 2*(*m)+(*m)*(*nrhs))
+					maxwrk = max(maxwrk, 2*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), m, nrhs, m, toPtr(-1)))
+					maxwrk = max(maxwrk, 2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("PLN"), n, nrhs, m, toPtr(-1)))
+					maxwrk = max(maxwrk, 2*(*m)+(*m)*(*nrhs))
 				}
-				minwrk = maxint(2*(*m)+(*n), 2*(*m)+(*m)*(*nrhs))
+				minwrk = max(2*(*m)+(*n), 2*(*m)+(*m)*(*nrhs))
 			}
 		}
-		minwrk = minint(minwrk, maxwrk)
+		minwrk = min(minwrk, maxwrk)
 		work.SetRe(0, float64(maxwrk))
 		(*iwork)[0] = liwork
 		rwork.Set(0, float64(lrwork))
@@ -157,7 +157,7 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	bignum = one / smlnum
 	Dlabad(&smlnum, &bignum)
 
-	//     Scale A if maxint entry outside range [SMLNUM,BIGNUM].
+	//     Scale A if max entry outside range [SMLNUM,BIGNUM].
 	anrm = Zlange('M', m, n, a, lda, rwork)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
@@ -170,13 +170,13 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		Dlaset('F', &minmn, func() *int { y := 1; return &y }(), &zero, &zero, s.Matrix(1, opts), func() *int { y := 1; return &y }())
 		(*rank) = 0
 		goto label10
 	}
 
-	//     Scale B if maxint entry outside range [SMLNUM,BIGNUM].
+	//     Scale B if max entry outside range [SMLNUM,BIGNUM].
 	bnrm = Zlange('M', m, nrhs, b, ldb, rwork)
 	ibscl = 0
 	if bnrm > zero && bnrm < smlnum {
@@ -191,7 +191,7 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 
 	//     If M < N make sure B(M+1:N,:) = 0
 	if (*m) < (*n) {
-		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m)+1-1, 0), ldb)
+		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m), 0), ldb)
 	}
 
 	//     Overdetermined case.
@@ -244,11 +244,11 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        Multiply B by right bidiagonalizing vectors of R.
 		Zunmbr('P', 'L', 'N', n, nrhs, n, a, lda, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
 
-	} else if (*n) >= mnthr && (*lwork) >= 4*(*m)+(*m)*(*m)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)) {
+	} else if (*n) >= mnthr && (*lwork) >= 4*(*m)+(*m)*(*m)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)) {
 		//        Path 2a - underdetermined, with many more columns than rows
 		//        and sufficient workspace for an efficient algorithm.
 		ldwork = (*m)
-		if (*lwork) >= maxint(4*(*m)+(*m)*(*lda)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)), (*m)*(*lda)+(*m)+(*m)*(*nrhs)) {
+		if (*lwork) >= max(4*(*m)+(*m)*(*lda)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)), (*m)*(*lda)+(*m)+(*m)*(*nrhs)) {
 			ldwork = (*lda)
 		}
 		itau = 1
@@ -287,7 +287,7 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		Zunmbr('P', 'L', 'N', m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), &ldwork, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
 
 		//        Zero out below first M rows of B.
-		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m)+1-1, 0), ldb)
+		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m), 0), ldb)
 		nwork = itau + (*m)
 
 		//        Multiply transpose(Q) by B.

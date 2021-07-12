@@ -82,15 +82,15 @@ func Dlalsa(icompq, smlsiz, n, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Matri
 		nr = (*iwork)[ndimr+i1-1]
 		nlf = ic - nl
 		nrf = ic + 1
-		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), *ldu, b.Off(nlf-1, 0), *ldb, zero, bx.Off(nlf-1, 0), *ldbx)
-		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), *ldu, b.Off(nrf-1, 0), *ldb, zero, bx.Off(nrf-1, 0), *ldbx)
+		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0))
+		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0))
 	}
 
 	//     Next copy the rows of B that correspond to unchanged rows
 	//     in the bidiagonal matrix to BX.
 	for i = 1; i <= nd; i++ {
 		ic = (*iwork)[inode+i-1-1]
-		goblas.Dcopy(*nrhs, b.Vector(ic-1, 0), *ldb, bx.Vector(ic-1, 0), *ldbx)
+		goblas.Dcopy(*nrhs, b.Vector(ic-1, 0), bx.Vector(ic-1, 0))
 	}
 
 	//     Finally go through the left singular vector matrices of all
@@ -180,7 +180,7 @@ label50:
 		}
 		nlf = ic - nl
 		nrf = ic + 1
-		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), *ldu, b.Off(nlf-1, 0), *ldb, zero, bx.Off(nlf-1, 0), *ldbx)
-		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), *ldu, b.Off(nrf-1, 0), *ldb, zero, bx.Off(nrf-1, 0), *ldbx)
+		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0))
+		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0))
 	}
 }

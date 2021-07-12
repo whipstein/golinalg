@@ -47,7 +47,7 @@ func Dlatm1(mode *int, cond *float64, irsign *int, idist *int, iseed *[]int, d *
 
 	//     Compute D according to COND and MODE
 	if (*mode) != 0 {
-		switch absint(*mode) {
+		switch abs(*mode) {
 		case 1:
 			goto label10
 		case 2:

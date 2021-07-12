@@ -51,7 +51,7 @@ func Dsbev(jobz, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, w *mat.Vector
 		if lower {
 			w.Set(0, ab.Get(0, 0))
 		} else {
-			w.Set(0, ab.Get((*kd)+1-1, 0))
+			w.Set(0, ab.Get((*kd), 0))
 		}
 		if wantz {
 			z.Set(0, 0, one)
@@ -104,6 +104,6 @@ func Dsbev(jobz, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, w *mat.Vector
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 }

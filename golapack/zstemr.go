@@ -148,7 +148,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 	smlnum = safmin / eps
 	bignum = one / smlnum
 	rmin = math.Sqrt(smlnum)
-	rmax = minf64(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
+	rmax = math.Min(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
 
 	if (*info) == 0 {
 		work.Set(0, float64(lwmin))
@@ -278,8 +278,8 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 			scale = rmax / tnrm
 		}
 		if scale != one {
-			goblas.Dscal(*n, scale, d, 1)
-			goblas.Dscal((*n)-1, scale, e, 1)
+			goblas.Dscal(*n, scale, d.Off(0, 1))
+			goblas.Dscal((*n)-1, scale, e.Off(0, 1))
 			tnrm = tnrm * scale
 			if valeig {
 				//              If eigenvalues in interval have to be found,
@@ -314,7 +314,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 
 		if *tryrac {
 			//           Copy original diagonal, needed to guarantee relative accuracy
-			goblas.Dcopy(*n, d, 1, work.Off(indd-1), 1)
+			goblas.Dcopy(*n, d.Off(0, 1), work.Off(indd-1, 1))
 		}
 		//        Store the squares of the offdiagonal values of T
 		for j = 1; j <= (*n)-1; j++ {
@@ -331,11 +331,11 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 			//           need less accurate initial bisection in DLARRE.
 			//           Note: these settings do only affect the subset case and DLARRE
 			rtol1 = math.Sqrt(eps)
-			rtol2 = maxf64(math.Sqrt(eps)*5.0e-3, four*eps)
+			rtol2 = math.Max(math.Sqrt(eps)*5.0e-3, four*eps)
 		}
 		Dlarre(_range, n, &wl, &wu, &iil, &iiu, d, e, work.Off(inde2-1), &rtol1, &rtol2, &thresh, &nsplit, toSlice(iwork, iinspl-1), m, w, work.Off(inderr-1), work.Off(indgp-1), toSlice(iwork, iindbl-1), toSlice(iwork, iindw-1), work.Off(indgrs-1), &pivmin, work.Off(indwrk-1), toSlice(iwork, iindwk-1), &iinfo)
 		if iinfo != 0 {
-			(*info) = 10 + absint(iinfo)
+			(*info) = 10 + abs(iinfo)
 			return
 		}
 		//        Note that if RANGE .NE. 'V', DLARRE computes bounds on the desired
@@ -346,7 +346,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 			//           eigenvalues
 			Zlarrv(n, &wl, &wu, d, e, &pivmin, toSlice(iwork, iinspl-1), m, func() *int { y := 1; return &y }(), m, &minrgp, &rtol1, &rtol2, w, work.Off(inderr-1), work.Off(indgp-1), toSlice(iwork, iindbl-1), toSlice(iwork, iindw-1), work.Off(indgrs-1), z, ldz, isuppz, work.Off(indwrk-1), toSlice(iwork, iindwk-1), &iinfo)
 			if iinfo != 0 {
-				(*info) = 20 + absint(iinfo)
+				(*info) = 20 + abs(iinfo)
 				return
 			}
 		} else {
@@ -396,7 +396,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 
 		//        If matrix was scaled, then rescale eigenvalues appropriately.
 		if scale != one {
-			goblas.Dscal(*m, one/scale, w, 1)
+			goblas.Dscal(*m, one/scale, w.Off(0, 1))
 		}
 	}
 
@@ -423,7 +423,7 @@ func Zstemr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 					w.Set(i-1, w.Get(j-1))
 					w.Set(j-1, tmp)
 					if wantz {
-						goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, j-1), 1)
+						goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
 						itmp = (*isuppz)[2*i-1-1]
 						(*isuppz)[2*i-1-1] = (*isuppz)[2*j-1-1]
 						(*isuppz)[2*j-1-1] = itmp

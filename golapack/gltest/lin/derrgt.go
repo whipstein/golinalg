@@ -51,7 +51,7 @@ func Derrgt(path []byte, t *testing.T) {
 		*srnamt = "DGTTRF"
 		*infot = 1
 		golapack.Dgttrf(toPtr(-1), c, d, e, f, &ip, &info)
-		if *infot == absint(info) {
+		if *infot == abs(info) {
 			*lerr = true
 		}
 		Chkxer("DGTTRF", &info, lerr, ok, t)

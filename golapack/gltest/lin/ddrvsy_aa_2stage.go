@@ -62,7 +62,7 @@ func DdrvsyAa2stage(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *flo
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -140,7 +140,7 @@ func DdrvsyAa2stage(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *flo
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -151,7 +151,7 @@ func DdrvsyAa2stage(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *flo
 							//                       Set the first IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -180,8 +180,8 @@ func DdrvsyAa2stage(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *flo
 
 						//                    Factor the matrix and solve the system using DSYSV_AA.
 						*srnamt = "DSYSV_AA_2STAGE "
-						lwork = minint(n*nb, 3*(*nmax)*(*nmax))
-						golapack.DsysvAa2stage(uplo, &n, nrhs, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), toPtr((3*nb+1)*n), iwork, toSlice(iwork, n+1-1), x.Matrix(lda, opts), &lda, work, &lwork, &info)
+						lwork = min(n*nb, 3*(*nmax)*(*nmax))
+						golapack.DsysvAa2stage(uplo, &n, nrhs, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), toPtr((3*nb+1)*n), iwork, toSlice(iwork, n), x.Matrix(lda, opts), &lda, work, &lwork, &info)
 
 						//                    Adjust the expected value of INFO to account for
 						//                    pivoting.

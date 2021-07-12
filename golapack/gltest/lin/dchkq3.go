@@ -42,13 +42,13 @@ func Dchkq3(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	for im = 1; im <= (*nm); im++ {
 		//        Do for each value of M in MVAL.
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 
 		for in = 1; in <= (*nn); in++ {
 			//           Do for each value of N in NVAL.
 			n = (*nval)[in-1]
-			mnmin = minint(m, n)
-			lwork = maxint(1, m*maxint(m, n)+4*mnmin+maxint(m, n), m*n+2*mnmin+4*n)
+			mnmin = min(m, n)
+			lwork = max(1, m*max(m, n)+4*mnmin+max(m, n), m*n+2*mnmin+4*n)
 
 			for imode = 1; imode <= ntypes; imode++ {
 				if !(*dotype)[imode-1] {
@@ -83,9 +83,9 @@ func Dchkq3(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						if imode == 4 {
 							ilow = 1
 							istep = 1
-							ihigh = maxint(1, n/2)
+							ihigh = max(1, n/2)
 						} else if imode == 5 {
-							ilow = maxint(1, n/2)
+							ilow = max(1, n/2)
 							istep = 1
 							ihigh = n
 						} else if imode == 6 {
@@ -110,20 +110,20 @@ func Dchkq3(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 					//                 Get a working copy of COPYA into A and a copy of
 					//                 vector IWORK.
 					golapack.Dlacpy('F', &m, &n, copya.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-					Icopy(n, iwork, 1, toSlice(iwork, n+1-1), 1)
+					Icopy(n, iwork, 1, toSlice(iwork, n), 1)
 
 					//                 Compute the QR factorization with pivoting of A
-					lw = maxint(1, 2*n+nb*(n+1))
+					lw = max(1, 2*n+nb*(n+1))
 
 					//                 Compute the QP3 factorization of A
 					*srnamt = "DGEQP3"
-					golapack.Dgeqp3(&m, &n, a.Matrix(lda, opts), &lda, toSlice(iwork, n+1-1), tau, work, &lw, &info)
+					golapack.Dgeqp3(&m, &n, a.Matrix(lda, opts), &lda, toSlice(iwork, n), tau, work, &lw, &info)
 
 					//                 Compute norm(svd(a) - svd(r))
 					result.Set(0, Dqrt12(&m, &n, a.Matrix(lda, opts), &lda, s, work, &lwork))
 
 					//                 Compute norm( A*P - Q*R )
-					result.Set(1, Dqpt01(&m, &n, &mnmin, copya.Matrix(lda, opts), a.Matrix(lda, opts), &lda, tau, toSlice(iwork, n+1-1), work, &lwork))
+					result.Set(1, Dqpt01(&m, &n, &mnmin, copya.Matrix(lda, opts), a.Matrix(lda, opts), &lda, tau, toSlice(iwork, n), work, &lwork))
 
 					//                 Compute Q'*Q
 					result.Set(2, Dqrt11(&m, &mnmin, a.Matrix(lda, opts), &lda, tau, work, &lwork))

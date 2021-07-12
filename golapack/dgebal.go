@@ -33,7 +33,7 @@ func Dgebal(job byte, n *int, a *mat.Matrix, lda, ilo, ihi *int, scale *mat.Vect
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -70,8 +70,8 @@ label20:
 		goto label30
 	}
 
-	goblas.Dswap(l, a.Vector(0, j-1), 1, a.Vector(0, m-1), 1)
-	goblas.Dswap((*n)-k+1, a.Vector(j-1, k-1), *lda, a.Vector(m-1, k-1), *lda)
+	goblas.Dswap(l, a.Vector(0, j-1, 1), a.Vector(0, m-1, 1))
+	goblas.Dswap((*n)-k+1, a.Vector(j-1, k-1), a.Vector(m-1, k-1))
 
 label30:
 	;
@@ -161,11 +161,11 @@ label140:
 
 	for i = k; i <= l; i++ {
 
-		c = goblas.Dnrm2(l-k+1, a.Vector(k-1, i-1), 1)
-		r = goblas.Dnrm2(l-k+1, a.Vector(i-1, k-1), *lda)
-		ica = goblas.Idamax(l, a.Vector(0, i-1), 1)
+		c = goblas.Dnrm2(l-k+1, a.Vector(k-1, i-1, 1))
+		r = goblas.Dnrm2(l-k+1, a.Vector(i-1, k-1))
+		ica = goblas.Idamax(l, a.Vector(0, i-1, 1))
 		ca = math.Abs(a.Get(ica-1, i-1))
-		ira = goblas.Idamax((*n)-k+1, a.Vector(i-1, k-1), *lda)
+		ira = goblas.Idamax((*n)-k+1, a.Vector(i-1, k-1))
 		ra = math.Abs(a.Get(i-1, ira+k-1-1))
 
 		//        Guard against zero C or R due to underflow.
@@ -177,7 +177,7 @@ label140:
 		s = c + r
 	label160:
 		;
-		if c >= g || maxf64(f, c, ca) >= sfmax2 || minf64(r, g, ra) <= sfmin2 {
+		if c >= g || math.Max(f, math.Max(c, ca)) >= sfmax2 || math.Min(r, math.Min(g, ra)) <= sfmin2 {
 			goto label170
 		}
 		if Disnan(int(c + f + ca + r + g + ra)) {
@@ -199,7 +199,7 @@ label140:
 		g = c / sclfac
 	label180:
 		;
-		if g < r || maxf64(r, ra) >= sfmax2 || minf64(f, c, g, ca) <= sfmin2 {
+		if g < r || math.Max(r, ra) >= sfmax2 || math.Min(f, math.Min(c, math.Min(g, ca))) <= sfmin2 {
 			goto label190
 		}
 		f = f / sclfac
@@ -230,8 +230,8 @@ label140:
 		scale.Set(i-1, scale.Get(i-1)*f)
 		noconv = true
 
-		goblas.Dscal((*n)-k+1, g, a.Vector(i-1, k-1), *lda)
-		goblas.Dscal(l, f, a.Vector(0, i-1), 1)
+		goblas.Dscal((*n)-k+1, g, a.Vector(i-1, k-1))
+		goblas.Dscal(l, f, a.Vector(0, i-1, 1))
 
 	label200:
 	}

@@ -115,14 +115,14 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 				(*iwork)[ji-1] = 0
 				if work.Get(ji-1) <= (*pivmin) {
 					(*iwork)[ji-1] = 1
-					work.Set(ji-1, minf64(work.Get(ji-1), -(*pivmin)))
+					work.Set(ji-1, math.Min(work.Get(ji-1), -(*pivmin)))
 				}
 
 				for j = 2; j <= (*n); j++ {
 					work.Set(ji-1, d.Get(j-1)-e2.Get(j-1-1)/work.Get(ji-1)-c.Get(ji-1))
 					if work.Get(ji-1) <= (*pivmin) {
 						(*iwork)[ji-1] = (*iwork)[ji-1] + 1
-						work.Set(ji-1, minf64(work.Get(ji-1), -(*pivmin)))
+						work.Set(ji-1, math.Min(work.Get(ji-1), -(*pivmin)))
 					}
 				}
 			}
@@ -132,7 +132,7 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 				klnew = kl
 				for ji = kf; ji <= kl; ji++ {
 					//                 Insure that N(w) is monotone
-					(*iwork)[ji-1] = minint((*nab)[ji-1+(1)*(*mmax)], maxint((*nab)[ji-1+(0)*(*mmax)], (*iwork)[ji-1]))
+					(*iwork)[ji-1] = min((*nab)[ji-1+(1)*(*mmax)], max((*nab)[ji-1+(0)*(*mmax)], (*iwork)[ji-1]))
 
 					//                 Update the Queue -- add intervals if both halves
 					//                 contain eigenvalues.
@@ -192,14 +192,14 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 				itmp1 = 0
 				if tmp2 <= (*pivmin) {
 					itmp1 = 1
-					tmp2 = minf64(tmp2, -(*pivmin))
+					tmp2 = math.Min(tmp2, -(*pivmin))
 				}
 
 				for j = 2; j <= (*n); j++ {
 					tmp2 = d.Get(j-1) - e2.Get(j-1-1)/tmp2 - tmp1
 					if tmp2 <= (*pivmin) {
 						itmp1 = itmp1 + 1
-						tmp2 = minf64(tmp2, -(*pivmin))
+						tmp2 = math.Min(tmp2, -(*pivmin))
 					}
 				}
 
@@ -207,7 +207,7 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 					//                 IJOB=2: Choose all intervals containing eigenvalues.
 					//
 					//                 Insure that N(w) is monotone
-					itmp1 = minint((*nab)[ji-1+(1)*(*mmax)], maxint((*nab)[ji-1+(0)*(*mmax)], itmp1))
+					itmp1 = min((*nab)[ji-1+(1)*(*mmax)], max((*nab)[ji-1+(0)*(*mmax)], itmp1))
 
 					//                 Update the Queue -- add intervals if both halves
 					//                 contain eigenvalues.
@@ -254,8 +254,8 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 		kfnew = kf
 		for ji = kf; ji <= kl; ji++ {
 			tmp1 = math.Abs(ab.Get(ji-1, 1) - ab.Get(ji-1, 0))
-			tmp2 = maxf64(math.Abs(ab.Get(ji-1, 1)), math.Abs(ab.Get(ji-1, 0)))
-			if tmp1 < maxf64(*abstol, *pivmin, (*reltol)*tmp2) || (*nab)[ji-1+(0)*(*mmax)] >= (*nab)[ji-1+(1)*(*mmax)] {
+			tmp2 = math.Max(math.Abs(ab.Get(ji-1, 1)), math.Abs(ab.Get(ji-1, 0)))
+			if tmp1 < math.Max(*abstol, math.Max(*pivmin, (*reltol)*tmp2)) || (*nab)[ji-1+(0)*(*mmax)] >= (*nab)[ji-1+(1)*(*mmax)] {
 				//              Converged -- Swap with position KFNEW,
 				//                           then increment KFNEW
 				if ji > kfnew {
@@ -296,6 +296,6 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 	//     Converged
 label140:
 	;
-	(*info) = maxint(kl+1-kf, 0)
+	(*info) = max(kl+1-kf, 0)
 	(*mout) = kl
 }

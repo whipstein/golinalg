@@ -96,7 +96,7 @@ func Zsbmv(uplo byte, n, k *int, alpha *complex128, a *mat.CMatrix, lda *int, x 
 				temp1 = (*alpha) * x.Get(j-1)
 				temp2 = zero
 				l = kplus1 - j
-				for i = maxint(1, j-(*k)); i <= j-1; i++ {
+				for i = max(1, j-(*k)); i <= j-1; i++ {
 					y.Set(i-1, y.Get(i-1)+temp1*a.Get(l+i-1, j-1))
 					temp2 = temp2 + a.Get(l+i-1, j-1)*x.Get(i-1)
 				}
@@ -111,7 +111,7 @@ func Zsbmv(uplo byte, n, k *int, alpha *complex128, a *mat.CMatrix, lda *int, x 
 				ix = kx
 				iy = ky
 				l = kplus1 - j
-				for i = maxint(1, j-(*k)); i <= j-1; i++ {
+				for i = max(1, j-(*k)); i <= j-1; i++ {
 					y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
 					temp2 = temp2 + a.Get(l+i-1, j-1)*x.Get(ix-1)
 					ix = ix + (*incx)
@@ -134,7 +134,7 @@ func Zsbmv(uplo byte, n, k *int, alpha *complex128, a *mat.CMatrix, lda *int, x 
 				temp2 = zero
 				y.Set(j-1, y.Get(j-1)+temp1*a.Get(0, j-1))
 				l = 1 - j
-				for i = j + 1; i <= minint(*n, j+(*k)); i++ {
+				for i = j + 1; i <= min(*n, j+(*k)); i++ {
 					y.Set(i-1, y.Get(i-1)+temp1*a.Get(l+i-1, j-1))
 					temp2 = temp2 + a.Get(l+i-1, j-1)*x.Get(i-1)
 				}
@@ -150,7 +150,7 @@ func Zsbmv(uplo byte, n, k *int, alpha *complex128, a *mat.CMatrix, lda *int, x 
 				l = 1 - j
 				ix = jx
 				iy = jy
-				for i = j + 1; i <= minint(*n, j+(*k)); i++ {
+				for i = j + 1; i <= min(*n, j+(*k)); i++ {
 					ix = ix + (*incx)
 					iy = iy + (*incy)
 					y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))

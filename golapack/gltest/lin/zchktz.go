@@ -47,13 +47,13 @@ func Zchktz(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, thresh *
 	for im = 1; im <= (*nm); im++ {
 		//        Do for each value of M in MVAL.
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 
 		for in = 1; in <= (*nn); in++ {
 			//           Do for each value of N in NVAL for which M .LE. N.
 			n = (*nval)[in-1]
-			mnmin = minint(m, n)
-			lwork = maxint(1, n*n+4*m+n)
+			mnmin = min(m, n)
+			lwork = max(1, n*n+4*m+n)
 
 			if m <= n {
 				for imode = 1; imode <= ntypes; imode++ {
@@ -78,7 +78,7 @@ func Zchktz(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, thresh *
 						}
 					} else {
 						matgen.Zlatms(&m, &n, 'U', &iseed, 'N', s, &imode, toPtrf64(one/eps), &one, &m, &n, 'N', a.CMatrix(lda, opts), &lda, work, &info)
-						golapack.Zgeqr2(&m, &n, a.CMatrix(lda, opts), &lda, work, work.Off(mnmin+1-1), &info)
+						golapack.Zgeqr2(&m, &n, a.CMatrix(lda, opts), &lda, work, work.Off(mnmin), &info)
 						golapack.Zlaset('L', toPtr(m-1), &n, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), a.CMatrixOff(1, lda, opts), &lda)
 						Dlaord('D', &mnmin, s, func() *int { y := 1; return &y }())
 					}

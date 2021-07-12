@@ -23,12 +23,12 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 
 	if (*info) == 0 {
-		minmn = minint(*m, *n)
+		minmn = min(*m, *n)
 		if minmn == 0 {
 			iws = 1
 			lwkopt = 1
@@ -56,7 +56,7 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 	for j = 1; j <= (*n); j++ {
 		if (*jpvt)[j-1] != 0 {
 			if j != nfxd {
-				goblas.Dswap(*m, a.Vector(0, j-1), 1, a.Vector(0, nfxd-1), 1)
+				goblas.Dswap(*m, a.Vector(0, j-1, 1), a.Vector(0, nfxd-1, 1))
 				(*jpvt)[j-1] = (*jpvt)[nfxd-1]
 				(*jpvt)[nfxd-1] = j
 			} else {
@@ -75,15 +75,15 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 	//     Compute the QR factorization of fixed columns and update
 	//     remaining columns.
 	if nfxd > 0 {
-		na = minint(*m, nfxd)
+		na = min(*m, nfxd)
 		//CC      CALL DGEQR2( M, NA, A, LDA, TAU, WORK, INFO )
 		Dgeqrf(m, &na, a, lda, tau, work, lwork, info)
-		iws = maxint(iws, int(work.Get(0)))
+		iws = max(iws, int(work.Get(0)))
 		if na < (*n) {
 			//CC         CALL DORM2R( 'Left', 'Transpose', M, N-NA, NA, A, LDA,
 			//CC  $                   TAU, A( 1, NA+1 ), LDA, WORK, INFO )
-			Dormqr('L', 'T', m, toPtr((*n)-na), &na, a, lda, tau, a.Off(0, na+1-1), lda, work, lwork, info)
-			iws = maxint(iws, int(work.Get(0)))
+			Dormqr('L', 'T', m, toPtr((*n)-na), &na, a, lda, tau, a.Off(0, na), lda, work, lwork, info)
+			iws = max(iws, int(work.Get(0)))
 		}
 	}
 
@@ -102,17 +102,17 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 
 		if (nb > 1) && (nb < sminmn) {
 			//           Determine when to cross over from blocked to unblocked code.
-			nx = maxint(0, Ilaenv(&ixover, []byte("DGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1)))
+			nx = max(0, Ilaenv(&ixover, []byte("DGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1)))
 
 			if nx < sminmn {
 				//              Determine if workspace is large enough for blocked code.
 				minws = 2*sn + (sn+1)*nb
-				iws = maxint(iws, minws)
+				iws = max(iws, minws)
 				if (*lwork) < minws {
 					//                 Not enough workspace to use optimal NB: Reduce NB and
 					//                 determine the minimum value of NB.
 					nb = ((*lwork) - 2*sn) / (sn + 1)
-					nbmin = maxint(2, Ilaenv(&inbmin, []byte("DGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1)))
+					nbmin = max(2, Ilaenv(&inbmin, []byte("DGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1)))
 
 				}
 			}
@@ -121,7 +121,7 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 		//        Initialize partial column norms. The first N elements of work
 		//        store the exact column norms.
 		for j = nfxd + 1; j <= (*n); j++ {
-			work.Set(j-1, goblas.Dnrm2(sm, a.Vector(nfxd+1-1, j-1), 1))
+			work.Set(j-1, goblas.Dnrm2(sm, a.Vector(nfxd, j-1, 1)))
 			work.Set((*n)+j-1, work.Get(j-1))
 		}
 
@@ -134,11 +134,11 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 		label30:
 			;
 			if j <= topbmn {
-				jb = minint(nb, topbmn-j+1)
+				jb = min(nb, topbmn-j+1)
 
 				//              Factorize JB columns among columns J:N.
 				_jpvtj := (*jpvt)[j-1:]
-				Dlaqps(m, toPtr((*n)-j+1), toPtr(j-1), &jb, &fjb, a.Off(0, j-1), lda, &_jpvtj, tau.Off(j-1), work.Off(j-1), work.Off((*n)+j-1), work.Off(2*(*n)+1-1), work.MatrixOff(2*(*n)+jb+1-1, (*n)-j+1, opts), toPtr((*n)-j+1))
+				Dlaqps(m, toPtr((*n)-j+1), toPtr(j-1), &jb, &fjb, a.Off(0, j-1), lda, &_jpvtj, tau.Off(j-1), work.Off(j-1), work.Off((*n)+j-1), work.Off(2*(*n)), work.MatrixOff(2*(*n)+jb, (*n)-j+1, opts), toPtr((*n)-j+1))
 
 				j = j + fjb
 				goto label30
@@ -150,7 +150,7 @@ func Dgeqp3(m, n *int, a *mat.Matrix, lda *int, jpvt *[]int, tau, work *mat.Vect
 		//        Use unblocked code to factor the last or only block.
 		if j <= minmn {
 			_jpvtj := (*jpvt)[j-1:]
-			Dlaqp2(m, toPtr((*n)-j+1), toPtr(j-1), a.Off(0, j-1), lda, &_jpvtj, tau.Off(j-1), work.Off(j-1), work.Off((*n)+j-1), work.Off(2*(*n)+1-1))
+			Dlaqp2(m, toPtr((*n)-j+1), toPtr(j-1), a.Off(0, j-1), lda, &_jpvtj, tau.Off(j-1), work.Off(j-1), work.Off((*n)+j-1), work.Off(2*(*n)))
 		}
 
 	}

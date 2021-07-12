@@ -65,9 +65,9 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 		if (*vl) >= (*vu) {
 			(*info) = -5
 		}
-	} else if irange == 3 && ((*il) < 1 || (*il) > maxint(1, *n)) {
+	} else if irange == 3 && ((*il) < 1 || (*il) > max(1, *n)) {
 		(*info) = -6
-	} else if irange == 3 && ((*iu) < minint(*n, *il) || (*iu) > (*n)) {
+	} else if irange == 3 && ((*iu) < min(*n, *il) || (*iu) > (*n)) {
 		(*info) = -7
 	}
 
@@ -130,7 +130,7 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 			work.Set(j-1-1, zero)
 		} else {
 			work.Set(j-1-1, tmp1)
-			pivmin = maxf64(pivmin, tmp1)
+			pivmin = math.Max(pivmin, tmp1)
 		}
 	}
 	(*isplit)[(*nsplit)-1] = (*n)
@@ -149,14 +149,14 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 
 		for j = 1; j <= (*n)-1; j++ {
 			tmp2 = math.Sqrt(work.Get(j - 1))
-			gu = maxf64(gu, d.Get(j-1)+tmp1+tmp2)
-			gl = minf64(gl, d.Get(j-1)-tmp1-tmp2)
+			gu = math.Max(gu, d.Get(j-1)+tmp1+tmp2)
+			gl = math.Min(gl, d.Get(j-1)-tmp1-tmp2)
 			tmp1 = tmp2
 		}
 
-		gu = maxf64(gu, d.Get((*n)-1)+tmp1)
-		gl = minf64(gl, d.Get((*n)-1)-tmp1)
-		tnorm = maxf64(math.Abs(gl), math.Abs(gu))
+		gu = math.Max(gu, d.Get((*n)-1)+tmp1)
+		gl = math.Min(gl, d.Get((*n)-1)-tmp1)
+		tnorm = math.Max(math.Abs(gl), math.Abs(gu))
 		gl = gl - fudge*tnorm*ulp*float64(*n) - fudge*two*pivmin
 		gu = gu + fudge*tnorm*ulp*float64(*n) + fudge*pivmin
 
@@ -168,7 +168,7 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 			atoli = (*abstol)
 		}
 
-		work.Set((*n)+1-1, gl)
+		work.Set((*n), gl)
 		work.Set((*n)+2-1, gl)
 		work.Set((*n)+3-1, gu)
 		work.Set((*n)+4-1, gu)
@@ -181,7 +181,7 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 		(*iwork)[4] = (*il) - 1
 		(*iwork)[5] = (*iu)
 
-		Dlaebz(func() *int { y := 3; return &y }(), &itmax, n, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), &nb, &atoli, &rtoli, &pivmin, d, e, work, toSlice(iwork, 4), work.MatrixOff((*n)+1-1, 2, opts), work.Off((*n)+5-1), &iout, iwork, w, iblock, &iinfo)
+		Dlaebz(func() *int { y := 3; return &y }(), &itmax, n, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), &nb, &atoli, &rtoli, &pivmin, d, e, work, toSlice(iwork, 4), work.MatrixOff((*n), 2, opts), work.Off((*n)+5-1), &iout, iwork, w, iblock, &iinfo)
 
 		if (*iwork)[5] == (*iu) {
 			wl = work.Get((*n) + 1 - 1)
@@ -205,10 +205,10 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 		}
 	} else {
 		//        RANGE='A' or 'V' -- Set ATOLI
-		tnorm = maxf64(math.Abs(d.Get(0))+math.Abs(e.Get(0)), math.Abs(d.Get((*n)-1))+math.Abs(e.Get((*n)-1-1)))
+		tnorm = math.Max(math.Abs(d.Get(0))+math.Abs(e.Get(0)), math.Abs(d.Get((*n)-1))+math.Abs(e.Get((*n)-1-1)))
 
 		for j = 2; j <= (*n)-1; j++ {
-			tnorm = maxf64(tnorm, math.Abs(d.Get(j-1))+math.Abs(e.Get(j-1-1))+math.Abs(e.Get(j-1)))
+			tnorm = math.Max(tnorm, math.Abs(d.Get(j-1))+math.Abs(e.Get(j-1-1))+math.Abs(e.Get(j-1)))
 		}
 
 		if (*abstol) <= zero {
@@ -265,20 +265,20 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 
 			for j = ibegin; j <= iend-1; j++ {
 				tmp2 = math.Abs(e.Get(j - 1))
-				gu = maxf64(gu, d.Get(j-1)+tmp1+tmp2)
-				gl = minf64(gl, d.Get(j-1)-tmp1-tmp2)
+				gu = math.Max(gu, d.Get(j-1)+tmp1+tmp2)
+				gl = math.Min(gl, d.Get(j-1)-tmp1-tmp2)
 				tmp1 = tmp2
 			}
 
-			gu = maxf64(gu, d.Get(iend-1)+tmp1)
-			gl = minf64(gl, d.Get(iend-1)-tmp1)
-			bnorm = maxf64(math.Abs(gl), math.Abs(gu))
+			gu = math.Max(gu, d.Get(iend-1)+tmp1)
+			gl = math.Min(gl, d.Get(iend-1)-tmp1)
+			bnorm = math.Max(math.Abs(gl), math.Abs(gu))
 			gl = gl - fudge*bnorm*ulp*float64(in) - fudge*pivmin
 			gu = gu + fudge*bnorm*ulp*float64(in) + fudge*pivmin
 
 			//           Compute ATOLI for the current submatrix
 			if (*abstol) <= zero {
-				atoli = ulp * maxf64(math.Abs(gl), math.Abs(gu))
+				atoli = ulp * math.Max(math.Abs(gl), math.Abs(gu))
 			} else {
 				atoli = (*abstol)
 			}
@@ -289,25 +289,25 @@ func Dstebz(_range, order byte, n *int, vl, vu *float64, il, iu *int, abstol *fl
 					nwu = nwu + in
 					goto label70
 				}
-				gl = maxf64(gl, wl)
-				gu = minf64(gu, wu)
+				gl = math.Max(gl, wl)
+				gu = math.Min(gu, wu)
 				if gl >= gu {
 					goto label70
 				}
 			}
 
 			//           Set Up Initial Interval
-			work.Set((*n)+1-1, gl)
-			work.Set((*n)+in+1-1, gu)
-			Dlaebz(func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, &pivmin, d.Off(ibegin-1), e.Off(ibegin-1), work.Off(ibegin-1), &idumma, work.MatrixOff((*n)+1-1, in, opts), work.Off((*n)+2*in+1-1), &im, iwork, w.Off((*m)+1-1), toSlice(iblock, (*m)+1-1), &iinfo)
+			work.Set((*n), gl)
+			work.Set((*n)+in, gu)
+			Dlaebz(func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, &pivmin, d.Off(ibegin-1), e.Off(ibegin-1), work.Off(ibegin-1), &idumma, work.MatrixOff((*n), in, opts), work.Off((*n)+2*in), &im, iwork, w.Off((*m)), toSlice(iblock, (*m)), &iinfo)
 
 			nwl = nwl + (*iwork)[0]
-			nwu = nwu + (*iwork)[in+1-1]
+			nwu = nwu + (*iwork)[in]
 			iwoff = (*m) - (*iwork)[0]
 
 			//           Compute Eigenvalues
 			itmax = int((math.Log(gu-gl+pivmin)-math.Log(pivmin))/math.Log(two)) + 2
-			Dlaebz(func() *int { y := 2; return &y }(), &itmax, &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, &pivmin, d.Off(ibegin-1), e.Off(ibegin-1), work.Off(ibegin-1), &idumma, work.MatrixOff((*n)+1-1, in, opts), work.Off((*n)+2*in+1-1), &iout, iwork, w.Off((*m)+1-1), toSlice(iblock, (*m)+1-1), &iinfo)
+			Dlaebz(func() *int { y := 2; return &y }(), &itmax, &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, &pivmin, d.Off(ibegin-1), e.Off(ibegin-1), work.Off(ibegin-1), &idumma, work.MatrixOff((*n), in, opts), work.Off((*n)+2*in), &iout, iwork, w.Off((*m)), toSlice(iblock, (*m)), &iinfo)
 
 			//           Copy Eigenvalues Into W and IBLOCK
 			//           Use -JB for block number for unconverged eigenvalues.

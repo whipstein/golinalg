@@ -25,9 +25,9 @@ func Dposv(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb,
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {

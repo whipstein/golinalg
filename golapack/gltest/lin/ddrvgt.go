@@ -2,6 +2,7 @@ package lin
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -50,8 +51,8 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL.
 		n = (*nval)[in-1]
-		m = maxint(n-1, 0)
-		lda = maxint(1, n)
+		m = max(n-1, 0)
+		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
@@ -69,7 +70,7 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 			zerot = imat >= 8 && imat <= 10
 			if imat <= 6 {
 				//              Types 1-6:  generate matrices of known condition number.
-				koff = maxint(2-ku, 3-maxint(1, n))
+				koff = max(2-ku, 3-max(1, n))
 				*srnamt = "DLATMS"
 				matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cond, &anorm, &kl, &ku, 'Z', af.MatrixOff(koff-1, 3, opts), toPtr(3), work, &info)
 
@@ -81,10 +82,10 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				izero = 0
 				//
 				if n > 1 {
-					goblas.Dcopy(n-1, af.Off(3), 3, a, 1)
-					goblas.Dcopy(n-1, af.Off(2), 3, a.Off(n+m+1-1), 1)
+					goblas.Dcopy(n-1, af.Off(3, 3), a.Off(0, 1))
+					goblas.Dcopy(n-1, af.Off(2, 3), a.Off(n+m, 1))
 				}
-				goblas.Dcopy(n, af.Off(1), 3, a.Off(m+1-1), 1)
+				goblas.Dcopy(n, af.Off(1, 3), a.Off(m, 1))
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
@@ -92,7 +93,7 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Generate a matrix with elements from [-1,1].
 					golapack.Dlarnv(toPtr(2), &iseed, toPtr(n+2*m), a)
 					if anorm != one {
-						goblas.Dscal(n+2*m, anorm, a, 1)
+						goblas.Dscal(n+2*m, anorm, a.Off(0, 1))
 					}
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -158,14 +159,14 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					rcondi = zero
 
 				} else if ifact == 1 {
-					goblas.Dcopy(n+2*m, a, 1, af, 1)
+					goblas.Dcopy(n+2*m, a.Off(0, 1), af.Off(0, 1))
 
 					//                 Compute the 1-norm and infinity-norm of A.
-					anormo = golapack.Dlangt('1', &n, a, a.Off(m+1-1), a.Off(n+m+1-1))
-					anormi = golapack.Dlangt('I', &n, a, a.Off(m+1-1), a.Off(n+m+1-1))
+					anormo = golapack.Dlangt('1', &n, a, a.Off(m), a.Off(n+m))
+					anormi = golapack.Dlangt('I', &n, a, a.Off(m), a.Off(n+m))
 
 					//                 Factor the matrix A.
-					golapack.Dgttrf(&n, af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, &info)
+					golapack.Dgttrf(&n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, &info)
 
 					//                 Use DGTTRS to solve for one column at a time of
 					//                 inv(A), computing the maximum column sum as we go.
@@ -175,8 +176,8 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							x.Set(j-1, zero)
 						}
 						x.Set(i-1, one)
-						golapack.Dgttrs('N', &n, toPtr(1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.Matrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
+						golapack.Dgttrs('N', &n, toPtr(1), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts), &lda, &info)
+						ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
 					}
 
 					//                 Compute the 1-norm condition number of A.
@@ -194,8 +195,8 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							x.Set(j-1, zero)
 						}
 						x.Set(i-1, one)
-						golapack.Dgttrs('T', &n, toPtr(1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.Matrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
+						golapack.Dgttrs('T', &n, toPtr(1), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts), &lda, &info)
+						ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
 					}
 
 					//                 Compute the infinity-norm condition number of A.
@@ -222,18 +223,18 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Set the right hand side.
-					golapack.Dlagtm(trans, &n, nrhs, &one, a, a.Off(m+1-1), a.Off(n+m+1-1), xact.Matrix(lda, opts), &lda, &zero, b.Matrix(lda, opts), &lda)
+					golapack.Dlagtm(trans, &n, nrhs, &one, a, a.Off(m), a.Off(n+m), xact.Matrix(lda, opts), &lda, &zero, b.Matrix(lda, opts), &lda)
 
 					if ifact == 2 && itran == 1 {
 						//                    --- Test DGTSV  ---
 						//
 						//                    Solve the system using Gaussian elimination with
 						//                    partial pivoting.
-						goblas.Dcopy(n+2*m, a, 1, af, 1)
+						goblas.Dcopy(n+2*m, a.Off(0, 1), af.Off(0, 1))
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 
 						*srnamt = "DGTSV "
-						golapack.Dgtsv(&n, nrhs, af, af.Off(m+1-1), af.Off(n+m+1-1), x.Matrix(lda, opts), &lda, &info)
+						golapack.Dgtsv(&n, nrhs, af, af.Off(m), af.Off(n+m), x.Matrix(lda, opts), &lda, &info)
 
 						//                    Check error code from DGTSV .
 						if info != izero {
@@ -243,7 +244,7 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if izero == 0 {
 							//                       Check residual of computed solution.
 							golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-							Dgtt02(trans, &n, nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
+							Dgtt02(trans, &n, nrhs, a, a.Off(m), a.Off(n+m), x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
@@ -277,7 +278,7 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Solve the system and compute the condition number and
 					//                 error bounds using DGTSVX.
 					*srnamt = "DGTSVX"
-					golapack.Dgtsvx(fact, trans, &n, nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, toSlice(iwork, n+1-1), &info)
+					golapack.Dgtsvx(fact, trans, &n, nrhs, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, toSlice(iwork, n), &info)
 
 					//                 Check the error code from DGTSVX.
 					if info != izero {
@@ -287,7 +288,7 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					if ifact >= 2 {
 						//                    Reconstruct matrix from factors and compute
 						//                    residual.
-						Dgtt01(&n, a, a.Off(m+1-1), a.Off(n+m+1-1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(0))
+						Dgtt01(&n, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(0))
 						k1 = 1
 					} else {
 						k1 = 2
@@ -296,13 +297,13 @@ func Ddrvgt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					if info == 0 {
 						//                    Check residual of computed solution.
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-						Dgtt02(trans, &n, nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
+						Dgtt02(trans, &n, nrhs, a, a.Off(m), a.Off(n+m), x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
 
 						//                    Check solution from generated exact solution.
 						Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 						//                    Check the error bounds from iterative refinement.
-						Dgtt05(trans, &n, nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+						Dgtt05(trans, &n, nrhs, a, a.Off(m), a.Off(n+m), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 						nt = 5
 					}
 

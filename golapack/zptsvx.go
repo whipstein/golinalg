@@ -28,9 +28,9 @@ func Zptsvx(fact byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -40,9 +40,9 @@ func Zptsvx(fact byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 
 	if nofact {
 		//        Compute the L*D*L**H (or U**H*D*U) factorization of A.
-		goblas.Dcopy(*n, d, 1, df, 1)
+		goblas.Dcopy(*n, d.Off(0, 1), df.Off(0, 1))
 		if (*n) > 1 {
-			goblas.Zcopy((*n)-1, e, 1, ef, 1)
+			goblas.Zcopy((*n)-1, e.Off(0, 1), ef.Off(0, 1))
 		}
 		Zpttrf(n, df, ef, info)
 

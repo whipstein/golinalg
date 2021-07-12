@@ -86,9 +86,9 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lds) < maxint(1, *n) {
+	} else if (*lds) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldp) < maxint(1, *n) {
+	} else if (*ldp) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -151,7 +151,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 	anorm = abs1(s.Get(0, 0))
 	bnorm = abs1(p.Get(0, 0))
 	rwork.Set(0, zero)
-	rwork.Set((*n)+1-1, zero)
+	rwork.Set((*n), zero)
 	for j = 2; j <= (*n); j++ {
 		rwork.Set(j-1, zero)
 		rwork.Set((*n)+j-1, zero)
@@ -159,12 +159,12 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 			rwork.Set(j-1, rwork.Get(j-1)+abs1(s.Get(i-1, j-1)))
 			rwork.Set((*n)+j-1, rwork.Get((*n)+j-1)+abs1(p.Get(i-1, j-1)))
 		}
-		anorm = maxf64(anorm, rwork.Get(j-1)+abs1(s.Get(j-1, j-1)))
-		bnorm = maxf64(bnorm, rwork.Get((*n)+j-1)+abs1(p.Get(j-1, j-1)))
+		anorm = math.Max(anorm, rwork.Get(j-1)+abs1(s.Get(j-1, j-1)))
+		bnorm = math.Max(bnorm, rwork.Get((*n)+j-1)+abs1(p.Get(j-1, j-1)))
 	}
 
-	ascale = one / maxf64(anorm, safmin)
-	bscale = one / maxf64(bnorm, safmin)
+	ascale = one / math.Max(anorm, safmin)
+	bscale = one / math.Max(bnorm, safmin)
 
 	//     Left eigenvectors
 	if compl {
@@ -193,7 +193,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//              Compute coefficients  a  and  b  in
 				//                   H
 				//                 y  ( a A - b B ) = 0
-				temp = one / maxf64(abs1(s.Get(je-1, je-1))*ascale, math.Abs(p.GetRe(je-1, je-1))*bscale, safmin)
+				temp = one / math.Max(abs1(s.Get(je-1, je-1))*ascale, math.Max(math.Abs(p.GetRe(je-1, je-1))*bscale, safmin))
 				salpha = (complex(temp, 0) * s.Get(je-1, je-1)) * complex(ascale, 0)
 				sbeta = (temp * p.GetRe(je-1, je-1)) * bscale
 				acoeff = sbeta * ascale
@@ -206,13 +206,13 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//
 				scale = one
 				if lsa {
-					scale = (small / math.Abs(sbeta)) * minf64(anorm, big)
+					scale = (small / math.Abs(sbeta)) * math.Min(anorm, big)
 				}
 				if lsb {
-					scale = maxf64(scale, (small/abs1(salpha))*minf64(bnorm, big))
+					scale = math.Max(scale, (small/abs1(salpha))*math.Min(bnorm, big))
 				}
 				if lsa || lsb {
-					scale = minf64(scale, one/(safmin*maxf64(one, math.Abs(acoeff), abs1(bcoeff))))
+					scale = math.Min(scale, one/(safmin*math.Max(one, math.Max(math.Abs(acoeff), abs1(bcoeff)))))
 					if lsa {
 						acoeff = ascale * (scale * sbeta)
 					} else {
@@ -232,7 +232,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 					work.Set(jr-1, czero)
 				}
 				work.Set(je-1, cone)
-				dmin = maxf64(ulp*acoefa*anorm, ulp*bcoefa*bnorm, safmin)
+				dmin = math.Max(ulp*acoefa*anorm, math.Max(ulp*bcoefa*bnorm, safmin))
 
 				//                                              H
 				//              Triangular solve of  (a A - b B)  y = 0
@@ -280,12 +280,12 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 						}
 					}
 					work.Set(j-1, Zladiv(toPtrc128(-sum), &d))
-					xmax = maxf64(xmax, abs1(work.Get(j-1)))
+					xmax = math.Max(xmax, abs1(work.Get(j-1)))
 				}
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					err = goblas.Zgemv(NoTrans, *n, (*n)+1-je, cone, vl.Off(0, je-1), *ldvl, work.Off(je-1), 1, czero, work.Off((*n)+1-1), 1)
+					err = goblas.Zgemv(NoTrans, *n, (*n)+1-je, cone, vl.Off(0, je-1), work.Off(je-1, 1), czero, work.Off((*n), 1))
 					isrc = 2
 					ibeg = 1
 				} else {
@@ -296,7 +296,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//              Copy and scale eigenvector into column of VL
 				xmax = zero
 				for jr = ibeg; jr <= (*n); jr++ {
-					xmax = maxf64(xmax, abs1(work.Get((isrc-1)*(*n)+jr-1)))
+					xmax = math.Max(xmax, abs1(work.Get((isrc-1)*(*n)+jr-1)))
 				}
 
 				if xmax > safmin {
@@ -344,7 +344,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//              Compute coefficients  a  and  b  in
 				//
 				//              ( a A - b B ) x  = 0
-				temp = one / maxf64(abs1(s.Get(je-1, je-1))*ascale, math.Abs(p.GetRe(je-1, je-1))*bscale, safmin)
+				temp = one / math.Max(abs1(s.Get(je-1, je-1))*ascale, math.Max(math.Abs(p.GetRe(je-1, je-1))*bscale, safmin))
 				salpha = (complex(temp, 0) * s.Get(je-1, je-1)) * complex(ascale, 0)
 				sbeta = (temp * p.GetRe(je-1, je-1)) * bscale
 				acoeff = sbeta * ascale
@@ -356,13 +356,13 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				scale = one
 				if lsa {
-					scale = (small / math.Abs(sbeta)) * minf64(anorm, big)
+					scale = (small / math.Abs(sbeta)) * math.Min(anorm, big)
 				}
 				if lsb {
-					scale = maxf64(scale, (small/abs1(salpha))*minf64(bnorm, big))
+					scale = math.Max(scale, (small/abs1(salpha))*math.Min(bnorm, big))
 				}
 				if lsa || lsb {
-					scale = minf64(scale, one/(safmin*maxf64(one, math.Abs(acoeff), abs1(bcoeff))))
+					scale = math.Min(scale, one/(safmin*math.Max(one, math.Max(math.Abs(acoeff), abs1(bcoeff)))))
 					if lsa {
 						acoeff = ascale * (scale * sbeta)
 					} else {
@@ -382,7 +382,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 					work.Set(jr-1, czero)
 				}
 				work.Set(je-1, cone)
-				dmin = maxf64(ulp*acoefa*anorm, ulp*bcoefa*bnorm, safmin)
+				dmin = math.Max(ulp*acoefa*anorm, math.Max(ulp*bcoefa*bnorm, safmin))
 
 				//              Triangular solve of  (a A - b B) x = 0  (columnwise)
 				//
@@ -433,7 +433,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					err = goblas.Zgemv(NoTrans, *n, je, cone, vr, *ldvr, work, 1, czero, work.Off((*n)+1-1), 1)
+					err = goblas.Zgemv(NoTrans, *n, je, cone, vr, work.Off(0, 1), czero, work.Off((*n), 1))
 					isrc = 2
 					iend = (*n)
 				} else {
@@ -444,7 +444,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//              Copy and scale eigenvector into column of VR
 				xmax = zero
 				for jr = 1; jr <= iend; jr++ {
-					xmax = maxf64(xmax, abs1(work.Get((isrc-1)*(*n)+jr-1)))
+					xmax = math.Max(xmax, abs1(work.Get((isrc-1)*(*n)+jr-1)))
 				}
 
 				if xmax > safmin {

@@ -25,13 +25,13 @@ func Ztgexc(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	(*info) = 0
 	if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldq) < 1 || wantq && ((*ldq) < maxint(1, *n)) {
+	} else if (*ldq) < 1 || wantq && ((*ldq) < max(1, *n)) {
 		(*info) = -9
-	} else if (*ldz) < 1 || wantz && ((*ldz) < maxint(1, *n)) {
+	} else if (*ldz) < 1 || wantz && ((*ldz) < max(1, *n)) {
 		(*info) = -11
 	} else if (*ifst) < 1 || (*ifst) > (*n) {
 		(*info) = -12

@@ -29,13 +29,13 @@ func Zlatrz(m, n, l *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector) {
 	for i = (*m); i >= 1; i-- {
 		//        Generate elementary reflector H(i) to annihilate
 		//        [ A(i,i) A(i,n-l+1:n) ]
-		Zlacgv(l, a.CVector(i-1, (*n)-(*l)+1-1), lda)
+		Zlacgv(l, a.CVector(i-1, (*n)-(*l)), lda)
 		alpha = a.GetConj(i-1, i-1)
-		Zlarfg(toPtr((*l)+1), &alpha, a.CVector(i-1, (*n)-(*l)+1-1), lda, tau.GetPtr(i-1))
+		Zlarfg(toPtr((*l)+1), &alpha, a.CVector(i-1, (*n)-(*l)), lda, tau.GetPtr(i-1))
 		tau.Set(i-1, tau.GetConj(i-1))
 
 		//        Apply H(i) to A(1:i-1,i:n) from the right
-		Zlarz('R', toPtr(i-1), toPtr((*n)-i+1), l, a.CVector(i-1, (*n)-(*l)+1-1), lda, toPtrc128(tau.GetConj(i-1)), a.Off(0, i-1), lda, work)
+		Zlarz('R', toPtr(i-1), toPtr((*n)-i+1), l, a.CVector(i-1, (*n)-(*l)), lda, toPtrc128(tau.GetConj(i-1)), a.Off(0, i-1), lda, work)
 		a.Set(i-1, i-1, cmplx.Conj(alpha))
 
 	}

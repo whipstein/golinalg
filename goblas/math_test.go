@@ -12,8 +12,8 @@ func TestAbsint(t *testing.T) {
 			mult = -1
 		}
 		valint := i * mult
-		if got, want := absint(valint), int(math.Abs(float64(valint))); got != want {
-			t.Errorf("absint: values do not match: expected %d got %d", want, got)
+		if got, want := abs(valint), int(math.Abs(float64(valint))); got != want {
+			t.Errorf("abs: values do not match: expected %d got %d", want, got)
 		}
 	}
 }

@@ -46,7 +46,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 	if upper {
 		Zlatb4(path, imat, n, n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
 		ku = (*kd)
-		ioff = 1 + maxint(0, (*kd)-(*n)+1)
+		ioff = 1 + max(0, (*kd)-(*n)+1)
 		kl = 0
 		packit = 'Q'
 	} else {
@@ -68,15 +68,15 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 	} else if (*imat) == 6 {
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint(1, (*kd)+2-j); i <= (*kd); i++ {
+				for i = max(1, (*kd)+2-j); i <= (*kd); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
-				ab.SetRe((*kd)+1-1, j-1, float64(j))
+				ab.SetRe((*kd), j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
 				ab.SetRe(0, j-1, float64(j))
-				for i = 2; i <= minint((*kd)+1, (*n)-j+1); i++ {
+				for i = 2; i <= min((*kd)+1, (*n)-j+1); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
 			}
@@ -92,14 +92,14 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		//        Initialize AB to zero.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint(1, (*kd)+2-j); i <= (*kd); i++ {
+				for i = max(1, (*kd)+2-j); i <= (*kd); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
-				ab.SetRe((*kd)+1-1, j-1, float64(j))
+				ab.SetRe((*kd), j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				for i = 2; i <= minint((*kd)+1, (*n)-j+1); i++ {
+				for i = 2; i <= min((*kd)+1, (*n)-j+1); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
 				ab.SetRe(0, j-1, float64(j))
@@ -121,7 +121,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 				lenj = ((*n) - 3) / 2
 				golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, &lenj, work)
 				for j = 1; j <= lenj; j++ {
-					ab.Set(1, 2*j+1-1, complex(tnorm, 0)*work.Get(j-1))
+					ab.Set(1, 2*j, complex(tnorm, 0)*work.Get(j-1))
 				}
 			}
 		} else if (*kd) > 1 {
@@ -148,8 +148,8 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 				work.Set(j-1, plus1)
 				work.Set((*n)+j-1, star1)
 				if j+1 <= (*n) {
-					work.Set(j+1-1, plus2)
-					work.SetRe((*n)+j+1-1, zero)
+					work.Set(j, plus2)
+					work.SetRe((*n)+j, zero)
 					plus1 = star1 / plus2
 
 					//                 Generate a new *-value with norm between math.Sqrt(TNORM)
@@ -165,11 +165,11 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 
 			//           Copy the tridiagonal T to AB.
 			if upper {
-				goblas.Zcopy((*n)-1, work, 1, ab.CVector((*kd)-1, 1), *ldab)
-				goblas.Zcopy((*n)-2, work.Off((*n)+1-1), 1, ab.CVector((*kd)-1-1, 2), *ldab)
+				goblas.Zcopy((*n)-1, work.Off(0, 1), ab.CVector((*kd)-1, 1, *ldab))
+				goblas.Zcopy((*n)-2, work.Off((*n), 1), ab.CVector((*kd)-1-1, 2, *ldab))
 			} else {
-				goblas.Zcopy((*n)-1, work, 1, ab.CVector(1, 0), *ldab)
-				goblas.Zcopy((*n)-2, work.Off((*n)+1-1), 1, ab.CVector(2, 0), *ldab)
+				goblas.Zcopy((*n)-1, work.Off(0, 1), ab.CVector(1, 0, *ldab))
+				goblas.Zcopy((*n)-2, work.Off((*n), 1), ab.CVector(2, 0, *ldab))
 			}
 		}
 
@@ -182,13 +182,13 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		//        Make the right hand side large so that it requires scaling.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j-1, *kd)
+				lenj = min(j-1, *kd)
 				golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector((*kd)+1-lenj-1, j-1))
-				ab.Set((*kd)+1-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed)*complex(two, 0))
+				ab.Set((*kd), j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed)*complex(two, 0))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j, *kd)
+				lenj = min((*n)-j, *kd)
 				if lenj > 0 {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector(1, j-1))
 				}
@@ -198,10 +198,10 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Izamax(*n, b, 1)
+		iy = goblas.Izamax(*n, b.Off(0, 1))
 		bnorm = b.GetMag(iy - 1)
-		bscal = bignum / maxf64(one, bnorm)
-		goblas.Zdscal(*n, bscal, b, 1)
+		bscal = bignum / math.Max(one, bnorm)
+		goblas.Zdscal(*n, bscal, b.Off(0, 1))
 
 	} else if (*imat) == 11 {
 		//        Type 11:  Make the first diagonal element in the solve small to
@@ -211,20 +211,20 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		tscal = one / float64((*kd)+1)
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j-1, *kd)
+				lenj = min(j-1, *kd)
 				if lenj > 0 {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector((*kd)+2-lenj-1, j-1))
-					goblas.Zdscal(lenj, tscal, ab.CVector((*kd)+2-lenj-1, j-1), 1)
+					goblas.Zdscal(lenj, tscal, ab.CVector((*kd)+2-lenj-1, j-1, 1))
 				}
-				ab.Set((*kd)+1-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
+				ab.Set((*kd), j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
-			ab.Set((*kd)+1-1, (*n)-1, complex(smlnum, 0)*ab.Get((*kd)+1-1, (*n)-1))
+			ab.Set((*kd), (*n)-1, complex(smlnum, 0)*ab.Get((*kd), (*n)-1))
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j, *kd)
+				lenj = min((*n)-j, *kd)
 				if lenj > 0 {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector(1, j-1))
-					goblas.Zdscal(lenj, tscal, ab.CVector(1, j-1), 1)
+					goblas.Zdscal(lenj, tscal, ab.CVector(1, j-1, 1))
 				}
 				ab.Set(0, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
@@ -238,16 +238,16 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j-1, *kd)
+				lenj = min(j-1, *kd)
 				if lenj > 0 {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector((*kd)+2-lenj-1, j-1))
 				}
-				ab.Set((*kd)+1-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
+				ab.Set((*kd), j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
-			ab.Set((*kd)+1-1, (*n)-1, complex(smlnum, 0)*ab.Get((*kd)+1-1, (*n)-1))
+			ab.Set((*kd), (*n)-1, complex(smlnum, 0)*ab.Get((*kd), (*n)-1))
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j, *kd)
+				lenj = min((*n)-j, *kd)
 				if lenj > 0 {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector(1, j-1))
 				}
@@ -263,13 +263,13 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		if upper {
 			jcount = 1
 			for j = (*n); j >= 1; j -= 1 {
-				for i = maxint(1, (*kd)+1-(j-1)); i <= (*kd); i++ {
+				for i = max(1, (*kd)+1-(j-1)); i <= (*kd); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
 				if jcount <= 2 {
-					ab.Set((*kd)+1-1, j-1, complex(smlnum, 0)*matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
+					ab.Set((*kd), j-1, complex(smlnum, 0)*matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 				} else {
-					ab.Set((*kd)+1-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
+					ab.Set((*kd), j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 				}
 				jcount = jcount + 1
 				if jcount > 4 {
@@ -279,7 +279,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		} else {
 			jcount = 1
 			for j = 1; j <= (*n); j++ {
-				for i = 2; i <= minint((*n)-j+1, (*kd)+1); i++ {
+				for i = 2; i <= min((*n)-j+1, (*kd)+1); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
 				if jcount <= 2 {
@@ -305,7 +305,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			b.SetRe((*n)-1, zero)
 			for i = 1; i <= (*n)-1; i += 2 {
 				b.SetRe(i-1, zero)
-				b.Set(i+1-1, complex(smlnum, 0)*matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
+				b.Set(i, complex(smlnum, 0)*matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
 		}
 
@@ -318,18 +318,18 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, n, b)
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint(1, (*kd)+2-j); i <= (*kd); i++ {
+				for i = max(1, (*kd)+2-j); i <= (*kd); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
 				if j > 1 && (*kd) > 0 {
 					ab.Set((*kd)-1, j-1, complex(-one, -one))
 				}
-				ab.Set((*kd)+1-1, j-1, complex(tscal, 0)*matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
+				ab.Set((*kd), j-1, complex(tscal, 0)*matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed))
 			}
 			b.Set((*n)-1, complex(one, one))
 		} else {
 			for j = 1; j <= (*n); j++ {
-				for i = 3; i <= minint((*n)-j+1, (*kd)+1); i++ {
+				for i = 3; i <= min((*n)-j+1, (*kd)+1); i++ {
 					ab.SetRe(i-1, j-1, zero)
 				}
 				if j < (*n) && (*kd) > 0 {
@@ -345,17 +345,17 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		iy = (*n)/2 + 1
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector((*kd)+2-lenj-1, j-1))
 				if j != iy {
-					ab.Set((*kd)+1-1, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed)*complex(two, 0))
+					ab.Set((*kd), j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed)*complex(two, 0))
 				} else {
-					ab.SetRe((*kd)+1-1, j-1, zero)
+					ab.SetRe((*kd), j-1, zero)
 				}
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector(0, j-1))
 				if j != iy {
 					ab.Set(0, j-1, matgen.Zlarnd(func() *int { y := 5; return &y }(), iseed)*complex(two, 0))
@@ -365,7 +365,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			}
 		}
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Zdscal(*n, two, b, 1)
+		goblas.Zdscal(*n, two, b.Off(0, 1))
 
 	} else if (*imat) == 16 {
 		//        Type 16:  Make the offdiagonal elements large to cause overflow
@@ -383,35 +383,35 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		if (*kd) > 0 {
 			if upper {
 				for j = (*n); j >= 1; j -= (*kd) {
-					for i = j; i >= maxint(1, j-(*kd)+1); i -= 2 {
+					for i = j; i >= max(1, j-(*kd)+1); i -= 2 {
 						ab.SetRe(1+(j-i)-1, i-1, -tscal/float64((*kd)+2))
-						ab.SetRe((*kd)+1-1, i-1, one)
+						ab.SetRe((*kd), i-1, one)
 						b.SetRe(i-1, texp*(one-ulp))
-						if i > maxint(1, j-(*kd)+1) {
+						if i > max(1, j-(*kd)+1) {
 							ab.SetRe(2+(j-i)-1, i-1-1, -(tscal/float64((*kd)+2))/float64((*kd)+3))
-							ab.SetRe((*kd)+1-1, i-1-1, one)
+							ab.SetRe((*kd), i-1-1, one)
 							b.SetRe(i-1-1, texp*float64(((*kd)+1)*((*kd)+1)+(*kd)))
 						}
 						texp = texp * two
 					}
-					b.SetRe(maxint(1, j-(*kd)+1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
+					b.SetRe(max(1, j-(*kd)+1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
 				}
 			} else {
 				for j = 1; j <= (*n); j += (*kd) {
 					texp = one
-					lenj = minint((*kd)+1, (*n)-j+1)
-					for i = j; i <= minint(*n, j+(*kd)-1); i += 2 {
+					lenj = min((*kd)+1, (*n)-j+1)
+					for i = j; i <= min(*n, j+(*kd)-1); i += 2 {
 						ab.SetRe(lenj-(i-j)-1, j-1, -tscal/float64((*kd)+2))
 						ab.SetRe(0, j-1, one)
 						b.SetRe(j-1, texp*(one-ulp))
-						if i < minint(*n, j+(*kd)-1) {
-							ab.SetRe(lenj-(i-j+1)-1, i+1-1, -(tscal/float64((*kd)+2))/float64((*kd)+3))
-							ab.SetRe(0, i+1-1, one)
-							b.SetRe(i+1-1, texp*float64(((*kd)+1)*((*kd)+1)+(*kd)))
+						if i < min(*n, j+(*kd)-1) {
+							ab.SetRe(lenj-(i-j+1)-1, i, -(tscal/float64((*kd)+2))/float64((*kd)+3))
+							ab.SetRe(0, i, one)
+							b.SetRe(i, texp*float64(((*kd)+1)*((*kd)+1)+(*kd)))
 						}
 						texp = texp * two
 					}
-					b.SetRe(minint(*n, j+(*kd)-1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
+					b.SetRe(min(*n, j+(*kd)-1)-1, (float64((*kd)+2)/float64((*kd)+3))*tscal)
 				}
 			}
 		}
@@ -422,13 +422,13 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		//        requires scaling.
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j-1, *kd)
+				lenj = min(j-1, *kd)
 				golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector((*kd)+1-lenj-1, j-1))
-				ab.SetRe((*kd)+1-1, j-1, float64(j))
+				ab.SetRe((*kd), j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j, *kd)
+				lenj = min((*n)-j, *kd)
 				if lenj > 0 {
 					golapack.Zlarnv(func() *int { y := 4; return &y }(), iseed, &lenj, ab.CVector(1, j-1))
 				}
@@ -438,10 +438,10 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		iy = goblas.Izamax(*n, b, 1)
+		iy = goblas.Izamax(*n, b.Off(0, 1))
 		bnorm = b.GetMag(iy - 1)
-		bscal = bignum / maxf64(one, bnorm)
-		goblas.Zdscal(*n, bscal, b, 1)
+		bscal = bignum / math.Max(one, bnorm)
+		goblas.Zdscal(*n, bscal, b.Off(0, 1))
 
 	} else if (*imat) == 18 {
 		//        Type 18:  Generate a triangular matrix with elements between
@@ -452,7 +452,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 		tscal = bignum * (float64((*kd)+1) / float64((*kd)+2))
 		if upper {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint(j, (*kd)+1)
+				lenj = min(j, (*kd)+1)
 				golapack.Zlarnv(func() *int { y := 5; return &y }(), iseed, &lenj, ab.CVector((*kd)+2-lenj-1, j-1))
 				golapack.Dlarnv(func() *int { y := 1; return &y }(), iseed, &lenj, rwork.Off((*kd)+2-lenj-1))
 				for i = (*kd) + 2 - lenj; i <= (*kd)+1; i++ {
@@ -461,7 +461,7 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				lenj = minint((*n)-j+1, (*kd)+1)
+				lenj = min((*n)-j+1, (*kd)+1)
 				golapack.Zlarnv(func() *int { y := 5; return &y }(), iseed, &lenj, ab.CVector(0, j-1))
 				golapack.Dlarnv(func() *int { y := 1; return &y }(), iseed, &lenj, rwork)
 				for i = 1; i <= lenj; i++ {
@@ -470,20 +470,20 @@ func Zlattb(imat *int, uplo, trans byte, diag *byte, iseed *[]int, n, kd *int, a
 			}
 		}
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, n, b)
-		goblas.Zdscal(*n, two, b, 1)
+		goblas.Zdscal(*n, two, b.Off(0, 1))
 	}
 
 	//     Flip the matrix if the transpose will be used.
 	if trans != 'N' {
 		if upper {
 			for j = 1; j <= (*n)/2; j++ {
-				lenj = minint((*n)-2*j+1, (*kd)+1)
-				goblas.Zswap(lenj, ab.CVector((*kd)+1-1, j-1), (*ldab)-1, ab.CVector((*kd)+2-lenj-1, (*n)-j+1-1), -1)
+				lenj = min((*n)-2*j+1, (*kd)+1)
+				goblas.Zswap(lenj, ab.CVector((*kd), j-1, (*ldab)-1), ab.CVector((*kd)+2-lenj-1, (*n)-j, -1))
 			}
 		} else {
 			for j = 1; j <= (*n)/2; j++ {
-				lenj = minint((*n)-2*j+1, (*kd)+1)
-				goblas.Zswap(lenj, ab.CVector(0, j-1), 1, ab.CVector(lenj-1, (*n)-j+2-lenj-1), -(*ldab)+1)
+				lenj = min((*n)-2*j+1, (*kd)+1)
+				goblas.Zswap(lenj, ab.CVector(0, j-1, 1), ab.CVector(lenj-1, (*n)-j+2-lenj-1, -(*ldab)+1))
 			}
 		}
 	}

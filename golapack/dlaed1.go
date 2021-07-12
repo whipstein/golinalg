@@ -46,9 +46,9 @@ func Dlaed1(n *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *f
 
 	if (*n) < 0 {
 		(*info) = -1
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -4
-	} else if minint(1, (*n)/2) > (*cutpnt) || ((*n)/2) < (*cutpnt) {
+	} else if min(1, (*n)/2) > (*cutpnt) || ((*n)/2) < (*cutpnt) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -76,9 +76,9 @@ func Dlaed1(n *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *f
 
 	//     Form the z-vector which consists of the last row of Q_1 and the
 	//     first row of Q_2.
-	goblas.Dcopy(*cutpnt, q.Vector((*cutpnt)-1, 0), *ldq, work.Off(iz-1), 1)
+	goblas.Dcopy(*cutpnt, q.Vector((*cutpnt)-1, 0), work.Off(iz-1, 1))
 	zpp1 = (*cutpnt) + 1
-	goblas.Dcopy((*n)-(*cutpnt), q.Vector(zpp1-1, zpp1-1), *ldq, work.Off(iz+(*cutpnt)-1), 1)
+	goblas.Dcopy((*n)-(*cutpnt), q.Vector(zpp1-1, zpp1-1), work.Off(iz+(*cutpnt)-1, 1))
 
 	//     Deflate eigenvalues.
 	Dlaed2(&k, n, cutpnt, d, q, ldq, indxq, rho, work.Off(iz-1), work.Off(idlmda-1), work.Off(iw-1), work.Off(iq2-1), toSlice(iwork, indx-1), toSlice(iwork, indxc-1), toSlice(iwork, indxp-1), toSlice(iwork, coltyp-1), info)
@@ -89,7 +89,7 @@ func Dlaed1(n *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *f
 
 	//     Solve Secular Equation.
 	if k != 0 {
-		is = ((*iwork)[coltyp-1]+(*iwork)[coltyp+1-1])*(*cutpnt) + ((*iwork)[coltyp+1-1]+(*iwork)[coltyp+2-1])*((*n)-(*cutpnt)) + iq2
+		is = ((*iwork)[coltyp-1]+(*iwork)[coltyp])*(*cutpnt) + ((*iwork)[coltyp]+(*iwork)[coltyp+2-1])*((*n)-(*cutpnt)) + iq2
 		Dlaed3(&k, n, cutpnt, d, q, ldq, rho, work.Off(idlmda-1), work.Off(iq2-1), toSlice(iwork, indxc-1), toSlice(iwork, indxc-1), work.Off(iw-1), work.Off(is-1), info)
 		if (*info) != 0 {
 			return

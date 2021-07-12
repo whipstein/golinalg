@@ -49,7 +49,7 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -213,7 +213,7 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						//+    TESTS 5, 6, and 7
 						//                 Use iterative refinement to improve the solution.
 						*srnamt = "ZPORFS"
-						golapack.Zporfs(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+						golapack.Zporfs(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 						//                 Check error code from ZPORFS.
 						if info != 0 {
@@ -221,7 +221,7 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						}
 
 						Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-						Zpot05(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(5))
+						Zpot05(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.

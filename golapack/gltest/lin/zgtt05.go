@@ -50,11 +50,11 @@ func Zgtt05(trans byte, n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ld
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Izamax(*n, x.CVector(0, j-1), 1)
-		xnorm = maxf64(Cabs1(x.Get(imax-1, j-1)), unfl)
+		imax = goblas.Izamax(*n, x.CVector(0, j-1, 1))
+		xnorm = math.Max(Cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {
-			diff = maxf64(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diff = math.Max(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -69,7 +69,7 @@ func Zgtt05(trans byte, n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ld
 	label20:
 		;
 		if diff/xnorm <= ferr.Get(j-1) {
-			errbnd = maxf64(errbnd, (diff/xnorm)/ferr.Get(j-1))
+			errbnd = math.Max(errbnd, (diff/xnorm)/ferr.Get(j-1))
 		} else {
 			errbnd = one / eps
 		}
@@ -86,11 +86,11 @@ func Zgtt05(trans byte, n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ld
 			} else {
 				axbi = Cabs1(b.Get(0, k-1)) + Cabs1(d.Get(0))*Cabs1(x.Get(0, k-1)) + Cabs1(du.Get(0))*Cabs1(x.Get(1, k-1))
 				for i = 2; i <= (*n)-1; i++ {
-					tmp = Cabs1(b.Get(i-1, k-1)) + Cabs1(dl.Get(i-1-1))*Cabs1(x.Get(i-1-1, k-1)) + Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, k-1)) + Cabs1(du.Get(i-1))*Cabs1(x.Get(i+1-1, k-1))
-					axbi = minf64(axbi, tmp)
+					tmp = Cabs1(b.Get(i-1, k-1)) + Cabs1(dl.Get(i-1-1))*Cabs1(x.Get(i-1-1, k-1)) + Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, k-1)) + Cabs1(du.Get(i-1))*Cabs1(x.Get(i, k-1))
+					axbi = math.Min(axbi, tmp)
 				}
 				tmp = Cabs1(b.Get((*n)-1, k-1)) + Cabs1(dl.Get((*n)-1-1))*Cabs1(x.Get((*n)-1-1, k-1)) + Cabs1(d.Get((*n)-1))*Cabs1(x.Get((*n)-1, k-1))
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		} else {
 			if (*n) == 1 {
@@ -98,18 +98,18 @@ func Zgtt05(trans byte, n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ld
 			} else {
 				axbi = Cabs1(b.Get(0, k-1)) + Cabs1(d.Get(0))*Cabs1(x.Get(0, k-1)) + Cabs1(dl.Get(0))*Cabs1(x.Get(1, k-1))
 				for i = 2; i <= (*n)-1; i++ {
-					tmp = Cabs1(b.Get(i-1, k-1)) + Cabs1(du.Get(i-1-1))*Cabs1(x.Get(i-1-1, k-1)) + Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, k-1)) + Cabs1(dl.Get(i-1))*Cabs1(x.Get(i+1-1, k-1))
-					axbi = minf64(axbi, tmp)
+					tmp = Cabs1(b.Get(i-1, k-1)) + Cabs1(du.Get(i-1-1))*Cabs1(x.Get(i-1-1, k-1)) + Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, k-1)) + Cabs1(dl.Get(i-1))*Cabs1(x.Get(i, k-1))
+					axbi = math.Min(axbi, tmp)
 				}
 				tmp = Cabs1(b.Get((*n)-1, k-1)) + Cabs1(du.Get((*n)-1-1))*Cabs1(x.Get((*n)-1-1, k-1)) + Cabs1(d.Get((*n)-1))*Cabs1(x.Get((*n)-1, k-1))
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/maxf64(axbi, float64(nz)*unfl))
+		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/math.Max(axbi, float64(nz)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {
-			reslts.Set(1, maxf64(reslts.Get(1), tmp))
+			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
 }

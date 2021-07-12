@@ -59,7 +59,7 @@ func Zdrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -275,7 +275,7 @@ func Zdrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//                    Solve the system and compute the condition number
 						//                    and error bounds using ZPOSVX.
 						*srnamt = "ZPOSVX"
-						golapack.Zposvx(fact, uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, &equed, s, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, rwork.Off(2*(*nrhs)+1-1), &info)
+						golapack.Zposvx(fact, uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, &equed, s, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
 
 						//                    Check the error code from ZPOSVX.
 						if info != izero {
@@ -288,7 +288,7 @@ func Zdrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							if !prefac {
 								//                          Reconstruct matrix from factors and compute
 								//                          residual.
-								Zpot01(uplo, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+								Zpot01(uplo, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 								k1 = 1
 							} else {
 								k1 = 2
@@ -296,7 +296,7 @@ func Zdrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Compute residual of the computed solution.
 							golapack.Zlacpy('F', &n, nrhs, bsav.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-							Zpot02(uplo, &n, nrhs, asav.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+							Zpot02(uplo, &n, nrhs, asav.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							if nofact || (prefac && equed == 'N') {
@@ -307,7 +307,7 @@ func Zdrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Check the error bounds from iterative
 							//                       refinement.
-							Zpot05(uplo, &n, nrhs, asav.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+							Zpot05(uplo, &n, nrhs, asav.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 						} else {
 							k1 = 6
 						}

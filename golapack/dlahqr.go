@@ -63,7 +63,7 @@ func Dlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 	}
 
 	//     ITMAX is the total number of QR iterations allowed.
-	itmax = 30 * maxint(10, nh)
+	itmax = 30 * max(10, nh)
 
 	//     The main loop begins here. I is the loop index and decreases from
 	//     IHI to ILO in steps of 1 or 2. Each iteration of the loop works
@@ -93,7 +93,7 @@ label20:
 					tst = tst + math.Abs(h.Get(k-1-1, k-2-1))
 				}
 				if k+1 <= (*ihi) {
-					tst = tst + math.Abs(h.Get(k+1-1, k-1))
+					tst = tst + math.Abs(h.Get(k, k-1))
 				}
 			}
 			//           ==== The following is a conservative small subdiagonal
@@ -101,12 +101,12 @@ label20:
 			//           .    1997). It has better mathematical foundation and
 			//           .    improves accuracy in some cases.  ====
 			if math.Abs(h.Get(k-1, k-1-1)) <= ulp*tst {
-				ab = maxf64(math.Abs(h.Get(k-1, k-1-1)), math.Abs(h.Get(k-1-1, k-1)))
-				ba = minf64(math.Abs(h.Get(k-1, k-1-1)), math.Abs(h.Get(k-1-1, k-1)))
-				aa = maxf64(math.Abs(h.Get(k-1, k-1)), math.Abs(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
-				bb = minf64(math.Abs(h.Get(k-1, k-1)), math.Abs(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
+				ab = math.Max(math.Abs(h.Get(k-1, k-1-1)), math.Abs(h.Get(k-1-1, k-1)))
+				ba = math.Min(math.Abs(h.Get(k-1, k-1-1)), math.Abs(h.Get(k-1-1, k-1)))
+				aa = math.Max(math.Abs(h.Get(k-1, k-1)), math.Abs(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
+				bb = math.Min(math.Abs(h.Get(k-1, k-1)), math.Abs(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
 				s = aa + ab
-				if ba*(ab/s) <= maxf64(smlnum, ulp*(bb*(aa/s))) {
+				if ba*(ab/s) <= math.Max(smlnum, ulp*(bb*(aa/s))) {
 					goto label40
 				}
 			}
@@ -134,7 +134,7 @@ label20:
 
 		if its == 10 {
 			//           Exceptional shift.
-			s = math.Abs(h.Get(l+1-1, l-1)) + math.Abs(h.Get(l+2-1, l+1-1))
+			s = math.Abs(h.Get(l, l-1)) + math.Abs(h.Get(l+2-1, l))
 			h11 = dat1*s + h.Get(l-1, l-1)
 			h12 = dat2 * s
 			h21 = s
@@ -195,12 +195,12 @@ label20:
 			//           iteration at row M, and see if this would make H(M,M-1)
 			//           negligible.  (The following uses scaling to avoid
 			//           overflows and most underflows.)
-			h21s = h.Get(m+1-1, m-1)
+			h21s = h.Get(m, m-1)
 			s = math.Abs(h.Get(m-1, m-1)-rt2r) + math.Abs(rt2i) + math.Abs(h21s)
-			h21s = h.Get(m+1-1, m-1) / s
-			v.Set(0, h21s*h.Get(m-1, m+1-1)+(h.Get(m-1, m-1)-rt1r)*((h.Get(m-1, m-1)-rt2r)/s)-rt1i*(rt2i/s))
-			v.Set(1, h21s*(h.Get(m-1, m-1)+h.Get(m+1-1, m+1-1)-rt1r-rt2r))
-			v.Set(2, h21s*h.Get(m+2-1, m+1-1))
+			h21s = h.Get(m, m-1) / s
+			v.Set(0, h21s*h.Get(m-1, m)+(h.Get(m-1, m-1)-rt1r)*((h.Get(m-1, m-1)-rt2r)/s)-rt1i*(rt2i/s))
+			v.Set(1, h21s*(h.Get(m-1, m-1)+h.Get(m, m)-rt1r-rt2r))
+			v.Set(2, h21s*h.Get(m+2-1, m))
 			s = math.Abs(v.Get(0)) + math.Abs(v.Get(1)) + math.Abs(v.Get(2))
 			v.Set(0, v.Get(0)/s)
 			v.Set(1, v.Get(1)/s)
@@ -208,7 +208,7 @@ label20:
 			if m == l {
 				goto label60
 			}
-			if math.Abs(h.Get(m-1, m-1-1))*(math.Abs(v.Get(1))+math.Abs(v.Get(2))) <= ulp*math.Abs(v.Get(0))*(math.Abs(h.Get(m-1-1, m-1-1))+math.Abs(h.Get(m-1, m-1))+math.Abs(h.Get(m+1-1, m+1-1))) {
+			if math.Abs(h.Get(m-1, m-1-1))*(math.Abs(v.Get(1))+math.Abs(v.Get(2))) <= ulp*math.Abs(v.Get(0))*(math.Abs(h.Get(m-1-1, m-1-1))+math.Abs(h.Get(m-1, m-1))+math.Abs(h.Get(m, m))) {
 				goto label60
 			}
 		}
@@ -225,14 +225,14 @@ label20:
 			//           restore the Hessenberg form in the (K-1)th column, and thus
 			//           chases the bulge one step toward the bottom of the active
 			//           submatrix. NR is the order of G.
-			nr = minint(3, i-k+1)
+			nr = min(3, i-k+1)
 			if k > m {
-				goblas.Dcopy(nr, h.Vector(k-1, k-1-1), 1, v, 1)
+				goblas.Dcopy(nr, h.Vector(k-1, k-1-1, 1), v)
 			}
 			Dlarfg(&nr, v.GetPtr(0), v.Off(1), func() *int { y := 1; return &y }(), &t1)
 			if k > m {
 				h.Set(k-1, k-1-1, v.Get(0))
-				h.Set(k+1-1, k-1-1, zero)
+				h.Set(k, k-1-1, zero)
 				if k < i-1 {
 					h.Set(k+2-1, k-1-1, zero)
 				}
@@ -252,27 +252,27 @@ label20:
 				//              Apply G from the left to transform the rows of the matrix
 				//              in columns K to I2.
 				for j = k; j <= i2; j++ {
-					sum = h.Get(k-1, j-1) + v2*h.Get(k+1-1, j-1) + v3*h.Get(k+2-1, j-1)
+					sum = h.Get(k-1, j-1) + v2*h.Get(k, j-1) + v3*h.Get(k+2-1, j-1)
 					h.Set(k-1, j-1, h.Get(k-1, j-1)-sum*t1)
-					h.Set(k+1-1, j-1, h.Get(k+1-1, j-1)-sum*t2)
+					h.Set(k, j-1, h.Get(k, j-1)-sum*t2)
 					h.Set(k+2-1, j-1, h.Get(k+2-1, j-1)-sum*t3)
 				}
 
 				//              Apply G from the right to transform the columns of the
-				//              matrix in rows I1 to minf64(K+3,I).
-				for j = i1; j <= minint(k+3, i); j++ {
-					sum = h.Get(j-1, k-1) + v2*h.Get(j-1, k+1-1) + v3*h.Get(j-1, k+2-1)
+				//              matrix in rows I1 to math.Min(K+3,I).
+				for j = i1; j <= min(k+3, i); j++ {
+					sum = h.Get(j-1, k-1) + v2*h.Get(j-1, k) + v3*h.Get(j-1, k+2-1)
 					h.Set(j-1, k-1, h.Get(j-1, k-1)-sum*t1)
-					h.Set(j-1, k+1-1, h.Get(j-1, k+1-1)-sum*t2)
+					h.Set(j-1, k, h.Get(j-1, k)-sum*t2)
 					h.Set(j-1, k+2-1, h.Get(j-1, k+2-1)-sum*t3)
 				}
 
 				if wantz {
 					//                 Accumulate transformations in the matrix Z
 					for j = (*iloz); j <= (*ihiz); j++ {
-						sum = z.Get(j-1, k-1) + v2*z.Get(j-1, k+1-1) + v3*z.Get(j-1, k+2-1)
+						sum = z.Get(j-1, k-1) + v2*z.Get(j-1, k) + v3*z.Get(j-1, k+2-1)
 						z.Set(j-1, k-1, z.Get(j-1, k-1)-sum*t1)
-						z.Set(j-1, k+1-1, z.Get(j-1, k+1-1)-sum*t2)
+						z.Set(j-1, k, z.Get(j-1, k)-sum*t2)
 						z.Set(j-1, k+2-1, z.Get(j-1, k+2-1)-sum*t3)
 					}
 				}
@@ -281,25 +281,25 @@ label20:
 				//              Apply G from the left to transform the rows of the matrix
 				//              in columns K to I2.
 				for j = k; j <= i2; j++ {
-					sum = h.Get(k-1, j-1) + v2*h.Get(k+1-1, j-1)
+					sum = h.Get(k-1, j-1) + v2*h.Get(k, j-1)
 					h.Set(k-1, j-1, h.Get(k-1, j-1)-sum*t1)
-					h.Set(k+1-1, j-1, h.Get(k+1-1, j-1)-sum*t2)
+					h.Set(k, j-1, h.Get(k, j-1)-sum*t2)
 				}
 
 				//              Apply G from the right to transform the columns of the
-				//              matrix in rows I1 to minf64(K+3,I).
+				//              matrix in rows I1 to math.Min(K+3,I).
 				for j = i1; j <= i; j++ {
-					sum = h.Get(j-1, k-1) + v2*h.Get(j-1, k+1-1)
+					sum = h.Get(j-1, k-1) + v2*h.Get(j-1, k)
 					h.Set(j-1, k-1, h.Get(j-1, k-1)-sum*t1)
-					h.Set(j-1, k+1-1, h.Get(j-1, k+1-1)-sum*t2)
+					h.Set(j-1, k, h.Get(j-1, k)-sum*t2)
 				}
 
 				if wantz {
 					//                 Accumulate transformations in the matrix Z
 					for j = (*iloz); j <= (*ihiz); j++ {
-						sum = z.Get(j-1, k-1) + v2*z.Get(j-1, k+1-1)
+						sum = z.Get(j-1, k-1) + v2*z.Get(j-1, k)
 						z.Set(j-1, k-1, z.Get(j-1, k-1)-sum*t1)
-						z.Set(j-1, k+1-1, z.Get(j-1, k+1-1)-sum*t2)
+						z.Set(j-1, k, z.Get(j-1, k)-sum*t2)
 					}
 				}
 			}
@@ -328,13 +328,13 @@ label150:
 		if wantt {
 			//           Apply the transformation to the rest of H.
 			if i2 > i {
-				goblas.Drot(i2-i, h.Vector(i-1-1, i+1-1), *ldh, h.Vector(i-1, i+1-1), *ldh, cs, sn)
+				goblas.Drot(i2-i, h.Vector(i-1-1, i), h.Vector(i-1, i), cs, sn)
 			}
-			goblas.Drot(i-i1-1, h.Vector(i1-1, i-1-1), 1, h.Vector(i1-1, i-1), 1, cs, sn)
+			goblas.Drot(i-i1-1, h.Vector(i1-1, i-1-1, 1), h.Vector(i1-1, i-1, 1), cs, sn)
 		}
 		if wantz {
 			//           Apply the transformation to Z.
-			goblas.Drot(nz, z.Vector((*iloz)-1, i-1-1), 1, z.Vector((*iloz)-1, i-1), 1, cs, sn)
+			goblas.Drot(nz, z.Vector((*iloz)-1, i-1-1, 1), z.Vector((*iloz)-1, i-1, 1), cs, sn)
 		}
 	}
 

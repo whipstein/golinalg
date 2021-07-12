@@ -46,31 +46,31 @@ func Dsgt01(itype *int, uplo byte, n, m *int, a *mat.Matrix, lda *int, b *mat.Ma
 
 	if (*itype) == 1 {
 		//        Norm of AZ - BZD
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, a, *lda, z, *ldz, zero, work.Matrix(*n, opts), *n)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, a, z, zero, work.Matrix(*n, opts))
 		for i = 1; i <= (*m); i++ {
-			goblas.Dscal(*n, d.Get(i-1), z.Vector(0, i-1), 1)
+			goblas.Dscal(*n, d.Get(i-1), z.Vector(0, i-1, 1))
 		}
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, b, *ldb, z, *ldz, -one, work.Matrix(*n, opts), *n)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, b, z, -one, work.Matrix(*n, opts))
 
 		result.Set(0, (golapack.Dlange('1', n, m, work.Matrix(*n, opts), n, work)/anorm)/(float64(*n)*ulp))
 
 	} else if (*itype) == 2 {
 		//        Norm of ABZ - ZD
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, b, *ldb, z, *ldz, zero, work.Matrix(*n, opts), *n)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, b, z, zero, work.Matrix(*n, opts))
 		for i = 1; i <= (*m); i++ {
-			goblas.Dscal(*n, d.Get(i-1), z.Vector(0, i-1), 1)
+			goblas.Dscal(*n, d.Get(i-1), z.Vector(0, i-1, 1))
 		}
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, a, *lda, work.Matrix(*n, opts), *n, -one, z, *ldz)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, a, work.Matrix(*n, opts), -one, z)
 
 		result.Set(0, (golapack.Dlange('1', n, m, z, ldz, work)/anorm)/(float64(*n)*ulp))
 
 	} else if (*itype) == 3 {
 		//        Norm of BAZ - ZD
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, a, *lda, z, *ldz, zero, work.Matrix(*n, opts), *n)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, a, z, zero, work.Matrix(*n, opts))
 		for i = 1; i <= (*m); i++ {
-			goblas.Dscal(*n, d.Get(i-1), z.Vector(0, i-1), 1)
+			goblas.Dscal(*n, d.Get(i-1), z.Vector(0, i-1, 1))
 		}
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, b, *ldb, work.Matrix(*n, opts), *n, -one, z, *ldz)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *m, one, b, work.Matrix(*n, opts), -one, z)
 
 		result.Set(0, (golapack.Dlange('1', n, m, z, ldz, work)/anorm)/(float64(*n)*ulp))
 	}

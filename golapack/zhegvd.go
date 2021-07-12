@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -58,9 +60,9 @@ func Zhegvd(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, b *ma
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 
@@ -100,9 +102,9 @@ func Zhegvd(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, b *ma
 	//     Transform problem to standard eigenvalue problem and solve.
 	Zhegst(itype, uplo, n, a, lda, b, ldb, info)
 	Zheevd(jobz, uplo, n, a, lda, w, work, lwork, rwork, lrwork, iwork, liwork, info)
-	lopt = int(maxf64(float64(lopt), work.GetRe(0)))
-	lropt = int(maxf64(float64(lropt), rwork.Get(0)))
-	liopt = int(maxf64(float64(liopt), float64((*iwork)[0])))
+	lopt = int(math.Max(float64(lopt), work.GetRe(0)))
+	lropt = int(math.Max(float64(lropt), rwork.Get(0)))
+	liopt = int(math.Max(float64(liopt), float64((*iwork)[0])))
 
 	if wantz && (*info) == 0 {
 		//        Backtransform eigenvectors to the original problem.
@@ -115,7 +117,7 @@ func Zhegvd(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, b *ma
 				trans = 'C'
 			}
 
-			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, cone, b, *ldb, a, *lda)
+			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, cone, b, a)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -126,7 +128,7 @@ func Zhegvd(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, b *ma
 				trans = 'N'
 			}
 
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, cone, b, *ldb, a, *lda)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, cone, b, a)
 		}
 	}
 

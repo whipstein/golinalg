@@ -38,9 +38,9 @@ func Zhegv2stage(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, 
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 
@@ -95,7 +95,7 @@ func Zhegv2stage(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, 
 				trans = 'C'
 			}
 
-			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, *ldb, a, *lda)
+			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, a)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -106,7 +106,7 @@ func Zhegv2stage(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, 
 				trans = 'N'
 			}
 
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, *ldb, a, *lda)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, a)
 		}
 	}
 

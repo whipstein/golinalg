@@ -50,7 +50,7 @@ func Dlarrj(n *int, d, e2 *mat.Vector, ifirst, ilast *int, rtol *float64, offset
 		mid = w.Get(ii - 1)
 		right = w.Get(ii-1) + werr.Get(ii-1)
 		width = right - mid
-		tmp = maxf64(math.Abs(left), math.Abs(right))
+		tmp = math.Max(math.Abs(left), math.Abs(right))
 		//        The following test prevents the test of converged intervals
 		if width < (*rtol)*tmp {
 			//           This interval has already converged and does not need refinement.
@@ -140,7 +140,7 @@ label80:
 		mid = half * (left + right)
 		//        semiwidth of interval
 		width = right - mid
-		tmp = maxf64(math.Abs(left), math.Abs(right))
+		tmp = math.Max(math.Abs(left), math.Abs(right))
 		if (width < (*rtol)*tmp) || (iter == maxitr) {
 			//           reduce number of unconverged intervals
 			nint = nint - 1

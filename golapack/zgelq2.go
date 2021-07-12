@@ -26,7 +26,7 @@ func Zgelq2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *i
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -34,17 +34,17 @@ func Zgelq2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *i
 		return
 	}
 
-	k = minint(*m, *n)
+	k = min(*m, *n)
 
 	for i = 1; i <= k; i++ {
 		//        Generate elementary reflector H(i) to annihilate A(i,i+1:n)
 		Zlacgv(toPtr((*n)-i+1), a.CVector(i-1, i-1), lda)
 		alpha = a.Get(i-1, i-1)
-		Zlarfg(toPtr((*n)-i+1), &alpha, a.CVector(i-1, minint(i+1, *n)-1), lda, tau.GetPtr(i-1))
+		Zlarfg(toPtr((*n)-i+1), &alpha, a.CVector(i-1, min(i+1, *n)-1), lda, tau.GetPtr(i-1))
 		if i < (*m) {
 			//           Apply H(i) to A(i+1:m,i:n) from the right
 			a.Set(i-1, i-1, one)
-			Zlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.CVector(i-1, i-1), lda, tau.GetPtr(i-1), a.Off(i+1-1, i-1), lda, work)
+			Zlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.CVector(i-1, i-1), lda, tau.GetPtr(i-1), a.Off(i, i-1), lda, work)
 		}
 		a.Set(i-1, i-1, alpha)
 		Zlacgv(toPtr((*n)-i+1), a.CVector(i-1, i-1), lda)

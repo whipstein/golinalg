@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -26,14 +28,14 @@ func Dgsvts3(m, p, n *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *
 	golapack.Dlacpy('F', m, n, a, lda, af, lda)
 	golapack.Dlacpy('F', p, n, b, ldb, bf, ldb)
 
-	anorm = maxf64(golapack.Dlange('1', m, n, a, lda, rwork), unfl)
-	bnorm = maxf64(golapack.Dlange('1', p, n, b, ldb, rwork), unfl)
+	anorm = math.Max(golapack.Dlange('1', m, n, a, lda, rwork), unfl)
+	bnorm = math.Max(golapack.Dlange('1', p, n, b, ldb, rwork), unfl)
 
 	//     Factorize the matrices A and B in the arrays AF and BF.
 	golapack.Dggsvd3('U', 'V', 'Q', m, n, p, &k, &l, af, lda, bf, ldb, alpha, beta, u, ldu, v, ldv, q, ldq, work, lwork, iwork, &info)
 
 	//     Copy R
-	for i = 1; i <= minint(k+l, *m); i++ {
+	for i = 1; i <= min(k+l, *m); i++ {
 		for j = i; j <= k+l; j++ {
 			r.Set(i-1, j-1, af.Get(i-1, (*n)-k-l+j-1))
 		}
@@ -48,9 +50,9 @@ func Dgsvts3(m, p, n *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *
 	}
 
 	//     Compute A:= U'*A*Q - D1*R
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, *lda, q, *ldq, zero, work.Matrix(*lda, opts), *lda)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, q, zero, work.Matrix(*lda, opts))
 
-	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, one, u, *ldu, work.Matrix(*lda, opts), *lda, zero, a, *lda)
+	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, one, u, work.Matrix(*lda, opts), zero, a)
 
 	for i = 1; i <= k; i++ {
 		for j = i; j <= k+l; j++ {
@@ -58,25 +60,25 @@ func Dgsvts3(m, p, n *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *
 		}
 	}
 
-	for i = k + 1; i <= minint(k+l, *m); i++ {
+	for i = k + 1; i <= min(k+l, *m); i++ {
 		for j = i; j <= k+l; j++ {
 			a.Set(i-1, (*n)-k-l+j-1, a.Get(i-1, (*n)-k-l+j-1)-alpha.Get(i-1)*r.Get(i-1, j-1))
 		}
 	}
 
-	//     Compute norm( U'*A*Q - D1*R ) / ( maxint(1,M,N)*norm(A)*ULP ) .
+	//     Compute norm( U'*A*Q - D1*R ) / ( max(1,M,N)*norm(A)*ULP ) .
 	resid = golapack.Dlange('1', m, n, a, lda, rwork)
 
 	if anorm > zero {
-		result.Set(0, ((resid/float64(maxint(1, *m, *n)))/anorm)/ulp)
+		result.Set(0, ((resid/float64(max(1, *m, *n)))/anorm)/ulp)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute B := V'*B*Q - D2*R
-	err = goblas.Dgemm(NoTrans, NoTrans, *p, *n, *n, one, b, *ldb, q, *ldq, zero, work.Matrix(*ldb, opts), *ldb)
+	err = goblas.Dgemm(NoTrans, NoTrans, *p, *n, *n, one, b, q, zero, work.Matrix(*ldb, opts))
 
-	err = goblas.Dgemm(Trans, NoTrans, *p, *n, *p, one, v, *ldv, work.Matrix(*lda, opts), *ldb, zero, b, *ldb)
+	err = goblas.Dgemm(Trans, NoTrans, *p, *n, *p, one, v, work.Matrix(*lda, opts), zero, b)
 
 	for i = 1; i <= l; i++ {
 		for j = i; j <= l; j++ {
@@ -84,41 +86,41 @@ func Dgsvts3(m, p, n *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *
 		}
 	}
 
-	//     Compute norm( V'*B*Q - D2*R ) / ( maxint(P,N)*norm(B)*ULP ) .
+	//     Compute norm( V'*B*Q - D2*R ) / ( max(P,N)*norm(B)*ULP ) .
 	resid = golapack.Dlange('1', p, n, b, ldb, rwork)
 	if bnorm > zero {
-		result.Set(1, ((resid/float64(maxint(1, *p, *n)))/bnorm)/ulp)
+		result.Set(1, ((resid/float64(max(1, *p, *n)))/bnorm)/ulp)
 	} else {
 		result.Set(1, zero)
 	}
 
 	//     Compute I - U'*U
 	golapack.Dlaset('F', m, m, &zero, &one, work.Matrix(*ldq, opts), ldq)
-	err = goblas.Dsyrk(Upper, Trans, *m, *m, -one, u, *ldu, one, work.Matrix(*ldu, opts), *ldu)
+	err = goblas.Dsyrk(Upper, Trans, *m, *m, -one, u, one, work.Matrix(*ldu, opts))
 
 	//     Compute norm( I - U'*U ) / ( M * ULP ) .
 	resid = golapack.Dlansy('1', 'U', m, work.Matrix(*ldu, opts), ldu, rwork)
-	result.Set(2, (resid/float64(maxint(1, *m)))/ulp)
+	result.Set(2, (resid/float64(max(1, *m)))/ulp)
 
 	//     Compute I - V'*V
 	golapack.Dlaset('F', p, p, &zero, &one, work.Matrix(*ldv, opts), ldv)
-	err = goblas.Dsyrk(Upper, Trans, *p, *p, -one, v, *ldv, one, work.Matrix(*ldv, opts), *ldv)
+	err = goblas.Dsyrk(Upper, Trans, *p, *p, -one, v, one, work.Matrix(*ldv, opts))
 
 	//     Compute norm( I - V'*V ) / ( P * ULP ) .
 	resid = golapack.Dlansy('1', 'U', p, work.Matrix(*ldv, opts), ldv, rwork)
-	result.Set(3, (resid/float64(maxint(1, *p)))/ulp)
+	result.Set(3, (resid/float64(max(1, *p)))/ulp)
 
 	//     Compute I - Q'*Q
 	golapack.Dlaset('F', n, n, &zero, &one, work.Matrix(*ldq, opts), ldq)
-	err = goblas.Dsyrk(Upper, Trans, *n, *n, -one, q, *ldq, one, work.Matrix(*ldq, opts), *ldq)
+	err = goblas.Dsyrk(Upper, Trans, *n, *n, -one, q, one, work.Matrix(*ldq, opts))
 
 	//     Compute norm( I - Q'*Q ) / ( N * ULP ) .
 	resid = golapack.Dlansy('1', 'U', n, work.Matrix(*ldq, opts), ldq, rwork)
-	result.Set(4, (resid/float64(maxint(1, *n)))/ulp)
+	result.Set(4, (resid/float64(max(1, *n)))/ulp)
 
 	//     Check sorting
-	goblas.Dcopy(*n, alpha, 1, work, 1)
-	for i = k + 1; i <= minint(k+l, *m); i++ {
+	goblas.Dcopy(*n, alpha.Off(0, 1), work.Off(0, 1))
+	for i = k + 1; i <= min(k+l, *m); i++ {
 		j = (*iwork)[i-1]
 		if i != j {
 			temp = work.Get(i - 1)
@@ -128,8 +130,8 @@ func Dgsvts3(m, p, n *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *
 	}
 
 	result.Set(5, zero)
-	for i = k + 1; i <= minint(k+l, *m)-1; i++ {
-		if work.Get(i-1) < work.Get(i+1-1) {
+	for i = k + 1; i <= min(k+l, *m)-1; i++ {
+		if work.Get(i-1) < work.Get(i) {
 			result.Set(5, ulpinv)
 		}
 	}

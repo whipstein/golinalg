@@ -16,7 +16,7 @@ import (
 //
 // where:
 //    S is a m-by-n diagonal sign matrix with the diagonal D, so that
-//    D(i) = S(i,i), 1 <= i <= minint(M,N). The diagonal D is constructed
+//    D(i) = S(i,i), 1 <= i <= min(M,N). The diagonal D is constructed
 //    as D(i)=-SIGN(A(i,i)), where A(i,i) is the value after performing
 //    i-1 steps of Gaussian elimination. This means that the diagonal
 //    element at each step of "modified" Gaussian elimination is at
@@ -49,7 +49,7 @@ import (
 //    B = [ -----|----- ]        B21 is (m-n1) by n1,
 //        [  B21 | B22  ]        B12 is n1 by n2,
 //                               B22 is (m-n1) by n2,
-//                               with n1 = minint(m,n)/2, n2 = n-n1.
+//                               with n1 = min(m,n)/2, n2 = n-n1.
 //
 //
 // The subroutine calls itself to factor B11, solves for B21,
@@ -88,7 +88,7 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -97,7 +97,7 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 	if (*m) == 1 {
@@ -127,7 +127,7 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 
 		//        Construct the subdiagonal elements of L
 		if Cabs1(a.Get(0, 0)) >= sfmin {
-			goblas.Zscal((*m)-1, cone/a.Get(0, 0), a.CVector(1, 0), 1)
+			goblas.Zscal((*m)-1, cone/a.Get(0, 0), a.CVector(1, 0, 1))
 		} else {
 			for i = 2; i <= (*m); i++ {
 				a.Set(i-1, 0, a.Get(i-1, 0)/a.Get(0, 0))
@@ -136,24 +136,24 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 
 	} else {
 		//        Divide the matrix B into four submatrices
-		n1 = minint(*m, *n) / 2
+		n1 = min(*m, *n) / 2
 		n2 = (*n) - n1
 
 		//        Factor B11, recursive call
 		Zlaunhrcolgetrfnp2(&n1, &n1, a, lda, d, &iinfo)
 
 		//        Solve for B21
-		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, cone, a, *lda, a.Off(n1+1-1, 0), *lda)
+		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, cone, a, a.Off(n1, 0))
 
 		//        Solve for B12
-		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, cone, a, *lda, a.Off(0, n1+1-1), *lda)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, cone, a, a.Off(0, n1))
 
 		//        Update B22, i.e. compute the Schur complement
 		//        B22 := B22 - B21*B12
-		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -cone, a.Off(n1+1-1, 0), *lda, a.Off(0, n1+1-1), *lda, cone, a.Off(n1+1-1, n1+1-1), *lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -cone, a.Off(n1, 0), a.Off(0, n1), cone, a.Off(n1, n1))
 
 		//        Factor B22, recursive call
-		Zlaunhrcolgetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1+1-1, n1+1-1), lda, d.Off(n1+1-1), &iinfo)
+		Zlaunhrcolgetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1, n1), lda, d.Off(n1), &iinfo)
 
 	}
 }

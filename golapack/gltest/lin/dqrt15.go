@@ -25,8 +25,8 @@ func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 	two = 2.0
 	svmin = 0.1
 
-	mn = minint(*m, *n)
-	if (*lwork) < maxint((*m)+mn, mn*(*nrhs), 2*(*n)+(*m)) {
+	mn = min(*m, *n)
+	if (*lwork) < max((*m)+mn, mn*(*nrhs), 2*(*n)+(*m)) {
 		gltest.Xerbla([]byte("DQRT15"), 16)
 		return
 	}
@@ -66,24 +66,24 @@ func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, m, work)
-		goblas.Dscal(*m, one/goblas.Dnrm2(*m, work, 1), work, 1)
+		goblas.Dscal(*m, one/goblas.Dnrm2(*m, work.Off(0, 1)), work.Off(0, 1))
 		golapack.Dlaset('F', m, rank, &zero, &one, a, lda)
-		golapack.Dlarf('L', m, rank, work, func() *int { y := 1; return &y }(), &two, a, lda, work.Off((*m)+1-1))
+		golapack.Dlarf('L', m, rank, work, func() *int { y := 1; return &y }(), &two, a, lda, work.Off((*m)))
 
 		//        workspace used: m+mn
 		//
 		//        Generate consistent rhs in the range space of A
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*rank)*(*nrhs)), work)
-		err = goblas.Dgemm(NoTrans, NoTrans, *m, *nrhs, *rank, one, a, *lda, work.Matrix(*rank, opts), *rank, zero, b, *ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, *m, *nrhs, *rank, one, a, work.Matrix(*rank, opts), zero, b)
 
 		//        work space used: <= mn *nrhs
 		//
 		//        generate (unscaled) matrix A
 		for j = 1; j <= (*rank); j++ {
-			goblas.Dscal(*m, s.Get(j-1), a.Vector(0, j-1), 1)
+			goblas.Dscal(*m, s.Get(j-1), a.Vector(0, j-1, 1))
 		}
 		if (*rank) < (*n) {
-			golapack.Dlaset('F', m, toPtr((*n)-(*rank)), &zero, &zero, a.Off(0, (*rank)+1-1), lda)
+			golapack.Dlaset('F', m, toPtr((*n)-(*rank)), &zero, &zero, a.Off(0, (*rank)), lda)
 		}
 		matgen.Dlaror('R', 'N', m, n, a, lda, iseed, work, &info)
 
@@ -120,6 +120,6 @@ func Dqrt15(scale, rksel, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 		}
 	}
 
-	(*norma) = goblas.Dasum(mn, s, 1)
+	(*norma) = goblas.Dasum(mn, s.Off(0, 1))
 	(*normb) = golapack.Dlange('O', m, nrhs, b, ldb, dummy)
 }

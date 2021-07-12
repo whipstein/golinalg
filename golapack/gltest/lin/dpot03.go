@@ -52,7 +52,7 @@ func Dpot03(uplo byte, n *int, a *mat.Matrix, lda *int, ainv *mat.Matrix, ldainv
 			}
 		}
 	}
-	err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), *n, *n, -one, a, *lda, ainv, *ldainv, zero, work, *ldwork)
+	err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), *n, *n, -one, a, ainv, zero, work)
 
 	//     Add the identity matrix to WORK .
 	for i = 1; i <= (*n); i++ {

@@ -46,7 +46,7 @@ func Zstedc(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < maxint(1, *n)) {
+	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < max(1, *n)) {
 		(*info) = -6
 	}
 
@@ -63,18 +63,18 @@ func Zstedc(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 			lrwmin = 2 * ((*n) - 1)
 		} else if icompz == 1 {
 			lgn = int(math.Log(float64(*n)) / math.Log(two))
-			if powint(2, lgn) < (*n) {
+			if pow(2, lgn) < (*n) {
 				lgn = lgn + 1
 			}
-			if powint(2, lgn) < (*n) {
+			if pow(2, lgn) < (*n) {
 				lgn = lgn + 1
 			}
 			lwmin = (*n) * (*n)
-			lrwmin = 1 + 3*(*n) + 2*(*n)*lgn + 4*powint(*n, 2)
+			lrwmin = 1 + 3*(*n) + 2*(*n)*lgn + 4*pow(*n, 2)
 			liwmin = 6 + 6*(*n) + 5*(*n)*lgn
 		} else if icompz == 2 {
 			lwmin = 1
-			lrwmin = 1 + 4*(*n) + 2*powint(*n, 2)
+			lrwmin = 1 + 4*(*n) + 2*pow(*n, 2)
 			liwmin = 3 + 5*(*n)
 		}
 		work.SetRe(0, float64(lwmin))
@@ -169,7 +169,7 @@ func Zstedc(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 		label40:
 			;
 			if finish < (*n) {
-				tiny = eps * math.Sqrt(d.GetMag(finish-1)) * math.Sqrt(d.GetMag(finish+1-1))
+				tiny = eps * math.Sqrt(d.GetMag(finish-1)) * math.Sqrt(d.GetMag(finish))
 				if e.GetMag(finish-1) > tiny {
 					finish = finish + 1
 					goto label40
@@ -194,8 +194,8 @@ func Zstedc(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 				Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &one, &orgnrm, &m, func() *int { y := 1; return &y }(), d.MatrixOff(start-1, m, opts), &m, info)
 
 			} else {
-				Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), rwork.Matrix(m, opts), &m, rwork.Off(m*m+1-1), info)
-				Zlacrm(n, &m, z.Off(0, start-1), ldz, rwork.Matrix(m, opts), &m, work.CMatrix(*n, opts), n, rwork.Off(m*m+1-1))
+				Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), rwork.Matrix(m, opts), &m, rwork.Off(m*m), info)
+				Zlacrm(n, &m, z.Off(0, start-1), ldz, rwork.Matrix(m, opts), &m, work.CMatrix(*n, opts), n, rwork.Off(m*m))
 				Zlacpy('A', n, &m, work.CMatrix(*n, opts), n, z.Off(0, start-1), ldz)
 				if (*info) > 0 {
 					(*info) = start*((*n)+1) + finish
@@ -224,7 +224,7 @@ func Zstedc(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, k-1), 1)
+				goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, k-1, 1))
 			}
 		}
 	}

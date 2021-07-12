@@ -19,7 +19,7 @@ func Zheswapr(uplo byte, n *int, a *mat.CMatrix, lda, i1, i2 *int) {
 		//         UPPER
 		//         first swap
 		//          - swap column I1 and I2 from I1 to I1-1
-		goblas.Zswap((*i1)-1, a.CVector(0, (*i1)-1), 1, a.CVector(0, (*i2)-1), 1)
+		goblas.Zswap((*i1)-1, a.CVector(0, (*i1)-1, 1), a.CVector(0, (*i2)-1, 1))
 		//
 		//          second swap :
 		//          - swap A(I1,I1) and A(I2,I2)
@@ -49,7 +49,7 @@ func Zheswapr(uplo byte, n *int, a *mat.CMatrix, lda, i1, i2 *int) {
 		//         LOWER
 		//         first swap
 		//          - swap row I1 and I2 from 1 to I1-1
-		goblas.Zswap((*i1)-1, a.CVector((*i1)-1, 0), *lda, a.CVector((*i2)-1, 0), *lda)
+		goblas.Zswap((*i1)-1, a.CVector((*i1)-1, 0, *lda), a.CVector((*i2)-1, 0, *lda))
 
 		//         second swap :
 		//          - swap A(I1,I1) and A(I2,I2)

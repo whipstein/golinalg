@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -61,13 +63,13 @@ func Zgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, 
 			rcmin = bignum
 			rcmax = zero
 			for j = 1; j <= (*n); j++ {
-				rcmin = minf64(rcmin, r.Get(j-1))
-				rcmax = maxf64(rcmax, r.Get(j-1))
+				rcmin = math.Min(rcmin, r.Get(j-1))
+				rcmax = math.Max(rcmax, r.Get(j-1))
 			}
 			if rcmin <= zero {
 				(*info) = -13
 			} else if (*n) > 0 {
-				rowcnd = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+				rowcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				rowcnd = one
 			}
@@ -76,21 +78,21 @@ func Zgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, 
 			rcmin = bignum
 			rcmax = zero
 			for j = 1; j <= (*n); j++ {
-				rcmin = minf64(rcmin, c.Get(j-1))
-				rcmax = maxf64(rcmax, c.Get(j-1))
+				rcmin = math.Min(rcmin, c.Get(j-1))
+				rcmax = math.Max(rcmax, c.Get(j-1))
 			}
 			if rcmin <= zero {
 				(*info) = -14
 			} else if (*n) > 0 {
-				colcnd = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+				colcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				colcnd = one
 			}
 		}
 		if (*info) == 0 {
-			if (*ldb) < maxint(1, *n) {
+			if (*ldb) < max(1, *n) {
 				(*info) = -16
-			} else if (*ldx) < maxint(1, *n) {
+			} else if (*ldx) < max(1, *n) {
 				(*info) = -18
 			}
 		}
@@ -132,9 +134,9 @@ func Zgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, 
 	if nofact || equil {
 		//        Compute the LU factorization of the band matrix A.
 		for j = 1; j <= (*n); j++ {
-			j1 = maxint(j-(*ku), 1)
-			j2 = minint(j+(*kl), *n)
-			goblas.Zcopy(j2-j1+1, ab.CVector((*ku)+1-j+j1-1, j-1), 1, afb.CVector((*kl)+(*ku)+1-j+j1-1, j-1), 1)
+			j1 = max(j-(*ku), 1)
+			j2 = min(j+(*kl), *n)
+			goblas.Zcopy(j2-j1+1, ab.CVector((*ku)+1-j+j1-1, j-1, 1), afb.CVector((*kl)+(*ku)+1-j+j1-1, j-1, 1))
 		}
 
 		Zgbtrf(n, n, kl, ku, afb, ldafb, ipiv, info)
@@ -145,11 +147,11 @@ func Zgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, 
 			//           leading rank-deficient INFO columns of A.
 			anorm = zero
 			for j = 1; j <= (*info); j++ {
-				for i = maxint((*ku)+2-j, 1); i <= minint((*n)+(*ku)+1-j, (*kl)+(*ku)+1); i++ {
-					anorm = maxf64(anorm, ab.GetMag(i-1, j-1))
+				for i = max((*ku)+2-j, 1); i <= min((*n)+(*ku)+1-j, (*kl)+(*ku)+1); i++ {
+					anorm = math.Max(anorm, ab.GetMag(i-1, j-1))
 				}
 			}
-			rpvgrw = Zlantb('M', 'U', 'N', info, toPtr(minint((*info)-1, (*kl)+(*ku))), afb.Off(maxint(1, (*kl)+(*ku)+2-(*info))-1, 0), ldafb, rwork)
+			rpvgrw = Zlantb('M', 'U', 'N', info, toPtr(min((*info)-1, (*kl)+(*ku))), afb.Off(max(1, (*kl)+(*ku)+2-(*info))-1, 0), ldafb, rwork)
 			if rpvgrw == zero {
 				rpvgrw = one
 			} else {

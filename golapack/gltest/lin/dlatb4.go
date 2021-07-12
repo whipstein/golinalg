@@ -55,13 +55,13 @@ func Dlatb4(path []byte, imat *int, m *int, n *int, _type *byte, kl *int, ku *in
 			(*ku) = 0
 		} else if (*imat) == 2 {
 			(*kl) = 0
-			(*ku) = maxint((*n)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		} else if (*imat) == 3 {
-			(*kl) = maxint((*m)-1, 0)
+			(*kl) = max((*m)-1, 0)
 			(*ku) = 0
 		} else {
-			(*kl) = maxint((*m)-1, 0)
-			(*ku) = maxint((*n)-1, 0)
+			(*kl) = max((*m)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		}
 
 		//        Set the condition number and norm.
@@ -93,13 +93,13 @@ func Dlatb4(path []byte, imat *int, m *int, n *int, _type *byte, kl *int, ku *in
 			(*ku) = 0
 		} else if (*imat) == 2 {
 			(*kl) = 0
-			(*ku) = maxint((*n)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		} else if (*imat) == 3 {
-			(*kl) = maxint((*m)-1, 0)
+			(*kl) = max((*m)-1, 0)
 			(*ku) = 0
 		} else {
-			(*kl) = maxint((*m)-1, 0)
-			(*ku) = maxint((*n)-1, 0)
+			(*kl) = max((*m)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		}
 
 		//        Set the condition number and norm.
@@ -184,7 +184,7 @@ func Dlatb4(path []byte, imat *int, m *int, n *int, _type *byte, kl *int, ku *in
 		if (*imat) == 1 {
 			(*kl) = 0
 		} else {
-			(*kl) = maxint((*n)-1, 0)
+			(*kl) = max((*n)-1, 0)
 		}
 		(*ku) = (*kl)
 
@@ -216,7 +216,7 @@ func Dlatb4(path []byte, imat *int, m *int, n *int, _type *byte, kl *int, ku *in
 		if (*imat) == 1 {
 			(*kl) = 0
 		} else {
-			(*kl) = maxint((*n)-1, 0)
+			(*kl) = max((*n)-1, 0)
 		}
 		(*ku) = (*kl)
 
@@ -295,16 +295,16 @@ func Dlatb4(path []byte, imat *int, m *int, n *int, _type *byte, kl *int, ku *in
 		(*_type) = 'N'
 
 		//        Set the lower and upper bandwidths.
-		mat = absint(*imat)
+		mat = abs(*imat)
 		if mat == 1 || mat == 7 {
 			(*kl) = 0
 			(*ku) = 0
 		} else if (*imat) < 0 {
-			(*kl) = maxint((*n)-1, 0)
+			(*kl) = max((*n)-1, 0)
 			(*ku) = 0
 		} else {
 			(*kl) = 0
-			(*ku) = maxint((*n)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		}
 
 		//        Set the condition number and norm.

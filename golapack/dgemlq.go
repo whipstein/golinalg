@@ -55,13 +55,13 @@ func Dgemlq(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, t *mat.Vect
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > mn {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -7
 	} else if (*tsize) < 5 {
 		(*info) = -9
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -11
-	} else if ((*lwork) < maxint(1, lw)) && (!lquery) {
+	} else if ((*lwork) < max(1, lw)) && (!lquery) {
 		(*info) = -13
 	}
 
@@ -77,11 +77,11 @@ func Dgemlq(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, t *mat.Vect
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *k) == 0 {
+	if min(*m, *n, *k) == 0 {
 		return
 	}
 
-	if (left && (*m) <= (*k)) || (right && (*n) <= (*k)) || (nb <= (*k)) || (nb >= maxint(*m, *n, *k)) {
+	if (left && (*m) <= (*k)) || (right && (*n) <= (*k)) || (nb <= (*k)) || (nb >= max(*m, *n, *k)) {
 		Dgemlqt(side, trans, m, n, k, &mb, a, lda, t.MatrixOff(5, mb, opts), &mb, c, ldc, work, info)
 	} else {
 		Dlamswlq(side, trans, m, n, k, &mb, &nb, a, lda, t.MatrixOff(5, mb, opts), &mb, c, ldc, work, lwork, info)

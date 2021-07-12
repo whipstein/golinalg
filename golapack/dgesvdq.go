@@ -51,16 +51,16 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 
 	if rowprm {
 		if conda {
-			iminwrk = maxint(1, (*n)+(*m)-1+(*n))
+			iminwrk = max(1, (*n)+(*m)-1+(*n))
 		} else {
-			iminwrk = maxint(1, (*n)+(*m)-1)
+			iminwrk = max(1, (*n)+(*m)-1)
 		}
-		rminwrk = maxint(2, *m)
+		rminwrk = max(2, *m)
 	} else {
 		if conda {
-			iminwrk = maxint(1, (*n)+(*n))
+			iminwrk = max(1, (*n)+(*n))
 		} else {
-			iminwrk = maxint(1, *n)
+			iminwrk = max(1, *n)
 		}
 		rminwrk = 2
 	}
@@ -82,7 +82,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 		(*info) = -6
 	} else if ((*n) < 0) || ((*n) > (*m)) {
 		(*info) = -7
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -9
 	} else if (*ldu) < 1 || (lsvc0 && (*ldu) < (*m)) || (wntuf && (*ldu) < (*n)) {
 		(*info) = -12
@@ -103,14 +103,14 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 		lwqp3 = 3*(*n) + 1
 		//        .. minimal workspace length for DORMQR to build left singular vectors
 		if wntus || wntur {
-			lworq = maxint(*n, 1)
+			lworq = max(*n, 1)
 		} else if wntua {
-			lworq = maxint(*m, 1)
+			lworq = max(*m, 1)
 		}
 		//        .. minimal workspace length for DPOCON of an N x N matrix
 		lwcon = 3 * (*n)
 		//        .. DGESVD of an N x N matrix
-		lwsvd = maxint(5*(*n), 1)
+		lwsvd = max(5*(*n), 1)
 		if lquery {
 			Dgeqp3(m, n, a, lda, iwork, rdummy, rdummy, toPtr(-1), &ierr)
 			lwrkDgeqp3 = int(rdummy.Get(0))
@@ -130,26 +130,26 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//            .. minimal and optimal sizes of the workspace if
 			//            only the singular values are requested
 			if conda {
-				minwrk = maxint((*n)+lwqp3, lwcon, lwsvd)
+				minwrk = max((*n)+lwqp3, lwcon, lwsvd)
 			} else {
-				minwrk = maxint((*n)+lwqp3, lwsvd)
+				minwrk = max((*n)+lwqp3, lwsvd)
 			}
 			if lquery {
 				Dgesvd('N', 'N', n, n, a, lda, s, u, ldu, v, ldv, rdummy, toPtr(-1), &ierr)
 				lwrkDgesvd = int(rdummy.Get(0))
 				if conda {
-					optwrk = maxint((*n)+lwrkDgeqp3, (*n)+lwcon, lwrkDgesvd)
+					optwrk = max((*n)+lwrkDgeqp3, (*n)+lwcon, lwrkDgesvd)
 				} else {
-					optwrk = maxint((*n)+lwrkDgeqp3, lwrkDgesvd)
+					optwrk = max((*n)+lwrkDgeqp3, lwrkDgesvd)
 				}
 			}
 		} else if lsvec && (!rsvec) {
 			//            .. minimal and optimal sizes of the workspace if the
 			//            singular values and the left singular vectors are requested
 			if conda {
-				minwrk = (*n) + maxint(lwqp3, lwcon, lwsvd, lworq)
+				minwrk = (*n) + max(lwqp3, lwcon, lwsvd, lworq)
 			} else {
-				minwrk = (*n) + maxint(lwqp3, lwsvd, lworq)
+				minwrk = (*n) + max(lwqp3, lwsvd, lworq)
 			}
 			if lquery {
 				if rtrans {
@@ -159,18 +159,18 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				}
 				lwrkDgesvd = int(rdummy.Get(0))
 				if conda {
-					optwrk = (*n) + maxint(lwrkDgeqp3, lwcon, lwrkDgesvd, lwrkDormqr)
+					optwrk = (*n) + max(lwrkDgeqp3, lwcon, lwrkDgesvd, lwrkDormqr)
 				} else {
-					optwrk = (*n) + maxint(lwrkDgeqp3, lwrkDgesvd, lwrkDormqr)
+					optwrk = (*n) + max(lwrkDgeqp3, lwrkDgesvd, lwrkDormqr)
 				}
 			}
 		} else if rsvec && (!lsvec) {
 			//            .. minimal and optimal sizes of the workspace if the
 			//            singular values and the right singular vectors are requested
 			if conda {
-				minwrk = (*n) + maxint(lwqp3, lwcon, lwsvd)
+				minwrk = (*n) + max(lwqp3, lwcon, lwsvd)
 			} else {
-				minwrk = (*n) + maxint(lwqp3, lwsvd)
+				minwrk = (*n) + max(lwqp3, lwsvd)
 			}
 			if lquery {
 				if rtrans {
@@ -180,59 +180,59 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				}
 				lwrkDgesvd = int(rdummy.Get(0))
 				if conda {
-					optwrk = (*n) + maxint(lwrkDgeqp3, lwcon, lwrkDgesvd)
+					optwrk = (*n) + max(lwrkDgeqp3, lwcon, lwrkDgesvd)
 				} else {
-					optwrk = (*n) + maxint(lwrkDgeqp3, lwrkDgesvd)
+					optwrk = (*n) + max(lwrkDgeqp3, lwrkDgesvd)
 				}
 			}
 		} else {
 			//            .. minimal and optimal sizes of the workspace if the
 			//            full SVD is requested
 			if rtrans {
-				minwrk = maxint(lwqp3, lwsvd, lworq)
+				minwrk = max(lwqp3, lwsvd, lworq)
 				if conda {
-					minwrk = maxint(minwrk, lwcon)
+					minwrk = max(minwrk, lwcon)
 				}
 				minwrk = minwrk + (*n)
 				if wntva {
 					//                   .. minimal workspace length for N x N/2 DGEQRF
-					lwqrf = maxint((*n)/2, 1)
+					lwqrf = max((*n)/2, 1)
 					//                   .. minimal workspace lengt for N/2 x N/2 DGESVD
-					lwsvd2 = maxint(5*((*n)/2), 1)
-					lworq2 = maxint(*n, 1)
-					minwrk2 = maxint(lwqp3, (*n)/2+lwqrf, (*n)/2+lwsvd2, (*n)/2+lworq2, lworq)
+					lwsvd2 = max(5*((*n)/2), 1)
+					lworq2 = max(*n, 1)
+					minwrk2 = max(lwqp3, (*n)/2+lwqrf, (*n)/2+lwsvd2, (*n)/2+lworq2, lworq)
 					if conda {
-						minwrk2 = maxint(minwrk2, lwcon)
+						minwrk2 = max(minwrk2, lwcon)
 					}
 					minwrk2 = (*n) + minwrk2
-					minwrk = maxint(minwrk, minwrk2)
+					minwrk = max(minwrk, minwrk2)
 				}
 			} else {
-				minwrk = maxint(lwqp3, lwsvd, lworq)
+				minwrk = max(lwqp3, lwsvd, lworq)
 				if conda {
-					minwrk = maxint(minwrk, lwcon)
+					minwrk = max(minwrk, lwcon)
 				}
 				minwrk = minwrk + (*n)
 				if wntva {
 					//                   .. minimal workspace length for N/2 x N DGELQF
-					lwlqf = maxint((*n)/2, 1)
-					lwsvd2 = maxint(5*((*n)/2), 1)
-					lworlq = maxint(*n, 1)
-					minwrk2 = maxint(lwqp3, (*n)/2+lwlqf, (*n)/2+lwsvd2, (*n)/2+lworlq, lworq)
+					lwlqf = max((*n)/2, 1)
+					lwsvd2 = max(5*((*n)/2), 1)
+					lworlq = max(*n, 1)
+					minwrk2 = max(lwqp3, (*n)/2+lwlqf, (*n)/2+lwsvd2, (*n)/2+lworlq, lworq)
 					if conda {
-						minwrk2 = maxint(minwrk2, lwcon)
+						minwrk2 = max(minwrk2, lwcon)
 					}
 					minwrk2 = (*n) + minwrk2
-					minwrk = maxint(minwrk, minwrk2)
+					minwrk = max(minwrk, minwrk2)
 				}
 			}
 			if lquery {
 				if rtrans {
 					Dgesvd('O', 'A', n, n, a, lda, s, u, ldu, v, ldv, rdummy, toPtr(-1), &ierr)
 					lwrkDgesvd = int(rdummy.Get(0))
-					optwrk = maxint(lwrkDgeqp3, lwrkDgesvd, lwrkDormqr)
+					optwrk = max(lwrkDgeqp3, lwrkDgesvd, lwrkDormqr)
 					if conda {
-						optwrk = maxint(optwrk, lwcon)
+						optwrk = max(optwrk, lwcon)
 					}
 					optwrk = (*n) + optwrk
 					if wntva {
@@ -242,19 +242,19 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 						lwrkDgesvd2 = int(rdummy.Get(0))
 						Dormqr('R', 'C', n, n, toPtr((*n)/2), u, ldu, rdummy, v, ldv, rdummy, toPtr(-1), &ierr)
 						lwrkDormqr2 = int(rdummy.Get(0))
-						optwrk2 = maxint(lwrkDgeqp3, (*n)/2+lwrkDgeqrf, (*n)/2+lwrkDgesvd2, (*n)/2+lwrkDormqr2)
+						optwrk2 = max(lwrkDgeqp3, (*n)/2+lwrkDgeqrf, (*n)/2+lwrkDgesvd2, (*n)/2+lwrkDormqr2)
 						if conda {
-							optwrk2 = maxint(optwrk2, lwcon)
+							optwrk2 = max(optwrk2, lwcon)
 						}
 						optwrk2 = (*n) + optwrk2
-						optwrk = maxint(optwrk, optwrk2)
+						optwrk = max(optwrk, optwrk2)
 					}
 				} else {
 					Dgesvd('S', 'O', n, n, a, lda, s, u, ldu, v, ldv, rdummy, toPtr(-1), &ierr)
 					lwrkDgesvd = int(rdummy.Get(0))
-					optwrk = maxint(lwrkDgeqp3, lwrkDgesvd, lwrkDormqr)
+					optwrk = max(lwrkDgeqp3, lwrkDgesvd, lwrkDormqr)
 					if conda {
-						optwrk = maxint(optwrk, lwcon)
+						optwrk = max(optwrk, lwcon)
 					}
 					optwrk = (*n) + optwrk
 					if wntva {
@@ -264,19 +264,19 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 						lwrkDgesvd2 = int(rdummy.Get(0))
 						Dormlq('R', 'N', n, n, toPtr((*n)/2), u, ldu, rdummy, v, ldv, rdummy, toPtr(-1), &ierr)
 						lwrkDormlq = int(rdummy.Get(0))
-						optwrk2 = maxint(lwrkDgeqp3, (*n)/2+lwrkDgelqf, (*n)/2+lwrkDgesvd2, (*n)/2+lwrkDormlq)
+						optwrk2 = max(lwrkDgeqp3, (*n)/2+lwrkDgelqf, (*n)/2+lwrkDgesvd2, (*n)/2+lwrkDormlq)
 						if conda {
-							optwrk2 = maxint(optwrk2, lwcon)
+							optwrk2 = max(optwrk2, lwcon)
 						}
 						optwrk2 = (*n) + optwrk2
-						optwrk = maxint(optwrk, optwrk2)
+						optwrk = max(optwrk, optwrk2)
 					}
 				}
 			}
 		}
 
-		minwrk = maxint(2, minwrk)
-		optwrk = maxint(2, optwrk)
+		minwrk = max(2, minwrk)
+		optwrk = max(2, optwrk)
 		if (*lwork) < minwrk && (!lquery) {
 			(*info) = -19
 		}
@@ -324,7 +324,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			}
 		}
 		for p = 1; p <= (*m)-1; p++ {
-			q = goblas.Idamax((*m)-p+1, rwork.Off(p-1), 1) + p - 1
+			q = goblas.Idamax((*m)-p+1, rwork.Off(p-1)) + p - 1
 			(*iwork)[(*n)+p-1] = q
 			if p != q {
 				rtmp = rwork.Get(p - 1)
@@ -371,7 +371,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			Dlascl('G', toPtr(0), toPtr(0), toPtrf64(math.Sqrt(float64(*m))), &one, m, n, a, lda, &ierr)
 			ascaled = true
 		}
-		Dlaswp(n, a, lda, toPtr(1), toPtr((*m)-1), toSlice(iwork, (*n)+1-1), toPtr(1))
+		Dlaswp(n, a, lda, toPtr(1), toPtr((*m)-1), toSlice(iwork, (*n)), toPtr(1))
 	}
 
 	//    .. At this stage, preemptive scaling is done only to avoid column
@@ -401,7 +401,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 		//        .. all columns are free columns
 		(*iwork)[p-1] = 0
 	}
-	Dgeqp3(m, n, a, lda, iwork, work, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+	Dgeqp3(m, n, a, lda, iwork, work, work.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 
 	//    If the user requested accuracy level allows truncation in the
 	//    computed upper triangular factor, the matrix R is examined and,
@@ -466,13 +466,13 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//              expert level and obtain useful information in the sense of
 			//              perturbation theory.
 			for p = 1; p <= nr; p++ {
-				rtmp = goblas.Dnrm2(p, v.Vector(0, p-1), 1)
-				goblas.Dscal(p, one/rtmp, v.Vector(0, p-1), 1)
+				rtmp = goblas.Dnrm2(p, v.Vector(0, p-1, 1))
+				goblas.Dscal(p, one/rtmp, v.Vector(0, p-1, 1))
 			}
 			if !(lsvec || rsvec) {
 				Dpocon('U', &nr, v, ldv, &one, &rtmp, work, toSlice(iwork, (*n)+iwoff-1), &ierr)
 			} else {
-				Dpocon('U', &nr, v, ldv, &one, &rtmp, work.Off((*n)+1-1), toSlice(iwork, (*n)+iwoff-1), &ierr)
+				Dpocon('U', &nr, v, ldv, &one, &rtmp, work.Off((*n)), toSlice(iwork, (*n)+iwoff-1), &ierr)
 			}
 			sconda = one / math.Sqrt(rtmp)
 			//           For NR=N, SCONDA is an estimate of SQRT(||(R^* * R)^(-1)||_1),
@@ -498,7 +498,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//         .. compute the singular values of R**T = [A](1:NR,1:N)**T
 			//           .. set the lower triangle of [A] to [A](1:NR,1:N)**T and
 			//           the upper triangle of [A] to zero.
-			for p = 1; p <= minint(*n, nr); p++ {
+			for p = 1; p <= min(*n, nr); p++ {
 				for q = p + 1; q <= (*n); q++ {
 					a.Set(q-1, p-1, a.Get(p-1, q-1))
 					if q <= nr {
@@ -537,7 +537,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//           .. the left singular vectors not computed, the NR right singular
 			//           vectors overwrite [U](1:NR,1:NR) as transposed. These
 			//           will be pre-multiplied by Q to build the left singular vectors of A.
-			Dgesvd('N', 'O', n, &nr, u, ldu, s, u, ldu, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+			Dgesvd('N', 'O', n, &nr, u, ldu, s, u, ldu, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 
 			for p = 1; p <= nr; p++ {
 				for q = p + 1; q <= nr; q++ {
@@ -556,7 +556,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			}
 			//            .. the right singular vectors not computed, the NR left singular
 			//            vectors overwrite [U](1:NR,1:NR)
-			Dgesvd('O', 'N', &nr, n, u, ldu, s, u, ldu, v, ldv, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+			Dgesvd('O', 'N', &nr, n, u, ldu, s, u, ldu, v, ldv, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 			//               .. now [U](1:NR,1:NR) contains the NR left singular vectors of
 			//               R. These will be pre-multiplied by Q to build the left singular
 			//               vectors of A.
@@ -565,20 +565,20 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 		//           .. assemble the left singular vector matrix U of dimensions
 		//              (M x NR) or (M x N) or (M x M).
 		if (nr < (*m)) && (!wntuf) {
-			Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr+1-1, 0), ldu)
+			Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr, 0), ldu)
 			if nr < n1 {
-				Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr+1-1), ldu)
-				Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr+1-1, nr+1-1), ldu)
+				Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr), ldu)
+				Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr, nr), ldu)
 			}
 		}
 
 		//           The Q matrix from the first QRF is built into the left singular
 		//           vectors matrix U.
 		if !wntuf {
-			Dormqr('L', 'N', m, &n1, n, a, lda, work, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+			Dormqr('L', 'N', m, &n1, n, a, lda, work, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 		}
 		if rowprm && !wntuf {
-			Dlaswp(&n1, u, ldu, toPtr(1), toPtr((*m)-1), toSlice(iwork, (*n)+1-1), toPtr(-1))
+			Dlaswp(&n1, u, ldu, toPtr(1), toPtr((*m)-1), toSlice(iwork, (*n)), toPtr(-1))
 		}
 
 	} else if rsvec && (!lsvec) {
@@ -599,7 +599,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//           .. the left singular vectors of R**T overwrite V, the right singular
 			//           vectors not computed
 			if wntvr || (nr == (*n)) {
-				Dgesvd('O', 'N', n, &nr, v, ldv, s, u, ldu, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+				Dgesvd('O', 'N', n, &nr, v, ldv, s, u, ldu, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 
 				for p = 1; p <= nr; p++ {
 					for q = p + 1; q <= nr; q++ {
@@ -623,8 +623,8 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				//               by padding a zero block. In the case NR << N, a more efficient
 				//               way is to first use the QR factorization. For more details
 				//               how to implement this, see the " FULL SVD " branch.
-				Dlaset('G', n, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr+1-1), ldv)
-				Dgesvd('O', 'N', n, n, v, ldv, s, u, ldu, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+				Dlaset('G', n, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr), ldv)
+				Dgesvd('O', 'N', n, n, v, ldv, s, u, ldu, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 
 				for p = 1; p <= (*n); p++ {
 					for q = p + 1; q <= (*n); q++ {
@@ -646,7 +646,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 			//            .. the right singular vectors overwrite V, the NR left singular
 			//            vectors stored in U(1:NR,1:NR)
 			if wntvr || (nr == (*n)) {
-				Dgesvd('N', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+				Dgesvd('N', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 				Dlapmt(false, &nr, n, v, ldv, iwork)
 				//               .. now [V](1:NR,1:N) contains V(1:N,1:NR)**T
 			} else {
@@ -655,8 +655,8 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				//               by padding a zero block. In the case NR << N, a more efficient
 				//               way is to first use the LQ factorization. For more details
 				//               how to implement this, see the " FULL SVD " branch.
-				Dlaset('G', toPtr((*n)-nr), n, &zero, &zero, v.Off(nr+1-1, 0), ldv)
-				Dgesvd('N', 'O', n, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+				Dlaset('G', toPtr((*n)-nr), n, &zero, &zero, v.Off(nr, 0), ldv)
+				Dgesvd('N', 'O', n, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 				Dlapmt(false, n, n, v, ldv, iwork)
 			}
 			//            .. now [V] contains the transposed matrix of the right singular
@@ -683,7 +683,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 
 				//           .. the left singular vectors of R**T overwrite [V], the NR right
 				//           singular vectors of R**T stored in [U](1:NR,1:NR) as transposed
-				Dgesvd('O', 'A', n, &nr, v, ldv, s, v, ldv, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+				Dgesvd('O', 'A', n, &nr, v, ldv, s, v, ldv, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 				//              .. assemble V
 				for p = 1; p <= nr; p++ {
 					for q = p + 1; q <= nr; q++ {
@@ -710,10 +710,10 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				}
 
 				if (nr < (*m)) && !wntuf {
-					Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr+1-1, 0), ldu)
+					Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr, 0), ldu)
 					if nr < n1 {
-						Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr+1-1), ldu)
-						Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr+1-1, nr+1-1), ldu)
+						Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr), ldu)
+						Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr, nr), ldu)
 					}
 				}
 
@@ -725,7 +725,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				//                 with zeros. Here hard coded to 2; it must be at least
 				//                 two due to work space constraints.]]
 				//               OPTRATIO = ILAENV(6, 'DGESVD', 'S' // 'O', NR,N,0,0)
-				//               OPTRATIO = maxint( OPTRATIO, 2 )
+				//               OPTRATIO = max( OPTRATIO, 2 )
 				optratio = 2
 				if optratio*nr > (*n) {
 					for p = 1; p <= nr; p++ {
@@ -737,8 +737,8 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 						Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, v.Off(0, 1), ldv)
 					}
 
-					Dlaset('A', n, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr+1-1), ldv)
-					Dgesvd('O', 'A', n, n, v, ldv, s, v, ldv, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+					Dlaset('A', n, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr), ldv)
+					Dgesvd('O', 'A', n, n, v, ldv, s, v, ldv, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 
 					for p = 1; p <= (*n); p++ {
 						for q = p + 1; q <= (*n); q++ {
@@ -760,10 +760,10 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 					}
 
 					if ((*n) < (*m)) && !wntuf {
-						Dlaset('A', toPtr((*m)-(*n)), n, &zero, &zero, u.Off((*n)+1-1, 0), ldu)
+						Dlaset('A', toPtr((*m)-(*n)), n, &zero, &zero, u.Off((*n), 0), ldu)
 						if (*n) < n1 {
-							Dlaset('A', n, toPtr(n1-(*n)), &zero, &zero, u.Off(0, (*n)+1-1), ldu)
-							Dlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &zero, &one, u.Off((*n)+1-1, (*n)+1-1), ldu)
+							Dlaset('A', n, toPtr(n1-(*n)), &zero, &zero, u.Off(0, (*n)), ldu)
+							Dlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &zero, &one, u.Off((*n), (*n)), ldu)
 						}
 					}
 				} else {
@@ -777,26 +777,26 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 					if nr > 1 {
 						Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, u.Off(0, nr+2-1), ldu)
 					}
-					Dgeqrf(n, &nr, u.Off(0, nr+1-1), ldu, work.Off((*n)+1-1), work.Off((*n)+nr+1-1), toPtr((*lwork)-(*n)-nr), &ierr)
+					Dgeqrf(n, &nr, u.Off(0, nr), ldu, work.Off((*n)), work.Off((*n)+nr), toPtr((*lwork)-(*n)-nr), &ierr)
 					for p = 1; p <= nr; p++ {
 						for q = 1; q <= (*n); q++ {
 							v.Set(q-1, p-1, u.Get(p-1, nr+q-1))
 						}
 					}
 					Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, v.Off(0, 1), ldv)
-					Dgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+nr+1-1), toPtr((*lwork)-(*n)-nr), info)
-					Dlaset('A', toPtr((*n)-nr), &nr, &zero, &zero, v.Off(nr+1-1, 0), ldv)
-					Dlaset('A', &nr, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr+1-1), ldv)
-					Dlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &zero, &one, v.Off(nr+1-1, nr+1-1), ldv)
-					Dormqr('R', 'C', n, n, &nr, u.Off(0, nr+1-1), ldu, work.Off((*n)+1-1), v, ldv, work.Off((*n)+nr+1-1), toPtr((*lwork)-(*n)-nr), &ierr)
+					Dgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+nr), toPtr((*lwork)-(*n)-nr), info)
+					Dlaset('A', toPtr((*n)-nr), &nr, &zero, &zero, v.Off(nr, 0), ldv)
+					Dlaset('A', &nr, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr), ldv)
+					Dlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &zero, &one, v.Off(nr, nr), ldv)
+					Dormqr('R', 'C', n, n, &nr, u.Off(0, nr), ldu, work.Off((*n)), v, ldv, work.Off((*n)+nr), toPtr((*lwork)-(*n)-nr), &ierr)
 					Dlapmt(false, n, n, v, ldv, iwork)
 					//                 .. assemble the left singular vector matrix U of dimensions
 					//                 (M x NR) or (M x N) or (M x M).
 					if (nr < (*m)) && !wntuf {
-						Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr+1-1, 0), ldu)
+						Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr, 0), ldu)
 						if nr < n1 {
-							Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr+1-1), ldu)
-							Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr+1-1, nr+1-1), ldu)
+							Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr), ldu)
+							Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr, nr), ldu)
 						}
 					}
 				}
@@ -812,16 +812,16 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				}
 				//               .. the right singular vectors of R overwrite [V], the NR left
 				//               singular vectors of R stored in [U](1:NR,1:NR)
-				Dgesvd('S', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+				Dgesvd('S', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 				Dlapmt(false, &nr, n, v, ldv, iwork)
 				//               .. now [V](1:NR,1:N) contains V(1:N,1:NR)**T
 				//               .. assemble the left singular vector matrix U of dimensions
 				//              (M x NR) or (M x N) or (M x M).
 				if (nr < (*m)) && !wntuf {
-					Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr+1-1, 0), ldu)
+					Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr, 0), ldu)
 					if nr < n1 {
-						Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr+1-1), ldu)
-						Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr+1-1, nr+1-1), ldu)
+						Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr), ldu)
+						Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr, nr), ldu)
 					}
 				}
 
@@ -833,7 +833,7 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 				//                 with zeros. Here hard coded to 2; it must be at least
 				//                 two due to work space constraints.]]
 				//               OPTRATIO = ILAENV(6, 'DGESVD', 'S' // 'O', NR,N,0,0)
-				//               OPTRATIO = maxint( OPTRATIO, 2 )
+				//               OPTRATIO = max( OPTRATIO, 2 )
 				optratio = 2
 				if optratio*nr > (*n) {
 					Dlacpy('U', &nr, n, a, lda, v, ldv)
@@ -842,8 +842,8 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 					}
 					//              .. the right singular vectors of R overwrite [V], the NR left
 					//                 singular vectors of R stored in [U](1:NR,1:NR)
-					Dlaset('A', toPtr((*n)-nr), n, &zero, &zero, v.Off(nr+1-1, 0), ldv)
-					Dgesvd('S', 'O', n, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+					Dlaset('A', toPtr((*n)-nr), n, &zero, &zero, v.Off(nr, 0), ldv)
+					Dgesvd('S', 'O', n, n, v, ldv, s, u, ldu, v, ldv, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 					Dlapmt(false, n, n, v, ldv, iwork)
 					//                 .. now [V] contains the transposed matrix of the right
 					//                 singular vectors of A. The leading N left singular vectors
@@ -851,35 +851,35 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 					//                 .. assemble the left singular vector matrix U of dimensions
 					//                 (M x N1), i.e. (M x N) or (M x M).
 					if ((*n) < (*m)) && !wntuf {
-						Dlaset('A', toPtr((*m)-(*n)), n, &zero, &zero, u.Off((*n)+1-1, 0), ldu)
+						Dlaset('A', toPtr((*m)-(*n)), n, &zero, &zero, u.Off((*n), 0), ldu)
 						if (*n) < n1 {
-							Dlaset('A', n, toPtr(n1-(*n)), &zero, &zero, u.Off(0, (*n)+1-1), ldu)
-							Dlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &zero, &one, u.Off((*n)+1-1, (*n)+1-1), ldu)
+							Dlaset('A', n, toPtr(n1-(*n)), &zero, &zero, u.Off(0, (*n)), ldu)
+							Dlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &zero, &one, u.Off((*n), (*n)), ldu)
 						}
 					}
 				} else {
-					Dlacpy('U', &nr, n, a, lda, u.Off(nr+1-1, 0), ldu)
+					Dlacpy('U', &nr, n, a, lda, u.Off(nr, 0), ldu)
 					if nr > 1 {
 						Dlaset('L', toPtr(nr-1), toPtr(nr-1), &zero, &zero, u.Off(nr+2-1, 0), ldu)
 					}
-					Dgelqf(&nr, n, u.Off(nr+1-1, 0), ldu, work.Off((*n)+1-1), work.Off((*n)+nr+1-1), toPtr((*lwork)-(*n)-nr), &ierr)
-					Dlacpy('L', &nr, &nr, u.Off(nr+1-1, 0), ldu, v, ldv)
+					Dgelqf(&nr, n, u.Off(nr, 0), ldu, work.Off((*n)), work.Off((*n)+nr), toPtr((*lwork)-(*n)-nr), &ierr)
+					Dlacpy('L', &nr, &nr, u.Off(nr, 0), ldu, v, ldv)
 					if nr > 1 {
 						Dlaset('U', toPtr(nr-1), toPtr(nr-1), &zero, &zero, v.Off(0, 1), ldv)
 					}
-					Dgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+nr+1-1), toPtr((*lwork)-(*n)-nr), info)
-					Dlaset('A', toPtr((*n)-nr), &nr, &zero, &zero, v.Off(nr+1-1, 0), ldv)
-					Dlaset('A', &nr, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr+1-1), ldv)
-					Dlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &zero, &one, v.Off(nr+1-1, nr+1-1), ldv)
-					Dormlq('R', 'N', n, n, &nr, u.Off(nr+1-1, 0), ldu, work.Off((*n)+1-1), v, ldv, work.Off((*n)+nr+1-1), toPtr((*lwork)-(*n)-nr), &ierr)
+					Dgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, work.Off((*n)+nr), toPtr((*lwork)-(*n)-nr), info)
+					Dlaset('A', toPtr((*n)-nr), &nr, &zero, &zero, v.Off(nr, 0), ldv)
+					Dlaset('A', &nr, toPtr((*n)-nr), &zero, &zero, v.Off(0, nr), ldv)
+					Dlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &zero, &one, v.Off(nr, nr), ldv)
+					Dormlq('R', 'N', n, n, &nr, u.Off(nr, 0), ldu, work.Off((*n)), v, ldv, work.Off((*n)+nr), toPtr((*lwork)-(*n)-nr), &ierr)
 					Dlapmt(false, n, n, v, ldv, iwork)
 					//               .. assemble the left singular vector matrix U of dimensions
 					//              (M x NR) or (M x N) or (M x M).
 					if (nr < (*m)) && !wntuf {
-						Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr+1-1, 0), ldu)
+						Dlaset('A', toPtr((*m)-nr), &nr, &zero, &zero, u.Off(nr, 0), ldu)
 						if nr < n1 {
-							Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr+1-1), ldu)
-							Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr+1-1, nr+1-1), ldu)
+							Dlaset('A', &nr, toPtr(n1-nr), &zero, &zero, u.Off(0, nr), ldu)
+							Dlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &zero, &one, u.Off(nr, nr), ldu)
 						}
 					}
 				}
@@ -890,10 +890,10 @@ func Dgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.Matrix, lda *i
 		//           The Q matrix from the first QRF is built into the left singular
 		//           vectors matrix U.
 		if !wntuf {
-			Dormqr('L', 'N', m, &n1, n, a, lda, work, u, ldu, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), &ierr)
+			Dormqr('L', 'N', m, &n1, n, a, lda, work, u, ldu, work.Off((*n)), toPtr((*lwork)-(*n)), &ierr)
 		}
 		if rowprm && !wntuf {
-			Dlaswp(&n1, u, ldu, toPtr(1), toPtr((*m)-1), toSlice(iwork, (*n)+1-1), toPtr(-1))
+			Dlaswp(&n1, u, ldu, toPtr(1), toPtr((*m)-1), toSlice(iwork, (*n)), toPtr(-1))
 		}
 
 		//     ... end of the "full SVD" branch
@@ -914,7 +914,7 @@ label4002:
 	//     .. if numerical rank deficiency is detected, the truncated
 	//     singular values are set to zero.
 	if nr < (*n) {
-		Dlaset('G', toPtr((*n)-nr), toPtr(1), &zero, &zero, s.MatrixOff(nr+1-1, *n, opts), n)
+		Dlaset('G', toPtr((*n)-nr), toPtr(1), &zero, &zero, s.MatrixOff(nr, *n, opts), n)
 	}
 	//     .. undo scaling; this may cause overflow in the largest singular
 	//     values.

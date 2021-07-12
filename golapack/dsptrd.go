@@ -53,19 +53,19 @@ func Dsptrd(uplo byte, n *int, ap, d, e, tau *mat.Vector, info *int) {
 				ap.Set(i1+i-1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(1:i)
-				err = goblas.Dspmv(mat.UploByte(uplo), i, taui, ap, ap.Off(i1-1), 1, zero, tau, 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), i, taui, ap, ap.Off(i1-1, 1), zero, tau.Off(0, 1))
 
 				//              Compute  w := y - 1/2 * tau * (y**T *v) * v
-				alpha = -half * taui * goblas.Ddot(i, tau, 1, ap.Off(i1-1), 1)
-				goblas.Daxpy(i, alpha, ap.Off(i1-1), 1, tau, 1)
+				alpha = -half * taui * goblas.Ddot(i, tau.Off(0, 1), ap.Off(i1-1, 1))
+				goblas.Daxpy(i, alpha, ap.Off(i1-1, 1), tau.Off(0, 1))
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				err = goblas.Dspr2(mat.UploByte(uplo), i, -one, ap.Off(i1-1), 1, tau, 1, ap)
+				err = goblas.Dspr2(mat.UploByte(uplo), i, -one, ap.Off(i1-1, 1), tau.Off(0, 1), ap)
 
 				ap.Set(i1+i-1-1, e.Get(i-1))
 			}
-			d.Set(i+1-1, ap.Get(i1+i-1))
+			d.Set(i, ap.Get(i1+i-1))
 			tau.Set(i-1, taui)
 			i1 = i1 - i
 		}
@@ -79,25 +79,25 @@ func Dsptrd(uplo byte, n *int, ap, d, e, tau *mat.Vector, info *int) {
 
 			//           Generate elementary reflector H(i) = I - tau * v * v**T
 			//           to annihilate A(i+2:n,i)
-			Dlarfg(toPtr((*n)-i), ap.GetPtr(ii+1-1), ap.Off(ii+2-1), func() *int { y := 1; return &y }(), &taui)
-			e.Set(i-1, ap.Get(ii+1-1))
+			Dlarfg(toPtr((*n)-i), ap.GetPtr(ii), ap.Off(ii+2-1), func() *int { y := 1; return &y }(), &taui)
+			e.Set(i-1, ap.Get(ii))
 
 			if taui != zero {
 				//              Apply H(i) from both sides to A(i+1:n,i+1:n)
-				ap.Set(ii+1-1, one)
+				ap.Set(ii, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(i:n-1)
-				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-i, taui, ap.Off(i1i1-1), ap.Off(ii+1-1), 1, zero, tau.Off(i-1), 1)
+				err = goblas.Dspmv(mat.UploByte(uplo), (*n)-i, taui, ap.Off(i1i1-1), ap.Off(ii, 1), zero, tau.Off(i-1, 1))
 
 				//              Compute  w := y - 1/2 * tau * (y**T *v) * v
-				alpha = -half * taui * goblas.Ddot((*n)-i, tau.Off(i-1), 1, ap.Off(ii+1-1), 1)
-				goblas.Daxpy((*n)-i, alpha, ap.Off(ii+1-1), 1, tau.Off(i-1), 1)
+				alpha = -half * taui * goblas.Ddot((*n)-i, tau.Off(i-1, 1), ap.Off(ii, 1))
+				goblas.Daxpy((*n)-i, alpha, ap.Off(ii, 1), tau.Off(i-1, 1))
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				err = goblas.Dspr2(mat.UploByte(uplo), (*n)-i, -one, ap.Off(ii+1-1), 1, tau.Off(i-1), 1, ap.Off(i1i1-1))
+				err = goblas.Dspr2(mat.UploByte(uplo), (*n)-i, -one, ap.Off(ii, 1), tau.Off(i-1, 1), ap.Off(i1i1-1))
 
-				ap.Set(ii+1-1, e.Get(i-1))
+				ap.Set(ii, e.Get(i-1))
 			}
 			d.Set(i-1, ap.Get(ii-1))
 			tau.Set(i-1, taui)

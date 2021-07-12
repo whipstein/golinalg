@@ -41,9 +41,9 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 	//     Compute diagonal and subdiagonal according to ITYPE, NZ1, NZ2,
 	//     and RCOND
 	if (*itype) != 0 {
-		if absint(*itype) >= 4 {
-			kbeg = maxint(1, minint(*n, (*nz1)+1))
-			kend = maxint(kbeg, minint(*n, (*n)-(*nz2)))
+		if abs(*itype) >= 4 {
+			kbeg = max(1, min(*n, (*nz1)+1))
+			kend = max(kbeg, min(*n, (*n)-(*nz2)))
 			klen = kend + 1 - kbeg
 		} else {
 			kbeg = 1
@@ -52,7 +52,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		}
 		isdb = 1
 		isde = 0
-		switch absint(*itype) {
+		switch abs(*itype) {
 		case 1:
 			goto label10
 		case 2:
@@ -87,7 +87,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 	label30:
 		;
 		for jd = 1; jd <= (*n)-1; jd++ {
-			a.Set(jd+1-1, jd-1, cone)
+			a.Set(jd, jd-1, cone)
 		}
 		isdb = 1
 		isde = (*n) - 1
@@ -99,7 +99,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		;
 		k = ((*n) - 1) / 2
 		for jd = 1; jd <= k; jd++ {
-			a.Set(jd+1-1, jd-1, cone)
+			a.Set(jd, jd-1, cone)
 		}
 		isdb = 1
 		isde = k
@@ -182,7 +182,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 			a.SetRe(jd-1, jd-1, (*amagn)*a.GetRe(jd-1, jd-1))
 		}
 		for jd = isdb; jd <= isde; jd++ {
-			a.SetRe(jd+1-1, jd-1, (*amagn)*a.GetRe(jd+1-1, jd-1))
+			a.SetRe(jd, jd-1, (*amagn)*a.GetRe(jd, jd-1))
 		}
 
 		//        If RSIGN = .TRUE., assign random signs to diagonal and
@@ -196,10 +196,10 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 				}
 			}
 			for jd = isdb; jd <= isde; jd++ {
-				if a.GetRe(jd+1-1, jd-1) != zero {
+				if a.GetRe(jd, jd-1) != zero {
 					ctemp = matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed)
 					ctemp = ctemp / complex(cmplx.Abs(ctemp), 0)
-					a.Set(jd+1-1, jd-1, ctemp*a.GetReCmplx(jd+1-1, jd-1))
+					a.Set(jd, jd-1, ctemp*a.GetReCmplx(jd, jd-1))
 				}
 			}
 		}
@@ -212,8 +212,8 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 				a.Set(kbeg+kend-jd-1, kbeg+kend-jd-1, ctemp)
 			}
 			for jd = 1; jd <= ((*n)-1)/2; jd++ {
-				ctemp = a.Get(jd+1-1, jd-1)
-				a.Set(jd+1-1, jd-1, a.Get((*n)+1-jd-1, (*n)-jd-1))
+				ctemp = a.Get(jd, jd-1)
+				a.Set(jd, jd-1, a.Get((*n)+1-jd-1, (*n)-jd-1))
 				a.Set((*n)+1-jd-1, (*n)-jd-1, ctemp)
 			}
 		}

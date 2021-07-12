@@ -74,24 +74,14 @@ const (
 	MaxExponent = golapack.MaxExponent
 )
 
-func absint(a int) int {
+func abs(a int) int {
 	if a < 0 {
 		return -a
 	}
 	return a
 }
 
-func maxf64(a ...float64) float64 {
-	maxval := a[0]
-	for _, val := range a {
-		if val > maxval {
-			maxval = val
-		}
-	}
-	return maxval
-}
-
-func maxint(a ...int) int {
+func max(a ...int) int {
 	maxval := a[0]
 	for _, val := range a {
 		if val > maxval {
@@ -124,7 +114,7 @@ func maxlocf64(a ...float64) int {
 	return maxloc + 1
 }
 
-func minf64(a ...float64) float64 {
+func min(a ...int) int {
 	minval := a[0]
 	for _, val := range a {
 		if val < minval {
@@ -134,17 +124,7 @@ func minf64(a ...float64) float64 {
 	return minval
 }
 
-func minint(a ...int) int {
-	minval := a[0]
-	for _, val := range a {
-		if val < minval {
-			minval = val
-		}
-	}
-	return minval
-}
-
-func powint(a, b int) int {
+func pow(a, b int) int {
 	if b == 0 {
 		return 1
 	}

@@ -45,37 +45,37 @@ func Dppt03(uplo byte, n *int, a, ainv *mat.Vector, work *mat.Matrix, ldwork *in
 		//        Copy AINV
 		jj = 1
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Dcopy(j, ainv.Off(jj-1), 1, work.Vector(0, j+1-1), 1)
-			goblas.Dcopy(j-1, ainv.Off(jj-1), 1, work.Vector(j-1, 1), *ldwork)
+			goblas.Dcopy(j, ainv.Off(jj-1, 1), work.Vector(0, j, 1))
+			goblas.Dcopy(j-1, ainv.Off(jj-1, 1), work.Vector(j-1, 1, *ldwork))
 			jj = jj + j
 		}
 		jj = (((*n)-1)*(*n))/2 + 1
-		goblas.Dcopy((*n)-1, ainv.Off(jj-1), 1, work.Vector((*n)-1, 1), *ldwork)
+		goblas.Dcopy((*n)-1, ainv.Off(jj-1, 1), work.Vector((*n)-1, 1, *ldwork))
 
 		//        Multiply by A
 		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Dspmv(mat.Upper, *n, -one, a, work.Vector(0, j+1-1), 1, zero, work.Vector(0, j-1), 1)
+			err = goblas.Dspmv(mat.Upper, *n, -one, a, work.Vector(0, j, 1), zero, work.Vector(0, j-1, 1))
 		}
-		err = goblas.Dspmv(mat.Upper, *n, -one, a, ainv.Off(jj-1), 1, zero, work.Vector(0, (*n)-1), 1)
+		err = goblas.Dspmv(mat.Upper, *n, -one, a, ainv.Off(jj-1, 1), zero, work.Vector(0, (*n)-1, 1))
 
 		//     UPLO = 'L':
 		//     Copy the trailing N-1 x N-1 submatrix of AINV to WORK(1:N,1:N-1)
 		//     and multiply by A, moving each column to the right.
 	} else {
 		//        Copy AINV
-		goblas.Dcopy((*n)-1, ainv.Off(1), 1, work.Vector(0, 0), *ldwork)
+		goblas.Dcopy((*n)-1, ainv.Off(1, 1), work.Vector(0, 0, *ldwork))
 		jj = (*n) + 1
 		for j = 2; j <= (*n); j++ {
-			goblas.Dcopy((*n)-j+1, ainv.Off(jj-1), 1, work.Vector(j-1, j-1-1), 1)
-			goblas.Dcopy((*n)-j, ainv.Off(jj+1-1), 1, work.Vector(j-1, j-1), *ldwork)
+			goblas.Dcopy((*n)-j+1, ainv.Off(jj-1, 1), work.Vector(j-1, j-1-1, 1))
+			goblas.Dcopy((*n)-j, ainv.Off(jj, 1), work.Vector(j-1, j-1, *ldwork))
 			jj = jj + (*n) - j + 1
 		}
 
 		//        Multiply by A
 		for j = (*n); j >= 2; j-- {
-			err = goblas.Dspmv(mat.Lower, *n, -one, a, work.Vector(0, j-1-1), 1, zero, work.Vector(0, j-1), 1)
+			err = goblas.Dspmv(mat.Lower, *n, -one, a, work.Vector(0, j-1-1, 1), zero, work.Vector(0, j-1, 1))
 		}
-		err = goblas.Dspmv(mat.Lower, *n, -one, a, ainv.Off(0), 1, zero, work.Vector(0, 0), 1)
+		err = goblas.Dspmv(mat.Lower, *n, -one, a, ainv.Off(0, 1), zero, work.Vector(0, 0, 1))
 	}
 
 	//     Add the identity matrix to WORK .

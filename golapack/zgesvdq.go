@@ -53,11 +53,11 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 	rtrans = jobr == 'T'
 
 	if rowprm {
-		iminwrk = maxint(1, (*n)+(*m)-1)
-		rminwrk = maxint(2, *m, 5*(*n))
+		iminwrk = max(1, (*n)+(*m)-1)
+		rminwrk = max(2, *m, 5*(*n))
 	} else {
-		iminwrk = maxint(1, *n)
-		rminwrk = maxint(2, 5*(*n))
+		iminwrk = max(1, *n)
+		rminwrk = max(2, 5*(*n))
 	}
 	lquery = ((*liwork) == -1 || (*lcwork) == -1 || (*lrwork) == -1)
 	(*info) = 0
@@ -77,7 +77,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 		(*info) = -6
 	} else if ((*n) < 0) || ((*n) > (*m)) {
 		(*info) = -7
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -9
 	} else if (*ldu) < 1 || (lsvc0 && (*ldu) < (*m)) || (wntuf && (*ldu) < (*n)) {
 		(*info) = -12
@@ -98,14 +98,14 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 		lwqp3 = (*n) + 1
 		//        .. minimal workspace length for ZUNMQR to build left singular vectors
 		if wntus || wntur {
-			lwunq = maxint(*n, 1)
+			lwunq = max(*n, 1)
 		} else if wntua {
-			lwunq = maxint(*m, 1)
+			lwunq = max(*m, 1)
 		}
 		//        .. minimal workspace length for ZPOCON of an N x N matrix
 		lwcon = 2 * (*n)
 		//        .. ZGESVD of an N x N matrix
-		lwsvd = maxint(3*(*n), 1)
+		lwsvd = max(3*(*n), 1)
 		if lquery {
 			Zgeqp3(m, n, a, lda, iwork, cdummy, cdummy, toPtr(-1), rdummy, &ierr)
 			lwrkZgeqp3 = int(cdummy.GetRe(0))
@@ -125,26 +125,26 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//            .. minimal and optimal sizes of the complex workspace if
 			//            only the singular values are requested
 			if conda {
-				minwrk = maxint((*n)+lwqp3, lwcon, lwsvd)
+				minwrk = max((*n)+lwqp3, lwcon, lwsvd)
 			} else {
-				minwrk = maxint((*n)+lwqp3, lwsvd)
+				minwrk = max((*n)+lwqp3, lwsvd)
 			}
 			if lquery {
 				Zgesvd('N', 'N', n, n, a, lda, s, u, ldu, v, ldv, cdummy, toPtr(-1), rdummy, &ierr)
 				lwrkZgesvd = int(cdummy.GetRe(0))
 				if conda {
-					optwrk = maxint((*n)+lwrkZgeqp3, (*n)+lwcon, lwrkZgesvd)
+					optwrk = max((*n)+lwrkZgeqp3, (*n)+lwcon, lwrkZgesvd)
 				} else {
-					optwrk = maxint((*n)+lwrkZgeqp3, lwrkZgesvd)
+					optwrk = max((*n)+lwrkZgeqp3, lwrkZgesvd)
 				}
 			}
 		} else if lsvec && (!rsvec) {
 			//            .. minimal and optimal sizes of the complex workspace if the
 			//            singular values and the left singular vectors are requested
 			if conda {
-				minwrk = (*n) + maxint(lwqp3, lwcon, lwsvd, lwunq)
+				minwrk = (*n) + max(lwqp3, lwcon, lwsvd, lwunq)
 			} else {
-				minwrk = (*n) + maxint(lwqp3, lwsvd, lwunq)
+				minwrk = (*n) + max(lwqp3, lwsvd, lwunq)
 			}
 			if lquery {
 				if rtrans {
@@ -154,18 +154,18 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				}
 				lwrkZgesvd = int(cdummy.GetRe(0))
 				if conda {
-					optwrk = (*n) + maxint(lwrkZgeqp3, lwcon, lwrkZgesvd, lwrkZunmqr)
+					optwrk = (*n) + max(lwrkZgeqp3, lwcon, lwrkZgesvd, lwrkZunmqr)
 				} else {
-					optwrk = (*n) + maxint(lwrkZgeqp3, lwrkZgesvd, lwrkZunmqr)
+					optwrk = (*n) + max(lwrkZgeqp3, lwrkZgesvd, lwrkZunmqr)
 				}
 			}
 		} else if rsvec && (!lsvec) {
 			//            .. minimal and optimal sizes of the complex workspace if the
 			//            singular values and the right singular vectors are requested
 			if conda {
-				minwrk = (*n) + maxint(lwqp3, lwcon, lwsvd)
+				minwrk = (*n) + max(lwqp3, lwcon, lwsvd)
 			} else {
-				minwrk = (*n) + maxint(lwqp3, lwsvd)
+				minwrk = (*n) + max(lwqp3, lwsvd)
 			}
 			if lquery {
 				if rtrans {
@@ -175,59 +175,59 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				}
 				lwrkZgesvd = int(cdummy.GetRe(0))
 				if conda {
-					optwrk = (*n) + maxint(lwrkZgeqp3, lwcon, lwrkZgesvd)
+					optwrk = (*n) + max(lwrkZgeqp3, lwcon, lwrkZgesvd)
 				} else {
-					optwrk = (*n) + maxint(lwrkZgeqp3, lwrkZgesvd)
+					optwrk = (*n) + max(lwrkZgeqp3, lwrkZgesvd)
 				}
 			}
 		} else {
 			//            .. minimal and optimal sizes of the complex workspace if the
 			//            full SVD is requested
 			if rtrans {
-				minwrk = maxint(lwqp3, lwsvd, lwunq)
+				minwrk = max(lwqp3, lwsvd, lwunq)
 				if conda {
-					minwrk = maxint(minwrk, lwcon)
+					minwrk = max(minwrk, lwcon)
 				}
 				minwrk = minwrk + (*n)
 				if wntva {
 					//                   .. minimal workspace length for N x N/2 ZGEQRF
-					lwqrf = maxint((*n)/2, 1)
+					lwqrf = max((*n)/2, 1)
 					//                   .. minimal workspace lengt for N/2 x N/2 ZGESVD
-					lwsvd2 = maxint(3*((*n)/2), 1)
-					lwunq2 = maxint(*n, 1)
-					minwrk2 = maxint(lwqp3, (*n)/2+lwqrf, (*n)/2+lwsvd2, (*n)/2+lwunq2, lwunq)
+					lwsvd2 = max(3*((*n)/2), 1)
+					lwunq2 = max(*n, 1)
+					minwrk2 = max(lwqp3, (*n)/2+lwqrf, (*n)/2+lwsvd2, (*n)/2+lwunq2, lwunq)
 					if conda {
-						minwrk2 = maxint(minwrk2, lwcon)
+						minwrk2 = max(minwrk2, lwcon)
 					}
 					minwrk2 = (*n) + minwrk2
-					minwrk = maxint(minwrk, minwrk2)
+					minwrk = max(minwrk, minwrk2)
 				}
 			} else {
-				minwrk = maxint(lwqp3, lwsvd, lwunq)
+				minwrk = max(lwqp3, lwsvd, lwunq)
 				if conda {
-					minwrk = maxint(minwrk, lwcon)
+					minwrk = max(minwrk, lwcon)
 				}
 				minwrk = minwrk + (*n)
 				if wntva {
 					//                   .. minimal workspace length for N/2 x N ZGELQF
-					lwlqf = maxint((*n)/2, 1)
-					lwsvd2 = maxint(3*((*n)/2), 1)
-					lwunlq = maxint(*n, 1)
-					minwrk2 = maxint(lwqp3, (*n)/2+lwlqf, (*n)/2+lwsvd2, (*n)/2+lwunlq, lwunq)
+					lwlqf = max((*n)/2, 1)
+					lwsvd2 = max(3*((*n)/2), 1)
+					lwunlq = max(*n, 1)
+					minwrk2 = max(lwqp3, (*n)/2+lwlqf, (*n)/2+lwsvd2, (*n)/2+lwunlq, lwunq)
 					if conda {
-						minwrk2 = maxint(minwrk2, lwcon)
+						minwrk2 = max(minwrk2, lwcon)
 					}
 					minwrk2 = (*n) + minwrk2
-					minwrk = maxint(minwrk, minwrk2)
+					minwrk = max(minwrk, minwrk2)
 				}
 			}
 			if lquery {
 				if rtrans {
 					Zgesvd('O', 'A', n, n, a, lda, s, u, ldu, v, ldv, cdummy, toPtr(-1), rdummy, &ierr)
 					lwrkZgesvd = int(cdummy.GetRe(0))
-					optwrk = maxint(lwrkZgeqp3, lwrkZgesvd, lwrkZunmqr)
+					optwrk = max(lwrkZgeqp3, lwrkZgesvd, lwrkZunmqr)
 					if conda {
-						optwrk = maxint(optwrk, lwcon)
+						optwrk = max(optwrk, lwcon)
 					}
 					optwrk = (*n) + optwrk
 					if wntva {
@@ -237,19 +237,19 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 						lwrkZgesvd2 = int(cdummy.GetRe(0))
 						Zunmqr('R', 'C', n, n, toPtr((*n)/2), u, ldu, cdummy, v, ldv, cdummy, toPtr(-1), &ierr)
 						lwrkZunmqr2 = int(cdummy.GetRe(0))
-						optwrk2 = maxint(lwrkZgeqp3, (*n)/2+lwrkZgeqrf, (*n)/2+lwrkZgesvd2, (*n)/2+lwrkZunmqr2)
+						optwrk2 = max(lwrkZgeqp3, (*n)/2+lwrkZgeqrf, (*n)/2+lwrkZgesvd2, (*n)/2+lwrkZunmqr2)
 						if conda {
-							optwrk2 = maxint(optwrk2, lwcon)
+							optwrk2 = max(optwrk2, lwcon)
 						}
 						optwrk2 = (*n) + optwrk2
-						optwrk = maxint(optwrk, optwrk2)
+						optwrk = max(optwrk, optwrk2)
 					}
 				} else {
 					Zgesvd('S', 'O', n, n, a, lda, s, u, ldu, v, ldv, cdummy, toPtr(-1), rdummy, &ierr)
 					lwrkZgesvd = int(cdummy.GetRe(0))
-					optwrk = maxint(lwrkZgeqp3, lwrkZgesvd, lwrkZunmqr)
+					optwrk = max(lwrkZgeqp3, lwrkZgesvd, lwrkZunmqr)
 					if conda {
-						optwrk = maxint(optwrk, lwcon)
+						optwrk = max(optwrk, lwcon)
 					}
 					optwrk = (*n) + optwrk
 					if wntva {
@@ -259,19 +259,19 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 						lwrkZgesvd2 = int(cdummy.GetRe(0))
 						Zunmlq('R', 'N', n, n, toPtr((*n)/2), u, ldu, cdummy, v, ldv, cdummy, toPtr(-1), &ierr)
 						lwrkZunmlq = int(cdummy.GetRe(0))
-						optwrk2 = maxint(lwrkZgeqp3, (*n)/2+lwrkZgelqf, (*n)/2+lwrkZgesvd2, (*n)/2+lwrkZunmlq)
+						optwrk2 = max(lwrkZgeqp3, (*n)/2+lwrkZgelqf, (*n)/2+lwrkZgesvd2, (*n)/2+lwrkZunmlq)
 						if conda {
-							optwrk2 = maxint(optwrk2, lwcon)
+							optwrk2 = max(optwrk2, lwcon)
 						}
 						optwrk2 = (*n) + optwrk2
-						optwrk = maxint(optwrk, optwrk2)
+						optwrk = max(optwrk, optwrk2)
 					}
 				}
 			}
 		}
 
-		minwrk = maxint(2, minwrk)
-		optwrk = maxint(2, optwrk)
+		minwrk = max(2, minwrk)
+		optwrk = max(2, optwrk)
 		if (*lcwork) < minwrk && (!lquery) {
 			(*info) = -19
 		}
@@ -317,7 +317,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			}
 		}
 		for p = 1; p <= (*m)-1; p++ {
-			q = goblas.Idamax((*m)-p+1, rwork.Off(p-1), 1) + p - 1
+			q = goblas.Idamax((*m)-p+1, rwork.Off(p-1, 1)) + p - 1
 			(*iwork)[(*n)+p-1] = q
 			if p != q {
 				rtmp = rwork.Get(p - 1)
@@ -364,7 +364,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtrf64(math.Sqrt(float64(*m))), &one, m, n, a, lda, &ierr)
 			ascaled = true
 		}
-		Zlaswp(n, a, lda, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, (*n)+1-1), func() *int { y := 1; return &y }())
+		Zlaswp(n, a, lda, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, (*n)), func() *int { y := 1; return &y }())
 	}
 
 	//    .. At this stage, preemptive scaling is done only to avoid column
@@ -394,7 +394,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 		//        .. all columns are free columns
 		(*iwork)[p-1] = 0
 	}
-	Zgeqp3(m, n, a, lda, iwork, cwork, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, &ierr)
+	Zgeqp3(m, n, a, lda, iwork, cwork, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, &ierr)
 
 	//    If the user requested accuracy level allows truncation in the
 	//    computed upper triangular factor, the matrix R is examined and,
@@ -459,13 +459,13 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//              expert level and obtain useful information in the sense of
 			//              perturbation theory.
 			for p = 1; p <= nr; p++ {
-				rtmp = goblas.Dznrm2(p, v.CVector(0, p-1), 1)
-				goblas.Zdscal(p, one/rtmp, v.CVector(0, p-1), 1)
+				rtmp = goblas.Dznrm2(p, v.CVector(0, p-1, 1))
+				goblas.Zdscal(p, one/rtmp, v.CVector(0, p-1, 1))
 			}
 			if !(lsvec || rsvec) {
 				Zpocon('U', &nr, v, ldv, &one, &rtmp, cwork, rwork, &ierr)
 			} else {
-				Zpocon('U', &nr, v, ldv, &one, &rtmp, cwork.Off((*n)+1-1), rwork, &ierr)
+				Zpocon('U', &nr, v, ldv, &one, &rtmp, cwork.Off((*n)), rwork, &ierr)
 			}
 			sconda = one / math.Sqrt(rtmp)
 			//           For NR=N, SCONDA is an estimate of SQRT(||(R^* * R)^(-1)||_1),
@@ -491,7 +491,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//         .. compute the singular values of R**H = [A](1:NR,1:N)**H
 			//           .. set the lower triangle of [A] to [A](1:NR,1:N)**H and
 			//           the upper triangle of [A] to zero.
-			for p = 1; p <= minint(*n, nr); p++ {
+			for p = 1; p <= min(*n, nr); p++ {
 				a.Set(p-1, p-1, a.GetConj(p-1, p-1))
 				for q = p + 1; q <= (*n); q++ {
 					a.Set(q-1, p-1, a.GetConj(p-1, q-1))
@@ -531,7 +531,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//           .. the left singular vectors not computed, the NR right singular
 			//           vectors overwrite [U](1:NR,1:NR) as conjugate transposed. These
 			//           will be pre-multiplied by Q to build the left singular vectors of A.
-			Zgesvd('N', 'O', n, &nr, u, ldu, s, u, ldu, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+			Zgesvd('N', 'O', n, &nr, u, ldu, s, u, ldu, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 
 			for p = 1; p <= nr; p++ {
 				u.Set(p-1, p-1, u.GetConj(p-1, p-1))
@@ -551,7 +551,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			}
 			//            .. the right singular vectors not computed, the NR left singular
 			//            vectors overwrite [U](1:NR,1:NR)
-			Zgesvd('O', 'N', &nr, n, u, ldu, s, u, ldu, v, ldv, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+			Zgesvd('O', 'N', &nr, n, u, ldu, s, u, ldu, v, ldv, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 			//               .. now [U](1:NR,1:NR) contains the NR left singular vectors of
 			//               R. These will be pre-multiplied by Q to build the left singular
 			//               vectors of A.
@@ -560,20 +560,20 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 		//           .. assemble the left singular vector matrix U of dimensions
 		//              (M x NR) or (M x N) or (M x M).
 		if (nr < (*m)) && (!wntuf) {
-			Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+			Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 			if nr < n1 {
-				Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-				Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+				Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+				Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 			}
 		}
 
 		//           The Q matrix from the first QRF is built into the left singular
 		//           vectors matrix U.
 		if !wntuf {
-			Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), &ierr)
+			Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), &ierr)
 		}
 		if rowprm && !wntuf {
-			Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, (*n)+1-1), toPtr(-1))
+			Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, (*n)), toPtr(-1))
 		}
 
 	} else if rsvec && (!lsvec) {
@@ -594,7 +594,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//           .. the left singular vectors of R**H overwrite V, the right singular
 			//           vectors not computed
 			if wntvr || (nr == (*n)) {
-				Zgesvd('O', 'N', n, &nr, v, ldv, s, u, ldu, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+				Zgesvd('O', 'N', n, &nr, v, ldv, s, u, ldu, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 
 				for p = 1; p <= nr; p++ {
 					v.Set(p-1, p-1, v.GetConj(p-1, p-1))
@@ -619,8 +619,8 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				//               by padding a zero block. In the case NR << N, a more efficient
 				//               way is to first use the QR factorization. For more details
 				//               how to implement this, see the " FULL SVD " branch.
-				Zlaset('G', n, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-				Zgesvd('O', 'N', n, n, v, ldv, s, u, ldu, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+				Zlaset('G', n, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+				Zgesvd('O', 'N', n, n, v, ldv, s, u, ldu, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 
 				for p = 1; p <= (*n); p++ {
 					v.Set(p-1, p-1, v.GetConj(p-1, p-1))
@@ -643,7 +643,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 			//            .. the right singular vectors overwrite V, the NR left singular
 			//            vectors stored in U(1:NR,1:NR)
 			if wntvr || (nr == (*n)) {
-				Zgesvd('N', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+				Zgesvd('N', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 				Zlapmt(false, &nr, n, v, ldv, iwork)
 				//               .. now [V](1:NR,1:N) contains V(1:N,1:NR)**H
 			} else {
@@ -652,8 +652,8 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				//               by padding a zero block. In the case NR << N, a more efficient
 				//               way is to first use the LQ factorization. For more details
 				//               how to implement this, see the " FULL SVD " branch.
-				Zlaset('G', toPtr((*n)-nr), n, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-				Zgesvd('N', 'O', n, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+				Zlaset('G', toPtr((*n)-nr), n, &czero, &czero, v.Off(nr, 0), ldv)
+				Zgesvd('N', 'O', n, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 				Zlapmt(false, n, n, v, ldv, iwork)
 			}
 			//            .. now [V] contains the adjoint of the matrix of the right singular
@@ -681,7 +681,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				//           .. the left singular vectors of R**H overwrite [V], the NR right
 				//           singular vectors of R**H stored in [U](1:NR,1:NR) as conjugate
 				//           transposed
-				Zgesvd('O', 'A', n, &nr, v, ldv, s, v, ldv, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+				Zgesvd('O', 'A', n, &nr, v, ldv, s, v, ldv, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 				//              .. assemble V
 				for p = 1; p <= nr; p++ {
 					v.Set(p-1, p-1, v.GetConj(p-1, p-1))
@@ -710,10 +710,10 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				}
 
 				if (nr < (*m)) && !wntuf {
-					Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+					Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 					if nr < n1 {
-						Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-						Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+						Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+						Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 					}
 				}
 
@@ -725,7 +725,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				//                 with zeros. Here hard coded to 2; it must be at least
 				//                 two due to work space constraints.]]
 				//               OPTRATIO = ILAENV(6, 'ZGESVD', 'S' // 'O', NR,N,0,0)
-				//               OPTRATIO = maxint( OPTRATIO, 2 )
+				//               OPTRATIO = max( OPTRATIO, 2 )
 				optratio = 2
 				if optratio*nr > (*n) {
 					for p = 1; p <= nr; p++ {
@@ -737,8 +737,8 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 						Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
 					}
 
-					Zlaset('A', n, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-					Zgesvd('O', 'A', n, n, v, ldv, s, v, ldv, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+					Zlaset('A', n, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+					Zgesvd('O', 'A', n, n, v, ldv, s, v, ldv, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 
 					for p = 1; p <= (*n); p++ {
 						v.Set(p-1, p-1, v.GetConj(p-1, p-1))
@@ -761,10 +761,10 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 					}
 
 					if ((*n) < (*m)) && !wntuf {
-						Zlaset('A', toPtr((*m)-(*n)), n, &czero, &czero, u.Off((*n)+1-1, 0), ldu)
+						Zlaset('A', toPtr((*m)-(*n)), n, &czero, &czero, u.Off((*n), 0), ldu)
 						if (*n) < n1 {
-							Zlaset('A', n, toPtr(n1-(*n)), &czero, &czero, u.Off(0, (*n)+1-1), ldu)
-							Zlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &czero, &cone, u.Off((*n)+1-1, (*n)+1-1), ldu)
+							Zlaset('A', n, toPtr(n1-(*n)), &czero, &czero, u.Off(0, (*n)), ldu)
+							Zlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &czero, &cone, u.Off((*n), (*n)), ldu)
 						}
 					}
 				} else {
@@ -778,26 +778,26 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 					if nr > 1 {
 						Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, u.Off(0, nr+2-1), ldu)
 					}
-					Zgeqrf(n, &nr, u.Off(0, nr+1-1), ldu, cwork.Off((*n)+1-1), cwork.Off((*n)+nr+1-1), toPtr((*lcwork)-(*n)-nr), &ierr)
+					Zgeqrf(n, &nr, u.Off(0, nr), ldu, cwork.Off((*n)), cwork.Off((*n)+nr), toPtr((*lcwork)-(*n)-nr), &ierr)
 					for p = 1; p <= nr; p++ {
 						for q = 1; q <= (*n); q++ {
 							v.Set(q-1, p-1, u.GetConj(p-1, nr+q-1))
 						}
 					}
 					Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
-					Zgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+nr+1-1), toPtr((*lcwork)-(*n)-nr), rwork, info)
-					Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-					Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-					Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
-					Zunmqr('R', 'C', n, n, &nr, u.Off(0, nr+1-1), ldu, cwork.Off((*n)+1-1), v, ldv, cwork.Off((*n)+nr+1-1), toPtr((*lcwork)-(*n)-nr), &ierr)
+					Zgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+nr), toPtr((*lcwork)-(*n)-nr), rwork, info)
+					Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+					Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+					Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
+					Zunmqr('R', 'C', n, n, &nr, u.Off(0, nr), ldu, cwork.Off((*n)), v, ldv, cwork.Off((*n)+nr), toPtr((*lcwork)-(*n)-nr), &ierr)
 					Zlapmt(false, n, n, v, ldv, iwork)
 					//                 .. assemble the left singular vector matrix U of dimensions
 					//                 (M x NR) or (M x N) or (M x M).
 					if (nr < (*m)) && !wntuf {
-						Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+						Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 						if nr < n1 {
-							Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-							Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+							Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+							Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 						}
 					}
 				}
@@ -813,16 +813,16 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				}
 				//               .. the right singular vectors of R overwrite [V], the NR left
 				//               singular vectors of R stored in [U](1:NR,1:NR)
-				Zgesvd('S', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+				Zgesvd('S', 'O', &nr, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 				Zlapmt(false, &nr, n, v, ldv, iwork)
 				//               .. now [V](1:NR,1:N) contains V(1:N,1:NR)**H
 				//               .. assemble the left singular vector matrix U of dimensions
 				//              (M x NR) or (M x N) or (M x M).
 				if (nr < (*m)) && !wntuf {
-					Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+					Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 					if nr < n1 {
-						Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-						Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+						Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+						Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 					}
 				}
 
@@ -834,7 +834,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 				//                 with zeros. Here hard coded to 2; it must be at least
 				//                 two due to work space constraints.]]
 				//               OPTRATIO = ILAENV(6, 'ZGESVD', 'S' // 'O', NR,N,0,0)
-				//               OPTRATIO = maxint( OPTRATIO, 2 )
+				//               OPTRATIO = max( OPTRATIO, 2 )
 				optratio = 2
 				if optratio*nr > (*n) {
 					Zlacpy('U', &nr, n, a, lda, v, ldv)
@@ -843,8 +843,8 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 					}
 					//              .. the right singular vectors of R overwrite [V], the NR left
 					//                 singular vectors of R stored in [U](1:NR,1:NR)
-					Zlaset('A', toPtr((*n)-nr), n, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-					Zgesvd('S', 'O', n, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), rwork, info)
+					Zlaset('A', toPtr((*n)-nr), n, &czero, &czero, v.Off(nr, 0), ldv)
+					Zgesvd('S', 'O', n, n, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)), toPtr((*lcwork)-(*n)), rwork, info)
 					Zlapmt(false, n, n, v, ldv, iwork)
 					//                 .. now [V] contains the adjoint of the matrix of the right
 					//                 singular vectors of A. The leading N left singular vectors
@@ -852,35 +852,35 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 					//                 .. assemble the left singular vector matrix U of dimensions
 					//                 (M x N1), i.e. (M x N) or (M x M).
 					if ((*n) < (*m)) && !wntuf {
-						Zlaset('A', toPtr((*m)-(*n)), n, &czero, &czero, u.Off((*n)+1-1, 0), ldu)
+						Zlaset('A', toPtr((*m)-(*n)), n, &czero, &czero, u.Off((*n), 0), ldu)
 						if (*n) < n1 {
-							Zlaset('A', n, toPtr(n1-(*n)), &czero, &czero, u.Off(0, (*n)+1-1), ldu)
-							Zlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &czero, &cone, u.Off((*n)+1-1, (*n)+1-1), ldu)
+							Zlaset('A', n, toPtr(n1-(*n)), &czero, &czero, u.Off(0, (*n)), ldu)
+							Zlaset('A', toPtr((*m)-(*n)), toPtr(n1-(*n)), &czero, &cone, u.Off((*n), (*n)), ldu)
 						}
 					}
 				} else {
-					Zlacpy('U', &nr, n, a, lda, u.Off(nr+1-1, 0), ldu)
+					Zlacpy('U', &nr, n, a, lda, u.Off(nr, 0), ldu)
 					if nr > 1 {
 						Zlaset('L', toPtr(nr-1), toPtr(nr-1), &czero, &czero, u.Off(nr+2-1, 0), ldu)
 					}
-					Zgelqf(&nr, n, u.Off(nr+1-1, 0), ldu, cwork.Off((*n)+1-1), cwork.Off((*n)+nr+1-1), toPtr((*lcwork)-(*n)-nr), &ierr)
-					Zlacpy('L', &nr, &nr, u.Off(nr+1-1, 0), ldu, v, ldv)
+					Zgelqf(&nr, n, u.Off(nr, 0), ldu, cwork.Off((*n)), cwork.Off((*n)+nr), toPtr((*lcwork)-(*n)-nr), &ierr)
+					Zlacpy('L', &nr, &nr, u.Off(nr, 0), ldu, v, ldv)
 					if nr > 1 {
 						Zlaset('U', toPtr(nr-1), toPtr(nr-1), &czero, &czero, v.Off(0, 1), ldv)
 					}
-					Zgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+nr+1-1), toPtr((*lcwork)-(*n)-nr), rwork, info)
-					Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr+1-1, 0), ldv)
-					Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr+1-1), ldv)
-					Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr+1-1, nr+1-1), ldv)
-					Zunmlq('R', 'N', n, n, &nr, u.Off(nr+1-1, 0), ldu, cwork.Off((*n)+1-1), v, ldv, cwork.Off((*n)+nr+1-1), toPtr((*lcwork)-(*n)-nr), &ierr)
+					Zgesvd('S', 'O', &nr, &nr, v, ldv, s, u, ldu, v, ldv, cwork.Off((*n)+nr), toPtr((*lcwork)-(*n)-nr), rwork, info)
+					Zlaset('A', toPtr((*n)-nr), &nr, &czero, &czero, v.Off(nr, 0), ldv)
+					Zlaset('A', &nr, toPtr((*n)-nr), &czero, &czero, v.Off(0, nr), ldv)
+					Zlaset('A', toPtr((*n)-nr), toPtr((*n)-nr), &czero, &cone, v.Off(nr, nr), ldv)
+					Zunmlq('R', 'N', n, n, &nr, u.Off(nr, 0), ldu, cwork.Off((*n)), v, ldv, cwork.Off((*n)+nr), toPtr((*lcwork)-(*n)-nr), &ierr)
 					Zlapmt(false, n, n, v, ldv, iwork)
 					//               .. assemble the left singular vector matrix U of dimensions
 					//              (M x NR) or (M x N) or (M x M).
 					if (nr < (*m)) && !wntuf {
-						Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr+1-1, 0), ldu)
+						Zlaset('A', toPtr((*m)-nr), &nr, &czero, &czero, u.Off(nr, 0), ldu)
 						if nr < n1 {
-							Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr+1-1), ldu)
-							Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr+1-1, nr+1-1), ldu)
+							Zlaset('A', &nr, toPtr(n1-nr), &czero, &czero, u.Off(0, nr), ldu)
+							Zlaset('A', toPtr((*m)-nr), toPtr(n1-nr), &czero, &cone, u.Off(nr, nr), ldu)
 						}
 					}
 				}
@@ -891,10 +891,10 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n *int, a *mat.CMatrix, lda *
 		//           The Q matrix from the first QRF is built into the left singular
 		//           vectors matrix U.
 		if !wntuf {
-			Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)+1-1), toPtr((*lcwork)-(*n)), &ierr)
+			Zunmqr('L', 'N', m, &n1, n, a, lda, cwork, u, ldu, cwork.Off((*n)), toPtr((*lcwork)-(*n)), &ierr)
 		}
 		if rowprm && !wntuf {
-			Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, (*n)+1-1), toPtr(-1))
+			Zlaswp(&n1, u, ldu, func() *int { y := 1; return &y }(), toPtr((*m)-1), toSlice(iwork, (*n)), toPtr(-1))
 		}
 
 		//     ... end of the "full SVD" branch
@@ -915,7 +915,7 @@ label4002:
 	//     .. if numerical rank deficiency is detected, the truncated
 	//     singular values are set to zero.
 	if nr < (*n) {
-		Dlaset('G', toPtr((*n)-nr), func() *int { y := 1; return &y }(), &zero, &zero, s.MatrixOff(nr+1-1, *n, opts), n)
+		Dlaset('G', toPtr((*n)-nr), func() *int { y := 1; return &y }(), &zero, &zero, s.MatrixOff(nr, *n, opts), n)
 	}
 	//     .. undo scaling; this may cause overflow in the largest singular
 	//     values.

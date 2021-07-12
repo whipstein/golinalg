@@ -41,8 +41,8 @@ func Zggrqf(m, p, n *int, a *mat.CMatrix, lda *int, taua *mat.CVector, b *mat.CM
 	nb1 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 	nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, p, n, toPtr(-1), toPtr(-1))
 	nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMRQ"), []byte{' '}, m, n, p, toPtr(-1))
-	nb = maxint(nb1, nb2, nb3)
-	lwkopt = maxint(*n, *m, *p) * nb
+	nb = max(nb1, nb2, nb3)
+	lwkopt = max(*n, *m, *p) * nb
 	work.SetRe(0, float64(lwkopt))
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
@@ -51,11 +51,11 @@ func Zggrqf(m, p, n *int, a *mat.CMatrix, lda *int, taua *mat.CVector, b *mat.CM
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *p) {
+	} else if (*ldb) < max(1, *p) {
 		(*info) = -8
-	} else if (*lwork) < maxint(1, *m, *p, *n) && !lquery {
+	} else if (*lwork) < max(1, *m, *p, *n) && !lquery {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -70,10 +70,10 @@ func Zggrqf(m, p, n *int, a *mat.CMatrix, lda *int, taua *mat.CVector, b *mat.CM
 	lopt = int(work.GetRe(0))
 
 	//     Update B := B*Q**H
-	Zunmrq('R', 'C', p, n, toPtr(minint(*m, *n)), a.Off(maxint(1, (*m)-(*n)+1)-1, 0), lda, taua, b, ldb, work, lwork, info)
-	lopt = maxint(lopt, int(work.GetRe(0)))
+	Zunmrq('R', 'C', p, n, toPtr(min(*m, *n)), a.Off(max(1, (*m)-(*n)+1)-1, 0), lda, taua, b, ldb, work, lwork, info)
+	lopt = max(lopt, int(work.GetRe(0)))
 
 	//     QR factorization of P-by-N matrix B: B = Z*T
 	Zgeqrf(p, n, b, ldb, taub, work, lwork, info)
-	work.SetRe(0, float64(maxint(lopt, int(work.GetRe(0)))))
+	work.SetRe(0, float64(max(lopt, int(work.GetRe(0)))))
 }

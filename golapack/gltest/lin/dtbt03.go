@@ -40,16 +40,16 @@ func Dtbt03(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	if diag == 'N' {
 		if uplo == 'U' {
 			for j = 1; j <= (*n); j++ {
-				tnorm = maxf64(tnorm, (*tscal)*math.Abs(ab.Get((*kd)+1-1, j-1))+cnorm.Get(j-1))
+				tnorm = math.Max(tnorm, (*tscal)*math.Abs(ab.Get((*kd), j-1))+cnorm.Get(j-1))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				tnorm = maxf64(tnorm, (*tscal)*math.Abs(ab.Get(0, j-1))+cnorm.Get(j-1))
+				tnorm = math.Max(tnorm, (*tscal)*math.Abs(ab.Get(0, j-1))+cnorm.Get(j-1))
 			}
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)+cnorm.Get(j-1))
 		}
 	}
 
@@ -57,16 +57,16 @@ func Dtbt03(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work, 1)
-		ix = goblas.Idamax(*n, work, 1)
-		xnorm = maxf64(one, math.Abs(x.Get(ix-1, j-1)))
+		goblas.Dcopy(*n, x.Vector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Idamax(*n, work.Off(0, 1))
+		xnorm = math.Max(one, math.Abs(x.Get(ix-1, j-1)))
 		xscal = (one / xnorm) / float64((*kd)+1)
-		goblas.Dscal(*n, xscal, work, 1)
-		err = goblas.Dtbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, work, 1)
-		goblas.Daxpy(*n, -(*scale)*xscal, b.Vector(0, j-1), 1, work, 1)
-		ix = goblas.Idamax(*n, work, 1)
+		goblas.Dscal(*n, xscal, work.Off(0, 1))
+		err = goblas.Dtbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, work.Off(0, 1))
+		goblas.Daxpy(*n, -(*scale)*xscal, b.Vector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Idamax(*n, work.Off(0, 1))
 		err2 = (*tscal) * math.Abs(work.Get(ix-1))
-		ix = goblas.Idamax(*n, x.Vector(0, j-1), 1)
+		ix = goblas.Idamax(*n, x.Vector(0, j-1, 1))
 		xnorm = math.Abs(x.Get(ix-1, j-1))
 		if err2*smlnum <= xnorm {
 			if xnorm > zero {
@@ -86,6 +86,6 @@ func Dtbt03(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err2)
+		(*resid) = math.Max(*resid, err2)
 	}
 }

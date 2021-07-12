@@ -116,7 +116,7 @@ func Dsbgvd(jobz, uplo byte, n, ka, kb *int, ab *mat.Matrix, ldab *int, bb *mat.
 		Dsterf(n, w, work.Off(inde-1), info)
 	} else {
 		Dstedc('I', n, w, work.Off(inde-1), work.MatrixOff(indwrk-1, *n, opts), n, work.Off(indwk2-1), &llwrk2, iwork, liwork, info)
-		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, z, *ldz, work.MatrixOff(indwrk-1, *n, opts), *n, zero, work.MatrixOff(indwk2-1, *n, opts), *n)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, z, work.MatrixOff(indwrk-1, *n, opts), zero, work.MatrixOff(indwk2-1, *n, opts))
 		Dlacpy('A', n, n, work.MatrixOff(indwk2-1, *n, opts), n, z, ldz)
 	}
 

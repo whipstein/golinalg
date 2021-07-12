@@ -43,10 +43,10 @@ func Zqrt11(m, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *
 	golapack.Zlaset('F', m, m, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), work.CMatrix(*m, opts), m)
 
 	//     Form Q
-	golapack.Zunm2r('L', 'N', m, m, k, a, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*m)+1-1), &info)
+	golapack.Zunm2r('L', 'N', m, m, k, a, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*m)), &info)
 
 	//     Form Q'*Q
-	golapack.Zunm2r('L', 'C', m, m, k, a, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*m)+1-1), &info)
+	golapack.Zunm2r('L', 'C', m, m, k, a, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*m)), &info)
 
 	for j = 1; j <= (*m); j++ {
 		work.Set((j-1)*(*m)+j-1, work.Get((j-1)*(*m)+j-1)-complex(one, 0))

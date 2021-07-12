@@ -34,7 +34,7 @@ func Zgecon(norm byte, n *int, a *mat.CMatrix, lda *int, anorm, rcond *float64, 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*anorm) < zero {
 		(*info) = -5
@@ -66,17 +66,17 @@ func Zgecon(norm byte, n *int, a *mat.CMatrix, lda *int, anorm, rcond *float64, 
 	kase = 0
 label10:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(L).
 			Zlatrs('L', 'N', 'U', normin, n, a, lda, work, &sl, rwork, info)
 
 			//           Multiply by inv(U).
-			Zlatrs('U', 'N', 'N', normin, n, a, lda, work, &su, rwork.Off((*n)+1-1), info)
+			Zlatrs('U', 'N', 'N', normin, n, a, lda, work, &su, rwork.Off((*n)), info)
 		} else {
 			//           Multiply by inv(U**H).
-			Zlatrs('U', 'C', 'N', normin, n, a, lda, work, &su, rwork.Off((*n)+1-1), info)
+			Zlatrs('U', 'C', 'N', normin, n, a, lda, work, &su, rwork.Off((*n)), info)
 
 			//           Multiply by inv(L**H).
 			Zlatrs('L', 'C', 'U', normin, n, a, lda, work, &sl, rwork, info)
@@ -86,7 +86,7 @@ label10:
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Izamax(*n, work, 1)
+			ix = goblas.Izamax(*n, work.Off(0, 1))
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

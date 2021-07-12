@@ -47,7 +47,7 @@ func Dgttrf(n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, info *int) {
 			if d.Get(i-1) != zero {
 				fact = dl.Get(i-1) / d.Get(i-1)
 				dl.Set(i-1, fact)
-				d.Set(i+1-1, d.Get(i+1-1)-fact*du.Get(i-1))
+				d.Set(i, d.Get(i)-fact*du.Get(i-1))
 			}
 		} else {
 			//           Interchange rows I and I+1, eliminate DL(I)
@@ -55,10 +55,10 @@ func Dgttrf(n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, info *int) {
 			d.Set(i-1, dl.Get(i-1))
 			dl.Set(i-1, fact)
 			temp = du.Get(i - 1)
-			du.Set(i-1, d.Get(i+1-1))
-			d.Set(i+1-1, temp-fact*d.Get(i+1-1))
-			du2.Set(i-1, du.Get(i+1-1))
-			du.Set(i+1-1, -fact*du.Get(i+1-1))
+			du.Set(i-1, d.Get(i))
+			d.Set(i, temp-fact*d.Get(i))
+			du2.Set(i-1, du.Get(i))
+			du.Set(i, -fact*du.Get(i))
 			(*ipiv)[i-1] = i + 1
 		}
 	}
@@ -68,15 +68,15 @@ func Dgttrf(n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, info *int) {
 			if d.Get(i-1) != zero {
 				fact = dl.Get(i-1) / d.Get(i-1)
 				dl.Set(i-1, fact)
-				d.Set(i+1-1, d.Get(i+1-1)-fact*du.Get(i-1))
+				d.Set(i, d.Get(i)-fact*du.Get(i-1))
 			}
 		} else {
 			fact = d.Get(i-1) / dl.Get(i-1)
 			d.Set(i-1, dl.Get(i-1))
 			dl.Set(i-1, fact)
 			temp = du.Get(i - 1)
-			du.Set(i-1, d.Get(i+1-1))
-			d.Set(i+1-1, temp-fact*d.Get(i+1-1))
+			du.Set(i-1, d.Get(i))
+			d.Set(i, temp-fact*d.Get(i))
 			(*ipiv)[i-1] = i + 1
 		}
 	}

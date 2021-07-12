@@ -20,7 +20,7 @@ func Dlarnv(idist *int, iseed *[]int, n *int, x *mat.Vector) {
 	twopi = 2 * math.Pi
 
 	for iv = 1; iv <= (*n); iv += lv / 2 {
-		il = minint(lv/2, (*n)-iv+1)
+		il = min(lv/2, (*n)-iv+1)
 		if (*idist) == 3 {
 			il2 = 2 * il
 		} else {

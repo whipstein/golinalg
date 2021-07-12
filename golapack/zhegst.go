@@ -37,9 +37,9 @@ func Zhegst(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -64,31 +64,31 @@ func Zhegst(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 			if upper {
 				//              Compute inv(U**H)*A*inv(U)
 				for k = 1; k <= (*n); k += nb {
-					kb = minint((*n)-k+1, nb)
+					kb = min((*n)-k+1, nb)
 
 					//                 Update the upper triangle of A(k:n,k:n)
 					Zhegs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 					if k+kb <= (*n) {
-						err = goblas.Ztrsm(Left, mat.UploByte(uplo), ConjTrans, NonUnit, kb, (*n)-k-kb+1, cone, b.Off(k-1, k-1), *ldb, a.Off(k-1, k+kb-1), *lda)
-						err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, -half, a.Off(k-1, k-1), *lda, b.Off(k-1, k+kb-1), *ldb, cone, a.Off(k-1, k+kb-1), *lda)
-						err = goblas.Zher2k(mat.UploByte(uplo), ConjTrans, (*n)-k-kb+1, kb, -cone, a.Off(k-1, k+kb-1), *lda, b.Off(k-1, k+kb-1), *ldb, one, a.Off(k+kb-1, k+kb-1), *lda)
-						err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, -half, a.Off(k-1, k-1), *lda, b.Off(k-1, k+kb-1), *ldb, cone, a.Off(k-1, k+kb-1), *lda)
-						err = goblas.Ztrsm(Right, mat.UploByte(uplo), NoTrans, NonUnit, kb, (*n)-k-kb+1, cone, b.Off(k+kb-1, k+kb-1), *ldb, a.Off(k-1, k+kb-1), *lda)
+						err = goblas.Ztrsm(Left, mat.UploByte(uplo), ConjTrans, NonUnit, kb, (*n)-k-kb+1, cone, b.Off(k-1, k-1), a.Off(k-1, k+kb-1))
+						err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, -half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), cone, a.Off(k-1, k+kb-1))
+						err = goblas.Zher2k(mat.UploByte(uplo), ConjTrans, (*n)-k-kb+1, kb, -cone, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one, a.Off(k+kb-1, k+kb-1))
+						err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, -half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), cone, a.Off(k-1, k+kb-1))
+						err = goblas.Ztrsm(Right, mat.UploByte(uplo), NoTrans, NonUnit, kb, (*n)-k-kb+1, cone, b.Off(k+kb-1, k+kb-1), a.Off(k-1, k+kb-1))
 					}
 				}
 			} else {
 				//              Compute inv(L)*A*inv(L**H)
 				for k = 1; k <= (*n); k += nb {
-					kb = minint((*n)-k+1, nb)
+					kb = min((*n)-k+1, nb)
 
 					//                 Update the lower triangle of A(k:n,k:n)
 					Zhegs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 					if k+kb <= (*n) {
-						err = goblas.Ztrsm(Right, mat.UploByte(uplo), ConjTrans, NonUnit, (*n)-k-kb+1, kb, cone, b.Off(k-1, k-1), *ldb, a.Off(k+kb-1, k-1), *lda)
-						err = goblas.Zhemm(Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, -half, a.Off(k-1, k-1), *lda, b.Off(k+kb-1, k-1), *ldb, cone, a.Off(k+kb-1, k-1), *lda)
-						err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, (*n)-k-kb+1, kb, -cone, a.Off(k+kb-1, k-1), *lda, b.Off(k+kb-1, k-1), *ldb, one, a.Off(k+kb-1, k+kb-1), *lda)
-						err = goblas.Zhemm(Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, -half, a.Off(k-1, k-1), *lda, b.Off(k+kb-1, k-1), *ldb, cone, a.Off(k+kb-1, k-1), *lda)
-						err = goblas.Ztrsm(Left, mat.UploByte(uplo), NoTrans, NonUnit, (*n)-k-kb+1, kb, cone, b.Off(k+kb-1, k+kb-1), *ldb, a.Off(k+kb-1, k-1), *lda)
+						err = goblas.Ztrsm(Right, mat.UploByte(uplo), ConjTrans, NonUnit, (*n)-k-kb+1, kb, cone, b.Off(k-1, k-1), a.Off(k+kb-1, k-1))
+						err = goblas.Zhemm(Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, -half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), cone, a.Off(k+kb-1, k-1))
+						err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, (*n)-k-kb+1, kb, -cone, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k+kb-1))
+						err = goblas.Zhemm(Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, -half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), cone, a.Off(k+kb-1, k-1))
+						err = goblas.Ztrsm(Left, mat.UploByte(uplo), NoTrans, NonUnit, (*n)-k-kb+1, kb, cone, b.Off(k+kb-1, k+kb-1), a.Off(k+kb-1, k-1))
 					}
 				}
 			}
@@ -96,27 +96,27 @@ func Zhegst(itype *int, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMat
 			if upper {
 				//              Compute U*A*U**H
 				for k = 1; k <= (*n); k += nb {
-					kb = minint((*n)-k+1, nb)
+					kb = min((*n)-k+1, nb)
 
 					//                 Update the upper triangle of A(1:k+kb-1,1:k+kb-1)
-					err = goblas.Ztrmm(Left, mat.UploByte(uplo), NoTrans, NonUnit, k-1, kb, cone, b, *ldb, a.Off(0, k-1), *lda)
-					err = goblas.Zhemm(Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), *lda, b.Off(0, k-1), *ldb, cone, a.Off(0, k-1), *lda)
-					err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, k-1, kb, cone, a.Off(0, k-1), *lda, b.Off(0, k-1), *ldb, one, a, *lda)
-					err = goblas.Zhemm(Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), *lda, b.Off(0, k-1), *ldb, cone, a.Off(0, k-1), *lda)
-					err = goblas.Ztrmm(Right, mat.UploByte(uplo), ConjTrans, NonUnit, k-1, kb, cone, b.Off(k-1, k-1), *ldb, a.Off(0, k-1), *lda)
+					err = goblas.Ztrmm(Left, mat.UploByte(uplo), NoTrans, NonUnit, k-1, kb, cone, b, a.Off(0, k-1))
+					err = goblas.Zhemm(Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), cone, a.Off(0, k-1))
+					err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, k-1, kb, cone, a.Off(0, k-1), b.Off(0, k-1), one, a)
+					err = goblas.Zhemm(Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), cone, a.Off(0, k-1))
+					err = goblas.Ztrmm(Right, mat.UploByte(uplo), ConjTrans, NonUnit, k-1, kb, cone, b.Off(k-1, k-1), a.Off(0, k-1))
 					Zhegs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 				}
 			} else {
 				//              Compute L**H*A*L
 				for k = 1; k <= (*n); k += nb {
-					kb = minint((*n)-k+1, nb)
+					kb = min((*n)-k+1, nb)
 
 					//                 Update the lower triangle of A(1:k+kb-1,1:k+kb-1)
-					err = goblas.Ztrmm(Right, mat.UploByte(uplo), NoTrans, NonUnit, kb, k-1, cone, b, *ldb, a.Off(k-1, 0), *lda)
-					err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), *lda, b.Off(k-1, 0), *ldb, cone, a.Off(k-1, 0), *lda)
-					err = goblas.Zher2k(mat.UploByte(uplo), ConjTrans, k-1, kb, cone, a.Off(k-1, 0), *lda, b.Off(k-1, 0), *ldb, one, a, *lda)
-					err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), *lda, b.Off(k-1, 0), *ldb, cone, a.Off(k-1, 0), *lda)
-					err = goblas.Ztrmm(Left, mat.UploByte(uplo), ConjTrans, NonUnit, kb, k-1, cone, b.Off(k-1, k-1), *ldb, a.Off(k-1, 0), *lda)
+					err = goblas.Ztrmm(Right, mat.UploByte(uplo), NoTrans, NonUnit, kb, k-1, cone, b, a.Off(k-1, 0))
+					err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), cone, a.Off(k-1, 0))
+					err = goblas.Zher2k(mat.UploByte(uplo), ConjTrans, k-1, kb, cone, a.Off(k-1, 0), b.Off(k-1, 0), one, a)
+					err = goblas.Zhemm(Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), cone, a.Off(k-1, 0))
+					err = goblas.Ztrmm(Left, mat.UploByte(uplo), ConjTrans, NonUnit, kb, k-1, cone, b.Off(k-1, k-1), a.Off(k-1, 0))
 					Zhegs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
 				}
 			}

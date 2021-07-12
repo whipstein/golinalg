@@ -28,7 +28,7 @@ func Dorgr2(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*m) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -59,7 +59,7 @@ func Dorgr2(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 		//        Apply H(i) to A(1:m-k+i,1:n-k+i) from the right
 		a.Set(ii-1, (*n)-(*m)+ii-1, one)
 		Dlarf('R', toPtr(ii-1), toPtr((*n)-(*m)+ii), a.Vector(ii-1, 0), lda, tau.GetPtr(i-1), a, lda, work)
-		goblas.Dscal((*n)-(*m)+ii-1, -tau.Get(i-1), a.Vector(ii-1, 0), *lda)
+		goblas.Dscal((*n)-(*m)+ii-1, -tau.Get(i-1), a.Vector(ii-1, 0))
 		a.Set(ii-1, (*n)-(*m)+ii-1, one-tau.Get(i-1))
 
 		//        Set A(m-k+i,n-k+i+1:n) to zero

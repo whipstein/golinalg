@@ -40,7 +40,7 @@ func Zqpt01(m, n, k *int, a, af *mat.CMatrix, lda *int, tau *mat.CVector, jpvt *
 	norma = golapack.Zlange('O', m, n, a, lda, rwork)
 
 	for j = 1; j <= (*k); j++ {
-		for i = 1; i <= minint(j, *m); i++ {
+		for i = 1; i <= min(j, *m); i++ {
 			work.Set((j-1)*(*m)+i-1, af.Get(i-1, j-1))
 		}
 		for i = j + 1; i <= (*m); i++ {
@@ -48,17 +48,17 @@ func Zqpt01(m, n, k *int, a, af *mat.CMatrix, lda *int, tau *mat.CVector, jpvt *
 		}
 	}
 	for j = (*k) + 1; j <= (*n); j++ {
-		goblas.Zcopy(*m, af.CVector(0, j-1), 1, work.Off((j-1)*(*m)+1-1), 1)
+		goblas.Zcopy(*m, af.CVector(0, j-1, 1), work.Off((j-1)*(*m), 1))
 	}
 
-	golapack.Zunmqr('L', 'N', m, n, k, af, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*n)+1-1), toPtr((*lwork)-(*m)*(*n)), &info)
+	golapack.Zunmqr('L', 'N', m, n, k, af, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*n)), toPtr((*lwork)-(*m)*(*n)), &info)
 
 	for j = 1; j <= (*n); j++ {
 		//        Compare i-th column of QR and jpvt(i)-th column of A
-		goblas.Zaxpy(*m, complex(-one, 0), a.CVector(0, (*jpvt)[j-1]-1), 1, work.Off((j-1)*(*m)+1-1), 1)
+		goblas.Zaxpy(*m, complex(-one, 0), a.CVector(0, (*jpvt)[j-1]-1, 1), work.Off((j-1)*(*m), 1))
 	}
 
-	zqpt01Return = golapack.Zlange('O', m, n, work.CMatrix(*m, opts), m, rwork) / (float64(maxint(*m, *n)) * golapack.Dlamch(Epsilon))
+	zqpt01Return = golapack.Zlange('O', m, n, work.CMatrix(*m, opts), m, rwork) / (float64(max(*m, *n)) * golapack.Dlamch(Epsilon))
 	if norma != zero {
 		zqpt01Return = zqpt01Return / norma
 	}

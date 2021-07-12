@@ -77,11 +77,11 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 			kuval[3] = (n + 1) / 4
 
 			//           Set limits on the number of loop iterations.
-			nkl = minint(m+1, 4)
+			nkl = min(m+1, 4)
 			if n == 0 {
 				nkl = 2
 			}
-			nku = minint(n+1, 4)
+			nku = min(n+1, 4)
 			if m == 0 {
 				nku = 2
 			}
@@ -138,7 +138,7 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							//                       test matrix with ZLATMS.
 							Zlatb4(path, &imat, &m, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
 
-							koff = maxint(1, ku+2-n)
+							koff = max(1, ku+2-n)
 							for i = 1; i <= koff-1; i++ {
 								a.Set(i-1, complex(zero, 0))
 							}
@@ -154,7 +154,7 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						} else if izero > 0 {
 							//                       Use the same matrix for types 3 and 4 as for
 							//                       _type 2 by copying back the zeroed out column.
-							goblas.Zcopy(i2-i1+1, b, 1, a.Off(ioff+i1-1), 1)
+							goblas.Zcopy(i2-i1+1, b.Off(0, 1), a.Off(ioff+i1-1, 1))
 						}
 
 						//                    For types 2, 3, and 4, zero one or more columns of
@@ -164,23 +164,23 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							if imat == 2 {
 								izero = 1
 							} else if imat == 3 {
-								izero = minint(m, n)
+								izero = min(m, n)
 							} else {
-								izero = minint(m, n)/2 + 1
+								izero = min(m, n)/2 + 1
 							}
 							ioff = (izero - 1) * lda
 							if imat < 4 {
 								//                          Store the column to be zeroed out in B.
-								i1 = maxint(1, ku+2-izero)
-								i2 = minint(kl+ku+1, ku+1+(m-izero))
-								goblas.Zcopy(i2-i1+1, a.Off(ioff+i1-1), 1, b, 1)
+								i1 = max(1, ku+2-izero)
+								i2 = min(kl+ku+1, ku+1+(m-izero))
+								goblas.Zcopy(i2-i1+1, a.Off(ioff+i1-1, 1), b.Off(0, 1))
 
 								for i = i1; i <= i2; i++ {
 									a.Set(ioff+i-1, complex(zero, 0))
 								}
 							} else {
 								for j = izero; j <= n; j++ {
-									for i = maxint(1, ku+2-j); i <= minint(kl+ku+1, ku+1+(m-j)); i++ {
+									for i = max(1, ku+2-j); i <= min(kl+ku+1, ku+1+(m-j)); i++ {
 										a.Set(ioff+i-1, complex(zero, 0))
 									}
 									ioff = ioff + lda
@@ -202,7 +202,7 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 
 							//                       Compute the LU factorization of the band matrix.
 							if m > 0 && n > 0 {
-								golapack.Zlacpy('F', toPtr(kl+ku+1), &n, a.CMatrix(lda, opts), &lda, afac.CMatrixOff(kl+1-1, ldafac, opts), &ldafac)
+								golapack.Zlacpy('F', toPtr(kl+ku+1), &n, a.CMatrix(lda, opts), &lda, afac.CMatrixOff(kl, ldafac, opts), &ldafac)
 							}
 							*srnamt = "ZGBTRF"
 							golapack.Zgbtrf(&m, &n, &kl, &ku, afac.CMatrix(ldafac, opts), &ldafac, iwork, &info)
@@ -243,7 +243,7 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							if info == 0 {
 								//                          Form the inverse of A so we can get a good
 								//                          estimate of CNDNUM = norm(A) * norm(inv(A)).
-								ldb = maxint(1, n)
+								ldb = max(1, n)
 								golapack.Zlaset('F', &n, &n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), work.CMatrix(ldb, opts), &ldb)
 								*srnamt = "ZGBTRS"
 								golapack.Zgbtrs('N', &n, &kl, &ku, &n, afac.CMatrix(ldafac, opts), &ldafac, iwork, work.CMatrix(ldb, opts), &ldb, &info)
@@ -318,7 +318,7 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 									//                             Use iterative refinement to improve the
 									//                             solution.
 									*srnamt = "ZGBRFS"
-									golapack.Zgbrfs(trans, &n, &kl, &ku, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(ldafac, opts), &ldafac, iwork, b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+									golapack.Zgbrfs(trans, &n, &kl, &ku, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(ldafac, opts), &ldafac, iwork, b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 									//                             Check error code from ZGBRFS.
 									if info != 0 {
@@ -327,7 +327,7 @@ func Zchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 									}
 
 									Zget04(&n, &nrhs, x.CMatrix(ldb, opts), &ldb, xact.CMatrix(ldb, opts), &ldb, &rcondc, result.GetPtr(3))
-									Zgbt05(trans, &n, &kl, &ku, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, xact.CMatrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+									Zgbt05(trans, &n, &kl, &ku, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, xact.CMatrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs), result.Off(4))
 
 									//                             Print information about the tests that did
 									//                             not pass the threshold.

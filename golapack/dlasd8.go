@@ -76,7 +76,7 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 	iwk3i = iwk3 - 1
 
 	//     Normalize Z.
-	rho = goblas.Dnrm2(*k, z, 1)
+	rho = goblas.Dnrm2(*k, z.Off(0, 1))
 	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &rho, &one, k, func() *int { y := 1; return &y }(), z.Matrix(*k, opts), k, info)
 	rho = rho * rho
 
@@ -94,7 +94,7 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 		}
 		work.Set(iwk3i+j-1, work.Get(iwk3i+j-1)*work.Get(j-1)*work.Get(iwk2i+j-1))
 		difl.Set(j-1, -work.Get(j-1))
-		difr.Set(j-1, 0, -work.Get(j+1-1))
+		difr.Set(j-1, 0, -work.Get(j))
 		for i = 1; i <= j-1; i++ {
 			work.Set(iwk3i+i-1, work.Get(iwk3i+i-1)*work.Get(i-1)*work.Get(iwk2i+i-1)/(dsigma.Get(i-1)-dsigma.Get(j-1))/(dsigma.Get(i-1)+dsigma.Get(j-1)))
 		}
@@ -105,7 +105,7 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 
 	//     Compute updated Z.
 	for i = 1; i <= (*k); i++ {
-		z.Set(i-1, signf64(math.Sqrt(math.Abs(work.Get(iwk3i+i-1))), z.Get(i-1)))
+		z.Set(i-1, math.Copysign(math.Sqrt(math.Abs(work.Get(iwk3i+i-1))), z.Get(i-1)))
 	}
 
 	//     Update VF and VL.
@@ -124,14 +124,14 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 		for i = j + 1; i <= (*k); i++ {
 			work.Set(i-1, z.Get(i-1)/(Dlamc3(dsigma.GetPtr(i-1), &dsigjp)+difrj)/(dsigma.Get(i-1)+dj))
 		}
-		temp = goblas.Dnrm2(*k, work, 1)
-		work.Set(iwk2i+j-1, goblas.Ddot(*k, work, 1, vf, 1)/temp)
-		work.Set(iwk3i+j-1, goblas.Ddot(*k, work, 1, vl, 1)/temp)
+		temp = goblas.Dnrm2(*k, work.Off(0, 1))
+		work.Set(iwk2i+j-1, goblas.Ddot(*k, work.Off(0, 1), vf.Off(0, 1))/temp)
+		work.Set(iwk3i+j-1, goblas.Ddot(*k, work.Off(0, 1), vl.Off(0, 1))/temp)
 		if (*icompq) == 1 {
 			difr.Set(j-1, 1, temp)
 		}
 	}
 
-	goblas.Dcopy(*k, work.Off(iwk2-1), 1, vf, 1)
-	goblas.Dcopy(*k, work.Off(iwk3-1), 1, vl, 1)
+	goblas.Dcopy(*k, work.Off(iwk2-1, 1), vf.Off(0, 1))
+	goblas.Dcopy(*k, work.Off(iwk3-1, 1), vl.Off(0, 1))
 }

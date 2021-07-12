@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -39,7 +41,7 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 		return
 	}
 
-	ika = maxint(0, minint((*n)-1, *ka))
+	ika = max(0, min((*n)-1, *ka))
 
 	if uplo == 'U' {
 		lower = false
@@ -57,7 +59,7 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 	//     Do Test 1
 	//
 	//     Norm of A:
-	anorm = maxf64(golapack.Zlanhb('1', cuplo, n, &ika, a, lda, rwork), unfl)
+	anorm = math.Max(golapack.Zlanhb('1', cuplo, n, &ika, a, lda, rwork), unfl)
 
 	//     Compute error matrix:    Error = A - U S U**H
 	//
@@ -65,7 +67,7 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 	j = 0
 	for jc = 1; jc <= (*n); jc++ {
 		if lower {
-			for jr = 1; jr <= minint(ika+1, (*n)+1-jc); jr++ {
+			for jr = 1; jr <= min(ika+1, (*n)+1-jc); jr++ {
 				j = j + 1
 				work.Set(j-1, a.Get(jr-1, jc-1))
 			}
@@ -78,7 +80,7 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 				j = j + 1
 				work.SetRe(j-1, zero)
 			}
-			for jr = minint(ika, jc-1); jr >= 0; jr -= 1 {
+			for jr = min(ika, jc-1); jr >= 0; jr -= 1 {
 				j = j + 1
 				work.Set(j-1, a.Get(ika+1-jr-1, jc-1))
 			}
@@ -86,12 +88,12 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 	}
 
 	for j = 1; j <= (*n); j++ {
-		err = goblas.Zhpr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.CVector(0, j-1), 1, work)
+		err = goblas.Zhpr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.CVector(0, j-1, 1), work)
 	}
 
 	if (*n) > 1 && (*ks) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Zhpr2(mat.UploByte(cuplo), *n, -e.GetCmplx(j-1), u.CVector(0, j-1), 1, u.CVector(0, j+1-1), 1, work)
+			err = goblas.Zhpr2(mat.UploByte(cuplo), *n, -e.GetCmplx(j-1), u.CVector(0, j-1, 1), u.CVector(0, j, 1), work)
 		}
 	}
 	wnorm = golapack.Zlanhp('1', cuplo, n, work, rwork)
@@ -100,20 +102,20 @@ func Zhbt21(uplo byte, n, ka, ks *int, a *mat.CMatrix, lda *int, d, e *mat.Vecto
 		result.Set(0, (wnorm/anorm)/(float64(*n)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 		}
 	}
 
 	//     Do Test 2
 	//
 	//     Compute  U U**H - I
-	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, u, czero, work.CMatrix(*n, opts))
 
 	for j = 1; j <= (*n); j++ {
-		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-cone)
+		work.Set(((*n)+1)*(j-1), work.Get(((*n)+1)*(j-1))-cone)
 	}
 
-	result.Set(1, minf64(golapack.Zlange('1', n, n, work.CMatrix(*n, opts), n, rwork), float64(*n))/(float64(*n)*ulp))
+	result.Set(1, math.Min(golapack.Zlange('1', n, n, work.CMatrix(*n, opts), n, rwork), float64(*n))/(float64(*n)*ulp))
 }

@@ -39,7 +39,7 @@ func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, 
 	//     an error code if any are nonzero.
 	if uplo == 'U' {
 		for j = 1; j <= (*n); j++ {
-			if afac.GetIm((*kd)+1-1, j-1) != zero {
+			if afac.GetIm((*kd), j-1) != zero {
 				(*resid) = one / eps
 				return
 			}
@@ -56,16 +56,16 @@ func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, 
 	//     Compute the product U'*U, overwriting U.
 	if uplo == 'U' {
 		for k = (*n); k >= 1; k-- {
-			kc = maxint(1, (*kd)+2-k)
+			kc = max(1, (*kd)+2-k)
 			klen = (*kd) + 1 - kc
 
 			//           Compute the (K,K) element of the result.
-			akk = real(goblas.Zdotc(klen+1, afac.CVector(kc-1, k-1), 1, afac.CVector(kc-1, k-1), 1))
-			afac.SetRe((*kd)+1-1, k-1, akk)
+			akk = real(goblas.Zdotc(klen+1, afac.CVector(kc-1, k-1, 1), afac.CVector(kc-1, k-1, 1)))
+			afac.SetRe((*kd), k-1, akk)
 
 			//           Compute the rest of column K.
 			if klen > 0 {
-				err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, klen, afac.Off((*kd)+1-1, k-klen-1).UpdateRows((*ldafac)-1), (*ldafac)-1, afac.CVector(kc-1, k-1), 1)
+				err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, klen, afac.Off((*kd), k-klen-1).UpdateRows((*ldafac)-1), afac.CVector(kc-1, k-1, 1))
 			}
 
 		}
@@ -73,17 +73,17 @@ func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, 
 		//     UPLO = 'L':  Compute the product L*L', overwriting L.
 	} else {
 		for k = (*n); k >= 1; k-- {
-			klen = minint(*kd, (*n)-k)
+			klen = min(*kd, (*n)-k)
 
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if klen > 0 {
-				err = goblas.Zher(Lower, klen, one, afac.CVector(1, k-1), 1, afac.Off(0, k+1-1).UpdateRows((*ldafac)-1), (*ldafac)-1)
+				err = goblas.Zher(Lower, klen, one, afac.CVector(1, k-1, 1), afac.Off(0, k).UpdateRows((*ldafac)-1))
 			}
 
 			//           Scale column K by the diagonal element.
 			akk = afac.GetRe(0, k-1)
-			goblas.Zdscal(klen+1, akk, afac.CVector(0, k-1), 1)
+			goblas.Zdscal(klen+1, akk, afac.CVector(0, k-1, 1))
 
 		}
 	}
@@ -91,14 +91,14 @@ func Zpbt01(uplo byte, n, kd *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, 
 	//     Compute the difference  L*L' - A  or  U'*U - A.
 	if uplo == 'U' {
 		for j = 1; j <= (*n); j++ {
-			mu = maxint(1, (*kd)+2-j)
+			mu = max(1, (*kd)+2-j)
 			for i = mu; i <= (*kd)+1; i++ {
 				afac.Set(i-1, j-1, afac.Get(i-1, j-1)-a.Get(i-1, j-1))
 			}
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			ml = minint((*kd)+1, (*n)-j+1)
+			ml = min((*kd)+1, (*n)-j+1)
 			for i = 1; i <= ml; i++ {
 				afac.Set(i-1, j-1, afac.Get(i-1, j-1)-a.Get(i-1, j-1))
 			}

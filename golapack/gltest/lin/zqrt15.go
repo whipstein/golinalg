@@ -28,8 +28,8 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
 
-	mn = minint(*m, *n)
-	if (*lwork) < maxint((*m)+mn, mn*(*nrhs), 2*(*n)+(*m)) {
+	mn = min(*m, *n)
+	if (*lwork) < max((*m)+mn, mn*(*nrhs), 2*(*n)+(*m)) {
 		gltest.Xerbla([]byte("ZQRT15"), 16)
 		return
 	}
@@ -70,24 +70,24 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, m, work)
-		goblas.Zdscal(*m, one/goblas.Dznrm2(*m, work, 1), work, 1)
+		goblas.Zdscal(*m, one/goblas.Dznrm2(*m, work.Off(0, 1)), work.Off(0, 1))
 		golapack.Zlaset('F', m, rank, &czero, &cone, a, lda)
-		golapack.Zlarf('L', m, rank, work, func() *int { y := 1; return &y }(), toPtrc128(complex(two, 0)), a, lda, work.Off((*m)+1-1))
+		golapack.Zlarf('L', m, rank, work, func() *int { y := 1; return &y }(), toPtrc128(complex(two, 0)), a, lda, work.Off((*m)))
 
 		//        workspace used: m+mn
 		//
 		//        Generate consistent rhs in the range space of A
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*rank)*(*nrhs)), work)
-		err = goblas.Zgemm(NoTrans, NoTrans, *m, *nrhs, *rank, cone, a, *lda, work.CMatrix(*rank, opts), *rank, czero, b, *ldb)
+		err = goblas.Zgemm(NoTrans, NoTrans, *m, *nrhs, *rank, cone, a, work.CMatrix(*rank, opts), czero, b)
 
 		//        work space used: <= mn *nrhs
 		//
 		//        generate (unscaled) matrix A
 		for j = 1; j <= (*rank); j++ {
-			goblas.Zdscal(*m, s.Get(j-1), a.CVector(0, j-1), 1)
+			goblas.Zdscal(*m, s.Get(j-1), a.CVector(0, j-1, 1))
 		}
 		if (*rank) < (*n) {
-			golapack.Zlaset('F', m, toPtr((*n)-(*rank)), &czero, &czero, a.Off(0, (*rank)+1-1), lda)
+			golapack.Zlaset('F', m, toPtr((*n)-(*rank)), &czero, &czero, a.Off(0, (*rank)), lda)
 		}
 		matgen.Zlaror('R', 'N', m, n, a, lda, iseed, work, &info)
 
@@ -124,6 +124,6 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 		}
 	}
 
-	(*norma) = goblas.Dasum(mn, s, 1)
+	(*norma) = goblas.Dasum(mn, s.Off(0, 1))
 	(*normb) = golapack.Zlange('O', m, nrhs, b, ldb, dummy)
 }

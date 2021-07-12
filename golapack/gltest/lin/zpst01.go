@@ -60,11 +60,11 @@ func Zpst01(uplo byte, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldaf
 
 		for k = (*n); k >= 1; k-- {
 			//           Compute the (K,K) element of the result.
-			tr = real(goblas.Zdotc(k, afac.CVector(0, k-1), 1, afac.CVector(0, k-1), 1))
+			tr = real(goblas.Zdotc(k, afac.CVector(0, k-1, 1), afac.CVector(0, k-1, 1)))
 			afac.SetRe(k-1, k-1, tr)
 
 			//           Compute the rest of column K.
-			err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, k-1, afac, *ldafac, afac.CVector(0, k-1), 1)
+			err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, k-1, afac, afac.CVector(0, k-1, 1))
 
 		}
 
@@ -83,12 +83,12 @@ func Zpst01(uplo byte, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldaf
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if k+1 <= (*n) {
-				err = goblas.Zher(Lower, (*n)-k, one, afac.CVector(k+1-1, k-1), 1, afac.Off(k+1-1, k+1-1), *ldafac)
+				err = goblas.Zher(Lower, (*n)-k, one, afac.CVector(k, k-1, 1), afac.Off(k, k))
 			}
 
 			//           Scale column K by the diagonal element.
 			tc = afac.Get(k-1, k-1)
-			goblas.Zscal((*n)-k+1, tc, afac.CVector(k-1, k-1), 1)
+			goblas.Zscal((*n)-k+1, tc, afac.CVector(k-1, k-1, 1))
 		}
 
 	}

@@ -29,7 +29,7 @@ func Dsytri2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < minsize && !lquery {
 		(*info) = -7

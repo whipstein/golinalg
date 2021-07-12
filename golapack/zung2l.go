@@ -28,7 +28,7 @@ func Zung2l(m *int, n *int, k *int, a *mat.CMatrix, lda *int, tau *mat.CVector, 
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*n) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -55,7 +55,7 @@ func Zung2l(m *int, n *int, k *int, a *mat.CMatrix, lda *int, tau *mat.CVector, 
 		//        Apply H(i) to A(1:m-k+i,1:n-k+i) from the left
 		a.Set((*m)-(*n)+ii-1, ii-1, one)
 		Zlarf('L', toPtr((*m)-(*n)+ii), toPtr(ii-1), a.CVector(0, ii-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), a, lda, work)
-		goblas.Zscal((*m)-(*n)+ii-1, -tau.Get(i-1), a.CVector(0, ii-1), 1)
+		goblas.Zscal((*m)-(*n)+ii-1, -tau.Get(i-1), a.CVector(0, ii-1, 1))
 		a.Set((*m)-(*n)+ii-1, ii-1, one-tau.Get(i-1))
 
 		//        Set A(m-k+i+1:m,n-k+i) to zero

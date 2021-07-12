@@ -18,7 +18,7 @@ import (
 // The test condition is that the scaled residual
 //
 // norm( op(TL)*X + ISGN*X*op(TR) = SCALE*B )
-//      / ( maxf64( ulp*norm(TL), ulp*norm(TR)) * norm(X), SMLNUM )
+//      / ( math.Max( ulp*norm(TL), ulp*norm(TR)) * norm(X), SMLNUM )
 //
 // should be on the order of 1. Here, ulp is the machine precision.
 // Also, it is verified that SCALE is less than or equal to 1, and
@@ -83,15 +83,15 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 							}
 							res = math.Abs((tl.Get(0, 0)+sgn*tr.Get(0, 0))*x.Get(0, 0) - scale*b.Get(0, 0))
 							if info == 0 {
-								den = maxf64(eps*((math.Abs(tr.Get(0, 0))+math.Abs(tl.Get(0, 0)))*math.Abs(x.Get(0, 0))), smlnum)
+								den = math.Max(eps*((math.Abs(tr.Get(0, 0))+math.Abs(tl.Get(0, 0)))*math.Abs(x.Get(0, 0))), smlnum)
 							} else {
-								den = smlnum * maxf64(math.Abs(x.Get(0, 0)), one)
+								den = smlnum * math.Max(math.Abs(x.Get(0, 0)), one)
 							}
 							res = res / den
 							if scale > one {
 								res = res + one/eps
 							}
-							res = res + math.Abs(xnorm-math.Abs(x.Get(0, 0)))/maxf64(smlnum, xnorm)/eps
+							res = res + math.Abs(xnorm-math.Abs(x.Get(0, 0)))/math.Max(smlnum, xnorm)/eps
 							if info != 0 && info != 1 {
 								res = res + one/eps
 							}
@@ -130,13 +130,13 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 									res = math.Abs((tl.Get(0, 0)+sgn*tr.Get(0, 0))*x.Get(0, 0) + tl.Get(0, 1)*x.Get(1, 0) - scale*b.Get(0, 0))
 									res = res + math.Abs((tl.Get(1, 1)+sgn*tr.Get(0, 0))*x.Get(1, 0)+tl.Get(1, 0)*x.Get(0, 0)-scale*b.Get(1, 0))
 									tnrm = math.Abs(tr.Get(0, 0)) + math.Abs(tl.Get(0, 0)) + math.Abs(tl.Get(0, 1)) + math.Abs(tl.Get(1, 0)) + math.Abs(tl.Get(1, 1))
-									xnrm = maxf64(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))
-									den = maxf64(smlnum, smlnum*xnrm, (tnrm*eps)*xnrm)
+									xnrm = math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))
+									den = math.Max(smlnum, math.Max(smlnum*xnrm, (tnrm*eps)*xnrm))
 									res = res / den
 									if scale > one {
 										res = res + one/eps
 									}
-									res = res + math.Abs(xnorm-xnrm)/maxf64(smlnum, xnorm)/eps
+									res = res + math.Abs(xnorm-xnrm)/math.Max(smlnum, xnorm)/eps
 									if res > (*rmax) {
 										(*lmax) = (*knt)
 										(*rmax) = res
@@ -175,12 +175,12 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 									xnrm = math.Abs(x.Get(0, 0)) + math.Abs(x.Get(0, 1))
 									res = math.Abs((tl.Get(0, 0)+sgn*tr.Get(0, 0))*(x.Get(0, 0)) + (sgn*tr.Get(1, 0))*(x.Get(0, 1)) - (scale * b.Get(0, 0)))
 									res = res + math.Abs((tl.Get(0, 0)+sgn*tr.Get(1, 1))*(x.Get(0, 1))+(sgn*tr.Get(0, 1))*(x.Get(0, 0))-(scale*b.Get(0, 1)))
-									den = maxf64(smlnum, smlnum*xnrm, (tnrm*eps)*xnrm)
+									den = math.Max(smlnum, math.Max(smlnum*xnrm, (tnrm*eps)*xnrm))
 									res = res / den
 									if scale > one {
 										res = res + one/eps
 									}
-									res = res + math.Abs(xnorm-xnrm)/maxf64(smlnum, xnorm)/eps
+									res = res + math.Abs(xnorm-xnrm)/math.Max(smlnum, xnorm)/eps
 									if res > (*rmax) {
 										(*lmax) = (*knt)
 										(*rmax) = res
@@ -203,7 +203,7 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 											b.Set(0, 0, val.Get(ib1-1))
 											b.Set(1, 0, -four*val.Get(ib2-1))
 											b.Set(0, 1, -two*val.Get(ib3-1))
-											b.Set(1, 1, eight*minf64(val.Get(ib1-1), val.Get(ib2-1), val.Get(ib3-1)))
+											b.Set(1, 1, eight*math.Min(val.Get(ib1-1), math.Min(val.Get(ib2-1), val.Get(ib3-1))))
 											tr.Set(0, 0, float64(itval[0+(0+(itr-1)*2)*2])*val.Get(itrscl-1))
 											tr.Set(1, 0, float64(itval[1+(0+(itr-1)*2)*2])*val.Get(itrscl-1))
 											tr.Set(0, 1, float64(itval[0+(1+(itr-1)*2)*2])*val.Get(itrscl-1))
@@ -228,17 +228,17 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 												tl.Set(1, 0, tmp)
 											}
 											tnrm = math.Abs(tr.Get(0, 0)) + math.Abs(tr.Get(1, 0)) + math.Abs(tr.Get(0, 1)) + math.Abs(tr.Get(1, 1)) + math.Abs(tl.Get(0, 0)) + math.Abs(tl.Get(1, 0)) + math.Abs(tl.Get(0, 1)) + math.Abs(tl.Get(1, 1))
-											xnrm = maxf64(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1)), math.Abs(x.Get(1, 0))+math.Abs(x.Get(1, 1)))
+											xnrm = math.Max(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1)), math.Abs(x.Get(1, 0))+math.Abs(x.Get(1, 1)))
 											res = math.Abs((tl.Get(0, 0)+sgn*tr.Get(0, 0))*(x.Get(0, 0)) + (sgn*tr.Get(1, 0))*(x.Get(0, 1)) + (tl.Get(0, 1))*(x.Get(1, 0)) - (scale * b.Get(0, 0)))
 											res = res + math.Abs((tl.Get(0, 0))*(x.Get(0, 1))+(sgn*tr.Get(0, 1))*(x.Get(0, 0))+(sgn*tr.Get(1, 1))*(x.Get(0, 1))+(tl.Get(0, 1))*(x.Get(1, 1))-(scale*b.Get(0, 1)))
 											res = res + math.Abs((tl.Get(1, 0))*(x.Get(0, 0))+(sgn*tr.Get(0, 0))*(x.Get(1, 0))+(sgn*tr.Get(1, 0))*(x.Get(1, 1))+(tl.Get(1, 1))*(x.Get(1, 0))-(scale*b.Get(1, 0)))
 											res = res + math.Abs((tl.Get(1, 1)+sgn*tr.Get(1, 1))*(x.Get(1, 1))+(sgn*tr.Get(0, 1))*(x.Get(1, 0))+(tl.Get(1, 0))*(x.Get(0, 1))-(scale*b.Get(1, 1)))
-											den = maxf64(smlnum, smlnum*xnrm, (tnrm*eps)*xnrm)
+											den = math.Max(smlnum, math.Max(smlnum*xnrm, (tnrm*eps)*xnrm))
 											res = res / den
 											if scale > one {
 												res = res + one/eps
 											}
-											res = res + math.Abs(xnorm-xnrm)/maxf64(smlnum, xnorm)/eps
+											res = res + math.Abs(xnorm-xnrm)/math.Max(smlnum, xnorm)/eps
 											if res > (*rmax) {
 												(*lmax) = (*knt)
 												(*rmax) = res

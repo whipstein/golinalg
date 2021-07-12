@@ -43,9 +43,9 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 		(*info) = -4
 	} else if (*nrhs) < 0 {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -79,9 +79,9 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A or A**T, depending on TRANS.
-		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
-		err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off((*n)+1-1), 1)
-		goblas.Daxpy(*n, -one, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
+		goblas.Dcopy(*n, x.Vector(0, j-1, 1), work.Off((*n), 1))
+		err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off((*n), 1))
+		goblas.Daxpy(*n, -one, b.Vector(0, j-1, 1), work.Off((*n), 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -187,9 +187,9 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if work.Get(i-1) > safe2 {
-				s = maxf64(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
+				s = math.Max(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
 			} else {
-				s = maxf64(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
+				s = math.Max(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -226,11 +226,11 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 		kase = 0
 	label210:
 		;
-		Dlacn2(n, work.Off(2*(*n)+1-1), work.Off((*n)+1-1), iwork, ferr.GetPtr(j-1), &kase, &isave)
+		Dlacn2(n, work.Off(2*(*n)), work.Off((*n)), iwork, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, ap, work.Off((*n)+1-1), 1)
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, ap, work.Off((*n), 1))
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
@@ -239,7 +239,7 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
-				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off((*n)+1-1), 1)
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off((*n), 1))
 			}
 			goto label210
 		}
@@ -247,7 +247,7 @@ func Dtprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, math.Abs(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, math.Abs(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

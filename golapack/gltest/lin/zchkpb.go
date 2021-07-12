@@ -50,11 +50,11 @@ func Zchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 
 		//        Set limits on the number of loop iterations.
-		nkd = maxint(1, minint(n, 4))
+		nkd = max(1, min(n, 4))
 		nimat = ntypes
 		if n == 0 {
 			nimat = 1
@@ -76,7 +76,7 @@ func Zchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 				koff = 1
 				if iuplo == 1 {
 					uplo = 'U'
-					koff = maxint(1, kd+2-n)
+					koff = max(1, kd+2-n)
 					packit = 'Q'
 				} else {
 					uplo = 'L'
@@ -115,15 +115,15 @@ func Zchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						iw = 2*lda + 1
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Zcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff-izero+i1-1), 1)
+							goblas.Zcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff-izero+i1-1, 1))
 							iw = iw + izero - i1
-							goblas.Zcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), maxint(ldab-1, 1))
+							goblas.Zcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, max(ldab-1, 1)))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Zcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1))
+							goblas.Zcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff+izero-i1-1, max(ldab-1, 1)))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Zcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), 1)
+							goblas.Zcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, 1))
 						}
 					}
 
@@ -141,30 +141,30 @@ func Zchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 						//                    Save the zeroed out row and column in WORK(*,3)
 						iw = 2 * lda
-						for i = 1; i <= minint(2*kd+1, n); i++ {
+						for i = 1; i <= min(2*kd+1, n); i++ {
 							work.SetRe(iw+i-1, zero)
 						}
 						iw = iw + 1
-						i1 = maxint(izero-kd, 1)
-						i2 = minint(izero+kd, n)
+						i1 = max(izero-kd, 1)
+						i2 = min(izero+kd, n)
 
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Zswap(izero-i1, a.Off(ioff-izero+i1-1), 1, work.Off(iw-1), 1)
+							goblas.Zswap(izero-i1, a.Off(ioff-izero+i1-1, 1), work.Off(iw-1, 1))
 							iw = iw + izero - i1
-							goblas.Zswap(i2-izero+1, a.Off(ioff-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
+							goblas.Zswap(i2-izero+1, a.Off(ioff-1, max(ldab-1, 1)), work.Off(iw-1, 1))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Zswap(izero-i1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
+							goblas.Zswap(izero-i1, a.Off(ioff+izero-i1-1, max(ldab-1, 1)), work.Off(iw-1, 1))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Zswap(i2-izero+1, a.Off(ioff-1), 1, work.Off(iw-1), 1)
+							goblas.Zswap(i2-izero+1, a.Off(ioff-1, 1), work.Off(iw-1, 1))
 						}
 					}
 
 					//                 Set the imaginary part of the diagonals.
 					if iuplo == 1 {
-						Zlaipd(&n, a.Off(kd+1-1), &ldab, func() *int { y := 0; return &y }())
+						Zlaipd(&n, a.Off(kd), &ldab, func() *int { y := 0; return &y }())
 					} else {
 						Zlaipd(&n, a.Off(0), &ldab, func() *int { y := 0; return &y }())
 					}
@@ -257,7 +257,7 @@ func Zchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//+    TESTS 4, 5, and 6
 							//                    Use iterative refinement to improve the solution.
 							*srnamt = "ZPBRFS"
-							golapack.Zpbrfs(uplo, &n, &kd, &nrhs, a.CMatrix(ldab, opts), &ldab, afac.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+							golapack.Zpbrfs(uplo, &n, &kd, &nrhs, a.CMatrix(ldab, opts), &ldab, afac.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 							//                    Check error code from ZPBRFS.
 							if info != 0 {
@@ -266,7 +266,7 @@ func Zchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							}
 
 							Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-							Zpbt05(uplo, &n, &kd, &nrhs, a.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+							Zpbt05(uplo, &n, &kd, &nrhs, a.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.

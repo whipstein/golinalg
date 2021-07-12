@@ -47,11 +47,11 @@ func Ztrsen(job, compq byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, q
 	lquery = ((*lwork) == -1)
 
 	if wantsp {
-		lwmin = maxint(1, 2*nn)
+		lwmin = max(1, 2*nn)
 	} else if job == 'N' {
 		lwmin = 1
 	} else if job == 'E' {
-		lwmin = maxint(1, nn)
+		lwmin = max(1, nn)
 	}
 
 	if job != 'N' && !wants && !wantsp {
@@ -60,7 +60,7 @@ func Ztrsen(job, compq byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, q
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -6
 	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
 		(*info) = -8
@@ -107,8 +107,8 @@ func Ztrsen(job, compq byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, q
 		//        Solve the Sylvester equation for R:
 		//
 		//           T11*R - R*T22 = scale*T12
-		Zlacpy('F', &n1, &n2, t.Off(0, n1+1-1), ldt, work.CMatrix(n1, opts), &n1)
-		Ztrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1+1-1, n1+1-1), ldt, work.CMatrix(n1, opts), &n1, &scale, &ierr)
+		Zlacpy('F', &n1, &n2, t.Off(0, n1), ldt, work.CMatrix(n1, opts), &n1)
+		Ztrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1, n1), ldt, work.CMatrix(n1, opts), &n1, &scale, &ierr)
 
 		//        Estimate the reciprocal of the condition number of the cluster
 		//        of eigenvalues.
@@ -126,14 +126,14 @@ func Ztrsen(job, compq byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, q
 		kase = 0
 	label30:
 		;
-		Zlacn2(&nn, work.Off(nn+1-1), work, &est, &kase, &isave)
+		Zlacn2(&nn, work.Off(nn), work, &est, &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Solve T11*R - R*T22 = scale*X.
-				Ztrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1+1-1, n1+1-1), ldt, work.CMatrix(n1, opts), &n1, &scale, &ierr)
+				Ztrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1, n1), ldt, work.CMatrix(n1, opts), &n1, &scale, &ierr)
 			} else {
 				//              Solve T11**H*R - R*T22**H = scale*X.
-				Ztrsyl('C', 'C', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1+1-1, n1+1-1), ldt, work.CMatrix(n1, opts), &n1, &scale, &ierr)
+				Ztrsyl('C', 'C', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1, n1), ldt, work.CMatrix(n1, opts), &n1, &scale, &ierr)
 			}
 			goto label30
 		}

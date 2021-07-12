@@ -62,7 +62,7 @@ func Zchksyaa2stage(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int
 			fmt.Printf(" Invalid input value: %4s=%6d; must be <=%6d\n", "M ", n, *nmax)
 			goto label180
 		}
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -148,7 +148,7 @@ func Zchksyaa2stage(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int
 							//                       Set the first IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, czero)
 								}
@@ -159,7 +159,7 @@ func Zchksyaa2stage(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int
 							//                       Set the last IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, czero)
 								}
@@ -190,7 +190,7 @@ func Zchksyaa2stage(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int
 					//                 the block structure of D. AINV is a work array for
 					//                 block factorization, LWORK is the length of AINV.
 					*srnamt = "ZSYTRF_AA_2STAGE"
-					lwork = minint(n*nb, 3*(*nmax)*(*nmax))
+					lwork = min(n*nb, 3*(*nmax)*(*nmax))
 					golapack.Zsytrfaa2stage(uplo, &n, afac.CMatrix(lda, opts), &lda, ainv, toPtr((3*nb+1)*n), iwork, toSlice(iwork, 1+n-1), work, &lwork, &info)
 
 					//                 Adjust the expected value of INFO to account for
@@ -260,7 +260,7 @@ func Zchksyaa2stage(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int
 						golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 						*srnamt = "ZSYTRS_AA_2STAGE"
-						lwork = maxint(1, 3*n-2)
+						lwork = max(1, 3*n-2)
 						golapack.Zsytrsaa2stage(uplo, &n, &nrhs, afac.CMatrix(lda, opts), &lda, ainv, toPtr((3*nb+1)*n), iwork, toSlice(iwork, 1+n-1), x.CMatrix(lda, opts), &lda, &info)
 						//
 						//                    Check error code from ZSYTRS and handle error.

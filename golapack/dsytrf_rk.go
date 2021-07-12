@@ -30,7 +30,7 @@ func DsytrfRk(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < 1 && !lquery {
 		(*info) = -8
@@ -55,8 +55,8 @@ func DsytrfRk(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 	if nb > 1 && nb < (*n) {
 		iws = ldwork * nb
 		if (*lwork) < iws {
-			nb = maxint((*lwork)/ldwork, 1)
-			nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DSYTRF_RK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+			nb = max((*lwork)/ldwork, 1)
+			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DSYTRF_RK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 		}
 	} else {
 		iws = 1
@@ -108,9 +108,9 @@ func DsytrfRk(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 		//        of the interchange with row i in both 1x1 and 2x2 pivot cases)
 		if k < (*n) {
 			for i = k; i >= (k - kb + 1); i-- {
-				ip = absint((*ipiv)[i-1])
+				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Dswap((*n)-k, a.Vector(i-1, k+1-1), *lda, a.Vector(ip-1, k+1-1), *lda)
+					goblas.Dswap((*n)-k, a.Vector(i-1, k, *lda), a.Vector(ip-1, k, *lda))
 				}
 			}
 		}
@@ -176,9 +176,9 @@ func DsytrfRk(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 		//
 		if k > 1 {
 			for i = k; i <= (k + kb - 1); i++ {
-				ip = absint((*ipiv)[i-1])
+				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Dswap(k-1, a.Vector(i-1, 0), *lda, a.Vector(ip-1, 0), *lda)
+					goblas.Dswap(k-1, a.Vector(i-1, 0, *lda), a.Vector(ip-1, 0, *lda))
 				}
 			}
 		}

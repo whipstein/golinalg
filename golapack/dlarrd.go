@@ -64,9 +64,9 @@ func Dlarrd(_range, order byte, n *int, vl, vu *float64, il, iu *int, gers *mat.
 		if (*vl) >= (*vu) {
 			(*info) = -5
 		}
-	} else if irange == indrng && ((*il) < 1 || (*il) > maxint(1, *n)) {
+	} else if irange == indrng && ((*il) < 1 || (*il) > max(1, *n)) {
 		(*info) = -6
-	} else if irange == indrng && ((*iu) < minint(*n, *il) || (*iu) > (*n)) {
+	} else if irange == indrng && ((*iu) < min(*n, *il) || (*iu) > (*n)) {
 		(*info) = -7
 	}
 
@@ -112,11 +112,11 @@ func Dlarrd(_range, order byte, n *int, vl, vu *float64, il, iu *int, gers *mat.
 	gl = d.Get(0)
 	gu = d.Get(0)
 	for i = 1; i <= (*n); i++ {
-		gl = minf64(gl, gers.Get(2*i-1-1))
-		gu = maxf64(gu, gers.Get(2*i-1))
+		gl = math.Min(gl, gers.Get(2*i-1-1))
+		gu = math.Max(gu, gers.Get(2*i-1))
 	}
 	//     Compute global Gerschgorin bounds and spectral diameter
-	tnorm = maxf64(math.Abs(gl), math.Abs(gu))
+	tnorm = math.Max(math.Abs(gl), math.Abs(gu))
 	gl = gl - fudge*tnorm*eps*float64(*n) - fudge*two*(*pivmin)
 	gu = gu + fudge*tnorm*eps*float64(*n) + fudge*two*(*pivmin)
 	//     [JAN/28/2009] remove the line below since SPDIAM variable not use
@@ -137,7 +137,7 @@ func Dlarrd(_range, order byte, n *int, vl, vu *float64, il, iu *int, gers *mat.
 		//        IL through IU. The initial interval [GL,GU] from the global
 		//        Gerschgorin bounds GL and GU is refined by DLAEBZ.
 		itmax = int((math.Log(tnorm+(*pivmin))-math.Log(*pivmin))/math.Log(two)) + 2
-		work.Set((*n)+1-1, gl)
+		work.Set((*n), gl)
 		work.Set((*n)+2-1, gl)
 		work.Set((*n)+3-1, gu)
 		work.Set((*n)+4-1, gu)
@@ -150,7 +150,7 @@ func Dlarrd(_range, order byte, n *int, vl, vu *float64, il, iu *int, gers *mat.
 		(*iwork)[4] = (*il) - 1
 		(*iwork)[5] = (*iu)
 
-		Dlaebz(func() *int { y := 3; return &y }(), &itmax, n, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), &nb, &atoli, &rtoli, pivmin, d, e, e2, toSlice(iwork, 4), work.MatrixOff((*n)+1-1, 2, opts), work.Off((*n)+5-1), &iout, iwork, w, iblock, &iinfo)
+		Dlaebz(func() *int { y := 3; return &y }(), &itmax, n, func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), &nb, &atoli, &rtoli, pivmin, d, e, e2, toSlice(iwork, 4), work.MatrixOff((*n), 2, opts), work.Off((*n)+5-1), &iout, iwork, w, iblock, &iinfo)
 		if iinfo != 0 {
 			(*info) = iinfo
 			return
@@ -270,8 +270,8 @@ func Dlarrd(_range, order byte, n *int, vl, vu *float64, il, iu *int, gers *mat.
 			gl = d.Get(ibegin - 1)
 			tmp1 = zero
 			for j = ibegin; j <= iend; j++ {
-				gl = minf64(gl, gers.Get(2*j-1-1))
-				gu = maxf64(gu, gers.Get(2*j-1))
+				gl = math.Min(gl, gers.Get(2*j-1-1))
+				gu = math.Max(gu, gers.Get(2*j-1))
 			}
 			//           [JAN/28/2009]
 			//           change SPDIAM by TNORM in lines 2 and 3 thereafter
@@ -290,29 +290,29 @@ func Dlarrd(_range, order byte, n *int, vl, vu *float64, il, iu *int, gers *mat.
 					goto label70
 				}
 				//              refine search interval if possible, only _range (WL,WU] matters
-				gl = maxf64(gl, *wl)
-				gu = minf64(gu, *wu)
+				gl = math.Max(gl, *wl)
+				gu = math.Min(gu, *wu)
 				if gl >= gu {
 					goto label70
 				}
 			}
 			//           Find negcount of initial interval boundaries GL and GU
-			work.Set((*n)+1-1, gl)
-			work.Set((*n)+in+1-1, gu)
-			_iblockm1 := (*iblock)[(*m)+1-1:]
-			Dlaebz(func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.MatrixOff((*n)+1-1, in, opts), work.Off((*n)+2*in+1-1), &im, iwork, w.Off((*m)+1-1), &_iblockm1, &iinfo)
+			work.Set((*n), gl)
+			work.Set((*n)+in, gu)
+			_iblockm1 := (*iblock)[(*m):]
+			Dlaebz(func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.MatrixOff((*n), in, opts), work.Off((*n)+2*in), &im, iwork, w.Off((*m)), &_iblockm1, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo
 				return
 			}
 
 			nwl = nwl + (*iwork)[0]
-			nwu = nwu + (*iwork)[in+1-1]
+			nwu = nwu + (*iwork)[in]
 			iwoff = (*m) - (*iwork)[0]
 			//           Compute Eigenvalues
 			itmax = int((math.Log(gu-gl+(*pivmin))-math.Log(*pivmin))/math.Log(two)) + 2
-			_iblockm1 = (*iblock)[(*m)+1-1:]
-			Dlaebz(func() *int { y := 2; return &y }(), &itmax, &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.MatrixOff((*n)+1-1, in, opts), work.Off((*n)+2*in+1-1), &iout, iwork, w.Off((*m)+1-1), &_iblockm1, &iinfo)
+			_iblockm1 = (*iblock)[(*m):]
+			Dlaebz(func() *int { y := 2; return &y }(), &itmax, &in, &in, func() *int { y := 1; return &y }(), &nb, &atoli, &rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.MatrixOff((*n), in, opts), work.Off((*n)+2*in), &iout, iwork, w.Off((*m)), &_iblockm1, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo
 				return

@@ -24,7 +24,7 @@ func Zsymv(uplo byte, n *int, alpha *complex128, a *mat.CMatrix, lda *int, x *ma
 		info = 1
 	} else if (*n) < 0 {
 		info = 2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		info = 5
 	} else if (*incx) == 0 {
 		info = 7

@@ -31,9 +31,9 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -4
-	} else if (*ldq) < 1 || (wantq && (*ldq) < maxint(1, *n)) {
+	} else if (*ldq) < 1 || (wantq && (*ldq) < max(1, *n)) {
 		(*info) = -6
 	} else if ((*ifst) < 1 || (*ifst) > (*n)) && ((*n) > 0) {
 		(*info) = -7
@@ -59,7 +59,7 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 	}
 	nbf = 1
 	if (*ifst) < (*n) {
-		if t.Get((*ifst)+1-1, (*ifst)-1) != zero {
+		if t.Get((*ifst), (*ifst)-1) != zero {
 			nbf = 2
 		}
 	}
@@ -73,7 +73,7 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 	}
 	nbl = 1
 	if (*ilst) < (*n) {
-		if t.Get((*ilst)+1-1, (*ilst)-1) != zero {
+		if t.Get((*ilst), (*ilst)-1) != zero {
 			nbl = 2
 		}
 	}
@@ -101,7 +101,7 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 			//           Current block either 1 by 1 or 2 by 2
 			nbnext = 1
 			if here+nbf+1 <= (*n) {
-				if t.Get(here+nbf+1-1, here+nbf-1) != zero {
+				if t.Get(here+nbf, here+nbf-1) != zero {
 					nbnext = 2
 				}
 			}
@@ -114,7 +114,7 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 
 			//           Test if 2 by 2 block breaks into two 1 by 1 blocks
 			if nbf == 2 {
-				if t.Get(here+1-1, here-1) == zero {
+				if t.Get(here, here-1) == zero {
 					nbf = 3
 				}
 			}
@@ -139,7 +139,7 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 				here = here + 1
 			} else {
 				//              Recompute NBNEXT in case 2 by 2 split
-				if t.Get(here+2-1, here+1-1) == zero {
+				if t.Get(here+2-1, here) == zero {
 					nbnext = 1
 				}
 				if nbnext == 2 {
@@ -186,7 +186,7 @@ func Dtrexc(compq byte, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, ifs
 
 			//           Test if 2 by 2 block breaks into two 1 by 1 blocks
 			if nbf == 2 {
-				if t.Get(here+1-1, here-1) == zero {
+				if t.Get(here, here-1) == zero {
 					nbf = 3
 				}
 			}

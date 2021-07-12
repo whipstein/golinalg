@@ -39,8 +39,8 @@ func Dlarrc(jobt byte, n *int, vl, vu *float64, d, e *mat.Vector, pivmin *float6
 		}
 		for i = 1; i <= (*n)-1; i++ {
 			tmp = math.Pow(e.Get(i-1), 2)
-			lpivot = (d.Get(i+1-1) - (*vl)) - tmp/lpivot
-			rpivot = (d.Get(i+1-1) - (*vu)) - tmp/rpivot
+			lpivot = (d.Get(i) - (*vl)) - tmp/lpivot
+			rpivot = (d.Get(i) - (*vu)) - tmp/rpivot
 			if lpivot <= zero {
 				(*lcnt) = (*lcnt) + 1
 			}

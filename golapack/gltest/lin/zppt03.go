@@ -48,22 +48,22 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 		//        Copy AINV
 		jj = 1
 		for j = 1; j <= (*n)-1; j++ {
-			goblas.Zcopy(j, ainv.Off(jj-1), 1, work.CVector(0, j+1-1), 1)
+			goblas.Zcopy(j, ainv.Off(jj-1, 1), work.CVector(0, j, 1))
 			for i = 1; i <= j-1; i++ {
-				work.Set(j-1, i+1-1, ainv.GetConj(jj+i-1-1))
+				work.Set(j-1, i, ainv.GetConj(jj+i-1-1))
 			}
 			jj = jj + j
 		}
 		jj = (((*n)-1)*(*n))/2 + 1
 		for i = 1; i <= (*n)-1; i++ {
-			work.Set((*n)-1, i+1-1, ainv.GetConj(jj+i-1-1))
+			work.Set((*n)-1, i, ainv.GetConj(jj+i-1-1))
 		}
 
 		//        Multiply by A
 		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Zhpmv(Upper, *n, -cone, a, work.CVector(0, j+1-1), 1, czero, work.CVector(0, j-1), 1)
+			err = goblas.Zhpmv(Upper, *n, -cone, a, work.CVector(0, j, 1), czero, work.CVector(0, j-1, 1))
 		}
-		err = goblas.Zhpmv(Upper, *n, -cone, a, ainv.Off(jj-1), 1, czero, work.CVector(0, (*n)-1), 1)
+		err = goblas.Zhpmv(Upper, *n, -cone, a, ainv.Off(jj-1, 1), czero, work.CVector(0, (*n)-1, 1))
 
 		//     UPLO = 'L':
 		//     Copy the trailing N-1 x N-1 submatrix of AINV to WORK(1:N,1:N-1)
@@ -71,11 +71,11 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 	} else {
 		//        Copy AINV
 		for i = 1; i <= (*n)-1; i++ {
-			work.Set(0, i-1, ainv.GetConj(i+1-1))
+			work.Set(0, i-1, ainv.GetConj(i))
 		}
 		jj = (*n) + 1
 		for j = 2; j <= (*n); j++ {
-			goblas.Zcopy((*n)-j+1, ainv.Off(jj-1), 1, work.CVector(j-1, j-1-1), 1)
+			goblas.Zcopy((*n)-j+1, ainv.Off(jj-1, 1), work.CVector(j-1, j-1-1, 1))
 			for i = 1; i <= (*n)-j; i++ {
 				work.Set(j-1, j+i-1-1, ainv.GetConj(jj+i-1))
 			}
@@ -84,9 +84,9 @@ func Zppt03(uplo byte, n *int, a, ainv *mat.CVector, work *mat.CMatrix, ldwork *
 
 		//        Multiply by A
 		for j = (*n); j >= 2; j-- {
-			err = goblas.Zhpmv(Lower, *n, -cone, a, work.CVector(0, j-1-1), 1, czero, work.CVector(0, j-1), 1)
+			err = goblas.Zhpmv(Lower, *n, -cone, a, work.CVector(0, j-1-1, 1), czero, work.CVector(0, j-1, 1))
 		}
-		err = goblas.Zhpmv(Lower, *n, -cone, a, ainv.Off(0), 1, czero, work.CVector(0, 0), 1)
+		err = goblas.Zhpmv(Lower, *n, -cone, a, ainv.Off(0, 1), czero, work.CVector(0, 0, 1))
 
 	}
 

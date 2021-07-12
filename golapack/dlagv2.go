@@ -41,7 +41,7 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 	ulp = Dlamch(Precision)
 
 	//     Scale A
-	anorm = maxf64(math.Abs(a.Get(0, 0))+math.Abs(a.Get(1, 0)), math.Abs(a.Get(0, 1))+math.Abs(a.Get(1, 1)), safmin)
+	anorm = math.Max(math.Abs(a.Get(0, 0))+math.Abs(a.Get(1, 0)), math.Max(math.Abs(a.Get(0, 1))+math.Abs(a.Get(1, 1)), safmin))
 	ascale = one / anorm
 	a.Set(0, 0, ascale*a.Get(0, 0))
 	a.Set(0, 1, ascale*a.Get(0, 1))
@@ -49,7 +49,7 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 	a.Set(1, 1, ascale*a.Get(1, 1))
 
 	//     Scale B
-	bnorm = maxf64(math.Abs(b.Get(0, 0)), math.Abs(b.Get(0, 1))+math.Abs(b.Get(1, 1)), safmin)
+	bnorm = math.Max(math.Abs(b.Get(0, 0)), math.Max(math.Abs(b.Get(0, 1))+math.Abs(b.Get(1, 1)), safmin))
 	bscale = one / bnorm
 	b.Set(0, 0, bscale*b.Get(0, 0))
 	b.Set(0, 1, bscale*b.Get(0, 1))
@@ -70,8 +70,8 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 		Dlartg(a.GetPtr(0, 0), a.GetPtr(1, 0), csl, snl, &r)
 		(*csr) = one
 		(*snr) = zero
-		goblas.Drot(2, a.Vector(0, 0), *lda, a.Vector(1, 0), *lda, *csl, *snl)
-		goblas.Drot(2, b.Vector(0, 0), *ldb, b.Vector(1, 0), *ldb, *csl, *snl)
+		goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), *csl, *snl)
+		goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), *csl, *snl)
 		a.Set(1, 0, zero)
 		b.Set(0, 0, zero)
 		b.Set(1, 0, zero)
@@ -80,8 +80,8 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 	} else if math.Abs(b.Get(1, 1)) <= ulp {
 		Dlartg(a.GetPtr(1, 1), a.GetPtr(1, 0), csr, snr, &t)
 		(*snr) = -(*snr)
-		goblas.Drot(2, a.Vector(0, 0), 1, a.Vector(0, 1), 1, *csr, *snr)
-		goblas.Drot(2, b.Vector(0, 0), 1, b.Vector(0, 1), 1, *csr, *snr)
+		goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), *csr, *snr)
+		goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), *csr, *snr)
 		(*csl) = one
 		(*snl) = zero
 		a.Set(1, 0, zero)
@@ -115,12 +115,12 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 			}
 
 			(*snr) = -(*snr)
-			goblas.Drot(2, a.Vector(0, 0), 1, a.Vector(0, 1), 1, *csr, *snr)
-			goblas.Drot(2, b.Vector(0, 0), 1, b.Vector(0, 1), 1, *csr, *snr)
+			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), *csr, *snr)
+			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), *csr, *snr)
 
 			//           compute inf norms of A and B
-			h1 = maxf64(math.Abs(a.Get(0, 0))+math.Abs(a.Get(0, 1)), math.Abs(a.Get(1, 0))+math.Abs(a.Get(1, 1)))
-			h2 = maxf64(math.Abs(b.Get(0, 0))+math.Abs(b.Get(0, 1)), math.Abs(b.Get(1, 0))+math.Abs(b.Get(1, 1)))
+			h1 = math.Max(math.Abs(a.Get(0, 0))+math.Abs(a.Get(0, 1)), math.Abs(a.Get(1, 0))+math.Abs(a.Get(1, 1)))
+			h2 = math.Max(math.Abs(b.Get(0, 0))+math.Abs(b.Get(0, 1)), math.Abs(b.Get(1, 0))+math.Abs(b.Get(1, 1)))
 
 			if (scale1 * h1) >= math.Abs(wr1)*h2 {
 				//              find left rotation matrix Q to zero out B(2,1)
@@ -132,8 +132,8 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 
 			}
 
-			goblas.Drot(2, a.Vector(0, 0), *lda, a.Vector(1, 0), *lda, *csl, *snl)
-			goblas.Drot(2, b.Vector(0, 0), *ldb, b.Vector(1, 0), *ldb, *csl, *snl)
+			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), *csl, *snl)
+			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), *csl, *snl)
 
 			a.Set(1, 0, zero)
 			b.Set(1, 0, zero)
@@ -145,10 +145,10 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 
 			//           Form (A,B) := Q(A,B)Z**T where Q is left rotation matrix and
 			//           Z is right rotation matrix computed from DLASV2
-			goblas.Drot(2, a.Vector(0, 0), *lda, a.Vector(1, 0), *lda, *csl, *snl)
-			goblas.Drot(2, b.Vector(0, 0), *ldb, b.Vector(1, 0), *ldb, *csl, *snl)
-			goblas.Drot(2, a.Vector(0, 0), 1, a.Vector(0, 1), 1, *csr, *snr)
-			goblas.Drot(2, b.Vector(0, 0), 1, b.Vector(0, 1), 1, *csr, *snr)
+			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), *csl, *snl)
+			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), *csl, *snl)
+			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), *csr, *snr)
+			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), *csr, *snr)
 
 			b.Set(1, 0, zero)
 			b.Set(0, 1, zero)

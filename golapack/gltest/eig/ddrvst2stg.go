@@ -154,7 +154,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -171,7 +171,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 		*info = -9
 	} else if (*ldu) < nmax {
 		*info = -16
-	} else if 2*int(math.Pow(float64(maxint(2, nmax)), 2)) > (*lwork) {
+	} else if 2*int(math.Pow(float64(max(2, nmax)), 2)) > (*lwork) {
 		*info = -21
 	}
 
@@ -221,12 +221,12 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//c           LIWEDC = 12
 			liwedc = 8
 		}
-		aninv = one / float64(maxint(1, n))
+		aninv = one / float64(max(1, n))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -309,33 +309,33 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, toPtr(0), toPtr(0), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, toPtr(0), toPtr(0), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
 				idumma[0] = 1
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, toPtr(6), &one, &one, 'T', 'N', work.Off(n+1-1), toPtr(1), &one, work.Off(2*n+1-1), toPtr(1), &one, 'N', &idumma, toPtr(0), toPtr(0), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, toPtr(6), &one, &one, 'T', 'N', work.Off(n), toPtr(1), &one, work.Off(2*n), toPtr(1), &one, 'N', &idumma, toPtr(0), toPtr(0), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
 				idumma[0] = 1
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, toPtr(6), &one, &one, 'T', 'N', work.Off(n+1-1), toPtr(1), &one, work.Off(2*n+1-1), toPtr(1), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, toPtr(6), &one, &one, 'T', 'N', work.Off(n), toPtr(1), &one, work.Off(2*n), toPtr(1), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              Symmetric banded, eigenvalues specified
 				ihbw = int(float64(n-1) * matgen.Dlarnd(toPtr(1), &iseed3))
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &ihbw, &ihbw, 'Z', u, ldu, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &ihbw, &ihbw, 'Z', u, ldu, work.Off(n), &iinfo)
 
 				//              Store as dense matrix for most routines.
 				golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
 				for idiag = -ihbw; idiag <= ihbw; idiag++ {
 					irow = ihbw - idiag + 1
-					j1 = maxint(1, idiag+1)
-					j2 = minint(n, n+idiag)
+					j1 = max(1, idiag+1)
+					j2 = min(n, n+idiag)
 					for j = j1; j <= j2; j++ {
 						i = j - idiag
 						a.Set(i-1, j-1, u.Get(irow-1, j-1))
@@ -375,7 +375,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEV"
 				golapack.Dstev('V', &n, d1, d2, z, ldu, work, &iinfo)
@@ -397,13 +397,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				Dstt21(&n, toPtr(0), d3, d4, d1, d2, z, ldu, work, result.Off(0))
 
 				ntest = 3
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEV"
 				golapack.Dstev('N', &n, d3, d4, z, ldu, work, &iinfo)
@@ -422,10 +422,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(2, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(2, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label180:
 				;
@@ -436,10 +436,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVX"
-				golapack.Dstevx('V', 'A', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dstevx('V', 'A', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(V,A)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -453,7 +453,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 				}
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
@@ -463,16 +463,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				Dstt21(&n, toPtr(0), d3, d4, wa1, d2, z, ldu, work, result.Off(3))
 
 				ntest = 6
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVX"
-				golapack.Dstevx('N', 'A', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dstevx('N', 'A', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(N,A)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -488,10 +488,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(wa2.Get(j-1)), math.Abs(eveigs.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(wa2.Get(j-1)-eveigs.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(wa2.Get(j-1)), math.Abs(eveigs.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(wa2.Get(j-1)-eveigs.Get(j-1)))
 				}
-				result.Set(5, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(5, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label250:
 				;
@@ -501,10 +501,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVR"
-				golapack.Dstevr('V', 'A', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstevr('V', 'A', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(V,A)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -517,7 +517,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 				}
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
@@ -527,16 +527,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				Dstt21(&n, toPtr(0), d3, d4, wa1, d2, z, ldu, work, result.Off(6))
 
 				ntest = 9
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVR"
-				golapack.Dstevr('N', 'A', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstevr('N', 'A', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(N,A)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -552,10 +552,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(wa2.Get(j-1)), math.Abs(eveigs.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(wa2.Get(j-1)-eveigs.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(wa2.Get(j-1)), math.Abs(eveigs.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(wa2.Get(j-1)-eveigs.Get(j-1)))
 				}
-				result.Set(8, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(8, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label320:
 				;
@@ -565,10 +565,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVX"
-				golapack.Dstevx('V', 'I', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dstevx('V', 'I', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(V,I)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -587,16 +587,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(maxint(1, m2), opts), toPtr(maxint(1, m2)), result.Off(9))
+				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(9))
 
 				ntest = 12
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVX"
-				golapack.Dstevx('N', 'I', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dstevx('N', 'I', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(N,I)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -611,7 +611,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do test 12.
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
-				result.Set(11, (temp1+temp2)/maxf64(unfl, ulp*temp3))
+				result.Set(11, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 
 			label380:
 				;
@@ -619,14 +619,14 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = 12
 				if n > 0 {
 					if il != 1 {
-						vl = wa1.Get(il-1) - maxf64(half*(wa1.Get(il-1)-wa1.Get(il-1-1)), ten*ulp*temp3, ten*rtunfl)
+						vl = wa1.Get(il-1) - math.Max(half*(wa1.Get(il-1)-wa1.Get(il-1-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else {
-						vl = wa1.Get(0) - maxf64(half*(wa1.Get(n-1)-wa1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vl = wa1.Get(0) - math.Max(half*(wa1.Get(n-1)-wa1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 					if iu != n {
-						vu = wa1.Get(iu-1) + maxf64(half*(wa1.Get(iu+1-1)-wa1.Get(iu-1)), ten*ulp*temp3, ten*rtunfl)
+						vu = wa1.Get(iu-1) + math.Max(half*(wa1.Get(iu)-wa1.Get(iu-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else {
-						vu = wa1.Get(n-1) + maxf64(half*(wa1.Get(n-1)-wa1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vu = wa1.Get(n-1) + math.Max(half*(wa1.Get(n-1)-wa1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 				} else {
 					vl = zero
@@ -637,10 +637,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVX"
-				golapack.Dstevx('V', 'V', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dstevx('V', 'V', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(V,V)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -666,16 +666,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(maxint(1, m2), opts), toPtr(maxint(1, m2)), result.Off(12))
+				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(12))
 
 				ntest = 15
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVX"
-				golapack.Dstevx('N', 'V', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dstevx('N', 'V', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(N,V)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -690,7 +690,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do test 15.
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
-				result.Set(14, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(14, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label440:
 				;
@@ -700,7 +700,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVD"
 				golapack.Dstevd('V', &n, d1, d2, z, ldu, work, &lwedc, iwork, &liwedc, &iinfo)
@@ -722,13 +722,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				Dstt21(&n, toPtr(0), d3, d4, d1, d2, z, ldu, work, result.Off(15))
 
 				ntest = 18
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVD"
 				golapack.Dstevd('N', &n, d3, d4, z, ldu, work, &lwedc, iwork, &liwedc, &iinfo)
@@ -747,10 +747,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(eveigs.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(eveigs.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(eveigs.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(eveigs.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(17, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(17, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label510:
 				;
@@ -760,10 +760,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVR"
-				golapack.Dstevr('V', 'I', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstevr('V', 'I', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(V,I)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -782,16 +782,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(maxint(1, m2), opts), toPtr(maxint(1, m2)), result.Off(18))
+				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(18))
 
 				ntest = 21
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVR"
-				golapack.Dstevr('N', 'I', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstevr('N', 'I', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(N,I)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -806,7 +806,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do test 21.
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
-				result.Set(20, (temp1+temp2)/maxf64(unfl, ulp*temp3))
+				result.Set(20, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 
 			label570:
 				;
@@ -814,14 +814,14 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = 21
 				if n > 0 {
 					if il != 1 {
-						vl = wa1.Get(il-1) - maxf64(half*(wa1.Get(il-1)-wa1.Get(il-1-1)), ten*ulp*temp3, ten*rtunfl)
+						vl = wa1.Get(il-1) - math.Max(half*(wa1.Get(il-1)-wa1.Get(il-1-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else {
-						vl = wa1.Get(0) - maxf64(half*(wa1.Get(n-1)-wa1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vl = wa1.Get(0) - math.Max(half*(wa1.Get(n-1)-wa1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 					if iu != n {
-						vu = wa1.Get(iu-1) + maxf64(half*(wa1.Get(iu+1-1)-wa1.Get(iu-1)), ten*ulp*temp3, ten*rtunfl)
+						vu = wa1.Get(iu-1) + math.Max(half*(wa1.Get(iu)-wa1.Get(iu-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else {
-						vu = wa1.Get(n-1) + maxf64(half*(wa1.Get(n-1)-wa1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vu = wa1.Get(n-1) + math.Max(half*(wa1.Get(n-1)-wa1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 				} else {
 					vl = zero
@@ -832,10 +832,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d1.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d2.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVR"
-				golapack.Dstevr('V', 'V', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstevr('V', 'V', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(V,V)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -861,16 +861,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					d3.Set(i-1, float64(a.Get(i-1, i-1)))
 				}
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(maxint(1, m2), opts), toPtr(maxint(1, m2)), result.Off(21))
+				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(21))
 
 				ntest = 24
 				for i = 1; i <= n-1; i++ {
-					d4.Set(i-1, float64(a.Get(i+1-1, i-1)))
+					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
 				*srnamt = "DSTEVR"
-				golapack.Dstevr('N', 'V', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstevr('N', 'V', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(N,V)", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -885,7 +885,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do test 24.
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
-				result.Set(23, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(23, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label630:
 			} else {
@@ -917,7 +917,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label660
 					}
@@ -946,10 +946,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label660:
 				;
@@ -958,16 +958,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 1
 
 				if n > 0 {
-					temp3 = maxf64(math.Abs(d1.Get(0)), math.Abs(d1.Get(n-1)))
+					temp3 = math.Max(math.Abs(d1.Get(0)), math.Abs(d1.Get(n-1)))
 					if il != 1 {
-						vl = d1.Get(il-1) - maxf64(half*(d1.Get(il-1)-d1.Get(il-1-1)), ten*ulp*temp3, ten*rtunfl)
+						vl = d1.Get(il-1) - math.Max(half*(d1.Get(il-1)-d1.Get(il-1-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else if n > 0 {
-						vl = d1.Get(0) - maxf64(half*(d1.Get(n-1)-d1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vl = d1.Get(0) - math.Max(half*(d1.Get(n-1)-d1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 					if iu != n {
-						vu = d1.Get(iu-1) + maxf64(half*(d1.Get(iu+1-1)-d1.Get(iu-1)), ten*ulp*temp3, ten*rtunfl)
+						vu = d1.Get(iu-1) + math.Max(half*(d1.Get(iu)-d1.Get(iu-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else if n > 0 {
-						vu = d1.Get(n-1) + maxf64(half*(d1.Get(n-1)-d1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vu = d1.Get(n-1) + math.Max(half*(d1.Get(n-1)-d1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 				} else {
 					temp3 = zero
@@ -976,7 +976,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				*srnamt = "DSYEVX"
-				golapack.Dsyevx('V', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsyevx('V', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -984,7 +984,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label680
 					}
@@ -997,7 +997,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				ntest = ntest + 2
 				*srnamt = "DSYEVX_2STAGE"
-				golapack.Dsyevx2stage('N', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsyevx2stage('N', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX_2STAGE(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1013,10 +1013,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(wa1.Get(j-1)), math.Abs(wa2.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(wa1.Get(j-1)-wa2.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(wa1.Get(j-1)), math.Abs(wa2.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(wa1.Get(j-1)-wa2.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label680:
 				;
@@ -1024,7 +1024,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 1
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVX"
-				golapack.Dsyevx('V', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsyevx('V', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1032,7 +1032,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label690
 					}
@@ -1046,7 +1046,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 2
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVX_2STAGE"
-				golapack.Dsyevx2stage('N', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsyevx2stage('N', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX_2STAGE(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1061,14 +1061,14 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do test 33 (or +54)
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, ulp*temp3))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 			label690:
 				;
 
 				ntest = ntest + 1
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVX"
-				golapack.Dsyevx('V', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsyevx('V', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1076,7 +1076,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label700
 					}
@@ -1090,7 +1090,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 2
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVX_2STAGE"
-				golapack.Dsyevx2stage('N', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsyevx2stage('N', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX_2STAGE(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1111,11 +1111,11 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label700:
 				;
@@ -1153,7 +1153,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label800
 					}
@@ -1198,10 +1198,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 				//              Load array WORK with the upper or lower triangular part
 				//              of the matrix in packed form.
@@ -1228,16 +1228,16 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 1
 
 				if n > 0 {
-					temp3 = maxf64(math.Abs(d1.Get(0)), math.Abs(d1.Get(n-1)))
+					temp3 = math.Max(math.Abs(d1.Get(0)), math.Abs(d1.Get(n-1)))
 					if il != 1 {
-						vl = d1.Get(il-1) - maxf64(half*(d1.Get(il-1)-d1.Get(il-1-1)), ten*ulp*temp3, ten*rtunfl)
+						vl = d1.Get(il-1) - math.Max(half*(d1.Get(il-1)-d1.Get(il-1-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else if n > 0 {
-						vl = d1.Get(0) - maxf64(half*(d1.Get(n-1)-d1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vl = d1.Get(0) - math.Max(half*(d1.Get(n-1)-d1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 					if iu != n {
-						vu = d1.Get(iu-1) + maxf64(half*(d1.Get(iu+1-1)-d1.Get(iu-1)), ten*ulp*temp3, ten*rtunfl)
+						vu = d1.Get(iu-1) + math.Max(half*(d1.Get(iu)-d1.Get(iu-1)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					} else if n > 0 {
-						vu = d1.Get(n-1) + maxf64(half*(d1.Get(n-1)-d1.Get(0)), ten*ulp*temp3, ten*rtunfl)
+						vu = d1.Get(n-1) + math.Max(half*(d1.Get(n-1)-d1.Get(0)), math.Max(ten*ulp*temp3, ten*rtunfl))
 					}
 				} else {
 					temp3 = zero
@@ -1246,7 +1246,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				*srnamt = "DSPEVX"
-				golapack.Dspevx('V', 'A', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dspevx('V', 'A', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1254,7 +1254,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label900
 					}
@@ -1284,7 +1284,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				*srnamt = "DSPEVX"
-				golapack.Dspevx('N', 'A', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dspevx('N', 'A', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1300,10 +1300,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(wa1.Get(j-1)), math.Abs(wa2.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(wa1.Get(j-1)-wa2.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(wa1.Get(j-1)), math.Abs(wa2.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(wa1.Get(j-1)-wa2.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label900:
 				;
@@ -1328,7 +1328,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 1
 
 				*srnamt = "DSPEVX"
-				golapack.Dspevx('V', 'I', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dspevx('V', 'I', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1336,7 +1336,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label990
 					}
@@ -1366,7 +1366,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				*srnamt = "DSPEVX"
-				golapack.Dspevx('N', 'I', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dspevx('N', 'I', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1387,11 +1387,11 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label990:
 				;
@@ -1416,7 +1416,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 1
 
 				*srnamt = "DSPEVX"
-				golapack.Dspevx('V', 'V', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dspevx('V', 'V', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1424,7 +1424,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1080
 					}
@@ -1454,7 +1454,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				*srnamt = "DSPEVX"
-				golapack.Dspevx('N', 'V', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dspevx('N', 'V', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1475,11 +1475,11 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label1080:
 				;
@@ -1488,7 +1488,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if jtype <= 7 {
 					kd = 1
 				} else if jtype >= 8 && jtype <= 15 {
-					kd = maxint(n-1, 0)
+					kd = max(n-1, 0)
 				} else {
 					kd = ihbw
 				}
@@ -1497,13 +1497,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              of the matrix in band form.
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
@@ -1519,7 +1519,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1180
 					}
@@ -1530,13 +1530,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
@@ -1560,10 +1560,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 				//              Load array V with the upper or lower triangular part
 				//              of the matrix in band form.
@@ -1571,13 +1571,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				;
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
@@ -1585,7 +1585,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				ntest = ntest + 1
 				*srnamt = "DSBEVX"
-				golapack.Dsbevx('V', 'A', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsbevx('V', 'A', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1593,7 +1593,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1280
 					}
@@ -1606,20 +1606,20 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				}
 
 				*srnamt = "DSBEVX_2STAGE"
-				golapack.Dsbevx2stage('N', 'A', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsbevx2stage('N', 'A', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX_2STAGE(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1635,30 +1635,30 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(wa2.Get(j-1)), math.Abs(wa3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(wa2.Get(j-1)-wa3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(wa2.Get(j-1)), math.Abs(wa3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(wa2.Get(j-1)-wa3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label1280:
 				;
 				ntest = ntest + 1
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				}
 
 				*srnamt = "DSBEVX"
-				golapack.Dsbevx('V', 'I', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsbevx('V', 'I', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1666,7 +1666,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1370
 					}
@@ -1679,20 +1679,20 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				}
 
 				*srnamt = "DSBEVX_2STAGE"
-				golapack.Dsbevx2stage('N', 'I', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsbevx2stage('N', 'I', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX_2STAGE(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1708,31 +1708,31 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 				//
 			label1370:
 				;
 				ntest = ntest + 1
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				}
 
 				*srnamt = "DSBEVX"
-				golapack.Dsbevx('V', 'V', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsbevx('V', 'V', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1740,7 +1740,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1460
 					}
@@ -1753,20 +1753,20 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				}
 
 				*srnamt = "DSBEVX_2STAGE"
-				golapack.Dsbevx2stage('N', 'V', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n+1-1), &iinfo)
+				golapack.Dsbevx2stage('N', 'V', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX_2STAGE(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -1787,11 +1787,11 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label1460:
 				;
@@ -1809,7 +1809,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1480
 					}
@@ -1838,10 +1838,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label1480:
 				;
@@ -1879,7 +1879,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1580
 					}
@@ -1925,10 +1925,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 			label1580:
 				;
 
@@ -1936,7 +1936,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if jtype <= 7 {
 					kd = 1
 				} else if jtype >= 8 && jtype <= 15 {
-					kd = maxint(n-1, 0)
+					kd = max(n-1, 0)
 				} else {
 					kd = ihbw
 				}
@@ -1945,13 +1945,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              of the matrix in band form.
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
@@ -1967,7 +1967,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1680
 					}
@@ -1978,13 +1978,13 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				if iuplo == 1 {
 					for j = 1; j <= n; j++ {
-						for i = maxint(1, j-kd); i <= j; i++ {
+						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
 				} else {
 					for j = 1; j <= n; j++ {
-						for i = j; i <= minint(n, j+kd); i++ {
+						for i = j; i <= min(n, j+kd); i++ {
 							v.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 						}
 					}
@@ -2008,10 +2008,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label1680:
 				;
@@ -2019,7 +2019,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				golapack.Dlacpy(' ', &n, &n, a, lda, v, ldu)
 				ntest = ntest + 1
 				*srnamt = "DSYEVR"
-				golapack.Dsyevr('V', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dsyevr('V', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -2027,7 +2027,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1700
 					}
@@ -2040,7 +2040,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				ntest = ntest + 2
 				*srnamt = "DSYEVR_2STAGE"
-				golapack.Dsyevr2stage('N', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dsyevr2stage('N', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR_2STAGE(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -2056,10 +2056,10 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(wa1.Get(j-1)), math.Abs(wa2.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(wa1.Get(j-1)-wa2.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(wa1.Get(j-1)), math.Abs(wa2.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(wa1.Get(j-1)-wa2.Get(j-1)))
 				}
-				result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			label1700:
 				;
@@ -2067,7 +2067,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 1
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVR"
-				golapack.Dsyevr('V', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dsyevr('V', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -2075,7 +2075,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label1710
 					}
@@ -2089,7 +2089,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 2
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVR_2STAGE"
-				golapack.Dsyevr2stage('N', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dsyevr2stage('N', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR_2STAGE(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -2104,14 +2104,14 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do test 75 (or +54)
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, ulp*temp3))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 			label1710:
 				;
 
 				ntest = ntest + 1
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVR"
-				golapack.Dsyevr('V', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dsyevr('V', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -2119,7 +2119,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
-						result.Set(ntest+1-1, ulpinv)
+						result.Set(ntest, ulpinv)
 						result.Set(ntest+2-1, ulpinv)
 						goto label700
 					}
@@ -2133,7 +2133,7 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				ntest = ntest + 2
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 				*srnamt = "DSYEVR_2STAGE"
-				golapack.Dsyevr2stage('N', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dsyevr2stage('N', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					fmt.Printf(" DDRVST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR_2STAGE(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
 					*info = int(math.Abs(float64(iinfo)))
@@ -2154,11 +2154,11 @@ func Ddrvst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 				if n > 0 {
-					temp3 = maxf64(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
+					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
 					temp3 = zero
 				}
-				result.Set(ntest-1, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
 

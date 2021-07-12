@@ -68,24 +68,24 @@ import (
 //               H
 // (8)   | I - ZZ  | / ( n ulp )
 //
-// (9)   maxint over all left eigenvalue/-vector pairs (beta/alpha,l) of
+// (9)   max over all left eigenvalue/-vector pairs (beta/alpha,l) of
 //                           H
-//       | (beta A - alpha B) l | / ( ulp maxint( |beta A|, |alpha B| ) )
+//       | (beta A - alpha B) l | / ( ulp max( |beta A|, |alpha B| ) )
 //
-// (10)  maxint over all left eigenvalue/-vector pairs (beta/alpha,l') of
+// (10)  max over all left eigenvalue/-vector pairs (beta/alpha,l') of
 //                           H
-//       | (beta H - alpha T) l' | / ( ulp maxint( |beta H|, |alpha T| ) )
+//       | (beta H - alpha T) l' | / ( ulp max( |beta H|, |alpha T| ) )
 //
 //       where the eigenvectors l' are the result of passing Q to
 //       DTGEVC and back transforming (JOB='B').
 //
-// (11)  maxint over all right eigenvalue/-vector pairs (beta/alpha,r) of
+// (11)  max over all right eigenvalue/-vector pairs (beta/alpha,r) of
 //
-//       | (beta A - alpha B) r | / ( ulp maxint( |beta A|, |alpha B| ) )
+//       | (beta A - alpha B) r | / ( ulp max( |beta A|, |alpha B| ) )
 //
-// (12)  maxint over all right eigenvalue/-vector pairs (beta/alpha,r') of
+// (12)  max over all right eigenvalue/-vector pairs (beta/alpha,r') of
 //
-//       | (beta H - alpha T) r' | / ( ulp maxint( |beta H|, |alpha T| ) )
+//       | (beta H - alpha T) r' | / ( ulp max( |beta H|, |alpha T| ) )
 //
 //       where the eigenvectors r' are the result of passing Z to
 //       DTGEVC and back transforming (JOB='B').
@@ -98,7 +98,7 @@ import (
 //
 // (14)  | P(Q,Z computed) - P(Q,Z not computed) | / ( |P| ulp )
 //
-// (15)  maxint( |alpha(Q,Z computed) - alpha(Q,Z not computed)|/|S| ,
+// (15)  max( |alpha(Q,Z computed) - alpha(Q,Z not computed)|/|S| ,
 //            |beta(Q,Z computed) - beta(Q,Z not computed)|/|P| ) / ulp
 //
 // In addition, the normalization of L and R are checked, and compared
@@ -239,13 +239,13 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
 	}
 
-	lwkopt = maxint(2*nmax*nmax, 4*nmax, 1)
+	lwkopt = max(2*nmax*nmax, 4*nmax, 1)
 
 	//     Check for errors
 	if (*nsizes) < 0 {
@@ -292,14 +292,14 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -345,7 +345,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			iinfo = 0
 			if kclass[jtype-1] < 3 {
 				//              Generate A (w/o rotation)
-				if absint(katype[jtype-1]) == 3 {
+				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Zlaset('F', &n, &n, &czero, &czero, a, lda)
@@ -361,7 +361,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//
 				//              Generate B (w/o rotation)
 				//
-				if absint(kbtype[jtype-1]) == 3 {
+				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Zlaset('F', &n, &n, &czero, &czero, b, lda)
@@ -386,10 +386,10 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							u.Set(jr-1, jc-1, matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed))
 							v.Set(jr-1, jc-1, matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed))
 						}
-						golapack.Zlarfg(toPtr(n+1-jc), u.GetPtr(jc-1, jc-1), u.CVector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						golapack.Zlarfg(toPtr(n+1-jc), u.GetPtr(jc-1, jc-1), u.CVector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
 						work.SetRe(2*n+jc-1, math.Copysign(one, u.GetRe(jc-1, jc-1)))
 						u.Set(jc-1, jc-1, cone)
-						golapack.Zlarfg(toPtr(n+1-jc), v.GetPtr(jc-1, jc-1), v.CVector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						golapack.Zlarfg(toPtr(n+1-jc), v.GetPtr(jc-1, jc-1), v.CVector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
 						work.SetRe(3*n+jc-1, math.Copysign(one, v.GetRe(jc-1, jc-1)))
 						v.Set(jc-1, jc-1, cone)
 					}
@@ -409,19 +409,19 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.GetConj(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), v, ldu, work.Off(n+1-1), a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), v, ldu, work.Off(n), a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), v, ldu, work.Off(n+1-1), b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), v, ldu, work.Off(n), b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
@@ -445,7 +445,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -458,28 +458,28 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ntest = 1
 			result.Set(0, ulpinv)
 
-			golapack.Zgeqr2(&n, &n, t, lda, work, work.Off(n+1-1), &iinfo)
+			golapack.Zgeqr2(&n, &n, t, lda, work, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGEQR2", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
-			golapack.Zunm2r('L', 'C', &n, &n, &n, t, lda, work, h, lda, work.Off(n+1-1), &iinfo)
+			golapack.Zunm2r('L', 'C', &n, &n, &n, t, lda, work, h, lda, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNM2R", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
 			golapack.Zlaset('F', &n, &n, &czero, &cone, u, ldu)
-			golapack.Zunm2r('R', 'N', &n, &n, &n, t, lda, work, u, ldu, work.Off(n+1-1), &iinfo)
+			golapack.Zunm2r('R', 'N', &n, &n, &n, t, lda, work, u, ldu, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNM2R", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -487,7 +487,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGGHRD", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 			ntest = 4
@@ -512,7 +512,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHGEQZ(E)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -524,7 +524,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHGEQZ(S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -536,7 +536,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHGEQZ(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -569,7 +569,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTGEVC(L,S1)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -581,11 +581,11 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				(*llwork)[j-1] = true
 			}
 
-			golapack.Ztgevc('L', 'S', *llwork, &n, s1, lda, p1, lda, evectl.Off(0, i1+1-1), ldu, cdumma.CMatrix(*ldu, opts), ldu, &n, &in, work, rwork, &iinfo)
+			golapack.Ztgevc('L', 'S', *llwork, &n, s1, lda, p1, lda, evectl.Off(0, i1), ldu, cdumma.CMatrix(*ldu, opts), ldu, &n, &in, work, rwork, &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTGEVC(L,S2)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -605,7 +605,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTGEVC(L,B)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -635,7 +635,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTGEVC(R,S1)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -647,11 +647,11 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				(*llwork)[j-1] = true
 			}
 
-			golapack.Ztgevc('R', 'S', *llwork, &n, s1, lda, p1, lda, cdumma.CMatrix(*ldu, opts), ldu, evectr.Off(0, i1+1-1), ldu, &n, &in, work, rwork, &iinfo)
+			golapack.Ztgevc('R', 'S', *llwork, &n, s1, lda, p1, lda, cdumma.CMatrix(*ldu, opts), ldu, evectr.Off(0, i1), ldu, &n, &in, work, rwork, &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTGEVC(R,S2)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -671,7 +671,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTGEVC(R,B)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -692,13 +692,13 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, cmplx.Abs(alpha1.Get(j-1)-alpha3.Get(j-1)))
-					temp2 = maxf64(temp2, cmplx.Abs(beta1.Get(j-1)-beta3.Get(j-1)))
+					temp1 = math.Max(temp1, cmplx.Abs(alpha1.Get(j-1)-alpha3.Get(j-1)))
+					temp2 = math.Max(temp2, cmplx.Abs(beta1.Get(j-1)-beta3.Get(j-1)))
 				}
 
-				temp1 = temp1 / maxf64(safmin, ulp*maxf64(temp1, anorm))
-				temp2 = temp2 / maxf64(safmin, ulp*maxf64(temp2, bnorm))
-				result.Set(14, maxf64(temp1, temp2))
+				temp1 = temp1 / math.Max(safmin, ulp*math.Max(temp1, anorm))
+				temp2 = temp2 / math.Max(safmin, ulp*math.Max(temp2, bnorm))
+				result.Set(14, math.Max(temp1, temp2))
 				ntest = 15
 			} else {
 				result.Set(12, zero)
@@ -727,7 +727,7 @@ func Zchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						fmt.Printf(" Matrices Rotated by Random %s Matrices U, V:\n  16=Transposed Jordan Blocks             19=geometric alpha, beta=0,1\n  17=arithm. alpha&beta                   20=arithmetic alpha, beta=0,1\n  18=clustered alpha, beta=0,1            21=random alpha, beta=0,1\n Large & Small Matrices:\n  22=(large, small)   23=(small,large)    24=(small,small)    25=(large,large)\n  26=random O(1) matrices.\n", "Unitary")
 
 						//                    Tests performed
-						fmt.Printf("\n Tests performed:   (H is Hessenberg, S is Schur, B, T, P are triangular,\n                    U, V, Q, and Z are %s, l and r are the\n                    appropriate left and right eigenvectors, resp., a is\n                    alpha, b is beta, and %s means %s.)\n 1 = | A - U H V%s | / ( |A| n ulp )      2 = | B - U T V%s | / ( |B| n ulp )\n 3 = | I - UU%s | / ( n ulp )             4 = | I - VV%s | / ( n ulp )\n 5 = | H - Q S Z%s | / ( |H| n ulp )      6 = | T - Q P Z%s | / ( |T| n ulp )\n 7 = | I - QQ%s | / ( n ulp )             8 = | I - ZZ%s | / ( n ulp )\n 9 = maxint | ( b S - a P )%s l | / const.  10 = maxint | ( b H - a T )%s l | / const.\n 11= maxint | ( b S - a P ) r | / const.   12 = maxint | ( b H - a T ) r | / const.\n \n", "unitary", "*", "conjugate transpose", "*", "*", "*", "*", "*", "*", "*", "*", "*", "*")
+						fmt.Printf("\n Tests performed:   (H is Hessenberg, S is Schur, B, T, P are triangular,\n                    U, V, Q, and Z are %s, l and r are the\n                    appropriate left and right eigenvectors, resp., a is\n                    alpha, b is beta, and %s means %s.)\n 1 = | A - U H V%s | / ( |A| n ulp )      2 = | B - U T V%s | / ( |B| n ulp )\n 3 = | I - UU%s | / ( n ulp )             4 = | I - VV%s | / ( n ulp )\n 5 = | H - Q S Z%s | / ( |H| n ulp )      6 = | T - Q P Z%s | / ( |T| n ulp )\n 7 = | I - QQ%s | / ( n ulp )             8 = | I - ZZ%s | / ( n ulp )\n 9 = max | ( b S - a P )%s l | / const.  10 = max | ( b H - a T )%s l | / const.\n 11= max | ( b S - a P ) r | / const.   12 = max | ( b H - a T ) r | / const.\n \n", "unitary", "*", "conjugate transpose", "*", "*", "*", "*", "*", "*", "*", "*", "*", "*")
 
 					}
 					nerrs = nerrs + 1

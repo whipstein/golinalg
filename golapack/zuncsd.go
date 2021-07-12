@@ -19,7 +19,7 @@ import (
 // X11 is P-by-Q. The unitary matrices U1, U2, V1, and V2 are P-by-P,
 // (M-P)-by-(M-P), Q-by-Q, and (M-Q)-by-(M-Q), respectively. C and S are
 // R-by-R nonnegative diagonal matrices satisfying C^2 + S^2 = I, in
-// which R = minint(P,M-P,Q,M-Q).
+// which R = min(P,M-P,Q,M-Q).
 func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x12 *mat.CMatrix, ldx12 *int, x21 *mat.CMatrix, ldx21 *int, x22 *mat.CMatrix, ldx22 *int, theta *mat.Vector, u1 *mat.CMatrix, ldu1 *int, u2 *mat.CMatrix, ldu2 *int, v1t *mat.CMatrix, ldv1t *int, v2t *mat.CMatrix, ldv2t *int, work *mat.CVector, lwork *int, rwork *mat.Vector, lrwork *int, iwork *[]int, info *int) {
 	var colmajor, defaultsigns, lquery, lrquery, wantu1, wantu2, wantv1t, wantv2t bool
 	var signst, transt byte
@@ -45,21 +45,21 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 		(*info) = -8
 	} else if (*q) < 0 || (*q) > (*m) {
 		(*info) = -9
-	} else if colmajor && (*ldx11) < maxint(1, *p) {
+	} else if colmajor && (*ldx11) < max(1, *p) {
 		(*info) = -11
-	} else if !colmajor && (*ldx11) < maxint(1, *q) {
+	} else if !colmajor && (*ldx11) < max(1, *q) {
 		(*info) = -11
-	} else if colmajor && (*ldx12) < maxint(1, *p) {
+	} else if colmajor && (*ldx12) < max(1, *p) {
 		(*info) = -13
-	} else if !colmajor && (*ldx12) < maxint(1, (*m)-(*q)) {
+	} else if !colmajor && (*ldx12) < max(1, (*m)-(*q)) {
 		(*info) = -13
-	} else if colmajor && (*ldx21) < maxint(1, (*m)-(*p)) {
+	} else if colmajor && (*ldx21) < max(1, (*m)-(*p)) {
 		(*info) = -15
-	} else if !colmajor && (*ldx21) < maxint(1, *q) {
+	} else if !colmajor && (*ldx21) < max(1, *q) {
 		(*info) = -15
-	} else if colmajor && (*ldx22) < maxint(1, (*m)-(*p)) {
+	} else if colmajor && (*ldx22) < max(1, (*m)-(*p)) {
 		(*info) = -17
-	} else if !colmajor && (*ldx22) < maxint(1, (*m)-(*q)) {
+	} else if !colmajor && (*ldx22) < max(1, (*m)-(*q)) {
 		(*info) = -17
 	} else if wantu1 && (*ldu1) < (*p) {
 		(*info) = -20
@@ -72,7 +72,7 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 	}
 
 	//     Work with transpose if convenient
-	if (*info) == 0 && minint(*p, (*m)-(*p)) < minint(*q, (*m)-(*q)) {
+	if (*info) == 0 && min(*p, (*m)-(*p)) < min(*q, (*m)-(*q)) {
 		if colmajor {
 			transt = 'T'
 		} else {
@@ -103,15 +103,15 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 	if (*info) == 0 {
 		//        Real workspace
 		iphi = 2
-		ib11d = iphi + maxint(1, (*q)-1)
-		ib11e = ib11d + maxint(1, *q)
-		ib12d = ib11e + maxint(1, (*q)-1)
-		ib12e = ib12d + maxint(1, *q)
-		ib21d = ib12e + maxint(1, (*q)-1)
-		ib21e = ib21d + maxint(1, *q)
-		ib22d = ib21e + maxint(1, (*q)-1)
-		ib22e = ib22d + maxint(1, *q)
-		ibbcsd = ib22e + maxint(1, (*q)-1)
+		ib11d = iphi + max(1, (*q)-1)
+		ib11e = ib11d + max(1, *q)
+		ib12d = ib11e + max(1, (*q)-1)
+		ib12e = ib12d + max(1, *q)
+		ib21d = ib12e + max(1, (*q)-1)
+		ib21e = ib21d + max(1, *q)
+		ib22d = ib21e + max(1, (*q)-1)
+		ib22e = ib22d + max(1, *q)
+		ibbcsd = ib22e + max(1, (*q)-1)
 		Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans, m, p, q, theta, theta, u1, ldu1, u2, ldu2, v1t, ldv1t, v2t, ldv2t, theta, theta, theta, theta, theta, theta, theta, theta, rwork, toPtr(-1), &childinfo)
 		lbbcsdworkopt = int(rwork.Get(0))
 		lbbcsdworkmin = lbbcsdworkopt
@@ -121,24 +121,24 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 
 		//        Complex workspace
 		itaup1 = 2
-		itaup2 = itaup1 + maxint(1, *p)
-		itauq1 = itaup2 + maxint(1, (*m)-(*p))
-		itauq2 = itauq1 + maxint(1, *q)
-		iorgqr = itauq2 + maxint(1, (*m)-(*q))
-		Zungqr(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(maxint(1, (*m)-(*q))), u1.CVector(0, 0), work, toPtr(-1), &childinfo)
+		itaup2 = itaup1 + max(1, *p)
+		itauq1 = itaup2 + max(1, (*m)-(*p))
+		itauq2 = itauq1 + max(1, *q)
+		iorgqr = itauq2 + max(1, (*m)-(*q))
+		Zungqr(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(max(1, (*m)-(*q))), u1.CVector(0, 0), work, toPtr(-1), &childinfo)
 		lorgqrworkopt = int(work.GetRe(0))
-		lorgqrworkmin = maxint(1, (*m)-(*q))
-		iorglq = itauq2 + maxint(1, (*m)-(*q))
-		Zunglq(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(maxint(1, (*m)-(*q))), u1.CVector(0, 0), work, toPtr(-1), &childinfo)
+		lorgqrworkmin = max(1, (*m)-(*q))
+		iorglq = itauq2 + max(1, (*m)-(*q))
+		Zunglq(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(max(1, (*m)-(*q))), u1.CVector(0, 0), work, toPtr(-1), &childinfo)
 		lorglqworkopt = int(work.GetRe(0))
-		lorglqworkmin = maxint(1, (*m)-(*q))
-		iorbdb = itauq2 + maxint(1, (*m)-(*q))
+		lorglqworkmin = max(1, (*m)-(*q))
+		iorbdb = itauq2 + max(1, (*m)-(*q))
 		Zunbdb(trans, signs, m, p, q, x11, ldx11, x12, ldx12, x21, ldx21, x22, ldx22, theta, theta, u1.CVector(0, 0), u2.CVector(0, 0), v1t.CVector(0, 0), v2t.CVector(0, 0), work, toPtr(-1), &childinfo)
 		lorbdbworkopt = int(work.GetRe(0))
 		lorbdbworkmin = lorbdbworkopt
-		lworkopt = maxint(iorgqr+lorgqrworkopt, iorglq+lorglqworkopt, iorbdb+lorbdbworkopt) - 1
-		lworkmin = maxint(iorgqr+lorgqrworkmin, iorglq+lorglqworkmin, iorbdb+lorbdbworkmin) - 1
-		work.SetRe(0, float64(maxint(lworkopt, lworkmin)))
+		lworkopt = max(iorgqr+lorgqrworkopt, iorglq+lorglqworkopt, iorbdb+lorbdbworkopt) - 1
+		lworkmin = max(iorgqr+lorgqrworkmin, iorglq+lorglqworkmin, iorbdb+lorbdbworkmin) - 1
+		work.SetRe(0, float64(max(lworkopt, lworkmin)))
 
 		if (*lwork) < lworkmin && !(lquery || lrquery) {
 			(*info) = -22
@@ -185,7 +185,7 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 		if wantv2t && (*m)-(*q) > 0 {
 			Zlacpy('U', p, toPtr((*m)-(*q)), x12, ldx12, v2t, ldv2t)
 			if (*m)-(*p) > (*q) {
-				Zlacpy('U', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off((*q)+1-1, (*p)+1-1), ldx22, v2t.Off((*p)+1-1, (*p)+1-1), ldv2t)
+				Zlacpy('U', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off((*q), (*p)), ldx22, v2t.Off((*p), (*p)), ldv2t)
 			}
 			if (*m) > (*q) {
 				Zunglq(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), v2t, ldv2t, work.Off(itauq2-1), work.Off(iorglq-1), &lorglqwork, info)
@@ -210,11 +210,11 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 			Zungqr(toPtr((*q)-1), toPtr((*q)-1), toPtr((*q)-1), v1t.Off(1, 1), ldv1t, work.Off(itauq1-1), work.Off(iorgqr-1), &lorgqrwork, info)
 		}
 		if wantv2t && (*m)-(*q) > 0 {
-			p1 = minint((*p)+1, *m)
-			q1 = minint((*q)+1, *m)
+			p1 = min((*p)+1, *m)
+			q1 = min((*q)+1, *m)
 			Zlacpy('L', toPtr((*m)-(*q)), p, x12, ldx12, v2t, ldv2t)
 			if (*m) > (*p)+(*q) {
-				Zlacpy('L', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off(p1-1, q1-1), ldx22, v2t.Off((*p)+1-1, (*p)+1-1), ldv2t)
+				Zlacpy('L', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off(p1-1, q1-1), ldx22, v2t.Off((*p), (*p)), ldv2t)
 			}
 			Zungqr(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), v2t, ldv2t, work.Off(itauq2-1), work.Off(iorgqr-1), &lorgqrwork, info)
 		}

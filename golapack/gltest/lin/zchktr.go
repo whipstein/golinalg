@@ -51,7 +51,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		xtype = 'N'
 
 		for imat = 1; imat <= ntype1; imat++ {
@@ -162,7 +162,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//                       Use iterative refinement to improve the solution
 							//                       and compute error bounds.
 							*srnamt = "ZTRRFS"
-							golapack.Ztrrfs(uplo, trans, diag, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+							golapack.Ztrrfs(uplo, trans, diag, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 							//                       Check error code from ZTRRFS.
 							if info != 0 {
@@ -171,7 +171,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							}
 							//
 							Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-							Ztrt05(uplo, trans, diag, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+							Ztrt05(uplo, trans, diag, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.
@@ -248,7 +248,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "ZLATRS"
-					goblas.Zcopy(n, x, 1, b, 1)
+					goblas.Zcopy(n, x.Off(0, 1), b.Off(0, 1))
 					golapack.Zlatrs(uplo, trans, diag, 'N', &n, a.CMatrix(lda, opts), &lda, b, &scale, rwork, &info)
 
 					//                 Check error code from ZLATRS.
@@ -261,8 +261,8 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 					//+    TEST 9
 					//                 Solve op(A)*X = b again with NORMIN = 'Y'.
-					goblas.Zcopy(n, x, 1, b.Off(n+1-1), 1)
-					golapack.Zlatrs(uplo, trans, diag, 'Y', &n, a.CMatrix(lda, opts), &lda, b.Off(n+1-1), &scale, rwork, &info)
+					goblas.Zcopy(n, x.Off(0, 1), b.Off(n, 1))
+					golapack.Zlatrs(uplo, trans, diag, 'Y', &n, a.CMatrix(lda, opts), &lda, b.Off(n), &scale, rwork, &info)
 
 					//                 Check error code from ZLATRS.
 					if info != 0 {
@@ -270,7 +270,7 @@ func Zchktr(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						Alaerh(path, []byte("ZLATRS"), &info, func() *int { y := 0; return &y }(), []byte{uplo, trans, diag, 'Y'}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
 					}
 
-					Ztrt03(uplo, trans, diag, &n, func() *int { y := 1; return &y }(), a.CMatrix(lda, opts), &lda, &scale, rwork, &one, b.CMatrixOff(n+1-1, lda, opts), &lda, x.CMatrix(lda, opts), &lda, work, result.GetPtr(8))
+					Ztrt03(uplo, trans, diag, &n, func() *int { y := 1; return &y }(), a.CMatrix(lda, opts), &lda, &scale, rwork, &one, b.CMatrixOff(n, lda, opts), &lda, x.CMatrix(lda, opts), &lda, work, result.GetPtr(8))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

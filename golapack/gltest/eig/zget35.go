@@ -22,7 +22,7 @@ import (
 // The test code verifies that the following residual is order 1:
 //
 //    norm(op(A)*X + ISGN*X*op(B) - scale*C) /
-//        (EPS*maxint(norm(A),norm(B))*norm(X))
+//        (EPS*max(norm(A),norm(B))*norm(X))
 func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 	var trana, tranb byte
 	var cone, rmul complex128
@@ -267,15 +267,15 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 									for i = 1; i <= m; i++ {
 										for j = 1; j <= m; j++ {
 											a.Set(i-1, j-1, atmp.Get(i-1, j-1)*vm1.GetCmplx(imla-1))
-											tnrm = maxf64(tnrm, a.GetMag(i-1, j-1))
+											tnrm = math.Max(tnrm, a.GetMag(i-1, j-1))
 										}
 										a.Set(i-1, i-1, a.Get(i-1, i-1)*vm2.GetCmplx(imlad-1))
-										tnrm = maxf64(tnrm, a.GetMag(i-1, i-1))
+										tnrm = math.Max(tnrm, a.GetMag(i-1, i-1))
 									}
 									for i = 1; i <= n; i++ {
 										for j = 1; j <= n; j++ {
 											b.Set(i-1, j-1, btmp.Get(i-1, j-1)*vm1.GetCmplx(imlb-1))
-											tnrm = maxf64(tnrm, b.GetMag(i-1, j-1))
+											tnrm = math.Max(tnrm, b.GetMag(i-1, j-1))
 										}
 									}
 									if tnrm == zero {
@@ -296,14 +296,14 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 									rmul = cone
 									if xnrm > one && tnrm > one {
 										if xnrm > bignum/tnrm {
-											rmul = complex(maxf64(xnrm, tnrm), 0)
+											rmul = complex(math.Max(xnrm, tnrm), 0)
 											rmul = cone / rmul
 										}
 									}
-									err = goblas.Zgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, ldt, c, ldt, complex(-scale, 0)*rmul, csav, ldt)
-									err = goblas.Zgemm(NoTrans, mat.TransByte(tranb), m, n, n, complex(float64(isgn), 0)*rmul, c, ldt, b, ldt, cone, csav, ldt)
+									err = goblas.Zgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, complex(-scale, 0)*rmul, csav)
+									err = goblas.Zgemm(NoTrans, mat.TransByte(tranb), m, n, n, complex(float64(isgn), 0)*rmul, c, b, cone, csav)
 									res1 = golapack.Zlange('M', &m, &n, csav, &ldt, dum)
-									res = res1 / maxf64(smlnum, smlnum*xnrm, ((cmplx.Abs(rmul)*tnrm)*eps)*xnrm)
+									res = res1 / math.Max(smlnum, math.Max(smlnum*xnrm, ((cmplx.Abs(rmul)*tnrm)*eps)*xnrm))
 									if res > (*rmax) {
 										(*lmax) = (*knt)
 										(*rmax) = res

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -38,18 +40,18 @@ func Zsyt02(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatrix, l
 	}
 
 	//     Compute  B - A*X  (or  B - A'*X ) and store in B .
-	err = goblas.Zsymm(Left, mat.UploByte(uplo), *n, *nrhs, -cone, a, *lda, x, *ldx, cone, b, *ldb)
+	err = goblas.Zsymm(Left, mat.UploByte(uplo), *n, *nrhs, -cone, a, x, cone, b)
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1), 1)
-		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
+		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1, 1))
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

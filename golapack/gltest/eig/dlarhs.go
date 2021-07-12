@@ -51,11 +51,11 @@ func Dlarhs(path []byte, xtype *byte, uplo, trans byte, m, n, kl, ku, nrhs *int,
 		(*info) = -8
 	} else if (*nrhs) < 0 {
 		(*info) = -9
-	} else if (!band && (*lda) < maxint(1, *m)) || (band && (sym || tri) && (*lda) < (*kl)+1) || (band && gen && (*lda) < (*kl)+(*ku)+1) {
+	} else if (!band && (*lda) < max(1, *m)) || (band && (sym || tri) && (*lda) < (*kl)+1) || (band && gen && (*lda) < (*kl)+(*ku)+1) {
 		(*info) = -11
-	} else if (notran && (*ldx) < maxint(1, *n)) || (tran && (*ldx) < maxint(1, *m)) {
+	} else if (notran && (*ldx) < max(1, *n)) || (tran && (*ldx) < max(1, *m)) {
 		(*info) = -13
-	} else if (notran && (*ldb) < maxint(1, *m)) || (tran && (*ldb) < maxint(1, *n)) {
+	} else if (notran && (*ldb) < max(1, *m)) || (tran && (*ldb) < max(1, *n)) {
 		(*info) = -15
 	}
 	if (*info) != 0 {
@@ -81,28 +81,28 @@ func Dlarhs(path []byte, xtype *byte, uplo, trans byte, m, n, kl, ku, nrhs *int,
 	//     matrix multiply routine.
 	if string(c2) == "GE" || string(c2) == "QR" || string(c2) == "LQ" || string(c2) == "QL" || string(c2) == "RQ" {
 		//        General matrix
-		err = goblas.Dgemm(mat.TransByte(trans), NoTrans, mb, *nrhs, nx, one, a, *lda, x, *ldx, zero, b, *ldb)
+		err = goblas.Dgemm(mat.TransByte(trans), NoTrans, mb, *nrhs, nx, one, a, x, zero, b)
 
 	} else if string(c2) == "PO" || string(c2) == "SY" {
 		//        Symmetric matrix, 2-D storage
-		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, *lda, x, *ldx, zero, b, *ldb)
+		err = goblas.Dsymm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, x, zero, b)
 
 	} else if string(c2) == "GB" {
 		//        General matrix, band storage
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Dgbmv(mat.TransByte(trans), mb, nx, *kl, *ku, one, a, *lda, x.Vector(0, j-1), 1, zero, b.Vector(0, j-1), 1)
+			err = goblas.Dgbmv(mat.TransByte(trans), mb, nx, *kl, *ku, one, a, x.Vector(0, j-1, 1), zero, b.Vector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "PB" {
 		//        Symmetric matrix, band storage
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Dsbmv(mat.UploByte(uplo), *n, *kl, one, a, *lda, x.Vector(0, j-1), 1, zero, b.Vector(0, j-1), 1)
+			err = goblas.Dsbmv(mat.UploByte(uplo), *n, *kl, one, a, x.Vector(0, j-1, 1), zero, b.Vector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "PP" || string(c2) == "SP" {
 		//        Symmetric matrix, packed storage
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Dspmv(mat.UploByte(uplo), *n, one, a.VectorIdx(0), x.Vector(0, j-1), 1, zero, b.Vector(0, j-1), 1)
+			err = goblas.Dspmv(mat.UploByte(uplo), *n, one, a.VectorIdx(0), x.Vector(0, j-1, 1), zero, b.Vector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "TR" {
@@ -115,7 +115,7 @@ func Dlarhs(path []byte, xtype *byte, uplo, trans byte, m, n, kl, ku, nrhs *int,
 		} else {
 			diag = 'N'
 		}
-		err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, b)
 
 	} else if string(c2) == "TP" {
 		//        Triangular matrix, packed storage
@@ -126,7 +126,7 @@ func Dlarhs(path []byte, xtype *byte, uplo, trans byte, m, n, kl, ku, nrhs *int,
 			diag = 'N'
 		}
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a.VectorIdx(0), b.Vector(0, j-1), 1)
+			err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a.VectorIdx(0), b.Vector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "TB" {
@@ -138,7 +138,7 @@ func Dlarhs(path []byte, xtype *byte, uplo, trans byte, m, n, kl, ku, nrhs *int,
 			diag = 'N'
 		}
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Dtbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kl, a, *lda, b.Vector(0, j-1), 1)
+			err = goblas.Dtbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kl, a, b.Vector(0, j-1, 1))
 		}
 
 	} else {

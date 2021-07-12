@@ -54,12 +54,12 @@ func Zlqt05(m, n, l, nb *int, result *mat.Vector) {
 	}
 	if (*n) > 0 {
 		for j = 1; j <= (*n)-(*l); j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, a.CVector(0, minint((*n)+(*m), (*m)+1)+j-1-1))
+			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, a.CVector(0, min((*n)+(*m), (*m)+1)+j-1-1))
 		}
 	}
 	if (*l) > 0 {
 		for j = 1; j <= (*l); j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)-j+1), a.CVector(j-1, minint((*n)+(*m), (*n)+(*m)-(*l)+1)+j-1-1))
+			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)-j+1), a.CVector(j-1, min((*n)+(*m), (*n)+(*m)-(*l)+1)+j-1-1))
 		}
 	}
 
@@ -78,20 +78,20 @@ func Zlqt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Zlacpy('L', m, &n2, af, m, r, &n2)
 
 	//     Compute |L - A*Q*C| / |A| and store in RESULT(1)
-	err = goblas.Zgemm(NoTrans, ConjTrans, *m, n2, n2, -one, a, *m, q, n2, one, r, n2)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *m, n2, n2, -one, a, q, one, r)
 	anorm = golapack.Zlange('1', m, &n2, a, m, rwork)
 	resid = golapack.Zlange('1', m, &n2, r, &n2, rwork)
 	if anorm > zero {
-		result.Set(0, resid/(eps*anorm*float64(maxint(1, n2))))
+		result.Set(0, resid/(eps*anorm*float64(max(1, n2))))
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute |I - Q*Q'| and store in RESULT(2)
 	golapack.Zlaset('F', &n2, &n2, &czero, &one, r, &n2)
-	err = goblas.Zherk(Upper, NoTrans, n2, n2, real(-one), q, n2, real(one), r, n2)
+	err = goblas.Zherk(Upper, NoTrans, n2, n2, real(-one), q, real(one), r)
 	resid = golapack.Zlansy('1', 'U', &n2, r, &n2, rwork)
-	result.Set(1, resid/(eps*float64(maxint(1, n2))))
+	result.Set(1, resid/(eps*float64(max(1, n2))))
 
 	//     Generate random m-by-n matrix C and a copy CF
 	golapack.Zlaset('F', &n2, m, &czero, &one, c, &n2)
@@ -105,10 +105,10 @@ func Zlqt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Ztpmlqt('L', 'N', n, m, &k, l, nb, af.Off(0, np1-1), m, t, &ldt, cf, &n2, cf.Off(np1-1, 0), &n2, work, &info)
 
 	//     Compute |Q*C - Q*C| / |C|
-	err = goblas.Zgemm(NoTrans, NoTrans, n2, *m, n2, -one, q, n2, c, n2, one, cf, n2)
+	err = goblas.Zgemm(NoTrans, NoTrans, n2, *m, n2, -one, q, c, one, cf)
 	resid = golapack.Zlange('1', &n2, m, cf, &n2, rwork)
 	if cnorm > zero {
-		result.Set(2, resid/(eps*float64(maxint(1, n2))*cnorm))
+		result.Set(2, resid/(eps*float64(max(1, n2))*cnorm))
 	} else {
 		result.Set(2, zero)
 	}
@@ -120,10 +120,10 @@ func Zlqt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Ztpmlqt('L', 'C', n, m, &k, l, nb, af.Off(0, np1-1), m, t, &ldt, cf, &n2, cf.Off(np1-1, 0), &n2, work, &info)
 
 	//     Compute |QT*C - QT*C| / |C|
-	err = goblas.Zgemm(ConjTrans, NoTrans, n2, *m, n2, -one, q, n2, c, n2, one, cf, n2)
+	err = goblas.Zgemm(ConjTrans, NoTrans, n2, *m, n2, -one, q, c, one, cf)
 	resid = golapack.Zlange('1', &n2, m, cf, &n2, rwork)
 	if cnorm > zero {
-		result.Set(3, resid/(eps*float64(maxint(1, n2))*cnorm))
+		result.Set(3, resid/(eps*float64(max(1, n2))*cnorm))
 	} else {
 		result.Set(3, zero)
 	}
@@ -139,10 +139,10 @@ func Zlqt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Ztpmlqt('R', 'N', m, n, &k, l, nb, af.Off(0, np1-1), m, t, &ldt, df, m, df.Off(0, np1-1), m, work, &info)
 
 	//     Compute |D*Q - D*Q| / |D|
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, n2, n2, -one, d, *m, q, n2, one, df, *m)
+	err = goblas.Zgemm(NoTrans, NoTrans, *m, n2, n2, -one, d, q, one, df)
 	resid = golapack.Zlange('1', m, &n2, df, m, rwork)
 	if cnorm > zero {
-		result.Set(4, resid/(eps*float64(maxint(1, n2))*dnorm))
+		result.Set(4, resid/(eps*float64(max(1, n2))*dnorm))
 	} else {
 		result.Set(4, zero)
 	}
@@ -154,10 +154,10 @@ func Zlqt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Ztpmlqt('R', 'C', m, n, &k, l, nb, af.Off(0, np1-1), m, t, &ldt, df, m, df.Off(0, np1-1), m, work, &info)
 
 	//     Compute |D*QT - D*QT| / |D|
-	err = goblas.Zgemm(NoTrans, ConjTrans, *m, n2, n2, -one, d, *m, q, n2, one, df, *m)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *m, n2, n2, -one, d, q, one, df)
 	resid = golapack.Zlange('1', m, &n2, df, m, rwork)
 	if cnorm > zero {
-		result.Set(5, resid/(eps*float64(maxint(1, n2))*dnorm))
+		result.Set(5, resid/(eps*float64(max(1, n2))*dnorm))
 	} else {
 		result.Set(5, zero)
 	}

@@ -22,8 +22,8 @@ func Dladiv(a, b, c, d, p, q *float64) {
 	bb = (*b)
 	cc = (*c)
 	dd = (*d)
-	ab = maxf64(math.Abs(*a), math.Abs(*b))
-	cd = maxf64(math.Abs(*c), math.Abs(*d))
+	ab = math.Max(math.Abs(*a), math.Abs(*b))
+	cd = math.Max(math.Abs(*c), math.Abs(*d))
 	s = 1.0
 	ov = Dlamch(Overflow)
 	un = Dlamch(SafeMinimum)

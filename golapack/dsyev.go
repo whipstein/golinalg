@@ -30,16 +30,16 @@ func Dsyev(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.Vector
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 
 	if (*info) == 0 {
 		nb = Ilaenv(toPtr(1), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = maxint(1, (nb+2)*(*n))
+		lwkopt = max(1, (nb+2)*(*n))
 		work.Set(0, float64(lwkopt))
 
-		if (*lwork) < maxint(1, 3*(*n)-1) && !lquery {
+		if (*lwork) < max(1, 3*(*n)-1) && !lquery {
 			(*info) = -8
 		}
 	}
@@ -110,7 +110,7 @@ func Dsyev(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat.Vector
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     Set WORK(1) to optimal workspace size.

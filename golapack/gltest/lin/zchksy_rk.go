@@ -68,7 +68,7 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -153,7 +153,7 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 								//                          Set the first IZERO rows and columns to zero.
 								ioff = 0
 								for j = 1; j <= n; j++ {
-									i2 = minint(j, izero)
+									i2 = min(j, izero)
 									for i = 1; i <= i2; i++ {
 										a.Set(ioff+i-1, czero)
 									}
@@ -163,7 +163,7 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 								//                          Set the last IZERO rows and columns to zero.
 								ioff = 0
 								for j = 1; j <= n; j++ {
-									i1 = maxint(j, izero)
+									i1 = max(j, izero)
 									for i = i1; i <= n; i++ {
 										a.Set(ioff+i-1, czero)
 									}
@@ -202,7 +202,7 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					//                 matrix. IWORK stores details of the interchanges and
 					//                 the block structure of D. AINV is a work array for
 					//                 block factorization, LWORK is the length of AINV.
-					lwork = maxint(2, nb) * lda
+					lwork = max(2, nb) * lda
 					*srnamt = "ZSYTRF_RK"
 					golapack.Zsytrfrk(uplo, &n, afac.CMatrix(lda, opts), &lda, e, iwork, ainv, &lwork, &info)
 
@@ -299,13 +299,13 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 						}
 
 						if (*iwork)[k-1] > int(zero) {
-							//                       Get maxint absolute value from elements
+							//                       Get max absolute value from elements
 							//                       in column k in in U
-							dtemp = golapack.Zlange('M', toPtr(k-1), func() *int { y := 1; return &y }(), afac.CMatrixOff((k-1)*lda+1-1, lda, opts), &lda, rwork)
+							dtemp = golapack.Zlange('M', toPtr(k-1), func() *int { y := 1; return &y }(), afac.CMatrixOff((k-1)*lda, lda, opts), &lda, rwork)
 						} else {
-							//                       Get maxint absolute value from elements
+							//                       Get max absolute value from elements
 							//                       in columns k and k-1 in U
-							dtemp = golapack.Zlange('M', toPtr(k-2), func() *int { y := 2; return &y }(), afac.CMatrixOff((k-2)*lda+1-1, lda, opts), &lda, rwork)
+							dtemp = golapack.Zlange('M', toPtr(k-2), func() *int { y := 2; return &y }(), afac.CMatrixOff((k-2)*lda, lda, opts), &lda, rwork)
 							k = k - 1
 
 						}
@@ -330,11 +330,11 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 						}
 
 						if (*iwork)[k-1] > int(zero) {
-							//                       Get maxint absolute value from elements
+							//                       Get max absolute value from elements
 							//                       in column k in in L
-							dtemp = golapack.Zlange('M', toPtr(n-k), func() *int { y := 1; return &y }(), afac.CMatrixOff((k-1)*lda+k+1-1, lda, opts), &lda, rwork)
+							dtemp = golapack.Zlange('M', toPtr(n-k), func() *int { y := 1; return &y }(), afac.CMatrixOff((k-1)*lda+k, lda, opts), &lda, rwork)
 						} else {
-							//                       Get maxint absolute value from elements
+							//                       Get max absolute value from elements
 							//                       in columns k and k+1 in L
 							dtemp = golapack.Zlange('M', toPtr(n-k-1), func() *int { y := 2; return &y }(), afac.CMatrixOff((k-1)*lda+k+2-1, lda, opts), &lda, rwork)
 							k = k + 1
@@ -415,7 +415,7 @@ func Zchksyrk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							block.Set(0, 0, afac.Get((k-1)*lda+k-1))
 							block.Set(1, 0, e.Get(k-1))
 							block.Set(0, 1, block.Get(1, 0))
-							block.Set(1, 1, afac.Get(k*lda+k+1-1))
+							block.Set(1, 1, afac.Get(k*lda+k))
 
 							golapack.Zgesvd('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), block, func() *int { y := 2; return &y }(), rwork, zdummy.CMatrix(1, opts), func() *int { y := 1; return &y }(), zdummy.CMatrix(1, opts), func() *int { y := 1; return &y }(), work, func() *int { y := 6; return &y }(), rwork.Off(2), &info)
 

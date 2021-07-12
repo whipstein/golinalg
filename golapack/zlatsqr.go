@@ -38,7 +38,7 @@ func Zlatsqr(m, n, mb, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *i
 		(*info) = -3
 	} else if (*nb) < 1 || ((*nb) > (*n) && (*n) > 0) {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	} else if (*ldt) < (*nb) {
 		(*info) = -8
@@ -56,7 +56,7 @@ func Zlatsqr(m, n, mb, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *i
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -74,13 +74,13 @@ func Zlatsqr(m, n, mb, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *i
 
 	for i = (*mb) + 1; i <= ii-(*mb)+(*n); i += ((*mb) - (*n)) {
 		//      Compute the QR factorization of the current block A(I:I+MB-N,1:N)
-		Ztpqrt(toPtr((*mb)-(*n)), n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(i-1, 0), lda, t.Off(0, ctr*(*n)+1-1), ldt, work, info)
+		Ztpqrt(toPtr((*mb)-(*n)), n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(i-1, 0), lda, t.Off(0, ctr*(*n)), ldt, work, info)
 		ctr = ctr + 1
 	}
 
 	//      Compute the QR factorization of the last block A(II:M,1:N)
 	if ii <= (*m) {
-		Ztpqrt(&kk, n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*n)+1-1), ldt, work, info)
+		Ztpqrt(&kk, n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*n)), ldt, work, info)
 	}
 
 	work.SetRe(0, float64((*n)*(*nb)))

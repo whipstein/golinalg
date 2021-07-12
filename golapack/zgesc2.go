@@ -40,10 +40,10 @@ func Zgesc2(n *int, a *mat.CMatrix, lda *int, rhs *mat.CVector, ipiv, jpiv *[]in
 	(*scale) = one
 
 	//     Check for scaling
-	i = goblas.Izamax(*n, rhs, 1)
+	i = goblas.Izamax(*n, rhs.Off(0, 1))
 	if two*smlnum*rhs.GetMag(i-1) > a.GetMag((*n)-1, (*n)-1) {
 		temp = complex(one/two, zero) / complex(rhs.GetMag(i-1), 0)
-		goblas.Zscal(*n, temp, rhs.Off(0), 1)
+		goblas.Zscal(*n, temp, rhs.Off(0, 1))
 		(*scale) = (*scale) * real(temp)
 	}
 	for i = (*n); i >= 1; i -= 1 {

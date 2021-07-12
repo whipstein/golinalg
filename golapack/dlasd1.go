@@ -88,8 +88,8 @@ func Dlasd1(nl, nr, sqre *int, d *mat.Vector, alpha, beta *float64, u *mat.Matri
 	idxp = coltyp + n
 
 	//     Scale.
-	orgnrm = maxf64(math.Abs(*alpha), math.Abs(*beta))
-	d.Set((*nl)+1-1, zero)
+	orgnrm = math.Max(math.Abs(*alpha), math.Abs(*beta))
+	d.Set((*nl), zero)
 	for i = 1; i <= n; i++ {
 		if math.Abs(d.Get(i-1)) > orgnrm {
 			orgnrm = math.Abs(d.Get(i - 1))

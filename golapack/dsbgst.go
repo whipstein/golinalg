@@ -44,7 +44,7 @@ func Dsbgst(vect, uplo byte, n, ka, kb *int, ab *mat.Matrix, ldab *int, bb *mat.
 		(*info) = -7
 	} else if (*ldbb) < (*kb)+1 {
 		(*info) = -9
-	} else if (*ldx) < 1 || wantx && (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < 1 || wantx && (*ldx) < max(1, *n) {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -135,9 +135,9 @@ label10:
 	;
 	if update {
 		i = i - 1
-		kbt = minint(*kb, i-1)
+		kbt = min(*kb, i-1)
 		i0 = i - 1
-		i1 = minint(*n, i+(*ka))
+		i1 = min(*n, i+(*ka))
 		i2 = i - kbt + ka1
 		if i < m+1 {
 			update = false
@@ -163,28 +163,28 @@ label10:
 			for j = i; j <= i1; j++ {
 				ab.Set(i-j+ka1-1, j-1, ab.Get(i-j+ka1-1, j-1)/bii)
 			}
-			for j = maxint(1, i-(*ka)); j <= i; j++ {
+			for j = max(1, i-(*ka)); j <= i; j++ {
 				ab.Set(j-i+ka1-1, i-1, ab.Get(j-i+ka1-1, i-1)/bii)
 			}
 			for k = i - kbt; k <= i-1; k++ {
 				for j = i - kbt; j <= k; j++ {
 					ab.Set(j-k+ka1-1, k-1, ab.Get(j-k+ka1-1, k-1)-bb.Get(j-i+kb1-1, i-1)*ab.Get(k-i+ka1-1, i-1)-bb.Get(k-i+kb1-1, i-1)*ab.Get(j-i+ka1-1, i-1)+ab.Get(ka1-1, i-1)*bb.Get(j-i+kb1-1, i-1)*bb.Get(k-i+kb1-1, i-1))
 				}
-				for j = maxint(1, i-(*ka)); j <= i-kbt-1; j++ {
+				for j = max(1, i-(*ka)); j <= i-kbt-1; j++ {
 					ab.Set(j-k+ka1-1, k-1, ab.Get(j-k+ka1-1, k-1)-bb.Get(k-i+kb1-1, i-1)*ab.Get(j-i+ka1-1, i-1))
 				}
 			}
 			for j = i; j <= i1; j++ {
-				for k = maxint(j-(*ka), i-kbt); k <= i-1; k++ {
+				for k = max(j-(*ka), i-kbt); k <= i-1; k++ {
 					ab.Set(k-j+ka1-1, j-1, ab.Get(k-j+ka1-1, j-1)-bb.Get(k-i+kb1-1, i-1)*ab.Get(i-j+ka1-1, j-1))
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal((*n)-m, one/bii, x.Vector(m+1-1, i-1), 1)
+				goblas.Dscal((*n)-m, one/bii, x.Vector(m, i-1, 1))
 				if kbt > 0 {
-					err = goblas.Dger((*n)-m, kbt, -one, x.Vector(m+1-1, i-1), 1, bb.Vector(kb1-kbt-1, i-1), 1, x.Off(m+1-1, i-kbt-1), *ldx)
+					err = goblas.Dger((*n)-m, kbt, -one, x.Vector(m, i-1, 1), bb.Vector(kb1-kbt-1, i-1, 1), x.Off(m, i-kbt-1))
 				}
 			}
 
@@ -201,7 +201,7 @@ label10:
 				//              which has in theory just been created
 				if i-k+(*ka) < (*n) && i-k > 1 {
 					//                 generate rotation to annihilate a(i,i-k+ka+1)
-					Dlartg(ab.GetPtr(k+1-1, i-k+(*ka)-1), &ra1, work.GetPtr((*n)+i-k+(*ka)-m-1), work.GetPtr(i-k+(*ka)-m-1), &ra)
+					Dlartg(ab.GetPtr(k, i-k+(*ka)-1), &ra1, work.GetPtr((*n)+i-k+(*ka)-m-1), work.GetPtr(i-k+(*ka)-m-1), &ra)
 
 					//                 create nonzero element a(i-k,i-k+ka+1) outside the
 					//                 band and store it in WORK(i-k)
@@ -211,11 +211,11 @@ label10:
 					ra1 = ra
 				}
 			}
-			j2 = i - k - 1 + maxint(1, k-i0+2)*ka1
+			j2 = i - k - 1 + max(1, k-i0+2)*ka1
 			nr = ((*n) - j2 + (*ka)) / ka1
 			j1 = j2 + (nr-1)*ka1
 			if update {
-				j2t = maxint(j2, i+2*(*ka)-k+1)
+				j2t = max(j2, i+2*(*ka)-k+1)
 			} else {
 				j2t = j2
 			}
@@ -223,8 +223,8 @@ label10:
 			for j = j2t; j <= j1; j += ka1 {
 				//              create nonzero element a(j-ka,j+1) outside the band
 				//              and store it in WORK(j-m)
-				work.Set(j-m-1, work.Get(j-m-1)*ab.Get(0, j+1-1))
-				ab.Set(0, j+1-1, work.Get((*n)+j-m-1)*ab.Get(0, j+1-1))
+				work.Set(j-m-1, work.Get(j-m-1)*ab.Get(0, j))
+				ab.Set(0, j, work.Get((*n)+j-m-1)*ab.Get(0, j))
 			}
 
 			//           generate rotations in 1st set to annihilate elements which
@@ -235,12 +235,12 @@ label10:
 			if nr > 0 {
 				//              apply rotations in 1st set from the right
 				for l = 1; l <= (*ka)-1; l++ {
-					Dlartv(&nr, ab.Vector(ka1-l-1, j2-1), &inca, ab.Vector((*ka)-l-1, j2+1-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+					Dlartv(&nr, ab.Vector(ka1-l-1, j2-1), &inca, ab.Vector((*ka)-l-1, j2), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Dlar2v(&nr, ab.Vector(ka1-1, j2-1), ab.Vector(ka1-1, j2+1-1), ab.Vector((*ka)-1, j2+1-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+				Dlar2v(&nr, ab.Vector(ka1-1, j2-1), ab.Vector(ka1-1, j2), ab.Vector((*ka)-1, j2), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 
 			}
 
@@ -248,14 +248,14 @@ label10:
 			for l = (*ka) - 1; l >= (*kb)-k+1; l-- {
 				nrt = ((*n) - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j2+ka1-l-1), &inca, ab.Vector(l+1-1, j2+ka1-l-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j2+ka1-l-1), &inca, ab.Vector(l, j2+ka1-l-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-m-1), work.Get(j-m-1))
+					goblas.Drot((*n)-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get((*n)+j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -270,16 +270,16 @@ label10:
 
 		for k = (*kb); k >= 1; k-- {
 			if update {
-				j2 = i - k - 1 + maxint(2, k-i0+1)*ka1
+				j2 = i - k - 1 + max(2, k-i0+1)*ka1
 			} else {
-				j2 = i - k - 1 + maxint(1, k-i0+1)*ka1
+				j2 = i - k - 1 + max(1, k-i0+1)*ka1
 			}
 
 			//           finish applying rotations in 2nd set from the left
 			for l = (*kb) - k; l >= 1; l-- {
 				nrt = ((*n) - j2 + (*ka) + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j2-l+1-1), &inca, ab.Vector(l+1-1, j2-l+1-1), &inca, work.Off((*n)+j2-(*ka)-1), work.Off(j2-(*ka)-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j2-l), &inca, ab.Vector(l, j2-l), &inca, work.Off((*n)+j2-(*ka)-1), work.Off(j2-(*ka)-1), &ka1)
 				}
 			}
 			nr = ((*n) - j2 + (*ka)) / ka1
@@ -291,8 +291,8 @@ label10:
 			for j = j2; j <= j1; j += ka1 {
 				//              create nonzero element a(j-ka,j+1) outside the band
 				//              and store it in WORK(j)
-				work.Set(j-1, work.Get(j-1)*ab.Get(0, j+1-1))
-				ab.Set(0, j+1-1, work.Get((*n)+j-1)*ab.Get(0, j+1-1))
+				work.Set(j-1, work.Get(j-1)*ab.Get(0, j))
+				ab.Set(0, j, work.Get((*n)+j-1)*ab.Get(0, j))
 			}
 			if update {
 				if i-k < (*n)-(*ka) && k <= kbt {
@@ -302,7 +302,7 @@ label10:
 		}
 
 		for k = (*kb); k >= 1; k-- {
-			j2 = i - k - 1 + maxint(1, k-i0+1)*ka1
+			j2 = i - k - 1 + max(1, k-i0+1)*ka1
 			nr = ((*n) - j2 + (*ka)) / ka1
 			j1 = j2 + (nr-1)*ka1
 			if nr > 0 {
@@ -312,12 +312,12 @@ label10:
 
 				//              apply rotations in 2nd set from the right
 				for l = 1; l <= (*ka)-1; l++ {
-					Dlartv(&nr, ab.Vector(ka1-l-1, j2-1), &inca, ab.Vector((*ka)-l-1, j2+1-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
+					Dlartv(&nr, ab.Vector(ka1-l-1, j2-1), &inca, ab.Vector((*ka)-l-1, j2), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Dlar2v(&nr, ab.Vector(ka1-1, j2-1), ab.Vector(ka1-1, j2+1-1), ab.Vector((*ka)-1, j2+1-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
+				Dlar2v(&nr, ab.Vector(ka1-1, j2-1), ab.Vector(ka1-1, j2), ab.Vector((*ka)-1, j2), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
 
 			}
 
@@ -325,26 +325,26 @@ label10:
 			for l = (*ka) - 1; l >= (*kb)-k+1; l-- {
 				nrt = ((*n) - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j2+ka1-l-1), &inca, ab.Vector(l+1-1, j2+ka1-l-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j2+ka1-l-1), &inca, ab.Vector(l, j2+ka1-l-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
+					goblas.Drot((*n)-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
 
 		for k = 1; k <= (*kb)-1; k++ {
-			j2 = i - k - 1 + maxint(1, k-i0+2)*ka1
+			j2 = i - k - 1 + max(1, k-i0+2)*ka1
 
 			//           finish applying rotations in 1st set from the left
 			for l = (*kb) - k; l >= 1; l-- {
 				nrt = ((*n) - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j2+ka1-l-1), &inca, ab.Vector(l+1-1, j2+ka1-l-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j2+ka1-l-1), &inca, ab.Vector(l, j2+ka1-l-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				}
 			}
 		}
@@ -362,35 +362,35 @@ label10:
 			//           Form  inv(S(i))**T * A * inv(S(i))
 			bii = bb.Get(0, i-1)
 			for j = i; j <= i1; j++ {
-				ab.Set(j-i+1-1, i-1, ab.Get(j-i+1-1, i-1)/bii)
+				ab.Set(j-i, i-1, ab.Get(j-i, i-1)/bii)
 			}
-			for j = maxint(1, i-(*ka)); j <= i; j++ {
-				ab.Set(i-j+1-1, j-1, ab.Get(i-j+1-1, j-1)/bii)
+			for j = max(1, i-(*ka)); j <= i; j++ {
+				ab.Set(i-j, j-1, ab.Get(i-j, j-1)/bii)
 			}
 			for k = i - kbt; k <= i-1; k++ {
 				for j = i - kbt; j <= k; j++ {
-					ab.Set(k-j+1-1, j-1, ab.Get(k-j+1-1, j-1)-bb.Get(i-j+1-1, j-1)*ab.Get(i-k+1-1, k-1)-bb.Get(i-k+1-1, k-1)*ab.Get(i-j+1-1, j-1)+ab.Get(0, i-1)*bb.Get(i-j+1-1, j-1)*bb.Get(i-k+1-1, k-1))
+					ab.Set(k-j, j-1, ab.Get(k-j, j-1)-bb.Get(i-j, j-1)*ab.Get(i-k, k-1)-bb.Get(i-k, k-1)*ab.Get(i-j, j-1)+ab.Get(0, i-1)*bb.Get(i-j, j-1)*bb.Get(i-k, k-1))
 				}
-				for j = maxint(1, i-(*ka)); j <= i-kbt-1; j++ {
-					ab.Set(k-j+1-1, j-1, ab.Get(k-j+1-1, j-1)-bb.Get(i-k+1-1, k-1)*ab.Get(i-j+1-1, j-1))
+				for j = max(1, i-(*ka)); j <= i-kbt-1; j++ {
+					ab.Set(k-j, j-1, ab.Get(k-j, j-1)-bb.Get(i-k, k-1)*ab.Get(i-j, j-1))
 				}
 			}
 			for j = i; j <= i1; j++ {
-				for k = maxint(j-(*ka), i-kbt); k <= i-1; k++ {
-					ab.Set(j-k+1-1, k-1, ab.Get(j-k+1-1, k-1)-bb.Get(i-k+1-1, k-1)*ab.Get(j-i+1-1, i-1))
+				for k = max(j-(*ka), i-kbt); k <= i-1; k++ {
+					ab.Set(j-k, k-1, ab.Get(j-k, k-1)-bb.Get(i-k, k-1)*ab.Get(j-i, i-1))
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal((*n)-m, one/bii, x.Vector(m+1-1, i-1), 1)
+				goblas.Dscal((*n)-m, one/bii, x.Vector(m, i-1, 1))
 				if kbt > 0 {
-					err = goblas.Dger((*n)-m, kbt, -one, x.Vector(m+1-1, i-1), 1, bb.Vector(kbt+1-1, i-kbt-1), (*ldbb)-1, x.Off(m+1-1, i-kbt-1), *ldx)
+					err = goblas.Dger((*n)-m, kbt, -one, x.Vector(m, i-1, 1), bb.Vector(kbt, i-kbt-1, (*ldbb)-1), x.Off(m, i-kbt-1))
 				}
 			}
 
 			//           store a(i1,i) in RA1 for use in next loop over K
-			ra1 = ab.Get(i1-i+1-1, i-1)
+			ra1 = ab.Get(i1-i, i-1)
 		}
 
 		//        Generate and apply vectors of rotations to chase all the
@@ -406,17 +406,17 @@ label10:
 
 					//                 create nonzero element a(i-k+ka+1,i-k) outside the
 					//                 band and store it in WORK(i-k)
-					t = -bb.Get(k+1-1, i-k-1) * ra1
+					t = -bb.Get(k, i-k-1) * ra1
 					work.Set(i-k-1, work.Get((*n)+i-k+(*ka)-m-1)*t-work.Get(i-k+(*ka)-m-1)*ab.Get(ka1-1, i-k-1))
 					ab.Set(ka1-1, i-k-1, work.Get(i-k+(*ka)-m-1)*t+work.Get((*n)+i-k+(*ka)-m-1)*ab.Get(ka1-1, i-k-1))
 					ra1 = ra
 				}
 			}
-			j2 = i - k - 1 + maxint(1, k-i0+2)*ka1
+			j2 = i - k - 1 + max(1, k-i0+2)*ka1
 			nr = ((*n) - j2 + (*ka)) / ka1
 			j1 = j2 + (nr-1)*ka1
 			if update {
-				j2t = maxint(j2, i+2*(*ka)-k+1)
+				j2t = max(j2, i+2*(*ka)-k+1)
 			} else {
 				j2t = j2
 			}
@@ -424,8 +424,8 @@ label10:
 			for j = j2t; j <= j1; j += ka1 {
 				//              create nonzero element a(j+1,j-ka) outside the band
 				//              and store it in WORK(j-m)
-				work.Set(j-m-1, work.Get(j-m-1)*ab.Get(ka1-1, j-(*ka)+1-1))
-				ab.Set(ka1-1, j-(*ka)+1-1, work.Get((*n)+j-m-1)*ab.Get(ka1-1, j-(*ka)+1-1))
+				work.Set(j-m-1, work.Get(j-m-1)*ab.Get(ka1-1, j-(*ka)))
+				ab.Set(ka1-1, j-(*ka), work.Get((*n)+j-m-1)*ab.Get(ka1-1, j-(*ka)))
 			}
 
 			//           generate rotations in 1st set to annihilate elements which
@@ -436,12 +436,12 @@ label10:
 			if nr > 0 {
 				//              apply rotations in 1st set from the left
 				for l = 1; l <= (*ka)-1; l++ {
-					Dlartv(&nr, ab.Vector(l+1-1, j2-l-1), &inca, ab.Vector(l+2-1, j2-l-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+					Dlartv(&nr, ab.Vector(l, j2-l-1), &inca, ab.Vector(l+2-1, j2-l-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Dlar2v(&nr, ab.Vector(0, j2-1), ab.Vector(0, j2+1-1), ab.Vector(1, j2-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+				Dlar2v(&nr, ab.Vector(0, j2-1), ab.Vector(0, j2), ab.Vector(1, j2-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				//
 			}
 
@@ -449,14 +449,14 @@ label10:
 			for l = (*ka) - 1; l >= (*kb)-k+1; l-- {
 				nrt = ((*n) - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j2-1), &inca, ab.Vector(ka1-l-1, j2+1-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j2-1), &inca, ab.Vector(ka1-l-1, j2), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-m-1), work.Get(j-m-1))
+					goblas.Drot((*n)-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get((*n)+j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -465,22 +465,22 @@ label10:
 			if i2 <= (*n) && kbt > 0 {
 				//              create nonzero element a(i-kbt+ka+1,i-kbt) outside the
 				//              band and store it in WORK(i-kbt)
-				work.Set(i-kbt-1, -bb.Get(kbt+1-1, i-kbt-1)*ra1)
+				work.Set(i-kbt-1, -bb.Get(kbt, i-kbt-1)*ra1)
 			}
 		}
 
 		for k = (*kb); k >= 1; k-- {
 			if update {
-				j2 = i - k - 1 + maxint(2, k-i0+1)*ka1
+				j2 = i - k - 1 + max(2, k-i0+1)*ka1
 			} else {
-				j2 = i - k - 1 + maxint(1, k-i0+1)*ka1
+				j2 = i - k - 1 + max(1, k-i0+1)*ka1
 			}
 
 			//           finish applying rotations in 2nd set from the right
 			for l = (*kb) - k; l >= 1; l-- {
 				nrt = ((*n) - j2 + (*ka) + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j2-(*ka)-1), &inca, ab.Vector(ka1-l-1, j2-(*ka)+1-1), &inca, work.Off((*n)+j2-(*ka)-1), work.Off(j2-(*ka)-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j2-(*ka)-1), &inca, ab.Vector(ka1-l-1, j2-(*ka)), &inca, work.Off((*n)+j2-(*ka)-1), work.Off(j2-(*ka)-1), &ka1)
 				}
 			}
 			nr = ((*n) - j2 + (*ka)) / ka1
@@ -492,8 +492,8 @@ label10:
 			for j = j2; j <= j1; j += ka1 {
 				//              create nonzero element a(j+1,j-ka) outside the band
 				//              and store it in WORK(j)
-				work.Set(j-1, work.Get(j-1)*ab.Get(ka1-1, j-(*ka)+1-1))
-				ab.Set(ka1-1, j-(*ka)+1-1, work.Get((*n)+j-1)*ab.Get(ka1-1, j-(*ka)+1-1))
+				work.Set(j-1, work.Get(j-1)*ab.Get(ka1-1, j-(*ka)))
+				ab.Set(ka1-1, j-(*ka), work.Get((*n)+j-1)*ab.Get(ka1-1, j-(*ka)))
 			}
 			if update {
 				if i-k < (*n)-(*ka) && k <= kbt {
@@ -503,7 +503,7 @@ label10:
 		}
 
 		for k = (*kb); k >= 1; k-- {
-			j2 = i - k - 1 + maxint(1, k-i0+1)*ka1
+			j2 = i - k - 1 + max(1, k-i0+1)*ka1
 			nr = ((*n) - j2 + (*ka)) / ka1
 			j1 = j2 + (nr-1)*ka1
 			if nr > 0 {
@@ -513,12 +513,12 @@ label10:
 
 				//              apply rotations in 2nd set from the left
 				for l = 1; l <= (*ka)-1; l++ {
-					Dlartv(&nr, ab.Vector(l+1-1, j2-l-1), &inca, ab.Vector(l+2-1, j2-l-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
+					Dlartv(&nr, ab.Vector(l, j2-l-1), &inca, ab.Vector(l+2-1, j2-l-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Dlar2v(&nr, ab.Vector(0, j2-1), ab.Vector(0, j2+1-1), ab.Vector(1, j2-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
+				Dlar2v(&nr, ab.Vector(0, j2-1), ab.Vector(0, j2), ab.Vector(1, j2-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
 
 			}
 
@@ -526,26 +526,26 @@ label10:
 			for l = (*ka) - 1; l >= (*kb)-k+1; l-- {
 				nrt = ((*n) - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j2-1), &inca, ab.Vector(ka1-l-1, j2+1-1), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j2-1), &inca, ab.Vector(ka1-l-1, j2), &inca, work.Off((*n)+j2-1), work.Off(j2-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot((*n)-m, x.Vector(m+1-1, j-1), 1, x.Vector(m+1-1, j+1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
+					goblas.Drot((*n)-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
 
 		for k = 1; k <= (*kb)-1; k++ {
-			j2 = i - k - 1 + maxint(1, k-i0+2)*ka1
+			j2 = i - k - 1 + max(1, k-i0+2)*ka1
 
 			//           finish applying rotations in 1st set from the right
 			for l = (*kb) - k; l >= 1; l-- {
 				nrt = ((*n) - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j2-1), &inca, ab.Vector(ka1-l-1, j2+1-1), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j2-1), &inca, ab.Vector(ka1-l-1, j2), &inca, work.Off((*n)+j2-m-1), work.Off(j2-m-1), &ka1)
 				}
 			}
 		}
@@ -585,9 +585,9 @@ label490:
 	;
 	if update {
 		i = i + 1
-		kbt = minint(*kb, m-i)
+		kbt = min(*kb, m-i)
 		i0 = i + 1
-		i1 = maxint(1, i-(*ka))
+		i1 = max(1, i-(*ka))
 		i2 = i + kbt - ka1
 		if i > m {
 			update = false
@@ -619,28 +619,28 @@ label490:
 			for j = i1; j <= i; j++ {
 				ab.Set(j-i+ka1-1, i-1, ab.Get(j-i+ka1-1, i-1)/bii)
 			}
-			for j = i; j <= minint(*n, i+(*ka)); j++ {
+			for j = i; j <= min(*n, i+(*ka)); j++ {
 				ab.Set(i-j+ka1-1, j-1, ab.Get(i-j+ka1-1, j-1)/bii)
 			}
 			for k = i + 1; k <= i+kbt; k++ {
 				for j = k; j <= i+kbt; j++ {
 					ab.Set(k-j+ka1-1, j-1, ab.Get(k-j+ka1-1, j-1)-bb.Get(i-j+kb1-1, j-1)*ab.Get(i-k+ka1-1, k-1)-bb.Get(i-k+kb1-1, k-1)*ab.Get(i-j+ka1-1, j-1)+ab.Get(ka1-1, i-1)*bb.Get(i-j+kb1-1, j-1)*bb.Get(i-k+kb1-1, k-1))
 				}
-				for j = i + kbt + 1; j <= minint(*n, i+(*ka)); j++ {
+				for j = i + kbt + 1; j <= min(*n, i+(*ka)); j++ {
 					ab.Set(k-j+ka1-1, j-1, ab.Get(k-j+ka1-1, j-1)-bb.Get(i-k+kb1-1, k-1)*ab.Get(i-j+ka1-1, j-1))
 				}
 			}
 			for j = i1; j <= i; j++ {
-				for k = i + 1; k <= minint(j+(*ka), i+kbt); k++ {
+				for k = i + 1; k <= min(j+(*ka), i+kbt); k++ {
 					ab.Set(j-k+ka1-1, k-1, ab.Get(j-k+ka1-1, k-1)-bb.Get(i-k+kb1-1, k-1)*ab.Get(j-i+ka1-1, i-1))
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(nx, one/bii, x.Vector(0, i-1), 1)
+				goblas.Dscal(nx, one/bii, x.Vector(0, i-1, 1))
 				if kbt > 0 {
-					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1), 1, bb.Vector((*kb)-1, i+1-1), (*ldbb)-1, x.Off(0, i+1-1), *ldx)
+					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1, 1), bb.Vector((*kb)-1, i, (*ldbb)-1), x.Off(0, i))
 				}
 			}
 
@@ -656,7 +656,7 @@ label490:
 				//              which has in theory just been created
 				if i+k-ka1 > 0 && i+k < m {
 					//                 generate rotation to annihilate a(i+k-ka-1,i)
-					Dlartg(ab.GetPtr(k+1-1, i-1), &ra1, work.GetPtr((*n)+i+k-(*ka)-1), work.GetPtr(i+k-(*ka)-1), &ra)
+					Dlartg(ab.GetPtr(k, i-1), &ra1, work.GetPtr((*n)+i+k-(*ka)-1), work.GetPtr(i+k-(*ka)-1), &ra)
 
 					//                 create nonzero element a(i+k-ka-1,i+k) outside the
 					//                 band and store it in WORK(m-kb+i+k)
@@ -666,11 +666,11 @@ label490:
 					ra1 = ra
 				}
 			}
-			j2 = i + k + 1 - maxint(1, k+i0-m+1)*ka1
+			j2 = i + k + 1 - max(1, k+i0-m+1)*ka1
 			nr = (j2 + (*ka) - 1) / ka1
 			j1 = j2 - (nr-1)*ka1
 			if update {
-				j2t = minint(j2, i-2*(*ka)+k-1)
+				j2t = min(j2, i-2*(*ka)+k-1)
 			} else {
 				j2t = j2
 			}
@@ -704,14 +704,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j1t-1), &inca, ab.Vector(l+1-1, j1t-1-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j1t-1), &inca, ab.Vector(l, j1t-1-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
+					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -726,9 +726,9 @@ label490:
 
 		for k = (*kb); k >= 1; k-- {
 			if update {
-				j2 = i + k + 1 - maxint(2, k+i0-m)*ka1
+				j2 = i + k + 1 - max(2, k+i0-m)*ka1
 			} else {
-				j2 = i + k + 1 - maxint(1, k+i0-m)*ka1
+				j2 = i + k + 1 - max(1, k+i0-m)*ka1
 			}
 
 			//           finish applying rotations in 2nd set from the right
@@ -736,7 +736,7 @@ label490:
 				nrt = (j2 + (*ka) + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j1t+(*ka)-1), &inca, ab.Vector(l+1-1, j1t+(*ka)-1-1), &inca, work.Off((*n)+m-(*kb)+j1t+(*ka)-1), work.Off(m-(*kb)+j1t+(*ka)-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j1t+(*ka)-1), &inca, ab.Vector(l, j1t+(*ka)-1-1), &inca, work.Off((*n)+m-(*kb)+j1t+(*ka)-1), work.Off(m-(*kb)+j1t+(*ka)-1), &ka1)
 				}
 			}
 			nr = (j2 + (*ka) - 1) / ka1
@@ -759,7 +759,7 @@ label490:
 		}
 
 		for k = (*kb); k >= 1; k-- {
-			j2 = i + k + 1 - maxint(1, k+i0-m)*ka1
+			j2 = i + k + 1 - max(1, k+i0-m)*ka1
 			nr = (j2 + (*ka) - 1) / ka1
 			j1 = j2 - (nr-1)*ka1
 			if nr > 0 {
@@ -783,33 +783,33 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j1t-1), &inca, ab.Vector(l+1-1, j1t-1-1), &inca, work.Off((*n)+m-(*kb)+j1t-1), work.Off(m-(*kb)+j1t-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j1t-1), &inca, ab.Vector(l, j1t-1-1), &inca, work.Off((*n)+m-(*kb)+j1t-1), work.Off(m-(*kb)+j1t-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+m-(*kb)+j-1), work.Get(m-(*kb)+j-1))
+					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get((*n)+m-(*kb)+j-1), work.Get(m-(*kb)+j-1))
 				}
 			}
 		}
 
 		for k = 1; k <= (*kb)-1; k++ {
-			j2 = i + k + 1 - maxint(1, k+i0-m+1)*ka1
+			j2 = i + k + 1 - max(1, k+i0-m+1)*ka1
 
 			//           finish applying rotations in 1st set from the right
 			for l = (*kb) - k; l >= 1; l-- {
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(l-1, j1t-1), &inca, ab.Vector(l+1-1, j1t-1-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
+					Dlartv(&nrt, ab.Vector(l-1, j1t-1), &inca, ab.Vector(l, j1t-1-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
 				}
 			}
 		}
 
 		if (*kb) > 1 {
-			for j = 2; j <= minint(i+(*kb), m)-2*(*ka)-1; j++ {
+			for j = 2; j <= min(i+(*kb), m)-2*(*ka)-1; j++ {
 				work.Set((*n)+j-1, work.Get((*n)+j+(*ka)-1))
 				work.Set(j-1, work.Get(j+(*ka)-1))
 			}
@@ -821,35 +821,35 @@ label490:
 			//           Form  inv(S(i))**T * A * inv(S(i))
 			bii = bb.Get(0, i-1)
 			for j = i1; j <= i; j++ {
-				ab.Set(i-j+1-1, j-1, ab.Get(i-j+1-1, j-1)/bii)
+				ab.Set(i-j, j-1, ab.Get(i-j, j-1)/bii)
 			}
-			for j = i; j <= minint(*n, i+(*ka)); j++ {
-				ab.Set(j-i+1-1, i-1, ab.Get(j-i+1-1, i-1)/bii)
+			for j = i; j <= min(*n, i+(*ka)); j++ {
+				ab.Set(j-i, i-1, ab.Get(j-i, i-1)/bii)
 			}
 			for k = i + 1; k <= i+kbt; k++ {
 				for j = k; j <= i+kbt; j++ {
-					ab.Set(j-k+1-1, k-1, ab.Get(j-k+1-1, k-1)-bb.Get(j-i+1-1, i-1)*ab.Get(k-i+1-1, i-1)-bb.Get(k-i+1-1, i-1)*ab.Get(j-i+1-1, i-1)+ab.Get(0, i-1)*bb.Get(j-i+1-1, i-1)*bb.Get(k-i+1-1, i-1))
+					ab.Set(j-k, k-1, ab.Get(j-k, k-1)-bb.Get(j-i, i-1)*ab.Get(k-i, i-1)-bb.Get(k-i, i-1)*ab.Get(j-i, i-1)+ab.Get(0, i-1)*bb.Get(j-i, i-1)*bb.Get(k-i, i-1))
 				}
-				for j = i + kbt + 1; j <= minint(*n, i+(*ka)); j++ {
-					ab.Set(j-k+1-1, k-1, ab.Get(j-k+1-1, k-1)-bb.Get(k-i+1-1, i-1)*ab.Get(j-i+1-1, i-1))
+				for j = i + kbt + 1; j <= min(*n, i+(*ka)); j++ {
+					ab.Set(j-k, k-1, ab.Get(j-k, k-1)-bb.Get(k-i, i-1)*ab.Get(j-i, i-1))
 				}
 			}
 			for j = i1; j <= i; j++ {
-				for k = i + 1; k <= minint(j+(*ka), i+kbt); k++ {
-					ab.Set(k-j+1-1, j-1, ab.Get(k-j+1-1, j-1)-bb.Get(k-i+1-1, i-1)*ab.Get(i-j+1-1, j-1))
+				for k = i + 1; k <= min(j+(*ka), i+kbt); k++ {
+					ab.Set(k-j, j-1, ab.Get(k-j, j-1)-bb.Get(k-i, i-1)*ab.Get(i-j, j-1))
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(nx, one/bii, x.Vector(0, i-1), 1)
+				goblas.Dscal(nx, one/bii, x.Vector(0, i-1).Off(0, 1))
 				if kbt > 0 {
-					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1), 1, bb.Vector(1, i-1), 1, x.Off(0, i+1-1), *ldx)
+					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1, 1), bb.Vector(1, i-1, 1), x.Off(0, i))
 				}
 			}
 
 			//           store a(i,i1) in RA1 for use in next loop over K
-			ra1 = ab.Get(i-i1+1-1, i1-1)
+			ra1 = ab.Get(i-i1, i1-1)
 		}
 
 		//        Generate and apply vectors of rotations to chase all the
@@ -864,17 +864,17 @@ label490:
 
 					//                 create nonzero element a(i+k,i+k-ka-1) outside the
 					//                 band and store it in WORK(m-kb+i+k)
-					t = -bb.Get(k+1-1, i-1) * ra1
+					t = -bb.Get(k, i-1) * ra1
 					work.Set(m-(*kb)+i+k-1, work.Get((*n)+i+k-(*ka)-1)*t-work.Get(i+k-(*ka)-1)*ab.Get(ka1-1, i+k-(*ka)-1))
 					ab.Set(ka1-1, i+k-(*ka)-1, work.Get(i+k-(*ka)-1)*t+work.Get((*n)+i+k-(*ka)-1)*ab.Get(ka1-1, i+k-(*ka)-1))
 					ra1 = ra
 				}
 			}
-			j2 = i + k + 1 - maxint(1, k+i0-m+1)*ka1
+			j2 = i + k + 1 - max(1, k+i0-m+1)*ka1
 			nr = (j2 + (*ka) - 1) / ka1
 			j1 = j2 - (nr-1)*ka1
 			if update {
-				j2t = minint(j2, i-2*(*ka)+k-1)
+				j2t = min(j2, i-2*(*ka)+k-1)
 			} else {
 				j2t = j2
 			}
@@ -894,7 +894,7 @@ label490:
 			if nr > 0 {
 				//              apply rotations in 1st set from the right
 				for l = 1; l <= (*ka)-1; l++ {
-					Dlartv(&nr, ab.Vector(l+1-1, j1-1), &inca, ab.Vector(l+2-1, j1-1-1), &inca, work.Off((*n)+j1-1), work.Off(j1-1), &ka1)
+					Dlartv(&nr, ab.Vector(l, j1-1), &inca, ab.Vector(l+2-1, j1-1-1), &inca, work.Off((*n)+j1-1), work.Off(j1-1), &ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
@@ -908,14 +908,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j1t-ka1+l-1), &inca, ab.Vector(ka1-l-1, j1t-ka1+l-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j1t-ka1+l-1), &inca, ab.Vector(ka1-l-1, j1t-ka1+l-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+j-1), work.Get(j-1))
+					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get((*n)+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -924,15 +924,15 @@ label490:
 			if i2 > 0 && kbt > 0 {
 				//              create nonzero element a(i+kbt,i+kbt-ka-1) outside the
 				//              band and store it in WORK(m-kb+i+kbt)
-				work.Set(m-(*kb)+i+kbt-1, -bb.Get(kbt+1-1, i-1)*ra1)
+				work.Set(m-(*kb)+i+kbt-1, -bb.Get(kbt, i-1)*ra1)
 			}
 		}
 
 		for k = (*kb); k >= 1; k-- {
 			if update {
-				j2 = i + k + 1 - maxint(2, k+i0-m)*ka1
+				j2 = i + k + 1 - max(2, k+i0-m)*ka1
 			} else {
-				j2 = i + k + 1 - maxint(1, k+i0-m)*ka1
+				j2 = i + k + 1 - max(1, k+i0-m)*ka1
 			}
 
 			//           finish applying rotations in 2nd set from the left
@@ -940,7 +940,7 @@ label490:
 				nrt = (j2 + (*ka) + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j1t+l-1-1), &inca, ab.Vector(ka1-l-1, j1t+l-1-1), &inca, work.Off((*n)+m-(*kb)+j1t+(*ka)-1), work.Off(m-(*kb)+j1t+(*ka)-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j1t+l-1-1), &inca, ab.Vector(ka1-l-1, j1t+l-1-1), &inca, work.Off((*n)+m-(*kb)+j1t+(*ka)-1), work.Off(m-(*kb)+j1t+(*ka)-1), &ka1)
 				}
 			}
 			nr = (j2 + (*ka) - 1) / ka1
@@ -963,7 +963,7 @@ label490:
 		}
 
 		for k = (*kb); k >= 1; k-- {
-			j2 = i + k + 1 - maxint(1, k+i0-m)*ka1
+			j2 = i + k + 1 - max(1, k+i0-m)*ka1
 			nr = (j2 + (*ka) - 1) / ka1
 			j1 = j2 - (nr-1)*ka1
 			if nr > 0 {
@@ -973,7 +973,7 @@ label490:
 
 				//              apply rotations in 2nd set from the right
 				for l = 1; l <= (*ka)-1; l++ {
-					Dlartv(&nr, ab.Vector(l+1-1, j1-1), &inca, ab.Vector(l+2-1, j1-1-1), &inca, work.Off((*n)+m-(*kb)+j1-1), work.Off(m-(*kb)+j1-1), &ka1)
+					Dlartv(&nr, ab.Vector(l, j1-1), &inca, ab.Vector(l+2-1, j1-1-1), &inca, work.Off((*n)+m-(*kb)+j1-1), work.Off(m-(*kb)+j1-1), &ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
@@ -987,33 +987,33 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j1t-ka1+l-1), &inca, ab.Vector(ka1-l-1, j1t-ka1+l-1), &inca, work.Off((*n)+m-(*kb)+j1t-1), work.Off(m-(*kb)+j1t-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j1t-ka1+l-1), &inca, ab.Vector(ka1-l-1, j1t-ka1+l-1), &inca, work.Off((*n)+m-(*kb)+j1t-1), work.Off(m-(*kb)+j1t-1), &ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1), 1, x.Vector(0, j-1-1), 1, work.Get((*n)+m-(*kb)+j-1), work.Get(m-(*kb)+j-1))
+					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get((*n)+m-(*kb)+j-1), work.Get(m-(*kb)+j-1))
 				}
 			}
 		}
 
 		for k = 1; k <= (*kb)-1; k++ {
-			j2 = i + k + 1 - maxint(1, k+i0-m+1)*ka1
+			j2 = i + k + 1 - max(1, k+i0-m+1)*ka1
 
 			//           finish applying rotations in 1st set from the left
 			for l = (*kb) - k; l >= 1; l-- {
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(&nrt, ab.Vector(ka1-l+1-1, j1t-ka1+l-1), &inca, ab.Vector(ka1-l-1, j1t-ka1+l-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
+					Dlartv(&nrt, ab.Vector(ka1-l, j1t-ka1+l-1), &inca, ab.Vector(ka1-l-1, j1t-ka1+l-1), &inca, work.Off((*n)+j1t-1), work.Off(j1t-1), &ka1)
 				}
 			}
 		}
 
 		if (*kb) > 1 {
-			for j = 2; j <= minint(i+(*kb), m)-2*(*ka)-1; j++ {
+			for j = 2; j <= min(i+(*kb), m)-2*(*ka)-1; j++ {
 				work.Set((*n)+j-1, work.Get((*n)+j+(*ka)-1))
 				work.Set(j-1, work.Get(j+(*ka)-1))
 			}

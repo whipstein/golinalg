@@ -93,7 +93,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs *int, b *mat.CMatrix, ldb *int, bx *mat.CMat
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), *ldu, rwork.MatrixOff(1+nl*(*nrhs)*2-1, nl, opts), nl, zero, rwork.Matrix(nl, opts), nl)
+		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), rwork.MatrixOff(1+nl*(*nrhs)*2-1, nl, opts), zero, rwork.Matrix(nl, opts))
 		j = nl * (*nrhs) * 2
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
 			for jrow = nlf; jrow <= nlf+nl-1; jrow++ {
@@ -101,7 +101,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs *int, b *mat.CMatrix, ldb *int, bx *mat.CMat
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), *ldu, rwork.MatrixOff(1+nl*(*nrhs)*2-1, nl, opts), nl, zero, rwork.MatrixOff(1+nl*(*nrhs)-1, nl, opts), nl)
+		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), rwork.MatrixOff(1+nl*(*nrhs)*2-1, nl, opts), zero, rwork.MatrixOff(1+nl*(*nrhs)-1, nl, opts))
 		jreal = 0
 		jimag = nl * (*nrhs)
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -124,7 +124,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs *int, b *mat.CMatrix, ldb *int, bx *mat.CMat
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), *ldu, rwork.MatrixOff(1+nr*(*nrhs)*2-1, nr, opts), nr, zero, rwork.Matrix(nr, opts), nr)
+		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), rwork.MatrixOff(1+nr*(*nrhs)*2-1, nr, opts), zero, rwork.Matrix(nr, opts))
 		j = nr * (*nrhs) * 2
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
 			for jrow = nrf; jrow <= nrf+nr-1; jrow++ {
@@ -132,7 +132,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs *int, b *mat.CMatrix, ldb *int, bx *mat.CMat
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), *ldu, rwork.MatrixOff(1+nr*(*nrhs)*2-1, nr, opts), nr, zero, rwork.MatrixOff(1+nr*(*nrhs)-1, nr, opts), nr)
+		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), rwork.MatrixOff(1+nr*(*nrhs)*2-1, nr, opts), zero, rwork.MatrixOff(1+nr*(*nrhs)-1, nr, opts))
 		jreal = 0
 		jimag = nr * (*nrhs)
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -149,12 +149,12 @@ func Zlalsa(icompq, smlsiz, n, nrhs *int, b *mat.CMatrix, ldb *int, bx *mat.CMat
 	//     in the bidiagonal matrix to BX.
 	for i = 1; i <= nd; i++ {
 		ic = (*iwork)[inode+i-1-1]
-		goblas.Zcopy(*nrhs, b.CVector(ic-1, 0), *ldb, bx.CVector(ic-1, 0), *ldbx)
+		goblas.Zcopy(*nrhs, b.CVector(ic-1, 0, *ldb), bx.CVector(ic-1, 0, *ldbx))
 	}
 
 	//     Finally go through the left singular vector matrices of all
 	//     the other subproblems bottom-up on the tree.
-	j = powint(2, nlvl)
+	j = pow(2, nlvl)
 	sqre = 0
 
 	for lvl = nlvl; lvl >= 1; lvl-- {
@@ -166,7 +166,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs *int, b *mat.CMatrix, ldb *int, bx *mat.CMat
 			lf = 1
 			ll = 1
 		} else {
-			lf = powint(2, lvl-1)
+			lf = pow(2, lvl-1)
 			ll = 2*lf - 1
 		}
 		for i = lf; i <= ll; i++ {
@@ -198,7 +198,7 @@ label170:
 			lf = 1
 			ll = 1
 		} else {
-			lf = powint(2, lvl-1)
+			lf = pow(2, lvl-1)
 			ll = 2*lf - 1
 		}
 		for i = ll; i >= lf; i-- {
@@ -248,7 +248,7 @@ label170:
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), *ldu, rwork.MatrixOff(1+nlp1*(*nrhs)*2-1, nlp1, opts), nlp1, zero, rwork.Matrix(nlp1, opts), nlp1)
+		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), rwork.MatrixOff(1+nlp1*(*nrhs)*2-1, nlp1, opts), zero, rwork.Matrix(nlp1, opts))
 		j = nlp1 * (*nrhs) * 2
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
 			for jrow = nlf; jrow <= nlf+nlp1-1; jrow++ {
@@ -256,7 +256,7 @@ label170:
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), *ldu, rwork.MatrixOff(1+nlp1*(*nrhs)*2-1, nlp1, opts), nlp1, zero, rwork.MatrixOff(1+nlp1*(*nrhs)-1, nlp1, opts), nlp1)
+		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), rwork.MatrixOff(1+nlp1*(*nrhs)*2-1, nlp1, opts), zero, rwork.MatrixOff(1+nlp1*(*nrhs)-1, nlp1, opts))
 		jreal = 0
 		jimag = nlp1 * (*nrhs)
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
@@ -279,7 +279,7 @@ label170:
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), *ldu, rwork.MatrixOff(1+nrp1*(*nrhs)*2-1, nrp1, opts), nrp1, zero, rwork.Matrix(nrp1, opts), nrp1)
+		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), rwork.MatrixOff(1+nrp1*(*nrhs)*2-1, nrp1, opts), zero, rwork.Matrix(nrp1, opts))
 		j = nrp1 * (*nrhs) * 2
 		for jcol = 1; jcol <= (*nrhs); jcol++ {
 			for jrow = nrf; jrow <= nrf+nrp1-1; jrow++ {
@@ -287,7 +287,7 @@ label170:
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), *ldu, rwork.MatrixOff(1+nrp1*(*nrhs)*2-1, nrp1, opts), nrp1, zero, rwork.MatrixOff(1+nrp1*(*nrhs)-1, nrp1, opts), nrp1)
+		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), rwork.MatrixOff(1+nrp1*(*nrhs)*2-1, nrp1, opts), zero, rwork.MatrixOff(1+nrp1*(*nrhs)-1, nrp1, opts))
 		jreal = 0
 		jimag = nrp1 * (*nrhs)
 		for jcol = 1; jcol <= (*nrhs); jcol++ {

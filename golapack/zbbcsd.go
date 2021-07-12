@@ -112,9 +112,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 	//     Get machine constants
 	eps = Dlamch(Epsilon)
 	unfl = Dlamch(SafeMinimum)
-	tolmul = maxf64(ten, minf64(hundred, math.Pow(eps, meighth)))
+	tolmul = math.Max(ten, math.Min(hundred, math.Pow(eps, meighth)))
 	tol = tolmul * eps
-	thresh = maxf64(tol, float64(maxitr*(*q)*(*q))*unfl)
+	thresh = math.Max(tol, float64(maxitr*(*q)*(*q))*unfl)
 
 	//     Test for negligible sines or cosines
 	for i = 1; i <= (*q); i++ {
@@ -161,13 +161,13 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		b21d.Set(imin-1, -math.Sin(theta.Get(imin-1)))
 		for i = imin; i <= imax-1; i++ {
 			b11e.Set(i-1, -math.Sin(theta.Get(i-1))*math.Sin(phi.Get(i-1)))
-			b11d.Set(i+1-1, math.Cos(theta.Get(i+1-1))*math.Cos(phi.Get(i-1)))
+			b11d.Set(i, math.Cos(theta.Get(i))*math.Cos(phi.Get(i-1)))
 			b12d.Set(i-1, math.Sin(theta.Get(i-1))*math.Cos(phi.Get(i-1)))
-			b12e.Set(i-1, math.Cos(theta.Get(i+1-1))*math.Sin(phi.Get(i-1)))
+			b12e.Set(i-1, math.Cos(theta.Get(i))*math.Sin(phi.Get(i-1)))
 			b21e.Set(i-1, -math.Cos(theta.Get(i-1))*math.Sin(phi.Get(i-1)))
-			b21d.Set(i+1-1, -math.Sin(theta.Get(i+1-1))*math.Cos(phi.Get(i-1)))
+			b21d.Set(i, -math.Sin(theta.Get(i))*math.Cos(phi.Get(i-1)))
 			b22d.Set(i-1, math.Cos(theta.Get(i-1))*math.Cos(phi.Get(i-1)))
-			b22e.Set(i-1, -math.Sin(theta.Get(i+1-1))*math.Sin(phi.Get(i-1)))
+			b22e.Set(i-1, -math.Sin(theta.Get(i))*math.Sin(phi.Get(i-1)))
 		}
 		b12d.Set(imax-1, math.Sin(theta.Get(imax-1)))
 		b22d.Set(imax-1, math.Cos(theta.Get(imax-1)))
@@ -241,13 +241,13 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		temp = rwork.Get(iv1tcs+imin-1-1)*b11d.Get(imin-1) + rwork.Get(iv1tsn+imin-1-1)*b11e.Get(imin-1)
 		b11e.Set(imin-1, rwork.Get(iv1tcs+imin-1-1)*b11e.Get(imin-1)-rwork.Get(iv1tsn+imin-1-1)*b11d.Get(imin-1))
 		b11d.Set(imin-1, temp)
-		b11bulge = rwork.Get(iv1tsn+imin-1-1) * b11d.Get(imin+1-1)
-		b11d.Set(imin+1-1, rwork.Get(iv1tcs+imin-1-1)*b11d.Get(imin+1-1))
+		b11bulge = rwork.Get(iv1tsn+imin-1-1) * b11d.Get(imin)
+		b11d.Set(imin, rwork.Get(iv1tcs+imin-1-1)*b11d.Get(imin))
 		temp = rwork.Get(iv1tcs+imin-1-1)*b21d.Get(imin-1) + rwork.Get(iv1tsn+imin-1-1)*b21e.Get(imin-1)
 		b21e.Set(imin-1, rwork.Get(iv1tcs+imin-1-1)*b21e.Get(imin-1)-rwork.Get(iv1tsn+imin-1-1)*b21d.Get(imin-1))
 		b21d.Set(imin-1, temp)
-		b21bulge = rwork.Get(iv1tsn+imin-1-1) * b21d.Get(imin+1-1)
-		b21d.Set(imin+1-1, rwork.Get(iv1tcs+imin-1-1)*b21d.Get(imin+1-1))
+		b21bulge = rwork.Get(iv1tsn+imin-1-1) * b21d.Get(imin)
+		b21d.Set(imin, rwork.Get(iv1tcs+imin-1-1)*b21d.Get(imin))
 
 		//        Compute THETA(IMIN)
 		theta.Set(imin-1, math.Atan2(math.Sqrt(math.Pow(b21d.Get(imin-1), 2)+math.Pow(b21bulge, 2)), math.Sqrt(math.Pow(b11d.Get(imin-1), 2)+math.Pow(b11bulge, 2))))
@@ -256,44 +256,44 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		if math.Pow(b11d.Get(imin-1), 2)+math.Pow(b11bulge, 2) > math.Pow(thresh, 2) {
 			Dlartgp(&b11bulge, b11d.GetPtr(imin-1), rwork.GetPtr(iu1sn+imin-1-1), rwork.GetPtr(iu1cs+imin-1-1), &r)
 		} else if mu <= nu {
-			Dlartgs(b11e.GetPtr(imin-1), b11d.GetPtr(imin+1-1), &mu, rwork.GetPtr(iu1cs+imin-1-1), rwork.GetPtr(iu1sn+imin-1-1))
+			Dlartgs(b11e.GetPtr(imin-1), b11d.GetPtr(imin), &mu, rwork.GetPtr(iu1cs+imin-1-1), rwork.GetPtr(iu1sn+imin-1-1))
 		} else {
 			Dlartgs(b12d.GetPtr(imin-1), b12e.GetPtr(imin-1), &nu, rwork.GetPtr(iu1cs+imin-1-1), rwork.GetPtr(iu1sn+imin-1-1))
 		}
 		if math.Pow(b21d.Get(imin-1), 2)+math.Pow(b21bulge, 2) > math.Pow(thresh, 2) {
 			Dlartgp(&b21bulge, b21d.GetPtr(imin-1), rwork.GetPtr(iu2sn+imin-1-1), rwork.GetPtr(iu2cs+imin-1-1), &r)
 		} else if nu < mu {
-			Dlartgs(b21e.GetPtr(imin-1), b21d.GetPtr(imin+1-1), &nu, rwork.GetPtr(iu2cs+imin-1-1), rwork.GetPtr(iu2sn+imin-1-1))
+			Dlartgs(b21e.GetPtr(imin-1), b21d.GetPtr(imin), &nu, rwork.GetPtr(iu2cs+imin-1-1), rwork.GetPtr(iu2sn+imin-1-1))
 		} else {
 			Dlartgs(b22d.GetPtr(imin-1), b22e.GetPtr(imin-1), &mu, rwork.GetPtr(iu2cs+imin-1-1), rwork.GetPtr(iu2sn+imin-1-1))
 		}
 		rwork.Set(iu2cs+imin-1-1, -rwork.Get(iu2cs+imin-1-1))
 		rwork.Set(iu2sn+imin-1-1, -rwork.Get(iu2sn+imin-1-1))
 
-		temp = rwork.Get(iu1cs+imin-1-1)*b11e.Get(imin-1) + rwork.Get(iu1sn+imin-1-1)*b11d.Get(imin+1-1)
-		b11d.Set(imin+1-1, rwork.Get(iu1cs+imin-1-1)*b11d.Get(imin+1-1)-rwork.Get(iu1sn+imin-1-1)*b11e.Get(imin-1))
+		temp = rwork.Get(iu1cs+imin-1-1)*b11e.Get(imin-1) + rwork.Get(iu1sn+imin-1-1)*b11d.Get(imin)
+		b11d.Set(imin, rwork.Get(iu1cs+imin-1-1)*b11d.Get(imin)-rwork.Get(iu1sn+imin-1-1)*b11e.Get(imin-1))
 		b11e.Set(imin-1, temp)
 		if imax > imin+1 {
-			b11bulge = rwork.Get(iu1sn+imin-1-1) * b11e.Get(imin+1-1)
-			b11e.Set(imin+1-1, rwork.Get(iu1cs+imin-1-1)*b11e.Get(imin+1-1))
+			b11bulge = rwork.Get(iu1sn+imin-1-1) * b11e.Get(imin)
+			b11e.Set(imin, rwork.Get(iu1cs+imin-1-1)*b11e.Get(imin))
 		}
 		temp = rwork.Get(iu1cs+imin-1-1)*b12d.Get(imin-1) + rwork.Get(iu1sn+imin-1-1)*b12e.Get(imin-1)
 		b12e.Set(imin-1, rwork.Get(iu1cs+imin-1-1)*b12e.Get(imin-1)-rwork.Get(iu1sn+imin-1-1)*b12d.Get(imin-1))
 		b12d.Set(imin-1, temp)
-		b12bulge = rwork.Get(iu1sn+imin-1-1) * b12d.Get(imin+1-1)
-		b12d.Set(imin+1-1, rwork.Get(iu1cs+imin-1-1)*b12d.Get(imin+1-1))
-		temp = rwork.Get(iu2cs+imin-1-1)*b21e.Get(imin-1) + rwork.Get(iu2sn+imin-1-1)*b21d.Get(imin+1-1)
-		b21d.Set(imin+1-1, rwork.Get(iu2cs+imin-1-1)*b21d.Get(imin+1-1)-rwork.Get(iu2sn+imin-1-1)*b21e.Get(imin-1))
+		b12bulge = rwork.Get(iu1sn+imin-1-1) * b12d.Get(imin)
+		b12d.Set(imin, rwork.Get(iu1cs+imin-1-1)*b12d.Get(imin))
+		temp = rwork.Get(iu2cs+imin-1-1)*b21e.Get(imin-1) + rwork.Get(iu2sn+imin-1-1)*b21d.Get(imin)
+		b21d.Set(imin, rwork.Get(iu2cs+imin-1-1)*b21d.Get(imin)-rwork.Get(iu2sn+imin-1-1)*b21e.Get(imin-1))
 		b21e.Set(imin-1, temp)
 		if imax > imin+1 {
-			b21bulge = rwork.Get(iu2sn+imin-1-1) * b21e.Get(imin+1-1)
-			b21e.Set(imin+1-1, rwork.Get(iu2cs+imin-1-1)*b21e.Get(imin+1-1))
+			b21bulge = rwork.Get(iu2sn+imin-1-1) * b21e.Get(imin)
+			b21e.Set(imin, rwork.Get(iu2cs+imin-1-1)*b21e.Get(imin))
 		}
 		temp = rwork.Get(iu2cs+imin-1-1)*b22d.Get(imin-1) + rwork.Get(iu2sn+imin-1-1)*b22e.Get(imin-1)
 		b22e.Set(imin-1, rwork.Get(iu2cs+imin-1-1)*b22e.Get(imin-1)-rwork.Get(iu2sn+imin-1-1)*b22d.Get(imin-1))
 		b22d.Set(imin-1, temp)
-		b22bulge = rwork.Get(iu2sn+imin-1-1) * b22d.Get(imin+1-1)
-		b22d.Set(imin+1-1, rwork.Get(iu2cs+imin-1-1)*b22d.Get(imin+1-1))
+		b22bulge = rwork.Get(iu2sn+imin-1-1) * b22d.Get(imin)
+		b22d.Set(imin, rwork.Get(iu2cs+imin-1-1)*b22d.Get(imin))
 
 		//        Inner loop: chase bulges from B11(IMIN,IMIN+2),
 		//        B12(IMIN,IMIN+1), B21(IMIN,IMIN+2), and B22(IMIN,IMIN+1) to
@@ -345,13 +345,13 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			temp = rwork.Get(iv1tcs+i-1-1)*b11d.Get(i-1) + rwork.Get(iv1tsn+i-1-1)*b11e.Get(i-1)
 			b11e.Set(i-1, rwork.Get(iv1tcs+i-1-1)*b11e.Get(i-1)-rwork.Get(iv1tsn+i-1-1)*b11d.Get(i-1))
 			b11d.Set(i-1, temp)
-			b11bulge = rwork.Get(iv1tsn+i-1-1) * b11d.Get(i+1-1)
-			b11d.Set(i+1-1, rwork.Get(iv1tcs+i-1-1)*b11d.Get(i+1-1))
+			b11bulge = rwork.Get(iv1tsn+i-1-1) * b11d.Get(i)
+			b11d.Set(i, rwork.Get(iv1tcs+i-1-1)*b11d.Get(i))
 			temp = rwork.Get(iv1tcs+i-1-1)*b21d.Get(i-1) + rwork.Get(iv1tsn+i-1-1)*b21e.Get(i-1)
 			b21e.Set(i-1, rwork.Get(iv1tcs+i-1-1)*b21e.Get(i-1)-rwork.Get(iv1tsn+i-1-1)*b21d.Get(i-1))
 			b21d.Set(i-1, temp)
-			b21bulge = rwork.Get(iv1tsn+i-1-1) * b21d.Get(i+1-1)
-			b21d.Set(i+1-1, rwork.Get(iv1tcs+i-1-1)*b21d.Get(i+1-1))
+			b21bulge = rwork.Get(iv1tsn+i-1-1) * b21d.Get(i)
+			b21d.Set(i, rwork.Get(iv1tcs+i-1-1)*b21d.Get(i))
 			temp = rwork.Get(iv2tcs+i-1-1-1)*b12e.Get(i-1-1) + rwork.Get(iv2tsn+i-1-1-1)*b12d.Get(i-1)
 			b12d.Set(i-1, rwork.Get(iv2tcs+i-1-1-1)*b12d.Get(i-1)-rwork.Get(iv2tsn+i-1-1-1)*b12e.Get(i-1-1))
 			b12e.Set(i-1-1, temp)
@@ -388,7 +388,7 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			} else if restart11 && !restart12 {
 				Dlartgp(&b12bulge, b12e.GetPtr(i-1-1), rwork.GetPtr(iu1sn+i-1-1), rwork.GetPtr(iu1cs+i-1-1), &r)
 			} else if mu <= nu {
-				Dlartgs(b11e.GetPtr(i-1), b11d.GetPtr(i+1-1), &mu, rwork.GetPtr(iu1cs+i-1-1), rwork.GetPtr(iu1sn+i-1-1))
+				Dlartgs(b11e.GetPtr(i-1), b11d.GetPtr(i), &mu, rwork.GetPtr(iu1cs+i-1-1), rwork.GetPtr(iu1sn+i-1-1))
 			} else {
 				Dlartgs(b12d.GetPtr(i-1), b12e.GetPtr(i-1), &nu, rwork.GetPtr(iu1cs+i-1-1), rwork.GetPtr(iu1sn+i-1-1))
 			}
@@ -399,37 +399,37 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			} else if restart21 && !restart22 {
 				Dlartgp(&b22bulge, b22e.GetPtr(i-1-1), rwork.GetPtr(iu2sn+i-1-1), rwork.GetPtr(iu2cs+i-1-1), &r)
 			} else if nu < mu {
-				Dlartgs(b21e.GetPtr(i-1), b21e.GetPtr(i+1-1), &nu, rwork.GetPtr(iu2cs+i-1-1), rwork.GetPtr(iu2sn+i-1-1))
+				Dlartgs(b21e.GetPtr(i-1), b21e.GetPtr(i), &nu, rwork.GetPtr(iu2cs+i-1-1), rwork.GetPtr(iu2sn+i-1-1))
 			} else {
 				Dlartgs(b22d.GetPtr(i-1), b22e.GetPtr(i-1), &mu, rwork.GetPtr(iu2cs+i-1-1), rwork.GetPtr(iu2sn+i-1-1))
 			}
 			rwork.Set(iu2cs+i-1-1, -rwork.Get(iu2cs+i-1-1))
 			rwork.Set(iu2sn+i-1-1, -rwork.Get(iu2sn+i-1-1))
 
-			temp = rwork.Get(iu1cs+i-1-1)*b11e.Get(i-1) + rwork.Get(iu1sn+i-1-1)*b11d.Get(i+1-1)
-			b11d.Set(i+1-1, rwork.Get(iu1cs+i-1-1)*b11d.Get(i+1-1)-rwork.Get(iu1sn+i-1-1)*b11e.Get(i-1))
+			temp = rwork.Get(iu1cs+i-1-1)*b11e.Get(i-1) + rwork.Get(iu1sn+i-1-1)*b11d.Get(i)
+			b11d.Set(i, rwork.Get(iu1cs+i-1-1)*b11d.Get(i)-rwork.Get(iu1sn+i-1-1)*b11e.Get(i-1))
 			b11e.Set(i-1, temp)
 			if i < imax-1 {
-				b11bulge = rwork.Get(iu1sn+i-1-1) * b11e.Get(i+1-1)
-				b11e.Set(i+1-1, rwork.Get(iu1cs+i-1-1)*b11e.Get(i+1-1))
+				b11bulge = rwork.Get(iu1sn+i-1-1) * b11e.Get(i)
+				b11e.Set(i, rwork.Get(iu1cs+i-1-1)*b11e.Get(i))
 			}
-			temp = rwork.Get(iu2cs+i-1-1)*b21e.Get(i-1) + rwork.Get(iu2sn+i-1-1)*b21d.Get(i+1-1)
-			b21d.Set(i+1-1, rwork.Get(iu2cs+i-1-1)*b21d.Get(i+1-1)-rwork.Get(iu2sn+i-1-1)*b21e.Get(i-1))
+			temp = rwork.Get(iu2cs+i-1-1)*b21e.Get(i-1) + rwork.Get(iu2sn+i-1-1)*b21d.Get(i)
+			b21d.Set(i, rwork.Get(iu2cs+i-1-1)*b21d.Get(i)-rwork.Get(iu2sn+i-1-1)*b21e.Get(i-1))
 			b21e.Set(i-1, temp)
 			if i < imax-1 {
-				b21bulge = rwork.Get(iu2sn+i-1-1) * b21e.Get(i+1-1)
-				b21e.Set(i+1-1, rwork.Get(iu2cs+i-1-1)*b21e.Get(i+1-1))
+				b21bulge = rwork.Get(iu2sn+i-1-1) * b21e.Get(i)
+				b21e.Set(i, rwork.Get(iu2cs+i-1-1)*b21e.Get(i))
 			}
 			temp = rwork.Get(iu1cs+i-1-1)*b12d.Get(i-1) + rwork.Get(iu1sn+i-1-1)*b12e.Get(i-1)
 			b12e.Set(i-1, rwork.Get(iu1cs+i-1-1)*b12e.Get(i-1)-rwork.Get(iu1sn+i-1-1)*b12d.Get(i-1))
 			b12d.Set(i-1, temp)
-			b12bulge = rwork.Get(iu1sn+i-1-1) * b12d.Get(i+1-1)
-			b12d.Set(i+1-1, rwork.Get(iu1cs+i-1-1)*b12d.Get(i+1-1))
+			b12bulge = rwork.Get(iu1sn+i-1-1) * b12d.Get(i)
+			b12d.Set(i, rwork.Get(iu1cs+i-1-1)*b12d.Get(i))
 			temp = rwork.Get(iu2cs+i-1-1)*b22d.Get(i-1) + rwork.Get(iu2sn+i-1-1)*b22e.Get(i-1)
 			b22e.Set(i-1, rwork.Get(iu2cs+i-1-1)*b22e.Get(i-1)-rwork.Get(iu2sn+i-1-1)*b22d.Get(i-1))
 			b22d.Set(i-1, temp)
-			b22bulge = rwork.Get(iu2sn+i-1-1) * b22d.Get(i+1-1)
-			b22d.Set(i+1-1, rwork.Get(iu2cs+i-1-1)*b22d.Get(i+1-1))
+			b22bulge = rwork.Get(iu2sn+i-1-1) * b22d.Get(i)
+			b22d.Set(i, rwork.Get(iu2cs+i-1-1)*b22d.Get(i))
 
 		}
 
@@ -499,9 +499,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b21d.Set(imax-1, -b21d.Get(imax-1))
 			if wantv1t {
 				if colmajor {
-					goblas.Zscal(*q, negonecomplex, v1t.CVector(imax-1, 0), *ldv1t)
+					goblas.Zscal(*q, negonecomplex, v1t.CVector(imax-1, 0, *ldv1t))
 				} else {
-					goblas.Zscal(*q, negonecomplex, v1t.CVector(0, imax-1), 1)
+					goblas.Zscal(*q, negonecomplex, v1t.CVector(0, imax-1, 1))
 				}
 			}
 		}
@@ -518,9 +518,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b12d.Set(imax-1, -b12d.Get(imax-1))
 			if wantu1 {
 				if colmajor {
-					goblas.Zscal(*p, negonecomplex, u1.CVector(0, imax-1), 1)
+					goblas.Zscal(*p, negonecomplex, u1.CVector(0, imax-1, 1))
 				} else {
-					goblas.Zscal(*p, negonecomplex, u1.CVector(imax-1, 0), *ldu1)
+					goblas.Zscal(*p, negonecomplex, u1.CVector(imax-1, 0, *ldu1))
 				}
 			}
 		}
@@ -528,9 +528,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b22d.Set(imax-1, -b22d.Get(imax-1))
 			if wantu2 {
 				if colmajor {
-					goblas.Zscal((*m)-(*p), negonecomplex, u2.CVector(0, imax-1), 1)
+					goblas.Zscal((*m)-(*p), negonecomplex, u2.CVector(0, imax-1, 1))
 				} else {
-					goblas.Zscal((*m)-(*p), negonecomplex, u2.CVector(imax-1, 0), *ldu2)
+					goblas.Zscal((*m)-(*p), negonecomplex, u2.CVector(imax-1, 0, *ldu2))
 				}
 			}
 		}
@@ -539,9 +539,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		if b12d.Get(imax-1)+b22d.Get(imax-1) < 0 {
 			if wantv2t {
 				if colmajor {
-					goblas.Zscal((*m)-(*q), negonecomplex, v2t.CVector(imax-1, 0), *ldv2t)
+					goblas.Zscal((*m)-(*q), negonecomplex, v2t.CVector(imax-1, 0, *ldv2t))
 				} else {
-					goblas.Zscal((*m)-(*q), negonecomplex, v2t.CVector(0, imax-1), 1)
+					goblas.Zscal((*m)-(*q), negonecomplex, v2t.CVector(0, imax-1, 1))
 				}
 			}
 		}
@@ -603,29 +603,29 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			theta.Set(i-1, thetamin)
 			if colmajor {
 				if wantu1 {
-					goblas.Zswap(*p, u1.CVector(0, i-1), 1, u1.CVector(0, mini-1), 1)
+					goblas.Zswap(*p, u1.CVector(0, i-1, 1), u1.CVector(0, mini-1, 1))
 				}
 				if wantu2 {
-					goblas.Zswap((*m)-(*p), u2.CVector(0, i-1), 1, u2.CVector(0, mini-1), 1)
+					goblas.Zswap((*m)-(*p), u2.CVector(0, i-1, 1), u2.CVector(0, mini-1, 1))
 				}
 				if wantv1t {
-					goblas.Zswap(*q, v1t.CVector(i-1, 0), *ldv1t, v1t.CVector(mini-1, 0), *ldv1t)
+					goblas.Zswap(*q, v1t.CVector(i-1, 0, *ldv1t), v1t.CVector(mini-1, 0, *ldv1t))
 				}
 				if wantv2t {
-					goblas.Zswap((*m)-(*q), v2t.CVector(i-1, 0), *ldv2t, v2t.CVector(mini-1, 0), *ldv2t)
+					goblas.Zswap((*m)-(*q), v2t.CVector(i-1, 0, *ldv2t), v2t.CVector(mini-1, 0, *ldv2t))
 				}
 			} else {
 				if wantu1 {
-					goblas.Zswap(*p, u1.CVector(i-1, 0), *ldu1, u1.CVector(mini-1, 0), *ldu1)
+					goblas.Zswap(*p, u1.CVector(i-1, 0, *ldu1), u1.CVector(mini-1, 0, *ldu1))
 				}
 				if wantu2 {
-					goblas.Zswap((*m)-(*p), u2.CVector(i-1, 0), *ldu2, u2.CVector(mini-1, 0), *ldu2)
+					goblas.Zswap((*m)-(*p), u2.CVector(i-1, 0, *ldu2), u2.CVector(mini-1, 0, *ldu2))
 				}
 				if wantv1t {
-					goblas.Zswap(*q, v1t.CVector(0, i-1), 1, v1t.CVector(0, mini-1), 1)
+					goblas.Zswap(*q, v1t.CVector(0, i-1, 1), v1t.CVector(0, mini-1, 1))
 				}
 				if wantv2t {
-					goblas.Zswap((*m)-(*q), v2t.CVector(0, i-1), 1, v2t.CVector(0, mini-1), 1)
+					goblas.Zswap((*m)-(*q), v2t.CVector(0, i-1, 1), v2t.CVector(0, mini-1, 1))
 				}
 			}
 		}

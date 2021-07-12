@@ -35,9 +35,9 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -89,9 +89,9 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 					bi = b.Get(i-1, j-1)
 					cx = e.GetConj(i-1-1) * x.Get(i-1-1, j-1)
 					dx = d.GetCmplx(i-1) * x.Get(i-1, j-1)
-					ex = e.Get(i-1) * x.Get(i+1-1, j-1)
+					ex = e.Get(i-1) * x.Get(i, j-1)
 					work.Set(i-1, bi-cx-dx-ex)
-					rwork.Set(i-1, Cabs1(bi)+Cabs1(e.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(dx)+Cabs1(e.Get(i-1))*Cabs1(x.Get(i+1-1, j-1)))
+					rwork.Set(i-1, Cabs1(bi)+Cabs1(e.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(dx)+Cabs1(e.Get(i-1))*Cabs1(x.Get(i, j-1)))
 				}
 				bi = b.Get((*n)-1, j-1)
 				cx = e.GetConj((*n)-1-1) * x.Get((*n)-1-1, j-1)
@@ -115,9 +115,9 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 					bi = b.Get(i-1, j-1)
 					cx = e.Get(i-1-1) * x.Get(i-1-1, j-1)
 					dx = d.GetCmplx(i-1) * x.Get(i-1, j-1)
-					ex = e.GetConj(i-1) * x.Get(i+1-1, j-1)
+					ex = e.GetConj(i-1) * x.Get(i, j-1)
 					work.Set(i-1, bi-cx-dx-ex)
-					rwork.Set(i-1, Cabs1(bi)+Cabs1(e.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(dx)+Cabs1(e.Get(i-1))*Cabs1(x.Get(i+1-1, j-1)))
+					rwork.Set(i-1, Cabs1(bi)+Cabs1(e.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(dx)+Cabs1(e.Get(i-1))*Cabs1(x.Get(i, j-1)))
 				}
 				bi = b.Get((*n)-1, j-1)
 				cx = e.Get((*n)-1-1) * x.Get((*n)-1-1, j-1)
@@ -138,9 +138,9 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -153,7 +153,7 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zpttrs(uplo, n, func() *int { y := 1; return &y }(), df, ef, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, complex(one, 0), work, 1, x.CVector(0, j-1), 1)
+			goblas.Zaxpy(*n, complex(one, 0), work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -183,7 +183,7 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 				rwork.Set(i-1, Cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
 			}
 		}
-		ix = goblas.Idamax(*n, rwork, 1)
+		ix = goblas.Idamax(*n, rwork.Off(0, 1))
 		ferr.Set(j-1, rwork.Get(ix-1))
 
 		//        Estimate the norm of inv(A).
@@ -204,17 +204,17 @@ func Zptrfs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, df *mat.Vect
 		//        Solve D * M(L)**H * x = b.
 		rwork.Set((*n)-1, rwork.Get((*n)-1)/df.Get((*n)-1))
 		for i = (*n) - 1; i >= 1; i-- {
-			rwork.Set(i-1, rwork.Get(i-1)/df.Get(i-1)+rwork.Get(i+1-1)*ef.GetMag(i-1))
+			rwork.Set(i-1, rwork.Get(i-1)/df.Get(i-1)+rwork.Get(i)*ef.GetMag(i-1))
 		}
 
 		//        Compute norm(inv(A)) = max(x(i)), 1<=i<=n.
-		ix = goblas.Idamax(*n, rwork, 1)
+		ix = goblas.Idamax(*n, rwork.Off(0, 1))
 		ferr.Set(j-1, ferr.Get(j-1)*rwork.GetMag(ix-1))
 
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, x.GetMag(i-1, j-1))
+			lstres = math.Max(lstres, x.GetMag(i-1, j-1))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

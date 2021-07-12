@@ -59,8 +59,12 @@ func (v *Vector) DeepCopy() *Vector {
 	_ = d.Decode(&result)
 	return &result
 }
-func (v *Vector) Off(idx int) *Vector {
-	return &Vector{Size: v.Size - idx, Data: v.Data[idx:]}
+func (v *Vector) Off(idx int, n ...int) *Vector {
+	inc := v.Inc
+	if n != nil {
+		inc = n[0]
+	}
+	return &Vector{Size: v.Size - idx, Inc: inc, Data: v.Data[idx:]}
 }
 func (v *Vector) CVector() *CVector {
 	cvf := CVectorFactory()
@@ -234,8 +238,12 @@ func (v *CVector) DeepCopy() *CVector {
 	_ = d.Decode(&result)
 	return &result
 }
-func (v *CVector) Off(idx int) *CVector {
-	return &CVector{Size: v.Size, Data: v.Data[idx:]}
+func (v *CVector) Off(idx int, n ...int) *CVector {
+	inc := v.Inc
+	if n != nil {
+		inc = n[0]
+	}
+	return &CVector{Size: v.Size - idx, Inc: inc, Data: v.Data[idx:]}
 }
 func (v *CVector) Iter(n int) []int {
 	iter := make([]int, 0)

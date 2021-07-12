@@ -35,9 +35,9 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -72,18 +72,18 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 				//
 				//              Multiply by the diagonal element if forming U * D.
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0, *ldb))
 				}
 
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformation.
-					err = goblas.Zgeru(k-1, *nrhs, one, a.CVector(0, k-1), 1, b.CVector(k-1, 0), *ldb, b, *ldb)
+					err = goblas.Zgeru(k-1, *nrhs, one, a.CVector(0, k-1, 1), b.CVector(k-1, 0, *ldb), b)
 
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				k = k + 1
@@ -93,27 +93,27 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 				//              Multiply by the diagonal block if forming U * D.
 				if nounit {
 					d11 = a.Get(k-1, k-1)
-					d22 = a.Get(k+1-1, k+1-1)
-					d12 = a.Get(k-1, k+1-1)
+					d22 = a.Get(k, k)
+					d12 = a.Get(k-1, k)
 					d21 = cmplx.Conj(d12)
 					for j = 1; j <= (*nrhs); j++ {
 						t1 = b.Get(k-1, j-1)
-						t2 = b.Get(k+1-1, j-1)
+						t2 = b.Get(k, j-1)
 						b.Set(k-1, j-1, d11*t1+d12*t2)
-						b.Set(k+1-1, j-1, d21*t1+d22*t2)
+						b.Set(k, j-1, d21*t1+d22*t2)
 					}
 				}
 
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformations.
-					err = goblas.Zgeru(k-1, *nrhs, one, a.CVector(0, k-1), 1, b.CVector(k-1, 0), *ldb, b, *ldb)
-					err = goblas.Zgeru(k-1, *nrhs, one, a.CVector(0, k+1-1), 1, b.CVector(k+1-1, 0), *ldb, b, *ldb)
+					err = goblas.Zgeru(k-1, *nrhs, one, a.CVector(0, k-1, 1), b.CVector(k-1, 0, *ldb), b)
+					err = goblas.Zgeru(k-1, *nrhs, one, a.CVector(0, k, 1), b.CVector(k, 0, *ldb), b)
 
 					//                 Interchange if P(K) != I.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				k = k + 2
@@ -139,7 +139,7 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 				//
 				//              Multiply by the diagonal element if forming L * D.
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0, *ldb))
 				}
 
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
@@ -147,12 +147,12 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 					kp = (*ipiv)[k-1]
 
 					//                 Apply the transformation.
-					err = goblas.Zgeru((*n)-k, *nrhs, one, a.CVector(k+1-1, k-1), 1, b.CVector(k-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
+					err = goblas.Zgeru((*n)-k, *nrhs, one, a.CVector(k, k-1, 1), b.CVector(k-1, 0, *ldb), b.Off(k, 0))
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				k = k - 1
@@ -177,14 +177,14 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
 				if k != (*n) {
 					//                 Apply the transformation.
-					err = goblas.Zgeru((*n)-k, *nrhs, one, a.CVector(k+1-1, k-1), 1, b.CVector(k-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
-					err = goblas.Zgeru((*n)-k, *nrhs, one, a.CVector(k+1-1, k-1-1), 1, b.CVector(k-1-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
+					err = goblas.Zgeru((*n)-k, *nrhs, one, a.CVector(k, k-1, 1), b.CVector(k-1, 0, *ldb), b.Off(k, 0))
+					err = goblas.Zgeru((*n)-k, *nrhs, one, a.CVector(k, k-1-1, 1), b.CVector(k-1-1, 0, *ldb), b.Off(k, 0))
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				k = k - 2
@@ -216,18 +216,18 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformation
 					//                    y = y - B' conjg(x),
 					//                 where x is a column of A and y is a row of B.
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
-					err = goblas.Zgemv(ConjTrans, k-1, *nrhs, one, b, *ldb, a.CVector(0, k-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(ConjTrans, k-1, *nrhs, one, b, a.CVector(0, k-1, 1), one, b.CVector(k-1, 0, *ldb))
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
 				}
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0, *ldb))
 				}
 				k = k - 1
 
@@ -235,9 +235,9 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 			} else {
 				if k > 2 {
 					//                 Interchange if P(K) != I.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k-1 {
-						goblas.Zswap(*nrhs, b.CVector(k-1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformations
@@ -245,11 +245,11 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 					//                 where x is a block column of A and y is a block
 					//                 row of B.
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
-					err = goblas.Zgemv(ConjTrans, k-2, *nrhs, one, b, *ldb, a.CVector(0, k-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(ConjTrans, k-2, *nrhs, one, b, a.CVector(0, k-1, 1), one, b.CVector(k-1, 0, *ldb))
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
 
 					golapack.Zlacgv(nrhs, b.CVector(k-1-1, 0), ldb)
-					err = goblas.Zgemv(ConjTrans, k-2, *nrhs, one, b, *ldb, a.CVector(0, k-1-1), 1, one, b.CVector(k-1-1, 0), *ldb)
+					err = goblas.Zgemv(ConjTrans, k-2, *nrhs, one, b, a.CVector(0, k-1-1, 1), one, b.CVector(k-1-1, 0, *ldb))
 					golapack.Zlacgv(nrhs, b.CVector(k-1-1, 0), ldb)
 				}
 
@@ -289,16 +289,16 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformation
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
-					err = goblas.Zgemv(ConjTrans, (*n)-k, *nrhs, one, b.Off(k+1-1, 0), *ldb, a.CVector(k+1-1, k-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(ConjTrans, (*n)-k, *nrhs, one, b.Off(k, 0), a.CVector(k, k-1, 1), one, b.CVector(k-1, 0, *ldb))
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
 				}
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0, *ldb))
 				}
 				k = k + 1
 
@@ -306,32 +306,32 @@ func Zlavhe(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv
 			} else {
 				if k < (*n)-1 {
 					//              Interchange if P(K) != I.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k+1 {
-						goblas.Zswap(*nrhs, b.CVector(k+1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformation
-					golapack.Zlacgv(nrhs, b.CVector(k+1-1, 0), ldb)
-					err = goblas.Zgemv(ConjTrans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), *ldb, a.CVector(k+2-1, k+1-1), 1, one, b.CVector(k+1-1, 0), *ldb)
-					golapack.Zlacgv(nrhs, b.CVector(k+1-1, 0), ldb)
+					golapack.Zlacgv(nrhs, b.CVector(k, 0), ldb)
+					err = goblas.Zgemv(ConjTrans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), a.CVector(k+2-1, k, 1), one, b.CVector(k, 0, *ldb))
+					golapack.Zlacgv(nrhs, b.CVector(k, 0), ldb)
 
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
-					err = goblas.Zgemv(ConjTrans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), *ldb, a.CVector(k+2-1, k-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(ConjTrans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), a.CVector(k+2-1, k-1, 1), one, b.CVector(k-1, 0, *ldb))
 					golapack.Zlacgv(nrhs, b.CVector(k-1, 0), ldb)
 				}
 
 				//              Multiply by the diagonal block if non-unit.
 				if nounit {
 					d11 = a.Get(k-1, k-1)
-					d22 = a.Get(k+1-1, k+1-1)
-					d21 = a.Get(k+1-1, k-1)
+					d22 = a.Get(k, k)
+					d21 = a.Get(k, k-1)
 					d12 = cmplx.Conj(d21)
 					for j = 1; j <= (*nrhs); j++ {
 						t1 = b.Get(k-1, j-1)
-						t2 = b.Get(k+1-1, j-1)
+						t2 = b.Get(k, j-1)
 						b.Set(k-1, j-1, d11*t1+d12*t2)
-						b.Set(k+1-1, j-1, d21*t1+d22*t2)
+						b.Set(k, j-1, d21*t1+d22*t2)
 					}
 				}
 				k = k + 2

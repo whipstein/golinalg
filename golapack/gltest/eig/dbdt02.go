@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -26,14 +28,14 @@ func Dbdt02(m, n *int, b *mat.Matrix, ldb *int, c *mat.Matrix, ldc *int, u *mat.
 	if (*m) <= 0 || (*n) <= 0 {
 		return
 	}
-	realmn = float64(maxint(*m, *n))
+	realmn = float64(max(*m, *n))
 	eps = golapack.Dlamch(Precision)
 
 	//     Compute norm( B - U * C )
 	for j = 1; j <= (*n); j++ {
-		goblas.Dcopy(*m, b.Vector(0, j-1), 1, work, 1)
-		err = goblas.Dgemv(NoTrans, *m, *m, -one, u, *ldu, c.Vector(0, j-1), 1, one, work, 1)
-		(*resid) = maxf64(*resid, goblas.Dasum(*m, work, 1))
+		goblas.Dcopy(*m, b.Vector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Dgemv(NoTrans, *m, *m, -one, u, c.Vector(0, j-1, 1), one, work.Off(0, 1))
+		(*resid) = math.Max(*resid, goblas.Dasum(*m, work.Off(0, 1)))
 	}
 
 	//     Compute norm of B.
@@ -48,9 +50,9 @@ func Dbdt02(m, n *int, b *mat.Matrix, ldb *int, c *mat.Matrix, ldc *int, u *mat.
 			(*resid) = ((*resid) / bnorm) / (realmn * eps)
 		} else {
 			if bnorm < one {
-				(*resid) = (minf64(*resid, realmn*bnorm) / bnorm) / (realmn * eps)
+				(*resid) = (math.Min(*resid, realmn*bnorm) / bnorm) / (realmn * eps)
 			} else {
-				(*resid) = minf64((*resid)/bnorm, realmn) / (realmn * eps)
+				(*resid) = math.Min((*resid)/bnorm, realmn) / (realmn * eps)
 			}
 		}
 	}

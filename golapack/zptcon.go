@@ -65,11 +65,11 @@ func Zptcon(n *int, d *mat.Vector, e *mat.CVector, anorm, rcond *float64, rwork 
 	//     Solve D * M(L)**H * x = b.
 	rwork.Set((*n)-1, rwork.Get((*n)-1)/d.Get((*n)-1))
 	for i = (*n) - 1; i >= 1; i-- {
-		rwork.Set(i-1, rwork.Get(i-1)/d.Get(i-1)+rwork.Get(i+1-1)*e.GetMag(i-1))
+		rwork.Set(i-1, rwork.Get(i-1)/d.Get(i-1)+rwork.Get(i)*e.GetMag(i-1))
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(*n, rwork, 1)
+	ix = goblas.Idamax(*n, rwork.Off(0, 1))
 	ainvnm = rwork.GetMag(ix - 1)
 
 	//     Compute the reciprocal condition number.

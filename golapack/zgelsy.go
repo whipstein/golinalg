@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -57,7 +59,7 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
 
-	mn = minint(*m, *n)
+	mn = min(*m, *n)
 	ismin = mn + 1
 	ismax = 2*mn + 1
 
@@ -67,8 +69,8 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 	nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, m, n, nrhs, toPtr(-1))
 	nb4 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMRQ"), []byte{' '}, m, n, nrhs, toPtr(-1))
-	nb = maxint(nb1, nb2, nb3, nb4)
-	lwkopt = maxint(1, mn+2*(*n)+nb*((*n)+1), 2*mn+nb*(*nrhs))
+	nb = max(nb1, nb2, nb3, nb4)
+	lwkopt = max(1, mn+2*(*n)+nb*((*n)+1), 2*mn+nb*(*nrhs))
 	work.SetRe(0, float64(lwkopt))
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
@@ -77,11 +79,11 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *m, *n) {
+	} else if (*ldb) < max(1, *m, *n) {
 		(*info) = -7
-	} else if (*lwork) < (mn+maxint(2*mn, (*n)+1, mn+(*nrhs))) && !lquery {
+	} else if (*lwork) < (mn+max(2*mn, (*n)+1, mn+(*nrhs))) && !lquery {
 		(*info) = -12
 	}
 
@@ -93,7 +95,7 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *nrhs) == 0 {
+	if min(*m, *n, *nrhs) == 0 {
 		(*rank) = 0
 		return
 	}
@@ -103,7 +105,7 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	bignum = one / smlnum
 	Dlabad(&smlnum, &bignum)
 
-	//     Scale A, B if maxint entries outside range [SMLNUM,BIGNUM]
+	//     Scale A, B if max entries outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', m, n, a, lda, rwork)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
@@ -116,7 +118,7 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		(*rank) = 0
 		goto label70
 	}
@@ -135,8 +137,8 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 
 	//     Compute QR factorization with column pivoting of A:
 	//        A * P = Q * R
-	Zgeqp3(m, n, a, lda, jpvt, work.Off(0), work.Off(mn+1-1), toPtr((*lwork)-mn), rwork, info)
-	wsize = float64(mn) + work.GetRe(mn+1-1)
+	Zgeqp3(m, n, a, lda, jpvt, work.Off(0), work.Off(mn), toPtr((*lwork)-mn), rwork, info)
+	wsize = float64(mn) + work.GetRe(mn)
 
 	//     complex workspace: MN+NB*(N+1). real workspace 2*N.
 	//     Details of Householder rotations stored in WORK(1:MN).
@@ -148,7 +150,7 @@ func Zgelsy(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	smin = smax
 	if a.GetMag(0, 0) == zero {
 		(*rank) = 0
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		goto label70
 	} else {
 		(*rank) = 1
@@ -183,20 +185,20 @@ label10:
 	//
 	//     [R11,R12] = [ T11, 0 ] * Y
 	if (*rank) < (*n) {
-		Ztzrzf(rank, n, a, lda, work.Off(mn+1-1), work.Off(2*mn+1-1), toPtr((*lwork)-2*mn), info)
+		Ztzrzf(rank, n, a, lda, work.Off(mn), work.Off(2*mn), toPtr((*lwork)-2*mn), info)
 	}
 
 	//     complex workspace: 2*MN.
 	//     Details of Householder rotations stored in WORK(MN+1:2*MN)
 	//
 	//     B(1:M,1:NRHS) := Q**H * B(1:M,1:NRHS)
-	Zunmqr('L', 'C', m, nrhs, &mn, a, lda, work.Off(0), b, ldb, work.Off(2*mn+1-1), toPtr((*lwork)-2*mn), info)
-	wsize = maxf64(wsize, float64(2*mn)+work.GetRe(2*mn+1-1))
+	Zunmqr('L', 'C', m, nrhs, &mn, a, lda, work.Off(0), b, ldb, work.Off(2*mn), toPtr((*lwork)-2*mn), info)
+	wsize = math.Max(wsize, float64(2*mn)+work.GetRe(2*mn))
 
 	//     complex workspace: 2*MN+NB*NRHS.
 	//
 	//     B(1:RANK,1:NRHS) := inv(T11) * B(1:RANK,1:NRHS)
-	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *rank, *nrhs, cone, a, *lda, b, *ldb)
+	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *rank, *nrhs, cone, a, b)
 
 	for j = 1; j <= (*nrhs); j++ {
 		for i = (*rank) + 1; i <= (*n); i++ {
@@ -206,7 +208,7 @@ label10:
 
 	//     B(1:N,1:NRHS) := Y**H * B(1:N,1:NRHS)
 	if (*rank) < (*n) {
-		Zunmrz('L', 'C', n, nrhs, rank, toPtr((*n)-(*rank)), a, lda, work.Off(mn+1-1), b, ldb, work.Off(2*mn+1-1), toPtr((*lwork)-2*mn), info)
+		Zunmrz('L', 'C', n, nrhs, rank, toPtr((*n)-(*rank)), a, lda, work.Off(mn), b, ldb, work.Off(2*mn), toPtr((*lwork)-2*mn), info)
 	}
 
 	//     complex workspace: 2*MN+NRHS.
@@ -216,7 +218,7 @@ label10:
 		for i = 1; i <= (*n); i++ {
 			work.Set((*jpvt)[i-1]-1, b.Get(i-1, j-1))
 		}
-		goblas.Zcopy(*n, work.Off(0), 1, b.CVector(0, j-1), 1)
+		goblas.Zcopy(*n, work.Off(0, 1), b.CVector(0, j-1, 1))
 	}
 
 	//     complex workspace: N.

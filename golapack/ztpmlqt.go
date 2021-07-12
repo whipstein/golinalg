@@ -20,9 +20,9 @@ func Ztpmlqt(side, trans byte, m, n, k, l, mb *int, v *mat.CMatrix, ldv *int, t 
 	notran = trans == 'N'
 
 	if left {
-		ldaq = maxint(1, *k)
+		ldaq = max(1, *k)
 	} else if right {
-		ldaq = maxint(1, *m)
+		ldaq = max(1, *m)
 	}
 	if !left && !right {
 		(*info) = -1
@@ -44,7 +44,7 @@ func Ztpmlqt(side, trans byte, m, n, k, l, mb *int, v *mat.CMatrix, ldv *int, t 
 		(*info) = -11
 	} else if (*lda) < ldaq {
 		(*info) = -13
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -15
 	}
 
@@ -61,8 +61,8 @@ func Ztpmlqt(side, trans byte, m, n, k, l, mb *int, v *mat.CMatrix, ldv *int, t 
 	if left && notran {
 
 		for i = 1; i <= (*k); i += (*mb) {
-			ib = minint(*mb, (*k)-i+1)
-			nb = minint((*m)-(*l)+i+ib-1, *m)
+			ib = min(*mb, (*k)-i+1)
+			nb = min((*m)-(*l)+i+ib-1, *m)
 			if i >= (*l) {
 				lb = 0
 			} else {
@@ -74,8 +74,8 @@ func Ztpmlqt(side, trans byte, m, n, k, l, mb *int, v *mat.CMatrix, ldv *int, t 
 	} else if right && tran {
 
 		for i = 1; i <= (*k); i += (*mb) {
-			ib = minint(*mb, (*k)-i+1)
-			nb = minint((*n)-(*l)+i+ib-1, *n)
+			ib = min(*mb, (*k)-i+1)
+			nb = min((*n)-(*l)+i+ib-1, *n)
 			if i >= (*l) {
 				lb = 0
 			} else {
@@ -88,8 +88,8 @@ func Ztpmlqt(side, trans byte, m, n, k, l, mb *int, v *mat.CMatrix, ldv *int, t 
 
 		kf = (((*k)-1)/(*mb))*(*mb) + 1
 		for i = kf; i >= 1; i -= (*mb) {
-			ib = minint(*mb, (*k)-i+1)
-			nb = minint((*m)-(*l)+i+ib-1, *m)
+			ib = min(*mb, (*k)-i+1)
+			nb = min((*m)-(*l)+i+ib-1, *m)
 			if i >= (*l) {
 				lb = 0
 			} else {
@@ -102,8 +102,8 @@ func Ztpmlqt(side, trans byte, m, n, k, l, mb *int, v *mat.CMatrix, ldv *int, t 
 
 		kf = (((*k)-1)/(*mb))*(*mb) + 1
 		for i = kf; i >= 1; i -= (*mb) {
-			ib = minint(*mb, (*k)-i+1)
-			nb = minint((*n)-(*l)+i+ib-1, *n)
+			ib = min(*mb, (*k)-i+1)
+			nb = min((*n)-(*l)+i+ib-1, *n)
 			if i >= (*l) {
 				lb = 0
 			} else {

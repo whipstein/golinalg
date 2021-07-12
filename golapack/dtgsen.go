@@ -50,9 +50,9 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
 		(*info) = -14
@@ -85,13 +85,13 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 				pair = false
 			} else {
 				if k < (*n) {
-					if a.Get(k+1-1, k-1) == zero {
+					if a.Get(k, k-1) == zero {
 						if _select[k-1] {
 							(*m) = (*m) + 1
 						}
 					} else {
 						pair = true
-						if _select[k-1] || _select[k+1-1] {
+						if _select[k-1] || _select[k] {
 							(*m) = (*m) + 2
 						}
 					}
@@ -105,13 +105,13 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 	}
 
 	if (*ijob) == 1 || (*ijob) == 2 || (*ijob) == 4 {
-		lwmin = maxint(1, 4*(*n)+16, 2*(*m)*((*n)-(*m)))
-		liwmin = maxint(1, (*n)+6)
+		lwmin = max(1, 4*(*n)+16, 2*(*m)*((*n)-(*m)))
+		liwmin = max(1, (*n)+6)
 	} else if (*ijob) == 3 || (*ijob) == 5 {
-		lwmin = maxint(1, 4*(*n)+16, 4*(*m)*((*n)-(*m)))
-		liwmin = maxint(1, 2*(*m)*((*n)-(*m)), (*n)+6)
+		lwmin = max(1, 4*(*n)+16, 4*(*m)*((*n)-(*m)))
+		liwmin = max(1, 2*(*m)*((*n)-(*m)), (*n)+6)
 	} else {
-		lwmin = maxint(1, 4*(*n)+16)
+		lwmin = max(1, 4*(*n)+16)
 		liwmin = 1
 	}
 
@@ -160,9 +160,9 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 
 			swap = _select[k-1]
 			if k < (*n) {
-				if a.Get(k+1-1, k-1) != zero {
+				if a.Get(k, k-1) != zero {
 					pair = true
-					swap = swap || _select[k+1-1]
+					swap = swap || _select[k]
 				}
 			}
 
@@ -206,8 +206,8 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 		i = n1 + 1
 		ijb = 0
 		Dlacpy('F', &n1, &n2, a.Off(0, i-1), lda, work.Matrix(n1, opts), &n1)
-		Dlacpy('F', &n1, &n2, b.Off(0, i-1), ldb, work.MatrixOff(n1*n2+1-1, n1, opts), &n1)
-		Dtgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+		Dlacpy('F', &n1, &n2, b.Off(0, i-1), ldb, work.MatrixOff(n1*n2, n1, opts), &n1)
+		Dtgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 
 		//        Estimate the reciprocal of norms of "projections" onto left
 		//        and right eigenspaces.
@@ -222,7 +222,7 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 		}
 		rdscal = zero
 		dsum = one
-		Dlassq(toPtr(n1*n2), work.Off(n1*n2+1-1), func() *int { y := 1; return &y }(), &rdscal, &dsum)
+		Dlassq(toPtr(n1*n2), work.Off(n1*n2), func() *int { y := 1; return &y }(), &rdscal, &dsum)
 		(*pr) = rdscal * math.Sqrt(dsum)
 		if (*pr) == zero {
 			(*pr) = one
@@ -240,10 +240,10 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 			ijb = idifjb
 
 			//           Frobenius norm-based Difu-estimate.
-			Dtgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(2*n1*n2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+			Dtgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(2*n1*n2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 
 			//           Frobenius norm-based Difl-estimate.
-			Dtgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.Matrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.MatrixOff(n1*n2+1-1, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(2*n1*n2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+			Dtgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.Matrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.MatrixOff(n1*n2, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(2*n1*n2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 		} else {
 			//           Compute 1-norm-based estimates of Difu and Difl using
 			//           reversed communication with DLACN2. In each step a
@@ -259,14 +259,14 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 			//           1-norm-based estimate of Difu.
 		label40:
 			;
-			Dlacn2(&mn2, work.Off(mn2+1-1), work, iwork, dif.GetPtr(0), &kase, &isave)
+			Dlacn2(&mn2, work.Off(mn2), work, iwork, dif.GetPtr(0), &kase, &isave)
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation.
-					Dtgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(2*n1*n2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Dtgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(2*n1*n2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				} else {
 					//                 Solve the transposed variant.
-					Dtgsyl('T', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(2*n1*n2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Dtgsyl('T', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.Matrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.MatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(2*n1*n2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				}
 				goto label40
 			}
@@ -275,14 +275,14 @@ func Dtgsen(ijob *int, wantq bool, wantz bool, _select []bool, n *int, a *mat.Ma
 			//           1-norm-based estimate of Difl.
 		label50:
 			;
-			Dlacn2(&mn2, work.Off(mn2+1-1), work, iwork, dif.GetPtr(1), &kase, &isave)
+			Dlacn2(&mn2, work.Off(mn2), work, iwork, dif.GetPtr(1), &kase, &isave)
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation.
-					Dtgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.Matrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.MatrixOff(n1*n2+1-1, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(2*n1*n2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Dtgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.Matrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.MatrixOff(n1*n2, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(2*n1*n2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				} else {
 					//                 Solve the transposed variant.
-					Dtgsyl('T', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.Matrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.MatrixOff(n1*n2+1-1, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(2*n1*n2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Dtgsyl('T', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.Matrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.MatrixOff(n1*n2, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(2*n1*n2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				}
 				goto label50
 			}
@@ -303,7 +303,7 @@ label60:
 		} else {
 
 			if k < (*n) {
-				if a.Get(k+1-1, k-1) != zero {
+				if a.Get(k, k-1) != zero {
 					pair = true
 				}
 			}
@@ -311,19 +311,19 @@ label60:
 			if pair {
 				//             Compute the eigenvalue(s) at position K.
 				work.Set(0, a.Get(k-1, k-1))
-				work.Set(1, a.Get(k+1-1, k-1))
-				work.Set(2, a.Get(k-1, k+1-1))
-				work.Set(3, a.Get(k+1-1, k+1-1))
+				work.Set(1, a.Get(k, k-1))
+				work.Set(2, a.Get(k-1, k))
+				work.Set(3, a.Get(k, k))
 				work.Set(4, b.Get(k-1, k-1))
-				work.Set(5, b.Get(k+1-1, k-1))
-				work.Set(6, b.Get(k-1, k+1-1))
-				work.Set(7, b.Get(k+1-1, k+1-1))
-				Dlag2(work.Matrix(2, opts), func() *int { y := 2; return &y }(), work.MatrixOff(4, 2, opts), func() *int { y := 2; return &y }(), toPtrf64(smlnum*eps), beta.GetPtr(k-1), beta.GetPtr(k+1-1), alphar.GetPtr(k-1), alphar.GetPtr(k+1-1), alphai.GetPtr(k-1))
-				alphai.Set(k+1-1, -alphai.Get(k-1))
+				work.Set(5, b.Get(k, k-1))
+				work.Set(6, b.Get(k-1, k))
+				work.Set(7, b.Get(k, k))
+				Dlag2(work.Matrix(2, opts), func() *int { y := 2; return &y }(), work.MatrixOff(4, 2, opts), func() *int { y := 2; return &y }(), toPtrf64(smlnum*eps), beta.GetPtr(k-1), beta.GetPtr(k), alphar.GetPtr(k-1), alphar.GetPtr(k), alphai.GetPtr(k-1))
+				alphai.Set(k, -alphai.Get(k-1))
 
 			} else {
 
-				if signf64(one, b.Get(k-1, k-1)) < zero {
+				if math.Copysign(one, b.Get(k-1, k-1)) < zero {
 					//                 If B(K,K) is negative, make it positive
 					for i = 1; i <= (*n); i++ {
 						a.Set(k-1, i-1, -a.Get(k-1, i-1))

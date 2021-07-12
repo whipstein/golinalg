@@ -48,7 +48,7 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -100,7 +100,7 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 			}
 			aii = ap.Get(ii - 1)
 			ap.Set(ii-1, one)
-			Zlarf(side, &mi, &ni, ap.Off(ii-i+1-1), func() *int { y := 1; return &y }(), &taui, c, ldc, work)
+			Zlarf(side, &mi, &ni, ap.Off(ii-i), func() *int { y := 1; return &y }(), &taui, c, ldc, work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {

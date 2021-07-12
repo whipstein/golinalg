@@ -32,7 +32,7 @@ func Dsytrd2stage(vect, uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, h
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	} else if (*lhous2) < lhmin && !lquery {
 		(*info) = -10

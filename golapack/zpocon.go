@@ -33,7 +33,7 @@ func Zpocon(uplo byte, n *int, a *mat.CMatrix, lda *int, anorm, rcond *float64, 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*anorm) < zero {
 		(*info) = -5
@@ -59,7 +59,7 @@ func Zpocon(uplo byte, n *int, a *mat.CMatrix, lda *int, anorm, rcond *float64, 
 	normin = 'N'
 label10:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if upper {
 			//           Multiply by inv(U**H).
@@ -80,7 +80,7 @@ label10:
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Izamax(*n, work, 1)
+			ix = goblas.Izamax(*n, work.Off(0, 1))
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

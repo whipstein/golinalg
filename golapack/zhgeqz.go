@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"math"
 	"math/cmplx"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -101,7 +102,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 
 	//     Check Argument Values
 	(*info) = 0
-	work.SetRe(0, float64(maxint(1, *n)))
+	work.SetRe(0, float64(max(1, *n)))
 	lquery = ((*lwork) == -1)
 	if ischur == 0 {
 		(*info) = -1
@@ -123,7 +124,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		(*info) = -14
 	} else if (*ldz) < 1 || (ilz && (*ldz) < (*n)) {
 		(*info) = -16
-	} else if (*lwork) < maxint(1, *n) && !lquery {
+	} else if (*lwork) < max(1, *n) && !lquery {
 		(*info) = -18
 	}
 	if (*info) != 0 {
@@ -155,10 +156,10 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	ulp = Dlamch(Epsilon) * Dlamch(Base)
 	anorm = Zlanhs('F', &in, h.Off((*ilo)-1, (*ilo)-1), ldh, rwork)
 	bnorm = Zlanhs('F', &in, t.Off((*ilo)-1, (*ilo)-1), ldt, rwork)
-	atol = maxf64(safmin, ulp*anorm)
-	btol = maxf64(safmin, ulp*bnorm)
-	ascale = one / maxf64(safmin, anorm)
-	bscale = one / maxf64(safmin, bnorm)
+	atol = math.Max(safmin, ulp*anorm)
+	btol = math.Max(safmin, ulp*bnorm)
+	ascale = one / math.Max(safmin, anorm)
+	bscale = one / math.Max(safmin, bnorm)
 
 	//     Set Eigenvalues IHI+1:N
 	for j = (*ihi) + 1; j <= (*n); j++ {
@@ -167,13 +168,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
 			t.SetRe(j-1, j-1, absb)
 			if ilschr {
-				goblas.Zscal(j-1, signbc, t.CVector(0, j-1), 1)
-				goblas.Zscal(j, signbc, h.CVector(0, j-1), 1)
+				goblas.Zscal(j-1, signbc, t.CVector(0, j-1, 1))
+				goblas.Zscal(j, signbc, h.CVector(0, j-1, 1))
 			} else {
-				goblas.Zscal(1, signbc, h.CVector(j-1, j-1), 1)
+				goblas.Zscal(1, signbc, h.CVector(j-1, j-1, 1))
 			}
 			if ilz {
-				goblas.Zscal(*n, signbc, z.CVector(0, j-1), 1)
+				goblas.Zscal(*n, signbc, z.CVector(0, j-1, 1))
 			}
 		} else {
 			t.Set(j-1, j-1, czero)
@@ -261,7 +262,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				//              Test 1a: Check for 2 consecutive small subdiagonals in A
 				ilazr2 = false
 				if !ilazro {
-					if abs1(h.Get(j-1, j-1-1))*(ascale*abs1(h.Get(j+1-1, j-1))) <= abs1(h.Get(j-1, j-1))*(ascale*atol) {
+					if abs1(h.Get(j-1, j-1-1))*(ascale*abs1(h.Get(j, j-1))) <= abs1(h.Get(j-1, j-1))*(ascale*atol) {
 						ilazr2 = true
 					}
 				}
@@ -274,18 +275,18 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				if ilazro || ilazr2 {
 					for jch = j; jch <= ilast-1; jch++ {
 						ctemp = h.Get(jch-1, jch-1)
-						Zlartg(&ctemp, h.GetPtr(jch+1-1, jch-1), &c, &s, h.GetPtr(jch-1, jch-1))
-						h.Set(jch+1-1, jch-1, czero)
-						Zrot(toPtr(ilastm-jch), h.CVector(jch-1, jch+1-1), ldh, h.CVector(jch+1-1, jch+1-1), ldh, &c, &s)
-						Zrot(toPtr(ilastm-jch), t.CVector(jch-1, jch+1-1), ldt, t.CVector(jch+1-1, jch+1-1), ldt, &c, &s)
+						Zlartg(&ctemp, h.GetPtr(jch, jch-1), &c, &s, h.GetPtr(jch-1, jch-1))
+						h.Set(jch, jch-1, czero)
+						Zrot(toPtr(ilastm-jch), h.CVector(jch-1, jch), ldh, h.CVector(jch, jch), ldh, &c, &s)
+						Zrot(toPtr(ilastm-jch), t.CVector(jch-1, jch), ldt, t.CVector(jch, jch), ldt, &c, &s)
 						if ilq {
-							Zrot(n, q.CVector(0, jch-1), func() *int { y := 1; return &y }(), q.CVector(0, jch+1-1), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
+							Zrot(n, q.CVector(0, jch-1), func() *int { y := 1; return &y }(), q.CVector(0, jch), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
 						}
 						if ilazr2 {
 							h.Set(jch-1, jch-1-1, h.Get(jch-1, jch-1-1)*complex(c, 0))
 						}
 						ilazr2 = false
-						if abs1(t.Get(jch+1-1, jch+1-1)) >= btol {
+						if abs1(t.Get(jch, jch)) >= btol {
 							if jch+1 >= ilast {
 								goto label60
 							} else {
@@ -293,26 +294,26 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 								goto label70
 							}
 						}
-						t.Set(jch+1-1, jch+1-1, czero)
+						t.Set(jch, jch, czero)
 					}
 					goto label50
 				} else {
 					//                 Only test 2 passed -- chase the zero to T(ILAST,ILAST)
 					//                 Then process as in the case T(ILAST,ILAST)=0
 					for jch = j; jch <= ilast-1; jch++ {
-						ctemp = t.Get(jch-1, jch+1-1)
-						Zlartg(&ctemp, t.GetPtr(jch+1-1, jch+1-1), &c, &s, t.GetPtr(jch-1, jch+1-1))
-						t.Set(jch+1-1, jch+1-1, czero)
+						ctemp = t.Get(jch-1, jch)
+						Zlartg(&ctemp, t.GetPtr(jch, jch), &c, &s, t.GetPtr(jch-1, jch))
+						t.Set(jch, jch, czero)
 						if jch < ilastm-1 {
-							Zrot(toPtr(ilastm-jch-1), t.CVector(jch-1, jch+2-1), ldt, t.CVector(jch+1-1, jch+2-1), ldt, &c, &s)
+							Zrot(toPtr(ilastm-jch-1), t.CVector(jch-1, jch+2-1), ldt, t.CVector(jch, jch+2-1), ldt, &c, &s)
 						}
-						Zrot(toPtr(ilastm-jch+2), h.CVector(jch-1, jch-1-1), ldh, h.CVector(jch+1-1, jch-1-1), ldh, &c, &s)
+						Zrot(toPtr(ilastm-jch+2), h.CVector(jch-1, jch-1-1), ldh, h.CVector(jch, jch-1-1), ldh, &c, &s)
 						if ilq {
-							Zrot(n, q.CVector(0, jch-1), func() *int { y := 1; return &y }(), q.CVector(0, jch+1-1), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
+							Zrot(n, q.CVector(0, jch-1), func() *int { y := 1; return &y }(), q.CVector(0, jch), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
 						}
-						ctemp = h.Get(jch+1-1, jch-1)
-						Zlartg(&ctemp, h.GetPtr(jch+1-1, jch-1-1), &c, &s, h.GetPtr(jch+1-1, jch-1))
-						h.Set(jch+1-1, jch-1-1, czero)
+						ctemp = h.Get(jch, jch-1)
+						Zlartg(&ctemp, h.GetPtr(jch, jch-1-1), &c, &s, h.GetPtr(jch, jch-1))
+						h.Set(jch, jch-1-1, czero)
 						Zrot(toPtr(jch+1-ifrstm), h.CVector(ifrstm-1, jch-1), func() *int { y := 1; return &y }(), h.CVector(ifrstm-1, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
 						Zrot(toPtr(jch-ifrstm), t.CVector(ifrstm-1, jch-1), func() *int { y := 1; return &y }(), t.CVector(ifrstm-1, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
 						if ilz {
@@ -355,13 +356,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 			signbc = cmplx.Conj(t.Get(ilast-1, ilast-1) / complex(absb, 0))
 			t.SetRe(ilast-1, ilast-1, absb)
 			if ilschr {
-				goblas.Zscal(ilast-ifrstm, signbc, t.CVector(ifrstm-1, ilast-1), 1)
-				goblas.Zscal(ilast+1-ifrstm, signbc, h.CVector(ifrstm-1, ilast-1), 1)
+				goblas.Zscal(ilast-ifrstm, signbc, t.CVector(ifrstm-1, ilast-1, 1))
+				goblas.Zscal(ilast+1-ifrstm, signbc, h.CVector(ifrstm-1, ilast-1, 1))
 			} else {
-				goblas.Zscal(1, signbc, h.CVector(ilast-1, ilast-1), 1)
+				goblas.Zscal(1, signbc, h.CVector(ilast-1, ilast-1, 1))
 			}
 			if ilz {
-				goblas.Zscal(*n, signbc, z.CVector(0, ilast-1), 1)
+				goblas.Zscal(*n, signbc, z.CVector(0, ilast-1, 1))
 			}
 		} else {
 			t.Set(ilast-1, ilast-1, czero)
@@ -435,8 +436,8 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 			istart = j
 			ctemp = complex(ascale, 0)*h.Get(j-1, j-1) - shift*(complex(bscale, 0)*t.Get(j-1, j-1))
 			temp = abs1(ctemp)
-			temp2 = ascale * abs1(h.Get(j+1-1, j-1))
-			tempr = maxf64(temp, temp2)
+			temp2 = ascale * abs1(h.Get(j, j-1))
+			tempr = math.Max(temp, temp2)
 			if tempr < one && tempr != zero {
 				temp = temp / tempr
 				temp2 = temp2 / tempr
@@ -454,52 +455,52 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		//        Do an implicit-shift QZ sweep.
 		//
 		//        Initial Q
-		ctemp2 = complex(ascale, 0) * h.Get(istart+1-1, istart-1)
+		ctemp2 = complex(ascale, 0) * h.Get(istart, istart-1)
 		Zlartg(&ctemp, &ctemp2, &c, &s, &ctemp3)
 
 		//        Sweep
 		for j = istart; j <= ilast-1; j++ {
 			if j > istart {
 				ctemp = h.Get(j-1, j-1-1)
-				Zlartg(&ctemp, h.GetPtr(j+1-1, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
-				h.Set(j+1-1, j-1-1, czero)
+				Zlartg(&ctemp, h.GetPtr(j, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
+				h.Set(j, j-1-1, czero)
 			}
 
 			for jc = j; jc <= ilastm; jc++ {
-				ctemp = complex(c, 0)*h.Get(j-1, jc-1) + s*h.Get(j+1-1, jc-1)
-				h.Set(j+1-1, jc-1, -cmplx.Conj(s)*h.Get(j-1, jc-1)+complex(c, 0)*h.Get(j+1-1, jc-1))
+				ctemp = complex(c, 0)*h.Get(j-1, jc-1) + s*h.Get(j, jc-1)
+				h.Set(j, jc-1, -cmplx.Conj(s)*h.Get(j-1, jc-1)+complex(c, 0)*h.Get(j, jc-1))
 				h.Set(j-1, jc-1, ctemp)
-				ctemp2 = complex(c, 0)*t.Get(j-1, jc-1) + s*t.Get(j+1-1, jc-1)
-				t.Set(j+1-1, jc-1, -cmplx.Conj(s)*t.Get(j-1, jc-1)+complex(c, 0)*t.Get(j+1-1, jc-1))
+				ctemp2 = complex(c, 0)*t.Get(j-1, jc-1) + s*t.Get(j, jc-1)
+				t.Set(j, jc-1, -cmplx.Conj(s)*t.Get(j-1, jc-1)+complex(c, 0)*t.Get(j, jc-1))
 				t.Set(j-1, jc-1, ctemp2)
 			}
 			if ilq {
 				for jr = 1; jr <= (*n); jr++ {
-					ctemp = complex(c, 0)*q.Get(jr-1, j-1) + cmplx.Conj(s)*q.Get(jr-1, j+1-1)
-					q.Set(jr-1, j+1-1, -s*q.Get(jr-1, j-1)+complex(c, 0)*q.Get(jr-1, j+1-1))
+					ctemp = complex(c, 0)*q.Get(jr-1, j-1) + cmplx.Conj(s)*q.Get(jr-1, j)
+					q.Set(jr-1, j, -s*q.Get(jr-1, j-1)+complex(c, 0)*q.Get(jr-1, j))
 					q.Set(jr-1, j-1, ctemp)
 				}
 			}
 
-			ctemp = t.Get(j+1-1, j+1-1)
-			Zlartg(&ctemp, t.GetPtr(j+1-1, j-1), &c, &s, t.GetPtr(j+1-1, j+1-1))
-			t.Set(j+1-1, j-1, czero)
+			ctemp = t.Get(j, j)
+			Zlartg(&ctemp, t.GetPtr(j, j-1), &c, &s, t.GetPtr(j, j))
+			t.Set(j, j-1, czero)
 
-			for jr = ifrstm; jr <= minint(j+2, ilast); jr++ {
-				ctemp = complex(c, 0)*h.Get(jr-1, j+1-1) + s*h.Get(jr-1, j-1)
-				h.Set(jr-1, j-1, -cmplx.Conj(s)*h.Get(jr-1, j+1-1)+complex(c, 0)*h.Get(jr-1, j-1))
-				h.Set(jr-1, j+1-1, ctemp)
+			for jr = ifrstm; jr <= min(j+2, ilast); jr++ {
+				ctemp = complex(c, 0)*h.Get(jr-1, j) + s*h.Get(jr-1, j-1)
+				h.Set(jr-1, j-1, -cmplx.Conj(s)*h.Get(jr-1, j)+complex(c, 0)*h.Get(jr-1, j-1))
+				h.Set(jr-1, j, ctemp)
 			}
 			for jr = ifrstm; jr <= j; jr++ {
-				ctemp = complex(c, 0)*t.Get(jr-1, j+1-1) + s*t.Get(jr-1, j-1)
-				t.Set(jr-1, j-1, -cmplx.Conj(s)*t.Get(jr-1, j+1-1)+complex(c, 0)*t.Get(jr-1, j-1))
-				t.Set(jr-1, j+1-1, ctemp)
+				ctemp = complex(c, 0)*t.Get(jr-1, j) + s*t.Get(jr-1, j-1)
+				t.Set(jr-1, j-1, -cmplx.Conj(s)*t.Get(jr-1, j)+complex(c, 0)*t.Get(jr-1, j-1))
+				t.Set(jr-1, j, ctemp)
 			}
 			if ilz {
 				for jr = 1; jr <= (*n); jr++ {
-					ctemp = complex(c, 0)*z.Get(jr-1, j+1-1) + s*z.Get(jr-1, j-1)
-					z.Set(jr-1, j-1, -cmplx.Conj(s)*z.Get(jr-1, j+1-1)+complex(c, 0)*z.Get(jr-1, j-1))
-					z.Set(jr-1, j+1-1, ctemp)
+					ctemp = complex(c, 0)*z.Get(jr-1, j) + s*z.Get(jr-1, j-1)
+					z.Set(jr-1, j-1, -cmplx.Conj(s)*z.Get(jr-1, j)+complex(c, 0)*z.Get(jr-1, j-1))
+					z.Set(jr-1, j, ctemp)
 				}
 			}
 		}
@@ -524,13 +525,13 @@ label190:
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
 			t.SetRe(j-1, j-1, absb)
 			if ilschr {
-				goblas.Zscal(j-1, signbc, t.CVector(0, j-1), 1)
-				goblas.Zscal(j, signbc, h.CVector(0, j-1), 1)
+				goblas.Zscal(j-1, signbc, t.CVector(0, j-1, 1))
+				goblas.Zscal(j, signbc, h.CVector(0, j-1, 1))
 			} else {
-				goblas.Zscal(1, signbc, h.CVector(j-1, j-1), 1)
+				goblas.Zscal(1, signbc, h.CVector(j-1, j-1, 1))
 			}
 			if ilz {
-				goblas.Zscal(*n, signbc, z.CVector(0, j-1), 1)
+				goblas.Zscal(*n, signbc, z.CVector(0, j-1, 1))
 			}
 		} else {
 			t.Set(j-1, j-1, czero)

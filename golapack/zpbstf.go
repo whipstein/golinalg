@@ -53,7 +53,7 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 		return
 	}
 
-	kld = maxint(1, (*ldab)-1)
+	kld = max(1, (*ldab)-1)
 
 	//     Set the splitting point m.
 	m = ((*n) + (*kd)) / 2
@@ -62,40 +62,40 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 		//        Factorize A(m+1:n,m+1:n) as L**H*L, and update A(1:m,1:m).
 		for j = (*n); j >= m+1; j-- {
 			//           Compute s(j,j) and test for non-positive-definiteness.
-			ajj = ab.GetRe((*kd)+1-1, j-1)
+			ajj = ab.GetRe((*kd), j-1)
 			if ajj <= zero {
-				ab.SetRe((*kd)+1-1, j-1, ajj)
+				ab.SetRe((*kd), j-1, ajj)
 				goto label50
 			}
 			ajj = math.Sqrt(ajj)
-			ab.SetRe((*kd)+1-1, j-1, ajj)
-			km = minint(j-1, *kd)
+			ab.SetRe((*kd), j-1, ajj)
+			km = min(j-1, *kd)
 
 			//           Compute elements j-km:j-1 of the j-th column and update the
 			//           the leading submatrix within the band.
-			goblas.Zdscal(km, one/ajj, ab.CVector((*kd)+1-km-1, j-1), 1)
-			err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)+1-km-1, j-1), 1, ab.Off((*kd)+1-1, j-km-1).UpdateRows(kld), kld)
+			goblas.Zdscal(km, one/ajj, ab.CVector((*kd)+1-km-1, j-1, 1))
+			err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)+1-km-1, j-1, 1), ab.Off((*kd), j-km-1).UpdateRows(kld))
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**H*U.
 		for j = 1; j <= m; j++ {
 			//           Compute s(j,j) and test for non-positive-definiteness.
-			ajj = ab.GetRe((*kd)+1-1, j-1)
+			ajj = ab.GetRe((*kd), j-1)
 			if ajj <= zero {
-				ab.SetRe((*kd)+1-1, j-1, ajj)
+				ab.SetRe((*kd), j-1, ajj)
 				goto label50
 			}
 			ajj = math.Sqrt(ajj)
-			ab.SetRe((*kd)+1-1, j-1, ajj)
-			km = minint(*kd, m-j)
+			ab.SetRe((*kd), j-1, ajj)
+			km = min(*kd, m-j)
 
 			//           Compute elements j+1:j+km of the j-th row and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Zdscal(km, one/ajj, ab.CVector((*kd)-1, j+1-1), kld)
-				Zlacgv(&km, ab.CVector((*kd)-1, j+1-1), &kld)
-				err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)-1, j+1-1), kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), kld)
-				Zlacgv(&km, ab.CVector((*kd)-1, j+1-1), &kld)
+				goblas.Zdscal(km, one/ajj, ab.CVector((*kd)-1, j, kld))
+				Zlacgv(&km, ab.CVector((*kd)-1, j), &kld)
+				err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)-1, j, kld), ab.Off((*kd), j).UpdateRows(kld))
+				Zlacgv(&km, ab.CVector((*kd)-1, j), &kld)
 			}
 		}
 	} else {
@@ -109,14 +109,14 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			}
 			ajj = math.Sqrt(ajj)
 			ab.SetRe(0, j-1, ajj)
-			km = minint(j-1, *kd)
+			km = min(j-1, *kd)
 
 			//           Compute elements j-km:j-1 of the j-th row and update the
 			//           trailing submatrix within the band.
-			goblas.Zdscal(km, one/ajj, ab.CVector(km+1-1, j-km-1), kld)
-			Zlacgv(&km, ab.CVector(km+1-1, j-km-1), &kld)
-			err = goblas.Zher(Lower, km, -one, ab.CVector(km+1-1, j-km-1), kld, ab.Off(0, j-km-1).UpdateRows(kld), kld)
-			Zlacgv(&km, ab.CVector(km+1-1, j-km-1), &kld)
+			goblas.Zdscal(km, one/ajj, ab.CVector(km, j-km-1, kld))
+			Zlacgv(&km, ab.CVector(km, j-km-1), &kld)
+			err = goblas.Zher(Lower, km, -one, ab.CVector(km, j-km-1, kld), ab.Off(0, j-km-1).UpdateRows(kld))
+			Zlacgv(&km, ab.CVector(km, j-km-1), &kld)
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**H*U.
@@ -129,13 +129,13 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			}
 			ajj = math.Sqrt(ajj)
 			ab.SetRe(0, j-1, ajj)
-			km = minint(*kd, m-j)
+			km = min(*kd, m-j)
 
 			//           Compute elements j+1:j+km of the j-th column and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Zdscal(km, one/ajj, ab.CVector(1, j-1), 1)
-				err = goblas.Zher(Lower, km, -one, ab.CVector(1, j-1), 1, ab.Off(0, j+1-1).UpdateRows(kld), kld)
+				goblas.Zdscal(km, one/ajj, ab.CVector(1, j-1, 1))
+				err = goblas.Zher(Lower, km, -one, ab.CVector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld))
 			}
 		}
 	}

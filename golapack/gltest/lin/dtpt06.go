@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -17,8 +19,8 @@ func Dtpt06(rcond, rcondc *float64, uplo, diag byte, n *int, ap, work *mat.Vecto
 	one = 1.0
 
 	eps = golapack.Dlamch(Epsilon)
-	rmax = maxf64(*rcond, *rcondc)
-	rmin = minf64(*rcond, *rcondc)
+	rmax = math.Max(*rcond, *rcondc)
+	rmin = math.Min(*rcond, *rcondc)
 
 	//     Do the easy cases first.
 	if rmin < zero {
@@ -44,6 +46,6 @@ func Dtpt06(rcond, rcondc *float64, uplo, diag byte, n *int, ap, work *mat.Vecto
 		golapack.Dlabad(&smlnum, &bignum)
 		anorm = golapack.Dlantp('M', uplo, diag, n, ap, work)
 
-		(*rat) = rmax * minf64(bignum/maxf64(one, anorm), one/eps)
+		(*rat) = rmax * math.Min(bignum/math.Max(one, anorm), one/eps)
 	}
 }

@@ -102,16 +102,16 @@ import (
 //
 // When S is also diagonally dominant by the factor gamma < 1,
 //
-// (17)    maxint | D4(i) - WR(i) | / ( |D4(i)| omega ) ,
+// (17)    max | D4(i) - WR(i) | / ( |D4(i)| omega ) ,
 //          i
 //         omega = 2 (2n-1) ULP (1 + 8 gamma**2) / (1 - gamma)**4
 //                                              DSTEBZ( 'A', 'E', ...)
 //
 // (18)    | WA1 - D3 | / ( |D3| ulp )          DSTEBZ( 'A', 'E', ...)
 //
-// (19)    ( maxint { minint | WA2(i)-WA3(j) | } +
+// (19)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
-//           maxint { minint | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
+//           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
 //                                              DSTEBZ( 'I', 'E', ...)
 //
@@ -133,12 +133,12 @@ import (
 // Test 27 is disabled at the moment because DSTEMR does not
 // guarantee high relatvie accuracy.
 //
-// (27)    maxint | D6(i) - WR(i) | / ( |D6(i)| omega ) ,
+// (27)    max | D6(i) - WR(i) | / ( |D6(i)| omega ) ,
 //          i
 //         omega = 2 (2n-1) ULP (1 + 8 gamma**2) / (1 - gamma)**4
 //                                              DSTEMR('V', 'A')
 //
-// (28)    maxint | D6(i) - WR(i) | / ( |D6(i)| omega ) ,
+// (28)    max | D6(i) - WR(i) | / ( |D6(i)| omega ) ,
 //          i
 //         omega = 2 (2n-1) ULP (1 + 8 gamma**2) / (1 - gamma)**4
 //                                              DSTEMR('V', 'I')
@@ -150,9 +150,9 @@ import (
 //
 // (30)    | I - ZZ' | / ( n ulp )           DSTEMR('V', 'I')
 //
-// (31)    ( maxint { minint | WA2(i)-WA3(j) | } +
+// (31)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
-//           maxint { minint | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
+//           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
 //         DSTEMR('N', 'I') vs. SSTEMR('V', 'I')
 //
@@ -160,9 +160,9 @@ import (
 //
 // (33)    | I - ZZ' | / ( n ulp )           DSTEMR('V', 'V')
 //
-// (34)    ( maxint { minint | WA2(i)-WA3(j) | } +
+// (34)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
-//           maxint { minint | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
+//           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
 //         DSTEMR('N', 'V') vs. SSTEMR('V', 'V')
 //
@@ -170,9 +170,9 @@ import (
 //
 // (36)    | I - ZZ' | / ( n ulp )           DSTEMR('V', 'A')
 //
-// (37)    ( maxint { minint | WA2(i)-WA3(j) | } +
+// (37)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
-//           maxint { minint | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
+//           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
 //         DSTEMR('N', 'A') vs. SSTEMR('V', 'A')
 //
@@ -261,14 +261,14 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	tryrac = true
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	nblock = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYTRD"), []byte("L"), &nmax, toPtr(-1), toPtr(-1), toPtr(-1))
-	nblock = minint(nmax, maxint(1, nblock))
+	nblock = min(nmax, max(1, nblock))
 
 	//     Check for errors
 	if (*nsizes) < 0 {
@@ -281,7 +281,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		(*info) = -9
 	} else if (*ldu) < nmax {
 		(*info) = -23
-	} else if 2*int(math.Pow(float64(maxint(2, nmax)), 2)) > (*lwork) {
+	} else if 2*int(math.Pow(float64(max(2, nmax)), 2)) > (*lwork) {
 		(*info) = -29
 	}
 
@@ -329,12 +329,12 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			liwedc = 12
 		}
 		nap = (n * (n + 1)) / 2
-		aninv = one / float64(maxint(1, n))
+		aninv = one / float64(max(1, n))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -420,27 +420,27 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              Positive definite, eigenvalues specified.
-				matgen.Dlatms(&n, &n, 'S', iseed, 'P', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'P', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 10 {
 				//              Positive definite tridiagonal, eigenvalues specified.
-				matgen.Dlatms(&n, &n, 'S', iseed, 'P', work, &imode, &cond, &anorm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'P', work, &imode, &cond, &anorm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 				for i = 2; i <= n; i++ {
 					temp1 = math.Abs(a.Get(i-1-1, i-1)) / math.Sqrt(math.Abs(a.Get(i-1-1, i-1-1)*a.Get(i-1, i-1)))
 					if temp1 > half {
@@ -456,7 +456,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -473,7 +473,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYTRD(U)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -489,7 +489,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORGTR(U)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -512,7 +512,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYTRD(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -528,7 +528,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORGTR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -550,7 +550,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			}
 
 			//           Call DSPTRD and DOPGTR to compute S and U from AP
-			goblas.Dcopy(nap, ap, 1, vp, 1)
+			goblas.Dcopy(nap, ap.Off(0, 1), vp.Off(0, 1))
 
 			ntest = 5
 			golapack.Dsptrd('U', &n, vp, sd, se, tau, &iinfo)
@@ -558,7 +558,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPTRD(U)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -572,7 +572,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DOPGTR(U)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -595,7 +595,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			}
 
 			//           Call DSPTRD and DOPGTR to compute S and U from AP
-			goblas.Dcopy(nap, ap, 1, vp, 1)
+			goblas.Dcopy(nap, ap.Off(0, 1), vp.Off(0, 1))
 
 			ntest = 7
 			golapack.Dsptrd('L', &n, vp, sd, se, tau, &iinfo)
@@ -603,7 +603,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPTRD(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -617,7 +617,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DOPGTR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -632,18 +632,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Call DSTEQR to compute D1, D2, and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(n, sd, 1, d1, 1)
+			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
 			if n > 0 {
-				goblas.Dcopy(n-1, se, 1, work, 1)
+				goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
 			ntest = 9
-			golapack.Dsteqr('V', &n, d1, work, z, ldu, work.Off(n+1-1), &iinfo)
+			golapack.Dsteqr('V', &n, d1, work, z, ldu, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEQR(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -653,17 +653,17 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			}
 
 			//           Compute D2
-			goblas.Dcopy(n, sd, 1, d2, 1)
+			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
 			if n > 0 {
-				goblas.Dcopy(n-1, se, 1, work, 1)
+				goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 			}
 
 			ntest = 11
-			golapack.Dsteqr('N', &n, d2, work, work.MatrixOff(n+1-1, *ldu, opts), ldu, work.Off(n+1-1), &iinfo)
+			golapack.Dsteqr('N', &n, d2, work, work.MatrixOff(n, *ldu, opts), ldu, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEQR(N)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -673,9 +673,9 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			}
 
 			//           Compute D3 (using PWK method)
-			goblas.Dcopy(n, sd, 1, d3, 1)
+			goblas.Dcopy(n, sd.Off(0, 1), d3.Off(0, 1))
 			if n > 0 {
-				goblas.Dcopy(n-1, se, 1, work, 1)
+				goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 			}
 
 			ntest = 12
@@ -683,7 +683,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTERF", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -702,14 +702,14 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			temp4 = zero
 
 			for j = 1; j <= n; j++ {
-				temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1)))
-				temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
-				temp3 = maxf64(temp3, math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1)))
-				temp4 = maxf64(temp4, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
+				temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1))))
+				temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
+				temp3 = math.Max(temp3, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d3.Get(j-1))))
+				temp4 = math.Max(temp4, math.Abs(d1.Get(j-1)-d3.Get(j-1)))
 			}
 
-			result.Set(10, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
-			result.Set(11, temp4/maxf64(unfl, ulp*maxf64(temp3, temp4)))
+			result.Set(10, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
+			result.Set(11, temp4/math.Max(unfl, ulp*math.Max(temp3, temp4)))
 
 			//           Do Test 13 -- Sturm Sequence Test of Eigenvalues
 			//                         Go up by factors of two until it succeeds
@@ -732,18 +732,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           and do tests 14, 15, and 16 .
 			if jtype > 15 {
 				//              Compute D4 and Z4
-				goblas.Dcopy(n, sd, 1, d4, 1)
+				goblas.Dcopy(n, sd.Off(0, 1), d4.Off(0, 1))
 				if n > 0 {
-					goblas.Dcopy(n-1, se, 1, work, 1)
+					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 				}
 				golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
 				ntest = 14
-				golapack.Dpteqr('V', &n, d4, work, z, ldu, work.Off(n+1-1), &iinfo)
+				golapack.Dpteqr('V', &n, d4, work, z, ldu, work.Off(n), &iinfo)
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DPTEQR(V)", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					if iinfo < 0 {
 						return
 					} else {
@@ -756,17 +756,17 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				Dstt21(&n, func() *int { y := 0; return &y }(), sd, se, d4, dumma, z, ldu, work, result.Off(13))
 
 				//              Compute D5
-				goblas.Dcopy(n, sd, 1, d5, 1)
+				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 				if n > 0 {
-					goblas.Dcopy(n-1, se, 1, work, 1)
+					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 				}
 
 				ntest = 16
-				golapack.Dpteqr('N', &n, d5, work, z, ldu, work.Off(n+1-1), &iinfo)
+				golapack.Dpteqr('N', &n, d5, work, z, ldu, work.Off(n), &iinfo)
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DPTEQR(N)", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					if iinfo < 0 {
 						return
 					} else {
@@ -779,11 +779,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d4.Get(j-1)), math.Abs(d5.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d4.Get(j-1)-d5.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d4.Get(j-1)), math.Abs(d5.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d4.Get(j-1)-d5.Get(j-1)))
 				}
 
-				result.Set(15, temp2/maxf64(unfl, hun*ulp*maxf64(temp1, temp2)))
+				result.Set(15, temp2/math.Max(unfl, hun*ulp*math.Max(temp1, temp2)))
 			} else {
 				result.Set(13, zero)
 				result.Set(14, zero)
@@ -801,11 +801,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if jtype == 21 {
 				ntest = 17
 				abstol = unfl + unfl
-				golapack.Dstebz('A', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wr, iwork, toSlice(iwork, n+1-1), work, toSlice(iwork, 2*n+1-1), &iinfo)
+				golapack.Dstebz('A', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wr, iwork, toSlice(iwork, n), work, toSlice(iwork, 2*n), &iinfo)
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(A,rel)", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					if iinfo < 0 {
 						return
 					} else {
@@ -819,7 +819,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 				temp1 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d4.Get(j-1)-wr.Get(n-j+1-1))/(abstol+math.Abs(d4.Get(j-1))))
+					temp1 = math.Max(temp1, math.Abs(d4.Get(j-1)-wr.Get(n-j))/(abstol+math.Abs(d4.Get(j-1))))
 				}
 
 				result.Set(16, temp1/temp2)
@@ -830,11 +830,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Now ask for all eigenvalues with high absolute accuracy.
 			ntest = 18
 			abstol = unfl + unfl
-			golapack.Dstebz('A', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wa1, iwork, toSlice(iwork, n+1-1), work, toSlice(iwork, 2*n+1-1), &iinfo)
+			golapack.Dstebz('A', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wa1, iwork, toSlice(iwork, n), work, toSlice(iwork, 2*n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(A)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -847,11 +847,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			temp1 = zero
 			temp2 = zero
 			for j = 1; j <= n; j++ {
-				temp1 = maxf64(temp1, math.Abs(d3.Get(j-1)), math.Abs(wa1.Get(j-1)))
-				temp2 = maxf64(temp2, math.Abs(d3.Get(j-1)-wa1.Get(j-1)))
+				temp1 = math.Max(temp1, math.Max(math.Abs(d3.Get(j-1)), math.Abs(wa1.Get(j-1))))
+				temp2 = math.Max(temp2, math.Abs(d3.Get(j-1)-wa1.Get(j-1)))
 			}
 
-			result.Set(17, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+			result.Set(17, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			//           Choose random values for IL and IU, and ask for the
 			//           IL-th through IU-th eigenvalues.
@@ -869,11 +869,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 			}
 
-			golapack.Dstebz('I', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m2, &nsplit, wa2, iwork, toSlice(iwork, n+1-1), work, toSlice(iwork, 2*n+1-1), &iinfo)
+			golapack.Dstebz('I', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m2, &nsplit, wa2, iwork, toSlice(iwork, n), work, toSlice(iwork, 2*n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(I)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -886,25 +886,25 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           eigenvalues and ask for all eigenvalues in this range.
 			if n > 0 {
 				if il != 1 {
-					vl = wa1.Get(il-1) - maxf64(half*(wa1.Get(il-1)-wa1.Get(il-1-1)), ulp*anorm, two*rtunfl)
+					vl = wa1.Get(il-1) - math.Max(half*(wa1.Get(il-1)-wa1.Get(il-1-1)), math.Max(ulp*anorm, two*rtunfl))
 				} else {
-					vl = wa1.Get(0) - maxf64(half*(wa1.Get(n-1)-wa1.Get(0)), ulp*anorm, two*rtunfl)
+					vl = wa1.Get(0) - math.Max(half*(wa1.Get(n-1)-wa1.Get(0)), math.Max(ulp*anorm, two*rtunfl))
 				}
 				if iu != n {
-					vu = wa1.Get(iu-1) + maxf64(half*(wa1.Get(iu+1-1)-wa1.Get(iu-1)), ulp*anorm, two*rtunfl)
+					vu = wa1.Get(iu-1) + math.Max(half*(wa1.Get(iu)-wa1.Get(iu-1)), math.Max(ulp*anorm, two*rtunfl))
 				} else {
-					vu = wa1.Get(n-1) + maxf64(half*(wa1.Get(n-1)-wa1.Get(0)), ulp*anorm, two*rtunfl)
+					vu = wa1.Get(n-1) + math.Max(half*(wa1.Get(n-1)-wa1.Get(0)), math.Max(ulp*anorm, two*rtunfl))
 				}
 			} else {
 				vl = zero
 				vu = one
 			}
 
-			golapack.Dstebz('V', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m3, &nsplit, wa3, iwork, toSlice(iwork, n+1-1), work, toSlice(iwork, 2*n+1-1), &iinfo)
+			golapack.Dstebz('V', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m3, &nsplit, wa3, iwork, toSlice(iwork, n), work, toSlice(iwork, 2*n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -922,22 +922,22 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			temp1 = Dsxt1(func() *int { y := 1; return &y }(), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
 			temp2 = Dsxt1(func() *int { y := 1; return &y }(), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
 			if n > 0 {
-				temp3 = maxf64(math.Abs(wa1.Get(n-1)), math.Abs(wa1.Get(0)))
+				temp3 = math.Max(math.Abs(wa1.Get(n-1)), math.Abs(wa1.Get(0)))
 			} else {
 				temp3 = zero
 			}
 
-			result.Set(18, (temp1+temp2)/maxf64(unfl, temp3*ulp))
+			result.Set(18, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			//           Call DSTEIN to compute eigenvectors corresponding to
 			//           eigenvalues in WA1.  (First call DSTEBZ again, to make sure
 			//           it returns these eigenvalues in the correct order.)
 			ntest = 21
-			golapack.Dstebz('A', 'B', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wa1, iwork, toSlice(iwork, n+1-1), work, toSlice(iwork, 2*n+1-1), &iinfo)
+			golapack.Dstebz('A', 'B', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wa1, iwork, toSlice(iwork, n), work, toSlice(iwork, 2*n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(A,B)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -947,11 +947,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 			}
 
-			golapack.Dstein(&n, sd, se, &m, wa1, iwork, toSlice(iwork, n+1-1), z, ldu, work, toSlice(iwork, 2*n+1-1), toSlice(iwork, 3*n+1-1), &iinfo)
+			golapack.Dstein(&n, sd, se, &m, wa1, iwork, toSlice(iwork, n), z, ldu, work, toSlice(iwork, 2*n), toSlice(iwork, 3*n), &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEIN", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -967,18 +967,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Call DSTEDC(I) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(n, sd, 1, d1, 1)
+			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
 			if n > 0 {
-				goblas.Dcopy(n-1, se, 1, work, 1)
+				goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
 			ntest = 22
-			golapack.Dstedc('I', &n, d1, work, z, ldu, work.Off(n+1-1), toPtr(lwedc-n), iwork, &liwedc, &iinfo)
+			golapack.Dstedc('I', &n, d1, work, z, ldu, work.Off(n), toPtr(lwedc-n), iwork, &liwedc, &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEDC(I)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -993,18 +993,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Call DSTEDC(V) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(n, sd, 1, d1, 1)
+			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
 			if n > 0 {
-				goblas.Dcopy(n-1, se, 1, work, 1)
+				goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
 			ntest = 24
-			golapack.Dstedc('V', &n, d1, work, z, ldu, work.Off(n+1-1), toPtr(lwedc-n), iwork, &liwedc, &iinfo)
+			golapack.Dstedc('V', &n, d1, work, z, ldu, work.Off(n), toPtr(lwedc-n), iwork, &liwedc, &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEDC(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -1019,18 +1019,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Call DSTEDC(N) to compute D2, do tests.
 			//
 			//           Compute D2
-			goblas.Dcopy(n, sd, 1, d2, 1)
+			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
 			if n > 0 {
-				goblas.Dcopy(n-1, se, 1, work, 1)
+				goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 			}
 			golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
 			ntest = 26
-			golapack.Dstedc('N', &n, d2, work, z, ldu, work.Off(n+1-1), toPtr(lwedc-n), iwork, &liwedc, &iinfo)
+			golapack.Dstedc('N', &n, d2, work, z, ldu, work.Off(n), toPtr(lwedc-n), iwork, &liwedc, &iinfo)
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEDC(N)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					return
 				} else {
@@ -1044,11 +1044,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			temp2 = zero
 
 			for j = 1; j <= n; j++ {
-				temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1)))
-				temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
+				temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1))))
+				temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
 			}
 
-			result.Set(25, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+			result.Set(25, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			//           Only test DSTEMR if IEEE compliant
 			if Ilaenv(func() *int { y := 10; return &y }(), []byte("DSTEMR"), []byte("VA"), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }()) == 1 && Ilaenv(func() *int { y := 11; return &y }(), []byte("DSTEMR"), []byte("VA"), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }()) == 1 {
@@ -1063,11 +1063,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if jtype == 21 && srel {
 					ntest = 27
 					abstol = unfl + unfl
-					golapack.Dstemr('V', 'A', &n, sd, se, &vl, &vu, &il, &iu, &m, wr, z, ldu, &n, iwork, &tryrac, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*lwork)-2*n), &iinfo)
+					golapack.Dstemr('V', 'A', &n, sd, se, &vl, &vu, &il, &iu, &m, wr, z, ldu, &n, iwork, &tryrac, work, lwork, toSlice(iwork, 2*n), toPtr((*lwork)-2*n), &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(V,A,rel)", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -1081,7 +1081,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 					temp1 = zero
 					for j = 1; j <= n; j++ {
-						temp1 = maxf64(temp1, math.Abs(d4.Get(j-1)-wr.Get(n-j+1-1))/(abstol+math.Abs(d4.Get(j-1))))
+						temp1 = math.Max(temp1, math.Abs(d4.Get(j-1)-wr.Get(n-j))/(abstol+math.Abs(d4.Get(j-1))))
 					}
 
 					result.Set(26, temp1/temp2)
@@ -1097,12 +1097,12 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					if srange {
 						ntest = 28
 						abstol = unfl + unfl
-						golapack.Dstemr('V', 'I', &n, sd, se, &vl, &vu, &il, &iu, &m, wr, z, ldu, &n, iwork, &tryrac, work, lwork, toSlice(iwork, 2*n+1-1), toPtr((*lwork)-2*n), &iinfo)
+						golapack.Dstemr('V', 'I', &n, sd, se, &vl, &vu, &il, &iu, &m, wr, z, ldu, &n, iwork, &tryrac, work, lwork, toSlice(iwork, 2*n), toPtr((*lwork)-2*n), &iinfo)
 
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(V,I,rel)", iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -1116,7 +1116,7 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 						temp1 = zero
 						for j = il; j <= iu; j++ {
-							temp1 = maxf64(temp1, math.Abs(wr.Get(j-il+1-1)-d4.Get(n-j+1-1))/(abstol+math.Abs(wr.Get(j-il+1-1))))
+							temp1 = math.Max(temp1, math.Abs(wr.Get(j-il)-d4.Get(n-j))/(abstol+math.Abs(wr.Get(j-il))))
 						}
 
 						result.Set(27, temp1/temp2)
@@ -1131,9 +1131,9 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//           Call DSTEMR(V,I) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(n, sd, 1, d5, 1)
+				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 				if n > 0 {
-					goblas.Dcopy(n-1, se, 1, work, 1)
+					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 				}
 				golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1146,10 +1146,10 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						iu = il
 						il = itemp
 					}
-					golapack.Dstemr('V', 'I', &n, d5, work, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, work.Off(n+1-1), toPtr((*lwork)-n), toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+					golapack.Dstemr('V', 'I', &n, d5, work, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, work.Off(n), toPtr((*lwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 					if iinfo != 0 {
 						fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(V,I)", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -1164,17 +1164,17 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					//           Call DSTEMR to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(n, sd, 1, d5, 1)
+					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 					if n > 0 {
-						goblas.Dcopy(n-1, se, 1, work, 1)
+						goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 					}
 
 					ntest = 31
-					golapack.Dstemr('N', 'I', &n, d5, work, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, work.Off(n+1-1), toPtr((*lwork)-n), toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+					golapack.Dstemr('N', 'I', &n, d5, work, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, work.Off(n), toPtr((*lwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(N,I)", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -1188,18 +1188,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					temp2 = zero
 
 					for j = 1; j <= iu-il+1; j++ {
-						temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1)))
-						temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
+						temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1))))
+						temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
 					}
 
-					result.Set(30, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+					result.Set(30, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 					//           Call DSTEMR(V,V) to compute D1 and Z, do tests.
 					//
 					//           Compute D1 and Z
-					goblas.Dcopy(n, sd, 1, d5, 1)
+					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 					if n > 0 {
-						goblas.Dcopy(n-1, se, 1, work, 1)
+						goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 					}
 					golapack.Dlaset('F', &n, &n, &zero, &one, z, ldu)
 
@@ -1207,25 +1207,25 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 					if n > 0 {
 						if il != 1 {
-							vl = d2.Get(il-1) - maxf64(half*(d2.Get(il-1)-d2.Get(il-1-1)), ulp*anorm, two*rtunfl)
+							vl = d2.Get(il-1) - math.Max(half*(d2.Get(il-1)-d2.Get(il-1-1)), math.Max(ulp*anorm, two*rtunfl))
 						} else {
-							vl = d2.Get(0) - maxf64(half*(d2.Get(n-1)-d2.Get(0)), ulp*anorm, two*rtunfl)
+							vl = d2.Get(0) - math.Max(half*(d2.Get(n-1)-d2.Get(0)), math.Max(ulp*anorm, two*rtunfl))
 						}
 						if iu != n {
-							vu = d2.Get(iu-1) + maxf64(half*(d2.Get(iu+1-1)-d2.Get(iu-1)), ulp*anorm, two*rtunfl)
+							vu = d2.Get(iu-1) + math.Max(half*(d2.Get(iu)-d2.Get(iu-1)), math.Max(ulp*anorm, two*rtunfl))
 						} else {
-							vu = d2.Get(n-1) + maxf64(half*(d2.Get(n-1)-d2.Get(0)), ulp*anorm, two*rtunfl)
+							vu = d2.Get(n-1) + math.Max(half*(d2.Get(n-1)-d2.Get(0)), math.Max(ulp*anorm, two*rtunfl))
 						}
 					} else {
 						vl = zero
 						vu = one
 					}
 
-					golapack.Dstemr('V', 'V', &n, d5, work, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, work.Off(n+1-1), toPtr((*lwork)-n), toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+					golapack.Dstemr('V', 'V', &n, d5, work, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, work.Off(n), toPtr((*lwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(V,V)", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -1240,17 +1240,17 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					//           Call DSTEMR to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(n, sd, 1, d5, 1)
+					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 					if n > 0 {
-						goblas.Dcopy(n-1, se, 1, work, 1)
+						goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 					}
 
 					ntest = 34
-					golapack.Dstemr('N', 'V', &n, d5, work, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, work.Off(n+1-1), toPtr((*lwork)-n), toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+					golapack.Dstemr('N', 'V', &n, d5, work, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, work.Off(n), toPtr((*lwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(N,V)", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -1264,11 +1264,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					temp2 = zero
 
 					for j = 1; j <= iu-il+1; j++ {
-						temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1)))
-						temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
+						temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1))))
+						temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
 					}
 
-					result.Set(33, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+					result.Set(33, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 				} else {
 					result.Set(28, zero)
 					result.Set(29, zero)
@@ -1281,18 +1281,18 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//           Call DSTEMR(V,A) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(n, sd, 1, d5, 1)
+				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 				if n > 0 {
-					goblas.Dcopy(n-1, se, 1, work, 1)
+					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 				}
 
 				ntest = 35
 
-				golapack.Dstemr('V', 'A', &n, d5, work, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, work.Off(n+1-1), toPtr((*lwork)-n), toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstemr('V', 'A', &n, d5, work, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, work.Off(n), toPtr((*lwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(V,A)", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1307,17 +1307,17 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//           Call DSTEMR to compute D2, do tests.
 				//
 				//           Compute D2
-				goblas.Dcopy(n, sd, 1, d5, 1)
+				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 				if n > 0 {
-					goblas.Dcopy(n-1, se, 1, work, 1)
+					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
 				}
 
 				ntest = 37
-				golapack.Dstemr('N', 'A', &n, d5, work, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, work.Off(n+1-1), toPtr((*lwork)-n), toSlice(iwork, 2*n+1-1), toPtr((*liwork)-2*n), &iinfo)
+				golapack.Dstemr('N', 'A', &n, d5, work, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, work.Off(n), toPtr((*lwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" DCHKST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEMR(N,A)", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1331,11 +1331,11 @@ func Dchkst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				temp2 = zero
 
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
+					temp1 = math.Max(temp1, math.Max(math.Abs(d1.Get(j-1)), math.Abs(d2.Get(j-1))))
+					temp2 = math.Max(temp2, math.Abs(d1.Get(j-1)-d2.Get(j-1)))
 				}
 
-				result.Set(36, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+				result.Set(36, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 			}
 		label270:
 			;

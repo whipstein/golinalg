@@ -26,14 +26,14 @@ func Zlartg(f, g *complex128, cs *float64, sn, r *complex128) {
 	zero = 0.0
 	czero = (0.0 + 0.0*1i)
 
-	Abs1 := func(ff complex128) float64 { return maxf64(math.Abs(real(ff)), math.Abs(imag(ff))) }
+	Abs1 := func(ff complex128) float64 { return math.Max(math.Abs(real(ff)), math.Abs(imag(ff))) }
 	Abssq := func(ff complex128) float64 { return math.Pow(real(ff), 2) + math.Pow(imag(ff), 2) }
 
 	safmin = Dlamch(SafeMinimum)
 	eps = Dlamch(Epsilon)
 	safmn2 = math.Pow(Dlamch(Base), float64(int((math.Log(safmin/eps)/math.Log(Dlamch(Base)))/two)))
 	safmx2 = one / safmn2
-	scale = maxf64(Abs1(*f), Abs1(*g))
+	scale = math.Max(Abs1(*f), Abs1(*g))
 	fs = (*f)
 	gs = (*g)
 	count = 0
@@ -66,7 +66,7 @@ func Zlartg(f, g *complex128, cs *float64, sn, r *complex128) {
 	}
 	f2 = Abssq(fs)
 	g2 = Abssq(gs)
-	if f2 <= maxf64(g2, one)*safmin {
+	if f2 <= math.Max(g2, one)*safmin {
 		//        This is a rare case: F is very small.
 		if (*f) == czero {
 			(*cs) = zero

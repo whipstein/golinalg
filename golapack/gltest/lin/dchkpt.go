@@ -50,7 +50,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL.
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
@@ -83,7 +83,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				ia = 1
 				for i = 1; i <= n-1; i++ {
 					d.Set(i-1, a.Get(ia-1))
-					e.Set(i-1, a.Get(ia+1-1))
+					e.Set(i-1, a.Get(ia))
 					ia = ia + 2
 				}
 				if n > 0 {
@@ -109,10 +109,10 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(n, d, 1)
+					ix = goblas.Idamax(n, d.Off(0, 1))
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(n, anorm/dmax, d, 1)
-					goblas.Dscal(n-1, anorm/dmax, e, 1)
+					goblas.Dscal(n, anorm/dmax, d.Off(0, 1))
+					goblas.Dscal(n-1, anorm/dmax, e.Off(0, 1))
 
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -164,15 +164,15 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 			}
 
-			goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
+			goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 			if n > 1 {
-				goblas.Dcopy(n-1, e, 1, e.Off(n+1-1), 1)
+				goblas.Dcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 			}
 
 			//+    TEST 1
 			//           Factor A as L*D*L' and compute the ratio
 			//              norm(L*D*L' - A) / (n * norm(A) * EPS )
-			golapack.Dpttrf(&n, d.Off(n+1-1), e.Off(n+1-1), &info)
+			golapack.Dpttrf(&n, d.Off(n), e.Off(n), &info)
 
 			//           Check error code from DPTTRF.
 			if info != izero {
@@ -185,7 +185,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				goto label90
 			}
 
-			Dptt01(&n, d, e, d.Off(n+1-1), e.Off(n+1-1), work, result.GetPtr(0))
+			Dptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
 
 			//           Print the test ratio if greater than or equal to THRESH.
 			if result.Get(0) >= (*thresh) {
@@ -211,10 +211,10 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					x.Set(j-1, zero)
 				}
 				x.Set(i-1, one)
-				golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.Matrix(lda, opts), &lda, &info)
-				ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
+				golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n), e.Off(n), x.Matrix(lda, opts), &lda, &info)
+				ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
 			}
-			rcondc = one / maxf64(one, anorm*ainvnm)
+			rcondc = one / math.Max(one, anorm*ainvnm)
 
 			for irhs = 1; irhs <= (*nns); irhs++ {
 				nrhs = (*nsval)[irhs-1]
@@ -232,7 +232,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 2
 				//           Solve A*x = b and compute the residual.
 				golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
-				golapack.Dpttrs(&n, &nrhs, d.Off(n+1-1), e.Off(n+1-1), x.Matrix(lda, opts), &lda, &info)
+				golapack.Dpttrs(&n, &nrhs, d.Off(n), e.Off(n), x.Matrix(lda, opts), &lda, &info)
 
 				//           Check error code from DPTTRS.
 				if info != 0 {
@@ -249,7 +249,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TESTS 4, 5, and 6
 				//           Use iterative refinement to improve the solution.
 				*srnamt = "DPTRFS"
-				golapack.Dptrfs(&n, &nrhs, d, e, d.Off(n+1-1), e.Off(n+1-1), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, &info)
+				golapack.Dptrfs(&n, &nrhs, d, e, d.Off(n), e.Off(n), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, &info)
 
 				//           Check error code from DPTRFS.
 				if info != 0 {
@@ -257,7 +257,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 
 				Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-				Dptt05(&n, &nrhs, d, e, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+				Dptt05(&n, &nrhs, d, e, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 				//           Print information about the tests that did not pass the
 				//           threshold.
@@ -280,7 +280,7 @@ func Dchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 		label90:
 			;
 			*srnamt = "DPTCON"
-			golapack.Dptcon(&n, d.Off(n+1-1), e.Off(n+1-1), &anorm, &rcond, rwork, &info)
+			golapack.Dptcon(&n, d.Off(n), e.Off(n), &anorm, &rcond, rwork, &info)
 
 			//           Check error code from DPTCON.
 			if info != 0 {

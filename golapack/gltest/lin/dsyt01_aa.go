@@ -43,16 +43,16 @@ func Dsyt01Aa(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldaf
 
 		//        Call DTRMM to form the product U' * D (or L * D ).
 		if uplo == 'U' {
-			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, (*n)-1, *n, one, afac.Off(0, 1), *ldafac, c.Off(1, 0), *ldc)
+			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, (*n)-1, *n, one, afac.Off(0, 1), c.Off(1, 0))
 		} else {
-			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.Unit, (*n)-1, *n, one, afac.Off(1, 0), *ldafac, c.Off(1, 0), *ldc)
+			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.Unit, (*n)-1, *n, one, afac.Off(1, 0), c.Off(1, 0))
 		}
 
 		//        Call DTRMM again to multiply by U (or L ).
 		if uplo == 'U' {
-			err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.Unit, *n, (*n)-1, one, afac.Off(0, 1), *ldafac, c.Off(0, 1), *ldc)
+			err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.Unit, *n, (*n)-1, one, afac.Off(0, 1), c.Off(0, 1))
 		} else {
-			err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.Unit, *n, (*n)-1, one, afac.Off(1, 0), *ldafac, c.Off(0, 1), *ldc)
+			err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.Unit, *n, (*n)-1, one, afac.Off(1, 0), c.Off(0, 1))
 		}
 	}
 
@@ -60,13 +60,13 @@ func Dsyt01Aa(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldaf
 	for j = (*n); j >= 1; j-- {
 		i = (*ipiv)[j-1]
 		if i != j {
-			goblas.Dswap(*n, c.Vector(j-1, 0), *ldc, c.Vector(i-1, 0), *ldc)
+			goblas.Dswap(*n, c.Vector(j-1, 0, *ldc), c.Vector(i-1, 0, *ldc))
 		}
 	}
 	for j = (*n); j >= 1; j-- {
 		i = (*ipiv)[j-1]
 		if i != j {
-			goblas.Dswap(*n, c.Vector(0, j-1), 1, c.Vector(0, i-1), 1)
+			goblas.Dswap(*n, c.Vector(0, j-1, 1), c.Vector(0, i-1, 1))
 		}
 	}
 

@@ -68,7 +68,7 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKGLM INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
@@ -76,7 +76,7 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKGLM INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
@@ -85,7 +85,7 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 				x.Set(i-1, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
 			}
 
-			Dglmts(&n, &m, &p, a.Matrix(lda, opts), af.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), bf.Matrix(ldb, opts), &ldb, x, x.Off((*nmax)+1-1), x.Off(2*(*nmax)+1-1), x.Off(3*(*nmax)+1-1), work, &lwork, rwork, &resid)
+			Dglmts(&n, &m, &p, a.Matrix(lda, opts), af.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), bf.Matrix(ldb, opts), &ldb, x, x.Off((*nmax)), x.Off(2*(*nmax)), x.Off(3*(*nmax)), work, &lwork, rwork, &resid)
 
 			//           Print information about the tests that did not
 			//           pass the threshold.

@@ -29,13 +29,13 @@ func Dggbak(job, side byte, n, ilo, ihi *int, lscale, rscale *mat.Vector, m *int
 		(*info) = -4
 	} else if (*n) == 0 && (*ihi) == 0 && (*ilo) != 1 {
 		(*info) = -4
-	} else if (*n) > 0 && ((*ihi) < (*ilo) || (*ihi) > maxint(1, *n)) {
+	} else if (*n) > 0 && ((*ihi) < (*ilo) || (*ihi) > max(1, *n)) {
 		(*info) = -5
 	} else if (*n) == 0 && (*ilo) == 1 && (*ihi) != 0 {
 		(*info) = -5
 	} else if (*m) < 0 {
 		(*info) = -8
-	} else if (*ldv) < maxint(1, *n) {
+	} else if (*ldv) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -63,14 +63,14 @@ func Dggbak(job, side byte, n, ilo, ihi *int, lscale, rscale *mat.Vector, m *int
 		//        Backward transformation on right eigenvectors
 		if rightv {
 			for i = (*ilo); i <= (*ihi); i++ {
-				goblas.Dscal(*m, rscale.Get(i-1), v.Vector(i-1, 0), *ldv)
+				goblas.Dscal(*m, rscale.Get(i-1), v.Vector(i-1, 0))
 			}
 		}
 
 		//        Backward transformation on left eigenvectors
 		if leftv {
 			for i = (*ilo); i <= (*ihi); i++ {
-				goblas.Dscal(*m, lscale.Get(i-1), v.Vector(i-1, 0), *ldv)
+				goblas.Dscal(*m, lscale.Get(i-1), v.Vector(i-1, 0))
 			}
 		}
 	}
@@ -90,7 +90,7 @@ label30:
 				if k == i {
 					goto label40
 				}
-				goblas.Dswap(*m, v.Vector(i-1, 0), *ldv, v.Vector(k-1, 0), *ldv)
+				goblas.Dswap(*m, v.Vector(i-1, 0), v.Vector(k-1, 0))
 			label40:
 			}
 
@@ -104,7 +104,7 @@ label30:
 				if k == i {
 					goto label60
 				}
-				goblas.Dswap(*m, v.Vector(i-1, 0), *ldv, v.Vector(k-1, 0), *ldv)
+				goblas.Dswap(*m, v.Vector(i-1, 0), v.Vector(k-1, 0))
 			label60:
 			}
 		}
@@ -121,7 +121,7 @@ label30:
 				if k == i {
 					goto label80
 				}
-				goblas.Dswap(*m, v.Vector(i-1, 0), *ldv, v.Vector(k-1, 0), *ldv)
+				goblas.Dswap(*m, v.Vector(i-1, 0), v.Vector(k-1, 0))
 			label80:
 			}
 
@@ -135,7 +135,7 @@ label30:
 				if k == i {
 					goto label100
 				}
-				goblas.Dswap(*m, v.Vector(i-1, 0), *ldv, v.Vector(k-1, 0), *ldv)
+				goblas.Dswap(*m, v.Vector(i-1, 0), v.Vector(k-1, 0))
 			label100:
 			}
 		}

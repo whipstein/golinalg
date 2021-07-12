@@ -60,7 +60,7 @@ func Dgtcon(norm byte, n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, anorm, r
 	kase = 0
 label20:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work.Off(0), iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work.Off(0), iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(U)*inv(L).

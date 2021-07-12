@@ -53,11 +53,11 @@ func Dchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 
 		//        Set limits on the number of loop iterations.
-		nkd = maxint(1, minint(n, 4))
+		nkd = max(1, min(n, 4))
 		nimat = ntypes
 		if n == 0 {
 			nimat = 1
@@ -82,7 +82,7 @@ func Dchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 				koff = 1
 				if iuplo == 1 {
 					uplo = 'U'
-					koff = maxint(1, kd+2-n)
+					koff = max(1, kd+2-n)
 					packit = 'Q'
 				} else {
 					uplo = 'L'
@@ -120,15 +120,15 @@ func Dchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						iw = 2*lda + 1
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Dcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff-izero+i1-1), 1)
+							goblas.Dcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff-izero+i1-1, 1))
 							iw = iw + izero - i1
-							goblas.Dcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), maxint(ldab-1, 1))
+							goblas.Dcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, max(ldab-1, 1)))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Dcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1))
+							goblas.Dcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff+izero-i1-1, max(ldab-1, 1)))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Dcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), 1)
+							goblas.Dcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, 1))
 						}
 					}
 
@@ -146,24 +146,24 @@ func Dchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 						//                    Save the zeroed out row and column in WORK(*,3)
 						iw = 2 * lda
-						for i = 1; i <= minint(2*kd+1, n); i++ {
+						for i = 1; i <= min(2*kd+1, n); i++ {
 							work.Set(iw+i-1, zero)
 						}
 						iw = iw + 1
-						i1 = maxint(izero-kd, 1)
-						i2 = minint(izero+kd, n)
+						i1 = max(izero-kd, 1)
+						i2 = min(izero+kd, n)
 
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Dswap(izero-i1, a.Off(ioff-izero+i1-1), 1, work.Off(iw-1), 1)
+							goblas.Dswap(izero-i1, a.Off(ioff-izero+i1-1, 1), work.Off(iw-1, 1))
 							iw = iw + izero - i1
-							goblas.Dswap(i2-izero+1, a.Off(ioff-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
+							goblas.Dswap(i2-izero+1, a.Off(ioff-1, max(ldab-1, 1)), work.Off(iw-1, 1))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Dswap(izero-i1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
+							goblas.Dswap(izero-i1, a.Off(ioff+izero-i1-1, max(ldab-1, 1)), work.Off(iw-1, 1))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Dswap(i2-izero+1, a.Off(ioff-1), 1, work.Off(iw-1), 1)
+							goblas.Dswap(i2-izero+1, a.Off(ioff-1, 1), work.Off(iw-1, 1))
 						}
 					}
 
@@ -253,7 +253,7 @@ func Dchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//+    TESTS 4, 5, and 6
 							//                    Use iterative refinement to improve the solution.
 							*srnamt = "DPBRFS"
-							golapack.Dpbrfs(uplo, &n, &kd, &nrhs, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, iwork, &info)
+							golapack.Dpbrfs(uplo, &n, &kd, &nrhs, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, iwork, &info)
 
 							//                    Check error code from DPBRFS.
 							if info != 0 {
@@ -261,7 +261,7 @@ func Dchkpb(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							}
 
 							Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-							Dpbt05(uplo, &n, &kd, &nrhs, a.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+							Dpbt05(uplo, &n, &kd, &nrhs, a.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.

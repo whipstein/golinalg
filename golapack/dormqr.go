@@ -50,18 +50,18 @@ func Dormqr(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > nq {
 		(*info) = -5
-	} else if (*lda) < maxint(1, nq) {
+	} else if (*lda) < max(1, nq) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
-	} else if (*lwork) < maxint(1, nw) && !lquery {
+	} else if (*lwork) < max(1, nw) && !lquery {
 		(*info) = -12
 	}
 
 	if (*info) == 0 {
 		//        Compute the workspace requirements
-		nb = minint(nbmax, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{side, trans}, m, n, k, toPtr(-1)))
-		lwkopt = maxint(1, nw)*nb + tsize
+		nb = min(nbmax, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{side, trans}, m, n, k, toPtr(-1)))
+		lwkopt = max(1, nw)*nb + tsize
 		work.Set(0, float64(lwkopt))
 	}
 
@@ -83,7 +83,7 @@ func Dormqr(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 	if nb > 1 && nb < (*k) {
 		if (*lwork) < nw*nb+tsize {
 			nb = ((*lwork) - tsize) / ldwork
-			nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DORMQR"), []byte{side, trans}, m, n, k, toPtr(-1)))
+			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DORMQR"), []byte{side, trans}, m, n, k, toPtr(-1)))
 		}
 	}
 
@@ -112,7 +112,7 @@ func Dormqr(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 		}
 
 		for _, i = range genIter(i1, i2, i3) {
-			ib = minint(nb, (*k)-i+1)
+			ib = min(nb, (*k)-i+1)
 
 			//           Form the triangular factor of the block reflector
 			//           H = H(i) H(i+1) . . . H(i+ib-1)

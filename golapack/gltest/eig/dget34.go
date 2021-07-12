@@ -58,7 +58,7 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 	val.Set(8, -math.Sqrt(bignum))
 	vm.Set(0, one)
 	vm.Set(1, one+two*eps)
-	goblas.Dcopy(16, val.Off(3), 0, t.Vector(0, 0), 1)
+	goblas.Dcopy(16, val.Off(3, 0), t.Vector(0, 0, 1))
 
 	(*ninfo)[0] = 0
 	(*ninfo)[1] = 0
@@ -75,10 +75,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 					t.Set(1, 1, val.Get(ic-1))
 					t.Set(0, 1, val.Get(ib-1))
 					t.Set(1, 0, zero)
-					tnrm = maxf64(math.Abs(t.Get(0, 0)), math.Abs(t.Get(1, 1)), math.Abs(t.Get(0, 1)))
-					goblas.Dcopy(16, t.VectorIdx(0), 1, t1.VectorIdx(0), 1)
-					goblas.Dcopy(16, val.Off(0), 0, q.VectorIdx(0), 1)
-					goblas.Dcopy(4, val.Off(2), 0, q.VectorIdx(0), 5)
+					tnrm = math.Max(math.Abs(t.Get(0, 0)), math.Max(math.Abs(t.Get(1, 1)), math.Abs(t.Get(0, 1))))
+					goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
+					goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
+					goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
 					golapack.Dlaexc(true, func() *int { y := 2; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, &info)
 					if info != 0 {
 						(*ninfo)[info-1] = (*ninfo)[info-1] + 1
@@ -123,10 +123,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 								t.Set(2, 0, zero)
 								t.Set(2, 1, -val.Get(ic21-1))
 								t.Set(2, 2, val.Get(ic11-1)*float64(ic22))
-								tnrm = maxf64(math.Abs(t.Get(0, 0)), math.Abs(t.Get(0, 1)), math.Abs(t.Get(0, 2)), math.Abs(t.Get(1, 1)), math.Abs(t.Get(1, 2)), math.Abs(t.Get(2, 1)), math.Abs(t.Get(2, 2)))
-								goblas.Dcopy(16, t.VectorIdx(0), 1, t1.VectorIdx(0), 1)
-								goblas.Dcopy(16, val.Off(0), 0, q.VectorIdx(0), 1)
-								goblas.Dcopy(4, val.Off(2), 0, q.VectorIdx(0), 5)
+								tnrm = math.Max(math.Abs(t.Get(0, 0)), math.Max(math.Abs(t.Get(0, 1)), math.Max(math.Abs(t.Get(0, 2)), math.Max(math.Abs(t.Get(1, 1)), math.Max(math.Abs(t.Get(1, 2)), math.Max(math.Abs(t.Get(2, 1)), math.Abs(t.Get(2, 2))))))))
+								goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
+								goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
+								goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
 								golapack.Dlaexc(true, func() *int { y := 3; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), work, &info)
 								if info != 0 {
 									(*ninfo)[info-1] = (*ninfo)[info-1] + 1
@@ -176,10 +176,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 								t.Set(2, 0, zero)
 								t.Set(2, 1, zero)
 								t.Set(2, 2, val.Get(ic-1)*vm.Get(icm-1))
-								tnrm = maxf64(math.Abs(t.Get(0, 0)), math.Abs(t.Get(0, 1)), math.Abs(t.Get(0, 2)), math.Abs(t.Get(1, 1)), math.Abs(t.Get(1, 2)), math.Abs(t.Get(2, 1)), math.Abs(t.Get(2, 2)))
-								goblas.Dcopy(16, t.VectorIdx(0), 1, t1.VectorIdx(0), 1)
-								goblas.Dcopy(16, val.Off(0), 0, q.VectorIdx(0), 1)
-								goblas.Dcopy(4, val.Off(2), 0, q.VectorIdx(0), 5)
+								tnrm = math.Max(math.Abs(t.Get(0, 0)), math.Max(math.Abs(t.Get(0, 1)), math.Max(math.Abs(t.Get(0, 2)), math.Max(math.Abs(t.Get(1, 1)), math.Max(math.Abs(t.Get(1, 2)), math.Max(math.Abs(t.Get(2, 1)), math.Abs(t.Get(2, 2))))))))
+								goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
+								goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
+								goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
 								golapack.Dlaexc(true, func() *int { y := 3; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), work, &info)
 								if info != 0 {
 									(*ninfo)[info-1] = (*ninfo)[info-1] + 1
@@ -243,12 +243,12 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 											tnrm = zero
 											for i = 1; i <= 4; i++ {
 												for j = 1; j <= 4; j++ {
-													tnrm = maxf64(tnrm, math.Abs(t.Get(i-1, j-1)))
+													tnrm = math.Max(tnrm, math.Abs(t.Get(i-1, j-1)))
 												}
 											}
-											goblas.Dcopy(16, t.VectorIdx(0), 1, t1.VectorIdx(0), 1)
-											goblas.Dcopy(16, val.Off(0), 0, q.VectorIdx(0), 1)
-											goblas.Dcopy(4, val.Off(2), 0, q.VectorIdx(0), 5)
+											goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
+											goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
+											goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
 											golapack.Dlaexc(true, func() *int { y := 4; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), work, &info)
 											if info != 0 {
 												(*ninfo)[info-1] = (*ninfo)[info-1] + 1

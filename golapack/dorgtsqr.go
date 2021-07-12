@@ -32,9 +32,9 @@ func Dorgtsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *in
 		(*info) = -3
 	} else if (*nb) < 1 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*ldt) < maxint(1, minint(*nb, *n)) {
+	} else if (*ldt) < max(1, min(*nb, *n)) {
 		(*info) = -8
 	} else {
 		//        Test the input LWORK for the dimension of the array WORK.
@@ -44,7 +44,7 @@ func Dorgtsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *in
 			(*info) = -10
 		} else {
 			//           Set block size for column blocks
-			nblocal = minint(*nb, *n)
+			nblocal = min(*nb, *n)
 
 			//           LWORK = -1, then set the size for the array C(LDC,N)
 			//           in DLAMTSQR call and set the optimal size of the work array
@@ -55,7 +55,7 @@ func Dorgtsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *in
 
 			lworkopt = lc + lw
 
-			if ((*lwork) < maxint(1, lworkopt)) && (!lquery) {
+			if ((*lwork) < max(1, lworkopt)) && (!lquery) {
 				(*info) = -10
 			}
 		}
@@ -72,7 +72,7 @@ func Dorgtsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *in
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		work.Set(0, float64(lworkopt))
 		return
 	}
@@ -93,13 +93,13 @@ func Dorgtsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *in
 	//                                          ( 0 )
 	//
 	//           On output, WORK(1:LDC*N) stores Q1_in.
-	Dlamtsqr('L', 'N', m, n, n, mb, &nblocal, a, lda, t, ldt, work.Matrix(ldc, opts), &ldc, work.Off(lc+1-1), &lw, &iinfo)
+	Dlamtsqr('L', 'N', m, n, n, mb, &nblocal, a, lda, t, ldt, work.Matrix(ldc, opts), &ldc, work.Off(lc), &lw, &iinfo)
 
 	//     (2) Copy the result from the part of the work array (1:M,1:N)
 	//     with the leading dimension LDC that starts at WORK(1) into
 	//     the output array A(1:M,1:N) column-by-column.
 	for j = 1; j <= (*n); j++ {
-		goblas.Dcopy(*m, work.Off((j-1)*ldc+1-1), 1, a.Vector(0, j-1), 1)
+		goblas.Dcopy(*m, work.Off((j-1)*ldc, 1), a.Vector(0, j-1, 1))
 	}
 
 	work.Set(0, float64(lworkopt))

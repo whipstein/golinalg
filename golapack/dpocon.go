@@ -31,7 +31,7 @@ func Dpocon(uplo byte, n *int, a *mat.Matrix, lda *int, anorm, rcond *float64, w
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*anorm) < zero {
 		(*info) = -5
@@ -57,28 +57,28 @@ func Dpocon(uplo byte, n *int, a *mat.Matrix, lda *int, anorm, rcond *float64, w
 	normin = 'N'
 label10:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if upper {
 			//           Multiply by inv(U**T).
-			Dlatrs('U', 'T', 'N', normin, n, a, lda, work, &scalel, work.Off(2*(*n)+1-1), info)
+			Dlatrs('U', 'T', 'N', normin, n, a, lda, work, &scalel, work.Off(2*(*n)), info)
 			normin = 'Y'
 
 			//           Multiply by inv(U).
-			Dlatrs('U', 'N', 'N', normin, n, a, lda, work, &scaleu, work.Off(2*(*n)+1-1), info)
+			Dlatrs('U', 'N', 'N', normin, n, a, lda, work, &scaleu, work.Off(2*(*n)), info)
 		} else {
 			//           Multiply by inv(L).
-			Dlatrs('L', 'N', 'N', normin, n, a, lda, work, &scalel, work.Off(2*(*n)+1-1), info)
+			Dlatrs('L', 'N', 'N', normin, n, a, lda, work, &scalel, work.Off(2*(*n)), info)
 			normin = 'Y'
 
 			//           Multiply by inv(L**T).
-			Dlatrs('L', 'T', 'N', normin, n, a, lda, work, &scaleu, work.Off(2*(*n)+1-1), info)
+			Dlatrs('L', 'T', 'N', normin, n, a, lda, work, &scaleu, work.Off(2*(*n)), info)
 		}
 
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Idamax(*n, work, 1)
+			ix = goblas.Idamax(*n, work.Off(0, 1))
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				goto label20
 			}

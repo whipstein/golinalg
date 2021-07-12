@@ -51,7 +51,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			for j = 1; j <= nsz; j++ {
 				for i = 1; i <= nsz; i++ {
 					if i <= m && j <= n {
-						a.SetRe(i-1, j-1, pow.Get(i+j+1-1)*math.Pow(float64(-1), float64(i+j)))
+						a.SetRe(i-1, j-1, pow.Get(i+j)*math.Pow(float64(-1), float64(i+j)))
 					} else {
 						a.Set(i-1, j-1, czero)
 					}
@@ -64,14 +64,14 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				reslts.Set(0, one)
 			} else {
 				if n != 0 && m != 0 {
-					reslts.Set(0, maxf64(reslts.Get(0), math.Abs((rcond-rpow.Get(m-1))/rpow.Get(m-1))))
-					reslts.Set(0, maxf64(reslts.Get(0), math.Abs((ccond-rpow.Get(n-1))/rpow.Get(n-1))))
-					reslts.Set(0, maxf64(reslts.Get(0), math.Abs((norm-pow.Get(n+m+1-1))/pow.Get(n+m+1-1))))
+					reslts.Set(0, math.Max(reslts.Get(0), math.Abs((rcond-rpow.Get(m-1))/rpow.Get(m-1))))
+					reslts.Set(0, math.Max(reslts.Get(0), math.Abs((ccond-rpow.Get(n-1))/rpow.Get(n-1))))
+					reslts.Set(0, math.Max(reslts.Get(0), math.Abs((norm-pow.Get(n+m))/pow.Get(n+m))))
 					for i = 1; i <= m; i++ {
-						reslts.Set(0, maxf64(reslts.Get(0), math.Abs((r.Get(i-1)-rpow.Get(i+n+1-1))/rpow.Get(i+n+1-1))))
+						reslts.Set(0, math.Max(reslts.Get(0), math.Abs((r.Get(i-1)-rpow.Get(i+n))/rpow.Get(i+n))))
 					}
 					for j = 1; j <= n; j++ {
-						reslts.Set(0, maxf64(reslts.Get(0), math.Abs((c.Get(j-1)-pow.Get(n-j+1-1))/pow.Get(n-j+1-1))))
+						reslts.Set(0, math.Max(reslts.Get(0), math.Abs((c.Get(j-1)-pow.Get(n-j))/pow.Get(n-j))))
 					}
 				}
 			}
@@ -81,21 +81,21 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 
 	//     Test with zero rows and columns
 	for j = 1; j <= nsz; j++ {
-		a.Set(maxint(nsz-1, 1)-1, j-1, czero)
+		a.Set(max(nsz-1, 1)-1, j-1, czero)
 	}
 	golapack.Zgeequ(&nsz, &nsz, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
-	if info != maxint(nsz-1, 1) {
+	if info != max(nsz-1, 1) {
 		reslts.Set(0, one)
 	}
 
 	for j = 1; j <= nsz; j++ {
-		a.Set(maxint(nsz-1, 1)-1, j-1, cone)
+		a.Set(max(nsz-1, 1)-1, j-1, cone)
 	}
 	for i = 1; i <= nsz; i++ {
-		a.Set(i-1, maxint(nsz-1, 1)-1, czero)
+		a.Set(i-1, max(nsz-1, 1)-1, czero)
 	}
 	golapack.Zgeequ(&nsz, &nsz, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
-	if info != nsz+maxint(nsz-1, 1) {
+	if info != nsz+max(nsz-1, 1) {
 		reslts.Set(0, one)
 	}
 	reslts.Set(0, reslts.Get(0)/eps)
@@ -103,8 +103,8 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 	//     Test ZGBEQU
 	for n = 0; n <= nsz; n++ {
 		for m = 0; m <= nsz; m++ {
-			for kl = 0; kl <= maxint(m-1, 0); kl++ {
-				for ku = 0; ku <= maxint(n-1, 0); ku++ {
+			for kl = 0; kl <= max(m-1, 0); kl++ {
+				for ku = 0; ku <= max(n-1, 0); ku++ {
 					//
 					for j = 1; j <= nsz; j++ {
 						for i = 1; i <= nszb; i++ {
@@ -113,8 +113,8 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 					}
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= m; i++ {
-							if i <= minint(m, j+kl) && i >= maxint(1, j-ku) && j <= n {
-								ab.SetRe(ku+1+i-j-1, j-1, pow.Get(i+j+1-1)*math.Pow(float64(-1), float64(i+j)))
+							if i <= min(m, j+kl) && i >= max(1, j-ku) && j <= n {
+								ab.SetRe(ku+1+i-j-1, j-1, pow.Get(i+j)*math.Pow(float64(-1), float64(i+j)))
 							}
 						}
 					}
@@ -131,42 +131,42 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 							rcmin = r.Get(0)
 							rcmax = r.Get(0)
 							for i = 1; i <= m; i++ {
-								rcmin = minf64(rcmin, r.Get(i-1))
-								rcmax = maxf64(rcmax, r.Get(i-1))
+								rcmin = math.Min(rcmin, r.Get(i-1))
+								rcmax = math.Max(rcmax, r.Get(i-1))
 							}
 							ratio = rcmin / rcmax
-							reslts.Set(1, maxf64(reslts.Get(1), math.Abs((rcond-ratio)/ratio)))
+							reslts.Set(1, math.Max(reslts.Get(1), math.Abs((rcond-ratio)/ratio)))
 
 							rcmin = c.Get(0)
 							rcmax = c.Get(0)
 							for j = 1; j <= n; j++ {
-								rcmin = minf64(rcmin, c.Get(j-1))
-								rcmax = maxf64(rcmax, c.Get(j-1))
+								rcmin = math.Min(rcmin, c.Get(j-1))
+								rcmax = math.Max(rcmax, c.Get(j-1))
 							}
 							ratio = rcmin / rcmax
-							reslts.Set(1, maxf64(reslts.Get(1), math.Abs((ccond-ratio)/ratio)))
+							reslts.Set(1, math.Max(reslts.Get(1), math.Abs((ccond-ratio)/ratio)))
 
-							reslts.Set(1, maxf64(reslts.Get(1), math.Abs((norm-pow.Get(n+m+1-1))/pow.Get(n+m+1-1))))
+							reslts.Set(1, math.Max(reslts.Get(1), math.Abs((norm-pow.Get(n+m))/pow.Get(n+m))))
 							for i = 1; i <= m; i++ {
 								rcmax = zero
 								for j = 1; j <= n; j++ {
 									if i <= j+kl && i >= j-ku {
-										ratio = math.Abs(r.Get(i-1) * pow.Get(i+j+1-1) * c.Get(j-1))
-										rcmax = maxf64(rcmax, ratio)
+										ratio = math.Abs(r.Get(i-1) * pow.Get(i+j) * c.Get(j-1))
+										rcmax = math.Max(rcmax, ratio)
 									}
 								}
-								reslts.Set(1, maxf64(reslts.Get(1), math.Abs(one-rcmax)))
+								reslts.Set(1, math.Max(reslts.Get(1), math.Abs(one-rcmax)))
 							}
 
 							for j = 1; j <= n; j++ {
 								rcmax = zero
 								for i = 1; i <= m; i++ {
 									if i <= j+kl && i >= j-ku {
-										ratio = math.Abs(r.Get(i-1) * pow.Get(i+j+1-1) * c.Get(j-1))
-										rcmax = maxf64(rcmax, ratio)
+										ratio = math.Abs(r.Get(i-1) * pow.Get(i+j) * c.Get(j-1))
+										rcmax = math.Max(rcmax, ratio)
 									}
 								}
-								reslts.Set(1, maxf64(reslts.Get(1), math.Abs(one-rcmax)))
+								reslts.Set(1, math.Max(reslts.Get(1), math.Abs(one-rcmax)))
 							}
 						}
 					}
@@ -183,7 +183,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 		for i = 1; i <= nsz; i++ {
 			for j = 1; j <= nsz; j++ {
 				if i <= n && j == i {
-					a.SetRe(i-1, j-1, pow.Get(i+j+1-1)*math.Pow(float64(-1), float64(i+j)))
+					a.SetRe(i-1, j-1, pow.Get(i+j)*math.Pow(float64(-1), float64(i+j)))
 				} else {
 					a.Set(i-1, j-1, czero)
 				}
@@ -196,17 +196,17 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			reslts.Set(2, one)
 		} else {
 			if n != 0 {
-				reslts.Set(2, maxf64(reslts.Get(2), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
-				reslts.Set(2, maxf64(reslts.Get(2), math.Abs((norm-pow.Get(2*n+1-1))/pow.Get(2*n+1-1))))
+				reslts.Set(2, math.Max(reslts.Get(2), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
+				reslts.Set(2, math.Max(reslts.Get(2), math.Abs((norm-pow.Get(2*n))/pow.Get(2*n))))
 				for i = 1; i <= n; i++ {
-					reslts.Set(2, maxf64(reslts.Get(2), math.Abs((r.Get(i-1)-rpow.Get(i+1-1))/rpow.Get(i+1-1))))
+					reslts.Set(2, math.Max(reslts.Get(2), math.Abs((r.Get(i-1)-rpow.Get(i))/rpow.Get(i))))
 				}
 			}
 		}
 	}
-	a.Set(maxint(nsz-1, 1)-1, maxint(nsz-1, 1)-1, -cone)
+	a.Set(max(nsz-1, 1)-1, max(nsz-1, 1)-1, -cone)
 	golapack.Zpoequ(&nsz, a, &nsz, r, &rcond, &norm, &info)
-	if info != maxint(nsz-1, 1) {
+	if info != max(nsz-1, 1) {
 		reslts.Set(2, one)
 	}
 	reslts.Set(2, reslts.Get(2)/eps)
@@ -218,7 +218,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			ap.Set(i-1, czero)
 		}
 		for i = 1; i <= n; i++ {
-			ap.SetRe((i*(i+1))/2-1, pow.Get(2*i+1-1))
+			ap.SetRe((i*(i+1))/2-1, pow.Get(2*i))
 		}
 
 		golapack.Zppequ('U', &n, ap, r, &rcond, &norm, &info)
@@ -227,10 +227,10 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			reslts.Set(3, one)
 		} else {
 			if n != 0 {
-				reslts.Set(3, maxf64(reslts.Get(3), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
-				reslts.Set(3, maxf64(reslts.Get(3), math.Abs((norm-pow.Get(2*n+1-1))/pow.Get(2*n+1-1))))
+				reslts.Set(3, math.Max(reslts.Get(3), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
+				reslts.Set(3, math.Max(reslts.Get(3), math.Abs((norm-pow.Get(2*n))/pow.Get(2*n))))
 				for i = 1; i <= n; i++ {
-					reslts.Set(3, maxf64(reslts.Get(3), math.Abs((r.Get(i-1)-rpow.Get(i+1-1))/rpow.Get(i+1-1))))
+					reslts.Set(3, math.Max(reslts.Get(3), math.Abs((r.Get(i-1)-rpow.Get(i))/rpow.Get(i))))
 				}
 			}
 		}
@@ -241,7 +241,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 		}
 		j = 1
 		for i = 1; i <= n; i++ {
-			ap.SetRe(j-1, pow.Get(2*i+1-1))
+			ap.SetRe(j-1, pow.Get(2*i))
 			j = j + (n - i + 1)
 		}
 
@@ -251,10 +251,10 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			reslts.Set(3, one)
 		} else {
 			if n != 0 {
-				reslts.Set(3, maxf64(reslts.Get(3), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
-				reslts.Set(3, maxf64(reslts.Get(3), math.Abs((norm-pow.Get(2*n+1-1))/pow.Get(2*n+1-1))))
+				reslts.Set(3, math.Max(reslts.Get(3), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
+				reslts.Set(3, math.Max(reslts.Get(3), math.Abs((norm-pow.Get(2*n))/pow.Get(2*n))))
 				for i = 1; i <= n; i++ {
-					reslts.Set(3, maxf64(reslts.Get(3), math.Abs((r.Get(i-1)-rpow.Get(i+1-1))/rpow.Get(i+1-1))))
+					reslts.Set(3, math.Max(reslts.Get(3), math.Abs((r.Get(i-1)-rpow.Get(i))/rpow.Get(i))))
 				}
 			}
 		}
@@ -263,14 +263,14 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 	i = (nsz*(nsz+1))/2 - 2
 	ap.Set(i-1, -cone)
 	golapack.Zppequ('L', &nsz, ap, r, &rcond, &norm, &info)
-	if info != maxint(nsz-1, 1) {
+	if info != max(nsz-1, 1) {
 		reslts.Set(3, one)
 	}
 	reslts.Set(3, reslts.Get(3)/eps)
 
 	//     Test ZPBEQU
 	for n = 0; n <= nsz; n++ {
-		for kl = 0; kl <= maxint(n-1, 0); kl++ {
+		for kl = 0; kl <= max(n-1, 0); kl++ {
 			//           Test upper triangular storage
 			for j = 1; j <= nsz; j++ {
 				for i = 1; i <= nszb; i++ {
@@ -278,7 +278,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				}
 			}
 			for j = 1; j <= n; j++ {
-				ab.SetRe(kl+1-1, j-1, pow.Get(2*j+1-1))
+				ab.SetRe(kl, j-1, pow.Get(2*j))
 			}
 
 			golapack.Zpbequ('U', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
@@ -287,17 +287,17 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				reslts.Set(4, one)
 			} else {
 				if n != 0 {
-					reslts.Set(4, maxf64(reslts.Get(4), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
-					reslts.Set(4, maxf64(reslts.Get(4), math.Abs((norm-pow.Get(2*n+1-1))/pow.Get(2*n+1-1))))
+					reslts.Set(4, math.Max(reslts.Get(4), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
+					reslts.Set(4, math.Max(reslts.Get(4), math.Abs((norm-pow.Get(2*n))/pow.Get(2*n))))
 					for i = 1; i <= n; i++ {
-						reslts.Set(4, maxf64(reslts.Get(4), math.Abs((r.Get(i-1)-rpow.Get(i+1-1))/rpow.Get(i+1-1))))
+						reslts.Set(4, math.Max(reslts.Get(4), math.Abs((r.Get(i-1)-rpow.Get(i))/rpow.Get(i))))
 					}
 				}
 			}
 			if n != 0 {
-				ab.Set(kl+1-1, maxint(n-1, 1)-1, -cone)
+				ab.Set(kl, max(n-1, 1)-1, -cone)
 				golapack.Zpbequ('U', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
-				if info != maxint(n-1, 1) {
+				if info != max(n-1, 1) {
 					reslts.Set(4, one)
 				}
 			}
@@ -309,7 +309,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				}
 			}
 			for j = 1; j <= n; j++ {
-				ab.SetRe(0, j-1, pow.Get(2*j+1-1))
+				ab.SetRe(0, j-1, pow.Get(2*j))
 			}
 
 			golapack.Zpbequ('L', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
@@ -318,17 +318,17 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				reslts.Set(4, one)
 			} else {
 				if n != 0 {
-					reslts.Set(4, maxf64(reslts.Get(4), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
-					reslts.Set(4, maxf64(reslts.Get(4), math.Abs((norm-pow.Get(2*n+1-1))/pow.Get(2*n+1-1))))
+					reslts.Set(4, math.Max(reslts.Get(4), math.Abs((rcond-rpow.Get(n-1))/rpow.Get(n-1))))
+					reslts.Set(4, math.Max(reslts.Get(4), math.Abs((norm-pow.Get(2*n))/pow.Get(2*n))))
 					for i = 1; i <= n; i++ {
-						reslts.Set(4, maxf64(reslts.Get(4), math.Abs((r.Get(i-1)-rpow.Get(i+1-1))/rpow.Get(i+1-1))))
+						reslts.Set(4, math.Max(reslts.Get(4), math.Abs((r.Get(i-1)-rpow.Get(i))/rpow.Get(i))))
 					}
 				}
 			}
 			if n != 0 {
-				ab.Set(0, maxint(n-1, 1)-1, -cone)
+				ab.Set(0, max(n-1, 1)-1, -cone)
 				golapack.Zpbequ('L', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
-				if info != maxint(n-1, 1) {
+				if info != max(n-1, 1) {
 					reslts.Set(4, one)
 				}
 			}

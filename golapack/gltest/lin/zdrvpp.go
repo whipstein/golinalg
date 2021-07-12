@@ -53,7 +53,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		npp = n * (n + 1) / 2
 		xtype = 'N'
 		nimat = ntypes
@@ -138,7 +138,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				//              Save a copy of the matrix A in ASAV.
-				goblas.Zcopy(npp, a, 1, asav, 1)
+				goblas.Zcopy(npp, a.Off(0, 1), asav.Off(0, 1))
 
 				for iequed = 1; iequed <= 2; iequed++ {
 					equed = equeds[iequed-1]
@@ -166,7 +166,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//                       the value returned by ZPPSVX (FACT = 'N' reuses
 							//                       the condition number from the previous iteration
 							//                          with FACT = 'F').
-							goblas.Zcopy(npp, asav, 1, afac, 1)
+							goblas.Zcopy(npp, asav.Off(0, 1), afac.Off(0, 1))
 							if equil || iequed > 1 {
 								//                          Compute row and column scale factors to
 								//                          equilibrate the matrix A.
@@ -194,7 +194,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							golapack.Zpptrf(uplo, &n, afac, &info)
 
 							//                       Form the inverse of A.
-							goblas.Zcopy(npp, afac, 1, a, 1)
+							goblas.Zcopy(npp, afac.Off(0, 1), a.Off(0, 1))
 							golapack.Zpptri(uplo, &n, a, &info)
 
 							//                       Compute the 1-norm condition number of A.
@@ -207,7 +207,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 
 						//                    Restore the matrix A.
-						goblas.Zcopy(npp, asav, 1, a, 1)
+						goblas.Zcopy(npp, asav.Off(0, 1), a.Off(0, 1))
 
 						//                    Form an exact solution and set the right hand side.
 						*srnamt = "ZLARHS"
@@ -220,7 +220,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//
 							//                       Compute the L*L' or U'*U factorization of the
 							//                       matrix and solve the system.
-							goblas.Zcopy(npp, a, 1, afac, 1)
+							goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 							golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 							*srnamt = "ZPPSV "
@@ -277,7 +277,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//                    Solve the system and compute the condition number
 						//                    and error bounds using ZPPSVX.
 						*srnamt = "ZPPSVX"
-						golapack.Zppsvx(fact, uplo, &n, nrhs, a, afac, &equed, s, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, rwork.Off(2*(*nrhs)+1-1), &info)
+						golapack.Zppsvx(fact, uplo, &n, nrhs, a, afac, &equed, s, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
 
 						//                    Check the error code from ZPPSVX.
 						if info != izero {
@@ -290,7 +290,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							if !prefac {
 								//                          Reconstruct matrix from factors and compute
 								//                          residual.
-								Zppt01(uplo, &n, a, afac, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+								Zppt01(uplo, &n, a, afac, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 								k1 = 1
 							} else {
 								k1 = 2
@@ -298,7 +298,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Compute residual of the computed solution.
 							golapack.Zlacpy('F', &n, nrhs, bsav.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-							Zppt02(uplo, &n, nrhs, asav, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+							Zppt02(uplo, &n, nrhs, asav, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							if nofact || (prefac && equed == 'N') {
@@ -309,7 +309,7 @@ func Zdrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Check the error bounds from iterative
 							//                       refinement.
-							Zppt05(uplo, &n, nrhs, asav, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+							Zppt05(uplo, &n, nrhs, asav, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 						} else {
 							k1 = 6
 						}

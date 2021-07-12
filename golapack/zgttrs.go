@@ -21,7 +21,7 @@ func Zgttrs(trans byte, n, nrhs *int, dl, d, du, du2 *mat.CVector, ipiv *[]int, 
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(*n, 1) {
+	} else if (*ldb) < max(*n, 1) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -47,14 +47,14 @@ func Zgttrs(trans byte, n, nrhs *int, dl, d, du, du2 *mat.CVector, ipiv *[]int, 
 	if (*nrhs) == 1 {
 		nb = 1
 	} else {
-		nb = maxint(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGTTRS"), []byte{trans}, n, nrhs, toPtr(-1), toPtr(-1)))
+		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGTTRS"), []byte{trans}, n, nrhs, toPtr(-1), toPtr(-1)))
 	}
 
 	if nb >= (*nrhs) {
 		Zgtts2(&itrans, n, nrhs, dl, d, du, du2, ipiv, b, ldb)
 	} else {
 		for j = 1; j <= (*nrhs); j += nb {
-			jb = minint((*nrhs)-j+1, nb)
+			jb = min((*nrhs)-j+1, nb)
 			Zgtts2(&itrans, n, &jb, dl, d, du, du2, ipiv, b.Off(0, j-1), ldb)
 		}
 	}

@@ -82,6 +82,21 @@ func genIter(a, b, inc int) []int {
 	return iter
 }
 
+func genIter2(n, inc int) []int {
+	iter := make([]int, 0)
+
+	if inc > 0 {
+		for i := 0; i < n; i++ {
+			iter = append(iter, i*inc)
+		}
+	} else {
+		for i := 0; i < n; i++ {
+			iter = append(iter, (-n+1+i)*inc)
+		}
+	}
+	return iter
+}
+
 // blocks returns the number of divisions of the dimension length with the given
 // block size.
 func blocks(dim int, bsize ...int) int {

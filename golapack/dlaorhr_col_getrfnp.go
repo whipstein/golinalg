@@ -61,7 +61,7 @@ func DlaorhrColGetrfnp(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info *
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -70,29 +70,29 @@ func DlaorhrColGetrfnp(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info *
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
 	//     Determine the block size for this environment.
 	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DLAORHR_COL_GETRFNP"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-	if nb <= 1 || nb >= minint(*m, *n) {
+	if nb <= 1 || nb >= min(*m, *n) {
 		//        Use unblocked code.
 		DlaorhrColGetrfnp2(m, n, a, lda, d, info)
 	} else {
 		//        Use blocked code.
-		for j = 1; j <= minint(*m, *n); j += nb {
-			jb = minint(minint(*m, *n)-j+1, nb)
+		for j = 1; j <= min(*m, *n); j += nb {
+			jb = min(min(*m, *n)-j+1, nb)
 
 			//           Factor diagonal and subdiagonal blocks.
 			DlaorhrColGetrfnp2(toPtr((*m)-j+1), &jb, a.Off(j-1, j-1), lda, d.Off(j-1), &iinfo)
 
 			if j+jb <= (*n) {
 				//              Compute block row of U.
-				err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
+				err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					err = goblas.Dgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, one, a.Off(j+jb-1, j+jb-1), *lda)
+					err = goblas.Dgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), one, a.Off(j+jb-1, j+jb-1))
 				}
 			}
 		}

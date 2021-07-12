@@ -55,9 +55,9 @@ func Dsbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.Matrix, ldab *int, 
 				(*info) = -14
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -15
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -16
 			}
 		}
@@ -110,9 +110,9 @@ func Dsbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.Matrix, ldab *int, 
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
+		goblas.Dcopy(*n, work.Off(indd-1, 1), w.Off(0, 1))
 		indee = indwrk + 2*(*n)
-		goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
+		goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
 		if !wantz {
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
@@ -149,8 +149,8 @@ func Dsbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.Matrix, ldab *int, 
 		//        Apply transformation matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by DSTEIN.
 		for j = 1; j <= (*m); j++ {
-			goblas.Dcopy(*n, z.Vector(0, j-1), 1, work, 1)
-			err = goblas.Dgemv(NoTrans, *n, *n, one, q, *ldq, work, 1, zero, z.Vector(0, j-1), 1)
+			goblas.Dcopy(*n, z.Vector(0, j-1, 1), work.Off(0, 1))
+			err = goblas.Dgemv(NoTrans, *n, *n, one, q, work.Off(0, 1), zero, z.Vector(0, j-1, 1))
 		}
 	}
 
@@ -176,7 +176,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
+				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

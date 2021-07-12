@@ -37,7 +37,7 @@ func Dchklqt(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval 
 			n = (*nval)[j-1]
 
 			//        Do for each possible value of NB
-			minmn = minint(m, n)
+			minmn = min(m, n)
 			for k = 1; k <= (*nnb); k++ {
 				nb = (*nbval)[k-1]
 

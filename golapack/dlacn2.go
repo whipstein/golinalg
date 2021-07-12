@@ -50,10 +50,10 @@ label20:
 		//        ... QUIT
 		goto label150
 	}
-	(*est) = goblas.Dasum(*n, x, 1)
+	(*est) = goblas.Dasum(*n, x.Off(0, 1))
 
 	for i = 1; i <= (*n); i++ {
-		x.Set(i-1, signf64(one, x.Get(i-1)))
+		x.Set(i-1, math.Copysign(one, x.Get(i-1)))
 		(*isgn)[i-1] = int(math.Round(x.Get(i - 1)))
 	}
 	(*kase) = 2
@@ -64,7 +64,7 @@ label20:
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY TRANSPOSE(A)*X.
 label40:
 	;
-	(*isave)[1] = goblas.Idamax(*n, x, 1)
+	(*isave)[1] = goblas.Idamax(*n, x.Off(0, 1))
 	(*isave)[2] = 2
 
 	//     MAIN LOOP - ITERATIONS 2,3,...,ITMAX.
@@ -82,15 +82,15 @@ label50:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label70:
 	;
-	goblas.Dcopy(*n, x, 1, v, 1)
+	goblas.Dcopy(*n, x.Off(0, 1), v.Off(0, 1))
 	estold = (*est)
-	(*est) = goblas.Dasum(*n, v, 1)
+	(*est) = goblas.Dasum(*n, v.Off(0, 1))
 	for i = 1; i <= (*n); i++ {
-		if int(math.Round(signf64(one, x.Get(i-1)))) != (*isgn)[i-1] {
+		if int(math.Round(math.Copysign(one, x.Get(i-1)))) != (*isgn)[i-1] {
 			goto label90
 		}
 	}
-	//     REPEATED signf64 VECTOR DETECTED, HENCE ALGORITHM HAS CONVERGED.
+	//     REPEATED math.Copysign VECTOR DETECTED, HENCE ALGORITHM HAS CONVERGED.
 	goto label120
 
 label90:
@@ -101,7 +101,7 @@ label90:
 	}
 
 	for i = 1; i <= (*n); i++ {
-		x.Set(i-1, signf64(one, x.Get(i-1)))
+		x.Set(i-1, math.Copysign(one, x.Get(i-1)))
 		(*isgn)[i-1] = int(math.Round(x.Get(i - 1)))
 	}
 	(*kase) = 2
@@ -113,7 +113,7 @@ label90:
 label110:
 	;
 	jlast = (*isave)[1]
-	(*isave)[1] = goblas.Idamax(*n, x, 1)
+	(*isave)[1] = goblas.Idamax(*n, x.Off(0, 1))
 	if (x.Get(jlast-1) != math.Abs(x.Get((*isave)[1]-1))) && ((*isave)[2] < itmax) {
 		(*isave)[2] = (*isave)[2] + 1
 		goto label50
@@ -135,9 +135,9 @@ label120:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label140:
 	;
-	temp = two * (goblas.Dasum(*n, x, 1) / float64(3*(*n)))
+	temp = two * (goblas.Dasum(*n, x.Off(0, 1)) / float64(3*(*n)))
 	if temp > (*est) {
-		goblas.Dcopy(*n, x, 1, v, 1)
+		goblas.Dcopy(*n, x.Off(0, 1), v.Off(0, 1))
 		(*est) = temp
 	}
 

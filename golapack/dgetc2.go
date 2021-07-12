@@ -61,18 +61,18 @@ func Dgetc2(n *int, a *mat.Matrix, lda *int, ipiv, jpiv *[]int, info *int) {
 			}
 		}
 		if i == 1 {
-			smin = maxf64(eps*xmax, smlnum)
+			smin = math.Max(eps*xmax, smlnum)
 		}
 
 		//        Swap rows
 		if ipv != i {
-			goblas.Dswap(*n, a.Vector(ipv-1, 0), *lda, a.Vector(i-1, 0), *lda)
+			goblas.Dswap(*n, a.Vector(ipv-1, 0), a.Vector(i-1, 0))
 		}
 		(*ipiv)[i-1] = ipv
 
 		//        Swap columns
 		if jpv != i {
-			goblas.Dswap(*n, a.Vector(0, jpv-1), 1, a.Vector(0, i-1), 1)
+			goblas.Dswap(*n, a.Vector(0, jpv-1, 1), a.Vector(0, i-1, 1))
 		}
 		(*jpiv)[i-1] = jpv
 
@@ -84,7 +84,7 @@ func Dgetc2(n *int, a *mat.Matrix, lda *int, ipiv, jpiv *[]int, info *int) {
 		for j = i + 1; j <= (*n); j++ {
 			a.Set(j-1, i-1, a.Get(j-1, i-1)/a.Get(i-1, i-1))
 		}
-		err = goblas.Dger((*n)-i, (*n)-i, -one, a.Vector(i+1-1, i-1), 1, a.Vector(i-1, i+1-1), *lda, a.Off(i+1-1, i+1-1), *lda)
+		err = goblas.Dger((*n)-i, (*n)-i, -one, a.Vector(i, i-1, 1), a.Vector(i-1, i, *lda), a.Off(i, i))
 	}
 
 	if math.Abs(a.Get((*n)-1, (*n)-1)) < smin {

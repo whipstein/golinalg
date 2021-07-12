@@ -37,24 +37,14 @@ var cvf = mat.CVectorFactory()
 var mf = mat.MatrixFactory()
 var vf = mat.VectorFactory()
 
-func absint(a int) int {
+func abs(a int) int {
 	if a < 0 {
 		return -a
 	}
 	return a
 }
 
-func maxf64(a ...float64) float64 {
-	maxval := a[0]
-	for _, val := range a {
-		if val > maxval {
-			maxval = val
-		}
-	}
-	return maxval
-}
-
-func maxint(a ...int) int {
+func max(a ...int) int {
 	maxval := a[0]
 	for _, val := range a {
 		if val > maxval {
@@ -87,17 +77,7 @@ func maxlocf64(a ...float64) int {
 	return maxloc + 1
 }
 
-func minf64(a ...float64) float64 {
-	minval := a[0]
-	for _, val := range a {
-		if val < minval {
-			minval = val
-		}
-	}
-	return minval
-}
-
-func minint(a ...int) int {
+func min(a ...int) int {
 	minval := a[0]
 	for _, val := range a {
 		if val < minval {

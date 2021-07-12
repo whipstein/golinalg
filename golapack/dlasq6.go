@@ -1,6 +1,10 @@
 package golapack
 
-import "github.com/whipstein/golinalg/mat"
+import (
+	"math"
+
+	"github.com/whipstein/golinalg/mat"
+)
 
 // Dlasq6 computes one dqd (shift equal to zero) transform in
 // ping-pong form, with protection against underflow and overflow.
@@ -28,16 +32,16 @@ func Dlasq6(i0, n0 *int, z *mat.Vector, pp *int, dmin, dmin1, dmin2, dn, dnm1, d
 				d = z.Get(j4 + 1 - 1)
 				(*dmin) = d
 				emin = zero
-			} else if safmin*z.Get(j4+1-1) < z.Get(j4-2-1) && safmin*z.Get(j4-2-1) < z.Get(j4+1-1) {
-				temp = z.Get(j4+1-1) / z.Get(j4-2-1)
+			} else if safmin*z.Get(j4) < z.Get(j4-2-1) && safmin*z.Get(j4-2-1) < z.Get(j4) {
+				temp = z.Get(j4) / z.Get(j4-2-1)
 				z.Set(j4-1, z.Get(j4-1-1)*temp)
 				d = d * temp
 			} else {
-				z.Set(j4-1, z.Get(j4+1-1)*(z.Get(j4-1-1)/z.Get(j4-2-1)))
-				d = z.Get(j4+1-1) * (d / z.Get(j4-2-1))
+				z.Set(j4-1, z.Get(j4)*(z.Get(j4-1-1)/z.Get(j4-2-1)))
+				d = z.Get(j4) * (d / z.Get(j4-2-1))
 			}
-			(*dmin) = minf64(*dmin, d)
-			emin = minf64(emin, z.Get(j4-1))
+			(*dmin) = math.Min(*dmin, d)
+			emin = math.Min(emin, z.Get(j4-1))
 		}
 	} else {
 		for j4 = 4 * (*i0); j4 <= 4*((*n0)-3); j4 += 4 {
@@ -55,8 +59,8 @@ func Dlasq6(i0, n0 *int, z *mat.Vector, pp *int, dmin, dmin1, dmin2, dn, dnm1, d
 				z.Set(j4-1-1, z.Get(j4+2-1)*(z.Get(j4-1)/z.Get(j4-3-1)))
 				d = z.Get(j4+2-1) * (d / z.Get(j4-3-1))
 			}
-			(*dmin) = minf64(*dmin, d)
-			emin = minf64(emin, z.Get(j4-1-1))
+			(*dmin) = math.Min(*dmin, d)
+			emin = math.Min(emin, z.Get(j4-1-1))
 		}
 	}
 
@@ -79,7 +83,7 @@ func Dlasq6(i0, n0 *int, z *mat.Vector, pp *int, dmin, dmin1, dmin2, dn, dnm1, d
 		z.Set(j4-1, z.Get(j4p2+2-1)*(z.Get(j4p2-1)/z.Get(j4-2-1)))
 		(*dnm1) = z.Get(j4p2+2-1) * ((*dnm2) / z.Get(j4-2-1))
 	}
-	(*dmin) = minf64(*dmin, *dnm1)
+	(*dmin) = math.Min(*dmin, *dnm1)
 
 	(*dmin1) = (*dmin)
 	j4 = j4 + 4
@@ -98,7 +102,7 @@ func Dlasq6(i0, n0 *int, z *mat.Vector, pp *int, dmin, dmin1, dmin2, dn, dnm1, d
 		z.Set(j4-1, z.Get(j4p2+2-1)*(z.Get(j4p2-1)/z.Get(j4-2-1)))
 		(*dn) = z.Get(j4p2+2-1) * ((*dnm1) / z.Get(j4-2-1))
 	}
-	(*dmin) = minf64(*dmin, *dn)
+	(*dmin) = math.Min(*dmin, *dn)
 
 	z.Set(j4+2-1, (*dn))
 	z.Set(4*(*n0)-(*pp)-1, emin)

@@ -57,7 +57,7 @@ func Dckgsv(nm *int, mval *[]int, pval *[]int, nval *[]int, nmats *int, iseed *[
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKGSV   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label20
 			}
 
@@ -65,7 +65,7 @@ func Dckgsv(nm *int, mval *[]int, pval *[]int, nval *[]int, nmats *int, iseed *[
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKGSV   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label20
 			}
 

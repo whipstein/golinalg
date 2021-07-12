@@ -46,11 +46,11 @@ func Zlaed7(n, cutpnt, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.C
 	//     ELSE IF( N.LT.0 ) THEN
 	if (*n) < 0 {
 		(*info) = -1
-	} else if minint(int(1), *n) > (*cutpnt) || (*n) < (*cutpnt) {
+	} else if min(int(1), *n) > (*cutpnt) || (*n) < (*cutpnt) {
 		(*info) = -2
 	} else if (*qsiz) < (*n) {
 		(*info) = -3
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -78,9 +78,9 @@ func Zlaed7(n, cutpnt, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.C
 
 	//     Form the z-vector which consists of the last row of Q_1 and the
 	//     first row of Q_2.
-	ptr = 1 + powint(2, *tlvls)
+	ptr = 1 + pow(2, *tlvls)
 	for i = 1; i <= (*curlvl)-1; i++ {
-		ptr = ptr + powint(2, (*tlvls)-i)
+		ptr = ptr + pow(2, (*tlvls)-i)
 	}
 	curr = ptr + (*curpbm)
 	Dlaeda(n, tlvls, curlvl, curpbm, prmptr, perm, givptr, givcol, givnum, qstore, qptr, rwork.Off(iz-1), rwork.Off(iz+(*n)-1), info)
@@ -95,15 +95,15 @@ func Zlaed7(n, cutpnt, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.C
 	}
 
 	//     Sort and Deflate eigenvalues.
-	Zlaed8(&k, n, qsiz, q, ldq, d, rho, cutpnt, rwork.Off(iz-1), rwork.Off(idlmda-1), work.CMatrix(*qsiz, opts), qsiz, rwork.Off(iw-1), toSlice(iwork, indxp-1), toSlice(iwork, indx-1), indxq, toSlice(perm, (*prmptr)[curr-1]-1), &(*givptr)[curr+1-1], toSlice(givcol, 0+((*givptr)[curr-1]-1)*2), givnum.Off(0, (*givptr)[curr-1]-1), info)
-	(*prmptr)[curr+1-1] = (*prmptr)[curr-1] + (*n)
-	(*givptr)[curr+1-1] = (*givptr)[curr+1-1] + (*givptr)[curr-1]
+	Zlaed8(&k, n, qsiz, q, ldq, d, rho, cutpnt, rwork.Off(iz-1), rwork.Off(idlmda-1), work.CMatrix(*qsiz, opts), qsiz, rwork.Off(iw-1), toSlice(iwork, indxp-1), toSlice(iwork, indx-1), indxq, toSlice(perm, (*prmptr)[curr-1]-1), &(*givptr)[curr], toSlice(givcol, 0+((*givptr)[curr-1]-1)*2), givnum.Off(0, (*givptr)[curr-1]-1), info)
+	(*prmptr)[curr] = (*prmptr)[curr-1] + (*n)
+	(*givptr)[curr] = (*givptr)[curr] + (*givptr)[curr-1]
 
 	//     Solve Secular Equation.
 	if k != 0 {
 		Dlaed9(&k, func() *int { y := 1; return &y }(), &k, n, d, rwork.MatrixOff(iq-1, k, opts), &k, rho, rwork.Off(idlmda-1), rwork.Off(iw-1), qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), &k, info)
 		Zlacrm(qsiz, &k, work.CMatrix(*qsiz, opts), qsiz, qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), &k, q, ldq, rwork.Off(iq-1))
-		(*qptr)[curr+1-1] = (*qptr)[curr-1] + powint(k, 2)
+		(*qptr)[curr] = (*qptr)[curr-1] + pow(k, 2)
 		if (*info) != 0 {
 			return
 		}
@@ -113,7 +113,7 @@ func Zlaed7(n, cutpnt, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.C
 		n2 = (*n) - k
 		Dlamrg(&n1, &n2, d, func() *int { y := 1; return &y }(), toPtr(-1), indxq)
 	} else {
-		(*qptr)[curr+1-1] = (*qptr)[curr-1]
+		(*qptr)[curr] = (*qptr)[curr-1]
 		for i = 1; i <= (*n); i++ {
 			(*indxq)[i-1] = i
 		}

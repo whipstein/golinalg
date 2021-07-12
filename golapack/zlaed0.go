@@ -23,15 +23,15 @@ func Zlaed0(qsiz, n *int, d, e *mat.Vector, q *mat.CMatrix, ldq *int, qstore *ma
 
 	//     IF( ICOMPQ .LT. 0 .OR. ICOMPQ .GT. 2 ) THEN
 	//        INFO = -1
-	//     ELSE IF( ( ICOMPQ .EQ. 1 ) .AND. ( QSIZ .LT. maxint( 0, N ) ) )
+	//     ELSE IF( ( ICOMPQ .EQ. 1 ) .AND. ( QSIZ .LT. max( 0, N ) ) )
 	//    $        THEN
-	if (*qsiz) < maxint(0, *n) {
+	if (*qsiz) < max(0, *n) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldqs) < maxint(1, *n) {
+	} else if (*ldqs) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -82,10 +82,10 @@ label10:
 	//     routine
 	temp = math.Log(float64(*n)) / math.Log(two)
 	lgn = int(temp)
-	if powint(2, lgn) < (*n) {
+	if pow(2, lgn) < (*n) {
 		lgn = lgn + 1
 	}
-	if powint(2, lgn) < (*n) {
+	if pow(2, lgn) < (*n) {
 		lgn = lgn + 1
 	}
 	iprmpt = indxq + (*n) + 1
@@ -96,7 +96,7 @@ label10:
 
 	igivnm = 1
 	iq = igivnm + 2*(*n)*lgn
-	iwrem = iq + powint(*n, 2) + 1
+	iwrem = iq + pow(*n, 2) + 1
 	//     Initialize pointers
 	for i = 0; i <= subpbs; i++ {
 		(*iwork)[iprmpt+i-1] = 1
@@ -113,19 +113,19 @@ label10:
 			matsiz = (*iwork)[0]
 		} else {
 			submat = (*iwork)[i-1] + 1
-			matsiz = (*iwork)[i+1-1] - (*iwork)[i-1]
+			matsiz = (*iwork)[i] - (*iwork)[i-1]
 		}
 		ll = iq - 1 + (*iwork)[iqptr+curr-1]
 		Dsteqr('I', &matsiz, d.Off(submat-1), e.Off(submat-1), rwork.MatrixOff(ll-1, matsiz, opts), &matsiz, rwork, info)
 		Zlacrm(qsiz, &matsiz, q.Off(0, submat-1), ldq, rwork.MatrixOff(ll-1, matsiz, opts), &matsiz, qstore.Off(0, submat-1), ldqs, rwork.Off(iwrem-1))
-		(*iwork)[iqptr+curr+1-1] = (*iwork)[iqptr+curr-1] + powint(matsiz, 2)
+		(*iwork)[iqptr+curr] = (*iwork)[iqptr+curr-1] + pow(matsiz, 2)
 		curr = curr + 1
 		if (*info) > 0 {
 			(*info) = submat*((*n)+1) + submat + matsiz - 1
 			return
 		}
 		k = 1
-		for j = submat; j <= (*iwork)[i+1-1]; j++ {
+		for j = submat; j <= (*iwork)[i]; j++ {
 			(*iwork)[indxq+j-1] = k
 			k = k + 1
 		}
@@ -159,12 +159,12 @@ label80:
 			//     was reduced to tridiagonal form) are desired.
 			//
 			//     I am free to use Q as a valuable working space until Loop 150.
-			Zlaed7(&matsiz, &msd2, qsiz, &tlvls, &curlvl, &curprb, d.Off(submat-1), qstore.Off(0, submat-1), ldqs, e.GetPtr(submat+msd2-1-1), toSlice(iwork, indxq+submat-1), rwork.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), rwork.MatrixOff(igivnm-1, 2, opts), q.CVector(0, submat-1), rwork.Off(iwrem-1), toSlice(iwork, subpbs+1-1), info)
+			Zlaed7(&matsiz, &msd2, qsiz, &tlvls, &curlvl, &curprb, d.Off(submat-1), qstore.Off(0, submat-1), ldqs, e.GetPtr(submat+msd2-1-1), toSlice(iwork, indxq+submat-1), rwork.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), rwork.MatrixOff(igivnm-1, 2, opts), q.CVector(0, submat-1), rwork.Off(iwrem-1), toSlice(iwork, subpbs), info)
 			if (*info) > 0 {
 				(*info) = submat*((*n)+1) + submat + matsiz - 1
 				return
 			}
-			(*iwork)[i/2+1-1] = (*iwork)[i+2-1]
+			(*iwork)[i/2] = (*iwork)[i+2-1]
 		}
 		subpbs = subpbs / 2
 		curlvl = curlvl + 1
@@ -178,7 +178,7 @@ label80:
 	for i = 1; i <= (*n); i++ {
 		j = (*iwork)[indxq+i-1]
 		rwork.Set(i-1, d.Get(j-1))
-		goblas.Zcopy(*qsiz, qstore.CVector(0, j-1), 1, q.CVector(0, i-1), 1)
+		goblas.Zcopy(*qsiz, qstore.CVector(0, j-1, 1), q.CVector(0, i-1, 1))
 	}
-	goblas.Dcopy(*n, rwork, 1, d, 1)
+	goblas.Dcopy(*n, rwork.Off(0, 1), d.Off(0, 1))
 }

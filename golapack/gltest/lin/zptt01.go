@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -30,7 +32,7 @@ func Zptt01(n *int, d *mat.Vector, e *mat.CVector, df *mat.Vector, ef, work *mat
 	for i = 1; i <= (*n)-1; i++ {
 		de = df.GetCmplx(i-1) * ef.Get(i-1)
 		work.Set((*n)+i-1, de-e.Get(i-1))
-		work.Set(1+i-1, de*ef.GetConj(i-1)+df.GetCmplx(i+1-1)-d.GetCmplx(i+1-1))
+		work.Set(1+i-1, de*ef.GetConj(i-1)+df.GetCmplx(i)-d.GetCmplx(i))
 	}
 
 	//     Compute the 1-norms of the tridiagonal matrices A and WORK.
@@ -38,11 +40,11 @@ func Zptt01(n *int, d *mat.Vector, e *mat.CVector, df *mat.Vector, ef, work *mat
 		anorm = d.Get(0)
 		(*resid) = work.GetMag(0)
 	} else {
-		anorm = maxf64(d.Get(0)+e.GetMag(0), d.Get((*n)-1)+e.GetMag((*n)-1-1))
-		(*resid) = maxf64(work.GetMag(0)+work.GetMag((*n)+1-1), work.GetMag((*n)-1)+work.GetMag(2*(*n)-1-1))
+		anorm = math.Max(d.Get(0)+e.GetMag(0), d.Get((*n)-1)+e.GetMag((*n)-1-1))
+		(*resid) = math.Max(work.GetMag(0)+work.GetMag((*n)), work.GetMag((*n)-1)+work.GetMag(2*(*n)-1-1))
 		for i = 2; i <= (*n)-1; i++ {
-			anorm = maxf64(anorm, d.Get(i-1)+e.GetMag(i-1)+e.GetMag(i-1-1))
-			(*resid) = maxf64(*resid, work.GetMag(i-1)+work.GetMag((*n)+i-1-1)+work.GetMag((*n)+i-1))
+			anorm = math.Max(anorm, d.Get(i-1)+e.GetMag(i-1)+e.GetMag(i-1-1))
+			(*resid) = math.Max(*resid, work.GetMag(i-1)+work.GetMag((*n)+i-1-1)+work.GetMag((*n)+i-1))
 		}
 	}
 

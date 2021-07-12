@@ -53,7 +53,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		xtype = 'N'
 		nimat = ntype1
 		nimat2 = ntypes
@@ -62,14 +62,14 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			nimat2 = ntype1 + 1
 		}
 
-		nk = minint(n+1, int(4))
+		nk = min(n+1, int(4))
 		for ik = 1; ik <= nk; ik++ {
 			//           Do for KD = 0, N, (3N-1)/4, and (N+1)/4. This order makes
 			//           it easier to skip redundant values for small values of N.
 			if ik == 1 {
 				kd = 0
 			} else if ik == 2 {
-				kd = maxint(n, 0)
+				kd = max(n, 0)
 			} else if ik == 3 {
 				kd = (3*n - 1) / 4
 			} else if ik == 4 {
@@ -105,11 +105,11 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					golapack.Zlaset('F', &n, &n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), ainv.CMatrix(lda, opts), &lda)
 					if uplo == 'U' {
 						for j = 1; j <= n; j++ {
-							err = goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), j, kd, ab.CMatrix(ldab, opts), ldab, ainv.Off((j-1)*lda+1-1), 1)
+							err = goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), j, kd, ab.CMatrix(ldab, opts), ainv.Off((j-1)*lda, 1))
 						}
 					} else {
 						for j = 1; j <= n; j++ {
-							err = goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), n-j+1, kd, ab.CMatrixOff((j-1)*ldab+1-1, ldab, opts), ldab, ainv.Off((j-1)*lda+j-1), 1)
+							err = goblas.Ztbsv(mat.UploByte(uplo), NoTrans, mat.DiagByte(diag), n-j+1, kd, ab.CMatrixOff((j-1)*ldab, ldab, opts), ainv.Off((j-1)*lda+j-1, 1))
 						}
 					}
 
@@ -172,7 +172,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 							//                    Use iterative refinement to improve the solution
 							//                    and compute error bounds.
 							*srnamt = "ZTBRFS"
-							golapack.Ztbrfs(uplo, trans, diag, &n, &kd, &nrhs, ab.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+							golapack.Ztbrfs(uplo, trans, diag, &n, &kd, &nrhs, ab.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 							//                    Check error code from ZTBRFS.
 							if info != 0 {
@@ -181,7 +181,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 							}
 
 							Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
-							Ztbt05(uplo, trans, diag, &n, &kd, &nrhs, ab.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(3))
+							Ztbt05(uplo, trans, diag, &n, &kd, &nrhs, ab.CMatrix(ldab, opts), &ldab, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(3))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.
@@ -254,7 +254,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						//+    TEST 7
 						//                    Solve the system op(A)*x = b
 						*srnamt = "ZLATBS"
-						goblas.Zcopy(n, x, 1, b, 1)
+						goblas.Zcopy(n, x.Off(0, 1), b.Off(0, 1))
 						golapack.Zlatbs(uplo, trans, diag, 'N', &n, &kd, ab.CMatrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from ZLATBS.
@@ -267,7 +267,7 @@ func Zchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 						//+    TEST 8
 						//                    Solve op(A)*x = b again with NORMIN = 'Y'.
-						goblas.Zcopy(n, x, 1, b, 1)
+						goblas.Zcopy(n, x.Off(0, 1), b.Off(0, 1))
 						golapack.Zlatbs(uplo, trans, diag, 'Y', &n, &kd, ab.CMatrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from ZLATBS.

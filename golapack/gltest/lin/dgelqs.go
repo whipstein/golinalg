@@ -28,9 +28,9 @@ func Dgelqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	} else if (*lwork) < 1 || (*lwork) < (*nrhs) && (*m) > 0 && (*n) > 0 {
 		(*info) = -10
@@ -46,11 +46,11 @@ func Dgelqs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 	}
 
 	//     Solve L*X = B(1:m,:)
-	err = goblas.Dtrsm(Left, Lower, NoTrans, NonUnit, *m, *nrhs, one, a, *lda, b, *ldb)
+	err = goblas.Dtrsm(Left, Lower, NoTrans, NonUnit, *m, *nrhs, one, a, b)
 
 	//     Set B(m+1:n,:) to zero
 	if (*m) < (*n) {
-		golapack.Dlaset('F', toPtr((*n)-(*m)), nrhs, &zero, &zero, b.Off((*m)+1-1, 0), ldb)
+		golapack.Dlaset('F', toPtr((*n)-(*m)), nrhs, &zero, &zero, b.Off((*m), 0), ldb)
 	}
 
 	//     B := Q' * B

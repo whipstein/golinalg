@@ -124,10 +124,10 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		npvts = (*n)
 	} else if pivtng == 'B' {
 		ipvtng = 3
-		npvts = minint(*n, *m)
+		npvts = min(*n, *m)
 	} else if pivtng == 'F' {
 		ipvtng = 3
-		npvts = minint(*n, *m)
+		npvts = min(*n, *m)
 	} else {
 		ipvtng = -1
 	}
@@ -171,9 +171,9 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	}
 
 	//     Set certain internal parameters
-	mnmin = minint(*m, *n)
-	kll = minint(*kl, (*m)-1)
-	kuu = minint(*ku, (*n)-1)
+	mnmin = min(*m, *n)
+	kll = min(*kl, (*m)-1)
+	kuu = min(*ku, (*n)-1)
 
 	//     If inv(DL) is used, check to see if DL has a zero entry.
 	dzero = false
@@ -236,7 +236,7 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		(*info) = -22
 	} else if ipack == -1 || ((ipack == 1 || ipack == 2 || ipack == 5 || ipack == 6) && isym == 1) || (ipack == 3 && isym == 1 && ((*kl) != 0 || (*m) != (*n))) || (ipack == 4 && isym == 1 && ((*ku) != 0 || (*m) != (*n))) {
 		(*info) = -24
-	} else if ((ipack == 0 || ipack == 1 || ipack == 2) && (*lda) < maxint(1, *m)) || ((ipack == 3 || ipack == 4) && (*lda) < 1) || ((ipack == 5 || ipack == 6) && (*lda) < kuu+1) || (ipack == 7 && (*lda) < kll+kuu+1) {
+	} else if ((ipack == 0 || ipack == 1 || ipack == 2) && (*lda) < max(1, *m)) || ((ipack == 3 || ipack == 4) && (*lda) < 1) || ((ipack == 5 || ipack == 6) && (*lda) < kuu+1) || (ipack == 7 && (*lda) < kll+kuu+1) {
 		(*info) = -26
 	}
 
@@ -253,7 +253,7 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 
 	//     Initialize random number generator
 	for i = 1; i <= 4; i++ {
-		(*iseed)[i-1] = absint((*iseed)[i-1]) % 4096
+		(*iseed)[i-1] = abs((*iseed)[i-1]) % 4096
 	}
 
 	(*iseed)[3] = 2*((*iseed)[3]/2) + 1
@@ -270,7 +270,7 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		//        Scale by DMAX
 		temp = math.Abs(d.Get(0))
 		for i = 2; i <= mnmin; i++ {
-			temp = maxf64(temp, math.Abs(d.Get(i-1)))
+			temp = math.Max(temp, math.Abs(d.Get(i-1)))
 		}
 		if temp == zero && (*dmax) != zero {
 			(*info) = 2
@@ -357,8 +357,8 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			for j = 1; j <= (*n); j++ {
 				for i = 1; i <= j; i++ {
 					temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					a.Set(mnsub-1, mxsub-1, temp)
 					if mnsub != mxsub {
 						a.Set(mxsub-1, mnsub-1, zero)
@@ -371,8 +371,8 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			for j = 1; j <= (*n); j++ {
 				for i = 1; i <= j; i++ {
 					temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					a.Set(mxsub-1, mnsub-1, temp)
 					if mnsub != mxsub {
 						a.Set(mnsub-1, mxsub-1, zero)
@@ -388,8 +388,8 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 
 					//                 Compute K = location of (ISUB,JSUB) entry in packed
 					//                 array
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					k = mxsub*(mxsub-1)/2 + mnsub
 
 					//                 Convert K to (IISUB,JJSUB) location
@@ -407,8 +407,8 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
 
 					//                 Compute K = location of (I,J) entry in packed array
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
 					if mnsub == 1 {
 						k = mxsub
 					} else {
@@ -428,12 +428,12 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
 					if i < 1 {
-						a.Set(j-i+1-1, i+(*n)-1, zero)
+						a.Set(j-i, i+(*n)-1, zero)
 					} else {
 						temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-						mnsub = minint(isub, jsub)
-						mxsub = maxint(isub, jsub)
-						a.Set(mxsub-mnsub+1-1, mnsub-1, temp)
+						mnsub = min(isub, jsub)
+						mxsub = max(isub, jsub)
+						a.Set(mxsub-mnsub, mnsub-1, temp)
 					}
 				}
 			}
@@ -443,9 +443,9 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
 					temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-					mnsub = minint(isub, jsub)
-					mxsub = maxint(isub, jsub)
-					a.Set(mnsub-mxsub+kuu+1-1, mxsub-1, temp)
+					mnsub = min(isub, jsub)
+					mxsub = max(isub, jsub)
+					a.Set(mnsub-mxsub+kuu, mxsub-1, temp)
 				}
 			}
 
@@ -455,9 +455,9 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j; i++ {
 						temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-						mnsub = minint(isub, jsub)
-						mxsub = maxint(isub, jsub)
-						a.Set(mnsub-mxsub+kuu+1-1, mxsub-1, temp)
+						mnsub = min(isub, jsub)
+						mxsub = max(isub, jsub)
+						a.Set(mnsub-mxsub+kuu, mxsub-1, temp)
 						if i < 1 {
 							a.Set(j-i+1+kuu-1, i+(*n)-1, zero)
 						}
@@ -470,7 +470,7 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j+kll; i++ {
 						temp = Dlatm3(m, n, &i, &j, &isub, &jsub, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse)
-						a.Set(isub-jsub+kuu+1-1, jsub-1, temp)
+						a.Set(isub-jsub+kuu, jsub-1, temp)
 					}
 				}
 			}
@@ -571,9 +571,9 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
 					if i < 1 {
-						a.Set(j-i+1-1, i+(*n)-1, zero)
+						a.Set(j-i, i+(*n)-1, zero)
 					} else {
-						a.Set(j-i+1-1, i-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+						a.Set(j-i, i-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 					}
 				}
 			}
@@ -582,7 +582,7 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 
 			for j = 1; j <= (*n); j++ {
 				for i = j - kuu; i <= j; i++ {
-					a.Set(i-j+kuu+1-1, j-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+					a.Set(i-j+kuu, j-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 				}
 			}
 
@@ -591,19 +591,19 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			if isym == 0 {
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j; i++ {
-						a.Set(i-j+kuu+1-1, j-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+						a.Set(i-j+kuu, j-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 						if i < 1 {
 							a.Set(j-i+1+kuu-1, i+(*n)-1, zero)
 						}
 						if i >= 1 && i != j {
-							a.Set(j-i+1+kuu-1, i-1, a.Get(i-j+kuu+1-1, j-1))
+							a.Set(j-i+1+kuu-1, i-1, a.Get(i-j+kuu, j-1))
 						}
 					}
 				}
 			} else if isym == 1 {
 				for j = 1; j <= (*n); j++ {
 					for i = j - kuu; i <= j+kll; i++ {
-						a.Set(i-j+kuu+1-1, j-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
+						a.Set(i-j+kuu, j-1, Dlatm2(m, n, &i, &j, kl, ku, &idist, iseed, d, &igrade, dl, dr, &ipvtng, iwork, sparse))
 					}
 				}
 			}
@@ -642,19 +642,19 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//           Scale carefully to avoid over / underflow
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(*m, one/onorm, a.Vector(0, j-1), 1)
-					goblas.Dscal(*m, *anorm, a.Vector(0, j-1), 1)
+					goblas.Dscal(*m, one/onorm, a.Vector(0, j-1, 1))
+					goblas.Dscal(*m, *anorm, a.Vector(0, j-1, 1))
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Dscal((*n)*((*n)+1)/2, one/onorm, a.VectorIdx(0), 1)
-				goblas.Dscal((*n)*((*n)+1)/2, *anorm, a.VectorIdx(0), 1)
+				goblas.Dscal((*n)*((*n)+1)/2, one/onorm, a.VectorIdx(0, 1))
+				goblas.Dscal((*n)*((*n)+1)/2, *anorm, a.VectorIdx(0, 1))
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(kll+kuu+1, one/onorm, a.Vector(0, j-1), 1)
-					goblas.Dscal(kll+kuu+1, *anorm, a.Vector(0, j-1), 1)
+					goblas.Dscal(kll+kuu+1, one/onorm, a.Vector(0, j-1, 1))
+					goblas.Dscal(kll+kuu+1, *anorm, a.Vector(0, j-1, 1))
 				}
 
 			}
@@ -663,17 +663,17 @@ func Dlatmr(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//           Scale straightforwardly
 			if ipack <= 2 {
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(*m, (*anorm)/onorm, a.Vector(0, j-1), 1)
+					goblas.Dscal(*m, (*anorm)/onorm, a.Vector(0, j-1, 1))
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Dscal((*n)*((*n)+1)/2, (*anorm)/onorm, a.VectorIdx(0), 1)
+				goblas.Dscal((*n)*((*n)+1)/2, (*anorm)/onorm, a.VectorIdx(0, 1))
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= (*n); j++ {
-					goblas.Dscal(kll+kuu+1, (*anorm)/onorm, a.Vector(0, j-1), 1)
+					goblas.Dscal(kll+kuu+1, (*anorm)/onorm, a.Vector(0, j-1, 1))
 				}
 			}
 

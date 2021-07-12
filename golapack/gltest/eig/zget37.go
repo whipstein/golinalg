@@ -52,7 +52,7 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 	golapack.Dlabad(&smlnum, &bignum)
 
 	//     EPSIN = 2**(-24) = precision to which input data computed
-	eps = maxf64(eps, epsin)
+	eps = math.Max(eps, epsin)
 	rmax.Set(0, zero)
 	rmax.Set(1, zero)
 	rmax.Set(2, zero)
@@ -355,14 +355,14 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			golapack.Zlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Zdscal(n, vmul, t.CVector(0, i-1), 1)
+				goblas.Zdscal(n, vmul, t.CVector(0, i-1, 1))
 			}
 			if tnrm == zero {
 				vmul = one
 			}
 
 			//        Compute eigenvalues and eigenvectors
-			golapack.Zgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n+1-1), toPtr(lwork-n), &info)
+			golapack.Zgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
 			if info != 0 {
 				(*lmax)[0] = (*knt)
 				(*ninfo)[0] = (*ninfo)[0] + 1
@@ -398,7 +398,7 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 
 			//        Sort eigenvalues and condition numbers lexicographically
 			//        to compare with inputs
-			goblas.Zcopy(n, w, 1, wtmp, 1)
+			goblas.Zcopy(n, w.Off(0, 1), wtmp.Off(0, 1))
 			if isrt == 0 {
 				//           Sort by increasing real part
 				for i = 1; i <= n; i++ {
@@ -410,9 +410,9 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 					wsrt.Set(i-1, w.GetIm(i-1))
 				}
 			}
-			goblas.Dcopy(n, s, 1, stmp, 1)
-			goblas.Dcopy(n, sep, 1, septmp, 1)
-			goblas.Dscal(n, one/vmul, septmp, 1)
+			goblas.Dcopy(n, s.Off(0, 1), stmp.Off(0, 1))
+			goblas.Dcopy(n, sep.Off(0, 1), septmp.Off(0, 1))
+			goblas.Dscal(n, one/vmul, septmp.Off(0, 1))
 			for i = 1; i <= n-1; i++ {
 				kmin = i
 				vmin = wsrt.Get(i - 1)
@@ -437,7 +437,7 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 
 			//        Compare condition numbers for eigenvalues
 			//        taking their condition numbers into account
-			v = maxf64(two*float64(n)*eps*tnrm, smlnum)
+			v = math.Max(two*float64(n)*eps*tnrm, smlnum)
 			if tnrm == zero {
 				v = one
 			}
@@ -452,8 +452,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 				} else {
 					tolin = v / sepin.Get(i-1)
 				}
-				tol = maxf64(tol, smlnum/eps)
-				tolin = maxf64(tolin, smlnum/eps)
+				tol = math.Max(tol, smlnum/eps)
+				tolin = math.Max(tolin, smlnum/eps)
 				if eps*(sin.Get(i-1)-tolin) > stmp.Get(i-1)+tol {
 					vmax = one / eps
 				} else if sin.Get(i-1)-tolin > stmp.Get(i-1)+tol {
@@ -486,8 +486,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 				} else {
 					tolin = v / sin.Get(i-1)
 				}
-				tol = maxf64(tol, smlnum/eps)
-				tolin = maxf64(tolin, smlnum/eps)
+				tol = math.Max(tol, smlnum/eps)
+				tolin = math.Max(tolin, smlnum/eps)
 				if eps*(sepin.Get(i-1)-tolin) > septmp.Get(i-1)+tol {
 					vmax = one / eps
 				} else if sepin.Get(i-1)-tolin > septmp.Get(i-1)+tol {
@@ -558,8 +558,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			//        Compute eigenvalue condition numbers only and compare
 			vmax = zero
 			dum.Set(0, -one)
-			goblas.Dcopy(n, dum, 0, stmp, 1)
-			goblas.Dcopy(n, dum, 0, septmp, 1)
+			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('E', 'A', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -576,8 +576,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			}
 
 			//        Compute eigenvector condition numbers only and compare
-			goblas.Dcopy(n, dum, 0, stmp, 1)
-			goblas.Dcopy(n, dum, 0, septmp, 1)
+			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('V', 'A', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -597,8 +597,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			for i = 1; i <= n; i++ {
 				_select[i-1] = true
 			}
-			goblas.Dcopy(n, dum, 0, stmp, 1)
-			goblas.Dcopy(n, dum, 0, septmp, 1)
+			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('B', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -615,8 +615,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			}
 
 			//        Compute eigenvalue condition numbers using SELECT and compare
-			goblas.Dcopy(n, dum, 0, stmp, 1)
-			goblas.Dcopy(n, dum, 0, septmp, 1)
+			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('E', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -633,8 +633,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			}
 
 			//        Compute eigenvector condition numbers using SELECT and compare
-			goblas.Dcopy(n, dum, 0, stmp, 1)
-			goblas.Dcopy(n, dum, 0, septmp, 1)
+			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('V', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -665,20 +665,20 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 				icmp = 1
 				lcmp[0] = 2
 				_select[1] = true
-				goblas.Zcopy(n, re.CVector(0, 1), 1, re.CVector(0, 0), 1)
-				goblas.Zcopy(n, le.CVector(0, 1), 1, le.CVector(0, 0), 1)
+				goblas.Zcopy(n, re.CVector(0, 1, 1), re.CVector(0, 0, 1))
+				goblas.Zcopy(n, le.CVector(0, 1, 1), le.CVector(0, 0, 1))
 			}
 			if n > 3 {
 				icmp = 2
 				lcmp[1] = n - 1
 				_select[n-1-1] = true
-				goblas.Zcopy(n, re.CVector(0, n-1-1), 1, re.CVector(0, 1), 1)
-				goblas.Zcopy(n, le.CVector(0, n-1-1), 1, le.CVector(0, 1), 1)
+				goblas.Zcopy(n, re.CVector(0, n-1-1, 1), re.CVector(0, 1, 1))
+				goblas.Zcopy(n, le.CVector(0, n-1-1, 1), le.CVector(0, 1, 1))
 			}
 
 			//        Compute all selected condition numbers
-			goblas.Dcopy(icmp, dum, 0, stmp, 1)
-			goblas.Dcopy(icmp, dum, 0, septmp, 1)
+			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('B', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -696,8 +696,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			}
 
 			//        Compute selected eigenvalue condition numbers
-			goblas.Dcopy(icmp, dum, 0, stmp, 1)
-			goblas.Dcopy(icmp, dum, 0, septmp, 1)
+			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('E', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)
@@ -715,8 +715,8 @@ func Zget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			}
 
 			//        Compute selected eigenvector condition numbers
-			goblas.Dcopy(icmp, dum, 0, stmp, 1)
-			goblas.Dcopy(icmp, dum, 0, septmp, 1)
+			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
+			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
 			golapack.Ztrsna('V', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.CMatrix(n, opts), &n, rwork, &info)
 			if info != 0 {
 				(*lmax)[2] = (*knt)

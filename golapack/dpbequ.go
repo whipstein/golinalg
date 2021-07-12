@@ -61,8 +61,8 @@ func Dpbequ(uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, s *mat.Vector, sco
 	//     Find the minimum and maximum diagonal elements.
 	for i = 2; i <= (*n); i++ {
 		s.Set(i-1, ab.Get(j-1, i-1))
-		smin = minf64(smin, s.Get(i-1))
-		(*amax) = maxf64(*amax, s.Get(i-1))
+		smin = math.Min(smin, s.Get(i-1))
+		(*amax) = math.Max(*amax, s.Get(i-1))
 	}
 
 	if smin <= zero {

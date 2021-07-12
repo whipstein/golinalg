@@ -95,8 +95,8 @@ func Dlasd6(icompq, nl, nr, sqre *int, d, vf, vl *mat.Vector, alpha, beta *float
 	idxp = idxc + n
 
 	//     Scale.
-	orgnrm = maxf64(math.Abs(*alpha), math.Abs(*beta))
-	d.Set((*nl)+1-1, zero)
+	orgnrm = math.Max(math.Abs(*alpha), math.Abs(*beta))
+	d.Set((*nl), zero)
 	for i = 1; i <= n; i++ {
 		if math.Abs(d.Get(i-1)) > orgnrm {
 			orgnrm = math.Abs(d.Get(i - 1))
@@ -119,8 +119,8 @@ func Dlasd6(icompq, nl, nr, sqre *int, d, vf, vl *mat.Vector, alpha, beta *float
 
 	//     Save the poles if ICOMPQ = 1.
 	if (*icompq) == 1 {
-		goblas.Dcopy(*k, d, 1, poles.VectorIdx(0), 1)
-		goblas.Dcopy(*k, work.Off(isigma-1), 1, poles.Vector(0, 1), 1)
+		goblas.Dcopy(*k, d.Off(0, 1), poles.VectorIdx(0, 1))
+		goblas.Dcopy(*k, work.Off(isigma-1, 1), poles.Vector(0, 1, 1))
 	}
 
 	//     Unscale.

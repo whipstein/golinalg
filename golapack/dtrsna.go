@@ -43,7 +43,7 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -6
 	} else if (*ldvl) < 1 || (wants && (*ldvl) < (*n)) {
 		(*info) = -8
@@ -60,13 +60,13 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 					pair = false
 				} else {
 					if k < (*n) {
-						if t.Get(k+1-1, k-1) == zero {
+						if t.Get(k, k-1) == zero {
 							if _select[k-1] {
 								(*m) = (*m) + 1
 							}
 						} else {
 							pair = true
-							if _select[k-1] || _select[k+1-1] {
+							if _select[k-1] || _select[k] {
 								(*m) = (*m) + 2
 							}
 						}
@@ -127,7 +127,7 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 			goto label60
 		} else {
 			if k < (*n) {
-				pair = t.Get(k+1-1, k-1) != zero
+				pair = t.Get(k, k-1) != zero
 			}
 		}
 
@@ -135,7 +135,7 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 		//        eigenpair.
 		if somcon {
 			if pair {
-				if !_select[k-1] && !_select[k+1-1] {
+				if !_select[k-1] && !_select[k] {
 					goto label60
 				}
 			} else {
@@ -152,21 +152,21 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 			//           eigenvalue.
 			if !pair {
 				//              Real eigenvalue.
-				prod = goblas.Ddot(*n, vr.Vector(0, ks-1), 1, vl.Vector(0, ks-1), 1)
-				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)
-				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)
+				prod = goblas.Ddot(*n, vr.Vector(0, ks-1, 1), vl.Vector(0, ks-1, 1))
+				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1, 1))
+				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1, 1))
 				s.Set(ks-1, math.Abs(prod)/(rnrm*lnrm))
 			} else {
 				//              Complex eigenvalue.
-				prod1 = goblas.Ddot(*n, vr.Vector(0, ks-1), 1, vl.Vector(0, ks-1), 1)
-				prod1 = prod1 + goblas.Ddot(*n, vr.Vector(0, ks+1-1), 1, vl.Vector(0, ks+1-1), 1)
-				prod2 = goblas.Ddot(*n, vl.Vector(0, ks-1), 1, vr.Vector(0, ks+1-1), 1)
-				prod2 = prod2 - goblas.Ddot(*n, vl.Vector(0, ks+1-1), 1, vr.Vector(0, ks-1), 1)
-				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks+1-1), 1)))
-				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks+1-1), 1)))
+				prod1 = goblas.Ddot(*n, vr.Vector(0, ks-1, 1), vl.Vector(0, ks-1, 1))
+				prod1 = prod1 + goblas.Ddot(*n, vr.Vector(0, ks, 1), vl.Vector(0, ks, 1))
+				prod2 = goblas.Ddot(*n, vl.Vector(0, ks-1, 1), vr.Vector(0, ks, 1))
+				prod2 = prod2 - goblas.Ddot(*n, vl.Vector(0, ks, 1), vr.Vector(0, ks-1, 1))
+				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks, 1))))
+				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks, 1))))
 				cond = Dlapy2(&prod1, &prod2) / (rnrm * lnrm)
 				s.Set(ks-1, cond)
-				s.Set(ks+1-1, cond)
+				s.Set(ks, cond)
 			}
 		}
 
@@ -179,7 +179,7 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 			Dlacpy('F', n, n, t, ldt, work, ldwork)
 			ifst = k
 			ilst = 1
-			Dtrexc('N', n, work, ldwork, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, work.Vector(0, (*n)+1-1), &ierr)
+			Dtrexc('N', n, work, ldwork, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, work.Vector(0, (*n)), &ierr)
 
 			if ierr == 1 || ierr == 2 {
 				//              Could not swap because blocks not well separated
@@ -223,9 +223,9 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 					}
 					work.Set(1, 1, zero)
 
-					work.Set(0, (*n)+1-1, two*mu)
+					work.Set(0, (*n), two*mu)
 					for i = 2; i <= (*n)-1; i++ {
-						work.Set(i-1, (*n)+1-1, sn*work.Get(0, i+1-1))
+						work.Set(i-1, (*n), sn*work.Get(0, i))
 					}
 					n2 = 2
 					nn = 2 * ((*n) - 1)
@@ -245,7 +245,7 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 						} else {
 							//                       Complex eigenvalue: solve
 							//                       C**T*(p+iq) = scale*(c+id) in real arithmetic.
-							Dlaqtr(true, false, toPtr((*n)-1), work.Off(1, 1), ldwork, work.Vector(0, (*n)+1-1), &mu, &scale, work.Vector(0, (*n)+4-1), work.Vector(0, (*n)+6-1), &ierr)
+							Dlaqtr(true, false, toPtr((*n)-1), work.Off(1, 1), ldwork, work.Vector(0, (*n)), &mu, &scale, work.Vector(0, (*n)+4-1), work.Vector(0, (*n)+6-1), &ierr)
 						}
 					} else {
 						if n2 == 1 {
@@ -254,7 +254,7 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 						} else {
 							//                       Complex eigenvalue: solve
 							//                       C*(p+iq) = scale*(c+id) in real arithmetic.
-							Dlaqtr(false, false, toPtr((*n)-1), work.Off(1, 1), ldwork, work.Vector(0, (*n)+1-1), &mu, &scale, work.Vector(0, (*n)+4-1), work.Vector(0, (*n)+6-1), &ierr)
+							Dlaqtr(false, false, toPtr((*n)-1), work.Off(1, 1), ldwork, work.Vector(0, (*n)), &mu, &scale, work.Vector(0, (*n)+4-1), work.Vector(0, (*n)+6-1), &ierr)
 
 						}
 					}
@@ -263,9 +263,9 @@ func Dtrsna(job, howmny byte, _select []bool, n *int, t *mat.Matrix, ldt *int, v
 				}
 			}
 
-			sep.Set(ks-1, scale/maxf64(est, smlnum))
+			sep.Set(ks-1, scale/math.Max(est, smlnum))
 			if pair {
-				sep.Set(ks+1-1, sep.Get(ks-1))
+				sep.Set(ks, sep.Get(ks-1))
 			}
 		}
 

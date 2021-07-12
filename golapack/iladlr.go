@@ -19,10 +19,10 @@ func Iladlr(m, n *int, a *mat.Matrix, lda *int) (iladlrReturn int) {
 		iladlrReturn = 0
 		for j = 1; j <= (*n); j++ {
 			i = (*m)
-			for (a.Get(maxint(i, 1)-1, j-1) == zero) && (i >= 1) {
+			for (a.Get(max(i, 1)-1, j-1) == zero) && (i >= 1) {
 				i = i - 1
 			}
-			iladlrReturn = maxint(iladlrReturn, i)
+			iladlrReturn = max(iladlrReturn, i)
 		}
 	}
 	return

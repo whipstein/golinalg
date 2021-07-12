@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"math"
 	"math/cmplx"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -50,7 +51,7 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -6
 	} else if (*ldvl) < 1 || (wants && (*ldvl) < (*n)) {
 		(*info) = -8
@@ -104,9 +105,9 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			prod = goblas.Zdotc(*n, vr.CVector(0, ks-1), 1, vl.CVector(0, ks-1), 1)
-			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1), 1)
-			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1), 1)
+			prod = goblas.Zdotc(*n, vr.CVector(0, ks-1, 1), vl.CVector(0, ks-1, 1))
+			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1, 1))
+			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1, 1))
 			s.Set(ks-1, cmplx.Abs(prod)/(rnrm*lnrm))
 
 		}
@@ -133,7 +134,7 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 			normin = 'N'
 		label30:
 			;
-			Zlacn2(toPtr((*n)-1), work.CVector(0, (*n)+1-1), work.CVector(0, 0), &est, &kase, &isave)
+			Zlacn2(toPtr((*n)-1), work.CVector(0, (*n)), work.CVector(0, 0), &est, &kase, &isave)
 
 			if kase != 0 {
 				if kase == 1 {
@@ -147,7 +148,7 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 				if scale != one {
 					//                 Multiply by 1/SCALE if doing so will not cause
 					//                 overflow.
-					ix = goblas.Izamax((*n)-1, work.CVector(0, 0), 1)
+					ix = goblas.Izamax((*n)-1, work.CVector(0, 0, 1))
 					xnorm = cabs1(work.Get(ix-1, 0))
 					if scale < xnorm*smlnum || scale == zero {
 						goto label40
@@ -157,7 +158,7 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 				goto label30
 			}
 
-			sep.Set(ks-1, one/maxf64(est, smlnum))
+			sep.Set(ks-1, one/math.Max(est, smlnum))
 		}
 
 	label40:

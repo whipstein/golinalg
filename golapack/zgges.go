@@ -82,9 +82,9 @@ func Zgges(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool, 
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (*ldvsl) < 1 || (ilvsl && (*ldvsl) < (*n)) {
 		(*info) = -14
@@ -99,11 +99,11 @@ func Zgges(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool, 
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV.)
 	if (*info) == 0 {
-		lwkmin = maxint(1, 2*(*n))
-		lwkopt = maxint(1, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
-		lwkopt = maxint(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+		lwkmin = max(1, 2*(*n))
+		lwkopt = max(1, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
+		lwkopt = max(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 		if ilvsl {
-			lwkopt = maxint(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+			lwkopt = max(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 		}
 		work.SetRe(0, float64(lwkopt))
 
@@ -133,7 +133,7 @@ func Zgges(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool, 
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', n, n, a, lda, rwork)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
@@ -148,7 +148,7 @@ func Zgges(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool, 
 		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
 	}
 
-	//     Scale B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale B if max element outside range [SMLNUM,BIGNUM]
 	bnrm = Zlange('M', n, n, b, ldb, rwork)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
@@ -187,7 +187,7 @@ func Zgges(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool, 
 	if ilvsl {
 		Zlaset('F', n, n, &czero, &cone, vsl, ldvsl)
 		if irows > 1 {
-			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vsl.Off(ilo+1-1, ilo-1), ldvsl)
+			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vsl.Off(ilo, ilo-1), ldvsl)
 		}
 		Zungqr(&irows, &irows, &irows, vsl.Off(ilo-1, ilo-1), ldvsl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}

@@ -84,7 +84,7 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -93,7 +93,7 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 	if (*m) == 1 {
@@ -101,7 +101,7 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 		//        use unblocked code
 		//
 		//        Transfer the sign
-		d.Set(0, -signf64(one, a.Get(0, 0)))
+		d.Set(0, -math.Copysign(one, a.Get(0, 0)))
 
 		//        Construct the row of U
 		a.Set(0, 0, a.Get(0, 0)-d.Get(0))
@@ -111,7 +111,7 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 		//        use unblocked code
 		//
 		//        Transfer the sign
-		d.Set(0, -signf64(one, a.Get(0, 0)))
+		d.Set(0, -math.Copysign(one, a.Get(0, 0)))
 
 		//        Construct the row of U
 		a.Set(0, 0, a.Get(0, 0)-d.Get(0))
@@ -123,7 +123,7 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 
 		//        Construct the subdiagonal elements of L
 		if math.Abs(a.Get(0, 0)) >= sfmin {
-			goblas.Dscal((*m)-1, one/a.Get(0, 0), a.Vector(1, 0), 1)
+			goblas.Dscal((*m)-1, one/a.Get(0, 0), a.Vector(1, 0, 1))
 		} else {
 			for i = 2; i <= (*m); i++ {
 				a.Set(i-1, 0, a.Get(i-1, 0)/a.Get(0, 0))
@@ -132,24 +132,24 @@ func DlaorhrColGetrfnp2(m, n *int, a *mat.Matrix, lda *int, d *mat.Vector, info 
 
 	} else {
 		//        Divide the matrix B into four submatrices
-		n1 = minint(*m, *n) / 2
+		n1 = min(*m, *n) / 2
 		n2 = (*n) - n1
 
 		//        Factor B11, recursive call
 		DlaorhrColGetrfnp2(&n1, &n1, a, lda, d, &iinfo)
 
 		//        Solve for B21
-		err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, one, a, *lda, a.Off(n1+1-1, 0), *lda)
+		err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, one, a, a.Off(n1, 0))
 
 		//        Solve for B12
-		err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, *lda, a.Off(0, n1+1-1), *lda)
+		err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, a.Off(0, n1))
 
 		//        Update B22, i.e. compute the Schur complement
 		//        B22 := B22 - B21*B12
-		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1+1-1, 0), *lda, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
+		err = goblas.Dgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1))
 
 		//        Factor B22, recursive call
-		DlaorhrColGetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1+1-1, n1+1-1), lda, d.Off(n1+1-1), &iinfo)
+		DlaorhrColGetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1, n1), lda, d.Off(n1), &iinfo)
 
 	}
 }

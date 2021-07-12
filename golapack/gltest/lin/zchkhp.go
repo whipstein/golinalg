@@ -49,7 +49,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -131,7 +131,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.SetRe(ioff+i-1, zero)
 								}
@@ -140,7 +140,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						} else {
 							//                       Set the last IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.SetRe(ioff+i-1, zero)
 								}
@@ -161,7 +161,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*D*L' or U*D*U' factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Zcopy(npp, a, 1, afac, 1)
+				goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 				*srnamt = "ZHPTRF"
 				golapack.Zhptrf(uplo, &n, afac, iwork, &info)
 
@@ -200,7 +200,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
 				if !trfcon {
-					goblas.Zcopy(npp, afac, 1, ainv, 1)
+					goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 					*srnamt = "ZHPTRI"
 					golapack.Zhptri(uplo, &n, ainv, iwork, work, &info)
 
@@ -263,7 +263,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TESTS 5, 6, and 7
 					//              Use iterative refinement to improve the solution.
 					*srnamt = "ZHPRFS"
-					golapack.Zhprfs(uplo, &n, &nrhs, a, afac, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+					golapack.Zhprfs(uplo, &n, &nrhs, a, afac, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 					//
 					//              Check error code from ZHPRFS.
 					//
@@ -273,7 +273,7 @@ func Zchkhp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-					Zppt05(uplo, &n, &nrhs, a, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(5))
+					Zppt05(uplo, &n, &nrhs, a, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

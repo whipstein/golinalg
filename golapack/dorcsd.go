@@ -44,21 +44,21 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 		(*info) = -8
 	} else if (*q) < 0 || (*q) > (*m) {
 		(*info) = -9
-	} else if colmajor && (*ldx11) < maxint(1, *p) {
+	} else if colmajor && (*ldx11) < max(1, *p) {
 		(*info) = -11
-	} else if !colmajor && (*ldx11) < maxint(1, *q) {
+	} else if !colmajor && (*ldx11) < max(1, *q) {
 		(*info) = -11
-	} else if colmajor && (*ldx12) < maxint(1, *p) {
+	} else if colmajor && (*ldx12) < max(1, *p) {
 		(*info) = -13
-	} else if !colmajor && (*ldx12) < maxint(1, (*m)-(*q)) {
+	} else if !colmajor && (*ldx12) < max(1, (*m)-(*q)) {
 		(*info) = -13
-	} else if colmajor && (*ldx21) < maxint(1, (*m)-(*p)) {
+	} else if colmajor && (*ldx21) < max(1, (*m)-(*p)) {
 		(*info) = -15
-	} else if !colmajor && (*ldx21) < maxint(1, *q) {
+	} else if !colmajor && (*ldx21) < max(1, *q) {
 		(*info) = -15
-	} else if colmajor && (*ldx22) < maxint(1, (*m)-(*p)) {
+	} else if colmajor && (*ldx22) < max(1, (*m)-(*p)) {
 		(*info) = -17
-	} else if !colmajor && (*ldx22) < maxint(1, (*m)-(*q)) {
+	} else if !colmajor && (*ldx22) < max(1, (*m)-(*q)) {
 		(*info) = -17
 	} else if wantu1 && (*ldu1) < (*p) {
 		(*info) = -20
@@ -71,7 +71,7 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 	}
 
 	//     Work with transpose if convenient
-	if (*info) == 0 && minint(*p, (*m)-(*p)) < minint(*q, (*m)-(*q)) {
+	if (*info) == 0 && min(*p, (*m)-(*p)) < min(*q, (*m)-(*q)) {
 		if colmajor {
 			transt = 'T'
 		} else {
@@ -102,37 +102,37 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 	if (*info) == 0 {
 
 		iphi = 2
-		itaup1 = iphi + maxint(1, (*q)-1)
-		itaup2 = itaup1 + maxint(1, *p)
-		itauq1 = itaup2 + maxint(1, (*m)-(*p))
-		itauq2 = itauq1 + maxint(1, *q)
-		iorgqr = itauq2 + maxint(1, (*m)-(*q))
-		Dorgqr(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(maxint(1, (*m)-(*q))), u1.VectorIdx(0), work, toPtr(-1), &childinfo)
+		itaup1 = iphi + max(1, (*q)-1)
+		itaup2 = itaup1 + max(1, *p)
+		itauq1 = itaup2 + max(1, (*m)-(*p))
+		itauq2 = itauq1 + max(1, *q)
+		iorgqr = itauq2 + max(1, (*m)-(*q))
+		Dorgqr(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(max(1, (*m)-(*q))), u1.VectorIdx(0), work, toPtr(-1), &childinfo)
 		lorgqrworkopt = int(work.Get(0))
-		lorgqrworkmin = maxint(1, (*m)-(*q))
-		iorglq = itauq2 + maxint(1, (*m)-(*q))
-		Dorglq(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(maxint(1, (*m)-(*q))), u1.VectorIdx(0), work, toPtr(-1), &childinfo)
+		lorgqrworkmin = max(1, (*m)-(*q))
+		iorglq = itauq2 + max(1, (*m)-(*q))
+		Dorglq(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), u1, toPtr(max(1, (*m)-(*q))), u1.VectorIdx(0), work, toPtr(-1), &childinfo)
 		lorglqworkopt = int(work.Get(0))
-		lorglqworkmin = maxint(1, (*m)-(*q))
-		iorbdb = itauq2 + maxint(1, (*m)-(*q))
+		lorglqworkmin = max(1, (*m)-(*q))
+		iorbdb = itauq2 + max(1, (*m)-(*q))
 		Dorbdb(trans, signs, m, p, q, x11, ldx11, x12, ldx12, x21, ldx21, x22, ldx22, theta, v1t.VectorIdx(0), u1.VectorIdx(0), u2.VectorIdx(0), v1t.VectorIdx(0), v2t.VectorIdx(0), work, toPtr(-1), &childinfo)
 		lorbdbworkopt = int(work.Get(0))
 		// lorbdbworkmin = lorbdbworkopt
-		ib11d = itauq2 + maxint(1, (*m)-(*q))
-		ib11e = ib11d + maxint(1, *q)
-		ib12d = ib11e + maxint(1, (*q)-1)
-		ib12e = ib12d + maxint(1, *q)
-		ib21d = ib12e + maxint(1, (*q)-1)
-		ib21e = ib21d + maxint(1, *q)
-		ib22d = ib21e + maxint(1, (*q)-1)
-		ib22e = ib22d + maxint(1, *q)
-		ibbcsd = ib22e + maxint(1, (*q)-1)
+		ib11d = itauq2 + max(1, (*m)-(*q))
+		ib11e = ib11d + max(1, *q)
+		ib12d = ib11e + max(1, (*q)-1)
+		ib12e = ib12d + max(1, *q)
+		ib21d = ib12e + max(1, (*q)-1)
+		ib21e = ib21d + max(1, *q)
+		ib22d = ib21e + max(1, (*q)-1)
+		ib22e = ib22d + max(1, *q)
+		ibbcsd = ib22e + max(1, (*q)-1)
 		Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans, m, p, q, theta, theta, u1, ldu1, u2, ldu2, v1t, ldv1t, v2t, ldv2t, u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), work, toPtr(-1), &childinfo)
 		lbbcsdworkopt = int(work.Get(0))
 		lbbcsdworkmin = lbbcsdworkopt
-		lworkopt = maxint(iorgqr+lorgqrworkopt, iorglq+lorglqworkopt, iorbdb+lorbdbworkopt, ibbcsd+lbbcsdworkopt) - 1
-		lworkmin = maxint(iorgqr+lorgqrworkmin, iorglq+lorglqworkmin, iorbdb+lorbdbworkopt, ibbcsd+lbbcsdworkmin) - 1
-		work.Set(0, float64(maxint(lworkopt, lworkmin)))
+		lworkopt = max(iorgqr+lorgqrworkopt, iorglq+lorglqworkopt, iorbdb+lorbdbworkopt, ibbcsd+lbbcsdworkopt) - 1
+		lworkmin = max(iorgqr+lorgqrworkmin, iorglq+lorglqworkmin, iorbdb+lorbdbworkopt, ibbcsd+lbbcsdworkmin) - 1
+		work.Set(0, float64(max(lworkopt, lworkmin)))
 
 		if (*lwork) < lworkmin && !lquery {
 			(*info) = -22
@@ -177,7 +177,7 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 		if wantv2t && (*m)-(*q) > 0 {
 			Dlacpy('U', p, toPtr((*m)-(*q)), x12, ldx12, v2t, ldv2t)
 			if (*m)-(*p) > (*q) {
-				Dlacpy('U', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off((*q)+1-1, (*p)+1-1), ldx22, v2t.Off((*p)+1-1, (*p)+1-1), ldv2t)
+				Dlacpy('U', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off((*q), (*p)), ldx22, v2t.Off((*p), (*p)), ldv2t)
 			}
 			if (*m) > (*q) {
 				Dorglq(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), v2t, ldv2t, work.Off(itauq2-1), work.Off(iorglq-1), &lorglqwork, info)
@@ -203,7 +203,7 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t, trans, signs byte, m, p, q *int, x11 *
 		}
 		if wantv2t && (*m)-(*q) > 0 {
 			Dlacpy('L', toPtr((*m)-(*q)), p, x12, ldx12, v2t, ldv2t)
-			Dlacpy('L', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off((*p)+1-1, (*q)+1-1), ldx22, v2t.Off((*p)+1-1, (*p)+1-1), ldv2t)
+			Dlacpy('L', toPtr((*m)-(*p)-(*q)), toPtr((*m)-(*p)-(*q)), x22.Off((*p), (*q)), ldx22, v2t.Off((*p), (*p)), ldv2t)
 			Dorgqr(toPtr((*m)-(*q)), toPtr((*m)-(*q)), toPtr((*m)-(*q)), v2t, ldv2t, work.Off(itauq2-1), work.Off(iorgqr-1), &lorgqrwork, info)
 		}
 	}

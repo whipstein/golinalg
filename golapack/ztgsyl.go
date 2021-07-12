@@ -75,17 +75,17 @@ func Ztgsyl(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 			(*info) = -3
 		} else if (*n) <= 0 {
 			(*info) = -4
-		} else if (*lda) < maxint(1, *m) {
+		} else if (*lda) < max(1, *m) {
 			(*info) = -6
-		} else if (*ldb) < maxint(1, *n) {
+		} else if (*ldb) < max(1, *n) {
 			(*info) = -8
-		} else if (*ldc) < maxint(1, *m) {
+		} else if (*ldc) < max(1, *m) {
 			(*info) = -10
-		} else if (*ldd) < maxint(1, *m) {
+		} else if (*ldd) < max(1, *m) {
 			(*info) = -12
-		} else if (*lde) < maxint(1, *n) {
+		} else if (*lde) < max(1, *n) {
 			(*info) = -14
-		} else if (*ldf) < maxint(1, *m) {
+		} else if (*ldf) < max(1, *m) {
 			(*info) = -16
 		}
 	}
@@ -93,7 +93,7 @@ func Ztgsyl(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 	if (*info) == 0 {
 		if notran {
 			if (*ijob) == 1 || (*ijob) == 2 {
-				lwmin = maxint(1, 2*(*m)*(*n))
+				lwmin = max(1, 2*(*m)*(*n))
 			} else {
 				lwmin = 1
 			}
@@ -163,12 +163,12 @@ func Ztgsyl(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				}
 				scale2 = (*scale)
 				Zlacpy('F', m, n, c, ldc, work.CMatrix(*m, opts), m)
-				Zlacpy('F', m, n, f, ldf, work.CMatrixOff((*m)*(*n)+1-1, *m, opts), m)
+				Zlacpy('F', m, n, f, ldf, work.CMatrixOff((*m)*(*n), *m, opts), m)
 				Zlaset('F', m, n, &czero, &czero, c, ldc)
 				Zlaset('F', m, n, &czero, &czero, f, ldf)
 			} else if isolve == 2 && iround == 2 {
 				Zlacpy('F', m, n, work.CMatrix(*m, opts), m, c, ldc)
-				Zlacpy('F', m, n, work.CMatrixOff((*m)*(*n)+1-1, *m, opts), m, f, ldf)
+				Zlacpy('F', m, n, work.CMatrixOff((*m)*(*n), *m, opts), m, f, ldf)
 				(*scale) = scale2
 			}
 		}
@@ -193,8 +193,8 @@ label40:
 	goto label40
 label50:
 	;
-	(*iwork)[p+1-1] = (*m) + 1
-	if (*iwork)[p-1] == (*iwork)[p+1-1] {
+	(*iwork)[p] = (*m) + 1
+	if (*iwork)[p-1] == (*iwork)[p] {
 		p = p - 1
 	}
 
@@ -217,8 +217,8 @@ label60:
 
 label70:
 	;
-	(*iwork)[q+1-1] = (*n) + 1
-	if (*iwork)[q-1] == (*iwork)[q+1-1] {
+	(*iwork)[q] = (*n) + 1
+	if (*iwork)[q-1] == (*iwork)[q] {
 		q = q - 1
 	}
 
@@ -234,11 +234,11 @@ label70:
 			dsum = one
 			for j = p + 2; j <= q; j++ {
 				js = (*iwork)[j-1]
-				je = (*iwork)[j+1-1] - 1
+				je = (*iwork)[j] - 1
 				nb = je - js + 1
 				for i = p; i >= 1; i-- {
 					is = (*iwork)[i-1]
-					ie = (*iwork)[i+1-1] - 1
+					ie = (*iwork)[i] - 1
 					mb = ie - is + 1
 					Ztgsy2(trans, &ifunc, &mb, &nb, a.Off(is-1, is-1), lda, b.Off(js-1, js-1), ldb, c.Off(is-1, js-1), ldc, d.Off(is-1, is-1), ldd, e.Off(js-1, js-1), lde, f.Off(is-1, js-1), ldf, &scaloc, &dsum, &dscale, &linfo)
 					if linfo > 0 {
@@ -247,32 +247,32 @@ label70:
 					pq = pq + mb*nb
 					if scaloc != one {
 						for k = 1; k <= js-1; k++ {
-							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
-							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
+							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 						}
 						for k = js; k <= je; k++ {
-							goblas.Zscal(is-1, complex(scaloc, zero), c.CVector(0, k-1), 1)
-							goblas.Zscal(is-1, complex(scaloc, zero), f.CVector(0, k-1), 1)
+							goblas.Zscal(is-1, complex(scaloc, zero), c.CVector(0, k-1, 1))
+							goblas.Zscal(is-1, complex(scaloc, zero), f.CVector(0, k-1, 1))
 						}
 						for k = js; k <= je; k++ {
-							goblas.Zscal((*m)-ie, complex(scaloc, zero), c.CVector(ie+1-1, k-1), 1)
-							goblas.Zscal((*m)-ie, complex(scaloc, zero), f.CVector(ie+1-1, k-1), 1)
+							goblas.Zscal((*m)-ie, complex(scaloc, zero), c.CVector(ie, k-1, 1))
+							goblas.Zscal((*m)-ie, complex(scaloc, zero), f.CVector(ie, k-1, 1))
 						}
 						for k = je + 1; k <= (*n); k++ {
-							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
-							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
+							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 						}
 						(*scale) = (*scale) * scaloc
 					}
 
 					//                 Substitute R(I,J) and L(I,J) into remaining equation.
 					if i > 1 {
-						err = goblas.Zgemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), a.Off(0, is-1), *lda, c.Off(is-1, js-1), *ldc, complex(one, zero), c.Off(0, js-1), *ldc)
-						err = goblas.Zgemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), d.Off(0, is-1), *ldd, c.Off(is-1, js-1), *ldc, complex(one, zero), f.Off(0, js-1), *ldf)
+						err = goblas.Zgemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), a.Off(0, is-1), c.Off(is-1, js-1), complex(one, zero), c.Off(0, js-1))
+						err = goblas.Zgemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), d.Off(0, is-1), c.Off(is-1, js-1), complex(one, zero), f.Off(0, js-1))
 					}
 					if j < q {
-						err = goblas.Zgemm(NoTrans, NoTrans, mb, (*n)-je, nb, complex(one, zero), f.Off(is-1, js-1), *ldf, b.Off(js-1, je+1-1), *ldb, complex(one, zero), c.Off(is-1, je+1-1), *ldc)
-						err = goblas.Zgemm(NoTrans, NoTrans, mb, (*n)-je, nb, complex(one, zero), f.Off(is-1, js-1), *ldf, e.Off(js-1, je+1-1), *lde, complex(one, zero), f.Off(is-1, je+1-1), *ldf)
+						err = goblas.Zgemm(NoTrans, NoTrans, mb, (*n)-je, nb, complex(one, zero), f.Off(is-1, js-1), b.Off(js-1, je), complex(one, zero), c.Off(is-1, je))
+						err = goblas.Zgemm(NoTrans, NoTrans, mb, (*n)-je, nb, complex(one, zero), f.Off(is-1, js-1), e.Off(js-1, je), complex(one, zero), f.Off(is-1, je))
 					}
 				}
 			}
@@ -289,12 +289,12 @@ label70:
 				}
 				scale2 = (*scale)
 				Zlacpy('F', m, n, c, ldc, work.CMatrix(*m, opts), m)
-				Zlacpy('F', m, n, f, ldf, work.CMatrixOff((*m)*(*n)+1-1, *m, opts), m)
+				Zlacpy('F', m, n, f, ldf, work.CMatrixOff((*m)*(*n), *m, opts), m)
 				Zlaset('F', m, n, &czero, &czero, c, ldc)
 				Zlaset('F', m, n, &czero, &czero, f, ldf)
 			} else if isolve == 2 && iround == 2 {
 				Zlacpy('F', m, n, work.CMatrix(*m, opts), m, c, ldc)
-				Zlacpy('F', m, n, work.CMatrixOff((*m)*(*n)+1-1, *m, opts), m, f, ldf)
+				Zlacpy('F', m, n, work.CMatrixOff((*m)*(*n), *m, opts), m, f, ldf)
 				(*scale) = scale2
 			}
 		}
@@ -306,11 +306,11 @@ label70:
 		(*scale) = one
 		for i = 1; i <= p; i++ {
 			is = (*iwork)[i-1]
-			ie = (*iwork)[i+1-1] - 1
+			ie = (*iwork)[i] - 1
 			mb = ie - is + 1
 			for j = q; j >= p+2; j-- {
 				js = (*iwork)[j-1]
-				je = (*iwork)[j+1-1] - 1
+				je = (*iwork)[j] - 1
 				nb = je - js + 1
 				Ztgsy2(trans, &ifunc, &mb, &nb, a.Off(is-1, is-1), lda, b.Off(js-1, js-1), ldb, c.Off(is-1, js-1), ldc, d.Off(is-1, is-1), ldd, e.Off(js-1, js-1), lde, f.Off(is-1, js-1), ldf, &scaloc, &dsum, &dscale, &linfo)
 				if linfo > 0 {
@@ -318,32 +318,32 @@ label70:
 				}
 				if scaloc != one {
 					for k = 1; k <= js-1; k++ {
-						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
-						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
+						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 					}
 					for k = js; k <= je; k++ {
-						goblas.Zscal(is-1, complex(scaloc, zero), c.CVector(0, k-1), 1)
-						goblas.Zscal(is-1, complex(scaloc, zero), f.CVector(0, k-1), 1)
+						goblas.Zscal(is-1, complex(scaloc, zero), c.CVector(0, k-1, 1))
+						goblas.Zscal(is-1, complex(scaloc, zero), f.CVector(0, k-1, 1))
 					}
 					for k = js; k <= je; k++ {
-						goblas.Zscal((*m)-ie, complex(scaloc, zero), c.CVector(ie+1-1, k-1), 1)
-						goblas.Zscal((*m)-ie, complex(scaloc, zero), f.CVector(ie+1-1, k-1), 1)
+						goblas.Zscal((*m)-ie, complex(scaloc, zero), c.CVector(ie, k-1, 1))
+						goblas.Zscal((*m)-ie, complex(scaloc, zero), f.CVector(ie, k-1, 1))
 					}
 					for k = je + 1; k <= (*n); k++ {
-						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
-						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
+						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 					}
 					(*scale) = (*scale) * scaloc
 				}
 
 				//              Substitute R(I,J) and L(I,J) into remaining equation.
 				if j > p+2 {
-					err = goblas.Zgemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), c.Off(is-1, js-1), *ldc, b.Off(0, js-1), *ldb, complex(one, zero), f.Off(is-1, 0), *ldf)
-					err = goblas.Zgemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), f.Off(is-1, js-1), *ldf, e.Off(0, js-1), *lde, complex(one, zero), f.Off(is-1, 0), *ldf)
+					err = goblas.Zgemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), c.Off(is-1, js-1), b.Off(0, js-1), complex(one, zero), f.Off(is-1, 0))
+					err = goblas.Zgemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), f.Off(is-1, js-1), e.Off(0, js-1), complex(one, zero), f.Off(is-1, 0))
 				}
 				if i < p {
-					err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-ie, nb, mb, complex(-one, zero), a.Off(is-1, ie+1-1), *lda, c.Off(is-1, js-1), *ldc, complex(one, zero), c.Off(ie+1-1, js-1), *ldc)
-					err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-ie, nb, mb, complex(-one, zero), d.Off(is-1, ie+1-1), *ldd, f.Off(is-1, js-1), *ldf, complex(one, zero), c.Off(ie+1-1, js-1), *ldc)
+					err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-ie, nb, mb, complex(-one, zero), a.Off(is-1, ie), c.Off(is-1, js-1), complex(one, zero), c.Off(ie, js-1))
+					err = goblas.Zgemm(ConjTrans, NoTrans, (*m)-ie, nb, mb, complex(-one, zero), d.Off(is-1, ie), f.Off(is-1, js-1), complex(one, zero), c.Off(ie, js-1))
 				}
 			}
 		}

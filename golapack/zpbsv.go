@@ -30,7 +30,7 @@ func Zpbsv(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMatr
 		(*info) = -4
 	} else if (*ldab) < (*kd)+1 {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {

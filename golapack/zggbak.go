@@ -29,13 +29,13 @@ func Zggbak(job, side byte, n, ilo, ihi *int, lscale, rscale *mat.Vector, m *int
 		(*info) = -4
 	} else if (*n) == 0 && (*ihi) == 0 && (*ilo) != 1 {
 		(*info) = -4
-	} else if (*n) > 0 && ((*ihi) < (*ilo) || (*ihi) > maxint(1, *n)) {
+	} else if (*n) > 0 && ((*ihi) < (*ilo) || (*ihi) > max(1, *n)) {
 		(*info) = -5
 	} else if (*n) == 0 && (*ilo) == 1 && (*ihi) != 0 {
 		(*info) = -5
 	} else if (*m) < 0 {
 		(*info) = -8
-	} else if (*ldv) < maxint(1, *n) {
+	} else if (*ldv) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -63,14 +63,14 @@ func Zggbak(job, side byte, n, ilo, ihi *int, lscale, rscale *mat.Vector, m *int
 		//        Backward transformation on right eigenvectors
 		if rightv {
 			for i = (*ilo); i <= (*ihi); i++ {
-				goblas.Zdscal(*m, rscale.Get(i-1), v.CVector(i-1, 0), *ldv)
+				goblas.Zdscal(*m, rscale.Get(i-1), v.CVector(i-1, 0, *ldv))
 			}
 		}
 
 		//        Backward transformation on left eigenvectors
 		if leftv {
 			for i = (*ilo); i <= (*ihi); i++ {
-				goblas.Zdscal(*m, lscale.Get(i-1), v.CVector(i-1, 0), *ldv)
+				goblas.Zdscal(*m, lscale.Get(i-1), v.CVector(i-1, 0, *ldv))
 			}
 		}
 	}
@@ -89,7 +89,7 @@ label30:
 				if k == i {
 					goto label40
 				}
-				goblas.Zswap(*m, v.CVector(i-1, 0), *ldv, v.CVector(k-1, 0), *ldv)
+				goblas.Zswap(*m, v.CVector(i-1, 0, *ldv), v.CVector(k-1, 0, *ldv))
 			label40:
 			}
 
@@ -103,7 +103,7 @@ label30:
 				if k == i {
 					goto label60
 				}
-				goblas.Zswap(*m, v.CVector(i-1, 0), *ldv, v.CVector(k-1, 0), *ldv)
+				goblas.Zswap(*m, v.CVector(i-1, 0, *ldv), v.CVector(k-1, 0, *ldv))
 			label60:
 			}
 		}
@@ -120,7 +120,7 @@ label30:
 				if k == i {
 					goto label80
 				}
-				goblas.Zswap(*m, v.CVector(i-1, 0), *ldv, v.CVector(k-1, 0), *ldv)
+				goblas.Zswap(*m, v.CVector(i-1, 0, *ldv), v.CVector(k-1, 0, *ldv))
 			label80:
 			}
 
@@ -134,7 +134,7 @@ label30:
 				if k == i {
 					goto label100
 				}
-				goblas.Zswap(*m, v.CVector(i-1, 0), *ldv, v.CVector(k-1, 0), *ldv)
+				goblas.Zswap(*m, v.CVector(i-1, 0, *ldv), v.CVector(k-1, 0, *ldv))
 			label100:
 			}
 		}

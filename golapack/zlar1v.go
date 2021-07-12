@@ -183,8 +183,8 @@ label60:
 	//     Compute the FP vector upwards from R
 	if !sawnan1 && !sawnan2 {
 		for i = (*r) - 1; i >= (*b1); i -= 1 {
-			z.Set(i-1, -(work.GetCmplx(indlpl+i-1) * z.Get(i+1-1)))
-			if (z.GetMag(i-1)+z.GetMag(i+1-1))*ld.GetMag(i-1) < (*gaptol) {
+			z.Set(i-1, -(work.GetCmplx(indlpl+i-1) * z.Get(i)))
+			if (z.GetMag(i-1)+z.GetMag(i))*ld.GetMag(i-1) < (*gaptol) {
 				z.SetRe(i-1, zero)
 				(*isuppz)[0] = i + 1
 				goto label220
@@ -195,12 +195,12 @@ label60:
 	} else {
 		//        Run slower loop if NaN occurred.
 		for i = (*r) - 1; i >= (*b1); i-- {
-			if z.GetRe(i+1-1) == zero {
-				z.Set(i-1, -(ld.GetCmplx(i+1-1)/ld.GetCmplx(i-1))*z.Get(i+2-1))
+			if z.GetRe(i) == zero {
+				z.Set(i-1, -(ld.GetCmplx(i)/ld.GetCmplx(i-1))*z.Get(i+2-1))
 			} else {
-				z.Set(i-1, -(work.GetCmplx(indlpl+i-1) * z.Get(i+1-1)))
+				z.Set(i-1, -(work.GetCmplx(indlpl+i-1) * z.Get(i)))
 			}
-			if (z.GetMag(i-1)+z.GetMag(i+1-1))*ld.GetMag(i-1) < (*gaptol) {
+			if (z.GetMag(i-1)+z.GetMag(i))*ld.GetMag(i-1) < (*gaptol) {
 				z.SetRe(i-1, zero)
 				(*isuppz)[0] = i + 1
 				goto label240
@@ -212,29 +212,29 @@ label60:
 	//     Compute the FP vector downwards from R in blocks of size BLKSIZ
 	if !sawnan1 && !sawnan2 {
 		for i = (*r); i <= (*bn)-1; i++ {
-			z.Set(i+1-1, -(work.GetCmplx(indumn+i-1) * z.Get(i-1)))
-			if (z.GetMag(i-1)+z.GetMag(i+1-1))*ld.GetMag(i-1) < (*gaptol) {
-				z.SetRe(i+1-1, zero)
+			z.Set(i, -(work.GetCmplx(indumn+i-1) * z.Get(i-1)))
+			if (z.GetMag(i-1)+z.GetMag(i))*ld.GetMag(i-1) < (*gaptol) {
+				z.SetRe(i, zero)
 				(*isuppz)[1] = i
 				goto label260
 			}
-			(*ztz) = (*ztz) + real(z.Get(i+1-1)*z.Get(i+1-1))
+			(*ztz) = (*ztz) + real(z.Get(i)*z.Get(i))
 		}
 	label260:
 	} else {
 		//        Run slower loop if NaN occurred.
 		for i = (*r); i <= (*bn)-1; i++ {
 			if z.GetRe(i-1) == zero {
-				z.Set(i+1-1, -(ld.GetCmplx(i-1-1)/ld.GetCmplx(i-1))*z.Get(i-1-1))
+				z.Set(i, -(ld.GetCmplx(i-1-1)/ld.GetCmplx(i-1))*z.Get(i-1-1))
 			} else {
-				z.Set(i+1-1, -(work.GetCmplx(indumn+i-1) * z.Get(i-1)))
+				z.Set(i, -(work.GetCmplx(indumn+i-1) * z.Get(i-1)))
 			}
-			if (z.GetMag(i-1)+z.GetMag(i+1-1))*ld.GetMag(i-1) < (*gaptol) {
-				z.SetRe(i+1-1, zero)
+			if (z.GetMag(i-1)+z.GetMag(i))*ld.GetMag(i-1) < (*gaptol) {
+				z.SetRe(i, zero)
 				(*isuppz)[1] = i
 				goto label280
 			}
-			(*ztz) = (*ztz) + real(z.Get(i+1-1)*z.Get(i+1-1))
+			(*ztz) = (*ztz) + real(z.Get(i)*z.Get(i))
 		}
 	label280:
 	}

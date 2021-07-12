@@ -60,7 +60,7 @@ label10:
 		e.Set(l1-1-1, zero)
 	}
 	for m = l1; m <= (*n)-1; m++ {
-		if math.Abs(e.Get(m-1)) <= (math.Sqrt(math.Abs(d.Get(m-1)))*math.Sqrt(math.Abs(d.Get(m+1-1))))*eps {
+		if math.Abs(e.Get(m-1)) <= (math.Sqrt(math.Abs(d.Get(m-1)))*math.Sqrt(math.Abs(d.Get(m))))*eps {
 			e.Set(m-1, zero)
 			goto label30
 		}
@@ -112,7 +112,7 @@ label30:
 		;
 		if l != lend {
 			for m = l; m <= lend-1; m++ {
-				if math.Abs(e.Get(m-1)) <= eps2*math.Abs(d.Get(m-1)*d.Get(m+1-1)) {
+				if math.Abs(e.Get(m-1)) <= eps2*math.Abs(d.Get(m-1)*d.Get(m)) {
 					goto label70
 				}
 			}
@@ -133,9 +133,9 @@ label30:
 		//        eigenvalues.
 		if m == l+1 {
 			rte = math.Sqrt(e.Get(l - 1))
-			Dlae2(d.GetPtr(l-1), &rte, d.GetPtr(l+1-1), &rt1, &rt2)
+			Dlae2(d.GetPtr(l-1), &rte, d.GetPtr(l), &rt1, &rt2)
 			d.Set(l-1, rt1)
-			d.Set(l+1-1, rt2)
+			d.Set(l, rt2)
 			e.Set(l-1, zero)
 			l = l + 2
 			if l <= lend {
@@ -151,9 +151,9 @@ label30:
 
 		//        Form shift.
 		rte = math.Sqrt(e.Get(l - 1))
-		sigma = (d.Get(l+1-1) - p) / (two * rte)
+		sigma = (d.Get(l) - p) / (two * rte)
 		r = Dlapy2(&sigma, &one)
-		sigma = p - (rte / (sigma + signf64(r, sigma)))
+		sigma = p - (rte / (sigma + math.Copysign(r, sigma)))
 
 		c = one
 		s = zero
@@ -165,7 +165,7 @@ label30:
 			bb = e.Get(i - 1)
 			r = p + bb
 			if i != m-1 {
-				e.Set(i+1-1, s*r)
+				e.Set(i, s*r)
 			}
 			oldc = c
 			c = p / r
@@ -173,7 +173,7 @@ label30:
 			oldgam = gamma
 			alpha = d.Get(i - 1)
 			gamma = c*(alpha-sigma) - s*oldgam
-			d.Set(i+1-1, oldgam+(alpha-gamma))
+			d.Set(i, oldgam+(alpha-gamma))
 			if c != zero {
 				p = (gamma * gamma) / c
 			} else {
@@ -243,7 +243,7 @@ label30:
 		rte = math.Sqrt(e.Get(l - 1 - 1))
 		sigma = (d.Get(l-1-1) - p) / (two * rte)
 		r = Dlapy2(&sigma, &one)
-		sigma = p - (rte / (sigma + signf64(r, sigma)))
+		sigma = p - (rte / (sigma + math.Copysign(r, sigma)))
 
 		c = one
 		s = zero

@@ -12,7 +12,7 @@ import (
 //    op( X ) = X   or   op( X ) = X**T,
 // alpha and beta are scalars, and A, B and C are matrices, with op( A )
 // an m by k matrix,  op( B )  a  k by n matrix and  C an m by n matrix.
-func Dgemm(transa, transb mat.MatTrans, m, n, k int, alpha float64, a *mat.Matrix, lda int, b *mat.Matrix, ldb int, beta float64, c *mat.Matrix, ldc int) (err error) {
+func Dgemm(transa, transb mat.MatTrans, m, n, k int, alpha float64, a *mat.Matrix, b *mat.Matrix, beta float64, c *mat.Matrix) (err error) {
 	var nota, notb bool
 	var one, temp, zero float64
 	var i, j, l, nrowa, nrowb int
@@ -49,12 +49,12 @@ func Dgemm(transa, transb mat.MatTrans, m, n, k int, alpha float64, a *mat.Matri
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, nrowb) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, m) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, nrowb) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, nrowb))
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dgemm"), err)
@@ -168,7 +168,7 @@ func Dgemm(transa, transb mat.MatTrans, m, n, k int, alpha float64, a *mat.Matri
 //    C := alpha*B*A + beta*C,
 // where alpha and beta are scalars,  A is a symmetric matrix and  B and
 // C are  m by n matrices.
-func Dsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha float64, a *mat.Matrix, lda int, b *mat.Matrix, ldb int, beta float64, c *mat.Matrix, ldc int) (err error) {
+func Dsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha float64, a *mat.Matrix, b *mat.Matrix, beta float64, c *mat.Matrix) (err error) {
 	var upper bool
 	var one, temp1, temp2, zero float64
 	var i, j, k, nrowa int
@@ -193,12 +193,12 @@ func Dsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha float64, a *mat.M
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, m) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsymm"), err)
@@ -309,7 +309,7 @@ func Dsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha float64, a *mat.M
 // where  alpha  is a scalar,  B  is an m by n matrix,  A  is a unit, or
 // non-unit,  upper or lower triangular matrix  and  op( A )  is one  of
 //    op( A ) = A   or   op( A ) = A**T.
-func Dtrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha float64, a *mat.Matrix, lda int, b *mat.Matrix, ldb int) (err error) {
+func Dtrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha float64, a *mat.Matrix, b *mat.Matrix) (err error) {
 	var lside, nounit, upper bool
 	var one, temp, zero float64
 	var i, j, k, nrowa int
@@ -339,10 +339,10 @@ func Dtrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtrmm"), err)
@@ -525,7 +525,7 @@ func Dtrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 // non-unit,  upper or lower triangular matrix  and  op( A )  is one  of
 //    op( A ) = A   or   op( A ) = A**T.
 // The matrix X is overwritten on B.
-func Dtrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha float64, a *mat.Matrix, lda int, b *mat.Matrix, ldb int) (err error) {
+func Dtrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha float64, a *mat.Matrix, b *mat.Matrix) (err error) {
 	var lside, nounit, upper bool
 	var one, temp, zero float64
 	var i, j, k, nrowa int
@@ -555,10 +555,10 @@ func Dtrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtrsm"), err)
@@ -757,7 +757,7 @@ func Dtrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 // where  alpha and beta  are scalars, C is an  n by n  symmetric matrix
 // and  A  is an  n by k  matrix in the first case and a  k by n  matrix
 // in the second case.
-func Dsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat.Matrix, lda int, beta float64, c *mat.Matrix, ldc int) (err error) {
+func Dsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat.Matrix, beta float64, c *mat.Matrix) (err error) {
 	var upper bool
 	var one, temp, zero float64
 	var i, j, l, nrowa int
@@ -781,10 +781,10 @@ func Dsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldc < max(1, n) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if c.Rows < max(1, n) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsyrk"), err)
@@ -917,7 +917,7 @@ func Dsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat
 // where  alpha and beta  are scalars, C is an  n by n  symmetric matrix
 // and  A and B  are  n by k  matrices  in the  first  case  and  k by n
 // matrices in the second case.
-func Dsyr2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat.Matrix, lda int, b *mat.Matrix, ldb int, beta float64, c *mat.Matrix, ldc int) (err error) {
+func Dsyr2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat.Matrix, b *mat.Matrix, beta float64, c *mat.Matrix) (err error) {
 	var upper bool
 	var one, temp1, temp2, zero float64
 	var i, j, l, nrowa int
@@ -941,12 +941,12 @@ func Dsyr2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *ma
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, nrowa) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, n) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, nrowa) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, nrowa))
+	} else if c.Rows < max(1, n) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsyr2k"), err)

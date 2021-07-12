@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -37,16 +39,16 @@ func Ztbt03(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	if diag == 'N' {
 		if uplo == 'U' {
 			for j = 1; j <= (*n); j++ {
-				tnorm = maxf64(tnorm, (*tscal)*ab.GetMag((*kd)+1-1, j-1)+cnorm.Get(j-1))
+				tnorm = math.Max(tnorm, (*tscal)*ab.GetMag((*kd), j-1)+cnorm.Get(j-1))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				tnorm = maxf64(tnorm, (*tscal)*ab.GetMag(0, j-1)+cnorm.Get(j-1))
+				tnorm = math.Max(tnorm, (*tscal)*ab.GetMag(0, j-1)+cnorm.Get(j-1))
 			}
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)+cnorm.Get(j-1))
 		}
 	}
 
@@ -54,16 +56,16 @@ func Ztbt03(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
-		ix = goblas.Izamax(*n, work, 1)
-		xnorm = maxf64(one, x.GetMag(ix-1, j-1))
+		goblas.Zcopy(*n, x.CVector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Izamax(*n, work.Off(0, 1))
+		xnorm = math.Max(one, x.GetMag(ix-1, j-1))
 		xscal = (one / xnorm) / float64((*kd)+1)
-		goblas.Zdscal(*n, xscal, work, 1)
-		err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, work, 1)
-		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1), 1, work, 1)
-		ix = goblas.Izamax(*n, work, 1)
+		goblas.Zdscal(*n, xscal, work.Off(0, 1))
+		err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, work.Off(0, 1))
+		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Izamax(*n, work.Off(0, 1))
 		err2 = (*tscal) * work.GetMag(ix-1)
-		ix = goblas.Izamax(*n, x.CVector(0, j-1), 1)
+		ix = goblas.Izamax(*n, x.CVector(0, j-1, 1))
 		xnorm = x.GetMag(ix-1, j-1)
 		if err2*smlnum <= xnorm {
 			if xnorm > zero {
@@ -83,6 +85,6 @@ func Ztbt03(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err2)
+		(*resid) = math.Max(*resid, err2)
 	}
 }

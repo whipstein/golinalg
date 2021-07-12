@@ -40,38 +40,38 @@ func Zqlt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVe
 	//     Copy the last k columns of the factorization to the array Q
 	golapack.Zlaset('F', m, n, &rogue, &rogue, q, lda)
 	if (*k) < (*m) {
-		golapack.Zlacpy('F', toPtr((*m)-(*k)), k, af.Off(0, (*n)-(*k)+1-1), lda, q.Off(0, (*n)-(*k)+1-1), lda)
+		golapack.Zlacpy('F', toPtr((*m)-(*k)), k, af.Off(0, (*n)-(*k)), lda, q.Off(0, (*n)-(*k)), lda)
 	}
 	if (*k) > 1 {
-		golapack.Zlacpy('U', toPtr((*k)-1), toPtr((*k)-1), af.Off((*m)-(*k)+1-1, (*n)-(*k)+2-1), lda, q.Off((*m)-(*k)+1-1, (*n)-(*k)+2-1), lda)
+		golapack.Zlacpy('U', toPtr((*k)-1), toPtr((*k)-1), af.Off((*m)-(*k), (*n)-(*k)+2-1), lda, q.Off((*m)-(*k), (*n)-(*k)+2-1), lda)
 	}
 
 	//     Generate the last n columns of the matrix Q
 	*srnamt = "ZUNGQL"
-	golapack.Zungql(m, n, k, q, lda, tau.Off((*n)-(*k)+1-1), work, lwork, &info)
+	golapack.Zungql(m, n, k, q, lda, tau.Off((*n)-(*k)), work, lwork, &info)
 
 	//     Copy L(m-n+1:m,n-k+1:n)
-	golapack.Zlaset('F', n, k, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), l.Off((*m)-(*n)+1-1, (*n)-(*k)+1-1), lda)
-	golapack.Zlacpy('L', k, k, af.Off((*m)-(*k)+1-1, (*n)-(*k)+1-1), lda, l.Off((*m)-(*k)+1-1, (*n)-(*k)+1-1), lda)
+	golapack.Zlaset('F', n, k, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), l.Off((*m)-(*n), (*n)-(*k)), lda)
+	golapack.Zlacpy('L', k, k, af.Off((*m)-(*k), (*n)-(*k)), lda, l.Off((*m)-(*k), (*n)-(*k)), lda)
 
 	//     Compute L(m-n+1:m,n-k+1:n) - Q(1:m,m-n+1:m)' * A(1:m,n-k+1:n)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *k, *m, complex(-one, 0), q, *lda, a.Off(0, (*n)-(*k)+1-1), *lda, complex(one, 0), l.Off((*m)-(*n)+1-1, (*n)-(*k)+1-1), *lda)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *k, *m, complex(-one, 0), q, a.Off(0, (*n)-(*k)), complex(one, 0), l.Off((*m)-(*n), (*n)-(*k)))
 
 	//     Compute norm( L - Q'*A ) / ( M * norm(A) * EPS ) .
-	anorm = golapack.Zlange('1', m, k, a.Off(0, (*n)-(*k)+1-1), lda, rwork)
-	resid = golapack.Zlange('1', n, k, l.Off((*m)-(*n)+1-1, (*n)-(*k)+1-1), lda, rwork)
+	anorm = golapack.Zlange('1', m, k, a.Off(0, (*n)-(*k)), lda, rwork)
+	resid = golapack.Zlange('1', n, k, l.Off((*m)-(*n), (*n)-(*k)), lda, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(maxint(1, *m)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, *m)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q'*Q
 	golapack.Zlaset('F', n, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), l, lda)
-	err = goblas.Zherk(Upper, ConjTrans, *n, *m, -one, q, *lda, one, l, *lda)
+	err = goblas.Zherk(Upper, ConjTrans, *n, *m, -one, q, one, l)
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
 	resid = golapack.Zlansy('1', 'U', n, l, lda, rwork)
 
-	result.Set(1, (resid/float64(maxint(1, *m)))/eps)
+	result.Set(1, (resid/float64(max(1, *m)))/eps)
 }

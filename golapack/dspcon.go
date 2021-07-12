@@ -69,7 +69,7 @@ func Dspcon(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, anorm, rcond *float6
 	kase = 0
 label30:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		//        Multiply by inv(L*D*L**T) or inv(U*D*U**T).
 		Dsptrs(uplo, n, func() *int { y := 1; return &y }(), ap, ipiv, work.Matrix(*n, opts), n, info)

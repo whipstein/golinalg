@@ -38,7 +38,7 @@ func Zgees(jobvs, sort byte, _select func(complex128) bool, n *int, a *mat.CMatr
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	} else if (*ldvs) < 1 || (wantvs && (*ldvs) < (*n)) {
 		(*info) = -10
@@ -66,10 +66,10 @@ func Zgees(jobvs, sort byte, _select func(complex128) bool, n *int, a *mat.CMatr
 			hswork = int(work.GetRe(0))
 
 			if !wantvs {
-				maxwrk = maxint(maxwrk, hswork)
+				maxwrk = max(maxwrk, hswork)
 			} else {
-				maxwrk = maxint(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, hswork)
+				maxwrk = max(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, hswork)
 			}
 		}
 		work.SetRe(0, float64(maxwrk))
@@ -100,7 +100,7 @@ func Zgees(jobvs, sort byte, _select func(complex128) bool, n *int, a *mat.CMatr
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', n, n, a, lda, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
@@ -173,7 +173,7 @@ func Zgees(jobvs, sort byte, _select func(complex128) bool, n *int, a *mat.CMatr
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Zlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Zcopy(*n, a.CVector(0, 0), (*lda)+1, w, 1)
+		goblas.Zcopy(*n, a.CVector(0, 0, (*lda)+1), w.Off(0, 1))
 	}
 
 	work.SetRe(0, float64(maxwrk))

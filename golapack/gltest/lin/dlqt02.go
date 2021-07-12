@@ -42,23 +42,23 @@ func Dlqt02(m, n, k *int, a, af, q, l *mat.Matrix, lda *int, tau, work *mat.Vect
 	golapack.Dlacpy('L', k, m, af, lda, l, lda)
 
 	//     Compute L(1:k,1:m) - A(1:k,1:n) * Q(1:m,1:n)'
-	err = goblas.Dgemm(mat.NoTrans, mat.Trans, *k, *m, *n, -one, a, *lda, q, *lda, one, l, *lda)
+	err = goblas.Dgemm(mat.NoTrans, mat.Trans, *k, *m, *n, -one, a, q, one, l)
 
 	//     Compute norm( L - A*Q' ) / ( N * norm(A) * EPS ) .
 	anorm = golapack.Dlange('1', k, n, a, lda, rwork)
 	resid = golapack.Dlange('1', k, m, l, lda, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(maxint(1, *n)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, *n)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q*Q'
 	golapack.Dlaset('F', m, m, &zero, &one, l, lda)
-	err = goblas.Dsyrk(Upper, NoTrans, *m, *n, -one, q, *lda, one, l, *lda)
+	err = goblas.Dsyrk(Upper, NoTrans, *m, *n, -one, q, one, l)
 
 	//     Compute norm( I - Q*Q' ) / ( N * EPS ) .
 	resid = golapack.Dlansy('1', 'U', m, l, lda, rwork)
 
-	result.Set(1, (resid/float64(maxint(1, *n)))/eps)
+	result.Set(1, (resid/float64(max(1, *n)))/eps)
 }

@@ -38,7 +38,7 @@ func Dsyevx(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, vu *fl
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	} else {
 		if valeig {
@@ -46,9 +46,9 @@ func Dsyevx(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, vu *fl
 				(*info) = -8
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -9
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -10
 			}
 		}
@@ -66,8 +66,8 @@ func Dsyevx(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, vu *fl
 		} else {
 			lwkmin = 8 * (*n)
 			nb = Ilaenv(toPtr(1), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-			nb = maxint(nb, Ilaenv(toPtr(1), []byte("DORMTR"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
-			lwkopt = maxint(lwkmin, (nb+3)*(*n))
+			nb = max(nb, Ilaenv(toPtr(1), []byte("DORMTR"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+			lwkopt = max(lwkmin, (nb+3)*(*n))
 			work.Set(0, float64(lwkopt))
 		}
 
@@ -111,7 +111,7 @@ func Dsyevx(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, vu *fl
 	smlnum = safmin / eps
 	bignum = one / smlnum
 	rmin = math.Sqrt(smlnum)
-	rmax = minf64(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
+	rmax = math.Min(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
@@ -131,11 +131,11 @@ func Dsyevx(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, vu *fl
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal((*n)-j+1, sigma, a.Vector(j-1, j-1), 1)
+				goblas.Dscal((*n)-j+1, sigma, a.Vector(j-1, j-1, 1))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal(j, sigma, a.Vector(0, j-1), 1)
+				goblas.Dscal(j, sigma, a.Vector(0, j-1, 1))
 			}
 		}
 		if (*abstol) > 0 {
@@ -165,15 +165,15 @@ func Dsyevx(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, vu *fl
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
+		goblas.Dcopy(*n, work.Off(indd-1, 1), w.Off(0, 1))
 		indee = indwrk + 2*(*n)
 		if !wantz {
-			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
+			goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
 			Dlacpy('A', n, n, a, lda, z, ldz)
 			Dorgtr(uplo, n, z, ldz, work.Off(indtau-1), work.Off(indwrk-1), &llwork, &iinfo)
-			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
+			goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
 			Dsteqr(jobz, n, w, work.Off(indee-1), z, ldz, work.Off(indwrk-1), info)
 			if (*info) == 0 {
 				for i = 1; i <= (*n); i++ {
@@ -218,7 +218,7 @@ label40:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -240,7 +240,7 @@ label40:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
+				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

@@ -59,28 +59,28 @@ func Dpbcon(uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, anorm, rcond *floa
 	normin = 'N'
 label10:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if upper {
 			//           Multiply by inv(U**T).
-			Dlatbs('U', 'T', 'N', normin, n, kd, ab, ldab, work, &scalel, work.Off(2*(*n)+1-1), info)
+			Dlatbs('U', 'T', 'N', normin, n, kd, ab, ldab, work, &scalel, work.Off(2*(*n)), info)
 			normin = 'Y'
 
 			//           Multiply by inv(U).
-			Dlatbs('U', 'N', 'N', normin, n, kd, ab, ldab, work, &scaleu, work.Off(2*(*n)+1-1), info)
+			Dlatbs('U', 'N', 'N', normin, n, kd, ab, ldab, work, &scaleu, work.Off(2*(*n)), info)
 		} else {
 			//           Multiply by inv(L).
-			Dlatbs('L', 'N', 'N', normin, n, kd, ab, ldab, work, &scalel, work.Off(2*(*n)+1-1), info)
+			Dlatbs('L', 'N', 'N', normin, n, kd, ab, ldab, work, &scalel, work.Off(2*(*n)), info)
 			normin = 'Y'
 
 			//           Multiply by inv(L**T).
-			Dlatbs('L', 'T', 'N', normin, n, kd, ab, ldab, work, &scaleu, work.Off(2*(*n)+1-1), info)
+			Dlatbs('L', 'T', 'N', normin, n, kd, ab, ldab, work, &scaleu, work.Off(2*(*n)), info)
 		}
 
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Idamax(*n, work, 1)
+			ix = goblas.Idamax(*n, work.Off(0, 1))
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

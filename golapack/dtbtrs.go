@@ -39,7 +39,7 @@ func Dtbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 		(*info) = -6
 	} else if (*ldab) < (*kd)+1 {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -56,7 +56,7 @@ func Dtbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	if nounit {
 		if upper {
 			for (*info) = 1; (*info) <= (*n); (*info)++ {
-				if ab.Get((*kd)+1-1, (*info)-1) == zero {
+				if ab.Get((*kd), (*info)-1) == zero {
 					return
 				}
 			}
@@ -72,6 +72,6 @@ func Dtbtrs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 
 	//     Solve A * X = B  or  A**T * X = B.
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, b.Vector(0, j-1), 1)
+		err = goblas.Dtbsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, b.Vector(0, j-1, 1))
 	}
 }

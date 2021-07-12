@@ -47,11 +47,11 @@ func Dtrt01(uplo, diag byte, n *int, a *mat.Matrix, lda *int, ainv *mat.Matrix, 
 	//     Compute A * AINV, overwriting AINV.
 	if uplo == 'U' {
 		for j = 1; j <= (*n); j++ {
-			err = goblas.Dtrmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j, a, *lda, ainv.Vector(0, j-1), 1)
+			err = goblas.Dtrmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j, a, ainv.Vector(0, j-1, 1))
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j+1, a.Off(j-1, j-1), *lda, ainv.Vector(j-1, j-1), 1)
+			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j+1, a.Off(j-1, j-1), ainv.Vector(j-1, j-1, 1))
 		}
 	}
 

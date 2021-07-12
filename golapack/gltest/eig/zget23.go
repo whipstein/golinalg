@@ -164,7 +164,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		} else {
 			fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX1", iinfo, *n, (*iseed)[0])
 		}
-		(*info) = absint(iinfo)
+		(*info) = abs(iinfo)
 		return
 	}
 
@@ -178,8 +178,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 	//     Do Test (3)
 	for j = 1; j <= (*n); j++ {
-		tnrm = goblas.Dznrm2(*n, vr.CVector(0, j-1), 1)
-		result.Set(2, maxf64(result.Get(2), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
+		tnrm = goblas.Dznrm2(*n, vr.CVector(0, j-1, 1))
+		result.Set(2, math.Max(result.Get(2), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		vmx = zero
 		vrmx = zero
 		for jj = 1; jj <= (*n); jj++ {
@@ -198,8 +198,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 	//     Do Test (4)
 	for j = 1; j <= (*n); j++ {
-		tnrm = goblas.Dznrm2(*n, vl.CVector(0, j-1), 1)
-		result.Set(3, maxf64(result.Get(3), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
+		tnrm = goblas.Dznrm2(*n, vl.CVector(0, j-1, 1))
+		result.Set(3, math.Max(result.Get(3), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		vmx = zero
 		vrmx = zero
 		for jj = 1; jj <= (*n); jj++ {
@@ -231,7 +231,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX2", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label190
 		}
 
@@ -279,7 +279,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX3", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label190
 		}
 
@@ -336,7 +336,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX4", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label190
 		}
 
@@ -393,7 +393,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		if iinfo != 0 {
 			result.Set(0, ulpinv)
 			fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX5", iinfo, *n, (*iseed)[0])
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -431,8 +431,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		//        Compare condition numbers for eigenvectors
 		//        taking their condition numbers into account
 		result.Set(9, zero)
-		eps = maxf64(epsin, ulp)
-		v = maxf64(float64(*n)*eps*abnrm, smlnum)
+		eps = math.Max(epsin, ulp)
+		v = math.Max(float64(*n)*eps*abnrm, smlnum)
 		if abnrm == zero {
 			v = one
 		}
@@ -447,8 +447,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				tolin = v / rcdein.Get(i-1)
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(rcdvin.Get(i-1)-tolin) > rcondv.Get(i-1)+tol {
 				vmax = one / eps
 			} else if rcdvin.Get(i-1)-tolin > rcondv.Get(i-1)+tol {
@@ -460,7 +460,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				vmax = one
 			}
-			result.Set(9, maxf64(result.Get(9), vmax))
+			result.Set(9, math.Max(result.Get(9), vmax))
 		}
 
 		//        Compare condition numbers for eigenvalues
@@ -477,8 +477,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				tolin = v / rcdvin.Get(i-1)
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(rcdein.Get(i-1)-tolin) > rconde.Get(i-1)+tol {
 				vmax = one / eps
 			} else if rcdein.Get(i-1)-tolin > rconde.Get(i-1)+tol {
@@ -490,7 +490,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 			} else {
 				vmax = one
 			}
-			result.Set(10, maxf64(result.Get(10), vmax))
+			result.Set(10, math.Max(result.Get(10), vmax))
 		}
 	label250:
 	}

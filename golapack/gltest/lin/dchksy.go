@@ -53,7 +53,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -137,7 +137,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//                       Set the first IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -147,7 +147,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//                       Set the last IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -177,7 +177,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					//                 matrix. IWORK stores details of the interchanges and
 					//                 the block structure of D. AINV is a work array for
 					//                 block factorization, LWORK is the length of AINV.
-					lwork = maxint(2, nb) * lda
+					lwork = max(2, nb) * lda
 					*srnamt = "DSYTRF"
 					golapack.Dsytrf(uplo, &n, afac.Matrix(lda, opts), &lda, iwork, ainv, &lwork, &info)
 
@@ -319,7 +319,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						//+    TESTS 6, 7, and 8
 						//                 Use iterative refinement to improve the solution.
 						*srnamt = "DSYRFS"
-						golapack.Dsyrfs(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, toSlice(iwork, n+1-1), &info)
+						golapack.Dsyrfs(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, toSlice(iwork, n), &info)
 
 						//                    Check error code from DSYRFS and handle error.
 						if info != 0 {
@@ -327,7 +327,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						}
 
 						Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(5))
-						Dpot05(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(6))
+						Dpot05(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(6))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
@@ -353,7 +353,7 @@ func Dchksy(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					;
 					anorm = golapack.Dlansy('1', uplo, &n, a.Matrix(lda, opts), &lda, rwork)
 					*srnamt = "DSYCON"
-					golapack.Dsycon(uplo, &n, afac.Matrix(lda, opts), &lda, iwork, &anorm, &rcond, work, toSlice(iwork, n+1-1), &info)
+					golapack.Dsycon(uplo, &n, afac.Matrix(lda, opts), &lda, iwork, &anorm, &rcond, work, toSlice(iwork, n), &info)
 
 					//                 Check error code from DSYCON and handle error.
 					if info != 0 {

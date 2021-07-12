@@ -45,7 +45,7 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 		(*info) = -1
 	} else if (*m) < 0 || (*m) > (*n) {
 		(*info) = -4
-	} else if (*ldz) < maxint(1, *n) {
+	} else if (*ldz) < max(1, *n) {
 		(*info) = -9
 	} else {
 		for j = 2; j <= (*m); j++ {
@@ -107,9 +107,9 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 
 		//        Compute reorthogonalization criterion and stopping criterion.
 		onenrm = d.GetMag(b1-1) + e.GetMag(b1-1)
-		onenrm = maxf64(onenrm, d.GetMag(bn-1)+e.GetMag(bn-1-1))
+		onenrm = math.Max(onenrm, d.GetMag(bn-1)+e.GetMag(bn-1-1))
 		for i = b1 + 1; i <= bn-1; i++ {
-			onenrm = maxf64(onenrm, d.GetMag(i-1)+e.GetMag(i-1-1)+e.GetMag(i-1))
+			onenrm = math.Max(onenrm, d.GetMag(i-1)+e.GetMag(i-1-1)+e.GetMag(i-1))
 		}
 		ortol = odm3 * onenrm
 
@@ -129,7 +129,7 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 
 			//           Skip all the work if the block size is one.
 			if blksiz == 1 {
-				work.Set(indrv1+1-1, one)
+				work.Set(indrv1, one)
 				goto label140
 			}
 
@@ -148,16 +148,16 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			nrmchk = 0
 
 			//           Get random starting vector.
-			Dlarnv(func() *int { y := 2; return &y }(), &iseed, &blksiz, work.Off(indrv1+1-1))
+			Dlarnv(func() *int { y := 2; return &y }(), &iseed, &blksiz, work.Off(indrv1))
 
 			//           Copy the matrix T so it won't be destroyed in factorization.
-			goblas.Dcopy(blksiz, d.Off(b1-1), 1, work.Off(indrv4+1-1), 1)
-			goblas.Dcopy(blksiz-1, e.Off(b1-1), 1, work.Off(indrv2+2-1), 1)
-			goblas.Dcopy(blksiz-1, e.Off(b1-1), 1, work.Off(indrv3+1-1), 1)
+			goblas.Dcopy(blksiz, d.Off(b1-1, 1), work.Off(indrv4, 1))
+			goblas.Dcopy(blksiz-1, e.Off(b1-1, 1), work.Off(indrv2+2-1, 1))
+			goblas.Dcopy(blksiz-1, e.Off(b1-1, 1), work.Off(indrv3, 1))
 
 			//           Compute LU factors with partial pivoting  ( PT = LU )
 			tol = zero
-			Dlagtf(&blksiz, work.Off(indrv4+1-1), &xj, work.Off(indrv2+2-1), work.Off(indrv3+1-1), &tol, work.Off(indrv5+1-1), iwork, &iinfo)
+			Dlagtf(&blksiz, work.Off(indrv4), &xj, work.Off(indrv2+2-1), work.Off(indrv3), &tol, work.Off(indrv5), iwork, &iinfo)
 
 			//           Update iteration count.
 		label70:
@@ -168,12 +168,12 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			}
 
 			//           Normalize and scale the righthand side vector Pb.
-			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
-			scl = float64(blksiz) * onenrm * maxf64(eps, work.GetMag(indrv4+blksiz-1)) / work.GetMag(indrv1+jmax-1)
-			goblas.Dscal(blksiz, scl, work.Off(indrv1+1-1), 1)
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1, 1))
+			scl = float64(blksiz) * onenrm * math.Max(eps, work.GetMag(indrv4+blksiz-1)) / work.GetMag(indrv1+jmax-1)
+			goblas.Dscal(blksiz, scl, work.Off(indrv1, 1))
 
 			//           Solve the system LU = Pb.
-			Dlagts(toPtr(-1), &blksiz, work.Off(indrv4+1-1), work.Off(indrv2+2-1), work.Off(indrv3+1-1), work.Off(indrv5+1-1), iwork, work.Off(indrv1+1-1), &tol, &iinfo)
+			Dlagts(toPtr(-1), &blksiz, work.Off(indrv4), work.Off(indrv2+2-1), work.Off(indrv3), work.Off(indrv5), iwork, work.Off(indrv1), &tol, &iinfo)
 
 			//           Reorthogonalize by modified Gram-Schmidt if eigenvalues are
 			//           close enough.
@@ -198,7 +198,7 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			//           Check the infinity norm of the iterate.
 		label110:
 			;
-			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1, 1))
 			nrm = work.GetMag(indrv1 + jmax - 1)
 
 			//           Continue for additional iterations after norm reaches
@@ -223,12 +223,12 @@ func Zstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			//           Accept iterate as jth eigenvector.
 		label130:
 			;
-			scl = one / goblas.Dnrm2(blksiz, work.Off(indrv1+1-1), 1)
-			jmax = goblas.Idamax(blksiz, work.Off(indrv1+1-1), 1)
+			scl = one / goblas.Dnrm2(blksiz, work.Off(indrv1, 1))
+			jmax = goblas.Idamax(blksiz, work.Off(indrv1, 1))
 			if work.Get(indrv1+jmax-1) < zero {
 				scl = -scl
 			}
-			goblas.Dscal(blksiz, scl, work.Off(indrv1+1-1), 1)
+			goblas.Dscal(blksiz, scl, work.Off(indrv1, 1))
 		label140:
 			;
 			for i = 1; i <= (*n); i++ {

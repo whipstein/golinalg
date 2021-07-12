@@ -86,9 +86,9 @@ func Dgges(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix, 
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (*ldvsl) < 1 || (ilvsl && (*ldvsl) < (*n)) {
 		(*info) = -15
@@ -104,11 +104,11 @@ func Dgges(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix, 
 	//       following subroutine, as returned by ILAENV.)
 	if (*info) == 0 {
 		if (*n) > 0 {
-			minwrk = maxint(8*(*n), 6*(*n)+16)
+			minwrk = max(8*(*n), 6*(*n)+16)
 			maxwrk = minwrk - (*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
-			maxwrk = maxint(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+			maxwrk = max(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 			if ilvsl {
-				maxwrk = maxint(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 			}
 		} else {
 			minwrk = 1
@@ -194,7 +194,7 @@ func Dgges(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix, 
 	if ilvsl {
 		Dlaset('F', n, n, &zero, &one, vsl, ldvsl)
 		if irows > 1 {
-			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vsl.Off(ilo+1-1, ilo-1), ldvsl)
+			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vsl.Off(ilo, ilo-1), ldvsl)
 		}
 		Dorgqr(&irows, &irows, &irows, vsl.Off(ilo-1, ilo-1), ldvsl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -270,7 +270,7 @@ func Dgges(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix, 
 					alphar.Set(i-1, alphar.Get(i-1)*work.Get(0))
 					alphai.Set(i-1, alphai.Get(i-1)*work.Get(0))
 				} else if (alphai.Get(i-1)/safmax) > (anrmto/anrm) || (safmin/alphai.Get(i-1)) > (anrm/anrmto) {
-					work.Set(0, math.Abs(a.Get(i-1, i+1-1)/alphai.Get(i-1)))
+					work.Set(0, math.Abs(a.Get(i-1, i)/alphai.Get(i-1)))
 					beta.Set(i-1, beta.Get(i-1)*work.Get(0))
 					alphar.Set(i-1, alphar.Get(i-1)*work.Get(0))
 					alphai.Set(i-1, alphai.Get(i-1)*work.Get(0))

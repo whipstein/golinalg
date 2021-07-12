@@ -46,11 +46,11 @@ func Zunmtr(side, uplo, trans byte, m, n *int, a *mat.CMatrix, lda *int, tau *ma
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, nq) {
+	} else if (*lda) < max(1, nq) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
-	} else if (*lwork) < maxint(1, nw) && !lquery {
+	} else if (*lwork) < max(1, nw) && !lquery {
 		(*info) = -12
 	}
 
@@ -68,7 +68,7 @@ func Zunmtr(side, uplo, trans byte, m, n *int, a *mat.CMatrix, lda *int, tau *ma
 				nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{side, trans}, m, toPtr((*n)-1), toPtr((*n)-1), toPtr(-1))
 			}
 		}
-		lwkopt = maxint(1, nw) * nb
+		lwkopt = max(1, nw) * nb
 		work.SetRe(0, float64(lwkopt))
 	}
 

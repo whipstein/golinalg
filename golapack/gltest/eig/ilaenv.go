@@ -23,7 +23,7 @@ func Ilaenv(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenvReturn in
 
 	} else if (*ispec) == 6 {
 		//        Compute SVD crossover point.
-		ilaenvReturn = int(float64(minint(*n1, *n2)) * 1.6)
+		ilaenvReturn = int(float64(min(*n1, *n2)) * 1.6)
 
 	} else if (*ispec) >= 7 && (*ispec) <= 9 {
 		//        Return a value from the common block.
@@ -117,7 +117,7 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 			ns = 10
 		}
 		if nh >= 150 {
-			ns = maxint(10, nh/int(math.Round(math.Log(float64(nh))/math.Log(two))))
+			ns = max(10, nh/int(math.Round(math.Log(float64(nh))/math.Log(two))))
 		}
 		if nh >= 590 {
 			ns = 64
@@ -128,7 +128,7 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 		if nh >= 6000 {
 			ns = 256
 		}
-		ns = maxint(2, ns-(ns%2))
+		ns = max(2, ns-(ns%2))
 	}
 
 	if (*ispec) == inmin {

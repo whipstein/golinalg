@@ -31,11 +31,11 @@ func Zlaed8(k, n, qsiz *int, q *mat.CMatrix, ldq *int, d *mat.Vector, rho *float
 		(*info) = -2
 	} else if (*qsiz) < (*n) {
 		(*info) = -3
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -5
-	} else if (*cutpnt) < minint(int(1), *n) || (*cutpnt) > (*n) {
+	} else if (*cutpnt) < min(int(1), *n) || (*cutpnt) > (*n) {
 		(*info) = -8
-	} else if (*ldq2) < maxint(1, *n) {
+	} else if (*ldq2) < max(1, *n) {
 		(*info) = -12
 	}
 	if (*info) != 0 {
@@ -59,7 +59,7 @@ func Zlaed8(k, n, qsiz *int, q *mat.CMatrix, ldq *int, d *mat.Vector, rho *float
 	n1p1 = n1 + 1
 
 	if (*rho) < zero {
-		goblas.Dscal(n2, mone, z.Off(n1p1-1), 1)
+		goblas.Dscal(n2, mone, z.Off(n1p1-1, 1))
 	}
 
 	//     Normalize z so that norm(z) = 1
@@ -67,7 +67,7 @@ func Zlaed8(k, n, qsiz *int, q *mat.CMatrix, ldq *int, d *mat.Vector, rho *float
 	for j = 1; j <= (*n); j++ {
 		(*indx)[j-1] = j
 	}
-	goblas.Dscal(*n, t, z, 1)
+	goblas.Dscal(*n, t, z.Off(0, 1))
 	(*rho) = math.Abs(two * (*rho))
 
 	//     Sort the eigenvalues into increasing order
@@ -87,8 +87,8 @@ func Zlaed8(k, n, qsiz *int, q *mat.CMatrix, ldq *int, d *mat.Vector, rho *float
 	}
 
 	//     Calculate the allowable deflation tolerance
-	imax = goblas.Idamax(*n, z, 1)
-	jmax = goblas.Idamax(*n, d, 1)
+	imax = goblas.Idamax(*n, z.Off(0, 1))
+	jmax = goblas.Idamax(*n, d.Off(0, 1))
 	eps = Dlamch(Epsilon)
 	tol = eight * eps * d.GetMag(jmax-1)
 
@@ -99,7 +99,7 @@ func Zlaed8(k, n, qsiz *int, q *mat.CMatrix, ldq *int, d *mat.Vector, rho *float
 		(*k) = 0
 		for j = 1; j <= (*n); j++ {
 			(*perm)[j-1] = (*indxq)[(*indx)[j-1]-1]
-			goblas.Zcopy(*qsiz, q.CVector(0, (*perm)[j-1]-1), 1, q2.CVector(0, j-1), 1)
+			goblas.Zcopy(*qsiz, q.CVector(0, (*perm)[j-1]-1, 1), q2.CVector(0, j-1, 1))
 		}
 		Zlacpy('A', qsiz, n, q2, ldq2, q, ldq)
 		return
@@ -157,7 +157,7 @@ label70:
 			(*givcol)[1+((*givptr)-1)*2] = (*indxq)[(*indx)[j-1]-1]
 			givnum.Set(0, (*givptr)-1, c)
 			givnum.Set(1, (*givptr)-1, s)
-			goblas.Zdrot(*qsiz, q.CVector(0, (*indxq)[(*indx)[jlam-1]-1]-1), 1, q.CVector(0, (*indxq)[(*indx)[j-1]-1]-1), 1, c, s)
+			goblas.Zdrot(*qsiz, q.CVector(0, (*indxq)[(*indx)[jlam-1]-1]-1, 1), q.CVector(0, (*indxq)[(*indx)[j-1]-1]-1, 1), c, s)
 			t = d.Get(jlam-1)*c*c + d.Get(j-1)*s*s
 			d.Set(j-1, d.Get(jlam-1)*s*s+d.Get(j-1)*c*c)
 			d.Set(jlam-1, t)
@@ -207,13 +207,13 @@ label100:
 		jp = (*indxp)[j-1]
 		dlamda.Set(j-1, d.Get(jp-1))
 		(*perm)[j-1] = (*indxq)[(*indx)[jp-1]-1]
-		goblas.Zcopy(*qsiz, q.CVector(0, (*perm)[j-1]-1), 1, q2.CVector(0, j-1), 1)
+		goblas.Zcopy(*qsiz, q.CVector(0, (*perm)[j-1]-1, 1), q2.CVector(0, j-1, 1))
 	}
 
 	//     The deflated eigenvalues and their corresponding vectors go back
 	//     into the last N - K slots of D and Q respectively.
 	if (*k) < (*n) {
-		goblas.Dcopy((*n)-(*k), dlamda.Off((*k)+1-1), 1, d.Off((*k)+1-1), 1)
-		Zlacpy('A', qsiz, toPtr((*n)-(*k)), q2.Off(0, (*k)+1-1), ldq2, q.Off(0, (*k)+1-1), ldq)
+		goblas.Dcopy((*n)-(*k), dlamda.Off((*k), 1), d.Off((*k), 1))
+		Zlacpy('A', qsiz, toPtr((*n)-(*k)), q2.Off(0, (*k)), ldq2, q.Off(0, (*k)), ldq)
 	}
 }

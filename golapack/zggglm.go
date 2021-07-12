@@ -44,7 +44,7 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 
 	//     Test the input parameters
 	(*info) = 0
-	np = minint(*n, *p)
+	np = min(*n, *p)
 	lquery = ((*lwork) == -1)
 	if (*n) < 0 {
 		(*info) = -1
@@ -52,9 +52,9 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 		(*info) = -2
 	} else if (*p) < 0 || (*p) < (*n)-(*m) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 
@@ -68,9 +68,9 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 			nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGERQF"), []byte{' '}, n, m, toPtr(-1), toPtr(-1))
 			nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, m, p, toPtr(-1))
 			nb4 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMRQ"), []byte{' '}, n, m, p, toPtr(-1))
-			nb = maxint(nb1, nb2, nb3, nb4)
+			nb = max(nb1, nb2, nb3, nb4)
 			lwkmin = (*m) + (*n) + (*p)
-			lwkopt = (*m) + np + maxint(*n, *p)*nb
+			lwkopt = (*m) + np + max(*n, *p)*nb
 		}
 		work.SetRe(0, float64(lwkopt))
 
@@ -99,24 +99,24 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 	//
 	//     where R11 and T22 are upper triangular, and Q and Z are
 	//     unitary.
-	Zggqrf(n, m, p, a, lda, work, b, ldb, work.Off((*m)+1-1), work.Off((*m)+np+1-1), toPtr((*lwork)-(*m)-np), info)
+	Zggqrf(n, m, p, a, lda, work, b, ldb, work.Off((*m)), work.Off((*m)+np), toPtr((*lwork)-(*m)-np), info)
 	lopt = int(work.GetRe((*m) + np + 1 - 1))
 
 	//     Update left-hand-side vector d = Q**H*d = ( d1 ) M
 	//                                               ( d2 ) N-M
-	Zunmqr('L', 'C', n, func() *int { y := 1; return &y }(), m, a, lda, work, d.CMatrix(maxint(1, *n), opts), toPtr(maxint(1, *n)), work.Off((*m)+np+1-1), toPtr((*lwork)-(*m)-np), info)
-	lopt = maxint(lopt, int(work.GetRe((*m)+np+1-1)))
+	Zunmqr('L', 'C', n, func() *int { y := 1; return &y }(), m, a, lda, work, d.CMatrix(max(1, *n), opts), toPtr(max(1, *n)), work.Off((*m)+np), toPtr((*lwork)-(*m)-np), info)
+	lopt = max(lopt, int(work.GetRe((*m)+np)))
 
 	//     Solve T22*y2 = d2 for y2
 	if (*n) > (*m) {
-		Ztrtrs('U', 'N', 'N', toPtr((*n)-(*m)), func() *int { y := 1; return &y }(), b.Off((*m)+1-1, (*m)+(*p)-(*n)+1-1), ldb, d.CMatrixOff((*m)+1-1, (*n)-(*m), opts), toPtr((*n)-(*m)), info)
+		Ztrtrs('U', 'N', 'N', toPtr((*n)-(*m)), func() *int { y := 1; return &y }(), b.Off((*m), (*m)+(*p)-(*n)), ldb, d.CMatrixOff((*m), (*n)-(*m), opts), toPtr((*n)-(*m)), info)
 
 		if (*info) > 0 {
 			(*info) = 1
 			return
 		}
 
-		goblas.Zcopy((*n)-(*m), d.Off((*m)+1-1), 1, y.Off((*m)+(*p)-(*n)+1-1), 1)
+		goblas.Zcopy((*n)-(*m), d.Off((*m), 1), y.Off((*m)+(*p)-(*n), 1))
 	}
 
 	//     Set y1 = 0
@@ -125,7 +125,7 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 	}
 
 	//     Update d1 = d1 - T12*y2
-	err = goblas.Zgemv(NoTrans, *m, (*n)-(*m), -cone, b.Off(0, (*m)+(*p)-(*n)+1-1), *ldb, y.Off((*m)+(*p)-(*n)+1-1), 1, cone, d, 1)
+	err = goblas.Zgemv(NoTrans, *m, (*n)-(*m), -cone, b.Off(0, (*m)+(*p)-(*n)), y.Off((*m)+(*p)-(*n), 1), cone, d.Off(0, 1))
 
 	//     Solve triangular system: R11*x = d1
 	if (*m) > 0 {
@@ -137,10 +137,10 @@ func Zggglm(n, m, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, d,
 		}
 
 		//        Copy D to X
-		goblas.Zcopy(*m, d, 1, x, 1)
+		goblas.Zcopy(*m, d.Off(0, 1), x.Off(0, 1))
 	}
 
 	//     Backward transformation y = Z**H *y
-	Zunmrq('L', 'C', p, func() *int { y := 1; return &y }(), &np, b.Off(maxint(1, (*n)-(*p)+1)-1, 0), ldb, work.Off((*m)+1-1), y.CMatrix(maxint(1, *p), opts), toPtr(maxint(1, *p)), work.Off((*m)+np+1-1), toPtr((*lwork)-(*m)-np), info)
-	work.SetRe(0, float64((*m)+np+maxint(lopt, int(work.GetRe((*m)+np+1-1)))))
+	Zunmrq('L', 'C', p, func() *int { y := 1; return &y }(), &np, b.Off(max(1, (*n)-(*p)+1)-1, 0), ldb, work.Off((*m)), y.CMatrix(max(1, *p), opts), toPtr(max(1, *p)), work.Off((*m)+np), toPtr((*lwork)-(*m)-np), info)
+	work.SetRe(0, float64((*m)+np+max(lopt, int(work.GetRe((*m)+np)))))
 }

@@ -35,7 +35,7 @@ func Dgtt01(n *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, ipiv *[]int, work 
 		if i == 1 {
 			work.Set(i-1, i-1, df.Get(i-1))
 			if (*n) >= 2 {
-				work.Set(i-1, i+1-1, duf.Get(i-1))
+				work.Set(i-1, i, duf.Get(i-1))
 			}
 			if (*n) >= 3 {
 				work.Set(i-1, i+2-1, du2.Get(i-1))
@@ -44,7 +44,7 @@ func Dgtt01(n *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, ipiv *[]int, work 
 			work.Set(i-1, i-1, df.Get(i-1))
 		} else {
 			work.Set(i-1, i-1, df.Get(i-1))
-			work.Set(i-1, i+1-1, duf.Get(i-1))
+			work.Set(i-1, i, duf.Get(i-1))
 			if i < (*n)-1 {
 				work.Set(i-1, i+2-1, du2.Get(i-1))
 			}
@@ -55,12 +55,12 @@ func Dgtt01(n *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, ipiv *[]int, work 
 	lastj = (*n)
 	for i = (*n) - 1; i >= 1; i-- {
 		li = dlf.Get(i - 1)
-		goblas.Daxpy(lastj-i+1, li, work.Vector(i-1, i-1), *ldwork, work.Vector(i+1-1, i-1), *ldwork)
+		goblas.Daxpy(lastj-i+1, li, work.Vector(i-1, i-1, *ldwork), work.Vector(i, i-1, *ldwork))
 		ip = (*ipiv)[i-1]
 		if ip == i {
-			lastj = minint(i+2, *n)
+			lastj = min(i+2, *n)
 		} else {
-			goblas.Dswap(lastj-i+1, work.Vector(i-1, i-1), *ldwork, work.Vector(i+1-1, i-1), *ldwork)
+			goblas.Dswap(lastj-i+1, work.Vector(i-1, i-1, *ldwork), work.Vector(i, i-1, *ldwork))
 		}
 	}
 
@@ -73,7 +73,7 @@ func Dgtt01(n *int, dl, d, du, dlf, df, duf, du2 *mat.Vector, ipiv *[]int, work 
 		for i = 2; i <= (*n)-1; i++ {
 			work.Set(i-1, i-1-1, work.Get(i-1, i-1-1)-dl.Get(i-1-1))
 			work.Set(i-1, i-1, work.Get(i-1, i-1)-d.Get(i-1))
-			work.Set(i-1, i+1-1, work.Get(i-1, i+1-1)-du.Get(i-1))
+			work.Set(i-1, i, work.Get(i-1, i)-du.Get(i-1))
 		}
 	}
 

@@ -36,7 +36,7 @@ func Ztptrs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 		(*info) = -4
 	} else if (*nrhs) < 0 {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -73,6 +73,6 @@ func Ztptrs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 
 	//     Solve  A * x = b,  A**T * x = b,  or  A**H * x = b.
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, b.CVector(0, j-1), 1)
+		err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, b.CVector(0, j-1, 1))
 	}
 }

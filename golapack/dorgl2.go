@@ -28,7 +28,7 @@ func Dorgl2(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*m) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -58,9 +58,9 @@ func Dorgl2(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 		if i < (*n) {
 			if i < (*m) {
 				a.Set(i-1, i-1, one)
-				Dlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.Vector(i-1, i-1), lda, tau.GetPtr(i-1), a.Off(i+1-1, i-1), lda, work)
+				Dlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.Vector(i-1, i-1), lda, tau.GetPtr(i-1), a.Off(i, i-1), lda, work)
 			}
-			goblas.Dscal((*n)-i, -tau.Get(i-1), a.Vector(i-1, i+1-1), *lda)
+			goblas.Dscal((*n)-i, -tau.Get(i-1), a.Vector(i-1, i))
 		}
 		a.Set(i-1, i-1, one-tau.Get(i-1))
 

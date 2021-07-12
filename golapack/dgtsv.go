@@ -27,7 +27,7 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 		(*info) = -1
 	} else if (*nrhs) < 0 {
 		(*info) = -2
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -45,8 +45,8 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				//              No row interchange required
 				if d.Get(i-1) != zero {
 					fact = dl.Get(i-1) / d.Get(i-1)
-					d.Set(i+1-1, d.Get(i+1-1)-fact*du.Get(i-1))
-					b.Set(i+1-1, 0, b.Get(i+1-1, 0)-fact*b.Get(i-1, 0))
+					d.Set(i, d.Get(i)-fact*du.Get(i-1))
+					b.Set(i, 0, b.Get(i, 0)-fact*b.Get(i-1, 0))
 				} else {
 					(*info) = i
 					return
@@ -57,13 +57,13 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				fact = d.Get(i-1) / dl.Get(i-1)
 				d.Set(i-1, dl.Get(i-1))
 				temp = d.Get(i + 1 - 1)
-				d.Set(i+1-1, du.Get(i-1)-fact*temp)
-				dl.Set(i-1, du.Get(i+1-1))
-				du.Set(i+1-1, -fact*dl.Get(i-1))
+				d.Set(i, du.Get(i-1)-fact*temp)
+				dl.Set(i-1, du.Get(i))
+				du.Set(i, -fact*dl.Get(i-1))
 				du.Set(i-1, temp)
 				temp = b.Get(i-1, 0)
-				b.Set(i-1, 0, b.Get(i+1-1, 0))
-				b.Set(i+1-1, 0, temp-fact*b.Get(i+1-1, 0))
+				b.Set(i-1, 0, b.Get(i, 0))
+				b.Set(i, 0, temp-fact*b.Get(i, 0))
 			}
 		}
 		if (*n) > 1 {
@@ -71,8 +71,8 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 			if math.Abs(d.Get(i-1)) >= math.Abs(dl.Get(i-1)) {
 				if d.Get(i-1) != zero {
 					fact = dl.Get(i-1) / d.Get(i-1)
-					d.Set(i+1-1, d.Get(i+1-1)-fact*du.Get(i-1))
-					b.Set(i+1-1, 0, b.Get(i+1-1, 0)-fact*b.Get(i-1, 0))
+					d.Set(i, d.Get(i)-fact*du.Get(i-1))
+					b.Set(i, 0, b.Get(i, 0)-fact*b.Get(i-1, 0))
 				} else {
 					(*info) = i
 					return
@@ -81,11 +81,11 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				fact = d.Get(i-1) / dl.Get(i-1)
 				d.Set(i-1, dl.Get(i-1))
 				temp = d.Get(i + 1 - 1)
-				d.Set(i+1-1, du.Get(i-1)-fact*temp)
+				d.Set(i, du.Get(i-1)-fact*temp)
 				du.Set(i-1, temp)
 				temp = b.Get(i-1, 0)
-				b.Set(i-1, 0, b.Get(i+1-1, 0))
-				b.Set(i+1-1, 0, temp-fact*b.Get(i+1-1, 0))
+				b.Set(i-1, 0, b.Get(i, 0))
+				b.Set(i, 0, temp-fact*b.Get(i, 0))
 			}
 		}
 		if d.Get((*n)-1) == zero {
@@ -98,9 +98,9 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				//              No row interchange required
 				if d.Get(i-1) != zero {
 					fact = dl.Get(i-1) / d.Get(i-1)
-					d.Set(i+1-1, d.Get(i+1-1)-fact*du.Get(i-1))
+					d.Set(i, d.Get(i)-fact*du.Get(i-1))
 					for j = 1; j <= (*nrhs); j++ {
-						b.Set(i+1-1, j-1, b.Get(i+1-1, j-1)-fact*b.Get(i-1, j-1))
+						b.Set(i, j-1, b.Get(i, j-1)-fact*b.Get(i-1, j-1))
 					}
 				} else {
 					(*info) = i
@@ -112,14 +112,14 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				fact = d.Get(i-1) / dl.Get(i-1)
 				d.Set(i-1, dl.Get(i-1))
 				temp = d.Get(i + 1 - 1)
-				d.Set(i+1-1, du.Get(i-1)-fact*temp)
-				dl.Set(i-1, du.Get(i+1-1))
-				du.Set(i+1-1, -fact*dl.Get(i-1))
+				d.Set(i, du.Get(i-1)-fact*temp)
+				dl.Set(i-1, du.Get(i))
+				du.Set(i, -fact*dl.Get(i-1))
 				du.Set(i-1, temp)
 				for j = 1; j <= (*nrhs); j++ {
 					temp = b.Get(i-1, j-1)
-					b.Set(i-1, j-1, b.Get(i+1-1, j-1))
-					b.Set(i+1-1, j-1, temp-fact*b.Get(i+1-1, j-1))
+					b.Set(i-1, j-1, b.Get(i, j-1))
+					b.Set(i, j-1, temp-fact*b.Get(i, j-1))
 				}
 			}
 		}
@@ -128,9 +128,9 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 			if math.Abs(d.Get(i-1)) >= math.Abs(dl.Get(i-1)) {
 				if d.Get(i-1) != zero {
 					fact = dl.Get(i-1) / d.Get(i-1)
-					d.Set(i+1-1, d.Get(i+1-1)-fact*du.Get(i-1))
+					d.Set(i, d.Get(i)-fact*du.Get(i-1))
 					for j = 1; j <= (*nrhs); j++ {
-						b.Set(i+1-1, j-1, b.Get(i+1-1, j-1)-fact*b.Get(i-1, j-1))
+						b.Set(i, j-1, b.Get(i, j-1)-fact*b.Get(i-1, j-1))
 					}
 				} else {
 					(*info) = i
@@ -140,12 +140,12 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				fact = d.Get(i-1) / dl.Get(i-1)
 				d.Set(i-1, dl.Get(i-1))
 				temp = d.Get(i + 1 - 1)
-				d.Set(i+1-1, du.Get(i-1)-fact*temp)
+				d.Set(i, du.Get(i-1)-fact*temp)
 				du.Set(i-1, temp)
 				for j = 1; j <= (*nrhs); j++ {
 					temp = b.Get(i-1, j-1)
-					b.Set(i-1, j-1, b.Get(i+1-1, j-1))
-					b.Set(i+1-1, j-1, temp-fact*b.Get(i+1-1, j-1))
+					b.Set(i-1, j-1, b.Get(i, j-1))
+					b.Set(i, j-1, temp-fact*b.Get(i, j-1))
 				}
 			}
 		}
@@ -165,7 +165,7 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 			b.Set((*n)-1-1, j-1, (b.Get((*n)-1-1, j-1)-du.Get((*n)-1-1)*b.Get((*n)-1, j-1))/d.Get((*n)-1-1))
 		}
 		for i = (*n) - 2; i >= 1; i-- {
-			b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i+1-1, j-1)-dl.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
+			b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i, j-1)-dl.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
 		}
 		if j < (*nrhs) {
 			j = j + 1
@@ -178,7 +178,7 @@ func Dgtsv(n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb, info *int) {
 				b.Set((*n)-1-1, j-1, (b.Get((*n)-1-1, j-1)-du.Get((*n)-1-1)*b.Get((*n)-1, j-1))/d.Get((*n)-1-1))
 			}
 			for i = (*n) - 2; i >= 1; i-- {
-				b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i+1-1, j-1)-dl.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
+				b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i, j-1)-dl.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
 			}
 		}
 	}

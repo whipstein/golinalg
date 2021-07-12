@@ -50,7 +50,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL.
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
@@ -83,7 +83,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				ia = 1
 				for i = 1; i <= n-1; i++ {
 					d.Set(i-1, a.GetRe(ia-1))
-					e.Set(i-1, a.Get(ia+1-1))
+					e.Set(i-1, a.Get(ia))
 					ia = ia + 2
 				}
 				if n > 0 {
@@ -109,10 +109,10 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(n, d, 1)
+					ix = goblas.Idamax(n, d.Off(0, 1))
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(n, anorm/dmax, d, 1)
-					goblas.Zdscal(n-1, anorm/dmax, e, 1)
+					goblas.Dscal(n, anorm/dmax, d.Off(0, 1))
+					goblas.Zdscal(n-1, anorm/dmax, e.Off(0, 1))
 
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -164,15 +164,15 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				}
 			}
 
-			goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
+			goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 			if n > 1 {
-				goblas.Zcopy(n-1, e, 1, e.Off(n+1-1), 1)
+				goblas.Zcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 			}
 
 			//+    TEST 1
 			//           Factor A as L*D*L' and compute the ratio
 			//              norm(L*D*L' - A) / (n * norm(A) * EPS )
-			golapack.Zpttrf(&n, d.Off(n+1-1), e.Off(n+1-1), &info)
+			golapack.Zpttrf(&n, d.Off(n), e.Off(n), &info)
 
 			//           Check error code from ZPTTRF.
 			if info != izero {
@@ -186,7 +186,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				goto label100
 			}
 
-			Zptt01(&n, d, e, d.Off(n+1-1), e.Off(n+1-1), work, result.GetPtr(0))
+			Zptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
 
 			//           Print the test ratio if greater than or equal to THRESH.
 			if result.Get(0) >= (*thresh) {
@@ -212,10 +212,10 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					x.SetRe(j-1, zero)
 				}
 				x.SetRe(i-1, one)
-				golapack.Zpttrs('L', &n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.CMatrix(lda, opts), &lda, &info)
-				ainvnm = maxf64(ainvnm, goblas.Dzasum(n, x, 1))
+				golapack.Zpttrs('L', &n, func() *int { y := 1; return &y }(), d.Off(n), e.Off(n), x.CMatrix(lda, opts), &lda, &info)
+				ainvnm = math.Max(ainvnm, goblas.Dzasum(n, x.Off(0, 1)))
 			}
-			rcondc = one / maxf64(one, anorm*ainvnm)
+			rcondc = one / math.Max(one, anorm*ainvnm)
 
 			for irhs = 1; irhs <= (*nns); irhs++ {
 				nrhs = (*nsval)[irhs-1]
@@ -237,7 +237,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TEST 2
 					//              Solve A*x = b and compute the residual.
 					golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
-					golapack.Zpttrs(uplo, &n, &nrhs, d.Off(n+1-1), e.Off(n+1-1), x.CMatrix(lda, opts), &lda, &info)
+					golapack.Zpttrs(uplo, &n, &nrhs, d.Off(n), e.Off(n), x.CMatrix(lda, opts), &lda, &info)
 
 					//              Check error code from ZPTTRS.
 					if info != 0 {
@@ -254,7 +254,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TESTS 4, 5, and 6
 					//              Use iterative refinement to improve the solution.
 					*srnamt = "ZPTRFS"
-					golapack.Zptrfs(uplo, &n, &nrhs, d, e, d.Off(n+1-1), e.Off(n+1-1), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+					golapack.Zptrfs(uplo, &n, &nrhs, d, e, d.Off(n), e.Off(n), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 					//              Check error code from ZPTRFS.
 					if info != 0 {
@@ -262,7 +262,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-					Zptt05(&n, &nrhs, d, e, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+					Zptt05(&n, &nrhs, d, e, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 					//              Print information about the tests that did not pass the
 					//              threshold.
@@ -287,7 +287,7 @@ func Zchkpt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 		label100:
 			;
 			*srnamt = "ZPTCON"
-			golapack.Zptcon(&n, d.Off(n+1-1), e.Off(n+1-1), &anorm, &rcond, rwork, &info)
+			golapack.Zptcon(&n, d.Off(n), e.Off(n), &anorm, &rcond, rwork, &info)
 
 			//           Check error code from ZPTCON.
 			if info != 0 {

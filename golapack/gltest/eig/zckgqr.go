@@ -61,7 +61,7 @@ func Zckgqr(nm *int, mval *[]int, np *int, pval *[]int, nn *int, nval *[]int, nm
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZLATMS in ZCKGQR:    INFO = %5d\n", iinfo)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						goto label30
 					}
 
@@ -69,7 +69,7 @@ func Zckgqr(nm *int, mval *[]int, np *int, pval *[]int, nn *int, nval *[]int, nm
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZLATMS in ZCKGQR:    INFO = %5d\n", iinfo)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						goto label30
 					}
 
@@ -102,7 +102,7 @@ func Zckgqr(nm *int, mval *[]int, np *int, pval *[]int, nn *int, nval *[]int, nm
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZLATMS in ZCKGQR:    INFO = %5d\n", iinfo)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						goto label30
 					}
 
@@ -110,7 +110,7 @@ func Zckgqr(nm *int, mval *[]int, np *int, pval *[]int, nn *int, nval *[]int, nm
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZLATMS in ZCKGQR:    INFO = %5d\n", iinfo)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						goto label30
 					}
 

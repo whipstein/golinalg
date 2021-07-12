@@ -19,7 +19,7 @@ func Dlange(norm byte, m *int, n *int, a *mat.Matrix, lda *int, work *mat.Vector
 	one = 1.0
 	zero = 0.0
 
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		value = zero
 	} else if norm == 'M' {
 		//        Find max(abs(A(i,j))).

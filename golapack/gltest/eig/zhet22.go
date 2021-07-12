@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -47,15 +49,15 @@ func Zhet22(itype *int, uplo byte, n, m, kband *int, a *mat.CMatrix, lda *int, d
 	//     Do Test 1
 	//
 	//     Norm of A:
-	anorm = maxf64(golapack.Zlanhe('1', uplo, n, a, lda, rwork), unfl)
+	anorm = math.Max(golapack.Zlanhe('1', uplo, n, a, lda, rwork), unfl)
 
 	//     Compute error matrix:
 	//
 	//     ITYPE=1: error = U**H A U - S
-	err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, *lda, u, *ldu, czero, work.CMatrix(*n, opts), *n)
+	err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, u, czero, work.CMatrix(*n, opts))
 	nn = (*n) * (*n)
 	nnp1 = nn + 1
-	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *m, *n, cone, u, *ldu, work.CMatrix(*n, opts), *n, czero, work.CMatrixOff(nnp1-1, *n, opts), *n)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *m, *n, cone, u, work.CMatrix(*n, opts), czero, work.CMatrixOff(nnp1-1, *n, opts))
 	for j = 1; j <= (*m); j++ {
 		jj = nn + (j-1)*(*n) + j
 		work.Set(jj-1, work.Get(jj-1)-d.GetCmplx(j-1))
@@ -74,9 +76,9 @@ func Zhet22(itype *int, uplo byte, n, m, kband *int, a *mat.CMatrix, lda *int, d
 		result.Set(0, (wnorm/anorm)/(float64(*m)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*m)*anorm)/anorm)/(float64(*m)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*m)*anorm)/anorm)/(float64(*m)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*m))/(float64(*m)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*m))/(float64(*m)*ulp))
 		}
 	}
 

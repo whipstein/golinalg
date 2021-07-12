@@ -107,21 +107,21 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 	nmax = 1
 	mnmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		mmax = maxint(mmax, (*mval)[j-1])
+		mmax = max(mmax, (*mval)[j-1])
 		if (*mval)[j-1] < 0 {
 			badmm = true
 		}
-		nmax = maxint(nmax, (*nval)[j-1])
+		nmax = max(nmax, (*nval)[j-1])
 		if (*nval)[j-1] < 0 {
 			badnn = true
 		}
-		mnmax = maxint(mnmax, minint((*mval)[j-1], (*nval)[j-1]))
+		mnmax = max(mnmax, min((*mval)[j-1], (*nval)[j-1]))
 	}
 
 	badnnb = false
 	kmax = 0
 	for j = 1; j <= (*nwdths); j++ {
-		kmax = maxint(kmax, (*kk)[j-1])
+		kmax = max(kmax, (*kk)[j-1])
 		if (*kk)[j-1] < 0 {
 			badnnb = true
 		}
@@ -152,7 +152,7 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 		(*info) = -21
 	} else if (*ldc) < nmax {
 		(*info) = -23
-	} else if (maxint(*lda, nmax)+1)*nmax > (*lwork) {
+	} else if (max(*lda, nmax)+1)*nmax > (*lwork) {
 		(*info) = -26
 	}
 
@@ -181,20 +181,20 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		m = (*mval)[jsize-1]
 		n = (*nval)[jsize-1]
-		amninv = one / float64(maxint(1, m, n))
+		amninv = one / float64(max(1, m, n))
 
 		for jwidth = 1; jwidth <= (*nwdths); jwidth++ {
 			k = (*kk)[jwidth-1]
 			if k >= m && k >= n {
 				goto label150
 			}
-			kl = maxint(0, minint(m-1, k))
-			ku = maxint(0, minint(n-1, k))
+			kl = max(0, min(m-1, k))
+			ku = max(0, min(n-1, k))
 
 			if (*nsizes) != 1 {
-				mtypes = minint(maxtyp, *ntypes)
+				mtypes = min(maxtyp, *ntypes)
 			} else {
-				mtypes = minint(maxtyp+1, *ntypes)
+				mtypes = min(maxtyp+1, *ntypes)
 			}
 
 			for jtype = 1; jtype <= mtypes; jtype++ {
@@ -251,7 +251,7 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 
 			label60:
 				;
-				anorm = rtunfl * float64(maxint(m, n)) * ulpinv
+				anorm = rtunfl * float64(max(m, n)) * ulpinv
 				goto label70
 
 			label70:
@@ -284,7 +284,7 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 
 				} else if itype == 9 {
 					//                 Nonhermitian, random entries
-					matgen.Zlatmr(&m, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &kl, &ku, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+					matgen.Zlatmr(&m, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &kl, &ku, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
 
 				} else {
 
@@ -292,12 +292,12 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 				}
 
 				//              Generate Right-Hand Side
-				matgen.Zlatmr(&m, nrhs, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(m+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*m+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &m, nrhs, &zero, &one, 'N', c, ldc, &idumma, &iinfo)
+				matgen.Zlatmr(&m, nrhs, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(m), func() *int { y := 1; return &y }(), &one, work.Off(2*m), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &m, nrhs, &zero, &one, 'N', c, ldc, &idumma, &iinfo)
 
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZCHKBB: %s returned INFO=%5d.\n         M=%5d N=%5d K=%5d, JTYPE=%5d, ISEED=%5d\n", "Generator", iinfo, m, n, k, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 
@@ -306,7 +306,7 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 
 				//              Copy A to band storage.
 				for j = 1; j <= n; j++ {
-					for i = maxint(1, j-ku); i <= minint(m, j+kl); i++ {
+					for i = max(1, j-ku); i <= min(m, j+kl); i++ {
 						ab.Set(ku+1+i-j-1, j-1, a.Get(i-1, j-1))
 					}
 				}
@@ -320,7 +320,7 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZCHKBB: %s returned INFO=%5d.\n         M=%5d N=%5d K=%5d, JTYPE=%5d, ISEED=%5d\n", "ZGBBRD", iinfo, m, n, k, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					if iinfo < 0 {
 						return
 					} else {

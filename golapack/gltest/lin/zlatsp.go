@@ -109,7 +109,7 @@ func Zlatsp(uplo byte, n *int, x *mat.CVector, iseed *[]int) {
 			x.Set(jj+2-1, b)
 			jj = jj + ((*n) - j + 1)
 			x.Set(jj-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
-			x.Set(jj+1-1, r)
+			x.Set(jj, r)
 			jj = jj + ((*n) - j)
 			x.Set(jj-1, c)
 			jj = jj + ((*n) - j - 1)
@@ -117,9 +117,9 @@ func Zlatsp(uplo byte, n *int, x *mat.CVector, iseed *[]int) {
 			jj = jj + ((*n) - j - 2)
 			x.Set(jj-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			if x.GetMag(jj-((*n)-j-2)-1) > x.GetMag(jj-1) {
-				x.Set(jj-((*n)-j-2)+1-1, 2.0*x.Get(jj-((*n)-j-2)-1))
+				x.Set(jj-((*n)-j-2), 2.0*x.Get(jj-((*n)-j-2)-1))
 			} else {
-				x.Set(jj-((*n)-j-2)+1-1, 2.0*x.Get(jj-1))
+				x.Set(jj-((*n)-j-2), 2.0*x.Get(jj-1))
 			}
 			jj = jj + ((*n) - j - 3)
 		}
@@ -135,7 +135,7 @@ func Zlatsp(uplo byte, n *int, x *mat.CVector, iseed *[]int) {
 			x.Set(jj+2-1, b)
 			jj = jj + ((*n) - j + 1)
 			x.Set(jj-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
-			x.Set(jj+1-1, r)
+			x.Set(jj, r)
 			jj = jj + ((*n) - j)
 			x.Set(jj-1, c)
 			jj = jj + ((*n) - j - 1)
@@ -145,9 +145,9 @@ func Zlatsp(uplo byte, n *int, x *mat.CVector, iseed *[]int) {
 			x.Set(jj-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			x.Set(jj+((*n)-j+1)-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			if x.GetMag(jj-1) > x.GetMag(jj+((*n)-j+1)-1) {
-				x.Set(jj+1-1, 2.0*x.Get(jj-1))
+				x.Set(jj, 2.0*x.Get(jj-1))
 			} else {
-				x.Set(jj+1-1, 2.0*x.Get(jj+((*n)-j+1)-1))
+				x.Set(jj, 2.0*x.Get(jj+((*n)-j+1)-1))
 			}
 			jj = jj + ((*n) - j + 1) + ((*n) - j)
 			j = j + 2

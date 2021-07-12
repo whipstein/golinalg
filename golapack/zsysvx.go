@@ -31,23 +31,23 @@ func Zsysvx(fact, uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMa
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldaf) < maxint(1, *n) {
+	} else if (*ldaf) < max(1, *n) {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -11
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -13
-	} else if (*lwork) < maxint(1, 2*(*n)) && !lquery {
+	} else if (*lwork) < max(1, 2*(*n)) && !lquery {
 		(*info) = -18
 	}
 
 	if (*info) == 0 {
-		lwkopt = maxint(1, 2*(*n))
+		lwkopt = max(1, 2*(*n))
 		if nofact {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZSYTRF"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-			lwkopt = maxint(lwkopt, (*n)*nb)
+			lwkopt = max(lwkopt, (*n)*nb)
 		}
 		work.SetRe(0, float64(lwkopt))
 	}

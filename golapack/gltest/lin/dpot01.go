@@ -38,11 +38,11 @@ func Dpot01(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 	if uplo == 'U' {
 		for k = (*n); k >= 1; k-- {
 			//           Compute the (K,K) element of the result.
-			t = goblas.Ddot(k, afac.Vector(0, k-1), 1, afac.Vector(0, k-1), 1)
+			t = goblas.Ddot(k, afac.Vector(0, k-1, 1), afac.Vector(0, k-1, 1))
 			afac.Set(k-1, k-1, t)
 
 			//           Compute the rest of column K.
-			err = goblas.Dtrmv(mat.Upper, mat.Trans, mat.NonUnit, k-1, afac, *ldafac, afac.Vector(0, k-1), 1)
+			err = goblas.Dtrmv(mat.Upper, mat.Trans, mat.NonUnit, k-1, afac, afac.Vector(0, k-1, 1))
 
 		}
 
@@ -52,12 +52,12 @@ func Dpot01(uplo byte, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if k+1 <= (*n) {
-				err = goblas.Dsyr(mat.Lower, (*n)-k, one, afac.Vector(k+1-1, k-1), 1, afac.Off(k+1-1, k+1-1), *ldafac)
+				err = goblas.Dsyr(mat.Lower, (*n)-k, one, afac.Vector(k, k-1, 1), afac.Off(k, k))
 			}
 
 			//           Scale column K by the diagonal element.
 			t = afac.Get(k-1, k-1)
-			goblas.Dscal((*n)-k+1, t, afac.Vector(k-1, k-1), 1)
+			goblas.Dscal((*n)-k+1, t, afac.Vector(k-1, k-1, 1))
 
 		}
 	}

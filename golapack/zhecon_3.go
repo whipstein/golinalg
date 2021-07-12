@@ -35,7 +35,7 @@ func Zhecon3(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv *
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*anorm) < zero {
 		(*info) = -7
@@ -75,7 +75,7 @@ func Zhecon3(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv *
 	kase = 0
 label30:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		//        Multiply by inv(L*D*L**H) or inv(U*D*U**H).
 		Zhetrs3(uplo, n, func() *int { y := 1; return &y }(), a, lda, e, ipiv, work.CMatrix(*n, opts), n, info)

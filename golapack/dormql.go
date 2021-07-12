@@ -35,10 +35,10 @@ func Dormql(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 	//     NQ is the order of Q and NW is the minimum dimension of WORK
 	if left {
 		nq = (*m)
-		nw = maxint(1, *n)
+		nw = max(1, *n)
 	} else {
 		nq = (*n)
-		nw = maxint(1, *m)
+		nw = max(1, *m)
 	}
 	if !left && side != 'R' {
 		(*info) = -1
@@ -50,9 +50,9 @@ func Dormql(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > nq {
 		(*info) = -5
-	} else if (*lda) < maxint(1, nq) {
+	} else if (*lda) < max(1, nq) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
 	} else if (*lwork) < nw && !lquery {
 		(*info) = -12
@@ -63,7 +63,7 @@ func Dormql(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 		if (*m) == 0 || (*n) == 0 {
 			lwkopt = 1
 		} else {
-			nb = minint(nbmax, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQL"), []byte{side, trans}, m, n, k, toPtr(-1)))
+			nb = min(nbmax, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQL"), []byte{side, trans}, m, n, k, toPtr(-1)))
 			lwkopt = nw*nb + tsize
 		}
 		work.Set(0, float64(lwkopt))
@@ -86,7 +86,7 @@ func Dormql(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 	if nb > 1 && nb < (*k) {
 		if (*lwork) < nw*nb+tsize {
 			nb = ((*lwork) - tsize) / ldwork
-			nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DORMQL"), []byte{side, trans}, m, n, k, toPtr(-1)))
+			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DORMQL"), []byte{side, trans}, m, n, k, toPtr(-1)))
 		}
 	}
 
@@ -113,7 +113,7 @@ func Dormql(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, tau *mat.Ve
 		}
 
 		for _, i = range genIter(i1, i2, i3) {
-			ib = minint(nb, (*k)-i+1)
+			ib = min(nb, (*k)-i+1)
 
 			//           Form the triangular factor of the block reflector
 			//           H = H(i+ib-1) . . . H(i+1) H(i)

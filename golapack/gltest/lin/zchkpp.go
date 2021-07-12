@@ -50,7 +50,7 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -133,7 +133,7 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*L' or U'*U factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Zcopy(npp, a, 1, afac, 1)
+				goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 				*srnamt = "ZPPTRF"
 				golapack.Zpptrf(uplo, &n, afac, &info)
 
@@ -151,12 +151,12 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//+    TEST 1
 				//              Reconstruct matrix from factors and compute residual.
-				goblas.Zcopy(npp, afac, 1, ainv, 1)
+				goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 				Zppt01(uplo, &n, a, ainv, rwork, result.GetPtr(0))
 
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
-				goblas.Zcopy(npp, afac, 1, ainv, 1)
+				goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 				*srnamt = "ZPPTRI"
 				golapack.Zpptri(uplo, &n, ainv, &info)
 
@@ -210,7 +210,7 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TESTS 5, 6, and 7
 					//              Use iterative refinement to improve the solution.
 					*srnamt = "ZPPRFS"
-					golapack.Zpprfs(uplo, &n, &nrhs, a, afac, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+					golapack.Zpprfs(uplo, &n, &nrhs, a, afac, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 					//              Check error code from ZPPRFS.
 					if info != 0 {
@@ -219,7 +219,7 @@ func Zchkpp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-					Zppt05(uplo, &n, &nrhs, a, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(5))
+					Zppt05(uplo, &n, &nrhs, a, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

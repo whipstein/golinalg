@@ -24,7 +24,7 @@ func Zsyconv(uplo, way byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, e *m
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -133,9 +133,9 @@ func Zsyconv(uplo, way byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, e *m
 			e.Set((*n)-1, zero)
 			for i <= (*n) {
 				if i < (*n) && (*ipiv)[i-1] < 0 {
-					e.Set(i-1, a.Get(i+1-1, i-1))
-					e.Set(i+1-1, zero)
-					a.Set(i+1-1, i-1, zero)
+					e.Set(i-1, a.Get(i, i-1))
+					e.Set(i, zero)
+					a.Set(i, i-1, zero)
 					i = i + 1
 				} else {
 					e.Set(i-1, zero)
@@ -160,8 +160,8 @@ func Zsyconv(uplo, way byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, e *m
 					if i > 1 {
 						for j = 1; j <= i-1; j++ {
 							temp = a.Get(ip-1, j-1)
-							a.Set(ip-1, j-1, a.Get(i+1-1, j-1))
-							a.Set(i+1-1, j-1, temp)
+							a.Set(ip-1, j-1, a.Get(i, j-1))
+							a.Set(i, j-1, temp)
 						}
 					}
 					i = i + 1
@@ -189,8 +189,8 @@ func Zsyconv(uplo, way byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, e *m
 					i = i - 1
 					if i > 1 {
 						for j = 1; j <= i-1; j++ {
-							temp = a.Get(i+1-1, j-1)
-							a.Set(i+1-1, j-1, a.Get(ip-1, j-1))
+							temp = a.Get(i, j-1)
+							a.Set(i, j-1, a.Get(ip-1, j-1))
 							a.Set(ip-1, j-1, temp)
 						}
 					}
@@ -202,7 +202,7 @@ func Zsyconv(uplo, way byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, e *m
 			i = 1
 			for i <= (*n)-1 {
 				if (*ipiv)[i-1] < 0 {
-					a.Set(i+1-1, i-1, e.Get(i-1))
+					a.Set(i, i-1, e.Get(i-1))
 					i = i + 1
 				}
 				i = i + 1

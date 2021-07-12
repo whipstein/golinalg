@@ -48,7 +48,7 @@ func Zlatb5(path []byte, imat, n *int, _type *byte, kl, ku *int, anorm *float64,
 	if (*imat) == 1 {
 		(*kl) = 0
 	} else {
-		(*kl) = maxint((*n)-1, 0)
+		(*kl) = max((*n)-1, 0)
 	}
 	(*ku) = (*kl)
 

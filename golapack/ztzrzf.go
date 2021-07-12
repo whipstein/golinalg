@@ -28,7 +28,7 @@ func Ztzrzf(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork, 
 		(*info) = -1
 	} else if (*n) < (*m) {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 
@@ -40,7 +40,7 @@ func Ztzrzf(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork, 
 			//           Determine the block size.
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 			lwkopt = (*m) * nb
-			lwkmin = maxint(1, *m)
+			lwkmin = max(1, *m)
 		}
 		work.SetRe(0, float64(lwkopt))
 
@@ -71,7 +71,7 @@ func Ztzrzf(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork, 
 	iws = (*m)
 	if nb > 1 && nb < (*m) {
 		//        Determine when to cross over from blocked to unblocked code.
-		nx = maxint(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+		nx = max(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
 		if nx < (*m) {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*m)
@@ -80,7 +80,7 @@ func Ztzrzf(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork, 
 				//              Not enough workspace to use optimal NB:  reduce NB and
 				//              determine the minimum value of NB.
 				nb = (*lwork) / ldwork
-				nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+				nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
 			}
 		}
 	}
@@ -88,12 +88,12 @@ func Ztzrzf(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork, 
 	if nb >= nbmin && nb < (*m) && nx < (*m) {
 		//        Use blocked code initially.
 		//        The last kk rows are handled by the block method.
-		m1 = minint((*m)+1, *n)
+		m1 = min((*m)+1, *n)
 		ki = (((*m) - nx - 1) / nb) * nb
-		kk = minint(*m, ki+nb)
+		kk = min(*m, ki+nb)
 
 		for i = (*m) - kk + ki + 1; i >= (*m)-kk+1; i -= nb {
-			ib = minint((*m)-i+1, nb)
+			ib = min((*m)-i+1, nb)
 
 			//           Compute the TZ factorization of the current block
 			//           A(i:i+ib-1,i:n)
@@ -104,7 +104,7 @@ func Ztzrzf(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork, 
 				Zlarzt('B', 'R', toPtr((*n)-(*m)), &ib, a.Off(i-1, m1-1), lda, tau.Off(i-1), work.CMatrix(ldwork, opts), &ldwork)
 
 				//              Apply H to A(1:i-1,i:n) from the right
-				Zlarzb('R', 'N', 'B', 'R', toPtr(i-1), toPtr((*n)-i+1), &ib, toPtr((*n)-(*m)), a.Off(i-1, m1-1), lda, work.CMatrix(ldwork, opts), &ldwork, a.Off(0, i-1), lda, work.CMatrixOff(ib+1-1, ldwork, opts), &ldwork)
+				Zlarzb('R', 'N', 'B', 'R', toPtr(i-1), toPtr((*n)-i+1), &ib, toPtr((*n)-(*m)), a.Off(i-1, m1-1), lda, work.CMatrix(ldwork, opts), &ldwork, a.Off(0, i-1), lda, work.CMatrixOff(ib, ldwork, opts), &ldwork)
 			}
 		}
 		mu = i + nb - 1

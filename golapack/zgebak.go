@@ -27,13 +27,13 @@ func Zgebak(job, side byte, n, ilo, ihi *int, scale *mat.Vector, m *int, v *mat.
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*ilo) < 1 || (*ilo) > maxint(1, *n) {
+	} else if (*ilo) < 1 || (*ilo) > max(1, *n) {
 		(*info) = -4
-	} else if (*ihi) < minint(*ilo, *n) || (*ihi) > (*n) {
+	} else if (*ihi) < min(*ilo, *n) || (*ihi) > (*n) {
 		(*info) = -5
 	} else if (*m) < 0 {
 		(*info) = -7
-	} else if (*ldv) < maxint(1, *n) {
+	} else if (*ldv) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -62,14 +62,14 @@ func Zgebak(job, side byte, n, ilo, ihi *int, scale *mat.Vector, m *int, v *mat.
 		if rightv {
 			for i = (*ilo); i <= (*ihi); i++ {
 				s = scale.Get(i - 1)
-				goblas.Zdscal(*m, s, v.CVector(i-1, 0), *ldv)
+				goblas.Zdscal(*m, s, v.CVector(i-1, 0, *ldv))
 			}
 		}
 
 		if leftv {
 			for i = (*ilo); i <= (*ihi); i++ {
 				s = one / scale.Get(i-1)
-				goblas.Zdscal(*m, s, v.CVector(i-1, 0), *ldv)
+				goblas.Zdscal(*m, s, v.CVector(i-1, 0, *ldv))
 			}
 		}
 
@@ -95,7 +95,7 @@ label30:
 				if k == i {
 					goto label40
 				}
-				goblas.Zswap(*m, v.CVector(i-1, 0), *ldv, v.CVector(k-1, 0), *ldv)
+				goblas.Zswap(*m, v.CVector(i-1, 0, *ldv), v.CVector(k-1, 0, *ldv))
 			label40:
 			}
 		}
@@ -113,7 +113,7 @@ label30:
 				if k == i {
 					goto label50
 				}
-				goblas.Zswap(*m, v.CVector(i-1, 0), *ldv, v.CVector(k-1, 0), *ldv)
+				goblas.Zswap(*m, v.CVector(i-1, 0, *ldv), v.CVector(k-1, 0, *ldv))
 			label50:
 			}
 		}

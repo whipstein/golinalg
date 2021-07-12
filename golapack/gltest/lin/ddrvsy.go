@@ -42,7 +42,7 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	for i = 1; i <= 4; i++ {
 		iseed[i-1] = iseedy[i-1]
 	}
-	lwork = maxint(2*(*nmax), (*nmax)*(*nrhs))
+	lwork = max(2*(*nmax), (*nmax)*(*nrhs))
 
 	//     Test the error exits
 	if *tsterr {
@@ -59,7 +59,7 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -135,7 +135,7 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -144,7 +144,7 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						} else {
 							//                       Set the last IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -266,7 +266,7 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Solve the system and compute the condition number and
 					//                 error bounds using DSYSVX.
 					*srnamt = "DSYSVX"
-					golapack.Dsysvx(fact, uplo, &n, nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, &lwork, toSlice(iwork, n+1-1), &info)
+					golapack.Dsysvx(fact, uplo, &n, nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, &lwork, toSlice(iwork, n), &info)
 
 					//                 Adjust the expected value of INFO to account for
 					//                 pivoting.
@@ -295,7 +295,7 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if ifact >= 2 {
 							//                       Reconstruct matrix from factors and compute
 							//                       residual.
-							Dsyt01(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, ainv.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+							Dsyt01(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, ainv.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 							k1 = 1
 						} else {
 							k1 = 2
@@ -303,13 +303,13 @@ func Ddrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						//                    Compute residual of the computed solution.
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-						Dpot02(uplo, &n, nrhs, a.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+						Dpot02(uplo, &n, nrhs, a.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 						//                    Check solution from generated exact solution.
 						Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 						//                    Check the error bounds from iterative refinement.
-						Dpot05(uplo, &n, nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+						Dpot05(uplo, &n, nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 					} else {
 						k1 = 6
 					}

@@ -70,7 +70,7 @@ func Zcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZLATMS in ZCKLSE   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
@@ -78,18 +78,18 @@ func Zcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZLATMS in ZCKLSE   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
 			//           Generate the right-hand sides C and D for the LSE.
-			Zlarhs([]byte("ZGE"), 'N', 'U', 'N', &m, &n, toPtr(maxint(m-1, 0)), toPtr(maxint(n-1, 0)), func() *int { y := 1; return &y }(), a.CMatrix(lda, opts), &lda, x.CMatrixOff(4*(*nmax)+1-1, maxint(n, 1), opts), toPtr(maxint(n, 1)), x.CMatrix(maxint(m, 1), opts), toPtr(maxint(m, 1)), iseed, &iinfo)
+			Zlarhs([]byte("ZGE"), 'N', 'U', 'N', &m, &n, toPtr(max(m-1, 0)), toPtr(max(n-1, 0)), func() *int { y := 1; return &y }(), a.CMatrix(lda, opts), &lda, x.CMatrixOff(4*(*nmax), max(n, 1), opts), toPtr(max(n, 1)), x.CMatrix(max(m, 1), opts), toPtr(max(m, 1)), iseed, &iinfo)
 
-			Zlarhs([]byte("ZGE"), 'C', 'U', 'N', &p, &n, toPtr(maxint(p-1, 0)), toPtr(maxint(n-1, 0)), func() *int { y := 1; return &y }(), b.CMatrix(lda, opts), &ldb, x.CMatrixOff(4*(*nmax)+1-1, maxint(n, 1), opts), toPtr(maxint(n, 1)), x.CMatrixOff(2*(*nmax)+1-1, maxint(m, 1), opts), toPtr(maxint(p, 1)), iseed, &iinfo)
+			Zlarhs([]byte("ZGE"), 'C', 'U', 'N', &p, &n, toPtr(max(p-1, 0)), toPtr(max(n-1, 0)), func() *int { y := 1; return &y }(), b.CMatrix(ldb, opts), &ldb, x.CMatrixOff(4*(*nmax), max(n, 1), opts), toPtr(max(n, 1)), x.CMatrixOff(2*(*nmax), max(m, 1), opts), toPtr(max(p, 1)), iseed, &iinfo)
 
 			nt = 2
 
-			Zlsets(&m, &p, &n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), bf.CMatrix(ldb, opts), &ldb, x, x.Off((*nmax)+1-1), x.Off(2*(*nmax)+1-1), x.Off(3*(*nmax)+1-1), x.Off(4*(*nmax)+1-1), work, &lwork, rwork, result.Off(0))
+			Zlsets(&m, &p, &n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), bf.CMatrix(ldb, opts), &ldb, x, x.Off((*nmax)), x.Off(2*(*nmax)), x.Off(3*(*nmax)), x.Off(4*(*nmax)), work, &lwork, rwork, result.Off(0))
 
 			//           Print information about the tests that did not
 			//           pass the threshold.

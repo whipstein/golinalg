@@ -41,9 +41,9 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else {
 		if valeig {
@@ -51,9 +51,9 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 				(*info) = -11
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -12
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -13
 			}
 		}
@@ -66,10 +66,10 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 
 	if (*info) == 0 {
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = maxint(1, (nb+1)*(*n))
+		lwkopt = max(1, (nb+1)*(*n))
 		work.SetRe(0, float64(lwkopt))
 
-		if (*lwork) < maxint(1, 2*(*n)) && !lquery {
+		if (*lwork) < max(1, 2*(*n)) && !lquery {
 			(*info) = -20
 		}
 	}
@@ -111,7 +111,7 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 			} else {
 				trans = 'C'
 			}
-			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, cone, b, *ldb, z, *ldz)
+			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, cone, b, z)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -122,7 +122,7 @@ func Zhegvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *in
 				trans = 'N'
 			}
 
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, cone, b, *ldb, z, *ldz)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, cone, b, z)
 		}
 	}
 

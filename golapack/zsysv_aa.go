@@ -29,11 +29,11 @@ func Zsysvaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
-	} else if (*lwork) < maxint(2*(*n), 3*(*n)-2) && !lquery {
+	} else if (*lwork) < max(2*(*n), 3*(*n)-2) && !lquery {
 		(*info) = -10
 	}
 	//
@@ -42,7 +42,7 @@ func Zsysvaa(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *
 		lwkoptSytrf = int(work.GetRe(0))
 		Zsytrsaa(uplo, n, nrhs, a, lda, ipiv, b, ldb, work, toPtr(-1), info)
 		lwkoptSytrs = int(work.GetRe(0))
-		lwkopt = maxint(lwkoptSytrf, lwkoptSytrs)
+		lwkopt = max(lwkoptSytrf, lwkoptSytrs)
 		work.SetRe(0, float64(lwkopt))
 	}
 

@@ -18,13 +18,13 @@ func Ztplqt(m, n, l, mb *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*l) < 0 || ((*l) > minint(*m, *n) && minint(*m, *n) >= 0) {
+	} else if (*l) < 0 || ((*l) > min(*m, *n) && min(*m, *n) >= 0) {
 		(*info) = -3
 	} else if (*mb) < 1 || ((*mb) > (*m) && (*m) > 0) {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -8
 	} else if (*ldt) < (*mb) {
 		(*info) = -10
@@ -41,8 +41,8 @@ func Ztplqt(m, n, l, mb *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int
 
 	for i = 1; i <= (*m); i += (*mb) {
 		//     Compute the QR factorization of the current block
-		ib = minint((*m)-i+1, *mb)
-		nb = minint((*n)-(*l)+i+ib-1, *n)
+		ib = min((*m)-i+1, *mb)
+		nb = min((*n)-(*l)+i+ib-1, *n)
 		if i >= (*l) {
 			lb = 0
 		} else {

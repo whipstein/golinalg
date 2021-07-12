@@ -50,9 +50,9 @@ func Zunm2r(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > nq {
 		(*info) = -5
-	} else if (*lda) < maxint(1, nq) {
+	} else if (*lda) < max(1, nq) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
 	}
 	if (*info) != 0 {

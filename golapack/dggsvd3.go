@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -110,9 +112,9 @@ func Dggsvd3(jobu, jobv, jobq byte, m, n, p, k, l *int, a *mat.Matrix, lda *int,
 		(*info) = -5
 	} else if (*p) < 0 {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -10
-	} else if (*ldb) < maxint(1, *p) {
+	} else if (*ldb) < max(1, *p) {
 		(*info) = -12
 	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
 		(*info) = -16
@@ -128,8 +130,8 @@ func Dggsvd3(jobu, jobv, jobq byte, m, n, p, k, l *int, a *mat.Matrix, lda *int,
 	if (*info) == 0 {
 		Dggsvp3(jobu, jobv, jobq, m, p, n, a, lda, b, ldb, &tola, &tolb, k, l, u, ldu, v, ldv, q, ldq, iwork, work, work, toPtr(-1), info)
 		lwkopt = (*n) + int(work.Get(0))
-		lwkopt = maxint(2*(*n), lwkopt)
-		lwkopt = maxint(1, lwkopt)
+		lwkopt = max(2*(*n), lwkopt)
+		lwkopt = max(1, lwkopt)
 		work.Set(0, float64(lwkopt))
 	}
 
@@ -149,19 +151,19 @@ func Dggsvd3(jobu, jobv, jobq byte, m, n, p, k, l *int, a *mat.Matrix, lda *int,
 	//     the effective numerical rank of the matrices A and B.
 	ulp = Dlamch(Precision)
 	unfl = Dlamch(SafeMinimum)
-	tola = float64(maxint(*m, *n)) * maxf64(anorm, unfl) * ulp
-	tolb = float64(maxint(*p, *n)) * maxf64(bnorm, unfl) * ulp
+	tola = float64(max(*m, *n)) * math.Max(anorm, unfl) * ulp
+	tolb = float64(max(*p, *n)) * math.Max(bnorm, unfl) * ulp
 
 	//     Preprocessing
-	Dggsvp3(jobu, jobv, jobq, m, p, n, a, lda, b, ldb, &tola, &tolb, k, l, u, ldu, v, ldv, q, ldq, iwork, work, work.Off((*n)+1-1), toPtr((*lwork)-(*n)), info)
+	Dggsvp3(jobu, jobv, jobq, m, p, n, a, lda, b, ldb, &tola, &tolb, k, l, u, ldu, v, ldv, q, ldq, iwork, work, work.Off((*n)), toPtr((*lwork)-(*n)), info)
 
 	//     Compute the GSVD of two upper "triangular" matrices
 	Dtgsja(jobu, jobv, jobq, m, p, n, k, l, a, lda, b, ldb, &tola, &tolb, alpha, beta, u, ldu, v, ldv, q, ldq, work, &ncycle, info)
 
 	//     Sort the singular values and store the pivot indices in IWORK
 	//     Copy ALPHA to WORK, then sort ALPHA in WORK
-	goblas.Dcopy(*n, alpha, 1, work, 1)
-	ibnd = minint(*l, (*m)-(*k))
+	goblas.Dcopy(*n, alpha.Off(0, 1), work.Off(0, 1))
+	ibnd = min(*l, (*m)-(*k))
 	for i = 1; i <= ibnd; i++ {
 		//        Scan for largest ALPHA(K+I)
 		isub = i

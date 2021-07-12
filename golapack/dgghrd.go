@@ -82,9 +82,9 @@ func Dgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 		(*info) = -4
 	} else if (*ihi) > (*n) || (*ihi) < (*ilo)-1 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (ilq && (*ldq) < (*n)) || (*ldq) < 1 {
 		(*info) = -11
@@ -124,20 +124,20 @@ func Dgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 			temp = a.Get(jrow-1-1, jcol-1)
 			Dlartg(&temp, a.GetPtr(jrow-1, jcol-1), &c, &s, a.GetPtr(jrow-1-1, jcol-1))
 			a.Set(jrow-1, jcol-1, zero)
-			goblas.Drot((*n)-jcol, a.Vector(jrow-1-1, jcol+1-1), *lda, a.Vector(jrow-1, jcol+1-1), *lda, c, s)
-			goblas.Drot((*n)+2-jrow, b.Vector(jrow-1-1, jrow-1-1), *ldb, b.Vector(jrow-1, jrow-1-1), *ldb, c, s)
+			goblas.Drot((*n)-jcol, a.Vector(jrow-1-1, jcol), a.Vector(jrow-1, jcol), c, s)
+			goblas.Drot((*n)+2-jrow, b.Vector(jrow-1-1, jrow-1-1), b.Vector(jrow-1, jrow-1-1), c, s)
 			if ilq {
-				goblas.Drot(*n, q.Vector(0, jrow-1-1), 1, q.Vector(0, jrow-1), 1, c, s)
+				goblas.Drot(*n, q.Vector(0, jrow-1-1, 1), q.Vector(0, jrow-1, 1), c, s)
 			}
 
 			//           Step 2: rotate columns JROW, JROW-1 to kill B(JROW,JROW-1)
 			temp = b.Get(jrow-1, jrow-1)
 			Dlartg(&temp, b.GetPtr(jrow-1, jrow-1-1), &c, &s, b.GetPtr(jrow-1, jrow-1))
 			b.Set(jrow-1, jrow-1-1, zero)
-			goblas.Drot(*ihi, a.Vector(0, jrow-1), 1, a.Vector(0, jrow-1-1), 1, c, s)
-			goblas.Drot(jrow-1, b.Vector(0, jrow-1), 1, b.Vector(0, jrow-1-1), 1, c, s)
+			goblas.Drot(*ihi, a.Vector(0, jrow-1, 1), a.Vector(0, jrow-1-1, 1), c, s)
+			goblas.Drot(jrow-1, b.Vector(0, jrow-1, 1), b.Vector(0, jrow-1-1, 1), c, s)
 			if ilz {
-				goblas.Drot(*n, z.Vector(0, jrow-1), 1, z.Vector(0, jrow-1-1), 1, c, s)
+				goblas.Drot(*n, z.Vector(0, jrow-1, 1), z.Vector(0, jrow-1-1, 1), c, s)
 			}
 		}
 	}

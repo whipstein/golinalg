@@ -27,7 +27,7 @@ func Dopgtr(uplo byte, n *int, ap, tau *mat.Vector, q *mat.Matrix, ldq *int, wor
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -6
 	}
 	if (*info) != 0 {

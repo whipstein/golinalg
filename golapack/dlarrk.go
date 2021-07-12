@@ -34,7 +34,7 @@ func Dlarrk(n, iw *int, gl, gu *float64, d, e2 *mat.Vector, pivmin, reltol, w, w
 
 	//     Get machine constants
 	eps = Dlamch(Precision)
-	tnorm = maxf64(math.Abs(*gl), math.Abs(*gu))
+	tnorm = math.Max(math.Abs(*gl), math.Abs(*gu))
 	rtoli = (*reltol)
 	atoli = fudge * two * (*pivmin)
 	itmax = int((math.Log(tnorm+(*pivmin))-math.Log(*pivmin))/math.Log(two)) + 2
@@ -47,8 +47,8 @@ label10:
 
 	//     Check if interval converged or maximum number of iterations reached
 	tmp1 = math.Abs(right - left)
-	tmp2 = maxf64(math.Abs(right), math.Abs(left))
-	if tmp1 < maxf64(atoli, *pivmin, rtoli*tmp2) {
+	tmp2 = math.Max(math.Abs(right), math.Abs(left))
+	if tmp1 < math.Max(atoli, math.Max(*pivmin, rtoli*tmp2)) {
 		(*info) = 0
 		goto label30
 	}

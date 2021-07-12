@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -31,9 +33,9 @@ func Zgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 	kd = (*ku) + 1
 	anorm = zero
 	for j = 1; j <= (*n); j++ {
-		i1 = maxint(kd+1-j, 1)
-		i2 = minint(kd+(*m)-j, (*kl)+kd)
-		anorm = maxf64(anorm, goblas.Dzasum(i2-i1+1, a.CVector(i1-1, j-1), 1))
+		i1 = max(kd+1-j, 1)
+		i2 = min(kd+(*m)-j, (*kl)+kd)
+		anorm = math.Max(anorm, goblas.Dzasum(i2-i1+1, a.CVector(i1-1, j-1, 1)))
 	}
 	if anorm <= zero {
 		(*resid) = one / eps
@@ -48,19 +50,19 @@ func Zgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 
 	//     Compute  B - A*X (or  B - A'*X )
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Zgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, -cone, a, *lda, x.CVector(0, j-1), 1, cone, b.CVector(0, j-1), 1)
+		err = goblas.Zgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, -cone, a, x.CVector(0, j-1, 1), cone, b.CVector(0, j-1, 1))
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1), 1)
-		xnorm = goblas.Dzasum(n1, x.CVector(0, j-1), 1)
+		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1, 1))
+		xnorm = goblas.Dzasum(n1, x.CVector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

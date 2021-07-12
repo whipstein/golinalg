@@ -28,7 +28,7 @@ func Dorg2r(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*n) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -53,10 +53,10 @@ func Dorg2r(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 		//        Apply H(i) to A(i:m,i:n) from the left
 		if i < (*n) {
 			a.Set(i-1, i-1, one)
-			Dlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.Vector(i-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), a.Off(i-1, i+1-1), lda, work)
+			Dlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.Vector(i-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), a.Off(i-1, i), lda, work)
 		}
 		if i < (*m) {
-			goblas.Dscal((*m)-i, -tau.Get(i-1), a.Vector(i+1-1, i-1), 1)
+			goblas.Dscal((*m)-i, -tau.Get(i-1), a.Vector(i, i-1, 1))
 		}
 		a.Set(i-1, i-1, one-tau.Get(i-1))
 

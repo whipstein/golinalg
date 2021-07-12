@@ -64,11 +64,11 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 		(*info) = -4
 	} else if (*ncc) < 0 {
 		(*info) = -5
-	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < maxint(1, *n)) {
+	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < max(1, *n)) {
 		(*info) = -9
-	} else if (*ldu) < maxint(1, *nru) {
+	} else if (*ldu) < max(1, *nru) {
 		(*info) = -11
-	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < maxint(1, *n)) {
+	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < max(1, *n)) {
 		(*info) = -13
 	}
 	if (*info) != 0 {
@@ -111,8 +111,8 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 		for i = 1; i <= (*n)-1; i++ {
 			Dlartg(d.GetPtr(i-1), e.GetPtr(i-1), &cs, &sn, &r)
 			d.Set(i-1, r)
-			e.Set(i-1, sn*d.Get(i+1-1))
-			d.Set(i+1-1, cs*d.Get(i+1-1))
+			e.Set(i-1, sn*d.Get(i))
+			d.Set(i, cs*d.Get(i))
 			work.Set(i-1, cs)
 			work.Set(nm1+i-1, sn)
 		}
@@ -129,16 +129,16 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 	//     Compute singular values to relative accuracy TOL
 	//     (By setting TOL to be negative, algorithm will compute
 	//     singular values to absolute accuracy ABS(TOL)*norm(input matrix))
-	tolmul = maxf64(ten, minf64(hndrd, math.Pow(eps, meigth)))
+	tolmul = math.Max(ten, math.Min(hndrd, math.Pow(eps, meigth)))
 	tol = tolmul * eps
 
 	//     Compute approximate maximum, minimum singular values
 	smax = zero
 	for i = 1; i <= (*n); i++ {
-		smax = maxf64(smax, math.Abs(d.Get(i-1)))
+		smax = math.Max(smax, math.Abs(d.Get(i-1)))
 	}
 	for i = 1; i <= (*n)-1; i++ {
-		smax = maxf64(smax, math.Abs(e.Get(i-1)))
+		smax = math.Max(smax, math.Abs(e.Get(i-1)))
 	}
 	sminl = zero
 	if tol >= zero {
@@ -150,7 +150,7 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 		mu = sminoa
 		for i = 2; i <= (*n); i++ {
 			mu = math.Abs(d.Get(i-1)) * (mu / (mu + math.Abs(e.Get(i-1-1))))
-			sminoa = minf64(sminoa, mu)
+			sminoa = math.Min(sminoa, mu)
 			if sminoa == zero {
 				goto label50
 			}
@@ -158,10 +158,10 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 	label50:
 		;
 		sminoa = sminoa / math.Sqrt(float64(*n))
-		thresh = maxf64(tol*sminoa, float64(maxitr)*(float64(*n)*(float64(*n)*unfl)))
+		thresh = math.Max(tol*sminoa, float64(maxitr)*(float64(*n)*(float64(*n)*unfl)))
 	} else {
 		//        Absolute accuracy desired
-		thresh = maxf64(math.Abs(tol)*smax, float64(maxitr)*(float64(*n)*(float64(*n)*unfl)))
+		thresh = math.Max(math.Abs(tol)*smax, float64(maxitr)*(float64(*n)*(float64(*n)*unfl)))
 	}
 
 	//     Prepare for main iteration loop for the singular values
@@ -209,8 +209,8 @@ label60:
 		if abse <= thresh {
 			goto label80
 		}
-		smin = minf64(smin, abss)
-		smax = maxf64(smax, abss, abse)
+		smin = math.Min(smin, abss)
+		smax = math.Max(smax, math.Max(abss, abse))
 	}
 	ll = 0
 	goto label90
@@ -238,13 +238,13 @@ label90:
 
 		//        Compute singular vectors, if desired
 		if (*ncvt) > 0 {
-			goblas.Drot(*ncvt, vt.Vector(m-1-1, 0), *ldvt, vt.Vector(m-1, 0), *ldvt, cosr, sinr)
+			goblas.Drot(*ncvt, vt.Vector(m-1-1, 0), vt.Vector(m-1, 0), cosr, sinr)
 		}
 		if (*nru) > 0 {
-			goblas.Drot(*nru, u.Vector(0, m-1-1), 1, u.Vector(0, m-1), 1, cosl, sinl)
+			goblas.Drot(*nru, u.Vector(0, m-1-1, 1), u.Vector(0, m-1, 1), cosl, sinl)
 		}
 		if (*ncc) > 0 {
-			goblas.Drot(*ncc, c.Vector(m-1-1, 0), *ldc, c.Vector(m-1, 0), *ldc, cosl, sinl)
+			goblas.Drot(*ncc, c.Vector(m-1-1, 0), c.Vector(m-1, 0), cosl, sinl)
 		}
 		m = m - 2
 		goto label60
@@ -281,8 +281,8 @@ label90:
 					e.Set(lll-1, zero)
 					goto label60
 				}
-				mu = math.Abs(d.Get(lll+1-1)) * (mu / (mu + math.Abs(e.Get(lll-1))))
-				sminl = minf64(sminl, mu)
+				mu = math.Abs(d.Get(lll)) * (mu / (mu + math.Abs(e.Get(lll-1))))
+				sminl = math.Min(sminl, mu)
 			}
 		}
 
@@ -305,7 +305,7 @@ label90:
 					goto label60
 				}
 				mu = math.Abs(d.Get(lll-1)) * (mu / (mu + math.Abs(e.Get(lll-1))))
-				sminl = minf64(sminl, mu)
+				sminl = math.Min(sminl, mu)
 			}
 		}
 	}
@@ -314,7 +314,7 @@ label90:
 
 	//     Compute shift.  First, test if shifting would ruin relative
 	//     accuracy, and if so set the shift to zero.
-	if tol >= zero && float64(*n)*tol*(sminl/smax) <= maxf64(eps, hndrth*tol) {
+	if tol >= zero && float64(*n)*tol*(sminl/smax) <= math.Max(eps, hndrth*tol) {
 		//        Use a zero shift to avoid loss of relative accuracy
 		shift = zero
 	} else {
@@ -324,7 +324,7 @@ label90:
 			Dlas2(d.GetPtr(m-1-1), e.GetPtr(m-1-1), d.GetPtr(m-1), &shift, &r)
 		} else {
 			sll = math.Abs(d.Get(m - 1))
-			Dlas2(d.GetPtr(ll-1), e.GetPtr(ll-1), d.GetPtr(ll+1-1), &shift, &r)
+			Dlas2(d.GetPtr(ll-1), e.GetPtr(ll-1), d.GetPtr(ll), &shift, &r)
 		}
 
 		//        Test if shift negligible, and if so set to zero
@@ -350,8 +350,8 @@ label90:
 				if i > ll {
 					e.Set(i-1-1, oldsn*r)
 				}
-				Dlartg(func() *float64 { y := oldcs * r; return &y }(), func() *float64 { y := d.Get(i+1-1) * sn; return &y }(), &oldcs, &oldsn, d.GetPtr(i-1))
-				work.Set(i-ll+1-1, cs)
+				Dlartg(func() *float64 { y := oldcs * r; return &y }(), func() *float64 { y := d.Get(i) * sn; return &y }(), &oldcs, &oldsn, d.GetPtr(i-1))
+				work.Set(i-ll, cs)
 				work.Set(i-ll+1+nm1-1, sn)
 				work.Set(i-ll+1+nm12-1, oldcs)
 				work.Set(i-ll+1+nm13-1, oldsn)
@@ -365,10 +365,10 @@ label90:
 				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncvt, work, work.Off((*n)-1), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
-				Dlasr('R', 'V', 'F', nru, toPtr(m-ll+1), work.Off(nm12+1-1), work.Off(nm13+1-1), u.Off(0, ll-1), ldu)
+				Dlasr('R', 'V', 'F', nru, toPtr(m-ll+1), work.Off(nm12), work.Off(nm13), u.Off(0, ll-1), ldu)
 			}
 			if (*ncc) > 0 {
-				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, work.Off(nm12+1-1), work.Off(nm13+1-1), c.Off(ll-1, 0), ldc)
+				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, work.Off(nm12), work.Off(nm13), c.Off(ll-1, 0), ldc)
 			}
 
 			//           Test convergence
@@ -398,7 +398,7 @@ label90:
 
 			//           Update singular vectors
 			if (*ncvt) > 0 {
-				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, work.Off(nm12+1-1), work.Off(nm13+1-1), vt.Off(ll-1, 0), ldvt)
+				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, work.Off(nm12), work.Off(nm13), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
 				Dlasr('R', 'V', 'B', nru, toPtr(m-ll+1), work, work.Off((*n)-1), u.Off(0, ll-1), ldu)
@@ -417,7 +417,7 @@ label90:
 		if idir == 1 {
 			//           Chase bulge from top to bottom
 			//           Save cosines and sines for later singular vector updates
-			f = (math.Abs(d.Get(ll-1)) - shift) * (signf64(one, d.Get(ll-1)) + shift/d.Get(ll-1))
+			f = (math.Abs(d.Get(ll-1)) - shift) * (math.Copysign(one, d.Get(ll-1)) + shift/d.Get(ll-1))
 			g = e.Get(ll - 1)
 			for i = ll; i <= m-1; i++ {
 				Dlartg(&f, &g, &cosr, &sinr, &r)
@@ -426,17 +426,17 @@ label90:
 				}
 				f = cosr*d.Get(i-1) + sinr*e.Get(i-1)
 				e.Set(i-1, cosr*e.Get(i-1)-sinr*d.Get(i-1))
-				g = sinr * d.Get(i+1-1)
-				d.Set(i+1-1, cosr*d.Get(i+1-1))
+				g = sinr * d.Get(i)
+				d.Set(i, cosr*d.Get(i))
 				Dlartg(&f, &g, &cosl, &sinl, &r)
 				d.Set(i-1, r)
-				f = cosl*e.Get(i-1) + sinl*d.Get(i+1-1)
-				d.Set(i+1-1, cosl*d.Get(i+1-1)-sinl*e.Get(i-1))
+				f = cosl*e.Get(i-1) + sinl*d.Get(i)
+				d.Set(i, cosl*d.Get(i)-sinl*e.Get(i-1))
 				if i < m-1 {
-					g = sinl * e.Get(i+1-1)
-					e.Set(i+1-1, cosl*e.Get(i+1-1))
+					g = sinl * e.Get(i)
+					e.Set(i, cosl*e.Get(i))
 				}
-				work.Set(i-ll+1-1, cosr)
+				work.Set(i-ll, cosr)
 				work.Set(i-ll+1+nm1-1, sinr)
 				work.Set(i-ll+1+nm12-1, cosl)
 				work.Set(i-ll+1+nm13-1, sinl)
@@ -448,10 +448,10 @@ label90:
 				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncvt, work, work.Off((*n)-1), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
-				Dlasr('R', 'V', 'F', nru, toPtr(m-ll+1), work.Off(nm12+1-1), work.Off(nm13+1-1), u.Off(0, ll-1), ldu)
+				Dlasr('R', 'V', 'F', nru, toPtr(m-ll+1), work.Off(nm12), work.Off(nm13), u.Off(0, ll-1), ldu)
 			}
 			if (*ncc) > 0 {
-				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, work.Off(nm12+1-1), work.Off(nm13+1-1), c.Off(ll-1, 0), ldc)
+				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, work.Off(nm12), work.Off(nm13), c.Off(ll-1, 0), ldc)
 			}
 
 			//           Test convergence
@@ -462,7 +462,7 @@ label90:
 		} else {
 			//           Chase bulge from bottom to top
 			//           Save cosines and sines for later singular vector updates
-			f = (math.Abs(d.Get(m-1)) - shift) * (signf64(one, d.Get(m-1)) + shift/d.Get(m-1))
+			f = (math.Abs(d.Get(m-1)) - shift) * (math.Copysign(one, d.Get(m-1)) + shift/d.Get(m-1))
 			g = e.Get(m - 1 - 1)
 			for i = m; i >= ll+1; i-- {
 				Dlartg(&f, &g, &cosr, &sinr, &r)
@@ -495,7 +495,7 @@ label90:
 
 			//           Update singular vectors if desired
 			if (*ncvt) > 0 {
-				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, work.Off(nm12+1-1), work.Off(nm13+1-1), vt.Off(ll-1, 0), ldvt)
+				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, work.Off(nm12), work.Off(nm13), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
 				Dlasr('R', 'V', 'B', nru, toPtr(m-ll+1), work, work.Off((*n)-1), u.Off(0, ll-1), ldu)
@@ -518,7 +518,8 @@ label160:
 
 			//           Change sign of singular vectors, if desired
 			if (*ncvt) > 0 {
-				goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0), *ldvt)
+				// goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0, *ldvt))
+				goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0))
 			}
 		}
 	}
@@ -540,13 +541,13 @@ label160:
 			d.Set(isub-1, d.Get((*n)+1-i-1))
 			d.Set((*n)+1-i-1, smin)
 			if (*ncvt) > 0 {
-				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), *ldvt, vt.Vector((*n)+1-i-1, 0), *ldvt)
+				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), vt.Vector((*n)+1-i-1, 0))
 			}
 			if (*nru) > 0 {
-				goblas.Dswap(*nru, u.Vector(0, isub-1), 1, u.Vector(0, (*n)+1-i-1), 1)
+				goblas.Dswap(*nru, u.Vector(0, isub-1, 1), u.Vector(0, (*n)+1-i-1, 1))
 			}
 			if (*ncc) > 0 {
-				goblas.Dswap(*ncc, c.Vector(isub-1, 0), *ldc, c.Vector((*n)+1-i-1, 0), *ldc)
+				goblas.Dswap(*ncc, c.Vector(isub-1, 0), c.Vector((*n)+1-i-1, 0))
 			}
 		}
 	}

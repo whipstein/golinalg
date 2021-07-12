@@ -86,11 +86,11 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	m = mmax
 	n = nmax
 	nrhs = nsmax
-	mnmin = maxint(minint(m, n), 1)
+	mnmin = max(min(m, n), 1)
 
 	//     Compute workspace needed for routines
 	//     ZQRT14, ZQRT17 (two side cases), ZQRT15 and ZQRT12
-	lwork = maxint(1, (m+n)*nrhs, (n+nrhs)*(m+2), (m+nrhs)*(n+2), maxint(m+mnmin, nrhs*mnmin, 2*n+m), maxint(m*n+4*mnmin+maxint(m, n), m*n+2*mnmin+4*n))
+	lwork = max(1, (m+n)*nrhs, (n+nrhs)*(m+2), (m+nrhs)*(n+2), max(m+mnmin, nrhs*mnmin, 2*n+m), max(m*n+4*mnmin+max(m, n), m*n+2*mnmin+4*n))
 	lrwork = 1
 	liwork = 1
 
@@ -100,11 +100,11 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	//     sizes for ?GELS, ?GETSLS, ?GELSY, ?GELSS and ?GELSD routines.
 	for im = 1; im <= (*nm); im++ {
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 		for in = 1; in <= (*nn); in++ {
 			n = (*nval)[in-1]
-			mnmin = maxint(minint(m, n), 1)
-			ldb = maxint(1, m, n)
+			mnmin = max(min(m, n), 1)
+			ldb = max(1, m, n)
 			for ins = 1; ins <= (*nns); ins++ {
 				nrhs = (*nsval)[ins-1]
 				for irank = 1; irank <= 2; irank++ {
@@ -140,11 +140,11 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							lworkZgelsd = int(wq.GetRe(0))
 							lrworkZgelsd = int(rwq.Get(0))
 							//                       Compute LIWORK workspace needed for ZGELSY and ZGELSD
-							liwork = maxint(liwork, n, iwq[0])
+							liwork = max(liwork, n, iwq[0])
 							//                       Compute LRWORK workspace needed for ZGELSY, ZGELSS and ZGELSD
-							lrwork = maxint(lrwork, lrworkZgelsy, lrworkZgelss, lrworkZgelsd)
+							lrwork = max(lrwork, lrworkZgelsy, lrworkZgelss, lrworkZgelsd)
 							//                       Compute LWORK workspace needed for all functions
-							lwork = maxint(lwork, lworkZgels, lworkZgetsls, lworkZgelsy, lworkZgelss, lworkZgelsd)
+							lwork = max(lwork, lworkZgels, lworkZgetsls, lworkZgelsy, lworkZgelss, lworkZgelsd)
 						}
 					}
 				}
@@ -161,12 +161,12 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 	for im = 1; im <= (*nm); im++ {
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 
 		for in = 1; in <= (*nn); in++ {
 			n = (*nval)[in-1]
-			mnmin = maxint(minint(m, n), 1)
-			ldb = maxint(1, m, n)
+			mnmin = max(min(m, n), 1)
+			ldb = max(1, m, n)
 			mb = (mnmin + 1)
 
 			for ins = 1; ins <= (*nns); ins++ {
@@ -199,14 +199,14 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 										nrows = n
 										ncols = m
 									}
-									ldwork = maxint(1, ncols)
+									ldwork = max(1, ncols)
 
 									//                             Set up a consistent rhs
 									if ncols > 0 {
 										golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
-										goblas.Zdscal(ncols*nrhs, one/float64(ncols), work, 1)
+										goblas.Zdscal(ncols*nrhs, one/float64(ncols), work.Off(0, 1))
 									}
-									err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), lda, work.CMatrix(ldwork, opts), ldwork, czero, b.CMatrix(ldb, opts), ldb)
+									err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), work.CMatrix(ldwork, opts), czero, b.CMatrix(ldb, opts))
 									golapack.Zlacpy('F', &nrows, &nrhs, b.CMatrix(ldb, opts), &ldb, copyb.CMatrix(ldb, opts), &ldb)
 
 									//                             Solve LS or overdetermined system
@@ -223,7 +223,7 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 									}
 
 									//                             Check correctness of results
-									ldwork = maxint(1, nrows)
+									ldwork = max(1, nrows)
 									if nrows > 0 && nrhs > 0 {
 										golapack.Zlacpy('F', &nrows, &nrhs, copyb.CMatrix(ldb, opts), &ldb, c.CMatrix(ldb, opts), &ldb)
 									}
@@ -274,14 +274,14 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 											nrows = n
 											ncols = m
 										}
-										ldwork = maxint(1, ncols)
+										ldwork = max(1, ncols)
 
 										//                             Set up a consistent rhs
 										if ncols > 0 {
 											golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
-											goblas.Zscal(ncols*nrhs, complex(one/float64(ncols), 0), work, 1)
+											goblas.Zscal(ncols*nrhs, complex(one/float64(ncols), 0), work.Off(0, 1))
 										}
-										err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), lda, work.CMatrix(ldwork, opts), ldwork, czero, b.CMatrix(ldb, opts), ldb)
+										err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), work.CMatrix(ldwork, opts), czero, b.CMatrix(ldb, opts))
 										golapack.Zlacpy('F', &nrows, &nrhs, b.CMatrix(ldb, opts), &ldb, copyb.CMatrix(ldb, opts), &ldb)
 
 										//                             Solve LS or overdetermined system
@@ -297,7 +297,7 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 										}
 
 										//                             Check correctness of results
-										ldwork = maxint(1, nrows)
+										ldwork = max(1, nrows)
 										if nrows > 0 && nrhs > 0 {
 											golapack.Zlacpy('F', &nrows, &nrhs, copyb.CMatrix(ldb, opts), &ldb, c.CMatrix(ldb, opts), &ldb)
 										}
@@ -333,8 +333,8 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 						//                    _type IRANK.
 						Zqrt15(&iscale, &irank, &m, &n, &nrhs, copya.CMatrix(lda, opts), &lda, copyb.CMatrix(ldb, opts), &ldb, copys, &rank, &norma, &normb, &iseed, work, &lwork)
 
-						//                    workspace used: maxint(M+minint(M,N),NRHS*minint(M,N),2*N+M)
-						ldwork = maxint(1, m)
+						//                    workspace used: max(M+min(M,N),NRHS*min(M,N),2*N+M)
+						ldwork = max(1, m)
 
 						//                    Loop for testing different block sizes.
 						for inb = 1; inb <= (*nnb); inb++ {
@@ -345,7 +345,7 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//                       Test ZGELSY
 							//
 							//                       ZGELSY:  Compute the minimum-norm solution
-							//                       X to minint( norm( A * X - B ) )
+							//                       X to min( norm( A * X - B ) )
 							//                       using the rank-revealing orthogonal
 							//                       factorization.
 							golapack.Zlacpy('F', &m, &n, copya.CMatrix(lda, opts), &lda, a.CMatrix(lda, opts), &lda)
@@ -362,10 +362,10 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 								Alaerh(path, []byte("ZGELSY"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
 							}
 
-							//                       workspace used: 2*MNMIN+NB*NB+NB*maxint(N,NRHS)
+							//                       workspace used: 2*MNMIN+NB*NB+NB*max(N,NRHS)
 							//
 							//                       Test 3:  Compute relative error in svd
-							//                                workspace: M*N + 4*minint(M,N) + maxint(M,N)
+							//                                workspace: M*N + 4*min(M,N) + max(M,N)
 							result.Set(2, Zqrt12(&crank, &crank, a.CMatrix(lda, opts), &lda, copys, work, &lwork, rwork))
 
 							//                       Test 4:  Compute error in solution
@@ -391,7 +391,7 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//                       Test ZGELSS
 							//
 							//                       ZGELSS:  Compute the minimum-norm solution
-							//                       X to minint( norm( A * X - B ) )
+							//                       X to min( norm( A * X - B ) )
 							//                       using the SVD.
 							golapack.Zlacpy('F', &m, &n, copya.CMatrix(lda, opts), &lda, a.CMatrix(lda, opts), &lda)
 							golapack.Zlacpy('F', &m, &nrhs, copyb.CMatrix(ldb, opts), &ldb, b.CMatrix(ldb, opts), &ldb)
@@ -403,13 +403,13 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 								Alaerh(path, []byte("ZGELSS"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
 							}
 
-							//                       workspace used: 3*minint(m,n) +
-							//                                       maxint(2*minint(m,n),nrhs,maxint(m,n))
+							//                       workspace used: 3*min(m,n) +
+							//                                       max(2*min(m,n),nrhs,max(m,n))
 							//
 							//                       Test 7:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(mnmin, -one, copys, 1, s, 1)
-								result.Set(6, goblas.Dasum(mnmin, s, 1)/goblas.Dasum(mnmin, copys, 1)/(eps*float64(mnmin)))
+								goblas.Daxpy(mnmin, -one, copys.Off(0, 1), s.Off(0, 1))
+								result.Set(6, goblas.Dasum(mnmin, s.Off(0, 1))/goblas.Dasum(mnmin, copys.Off(0, 1))/(eps*float64(mnmin)))
 							} else {
 								result.Set(6, zero)
 							}
@@ -433,7 +433,7 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//                       Test ZGELSD
 							//
 							//                       ZGELSD:  Compute the minimum-norm solution X
-							//                       to minint( norm( A * X - B ) ) using a
+							//                       to min( norm( A * X - B ) ) using a
 							//                       divide and conquer SVD.
 							Xlaenv(9, 25)
 
@@ -449,8 +449,8 @@ func Zdrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 							//                       Test 11:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(mnmin, -one, copys, 1, s, 1)
-								result.Set(10, goblas.Dasum(mnmin, s, 1)/goblas.Dasum(mnmin, copys, 1)/(eps*float64(mnmin)))
+								goblas.Daxpy(mnmin, -one, copys.Off(0, 1), s.Off(0, 1))
+								result.Set(10, goblas.Dasum(mnmin, s.Off(0, 1))/goblas.Dasum(mnmin, copys.Off(0, 1))/(eps*float64(mnmin)))
 							} else {
 								result.Set(10, zero)
 							}

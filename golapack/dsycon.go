@@ -27,7 +27,7 @@ func Dsycon(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, anorm *floa
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*anorm) < zero {
 		(*info) = -6
@@ -67,7 +67,7 @@ func Dsycon(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, anorm *floa
 	kase = 0
 label30:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		//        Multiply by inv(L*D*L**T) or inv(U*D*U**T).
 		Dsytrs(uplo, n, func() *int { y := 1; return &y }(), a, lda, ipiv, work.Matrix(*n, opts), n, info)

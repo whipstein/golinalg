@@ -26,7 +26,7 @@ func Zqrt13(scale, m, n *int, a *mat.CMatrix, lda *int, norma *float64, iseed *[
 	for j = 1; j <= (*n); j++ {
 		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, m, a.CVector(0, j-1))
 		if j <= (*m) {
-			a.Set(j-1, j-1, a.Get(j-1, j-1)+complex(math.Copysign(goblas.Dzasum(*m, a.CVector(0, j-1), 1), a.GetRe(j-1, j-1)), 0))
+			a.Set(j-1, j-1, a.Get(j-1, j-1)+complex(math.Copysign(goblas.Dzasum(*m, a.CVector(0, j-1, 1)), a.GetRe(j-1, j-1)), 0))
 		}
 	}
 

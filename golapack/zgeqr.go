@@ -36,7 +36,7 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 	}
 
 	//     Determine the block size
-	if minint(*m, *n) > 0 {
+	if min(*m, *n) > 0 {
 		mb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQR "), []byte{' '}, m, n, func() *int { y := 1; return &y }(), toPtr(-1))
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQR "), []byte{' '}, m, n, func() *int { y := 2; return &y }(), toPtr(-1))
 	} else {
@@ -46,7 +46,7 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 	if mb > (*m) || mb <= (*n) {
 		mb = (*m)
 	}
-	if nb > minint(*m, *n) || nb < 1 {
+	if nb > min(*m, *n) || nb < 1 {
 		nb = 1
 	}
 	mintsz = (*n) + 5
@@ -63,8 +63,8 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 	//     Determine if the workspace size satisfies minimal size
 	//
 	lminws = false
-	if ((*tsize) < maxint(1, nb*(*n)*nblcks+5) || (*lwork) < nb*(*n)) && ((*lwork) >= (*n)) && ((*tsize) >= mintsz) && (!lquery) {
-		if (*tsize) < maxint(1, nb*(*n)*nblcks+5) {
+	if ((*tsize) < max(1, nb*(*n)*nblcks+5) || (*lwork) < nb*(*n)) && ((*lwork) >= (*n)) && ((*tsize) >= mintsz) && (!lquery) {
+		if (*tsize) < max(1, nb*(*n)*nblcks+5) {
 			lminws = true
 			nb = 1
 			mb = (*m)
@@ -79,11 +79,11 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
-	} else if (*tsize) < maxint(1, nb*(*n)*nblcks+5) && (!lquery) && (!lminws) {
+	} else if (*tsize) < max(1, nb*(*n)*nblcks+5) && (!lquery) && (!lminws) {
 		(*info) = -6
-	} else if ((*lwork) < maxint(1, (*n)*nb)) && (!lquery) && (!lminws) {
+	} else if ((*lwork) < max(1, (*n)*nb)) && (!lquery) && (!lminws) {
 		(*info) = -8
 	}
 	//
@@ -96,9 +96,9 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 		t.SetRe(1, float64(mb))
 		t.SetRe(2, float64(nb))
 		if minw {
-			work.SetRe(0, float64(maxint(1, *n)))
+			work.SetRe(0, float64(max(1, *n)))
 		} else {
-			work.SetRe(0, float64(maxint(1, nb*(*n))))
+			work.SetRe(0, float64(max(1, nb*(*n))))
 		}
 	}
 	if (*info) != 0 {
@@ -109,7 +109,7 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -120,5 +120,5 @@ func Zgeqr(m, n *int, a *mat.CMatrix, lda *int, t *mat.CVector, tsize *int, work
 		Zlatsqr(m, n, &mb, &nb, a, lda, t.CMatrixOff(5, nb, opts), &nb, work, lwork, info)
 	}
 
-	work.SetRe(0, float64(maxint(1, nb*(*n))))
+	work.SetRe(0, float64(max(1, nb*(*n))))
 }

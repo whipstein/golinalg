@@ -2,6 +2,7 @@ package eig
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
@@ -169,11 +170,11 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX1", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			return
 		}
 		if isort == 0 {
-			goblas.Zcopy(*n, w, 1, wtmp, 1)
+			goblas.Zcopy(*n, w.Off(0, 1), wtmp.Off(0, 1))
 		}
 
 		//        Do Test (1) or Test (7)
@@ -192,21 +193,21 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 		golapack.Zlacpy(' ', n, n, a, lda, vs1, ldvs)
 
 		//        Compute Q*H and store in HT.
-		err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, vs, *ldvs, h, *lda, czero, ht, *lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, vs, h, czero, ht)
 
 		//        Compute A - Q*H*Q'
-		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, -cone, ht, *lda, vs, *ldvs, cone, vs1, *ldvs)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, -cone, ht, vs, cone, vs1)
 
-		anorm = maxf64(golapack.Zlange('1', n, n, a, lda, rwork), smlnum)
+		anorm = math.Max(golapack.Zlange('1', n, n, a, lda, rwork), smlnum)
 		wnorm = golapack.Zlange('1', n, n, vs1, ldvs, rwork)
 
 		if anorm > wnorm {
 			result.Set(2+rsub-1, (wnorm/anorm)/(float64(*n)*ulp))
 		} else {
 			if anorm < one {
-				result.Set(2+rsub-1, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+				result.Set(2+rsub-1, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 			} else {
-				result.Set(2+rsub-1, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+				result.Set(2+rsub-1, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 			}
 		}
 
@@ -231,7 +232,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX2", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -261,7 +262,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 					knteig = knteig + 1
 				}
 				if i < (*n) {
-					if Zslect(w.Get(i+1-1)) && (!Zslect(w.Get(i - 1))) {
+					if Zslect(w.Get(i)) && (!Zslect(w.Get(i - 1))) {
 						result.Set(12, ulpinv)
 					}
 				}
@@ -290,7 +291,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX3", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -323,7 +324,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX4", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -363,7 +364,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX5", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -400,7 +401,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX6", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -437,7 +438,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX7", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -474,7 +475,7 @@ func Zget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit, n *int
 			} else {
 				fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX8", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label220
 		}
 
@@ -514,7 +515,7 @@ label220:
 		//        by NSLCT, ISLCT and ISRT.
 		(*seldim) = (*n)
 		(*selopt) = 1
-		eps = maxf64(ulp, epsin)
+		eps = math.Max(ulp, epsin)
 		for i = 1; i <= (*n); i++ {
 			ipnt[i-1] = i
 			(*selval)[i-1] = false
@@ -557,14 +558,14 @@ label220:
 			result.Set(15, ulpinv)
 			result.Set(16, ulpinv)
 			fmt.Printf(" ZGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEESX9", iinfo, *n, (*iseed)[0])
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label270
 		}
 
 		//        Compare condition number for average of selected eigenvalues
 		//        taking its condition number into account
 		anorm = golapack.Zlange('1', n, n, a, lda, rwork)
-		v = maxf64(float64(*n)*eps*anorm, smlnum)
+		v = math.Max(float64(*n)*eps*anorm, smlnum)
 		if anorm == zero {
 			v = one
 		}
@@ -578,8 +579,8 @@ label220:
 		} else {
 			tolin = v / (*rcdvin)
 		}
-		tol = maxf64(tol, smlnum/eps)
-		tolin = maxf64(tolin, smlnum/eps)
+		tol = math.Max(tol, smlnum/eps)
+		tolin = math.Max(tolin, smlnum/eps)
 		if eps*((*rcdein)-tolin) > rconde+tol {
 			result.Set(15, ulpinv)
 		} else if (*rcdein)-tolin > rconde+tol {
@@ -604,8 +605,8 @@ label220:
 		} else {
 			tolin = v / (*rcdein)
 		}
-		tol = maxf64(tol, smlnum/eps)
-		tolin = maxf64(tolin, smlnum/eps)
+		tol = math.Max(tol, smlnum/eps)
+		tolin = math.Max(tolin, smlnum/eps)
 		if eps*((*rcdvin)-tolin) > rcondv+tol {
 			result.Set(16, ulpinv)
 		} else if (*rcdvin)-tolin > rcondv+tol {

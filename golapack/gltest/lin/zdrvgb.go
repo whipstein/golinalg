@@ -63,11 +63,11 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		ldb = maxint(n, 1)
+		ldb = max(n, 1)
 		xtype = 'N'
 
 		//        Set limits on the number of loop iterations.
-		nkl = maxint(1, minint(n, 4))
+		nkl = max(1, min(n, 4))
 		if n == 0 {
 			nkl = 1
 		}
@@ -83,7 +83,7 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 			if ikl == 1 {
 				kl = 0
 			} else if ikl == 2 {
-				kl = maxint(n-1, 0)
+				kl = max(n-1, 0)
 			} else if ikl == 3 {
 				kl = (3*n - 1) / 4
 			} else if ikl == 4 {
@@ -96,7 +96,7 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				if iku == 1 {
 					ku = 0
 				} else if iku == 2 {
-					ku = maxint(n-1, 0)
+					ku = max(n-1, 0)
 				} else if iku == 3 {
 					ku = (3*n - 1) / 4
 				} else if iku == 4 {
@@ -164,14 +164,14 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 						ioff = (izero - 1) * lda
 						if imat < 4 {
-							i1 = maxint(1, ku+2-izero)
-							i2 = minint(kl+ku+1, ku+1+(n-izero))
+							i1 = max(1, ku+2-izero)
+							i2 = min(kl+ku+1, ku+1+(n-izero))
 							for i = i1; i <= i2; i++ {
 								a.SetRe(ioff+i-1, zero)
 							}
 						} else {
 							for j = izero; j <= n; j++ {
-								for i = maxint(1, ku+2-j); i <= minint(kl+ku+1, ku+1+(n-j)); i++ {
+								for i = max(1, ku+2-j); i <= min(kl+ku+1, ku+1+(n-j)); i++ {
 									a.SetRe(ioff+i-1, zero)
 								}
 								ioff = ioff + lda
@@ -208,11 +208,11 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								//                          with the value returned by DGESVX (FACT =
 								//                          'N' reuses the condition number from the
 								//                          previous iteration with FACT = 'F').
-								golapack.Zlacpy('F', toPtr(kl+ku+1), &n, asav.CMatrix(lda, opts), &lda, afb.CMatrixOff(kl+1-1, ldafb, opts), &ldafb)
+								golapack.Zlacpy('F', toPtr(kl+ku+1), &n, asav.CMatrix(lda, opts), &lda, afb.CMatrixOff(kl, ldafb, opts), &ldafb)
 								if equil || iequed > 1 {
 									//                             Compute row and column scale factors to
 									//                             equilibrate the matrix A.
-									golapack.Zgbequ(&n, &n, &kl, &ku, afb.CMatrixOff(kl+1-1, ldafb, opts), &ldafb, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &info)
+									golapack.Zgbequ(&n, &n, &kl, &ku, afb.CMatrixOff(kl, ldafb, opts), &ldafb, s, s.Off(n), &rowcnd, &colcnd, &amax, &info)
 									if info == 0 && n > 0 {
 										if equed == 'R' {
 											rowcnd = zero
@@ -226,7 +226,7 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 										}
 
 										//                                Equilibrate the matrix.
-										golapack.Zlaqgb(&n, &n, &kl, &ku, afb.CMatrixOff(kl+1-1, ldafb, opts), &ldafb, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &equed)
+										golapack.Zlaqgb(&n, &n, &kl, &ku, afb.CMatrixOff(kl, ldafb, opts), &ldafb, s, s.Off(n), &rowcnd, &colcnd, &amax, &equed)
 									}
 								}
 
@@ -238,8 +238,8 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								}
 
 								//                          Compute the 1-norm and infinity-norm of A.
-								anormo = golapack.Zlangb('1', &n, &kl, &ku, afb.CMatrixOff(kl+1-1, ldafb, opts), &ldafb, rwork)
-								anormi = golapack.Zlangb('I', &n, &kl, &ku, afb.CMatrixOff(kl+1-1, ldafb, opts), &ldafb, rwork)
+								anormo = golapack.Zlangb('1', &n, &kl, &ku, afb.CMatrixOff(kl, ldafb, opts), &ldafb, rwork)
+								anormi = golapack.Zlangb('I', &n, &kl, &ku, afb.CMatrixOff(kl, ldafb, opts), &ldafb, rwork)
 
 								//                          Factor the matrix A.
 								golapack.Zgbtrf(&n, &n, &kl, &ku, afb.CMatrix(ldafb, opts), &ldafb, iwork, &info)
@@ -291,7 +291,7 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 									//
 									//                             Compute the LU factorization of the matrix
 									//                             and solve the system.
-									golapack.Zlacpy('F', toPtr(kl+ku+1), &n, a.CMatrix(lda, opts), &lda, afb.CMatrixOff(kl+1-1, ldafb, opts), &ldafb)
+									golapack.Zlacpy('F', toPtr(kl+ku+1), &n, a.CMatrix(lda, opts), &lda, afb.CMatrixOff(kl, ldafb, opts), &ldafb)
 									golapack.Zlacpy('F', &n, nrhs, b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb)
 
 									*srnamt = "ZGBSV "
@@ -341,13 +341,13 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								if iequed > 1 && n > 0 {
 									//                             Equilibrate the matrix if FACT = 'F' and
 									//                             EQUED = 'R', 'C', or 'B'.
-									golapack.Zlaqgb(&n, &n, &kl, &ku, a.CMatrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &equed)
+									golapack.Zlaqgb(&n, &n, &kl, &ku, a.CMatrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &equed)
 								}
 
 								//                          Solve the system and compute the condition
 								//                          number and error bounds using ZGBSVX.
 								*srnamt = "ZGBSVX"
-								golapack.Zgbsvx(fact, trans, &n, &kl, &ku, nrhs, a.CMatrix(lda, opts), &lda, afb.CMatrix(ldafb, opts), &ldafb, iwork, &equed, s, s.Off(ldb+1-1), b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, rwork.Off(2*(*nrhs)+1-1), &info)
+								golapack.Zgbsvx(fact, trans, &n, &kl, &ku, nrhs, a.CMatrix(lda, opts), &lda, afb.CMatrix(ldafb, opts), &ldafb, iwork, &equed, s, s.Off(ldb), b.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
 
 								//                          Check the error code from ZGBSVX.
 								if info != izero {
@@ -358,11 +358,11 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								if info != 0 && info <= n {
 									anrmpv = zero
 									for j = 1; j <= info; j++ {
-										for i = maxint(ku+2-j, 1); i <= minint(n+ku+1-j, kl+ku+1); i++ {
-											anrmpv = maxf64(anrmpv, a.GetMag(i+(j-1)*lda-1))
+										for i = max(ku+2-j, 1); i <= min(n+ku+1-j, kl+ku+1); i++ {
+											anrmpv = math.Max(anrmpv, a.GetMag(i+(j-1)*lda-1))
 										}
 									}
-									rpvgrw = golapack.Zlantb('M', 'U', 'N', &info, toPtr(minint(info-1, kl+ku)), afb.CMatrixOff(maxint(1, kl+ku+2-info)-1, ldafb, opts), &ldafb, rdum)
+									rpvgrw = golapack.Zlantb('M', 'U', 'N', &info, toPtr(min(info-1, kl+ku)), afb.CMatrixOff(max(1, kl+ku+2-info)-1, ldafb, opts), &ldafb, rdum)
 									if rpvgrw == zero {
 										rpvgrw = one
 									} else {
@@ -376,7 +376,7 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 										rpvgrw = golapack.Zlangb('M', &n, &kl, &ku, a.CMatrix(lda, opts), &lda, rdum) / rpvgrw
 									}
 								}
-								result.Set(6, math.Abs(rpvgrw-rwork.Get(2*(*nrhs)+1-1))/maxf64(rwork.Get(2*(*nrhs)+1-1), rpvgrw)/golapack.Dlamch(Epsilon))
+								result.Set(6, math.Abs(rpvgrw-rwork.Get(2*(*nrhs)))/math.Max(rwork.Get(2*(*nrhs)), rpvgrw)/golapack.Dlamch(Epsilon))
 
 								if !prefac {
 									//                             Reconstruct matrix from factors and
@@ -409,7 +409,7 @@ func Zdrvgb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 									//                             Check the error bounds from iterative
 									//                             refinement.
-									Zgbt05(trans, &n, &kl, &ku, nrhs, asav.CMatrix(lda, opts), &lda, bsav.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, xact.CMatrix(ldb, opts), &ldb, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+									Zgbt05(trans, &n, &kl, &ku, nrhs, asav.CMatrix(lda, opts), &lda, bsav.CMatrix(ldb, opts), &ldb, x.CMatrix(ldb, opts), &ldb, xact.CMatrix(ldb, opts), &ldb, rwork, rwork.Off((*nrhs)), result.Off(3))
 								} else {
 									trfcon = true
 								}

@@ -129,7 +129,7 @@ func DsytrdSb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int,
 
 		if upper {
 			for i = 1; i <= (*n)-1; i++ {
-				e.Set(i-1, ab.Get(abofdpos-1, i+1-1))
+				e.Set(i-1, ab.Get(abofdpos-1, i))
 			}
 		} else {
 			for i = 1; i <= (*n)-1; i++ {
@@ -156,9 +156,9 @@ func DsytrdSb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int,
 	//     main bulge chasing loop
 	for thgrid = 1; thgrid <= thgrnb; thgrid++ {
 		stt = (thgrid-1)*thgrsiz + 1
-		thed = minint(stt+thgrsiz-1, (*n)-1)
+		thed = min(stt+thgrsiz-1, (*n)-1)
 		for i = stt; i <= (*n)-1; i++ {
-			ed = minint(i, thed)
+			ed = min(i, thed)
 			if stt > ed {
 				break
 			}
@@ -175,12 +175,12 @@ func DsytrdSb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int,
 						if ttype == 2 {
 							colpt = (myid/2)*(*kd) + sweepid
 							stind = colpt - (*kd) + 1
-							edind = minint(colpt, *n)
+							edind = min(colpt, *n)
 							blklastind = colpt
 						} else {
 							colpt = ((myid+1)/2)*(*kd) + sweepid
 							stind = colpt - (*kd) + 1
-							edind = minint(colpt, *n)
+							edind = min(colpt, *n)
 							if (stind >= edind-1) && (edind == (*n)) {
 								blklastind = (*n)
 							} else {

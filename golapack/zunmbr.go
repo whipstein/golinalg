@@ -67,11 +67,11 @@ func Zunmbr(vect, side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau 
 		(*info) = -5
 	} else if (*k) < 0 {
 		(*info) = -6
-	} else if (applyq && (*lda) < maxint(1, nq)) || (!applyq && (*lda) < maxint(1, minint(nq, *k))) {
+	} else if (applyq && (*lda) < max(1, nq)) || (!applyq && (*lda) < max(1, min(nq, *k))) {
 		(*info) = -8
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -11
-	} else if (*lwork) < maxint(1, nw) && !lquery {
+	} else if (*lwork) < max(1, nw) && !lquery {
 		(*info) = -13
 	}
 
@@ -90,7 +90,7 @@ func Zunmbr(vect, side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau 
 					nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte{side, trans}, m, toPtr((*n)-1), toPtr((*n)-1), toPtr(-1))
 				}
 			}
-			lwkopt = maxint(1, nw*nb)
+			lwkopt = max(1, nw*nb)
 		} else {
 			lwkopt = 1
 		}

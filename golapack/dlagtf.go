@@ -51,13 +51,13 @@ func Dlagtf(n *int, a *mat.Vector, lambda *float64, b, c *mat.Vector, tol *float
 
 	eps = Dlamch(Epsilon)
 
-	tl = maxf64(*tol, eps)
+	tl = math.Max(*tol, eps)
 	scale1 = math.Abs(a.Get(0)) + math.Abs(b.Get(0))
 	for k = 1; k <= (*n)-1; k++ {
-		a.Set(k+1-1, a.Get(k+1-1)-(*lambda))
-		scale2 = math.Abs(c.Get(k-1)) + math.Abs(a.Get(k+1-1))
+		a.Set(k, a.Get(k)-(*lambda))
+		scale2 = math.Abs(c.Get(k-1)) + math.Abs(a.Get(k))
 		if k < ((*n) - 1) {
-			scale2 = scale2 + math.Abs(b.Get(k+1-1))
+			scale2 = scale2 + math.Abs(b.Get(k))
 		}
 		if a.Get(k-1) == zero {
 			piv1 = zero
@@ -77,7 +77,7 @@ func Dlagtf(n *int, a *mat.Vector, lambda *float64, b, c *mat.Vector, tol *float
 				(*in)[k-1] = 0
 				scale1 = scale2
 				c.Set(k-1, c.Get(k-1)/a.Get(k-1))
-				a.Set(k+1-1, a.Get(k+1-1)-c.Get(k-1)*b.Get(k-1))
+				a.Set(k, a.Get(k)-c.Get(k-1)*b.Get(k-1))
 				if k < ((*n) - 1) {
 					d.Set(k-1, zero)
 				}
@@ -86,16 +86,16 @@ func Dlagtf(n *int, a *mat.Vector, lambda *float64, b, c *mat.Vector, tol *float
 				mult = a.Get(k-1) / c.Get(k-1)
 				a.Set(k-1, c.Get(k-1))
 				temp = a.Get(k + 1 - 1)
-				a.Set(k+1-1, b.Get(k-1)-mult*temp)
+				a.Set(k, b.Get(k-1)-mult*temp)
 				if k < ((*n) - 1) {
-					d.Set(k-1, b.Get(k+1-1))
-					b.Set(k+1-1, -mult*d.Get(k-1))
+					d.Set(k-1, b.Get(k))
+					b.Set(k, -mult*d.Get(k-1))
 				}
 				b.Set(k-1, temp)
 				c.Set(k-1, mult)
 			}
 		}
-		if (maxf64(piv1, piv2) <= tl) && ((*in)[(*n)-1] == 0) {
+		if (math.Max(piv1, piv2) <= tl) && ((*in)[(*n)-1] == 0) {
 			(*in)[(*n)-1] = k
 		}
 	}

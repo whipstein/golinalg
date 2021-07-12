@@ -9,7 +9,7 @@ func Zlacpy(uplo byte, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb 
 
 	if uplo == 'U' {
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(j, *m); i++ {
+			for i = 1; i <= min(j, *m); i++ {
 				b.Set(i-1, j-1, a.Get(i-1, j-1))
 			}
 		}

@@ -46,7 +46,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	} else if (*ldvs) < 1 || (wantvs && (*ldvs) < (*n)) {
 		(*info) = -11
@@ -73,10 +73,10 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 			hswork = int(work.Get(0))
 
 			if !wantvs {
-				maxwrk = maxint(maxwrk, (*n)+hswork)
+				maxwrk = max(maxwrk, (*n)+hswork)
 			} else {
-				maxwrk = maxint(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*n)+hswork)
+				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)+hswork)
 			}
 		}
 		work.Set(0, float64(maxwrk))
@@ -178,7 +178,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Dlascl('H', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Dcopy(*n, a.VectorIdx(0), (*lda)+1, wr, 1)
+		goblas.Dcopy(*n, a.VectorIdx(0, (*lda)+1), wr)
 		if cscale == smlnum {
 			//           If scaling back towards underflow, adjust WI if an
 			//           offdiagonal element of a 2-by-2 block in the Schur form
@@ -186,7 +186,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 			if ieval > 0 {
 				i1 = ieval + 1
 				i2 = ihi - 1
-				Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wi.Matrix(maxint(ilo-1, 1), opts), toPtr(maxint(ilo-1, 1)), &ierr)
+				Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wi.Matrix(max(ilo-1, 1), opts), toPtr(max(ilo-1, 1)), &ierr)
 			} else if wantst {
 				i1 = 1
 				i2 = (*n) - 1
@@ -202,23 +202,23 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 				if wi.Get(i-1) == zero {
 					inxt = i + 1
 				} else {
-					if a.Get(i+1-1, i-1) == zero {
+					if a.Get(i, i-1) == zero {
 						wi.Set(i-1, zero)
-						wi.Set(i+1-1, zero)
-					} else if a.Get(i+1-1, i-1) != zero && a.Get(i-1, i+1-1) == zero {
+						wi.Set(i, zero)
+					} else if a.Get(i, i-1) != zero && a.Get(i-1, i) == zero {
 						wi.Set(i-1, zero)
-						wi.Set(i+1-1, zero)
+						wi.Set(i, zero)
 						if i > 1 {
-							goblas.Dswap(i-1, a.Vector(0, i-1), 1, a.Vector(0, i+1-1), 1)
+							goblas.Dswap(i-1, a.Vector(0, i-1, 1), a.Vector(0, i, 1))
 						}
 						if (*n) > i+1 {
-							goblas.Dswap((*n)-i-1, a.Vector(i-1, i+2-1), *lda, a.Vector(i+1-1, i+2-1), *lda)
+							goblas.Dswap((*n)-i-1, a.Vector(i-1, i+2-1), a.Vector(i, i+2-1))
 						}
 						if wantvs {
-							goblas.Dswap(*n, vs.Vector(0, i-1), 1, vs.Vector(0, i+1-1), 1)
+							goblas.Dswap(*n, vs.Vector(0, i-1, 1), vs.Vector(0, i, 1))
 						}
-						a.Set(i-1, i+1-1, a.Get(i+1-1, i-1))
-						a.Set(i+1-1, i-1, zero)
+						a.Set(i-1, i, a.Get(i, i-1))
+						a.Set(i, i-1, zero)
 					}
 					inxt = i + 2
 				}
@@ -227,7 +227,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 		}
 
 		//        Undo scaling for the imaginary part of the eigenvalues
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-ieval), func() *int { y := 1; return &y }(), wi.MatrixOff(ieval+1-1, maxint((*n)-ieval, 1), opts), toPtr(maxint((*n)-ieval, 1)), &ierr)
+		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-ieval), func() *int { y := 1; return &y }(), wi.MatrixOff(ieval, max((*n)-ieval, 1), opts), toPtr(max((*n)-ieval, 1)), &ierr)
 	}
 
 	if wantst && (*info) == 0 {

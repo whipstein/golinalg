@@ -73,14 +73,14 @@ func Dlqt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 
 			//           Form explicit product and subtract
 			if side == 'L' {
-				err = goblas.Dgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, -one, q, *lda, c, *lda, one, cc, *lda)
+				err = goblas.Dgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, -one, q, c, one, cc)
 			} else {
-				err = goblas.Dgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, *lda, q, *lda, one, cc, *lda)
+				err = goblas.Dgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, q, one, cc)
 			}
 
 			//           Compute error in the difference
 			resid = golapack.Dlange('1', &mc, &nc, cc, lda, rwork)
-			result.Set((iside-1)*2+itrans-1, resid/(float64(maxint(1, *n))*cnorm*eps))
+			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, *n))*cnorm*eps))
 
 		}
 	}

@@ -103,9 +103,9 @@ func Zlatsy(uplo byte, n *int, x *mat.CMatrix, ldx *int, iseed *[]int) {
 			r = c / complex(beta, 0)
 			x.Set(i-1, i-1, a)
 			x.Set(i+2-1, i-1, b)
-			x.Set(i+2-1, i+1-1, r)
+			x.Set(i+2-1, i, r)
 			x.Set(i+2-1, i+2-1, c)
-			x.Set(i+1-1, i+1-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
+			x.Set(i, i, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			x.Set(i+3-1, i+3-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			x.Set(i+4-1, i+4-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			if x.GetMag(i+3-1, i+3-1) > x.GetMag(i+4-1, i+4-1) {
@@ -124,18 +124,18 @@ func Zlatsy(uplo byte, n *int, x *mat.CMatrix, ldx *int, iseed *[]int) {
 			r = c / complex(beta, 0)
 			x.Set(i-1, i-1, a)
 			x.Set(i+2-1, i-1, b)
-			x.Set(i+2-1, i+1-1, r)
+			x.Set(i+2-1, i, r)
 			x.Set(i+2-1, i+2-1, c)
-			x.Set(i+1-1, i+1-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
+			x.Set(i, i, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			i = i + 3
 		}
 		if i < (*n) {
 			x.Set(i-1, i-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
-			x.Set(i+1-1, i+1-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
-			if x.GetMag(i-1, i-1) > x.GetMag(i+1-1, i+1-1) {
-				x.Set(i+1-1, i-1, 2.0*x.Get(i-1, i-1))
+			x.Set(i, i, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
+			if x.GetMag(i-1, i-1) > x.GetMag(i, i) {
+				x.Set(i, i-1, 2.0*x.Get(i-1, i-1))
 			} else {
-				x.Set(i+1-1, i-1, 2.0*x.Get(i+1-1, i+1-1))
+				x.Set(i, i-1, 2.0*x.Get(i, i))
 			}
 			i = i + 2
 		} else if i == (*n) {

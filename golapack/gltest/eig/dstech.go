@@ -47,9 +47,9 @@ func Dstech(n *int, a, b, eig *mat.Vector, tol *float64, work *mat.Vector, info 
 	//     Compute maximum absolute eigenvalue, error tolerance
 	mx = math.Abs(eig.Get(0))
 	for i = 2; i <= (*n); i++ {
-		mx = maxf64(mx, math.Abs(eig.Get(i-1)))
+		mx = math.Max(mx, math.Abs(eig.Get(i-1)))
 	}
-	eps = maxf64(eps*mx, unflep)
+	eps = math.Max(eps*mx, unflep)
 
 	//     Sort eigenvalues from EIG into WORK
 	for i = 1; i <= (*n); i++ {
@@ -87,7 +87,7 @@ label60:
 	if bpnt == (*n) {
 		goto label70
 	}
-	tuppr = work.Get(bpnt+1-1) + eps
+	tuppr = work.Get(bpnt) + eps
 	if tuppr < lower {
 		goto label70
 	}

@@ -33,7 +33,7 @@ func Zpotrf(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -58,16 +58,16 @@ func Zpotrf(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			for j = 1; j <= (*n); j += nb {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
-				jb = minint(nb, (*n)-j+1)
-				err = goblas.Zherk(Upper, ConjTrans, jb, j-1, -one, a.Off(0, j-1), *lda, one, a.Off(j-1, j-1), *lda)
+				jb = min(nb, (*n)-j+1)
+				err = goblas.Zherk(Upper, ConjTrans, jb, j-1, -one, a.Off(0, j-1), one, a.Off(j-1, j-1))
 				Zpotrf2('U', &jb, a.Off(j-1, j-1), lda, info)
 				if (*info) != 0 {
 					goto label30
 				}
 				if j+jb <= (*n) {
 					//                 Compute the current block row.
-					err = goblas.Zgemm(ConjTrans, NoTrans, jb, (*n)-j-jb+1, j-1, -cone, a.Off(0, j-1), *lda, a.Off(0, j+jb-1), *lda, cone, a.Off(j-1, j+jb-1), *lda)
-					err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
+					err = goblas.Zgemm(ConjTrans, NoTrans, jb, (*n)-j-jb+1, j-1, -cone, a.Off(0, j-1), a.Off(0, j+jb-1), cone, a.Off(j-1, j+jb-1))
+					err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
 				}
 			}
 
@@ -76,16 +76,16 @@ func Zpotrf(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			for j = 1; j <= (*n); j += nb {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
-				jb = minint(nb, (*n)-j+1)
-				err = goblas.Zherk(Lower, NoTrans, jb, j-1, -one, a.Off(j-1, 0), *lda, one, a.Off(j-1, j-1), *lda)
+				jb = min(nb, (*n)-j+1)
+				err = goblas.Zherk(Lower, NoTrans, jb, j-1, -one, a.Off(j-1, 0), one, a.Off(j-1, j-1))
 				Zpotrf2('L', &jb, a.Off(j-1, j-1), lda, info)
 				if (*info) != 0 {
 					goto label30
 				}
 				if j+jb <= (*n) {
 					//                 Compute the current block column.
-					err = goblas.Zgemm(NoTrans, ConjTrans, (*n)-j-jb+1, jb, j-1, -cone, a.Off(j+jb-1, 0), *lda, a.Off(j-1, 0), *lda, cone, a.Off(j+jb-1, j-1), *lda)
-					err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, (*n)-j-jb+1, jb, cone, a.Off(j-1, j-1), *lda, a.Off(j+jb-1, j-1), *lda)
+					err = goblas.Zgemm(NoTrans, ConjTrans, (*n)-j-jb+1, jb, j-1, -cone, a.Off(j+jb-1, 0), a.Off(j-1, 0), cone, a.Off(j+jb-1, j-1))
+					err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, (*n)-j-jb+1, jb, cone, a.Off(j-1, j-1), a.Off(j+jb-1, j-1))
 				}
 			}
 		}

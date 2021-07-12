@@ -60,10 +60,10 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			sc = h.Get(i-1, i-1-1) / complex(cabs1(h.Get(i-1, i-1-1)), 0)
 			sc = cmplx.Conj(sc) / complex(cmplx.Abs(sc), 0)
 			h.SetRe(i-1, i-1-1, h.GetMag(i-1, i-1-1))
-			goblas.Zscal(jhi-i+1, sc, h.CVector(i-1, i-1), *ldh)
-			goblas.Zscal(minint(jhi, i+1)-jlo+1, cmplx.Conj(sc), h.CVector(jlo-1, i-1), 1)
+			goblas.Zscal(jhi-i+1, sc, h.CVector(i-1, i-1, *ldh))
+			goblas.Zscal(min(jhi, i+1)-jlo+1, cmplx.Conj(sc), h.CVector(jlo-1, i-1, 1))
 			if wantz {
-				goblas.Zscal((*ihiz)-(*iloz)+1, cmplx.Conj(sc), z.CVector((*iloz)-1, i-1), 1)
+				goblas.Zscal((*ihiz)-(*iloz)+1, cmplx.Conj(sc), z.CVector((*iloz)-1, i-1, 1))
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 	}
 
 	//     ITMAX is the total number of QR iterations allowed.
-	itmax = 30 * maxint(10, nh)
+	itmax = 30 * max(10, nh)
 
 	//     The main loop begins here. I is the loop index and decreases from
 	//     IHI to ILO in steps of 1. Each iteration of the loop works
@@ -117,7 +117,7 @@ label30:
 					tst = tst + math.Abs(h.GetRe(k-1-1, k-2-1))
 				}
 				if k+1 <= (*ihi) {
-					tst = tst + math.Abs(h.GetRe(k+1-1, k-1))
+					tst = tst + math.Abs(h.GetRe(k, k-1))
 				}
 			}
 			//           ==== The following is a conservative small subdiagonal
@@ -125,12 +125,12 @@ label30:
 			//           .    1997). It has better mathematical foundation and
 			//           .    improves accuracy in some examples.  ====
 			if math.Abs(h.GetRe(k-1, k-1-1)) <= ulp*tst {
-				ab = maxf64(cabs1(h.Get(k-1, k-1-1)), cabs1(h.Get(k-1-1, k-1)))
-				ba = minf64(cabs1(h.Get(k-1, k-1-1)), cabs1(h.Get(k-1-1, k-1)))
-				aa = maxf64(cabs1(h.Get(k-1, k-1)), cabs1(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
-				bb = minf64(cabs1(h.Get(k-1, k-1)), cabs1(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
+				ab = math.Max(cabs1(h.Get(k-1, k-1-1)), cabs1(h.Get(k-1-1, k-1)))
+				ba = math.Min(cabs1(h.Get(k-1, k-1-1)), cabs1(h.Get(k-1-1, k-1)))
+				aa = math.Max(cabs1(h.Get(k-1, k-1)), cabs1(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
+				bb = math.Min(cabs1(h.Get(k-1, k-1)), cabs1(h.Get(k-1-1, k-1-1)-h.Get(k-1, k-1)))
 				s = aa + ab
-				if ba*(ab/s) <= maxf64(smlnum, ulp*(bb*(aa/s))) {
+				if ba*(ab/s) <= math.Max(smlnum, ulp*(bb*(aa/s))) {
 					goto label50
 				}
 			}
@@ -158,7 +158,7 @@ label30:
 
 		if its == 10 {
 			//           Exceptional shift.
-			s = dat1 * math.Abs(h.GetRe(l+1-1, l-1))
+			s = dat1 * math.Abs(h.GetRe(l, l-1))
 			t = complex(s, 0) + h.Get(l-1, l-1)
 		} else if its == 20 {
 			//           Exceptional shift.
@@ -172,7 +172,7 @@ label30:
 			if s != rzero {
 				x = complex(half, 0) * (h.Get(i-1-1, i-1-1) - t)
 				sx = cabs1(x)
-				s = maxf64(s, cabs1(x))
+				s = math.Max(s, cabs1(x))
 				y = complex(s, 0) * cmplx.Sqrt(cmplx.Pow(x/complex(s, 0), 2)+cmplx.Pow(u/complex(s, 0), 2))
 				if sx > rzero {
 					if real(x/complex(sx, 0))*real(y)+imag(x/complex(sx, 0))*imag(y) < rzero {
@@ -189,9 +189,9 @@ label30:
 			//           iteration at row M, and see if this would make H(M,M-1)
 			//           negligible.
 			h11 = h.Get(m-1, m-1)
-			h22 = h.Get(m+1-1, m+1-1)
+			h22 = h.Get(m, m)
 			h11s = h11 - t
-			h21 = h.GetRe(m+1-1, m-1)
+			h21 = h.GetRe(m, m-1)
 			s = cabs1(h11s) + math.Abs(h21)
 			h11s = h11s / complex(s, 0)
 			h21 = h21 / s
@@ -203,9 +203,9 @@ label30:
 			}
 		}
 		h11 = h.Get(l-1, l-1)
-		h22 = h.Get(l+1-1, l+1-1)
+		h22 = h.Get(l, l)
 		h11s = h11 - t
-		h21 = h.GetRe(l+1-1, l-1)
+		h21 = h.GetRe(l, l-1)
 		s = cabs1(h11s) + math.Abs(h21)
 		h11s = h11s / complex(s, 0)
 		h21 = h21 / s
@@ -228,12 +228,12 @@ label30:
 			//           V(2) is always real before the call to ZLARFG, and hence
 			//           after the call T2 ( = T1*V(2) ) is also real.
 			if k > m {
-				goblas.Zcopy(2, h.CVector(k-1, k-1-1), 1, v, 1)
+				goblas.Zcopy(2, h.CVector(k-1, k-1-1, 1), v.Off(0, 1))
 			}
 			Zlarfg(func() *int { y := 2; return &y }(), v.GetPtr(0), v.Off(1), func() *int { y := 1; return &y }(), &t1)
 			if k > m {
 				h.Set(k-1, k-1-1, v.Get(0))
-				h.Set(k+1-1, k-1-1, zero)
+				h.Set(k, k-1-1, zero)
 			}
 			v2 = v.Get(1)
 			t2 = real(t1 * v2)
@@ -241,25 +241,25 @@ label30:
 			//           Apply G from the left to transform the rows of the matrix
 			//           in columns K to I2.
 			for j = k; j <= i2; j++ {
-				sum = cmplx.Conj(t1)*h.Get(k-1, j-1) + complex(t2, 0)*h.Get(k+1-1, j-1)
+				sum = cmplx.Conj(t1)*h.Get(k-1, j-1) + complex(t2, 0)*h.Get(k, j-1)
 				h.Set(k-1, j-1, h.Get(k-1, j-1)-sum)
-				h.Set(k+1-1, j-1, h.Get(k+1-1, j-1)-sum*v2)
+				h.Set(k, j-1, h.Get(k, j-1)-sum*v2)
 			}
 
 			//           Apply G from the right to transform the columns of the
-			//           matrix in rows I1 to minint(K+2,I).
-			for j = i1; j <= minint(k+2, i); j++ {
-				sum = t1*h.Get(j-1, k-1) + complex(t2, 0)*h.Get(j-1, k+1-1)
+			//           matrix in rows I1 to min(K+2,I).
+			for j = i1; j <= min(k+2, i); j++ {
+				sum = t1*h.Get(j-1, k-1) + complex(t2, 0)*h.Get(j-1, k)
 				h.Set(j-1, k-1, h.Get(j-1, k-1)-sum)
-				h.Set(j-1, k+1-1, h.Get(j-1, k+1-1)-sum*cmplx.Conj(v2))
+				h.Set(j-1, k, h.Get(j-1, k)-sum*cmplx.Conj(v2))
 			}
 
 			if wantz {
 				//              Accumulate transformations in the matrix Z
 				for j = (*iloz); j <= (*ihiz); j++ {
-					sum = t1*z.Get(j-1, k-1) + complex(t2, 0)*z.Get(j-1, k+1-1)
+					sum = t1*z.Get(j-1, k-1) + complex(t2, 0)*z.Get(j-1, k)
 					z.Set(j-1, k-1, z.Get(j-1, k-1)-sum)
-					z.Set(j-1, k+1-1, z.Get(j-1, k+1-1)-sum*cmplx.Conj(v2))
+					z.Set(j-1, k, z.Get(j-1, k)-sum*cmplx.Conj(v2))
 				}
 			}
 
@@ -270,18 +270,18 @@ label30:
 				//              real.
 				temp = one - t1
 				temp = temp / complex(cmplx.Abs(temp), 0)
-				h.Set(m+1-1, m-1, h.Get(m+1-1, m-1)*cmplx.Conj(temp))
+				h.Set(m, m-1, h.Get(m, m-1)*cmplx.Conj(temp))
 				if m+2 <= i {
-					h.Set(m+2-1, m+1-1, h.Get(m+2-1, m+1-1)*temp)
+					h.Set(m+2-1, m, h.Get(m+2-1, m)*temp)
 				}
 				for j = m; j <= i; j++ {
 					if j != m+1 {
 						if i2 > j {
-							goblas.Zscal(i2-j, temp, h.CVector(j-1, j+1-1), *ldh)
+							goblas.Zscal(i2-j, temp, h.CVector(j-1, j, *ldh))
 						}
-						goblas.Zscal(j-i1, cmplx.Conj(temp), h.CVector(i1-1, j-1), 1)
+						goblas.Zscal(j-i1, cmplx.Conj(temp), h.CVector(i1-1, j-1, 1))
 						if wantz {
-							goblas.Zscal(nz, cmplx.Conj(temp), z.CVector((*iloz)-1, j-1), 1)
+							goblas.Zscal(nz, cmplx.Conj(temp), z.CVector((*iloz)-1, j-1, 1))
 						}
 					}
 				}
@@ -295,11 +295,11 @@ label30:
 			h.SetRe(i-1, i-1-1, rtemp)
 			temp = temp / complex(rtemp, 0)
 			if i2 > i {
-				goblas.Zscal(i2-i, cmplx.Conj(temp), h.CVector(i-1, i+1-1), *ldh)
+				goblas.Zscal(i2-i, cmplx.Conj(temp), h.CVector(i-1, i, *ldh))
 			}
-			goblas.Zscal(i-i1, temp, h.CVector(i1-1, i-1), 1)
+			goblas.Zscal(i-i1, temp, h.CVector(i1-1, i-1, 1))
 			if wantz {
-				goblas.Zscal(nz, temp, z.CVector((*iloz)-1, i-1), 1)
+				goblas.Zscal(nz, temp, z.CVector((*iloz)-1, i-1, 1))
 			}
 		}
 

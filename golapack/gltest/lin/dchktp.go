@@ -51,7 +51,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		lap = lda * (lda + 1) / 2
 		xtype = 'N'
 
@@ -79,7 +79,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 1
 				//              Form the inverse of A.
 				if n > 0 {
-					goblas.Dcopy(lap, ap, 1, ainvp, 1)
+					goblas.Dcopy(lap, ap.Off(0, 1), ainvp.Off(0, 1))
 				}
 				*srnamt = "DTPTRI"
 				golapack.Dtptri(uplo, diag, &n, ainvp, &info)
@@ -153,7 +153,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						//                 Use iterative refinement to improve the solution and
 						//                 compute error bounds.
 						*srnamt = "DTPRFS"
-						golapack.Dtprfs(uplo, trans, diag, &n, &nrhs, ap, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, iwork, &info)
+						golapack.Dtprfs(uplo, trans, diag, &n, &nrhs, ap, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, iwork, &info)
 
 						//                 Check error code from DTPRFS.
 						if info != 0 {
@@ -161,7 +161,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						}
 
 						Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-						Dtpt05(uplo, trans, diag, &n, &nrhs, ap, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+						Dtpt05(uplo, trans, diag, &n, &nrhs, ap, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
@@ -236,7 +236,7 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "DLATPS"
-					goblas.Dcopy(n, x, 1, b, 1)
+					goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
 					golapack.Dlatps(uplo, trans, diag, 'N', &n, ap, b, &scale, rwork, &info)
 
 					//                 Check error code from DLATPS.
@@ -248,15 +248,15 @@ func Dchktp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 					//+    TEST 9
 					//                 Solve op(A)*x = b again with NORMIN = 'Y'.
-					goblas.Dcopy(n, x, 1, b.Off(n+1-1), 1)
-					golapack.Dlatps(uplo, trans, diag, 'Y', &n, ap, b.Off(n+1-1), &scale, rwork, &info)
+					goblas.Dcopy(n, x.Off(0, 1), b.Off(n, 1))
+					golapack.Dlatps(uplo, trans, diag, 'Y', &n, ap, b.Off(n), &scale, rwork, &info)
 
 					//                 Check error code from DLATPS.
 					if info != 0 {
 						Alaerh(path, []byte("DLATPS"), &info, func() *int { y := 0; return &y }(), []byte{uplo, trans, diag, 'Y'}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
 					}
 
-					Dtpt03(uplo, trans, diag, &n, func() *int { y := 1; return &y }(), ap, &scale, rwork, &one, b.MatrixOff(n+1-1, lda, opts), &lda, x.Matrix(lda, opts), &lda, work, result.GetPtr(8))
+					Dtpt03(uplo, trans, diag, &n, func() *int { y := 1; return &y }(), ap, &scale, rwork, &one, b.MatrixOff(n, lda, opts), &lda, x.Matrix(lda, opts), &lda, work, result.GetPtr(8))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

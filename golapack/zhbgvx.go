@@ -57,9 +57,9 @@ func Zhbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int,
 				(*info) = -14
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -15
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -16
 			}
 		}
@@ -114,9 +114,9 @@ func Zhbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int,
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(*n, rwork.Off(indd-1), 1, w, 1)
+		goblas.Dcopy(*n, rwork.Off(indd-1, 1), w.Off(0, 1))
 		indee = indrwk + 2*(*n)
-		goblas.Dcopy((*n)-1, rwork.Off(inde-1), 1, rwork.Off(indee-1), 1)
+		goblas.Dcopy((*n)-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
 		if !wantz {
 			Dsterf(n, w, rwork.Off(indee-1), info)
 		} else {
@@ -153,8 +153,8 @@ func Zhbgvx(jobz, _range, uplo byte, n, ka, kb *int, ab *mat.CMatrix, ldab *int,
 		//        Apply unitary matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by ZSTEIN.
 		for j = 1; j <= (*m); j++ {
-			goblas.Zcopy(*n, z.CVector(0, j-1), 1, work.Off(0), 1)
-			err = goblas.Zgemv(NoTrans, *n, *n, cone, q, *ldq, work, 1, czero, z.CVector(0, j-1), 1)
+			goblas.Zcopy(*n, z.CVector(0, j-1, 1), work.Off(0, 1))
+			err = goblas.Zgemv(NoTrans, *n, *n, cone, q, work.Off(0, 1), czero, z.CVector(0, j-1, 1))
 		}
 	}
 
@@ -180,7 +180,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, j-1), 1)
+				goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

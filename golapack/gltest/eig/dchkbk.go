@@ -189,7 +189,7 @@ func Dchkbk(t *testing.T) {
 				if math.Abs(e.Get(i-1, j-1)) > safmin {
 					x = x / math.Abs(e.Get(i-1, j-1))
 				}
-				vmax = maxf64(vmax, x)
+				vmax = math.Max(vmax, x)
 			}
 		}
 

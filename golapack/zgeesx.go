@@ -52,7 +52,7 @@ func Zgeesx(jobvs, sort byte, _select func(complex128) bool, sense byte, n *int,
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvs) < 1 || (wantvs && (*ldvs) < (*n)) {
 		(*info) = -11
@@ -83,14 +83,14 @@ func Zgeesx(jobvs, sort byte, _select func(complex128) bool, sense byte, n *int,
 			hswork = int(work.GetRe(0))
 
 			if !wantvs {
-				maxwrk = maxint(maxwrk, hswork)
+				maxwrk = max(maxwrk, hswork)
 			} else {
-				maxwrk = maxint(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, hswork)
+				maxwrk = max(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, hswork)
 			}
 			lwrk = maxwrk
 			if !wantsn {
-				lwrk = maxint(lwrk, ((*n)*(*n))/2)
+				lwrk = max(lwrk, ((*n)*(*n))/2)
 			}
 		}
 		work.SetRe(0, float64(lwrk))
@@ -121,7 +121,7 @@ func Zgeesx(jobvs, sort byte, _select func(complex128) bool, sense byte, n *int,
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', n, n, a, lda, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
@@ -185,7 +185,7 @@ func Zgeesx(jobvs, sort byte, _select func(complex128) bool, sense byte, n *int,
 		//        (RWorkspace: none)
 		Ztrsen(sense, jobvs, *bwork, n, a, lda, vs, ldvs, w, sdim, rconde, rcondv, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &icond)
 		if !wantsn {
-			maxwrk = maxint(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
+			maxwrk = max(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
 		}
 		if icond == -14 {
 			//           Not enough complex workspace
@@ -203,7 +203,7 @@ func Zgeesx(jobvs, sort byte, _select func(complex128) bool, sense byte, n *int,
 	if scalea {
 		//        Undo scaling for the Schur form of A
 		Zlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Zcopy(*n, a.CVector(0, 0), (*lda)+1, w, 1)
+		goblas.Zcopy(*n, a.CVector(0, 0, (*lda)+1), w.Off(0, 1))
 		if (wantsv || wantsb) && (*info) == 0 {
 			dum.Set(0, (*rcondv))
 			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), &ierr)

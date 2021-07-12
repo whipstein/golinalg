@@ -35,13 +35,13 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldaf) < maxint(1, *n) {
+	} else if (*ldaf) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -12
 	}
 	if (*info) != 0 {
@@ -83,12 +83,12 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Dcopy(*n, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
-		err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -one, a, *lda, x.Vector(0, j-1), 1, one, work.Off((*n)+1-1), 1)
+		goblas.Dcopy(*n, b.Vector(0, j-1, 1), work.Off((*n), 1))
+		err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -one, a, x.Vector(0, j-1, 1), one, work.Off((*n), 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
-		//        maxint(i) ( abs(R(i)) / ( abs(op(A))*abs(X) + abs(B) )(i) )
+		//        max(i) ( abs(R(i)) / ( abs(op(A))*abs(X) + abs(B) )(i) )
 		//
 		//        where abs(Z) is the componentwise absolute value of the matrix
 		//        or vector Z.  If the i-th component of the denominator is less
@@ -118,9 +118,9 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if work.Get(i-1) > safe2 {
-				s = maxf64(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
+				s = math.Max(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
 			} else {
-				s = maxf64(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
+				s = math.Max(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -132,8 +132,8 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			Dgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n)+1-1, *n, opts), n, info)
-			goblas.Daxpy(*n, one, work.Off((*n)+1-1), 1, x.Vector(0, j-1), 1)
+			Dgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n), *n, opts), n, info)
+			goblas.Daxpy(*n, one, work.Off((*n), 1), x.Vector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -171,11 +171,11 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		kase = 0
 	label100:
 		;
-		Dlacn2(n, work.Off(2*(*n)+1-1), work.Off((*n)+1-1), iwork, ferr.GetPtr(j-1), &kase, &isave)
+		Dlacn2(n, work.Off(2*(*n)), work.Off((*n)), iwork, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				Dgetrs(transt, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n)+1-1, *n, opts), n, info)
+				Dgetrs(transt, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n), *n, opts), n, info)
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
@@ -185,7 +185,7 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
-				Dgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n)+1-1, *n, opts), n, info)
+				Dgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n), *n, opts), n, info)
 			}
 			goto label100
 		}
@@ -193,7 +193,7 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, math.Abs(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, math.Abs(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

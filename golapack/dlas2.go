@@ -17,14 +17,14 @@ func Dlas2(f, g, h, ssmin, ssmax *float64) {
 	fa = math.Abs(*f)
 	ga = math.Abs(*g)
 	ha = math.Abs(*h)
-	fhmn = minf64(fa, ha)
-	fhmx = maxf64(fa, ha)
+	fhmn = math.Min(fa, ha)
+	fhmx = math.Max(fa, ha)
 	if fhmn == zero {
 		(*ssmin) = zero
 		if fhmx == zero {
 			(*ssmax) = ga
 		} else {
-			(*ssmax) = maxf64(fhmx, ga) * math.Sqrt(one+math.Pow(minf64(fhmx, ga)/maxf64(fhmx, ga), 2))
+			(*ssmax) = math.Max(fhmx, ga) * math.Sqrt(one+math.Pow(math.Min(fhmx, ga)/math.Max(fhmx, ga), 2))
 		}
 	} else {
 		if ga < fhmx {

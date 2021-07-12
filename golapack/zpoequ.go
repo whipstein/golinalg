@@ -26,7 +26,7 @@ func Zpoequ(n *int, a *mat.CMatrix, lda *int, s *mat.Vector, scond, amax *float6
 	(*info) = 0
 	if (*n) < 0 {
 		(*info) = -1
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -3
 	}
 	if (*info) != 0 {
@@ -47,8 +47,8 @@ func Zpoequ(n *int, a *mat.CMatrix, lda *int, s *mat.Vector, scond, amax *float6
 	(*amax) = s.Get(0)
 	for i = 2; i <= (*n); i++ {
 		s.Set(i-1, real(a.Get(i-1, i-1)))
-		smin = minf64(smin, s.Get(i-1))
-		(*amax) = maxf64(*amax, s.Get(i-1))
+		smin = math.Min(smin, s.Get(i-1))
+		(*amax) = math.Max(*amax, s.Get(i-1))
 	}
 
 	if smin <= zero {

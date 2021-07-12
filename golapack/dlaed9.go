@@ -21,15 +21,15 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 
 	if (*k) < 0 {
 		(*info) = -1
-	} else if (*kstart) < 1 || (*kstart) > maxint(1, *k) {
+	} else if (*kstart) < 1 || (*kstart) > max(1, *k) {
 		(*info) = -2
-	} else if maxint(1, *kstop) < (*kstart) || (*kstop) > maxint(1, *k) {
+	} else if max(1, *kstop) < (*kstart) || (*kstop) > max(1, *k) {
 		(*info) = -3
 	} else if (*n) < (*k) {
 		(*info) = -4
-	} else if (*ldq) < maxint(1, *k) {
+	} else if (*ldq) < max(1, *k) {
 		(*info) = -7
-	} else if (*lds) < maxint(1, *k) {
+	} else if (*lds) < max(1, *k) {
 		(*info) = -12
 	}
 	if (*info) != 0 {
@@ -81,10 +81,10 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(*k, w, 1, s.VectorIdx(0), 1)
+	goblas.Dcopy(*k, w, s.VectorIdx(0, 1))
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(*k, q.VectorIdx(0), (*ldq)+1, w, 1)
+	goblas.Dcopy(*k, q.VectorIdx(0, (*ldq)+1), w)
 	for j = 1; j <= (*k); j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
@@ -94,7 +94,7 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 		}
 	}
 	for i = 1; i <= (*k); i++ {
-		w.Set(i-1, signf64(math.Sqrt(-w.Get(i-1)), s.Get(i-1, 0)))
+		w.Set(i-1, math.Copysign(math.Sqrt(-w.Get(i-1)), s.Get(i-1, 0)))
 	}
 
 	//     Compute eigenvectors of the modified rank-1 modification.
@@ -102,7 +102,7 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 		for i = 1; i <= (*k); i++ {
 			q.Set(i-1, j-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(*k, q.Vector(0, j-1), 1)
+		temp = goblas.Dnrm2(*k, q.Vector(0, j-1, 1))
 		for i = 1; i <= (*k); i++ {
 			s.Set(i-1, j-1, q.Get(i-1, j-1)/temp)
 		}

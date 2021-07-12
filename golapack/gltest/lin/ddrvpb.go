@@ -62,12 +62,12 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 
 		//        Set limits on the number of loop iterations.
 		//
-		nkd = maxint(1, minint(n, 4))
+		nkd = max(1, min(n, 4))
 		nimat = ntypes
 		if n == 0 {
 			nimat = 1
@@ -90,7 +90,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				if iuplo == 1 {
 					uplo = 'U'
 					packit = 'Q'
-					koff = maxint(1, kd+2-n)
+					koff = max(1, kd+2-n)
 				} else {
 					uplo = 'L'
 					packit = 'B'
@@ -127,15 +127,15 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						iw = 2*lda + 1
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Dcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff-izero+i1-1), 1)
+							goblas.Dcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff-izero+i1-1, 1))
 							iw = iw + izero - i1
-							goblas.Dcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), maxint(ldab-1, 1))
+							goblas.Dcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, max(ldab-1, 1)))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Dcopy(izero-i1, work.Off(iw-1), 1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1))
+							goblas.Dcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff+izero-i1-1, max(ldab-1, 1)))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Dcopy(i2-izero+1, work.Off(iw-1), 1, a.Off(ioff-1), 1)
+							goblas.Dcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, 1))
 						}
 					}
 
@@ -153,24 +153,24 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						//                    Save the zeroed out row and column in WORK(*,3)
 						iw = 2 * lda
-						for i = 1; i <= minint(2*kd+1, n); i++ {
+						for i = 1; i <= min(2*kd+1, n); i++ {
 							work.Set(iw+i-1, zero)
 						}
 						iw = iw + 1
-						i1 = maxint(izero-kd, 1)
-						i2 = minint(izero+kd, n)
+						i1 = max(izero-kd, 1)
+						i2 = min(izero+kd, n)
 						//
 						if iuplo == 1 {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Dswap(izero-i1, a.Off(ioff-izero+i1-1), 1, work.Off(iw-1), 1)
+							goblas.Dswap(izero-i1, a.Off(ioff-izero+i1-1, 1), work.Off(iw-1, 1))
 							iw = iw + izero - i1
-							goblas.Dswap(i2-izero+1, a.Off(ioff-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
+							goblas.Dswap(i2-izero+1, a.Off(ioff-1, max(ldab-1, 1)), work.Off(iw-1, 1))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Dswap(izero-i1, a.Off(ioff+izero-i1-1), maxint(ldab-1, 1), work.Off(iw-1), 1)
+							goblas.Dswap(izero-i1, a.Off(ioff+izero-i1-1, max(ldab-1, 1)), work.Off(iw-1, 1))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Dswap(i2-izero+1, a.Off(ioff-1), 1, work.Off(iw-1), 1)
+							goblas.Dswap(i2-izero+1, a.Off(ioff-1, 1), work.Off(iw-1, 1))
 						}
 					}
 
@@ -314,7 +314,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//                       Solve the system and compute the condition
 							//                       number and error bounds using DPBSVX.
 							*srnamt = "DPBSVX"
-							golapack.Dpbsvx(fact, uplo, &n, &kd, nrhs, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, iwork, &info)
+							golapack.Dpbsvx(fact, uplo, &n, &kd, nrhs, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, iwork, &info)
 
 							//                       Check the error code from DPBSVX.
 							if info != izero {
@@ -326,7 +326,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								if !prefac {
 									//                             Reconstruct matrix from factors and
 									//                             compute residual.
-									Dpbt01(uplo, &n, &kd, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+									Dpbt01(uplo, &n, &kd, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 									k1 = 1
 								} else {
 									k1 = 2
@@ -334,7 +334,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 								//                          Compute residual of the computed solution.
 								golapack.Dlacpy('F', &n, nrhs, bsav.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-								Dpbt02(uplo, &n, &kd, nrhs, asav.Matrix(ldab, opts), &ldab, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+								Dpbt02(uplo, &n, &kd, nrhs, asav.Matrix(ldab, opts), &ldab, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 								//                          Check solution from generated exact solution.
 								if nofact || (prefac && equed == 'N') {
@@ -345,7 +345,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 								//                          Check the error bounds from iterative
 								//                          refinement.
-								Dpbt05(uplo, &n, &kd, nrhs, asav.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+								Dpbt05(uplo, &n, &kd, nrhs, asav.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 							} else {
 								k1 = 6
 							}

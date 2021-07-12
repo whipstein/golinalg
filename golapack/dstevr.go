@@ -67,8 +67,8 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 	indeig = _range == 'I'
 
 	lquery = (((*lwork) == -1) || ((*liwork) == -1))
-	lwmin = maxint(1, 20*(*n))
-	liwmin = maxint(1, 10*(*n))
+	lwmin = max(1, 20*(*n))
+	liwmin = max(1, 10*(*n))
 
 	(*info) = 0
 	if !(wantz || jobz == 'N') {
@@ -83,9 +83,9 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 				(*info) = -7
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -8
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -9
 			}
 		}
@@ -142,7 +142,7 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 	smlnum = safmin / eps
 	bignum = one / smlnum
 	rmin = math.Sqrt(smlnum)
-	rmax = minf64(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
+	rmax = math.Min(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
@@ -160,8 +160,8 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(*n, sigma, d, 1)
-		goblas.Dscal((*n)-1, sigma, e, 1)
+		goblas.Dscal(*n, sigma, d.Off(0, 1))
+		goblas.Dscal((*n)-1, sigma, e.Off(0, 1))
 		if valeig {
 			vll = (*vl) * sigma
 			vuu = (*vu) * sigma
@@ -194,18 +194,18 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 		}
 	}
 	if (alleig || test) && ieeeok == 1 {
-		goblas.Dcopy((*n)-1, e, 1, work, 1)
+		goblas.Dcopy((*n)-1, e.Off(0, 1), work.Off(0, 1))
 		if !wantz {
-			goblas.Dcopy(*n, d, 1, w, 1)
+			goblas.Dcopy(*n, d.Off(0, 1), w.Off(0, 1))
 			Dsterf(n, w, work, info)
 		} else {
-			goblas.Dcopy(*n, d, 1, work.Off((*n)+1-1), 1)
+			goblas.Dcopy(*n, d.Off(0, 1), work.Off((*n), 1))
 			if (*abstol) <= two*float64(*n)*eps {
 				tryrac = true
 			} else {
 				tryrac = false
 			}
-			Dstemr(jobz, 'A', n, work.Off((*n)+1-1), work, vl, vu, il, iu, m, w, z, ldz, n, isuppz, &tryrac, work.Off(2*(*n)+1-1), toPtr((*lwork)-2*(*n)), iwork, liwork, info)
+			Dstemr(jobz, 'A', n, work.Off((*n)), work, vl, vu, il, iu, m, w, z, ldz, n, isuppz, &tryrac, work.Off(2*(*n)), toPtr((*lwork)-2*(*n)), iwork, liwork, info)
 
 		}
 		if (*info) == 0 {
@@ -236,7 +236,7 @@ label10:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -258,7 +258,7 @@ label10:
 				(*iwork)[i-1] = (*iwork)[j-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[j-1] = itmp1
-				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
+				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
 			}
 		}
 	}

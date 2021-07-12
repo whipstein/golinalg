@@ -55,16 +55,16 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 
 		//        Apply transformation to the matrix T.
 		if j3 <= (*n) {
-			goblas.Drot((*n)-(*j1)-1, t.Vector((*j1)-1, j3-1), *ldt, t.Vector(j2-1, j3-1), *ldt, cs, sn)
+			goblas.Drot((*n)-(*j1)-1, t.Vector((*j1)-1, j3-1), t.Vector(j2-1, j3-1), cs, sn)
 		}
-		goblas.Drot((*j1)-1, t.Vector(0, (*j1)-1), 1, t.Vector(0, j2-1), 1, cs, sn)
+		goblas.Drot((*j1)-1, t.Vector(0, (*j1)-1, 1), t.Vector(0, j2-1, 1), cs, sn)
 
 		t.Set((*j1)-1, (*j1)-1, t22)
 		t.Set(j2-1, j2-1, t11)
 
 		if wantq {
 			//           Accumulate transformation in the matrix Q.
-			goblas.Drot(*n, q.Vector(0, (*j1)-1), 1, q.Vector(0, j2-1), 1, cs, sn)
+			goblas.Drot(*n, q.Vector(0, (*j1)-1, 1), q.Vector(0, j2-1, 1), cs, sn)
 		}
 
 	} else {
@@ -80,10 +80,10 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 		//        swap.
 		eps = Dlamch(Precision)
 		smlnum = Dlamch(SafeMinimum) / eps
-		thresh = maxf64(ten*eps*dnorm, smlnum)
+		thresh = math.Max(ten*eps*dnorm, smlnum)
 
 		//        Solve T11*X - X*T22 = scale*T12 for X.
-		Dlasy2(false, false, toPtr(-1), n1, n2, d, &ldd, d.Off((*n1)+1-1, (*n1)+1-1), &ldd, d.Off(0, (*n1)+1-1), &ldd, &scale, x, &ldx, &xnorm, &ierr)
+		Dlasy2(false, false, toPtr(-1), n1, n2, d, &ldd, d.Off((*n1), (*n1)), &ldd, d.Off(0, (*n1)), &ldd, &scale, x, &ldx, &xnorm, &ierr)
 
 		//        Swap the adjacent diagonal blocks.
 		k = (*n1) + (*n1) + (*n2) - 3
@@ -114,7 +114,7 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 		Dlarfx('R', func() *int { y := 3; return &y }(), func() *int { y := 3; return &y }(), u, &tau, d, &ldd, work)
 
 		//        Test whether to reject swap.
-		if maxf64(math.Abs(d.Get(2, 0)), math.Abs(d.Get(2, 1)), math.Abs(d.Get(2, 2)-t11)) > thresh {
+		if math.Max(math.Abs(d.Get(2, 0)), math.Max(math.Abs(d.Get(2, 1)), math.Abs(d.Get(2, 2)-t11))) > thresh {
 			goto label50
 		}
 
@@ -152,7 +152,7 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 		Dlarfx('R', func() *int { y := 3; return &y }(), func() *int { y := 3; return &y }(), u, &tau, d, &ldd, work)
 
 		//        Test whether to reject swap.
-		if maxf64(math.Abs(d.Get(1, 0)), math.Abs(d.Get(2, 0)), math.Abs(d.Get(0, 0)-t33)) > thresh {
+		if math.Max(math.Abs(d.Get(1, 0)), math.Max(math.Abs(d.Get(2, 0)), math.Abs(d.Get(0, 0)-t33))) > thresh {
 			goto label50
 		}
 
@@ -200,7 +200,7 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 		Dlarfx('R', func() *int { y := 4; return &y }(), func() *int { y := 3; return &y }(), u2, &tau2, d.Off(0, 1), &ldd, work)
 
 		//        Test whether to reject swap.
-		if maxf64(math.Abs(d.Get(2, 0)), math.Abs(d.Get(2, 1)), math.Abs(d.Get(3, 0)), math.Abs(d.Get(3, 1))) > thresh {
+		if math.Max(math.Abs(d.Get(2, 0)), math.Max(math.Abs(d.Get(2, 1)), math.Max(math.Abs(d.Get(3, 0)), math.Abs(d.Get(3, 1))))) > thresh {
 			goto label50
 		}
 
@@ -227,10 +227,10 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 		if (*n2) == 2 {
 			//           Standardize new 2-by-2 block T11
 			Dlanv2(t.GetPtr((*j1)-1, (*j1)-1), t.GetPtr((*j1)-1, j2-1), t.GetPtr(j2-1, (*j1)-1), t.GetPtr(j2-1, j2-1), &wr1, &wi1, &wr2, &wi2, &cs, &sn)
-			goblas.Drot((*n)-(*j1)-1, t.Vector((*j1)-1, (*j1)+2-1), *ldt, t.Vector(j2-1, (*j1)+2-1), *ldt, cs, sn)
-			goblas.Drot((*j1)-1, t.Vector(0, (*j1)-1), 1, t.Vector(0, j2-1), 1, cs, sn)
+			goblas.Drot((*n)-(*j1)-1, t.Vector((*j1)-1, (*j1)+2-1), t.Vector(j2-1, (*j1)+2-1), cs, sn)
+			goblas.Drot((*j1)-1, t.Vector(0, (*j1)-1, 1), t.Vector(0, j2-1, 1), cs, sn)
 			if wantq {
-				goblas.Drot(*n, q.Vector(0, (*j1)-1), 1, q.Vector(0, j2-1), 1, cs, sn)
+				goblas.Drot(*n, q.Vector(0, (*j1)-1, 1), q.Vector(0, j2-1, 1), cs, sn)
 			}
 		}
 
@@ -240,11 +240,11 @@ func Dlaexc(wantq bool, n *int, t *mat.Matrix, ldt *int, q *mat.Matrix, ldq, j1,
 			j4 = j3 + 1
 			Dlanv2(t.GetPtr(j3-1, j3-1), t.GetPtr(j3-1, j4-1), t.GetPtr(j4-1, j3-1), t.GetPtr(j4-1, j4-1), &wr1, &wi1, &wr2, &wi2, &cs, &sn)
 			if j3+2 <= (*n) {
-				goblas.Drot((*n)-j3-1, t.Vector(j3-1, j3+2-1), *ldt, t.Vector(j4-1, j3+2-1), *ldt, cs, sn)
+				goblas.Drot((*n)-j3-1, t.Vector(j3-1, j3+2-1), t.Vector(j4-1, j3+2-1), cs, sn)
 			}
-			goblas.Drot(j3-1, t.Vector(0, j3-1), 1, t.Vector(0, j4-1), 1, cs, sn)
+			goblas.Drot(j3-1, t.Vector(0, j3-1, 1), t.Vector(0, j4-1, 1), cs, sn)
 			if wantq {
-				goblas.Drot(*n, q.Vector(0, j3-1), 1, q.Vector(0, j4-1), 1, cs, sn)
+				goblas.Drot(*n, q.Vector(0, j3-1, 1), q.Vector(0, j4-1, 1), cs, sn)
 			}
 		}
 

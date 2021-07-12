@@ -58,9 +58,9 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		return
 	}
 	m = (*n1) + (*n2)
-	if (*lwork) < maxint(1, (*n)*m, m*m*2) {
+	if (*lwork) < max(1, (*n)*m, m*m*2) {
 		(*info) = -16
-		work.Set(0, float64(maxint(1, (*n)*m, m*m*2)))
+		work.Set(0, float64(max(1, (*n)*m, m*m*2)))
 		return
 	}
 
@@ -91,7 +91,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 	//     on 04/01/10.
 	//     "Bug" reported by Ondra Kamenik, confirmed by Julie Langou, fixed by
 	//     Jim Demmel and Guillaume Revy. See forum post 1783.
-	thresh = maxf64(twenty*eps*dnorm, smlnum)
+	thresh = math.Max(twenty*eps*dnorm, smlnum)
 
 	if m == 2 {
 		//        CASE 1: Swap 1-by-1 and 1-by-1 blocks.
@@ -105,15 +105,15 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		Dlartg(&f, &g, ir.GetPtr(0, 1), ir.GetPtr(0, 0), &ddum)
 		ir.Set(1, 0, -ir.Get(0, 1))
 		ir.Set(1, 1, ir.Get(0, 0))
-		goblas.Drot(2, s.Vector(0, 0), 1, s.Vector(0, 1), 1, ir.Get(0, 0), ir.Get(1, 0))
-		goblas.Drot(2, t.Vector(0, 0), 1, t.Vector(0, 1), 1, ir.Get(0, 0), ir.Get(1, 0))
+		goblas.Drot(2, s.Vector(0, 0, 1), s.Vector(0, 1, 1), ir.Get(0, 0), ir.Get(1, 0))
+		goblas.Drot(2, t.Vector(0, 0, 1), t.Vector(0, 1, 1), ir.Get(0, 0), ir.Get(1, 0))
 		if sa >= sb {
 			Dlartg(s.GetPtr(0, 0), s.GetPtr(1, 0), li.GetPtr(0, 0), li.GetPtr(1, 0), &ddum)
 		} else {
 			Dlartg(t.GetPtr(0, 0), t.GetPtr(1, 0), li.GetPtr(0, 0), li.GetPtr(1, 0), &ddum)
 		}
-		goblas.Drot(2, s.Vector(0, 0), ldst, s.Vector(1, 0), ldst, li.Get(0, 0), li.Get(1, 0))
-		goblas.Drot(2, t.Vector(0, 0), ldst, t.Vector(1, 0), ldst, li.Get(0, 0), li.Get(1, 0))
+		goblas.Drot(2, s.Vector(0, 0, ldst), s.Vector(1, 0, ldst), li.Get(0, 0), li.Get(1, 0))
+		goblas.Drot(2, t.Vector(0, 0, ldst), t.Vector(1, 0, ldst), li.Get(0, 0), li.Get(1, 0))
 		li.Set(1, 1, li.Get(0, 0))
 		li.Set(0, 1, -li.Get(1, 0))
 
@@ -128,17 +128,17 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		if wands {
 			//           Strong stability test:
 			//             F-norm((A-QL**T*S*QR, B-QL**T*T*QR)) <= O(EPS*F-norm((A,B)))
-			Dlacpy('F', &m, &m, a.Off((*j1)-1, (*j1)-1), lda, work.MatrixOff(m*m+1-1, m, opts), &m)
-			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, ldst, s, ldst, zero, work.Matrix(m, opts), m)
-			err = goblas.Dgemm(NoTrans, Trans, m, m, m, -one, work.Matrix(m, opts), m, ir, ldst, one, work.MatrixOff(m*m+1-1, m, opts), m)
+			Dlacpy('F', &m, &m, a.Off((*j1)-1, (*j1)-1), lda, work.MatrixOff(m*m, m, opts), &m)
+			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, s, zero, work.Matrix(m, opts))
+			err = goblas.Dgemm(NoTrans, Trans, m, m, m, -one, work.Matrix(m, opts), ir, one, work.MatrixOff(m*m, m, opts))
 			dscale = zero
 			dsum = one
-			Dlassq(toPtr(m*m), work.Off(m*m+1-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
+			Dlassq(toPtr(m*m), work.Off(m*m), func() *int { y := 1; return &y }(), &dscale, &dsum)
 
-			Dlacpy('F', &m, &m, b.Off((*j1)-1, (*j1)-1), ldb, work.MatrixOff(m*m+1-1, m, opts), &m)
-			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, ldst, t, ldst, zero, work.Matrix(m, opts), m)
-			err = goblas.Dgemm(NoTrans, Trans, m, m, m, -one, work.Matrix(m, opts), m, ir, ldst, one, work.MatrixOff(m*m+1-1, m, opts), m)
-			Dlassq(toPtr(m*m), work.Off(m*m+1-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
+			Dlacpy('F', &m, &m, b.Off((*j1)-1, (*j1)-1), ldb, work.MatrixOff(m*m, m, opts), &m)
+			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, t, zero, work.Matrix(m, opts))
+			err = goblas.Dgemm(NoTrans, Trans, m, m, m, -one, work.Matrix(m, opts), ir, one, work.MatrixOff(m*m, m, opts))
+			Dlassq(toPtr(m*m), work.Off(m*m), func() *int { y := 1; return &y }(), &dscale, &dsum)
 			ss = dscale * math.Sqrt(dsum)
 			dtrong = ss <= thresh
 			if !dtrong {
@@ -148,21 +148,21 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 
 		//        Update (A(J1:J1+M-1, M+J1:N), B(J1:J1+M-1, M+J1:N)) and
 		//               (A(1:J1-1, J1:J1+M), B(1:J1-1, J1:J1+M)).
-		goblas.Drot((*j1)+1, a.Vector(0, (*j1)-1), 1, a.Vector(0, (*j1)+1-1), 1, ir.Get(0, 0), ir.Get(1, 0))
-		goblas.Drot((*j1)+1, b.Vector(0, (*j1)-1), 1, b.Vector(0, (*j1)+1-1), 1, ir.Get(0, 0), ir.Get(1, 0))
-		goblas.Drot((*n)-(*j1)+1, a.Vector((*j1)-1, (*j1)-1), *lda, a.Vector((*j1)+1-1, (*j1)-1), *lda, li.Get(0, 0), li.Get(1, 0))
-		goblas.Drot((*n)-(*j1)+1, b.Vector((*j1)-1, (*j1)-1), *ldb, b.Vector((*j1)+1-1, (*j1)-1), *ldb, li.Get(0, 0), li.Get(1, 0))
+		goblas.Drot((*j1)+1, a.Vector(0, (*j1)-1, 1), a.Vector(0, (*j1), 1), ir.Get(0, 0), ir.Get(1, 0))
+		goblas.Drot((*j1)+1, b.Vector(0, (*j1)-1, 1), b.Vector(0, (*j1), 1), ir.Get(0, 0), ir.Get(1, 0))
+		goblas.Drot((*n)-(*j1)+1, a.Vector((*j1)-1, (*j1)-1, *lda), a.Vector((*j1), (*j1)-1, *lda), li.Get(0, 0), li.Get(1, 0))
+		goblas.Drot((*n)-(*j1)+1, b.Vector((*j1)-1, (*j1)-1, *ldb), b.Vector((*j1), (*j1)-1, *ldb), li.Get(0, 0), li.Get(1, 0))
 
 		//        Set  N1-by-N2 (2,1) - blocks to ZERO.
-		a.Set((*j1)+1-1, (*j1)-1, zero)
-		b.Set((*j1)+1-1, (*j1)-1, zero)
+		a.Set((*j1), (*j1)-1, zero)
+		b.Set((*j1), (*j1)-1, zero)
 
 		//        Accumulate transformations into Q and Z if requested.
 		if wantz {
-			goblas.Drot(*n, z.Vector(0, (*j1)-1), 1, z.Vector(0, (*j1)+1-1), 1, ir.Get(0, 0), ir.Get(1, 0))
+			goblas.Drot(*n, z.Vector(0, (*j1)-1, 1), z.Vector(0, (*j1), 1), ir.Get(0, 0), ir.Get(1, 0))
 		}
 		if wantq {
-			goblas.Drot(*n, q.Vector(0, (*j1)-1), 1, q.Vector(0, (*j1)+1-1), 1, li.Get(0, 0), li.Get(1, 0))
+			goblas.Drot(*n, q.Vector(0, (*j1)-1, 1), q.Vector(0, (*j1), 1), li.Get(0, 0), li.Get(1, 0))
 		}
 
 		//        Exit with INFO = 0 if swap was successfully performed.
@@ -176,9 +176,9 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		//                 S11 * R - L * S22 = SCALE * S12
 		//                 T11 * R - L * T22 = SCALE * T12
 		//        for R and L. Solutions in LI and IR.
-		Dlacpy('F', n1, n2, t.Off(0, (*n1)+1-1), &ldst, li, &ldst)
-		Dlacpy('F', n1, n2, s.Off(0, (*n1)+1-1), &ldst, ir.Off((*n2)+1-1, (*n1)+1-1), &ldst)
-		Dtgsy2('N', func() *int { y := 0; return &y }(), n1, n2, s, &ldst, s.Off((*n1)+1-1, (*n1)+1-1), &ldst, ir.Off((*n2)+1-1, (*n1)+1-1), &ldst, t, &ldst, t.Off((*n1)+1-1, (*n1)+1-1), &ldst, li, &ldst, &scale, &dsum, &dscale, &iwork, &idum, &linfo)
+		Dlacpy('F', n1, n2, t.Off(0, (*n1)), &ldst, li, &ldst)
+		Dlacpy('F', n1, n2, s.Off(0, (*n1)), &ldst, ir.Off((*n2), (*n1)), &ldst)
+		Dtgsy2('N', func() *int { y := 0; return &y }(), n1, n2, s, &ldst, s.Off((*n1), (*n1)), &ldst, ir.Off((*n2), (*n1)), &ldst, t, &ldst, t.Off((*n1), (*n1)), &ldst, li, &ldst, &scale, &dsum, &dscale, &iwork, &idum, &linfo)
 
 		//        Compute orthogonal matrix QL:
 		//
@@ -188,7 +188,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		//                    LI =  [      -L              ]
 		//                          [ SCALE * identity(N2) ]
 		for i = 1; i <= (*n2); i++ {
-			goblas.Dscal(*n1, -one, li.Vector(0, i-1), 1)
+			goblas.Dscal(*n1, -one, li.Vector(0, i-1, 1))
 			li.Set((*n1)+i-1, i-1, scale)
 		}
 		Dgeqr2(&m, n2, li, &ldst, taul, work, &linfo)
@@ -208,7 +208,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		for i = 1; i <= (*n1); i++ {
 			ir.Set((*n2)+i-1, i-1, scale)
 		}
-		Dgerq2(n1, &m, ir.Off((*n2)+1-1, 0), &ldst, taur, work, &linfo)
+		Dgerq2(n1, &m, ir.Off((*n2), 0), &ldst, taur, work, &linfo)
 		if linfo != 0 {
 			goto label70
 		}
@@ -218,10 +218,10 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		}
 
 		//        Perform the swapping tentatively:
-		err = goblas.Dgemm(Trans, NoTrans, m, m, m, one, li, ldst, s, ldst, zero, work.Matrix(m, opts), m)
-		err = goblas.Dgemm(NoTrans, Trans, m, m, m, one, work.Matrix(m, opts), m, ir, ldst, zero, s, ldst)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, m, one, li, ldst, t, ldst, zero, work.Matrix(m, opts), m)
-		err = goblas.Dgemm(NoTrans, Trans, m, m, m, one, work.Matrix(m, opts), m, ir, ldst, zero, t, ldst)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, m, one, li, s, zero, work.Matrix(m, opts))
+		err = goblas.Dgemm(NoTrans, Trans, m, m, m, one, work.Matrix(m, opts), ir, zero, s)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, m, one, li, t, zero, work.Matrix(m, opts))
+		err = goblas.Dgemm(NoTrans, Trans, m, m, m, one, work.Matrix(m, opts), ir, zero, t)
 		Dlacpy('F', &m, &m, s, &ldst, scpy, &ldst)
 		Dlacpy('F', &m, &m, t, &ldst, tcpy, &ldst)
 		Dlacpy('F', &m, &m, ir, &ldst, ircop, &ldst)
@@ -246,7 +246,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		dscale = zero
 		dsum = one
 		for i = 1; i <= (*n2); i++ {
-			Dlassq(n1, s.Vector((*n2)+1-1, i-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
+			Dlassq(n1, s.Vector((*n2), i-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
 		}
 		brqa21 = dscale * math.Sqrt(dsum)
 
@@ -266,7 +266,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		dscale = zero
 		dsum = one
 		for i = 1; i <= (*n2); i++ {
-			Dlassq(n1, scpy.Vector((*n2)+1-1, i-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
+			Dlassq(n1, scpy.Vector((*n2), i-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
 		}
 		bqra21 = dscale * math.Sqrt(dsum)
 
@@ -288,17 +288,17 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		if wands {
 			//           Strong stability test:
 			//              F-norm((A-QL*S*QR**T, B-QL*T*QR**T)) <= O(EPS*F-norm((A,B)))
-			Dlacpy('F', &m, &m, a.Off((*j1)-1, (*j1)-1), lda, work.MatrixOff(m*m+1-1, m, opts), &m)
-			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, ldst, s, ldst, zero, work.Matrix(m, opts), m)
-			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, -one, work.Matrix(m, opts), m, ir, ldst, one, work.MatrixOff(m*m+1-1, m, opts), m)
+			Dlacpy('F', &m, &m, a.Off((*j1)-1, (*j1)-1), lda, work.MatrixOff(m*m, m, opts), &m)
+			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, s, zero, work.Matrix(m, opts))
+			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, -one, work.Matrix(m, opts), ir, one, work.MatrixOff(m*m, m, opts))
 			dscale = zero
 			dsum = one
-			Dlassq(toPtr(m*m), work.Off(m*m+1-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
+			Dlassq(toPtr(m*m), work.Off(m*m), func() *int { y := 1; return &y }(), &dscale, &dsum)
 
-			Dlacpy('F', &m, &m, b.Off((*j1)-1, (*j1)-1), ldb, work.MatrixOff(m*m+1-1, m, opts), &m)
-			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, ldst, t, ldst, zero, work.Matrix(m, opts), m)
-			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, -one, work.Matrix(m, opts), m, ir, ldst, one, work.MatrixOff(m*m+1-1, m, opts), m)
-			Dlassq(toPtr(m*m), work.Off(m*m+1-1), func() *int { y := 1; return &y }(), &dscale, &dsum)
+			Dlacpy('F', &m, &m, b.Off((*j1)-1, (*j1)-1), ldb, work.MatrixOff(m*m, m, opts), &m)
+			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, t, zero, work.Matrix(m, opts))
+			err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, -one, work.Matrix(m, opts), ir, one, work.MatrixOff(m*m, m, opts))
+			Dlassq(toPtr(m*m), work.Off(m*m), func() *int { y := 1; return &y }(), &dscale, &dsum)
 			ss = dscale * math.Sqrt(dsum)
 			dtrong = (ss <= thresh)
 			if !dtrong {
@@ -309,7 +309,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 
 		//        If the swap is accepted ("weakly" and "strongly"), apply the
 		//        transformations and set N1-by-N2 (2,1)-block to zero.
-		Dlaset('F', n1, n2, &zero, &zero, s.Off((*n2)+1-1, 0), &ldst)
+		Dlaset('F', n1, n2, &zero, &zero, s.Off((*n2), 0), &ldst)
 
 		//        copy back M-by-M diagonal block starting at index J1 of (A, B)
 		Dlacpy('F', &m, &m, s, &ldst, a.Off((*j1)-1, (*j1)-1), lda)
@@ -323,7 +323,7 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		idum = (*lwork) - m*m - 2
 		if (*n2) > 1 {
 			Dlagv2(a.Off((*j1)-1, (*j1)-1), lda, b.Off((*j1)-1, (*j1)-1), ldb, ar, ai, be, work.GetPtr(0), work.GetPtr(1), t.GetPtr(0, 0), t.GetPtr(1, 0))
-			work.Set(m+1-1, -work.Get(1))
+			work.Set(m, -work.Get(1))
 			work.Set(m+2-1, work.Get(0))
 			t.Set((*n2)-1, (*n2)-1, t.Get(0, 0))
 			t.Set(0, 1, -t.Get(1, 0))
@@ -332,34 +332,34 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		t.Set(m-1, m-1, one)
 		//
 		if (*n1) > 1 {
-			Dlagv2(a.Off((*j1)+(*n2)-1, (*j1)+(*n2)-1), lda, b.Off((*j1)+(*n2)-1, (*j1)+(*n2)-1), ldb, taur, taul, work.Off(m*m+1-1), work.GetPtr((*n2)*m+(*n2)+1-1), work.GetPtr((*n2)*m+(*n2)+2-1), t.GetPtr((*n2)+1-1, (*n2)+1-1), t.GetPtr(m-1, m-1-1))
-			work.Set(m*m-1, work.Get((*n2)*m+(*n2)+1-1))
+			Dlagv2(a.Off((*j1)+(*n2)-1, (*j1)+(*n2)-1), lda, b.Off((*j1)+(*n2)-1, (*j1)+(*n2)-1), ldb, taur, taul, work.Off(m*m), work.GetPtr((*n2)*m+(*n2)), work.GetPtr((*n2)*m+(*n2)+2-1), t.GetPtr((*n2), (*n2)), t.GetPtr(m-1, m-1-1))
+			work.Set(m*m-1, work.Get((*n2)*m+(*n2)))
 			work.Set(m*m-1-1, -work.Get((*n2)*m+(*n2)+2-1))
-			t.Set(m-1, m-1, t.Get((*n2)+1-1, (*n2)+1-1))
+			t.Set(m-1, m-1, t.Get((*n2), (*n2)))
 			t.Set(m-1-1, m-1, -t.Get(m-1, m-1-1))
 		}
-		err = goblas.Dgemm(Trans, NoTrans, *n2, *n1, *n2, one, work.Matrix(m, opts), m, a.Off((*j1)-1, (*j1)+(*n2)-1), *lda, zero, work.MatrixOff(m*m+1-1, *n2, opts), *n2)
-		Dlacpy('F', n2, n1, work.MatrixOff(m*m+1-1, *n2, opts), n2, a.Off((*j1)-1, (*j1)+(*n2)-1), lda)
-		err = goblas.Dgemm(Trans, NoTrans, *n2, *n1, *n2, one, work.Matrix(m, opts), m, b.Off((*j1)-1, (*j1)+(*n2)-1), *ldb, zero, work.MatrixOff(m*m+1-1, *n2, opts), *n2)
-		Dlacpy('F', n2, n1, work.MatrixOff(m*m+1-1, *n2, opts), n2, b.Off((*j1)-1, (*j1)+(*n2)-1), ldb)
-		err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, ldst, work.Matrix(m, opts), m, zero, work.MatrixOff(m*m+1-1, m, opts), m)
-		Dlacpy('F', &m, &m, work.MatrixOff(m*m+1-1, m, opts), &m, li, &ldst)
-		err = goblas.Dgemm(NoTrans, NoTrans, *n2, *n1, *n1, one, a.Off((*j1)-1, (*j1)+(*n2)-1), *lda, t.Off((*n2)+1-1, (*n2)+1-1), ldst, zero, work.Matrix(*n2, opts), *n2)
+		err = goblas.Dgemm(Trans, NoTrans, *n2, *n1, *n2, one, work.Matrix(m, opts), a.Off((*j1)-1, (*j1)+(*n2)-1), zero, work.MatrixOff(m*m, *n2, opts))
+		Dlacpy('F', n2, n1, work.MatrixOff(m*m, *n2, opts), n2, a.Off((*j1)-1, (*j1)+(*n2)-1), lda)
+		err = goblas.Dgemm(Trans, NoTrans, *n2, *n1, *n2, one, work.Matrix(m, opts), b.Off((*j1)-1, (*j1)+(*n2)-1), zero, work.MatrixOff(m*m, *n2, opts))
+		Dlacpy('F', n2, n1, work.MatrixOff(m*m, *n2, opts), n2, b.Off((*j1)-1, (*j1)+(*n2)-1), ldb)
+		err = goblas.Dgemm(NoTrans, NoTrans, m, m, m, one, li, work.Matrix(m, opts), zero, work.MatrixOff(m*m, m, opts))
+		Dlacpy('F', &m, &m, work.MatrixOff(m*m, m, opts), &m, li, &ldst)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n2, *n1, *n1, one, a.Off((*j1)-1, (*j1)+(*n2)-1), t.Off((*n2), (*n2)), zero, work.Matrix(*n2, opts))
 		Dlacpy('F', n2, n1, work.Matrix(*n2, opts), n2, a.Off((*j1)-1, (*j1)+(*n2)-1), lda)
-		err = goblas.Dgemm(NoTrans, NoTrans, *n2, *n1, *n1, one, b.Off((*j1)-1, (*j1)+(*n2)-1), *ldb, t.Off((*n2)+1-1, (*n2)+1-1), ldst, zero, work.Matrix(*n2, opts), *n2)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n2, *n1, *n1, one, b.Off((*j1)-1, (*j1)+(*n2)-1), t.Off((*n2), (*n2)), zero, work.Matrix(*n2, opts))
 		Dlacpy('F', n2, n1, work.Matrix(*n2, opts), n2, b.Off((*j1)-1, (*j1)+(*n2)-1), ldb)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, m, one, ir, ldst, t, ldst, zero, work.Matrix(m, opts), m)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, m, one, ir, t, zero, work.Matrix(m, opts))
 		Dlacpy('F', &m, &m, work.Matrix(m, opts), &m, ir, &ldst)
 
 		//        Accumulate transformations into Q and Z if requested.
 		if wantq {
-			err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, q.Off(0, (*j1)-1), *ldq, li, ldst, zero, work.Matrix(*n, opts), *n)
+			err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, q.Off(0, (*j1)-1), li, zero, work.Matrix(*n, opts))
 			Dlacpy('F', n, &m, work.Matrix(*n, opts), n, q.Off(0, (*j1)-1), ldq)
 
 		}
 
 		if wantz {
-			err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, z.Off(0, (*j1)-1), *ldz, ir, ldst, zero, work.Matrix(*n, opts), *n)
+			err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, z.Off(0, (*j1)-1), ir, zero, work.Matrix(*n, opts))
 			Dlacpy('F', n, &m, work.Matrix(*n, opts), n, z.Off(0, (*j1)-1), ldz)
 
 		}
@@ -368,16 +368,16 @@ func Dtgex2(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		//                (A(1:J1-1, J1:J1+M), B(1:J1-1, J1:J1+M)).
 		i = (*j1) + m
 		if i <= (*n) {
-			err = goblas.Dgemm(Trans, NoTrans, m, (*n)-i+1, m, one, li, ldst, a.Off((*j1)-1, i-1), *lda, zero, work.Matrix(m, opts), m)
+			err = goblas.Dgemm(Trans, NoTrans, m, (*n)-i+1, m, one, li, a.Off((*j1)-1, i-1), zero, work.Matrix(m, opts))
 			Dlacpy('F', &m, toPtr((*n)-i+1), work.Matrix(m, opts), &m, a.Off((*j1)-1, i-1), lda)
-			err = goblas.Dgemm(Trans, NoTrans, m, (*n)-i+1, m, one, li, ldst, b.Off((*j1)-1, i-1), *ldb, zero, work.Matrix(m, opts), m)
+			err = goblas.Dgemm(Trans, NoTrans, m, (*n)-i+1, m, one, li, b.Off((*j1)-1, i-1), zero, work.Matrix(m, opts))
 			Dlacpy('F', &m, toPtr((*n)-i+1), work.Matrix(m, opts), &m, b.Off((*j1)-1, i-1), ldb)
 		}
 		i = (*j1) - 1
 		if i > 0 {
-			err = goblas.Dgemm(NoTrans, NoTrans, i, m, m, one, a.Off(0, (*j1)-1), *lda, ir, ldst, zero, work.Matrix(i, opts), i)
+			err = goblas.Dgemm(NoTrans, NoTrans, i, m, m, one, a.Off(0, (*j1)-1), ir, zero, work.Matrix(i, opts))
 			Dlacpy('F', &i, &m, work.Matrix(i, opts), &i, a.Off(0, (*j1)-1), lda)
-			err = goblas.Dgemm(NoTrans, NoTrans, i, m, m, one, b.Off(0, (*j1)-1), *ldb, ir, ldst, zero, work.Matrix(i, opts), i)
+			err = goblas.Dgemm(NoTrans, NoTrans, i, m, m, one, b.Off(0, (*j1)-1), ir, zero, work.Matrix(i, opts))
 			Dlacpy('F', &i, &m, work.Matrix(i, opts), &i, b.Off(0, (*j1)-1), ldb)
 		}
 

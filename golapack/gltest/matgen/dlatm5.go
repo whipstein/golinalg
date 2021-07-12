@@ -104,16 +104,16 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 				(*qblcka) = 2
 			}
 			for k = 1; k <= (*m)-1; k += (*qblcka) {
-				a.Set(k+1-1, k+1-1, a.Get(k-1, k-1))
-				a.Set(k+1-1, k-1, -math.Sin(a.Get(k-1, k+1-1)))
+				a.Set(k, k, a.Get(k-1, k-1))
+				a.Set(k, k-1, -math.Sin(a.Get(k-1, k)))
 			}
 
 			if (*qblckb) <= 1 {
 				(*qblckb) = 2
 			}
 			for k = 1; k <= (*n)-1; k += (*qblckb) {
-				b.Set(k+1-1, k+1-1, b.Get(k-1, k-1))
-				b.Set(k+1-1, k-1, -math.Sin(b.Get(k-1, k+1-1)))
+				b.Set(k, k, b.Get(k-1, k-1))
+				b.Set(k, k-1, -math.Sin(b.Get(k-1, k)))
 			}
 		}
 
@@ -160,7 +160,7 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					a.Set(i-1, i-1, one+reeps)
 				}
 				if (i%2) != 0 && i < (*m) {
-					a.Set(i-1, i+1-1, imeps)
+					a.Set(i-1, i, imeps)
 				} else if i > 1 {
 					a.Set(i-1, i-1-1, -imeps)
 				}
@@ -171,14 +171,14 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					a.Set(i-1, i-1, -reeps)
 				}
 				if (i%2) != 0 && i < (*m) {
-					a.Set(i-1, i+1-1, one)
+					a.Set(i-1, i, one)
 				} else if i > 1 {
 					a.Set(i-1, i-1-1, -one)
 				}
 			} else {
 				a.Set(i-1, i-1, one)
 				if (i%2) != 0 && i < (*m) {
-					a.Set(i-1, i+1-1, imeps*2)
+					a.Set(i-1, i, imeps*2)
 				} else if i > 1 {
 					a.Set(i-1, i-1-1, -imeps*2)
 				}
@@ -193,7 +193,7 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					b.Set(i-1, i-1, one-reeps)
 				}
 				if (i%2) != 0 && i < (*n) {
-					b.Set(i-1, i+1-1, imeps)
+					b.Set(i-1, i, imeps)
 				} else if i > 1 {
 					b.Set(i-1, i-1-1, -imeps)
 				}
@@ -204,14 +204,14 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					b.Set(i-1, i-1, -reeps)
 				}
 				if (i%2) != 0 && i < (*n) {
-					b.Set(i-1, i+1-1, one+imeps)
+					b.Set(i-1, i, one+imeps)
 				} else if i > 1 {
 					b.Set(i-1, i-1-1, -one-imeps)
 				}
 			} else {
 				b.Set(i-1, i-1, one-reeps)
 				if (i%2) != 0 && i < (*n) {
-					b.Set(i-1, i+1-1, imeps*2)
+					b.Set(i-1, i, imeps*2)
 				} else if i > 1 {
 					b.Set(i-1, i-1-1, -imeps*2)
 				}
@@ -220,8 +220,8 @@ func Dlatm5(prtype, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	}
 
 	//     Compute rhs (C, F)
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, a, *lda, r, *ldr, zero, c, *ldc)
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, *ldl, b, *ldb, one, c, *ldc)
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, d, *ldd, r, *ldr, zero, f, *ldf)
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, *ldl, e, *lde, one, f, *ldf)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, a, r, zero, c)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, b, one, c)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, d, r, zero, f)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, e, one, f)
 }

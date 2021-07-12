@@ -38,7 +38,7 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -87,7 +87,7 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 			//           Compute the Cholesky factorization P**T * A * P = U**H * U
 			for k = 1; k <= (*n); k += nb {
 				//              Account for last block not being NB wide
-				jb = minint(nb, (*n)-k+1)
+				jb = min(nb, (*n)-k+1)
 
 				//              Set relevant part of first half of WORK to zero,
 				//              holds dot products
@@ -121,9 +121,9 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 					if j != pvt {
 						//                    Pivot OK, so can now swap pivot rows and columns
 						a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-						goblas.Zswap(j-1, a.CVector(0, j-1), 1, a.CVector(0, pvt-1), 1)
+						goblas.Zswap(j-1, a.CVector(0, j-1, 1), a.CVector(0, pvt-1, 1))
 						if pvt < (*n) {
-							goblas.Zswap((*n)-pvt, a.CVector(j-1, pvt+1-1), *lda, a.CVector(pvt-1, pvt+1-1), *lda)
+							goblas.Zswap((*n)-pvt, a.CVector(j-1, pvt, *lda), a.CVector(pvt-1, pvt, *lda))
 						}
 						for i = j + 1; i <= pvt-1; i++ {
 							ztemp = a.GetConj(j-1, i-1)
@@ -147,16 +147,16 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 					//                 Compute elements J+1:N of row J.
 					if j < (*n) {
 						Zlacgv(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-						err = goblas.Zgemv(Trans, j-k, (*n)-j, -cone, a.Off(k-1, j+1-1), *lda, a.CVector(k-1, j-1), 1, cone, a.CVector(j-1, j+1-1), *lda)
+						err = goblas.Zgemv(Trans, j-k, (*n)-j, -cone, a.Off(k-1, j), a.CVector(k-1, j-1, 1), cone, a.CVector(j-1, j, *lda))
 						Zlacgv(toPtr(j-1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-						goblas.Zdscal((*n)-j, one/ajj, a.CVector(j-1, j+1-1), *lda)
+						goblas.Zdscal((*n)-j, one/ajj, a.CVector(j-1, j, *lda))
 					}
 
 				}
 
 				//              Update trailing matrix, J already incremented
 				if k+jb <= (*n) {
-					err = goblas.Zherk(Upper, ConjTrans, (*n)-j+1, jb, -one, a.Off(k-1, j-1), *lda, one, a.Off(j-1, j-1), *lda)
+					err = goblas.Zherk(Upper, ConjTrans, (*n)-j+1, jb, -one, a.Off(k-1, j-1), one, a.Off(j-1, j-1))
 				}
 
 			}
@@ -165,7 +165,7 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 			//        Compute the Cholesky factorization P**T * A * P = L * L**H
 			for k = 1; k <= (*n); k += nb {
 				//              Account for last block not being NB wide
-				jb = minint(nb, (*n)-k+1)
+				jb = min(nb, (*n)-k+1)
 
 				//              Set relevant part of first half of WORK to zero,
 				//              holds dot products
@@ -199,9 +199,9 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 					if j != pvt {
 						//                    Pivot OK, so can now swap pivot rows and columns
 						a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-						goblas.Zswap(j-1, a.CVector(j-1, 0), *lda, a.CVector(pvt-1, 0), *lda)
+						goblas.Zswap(j-1, a.CVector(j-1, 0, *lda), a.CVector(pvt-1, 0, *lda))
 						if pvt < (*n) {
-							goblas.Zswap((*n)-pvt, a.CVector(pvt+1-1, j-1), 1, a.CVector(pvt+1-1, pvt-1), 1)
+							goblas.Zswap((*n)-pvt, a.CVector(pvt, j-1, 1), a.CVector(pvt, pvt-1, 1))
 						}
 						for i = j + 1; i <= pvt-1; i++ {
 							ztemp = a.GetConj(i-1, j-1)
@@ -225,16 +225,16 @@ func Zpstrf(uplo byte, n *int, a *mat.CMatrix, lda *int, piv *[]int, rank *int, 
 					//                 Compute elements J+1:N of column J.
 					if j < (*n) {
 						Zlacgv(toPtr(j-1), a.CVector(j-1, 0), lda)
-						err = goblas.Zgemv(NoTrans, (*n)-j, j-k, -cone, a.Off(j+1-1, k-1), *lda, a.CVector(j-1, k-1), *lda, cone, a.CVector(j+1-1, j-1), 1)
+						err = goblas.Zgemv(NoTrans, (*n)-j, j-k, -cone, a.Off(j, k-1), a.CVector(j-1, k-1, *lda), cone, a.CVector(j, j-1, 1))
 						Zlacgv(toPtr(j-1), a.CVector(j-1, 0), lda)
-						goblas.Zdscal((*n)-j, one/ajj, a.CVector(j+1-1, j-1), 1)
+						goblas.Zdscal((*n)-j, one/ajj, a.CVector(j, j-1, 1))
 					}
 
 				}
 
 				//              Update trailing matrix, J already incremented
 				if k+jb <= (*n) {
-					err = goblas.Zherk(Lower, NoTrans, (*n)-j+1, jb, -one, a.Off(j-1, k-1), *lda, one, a.Off(j-1, j-1), *lda)
+					err = goblas.Zherk(Lower, NoTrans, (*n)-j+1, jb, -one, a.Off(j-1, k-1), one, a.Off(j-1, j-1))
 				}
 
 			}

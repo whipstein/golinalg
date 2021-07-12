@@ -71,7 +71,7 @@ func Dspgv(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.Ma
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
 			}
 
 		} else if (*itype) == 3 {
@@ -84,7 +84,7 @@ func Dspgv(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.Ma
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
+				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
 			}
 		}
 	}

@@ -99,14 +99,14 @@ func Dlasda(icompq, smlsiz, n, sqre *int, d, e *mat.Vector, u *mat.Matrix, ldu *
 			Dlaset('A', &nlp1, &nlp1, &zero, &one, work.MatrixOff(nwork1-1, smlszp, opts), &smlszp)
 			Dlasdq('U', &sqrei, &nl, &nlp1, &nru, &ncc, d.Off(nlf-1), e.Off(nlf-1), work.MatrixOff(nwork1-1, smlszp, opts), &smlszp, work.MatrixOff(nwork2-1, nl, opts), &nl, work.MatrixOff(nwork2-1, nl, opts), &nl, work.Off(nwork2-1), info)
 			itemp = nwork1 + nl*smlszp
-			goblas.Dcopy(nlp1, work.Off(nwork1-1), 1, work.Off(vfi-1), 1)
-			goblas.Dcopy(nlp1, work.Off(itemp-1), 1, work.Off(vli-1), 1)
+			goblas.Dcopy(nlp1, work.Off(nwork1-1, 1), work.Off(vfi-1, 1))
+			goblas.Dcopy(nlp1, work.Off(itemp-1, 1), work.Off(vli-1, 1))
 		} else {
 			Dlaset('A', &nl, &nl, &zero, &one, u.Off(nlf-1, 0), ldu)
 			Dlaset('A', &nlp1, &nlp1, &zero, &one, vt.Off(nlf-1, 0), ldu)
 			Dlasdq('U', &sqrei, &nl, &nlp1, &nl, &ncc, d.Off(nlf-1), e.Off(nlf-1), vt.Off(nlf-1, 0), ldu, u.Off(nlf-1, 0), ldu, u.Off(nlf-1, 0), ldu, work.Off(nwork1-1), info)
-			goblas.Dcopy(nlp1, vt.Vector(nlf-1, 0), 1, work.Off(vfi-1), 1)
-			goblas.Dcopy(nlp1, vt.Vector(nlf-1, nlp1-1), 1, work.Off(vli-1), 1)
+			goblas.Dcopy(nlp1, vt.Vector(nlf-1, 0, 1), work.Off(vfi-1, 1))
+			goblas.Dcopy(nlp1, vt.Vector(nlf-1, nlp1-1, 1), work.Off(vli-1, 1))
 		}
 		if (*info) != 0 {
 			return
@@ -127,14 +127,14 @@ func Dlasda(icompq, smlsiz, n, sqre *int, d, e *mat.Vector, u *mat.Matrix, ldu *
 			Dlaset('A', &nrp1, &nrp1, &zero, &one, work.MatrixOff(nwork1-1, smlszp, opts), &smlszp)
 			Dlasdq('U', &sqrei, &nr, &nrp1, &nru, &ncc, d.Off(nrf-1), e.Off(nrf-1), work.MatrixOff(nwork1-1, smlszp, opts), &smlszp, work.MatrixOff(nwork2-1, nr, opts), &nr, work.MatrixOff(nwork2-1, nr, opts), &nr, work.Off(nwork2-1), info)
 			itemp = nwork1 + (nrp1-1)*smlszp
-			goblas.Dcopy(nrp1, work.Off(nwork1-1), 1, work.Off(vfi-1), 1)
-			goblas.Dcopy(nrp1, work.Off(itemp-1), 1, work.Off(vli-1), 1)
+			goblas.Dcopy(nrp1, work.Off(nwork1-1, 1), work.Off(vfi-1, 1))
+			goblas.Dcopy(nrp1, work.Off(itemp-1, 1), work.Off(vli-1, 1))
 		} else {
 			Dlaset('A', &nr, &nr, &zero, &one, u.Off(nrf-1, 0), ldu)
 			Dlaset('A', &nrp1, &nrp1, &zero, &one, vt.Off(nrf-1, 0), ldu)
 			Dlasdq('U', &sqrei, &nr, &nrp1, &nr, &ncc, d.Off(nrf-1), e.Off(nrf-1), vt.Off(nrf-1, 0), ldu, u.Off(nrf-1, 0), ldu, u.Off(nrf-1, 0), ldu, work.Off(nwork1-1), info)
-			goblas.Dcopy(nrp1, vt.Vector(nrf-1, 0), 1, work.Off(vfi-1), 1)
-			goblas.Dcopy(nrp1, vt.Vector(nrf-1, nrp1-1), 1, work.Off(vli-1), 1)
+			goblas.Dcopy(nrp1, vt.Vector(nrf-1, 0, 1), work.Off(vfi-1, 1))
+			goblas.Dcopy(nrp1, vt.Vector(nrf-1, nrp1-1, 1), work.Off(vli-1, 1))
 		}
 		if (*info) != 0 {
 			return

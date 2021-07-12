@@ -39,7 +39,7 @@ func Dtrcon(norm, uplo, diag byte, n *int, a *mat.Matrix, lda *int, rcond *float
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	}
 	if (*info) != 0 {
@@ -54,7 +54,7 @@ func Dtrcon(norm, uplo, diag byte, n *int, a *mat.Matrix, lda *int, rcond *float
 	}
 
 	(*rcond) = zero
-	smlnum = Dlamch(SafeMinimum) * float64(maxint(1, *n))
+	smlnum = Dlamch(SafeMinimum) * float64(max(1, *n))
 
 	//     Compute the norm of the triangular matrix A.
 	anorm = Dlantr(norm, uplo, diag, n, n, a, lda, work)
@@ -72,20 +72,20 @@ func Dtrcon(norm, uplo, diag byte, n *int, a *mat.Matrix, lda *int, rcond *float
 		kase = 0
 	label10:
 		;
-		Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+		Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 		if kase != 0 {
 			if kase == kase1 {
 				//              Multiply by inv(A).
-				Dlatrs(uplo, 'N', diag, normin, n, a, lda, work, &scale, work.Off(2*(*n)+1-1), info)
+				Dlatrs(uplo, 'N', diag, normin, n, a, lda, work, &scale, work.Off(2*(*n)), info)
 			} else {
 				//              Multiply by inv(A**T).
-				Dlatrs(uplo, 'T', diag, normin, n, a, lda, work, &scale, work.Off(2*(*n)+1-1), info)
+				Dlatrs(uplo, 'T', diag, normin, n, a, lda, work, &scale, work.Off(2*(*n)), info)
 			}
 			normin = 'Y'
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Idamax(*n, work, 1)
+				ix = goblas.Idamax(*n, work.Off(0, 1))
 				xnorm = math.Abs(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return

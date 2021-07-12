@@ -27,7 +27,7 @@ func Zgeqr2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *i
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -35,16 +35,16 @@ func Zgeqr2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *i
 		return
 	}
 
-	k = minint(*m, *n)
+	k = min(*m, *n)
 
 	for i = 1; i <= k; i++ {
 		//        Generate elementary reflector H(i) to annihilate A(i+1:m,i)
-		Zlarfg(toPtr((*m)-i+1), a.GetPtr(i-1, i-1), a.CVector(minint(i+1, *m)-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1))
+		Zlarfg(toPtr((*m)-i+1), a.GetPtr(i-1, i-1), a.CVector(min(i+1, *m)-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1))
 		if i < (*n) {
 			//           Apply H(i)**H to A(i:m,i+1:n) from the left
 			alpha = a.Get(i-1, i-1)
 			a.Set(i-1, i-1, one)
-			Zlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), toPtrc128(tau.GetConj(i-1)), a.Off(i-1, i+1-1), lda, work)
+			Zlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), toPtrc128(tau.GetConj(i-1)), a.Off(i-1, i), lda, work)
 			a.Set(i-1, i-1, alpha)
 		}
 	}

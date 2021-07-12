@@ -59,11 +59,12 @@ func TestDblasLevel2(t *testing.T) {
 	}
 	//     YY holds the exact result. On exit from SMVCH YT holds
 	//     the result computed by SMVCH.
-	dmvch(mat.NoTrans, n, n, 1.0, a, nmax, x, 1, 0.0, y, 1, yt, g, yy, eps, &err, &fatal, true, t)
+	dmvch(mat.NoTrans, n, n, 1.0, a, nmax, x, 0.0, y, yt, g, yy, eps, &err, &fatal, true, t)
 	if err != 0 {
 		t.Errorf(" ERROR IN DMVCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n DMVCH WAS CALLED WITH TRANS = %c AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", trans, same, err)
 	}
-	dmvch(mat.Trans, n, n, 1.0, a, nmax, x, -1, 0.0, y, -1, yt, g, yy, eps, &err, &fatal, true, t)
+	x.Inc, y.Inc = -1, -1
+	dmvch(mat.Trans, n, n, 1.0, a, nmax, x, 0.0, y, yt, g, yy, eps, &err, &fatal, true, t)
 	if err != 0 {
 		t.Errorf(" ERROR IN DMVCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n DMVCH WAS CALLED WITH TRANS = %c AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", trans, same, err)
 	}
@@ -73,8 +74,7 @@ func TestDblasLevel2(t *testing.T) {
 		ok = true
 		errmax = 0.0
 		if sname == "Dgemv" || sname == "Dgbmv" {
-			var i, iku, im, incx, incxs, incy, incys, kl, kls, ku, kus, laa, lda, ldas, m, ml, ms, n, nargs, nc, nd, nk, nl, ns int
-			_ = laa
+			var i, iku, im, incx, incy, kl, kls, ku, kus, lda, ldas, m, ml, ms, n, nargs, nc, nd, nk, nl, ns int
 			var full bool = sname[2] == 'e'
 			var banded bool = sname[2] == 'b'
 
@@ -82,16 +82,18 @@ func TestDblasLevel2(t *testing.T) {
 				isame[i] = true
 			}
 
+			if dchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
+
 			opts.Style = mat.General
 			optsfull.Style = mat.General
 			if full {
 				nargs = 11
 				opts.Storage = mat.Dense
-				dchkeLevel2("Dgemv")
 			} else if banded {
 				nargs = 13
 				opts.Storage = mat.Banded
-				dchkeLevel2("Dgbmv")
 			}
 
 			nc = 0
@@ -136,7 +138,6 @@ func TestDblasLevel2(t *testing.T) {
 						if lda > nmax {
 							continue
 						}
-						laa = lda * n
 						null = n <= 0 || m <= 0
 
 						//              Generate the matrix A.
@@ -156,27 +157,27 @@ func TestDblasLevel2(t *testing.T) {
 							}
 
 							for _, incx = range inc {
-								lx := absint(incx) * nl
+								lx := abs(incx) * nl
 
 								//                    Generate the vector X.
-								x = vf(nl)
-								xx = vf(lx)
-								dmakeL2V(1, nl, x, 1, xx, absint(incx), 0, nl-1, &reset, 0.5)
+								x = vf(nl, incx)
+								xx = vf(lx, incx)
+								dmakeL2V(1, nl, x, 1, xx, abs(incx), 0, nl-1, &reset, 0.5)
 								if nl > 1 {
 									x.Set(nl/2-1, 0)
-									xx.Set(absint(incx)*(nl/2-1), 0)
+									xx.Set(abs(incx)*(nl/2-1), 0)
 								}
 
 								for _, incy = range inc {
-									ly := absint(incy) * ml
+									ly := abs(incy) * ml
 
 									for _, alpha = range alf {
 
 										for _, beta = range bet {
 											//                             Generate the vector Y.
-											y = vf(ml)
-											yy = vf(ly)
-											dmakeL2V(1, ml, y, 1, yy, absint(incy), 0, ml-1, &reset, 0.0)
+											y = vf(ml, incy)
+											yy = vf(ly, incy)
+											dmakeL2V(1, ml, y, 1, yy, abs(incy), 0, ml-1, &reset, 0.0)
 
 											nc++
 
@@ -191,16 +192,14 @@ func TestDblasLevel2(t *testing.T) {
 											as = aa.DeepCopy()
 											ldas = lda
 											xs := xx.DeepCopy()
-											incxs = incx
 											bls = beta
 											ys := yy.DeepCopy()
-											incys = incy
 
 											//                             Call the subroutine.
 											if full {
-												err2 = Dgemv(trans, m, n, alpha, aa, lda, xx, incx, beta, yy, incy)
+												err2 = Dgemv(trans, m, n, alpha, aa, xx, beta, yy)
 											} else if banded {
-												err2 = Dgbmv(trans, m, n, kl, ku, alpha, aa, lda, xx, incx, beta, yy, incy)
+												err2 = Dgbmv(trans, m, n, kl, ku, alpha, aa, xx, beta, yy)
 											}
 
 											//                             Check if error-exit was taken incorrectly.
@@ -220,14 +219,12 @@ func TestDblasLevel2(t *testing.T) {
 												// isame[4] = reflect.DeepEqual(*aa, *as)
 												isame[5] = ldas == lda
 												isame[6] = reflect.DeepEqual(*xx, *xs)
-												isame[7] = incxs == incx
 												isame[8] = bls == beta
 												if null {
 													isame[9] = reflect.DeepEqual(*yy, *ys)
 												} else {
-													isame[9] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, absint(incy))
+													isame[9] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, abs(incy))
 												}
-												isame[10] = incys == incy
 											} else if banded {
 												isame[3] = kls == kl
 												isame[4] = kus == ku
@@ -235,14 +232,12 @@ func TestDblasLevel2(t *testing.T) {
 												isame[6] = reflect.DeepEqual(aa, as)
 												isame[7] = ldas == lda
 												isame[8] = reflect.DeepEqual(xx, xs)
-												isame[9] = incxs == incx
 												isame[10] = bls == beta
 												if null {
 													isame[11] = reflect.DeepEqual(yy, ys)
 												} else {
-													isame[11] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, absint(incy))
+													isame[11] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, abs(incy))
 												}
-												isame[12] = incys == incy
 											}
 
 											//                             If data was incorrectly changed, report
@@ -262,7 +257,7 @@ func TestDblasLevel2(t *testing.T) {
 
 											if !null {
 												//                                Check the result.
-												dmvch(trans, m, n, alpha, a, nmax, x, incx, beta, y, incy, yt, g, yy, eps, &err, &fatal, true, t)
+												dmvch(trans, m, n, alpha, a, nmax, x, beta, y, yt, g, yy, eps, &err, &fatal, true, t)
 												errmax = math.Max(errmax, err)
 												//                                If got really bad answer, report and
 												//                                return.
@@ -309,10 +304,14 @@ func TestDblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Dsymv" || sname == "Dsbmv" || sname == "Dspmv" {
-			var i, ik, incx, incxs, incy, incys, k, ks, lda, ldas, lx, ly, n, nargs, nc, nk, ns int
+			var i, ik, incx, incy, k, ks, lda, ldas, lx, ly, n, nargs, nc, nk, ns int
 			var full bool = sname[2] == 'y'
 			var banded bool = sname[2] == 'b'
 			var packed bool = sname[2] == 'p'
+
+			if dchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			//     Define the number of arguments.
 			opts.Style = mat.Symmetric
@@ -320,15 +319,12 @@ func TestDblasLevel2(t *testing.T) {
 			if full {
 				nargs = 10
 				opts.Storage = mat.Dense
-				dchkeLevel2("Dsymv")
 			} else if banded {
 				nargs = 11
 				opts.Storage = mat.Banded
-				dchkeLevel2("Dsbmv")
 			} else if packed {
 				nargs = 9
 				opts.Storage = mat.Packed
-				dchkeLevel2("Dspmv")
 			}
 
 			nc = 0
@@ -360,11 +356,6 @@ func TestDblasLevel2(t *testing.T) {
 					if lda > nmax {
 						goto label1100
 					}
-					// if packed {
-					// 	laa = (n * (n + 1)) / 2
-					// } else {
-					// 	laa = lda * n
-					// }
 					null = n <= 0
 
 					for _, uplo = range ichu {
@@ -372,31 +363,31 @@ func TestDblasLevel2(t *testing.T) {
 						optsfull.Uplo = uplo
 						//              Generate the matrix A.
 						a = mf(nmax, nmax, optsfull)
-						aa = mf(lda, n, opts)
+						aa = mf(nmax, n, opts)
 						dmakeL2M(n, n, a, nmax, aa, lda, k, k, &reset, 0.0)
 
 						for _, incx = range inc {
-							lx = absint(incx) * n
+							lx = abs(incx) * n
 
 							//                 Generate the vector X.
-							x = vf(n)
-							xx = vf(lx)
-							dmakeL2V(1, n, x, 1, xx, absint(incx), 0, n-1, &reset, 0.5)
+							x = vf(n, incx)
+							xx = vf(lx, incx)
+							dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
 							if n > 1 {
 								x.Set(n/2-1, 0)
-								xx.Set(absint(incx)*(n/2-1), 0)
+								xx.Set(abs(incx)*(n/2-1), 0)
 							}
 
 							for _, incy = range inc {
-								ly = absint(incy) * n
+								ly = abs(incy) * n
 
 								for _, alpha = range alf {
 
 									for _, beta = range bet {
 										//                          Generate the vector Y.
-										y = vf(n)
-										yy = vf(ly)
-										dmakeL2V(1, n, y, 1, yy, absint(incy), 0, n-1, &reset, 0.0)
+										y = vf(n, incy)
+										yy = vf(ly, incy)
+										dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
 
 										nc++
 
@@ -409,32 +400,27 @@ func TestDblasLevel2(t *testing.T) {
 										as = aa.DeepCopy()
 										ldas = lda
 										xs := xx.DeepCopy()
-										incxs = incx
 										bls = beta
 										ys := yy.DeepCopy()
-										incys = incy
-										//
+
 										//                          Call the subroutine.
-										//
 										if full {
-											err2 = Dsymv(uplo, n, alpha, aa, lda, xx, incx, beta, yy, incy)
+											err2 = Dsymv(uplo, n, alpha, aa, xx, beta, yy)
 										} else if banded {
-											err2 = Dsbmv(uplo, n, k, alpha, aa, lda, xx, incx, beta, yy, incy)
+											err2 = Dsbmv(uplo, n, k, alpha, aa, xx, beta, yy)
 										} else if packed {
-											err2 = Dspmv(uplo, n, alpha, aa.VectorIdx(0), xx, incx, beta, yy, incy)
+											err2 = Dspmv(uplo, n, alpha, aa.VectorIdx(0), xx, beta, yy)
 										}
-										//
+
 										//                          Check if error-exit was taken incorrectly.
-										//
 										if !ok {
 											t.Fail()
 											fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
 											fatal = true
 											goto label1120
 										}
-										//
+
 										//                          See what data changed inside subroutines.
-										//
 										isame[0] = uplo == uplos
 										isame[1] = ns == n
 										if full {
@@ -442,40 +428,34 @@ func TestDblasLevel2(t *testing.T) {
 											isame[3] = reflect.DeepEqual(aa, as)
 											isame[4] = ldas == lda
 											isame[5] = reflect.DeepEqual(xx, xs)
-											isame[6] = incxs == incx
 											isame[7] = bls == beta
 											if null {
 												isame[8] = reflect.DeepEqual(yy, ys)
 											} else {
-												isame[8] = lderesV(mat.General, mat.Full, 1, n, ys, yy, absint(incy))
+												isame[8] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
 											}
-											isame[9] = incys == incy
 										} else if banded {
 											isame[2] = ks == k
 											isame[3] = als == alpha
 											isame[4] = reflect.DeepEqual(aa, as)
 											isame[5] = ldas == lda
 											isame[6] = reflect.DeepEqual(xx, xs)
-											isame[7] = incxs == incx
 											isame[8] = bls == beta
 											if null {
 												isame[9] = reflect.DeepEqual(yy, ys)
 											} else {
-												isame[9] = lderesV(mat.General, mat.Full, 1, n, ys, yy, absint(incy))
+												isame[9] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
 											}
-											isame[10] = incys == incy
 										} else if packed {
 											isame[2] = als == alpha
 											isame[3] = reflect.DeepEqual(aa, as)
 											isame[4] = reflect.DeepEqual(xx, xs)
-											isame[5] = incxs == incx
 											isame[6] = bls == beta
 											if null {
 												isame[7] = reflect.DeepEqual(yy, ys)
 											} else {
-												isame[7] = lderesV(mat.General, mat.Full, 1, n, ys, yy, absint(incy))
+												isame[7] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
 											}
-											isame[8] = incys == incy
 										}
 
 										//                          If data was incorrectly changed, report and
@@ -495,7 +475,7 @@ func TestDblasLevel2(t *testing.T) {
 
 										if !null {
 											//                             Check the result.
-											dmvch(mat.NoTrans, n, n, alpha, a, nmax, x, incx, beta, y, incy, yt, g, yy, eps, &err, &fatal, true, t)
+											dmvch(mat.NoTrans, n, n, alpha, a, nmax, x, beta, y, yt, g, yy, eps, &err, &fatal, true, t)
 
 											errmax = math.Max(errmax, err)
 
@@ -545,10 +525,14 @@ func TestDblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Dtrmv" || sname == "Dtbmv" || sname == "Dtpmv" || sname == "Dtrsv" || sname == "Dtbsv" || sname == "Dtpsv" {
-			var i, ik, incx, incxs, k, ks, lda, ldas, lx, n, nargs, nc, nk, ns int
+			var i, ik, incx, k, ks, lda, ldas, lx, n, nargs, nc, nk, ns int
 			var full bool = sname[2] == 'r'
 			var banded bool = sname[2] == 'b'
 			var packed bool = sname[2] == 'p'
+
+			if dchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			//     Define the number of arguments.
 			opts.Style = mat.Triangular
@@ -556,27 +540,12 @@ func TestDblasLevel2(t *testing.T) {
 			if full {
 				nargs = 8
 				opts.Storage = mat.Dense
-				if sname[3:5] == "mv" {
-					dchkeLevel2("Dtrmv")
-				} else {
-					dchkeLevel2("Dtrsv")
-				}
 			} else if banded {
 				nargs = 9
 				opts.Storage = mat.Banded
-				if sname[3:5] == "mv" {
-					dchkeLevel2("Dtbmv")
-				} else {
-					dchkeLevel2("Dtbsv")
-				}
 			} else if packed {
 				nargs = 7
 				opts.Storage = mat.Packed
-				if sname[3:5] == "mv" {
-					dchkeLevel2("Dtpmv")
-				} else {
-					dchkeLevel2("Dtpsv")
-				}
 			}
 
 			nc = 0
@@ -608,11 +577,6 @@ func TestDblasLevel2(t *testing.T) {
 					if lda > nmax {
 						goto label2100
 					}
-					// if packed {
-					// 	laa = (n * (n + 1)) / 2
-					// } else {
-					// 	laa = lda * n
-					// }
 					null = n <= 0
 
 					for _, uplo = range ichu {
@@ -631,15 +595,15 @@ func TestDblasLevel2(t *testing.T) {
 								dmakeL2M(n, n, a, nmax, aa, lda, k, k, &reset, 0.0)
 
 								for _, incx = range inc {
-									lx = absint(incx) * n
+									lx = abs(incx) * n
 
 									//                       Generate the vector X.
-									x = vf(n)
-									xx = vf(lx)
-									dmakeL2V(1, n, x, 1, xx, absint(incx), 0, n-1, &reset, 0.5)
+									x = vf(n, incx)
+									xx = vf(lx, incx)
+									dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
 									if n > 1 {
 										x.Set(n/2-1, 0)
-										xx.Set(absint(incx)*(n/2-1), 0)
+										xx.Set(abs(incx)*(n/2-1), 0)
 									}
 
 									nc++
@@ -653,24 +617,23 @@ func TestDblasLevel2(t *testing.T) {
 									as = aa.DeepCopy()
 									ldas = lda
 									xs := xx.DeepCopy()
-									incxs = incx
 
 									//                       Call the subroutine.
 									if sname[3:5] == "mv" {
 										if full {
-											err2 = Dtrmv(uplo, trans, diag, n, aa, lda, xx, incx)
+											err2 = Dtrmv(uplo, trans, diag, n, aa, xx)
 										} else if banded {
-											err2 = Dtbmv(uplo, trans, diag, n, k, aa, lda, xx, incx)
+											err2 = Dtbmv(uplo, trans, diag, n, k, aa, xx)
 										} else if packed {
-											err2 = Dtpmv(uplo, trans, diag, n, aa.VectorIdx(0), xx, incx)
+											err2 = Dtpmv(uplo, trans, diag, n, aa.VectorIdx(0), xx)
 										}
 									} else if sname[3:5] == "sv" {
 										if full {
-											err2 = Dtrsv(uplo, trans, diag, n, aa, lda, xx, incx)
+											err2 = Dtrsv(uplo, trans, diag, n, aa, xx)
 										} else if banded {
-											err2 = Dtbsv(uplo, trans, diag, n, k, aa, lda, xx, incx)
+											err2 = Dtbsv(uplo, trans, diag, n, k, aa, xx)
 										} else if packed {
-											err2 = Dtpsv(uplo, trans, diag, n, aa.VectorIdx(0), xx, incx)
+											err2 = Dtpsv(uplo, trans, diag, n, aa.VectorIdx(0), xx)
 										}
 									}
 
@@ -693,9 +656,8 @@ func TestDblasLevel2(t *testing.T) {
 										if null {
 											isame[6] = reflect.DeepEqual(xx, xs)
 										} else {
-											isame[6] = lderesV(mat.General, mat.Full, 1, n, xs, xx, absint(incx))
+											isame[6] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
 										}
-										isame[7] = incxs == incx
 									} else if banded {
 										isame[4] = ks == k
 										isame[5] = reflect.DeepEqual(aa, as)
@@ -703,17 +665,15 @@ func TestDblasLevel2(t *testing.T) {
 										if null {
 											isame[7] = reflect.DeepEqual(xx, xs)
 										} else {
-											isame[7] = lderesV(mat.General, mat.Full, 1, n, xs, xx, absint(incx))
+											isame[7] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
 										}
-										isame[8] = incxs == incx
 									} else if packed {
 										isame[4] = reflect.DeepEqual(aa, as)
 										if null {
 											isame[5] = reflect.DeepEqual(xx, xs)
 										} else {
-											isame[5] = lderesV(mat.General, mat.Full, 1, n, xs, xx, absint(incx))
+											isame[5] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
 										}
-										isame[6] = incxs == incx
 									}
 
 									//                       If data was incorrectly changed, report and
@@ -735,14 +695,14 @@ func TestDblasLevel2(t *testing.T) {
 										z := x.DeepCopy()
 										if sname[3:5] == "mv" {
 											//                             Check the result.
-											dmvch(trans, n, n, 1.0, a, nmax, x, incx, 0.0, z, incx, xt, g, xx, eps, &err, &fatal, true, t)
+											dmvch(trans, n, n, 1.0, a, nmax, x, 0.0, z, xt, g, xx, eps, &err, &fatal, true, t)
 										} else if sname[3:5] == "sv" {
 											//                             Compute approximation to original vector.
 											for i = 1; i <= n; i++ {
-												z.Set(i-1, xx.Get((i-1)*absint(incx)))
-												xx.Set((i-1)*absint(incx), x.Get(i-1))
+												z.Set(i-1, xx.Get((i-1)*abs(incx)))
+												xx.Set((i-1)*abs(incx), x.Get(i-1))
 											}
-											dmvch(trans, n, n, 1.0, a, nmax, z, incx, 0.0, x, incx, xt, g, xx, eps, &err, &fatal, true, t)
+											dmvch(trans, n, n, 1.0, a, nmax, z, 0.0, x, xt, g, xx, eps, &err, &fatal, true, t)
 										}
 										errmax = math.Max(errmax, err)
 										//                          If got really bad answer, report and return.
@@ -790,14 +750,17 @@ func TestDblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Dger" {
-			var i, im, incx, incxs, incy, incys, j, lda, ldas, lx, ly, m, ms, n, nd, ns int
+			var i, im, incx, incy, j, lda, ldas, lx, ly, m, ms, n, nd, ns int
 			var nargs int = 9
 			var nc int = 0
 
 			opts.Style = mat.General
 			opts.Storage = mat.Dense
 			optsfull.Style = mat.General
-			dchkeLevel2("Dger")
+
+			if dchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			for i := range isame {
 				isame[i] = true
@@ -827,27 +790,27 @@ func TestDblasLevel2(t *testing.T) {
 					null = n <= 0 || m <= 0
 
 					for _, incx = range inc {
-						lx = absint(incx) * m
+						lx = abs(incx) * m
 
 						//              Generate the vector X.
-						x = vf(m)
-						xx = vf(lx)
-						dmakeL2V(1, m, x, 1, xx, absint(incx), 0, m-1, &reset, 0.5)
+						x = vf(m, incx)
+						xx = vf(lx, incx)
+						dmakeL2V(1, m, x, 1, xx, abs(incx), 0, m-1, &reset, 0.5)
 						if m > 1 {
 							x.Set(m/2-1, 0)
-							xx.Set(absint(incx)*(m/2-1), 0)
+							xx.Set(abs(incx)*(m/2-1), 0)
 						}
 
 						for _, incy = range inc {
-							ly = absint(incy) * n
+							ly = abs(incy) * n
 
 							//                 Generate the vector Y.
-							y = vf(n)
-							yy = vf(ly)
-							dmakeL2V(1, n, y, 1, yy, absint(incy), 0, n-1, &reset, 0.0)
+							y = vf(n, incy)
+							yy = vf(ly, incy)
+							dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
 							if n > 1 {
 								y.Set(n/2-1, 0)
-								yy.Set(absint(incy)*(n/2-1), 0)
+								yy.Set(abs(incy)*(n/2-1), 0)
 							}
 
 							for _, alpha = range alf {
@@ -865,12 +828,10 @@ func TestDblasLevel2(t *testing.T) {
 								as = aa.DeepCopy()
 								ldas = lda
 								xs = xx.DeepCopy()
-								incxs = incx
 								ys = yy.DeepCopy()
-								incys = incy
 
 								//                    Call the subroutine.
-								err2 = Dger(m, n, alpha, xx, incx, yy, incy, aa, lda)
+								err2 = Dger(m, n, alpha, xx, yy, aa)
 
 								//                    Check if error-exit was taken incorrectly.
 								if !ok {
@@ -887,13 +848,11 @@ func TestDblasLevel2(t *testing.T) {
 								isame[3] = reflect.DeepEqual(xx, xs)
 								isame[4] = ldas == lda
 								isame[5] = reflect.DeepEqual(yy, ys)
-								isame[6] = incxs == incx
 								if null {
 									isame[7] = reflect.DeepEqual(aa, as)
 								} else {
 									isame[7] = lderesM(m, n, as, aa, lda)
 								}
-								isame[8] = incys == incy
 
 								//                    If data was incorrectly changed, report and return.
 								same = true
@@ -919,16 +878,16 @@ func TestDblasLevel2(t *testing.T) {
 										}
 									} else {
 										for i = 1; i <= m; i++ {
-											z.Set(i-1, 0, x.Get(m-i+1-1))
+											z.Set(i-1, 0, x.Get(m-i))
 										}
 									}
 									for j = 1; j <= n; j++ {
 										if incy > 0 {
 											w.Set(0, y.Get(j-1))
 										} else {
-											w.Set(0, y.Get(n-j+1-1))
+											w.Set(0, y.Get(n-j))
 										}
-										dmvch(mat.NoTrans, m, 1, alpha, z, nmax, w, 1, 1.0, a.Vector(0, j-1), 1, yt, g, aa.Vector(0, j-1), eps, &err, &fatal, true, t)
+										dmvch(mat.NoTrans, m, 1, alpha, z, nmax, w, 1.0, a.Vector(0, j-1, 1), yt, g, aa.Vector(0, j-1), eps, &err, &fatal, true, t)
 										errmax = math.Max(errmax, err)
 										//                          If got really bad answer, report and return.
 										if fatal {
@@ -967,9 +926,13 @@ func TestDblasLevel2(t *testing.T) {
 			fmt.Printf(" ******* %6s FAILED ON CALL NUMBER:\n %6d: %6s(%3d,%3d,%4.1f, X,%3d, Y,%3d, A,%3d)                  .\n", sname, nc, sname, m, n, alpha, incy, incx, lda)
 
 		} else if sname == "Dsyr" || sname == "Dspr" {
-			var i, incx, incxs, j, ja, jj, lda, ldas, lj, lx, n, nargs, nc, ns int
+			var i, incx, j, ja, jj, lda, ldas, lj, lx, n, nargs, nc, ns int
 			var full bool = sname[2] == 'y'
 			var packed bool = sname[2] == 'p'
+
+			if dchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			//     Define the number of arguments.
 			opts.Style = mat.Symmetric
@@ -977,11 +940,9 @@ func TestDblasLevel2(t *testing.T) {
 			if full {
 				nargs = 7
 				opts.Storage = mat.Dense
-				dchkeLevel2("Dsyr")
 			} else if packed {
 				nargs = 6
 				opts.Storage = mat.Packed
-				dchkeLevel2("Dspr")
 			}
 
 			nc = 0
@@ -996,11 +957,6 @@ func TestDblasLevel2(t *testing.T) {
 				if lda > nmax {
 					goto label4100
 				}
-				// if packed {
-				// 	laa = (n * (n + 1)) / 2
-				// } else {
-				// 	laa = lda * n
-				// }
 
 				for _, uplo = range ichu {
 					upper = uplo == mat.Upper
@@ -1008,15 +964,15 @@ func TestDblasLevel2(t *testing.T) {
 					optsfull.Uplo = uplo
 
 					for _, incx = range inc {
-						lx = absint(incx) * n
+						lx = abs(incx) * n
 
 						//              Generate the vector X.
-						x = vf(n)
-						xx = vf(lx)
-						dmakeL2V(1, n, x, 1, xx, absint(incx), 0, n-1, &reset, 0.5)
+						x = vf(n, incx)
+						xx = vf(lx, incx)
+						dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
 						if n > 1 {
 							x.Set(n/2-1, 0)
-							xx.Set(absint(incx)*(n/2-1), 0)
+							xx.Set(abs(incx)*(n/2-1), 0)
 						}
 
 						for _, alpha = range alf {
@@ -1035,13 +991,12 @@ func TestDblasLevel2(t *testing.T) {
 							as = aa.DeepCopy()
 							ldas = lda
 							xs := xx.DeepCopy()
-							incxs = incx
 
 							//                 Call the subroutine.
 							if full {
-								err2 = Dsyr(uplo, n, alpha, xx, incx, aa, lda)
+								err2 = Dsyr(uplo, n, alpha, xx, aa)
 							} else if packed {
-								err2 = Dspr(uplo, n, alpha, xx, incx, aa.VectorIdx(0))
+								err2 = Dspr(uplo, n, alpha, xx, aa.VectorIdx(0))
 							}
 
 							//                 Check if error-exit was taken incorrectly.
@@ -1057,7 +1012,6 @@ func TestDblasLevel2(t *testing.T) {
 							isame[1] = ns == n
 							isame[2] = als == alpha
 							isame[3] = reflect.DeepEqual(xx, xs)
-							isame[4] = incxs == incx
 							if null {
 								isame[5] = reflect.DeepEqual(aa, as)
 							} else {
@@ -1091,7 +1045,7 @@ func TestDblasLevel2(t *testing.T) {
 									}
 								} else {
 									for i = 1; i <= n; i++ {
-										z.Set(i-1, 0, x.Get(n-i+1-1))
+										z.Set(i-1, 0, x.Get(n-i))
 									}
 								}
 								ja = 1
@@ -1104,7 +1058,7 @@ func TestDblasLevel2(t *testing.T) {
 										jj = j
 										lj = n - j + 1
 									}
-									dmvch(mat.NoTrans, lj, 1, alpha, z.OffIdx(jj-1), lj, w, 1, 1.0, a.Vector(jj-1, j-1), 1, yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
+									dmvch(mat.NoTrans, lj, 1, alpha, z.OffIdx(jj-1), lj, w, 1.0, a.Vector(jj-1, j-1, 1), yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
 									if full {
 										if upper {
 											ja += lda
@@ -1156,9 +1110,13 @@ func TestDblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Dsyr2" || sname == "Dspr2" {
-			var i, incx, incxs, incy, incys, j, ja, jj, lda, ldas, lj, lx, ly, n, nargs, nc, ns int
+			var i, incx, incy, j, ja, jj, lda, ldas, lj, lx, ly, n, nargs, nc, ns int
 			var full = sname[2] == 'y'
 			var packed = sname[2] == 'p'
+
+			if dchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			//     Define the number of arguments.
 			opts.Style = mat.Symmetric
@@ -1166,11 +1124,9 @@ func TestDblasLevel2(t *testing.T) {
 			if full {
 				nargs = 9
 				opts.Storage = mat.Dense
-				dchkeLevel2("Dsyr2")
 			} else if packed {
 				nargs = 8
 				opts.Storage = mat.Packed
-				dchkeLevel2("Dspr2")
 			}
 
 			nc = 0
@@ -1185,11 +1141,6 @@ func TestDblasLevel2(t *testing.T) {
 				if lda > nmax {
 					goto label5140
 				}
-				// if packed {
-				// 	laa = (n * (n + 1)) / 2
-				// } else {
-				// 	laa = lda * n
-				// }
 
 				for _, uplo = range ichu {
 					upper = uplo == mat.Upper
@@ -1197,27 +1148,27 @@ func TestDblasLevel2(t *testing.T) {
 					optsfull.Uplo = uplo
 
 					for _, incx = range inc {
-						lx = absint(incx) * n
+						lx = abs(incx) * n
 
 						//              Generate the vector X.
-						x = vf(n)
-						xx = vf(lx)
-						dmakeL2V(1, n, x, 1, xx, absint(incx), 0, n-1, &reset, 0.5)
+						x = vf(n, incx)
+						xx = vf(lx, incx)
+						dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
 						if n > 1 {
 							x.Set(n/2-1, 0)
-							xx.Set(absint(incx)*(n/2-1), 0)
+							xx.Set(abs(incx)*(n/2-1), 0)
 						}
 
 						for _, incy = range inc {
-							ly = absint(incy) * n
+							ly = abs(incy) * n
 
 							//                 Generate the vector Y.
-							y = vf(n)
-							yy = vf(ly)
-							dmakeL2V(1, n, y, 1, yy, absint(incy), 0, n-1, &reset, 0.0)
+							y = vf(n, incy)
+							yy = vf(ly, incy)
+							dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
 							if n > 1 {
 								y.Set(n/2-1, 0)
-								yy.Set(absint(incy)*(n/2-1), 0)
+								yy.Set(abs(incy)*(n/2-1), 0)
 							}
 
 							for _, alpha = range alf {
@@ -1236,15 +1187,13 @@ func TestDblasLevel2(t *testing.T) {
 								as = aa.DeepCopy()
 								ldas = lda
 								xs = xx.DeepCopy()
-								incxs = incx
 								ys = yy.DeepCopy()
-								incys = incy
 
 								//                    Call the subroutine.
 								if full {
-									err2 = Dsyr2(uplo, n, alpha, xx, incx, yy, incy, aa, lda)
+									err2 = Dsyr2(uplo, n, alpha, xx, yy, aa)
 								} else if packed {
-									err2 = Dspr2(uplo, n, alpha, xx, incx, yy, incy, aa.VectorIdx(0))
+									err2 = Dspr2(uplo, n, alpha, xx, yy, aa.VectorIdx(0))
 								}
 
 								//                    Check if error-exit was taken incorrectly.
@@ -1260,9 +1209,7 @@ func TestDblasLevel2(t *testing.T) {
 								isame[1] = ns == n
 								isame[2] = als == alpha
 								isame[3] = reflect.DeepEqual(xx, xs)
-								isame[4] = incxs == incx
 								isame[5] = reflect.DeepEqual(yy, ys)
-								isame[6] = incys == incy
 								if null {
 									isame[7] = reflect.DeepEqual(aa, as)
 								} else {
@@ -1296,7 +1243,7 @@ func TestDblasLevel2(t *testing.T) {
 										}
 									} else {
 										for i = 1; i <= n; i++ {
-											z.Set(i-1, 0, x.Get(n-i+1-1))
+											z.Set(i-1, 0, x.Get(n-i))
 										}
 									}
 									if incy > 0 {
@@ -1305,7 +1252,7 @@ func TestDblasLevel2(t *testing.T) {
 										}
 									} else {
 										for i = 1; i <= n; i++ {
-											z.Set(i-1, 1, y.Get(n-i+1-1))
+											z.Set(i-1, 1, y.Get(n-i))
 										}
 									}
 									ja = 1
@@ -1319,7 +1266,7 @@ func TestDblasLevel2(t *testing.T) {
 											jj = j
 											lj = n - j + 1
 										}
-										dmvch(mat.NoTrans, lj, 2, alpha, z.OffIdx(jj-1), nmax, w, 1, 1.0, a.Vector(jj-1, j-1), 1, yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
+										dmvch(mat.NoTrans, lj, 2, alpha, z.OffIdx(jj-1), nmax, w, 1.0, a.Vector(jj-1, j-1, 1), yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
 										if full {
 											if upper {
 												ja += lda
@@ -1374,7 +1321,7 @@ func TestDblasLevel2(t *testing.T) {
 	}
 }
 
-func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int, yt, g, yy *mat.Vector, eps float64, err *float64, fatal *bool, mv bool, t *testing.T) {
+func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int, x *mat.Vector, beta float64, y *mat.Vector, yt, g, yy *mat.Vector, eps float64, err *float64, fatal *bool, mv bool, t *testing.T) {
 	var tran bool
 	var erri, one, zero float64
 	var i, incxl, incyl, iy, j, jx, kx, ky, ml, nl int
@@ -1390,14 +1337,14 @@ func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int,
 		ml = m
 		nl = n
 	}
-	if incx < 0 {
+	if x.Inc < 0 {
 		kx = nl
 		incxl = -1
 	} else {
 		kx = 1
 		incxl = 1
 	}
-	if incy < 0 {
+	if y.Inc < 0 {
 		ky = ml
 		incyl = -1
 	} else {
@@ -1433,7 +1380,7 @@ func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int,
 	//     Compute the error ratio for this result.
 	(*err) = zero
 	for i = 1; i <= ml; i++ {
-		erri = math.Abs(yt.Get(i-1)-yy.Get((i-1)*absint(incy))) / eps
+		erri = math.Abs(yt.Get(i-1)-yy.Get((i-1)*abs(y.Inc))) / eps
 		if g.Get(i-1) != zero {
 			erri /= g.Get(i - 1)
 		}
@@ -1766,293 +1713,221 @@ func dchkeLevel2(srnamt string) {
 	switch srnamt {
 	case "Dgemv":
 		*ok = true
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dgemv('/', 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dgemv('/', 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Dgemv(NoTrans, -1, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dgemv(NoTrans, -1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dgemv(NoTrans, 0, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dgemv(NoTrans, 0, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dgemv(NoTrans, 2, 0, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dgemv(NoTrans, 0, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dgemv(NoTrans, 0, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dgemv(NoTrans, 2, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Dgbmv":
 		*ok = true
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dgbmv('/', 0, 0, 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dgbmv('/', 0, 0, 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Dgbmv(NoTrans, -1, 0, 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dgbmv(NoTrans, -1, 0, 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dgbmv(NoTrans, 0, -1, 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dgbmv(NoTrans, 0, -1, 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("kl invalid: -1")
-		err = Dgbmv(NoTrans, 0, 0, -1, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dgbmv(NoTrans, 0, 0, -1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("ku invalid: -1")
-		err = Dgbmv(NoTrans, 2, 0, 0, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dgbmv(NoTrans, 2, 0, 0, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dgbmv(NoTrans, 0, 0, 1, 0, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dgbmv(NoTrans, 0, 0, 0, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dgbmv(NoTrans, 0, 0, 0, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dgbmv(NoTrans, 0, 0, 1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Dsymv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dsymv('/', 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dsymv('/', 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dsymv(Upper, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dsymv(Upper, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dsymv(Upper, 2, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dsymv(Upper, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dsymv(Upper, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dsymv(Upper, 2, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Dsbmv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dsbmv('/', 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dsbmv('/', 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dsbmv(Upper, -1, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dsbmv(Upper, -1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Dsbmv(Upper, 0, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Dsbmv(Upper, 0, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dsbmv(Upper, 0, 1, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dsbmv(Upper, 0, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dsbmv(Upper, 0, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dsbmv(Upper, 0, 1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Dspmv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dspmv('/', 0, alpha, a.VectorIdx(0), x, 1, beta, y, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dspmv('/', 0, alpha, a.VectorIdx(0), x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dspmv(Upper, -1, alpha, a.VectorIdx(0), x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dspmv(Upper, 0, alpha, a.VectorIdx(0), x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dspmv(Upper, 0, alpha, a.VectorIdx(0), x, 1, beta, y, 0)
+		err = Dspmv(Upper, -1, alpha, a.VectorIdx(0), x, beta, y)
 		Chkxer(srnamt, err)
 	case "Dtrmv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dtrmv('/', NoTrans, NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dtrmv('/', NoTrans, NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dtrmv(Upper, '/', NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dtrmv(Upper, '/', NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Dtrmv(Upper, NoTrans, '/', 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Dtrmv(Upper, NoTrans, '/', 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dtrmv(Upper, NoTrans, NonUnit, -1, a, 1, x, 1)
+		err = Dtrmv(Upper, NoTrans, NonUnit, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dtrmv(Upper, NoTrans, NonUnit, 2, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dtrmv(Upper, NoTrans, NonUnit, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dtrmv(Upper, NoTrans, NonUnit, 2, a, x)
 		Chkxer(srnamt, err)
 	case "Dtbmv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dtbmv('/', NoTrans, NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dtbmv('/', NoTrans, NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dtbmv(Upper, '/', NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dtbmv(Upper, '/', NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Dtbmv(Upper, NoTrans, '/', 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Dtbmv(Upper, NoTrans, '/', 0, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dtbmv(Upper, NoTrans, NonUnit, -1, 0, a, 1, x, 1)
+		err = Dtbmv(Upper, NoTrans, NonUnit, -1, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Dtbmv(Upper, NoTrans, NonUnit, 0, -1, a, 1, x, 1)
+		err = Dtbmv(Upper, NoTrans, NonUnit, 0, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dtbmv(Upper, NoTrans, NonUnit, 0, 1, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dtbmv(Upper, NoTrans, NonUnit, 0, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dtbmv(Upper, NoTrans, NonUnit, 0, 1, a, x)
 		Chkxer(srnamt, err)
 	case "Dtpmv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dtpmv('/', NoTrans, NonUnit, 0, a.VectorIdx(0), x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dtpmv('/', NoTrans, NonUnit, 0, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dtpmv(Upper, '/', NonUnit, 0, a.VectorIdx(0), x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dtpmv(Upper, '/', NonUnit, 0, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Dtpmv(Upper, NoTrans, '/', 0, a.VectorIdx(0), x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Dtpmv(Upper, NoTrans, '/', 0, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dtpmv(Upper, NoTrans, NonUnit, -1, a.VectorIdx(0), x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dtpmv(Upper, NoTrans, NonUnit, 0, a.VectorIdx(0), x, 0)
+		err = Dtpmv(Upper, NoTrans, NonUnit, -1, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
 	case "Dtrsv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dtrsv('/', NoTrans, NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dtrsv('/', NoTrans, NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dtrsv(Upper, '/', NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dtrsv(Upper, '/', NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Dtrsv(Upper, NoTrans, '/', 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Dtrsv(Upper, NoTrans, '/', 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dtrsv(Upper, NoTrans, NonUnit, -1, a, 1, x, 1)
+		err = Dtrsv(Upper, NoTrans, NonUnit, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dtrsv(Upper, NoTrans, NonUnit, 2, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dtrsv(Upper, NoTrans, NonUnit, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dtrsv(Upper, NoTrans, NonUnit, 2, a, x)
 		Chkxer(srnamt, err)
 	case "Dtbsv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dtbsv('/', NoTrans, NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dtbsv('/', NoTrans, NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dtbsv(Upper, '/', NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dtbsv(Upper, '/', NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Dtbsv(Upper, NoTrans, '/', 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Dtbsv(Upper, NoTrans, '/', 0, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dtbsv(Upper, NoTrans, NonUnit, -1, 0, a, 1, x, 1)
+		err = Dtbsv(Upper, NoTrans, NonUnit, -1, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Dtbsv(Upper, NoTrans, NonUnit, 0, -1, a, 1, x, 1)
+		err = Dtbsv(Upper, NoTrans, NonUnit, 0, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dtbsv(Upper, NoTrans, NonUnit, 0, 1, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dtbsv(Upper, NoTrans, NonUnit, 0, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dtbsv(Upper, NoTrans, NonUnit, 0, 1, a, x)
 		Chkxer(srnamt, err)
 	case "Dtpsv":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dtpsv('/', NoTrans, NonUnit, 0, a.VectorIdx(0), x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dtpsv('/', NoTrans, NonUnit, 0, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Dtpsv(Upper, '/', NonUnit, 0, a.VectorIdx(0), x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Dtpsv(Upper, '/', NonUnit, 0, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Dtpsv(Upper, NoTrans, '/', 0, a.VectorIdx(0), x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Dtpsv(Upper, NoTrans, '/', 0, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dtpsv(Upper, NoTrans, NonUnit, -1, a.VectorIdx(0), x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dtpsv(Upper, NoTrans, NonUnit, 0, a.VectorIdx(0), x, 0)
+		err = Dtpsv(Upper, NoTrans, NonUnit, -1, a.VectorIdx(0), x)
 		Chkxer(srnamt, err)
 	case "Dger":
 		*ok = true
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Dger(-1, 0, alpha, x, 1, y, 1, a, 1)
+		err = Dger(-1, 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dger(0, -1, alpha, x, 1, y, 1, a, 1)
+		err = Dger(0, -1, alpha, x, y, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dger(0, 0, alpha, x, 0, y, 1, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dger(0, 0, alpha, x, 1, y, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dger(2, 0, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dger(2, 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 	case "Dsyr":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dsyr('/', 0, alpha, x, 1, a, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dsyr('/', 0, alpha, x, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dsyr(Upper, -1, alpha, x, 1, a, 1)
+		err = Dsyr(Upper, -1, alpha, x, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dsyr(Upper, 0, alpha, x, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dsyr(Upper, 2, alpha, x, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dsyr(Upper, 2, alpha, x, a)
 		Chkxer(srnamt, err)
 	case "Dspr":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dspr('/', 0, alpha, x, 1, a.VectorIdx(0))
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dspr('/', 0, alpha, x, a.VectorIdx(0))
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dspr(Upper, -1, alpha, x, 1, a.VectorIdx(0))
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dspr(Upper, 0, alpha, x, 0, a.VectorIdx(0))
+		err = Dspr(Upper, -1, alpha, x, a.VectorIdx(0))
 		Chkxer(srnamt, err)
 	case "Dsyr2":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dsyr2('/', 0, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dsyr2('/', 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dsyr2(Upper, -1, alpha, x, 1, y, 1, a, 1)
+		err = Dsyr2(Upper, -1, alpha, x, y, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dsyr2(Upper, 0, alpha, x, 0, y, 1, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dsyr2(Upper, 0, alpha, x, 1, y, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Dsyr2(Upper, 2, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Dsyr2(Upper, 2, alpha, x, y, a)
 		Chkxer(srnamt, err)
 	case "Dspr2":
 		*ok = true
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Dspr2('/', 0, alpha, x, 1, y, 1, a.VectorIdx(0))
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Dspr2('/', 0, alpha, x, y, a.VectorIdx(0))
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Dspr2(Upper, -1, alpha, x, 1, y, 1, a.VectorIdx(0))
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Dspr2(Upper, 0, alpha, x, 0, y, 1, a.VectorIdx(0))
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Dspr2(Upper, 0, alpha, x, 1, y, 0, a.VectorIdx(0))
+		err = Dspr2(Upper, -1, alpha, x, y, a.VectorIdx(0))
 		Chkxer(srnamt, err)
 	}
 

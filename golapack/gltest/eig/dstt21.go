@@ -47,47 +47,47 @@ func Dstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, ldu *int, 
 	temp1 = zero
 
 	for j = 1; j <= (*n)-1; j++ {
-		work.Set(((*n)+1)*(j-1)+1-1, ad.Get(j-1))
+		work.Set(((*n)+1)*(j-1), ad.Get(j-1))
 		work.Set(((*n)+1)*(j-1)+2-1, ae.Get(j-1))
 		temp2 = math.Abs(ae.Get(j - 1))
-		anorm = maxf64(anorm, math.Abs(ad.Get(j-1))+temp1+temp2)
+		anorm = math.Max(anorm, math.Abs(ad.Get(j-1))+temp1+temp2)
 		temp1 = temp2
 	}
 
 	work.Set(int(math.Pow(float64(*n), 2))-1, ad.Get((*n)-1))
-	anorm = maxf64(anorm, math.Abs(ad.Get((*n)-1))+temp1, unfl)
+	anorm = math.Max(anorm, math.Max(math.Abs(ad.Get((*n)-1))+temp1, unfl))
 
 	//     Norm of A - USU'
 	for j = 1; j <= (*n); j++ {
-		err = goblas.Dsyr(Lower, *n, -sd.Get(j-1), u.Vector(0, j-1), 1, work.Matrix(*n, opts), *n)
+		err = goblas.Dsyr(Lower, *n, -sd.Get(j-1), u.Vector(0, j-1, 1), work.Matrix(*n, opts))
 	}
 
 	if (*n) > 1 && (*kband) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Dsyr2(Lower, *n, -se.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work.Matrix(*n, opts), *n)
+			err = goblas.Dsyr2(Lower, *n, -se.Get(j-1), u.Vector(0, j-1, 1), u.Vector(0, j, 1), work.Matrix(*n, opts))
 		}
 	}
 
-	wnorm = golapack.Dlansy('1', 'L', n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
+	wnorm = golapack.Dlansy('1', 'L', n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
 
 	if anorm > wnorm {
 		result.Set(0, (wnorm/anorm)/(float64(*n)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 		}
 	}
 
 	//     Do Test 2
 	//
 	//     Compute  UU' - I
-	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
+	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, u, zero, work.Matrix(*n, opts))
 
 	for j = 1; j <= (*n); j++ {
-		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)
+		work.Set(((*n)+1)*(j-1), work.Get(((*n)+1)*(j-1))-one)
 	}
 
-	result.Set(1, minf64(float64(*n), golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1)))/(float64(*n)*ulp))
+	result.Set(1, math.Min(float64(*n), golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))))/(float64(*n)*ulp))
 }

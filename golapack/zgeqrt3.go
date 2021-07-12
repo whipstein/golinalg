@@ -24,9 +24,9 @@ func Zgeqrt3(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int
 		(*info) = -2
 	} else if (*m) < (*n) {
 		(*info) = -1
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -6
 	}
 	if (*info) != 0 {
@@ -36,14 +36,14 @@ func Zgeqrt3(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int
 
 	if (*n) == 1 {
 		//        Compute Householder transform when N=1
-		Zlarfg(m, a.GetPtr(0, 0), a.CVector(minint(2, *m)-1, 0), func() *int { y := 1; return &y }(), t.GetPtr(0, 0))
+		Zlarfg(m, a.GetPtr(0, 0), a.CVector(min(2, *m)-1, 0), func() *int { y := 1; return &y }(), t.GetPtr(0, 0))
 
 	} else {
 		//        Otherwise, split A into blocks...
 		n1 = (*n) / 2
 		n2 = (*n) - n1
-		j1 = minint(n1+1, *n)
-		i1 = minint((*n)+1, *m)
+		j1 = min(n1+1, *n)
+		i1 = min((*n)+1, *m)
 
 		//        Compute A(1:M,1:N1) <- (Y1,R1,T1), where Q1 = I - Y1 T1 Y1^H
 		Zgeqrt3(m, &n1, a, lda, t, ldt, &iinfo)
@@ -54,15 +54,15 @@ func Zgeqrt3(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int
 				t.Set(i-1, j+n1-1, a.Get(i-1, j+n1-1))
 			}
 		}
-		err = goblas.Ztrmm(Left, Lower, ConjTrans, Unit, n1, n2, one, a, *lda, t.Off(0, j1-1), *ldt)
+		err = goblas.Ztrmm(Left, Lower, ConjTrans, Unit, n1, n2, one, a, t.Off(0, j1-1))
 
-		err = goblas.Zgemm(ConjTrans, NoTrans, n1, n2, (*m)-n1, one, a.Off(j1-1, 0), *lda, a.Off(j1-1, j1-1), *lda, one, t.Off(0, j1-1), *ldt)
+		err = goblas.Zgemm(ConjTrans, NoTrans, n1, n2, (*m)-n1, one, a.Off(j1-1, 0), a.Off(j1-1, j1-1), one, t.Off(0, j1-1))
 
-		err = goblas.Ztrmm(Left, Upper, ConjTrans, NonUnit, n1, n2, one, t, *ldt, t.Off(0, j1-1), *ldt)
+		err = goblas.Ztrmm(Left, Upper, ConjTrans, NonUnit, n1, n2, one, t, t.Off(0, j1-1))
 
-		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(j1-1, 0), *lda, t.Off(0, j1-1), *ldt, one, a.Off(j1-1, j1-1), *lda)
+		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(j1-1, 0), t.Off(0, j1-1), one, a.Off(j1-1, j1-1))
 
-		err = goblas.Ztrmm(Left, Lower, NoTrans, Unit, n1, n2, one, a, *lda, t.Off(0, j1-1), *ldt)
+		err = goblas.Ztrmm(Left, Lower, NoTrans, Unit, n1, n2, one, a, t.Off(0, j1-1))
 
 		for j = 1; j <= n2; j++ {
 			for i = 1; i <= n1; i++ {
@@ -80,13 +80,13 @@ func Zgeqrt3(m, n *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt, info *int
 			}
 		}
 
-		err = goblas.Ztrmm(Right, Lower, NoTrans, Unit, n1, n2, one, a.Off(j1-1, j1-1), *lda, t.Off(0, j1-1), *ldt)
+		err = goblas.Ztrmm(Right, Lower, NoTrans, Unit, n1, n2, one, a.Off(j1-1, j1-1), t.Off(0, j1-1))
 
-		err = goblas.Zgemm(ConjTrans, NoTrans, n1, n2, (*m)-(*n), one, a.Off(i1-1, 0), *lda, a.Off(i1-1, j1-1), *lda, one, t.Off(0, j1-1), *ldt)
+		err = goblas.Zgemm(ConjTrans, NoTrans, n1, n2, (*m)-(*n), one, a.Off(i1-1, 0), a.Off(i1-1, j1-1), one, t.Off(0, j1-1))
 
-		err = goblas.Ztrmm(Left, Upper, NoTrans, NonUnit, n1, n2, -one, t, *ldt, t.Off(0, j1-1), *ldt)
+		err = goblas.Ztrmm(Left, Upper, NoTrans, NonUnit, n1, n2, -one, t, t.Off(0, j1-1))
 
-		err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, n1, n2, one, t.Off(j1-1, j1-1), *ldt, t.Off(0, j1-1), *ldt)
+		err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, n1, n2, one, t.Off(j1-1, j1-1), t.Off(0, j1-1))
 
 		//        Y = (Y1,Y2); R = [ R1  A(1:N1,J1:N) ];  T = [T1 T3]
 		//                         [  0        R2     ]       [ 0 T2]

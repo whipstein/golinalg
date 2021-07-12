@@ -35,16 +35,16 @@ func Drzt02(m, n *int, af *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *i
 	golapack.Dlaset('F', n, n, &zero, &one, work.Matrix(*n, opts), n)
 
 	//     Q := P(1) * ... * P(m) * Q
-	golapack.Dormrz('L', 'N', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*n, opts), n, work.Off((*n)*(*n)+1-1), toPtr((*lwork)-(*n)*(*n)), &info)
+	golapack.Dormrz('L', 'N', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*n, opts), n, work.Off((*n)*(*n)), toPtr((*lwork)-(*n)*(*n)), &info)
 
 	//     Q := P(m) * ... * P(1) * Q
-	golapack.Dormrz('L', 'T', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*n, opts), n, work.Off((*n)*(*n)+1-1), toPtr((*lwork)-(*n)*(*n)), &info)
+	golapack.Dormrz('L', 'T', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*n, opts), n, work.Off((*n)*(*n)), toPtr((*lwork)-(*n)*(*n)), &info)
 
 	//     Q := Q - I
 	for i = 1; i <= (*n); i++ {
 		work.Set((i-1)*(*n)+i-1, work.Get((i-1)*(*n)+i-1)-one)
 	}
 
-	drzt02Return = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, rwork) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	drzt02Return = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, rwork) / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
 	return
 }

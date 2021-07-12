@@ -47,8 +47,8 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 
 	//     Test the input arguments.
 	(*info) = 0
-	minmn = minint(*m, *n)
-	maxmn = maxint(*m, *n)
+	minmn = min(*m, *n)
+	maxmn = max(*m, *n)
 	mnthr = Ilaenv(func() *int { y := 6; return &y }(), []byte("DGELSD"), []byte{' '}, m, n, nrhs, toPtr(-1))
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
@@ -57,9 +57,9 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, maxmn) {
+	} else if (*ldb) < max(1, maxmn) {
 		(*info) = -7
 	}
 
@@ -73,8 +73,8 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 	//     following subroutine, as returned by ILAENV.)
 	minwrk = 1
 	liwork = 1
-	minmn = maxint(1, minmn)
-	nlvl = maxint(int(math.Log(float64(minmn)/float64(smlsiz+1))/math.Log(two))+1, 0)
+	minmn = max(1, minmn)
+	nlvl = max(int(math.Log(float64(minmn)/float64(smlsiz+1))/math.Log(two))+1, 0)
 
 	if (*info) == 0 {
 		maxwrk = 0
@@ -83,17 +83,17 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		if (*m) >= (*n) && (*m) >= mnthr {
 			//           Path 1a - overdetermined, with many more rows than columns.
 			mm = (*n)
-			maxwrk = maxint(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
-			maxwrk = maxint(maxwrk, (*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), m, nrhs, n, toPtr(-1)))
+			maxwrk = max(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+			maxwrk = max(maxwrk, (*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), m, nrhs, n, toPtr(-1)))
 		}
 		if (*m) >= (*n) {
 			//           Path 1 - overdetermined or exactly determined.
-			maxwrk = maxint(maxwrk, 3*(*n)+(mm+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, &mm, n, toPtr(-1), toPtr(-1)))
-			maxwrk = maxint(maxwrk, 3*(*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("QLT"), &mm, nrhs, n, toPtr(-1)))
-			maxwrk = maxint(maxwrk, 3*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("PLN"), n, nrhs, n, toPtr(-1)))
+			maxwrk = max(maxwrk, 3*(*n)+(mm+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, &mm, n, toPtr(-1), toPtr(-1)))
+			maxwrk = max(maxwrk, 3*(*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("QLT"), &mm, nrhs, n, toPtr(-1)))
+			maxwrk = max(maxwrk, 3*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("PLN"), n, nrhs, n, toPtr(-1)))
 			wlalsd = 9*(*n) + 2*(*n)*smlsiz + 8*(*n)*nlvl + (*n)*(*nrhs) + int(math.Pow(float64(smlsiz+1), 2))
-			maxwrk = maxint(maxwrk, 3*(*n)+wlalsd)
-			minwrk = maxint(3*(*n)+mm, 3*(*n)+(*nrhs), 3*(*n)+wlalsd)
+			maxwrk = max(maxwrk, 3*(*n)+wlalsd)
+			minwrk = max(3*(*n)+mm, 3*(*n)+(*nrhs), 3*(*n)+wlalsd)
 		}
 		if (*n) > (*m) {
 			wlalsd = (9 * (*m)) + 2*(*m)*smlsiz + 8*(*m)*nlvl + (*m)*(*nrhs) + int(math.Pow(float64(smlsiz+1), 2))
@@ -101,31 +101,31 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 				//              Path 2a - underdetermined, with many more columns
 				//              than rows.
 				maxwrk = (*m) + (*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-				maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("QLT"), m, nrhs, m, toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+((*m)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("PLN"), m, nrhs, m, toPtr(-1)))
+				maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+				maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("QLT"), m, nrhs, m, toPtr(-1)))
+				maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+((*m)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("PLN"), m, nrhs, m, toPtr(-1)))
 				if (*nrhs) > 1 {
-					maxwrk = maxint(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
+					maxwrk = max(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
 				} else {
-					maxwrk = maxint(maxwrk, (*m)*(*m)+2*(*m))
+					maxwrk = max(maxwrk, (*m)*(*m)+2*(*m))
 				}
-				maxwrk = maxint(maxwrk, (*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMLQ"), []byte("LT"), n, nrhs, m, toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*m)*(*m)+4*(*m)+wlalsd)
+				maxwrk = max(maxwrk, (*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMLQ"), []byte("LT"), n, nrhs, m, toPtr(-1)))
+				maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+wlalsd)
 				//!     XXX: Ensure the Path 2a case below is triggered.  The workspace
 
 				//!     calculation should use queries for all routines eventually.
 
-				maxwrk = maxint(maxwrk, 4*(*m)+(*m)*(*m)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)))
+				maxwrk = max(maxwrk, 4*(*m)+(*m)*(*m)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)))
 			} else {
 				//              Path 2 - remaining underdetermined cases.
 				maxwrk = 3*(*m) + ((*n)+(*m))*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-				maxwrk = maxint(maxwrk, 3*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("QLT"), m, nrhs, n, toPtr(-1)))
-				maxwrk = maxint(maxwrk, 3*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("PLN"), n, nrhs, m, toPtr(-1)))
-				maxwrk = maxint(maxwrk, 3*(*m)+wlalsd)
+				maxwrk = max(maxwrk, 3*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("QLT"), m, nrhs, n, toPtr(-1)))
+				maxwrk = max(maxwrk, 3*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMBR"), []byte("PLN"), n, nrhs, m, toPtr(-1)))
+				maxwrk = max(maxwrk, 3*(*m)+wlalsd)
 			}
-			minwrk = maxint(3*(*m)+(*nrhs), 3*(*m)+(*m), 3*(*m)+wlalsd)
+			minwrk = max(3*(*m)+(*nrhs), 3*(*m)+(*m), 3*(*m)+wlalsd)
 		}
-		minwrk = minint(minwrk, maxwrk)
+		minwrk = min(minwrk, maxwrk)
 		work.Set(0, float64(maxwrk))
 		(*iwork)[0] = liwork
 		if (*lwork) < minwrk && !lquery {
@@ -153,7 +153,7 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 	bignum = one / smlnum
 	Dlabad(&smlnum, &bignum)
 
-	//     Scale A if maxint entry outside range [SMLNUM,BIGNUM].
+	//     Scale A if max entry outside range [SMLNUM,BIGNUM].
 	anrm = Dlange('M', m, n, a, lda, work)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
@@ -166,13 +166,13 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		iascl = 2
 	} else if anrm == zero {
 		//        Off all zero. Return zero solution.
-		Dlaset('F', toPtr(maxint(*m, *n)), nrhs, &zero, &zero, b, ldb)
+		Dlaset('F', toPtr(max(*m, *n)), nrhs, &zero, &zero, b, ldb)
 		Dlaset('F', &minmn, func() *int { y := 1; return &y }(), &zero, &zero, s.Matrix(1, opts), func() *int { y := 1; return &y }())
 		(*rank) = 0
 		goto label10
 	}
 
-	//     Scale B if maxint entry outside range [SMLNUM,BIGNUM].
+	//     Scale B if max entry outside range [SMLNUM,BIGNUM].
 	bnrm = Dlange('M', m, nrhs, b, ldb, work)
 	ibscl = 0
 	if bnrm > zero && bnrm < smlnum {
@@ -187,7 +187,7 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 
 	//     If M < N make sure certain entries of B are zero.
 	if (*m) < (*n) {
-		Dlaset('F', toPtr((*n)-(*m)), nrhs, &zero, &zero, b.Off((*m)+1-1, 0), ldb)
+		Dlaset('F', toPtr((*n)-(*m)), nrhs, &zero, &zero, b.Off((*m), 0), ldb)
 	}
 
 	//     Overdetermined case.
@@ -236,11 +236,11 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		//        Multiply B by right bidiagonalizing vectors of R.
 		Dormbr('P', 'L', 'N', n, nrhs, n, a, lda, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
 
-	} else if (*n) >= mnthr && (*lwork) >= 4*(*m)+(*m)*(*m)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m), wlalsd) {
+	} else if (*n) >= mnthr && (*lwork) >= 4*(*m)+(*m)*(*m)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m), wlalsd) {
 		//        Path 2a - underdetermined, with many more columns than rows
 		//        and sufficient workspace for an efficient algorithm.
 		ldwork = (*m)
-		if (*lwork) >= maxint(4*(*m)+(*m)*(*lda)+maxint(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)), (*m)*(*lda)+(*m)+(*m)*(*nrhs), 4*(*m)+(*m)*(*lda)+wlalsd) {
+		if (*lwork) >= max(4*(*m)+(*m)*(*lda)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)), (*m)*(*lda)+(*m)+(*m)*(*nrhs), 4*(*m)+(*m)*(*lda)+wlalsd) {
 			ldwork = (*lda)
 		}
 		itau = 1
@@ -277,7 +277,7 @@ func Dgelsd(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, s
 		Dormbr('P', 'L', 'N', m, nrhs, m, work.MatrixOff(il-1, ldwork, opts), &ldwork, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
 
 		//        Zero out below first M rows of B.
-		Dlaset('F', toPtr((*n)-(*m)), nrhs, &zero, &zero, b.Off((*m)+1-1, 0), ldb)
+		Dlaset('F', toPtr((*n)-(*m)), nrhs, &zero, &zero, b.Off((*m), 0), ldb)
 		nwork = itau + (*m)
 
 		//        Multiply transpose(Q) by B.

@@ -52,7 +52,7 @@ func Zchkge(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	//     Do for each value of M in MVAL
 	for im = 1; im <= (*nm); im++ {
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 
 		//        Do for each value of N in NVAL
 		for in = 1; in <= (*nn); in++ {
@@ -95,9 +95,9 @@ func Zchkge(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 					if imat == 5 {
 						izero = 1
 					} else if imat == 6 {
-						izero = minint(m, n)
+						izero = min(m, n)
 					} else {
-						izero = minint(m, n)/2 + 1
+						izero = min(m, n)/2 + 1
 					}
 					ioff = (izero - 1) * lda
 					if imat < 7 {
@@ -105,7 +105,7 @@ func Zchkge(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							a.Set(ioff+i-1, complex(zero, 0))
 						}
 					} else {
-						golapack.Zlaset('F', &m, toPtr(n-izero+1), toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), a.CMatrixOff(ioff+1-1, lda, opts), &lda)
+						golapack.Zlaset('F', &m, toPtr(n-izero+1), toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), a.CMatrixOff(ioff, lda, opts), &lda)
 					}
 				} else {
 					izero = 0
@@ -147,7 +147,7 @@ func Zchkge(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						golapack.Zlacpy('F', &n, &n, afac.CMatrix(lda, opts), &lda, ainv.CMatrix(lda, opts), &lda)
 						*srnamt = "ZGETRI"
 						nrhs = (*nsval)[0]
-						lwork = (*nmax) * maxint(3, nrhs)
+						lwork = (*nmax) * max(3, nrhs)
 						golapack.Zgetri(&n, ainv.CMatrix(lda, opts), &lda, iwork, work, &lwork, &info)
 
 						//                    Check error code from ZGETRI.
@@ -243,7 +243,7 @@ func Zchkge(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							//                       Use iterative refinement to improve the
 							//                       solution.
 							*srnamt = "ZGERFS"
-							golapack.Zgerfs(trans, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+							golapack.Zgerfs(trans, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 							//                       Check error code from ZGERFS.
 							if info != 0 {
@@ -252,7 +252,7 @@ func Zchkge(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							}
 
 							Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-							Zget07(trans, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, true, rwork.Off(nrhs+1-1), result.Off(5))
+							Zget07(trans, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, true, rwork.Off(nrhs), result.Off(5))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.

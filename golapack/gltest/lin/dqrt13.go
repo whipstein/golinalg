@@ -26,7 +26,7 @@ func Dqrt13(scale, m, n *int, a *mat.Matrix, lda *int, norma *float64, iseed *[]
 	for j = 1; j <= (*n); j++ {
 		golapack.Dlarnv(func() *int { y := 2; return &y }(), iseed, m, a.Vector(0, j-1))
 		if j <= (*m) {
-			a.Set(j-1, j-1, a.Get(j-1, j-1)+math.Copysign(goblas.Dasum(*m, a.Vector(0, j-1), 1), a.Get(j-1, j-1)))
+			a.Set(j-1, j-1, a.Get(j-1, j-1)+math.Copysign(goblas.Dasum(*m, a.Vector(0, j-1, 1)), a.Get(j-1, j-1)))
 		}
 	}
 

@@ -34,15 +34,15 @@ func Dsxt1(ijob *int, d1 *mat.Vector, n1 *int, d2 *mat.Vector, n2 *int, abstol, 
 		if j == 1 {
 			temp2 = math.Abs(d2.Get(j-1) - d1.Get(i-1))
 			if (*ijob) == 2 {
-				temp2 = temp2 / maxf64(*unfl, (*abstol)+(*ulp)*math.Abs(d1.Get(i-1)))
+				temp2 = temp2 / math.Max(*unfl, (*abstol)+(*ulp)*math.Abs(d1.Get(i-1)))
 			}
 		} else {
-			temp2 = minf64(math.Abs(d2.Get(j-1)-d1.Get(i-1)), math.Abs(d1.Get(i-1)-d2.Get(j-1-1)))
+			temp2 = math.Min(math.Abs(d2.Get(j-1)-d1.Get(i-1)), math.Abs(d1.Get(i-1)-d2.Get(j-1-1)))
 			if (*ijob) == 2 {
-				temp2 = temp2 / maxf64(*unfl, (*abstol)+(*ulp)*math.Abs(d1.Get(i-1)))
+				temp2 = temp2 / math.Max(*unfl, (*abstol)+(*ulp)*math.Abs(d1.Get(i-1)))
 			}
 		}
-		temp1 = maxf64(temp1, temp2)
+		temp1 = math.Max(temp1, temp2)
 	}
 
 	dsxt1Return = temp1

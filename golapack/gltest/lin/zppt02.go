@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -40,19 +42,19 @@ func Zppt02(uplo byte, n, nrhs *int, a *mat.CVector, x *mat.CMatrix, ldx *int, b
 
 	//     Compute  B - A*X  for the matrix of right hand sides B.
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Zhpmv(mat.UploByte(uplo), *n, -cone, a, x.CVector(0, j-1), 1, cone, b.CVector(0, j-1), 1)
+		err = goblas.Zhpmv(mat.UploByte(uplo), *n, -cone, a, x.CVector(0, j-1, 1), cone, b.CVector(0, j-1, 1))
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1), 1)
-		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
+		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1, 1))
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

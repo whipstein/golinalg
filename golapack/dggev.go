@@ -72,9 +72,9 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvl) < 1 || (ilvl && (*ldvl) < (*n)) {
 		(*info) = -12
@@ -90,11 +90,11 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 	//       following subroutine, as returned by ILAENV. The workspace is
 	//       computed assuming ILO = 1 and IHI = N, the worst case.)
 	if (*info) == 0 {
-		minwrk = maxint(1, 8*(*n))
-		maxwrk = maxint(1, (*n)*(7+Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())))
-		maxwrk = maxint(maxwrk, (*n)*(7+Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())))
+		minwrk = max(1, 8*(*n))
+		maxwrk = max(1, (*n)*(7+Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())))
+		maxwrk = max(maxwrk, (*n)*(7+Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())))
 		if ilvl {
-			maxwrk = maxint(maxwrk, (*n)*(7+Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1))))
+			maxwrk = max(maxwrk, (*n)*(7+Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1))))
 		}
 		work.Set(0, float64(maxwrk))
 
@@ -123,7 +123,7 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxf64 element outside range [SMLNUM,BIGNUM]
+	//     Scale A if math.Max element outside range [SMLNUM,BIGNUM]
 	anrm = Dlange('M', n, n, a, lda, work)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
@@ -137,7 +137,7 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
 	}
 
-	//     Scale B if maxf64 element outside range [SMLNUM,BIGNUM]
+	//     Scale B if math.Max element outside range [SMLNUM,BIGNUM]
 	bnrm = Dlange('M', n, n, b, ldb, work)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
@@ -179,7 +179,7 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 	if ilvl {
 		Dlaset('F', n, n, &zero, &one, vl, ldvl)
 		if irows > 1 {
-			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vl.Off(ilo+1-1, ilo-1), ldvl)
+			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vl.Off(ilo, ilo-1), ldvl)
 		}
 		Dorgqr(&irows, &irows, &irows, vl.Off(ilo-1, ilo-1), ldvl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -248,11 +248,11 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 				temp = zero
 				if alphai.Get(jc-1) == zero {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vl.Get(jr-1, jc-1)))
+						temp = math.Max(temp, math.Abs(vl.Get(jr-1, jc-1)))
 					}
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vl.Get(jr-1, jc-1))+math.Abs(vl.Get(jr-1, jc+1-1)))
+						temp = math.Max(temp, math.Abs(vl.Get(jr-1, jc-1))+math.Abs(vl.Get(jr-1, jc)))
 					}
 				}
 				if temp < smlnum {
@@ -266,7 +266,7 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
 						vl.Set(jr-1, jc-1, vl.Get(jr-1, jc-1)*temp)
-						vl.Set(jr-1, jc+1-1, vl.Get(jr-1, jc+1-1)*temp)
+						vl.Set(jr-1, jc, vl.Get(jr-1, jc)*temp)
 					}
 				}
 			label50:
@@ -281,11 +281,11 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 				temp = zero
 				if alphai.Get(jc-1) == zero {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vr.Get(jr-1, jc-1)))
+						temp = math.Max(temp, math.Abs(vr.Get(jr-1, jc-1)))
 					}
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vr.Get(jr-1, jc-1))+math.Abs(vr.Get(jr-1, jc+1-1)))
+						temp = math.Max(temp, math.Abs(vr.Get(jr-1, jc-1))+math.Abs(vr.Get(jr-1, jc)))
 					}
 				}
 				if temp < smlnum {
@@ -299,7 +299,7 @@ func Dggev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ld
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
 						vr.Set(jr-1, jc-1, vr.Get(jr-1, jc-1)*temp)
-						vr.Set(jr-1, jc+1-1, vr.Get(jr-1, jc+1-1)*temp)
+						vr.Set(jr-1, jc, vr.Get(jr-1, jc)*temp)
 					}
 				}
 			label100:

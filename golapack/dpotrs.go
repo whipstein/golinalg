@@ -25,9 +25,9 @@ func Dpotrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -44,17 +44,17 @@ func Dpotrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb
 		//        Solve A*X = B where A = U**T *U.
 		//
 		//        Solve U**T *X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, b)
 
 		//        Solve U*X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, b)
 	} else {
 		//        Solve A*X = B where A = L*L**T.
 		//
 		//        Solve L*X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, b)
 
 		//        Solve L**T *X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, b)
 	}
 }

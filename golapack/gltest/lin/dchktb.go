@@ -53,7 +53,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		xtype = 'N'
 		nimat = ntype1
 		nimat2 = ntypes
@@ -62,14 +62,14 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			nimat2 = ntype1 + 1
 		}
 
-		nk = minint(n+1, int(4))
+		nk = min(n+1, int(4))
 		for ik = 1; ik <= nk; ik++ {
 			//           Do for KD = 0, N, (3N-1)/4, and (N+1)/4. This order makes
 			//           it easier to skip redundant values for small values of N.
 			if ik == 1 {
 				kd = 0
 			} else if ik == 2 {
-				kd = maxint(n, 0)
+				kd = max(n, 0)
 			} else if ik == 3 {
 				kd = (3*n - 1) / 4
 			} else if ik == 4 {
@@ -103,11 +103,11 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					golapack.Dlaset('F', &n, &n, &zero, &one, ainv.Matrix(lda, opts), &lda)
 					if uplo == 'U' {
 						for j = 1; j <= n; j++ {
-							err = goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), j, kd, ab.Matrix(ldab, opts), ldab, ainv.Off((j-1)*lda+1-1), 1)
+							err = goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), j, kd, ab.Matrix(ldab, opts), ainv.Off((j-1)*lda, 1))
 						}
 					} else {
 						for j = 1; j <= n; j++ {
-							err = goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), n-j+1, kd, ab.MatrixOff((j-1)*ldab+1-1, ldab, opts), ldab, ainv.Off((j-1)*lda+j-1), 1)
+							err = goblas.Dtbsv(mat.UploByte(uplo), mat.NoTrans, mat.DiagByte(diag), n-j+1, kd, ab.MatrixOff((j-1)*ldab, ldab, opts), ainv.Off((j-1)*lda+j-1, 1))
 						}
 					}
 
@@ -169,7 +169,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 							//                    Use iterative refinement to improve the solution
 							//                    and compute error bounds.
 							*srnamt = "DTBRFS"
-							golapack.Dtbrfs(uplo, trans, diag, &n, &kd, &nrhs, ab.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, iwork, &info)
+							golapack.Dtbrfs(uplo, trans, diag, &n, &kd, &nrhs, ab.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, iwork, &info)
 
 							//                    Check error code from DTBRFS.
 							if info != 0 {
@@ -177,7 +177,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 							}
 
 							Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
-							Dtbt05(uplo, trans, diag, &n, &kd, &nrhs, ab.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(3))
+							Dtbt05(uplo, trans, diag, &n, &kd, &nrhs, ab.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(3))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.
@@ -252,7 +252,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						//+    TEST 7
 						//                    Solve the system op(A)*x = b
 						*srnamt = "DLATBS"
-						goblas.Dcopy(n, x, 1, b, 1)
+						goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
 						golapack.Dlatbs(uplo, trans, diag, 'N', &n, &kd, ab.Matrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from DLATBS.
@@ -264,7 +264,7 @@ func Dchktb(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 						//+    TEST 8
 						//                    Solve op(A)*x = b again with NORMIN = 'Y'.
-						goblas.Dcopy(n, x, 1, b, 1)
+						goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
 						golapack.Dlatbs(uplo, trans, diag, 'Y', &n, &kd, ab.Matrix(ldab, opts), &ldab, b, &scale, rwork, &info)
 
 						//                    Check error code from DLATBS.

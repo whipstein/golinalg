@@ -25,7 +25,7 @@ func Zlanhs(norm byte, n *int, a *mat.CMatrix, lda *int, work *mat.Vector) (zlan
 		//        Find max(abs(A(i,j))).
 		value = zero
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(*n, j+1); i++ {
+			for i = 1; i <= min(*n, j+1); i++ {
 				sum = a.GetMag(i-1, j-1)
 				if value < sum || Disnan(int(sum)) {
 					value = sum
@@ -37,7 +37,7 @@ func Zlanhs(norm byte, n *int, a *mat.CMatrix, lda *int, work *mat.Vector) (zlan
 		value = zero
 		for j = 1; j <= (*n); j++ {
 			sum = zero
-			for i = 1; i <= minint(*n, j+1); i++ {
+			for i = 1; i <= min(*n, j+1); i++ {
 				sum = sum + a.GetMag(i-1, j-1)
 			}
 			if value < sum || Disnan(int(sum)) {
@@ -50,7 +50,7 @@ func Zlanhs(norm byte, n *int, a *mat.CMatrix, lda *int, work *mat.Vector) (zlan
 			work.Set(i-1, zero)
 		}
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(*n, j+1); i++ {
+			for i = 1; i <= min(*n, j+1); i++ {
 				work.Set(i-1, work.Get(i-1)+a.GetMag(i-1, j-1))
 			}
 		}
@@ -71,7 +71,7 @@ func Zlanhs(norm byte, n *int, a *mat.CMatrix, lda *int, work *mat.Vector) (zlan
 		for j = 1; j <= (*n); j++ {
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			Zlassq(toPtr(minint(*n, j+1)), a.CVector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+			Zlassq(toPtr(min(*n, j+1)), a.CVector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

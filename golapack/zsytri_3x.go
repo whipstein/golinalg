@@ -34,7 +34,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 
@@ -93,18 +93,18 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			if (*ipiv)[k-1] > 0 {
 				//              1 x 1 diagonal NNB
 				work.Set(k-1, invd-1, cone/a.Get(k-1, k-1))
-				work.Set(k-1, invd+1-1, czero)
+				work.Set(k-1, invd, czero)
 			} else {
 				//              2 x 2 diagonal NNB
-				t = work.Get(k+1-1, 0)
+				t = work.Get(k, 0)
 				ak = a.Get(k-1, k-1) / t
-				akp1 = a.Get(k+1-1, k+1-1) / t
-				akkp1 = work.Get(k+1-1, 0) / t
+				akp1 = a.Get(k, k) / t
+				akkp1 = work.Get(k, 0) / t
 				d = t * (ak*akp1 - cone)
 				work.Set(k-1, invd-1, akp1/d)
-				work.Set(k+1-1, invd+1-1, ak/d)
-				work.Set(k-1, invd+1-1, -akkp1/d)
-				work.Set(k+1-1, invd-1, work.Get(k-1, invd+1-1))
+				work.Set(k, invd, ak/d)
+				work.Set(k-1, invd, -akkp1/d)
+				work.Set(k, invd-1, work.Get(k-1, invd))
 				k = k + 1
 			}
 			k = k + 1
@@ -161,9 +161,9 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 				} else {
 					for j = 1; j <= nnb; j++ {
 						u01IJ = work.Get(i-1, j-1)
-						u01Ip1J = work.Get(i+1-1, j-1)
-						work.Set(i-1, j-1, work.Get(i-1, invd-1)*u01IJ+work.Get(i-1, invd+1-1)*u01Ip1J)
-						work.Set(i+1-1, j-1, work.Get(i+1-1, invd-1)*u01IJ+work.Get(i+1-1, invd+1-1)*u01Ip1J)
+						u01Ip1J = work.Get(i, j-1)
+						work.Set(i-1, j-1, work.Get(i-1, invd-1)*u01IJ+work.Get(i-1, invd)*u01Ip1J)
+						work.Set(i, j-1, work.Get(i, invd-1)*u01IJ+work.Get(i, invd)*u01Ip1J)
 					}
 					i = i + 1
 				}
@@ -180,9 +180,9 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 				} else {
 					for j = i; j <= nnb; j++ {
 						u11IJ = work.Get(u11+i-1, j-1)
-						u11Ip1J = work.Get(u11+i+1-1, j-1)
-						work.Set(u11+i-1, j-1, work.Get(cut+i-1, invd-1)*work.Get(u11+i-1, j-1)+work.Get(cut+i-1, invd+1-1)*work.Get(u11+i+1-1, j-1))
-						work.Set(u11+i+1-1, j-1, work.Get(cut+i+1-1, invd-1)*u11IJ+work.Get(cut+i+1-1, invd+1-1)*u11Ip1J)
+						u11Ip1J = work.Get(u11+i, j-1)
+						work.Set(u11+i-1, j-1, work.Get(cut+i-1, invd-1)*work.Get(u11+i-1, j-1)+work.Get(cut+i-1, invd)*work.Get(u11+i, j-1))
+						work.Set(u11+i, j-1, work.Get(cut+i, invd-1)*u11IJ+work.Get(cut+i, invd)*u11Ip1J)
 					}
 					i = i + 1
 				}
@@ -190,7 +190,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			}
 
 			//           U11**T * invD1 * U11 -> U11
-			err = goblas.Ztrmm(Left, Upper, Trans, Unit, nnb, nnb, cone, a.Off(cut+1-1, cut+1-1), *lda, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+			err = goblas.Ztrmm(Left, Upper, Trans, Unit, nnb, nnb, cone, a.Off(cut, cut), work.Off(u11, 0))
 
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
@@ -199,7 +199,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			}
 
 			//           U01**T * invD * U01 -> A( CUT+I, CUT+J )
-			err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, cut, cone, a.Off(0, cut+1-1), *lda, work, (*n)+(*nb)+1, czero, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+			err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, cut, cone, a.Off(0, cut), work, czero, work.Off(u11, 0))
 
 			//           U11 =  U11**T * invD1 * U11 + U01**T * invD * U01
 			for i = 1; i <= nnb; i++ {
@@ -209,7 +209,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			}
 
 			//           U01 =  U00**T * invD0 * U01
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, cut, nnb, cone, a, *lda, work, (*n)+(*nb)+1)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, cut, nnb, cone, a, work)
 
 			//           Update U01
 			for i = 1; i <= cut; i++ {
@@ -232,7 +232,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		//        and 2x2 pivot cases, i.e. we don't need separate code branches
 		//        for 1x1 and 2x2 pivot cases )
 		for i = 1; i <= (*n); i++ {
-			ip = absint((*ipiv)[i-1])
+			ip = abs((*ipiv)[i-1])
 			if ip != i {
 				if i < ip {
 					Zsyswapr(uplo, n, a, lda, &i, &ip)
@@ -255,7 +255,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			if (*ipiv)[k-1] > 0 {
 				//              1 x 1 diagonal NNB
 				work.Set(k-1, invd-1, cone/a.Get(k-1, k-1))
-				work.Set(k-1, invd+1-1, czero)
+				work.Set(k-1, invd, czero)
 			} else {
 				//              2 x 2 diagonal NNB
 				t = work.Get(k-1-1, 0)
@@ -265,8 +265,8 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 				d = t * (ak*akp1 - cone)
 				work.Set(k-1-1, invd-1, akp1/d)
 				work.Set(k-1, invd-1, ak/d)
-				work.Set(k-1, invd+1-1, -akkp1/d)
-				work.Set(k-1-1, invd+1-1, work.Get(k-1, invd+1-1))
+				work.Set(k-1, invd, -akkp1/d)
+				work.Set(k-1-1, invd, work.Get(k-1, invd))
 				k = k - 1
 			}
 			k = k - 1
@@ -323,8 +323,8 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 					for j = 1; j <= nnb; j++ {
 						u01IJ = work.Get(i-1, j-1)
 						u01Ip1J = work.Get(i-1-1, j-1)
-						work.Set(i-1, j-1, work.Get(cut+nnb+i-1, invd-1)*u01IJ+work.Get(cut+nnb+i-1, invd+1-1)*u01Ip1J)
-						work.Set(i-1-1, j-1, work.Get(cut+nnb+i-1-1, invd+1-1)*u01IJ+work.Get(cut+nnb+i-1-1, invd-1)*u01Ip1J)
+						work.Set(i-1, j-1, work.Get(cut+nnb+i-1, invd-1)*u01IJ+work.Get(cut+nnb+i-1, invd)*u01Ip1J)
+						work.Set(i-1-1, j-1, work.Get(cut+nnb+i-1-1, invd)*u01IJ+work.Get(cut+nnb+i-1-1, invd-1)*u01Ip1J)
 					}
 					i = i - 1
 				}
@@ -342,8 +342,8 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 					for j = 1; j <= nnb; j++ {
 						u11IJ = work.Get(u11+i-1, j-1)
 						u11Ip1J = work.Get(u11+i-1-1, j-1)
-						work.Set(u11+i-1, j-1, work.Get(cut+i-1, invd-1)*work.Get(u11+i-1, j-1)+work.Get(cut+i-1, invd+1-1)*u11Ip1J)
-						work.Set(u11+i-1-1, j-1, work.Get(cut+i-1-1, invd+1-1)*u11IJ+work.Get(cut+i-1-1, invd-1)*u11Ip1J)
+						work.Set(u11+i-1, j-1, work.Get(cut+i-1, invd-1)*work.Get(u11+i-1, j-1)+work.Get(cut+i-1, invd)*u11Ip1J)
+						work.Set(u11+i-1-1, j-1, work.Get(cut+i-1-1, invd)*u11IJ+work.Get(cut+i-1-1, invd-1)*u11Ip1J)
 					}
 					i = i - 1
 				}
@@ -351,7 +351,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			}
 
 			//           L11**T * invD1 * L11 -> L11
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, nnb, nnb, cone, a.Off(cut+1-1, cut+1-1), *lda, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, nnb, nnb, cone, a.Off(cut, cut), work.Off(u11, 0))
 
 			for i = 1; i <= nnb; i++ {
 				for j = 1; j <= i; j++ {
@@ -361,7 +361,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 
 			if (cut + nnb) < (*n) {
 				//              L21**T * invD2*L21 -> A( CUT+I, CUT+J )
-				err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, (*n)-nnb-cut, cone, a.Off(cut+nnb+1-1, cut+1-1), *lda, work, (*n)+(*nb)+1, czero, work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+				err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, (*n)-nnb-cut, cone, a.Off(cut+nnb, cut), work, czero, work.Off(u11, 0))
 
 				//              L11 =  L11**T * invD1 * L11 + U01**T * invD * U01
 				for i = 1; i <= nnb; i++ {
@@ -371,7 +371,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 				}
 
 				//              L01 =  L22**T * invD2 * L21
-				err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, (*n)-nnb-cut, nnb, cone, a.Off(cut+nnb+1-1, cut+nnb+1-1), *lda, work, (*n)+(*nb)+1)
+				err = goblas.Ztrmm(Left, mat.UploByte(uplo), Trans, Unit, (*n)-nnb-cut, nnb, cone, a.Off(cut+nnb, cut+nnb), work)
 
 				//              Update L21
 				for i = 1; i <= (*n)-cut-nnb; i++ {
@@ -405,7 +405,7 @@ func Zsytri3x(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		//        and 2x2 pivot cases, i.e. we don't need separate code branches
 		//        for 1x1 and 2x2 pivot cases )
 		for i = (*n); i >= 1; i-- {
-			ip = absint((*ipiv)[i-1])
+			ip = abs((*ipiv)[i-1])
 			if ip != i {
 				if i < ip {
 					Zsyswapr(uplo, n, a, lda, &i, &ip)

@@ -31,10 +31,10 @@ func Dgemqrt(side, trans byte, m, n, k, nb *int, v *mat.Matrix, ldv *int, t *mat
 	notran = trans == 'N'
 
 	if left {
-		ldwork = maxint(1, *n)
+		ldwork = max(1, *n)
 		q = (*m)
 	} else if right {
-		ldwork = maxint(1, *m)
+		ldwork = max(1, *m)
 		q = (*n)
 	}
 	if !left && !right {
@@ -49,11 +49,11 @@ func Dgemqrt(side, trans byte, m, n, k, nb *int, v *mat.Matrix, ldv *int, t *mat
 		(*info) = -5
 	} else if (*nb) < 1 || ((*nb) > (*k) && (*k) > 0) {
 		(*info) = -6
-	} else if (*ldv) < maxint(1, q) {
+	} else if (*ldv) < max(1, q) {
 		(*info) = -8
 	} else if (*ldt) < (*nb) {
 		(*info) = -10
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -12
 	}
 
@@ -70,14 +70,14 @@ func Dgemqrt(side, trans byte, m, n, k, nb *int, v *mat.Matrix, ldv *int, t *mat
 	if left && tran {
 
 		for i = 1; i <= (*k); i += *nb {
-			ib = minint(*nb, (*k)-i+1)
+			ib = min(*nb, (*k)-i+1)
 			Dlarfb('L', 'T', 'F', 'C', toPtr((*m)-i+1), n, &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(i-1, 0), ldc, work.Matrix(ldwork, opts), &ldwork)
 		}
 
 	} else if right && notran {
 
 		for i = 1; i <= (*k); i += *nb {
-			ib = minint(*nb, (*k)-i+1)
+			ib = min(*nb, (*k)-i+1)
 			Dlarfb('R', 'N', 'F', 'C', m, toPtr((*n)-i+1), &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(0, i-1), ldc, work.Matrix(ldwork, opts), &ldwork)
 		}
 
@@ -85,7 +85,7 @@ func Dgemqrt(side, trans byte, m, n, k, nb *int, v *mat.Matrix, ldv *int, t *mat
 
 		kf = (((*k)-1)/(*nb))*(*nb) + 1
 		for i = kf; i >= 1; i -= *nb {
-			ib = minint(*nb, (*k)-i+1)
+			ib = min(*nb, (*k)-i+1)
 			Dlarfb('L', 'N', 'F', 'C', toPtr((*m)-i+1), n, &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(i-1, 0), ldc, work.Matrix(ldwork, opts), &ldwork)
 		}
 
@@ -93,7 +93,7 @@ func Dgemqrt(side, trans byte, m, n, k, nb *int, v *mat.Matrix, ldv *int, t *mat
 
 		kf = (((*k)-1)/(*nb))*(*nb) + 1
 		for i = kf; i >= 1; i -= *nb {
-			ib = minint(*nb, (*k)-i+1)
+			ib = min(*nb, (*k)-i+1)
 			Dlarfb('R', 'T', 'F', 'C', m, toPtr((*n)-i+1), &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(0, i-1), ldc, work.Matrix(ldwork, opts), &ldwork)
 		}
 

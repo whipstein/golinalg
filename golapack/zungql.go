@@ -28,7 +28,7 @@ func Zungql(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwor
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*n) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 
@@ -41,7 +41,7 @@ func Zungql(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwor
 		}
 		work.SetRe(0, float64(lwkopt))
 
-		if (*lwork) < maxint(1, *n) && !lquery {
+		if (*lwork) < max(1, *n) && !lquery {
 			(*info) = -8
 		}
 	}
@@ -63,7 +63,7 @@ func Zungql(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwor
 	iws = (*n)
 	if nb > 1 && nb < (*k) {
 		//        Determine when to cross over from blocked to unblocked code.
-		nx = maxint(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZUNGQL"), []byte{' '}, m, n, k, toPtr(-1)))
+		nx = max(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZUNGQL"), []byte{' '}, m, n, k, toPtr(-1)))
 		if nx < (*k) {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*n)
@@ -72,7 +72,7 @@ func Zungql(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwor
 				//              Not enough workspace to use optimal NB:  reduce NB and
 				//              determine the minimum value of NB.
 				nb = (*lwork) / ldwork
-				nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZUNGQL"), []byte{' '}, m, n, k, toPtr(-1)))
+				nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZUNGQL"), []byte{' '}, m, n, k, toPtr(-1)))
 			}
 		}
 	}
@@ -80,7 +80,7 @@ func Zungql(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwor
 	if nb >= nbmin && nb < (*k) && nx < (*k) {
 		//        Use blocked code after the first block.
 		//        The last kk columns are handled by the block method.
-		kk = minint(*k, (((*k)-nx+nb-1)/nb)*nb)
+		kk = min(*k, (((*k)-nx+nb-1)/nb)*nb)
 
 		//        Set A(m-kk+1:m,1:n-kk) to zero.
 		for j = 1; j <= (*n)-kk; j++ {
@@ -98,14 +98,14 @@ func Zungql(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwor
 	if kk > 0 {
 		//        Use blocked code
 		for i = (*k) - kk + 1; i <= (*k); i += nb {
-			ib = minint(nb, (*k)-i+1)
+			ib = min(nb, (*k)-i+1)
 			if (*n)-(*k)+i > 1 {
 				//              Form the triangular factor of the block reflector
 				//              H = H(i+ib-1) . . . H(i+1) H(i)
 				Zlarft('B', 'C', toPtr((*m)-(*k)+i+ib-1), &ib, a.Off(0, (*n)-(*k)+i-1), lda, tau.Off(i-1), work.CMatrix(ldwork, opts), &ldwork)
 
 				//              Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
-				Zlarfb('L', 'N', 'B', 'C', toPtr((*m)-(*k)+i+ib-1), toPtr((*n)-(*k)+i-1), &ib, a.Off(0, (*n)-(*k)+i-1), lda, work.CMatrix(ldwork, opts), &ldwork, a, lda, work.CMatrixOff(ib+1-1, ldwork, opts), &ldwork)
+				Zlarfb('L', 'N', 'B', 'C', toPtr((*m)-(*k)+i+ib-1), toPtr((*n)-(*k)+i-1), &ib, a.Off(0, (*n)-(*k)+i-1), lda, work.CMatrix(ldwork, opts), &ldwork, a, lda, work.CMatrixOff(ib, ldwork, opts), &ldwork)
 			}
 
 			//           Apply H to rows 1:m-k+i+ib-1 of current block

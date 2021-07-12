@@ -432,7 +432,7 @@ func Derrst(path []byte, t *testing.T) {
 		//        DSTEVR
 		n = 1
 		*srnamt = "DSTEVR"
-		_iw2n1 := iw[2*n+1-1:]
+		_iw2n1 := iw[2*n:]
 		*infot = 1
 		golapack.Dstevr('/', 'A', toPtr(0), d, e, toPtrf64(0.0), toPtrf64(0.0), toPtr(1), toPtr(1), toPtrf64(0.0), &m, r, z, toPtr(1), &iw, x, toPtr(20*n), &_iw2n1, toPtr(10*n), &info)
 		Chkxer("DSTEVR", &info, lerr, ok, t)

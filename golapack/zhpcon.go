@@ -69,7 +69,7 @@ func Zhpcon(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, anorm, rcond *float
 	kase = 0
 label30:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		//        Multiply by inv(L*D*L**H) or inv(U*D*U**H).
 		Zhptrs(uplo, n, func() *int { y := 1; return &y }(), ap, ipiv, work.CMatrix(*n, opts), n, info)

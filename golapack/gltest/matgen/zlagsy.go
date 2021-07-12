@@ -28,7 +28,7 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 		(*info) = -1
 	} else if (*k) < 0 || (*k) > (*n)-1 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 	if (*info) < 0 {
@@ -50,13 +50,13 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 	for i = (*n) - 1; i >= 1; i-- {
 		//        generate random reflection
 		golapack.Zlarnv(func() *int { y := 3; return &y }(), iseed, toPtr((*n)-i+1), work)
-		wn = goblas.Dznrm2((*n)-i+1, work, 1)
+		wn = goblas.Dznrm2((*n)-i+1, work.Off(0, 1))
 		wa = complex(wn/work.GetMag(0), 0) * work.Get(0)
 		if complex(wn, 0) == zero {
 			tau = zero
 		} else {
 			wb = work.Get(0) + wa
-			goblas.Zscal((*n)-i, one/wb, work.Off(1), 1)
+			goblas.Zscal((*n)-i, one/wb, work.Off(1, 1))
 			work.Set(0, one)
 			tau = complex(real(wb/wa), 0)
 		}
@@ -66,12 +66,12 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 		//
 		//        compute  y := tau * A * conjg(u)
 		golapack.Zlacgv(toPtr((*n)-i+1), work, func() *int { y := 1; return &y }())
-		golapack.Zsymv('L', toPtr((*n)-i+1), &tau, a.Off(i-1, i-1), lda, work, func() *int { y := 1; return &y }(), &zero, work.Off((*n)+1-1), func() *int { y := 1; return &y }())
+		golapack.Zsymv('L', toPtr((*n)-i+1), &tau, a.Off(i-1, i-1), lda, work, func() *int { y := 1; return &y }(), &zero, work.Off((*n)), func() *int { y := 1; return &y }())
 		golapack.Zlacgv(toPtr((*n)-i+1), work, func() *int { y := 1; return &y }())
 
 		//        compute  v := y - 1/2 * tau * ( u, y ) * u
-		alpha = -half * tau * goblas.Zdotc((*n)-i+1, work, 1, work.Off((*n)+1-1), 1)
-		goblas.Zaxpy((*n)-i+1, alpha, work, 1, work.Off((*n)+1-1), 1)
+		alpha = -half * tau * goblas.Zdotc((*n)-i+1, work.Off(0, 1), work.Off((*n), 1))
+		goblas.Zaxpy((*n)-i+1, alpha, work.Off(0, 1), work.Off((*n), 1))
 
 		//        apply the transformation as a rank-2 update to A(i:n,i:n)
 		//
@@ -79,7 +79,7 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 		//        $               A( I, I ), LDA )
 		for jj = i; jj <= (*n); jj++ {
 			for ii = jj; ii <= (*n); ii++ {
-				a.Set(ii-1, jj-1, a.Get(ii-1, jj-1)-work.Get(ii-i+1-1)*work.Get((*n)+jj-i+1-1)-work.Get((*n)+ii-i+1-1)*work.Get(jj-i+1-1))
+				a.Set(ii-1, jj-1, a.Get(ii-1, jj-1)-work.Get(ii-i)*work.Get((*n)+jj-i)-work.Get((*n)+ii-i)*work.Get(jj-i))
 			}
 		}
 	}
@@ -87,20 +87,20 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 	//     Reduce number of subdiagonals to K
 	for i = 1; i <= (*n)-1-(*k); i++ {
 		//        generate reflection to annihilate A(k+i+1:n,i)
-		wn = goblas.Dznrm2((*n)-(*k)-i+1, a.CVector((*k)+i-1, i-1), 1)
+		wn = goblas.Dznrm2((*n)-(*k)-i+1, a.CVector((*k)+i-1, i-1, 1))
 		wa = complex(wn/a.GetMag((*k)+i-1, i-1), 0) * a.Get((*k)+i-1, i-1)
 		if complex(wn, 0) == zero {
 			tau = zero
 		} else {
 			wb = a.Get((*k)+i-1, i-1) + wa
-			goblas.Zscal((*n)-(*k)-i, one/wb, a.CVector((*k)+i+1-1, i-1), 1)
+			goblas.Zscal((*n)-(*k)-i, one/wb, a.CVector((*k)+i, i-1, 1))
 			a.Set((*k)+i-1, i-1, one)
 			tau = complex(real(wb/wa), 0)
 		}
 
 		//        apply reflection to A(k+i:n,i+1:k+i-1) from the left
-		err = goblas.Zgemv(ConjTrans, (*n)-(*k)-i+1, (*k)-1, one, a.Off((*k)+i-1, i+1-1), *lda, a.CVector((*k)+i-1, i-1), 1, zero, work, 1)
-		err = goblas.Zgerc((*n)-(*k)-i+1, (*k)-1, -tau, a.CVector((*k)+i-1, i-1), 1, work, 1, a.Off((*k)+i-1, i+1-1), *lda)
+		err = goblas.Zgemv(ConjTrans, (*n)-(*k)-i+1, (*k)-1, one, a.Off((*k)+i-1, i), a.CVector((*k)+i-1, i-1, 1), zero, work.Off(0, 1))
+		err = goblas.Zgerc((*n)-(*k)-i+1, (*k)-1, -tau, a.CVector((*k)+i-1, i-1, 1), work.Off(0, 1), a.Off((*k)+i-1, i))
 
 		//        apply reflection to A(k+i:n,k+i:n) from the left and the right
 		//
@@ -110,8 +110,8 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 		golapack.Zlacgv(toPtr((*n)-(*k)-i+1), a.CVector((*k)+i-1, i-1), func() *int { y := 1; return &y }())
 
 		//        compute  v := y - 1/2 * tau * ( u, y ) * u
-		alpha = -half * tau * goblas.Zdotc((*n)-(*k)-i+1, a.CVector((*k)+i-1, i-1), 1, work, 1)
-		goblas.Zaxpy((*n)-(*k)-i+1, alpha, a.CVector((*k)+i-1, i-1), 1, work, 1)
+		alpha = -half * tau * goblas.Zdotc((*n)-(*k)-i+1, a.CVector((*k)+i-1, i-1, 1), work.Off(0, 1))
+		goblas.Zaxpy((*n)-(*k)-i+1, alpha, a.CVector((*k)+i-1, i-1, 1), work.Off(0, 1))
 
 		//        apply symmetric rank-2 update to A(k+i:n,k+i:n)
 		//
@@ -119,7 +119,7 @@ func Zlagsy(n, k *int, d *mat.Vector, a *mat.CMatrix, lda *int, iseed *[]int, wo
 		//        $               A( K+I, K+I ), LDA )
 		for jj = (*k) + i; jj <= (*n); jj++ {
 			for ii = jj; ii <= (*n); ii++ {
-				a.Set(ii-1, jj-1, a.Get(ii-1, jj-1)-a.Get(ii-1, i-1)*work.Get(jj-(*k)-i+1-1)-work.Get(ii-(*k)-i+1-1)*a.Get(jj-1, i-1))
+				a.Set(ii-1, jj-1, a.Get(ii-1, jj-1)-a.Get(ii-1, i-1)*work.Get(jj-(*k)-i)-work.Get(ii-(*k)-i)*a.Get(jj-1, i-1))
 			}
 		}
 

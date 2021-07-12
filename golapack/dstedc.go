@@ -48,7 +48,7 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < maxint(1, *n)) {
+	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < max(1, *n)) {
 		(*info) = -6
 	}
 
@@ -162,7 +162,7 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 		label20:
 			;
 			if finish < (*n) {
-				tiny = eps * math.Sqrt(math.Abs(d.Get(finish-1))) * math.Sqrt(math.Abs(d.Get(finish+1-1)))
+				tiny = eps * math.Sqrt(math.Abs(d.Get(finish-1))) * math.Sqrt(math.Abs(d.Get(finish)))
 				if math.Abs(e.Get(finish-1)) > tiny {
 					finish = finish + 1
 					goto label20
@@ -200,9 +200,9 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 					//                 Since QR won't update a Z matrix which is larger than
 					//                 the length of D, we must solve the sub-problem in a
 					//                 workspace and then multiply back into Z.
-					Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), work.Matrix(m, opts), &m, work.Off(m*m+1-1), info)
+					Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), work.Matrix(m, opts), &m, work.Off(m*m), info)
 					Dlacpy('A', n, &m, z.Off(0, start-1), ldz, work.MatrixOff(storez-1, *n, opts), n)
-					err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, work.MatrixOff(storez-1, *n, opts), *n, work.Matrix(m, opts), m, zero, z.Off(0, start-1), *ldz)
+					err = goblas.Dgemm(NoTrans, NoTrans, *n, m, m, one, work.MatrixOff(storez-1, *n, opts), work.Matrix(m, opts), zero, z.Off(0, start-1))
 				} else if icompz == 2 {
 					Dsteqr('I', &m, d.Off(start-1), e.Off(start-1), z.Off(start-1, start-1), ldz, work, info)
 				} else {
@@ -238,7 +238,7 @@ func Dstedc(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 				if k != i {
 					d.Set(k-1, d.Get(i-1))
 					d.Set(i-1, p)
-					goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, k-1), 1)
+					goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, k-1, 1))
 				}
 			}
 		}

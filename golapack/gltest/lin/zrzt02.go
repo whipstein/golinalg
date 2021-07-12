@@ -35,16 +35,16 @@ func Zrzt02(m, n *int, af *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork 
 	golapack.Zlaset('F', n, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), work.CMatrix(*n, opts), n)
 
 	//     Q := P(1) * ... * P(m) * Q
-	golapack.Zunmrz('L', 'N', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*n, opts), n, work.Off((*n)*(*n)+1-1), toPtr((*lwork)-(*n)*(*n)), &info)
+	golapack.Zunmrz('L', 'N', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*n, opts), n, work.Off((*n)*(*n)), toPtr((*lwork)-(*n)*(*n)), &info)
 
 	//     Q := P(m)' * ... * P(1)' * Q
-	golapack.Zunmrz('L', 'C', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*n, opts), n, work.Off((*n)*(*n)+1-1), toPtr((*lwork)-(*n)*(*n)), &info)
+	golapack.Zunmrz('L', 'C', n, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*n, opts), n, work.Off((*n)*(*n)), toPtr((*lwork)-(*n)*(*n)), &info)
 
 	//     Q := Q - I
 	for i = 1; i <= (*n); i++ {
 		work.Set((i-1)*(*n)+i-1, work.Get((i-1)*(*n)+i-1)-complex(one, 0))
 	}
 
-	zrzt02Return = golapack.Zlange('O', n, n, work.CMatrix(*n, opts), n, rwork) / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	zrzt02Return = golapack.Zlange('O', n, n, work.CMatrix(*n, opts), n, rwork) / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
 	return
 }

@@ -35,9 +35,9 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -13
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -15
 	}
 	if (*info) != 0 {
@@ -81,7 +81,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
+		goblas.Zcopy(*n, b.CVector(0, j-1, 1), work.Off(0, 1))
 		Zlagtm(trans, n, func() *int { y := 1; return &y }(), toPtrf64(-one), dl, d, du, x.Off(0, j-1), ldx, &one, work.CMatrix(*n, opts), n)
 
 		//        Compute abs(op(A))*abs(x) + abs(b) for use in the backward
@@ -92,7 +92,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 			} else {
 				rwork.Set(0, Cabs1(b.Get(0, j-1))+Cabs1(d.Get(0))*Cabs1(x.Get(0, j-1))+Cabs1(du.Get(0))*Cabs1(x.Get(1, j-1)))
 				for i = 2; i <= (*n)-1; i++ {
-					rwork.Set(i-1, Cabs1(b.Get(i-1, j-1))+Cabs1(dl.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, j-1))+Cabs1(du.Get(i-1))*Cabs1(x.Get(i+1-1, j-1)))
+					rwork.Set(i-1, Cabs1(b.Get(i-1, j-1))+Cabs1(dl.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, j-1))+Cabs1(du.Get(i-1))*Cabs1(x.Get(i, j-1)))
 				}
 				rwork.Set((*n)-1, Cabs1(b.Get((*n)-1, j-1))+Cabs1(dl.Get((*n)-1-1))*Cabs1(x.Get((*n)-1-1, j-1))+Cabs1(d.Get((*n)-1))*Cabs1(x.Get((*n)-1, j-1)))
 			}
@@ -102,7 +102,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 			} else {
 				rwork.Set(0, Cabs1(b.Get(0, j-1))+Cabs1(d.Get(0))*Cabs1(x.Get(0, j-1))+Cabs1(dl.Get(0))*Cabs1(x.Get(1, j-1)))
 				for i = 2; i <= (*n)-1; i++ {
-					rwork.Set(i-1, Cabs1(b.Get(i-1, j-1))+Cabs1(du.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, j-1))+Cabs1(dl.Get(i-1))*Cabs1(x.Get(i+1-1, j-1)))
+					rwork.Set(i-1, Cabs1(b.Get(i-1, j-1))+Cabs1(du.Get(i-1-1))*Cabs1(x.Get(i-1-1, j-1))+Cabs1(d.Get(i-1))*Cabs1(x.Get(i-1, j-1))+Cabs1(dl.Get(i-1))*Cabs1(x.Get(i, j-1)))
 				}
 				rwork.Set((*n)-1, Cabs1(b.Get((*n)-1, j-1))+Cabs1(du.Get((*n)-1-1))*Cabs1(x.Get((*n)-1-1, j-1))+Cabs1(d.Get((*n)-1))*Cabs1(x.Get((*n)-1, j-1)))
 			}
@@ -119,9 +119,9 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -134,7 +134,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zgttrs(trans, n, func() *int { y := 1; return &y }(), dlf, df, duf, du2, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, complex(one, 0), work, 1, x.CVector(0, j-1), 1)
+			goblas.Zaxpy(*n, complex(one, 0), work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -172,7 +172,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		kase = 0
 	label70:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, ferr.GetPtr(j-1), &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
@@ -193,7 +193,7 @@ func Zgtrfs(trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.CVector,
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, Cabs1(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

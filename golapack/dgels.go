@@ -41,7 +41,7 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 
 	//     Test the input arguments.
 	(*info) = 0
-	mn = minint(*m, *n)
+	mn = min(*m, *n)
 	lquery = ((*lwork) == -1)
 	if !(trans == 'N' || trans == 'T') {
 		(*info) = -1
@@ -51,11 +51,11 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *m, *n) {
+	} else if (*ldb) < max(1, *m, *n) {
 		(*info) = -8
-	} else if (*lwork) < maxint(1, mn+maxint(mn, *nrhs)) && !lquery {
+	} else if (*lwork) < max(1, mn+max(mn, *nrhs)) && !lquery {
 		(*info) = -10
 	}
 
@@ -70,20 +70,20 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 		if (*m) >= (*n) {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 			if tpsd {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LN"), m, nrhs, n, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LN"), m, nrhs, n, toPtr(-1)))
 			} else {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), m, nrhs, n, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), m, nrhs, n, toPtr(-1)))
 			}
 		} else {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 			if tpsd {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMLQ"), []byte("LT"), n, nrhs, m, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMLQ"), []byte("LT"), n, nrhs, m, toPtr(-1)))
 			} else {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMLQ"), []byte("LN"), n, nrhs, m, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMLQ"), []byte("LN"), n, nrhs, m, toPtr(-1)))
 			}
 		}
 
-		wsize = maxint(1, mn+maxint(mn, *nrhs)*nb)
+		wsize = max(1, mn+max(mn, *nrhs)*nb)
 		work.Set(0, float64(wsize))
 
 	}
@@ -96,8 +96,8 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *nrhs) == 0 {
-		Dlaset('F', toPtr(maxint(*m, *n)), nrhs, &zero, &zero, b, ldb)
+	if min(*m, *n, *nrhs) == 0 {
+		Dlaset('F', toPtr(max(*m, *n)), nrhs, &zero, &zero, b, ldb)
 		return
 	}
 
@@ -119,7 +119,7 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Dlaset('F', toPtr(maxint(*m, *n)), nrhs, &zero, &zero, b, ldb)
+		Dlaset('F', toPtr(max(*m, *n)), nrhs, &zero, &zero, b, ldb)
 		goto label50
 	}
 
@@ -141,14 +141,14 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 
 	if (*m) >= (*n) {
 		//        compute QR factorization of A
-		Dgeqrf(m, n, a, lda, work, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+		Dgeqrf(m, n, a, lda, work, work.Off(mn), toPtr((*lwork)-mn), info)
 
 		//        workspace at least N, optimally N*NB
 		if !tpsd {
 			//           Least-Squares Problem min || A * X - B ||
 			//
 			//           B(1:M,1:NRHS) := Q**T * B(1:M,1:NRHS)
-			Dormqr('L', 'T', m, nrhs, n, a, lda, work, b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Dormqr('L', 'T', m, nrhs, n, a, lda, work, b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//
@@ -179,7 +179,7 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 			}
 
 			//           B(1:M,1:NRHS) := Q(1:N,:) * B(1:N,1:NRHS)
-			Dormqr('L', 'N', m, nrhs, n, a, lda, work, b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Dormqr('L', 'N', m, nrhs, n, a, lda, work, b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			scllen = (*m)
@@ -188,7 +188,7 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 
 	} else {
 		//        Compute LQ factorization of A
-		Dgelqf(m, n, a, lda, work, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+		Dgelqf(m, n, a, lda, work, work.Off(mn), toPtr((*lwork)-mn), info)
 
 		//        workspace at least M, optimally M*NB.
 		if !tpsd {
@@ -209,7 +209,7 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 			}
 
 			//           B(1:N,1:NRHS) := Q(1:N,:)**T * B(1:M,1:NRHS)
-			Dormlq('L', 'T', n, nrhs, m, a, lda, work, b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Dormlq('L', 'T', n, nrhs, m, a, lda, work, b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			scllen = (*n)
@@ -218,7 +218,7 @@ func Dgels(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, 
 			//           overdetermined system min || A**T * X - B ||
 			//
 			//           B(1:N,1:NRHS) := Q * B(1:N,1:NRHS)
-			Dormlq('L', 'N', n, nrhs, m, a, lda, work, b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Dormlq('L', 'N', n, nrhs, m, a, lda, work, b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//

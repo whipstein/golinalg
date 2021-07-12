@@ -49,9 +49,9 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
 		(*info) = -13
@@ -91,11 +91,11 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 	}
 
 	if (*ijob) == 1 || (*ijob) == 2 || (*ijob) == 4 {
-		lwmin = maxint(1, 2*(*m)*((*n)-(*m)))
-		liwmin = maxint(1, (*n)+2)
+		lwmin = max(1, 2*(*m)*((*n)-(*m)))
+		liwmin = max(1, (*n)+2)
 	} else if (*ijob) == 3 || (*ijob) == 5 {
-		lwmin = maxint(1, 4*(*m)*((*n)-(*m)))
-		liwmin = maxint(1, 2*(*m)*((*n)-(*m)), (*n)+2)
+		lwmin = max(1, 4*(*m)*((*n)-(*m)))
+		liwmin = max(1, 2*(*m)*((*n)-(*m)), (*n)+2)
 	} else {
 		lwmin = 1
 		liwmin = 1
@@ -176,9 +176,9 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 		n2 = (*n) - (*m)
 		i = n1 + 1
 		Zlacpy('F', &n1, &n2, a.Off(0, i-1), lda, work.CMatrix(n1, opts), &n1)
-		Zlacpy('F', &n1, &n2, b.Off(0, i-1), ldb, work.CMatrixOff(n1*n2+1-1, n1, opts), &n1)
+		Zlacpy('F', &n1, &n2, b.Off(0, i-1), ldb, work.CMatrixOff(n1*n2, n1, opts), &n1)
 		ijb = 0
-		Ztgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+		Ztgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 
 		//        Estimate the reciprocal of norms of "projections" onto
 		//        left and right eigenspaces
@@ -193,7 +193,7 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 		}
 		rdscal = zero
 		dsum = one
-		Zlassq(toPtr(n1*n2), work.Off(n1*n2+1-1), func() *int { y := 1; return &y }(), &rdscal, &dsum)
+		Zlassq(toPtr(n1*n2), work.Off(n1*n2), func() *int { y := 1; return &y }(), &rdscal, &dsum)
 		(*pr) = rdscal * math.Sqrt(dsum)
 		if (*pr) == zero {
 			(*pr) = one
@@ -210,10 +210,10 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 			ijb = idifjb
 
 			//           Frobenius norm-based Difu estimate.
-			Ztgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+			Ztgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 
 			//           Frobenius norm-based Difl estimate.
-			Ztgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.CMatrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.CMatrixOff(n1*n2+1-1, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+			Ztgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.CMatrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.CMatrixOff(n1*n2, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 		} else {
 			//           Compute 1-norm-based estimates of Difu and Difl using
 			//           reversed communication with ZLACN2. In each step a
@@ -229,14 +229,14 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 			//           1-norm-based estimate of Difu.
 		label40:
 			;
-			Zlacn2(&mn2, work.Off(mn2+1-1), work, dif.GetPtr(0), &kase, &isave)
+			Zlacn2(&mn2, work.Off(mn2), work, dif.GetPtr(0), &kase, &isave)
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation
-					Ztgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Ztgsyl('N', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				} else {
 					//                 Solve the transposed variant.
-					Ztgsyl('C', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2+1-1, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Ztgsyl('C', &ijb, &n1, &n2, a, lda, a.Off(i-1, i-1), lda, work.CMatrix(n1, opts), &n1, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2, n1, opts), &n1, &dscale, dif.GetPtr(0), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				}
 				goto label40
 			}
@@ -246,14 +246,14 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 			//
 		label50:
 			;
-			Zlacn2(&mn2, work.Off(mn2+1-1), work, dif.GetPtr(1), &kase, &isave)
+			Zlacn2(&mn2, work.Off(mn2), work, dif.GetPtr(1), &kase, &isave)
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation
-					Ztgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.CMatrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.CMatrixOff(n1*n2+1-1, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Ztgsyl('N', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.CMatrix(n2, opts), &n2, b.Off(i-1, i-1), ldb, b, ldb, work.CMatrixOff(n1*n2, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				} else {
 					//                 Solve the transposed variant.
-					Ztgsyl('C', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.CMatrix(n2, opts), &n2, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2+1-1, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(n1*n2*2+1-1), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
+					Ztgsyl('C', &ijb, &n2, &n1, a.Off(i-1, i-1), lda, a, lda, work.CMatrix(n2, opts), &n2, b, ldb, b.Off(i-1, i-1), ldb, work.CMatrixOff(n1*n2, n2, opts), &n2, &dscale, dif.GetPtr(1), work.Off(n1*n2*2), toPtr((*lwork)-2*n1*n2), iwork, &ierr)
 				}
 				goto label50
 			}
@@ -270,10 +270,10 @@ func Ztgsen(ijob *int, wantq, wantz bool, _select []bool, n *int, a *mat.CMatrix
 			temp1 = b.GetConj(k-1, k-1) / complex(dscale, 0)
 			temp2 = b.Get(k-1, k-1) / complex(dscale, 0)
 			b.SetRe(k-1, k-1, dscale)
-			goblas.Zscal((*n)-k, temp1, b.CVector(k-1, k+1-1), *ldb)
-			goblas.Zscal((*n)-k+1, temp1, a.CVector(k-1, k-1), *lda)
+			goblas.Zscal((*n)-k, temp1, b.CVector(k-1, k, *ldb))
+			goblas.Zscal((*n)-k+1, temp1, a.CVector(k-1, k-1, *lda))
 			if wantq {
-				goblas.Zscal(*n, temp2, q.CVector(0, k-1), 1)
+				goblas.Zscal(*n, temp2, q.CVector(0, k-1, 1))
 			}
 		} else {
 			b.SetRe(k-1, k-1, zero)

@@ -67,11 +67,11 @@ func Dptcon(n *int, d, e *mat.Vector, anorm *float64, rcond *float64, work *mat.
 	//     Solve D * M(L)**T * x = b.
 	work.Set((*n)-1, work.Get((*n)-1)/d.Get((*n)-1))
 	for i = (*n) - 1; i >= 1; i-- {
-		work.Set(i-1, work.Get(i-1)/d.Get(i-1)+work.Get(i+1-1)*math.Abs(e.Get(i-1)))
+		work.Set(i-1, work.Get(i-1)/d.Get(i-1)+work.Get(i)*math.Abs(e.Get(i-1)))
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(*n, work, 1)
+	ix = goblas.Idamax(*n, work.Off(0, 1))
 	ainvnm = math.Abs(work.Get(ix - 1))
 
 	//     Compute the reciprocal condition number.

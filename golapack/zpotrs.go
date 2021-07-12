@@ -26,9 +26,9 @@ func Zpotrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, l
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -45,17 +45,17 @@ func Zpotrs(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, l
 		//        Solve A*X = B where A = U**H *U.
 		//
 		//        Solve U**H *X = B, overwriting B with X.
-		err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, *n, *nrhs, one, a, b)
 
 		//        Solve U*X = B, overwriting B with X.
-		err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, b)
 	} else {
 		//        Solve A*X = B where A = L*L**H.
 		//
 		//        Solve L*X = B, overwriting B with X.
-		err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *n, *nrhs, one, a, b)
 
 		//        Solve L**H *X = B, overwriting B with X.
-		err = goblas.Ztrsm(Left, Lower, ConjTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Ztrsm(Left, Lower, ConjTrans, NonUnit, *n, *nrhs, one, a, b)
 	}
 }

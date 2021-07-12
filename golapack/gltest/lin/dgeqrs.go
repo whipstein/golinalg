@@ -27,9 +27,9 @@ func Dgeqrs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -8
 	} else if (*lwork) < 1 || (*lwork) < (*nrhs) && (*m) > 0 && (*n) > 0 {
 		(*info) = -10
@@ -48,5 +48,5 @@ func Dgeqrs(m, n, nrhs *int, a *mat.Matrix, lda *int, tau *mat.Vector, b *mat.Ma
 	golapack.Dormqr('L', 'T', m, nrhs, n, a, lda, tau, b, ldb, work, lwork, info)
 
 	//     Solve R*X = B(1:n,:)
-	err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+	err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, b)
 }

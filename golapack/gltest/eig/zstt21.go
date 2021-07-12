@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -48,24 +50,24 @@ func Zstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *int,
 	temp1 = zero
 
 	for j = 1; j <= (*n)-1; j++ {
-		work.Set(((*n)+1)*(j-1)+1-1, ad.GetCmplx(j-1))
+		work.Set(((*n)+1)*(j-1), ad.GetCmplx(j-1))
 		work.Set(((*n)+1)*(j-1)+2-1, ae.GetCmplx(j-1))
 		temp2 = ae.GetMag(j - 1)
-		anorm = maxf64(anorm, ad.GetMag(j-1)+temp1+temp2)
+		anorm = math.Max(anorm, ad.GetMag(j-1)+temp1+temp2)
 		temp1 = temp2
 	}
 
-	work.Set(powint(*n, 2)-1, ad.GetCmplx((*n)-1))
-	anorm = maxf64(anorm, ad.GetMag((*n)-1)+temp1, unfl)
+	work.Set(pow(*n, 2)-1, ad.GetCmplx((*n)-1))
+	anorm = math.Max(anorm, math.Max(ad.GetMag((*n)-1)+temp1, unfl))
 
 	//     Norm of A - USU*
 	for j = 1; j <= (*n); j++ {
-		err = goblas.Zher(Lower, *n, -sd.Get(j-1), u.CVector(0, j-1), 1, work.CMatrix(*n, opts), *n)
+		err = goblas.Zher(Lower, *n, -sd.Get(j-1), u.CVector(0, j-1, 1), work.CMatrix(*n, opts))
 	}
 
 	if (*n) > 1 && (*kband) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Zher2(Lower, *n, -se.GetCmplx(j-1), u.CVector(0, j-1), 1, u.CVector(0, j+1-1), 1, work.CMatrix(*n, opts), *n)
+			err = goblas.Zher2(Lower, *n, -se.GetCmplx(j-1), u.CVector(0, j-1, 1), u.CVector(0, j, 1), work.CMatrix(*n, opts))
 		}
 	}
 
@@ -75,20 +77,20 @@ func Zstt21(n, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *int,
 		result.Set(0, (wnorm/anorm)/(float64(*n)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 		}
 	}
 
 	//     Do Test 2
 	//
 	//     Compute  U U**H - I
-	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, u, czero, work.CMatrix(*n, opts))
 
 	for j = 1; j <= (*n); j++ {
-		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-cone)
+		work.Set(((*n)+1)*(j-1), work.Get(((*n)+1)*(j-1))-cone)
 	}
 
-	result.Set(1, minf64(float64(*n), golapack.Zlange('1', n, n, work.CMatrix(*n, opts), n, rwork))/(float64(*n)*ulp))
+	result.Set(1, math.Min(float64(*n), golapack.Zlange('1', n, n, work.CMatrix(*n, opts), n, rwork))/(float64(*n)*ulp))
 }

@@ -42,16 +42,16 @@ func Drzt01(m, n *int, a, af *mat.Matrix, lda *int, tau, work *mat.Vector, lwork
 	}
 
 	//     R = R * P(1) * ... *P(m)
-	golapack.Dormrz('R', 'N', m, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*n)+1-1), toPtr((*lwork)-(*m)*(*n)), &info)
+	golapack.Dormrz('R', 'N', m, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*n)), toPtr((*lwork)-(*m)*(*n)), &info)
 
 	//     R = R - A
 	for i = 1; i <= (*n); i++ {
-		goblas.Daxpy(*m, -one, a.Vector(0, i-1), 1, work.Off((i-1)*(*m)+1-1), 1)
+		goblas.Daxpy(*m, -one, a.Vector(0, i-1, 1), work.Off((i-1)*(*m), 1))
 	}
 
 	drzt01Return = golapack.Dlange('O', m, n, work.Matrix(*m, opts), m, rwork)
 
-	drzt01Return = drzt01Return / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	drzt01Return = drzt01Return / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
 	if norma != zero {
 		drzt01Return = drzt01Return / norma
 	}

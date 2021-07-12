@@ -24,7 +24,7 @@ func Dlarge(n *int, a *mat.Matrix, lda *int, iseed *[]int, work *mat.Vector, inf
 	(*info) = 0
 	if (*n) < 0 {
 		(*info) = -1
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -3
 	}
 	if (*info) < 0 {
@@ -36,23 +36,23 @@ func Dlarge(n *int, a *mat.Matrix, lda *int, iseed *[]int, work *mat.Vector, inf
 	for i = (*n); i >= 1; i-- {
 		//        generate random reflection
 		golapack.Dlarnv(func() *int { y := 3; return &y }(), iseed, toPtr((*n)-i+1), work)
-		wn = goblas.Dnrm2((*n)-i+1, work, 1)
+		wn = goblas.Dnrm2((*n)-i+1, work.Off(0, 1))
 		wa = math.Copysign(wn, work.Get(0))
 		if wn == zero {
 			tau = zero
 		} else {
 			wb = work.Get(0) + wa
-			goblas.Dscal((*n)-i, one/wb, work.Off(1), 1)
+			goblas.Dscal((*n)-i, one/wb, work.Off(1, 1))
 			work.Set(0, one)
 			tau = wb / wa
 		}
 
 		//        multiply A(i:n,1:n) by random reflection from the left
-		err = goblas.Dgemv(Trans, (*n)-i+1, *n, one, a.Off(i-1, 0), *lda, work, 1, zero, work.Off((*n)+1-1), 1)
-		err = goblas.Dger((*n)-i+1, *n, -tau, work, 1, work.Off((*n)+1-1), 1, a.Off(i-1, 0), *lda)
+		err = goblas.Dgemv(Trans, (*n)-i+1, *n, one, a.Off(i-1, 0), work.Off(0, 1), zero, work.Off((*n), 1))
+		err = goblas.Dger((*n)-i+1, *n, -tau, work.Off(0, 1), work.Off((*n), 1), a.Off(i-1, 0))
 
 		//        multiply A(1:n,i:n) by random reflection from the right
-		err = goblas.Dgemv(NoTrans, *n, (*n)-i+1, one, a.Off(0, i-1), *lda, work, 1, zero, work.Off((*n)+1-1), 1)
-		err = goblas.Dger(*n, (*n)-i+1, -tau, work.Off((*n)+1-1), 1, work, 1, a.Off(0, i-1), *lda)
+		err = goblas.Dgemv(NoTrans, *n, (*n)-i+1, one, a.Off(0, i-1), work.Off(0, 1), zero, work.Off((*n), 1))
+		err = goblas.Dger(*n, (*n)-i+1, -tau, work.Off((*n), 1), work.Off(0, 1), a.Off(0, i-1))
 	}
 }

@@ -75,17 +75,17 @@ func Dtgsy2(trans byte, ijob, m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix,
 			(*info) = -3
 		} else if (*n) <= 0 {
 			(*info) = -4
-		} else if (*lda) < maxint(1, *m) {
+		} else if (*lda) < max(1, *m) {
 			(*info) = -6
-		} else if (*ldb) < maxint(1, *n) {
+		} else if (*ldb) < max(1, *n) {
 			(*info) = -8
-		} else if (*ldc) < maxint(1, *m) {
+		} else if (*ldc) < max(1, *m) {
 			(*info) = -10
-		} else if (*ldd) < maxint(1, *m) {
+		} else if (*ldd) < max(1, *m) {
 			(*info) = -12
-		} else if (*lde) < maxint(1, *n) {
+		} else if (*lde) < max(1, *n) {
 			(*info) = -14
-		} else if (*ldf) < maxint(1, *m) {
+		} else if (*ldf) < max(1, *m) {
 			(*info) = -16
 		}
 	}
@@ -108,7 +108,7 @@ label10:
 	if i == (*m) {
 		goto label20
 	}
-	if a.Get(i+1-1, i-1) != zero {
+	if a.Get(i, i-1) != zero {
 		i = i + 2
 	} else {
 		i = i + 1
@@ -116,7 +116,7 @@ label10:
 	goto label10
 label20:
 	;
-	(*iwork)[p+1-1] = (*m) + 1
+	(*iwork)[p] = (*m) + 1
 
 	//     Determine block structure of B
 	q = p + 1
@@ -131,7 +131,7 @@ label30:
 	if j == (*n) {
 		goto label40
 	}
-	if b.Get(j+1-1, j-1) != zero {
+	if b.Get(j, j-1) != zero {
 		j = j + 2
 	} else {
 		j = j + 1
@@ -139,7 +139,7 @@ label30:
 	goto label30
 label40:
 	;
-	(*iwork)[q+1-1] = (*n) + 1
+	(*iwork)[q] = (*n) + 1
 	(*pq) = p * (q - p - 1)
 
 	if notran {
@@ -152,13 +152,13 @@ label40:
 		for j = p + 2; j <= q; j++ {
 			js = (*iwork)[j-1]
 			jsp1 = js + 1
-			je = (*iwork)[j+1-1] - 1
+			je = (*iwork)[j] - 1
 			nb = je - js + 1
 			for i = p; i >= 1; i-- {
 
 				is = (*iwork)[i-1]
 				isp1 = is + 1
-				ie = (*iwork)[i+1-1] - 1
+				ie = (*iwork)[i] - 1
 				mb = ie - is + 1
 				zdim = mb * nb * 2
 
@@ -183,8 +183,8 @@ label40:
 						Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 						if scaloc != one {
 							for k = 1; k <= (*n); k++ {
-								goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-								goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+								goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+								goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 							}
 							(*scale) = (*scale) * scaloc
 						}
@@ -200,12 +200,12 @@ label40:
 					//                 equation.
 					if i > 1 {
 						alpha = -rhs.Get(0)
-						goblas.Daxpy(is-1, alpha, a.Vector(0, is-1), 1, c.Vector(0, js-1), 1)
-						goblas.Daxpy(is-1, alpha, d.Vector(0, is-1), 1, f.Vector(0, js-1), 1)
+						goblas.Daxpy(is-1, alpha, a.Vector(0, is-1, 1), c.Vector(0, js-1, 1))
+						goblas.Daxpy(is-1, alpha, d.Vector(0, is-1, 1), f.Vector(0, js-1, 1))
 					}
 					if j < q {
-						goblas.Daxpy((*n)-je, rhs.Get(1), b.Vector(js-1, je+1-1), *ldb, c.Vector(is-1, je+1-1), *ldc)
-						goblas.Daxpy((*n)-je, rhs.Get(1), e.Vector(js-1, je+1-1), *lde, f.Vector(is-1, je+1-1), *ldf)
+						goblas.Daxpy((*n)-je, rhs.Get(1), b.Vector(js-1, je, *ldb), c.Vector(is-1, je, *ldc))
+						goblas.Daxpy((*n)-je, rhs.Get(1), e.Vector(js-1, je, *lde), f.Vector(is-1, je, *ldf))
 					}
 
 				} else if (mb == 1) && (nb == 2) {
@@ -246,8 +246,8 @@ label40:
 						Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 						if scaloc != one {
 							for k = 1; k <= (*n); k++ {
-								goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-								goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+								goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+								goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 							}
 							(*scale) = (*scale) * scaloc
 						}
@@ -264,14 +264,14 @@ label40:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if i > 1 {
-						err = goblas.Dger(is-1, nb, -one, a.Vector(0, is-1), 1, rhs, 1, c.Off(0, js-1), *ldc)
-						err = goblas.Dger(is-1, nb, -one, d.Vector(0, is-1), 1, rhs, 1, f.Off(0, js-1), *ldf)
+						err = goblas.Dger(is-1, nb, -one, a.Vector(0, is-1, 1), rhs.Off(0, 1), c.Off(0, js-1))
+						err = goblas.Dger(is-1, nb, -one, d.Vector(0, is-1, 1), rhs.Off(0, 1), f.Off(0, js-1))
 					}
 					if j < q {
-						goblas.Daxpy((*n)-je, rhs.Get(2), b.Vector(js-1, je+1-1), *ldb, c.Vector(is-1, je+1-1), *ldc)
-						goblas.Daxpy((*n)-je, rhs.Get(2), e.Vector(js-1, je+1-1), *lde, f.Vector(is-1, je+1-1), *ldf)
-						goblas.Daxpy((*n)-je, rhs.Get(3), b.Vector(jsp1-1, je+1-1), *ldb, c.Vector(is-1, je+1-1), *ldc)
-						goblas.Daxpy((*n)-je, rhs.Get(3), e.Vector(jsp1-1, je+1-1), *lde, f.Vector(is-1, je+1-1), *ldf)
+						goblas.Daxpy((*n)-je, rhs.Get(2), b.Vector(js-1, je, *ldb), c.Vector(is-1, je, *ldc))
+						goblas.Daxpy((*n)-je, rhs.Get(2), e.Vector(js-1, je, *lde), f.Vector(is-1, je, *ldf))
+						goblas.Daxpy((*n)-je, rhs.Get(3), b.Vector(jsp1-1, je, *ldb), c.Vector(is-1, je, *ldc))
+						goblas.Daxpy((*n)-je, rhs.Get(3), e.Vector(jsp1-1, je, *lde), f.Vector(is-1, je, *ldf))
 					}
 
 				} else if (mb == 2) && (nb == 1) {
@@ -311,8 +311,8 @@ label40:
 						Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 						if scaloc != one {
 							for k = 1; k <= (*n); k++ {
-								goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-								goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+								goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+								goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 							}
 							(*scale) = (*scale) * scaloc
 						}
@@ -329,12 +329,12 @@ label40:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if i > 1 {
-						err = goblas.Dgemv(NoTrans, is-1, mb, -one, a.Off(0, is-1), *lda, rhs.Off(0), 1, one, c.Vector(0, js-1), 1)
-						err = goblas.Dgemv(NoTrans, is-1, mb, -one, d.Off(0, is-1), *ldd, rhs.Off(0), 1, one, f.Vector(0, js-1), 1)
+						err = goblas.Dgemv(NoTrans, is-1, mb, -one, a.Off(0, is-1), rhs.Off(0, 1), one, c.Vector(0, js-1, 1))
+						err = goblas.Dgemv(NoTrans, is-1, mb, -one, d.Off(0, is-1), rhs.Off(0, 1), one, f.Vector(0, js-1, 1))
 					}
 					if j < q {
-						err = goblas.Dger(mb, (*n)-je, one, rhs.Off(2), 1, b.Vector(js-1, je+1-1), *ldb, c.Off(is-1, je+1-1), *ldc)
-						err = goblas.Dger(mb, (*n)-je, one, rhs.Off(2), 1, e.Vector(js-1, je+1-1), *lde, f.Off(is-1, je+1-1), *ldf)
+						err = goblas.Dger(mb, (*n)-je, one, rhs.Off(2, 1), b.Vector(js-1, je, *ldb), c.Off(is-1, je))
+						err = goblas.Dger(mb, (*n)-je, one, rhs.Off(2, 1), e.Vector(js-1, je, *lde), f.Off(is-1, je))
 					}
 
 				} else if (mb == 2) && (nb == 2) {
@@ -381,8 +381,8 @@ label40:
 					k = 1
 					ii = mb*nb + 1
 					for jj = 0; jj <= nb-1; jj++ {
-						goblas.Dcopy(mb, c.Vector(is-1, js+jj-1), 1, rhs.Off(k-1), 1)
-						goblas.Dcopy(mb, f.Vector(is-1, js+jj-1), 1, rhs.Off(ii-1), 1)
+						goblas.Dcopy(mb, c.Vector(is-1, js+jj-1, 1), rhs.Off(k-1, 1))
+						goblas.Dcopy(mb, f.Vector(is-1, js+jj-1, 1), rhs.Off(ii-1, 1))
 						k = k + mb
 						ii = ii + mb
 					}
@@ -396,8 +396,8 @@ label40:
 						Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 						if scaloc != one {
 							for k = 1; k <= (*n); k++ {
-								goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-								goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+								goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+								goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 							}
 							(*scale) = (*scale) * scaloc
 						}
@@ -409,8 +409,8 @@ label40:
 					k = 1
 					ii = mb*nb + 1
 					for jj = 0; jj <= nb-1; jj++ {
-						goblas.Dcopy(mb, rhs.Off(k-1), 1, c.Vector(is-1, js+jj-1), 1)
-						goblas.Dcopy(mb, rhs.Off(ii-1), 1, f.Vector(is-1, js+jj-1), 1)
+						goblas.Dcopy(mb, rhs.Off(k-1, 1), c.Vector(is-1, js+jj-1, 1))
+						goblas.Dcopy(mb, rhs.Off(ii-1, 1), f.Vector(is-1, js+jj-1, 1))
 						k = k + mb
 						ii = ii + mb
 					}
@@ -418,13 +418,13 @@ label40:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if i > 1 {
-						err = goblas.Dgemm(NoTrans, NoTrans, is-1, nb, mb, -one, a.Off(0, is-1), *lda, rhs.Matrix(mb, opts), mb, one, c.Off(0, js-1), *ldc)
-						err = goblas.Dgemm(NoTrans, NoTrans, is-1, nb, mb, -one, d.Off(0, is-1), *ldd, rhs.Matrix(mb, opts), mb, one, f.Off(0, js-1), *ldf)
+						err = goblas.Dgemm(NoTrans, NoTrans, is-1, nb, mb, -one, a.Off(0, is-1), rhs.Matrix(mb, opts), one, c.Off(0, js-1))
+						err = goblas.Dgemm(NoTrans, NoTrans, is-1, nb, mb, -one, d.Off(0, is-1), rhs.Matrix(mb, opts), one, f.Off(0, js-1))
 					}
 					if j < q {
 						k = mb*nb + 1
-						err = goblas.Dgemm(NoTrans, NoTrans, mb, (*n)-je, nb, one, rhs.MatrixOff(k-1, mb, opts), mb, b.Off(js-1, je+1-1), *ldb, one, c.Off(is-1, je+1-1), *ldc)
-						err = goblas.Dgemm(NoTrans, NoTrans, mb, (*n)-je, nb, one, rhs.MatrixOff(k-1, mb, opts), mb, e.Off(js-1, je+1-1), *lde, one, f.Off(is-1, je+1-1), *ldf)
+						err = goblas.Dgemm(NoTrans, NoTrans, mb, (*n)-je, nb, one, rhs.MatrixOff(k-1, mb, opts), b.Off(js-1, je), one, c.Off(is-1, je))
+						err = goblas.Dgemm(NoTrans, NoTrans, mb, (*n)-je, nb, one, rhs.MatrixOff(k-1, mb, opts), e.Off(js-1, je), one, f.Off(is-1, je))
 					}
 
 				}
@@ -442,13 +442,13 @@ label40:
 
 			is = (*iwork)[i-1]
 			isp1 = is + 1
-			ie = (*iwork)[i+1-1] - 1
+			ie = (*iwork)[i] - 1
 			mb = ie - is + 1
 			for j = q; j >= p+2; j-- {
 
 				js = (*iwork)[j-1]
 				jsp1 = js + 1
-				je = (*iwork)[j+1-1] - 1
+				je = (*iwork)[j] - 1
 				nb = je - js + 1
 				zdim = mb * nb * 2
 				if (mb == 1) && (nb == 1) {
@@ -471,8 +471,8 @@ label40:
 					Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 					if scaloc != one {
 						for k = 1; k <= (*n); k++ {
-							goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-							goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+							goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+							goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -485,15 +485,15 @@ label40:
 					//                 equation.
 					if j > p+2 {
 						alpha = rhs.Get(0)
-						goblas.Daxpy(js-1, alpha, b.Vector(0, js-1), 1, f.Vector(is-1, 0), *ldf)
+						goblas.Daxpy(js-1, alpha, b.Vector(0, js-1, 1), f.Vector(is-1, 0, *ldf))
 						alpha = rhs.Get(1)
-						goblas.Daxpy(js-1, alpha, e.Vector(0, js-1), 1, f.Vector(is-1, 0), *ldf)
+						goblas.Daxpy(js-1, alpha, e.Vector(0, js-1, 1), f.Vector(is-1, 0, *ldf))
 					}
 					if i < p {
 						alpha = -rhs.Get(0)
-						goblas.Daxpy((*m)-ie, alpha, a.Vector(is-1, ie+1-1), *lda, c.Vector(ie+1-1, js-1), 1)
+						goblas.Daxpy((*m)-ie, alpha, a.Vector(is-1, ie, *lda), c.Vector(ie, js-1, 1))
 						alpha = -rhs.Get(1)
-						goblas.Daxpy((*m)-ie, alpha, d.Vector(is-1, ie+1-1), *ldd, c.Vector(ie+1-1, js-1), 1)
+						goblas.Daxpy((*m)-ie, alpha, d.Vector(is-1, ie, *ldd), c.Vector(ie, js-1, 1))
 					}
 
 				} else if (mb == 1) && (nb == 2) {
@@ -532,8 +532,8 @@ label40:
 					Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 					if scaloc != one {
 						for k = 1; k <= (*n); k++ {
-							goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-							goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+							goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+							goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -547,14 +547,14 @@ label40:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if j > p+2 {
-						goblas.Daxpy(js-1, rhs.Get(0), b.Vector(0, js-1), 1, f.Vector(is-1, 0), *ldf)
-						goblas.Daxpy(js-1, rhs.Get(1), b.Vector(0, jsp1-1), 1, f.Vector(is-1, 0), *ldf)
-						goblas.Daxpy(js-1, rhs.Get(2), e.Vector(0, js-1), 1, f.Vector(is-1, 0), *ldf)
-						goblas.Daxpy(js-1, rhs.Get(3), e.Vector(0, jsp1-1), 1, f.Vector(is-1, 0), *ldf)
+						goblas.Daxpy(js-1, rhs.Get(0), b.Vector(0, js-1, 1), f.Vector(is-1, 0, *ldf))
+						goblas.Daxpy(js-1, rhs.Get(1), b.Vector(0, jsp1-1, 1), f.Vector(is-1, 0, *ldf))
+						goblas.Daxpy(js-1, rhs.Get(2), e.Vector(0, js-1, 1), f.Vector(is-1, 0, *ldf))
+						goblas.Daxpy(js-1, rhs.Get(3), e.Vector(0, jsp1-1, 1), f.Vector(is-1, 0, *ldf))
 					}
 					if i < p {
-						err = goblas.Dger((*m)-ie, nb, -one, a.Vector(is-1, ie+1-1), *lda, rhs.Off(0), 1, c.Off(ie+1-1, js-1), *ldc)
-						err = goblas.Dger((*m)-ie, nb, -one, d.Vector(is-1, ie+1-1), *ldd, rhs.Off(2), 1, c.Off(ie+1-1, js-1), *ldc)
+						err = goblas.Dger((*m)-ie, nb, -one, a.Vector(is-1, ie, *lda), rhs.Off(0, 1), c.Off(ie, js-1))
+						err = goblas.Dger((*m)-ie, nb, -one, d.Vector(is-1, ie, *ldd), rhs.Off(2, 1), c.Off(ie, js-1))
 					}
 
 				} else if (mb == 2) && (nb == 1) {
@@ -594,8 +594,8 @@ label40:
 					Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 					if scaloc != one {
 						for k = 1; k <= (*n); k++ {
-							goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-							goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+							goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+							goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -609,12 +609,12 @@ label40:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if j > p+2 {
-						err = goblas.Dger(mb, js-1, one, rhs.Off(0), 1, b.Vector(0, js-1), 1, f.Off(is-1, 0), *ldf)
-						err = goblas.Dger(mb, js-1, one, rhs.Off(2), 1, e.Vector(0, js-1), 1, f.Off(is-1, 0), *ldf)
+						err = goblas.Dger(mb, js-1, one, rhs.Off(0, 1), b.Vector(0, js-1, 1), f.Off(is-1, 0))
+						err = goblas.Dger(mb, js-1, one, rhs.Off(2, 1), e.Vector(0, js-1, 1), f.Off(is-1, 0))
 					}
 					if i < p {
-						err = goblas.Dgemv(Trans, mb, (*m)-ie, -one, a.Off(is-1, ie+1-1), *lda, rhs.Off(0), 1, one, c.Vector(ie+1-1, js-1), 1)
-						err = goblas.Dgemv(Trans, mb, (*m)-ie, -one, d.Off(is-1, ie+1-1), *ldd, rhs.Off(2), 1, one, c.Vector(ie+1-1, js-1), 1)
+						err = goblas.Dgemv(Trans, mb, (*m)-ie, -one, a.Off(is-1, ie), rhs.Off(0, 1), one, c.Vector(ie, js-1, 1))
+						err = goblas.Dgemv(Trans, mb, (*m)-ie, -one, d.Off(is-1, ie), rhs.Off(2, 1), one, c.Vector(ie, js-1, 1))
 					}
 
 				} else if (mb == 2) && (nb == 2) {
@@ -661,8 +661,8 @@ label40:
 					k = 1
 					ii = mb*nb + 1
 					for jj = 0; jj <= nb-1; jj++ {
-						goblas.Dcopy(mb, c.Vector(is-1, js+jj-1), 1, rhs.Off(k-1), 1)
-						goblas.Dcopy(mb, f.Vector(is-1, js+jj-1), 1, rhs.Off(ii-1), 1)
+						goblas.Dcopy(mb, c.Vector(is-1, js+jj-1, 1), rhs.Off(k-1, 1))
+						goblas.Dcopy(mb, f.Vector(is-1, js+jj-1, 1), rhs.Off(ii-1, 1))
 						k = k + mb
 						ii = ii + mb
 					}
@@ -676,8 +676,8 @@ label40:
 					Dgesc2(&zdim, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 					if scaloc != one {
 						for k = 1; k <= (*n); k++ {
-							goblas.Dscal(*m, scaloc, c.Vector(0, k-1), 1)
-							goblas.Dscal(*m, scaloc, f.Vector(0, k-1), 1)
+							goblas.Dscal(*m, scaloc, c.Vector(0, k-1, 1))
+							goblas.Dscal(*m, scaloc, f.Vector(0, k-1, 1))
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -686,8 +686,8 @@ label40:
 					k = 1
 					ii = mb*nb + 1
 					for jj = 0; jj <= nb-1; jj++ {
-						goblas.Dcopy(mb, rhs.Off(k-1), 1, c.Vector(is-1, js+jj-1), 1)
-						goblas.Dcopy(mb, rhs.Off(ii-1), 1, f.Vector(is-1, js+jj-1), 1)
+						goblas.Dcopy(mb, rhs.Off(k-1, 1), c.Vector(is-1, js+jj-1, 1))
+						goblas.Dcopy(mb, rhs.Off(ii-1, 1), f.Vector(is-1, js+jj-1, 1))
 						k = k + mb
 						ii = ii + mb
 					}
@@ -695,12 +695,12 @@ label40:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if j > p+2 {
-						err = goblas.Dgemm(NoTrans, Trans, mb, js-1, nb, one, c.Off(is-1, js-1), *ldc, b.Off(0, js-1), *ldb, one, f.Off(is-1, 0), *ldf)
-						err = goblas.Dgemm(NoTrans, Trans, mb, js-1, nb, one, f.Off(is-1, js-1), *ldf, e.Off(0, js-1), *lde, one, f.Off(is-1, 0), *ldf)
+						err = goblas.Dgemm(NoTrans, Trans, mb, js-1, nb, one, c.Off(is-1, js-1), b.Off(0, js-1), one, f.Off(is-1, 0))
+						err = goblas.Dgemm(NoTrans, Trans, mb, js-1, nb, one, f.Off(is-1, js-1), e.Off(0, js-1), one, f.Off(is-1, 0))
 					}
 					if i < p {
-						err = goblas.Dgemm(Trans, NoTrans, (*m)-ie, nb, mb, -one, a.Off(is-1, ie+1-1), *lda, c.Off(is-1, js-1), *ldc, one, c.Off(ie+1-1, js-1), *ldc)
-						err = goblas.Dgemm(Trans, NoTrans, (*m)-ie, nb, mb, -one, d.Off(is-1, ie+1-1), *ldd, f.Off(is-1, js-1), *ldf, one, c.Off(ie+1-1, js-1), *ldc)
+						err = goblas.Dgemm(Trans, NoTrans, (*m)-ie, nb, mb, -one, a.Off(is-1, ie), c.Off(is-1, js-1), one, c.Off(ie, js-1))
+						err = goblas.Dgemm(Trans, NoTrans, (*m)-ie, nb, mb, -one, d.Off(is-1, ie), f.Off(is-1, js-1), one, c.Off(ie, js-1))
 					}
 
 				}

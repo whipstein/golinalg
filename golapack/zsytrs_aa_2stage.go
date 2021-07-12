@@ -26,11 +26,11 @@ func Zsytrsaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.C
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	} else if (*ltb) < (4 * (*n)) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -54,7 +54,7 @@ func Zsytrsaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.C
 			Zlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, func() *int { y := 1; return &y }())
 
 			//           Compute (U**T \ B) -> B    [ (U**T \P**T * B) ]
-			err = goblas.Ztrsm(Left, Upper, Trans, Unit, (*n)-nb, *nrhs, one, a.Off(0, nb+1-1), *lda, b.Off(nb+1-1, 0), *ldb)
+			err = goblas.Ztrsm(Left, Upper, Trans, Unit, (*n)-nb, *nrhs, one, a.Off(0, nb), b.Off(nb, 0))
 
 		}
 
@@ -62,7 +62,7 @@ func Zsytrsaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.C
 		Zgbtrs('N', n, &nb, &nb, nrhs, tb.CMatrix(ldtb, opts), &ldtb, ipiv2, b, ldb, info)
 		if (*n) > nb {
 			//           Compute (U \ B) -> B   [ U \ (T \ (U**T \P**T * B) ) ]
-			err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, (*n)-nb, *nrhs, one, a.Off(0, nb+1-1), *lda, b.Off(nb+1-1, 0), *ldb)
+			err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, (*n)-nb, *nrhs, one, a.Off(0, nb), b.Off(nb, 0))
 
 			//           Pivot, P * B -> B  [ P * (U \ (T \ (U**T \P**T * B) )) ]
 			Zlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, toPtr(-1))
@@ -76,7 +76,7 @@ func Zsytrsaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.C
 			Zlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, func() *int { y := 1; return &y }())
 
 			//           Compute (L \ B) -> B    [ (L \P**T * B) ]
-			err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, (*n)-nb, *nrhs, one, a.Off(nb+1-1, 0), *lda, b.Off(nb+1-1, 0), *ldb)
+			err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, (*n)-nb, *nrhs, one, a.Off(nb, 0), b.Off(nb, 0))
 
 		}
 
@@ -84,7 +84,7 @@ func Zsytrsaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.C
 		Zgbtrs('N', n, &nb, &nb, nrhs, tb.CMatrix(ldtb, opts), &ldtb, ipiv2, b, ldb, info)
 		if (*n) > nb {
 			//           Compute (L**T \ B) -> B   [ L**T \ (T \ (L \P**T * B) ) ]
-			err = goblas.Ztrsm(Left, Lower, Trans, Unit, (*n)-nb, *nrhs, one, a.Off(nb+1-1, 0), *lda, b.Off(nb+1-1, 0), *ldb)
+			err = goblas.Ztrsm(Left, Lower, Trans, Unit, (*n)-nb, *nrhs, one, a.Off(nb, 0), b.Off(nb, 0))
 
 			//           Pivot, P * B -> B  [ P * (L**T \ (T \ (L \P**T * B) )) ]
 			Zlaswp(nrhs, b, ldb, toPtr(nb+1), n, ipiv, toPtr(-1))

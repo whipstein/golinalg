@@ -43,11 +43,11 @@ func Dtrrfs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 		(*info) = -4
 	} else if (*nrhs) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -81,13 +81,13 @@ func Dtrrfs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A or A**T, depending on TRANS.
-		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
-		err = goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work.Off((*n)+1-1), 1)
-		goblas.Daxpy(*n, -one, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
+		goblas.Dcopy(*n, x.Vector(0, j-1, 1), work.Off((*n), 1))
+		err = goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, work.Off((*n), 1))
+		goblas.Daxpy(*n, -one, b.Vector(0, j-1, 1), work.Off((*n), 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
-		//        maxf64(i) ( abs(R(i)) / ( abs(op(A))*abs(X) + abs(B) )(i) )
+		//        math.Max(i) ( abs(R(i)) / ( abs(op(A))*abs(X) + abs(B) )(i) )
 		//
 		//        where abs(Z) is the componentwise absolute value of the matrix
 		//        or vector Z.  If the i-th component of the denominator is less
@@ -177,9 +177,9 @@ func Dtrrfs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if work.Get(i-1) > safe2 {
-				s = maxf64(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
+				s = math.Max(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
 			} else {
-				s = maxf64(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
+				s = math.Max(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -216,11 +216,11 @@ func Dtrrfs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 		kase = 0
 	label210:
 		;
-		Dlacn2(n, work.Off(2*(*n)+1-1), work.Off((*n)+1-1), iwork, ferr.GetPtr(j-1), &kase, &isave)
+		Dlacn2(n, work.Off(2*(*n)), work.Off((*n)), iwork, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				err = goblas.Dtrsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, a, *lda, work.Off((*n)+1-1), 1)
+				err = goblas.Dtrsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, a, work.Off((*n), 1))
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
@@ -229,7 +229,7 @@ func Dtrrfs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
 				}
-				err = goblas.Dtrsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work.Off((*n)+1-1), 1)
+				err = goblas.Dtrsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, work.Off((*n), 1))
 			}
 			goto label210
 		}
@@ -237,7 +237,7 @@ func Dtrrfs(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, b *ma
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, math.Abs(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, math.Abs(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

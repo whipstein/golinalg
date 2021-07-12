@@ -30,7 +30,7 @@ func Dpbsv(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matrix
 		(*info) = -4
 	} else if (*ldab) < (*kd)+1 {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {

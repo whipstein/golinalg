@@ -50,9 +50,9 @@ func Zunml2(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > nq {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -101,14 +101,14 @@ func Zunml2(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 			taui = tau.Get(i - 1)
 		}
 		if i < nq {
-			Zlacgv(toPtr(nq-i), a.CVector(i-1, i+1-1), lda)
+			Zlacgv(toPtr(nq-i), a.CVector(i-1, i), lda)
 		}
 		aii = a.Get(i-1, i-1)
 		a.Set(i-1, i-1, one)
 		Zlarf(side, &mi, &ni, a.CVector(i-1, i-1), lda, &taui, c.Off(ic-1, jc-1), ldc, work)
 		a.Set(i-1, i-1, aii)
 		if i < nq {
-			Zlacgv(toPtr(nq-i), a.CVector(i-1, i+1-1), lda)
+			Zlacgv(toPtr(nq-i), a.CVector(i-1, i), lda)
 		}
 	}
 }

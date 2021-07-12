@@ -17,7 +17,7 @@ import (
 //
 // alpha and beta are scalars, and A, B and C are matrices, with op( A )
 // an m by k matrix,  op( B )  a  k by n matrix and  C an m by n matrix.
-func Zgemm(transa, transb mat.MatTrans, m, n, k int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int, beta complex128, c *mat.CMatrix, ldc int) (err error) {
+func Zgemm(transa, transb mat.MatTrans, m, n, k int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix, beta complex128, c *mat.CMatrix) (err error) {
 	var conja, conjb, nota, notb bool
 	var one, temp, zero complex128
 	var i, j, l, nrowa, nrowb int
@@ -58,12 +58,12 @@ func Zgemm(transa, transb mat.MatTrans, m, n, k int, alpha complex128, a *mat.CM
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, nrowb) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, m) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, nrowb) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, nrowb))
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zgemm"), err)
@@ -264,7 +264,7 @@ func Zgemm(transa, transb mat.MatTrans, m, n, k int, alpha complex128, a *mat.CM
 //
 // where alpha and beta are scalars, A is an hermitian matrix and  B and
 // C are m by n matrices.
-func Zhemm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int, beta complex128, c *mat.CMatrix, ldc int) (err error) {
+func Zhemm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix, beta complex128, c *mat.CMatrix) (err error) {
 	var upper bool
 	var one, temp1, temp2, zero complex128
 	var i, j, k, nrowa int
@@ -289,12 +289,12 @@ func Zhemm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *ma
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, m) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zhemm"), err)
@@ -409,7 +409,7 @@ func Zhemm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *ma
 //
 // where  alpha and beta are scalars, A is a symmetric matrix and  B and
 // C are m by n matrices.
-func Zsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int, beta complex128, c *mat.CMatrix, ldc int) (err error) {
+func Zsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix, beta complex128, c *mat.CMatrix) (err error) {
 	var upper bool
 	var one, temp1, temp2, zero complex128
 	var i, j, k, nrowa int
@@ -434,12 +434,12 @@ func Zsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *ma
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, m) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zsymm"), err)
@@ -552,7 +552,7 @@ func Zsymm(side mat.MatSide, uplo mat.MatUplo, m, n int, alpha complex128, a *ma
 // non-unit,  upper or lower triangular matrix  and  op( A )  is one  of
 //
 //    op( A ) = A   or   op( A ) = A**T   or   op( A ) = A**H.
-func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int) (err error) {
+func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix) (err error) {
 	var lside, noconj, nounit, upper bool
 	var one, temp, zero complex128
 	var i, j, k, nrowa int
@@ -583,10 +583,10 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztrmm"), err)
@@ -806,7 +806,7 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 //    op( A ) = A   or   op( A ) = A**T   or   op( A ) = A**H.
 //
 // The matrix X is overwritten on B.
-func Ztrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int) (err error) {
+func Ztrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.MatDiag, m, n int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix) (err error) {
 	var lside, noconj, nounit, upper bool
 	var one, temp, zero complex128
 	var i, j, k, nrowa int
@@ -837,10 +837,10 @@ func Ztrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, m) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztrsm"), err)
@@ -1079,7 +1079,7 @@ func Ztrsm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 // where  alpha and beta  are  real scalars,  C is an  n by n  hermitian
 // matrix and  A  is an  n by k  matrix in the  first case and a  k by n
 // matrix in the second case.
-func Zherk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat.CMatrix, lda int, beta float64, c *mat.CMatrix, ldc int) (err error) {
+func Zherk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat.CMatrix, beta float64, c *mat.CMatrix) (err error) {
 	var upper bool
 	var temp complex128
 	var one, rtemp, zero float64
@@ -1104,10 +1104,10 @@ func Zherk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldc < max(1, n) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if c.Rows < max(1, n) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zherk"), err)
@@ -1272,7 +1272,7 @@ func Zherk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha float64, a *mat
 // where  alpha and beta  are scalars,  C is an  n by n symmetric matrix
 // and  A  is an  n by k  matrix in the first case and a  k by n  matrix
 // in the second case.
-func Zsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *mat.CMatrix, lda int, beta complex128, c *mat.CMatrix, ldc int) (err error) {
+func Zsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *mat.CMatrix, beta complex128, c *mat.CMatrix) (err error) {
 	var upper bool
 	var one, temp, zero complex128
 	var i, j, l, nrowa int
@@ -1296,10 +1296,10 @@ func Zsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldc < max(1, n) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if c.Rows < max(1, n) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zsyrk"), err)
@@ -1436,7 +1436,7 @@ func Zsyrk(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *
 // where  alpha and beta  are scalars with  beta  real,  C is an  n by n
 // hermitian matrix and  A and B  are  n by k matrices in the first case
 // and  k by n  matrices in the second case.
-func Zher2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int, beta float64, c *mat.CMatrix, ldc int) (err error) {
+func Zher2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix, beta float64, c *mat.CMatrix) (err error) {
 	var upper bool
 	var temp1, temp2, zero complex128
 	var one float64
@@ -1461,12 +1461,12 @@ func Zher2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a 
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, nrowa) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, n) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, nrowa) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, nrowa))
+	} else if c.Rows < max(1, n) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zher2k"), err)
@@ -1637,7 +1637,7 @@ func Zher2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a 
 // where  alpha and beta  are scalars,  C is an  n by n symmetric matrix
 // and  A and B  are  n by k  matrices  in the  first  case  and  k by n
 // matrices in the second case.
-func Zsyr2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *mat.CMatrix, lda int, b *mat.CMatrix, ldb int, beta complex128, c *mat.CMatrix, ldc int) (err error) {
+func Zsyr2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a *mat.CMatrix, b *mat.CMatrix, beta complex128, c *mat.CMatrix) (err error) {
 	var upper bool
 	var one, temp1, temp2, zero complex128
 	var i, j, l, nrowa int
@@ -1661,12 +1661,12 @@ func Zsyr2k(uplo mat.MatUplo, trans mat.MatTrans, n, k int, alpha complex128, a 
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < max(1, nrowa) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if ldb < max(1, nrowa) {
-		err = fmt.Errorf("ldb invalid: %v", ldb)
-	} else if ldc < max(1, n) {
-		err = fmt.Errorf("ldc invalid: %v", ldc)
+	} else if a.Rows < max(1, nrowa) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, nrowa))
+	} else if b.Rows < max(1, nrowa) {
+		err = fmt.Errorf("b.Rows invalid: %v < %v", b.Rows, max(1, nrowa))
+	} else if c.Rows < max(1, n) {
+		err = fmt.Errorf("c.Rows invalid: %v < %v", c.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zsyr2k"), err)

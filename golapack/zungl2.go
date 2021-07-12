@@ -28,7 +28,7 @@ func Zungl2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*m) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -56,13 +56,13 @@ func Zungl2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 	for i = (*k); i >= 1; i-- {
 		//        Apply H(i)**H to A(i:m,i:n) from the right
 		if i < (*n) {
-			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
+			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i), lda)
 			if i < (*m) {
 				a.Set(i-1, i-1, one)
-				Zlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.CVector(i-1, i-1), lda, toPtrc128(tau.GetConj(i-1)), a.Off(i+1-1, i-1), lda, work)
+				Zlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.CVector(i-1, i-1), lda, toPtrc128(tau.GetConj(i-1)), a.Off(i, i-1), lda, work)
 			}
-			goblas.Zscal((*n)-i, -tau.Get(i-1), a.CVector(i-1, i+1-1), *lda)
-			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i+1-1), lda)
+			goblas.Zscal((*n)-i, -tau.Get(i-1), a.CVector(i-1, i, *lda))
+			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i), lda)
 		}
 		a.Set(i-1, i-1, one-tau.GetConj(i-1))
 

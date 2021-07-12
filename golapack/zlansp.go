@@ -22,7 +22,7 @@ func Zlansp(norm, uplo byte, n *int, ap *mat.CVector, work *mat.Vector) (zlanspR
 	if (*n) == 0 {
 		value = zero
 	} else if norm == 'M' {
-		//        Find maxint(abs(A(i,j))).
+		//        Find max(abs(A(i,j))).
 		value = zero
 		if uplo == 'U' {
 			k = 1

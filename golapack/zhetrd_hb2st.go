@@ -136,9 +136,9 @@ func Zhetrdhb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int
 		//         make off-diagonal elements real and copy them to E
 		if upper {
 			for i = 1; i <= (*n)-1; i++ {
-				tmp = ab.Get(abofdpos-1, i+1-1)
+				tmp = ab.Get(abofdpos-1, i)
 				abstmp = cmplx.Abs(tmp)
-				ab.SetRe(abofdpos-1, i+1-1, abstmp)
+				ab.SetRe(abofdpos-1, i, abstmp)
 				e.Set(i-1, abstmp)
 				if abstmp != rzero {
 					tmp = tmp / complex(abstmp, 0)
@@ -161,7 +161,7 @@ func Zhetrdhb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int
 					tmp = one
 				}
 				if i < (*n)-1 {
-					ab.Set(abofdpos-1, i+1-1, ab.Get(abofdpos-1, i+1-1)*tmp)
+					ab.Set(abofdpos-1, i, ab.Get(abofdpos-1, i)*tmp)
 				}
 			}
 		}
@@ -186,9 +186,9 @@ func Zhetrdhb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int
 	//     main bulge chasing loop
 	for thgrid = 1; thgrid <= thgrnb; thgrid++ {
 		stt = (thgrid-1)*thgrsiz + 1
-		thed = minint(stt+thgrsiz-1, (*n)-1)
+		thed = min(stt+thgrsiz-1, (*n)-1)
 		for i = stt; i <= (*n)-1; i++ {
-			ed = minint(i, thed)
+			ed = min(i, thed)
 			if stt > ed {
 				break
 			}
@@ -205,12 +205,12 @@ func Zhetrdhb2st(stage1, vect, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int
 						if ttype == 2 {
 							colpt = (myid/2)*(*kd) + sweepid
 							stind = colpt - (*kd) + 1
-							edind = minint(colpt, *n)
+							edind = min(colpt, *n)
 							blklastind = colpt
 						} else {
 							colpt = ((myid+1)/2)*(*kd) + sweepid
 							stind = colpt - (*kd) + 1
-							edind = minint(colpt, *n)
+							edind = min(colpt, *n)
 							if (stind >= edind-1) && (edind == (*n)) {
 								blklastind = (*n)
 							} else {

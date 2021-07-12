@@ -46,11 +46,11 @@ func Dormtr(side, uplo, trans byte, m, n *int, a *mat.Matrix, lda *int, tau *mat
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, nq) {
+	} else if (*lda) < max(1, nq) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
-	} else if (*lwork) < maxint(1, nw) && !lquery {
+	} else if (*lwork) < max(1, nw) && !lquery {
 		(*info) = -12
 	}
 
@@ -68,7 +68,7 @@ func Dormtr(side, uplo, trans byte, m, n *int, a *mat.Matrix, lda *int, tau *mat
 				nb = Ilaenv(toPtr(1), []byte("DORMQR"), []byte{side, trans}, m, toPtr((*n)-1), toPtr((*n)-1), toPtr(-1))
 			}
 		}
-		lwkopt = maxint(1, nw) * nb
+		lwkopt = max(1, nw) * nb
 		work.Set(0, float64(lwkopt))
 	}
 

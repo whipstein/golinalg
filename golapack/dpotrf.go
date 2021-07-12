@@ -31,7 +31,7 @@ func Dpotrf(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -56,16 +56,16 @@ func Dpotrf(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 			for j = 1; j <= (*n); j += nb {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
-				jb = minint(nb, (*n)-j+1)
-				err = goblas.Dsyrk(mat.Upper, mat.Trans, jb, j-1, -one, a.Off(0, j-1), *lda, one, a.Off(j-1, j-1), *lda)
+				jb = min(nb, (*n)-j+1)
+				err = goblas.Dsyrk(mat.Upper, mat.Trans, jb, j-1, -one, a.Off(0, j-1), one, a.Off(j-1, j-1))
 				Dpotrf2('U', &jb, a.Off(j-1, j-1), lda, info)
 				if (*info) != 0 {
 					goto label30
 				}
 				if j+jb <= (*n) {
 					//                 Compute the current block row.
-					err = goblas.Dgemm(mat.Trans, mat.NoTrans, jb, (*n)-j-jb+1, j-1, -one, a.Off(0, j-1), *lda, a.Off(0, j+jb-1), *lda, one, a.Off(j-1, j+jb-1), *lda)
-					err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
+					err = goblas.Dgemm(mat.Trans, mat.NoTrans, jb, (*n)-j-jb+1, j-1, -one, a.Off(0, j-1), a.Off(0, j+jb-1), one, a.Off(j-1, j+jb-1))
+					err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
 				}
 			}
 
@@ -74,16 +74,16 @@ func Dpotrf(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 			for j = 1; j <= (*n); j += nb {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
-				jb = minint(nb, (*n)-j+1)
-				err = goblas.Dsyrk(mat.Lower, mat.NoTrans, jb, j-1, -one, a.Off(j-1, 0), *lda, one, a.Off(j-1, j-1), *lda)
+				jb = min(nb, (*n)-j+1)
+				err = goblas.Dsyrk(mat.Lower, mat.NoTrans, jb, j-1, -one, a.Off(j-1, 0), one, a.Off(j-1, j-1))
 				Dpotrf2('L', &jb, a.Off(j-1, j-1), lda, info)
 				if (*info) != 0 {
 					goto label30
 				}
 				if j+jb <= (*n) {
 					//                 Compute the current block column.
-					err = goblas.Dgemm(mat.NoTrans, mat.Trans, (*n)-j-jb+1, jb, j-1, -one, a.Off(j+jb-1, 0), *lda, a.Off(j-1, 0), *lda, one, a.Off(j+jb-1, j-1), *lda)
-					err = goblas.Dtrsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, (*n)-j-jb+1, jb, one, a.Off(j-1, j-1), *lda, a.Off(j+jb-1, j-1), *lda)
+					err = goblas.Dgemm(mat.NoTrans, mat.Trans, (*n)-j-jb+1, jb, j-1, -one, a.Off(j+jb-1, 0), a.Off(j-1, 0), one, a.Off(j+jb-1, j-1))
+					err = goblas.Dtrsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, (*n)-j-jb+1, jb, one, a.Off(j-1, j-1), a.Off(j+jb-1, j-1))
 				}
 			}
 		}

@@ -29,7 +29,7 @@ func Dlag2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, safmin, scale1, sca
 	safmax = one / (*safmin)
 
 	//     Scale A
-	anorm = maxf64(math.Abs(a.Get(0, 0))+math.Abs(a.Get(1, 0)), math.Abs(a.Get(0, 1))+math.Abs(a.Get(1, 1)), *safmin)
+	anorm = math.Max(math.Abs(a.Get(0, 0))+math.Abs(a.Get(1, 0)), math.Max(math.Abs(a.Get(0, 1))+math.Abs(a.Get(1, 1)), *safmin))
 	ascale = one / anorm
 	a11 = ascale * a.Get(0, 0)
 	a21 = ascale * a.Get(1, 0)
@@ -40,17 +40,17 @@ func Dlag2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, safmin, scale1, sca
 	b11 = b.Get(0, 0)
 	b12 = b.Get(0, 1)
 	b22 = b.Get(1, 1)
-	bmin = rtmin * maxf64(math.Abs(b11), math.Abs(b12), math.Abs(b22), rtmin)
+	bmin = rtmin * math.Max(math.Abs(b11), math.Max(math.Abs(b12), math.Max(math.Abs(b22), rtmin)))
 	if math.Abs(b11) < bmin {
-		b11 = signf64(bmin, b11)
+		b11 = math.Copysign(bmin, b11)
 	}
 	if math.Abs(b22) < bmin {
-		b22 = signf64(bmin, b22)
+		b22 = math.Copysign(bmin, b22)
 	}
 
 	//     Scale B
-	bnorm = maxf64(math.Abs(b11), math.Abs(b12)+math.Abs(b22), *safmin)
-	bsize = maxf64(math.Abs(b11), math.Abs(b22))
+	bnorm = math.Max(math.Abs(b11), math.Max(math.Abs(b12)+math.Abs(b22), *safmin))
+	bsize = math.Max(math.Abs(b11), math.Abs(b22))
 	bscale = one / bsize
 	b11 = b11 * bscale
 	b12 = b12 * bscale
@@ -98,13 +98,13 @@ func Dlag2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, safmin, scale1, sca
 	//           flush-to-zero threshold and handle numbers above that
 	//           threshold correctly, it would not be necessary.
 	if discr >= zero || r == zero {
-		sum = pp + signf64(r, pp)
-		diff = pp - signf64(r, pp)
+		sum = pp + math.Copysign(r, pp)
+		diff = pp - math.Copysign(r, pp)
 		wbig = shift + sum
 
 		//        Compute smaller eigenvalue
 		wsmall = shift + diff
-		if half*math.Abs(wbig) > maxf64(math.Abs(wsmall), *safmin) {
+		if half*math.Abs(wbig) > math.Max(math.Abs(wsmall), *safmin) {
 			wdet = (a11*a22 - a12*a21) * (binv11 * binv22)
 			wsmall = wdet / wbig
 		}
@@ -112,11 +112,11 @@ func Dlag2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, safmin, scale1, sca
 		//        Choose (real) eigenvalue closest to 2,2 element of A*B**(-1)
 		//        for WR1.
 		if pp > abi22 {
-			(*wr1) = minf64(wbig, wsmall)
-			(*wr2) = maxf64(wbig, wsmall)
+			(*wr1) = math.Min(wbig, wsmall)
+			(*wr2) = math.Max(wbig, wsmall)
 		} else {
-			(*wr1) = maxf64(wbig, wsmall)
-			(*wr2) = minf64(wbig, wsmall)
+			(*wr1) = math.Max(wbig, wsmall)
+			(*wr2) = math.Min(wbig, wsmall)
 		}
 		(*wi) = zero
 	} else {
@@ -136,30 +136,30 @@ func Dlag2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, safmin, scale1, sca
 	//        C3, with C2,
 	//           implement the condition that s A - w B must never overflow.
 	//        C4 implements the condition  s    should not underflow.
-	//        C5 implements the condition  maxf64(s,|w|) should be at least 2.
-	c1 = bsize * ((*safmin) * maxf64(one, ascale))
-	c2 = (*safmin) * maxf64(one, bnorm)
+	//        C5 implements the condition  math.Max(s,|w|) should be at least 2.
+	c1 = bsize * ((*safmin) * math.Max(one, ascale))
+	c2 = (*safmin) * math.Max(one, bnorm)
 	c3 = bsize * (*safmin)
 	if ascale <= one && bsize <= one {
-		c4 = minf64(one, (ascale/(*safmin))*bsize)
+		c4 = math.Min(one, (ascale/(*safmin))*bsize)
 	} else {
 		c4 = one
 	}
 	if ascale <= one || bsize <= one {
-		c5 = minf64(one, ascale*bsize)
+		c5 = math.Min(one, ascale*bsize)
 	} else {
 		c5 = one
 	}
 
 	//     Scale first eigenvalue
 	wabs = math.Abs(*wr1) + math.Abs(*wi)
-	wsize = maxf64(*safmin, c1, fuzzy1*(wabs*c2+c3), minf64(c4, half*maxf64(wabs, c5)))
+	wsize = math.Max(*safmin, math.Max(c1, math.Max(fuzzy1*(wabs*c2+c3), math.Min(c4, half*math.Max(wabs, c5)))))
 	if wsize != one {
 		wscale = one / wsize
 		if wsize > one {
-			(*scale1) = (maxf64(ascale, bsize) * wscale) * minf64(ascale, bsize)
+			(*scale1) = (math.Max(ascale, bsize) * wscale) * math.Min(ascale, bsize)
 		} else {
-			(*scale1) = (minf64(ascale, bsize) * wscale) * maxf64(ascale, bsize)
+			(*scale1) = (math.Min(ascale, bsize) * wscale) * math.Max(ascale, bsize)
 		}
 		(*wr1) = (*wr1) * wscale
 		if (*wi) != zero {
@@ -174,13 +174,13 @@ func Dlag2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, safmin, scale1, sca
 
 	//     Scale second eigenvalue (if real)
 	if (*wi) == zero {
-		wsize = maxf64(*safmin, c1, fuzzy1*(math.Abs(*wr2)*c2+c3), minf64(c4, half*maxf64(math.Abs(*wr2), c5)))
+		wsize = math.Max(*safmin, math.Max(c1, math.Max(fuzzy1*(math.Abs(*wr2)*c2+c3), math.Min(c4, half*math.Max(math.Abs(*wr2), c5)))))
 		if wsize != one {
 			wscale = one / wsize
 			if wsize > one {
-				(*scale2) = (maxf64(ascale, bsize) * wscale) * minf64(ascale, bsize)
+				(*scale2) = (math.Max(ascale, bsize) * wscale) * math.Min(ascale, bsize)
 			} else {
-				(*scale2) = (minf64(ascale, bsize) * wscale) * maxf64(ascale, bsize)
+				(*scale2) = (math.Min(ascale, bsize) * wscale) * math.Max(ascale, bsize)
 			}
 			(*wr2) = (*wr2) * wscale
 		} else {

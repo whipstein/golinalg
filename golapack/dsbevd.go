@@ -129,13 +129,13 @@ func Dsbevd(jobz, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, w *mat.Vecto
 		Dsterf(n, w, work.Off(inde-1), info)
 	} else {
 		Dstedc('I', n, w, work.Off(inde-1), work.MatrixOff(indwrk-1, *n, opts), n, work.Off(indwk2-1), &llwrk2, iwork, liwork, info)
-		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, z, *ldz, work.MatrixOff(indwrk-1, *n, opts), *n, zero, work.MatrixOff(indwk2-1, *n, opts), *n)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, z, work.MatrixOff(indwrk-1, *n, opts), zero, work.MatrixOff(indwk2-1, *n, opts))
 		Dlacpy('A', n, n, work.MatrixOff(indwk2-1, *n, opts), n, z, ldz)
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(*n, one/sigma, w, 1)
+		goblas.Dscal(*n, one/sigma, w.Off(0, 1))
 	}
 
 	work.Set(0, float64(lwmin))

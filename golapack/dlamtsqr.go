@@ -41,13 +41,13 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		(*info) = -4
 	} else if (*k) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -9
-	} else if (*ldt) < maxint(1, *nb) {
+	} else if (*ldt) < max(1, *nb) {
 		(*info) = -11
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -13
-	} else if ((*lwork) < maxint(1, lw)) && (!lquery) {
+	} else if ((*lwork) < max(1, lw)) && (!lquery) {
 		(*info) = -15
 	}
 
@@ -64,11 +64,11 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *k) == 0 {
+	if min(*m, *n, *k) == 0 {
 		return
 	}
 
-	if ((*mb) <= (*k)) || ((*mb) >= maxint(*m, *n, *k)) {
+	if ((*mb) <= (*k)) || ((*mb) >= max(*m, *n, *k)) {
 		Dgemqrt(side, trans, m, n, k, nb, a, lda, t, ldt, c, ldc, work, info)
 		return
 	}
@@ -79,7 +79,7 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		ctr = ((*m) - (*k)) / ((*mb) - (*k))
 		if kk > 0 {
 			ii = (*m) - kk + 1
-			Dtpmqrt('L', 'N', &kk, n, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(ii-1, 0), ldc, work, info)
+			Dtpmqrt('L', 'N', &kk, n, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(ii-1, 0), ldc, work, info)
 		} else {
 			ii = (*m) + 1
 		}
@@ -87,7 +87,7 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		for i = ii - ((*mb) - (*k)); i >= (*mb)+1; i -= ((*mb) - (*k)) {
 			//         Multiply Q to the current block of C (I:I+MB,1:N)
 			ctr = ctr - 1
-			Dtpmqrt('L', 'N', toPtr((*mb)-(*k)), n, k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(i-1, 0), ldc, work, info)
+			Dtpmqrt('L', 'N', toPtr((*mb)-(*k)), n, k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(i-1, 0), ldc, work, info)
 
 		}
 
@@ -103,13 +103,13 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 
 		for i = (*mb) + 1; i <= ii-(*mb)+(*k); i += ((*mb) - (*k)) {
 			//         Multiply Q to the current block of C (I:I+MB,1:N)
-			Dtpmqrt('L', 'T', toPtr((*mb)-(*k)), n, k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(i-1, 0), ldc, work, info)
+			Dtpmqrt('L', 'T', toPtr((*mb)-(*k)), n, k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(i-1, 0), ldc, work, info)
 			ctr = ctr + 1
 
 		}
 		if ii <= (*m) {
 			//         Multiply Q to the last block of C
-			Dtpmqrt('L', 'T', &kk, n, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(ii-1, 0), ldc, work, info)
+			Dtpmqrt('L', 'T', &kk, n, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(ii-1, 0), ldc, work, info)
 
 		}
 
@@ -119,7 +119,7 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		ctr = ((*n) - (*k)) / ((*mb) - (*k))
 		if kk > 0 {
 			ii = (*n) - kk + 1
-			Dtpmqrt('R', 'T', m, &kk, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(0, ii-1), ldc, work, info)
+			Dtpmqrt('R', 'T', m, &kk, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(0, ii-1), ldc, work, info)
 		} else {
 			ii = (*n) + 1
 		}
@@ -127,7 +127,7 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		for i = ii - ((*mb) - (*k)); i >= (*mb)+1; i -= ((*mb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+MB)
 			ctr = ctr - 1
-			Dtpmqrt('R', 'T', m, toPtr((*mb)-(*k)), k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(0, i-1), ldc, work, info)
+			Dtpmqrt('R', 'T', m, toPtr((*mb)-(*k)), k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(0, i-1), ldc, work, info)
 
 		}
 
@@ -143,13 +143,13 @@ func Dlamtsqr(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 
 		for i = (*mb) + 1; i <= ii-(*mb)+(*k); i += ((*mb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+MB)
-			Dtpmqrt('R', 'N', m, toPtr((*mb)-(*k)), k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(0, i-1), ldc, work, info)
+			Dtpmqrt('R', 'N', m, toPtr((*mb)-(*k)), k, func() *int { y := 0; return &y }(), nb, a.Off(i-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(0, i-1), ldc, work, info)
 			ctr = ctr + 1
 
 		}
 		if ii <= (*n) {
 			//         Multiply Q to the last block of C
-			Dtpmqrt('R', 'N', m, &kk, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)+1-1), ldt, c.Off(0, 0), ldc, c.Off(0, ii-1), ldc, work, info)
+			Dtpmqrt('R', 'N', m, &kk, k, func() *int { y := 0; return &y }(), nb, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*k)), ldt, c.Off(0, 0), ldc, c.Off(0, ii-1), ldc, work, info)
 
 		}
 

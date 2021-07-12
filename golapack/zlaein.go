@@ -26,7 +26,7 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 	//     eigenvector.
 	rootn = math.Sqrt(float64(*n))
 	growto = tenth / rootn
-	nrmsml = maxf64(one, (*eps3)*rootn) * (*smlnum)
+	nrmsml = math.Max(one, (*eps3)*rootn) * (*smlnum)
 
 	//     Form B = H - W*I (except that the subdiagonal elements are not
 	//     stored).
@@ -44,22 +44,22 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 		}
 	} else {
 		//        Scale supplied initial vector.
-		vnorm = goblas.Dznrm2(*n, v, 1)
-		goblas.Zdscal(*n, ((*eps3)*rootn)/maxf64(vnorm, nrmsml), v, 1)
+		vnorm = goblas.Dznrm2(*n, v.Off(0, 1))
+		goblas.Zdscal(*n, ((*eps3)*rootn)/math.Max(vnorm, nrmsml), v.Off(0, 1))
 	}
 
 	if rightv {
 		//        LU decomposition with partial pivoting of B, replacing zero
 		//        pivots by EPS3.
 		for i = 1; i <= (*n)-1; i++ {
-			ei = h.Get(i+1-1, i-1)
+			ei = h.Get(i, i-1)
 			if cabs1(b.Get(i-1, i-1)) < cabs1(ei) {
 				//              Interchange rows and eliminate.
 				x = Zladiv(b.GetPtr(i-1, i-1), &ei)
 				b.Set(i-1, i-1, ei)
 				for j = i + 1; j <= (*n); j++ {
-					temp = b.Get(i+1-1, j-1)
-					b.Set(i+1-1, j-1, b.Get(i-1, j-1)-x*temp)
+					temp = b.Get(i, j-1)
+					b.Set(i, j-1, b.Get(i-1, j-1)-x*temp)
 					b.Set(i-1, j-1, temp)
 				}
 			} else {
@@ -70,7 +70,7 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 				x = Zladiv(&ei, b.GetPtr(i-1, i-1))
 				if x != zero {
 					for j = i + 1; j <= (*n); j++ {
-						b.Set(i+1-1, j-1, b.Get(i+1-1, j-1)-x*b.Get(i-1, j-1))
+						b.Set(i, j-1, b.Get(i, j-1)-x*b.Get(i-1, j-1))
 					}
 				}
 			}
@@ -125,7 +125,7 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 		normin = 'Y'
 
 		//        Test for sufficient growth in the norm of v.
-		vnorm = goblas.Dzasum(*n, v, 1)
+		vnorm = goblas.Dzasum(*n, v.Off(0, 1))
 		if vnorm >= growto*scale {
 			goto label120
 		}
@@ -136,7 +136,7 @@ func Zlaein(rightv, noinit bool, n *int, h *mat.CMatrix, ldh *int, w *complex128
 		for i = 2; i <= (*n); i++ {
 			v.SetRe(i-1, rtemp)
 		}
-		v.Set((*n)-its+1-1, v.Get((*n)-its+1-1)-complex((*eps3)*rootn, 0))
+		v.Set((*n)-its, v.Get((*n)-its)-complex((*eps3)*rootn, 0))
 	}
 
 	//     Failure to find eigenvector in N iterations.
@@ -146,6 +146,6 @@ label120:
 	;
 
 	//     Normalize eigenvector.
-	i = goblas.Izamax(*n, v, 1)
-	goblas.Zdscal(*n, one/cabs1(v.Get(i-1)), v, 1)
+	i = goblas.Izamax(*n, v.Off(0, 1))
+	goblas.Zdscal(*n, one/cabs1(v.Get(i-1)), v.Off(0, 1))
 }

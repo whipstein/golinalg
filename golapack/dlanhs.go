@@ -25,7 +25,7 @@ func Dlanhs(norm byte, n *int, a *mat.Matrix, lda *int, work *mat.Vector) (dlanh
 		//        Find max(abs(A(i,j))).
 		value = zero
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(*n, j+1); i++ {
+			for i = 1; i <= min(*n, j+1); i++ {
 				sum = math.Abs(a.Get(i-1, j-1))
 				if value < sum || Disnan(int(sum)) {
 					value = sum
@@ -37,7 +37,7 @@ func Dlanhs(norm byte, n *int, a *mat.Matrix, lda *int, work *mat.Vector) (dlanh
 		value = zero
 		for j = 1; j <= (*n); j++ {
 			sum = zero
-			for i = 1; i <= minint(*n, j+1); i++ {
+			for i = 1; i <= min(*n, j+1); i++ {
 				sum += math.Abs(a.Get(i-1, j-1))
 			}
 			if value < sum || Disnan(int(sum)) {
@@ -50,7 +50,7 @@ func Dlanhs(norm byte, n *int, a *mat.Matrix, lda *int, work *mat.Vector) (dlanh
 			work.Set(i-1, zero)
 		}
 		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= minint(*n, j+1); i++ {
+			for i = 1; i <= min(*n, j+1); i++ {
 				work.Set(i-1, work.Get(i-1)+math.Abs(a.Get(i-1, j-1)))
 			}
 		}
@@ -71,7 +71,7 @@ func Dlanhs(norm byte, n *int, a *mat.Matrix, lda *int, work *mat.Vector) (dlanh
 		for j = 1; j <= (*n); j++ {
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			Dlassq(toPtr(minint(*n, j+1)), a.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+			Dlassq(toPtr(min(*n, j+1)), a.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

@@ -23,7 +23,7 @@ import (
 // The test condition is that the scaled residual
 //
 //     norm( (ca A-w D)*X - s*B ) /
-//           ( maxf64( ulp*norm(ca A-w D), SMIN )*norm(X) )
+//           ( math.Max( ulp*norm(ca A-w D), SMIN )*norm(X) )
 //
 // should be on the order of 1.  Here, ulp is the machine precision.
 // Also, it is verified that SCALE is less than or equal to 1, and that
@@ -126,9 +126,9 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 									}
 									res = math.Abs((ca*a.Get(0, 0)-wr*d1)*x.Get(0, 0) - scale*b.Get(0, 0))
 									if info == 0 {
-										den = maxf64(eps*math.Abs((ca*a.Get(0, 0)-wr*d1)*x.Get(0, 0)), smlnum)
+										den = math.Max(eps*math.Abs((ca*a.Get(0, 0)-wr*d1)*x.Get(0, 0)), smlnum)
 									} else {
-										den = maxf64(smin*math.Abs(x.Get(0, 0)), smlnum)
+										den = math.Max(smin*math.Abs(x.Get(0, 0)), smlnum)
 									}
 									res = res / den
 									if math.Abs(x.Get(0, 0)) < unfl && math.Abs(b.Get(0, 0)) <= smlnum*math.Abs(ca*a.Get(0, 0)-wr*d1) {
@@ -137,7 +137,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 									if scale > one {
 										res = res + one/eps
 									}
-									res = res + math.Abs(xnorm-math.Abs(x.Get(0, 0)))/maxf64(smlnum, xnorm)/eps
+									res = res + math.Abs(xnorm-math.Abs(x.Get(0, 0)))/math.Max(smlnum, xnorm)/eps
 									if info != 0 && info != 1 {
 										res = res + one/eps
 									}
@@ -179,9 +179,9 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										res = math.Abs((ca*a.Get(0, 0)-wr*d1)*x.Get(0, 0) + (wi*d1)*x.Get(0, 1) - scale*b.Get(0, 0))
 										res = res + math.Abs((-wi*d1)*x.Get(0, 0)+(ca*a.Get(0, 0)-wr*d1)*x.Get(0, 1)-scale*b.Get(0, 1))
 										if info == 0 {
-											den = maxf64(eps*(maxf64(math.Abs(ca*a.Get(0, 0)-wr*d1), math.Abs(d1*wi))*(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1)))), smlnum)
+											den = math.Max(eps*(math.Max(math.Abs(ca*a.Get(0, 0)-wr*d1), math.Abs(d1*wi))*(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1)))), smlnum)
 										} else {
-											den = maxf64(smin*(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1))), smlnum)
+											den = math.Max(smin*(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1))), smlnum)
 										}
 										res = res / den
 										if math.Abs(x.Get(0, 0)) < unfl && math.Abs(x.Get(0, 1)) < unfl && math.Abs(b.Get(0, 0)) <= smlnum*math.Abs(ca*a.Get(0, 0)-wr*d1) {
@@ -190,7 +190,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										if scale > one {
 											res = res + one/eps
 										}
-										res = res + math.Abs(xnorm-math.Abs(x.Get(0, 0))-math.Abs(x.Get(0, 1)))/maxf64(smlnum, xnorm)/eps
+										res = res + math.Abs(xnorm-math.Abs(x.Get(0, 0))-math.Abs(x.Get(0, 1)))/math.Max(smlnum, xnorm)/eps
 										if info != 0 && info != 1 {
 											res = res + one/eps
 										}
@@ -236,9 +236,9 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 									res = math.Abs((ca*a.Get(0, 0)-wr*d1)*x.Get(0, 0) + (ca*a.Get(0, 1))*x.Get(1, 0) - scale*b.Get(0, 0))
 									res = res + math.Abs((ca*a.Get(1, 0))*x.Get(0, 0)+(ca*a.Get(1, 1)-wr*d2)*x.Get(1, 0)-scale*b.Get(1, 0))
 									if info == 0 {
-										den = maxf64(eps*(maxf64(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1)), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2))*maxf64(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))), smlnum)
+										den = math.Max(eps*(math.Max(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1)), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2))*math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))), smlnum)
 									} else {
-										den = maxf64(eps*(maxf64(smin/eps, maxf64(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1)), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)))*maxf64(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))), smlnum)
+										den = math.Max(eps*(math.Max(smin/eps, math.Max(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1)), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)))*math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))), smlnum)
 									}
 									res = res / den
 									if math.Abs(x.Get(0, 0)) < unfl && math.Abs(x.Get(1, 0)) < unfl && math.Abs(b.Get(0, 0))+math.Abs(b.Get(1, 0)) <= smlnum*(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1))+math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)) {
@@ -247,7 +247,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 									if scale > one {
 										res = res + one/eps
 									}
-									res = res + math.Abs(xnorm-maxf64(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0))))/maxf64(smlnum, xnorm)/eps
+									res = res + math.Abs(xnorm-math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0))))/math.Max(smlnum, xnorm)/eps
 									if info != 0 && info != 1 {
 										res = res + one/eps
 									}
@@ -301,9 +301,9 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										res = res + math.Abs((ca*a.Get(1, 0))*x.Get(0, 0)+(ca*a.Get(1, 1)-wr*d2)*x.Get(1, 0)+(wi*d2)*x.Get(1, 1)-scale*b.Get(1, 0))
 										res = res + math.Abs((ca*a.Get(1, 0))*x.Get(0, 1)+(ca*a.Get(1, 1)-wr*d2)*x.Get(1, 1)-(wi*d2)*x.Get(1, 0)-scale*b.Get(1, 1))
 										if info == 0 {
-											den = maxf64(eps*(maxf64(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1))+math.Abs(wi*d1), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)+math.Abs(wi*d2))*maxf64(math.Abs(x.Get(0, 0))+math.Abs(x.Get(1, 0)), math.Abs(x.Get(0, 1))+math.Abs(x.Get(1, 1)))), smlnum)
+											den = math.Max(eps*(math.Max(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1))+math.Abs(wi*d1), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)+math.Abs(wi*d2))*math.Max(math.Abs(x.Get(0, 0))+math.Abs(x.Get(1, 0)), math.Abs(x.Get(0, 1))+math.Abs(x.Get(1, 1)))), smlnum)
 										} else {
-											den = maxf64(eps*(maxf64(smin/eps, maxf64(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1))+math.Abs(wi*d1), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)+math.Abs(wi*d2)))*maxf64(math.Abs(x.Get(0, 0))+math.Abs(x.Get(1, 0)), math.Abs(x.Get(0, 1))+math.Abs(x.Get(1, 1)))), smlnum)
+											den = math.Max(eps*(math.Max(smin/eps, math.Max(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1))+math.Abs(wi*d1), math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)+math.Abs(wi*d2)))*math.Max(math.Abs(x.Get(0, 0))+math.Abs(x.Get(1, 0)), math.Abs(x.Get(0, 1))+math.Abs(x.Get(1, 1)))), smlnum)
 										}
 										res = res / den
 										if math.Abs(x.Get(0, 0)) < unfl && math.Abs(x.Get(1, 0)) < unfl && math.Abs(x.Get(0, 1)) < unfl && math.Abs(x.Get(1, 1)) < unfl && math.Abs(b.Get(0, 0))+math.Abs(b.Get(1, 0)) <= smlnum*(math.Abs(ca*a.Get(0, 0)-wr*d1)+math.Abs(ca*a.Get(0, 1))+math.Abs(ca*a.Get(1, 0))+math.Abs(ca*a.Get(1, 1)-wr*d2)+math.Abs(wi*d2)+math.Abs(wi*d1)) {
@@ -312,7 +312,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										if scale > one {
 											res = res + one/eps
 										}
-										res = res + math.Abs(xnorm-maxf64(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1)), math.Abs(x.Get(1, 0))+math.Abs(x.Get(1, 1))))/maxf64(smlnum, xnorm)/eps
+										res = res + math.Abs(xnorm-math.Max(math.Abs(x.Get(0, 0))+math.Abs(x.Get(0, 1)), math.Abs(x.Get(1, 0))+math.Abs(x.Get(1, 1))))/math.Max(smlnum, xnorm)/eps
 										if info != 0 && info != 1 {
 											res = res + one/eps
 										}

@@ -58,9 +58,9 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 		(*info) = -5
 	} else if (*n) < 0 {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *p) {
+	} else if (*ldb) < max(1, *p) {
 		(*info) = -10
 	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
 		(*info) = -16
@@ -77,16 +77,16 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 		Zgeqp3(p, n, b, ldb, iwork, tau, work, toPtr(-1), rwork, info)
 		lwkopt = int(work.GetRe(0))
 		if wantv {
-			lwkopt = maxint(lwkopt, *p)
+			lwkopt = max(lwkopt, *p)
 		}
-		lwkopt = maxint(lwkopt, minint(*n, *p))
-		lwkopt = maxint(lwkopt, *m)
+		lwkopt = max(lwkopt, min(*n, *p))
+		lwkopt = max(lwkopt, *m)
 		if wantq {
-			lwkopt = maxint(lwkopt, *n)
+			lwkopt = max(lwkopt, *n)
 		}
 		Zgeqp3(m, n, a, lda, iwork, tau, work, toPtr(-1), rwork, info)
-		lwkopt = maxint(lwkopt, int(work.GetRe(0)))
-		lwkopt = maxint(1, lwkopt)
+		lwkopt = max(lwkopt, int(work.GetRe(0)))
+		lwkopt = max(1, lwkopt)
 		work.SetRe(0, float64(lwkopt))
 	}
 
@@ -110,7 +110,7 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 
 	//     Determine the effective rank of matrix B.
 	(*l) = 0
-	for i = 1; i <= minint(*p, *n); i++ {
+	for i = 1; i <= min(*p, *n); i++ {
 		if b.GetMag(i-1, i-1) > (*tolb) {
 			(*l) = (*l) + 1
 		}
@@ -122,7 +122,7 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 		if (*p) > 1 {
 			Zlacpy('L', toPtr((*p)-1), n, b.Off(1, 0), ldb, v.Off(1, 0), ldv)
 		}
-		Zung2r(p, p, toPtr(minint(*p, *n)), v, ldv, tau, work, info)
+		Zung2r(p, p, toPtr(min(*p, *n)), v, ldv, tau, work, info)
 	}
 
 	//     Clean up B
@@ -132,7 +132,7 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 		}
 	}
 	if (*p) > (*l) {
-		Zlaset('F', toPtr((*p)-(*l)), n, &czero, &czero, b.Off((*l)+1-1, 0), ldb)
+		Zlaset('F', toPtr((*p)-(*l)), n, &czero, &czero, b.Off((*l), 0), ldb)
 	}
 
 	if wantq {
@@ -177,14 +177,14 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 
 	//     Determine the effective rank of A11
 	(*k) = 0
-	for i = 1; i <= minint(*m, (*n)-(*l)); i++ {
+	for i = 1; i <= min(*m, (*n)-(*l)); i++ {
 		if a.GetMag(i-1, i-1) > (*tola) {
 			(*k) = (*k) + 1
 		}
 	}
 
 	//     Update A12 := U**H*A12, where A12 = A( 1:M, N-L+1:N )
-	Zunm2r('L', 'C', m, l, toPtr(minint(*m, (*n)-(*l))), a, lda, tau, a.Off(0, (*n)-(*l)+1-1), lda, work, info)
+	Zunm2r('L', 'C', m, l, toPtr(min(*m, (*n)-(*l))), a, lda, tau, a.Off(0, (*n)-(*l)), lda, work, info)
 
 	if wantu {
 		//        Copy the details of U, and form U
@@ -192,7 +192,7 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 		if (*m) > 1 {
 			Zlacpy('L', toPtr((*m)-1), toPtr((*n)-(*l)), a.Off(1, 0), lda, u.Off(1, 0), ldu)
 		}
-		Zung2r(m, m, toPtr(minint(*m, (*n)-(*l))), u, ldu, tau, work, info)
+		Zung2r(m, m, toPtr(min(*m, (*n)-(*l))), u, ldu, tau, work, info)
 	}
 
 	if wantq {
@@ -208,7 +208,7 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 		}
 	}
 	if (*m) > (*k) {
-		Zlaset('F', toPtr((*m)-(*k)), toPtr((*n)-(*l)), &czero, &czero, a.Off((*k)+1-1, 0), lda)
+		Zlaset('F', toPtr((*m)-(*k)), toPtr((*n)-(*l)), &czero, &czero, a.Off((*k), 0), lda)
 	}
 
 	if (*n)-(*l) > (*k) {
@@ -232,11 +232,11 @@ func Zggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.CMatrix, lda *int, b *m
 
 	if (*m) > (*k) {
 		//        QR factorization of A( K+1:M,N-L+1:N )
-		Zgeqr2(toPtr((*m)-(*k)), l, a.Off((*k)+1-1, (*n)-(*l)+1-1), lda, tau, work, info)
+		Zgeqr2(toPtr((*m)-(*k)), l, a.Off((*k), (*n)-(*l)), lda, tau, work, info)
 
 		if wantu {
 			//           Update U(:,K+1:M) := U(:,K+1:M)*U1
-			Zunm2r('R', 'N', m, toPtr((*m)-(*k)), toPtr(minint((*m)-(*k), *l)), a.Off((*k)+1-1, (*n)-(*l)+1-1), lda, tau, u.Off(0, (*k)+1-1), ldu, work, info)
+			Zunm2r('R', 'N', m, toPtr((*m)-(*k)), toPtr(min((*m)-(*k), *l)), a.Off((*k), (*n)-(*l)), lda, tau, u.Off(0, (*k)), ldu, work, info)
 		}
 
 		//        Clean up

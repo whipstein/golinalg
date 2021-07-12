@@ -52,11 +52,11 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 		(*info) = -8
 	} else if (*nrhs) < 0 {
 		(*info) = -9
-	} else if (!band && (*lda) < maxint(1, *m)) || (band && (sym || tri) && (*lda) < (*kl)+1) || (band && gen && (*lda) < (*kl)+(*ku)+1) {
+	} else if (!band && (*lda) < max(1, *m)) || (band && (sym || tri) && (*lda) < (*kl)+1) || (band && gen && (*lda) < (*kl)+(*ku)+1) {
 		(*info) = -11
-	} else if (notran && (*ldx) < maxint(1, *n)) || (tran && (*ldx) < maxint(1, *m)) {
+	} else if (notran && (*ldx) < max(1, *n)) || (tran && (*ldx) < max(1, *m)) {
 		(*info) = -13
-	} else if (notran && (*ldb) < maxint(1, *m)) || (tran && (*ldb) < maxint(1, *n)) {
+	} else if (notran && (*ldb) < max(1, *m)) || (tran && (*ldb) < max(1, *n)) {
 		(*info) = -15
 	}
 	if (*info) != 0 {
@@ -82,26 +82,26 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 	//     matrix multiply routine.
 	if string(c2) == "GE" || string(c2) == "QR" || string(c2) == "LQ" || string(c2) == "QL" || string(c2) == "RQ" {
 		//        General matrix
-		err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mb, *nrhs, nx, one, a, *lda, x, *ldx, zero, b, *ldb)
+		err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mb, *nrhs, nx, one, a, x, zero, b)
 
 	} else if string(c2) == "PO" || string(c2) == "HE" {
 		//        Hermitian matrix, 2-D storage
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, *lda, x, *ldx, zero, b, *ldb)
+		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, x, zero, b)
 
 	} else if string(c2) == "SY" {
 		//        Symmetric matrix, 2-D storage
-		err = goblas.Zsymm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, *lda, x, *ldx, zero, b, *ldb)
+		err = goblas.Zsymm(Left, mat.UploByte(uplo), *n, *nrhs, one, a, x, zero, b)
 
 	} else if string(c2) == "GB" {
 		//        General matrix, band storage
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Zgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, one, a, *lda, x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1)
+			err = goblas.Zgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, one, a, x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "PB" || string(c2) == "HB" {
 		//        Hermitian matrix, band storage
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kl, one, a, *lda, x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1)
+			err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kl, one, a, x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "SB" {
@@ -113,7 +113,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 	} else if string(c2) == "PP" || string(c2) == "HP" {
 		//        Hermitian matrix, packed storage
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Zhpmv(mat.UploByte(uplo), *n, one, a.CVectorIdx(0), x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1)
+			err = goblas.Zhpmv(mat.UploByte(uplo), *n, one, a.CVectorIdx(0), x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "SP" {
@@ -132,7 +132,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 		} else {
 			diag = 'N'
 		}
-		err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, b)
 
 	} else if string(c2) == "TP" {
 		//        Triangular matrix, packed storage
@@ -143,7 +143,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 			diag = 'N'
 		}
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a.CVectorIdx(0), b.CVector(0, j-1), 1)
+			err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a.CVectorIdx(0), b.CVector(0, j-1, 1))
 		}
 
 	} else if string(c2) == "TB" {
@@ -155,7 +155,7 @@ func Zlarhs(path []byte, xtype, uplo, trans byte, m, n, kl, ku, nrhs *int, a *ma
 			diag = 'N'
 		}
 		for j = 1; j <= (*nrhs); j++ {
-			err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kl, a, *lda, b.CVector(0, j-1), 1)
+			err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kl, a, b.CVector(0, j-1, 1))
 		}
 
 	} else {

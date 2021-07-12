@@ -76,14 +76,14 @@ func Zqrt03(m, n, k *int, af, c, cc, q *mat.CMatrix, lda *int, tau, work *mat.CV
 
 			//           Form explicit product and subtract
 			if side == 'L' {
-				err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, complex(-one, 0), q, *lda, c, *lda, complex(one, 0), cc, *lda)
+				err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, complex(-one, 0), q, c, complex(one, 0), cc)
 			} else {
-				err = goblas.Zgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, complex(-one, 0), c, *lda, q, *lda, complex(one, 0), cc, *lda)
+				err = goblas.Zgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, complex(-one, 0), c, q, complex(one, 0), cc)
 			}
 
 			//           Compute error in the difference
 			resid = golapack.Zlange('1', &mc, &nc, cc, lda, rwork)
-			result.Set((iside-1)*2+itrans-1, resid/(float64(maxint(1, *m))*cnorm*eps))
+			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, *m))*cnorm*eps))
 
 		}
 	}

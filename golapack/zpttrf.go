@@ -39,7 +39,7 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		f = eir / d.Get(i-1)
 		g = eii / d.Get(i-1)
 		e.Set(i-1, complex(f, g))
-		d.Set(i+1-1, d.Get(i+1-1)-f*eir-g*eii)
+		d.Set(i, d.Get(i)-f*eir-g*eii)
 	}
 
 	for i = i4 + 1; i <= (*n)-4; i += 4 {
@@ -56,9 +56,9 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		f = eir / d.Get(i-1)
 		g = eii / d.Get(i-1)
 		e.Set(i-1, complex(f, g))
-		d.Set(i+1-1, d.Get(i+1-1)-f*eir-g*eii)
+		d.Set(i, d.Get(i)-f*eir-g*eii)
 
-		if d.Get(i+1-1) <= zero {
+		if d.Get(i) <= zero {
 			(*info) = i + 1
 			return
 		}
@@ -66,9 +66,9 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		//        Solve for e(i+1) and d(i+2).
 		eir = e.GetRe(i + 1 - 1)
 		eii = e.GetIm(i + 1 - 1)
-		f = eir / d.Get(i+1-1)
-		g = eii / d.Get(i+1-1)
-		e.Set(i+1-1, complex(f, g))
+		f = eir / d.Get(i)
+		g = eii / d.Get(i)
+		e.Set(i, complex(f, g))
 		d.Set(i+2-1, d.Get(i+2-1)-f*eir-g*eii)
 		//
 		if d.Get(i+2-1) <= zero {

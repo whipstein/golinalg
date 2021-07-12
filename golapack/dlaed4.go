@@ -146,9 +146,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		}
 
 		if w <= zero {
-			dltlb = maxf64(dltlb, tau)
+			dltlb = math.Max(dltlb, tau)
 		} else {
-			dltub = minf64(dltub, tau)
+			dltub = math.Min(dltub, tau)
 		}
 
 		//        Calculate the new step
@@ -222,9 +222,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			}
 
 			if w <= zero {
-				dltlb = maxf64(dltlb, tau)
+				dltlb = math.Max(dltlb, tau)
 			} else {
-				dltub = minf64(dltub, tau)
+				dltub = math.Min(dltub, tau)
 			}
 
 			//           Calculate the new step
@@ -414,9 +414,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		}
 		//
 		if w <= zero {
-			dltlb = maxf64(dltlb, tau)
+			dltlb = math.Max(dltlb, tau)
 		} else {
-			dltub = minf64(dltub, tau)
+			dltub = math.Min(dltub, tau)
 		}
 
 		//        Calculate the new step
@@ -545,9 +545,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			}
 
 			if w <= zero {
-				dltlb = maxf64(dltlb, tau)
+				dltlb = math.Max(dltlb, tau)
 			} else {
-				dltub = minf64(dltub, tau)
+				dltub = math.Min(dltub, tau)
 			}
 
 			//           Calculate the new step

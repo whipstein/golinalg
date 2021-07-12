@@ -66,7 +66,7 @@ func Dget33(rmax *float64, lmax, ninfo, knt *int) {
 									t.Set(0, 1, val.Get(i2-1)*vm.Get(im2-1))
 									t.Set(1, 0, -val.Get(i3-1)*vm.Get(im3-1))
 									t.Set(1, 1, val.Get(i4-1)*vm.Get(im4-1))
-									tnrm = maxf64(math.Abs(t.Get(0, 0)), math.Abs(t.Get(0, 1)), math.Abs(t.Get(1, 0)), math.Abs(t.Get(1, 1)))
+									tnrm = math.Max(math.Abs(t.Get(0, 0)), math.Max(math.Abs(t.Get(0, 1)), math.Max(math.Abs(t.Get(1, 0)), math.Abs(t.Get(1, 1)))))
 									t1.Set(0, 0, t.Get(0, 0))
 									t1.Set(0, 1, t.Get(0, 1))
 									t1.Set(1, 0, t.Get(1, 0))

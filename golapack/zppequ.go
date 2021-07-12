@@ -55,8 +55,8 @@ func Zppequ(uplo byte, n *int, ap *mat.CVector, s *mat.Vector, scond, amax *floa
 		for i = 2; i <= (*n); i++ {
 			jj = jj + i
 			s.Set(i-1, ap.GetRe(jj-1))
-			smin = minf64(smin, s.Get(i-1))
-			(*amax) = maxf64(*amax, s.Get(i-1))
+			smin = math.Min(smin, s.Get(i-1))
+			(*amax) = math.Max(*amax, s.Get(i-1))
 		}
 
 	} else {
@@ -66,8 +66,8 @@ func Zppequ(uplo byte, n *int, ap *mat.CVector, s *mat.Vector, scond, amax *floa
 		for i = 2; i <= (*n); i++ {
 			jj = jj + (*n) - i + 2
 			s.Set(i-1, ap.GetRe(jj-1))
-			smin = minf64(smin, s.Get(i-1))
-			(*amax) = maxf64(*amax, s.Get(i-1))
+			smin = math.Min(smin, s.Get(i-1))
+			(*amax) = math.Max(*amax, s.Get(i-1))
 		}
 	}
 

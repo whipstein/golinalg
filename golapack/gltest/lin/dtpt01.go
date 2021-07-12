@@ -48,7 +48,7 @@ func Dtpt01(uplo, diag byte, n *int, ap, ainvp *mat.Vector, rcond *float64, work
 			}
 
 			//           Form the j-th column of A*AINV
-			err = goblas.Dtpmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j, ap, ainvp.Off(jc-1), 1)
+			err = goblas.Dtpmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j, ap, ainvp.Off(jc-1, 1))
 
 			//           Subtract 1 from the diagonal
 			ainvp.Set(jc+j-1-1, ainvp.Get(jc+j-1-1)-one)
@@ -62,7 +62,7 @@ func Dtpt01(uplo, diag byte, n *int, ap, ainvp *mat.Vector, rcond *float64, work
 			}
 
 			//           Form the j-th column of A*AINV
-			err = goblas.Dtpmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j+1, ap.Off(jc-1), ainvp.Off(jc-1), 1)
+			err = goblas.Dtpmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j+1, ap.Off(jc-1), ainvp.Off(jc-1, 1))
 
 			//           Subtract 1 from the diagonal
 			ainvp.Set(jc-1, ainvp.Get(jc-1)-one)

@@ -114,7 +114,7 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 
 	//     Check Argument Values
 	(*info) = 0
-	work.Set(0, float64(maxint(1, *n)))
+	work.Set(0, float64(max(1, *n)))
 	lquery = ((*lwork) == -1)
 	if ischur == 0 {
 		(*info) = -1
@@ -136,7 +136,7 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 		(*info) = -15
 	} else if (*ldz) < 1 || (ilz && (*ldz) < (*n)) {
 		(*info) = -17
-	} else if (*lwork) < maxint(1, *n) && !lquery {
+	} else if (*lwork) < max(1, *n) && !lquery {
 		(*info) = -19
 	}
 	if (*info) != 0 {
@@ -167,10 +167,10 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 	ulp = Dlamch(Epsilon) * Dlamch(Base)
 	anorm = Dlanhs('F', &in, h.Off((*ilo)-1, (*ilo)-1), ldh, work)
 	bnorm = Dlanhs('F', &in, t.Off((*ilo)-1, (*ilo)-1), ldt, work)
-	atol = maxf64(safmin, ulp*anorm)
-	btol = maxf64(safmin, ulp*bnorm)
-	ascale = one / maxf64(safmin, anorm)
-	bscale = one / maxf64(safmin, bnorm)
+	atol = math.Max(safmin, ulp*anorm)
+	btol = math.Max(safmin, ulp*bnorm)
+	ascale = one / math.Max(safmin, anorm)
+	bscale = one / math.Max(safmin, bnorm)
 
 	//     Set Eigenvalues IHI+1:N
 	for j = (*ihi) + 1; j <= (*n); j++ {
@@ -270,12 +270,12 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				if !ilazro {
 					temp = math.Abs(h.Get(j-1, j-1-1))
 					temp2 = math.Abs(h.Get(j-1, j-1))
-					tempr = maxf64(temp, temp2)
+					tempr = math.Max(temp, temp2)
 					if tempr < one && tempr != zero {
 						temp = temp / tempr
 						temp2 = temp2 / tempr
 					}
-					if temp*(ascale*math.Abs(h.Get(j+1-1, j-1))) <= temp2*(ascale*atol) {
+					if temp*(ascale*math.Abs(h.Get(j, j-1))) <= temp2*(ascale*atol) {
 						ilazr2 = true
 					}
 				}
@@ -288,18 +288,18 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				if ilazro || ilazr2 {
 					for jch = j; jch <= ilast-1; jch++ {
 						temp = h.Get(jch-1, jch-1)
-						Dlartg(&temp, h.GetPtr(jch+1-1, jch-1), &c, &s, h.GetPtr(jch-1, jch-1))
-						h.Set(jch+1-1, jch-1, zero)
-						goblas.Drot(ilastm-jch, h.Vector(jch-1, jch+1-1), *ldh, h.Vector(jch+1-1, jch+1-1), *ldh, c, s)
-						goblas.Drot(ilastm-jch, t.Vector(jch-1, jch+1-1), *ldt, t.Vector(jch+1-1, jch+1-1), *ldt, c, s)
+						Dlartg(&temp, h.GetPtr(jch, jch-1), &c, &s, h.GetPtr(jch-1, jch-1))
+						h.Set(jch, jch-1, zero)
+						goblas.Drot(ilastm-jch, h.Vector(jch-1, jch), h.Vector(jch, jch), c, s)
+						goblas.Drot(ilastm-jch, t.Vector(jch-1, jch), t.Vector(jch, jch), c, s)
 						if ilq {
-							goblas.Drot(*n, q.Vector(0, jch-1), 1, q.Vector(0, jch+1-1), 1, c, s)
+							goblas.Drot(*n, q.Vector(0, jch-1, 1), q.Vector(0, jch, 1), c, s)
 						}
 						if ilazr2 {
 							h.Set(jch-1, jch-1-1, h.Get(jch-1, jch-1-1)*c)
 						}
 						ilazr2 = false
-						if math.Abs(t.Get(jch+1-1, jch+1-1)) >= btol {
+						if math.Abs(t.Get(jch, jch)) >= btol {
 							if jch+1 >= ilast {
 								goto label80
 							} else {
@@ -307,30 +307,30 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 								goto label110
 							}
 						}
-						t.Set(jch+1-1, jch+1-1, zero)
+						t.Set(jch, jch, zero)
 					}
 					goto label70
 				} else {
 					//                 Only test 2 passed -- chase the zero to T(ILAST,ILAST)
 					//                 Then process as in the case T(ILAST,ILAST)=0
 					for jch = j; jch <= ilast-1; jch++ {
-						temp = t.Get(jch-1, jch+1-1)
-						Dlartg(&temp, t.GetPtr(jch+1-1, jch+1-1), &c, &s, t.GetPtr(jch-1, jch+1-1))
-						t.Set(jch+1-1, jch+1-1, zero)
+						temp = t.Get(jch-1, jch)
+						Dlartg(&temp, t.GetPtr(jch, jch), &c, &s, t.GetPtr(jch-1, jch))
+						t.Set(jch, jch, zero)
 						if jch < ilastm-1 {
-							goblas.Drot(ilastm-jch-1, t.Vector(jch-1, jch+2-1), *ldt, t.Vector(jch+1-1, jch+2-1), *ldt, c, s)
+							goblas.Drot(ilastm-jch-1, t.Vector(jch-1, jch+2-1), t.Vector(jch, jch+2-1), c, s)
 						}
-						goblas.Drot(ilastm-jch+2, h.Vector(jch-1, jch-1-1), *ldh, h.Vector(jch+1-1, jch-1-1), *ldh, c, s)
+						goblas.Drot(ilastm-jch+2, h.Vector(jch-1, jch-1-1), h.Vector(jch, jch-1-1), c, s)
 						if ilq {
-							goblas.Drot(*n, q.Vector(0, jch-1), 1, q.Vector(0, jch+1-1), 1, c, s)
+							goblas.Drot(*n, q.Vector(0, jch-1, 1), q.Vector(0, jch, 1), c, s)
 						}
-						temp = h.Get(jch+1-1, jch-1)
-						Dlartg(&temp, h.GetPtr(jch+1-1, jch-1-1), &c, &s, h.GetPtr(jch+1-1, jch-1))
-						h.Set(jch+1-1, jch-1-1, zero)
-						goblas.Drot(jch+1-ifrstm, h.Vector(ifrstm-1, jch-1), 1, h.Vector(ifrstm-1, jch-1-1), 1, c, s)
-						goblas.Drot(jch-ifrstm, t.Vector(ifrstm-1, jch-1), 1, t.Vector(ifrstm-1, jch-1-1), 1, c, s)
+						temp = h.Get(jch, jch-1)
+						Dlartg(&temp, h.GetPtr(jch, jch-1-1), &c, &s, h.GetPtr(jch, jch-1))
+						h.Set(jch, jch-1-1, zero)
+						goblas.Drot(jch+1-ifrstm, h.Vector(ifrstm-1, jch-1, 1), h.Vector(ifrstm-1, jch-1-1, 1), c, s)
+						goblas.Drot(jch-ifrstm, t.Vector(ifrstm-1, jch-1, 1), t.Vector(ifrstm-1, jch-1-1, 1), c, s)
 						if ilz {
-							goblas.Drot(*n, z.Vector(0, jch-1), 1, z.Vector(0, jch-1-1), 1, c, s)
+							goblas.Drot(*n, z.Vector(0, jch-1, 1), z.Vector(0, jch-1-1, 1), c, s)
 						}
 					}
 					goto label70
@@ -354,10 +354,10 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 		temp = h.Get(ilast-1, ilast-1)
 		Dlartg(&temp, h.GetPtr(ilast-1, ilast-1-1), &c, &s, h.GetPtr(ilast-1, ilast-1))
 		h.Set(ilast-1, ilast-1-1, zero)
-		goblas.Drot(ilast-ifrstm, h.Vector(ifrstm-1, ilast-1), 1, h.Vector(ifrstm-1, ilast-1-1), 1, c, s)
-		goblas.Drot(ilast-ifrstm, t.Vector(ifrstm-1, ilast-1), 1, t.Vector(ifrstm-1, ilast-1-1), 1, c, s)
+		goblas.Drot(ilast-ifrstm, h.Vector(ifrstm-1, ilast-1, 1), h.Vector(ifrstm-1, ilast-1-1, 1), c, s)
+		goblas.Drot(ilast-ifrstm, t.Vector(ifrstm-1, ilast-1, 1), t.Vector(ifrstm-1, ilast-1-1, 1), c, s)
 		if ilz {
-			goblas.Drot(*n, z.Vector(0, ilast-1), 1, z.Vector(0, ilast-1-1), 1, c, s)
+			goblas.Drot(*n, z.Vector(0, ilast-1, 1), z.Vector(0, ilast-1-1, 1), c, s)
 		}
 
 		//        H(ILAST,ILAST-1)=0 -- Standardize B, set ALPHAR, ALPHAI,
@@ -442,23 +442,23 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				s1 = s2
 				s2 = temp
 			}
-			temp = maxf64(s1, safmin*maxf64(one, math.Abs(wr), math.Abs(wi)))
+			temp = math.Max(s1, safmin*math.Max(one, math.Max(math.Abs(wr), math.Abs(wi))))
 			if wi != zero {
 				goto label200
 			}
 		}
 
 		//        Fiddle with shift to avoid overflow
-		temp = minf64(ascale, one) * (half * safmax)
+		temp = math.Min(ascale, one) * (half * safmax)
 		if s1 > temp {
 			scale = temp / s1
 		} else {
 			scale = one
 		}
 
-		temp = minf64(bscale, one) * (half * safmax)
+		temp = math.Min(bscale, one) * (half * safmax)
 		if math.Abs(wr) > temp {
-			scale = minf64(scale, temp/math.Abs(wr))
+			scale = math.Min(scale, temp/math.Abs(wr))
 		}
 		s1 = scale * s1
 		wr = scale * wr
@@ -468,12 +468,12 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 			istart = j
 			temp = math.Abs(s1 * h.Get(j-1, j-1-1))
 			temp2 = math.Abs(s1*h.Get(j-1, j-1) - wr*t.Get(j-1, j-1))
-			tempr = maxf64(temp, temp2)
+			tempr = math.Max(temp, temp2)
 			if tempr < one && tempr != zero {
 				temp = temp / tempr
 				temp2 = temp2 / tempr
 			}
-			if math.Abs((ascale*h.Get(j+1-1, j-1))*temp) <= (ascale*atol)*temp2 {
+			if math.Abs((ascale*h.Get(j, j-1))*temp) <= (ascale*atol)*temp2 {
 				goto label130
 			}
 		}
@@ -486,52 +486,52 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 		//
 		//        Initial Q
 		temp = s1*h.Get(istart-1, istart-1) - wr*t.Get(istart-1, istart-1)
-		temp2 = s1 * h.Get(istart+1-1, istart-1)
+		temp2 = s1 * h.Get(istart, istart-1)
 		Dlartg(&temp, &temp2, &c, &s, &tempr)
 
 		//        Sweep
 		for j = istart; j <= ilast-1; j++ {
 			if j > istart {
 				temp = h.Get(j-1, j-1-1)
-				Dlartg(&temp, h.GetPtr(j+1-1, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
-				h.Set(j+1-1, j-1-1, zero)
+				Dlartg(&temp, h.GetPtr(j, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
+				h.Set(j, j-1-1, zero)
 			}
 
 			for jc = j; jc <= ilastm; jc++ {
-				temp = c*h.Get(j-1, jc-1) + s*h.Get(j+1-1, jc-1)
-				h.Set(j+1-1, jc-1, -s*h.Get(j-1, jc-1)+c*h.Get(j+1-1, jc-1))
+				temp = c*h.Get(j-1, jc-1) + s*h.Get(j, jc-1)
+				h.Set(j, jc-1, -s*h.Get(j-1, jc-1)+c*h.Get(j, jc-1))
 				h.Set(j-1, jc-1, temp)
-				temp2 = c*t.Get(j-1, jc-1) + s*t.Get(j+1-1, jc-1)
-				t.Set(j+1-1, jc-1, -s*t.Get(j-1, jc-1)+c*t.Get(j+1-1, jc-1))
+				temp2 = c*t.Get(j-1, jc-1) + s*t.Get(j, jc-1)
+				t.Set(j, jc-1, -s*t.Get(j-1, jc-1)+c*t.Get(j, jc-1))
 				t.Set(j-1, jc-1, temp2)
 			}
 			if ilq {
 				for jr = 1; jr <= (*n); jr++ {
-					temp = c*q.Get(jr-1, j-1) + s*q.Get(jr-1, j+1-1)
-					q.Set(jr-1, j+1-1, -s*q.Get(jr-1, j-1)+c*q.Get(jr-1, j+1-1))
+					temp = c*q.Get(jr-1, j-1) + s*q.Get(jr-1, j)
+					q.Set(jr-1, j, -s*q.Get(jr-1, j-1)+c*q.Get(jr-1, j))
 					q.Set(jr-1, j-1, temp)
 				}
 			}
 
-			temp = t.Get(j+1-1, j+1-1)
-			Dlartg(&temp, t.GetPtr(j+1-1, j-1), &c, &s, t.GetPtr(j+1-1, j+1-1))
-			t.Set(j+1-1, j-1, zero)
+			temp = t.Get(j, j)
+			Dlartg(&temp, t.GetPtr(j, j-1), &c, &s, t.GetPtr(j, j))
+			t.Set(j, j-1, zero)
 
-			for jr = ifrstm; jr <= minint(j+2, ilast); jr++ {
-				temp = c*h.Get(jr-1, j+1-1) + s*h.Get(jr-1, j-1)
-				h.Set(jr-1, j-1, -s*h.Get(jr-1, j+1-1)+c*h.Get(jr-1, j-1))
-				h.Set(jr-1, j+1-1, temp)
+			for jr = ifrstm; jr <= min(j+2, ilast); jr++ {
+				temp = c*h.Get(jr-1, j) + s*h.Get(jr-1, j-1)
+				h.Set(jr-1, j-1, -s*h.Get(jr-1, j)+c*h.Get(jr-1, j-1))
+				h.Set(jr-1, j, temp)
 			}
 			for jr = ifrstm; jr <= j; jr++ {
-				temp = c*t.Get(jr-1, j+1-1) + s*t.Get(jr-1, j-1)
-				t.Set(jr-1, j-1, -s*t.Get(jr-1, j+1-1)+c*t.Get(jr-1, j-1))
-				t.Set(jr-1, j+1-1, temp)
+				temp = c*t.Get(jr-1, j) + s*t.Get(jr-1, j-1)
+				t.Set(jr-1, j-1, -s*t.Get(jr-1, j)+c*t.Get(jr-1, j-1))
+				t.Set(jr-1, j, temp)
 			}
 			if ilz {
 				for jr = 1; jr <= (*n); jr++ {
-					temp = c*z.Get(jr-1, j+1-1) + s*z.Get(jr-1, j-1)
-					z.Set(jr-1, j-1, -s*z.Get(jr-1, j+1-1)+c*z.Get(jr-1, j-1))
-					z.Set(jr-1, j+1-1, temp)
+					temp = c*z.Get(jr-1, j) + s*z.Get(jr-1, j-1)
+					z.Set(jr-1, j-1, -s*z.Get(jr-1, j)+c*z.Get(jr-1, j-1))
+					z.Set(jr-1, j, temp)
 				}
 			}
 		}
@@ -563,21 +563,21 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				b22 = -b22
 			}
 
-			goblas.Drot(ilastm+1-ifirst, h.Vector(ilast-1-1, ilast-1-1), *ldh, h.Vector(ilast-1, ilast-1-1), *ldh, cl, sl)
-			goblas.Drot(ilast+1-ifrstm, h.Vector(ifrstm-1, ilast-1-1), 1, h.Vector(ifrstm-1, ilast-1), 1, cr, sr)
+			goblas.Drot(ilastm+1-ifirst, h.Vector(ilast-1-1, ilast-1-1), h.Vector(ilast-1, ilast-1-1), cl, sl)
+			goblas.Drot(ilast+1-ifrstm, h.Vector(ifrstm-1, ilast-1-1, 1), h.Vector(ifrstm-1, ilast-1, 1), cr, sr)
 
 			if ilast < ilastm {
-				goblas.Drot(ilastm-ilast, t.Vector(ilast-1-1, ilast+1-1), *ldt, t.Vector(ilast-1, ilast+1-1), *ldt, cl, sl)
+				goblas.Drot(ilastm-ilast, t.Vector(ilast-1-1, ilast), t.Vector(ilast-1, ilast), cl, sl)
 			}
 			if ifrstm < ilast-1 {
-				goblas.Drot(ifirst-ifrstm, t.Vector(ifrstm-1, ilast-1-1), 1, t.Vector(ifrstm-1, ilast-1), 1, cr, sr)
+				goblas.Drot(ifirst-ifrstm, t.Vector(ifrstm-1, ilast-1-1, 1), t.Vector(ifrstm-1, ilast-1, 1), cr, sr)
 			}
 
 			if ilq {
-				goblas.Drot(*n, q.Vector(0, ilast-1-1), 1, q.Vector(0, ilast-1), 1, cl, sl)
+				goblas.Drot(*n, q.Vector(0, ilast-1-1, 1), q.Vector(0, ilast-1, 1), cl, sl)
 			}
 			if ilz {
-				goblas.Drot(*n, z.Vector(0, ilast-1-1), 1, z.Vector(0, ilast-1), 1, cr, sr)
+				goblas.Drot(*n, z.Vector(0, ilast-1-1, 1), z.Vector(0, ilast-1, 1), cr, sr)
 			}
 
 			t.Set(ilast-1-1, ilast-1-1, b11)
@@ -737,11 +737,11 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 			ad22 = (ascale * h.Get(ilast-1, ilast-1)) / (bscale * t.Get(ilast-1, ilast-1))
 			u12 = t.Get(ilast-1-1, ilast-1) / t.Get(ilast-1, ilast-1)
 			ad11l = (ascale * h.Get(ifirst-1, ifirst-1)) / (bscale * t.Get(ifirst-1, ifirst-1))
-			ad21l = (ascale * h.Get(ifirst+1-1, ifirst-1)) / (bscale * t.Get(ifirst-1, ifirst-1))
-			ad12l = (ascale * h.Get(ifirst-1, ifirst+1-1)) / (bscale * t.Get(ifirst+1-1, ifirst+1-1))
-			ad22l = (ascale * h.Get(ifirst+1-1, ifirst+1-1)) / (bscale * t.Get(ifirst+1-1, ifirst+1-1))
-			ad32l = (ascale * h.Get(ifirst+2-1, ifirst+1-1)) / (bscale * t.Get(ifirst+1-1, ifirst+1-1))
-			u12l = t.Get(ifirst-1, ifirst+1-1) / t.Get(ifirst+1-1, ifirst+1-1)
+			ad21l = (ascale * h.Get(ifirst, ifirst-1)) / (bscale * t.Get(ifirst-1, ifirst-1))
+			ad12l = (ascale * h.Get(ifirst-1, ifirst)) / (bscale * t.Get(ifirst, ifirst))
+			ad22l = (ascale * h.Get(ifirst, ifirst)) / (bscale * t.Get(ifirst, ifirst))
+			ad32l = (ascale * h.Get(ifirst+2-1, ifirst)) / (bscale * t.Get(ifirst, ifirst))
+			u12l = t.Get(ifirst-1, ifirst) / t.Get(ifirst, ifirst)
 
 			v.Set(0, (ad11-ad11l)*(ad22-ad11l)-ad12*ad21+ad21*u12*ad11l+(ad12l-ad11l*u12l)*ad21l)
 			v.Set(1, ((ad22l-ad11l)-ad21l*u12l-(ad11-ad11l)-(ad22-ad11l)+ad21*u12)*ad21l)
@@ -759,30 +759,30 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				//              Zero (j-1)st column of A
 				if j > istart {
 					v.Set(0, h.Get(j-1, j-1-1))
-					v.Set(1, h.Get(j+1-1, j-1-1))
+					v.Set(1, h.Get(j, j-1-1))
 					v.Set(2, h.Get(j+2-1, j-1-1))
 					//
 					Dlarfg(func() *int { y := 3; return &y }(), h.GetPtr(j-1, j-1-1), v.Off(1), func() *int { y := 1; return &y }(), &tau)
 					v.Set(0, one)
-					h.Set(j+1-1, j-1-1, zero)
+					h.Set(j, j-1-1, zero)
 					h.Set(j+2-1, j-1-1, zero)
 				}
 
 				for jc = j; jc <= ilastm; jc++ {
-					temp = tau * (h.Get(j-1, jc-1) + v.Get(1)*h.Get(j+1-1, jc-1) + v.Get(2)*h.Get(j+2-1, jc-1))
+					temp = tau * (h.Get(j-1, jc-1) + v.Get(1)*h.Get(j, jc-1) + v.Get(2)*h.Get(j+2-1, jc-1))
 					h.Set(j-1, jc-1, h.Get(j-1, jc-1)-temp)
-					h.Set(j+1-1, jc-1, h.Get(j+1-1, jc-1)-temp*v.Get(1))
+					h.Set(j, jc-1, h.Get(j, jc-1)-temp*v.Get(1))
 					h.Set(j+2-1, jc-1, h.Get(j+2-1, jc-1)-temp*v.Get(2))
-					temp2 = tau * (t.Get(j-1, jc-1) + v.Get(1)*t.Get(j+1-1, jc-1) + v.Get(2)*t.Get(j+2-1, jc-1))
+					temp2 = tau * (t.Get(j-1, jc-1) + v.Get(1)*t.Get(j, jc-1) + v.Get(2)*t.Get(j+2-1, jc-1))
 					t.Set(j-1, jc-1, t.Get(j-1, jc-1)-temp2)
-					t.Set(j+1-1, jc-1, t.Get(j+1-1, jc-1)-temp2*v.Get(1))
+					t.Set(j, jc-1, t.Get(j, jc-1)-temp2*v.Get(1))
 					t.Set(j+2-1, jc-1, t.Get(j+2-1, jc-1)-temp2*v.Get(2))
 				}
 				if ilq {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = tau * (q.Get(jr-1, j-1) + v.Get(1)*q.Get(jr-1, j+1-1) + v.Get(2)*q.Get(jr-1, j+2-1))
+						temp = tau * (q.Get(jr-1, j-1) + v.Get(1)*q.Get(jr-1, j) + v.Get(2)*q.Get(jr-1, j+2-1))
 						q.Set(jr-1, j-1, q.Get(jr-1, j-1)-temp)
-						q.Set(jr-1, j+1-1, q.Get(jr-1, j+1-1)-temp*v.Get(1))
+						q.Set(jr-1, j, q.Get(jr-1, j)-temp*v.Get(1))
 						q.Set(jr-1, j+2-1, q.Get(jr-1, j+2-1)-temp*v.Get(2))
 					}
 				}
@@ -791,26 +791,26 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				//
 				//              Swap rows to pivot
 				ilpivt = false
-				temp = maxf64(math.Abs(t.Get(j+1-1, j+1-1)), math.Abs(t.Get(j+1-1, j+2-1)))
-				temp2 = maxf64(math.Abs(t.Get(j+2-1, j+1-1)), math.Abs(t.Get(j+2-1, j+2-1)))
-				if maxf64(temp, temp2) < safmin {
+				temp = math.Max(math.Abs(t.Get(j, j)), math.Abs(t.Get(j, j+2-1)))
+				temp2 = math.Max(math.Abs(t.Get(j+2-1, j)), math.Abs(t.Get(j+2-1, j+2-1)))
+				if math.Max(temp, temp2) < safmin {
 					scale = zero
 					u1 = one
 					u2 = zero
 					goto label250
 				} else if temp >= temp2 {
-					w11 = t.Get(j+1-1, j+1-1)
-					w21 = t.Get(j+2-1, j+1-1)
-					w12 = t.Get(j+1-1, j+2-1)
+					w11 = t.Get(j, j)
+					w21 = t.Get(j+2-1, j)
+					w12 = t.Get(j, j+2-1)
 					w22 = t.Get(j+2-1, j+2-1)
-					u1 = t.Get(j+1-1, j-1)
+					u1 = t.Get(j, j-1)
 					u2 = t.Get(j+2-1, j-1)
 				} else {
-					w21 = t.Get(j+1-1, j+1-1)
-					w11 = t.Get(j+2-1, j+1-1)
-					w22 = t.Get(j+1-1, j+2-1)
+					w21 = t.Get(j, j)
+					w11 = t.Get(j+2-1, j)
+					w22 = t.Get(j, j+2-1)
 					w12 = t.Get(j+2-1, j+2-1)
-					u2 = t.Get(j+1-1, j-1)
+					u2 = t.Get(j, j-1)
 					u1 = t.Get(j+2-1, j-1)
 				}
 
@@ -843,7 +843,7 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 					scale = math.Abs(w22 / u2)
 				}
 				if math.Abs(w11) < math.Abs(u1) {
-					scale = minf64(scale, math.Abs(w11/u1))
+					scale = math.Min(scale, math.Abs(w11/u1))
 				}
 
 				//              Solve
@@ -867,27 +867,27 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 				v.Set(2, vs*u2)
 
 				//              Apply transformations from the right.
-				for jr = ifrstm; jr <= minint(j+3, ilast); jr++ {
-					temp = tau * (h.Get(jr-1, j-1) + v.Get(1)*h.Get(jr-1, j+1-1) + v.Get(2)*h.Get(jr-1, j+2-1))
+				for jr = ifrstm; jr <= min(j+3, ilast); jr++ {
+					temp = tau * (h.Get(jr-1, j-1) + v.Get(1)*h.Get(jr-1, j) + v.Get(2)*h.Get(jr-1, j+2-1))
 					h.Set(jr-1, j-1, h.Get(jr-1, j-1)-temp)
-					h.Set(jr-1, j+1-1, h.Get(jr-1, j+1-1)-temp*v.Get(1))
+					h.Set(jr-1, j, h.Get(jr-1, j)-temp*v.Get(1))
 					h.Set(jr-1, j+2-1, h.Get(jr-1, j+2-1)-temp*v.Get(2))
 				}
 				for jr = ifrstm; jr <= j+2; jr++ {
-					temp = tau * (t.Get(jr-1, j-1) + v.Get(1)*t.Get(jr-1, j+1-1) + v.Get(2)*t.Get(jr-1, j+2-1))
+					temp = tau * (t.Get(jr-1, j-1) + v.Get(1)*t.Get(jr-1, j) + v.Get(2)*t.Get(jr-1, j+2-1))
 					t.Set(jr-1, j-1, t.Get(jr-1, j-1)-temp)
-					t.Set(jr-1, j+1-1, t.Get(jr-1, j+1-1)-temp*v.Get(1))
+					t.Set(jr-1, j, t.Get(jr-1, j)-temp*v.Get(1))
 					t.Set(jr-1, j+2-1, t.Get(jr-1, j+2-1)-temp*v.Get(2))
 				}
 				if ilz {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = tau * (z.Get(jr-1, j-1) + v.Get(1)*z.Get(jr-1, j+1-1) + v.Get(2)*z.Get(jr-1, j+2-1))
+						temp = tau * (z.Get(jr-1, j-1) + v.Get(1)*z.Get(jr-1, j) + v.Get(2)*z.Get(jr-1, j+2-1))
 						z.Set(jr-1, j-1, z.Get(jr-1, j-1)-temp)
-						z.Set(jr-1, j+1-1, z.Get(jr-1, j+1-1)-temp*v.Get(1))
+						z.Set(jr-1, j, z.Get(jr-1, j)-temp*v.Get(1))
 						z.Set(jr-1, j+2-1, z.Get(jr-1, j+2-1)-temp*v.Get(2))
 					}
 				}
-				t.Set(j+1-1, j-1, zero)
+				t.Set(j, j-1, zero)
 				t.Set(j+2-1, j-1, zero)
 			}
 
@@ -896,45 +896,45 @@ func Dhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, t
 			//           Rotations from the left
 			j = ilast - 1
 			temp = h.Get(j-1, j-1-1)
-			Dlartg(&temp, h.GetPtr(j+1-1, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
-			h.Set(j+1-1, j-1-1, zero)
+			Dlartg(&temp, h.GetPtr(j, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
+			h.Set(j, j-1-1, zero)
 
 			for jc = j; jc <= ilastm; jc++ {
-				temp = c*h.Get(j-1, jc-1) + s*h.Get(j+1-1, jc-1)
-				h.Set(j+1-1, jc-1, -s*h.Get(j-1, jc-1)+c*h.Get(j+1-1, jc-1))
+				temp = c*h.Get(j-1, jc-1) + s*h.Get(j, jc-1)
+				h.Set(j, jc-1, -s*h.Get(j-1, jc-1)+c*h.Get(j, jc-1))
 				h.Set(j-1, jc-1, temp)
-				temp2 = c*t.Get(j-1, jc-1) + s*t.Get(j+1-1, jc-1)
-				t.Set(j+1-1, jc-1, -s*t.Get(j-1, jc-1)+c*t.Get(j+1-1, jc-1))
+				temp2 = c*t.Get(j-1, jc-1) + s*t.Get(j, jc-1)
+				t.Set(j, jc-1, -s*t.Get(j-1, jc-1)+c*t.Get(j, jc-1))
 				t.Set(j-1, jc-1, temp2)
 			}
 			if ilq {
 				for jr = 1; jr <= (*n); jr++ {
-					temp = c*q.Get(jr-1, j-1) + s*q.Get(jr-1, j+1-1)
-					q.Set(jr-1, j+1-1, -s*q.Get(jr-1, j-1)+c*q.Get(jr-1, j+1-1))
+					temp = c*q.Get(jr-1, j-1) + s*q.Get(jr-1, j)
+					q.Set(jr-1, j, -s*q.Get(jr-1, j-1)+c*q.Get(jr-1, j))
 					q.Set(jr-1, j-1, temp)
 				}
 			}
 
 			//           Rotations from the right.
-			temp = t.Get(j+1-1, j+1-1)
-			Dlartg(&temp, t.GetPtr(j+1-1, j-1), &c, &s, t.GetPtr(j+1-1, j+1-1))
-			t.Set(j+1-1, j-1, zero)
+			temp = t.Get(j, j)
+			Dlartg(&temp, t.GetPtr(j, j-1), &c, &s, t.GetPtr(j, j))
+			t.Set(j, j-1, zero)
 
 			for jr = ifrstm; jr <= ilast; jr++ {
-				temp = c*h.Get(jr-1, j+1-1) + s*h.Get(jr-1, j-1)
-				h.Set(jr-1, j-1, -s*h.Get(jr-1, j+1-1)+c*h.Get(jr-1, j-1))
-				h.Set(jr-1, j+1-1, temp)
+				temp = c*h.Get(jr-1, j) + s*h.Get(jr-1, j-1)
+				h.Set(jr-1, j-1, -s*h.Get(jr-1, j)+c*h.Get(jr-1, j-1))
+				h.Set(jr-1, j, temp)
 			}
 			for jr = ifrstm; jr <= ilast-1; jr++ {
-				temp = c*t.Get(jr-1, j+1-1) + s*t.Get(jr-1, j-1)
-				t.Set(jr-1, j-1, -s*t.Get(jr-1, j+1-1)+c*t.Get(jr-1, j-1))
-				t.Set(jr-1, j+1-1, temp)
+				temp = c*t.Get(jr-1, j) + s*t.Get(jr-1, j-1)
+				t.Set(jr-1, j-1, -s*t.Get(jr-1, j)+c*t.Get(jr-1, j-1))
+				t.Set(jr-1, j, temp)
 			}
 			if ilz {
 				for jr = 1; jr <= (*n); jr++ {
-					temp = c*z.Get(jr-1, j+1-1) + s*z.Get(jr-1, j-1)
-					z.Set(jr-1, j-1, -s*z.Get(jr-1, j+1-1)+c*z.Get(jr-1, j-1))
-					z.Set(jr-1, j+1-1, temp)
+					temp = c*z.Get(jr-1, j) + s*z.Get(jr-1, j-1)
+					z.Set(jr-1, j-1, -s*z.Get(jr-1, j)+c*z.Get(jr-1, j-1))
+					z.Set(jr-1, j, temp)
 				}
 			}
 

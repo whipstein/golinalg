@@ -147,7 +147,7 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 		}
 
 		//     Test for successful reordering of T2
-		goblas.Zcopy(n, tmp.CVector(0, 0), ldt+1, diag, 1)
+		goblas.Zcopy(n, tmp.CVector(0, 0, ldt+1), diag.Off(0, 1))
 		if ifst < ilst {
 			for i = ifst + 1; i <= ilst; i++ {
 				ctemp = diag.Get(i - 1)
@@ -157,7 +157,7 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 		} else if ifst > ilst {
 			for i = ifst - 1; i >= ilst; i-- {
 				ctemp = diag.Get(i + 1 - 1)
-				diag.Set(i+1-1, diag.Get(i-1))
+				diag.Set(i, diag.Get(i-1))
 				diag.Set(i-1, ctemp)
 			}
 		}

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -37,19 +39,19 @@ func Zpbt02(uplo byte, n, kd, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatri
 
 	//     Compute  B - A*X
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kd, -cone, a, *lda, x.CVector(0, j-1), 1, cone, b.CVector(0, j-1), 1)
+		err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kd, -cone, a, x.CVector(0, j-1, 1), cone, b.CVector(0, j-1, 1))
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//          norm( B - A*X ) / ( norm(A) * norm(X) * EPS )
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1), 1)
-		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
+		bnorm = goblas.Dzasum(*n, b.CVector(0, j-1, 1))
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

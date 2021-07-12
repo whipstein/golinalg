@@ -24,7 +24,7 @@ func Zlctes(z, d complex128) (zlctesReturn bool) {
 		} else if imag(z) == zero || imag(d) == zero {
 			zlctesReturn = (math.Copysign(one, real(z)) != math.Copysign(one, real(d)))
 		} else {
-			zmax = maxf64(math.Abs(real(z)), math.Abs(imag(z)))
+			zmax = math.Max(math.Abs(real(z)), math.Abs(imag(z)))
 			zlctesReturn = ((real(z)/zmax)*real(d)+(imag(z)/zmax)*imag(d) < zero)
 		}
 	}

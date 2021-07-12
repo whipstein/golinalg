@@ -30,17 +30,17 @@ func Zlaqhb(uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, s *mat.Vector, sc
 			//           Upper triangle of A is stored in band format.
 			for j = 1; j <= (*n); j++ {
 				cj = s.Get(j - 1)
-				for i = maxint(1, j-(*kd)); i <= j-1; i++ {
+				for i = max(1, j-(*kd)); i <= j-1; i++ {
 					ab.Set((*kd)+1+i-j-1, j-1, complex(cj*s.Get(i-1), 0)*ab.Get((*kd)+1+i-j-1, j-1))
 				}
-				ab.SetRe((*kd)+1-1, j-1, cj*cj*ab.GetRe((*kd)+1-1, j-1))
+				ab.SetRe((*kd), j-1, cj*cj*ab.GetRe((*kd), j-1))
 			}
 		} else {
 			//           Lower triangle of A is stored.
 			for j = 1; j <= (*n); j++ {
 				cj = s.Get(j - 1)
 				ab.SetRe(0, j-1, cj*cj*ab.GetRe(0, j-1))
-				for i = j + 1; i <= minint(*n, j+(*kd)); i++ {
+				for i = j + 1; i <= min(*n, j+(*kd)); i++ {
 					ab.Set(1+i-j-1, j-1, complex(cj*s.Get(i-1), 0)*ab.Get(1+i-j-1, j-1))
 				}
 			}

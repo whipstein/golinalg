@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -39,8 +41,8 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 
 	//     Test the input arguments
 	(*info) = 0
-	minmn = minint(*m, *n)
-	maxmn = maxint(*m, *n)
+	minmn = min(*m, *n)
+	maxmn = max(*m, *n)
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
 		(*info) = -1
@@ -48,9 +50,9 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, maxmn) {
+	} else if (*ldb) < max(1, maxmn) {
 		(*info) = -7
 	}
 
@@ -78,8 +80,8 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 				Zunmqr('L', 'C', m, nrhs, n, a, lda, dum.Off(0), b, ldb, dum.Off(0), toPtr(-1), info)
 				// lworkZunmqr = int(dum.GetRe(0))
 				mm = (*n)
-				maxwrk = maxint(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
-				maxwrk = maxint(maxwrk, (*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
 			}
 			if (*m) >= (*n) {
 				//              Path 1 - overdetermined or exactly determined
@@ -94,14 +96,14 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 				Zungbr('P', n, n, n, a, lda, dum.Off(0), dum.Off(0), toPtr(-1), info)
 				lworkZungbr = int(dum.GetRe(0))
 				//              Compute total workspace needed
-				maxwrk = maxint(maxwrk, 2*(*n)+lworkZgebrd)
-				maxwrk = maxint(maxwrk, 2*(*n)+lworkZunmbr)
-				maxwrk = maxint(maxwrk, 2*(*n)+lworkZungbr)
-				maxwrk = maxint(maxwrk, (*n)*(*nrhs))
-				minwrk = 2*(*n) + maxint(*nrhs, *m)
+				maxwrk = max(maxwrk, 2*(*n)+lworkZgebrd)
+				maxwrk = max(maxwrk, 2*(*n)+lworkZunmbr)
+				maxwrk = max(maxwrk, 2*(*n)+lworkZungbr)
+				maxwrk = max(maxwrk, (*n)*(*nrhs))
+				minwrk = 2*(*n) + max(*nrhs, *m)
 			}
 			if (*n) > (*m) {
-				minwrk = 2*(*m) + maxint(*nrhs, *n)
+				minwrk = 2*(*m) + max(*nrhs, *n)
 				if (*n) >= mnthr {
 					//                 Path 2a - underdetermined, with many more columns
 					//                 than rows
@@ -123,15 +125,15 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 					lworkZunmlq = int(dum.GetRe(0))
 					//                 Compute total workspace needed
 					maxwrk = (*m) + lworkZgelqf
-					maxwrk = maxint(maxwrk, 3*(*m)+(*m)*(*m)+lworkZgebrd)
-					maxwrk = maxint(maxwrk, 3*(*m)+(*m)*(*m)+lworkZunmbr)
-					maxwrk = maxint(maxwrk, 3*(*m)+(*m)*(*m)+lworkZungbr)
+					maxwrk = max(maxwrk, 3*(*m)+(*m)*(*m)+lworkZgebrd)
+					maxwrk = max(maxwrk, 3*(*m)+(*m)*(*m)+lworkZunmbr)
+					maxwrk = max(maxwrk, 3*(*m)+(*m)*(*m)+lworkZungbr)
 					if (*nrhs) > 1 {
-						maxwrk = maxint(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
+						maxwrk = max(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
 					} else {
-						maxwrk = maxint(maxwrk, (*m)*(*m)+2*(*m))
+						maxwrk = max(maxwrk, (*m)*(*m)+2*(*m))
 					}
-					maxwrk = maxint(maxwrk, (*m)+lworkZunmlq)
+					maxwrk = max(maxwrk, (*m)+lworkZunmlq)
 				} else {
 					//                 Path 2 - underdetermined
 					//
@@ -145,12 +147,12 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 					Zungbr('P', m, n, m, a, lda, dum.Off(0), dum.Off(0), toPtr(-1), info)
 					lworkZungbr = int(dum.GetRe(0))
 					maxwrk = 2*(*m) + lworkZgebrd
-					maxwrk = maxint(maxwrk, 2*(*m)+lworkZunmbr)
-					maxwrk = maxint(maxwrk, 2*(*m)+lworkZungbr)
-					maxwrk = maxint(maxwrk, (*n)*(*nrhs))
+					maxwrk = max(maxwrk, 2*(*m)+lworkZunmbr)
+					maxwrk = max(maxwrk, 2*(*m)+lworkZungbr)
+					maxwrk = max(maxwrk, (*n)*(*nrhs))
 				}
 			}
-			maxwrk = maxint(minwrk, maxwrk)
+			maxwrk = max(minwrk, maxwrk)
 		}
 		work.SetRe(0, float64(maxwrk))
 
@@ -179,7 +181,7 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	bignum = one / smlnum
 	Dlabad(&smlnum, &bignum)
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', m, n, a, lda, rwork)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
@@ -192,13 +194,13 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		Dlaset('F', &minmn, func() *int { y := 1; return &y }(), &zero, &zero, s.Matrix(minmn, opts), &minmn)
 		(*rank) = 0
 		goto label70
 	}
 
-	//     Scale B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale B if max element outside range [SMLNUM,BIGNUM]
 	bnrm = Zlange('M', m, nrhs, b, ldb, rwork)
 	ibscl = 0
 	if bnrm > zero && bnrm < smlnum {
@@ -269,9 +271,9 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		}
 
 		//        Multiply B by reciprocals of singular values
-		thr = maxf64((*rcond)*s.Get(0), sfmin)
+		thr = math.Max((*rcond)*s.Get(0), sfmin)
 		if (*rcond) < zero {
-			thr = maxf64(eps*s.Get(0), sfmin)
+			thr = math.Max(eps*s.Get(0), sfmin)
 		}
 		(*rank) = 0
 		for i = 1; i <= (*n); i++ {
@@ -287,27 +289,27 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        (CWorkspace: need N, prefer N*NRHS)
 		//        (RWorkspace: none)
 		if (*lwork) >= (*ldb)*(*nrhs) && (*nrhs) > 1 {
-			err = goblas.Zgemm(ConjTrans, NoTrans, *n, *nrhs, *n, cone, a, *lda, b, *ldb, czero, work.CMatrix(*ldb, opts), *ldb)
+			err = goblas.Zgemm(ConjTrans, NoTrans, *n, *nrhs, *n, cone, a, b, czero, work.CMatrix(*ldb, opts))
 			Zlacpy('G', n, nrhs, work.CMatrix(*ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = (*lwork) / (*n)
 			for i = 1; i <= (*nrhs); i += chunk {
-				bl = minint((*nrhs)-i+1, chunk)
-				err = goblas.Zgemm(ConjTrans, NoTrans, *n, bl, *n, cone, a, *lda, b.Off(0, i-1), *ldb, czero, work.CMatrix(*n, opts), *n)
+				bl = min((*nrhs)-i+1, chunk)
+				err = goblas.Zgemm(ConjTrans, NoTrans, *n, bl, *n, cone, a, b.Off(0, i-1), czero, work.CMatrix(*n, opts))
 				Zlacpy('G', n, &bl, work.CMatrix(*n, opts), n, b.Off(0, i-1), ldb)
 			}
 		} else {
-			err = goblas.Zgemv(ConjTrans, *n, *n, cone, a, *lda, b.CVector(0, 0), 1, czero, work, 1)
-			goblas.Zcopy(*n, work, 1, b.CVector(0, 0), 1)
+			err = goblas.Zgemv(ConjTrans, *n, *n, cone, a, b.CVector(0, 0, 1), czero, work.Off(0, 1))
+			goblas.Zcopy(*n, work.Off(0, 1), b.CVector(0, 0, 1))
 		}
 
-	} else if (*n) >= mnthr && (*lwork) >= 3*(*m)+(*m)*(*m)+maxint(*m, *nrhs, (*n)-2*(*m)) {
+	} else if (*n) >= mnthr && (*lwork) >= 3*(*m)+(*m)*(*m)+max(*m, *nrhs, (*n)-2*(*m)) {
 		//        Underdetermined case, M much less than N
 		//
 		//        Path 2a - underdetermined, with many more columns than rows
 		//        and sufficient workspace for an efficient algorithm
 		ldwork = (*m)
-		if (*lwork) >= 3*(*m)+(*m)*(*lda)+maxint(*m, *nrhs, (*n)-2*(*m)) {
+		if (*lwork) >= 3*(*m)+(*m)*(*lda)+max(*m, *nrhs, (*n)-2*(*m)) {
 			ldwork = (*lda)
 		}
 		itau = 1
@@ -354,9 +356,9 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		}
 
 		//        Multiply B by reciprocals of singular values
-		thr = maxf64((*rcond)*s.Get(0), sfmin)
+		thr = math.Max((*rcond)*s.Get(0), sfmin)
 		if (*rcond) < zero {
-			thr = maxf64(eps*s.Get(0), sfmin)
+			thr = math.Max(eps*s.Get(0), sfmin)
 		}
 		(*rank) = 0
 		for i = 1; i <= (*m); i++ {
@@ -373,22 +375,22 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        (CWorkspace: need M*M+2*M, prefer M*M+M+M*NRHS)
 		//        (RWorkspace: none)
 		if (*lwork) >= (*ldb)*(*nrhs)+iwork-1 && (*nrhs) > 1 {
-			err = goblas.Zgemm(ConjTrans, NoTrans, *m, *nrhs, *m, cone, work.CMatrixOff(il-1, ldwork, opts), ldwork, b, *ldb, czero, work.CMatrixOff(iwork-1, *ldb, opts), *ldb)
+			err = goblas.Zgemm(ConjTrans, NoTrans, *m, *nrhs, *m, cone, work.CMatrixOff(il-1, ldwork, opts), b, czero, work.CMatrixOff(iwork-1, *ldb, opts))
 			Zlacpy('G', m, nrhs, work.CMatrixOff(iwork-1, *ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = ((*lwork) - iwork + 1) / (*m)
 			for i = 1; i <= (*nrhs); i += chunk {
-				bl = minint((*nrhs)-i+1, chunk)
-				err = goblas.Zgemm(ConjTrans, NoTrans, *m, bl, *m, cone, work.CMatrixOff(il-1, ldwork, opts), ldwork, b.Off(0, i-1), *ldb, czero, work.CMatrixOff(iwork-1, *m, opts), *m)
+				bl = min((*nrhs)-i+1, chunk)
+				err = goblas.Zgemm(ConjTrans, NoTrans, *m, bl, *m, cone, work.CMatrixOff(il-1, ldwork, opts), b.Off(0, i-1), czero, work.CMatrixOff(iwork-1, *m, opts))
 				Zlacpy('G', m, &bl, work.CMatrixOff(iwork-1, *m, opts), m, b.Off(0, i-1), ldb)
 			}
 		} else {
-			err = goblas.Zgemv(ConjTrans, *m, *m, cone, work.CMatrixOff(il-1, ldwork, opts), ldwork, b.CVector(0, 0), 1, czero, work.Off(iwork-1), 1)
-			goblas.Zcopy(*m, work.Off(iwork-1), 1, b.CVector(0, 0), 1)
+			err = goblas.Zgemv(ConjTrans, *m, *m, cone, work.CMatrixOff(il-1, ldwork, opts), b.CVector(0, 0, 1), czero, work.Off(iwork-1, 1))
+			goblas.Zcopy(*m, work.Off(iwork-1, 1), b.CVector(0, 0, 1))
 		}
 
 		//        Zero out below first M rows of B
-		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m)+1-1, 0), ldb)
+		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m), 0), ldb)
 		iwork = itau + (*m)
 
 		//        Multiply transpose(Q) by B
@@ -430,9 +432,9 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		}
 
 		//        Multiply B by reciprocals of singular values
-		thr = maxf64((*rcond)*s.Get(0), sfmin)
+		thr = math.Max((*rcond)*s.Get(0), sfmin)
 		if (*rcond) < zero {
-			thr = maxf64(eps*s.Get(0), sfmin)
+			thr = math.Max(eps*s.Get(0), sfmin)
 		}
 		(*rank) = 0
 		for i = 1; i <= (*m); i++ {
@@ -448,18 +450,18 @@ func Zgelss(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		//        (CWorkspace: need N, prefer N*NRHS)
 		//        (RWorkspace: none)
 		if (*lwork) >= (*ldb)*(*nrhs) && (*nrhs) > 1 {
-			err = goblas.Zgemm(ConjTrans, NoTrans, *n, *nrhs, *m, cone, a, *lda, b, *ldb, czero, work.CMatrix(*ldb, opts), *ldb)
+			err = goblas.Zgemm(ConjTrans, NoTrans, *n, *nrhs, *m, cone, a, b, czero, work.CMatrix(*ldb, opts))
 			Zlacpy('G', n, nrhs, work.CMatrix(*ldb, opts), ldb, b, ldb)
 		} else if (*nrhs) > 1 {
 			chunk = (*lwork) / (*n)
 			for i = 1; i <= (*nrhs); i += chunk {
-				bl = minint((*nrhs)-i+1, chunk)
-				err = goblas.Zgemm(ConjTrans, NoTrans, *n, bl, *m, cone, a, *lda, b.Off(0, i-1), *ldb, czero, work.CMatrix(*n, opts), *n)
+				bl = min((*nrhs)-i+1, chunk)
+				err = goblas.Zgemm(ConjTrans, NoTrans, *n, bl, *m, cone, a, b.Off(0, i-1), czero, work.CMatrix(*n, opts))
 				Zlacpy('F', n, &bl, work.CMatrix(*n, opts), n, b.Off(0, i-1), ldb)
 			}
 		} else {
-			err = goblas.Zgemv(ConjTrans, *m, *n, cone, a, *lda, b.CVector(0, 0), 1, czero, work, 1)
-			goblas.Zcopy(*n, work, 1, b.CVector(0, 0), 1)
+			err = goblas.Zgemv(ConjTrans, *m, *n, cone, a, b.CVector(0, 0, 1), czero, work.Off(0, 1))
+			goblas.Zcopy(*n, work.Off(0, 1), b.CVector(0, 0, 1))
 		}
 	}
 

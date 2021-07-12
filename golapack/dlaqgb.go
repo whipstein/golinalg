@@ -37,7 +37,7 @@ func Dlaqgb(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, r, c *mat.Vector, rowc
 			//
 			for j = 1; j <= (*n); j++ {
 				cj = c.Get(j - 1)
-				for i = maxint(1, j-(*ku)); i <= minint(*m, j+(*kl)); i++ {
+				for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
 					ab.Set((*ku)+1+i-j-1, j-1, cj*ab.Get((*ku)+1+i-j-1, j-1))
 				}
 			}
@@ -46,7 +46,7 @@ func Dlaqgb(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, r, c *mat.Vector, rowc
 	} else if (*colcnd) >= thresh {
 		//        Row scaling, no column scaling
 		for j = 1; j <= (*n); j++ {
-			for i = maxint(1, j-(*ku)); i <= minint(*m, j+(*kl)); i++ {
+			for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
 				ab.Set((*ku)+1+i-j-1, j-1, r.Get(i-1)*ab.Get((*ku)+1+i-j-1, j-1))
 			}
 		}
@@ -55,7 +55,7 @@ func Dlaqgb(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, r, c *mat.Vector, rowc
 		//        Row and column scaling
 		for j = 1; j <= (*n); j++ {
 			cj = c.Get(j - 1)
-			for i = maxint(1, j-(*ku)); i <= minint(*m, j+(*kl)); i++ {
+			for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
 				ab.Set((*ku)+1+i-j-1, j-1, cj*r.Get(i-1)*ab.Get((*ku)+1+i-j-1, j-1))
 			}
 		}

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -8,7 +10,7 @@ import (
 
 // Zqrt16 computes the residual for a solution of a system of linear
 // equations  A*x = b  or  A'*x = b:
-//    RESID = norm(B - A*X) / ( maxint(m,n) * norm(A) * norm(X) * EPS ),
+//    RESID = norm(B - A*X) / ( max(m,n) * norm(A) * norm(X) * EPS ),
 // where EPS is the machine epsilon.
 func Zqrt16(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatrix, ldx *int, b *mat.CMatrix, ldb *int, rwork *mat.Vector, resid *float64) {
 	var cone complex128
@@ -40,20 +42,20 @@ func Zqrt16(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatri
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Compute  B - A*X  (or  B - A'*X ) and store in B.
-	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, n1, *nrhs, n2, -cone, a, *lda, x, *ldx, cone, b, *ldb)
+	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, n1, *nrhs, n2, -cone, a, x, cone, b)
 
 	//     Compute the maximum over the number of right hand sides of
-	//        norm(B - A*X) / ( maxint(m,n) * norm(A) * norm(X) * EPS ) .
+	//        norm(B - A*X) / ( max(m,n) * norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1), 1)
-		xnorm = goblas.Dzasum(n2, x.CVector(0, j-1), 1)
+		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1, 1))
+		xnorm = goblas.Dzasum(n2, x.CVector(0, j-1, 1))
 		if anorm == zero && bnorm == zero {
 			(*resid) = zero
 		} else if anorm <= zero || xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/(float64(maxint(*m, *n))*eps))
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/(float64(max(*m, *n))*eps))
 		}
 	}
 }

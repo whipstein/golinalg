@@ -27,7 +27,7 @@ func Dsytrf(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < 1 && !lquery {
 		(*info) = -7
@@ -52,8 +52,8 @@ func Dsytrf(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.V
 	if nb > 1 && nb < (*n) {
 		iws = ldwork * nb
 		if (*lwork) < iws {
-			nb = maxint((*lwork)/ldwork, 1)
-			nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DSYTRF"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+			nb = max((*lwork)/ldwork, 1)
+			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DSYTRF"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 		}
 	} else {
 		iws = 1

@@ -2,6 +2,7 @@ package eig
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -13,15 +14,15 @@ import (
 func Zchkgk(t *testing.T) {
 	var cone, czero complex128
 	var anorm, bnorm, eps, rmax, vmax, zero float64
-	var _i, i, ihi, ilo, info, j, knt, lda, ldb, lde, ldf, ldvl, ldvr, ldwork, m, n, ninfo int
+	var _i, i, ihi, ilo, info, j, knt, lda, ldb, ldvl, ldvr, ldwork, m, n, ninfo int
 	var err error
 	_ = err
 	lda = 50
 	ldb = 50
 	ldvl = 50
 	ldvr = 50
-	lde = 50
-	ldf = 50
+	// lde = 50
+	// ldf = 50
 	ldwork = 50
 	zero = 0.0
 	czero = (0.0 + 0.0*1i)
@@ -438,38 +439,38 @@ func Zchkgk(t *testing.T) {
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, af, lda, vr, ldvr, czero, work, ldwork)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vl, ldvl, work, ldwork, czero, e, lde)
+		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, af, vr, czero, work)
+		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vl, work, czero, e)
 
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, a, lda, vrf, ldvr, czero, work, ldwork)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vlf, ldvl, work, ldwork, czero, f, ldf)
+		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, a, vrf, czero, work)
+		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vlf, work, czero, f)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
 			for i = 1; i <= m; i++ {
-				vmax = maxf64(vmax, cabs1(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
+				vmax = math.Max(vmax, cabs1(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
 			}
 		}
-		vmax = vmax / (eps * maxf64(anorm, bnorm))
+		vmax = vmax / (eps * math.Max(anorm, bnorm))
 		if vmax > rmax {
 			lmax[3] = knt
 			rmax = vmax
 		}
 
 		//     Check tilde(VL)'*B*tilde(VR) - VL'*tilde(B)*VR
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, bf, ldb, vr, ldvr, czero, work, ldwork)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vl, ldvl, work, ldwork, czero, e, lde)
+		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, bf, vr, czero, work)
+		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vl, work, czero, e)
 
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, b, ldb, vrf, ldvr, czero, work, ldwork)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vlf, ldvl, work, ldwork, czero, f, ldf)
+		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, b, vrf, czero, work)
+		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vlf, work, czero, f)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
 			for i = 1; i <= m; i++ {
-				vmax = maxf64(vmax, cabs1(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
+				vmax = math.Max(vmax, cabs1(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
 			}
 		}
-		vmax = vmax / (eps * maxf64(anorm, bnorm))
+		vmax = vmax / (eps * math.Max(anorm, bnorm))
 		if vmax > rmax {
 			lmax[3] = knt
 			rmax = vmax

@@ -50,7 +50,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL.
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
@@ -83,7 +83,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				ia = 1
 				for i = 1; i <= n-1; i++ {
 					d.Set(i-1, a.Get(ia-1))
-					e.Set(i-1, a.Get(ia+1-1))
+					e.Set(i-1, a.Get(ia))
 					ia = ia + 2
 				}
 				if n > 0 {
@@ -109,11 +109,11 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(n, d, 1)
+					ix = goblas.Idamax(n, d.Off(0, 1))
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(n, anorm/dmax, d, 1)
+					goblas.Dscal(n, anorm/dmax, d.Off(0, 1))
 					if n > 1 {
-						goblas.Dscal(n-1, anorm/dmax, e, 1)
+						goblas.Dscal(n-1, anorm/dmax, e.Off(0, 1))
 					}
 
 				} else if izero > 0 {
@@ -195,13 +195,13 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Compute the 1-norm of A.
 					anorm = golapack.Dlanst('1', &n, d, e)
 
-					goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
+					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
-						goblas.Dcopy(n-1, e, 1, e.Off(n+1-1), 1)
+						goblas.Dcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 					}
 
 					//                 Factor the matrix A.
-					golapack.Dpttrf(&n, d.Off(n+1-1), e.Off(n+1-1), &info)
+					golapack.Dpttrf(&n, d.Off(n), e.Off(n), &info)
 
 					//                 Use DPTTRS to solve for one column at a time of
 					//                 inv(A), computing the maximum column sum as we go.
@@ -211,8 +211,8 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							x.Set(j-1, zero)
 						}
 						x.Set(i-1, one)
-						golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.Matrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dasum(n, x, 1))
+						golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n), e.Off(n), x.Matrix(lda, opts), &lda, &info)
+						ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
 					}
 
 					//                 Compute the 1-norm condition number of A.
@@ -225,15 +225,15 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 				if ifact == 2 {
 					//                 --- Test DPTSV --
-					goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
+					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
-						goblas.Dcopy(n-1, e, 1, e.Off(n+1-1), 1)
+						goblas.Dcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 					}
 					golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 
 					//                 Factor A as L*D*L' and solve the system A*X = B.
 					*srnamt = "DPTSV "
-					golapack.Dptsv(&n, nrhs, d.Off(n+1-1), e.Off(n+1-1), x.Matrix(lda, opts), &lda, &info)
+					golapack.Dptsv(&n, nrhs, d.Off(n), e.Off(n), x.Matrix(lda, opts), &lda, &info)
 
 					//                 Check error code from DPTSV .
 					if info != izero {
@@ -243,7 +243,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					if izero == 0 {
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
-						Dptt01(&n, d, e, d.Off(n+1-1), e.Off(n+1-1), work, result.GetPtr(0))
+						Dptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
 
 						//                    Compute the residual in the solution.
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
@@ -286,7 +286,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				//              Solve the system and compute the condition number and
 				//              error bounds using DPTSVX.
 				*srnamt = "DPTSVX"
-				golapack.Dptsvx(fact, &n, nrhs, d, e, d.Off(n+1-1), e.Off(n+1-1), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, &info)
+				golapack.Dptsvx(fact, &n, nrhs, d, e, d.Off(n), e.Off(n), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, &info)
 
 				//              Check the error code from DPTSVX.
 				if info != izero {
@@ -297,7 +297,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
 						k1 = 1
-						Dptt01(&n, d, e, d.Off(n+1-1), e.Off(n+1-1), work, result.GetPtr(0))
+						Dptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
 					} else {
 						k1 = 2
 					}
@@ -310,7 +310,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 					//                 Check error bounds from iterative refinement.
-					Dptt05(&n, nrhs, d, e, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+					Dptt05(&n, nrhs, d, e, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 				} else {
 					k1 = 6
 				}

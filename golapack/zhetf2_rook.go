@@ -41,7 +41,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -79,13 +79,13 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Izamax(k-1, a.CVector(0, k-1), 1)
+			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
 			colmax = Cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if maxf64(absakk, colmax) == zero {
+		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
 			if (*info) == 0 {
 				(*info) = k
@@ -118,14 +118,14 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax+1-1), *lda)
+					jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax, *lda))
 					rowmax = Cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax > 1 {
-					itemp = goblas.Izamax(imax-1, a.CVector(0, imax-1), 1)
+					itemp = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
 					dtemp = Cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -180,7 +180,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 			if (kstep == 2) && (p != k) {
 				//              (1) Swap columnar parts
 				if p > 1 {
-					goblas.Zswap(p-1, a.CVector(0, k-1), 1, a.CVector(0, p-1), 1)
+					goblas.Zswap(p-1, a.CVector(0, k-1, 1), a.CVector(0, p-1, 1))
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = p + 1; j <= k-1; j++ {
@@ -201,7 +201,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 			if kp != kk {
 				//              (1) Swap columnar parts
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, kk-1), 1, a.CVector(0, kp-1), 1)
+					goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = kp + 1; j <= kk-1; j++ {
@@ -247,10 +247,10 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*1/D(k)*W(k)**T
 						d11 = one / a.GetRe(k-1, k-1)
-						err = goblas.Zher(mat.UploByte(uplo), k-1, -d11, a.CVector(0, k-1), 1, a, *lda)
+						err = goblas.Zher(mat.UploByte(uplo), k-1, -d11, a.CVector(0, k-1, 1), a)
 
 						//                    Store U(k) in column k
-						goblas.Zdscal(k-1, d11, a.CVector(0, k-1), 1)
+						goblas.Zdscal(k-1, d11, a.CVector(0, k-1, 1))
 					} else {
 						//                    Store L(k) in column K
 						d11 = a.GetRe(k-1, k-1)
@@ -262,7 +262,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						err = goblas.Zher(mat.UploByte(uplo), k-1, -d11, a.CVector(0, k-1), 1, a, *lda)
+						err = goblas.Zher(mat.UploByte(uplo), k-1, -d11, a.CVector(0, k-1, 1), a)
 					}
 				}
 
@@ -348,13 +348,13 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < (*n) {
-			imax = k + goblas.Izamax((*n)-k, a.CVector(k+1-1, k-1), 1)
+			imax = k + goblas.Izamax((*n)-k, a.CVector(k, k-1, 1))
 			colmax = Cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if maxf64(absakk, colmax) == zero {
+		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
 			if (*info) == 0 {
 				(*info) = k
@@ -388,14 +388,14 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1), *lda)
+					jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1, *lda))
 					rowmax = Cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax < (*n) {
-					itemp = imax + goblas.Izamax((*n)-imax, a.CVector(imax+1-1, imax-1), 1)
+					itemp = imax + goblas.Izamax((*n)-imax, a.CVector(imax, imax-1, 1))
 					dtemp = Cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -451,7 +451,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 			if (kstep == 2) && (p != k) {
 				//              (1) Swap columnar parts
 				if p < (*n) {
-					goblas.Zswap((*n)-p, a.CVector(p+1-1, k-1), 1, a.CVector(p+1-1, p-1), 1)
+					goblas.Zswap((*n)-p, a.CVector(p, k-1, 1), a.CVector(p, p-1, 1))
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = k + 1; j <= p-1; j++ {
@@ -472,7 +472,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 			if kp != kk {
 				//              (1) Swap columnar parts
 				if kp < (*n) {
-					goblas.Zswap((*n)-kp, a.CVector(kp+1-1, kk-1), 1, a.CVector(kp+1-1, kp-1), 1)
+					goblas.Zswap((*n)-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = kk + 1; j <= kp-1; j++ {
@@ -491,15 +491,15 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 					//                 (*) Make sure that diagonal element of pivot is real
 					a.Set(k-1, k-1, a.GetReCmplx(k-1, k-1))
 					//                 (5) Swap row elements
-					t = a.Get(k+1-1, k-1)
-					a.Set(k+1-1, k-1, a.Get(kp-1, k-1))
+					t = a.Get(k, k-1)
+					a.Set(k, k-1, a.Get(kp-1, k-1))
 					a.Set(kp-1, k-1, t)
 				}
 			} else {
 				//              (*) Make sure that diagonal element of pivot is real
 				a.Set(k-1, k-1, a.GetReCmplx(k-1, k-1))
 				if kstep == 2 {
-					a.Set(k+1-1, k+1-1, a.GetReCmplx(k+1-1, k+1-1))
+					a.Set(k, k, a.GetReCmplx(k, k))
 				}
 			}
 
@@ -520,10 +520,10 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						d11 = one / a.GetRe(k-1, k-1)
-						err = goblas.Zher(mat.UploByte(uplo), (*n)-k, -d11, a.CVector(k+1-1, k-1), 1, a.Off(k+1-1, k+1-1), *lda)
+						err = goblas.Zher(mat.UploByte(uplo), (*n)-k, -d11, a.CVector(k, k-1, 1), a.Off(k, k))
 
 						//                    Store L(k) in column k
-						goblas.Zdscal((*n)-k, d11, a.CVector(k+1-1, k-1), 1)
+						goblas.Zdscal((*n)-k, d11, a.CVector(k, k-1, 1))
 					} else {
 						//                    Store L(k) in column k
 						d11 = a.GetRe(k-1, k-1)
@@ -535,7 +535,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						err = goblas.Zher(mat.UploByte(uplo), (*n)-k, -d11, a.CVector(k+1-1, k-1), 1, a.Off(k+1-1, k+1-1), *lda)
+						err = goblas.Zher(mat.UploByte(uplo), (*n)-k, -d11, a.CVector(k, k-1, 1), a.Off(k, k))
 					}
 				}
 
@@ -556,25 +556,25 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//              and store L(k) and L(k+1) in columns k and k+1
 				if k < (*n)-1 {
 					//                 D = |A21|
-					d = Dlapy2(toPtrf64(a.GetRe(k+1-1, k-1)), toPtrf64(a.GetIm(k+1-1, k-1)))
-					d11 = a.GetRe(k+1-1, k+1-1) / d
+					d = Dlapy2(toPtrf64(a.GetRe(k, k-1)), toPtrf64(a.GetIm(k, k-1)))
+					d11 = a.GetRe(k, k) / d
 					d22 = a.GetRe(k-1, k-1) / d
-					d21 = a.Get(k+1-1, k-1) / complex(d, 0)
+					d21 = a.Get(k, k-1) / complex(d, 0)
 					tt = one / (d11*d22 - one)
 
 					for j = k + 2; j <= (*n); j++ {
 						//                    Compute  D21 * ( W(k)W(k+1) ) * inv(D(k)) for row J
-						wk = complex(tt, 0) * (complex(d11, 0)*a.Get(j-1, k-1) - d21*a.Get(j-1, k+1-1))
-						wkp1 = complex(tt, 0) * (complex(d22, 0)*a.Get(j-1, k+1-1) - cmplx.Conj(d21)*a.Get(j-1, k-1))
+						wk = complex(tt, 0) * (complex(d11, 0)*a.Get(j-1, k-1) - d21*a.Get(j-1, k))
+						wkp1 = complex(tt, 0) * (complex(d22, 0)*a.Get(j-1, k) - cmplx.Conj(d21)*a.Get(j-1, k-1))
 
 						//                    Perform a rank-2 update of A(k+2:n,k+2:n)
 						for i = j; i <= (*n); i++ {
-							a.Set(i-1, j-1, a.Get(i-1, j-1)-(a.Get(i-1, k-1)/complex(d, 0))*cmplx.Conj(wk)-(a.Get(i-1, k+1-1)/complex(d, 0))*cmplx.Conj(wkp1))
+							a.Set(i-1, j-1, a.Get(i-1, j-1)-(a.Get(i-1, k-1)/complex(d, 0))*cmplx.Conj(wk)-(a.Get(i-1, k)/complex(d, 0))*cmplx.Conj(wkp1))
 						}
 
 						//                    Store L(k) and L(k+1) in cols k and k+1 for row J
 						a.Set(j-1, k-1, wk/complex(d, 0))
-						a.Set(j-1, k+1-1, wkp1/complex(d, 0))
+						a.Set(j-1, k, wkp1/complex(d, 0))
 						//                    (*) Make sure that diagonal element of pivot is real
 						a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1))
 
@@ -591,7 +591,7 @@ func Zhetf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 			(*ipiv)[k-1] = kp
 		} else {
 			(*ipiv)[k-1] = -p
-			(*ipiv)[k+1-1] = -kp
+			(*ipiv)[k] = -kp
 		}
 
 		//        Increase K and return to the start of the main loop

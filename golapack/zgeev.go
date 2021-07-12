@@ -43,7 +43,7 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	} else if (*ldvl) < 1 || (wantvl && (*ldvl) < (*n)) {
 		(*info) = -8
@@ -69,22 +69,22 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 			maxwrk = (*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEHRD"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
 			minwrk = 2 * (*n)
 			if wantvl {
-				maxwrk = maxint(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 				Ztrevc3('L', 'B', _select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), rwork, toPtr(-1), &ierr)
 				lworkTrevc = int(work.GetRe(0))
-				maxwrk = maxint(maxwrk, (*n)+lworkTrevc)
+				maxwrk = max(maxwrk, (*n)+lworkTrevc)
 				Zhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, w, vl, ldvl, work, toPtr(-1), info)
 			} else if wantvr {
-				maxwrk = maxint(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 				Ztrevc3('R', 'B', _select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), rwork, toPtr(-1), &ierr)
 				lworkTrevc = int(work.GetRe(0))
-				maxwrk = maxint(maxwrk, (*n)+lworkTrevc)
+				maxwrk = max(maxwrk, (*n)+lworkTrevc)
 				Zhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, w, vr, ldvr, work, toPtr(-1), info)
 			} else {
 				Zhseqr('E', 'N', n, func() *int { y := 1; return &y }(), n, a, lda, w, vr, ldvr, work, toPtr(-1), info)
 			}
 			hswork = int(work.GetRe(0))
-			maxwrk = maxint(maxwrk, hswork, minwrk)
+			maxwrk = max(maxwrk, hswork, minwrk)
 		}
 		work.SetRe(0, float64(maxwrk))
 		//
@@ -113,7 +113,7 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', n, n, a, lda, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
@@ -210,14 +210,14 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
-			scl = one / goblas.Dznrm2(*n, vl.CVector(0, i-1), 1)
-			goblas.Zdscal(*n, scl, vl.CVector(0, i-1), 1)
+			scl = one / goblas.Dznrm2(*n, vl.CVector(0, i-1, 1))
+			goblas.Zdscal(*n, scl, vl.CVector(0, i-1, 1))
 			for k = 1; k <= (*n); k++ {
 				rwork.Set(irwork+k-1-1, math.Pow(vl.GetRe(k-1, i-1), 2)+math.Pow(vl.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(*n, rwork.Off(irwork-1), 1)
+			k = goblas.Idamax(*n, rwork.Off(irwork-1, 1))
 			tmp = vl.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(irwork+k-1-1)), 0)
-			goblas.Zscal(*n, tmp, vl.CVector(0, i-1), 1)
+			goblas.Zscal(*n, tmp, vl.CVector(0, i-1, 1))
 			vl.Set(k-1, i-1, vl.GetReCmplx(k-1, i-1))
 		}
 	}
@@ -230,14 +230,14 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= (*n); i++ {
-			scl = one / goblas.Dznrm2(*n, vr.CVector(0, i-1), 1)
-			goblas.Zdscal(*n, scl, vr.CVector(0, i-1), 1)
+			scl = one / goblas.Dznrm2(*n, vr.CVector(0, i-1, 1))
+			goblas.Zdscal(*n, scl, vr.CVector(0, i-1, 1))
 			for k = 1; k <= (*n); k++ {
 				rwork.Set(irwork+k-1-1, math.Pow(vr.GetRe(k-1, i-1), 2)+math.Pow(vr.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(*n, rwork.Off(irwork-1), 1)
+			k = goblas.Idamax(*n, rwork.Off(irwork-1, 1))
 			tmp = vr.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(irwork+k-1-1)), 0)
-			goblas.Zscal(*n, tmp, vr.CVector(0, i-1), 1)
+			goblas.Zscal(*n, tmp, vr.CVector(0, i-1, 1))
 			vr.Set(k-1, i-1, vr.GetReCmplx(k-1, i-1))
 		}
 	}
@@ -246,7 +246,7 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 label50:
 	;
 	if scalea {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), w.CMatrixOff((*info)+1-1, maxint((*n)-(*info), 1), opts), toPtr(maxint((*n)-(*info), 1)), &ierr)
+		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), w.CMatrixOff((*info), max((*n)-(*info), 1), opts), toPtr(max((*n)-(*info), 1)), &ierr)
 		if (*info) > 0 {
 			Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), w.CMatrix(*n, opts), n, &ierr)
 		}

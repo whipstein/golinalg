@@ -50,25 +50,25 @@ func Dpbtf2(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 		return
 	}
 
-	kld = maxint(1, (*ldab)-1)
+	kld = max(1, (*ldab)-1)
 
 	if upper {
 		//        Compute the Cholesky factorization A = U**T*U.
 		for j = 1; j <= (*n); j++ {
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = ab.Get((*kd)+1-1, j-1)
+			ajj = ab.Get((*kd), j-1)
 			if ajj <= zero {
 				goto label30
 			}
 			ajj = math.Sqrt(ajj)
-			ab.Set((*kd)+1-1, j-1, ajj)
+			ab.Set((*kd), j-1, ajj)
 
 			//           Compute elements J+1:J+KN of row J and update the
 			//           trailing submatrix within the band.
-			kn = minint(*kd, (*n)-j)
+			kn = min(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Dscal(kn, one/ajj, ab.Vector((*kd)-1, j+1-1), kld)
-				err = goblas.Dsyr(Upper, kn, -one, ab.Vector((*kd)-1, j+1-1), kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), kld)
+				goblas.Dscal(kn, one/ajj, ab.Vector((*kd)-1, j, kld))
+				err = goblas.Dsyr(Upper, kn, -one, ab.Vector((*kd)-1, j, kld), ab.Off((*kd), j).UpdateRows(kld))
 				ab.UpdateRows(*ldab)
 			}
 		}
@@ -85,10 +85,10 @@ func Dpbtf2(uplo byte, n, kd *int, ab *mat.Matrix, ldab, info *int) {
 
 			//           Compute elements J+1:J+KN of column J and update the
 			//           trailing submatrix within the band.
-			kn = minint(*kd, (*n)-j)
+			kn = min(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Dscal(kn, one/ajj, ab.Vector(1, j-1), 1)
-				err = goblas.Dsyr(Lower, kn, -one, ab.Vector(1, j-1), 1, ab.Off(0, j+1-1).UpdateRows(kld), kld)
+				goblas.Dscal(kn, one/ajj, ab.Vector(1, j-1, 1))
+				err = goblas.Dsyr(Lower, kn, -one, ab.Vector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld))
 				ab.UpdateRows(*ldab)
 			}
 		}

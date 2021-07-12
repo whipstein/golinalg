@@ -32,9 +32,9 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		(*info) = -2
 	} else if (*nb) < 1 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldt) < maxint(1, minint(*nb, *n)) {
+	} else if (*ldt) < max(1, min(*nb, *n)) {
 		(*info) = -7
 	}
 
@@ -45,7 +45,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -65,7 +65,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 
 	//     (1-2) Solve for V2.
 	if (*m) > (*n) {
-		err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, one, a, *lda, a.Off((*n)+1-1, 0), *lda)
+		err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, one, a, a.Off((*n), 0))
 	}
 
 	//     (2) Reconstruct the block reflector T stored in T(1:NB, 1:N)
@@ -78,7 +78,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 	nplusone = (*n) + 1
 	for jb = 1; jb <= (*n); jb += (*nb) {
 		//        (2-0) Determine the column block size JNB.
-		jnb = minint(nplusone-jb, *nb)
+		jnb = min(nplusone-jb, *nb)
 
 		//        (2-1) Copy the upper-triangular part of the current JNB-by-JNB
 		//        diagonal block U(JB) (of the N-by-N matrix U) stored
@@ -87,7 +87,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		//        column-by-column, total JNB*(JNB+1)/2 elements.
 		jbtemp1 = jb - 1
 		for j = jb; j <= jb+jnb-1; j++ {
-			goblas.Dcopy(j-jbtemp1, a.Vector(jb-1, j-1), 1, t.Vector(0, j-1), 1)
+			goblas.Dcopy(j-jbtemp1, a.Vector(jb-1, j-1, 1), t.Vector(0, j-1, 1))
 		}
 
 		//        (2-2) Perform on the upper-triangular part of the current
@@ -102,7 +102,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		//        S(JB), i.e. S(J,J) that is stored in the array element D(J).
 		for j = jb; j <= jb+jnb-1; j++ {
 			if d.Get(j-1) == one {
-				goblas.Dscal(j-jbtemp1, -one, t.Vector(0, j-1), 1)
+				goblas.Dscal(j-jbtemp1, -one, t.Vector(0, j-1, 1))
 			}
 		}
 
@@ -149,7 +149,7 @@ func DorhrCol(m, n, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int, d
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		err = goblas.Dtrsm(Right, Lower, Trans, Unit, jnb, jnb, one, a.Off(jb-1, jb-1), *lda, t.Off(0, jb-1), *ldt)
+		err = goblas.Dtrsm(Right, Lower, Trans, Unit, jnb, jnb, one, a.Off(jb-1, jb-1), t.Off(0, jb-1))
 
 	}
 }

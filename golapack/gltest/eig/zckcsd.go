@@ -65,11 +65,11 @@ func Zckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 				if m != 0 && iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZLAROR in ZCKCSD: M = %5d, INFO = %15d\n", m, iinfo)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					goto label20
 				}
 			} else if imat == 2 {
-				r = minint(p, m-p, q, m-q)
+				r = min(p, m-p, q, m-q)
 				for i = 1; i <= r; i++ {
 					theta.Set(i-1, piover2*matgen.Dlarnd(func() *int { y := 1; return &y }(), iseed))
 				}
@@ -80,7 +80,7 @@ func Zckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 					}
 				}
 			} else if imat == 3 {
-				r = minint(p, m-p, q, m-q)
+				r = min(p, m-p, q, m-q)
 				for i = 1; i <= r+1; i++ {
 					theta.Set(i-1, math.Pow(ten, -matgen.Dlarnd(func() *int { y := 1; return &y }(), iseed)*gapdigit))
 				}
@@ -88,7 +88,7 @@ func Zckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 					theta.Set(i-1, theta.Get(i-1-1)+theta.Get(i-1))
 				}
 				for i = 1; i <= r; i++ {
-					theta.Set(i-1, piover2*theta.Get(i-1)/theta.Get(r+1-1))
+					theta.Set(i-1, piover2*theta.Get(i-1)/theta.Get(r))
 				}
 				Zlacsg(&m, &p, &q, theta, iseed, x.CMatrix(ldx, opts), &ldx, work)
 			} else {
@@ -96,7 +96,7 @@ func Zckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 				for i = 1; i <= m; i++ {
 					j = int(matgen.Dlaran(iseed)*float64(m)) + 1
 					if j != i {
-						goblas.Zdrot(m, x.Off(1+(i-1)*ldx-1), 1, x.Off(1+(j-1)*ldx-1), 1, realzero, realone)
+						goblas.Zdrot(m, x.Off(1+(i-1)*ldx-1, 1), x.Off(1+(j-1)*ldx-1, 1), realzero, realone)
 					}
 				}
 			}
@@ -134,37 +134,37 @@ func Zlacsg(m, p, q *int, theta *mat.Vector, iseed *[]int, x *mat.CMatrix, ldx *
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
-	r = minint(*p, (*m)-(*p), *q, (*m)-(*q))
+	r = min(*p, (*m)-(*p), *q, (*m)-(*q))
 
 	golapack.Zlaset('F', m, m, &zero, &zero, x, ldx)
 
-	for i = 1; i <= minint(*p, *q)-r; i++ {
+	for i = 1; i <= min(*p, *q)-r; i++ {
 		x.Set(i-1, i-1, one)
 	}
 	for i = 1; i <= r; i++ {
-		x.Set(minint(*p, *q)-r+i-1, minint(*p, *q)-r+i-1, toCmplx(math.Cos(theta.Get(i-1))))
+		x.Set(min(*p, *q)-r+i-1, min(*p, *q)-r+i-1, toCmplx(math.Cos(theta.Get(i-1))))
 	}
-	for i = 1; i <= minint(*p, (*m)-(*q))-r; i++ {
-		x.Set((*p)-i+1-1, (*m)-i+1-1, -one)
-	}
-	for i = 1; i <= r; i++ {
-		x.Set((*p)-(minint(*p, (*m)-(*q))-r)+1-i-1, (*m)-(minint(*p, (*m)-(*q))-r)+1-i-1, toCmplx(-math.Sin(theta.Get(r-i+1-1))))
-	}
-	for i = 1; i <= minint((*m)-(*p), *q)-r; i++ {
-		x.Set((*m)-i+1-1, (*q)-i+1-1, one)
+	for i = 1; i <= min(*p, (*m)-(*q))-r; i++ {
+		x.Set((*p)-i, (*m)-i, -one)
 	}
 	for i = 1; i <= r; i++ {
-		x.Set((*m)-(minint((*m)-(*p), *q)-r)+1-i-1, (*q)-(minint((*m)-(*p), *q)-r)+1-i-1, toCmplx(math.Sin(theta.Get(r-i+1-1))))
+		x.Set((*p)-(min(*p, (*m)-(*q))-r)+1-i-1, (*m)-(min(*p, (*m)-(*q))-r)+1-i-1, toCmplx(-math.Sin(theta.Get(r-i))))
 	}
-	for i = 1; i <= minint((*m)-(*p), (*m)-(*q))-r; i++ {
+	for i = 1; i <= min((*m)-(*p), *q)-r; i++ {
+		x.Set((*m)-i, (*q)-i, one)
+	}
+	for i = 1; i <= r; i++ {
+		x.Set((*m)-(min((*m)-(*p), *q)-r)+1-i-1, (*q)-(min((*m)-(*p), *q)-r)+1-i-1, toCmplx(math.Sin(theta.Get(r-i))))
+	}
+	for i = 1; i <= min((*m)-(*p), (*m)-(*q))-r; i++ {
 		x.Set((*p)+i-1, (*q)+i-1, one)
 	}
 	for i = 1; i <= r; i++ {
-		x.Set((*p)+(minint((*m)-(*p), (*m)-(*q))-r)+i-1, (*q)+(minint((*m)-(*p), (*m)-(*q))-r)+i-1, toCmplx(math.Cos(theta.Get(i-1))))
+		x.Set((*p)+(min((*m)-(*p), (*m)-(*q))-r)+i-1, (*q)+(min((*m)-(*p), (*m)-(*q))-r)+i-1, toCmplx(math.Cos(theta.Get(i-1))))
 	}
 	matgen.Zlaror('L', 'N', p, m, x, ldx, iseed, work, &info)
-	matgen.Zlaror('L', 'N', toPtr((*m)-(*p)), m, x.Off((*p)+1-1, 0), ldx, iseed, work, &info)
+	matgen.Zlaror('L', 'N', toPtr((*m)-(*p)), m, x.Off((*p), 0), ldx, iseed, work, &info)
 	matgen.Zlaror('R', 'N', m, q, x, ldx, iseed, work, &info)
-	matgen.Zlaror('R', 'N', m, toPtr((*m)-(*q)), x.Off(0, (*q)+1-1), ldx, iseed, work, &info)
+	matgen.Zlaror('R', 'N', m, toPtr((*m)-(*q)), x.Off(0, (*q)), ldx, iseed, work, &info)
 
 }

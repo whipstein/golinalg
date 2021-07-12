@@ -81,7 +81,7 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 	if (*itype) == 3 {
 		anorm = one
 	} else {
-		anorm = maxf64(golapack.Dlansy('1', cuplo, n, a, lda, work), unfl)
+		anorm = math.Max(golapack.Dlansy('1', cuplo, n, a, lda, work), unfl)
 	}
 
 	//     Compute error matrix:
@@ -91,15 +91,15 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 		golapack.Dlacpy(cuplo, n, n, a, lda, work.Matrix(*n, opts), n)
 
 		for j = 1; j <= (*n); j++ {
-			err = goblas.Dsyr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1), 1, work.Matrix(*n, opts), *n)
+			err = goblas.Dsyr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1, 1), work.Matrix(*n, opts))
 		}
 
 		if (*n) > 1 && (*kband) == 1 {
 			for j = 1; j <= (*n)-1; j++ {
-				err = goblas.Dsyr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work.Matrix(*n, opts), *n)
+				err = goblas.Dsyr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1, 1), u.Vector(0, j, 1), work.Matrix(*n, opts))
 			}
 		}
-		wnorm = golapack.Dlansy('1', cuplo, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
+		wnorm = golapack.Dlansy('1', cuplo, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
 
 	} else if (*itype) == 2 {
 		//        ITYPE=2: error = V S V**T - A
@@ -115,11 +115,11 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 					}
 				}
 
-				vsave = v.Get(j+1-1, j-1)
-				v.Set(j+1-1, j-1, one)
-				Dlarfy('L', toPtr((*n)-j), v.Vector(j+1-1, j-1), func() *int { y := 1; return &y }(), tau.GetPtr(j-1), work.MatrixOff(((*n)+1)*j+1-1, *n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
-				v.Set(j+1-1, j-1, vsave)
-				work.Set(((*n)+1)*(j-1)+1-1, d.Get(j-1))
+				vsave = v.Get(j, j-1)
+				v.Set(j, j-1, one)
+				Dlarfy('L', toPtr((*n)-j), v.Vector(j, j-1), func() *int { y := 1; return &y }(), tau.GetPtr(j-1), work.MatrixOff(((*n)+1)*j, *n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
+				v.Set(j, j-1, vsave)
+				work.Set(((*n)+1)*(j-1), d.Get(j-1))
 			}
 		} else {
 			work.Set(0, d.Get(0))
@@ -127,15 +127,15 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 				if (*kband) == 1 {
 					work.Set(((*n)+1)*j-1, (one-tau.Get(j-1))*e.Get(j-1))
 					for jr = 1; jr <= j-1; jr++ {
-						work.Set(j*(*n)+jr-1, -tau.Get(j-1)*e.Get(j-1)*v.Get(jr-1, j+1-1))
+						work.Set(j*(*n)+jr-1, -tau.Get(j-1)*e.Get(j-1)*v.Get(jr-1, j))
 					}
 				}
 
-				vsave = v.Get(j-1, j+1-1)
-				v.Set(j-1, j+1-1, one)
-				Dlarfy('U', &j, v.Vector(0, j+1-1), func() *int { y := 1; return &y }(), tau.GetPtr(j-1), work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
-				v.Set(j-1, j+1-1, vsave)
-				work.Set(((*n)+1)*j+1-1, d.Get(j+1-1))
+				vsave = v.Get(j-1, j)
+				v.Set(j-1, j, one)
+				Dlarfy('U', &j, v.Vector(0, j), func() *int { y := 1; return &y }(), tau.GetPtr(j-1), work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
+				v.Set(j-1, j, vsave)
+				work.Set(((*n)+1)*j, d.Get(j))
 			}
 		}
 
@@ -150,7 +150,7 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 				}
 			}
 		}
-		wnorm = golapack.Dlansy('1', cuplo, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
+		wnorm = golapack.Dlansy('1', cuplo, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
 
 	} else if (*itype) == 3 {
 		//        ITYPE=3: error = U V**T - I
@@ -159,9 +159,9 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 		}
 		golapack.Dlacpy(' ', n, n, u, ldu, work.Matrix(*n, opts), n)
 		if lower {
-			golapack.Dorm2r('R', 'T', n, toPtr((*n)-1), toPtr((*n)-1), v.Off(1, 0), ldv, tau, work.MatrixOff((*n)+1-1, *n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1), &iinfo)
+			golapack.Dorm2r('R', 'T', n, toPtr((*n)-1), toPtr((*n)-1), v.Off(1, 0), ldv, tau, work.MatrixOff((*n), *n, opts), n, work.Off(int(math.Pow(float64(*n), 2))), &iinfo)
 		} else {
-			golapack.Dorm2l('R', 'T', n, toPtr((*n)-1), toPtr((*n)-1), v.Off(0, 1), ldv, tau, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1), &iinfo)
+			golapack.Dorm2l('R', 'T', n, toPtr((*n)-1), toPtr((*n)-1), v.Off(0, 1), ldv, tau, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))), &iinfo)
 		}
 		if iinfo != 0 {
 			result.Set(0, ten/ulp)
@@ -169,19 +169,19 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 		}
 
 		for j = 1; j <= (*n); j++ {
-			work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)
+			work.Set(((*n)+1)*(j-1), work.Get(((*n)+1)*(j-1))-one)
 		}
 
-		wnorm = golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
+		wnorm = golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
 	}
 
 	if anorm > wnorm {
 		result.Set(0, (wnorm/anorm)/(float64(*n)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 		}
 	}
 
@@ -189,12 +189,12 @@ func Dsyt21(itype *int, uplo byte, n, kband *int, a *mat.Matrix, lda *int, d, e 
 	//
 	//     Compute  U U**T - I
 	if (*itype) == 1 {
-		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
+		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, u, zero, work.Matrix(*n, opts))
 
 		for j = 1; j <= (*n); j++ {
-			work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)
+			work.Set(((*n)+1)*(j-1), work.Get(((*n)+1)*(j-1))-one)
 		}
 
-		result.Set(1, minf64(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1)), float64(*n))/(float64(*n)*ulp))
+		result.Set(1, math.Min(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))), float64(*n))/(float64(*n)*ulp))
 	}
 }

@@ -35,7 +35,7 @@ func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
 		(*b) = -(*c)
 		(*c) = zero
 
-	} else if ((*a)-(*d)) == zero && signf64(one, *b) != signf64(one, *c) {
+	} else if ((*a)-(*d)) == zero && math.Copysign(one, *b) != math.Copysign(one, *c) {
 		(*cs) = one
 		(*sn) = zero
 
@@ -43,16 +43,16 @@ func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
 
 		temp = (*a) - (*d)
 		p = half * temp
-		bcmax = maxf64(math.Abs(*b), math.Abs(*c))
-		bcmis = minf64(math.Abs(*b), math.Abs(*c)) * signf64(one, *b) * signf64(one, *c)
-		scale = maxf64(math.Abs(p), bcmax)
+		bcmax = math.Max(math.Abs(*b), math.Abs(*c))
+		bcmis = math.Min(math.Abs(*b), math.Abs(*c)) * math.Copysign(one, *b) * math.Copysign(one, *c)
+		scale = math.Max(math.Abs(p), bcmax)
 		z = (p/scale)*p + (bcmax/scale)*bcmis
 
 		//        If Z is of the order of the machine accuracy, postpone the
 		//        decision on the nature of eigenvalues
 		if z >= multpl*eps {
 			//           Real eigenvalues. Compute A and D.
-			z = p + signf64(math.Sqrt(scale)*math.Sqrt(z), p)
+			z = p + math.Copysign(math.Sqrt(scale)*math.Sqrt(z), p)
 			(*a) = (*d) + z
 			(*d) = (*d) - (bcmax/z)*bcmis
 
@@ -69,7 +69,7 @@ func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
 			sigma = (*b) + (*c)
 			tau = Dlapy2(&sigma, &temp)
 			(*cs) = math.Sqrt(half * (one + math.Abs(sigma)/tau))
-			(*sn) = -(p / (tau * (*cs))) * signf64(one, sigma)
+			(*sn) = -(p / (tau * (*cs))) * math.Copysign(one, sigma)
 
 			//           Compute [ AA  BB ] = [ A  B ] [ CS -SN ]
 			//                   [ CC  DD ]   [ C  D ] [ SN  CS ]
@@ -91,11 +91,11 @@ func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
 
 			if (*c) != zero {
 				if (*b) != zero {
-					if signf64(one, *b) == signf64(one, *c) {
+					if math.Copysign(one, *b) == math.Copysign(one, *c) {
 						//                    Real eigenvalues: reduce to upper triangular form
 						sab = math.Sqrt(math.Abs(*b))
 						sac = math.Sqrt(math.Abs(*c))
-						p = signf64(sab*sac, *c)
+						p = math.Copysign(sab*sac, *c)
 						tau = one / math.Sqrt(math.Abs((*b)+(*c)))
 						(*a) = temp + p
 						(*d) = temp - p

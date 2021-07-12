@@ -179,28 +179,29 @@ func TestDblasLevel1(t *testing.T) {
 					{0.1, 4.0, -0.3, 6.0, -0.5, 7.0, -0.1, 3.0},
 				},
 			}
-			dx := vf(8)
 
 			common.combla.n = 0
 			for incx := 1; incx <= 2; incx++ {
+				common.combla.incx = incx
 				for np1 = 1; np1 <= 5; np1++ {
 					n = np1 - 1
 					len = 2 * max(n, 1)
+					dx := vf(8, incx)
 					for i := 1; i <= len; i++ {
 						dx.Set(i-1, dv[incx-1][np1-1][i-1])
 					}
 
 					common.combla.n++
 					if *_case == "Dnrm2" {
-						if ok := dcompare1(Dnrm2(n, dx, incx), dtrue1[np1-1], dtrue1[np1-1], sfac); ok != nil {
+						if ok := dcompare1(Dnrm2(n, dx), dtrue1[np1-1], dtrue1[np1-1], sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dasum" {
-						if ok := dcompare1(Dasum(n, dx, incx), dtrue3[np1-1], dtrue3[np1-1], sfac); ok != nil {
+						if ok := dcompare1(Dasum(n, dx), dtrue3[np1-1], dtrue3[np1-1], sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dscal" {
-						Dscal(n, sa[incx-1][np1-1], dx, incx)
+						Dscal(n, sa[incx-1][np1-1], dx)
 						for i := 1; i <= len; i++ {
 							dtrue.Set(i-1, dtrue5[incx-1][np1-1][i-1])
 						}
@@ -208,7 +209,7 @@ func TestDblasLevel1(t *testing.T) {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Idamax" {
-						if ok := icompare1(Idamax(n, dx, incx), itrue2[np1-1]); ok != nil {
+						if ok := icompare1(Idamax(n, dx), itrue2[np1-1]); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					}
@@ -234,8 +235,8 @@ func TestDblasLevel1(t *testing.T) {
 				{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
 				{1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17},
 			}
-			dtx := vf(7)
-			dty := vf(7)
+			dtx := vf(10)
+			dty := vf(10)
 			ns := []int{0, 1, 2, 4}
 			dpar := [][]float64{
 				{-2, 0, 0, 0, 0},
@@ -524,15 +525,16 @@ func TestDblasLevel1(t *testing.T) {
 					{-2.6, -0.9, -1.3, 0.7, 2.9, 0.2, -4.0},
 				},
 			}
-			dx := vf(7)
-			dy := vf(7)
 
 			common.combla.n = 0
 			for ki := 1; ki <= 4; ki++ {
 				incx := incxs[ki-1]
 				incy := incys[ki-1]
-				mx := absint(incx)
-				my := absint(incy)
+				mx := abs(incx)
+				my := abs(incy)
+				common.combla.incx, common.combla.incy = incx, incy
+				dx := vf(7, incx)
+				dy := vf(7, incy)
 
 				for kn = 1; kn <= 4; kn++ {
 					n = ns[kn-1]
@@ -548,11 +550,11 @@ func TestDblasLevel1(t *testing.T) {
 
 					common.combla.n++
 					if *_case == "Ddot" {
-						if ok := dcompare1(Ddot(n, dx, incx, dy, incy), dt7[ki-1][kn-1], dsize1[kn-1], sfac); ok != nil {
+						if ok := dcompare1(Ddot(n, dx, dy), dt7[ki-1][kn-1], dsize1[kn-1], sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Daxpy" {
-						Daxpy(n, da, dx, incx, dy, incy)
+						Daxpy(n, da, dx, dy)
 						for j := 1; j <= leny; j++ {
 							dty.Set(j-1, dt8[ki-1][kn-1][j-1])
 						}
@@ -567,12 +569,12 @@ func TestDblasLevel1(t *testing.T) {
 						for i := 1; i <= 7; i++ {
 							dty.Set(i-1, dt10y[ki-1][kn-1][i-1])
 						}
-						Dcopy(n, dx, incx, dy, incy)
+						Dcopy(n, dx, dy)
 						if ok := dcompare(leny, dy, dty, vdf(dsize2[0]), 1.0); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dswap" {
-						Dswap(n, dx, incx, dy, incy)
+						Dswap(n, dx, dy)
 						for i := 1; i <= 7; i++ {
 							dtx.Set(i-1, dt10x[ki-1][kn-1][i-1])
 							dty.Set(i-1, dt10y[ki-1][kn-1][i-1])
@@ -600,9 +602,8 @@ func TestDblasLevel1(t *testing.T) {
 							for i := 1; i <= lenx; i++ {
 								dsize.Set(i-1, dtx.Get(i-1))
 							}
-							//
+
 							// see remark above about dt11x[0,1,6] and dt11x[4,2,7]
-							//
 							if (kpar == 2) && (kni == 7) {
 								dsize.Set(0, 2.4)
 							}
@@ -611,12 +612,14 @@ func TestDblasLevel1(t *testing.T) {
 							}
 							drb := mat.NewDrotMatrixBuilder()
 							drot := drb.Flag(int(dtemp.Get(0))).H([4]float64{dtemp.Get(1), dtemp.Get(2), dtemp.Get(3), dtemp.Get(4)}).Build()
+							dxx := vdf(dx.Data, incx)
+							dyy := vdf(dy.Data, incy)
 
-							Drotm(n, dx, incx, dy, incy, drot)
-							if ok := dcompare(lenx, dx, dtx, dsize, sfac); ok != nil {
+							Drotm(n, dxx, dyy, drot)
+							if ok := dcompare(lenx, dxx, dtx, dsize, sfac); ok != nil {
 								err = fmt.Errorf("%v%v", err, ok)
 							}
-							if ok := dcompare(leny, dy, dty, dty, sfac); ok != nil {
+							if ok := dcompare(leny, dyy, dty, dty, sfac); ok != nil {
 								err = fmt.Errorf("%v%v", err, ok)
 							}
 						}
@@ -635,10 +638,6 @@ func TestDblasLevel1(t *testing.T) {
 			ds := 0.6
 			incxs := []int{1, 2, -2, -1}
 			incys := []int{1, -2, 1, -2}
-			copyx := vf(5)
-			copyy := vf(5)
-			dx := vf(7)
-			dy := vf(7)
 			dx1 := []float64{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4}
 			dy1 := []float64{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8}
 			mwpc := vf(11)
@@ -717,8 +716,10 @@ func TestDblasLevel1(t *testing.T) {
 			for ki := 1; ki <= 4; ki++ {
 				incx := incxs[ki-1]
 				incy := incys[ki-1]
-				mx := absint(incx)
-				my := absint(incy)
+				mx := abs(incx)
+				my := abs(incy)
+				dx := vf(7, incx)
+				dy := vf(7, incy)
 				for kn = 1; kn <= 4; kn++ {
 					common.combla.n++
 					n = ns[kn-1]
@@ -732,7 +733,7 @@ func TestDblasLevel1(t *testing.T) {
 						dtx.Set(i-1, dt9x[ki-1][kn-1][i-1])
 						dty.Set(i-1, dt9y[ki-1][kn-1][i-1])
 					}
-					Drot(n, dx, incx, dy, incy, dc, ds)
+					Drot(n, dx, dy, dc, ds)
 					dsize2m := vdf(dsize2[1][ksize-1 : dx.Size+ksize-1])
 					if ok := dcompare(lenx, dx, dtx, dsize2m, sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
@@ -828,13 +829,16 @@ func TestDblasLevel1(t *testing.T) {
 				common.combla.n++
 				incx := mwpinx[i-1]
 				incy := mwpiny[i-1]
+				copyx := vf(5, incx)
+				copyy := vf(5, incy)
 				for k := 1; k <= 5; k++ {
 					copyx.Set(k-1, mwpx.Get(k-1))
 					copyy.Set(k-1, mwpy.Get(k-1))
 					mwpstx.Set(k-1, mwptx.Get(i-1+(k-1)*11))
 					mwpsty.Set(k-1, mwpty.Get(i-1+(k-1)*11))
 				}
-				Drot(mwpn[i-1], copyx, incx, copyy, incy, mwpc.Get(i-1), mwps.Get(i-1))
+
+				Drot(mwpn[i-1], copyx, copyy, mwpc.Get(i-1), mwps.Get(i-1))
 				if ok := dcompare(5, copyx, mwpstx, mwpstx, sfac); ok != nil {
 					err = fmt.Errorf("%v%v", err, ok)
 				}
@@ -908,16 +912,15 @@ func BenchmarkDasum10000(b *testing.B)   { benchmarkDasum(10000, b) }
 func BenchmarkDasum100000(b *testing.B)  { benchmarkDasum(100000, b) }
 func BenchmarkDasum1000000(b *testing.B) { benchmarkDasum(1000000, b) }
 func benchmarkDasum(n int, b *testing.B) {
-	incx := 1
 	da := 0.4
-	dx := vf(n)
+	dx := vf(n, 1)
 	for i := 0; i < n; i++ {
 		dx.Set(i, da)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		x := Dasum(n, dx, incx)
+		x := Dasum(n, dx)
 		_ = x
 	}
 }
@@ -930,11 +933,9 @@ func BenchmarkDrot10000(b *testing.B)   { benchmarkDrot(10000, b) }
 func BenchmarkDrot100000(b *testing.B)  { benchmarkDrot(100000, b) }
 func BenchmarkDrot1000000(b *testing.B) { benchmarkDrot(1000000, b) }
 func benchmarkDrot(n int, b *testing.B) {
-	incx := 1
-	incy := 1
 	da := 0.4
-	dx := vf(n)
-	dy := vf(n)
+	dx := vf(n, 1)
+	dy := vf(n, 1)
 	for i := 0; i < n; i++ {
 		dx.Set(i, da)
 		dy.Set(i, da)
@@ -942,7 +943,7 @@ func benchmarkDrot(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Drot(n, dx, incx, dy, incy, da, da)
+		Drot(n, dx, dy, da, da)
 	}
 }
 
@@ -954,11 +955,9 @@ func BenchmarkDrotm10000(b *testing.B)   { benchmarkDrotm(10000, b) }
 func BenchmarkDrotm100000(b *testing.B)  { benchmarkDrotm(100000, b) }
 func BenchmarkDrotm1000000(b *testing.B) { benchmarkDrotm(1000000, b) }
 func benchmarkDrotm(n int, b *testing.B) {
-	incx := 1
-	incy := 1
 	da := 0.4
-	dx := vf(n)
-	dy := vf(n)
+	dx := vf(n, 1)
+	dy := vf(n, 1)
 	for i := 0; i < n; i++ {
 		dx.Set(i, da)
 		dy.Set(i, da)
@@ -968,7 +967,7 @@ func benchmarkDrotm(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Drotm(n, dx, incx, dy, incy, drot)
+		Drotm(n, dx, dy, drot)
 	}
 }
 
@@ -980,17 +979,16 @@ func BenchmarkDscal10000(b *testing.B)   { benchmarkDscal(10000, b) }
 func BenchmarkDscal100000(b *testing.B)  { benchmarkDscal(100000, b) }
 func BenchmarkDscal1000000(b *testing.B) { benchmarkDscal(1000000, b) }
 func benchmarkDscal(n int, b *testing.B) {
-	incx := 1
 	sa := 0.3
 	ca := 0.4
-	cx := vf(n)
+	cx := vf(n, 1)
 	for i := 0; i < n; i++ {
 		cx.Set(i, ca)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Dscal(n, sa, cx, incx)
+		Dscal(n, sa, cx)
 	}
 }
 
@@ -1002,12 +1000,10 @@ func BenchmarkDswap10000(b *testing.B)   { benchmarkDswap(10000, b) }
 func BenchmarkDswap100000(b *testing.B)  { benchmarkDswap(100000, b) }
 func BenchmarkDswap1000000(b *testing.B) { benchmarkDswap(1000000, b) }
 func benchmarkDswap(n int, b *testing.B) {
-	incx := 1
-	incy := 1
 	da := 0.4
 	db := 0.8
-	dx := vf(n)
-	dy := vf(n)
+	dx := vf(n, 1)
+	dy := vf(n, 1)
 	for i := 0; i < n; i++ {
 		dx.Set(i, da)
 		dy.Set(i, db)
@@ -1015,6 +1011,6 @@ func benchmarkDswap(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Dswap(n, dx, incx, dy, incy)
+		Dswap(n, dx, dy)
 	}
 }

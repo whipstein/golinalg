@@ -60,11 +60,11 @@ func Dlasd7(icompq, nl, nr, sqre, k *int, d, z, zw, vf, vfw, vl, vlw *mat.Vector
 	vl.Set(nlp1-1, zero)
 	tau = vf.Get(nlp1 - 1)
 	for i = (*nl); i >= 1; i-- {
-		z.Set(i+1-1, (*alpha)*vl.Get(i-1))
+		z.Set(i, (*alpha)*vl.Get(i-1))
 		vl.Set(i-1, zero)
-		vf.Set(i+1-1, vf.Get(i-1))
-		d.Set(i+1-1, d.Get(i-1))
-		(*idxq)[i+1-1] = (*idxq)[i-1] + 1
+		vf.Set(i, vf.Get(i-1))
+		d.Set(i, d.Get(i-1))
+		(*idxq)[i] = (*idxq)[i-1] + 1
 	}
 	vf.Set(0, tau)
 
@@ -100,8 +100,8 @@ func Dlasd7(icompq, nl, nr, sqre, k *int, d, z, zw, vf, vfw, vl, vlw *mat.Vector
 
 	//     Calculate the allowable deflation tolerance
 	eps = Dlamch(Epsilon)
-	tol = maxf64(math.Abs(*alpha), math.Abs(*beta))
-	tol = eight * eight * eps * maxf64(math.Abs(d.Get(n-1)), tol)
+	tol = math.Max(math.Abs(*alpha), math.Abs(*beta))
+	tol = eight * eight * eps * math.Max(math.Abs(d.Get(n-1)), tol)
 
 	//     There are 2 kinds of deflation -- first a value in the z-vector
 	//     is small, second two (or more) singular values are very close
@@ -167,8 +167,8 @@ label80:
 			//           Record the appropriate Givens rotation
 			if (*icompq) == 1 {
 				(*givptr) = (*givptr) + 1
-				idxjp = (*idxq)[(*idx)[jprev-1]+1-1]
-				idxj = (*idxq)[(*idx)[j-1]+1-1]
+				idxjp = (*idxq)[(*idx)[jprev-1]]
+				idxj = (*idxq)[(*idx)[j-1]]
 				if idxjp <= nlp1 {
 					idxjp = idxjp - 1
 				}
@@ -180,8 +180,8 @@ label80:
 				givnum.Set((*givptr)-1, 1, (*c))
 				givnum.Set((*givptr)-1, 0, (*s))
 			}
-			goblas.Drot(1, vf.Off(jprev-1), 1, vf.Off(j-1), 1, *c, *s)
-			goblas.Drot(1, vl.Off(jprev-1), 1, vl.Off(j-1), 1, *c, *s)
+			goblas.Drot(1, vf.Off(jprev-1, 1), vf.Off(j-1, 1), *c, *s)
+			goblas.Drot(1, vl.Off(jprev-1, 1), vl.Off(j-1, 1), *c, *s)
 			k2 = k2 - 1
 			(*idxp)[k2-1] = jprev
 			jprev = j
@@ -218,7 +218,7 @@ label100:
 	if (*icompq) == 1 {
 		for j = 2; j <= n; j++ {
 			jp = (*idxp)[j-1]
-			(*perm)[j-1] = (*idxq)[(*idx)[jp-1]+1-1]
+			(*perm)[j-1] = (*idxq)[(*idx)[jp-1]]
 			if (*perm)[j-1] <= nlp1 {
 				(*perm)[j-1] = (*perm)[j-1] - 1
 			}
@@ -227,7 +227,7 @@ label100:
 
 	//     The deflated singular values go back into the last N - K slots of
 	//     D.
-	goblas.Dcopy(n-(*k), dsigma.Off((*k)+1-1), 1, d.Off((*k)+1-1), 1)
+	goblas.Dcopy(n-(*k), dsigma.Off((*k), 1), d.Off((*k), 1))
 
 	//     Determine DSIGMA(1), DSIGMA(2), Z(1), VF(1), VL(1), VF(M), and
 	//     VL(M).
@@ -246,8 +246,8 @@ label100:
 			(*c) = z1 / z.Get(0)
 			(*s) = -z.Get(m-1) / z.Get(0)
 		}
-		goblas.Drot(1, vf.Off(m-1), 1, vf, 1, *c, *s)
-		goblas.Drot(1, vl.Off(m-1), 1, vl, 1, *c, *s)
+		goblas.Drot(1, vf.Off(m-1, 1), vf.Off(0, 1), *c, *s)
+		goblas.Drot(1, vl.Off(m-1, 1), vl.Off(0, 1), *c, *s)
 	} else {
 		if math.Abs(z1) <= tol {
 			z.Set(0, tol)
@@ -257,7 +257,7 @@ label100:
 	}
 
 	//     Restore Z, VF, and VL.
-	goblas.Dcopy((*k)-1, zw.Off(1), 1, z.Off(1), 1)
-	goblas.Dcopy(n-1, vfw.Off(1), 1, vf.Off(1), 1)
-	goblas.Dcopy(n-1, vlw.Off(1), 1, vl.Off(1), 1)
+	goblas.Dcopy((*k)-1, zw.Off(1, 1), z.Off(1, 1))
+	goblas.Dcopy(n-1, vfw.Off(1, 1), vf.Off(1, 1))
+	goblas.Dcopy(n-1, vlw.Off(1, 1), vl.Off(1, 1))
 }

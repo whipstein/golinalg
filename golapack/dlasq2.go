@@ -98,16 +98,16 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 			(*info) = -(200 + k)
 			gltest.Xerbla([]byte("DLASQ2"), 2)
 			return
-		} else if z.Get(k+1-1) < zero {
+		} else if z.Get(k) < zero {
 			(*info) = -(200 + k + 1)
 			gltest.Xerbla([]byte("DLASQ2"), 2)
 			return
 		}
 		d = d + z.Get(k-1)
-		e = e + z.Get(k+1-1)
-		qmax = maxf64(qmax, z.Get(k-1))
-		emin = minf64(emin, z.Get(k+1-1))
-		zmax = maxf64(qmax, zmax, z.Get(k+1-1))
+		e = e + z.Get(k)
+		qmax = math.Max(qmax, z.Get(k-1))
+		emin = math.Min(emin, z.Get(k))
+		zmax = math.Max(qmax, math.Max(zmax, z.Get(k)))
 		//Label10:
 	}
 	if z.Get(2*(*n)-1-1) < zero {
@@ -116,8 +116,8 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 		return
 	}
 	d = d + z.Get(2*(*n)-1-1)
-	qmax = maxf64(qmax, z.Get(2*(*n)-1-1))
-	zmax = maxf64(qmax, zmax)
+	qmax = math.Max(qmax, z.Get(2*(*n)-1-1))
+	zmax = math.Max(qmax, zmax)
 
 	//     Check for diagonality.
 	if e == zero {
@@ -189,22 +189,22 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 				z.Set(i4-2*pp-2-1, d)
 				z.Set(i4-2*pp-1, zero)
 				d = z.Get(i4 + 1 - 1)
-			} else if safmin*z.Get(i4+1-1) < z.Get(i4-2*pp-2-1) && safmin*z.Get(i4-2*pp-2-1) < z.Get(i4+1-1) {
-				temp = z.Get(i4+1-1) / z.Get(i4-2*pp-2-1)
+			} else if safmin*z.Get(i4) < z.Get(i4-2*pp-2-1) && safmin*z.Get(i4-2*pp-2-1) < z.Get(i4) {
+				temp = z.Get(i4) / z.Get(i4-2*pp-2-1)
 				z.Set(i4-2*pp-1, z.Get(i4-1-1)*temp)
 				d = d * temp
 			} else {
-				z.Set(i4-2*pp-1, z.Get(i4+1-1)*(z.Get(i4-1-1)/z.Get(i4-2*pp-2-1)))
-				d = z.Get(i4+1-1) * (d / z.Get(i4-2*pp-2-1))
+				z.Set(i4-2*pp-1, z.Get(i4)*(z.Get(i4-1-1)/z.Get(i4-2*pp-2-1)))
+				d = z.Get(i4) * (d / z.Get(i4-2*pp-2-1))
 			}
-			emin = minf64(emin, z.Get(i4-2*pp-1))
+			emin = math.Min(emin, z.Get(i4-2*pp-1))
 		}
 		z.Set(4*n0-pp-2-1, d)
 
 		//        Now find qmax.
 		qmax = z.Get(4*i0 - pp - 2 - 1)
 		for i4 = 4*i0 - pp + 2; i4 <= 4*n0-pp-2; i4 += 4 {
-			qmax = maxf64(qmax, z.Get(i4-1))
+			qmax = math.Max(qmax, z.Get(i4-1))
 		}
 
 		//        Prepare for the next iteration on K.
@@ -260,11 +260,11 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 				goto label100
 			}
 			if qmin >= four*emax {
-				qmin = minf64(qmin, z.Get(i4-3-1))
-				emax = maxf64(emax, z.Get(i4-5-1))
+				qmin = math.Min(qmin, z.Get(i4-3-1))
+				emax = math.Max(emax, z.Get(i4-5-1))
 			}
-			qmax = maxf64(qmax, z.Get(i4-7-1)+z.Get(i4-5-1))
-			emin = minf64(emin, z.Get(i4-5-1))
+			qmax = math.Max(qmax, z.Get(i4-7-1)+z.Get(i4-5-1))
+			emin = math.Min(emin, z.Get(i4-5-1))
 		}
 		i4 = 4
 
@@ -305,7 +305,7 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 		}
 
 		//        Put -(initial shift) into DMIN.
-		dmin = -maxf64(zero, qmin-two*math.Sqrt(qmin)*math.Sqrt(emax))
+		dmin = -math.Max(zero, qmin-two*math.Sqrt(qmin)*math.Sqrt(emax))
 
 		//        Now I0:N0 is unreduced.
 		//        PP = 0 for ping, PP = 1 for pong.
@@ -338,9 +338,9 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 							emin = z.Get(i4 + 3 - 1)
 							oldemn = z.Get(i4 + 4 - 1)
 						} else {
-							qmax = maxf64(qmax, z.Get(i4+1-1))
-							emin = minf64(emin, z.Get(i4-1-1))
-							oldemn = minf64(oldemn, z.Get(i4-1))
+							qmax = math.Max(qmax, z.Get(i4))
+							emin = math.Min(emin, z.Get(i4-1-1))
+							oldemn = math.Min(oldemn, z.Get(i4-1))
 						}
 					}
 					z.Set(4*n0-1-1, emin)
@@ -415,7 +415,7 @@ label170:
 	}
 
 	//     Store trace, sum(eigenvalues) and information on performance.
-	z.Set(2*(*n)+1-1, trace)
+	z.Set(2*(*n), trace)
 	z.Set(2*(*n)+2-1, e)
 	z.Set(2*(*n)+3-1, float64(iter))
 	z.Set(2*(*n)+4-1, float64(ndiv)/float64(math.Pow(float64(*n), 2)))

@@ -29,7 +29,7 @@ func Dtrti2(uplo, diag byte, n *int, a *mat.Matrix, lda *int, info *int) {
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -48,8 +48,8 @@ func Dtrti2(uplo, diag byte, n *int, a *mat.Matrix, lda *int, info *int) {
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			err = goblas.Dtrmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j-1, a, *lda, a.Vector(0, j-1), 1)
-			goblas.Dscal(j-1, ajj, a.Vector(0, j-1), 1)
+			err = goblas.Dtrmv(mat.Upper, mat.NoTrans, mat.DiagByte(diag), j-1, a, a.Vector(0, j-1, 1))
+			goblas.Dscal(j-1, ajj, a.Vector(0, j-1, 1))
 		}
 	} else {
 		//        Compute inverse of lower triangular matrix.
@@ -62,8 +62,8 @@ func Dtrti2(uplo, diag byte, n *int, a *mat.Matrix, lda *int, info *int) {
 			}
 			if j < (*n) {
 				//              Compute elements j+1:n of j-th column.
-				err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j, a.Off(j+1-1, j+1-1), *lda, a.Vector(j+1-1, j-1), 1)
-				goblas.Dscal((*n)-j, ajj, a.Vector(j+1-1, j-1), 1)
+				err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.DiagByte(diag), (*n)-j, a.Off(j, j), a.Vector(j, j-1, 1))
+				goblas.Dscal((*n)-j, ajj, a.Vector(j, j-1, 1))
 			}
 		}
 	}

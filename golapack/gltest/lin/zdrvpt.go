@@ -49,7 +49,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL.
 		n = (*nval)[in-1]
-		lda = maxint(1, n)
+		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
@@ -83,7 +83,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				ia = 1
 				for i = 1; i <= n-1; i++ {
 					d.Set(i-1, a.GetRe(ia-1))
-					e.Set(i-1, a.Get(ia+1-1))
+					e.Set(i-1, a.Get(ia))
 					ia = ia + 2
 				}
 				if n > 0 {
@@ -109,11 +109,11 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(n, d, 1)
+					ix = goblas.Idamax(n, d.Off(0, 1))
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(n, anorm/dmax, d, 1)
+					goblas.Dscal(n, anorm/dmax, d.Off(0, 1))
 					if n > 1 {
-						goblas.Zdscal(n-1, anorm/dmax, e, 1)
+						goblas.Zdscal(n-1, anorm/dmax, e.Off(0, 1))
 					}
 
 				} else if izero > 0 {
@@ -195,13 +195,13 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Compute the 1-norm of A.
 					anorm = golapack.Zlanht('1', &n, d, e)
 
-					goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
+					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
-						goblas.Zcopy(n-1, e, 1, e.Off(n+1-1), 1)
+						goblas.Zcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 					}
 
 					//                 Factor the matrix A.
-					golapack.Zpttrf(&n, d.Off(n+1-1), e.Off(n+1-1), &info)
+					golapack.Zpttrf(&n, d.Off(n), e.Off(n), &info)
 
 					//                 Use ZPTTRS to solve for one column at a time of
 					//                 inv(A), computing the maximum column sum as we go.
@@ -211,8 +211,8 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							x.SetRe(j-1, zero)
 						}
 						x.SetRe(i-1, one)
-						golapack.Zpttrs('L', &n, func() *int { y := 1; return &y }(), d.Off(n+1-1), e.Off(n+1-1), x.CMatrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dzasum(n, x, 1))
+						golapack.Zpttrs('L', &n, func() *int { y := 1; return &y }(), d.Off(n), e.Off(n), x.CMatrix(lda, opts), &lda, &info)
+						ainvnm = math.Max(ainvnm, goblas.Dzasum(n, x.Off(0, 1)))
 					}
 
 					//                 Compute the 1-norm condition number of A.
@@ -225,15 +225,15 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 				if ifact == 2 {
 					//                 --- Test ZPTSV --
-					goblas.Dcopy(n, d, 1, d.Off(n+1-1), 1)
+					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
-						goblas.Zcopy(n-1, e, 1, e.Off(n+1-1), 1)
+						goblas.Zcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 					}
 					golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 					//                 Factor A as L*D*L' and solve the system A*X = B.
 					*srnamt = "ZPTSV "
-					golapack.Zptsv(&n, nrhs, d.Off(n+1-1), e.Off(n+1-1), x.CMatrix(lda, opts), &lda, &info)
+					golapack.Zptsv(&n, nrhs, d.Off(n), e.Off(n), x.CMatrix(lda, opts), &lda, &info)
 
 					//                 Check error code from ZPTSV .
 					if info != izero {
@@ -244,7 +244,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					if izero == 0 {
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
-						Zptt01(&n, d, e, d.Off(n+1-1), e.Off(n+1-1), work, result.GetPtr(0))
+						Zptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
 
 						//                    Compute the residual in the solution.
 						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
@@ -287,7 +287,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				//              Solve the system and compute the condition number and
 				//              error bounds using ZPTSVX.
 				*srnamt = "ZPTSVX"
-				golapack.Zptsvx(fact, &n, nrhs, d, e, d.Off(n+1-1), e.Off(n+1-1), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, rwork.Off(2*(*nrhs)+1-1), &info)
+				golapack.Zptsvx(fact, &n, nrhs, d, e, d.Off(n), e.Off(n), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
 
 				//              Check the error code from ZPTSVX.
 				if info != izero {
@@ -298,7 +298,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
 						k1 = 1
-						Zptt01(&n, d, e, d.Off(n+1-1), e.Off(n+1-1), work, result.GetPtr(0))
+						Zptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
 					} else {
 						k1 = 2
 					}
@@ -311,7 +311,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					Zget04(&n, nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 					//                 Check error bounds from iterative refinement.
-					Zptt05(&n, nrhs, d, e, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+					Zptt05(&n, nrhs, d, e, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 				} else {
 					k1 = 6
 				}

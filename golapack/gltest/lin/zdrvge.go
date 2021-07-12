@@ -64,7 +64,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -114,7 +114,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						a.SetRe(ioff+i-1, zero)
 					}
 				} else {
-					golapack.Zlaset('F', &n, toPtr(n-izero+1), toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), a.CMatrixOff(ioff+1-1, lda, opts), &lda)
+					golapack.Zlaset('F', &n, toPtr(n-izero+1), toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), a.CMatrixOff(ioff, lda, opts), &lda)
 				}
 			} else {
 				izero = 0
@@ -153,7 +153,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if equil || iequed > 1 {
 							//                       Compute row and column scale factors to
 							//                       equilibrate the matrix A.
-							golapack.Zgeequ(&n, &n, afac.CMatrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &info)
+							golapack.Zgeequ(&n, &n, afac.CMatrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &info)
 							if info == 0 && n > 0 {
 								if equed == 'R' {
 									rowcnd = zero
@@ -167,7 +167,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								}
 
 								//                          Equilibrate the matrix.
-								golapack.Zlaqge(&n, &n, afac.CMatrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &equed)
+								golapack.Zlaqge(&n, &n, afac.CMatrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &equed)
 							}
 						}
 
@@ -188,7 +188,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						//                    Form the inverse of A.
 						golapack.Zlacpy('F', &n, &n, afac.CMatrix(lda, opts), &lda, a.CMatrix(lda, opts), &lda)
-						lwork = (*nmax) * maxint(3, *nrhs)
+						lwork = (*nmax) * max(3, *nrhs)
 						*srnamt = "ZGETRI"
 						golapack.Zgetri(&n, a.CMatrix(lda, opts), &lda, iwork, work, &lwork, &info)
 
@@ -280,13 +280,13 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if iequed > 1 && n > 0 {
 							//                       Equilibrate the matrix if FACT = 'F' and
 							//                       EQUED = 'R', 'C', or 'B'.
-							golapack.Zlaqge(&n, &n, a.CMatrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &equed)
+							golapack.Zlaqge(&n, &n, a.CMatrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &equed)
 						}
 
 						//                    Solve the system and compute the condition number
 						//                    and error bounds using ZGESVX.
 						*srnamt = "ZGESVX"
-						golapack.Zgesvx(fact, trans, &n, nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, &equed, s, s.Off(n+1-1), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, rwork.Off(2*(*nrhs)+1-1), &info)
+						golapack.Zgesvx(fact, trans, &n, nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, &equed, s, s.Off(n), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
 
 						//                    Check the error code from ZGESVX.
 						if info != izero {
@@ -311,12 +311,12 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								rpvgrw = golapack.Zlange('M', &n, &n, a.CMatrix(lda, opts), &lda, rdum) / rpvgrw
 							}
 						}
-						result.Set(6, math.Abs(rpvgrw-rwork.Get(2*(*nrhs)+1-1))/maxf64(rwork.Get(2*(*nrhs)+1-1), rpvgrw)/golapack.Dlamch(Epsilon))
+						result.Set(6, math.Abs(rpvgrw-rwork.Get(2*(*nrhs)))/math.Max(rwork.Get(2*(*nrhs)), rpvgrw)/golapack.Dlamch(Epsilon))
 
 						if !prefac {
 							//                       Reconstruct matrix from factors and compute
 							//                       residual.
-							Zget01(&n, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+							Zget01(&n, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 							k1 = 1
 						} else {
 							k1 = 2
@@ -327,7 +327,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Compute residual of the computed solution.
 							golapack.Zlacpy('F', &n, nrhs, bsav.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-							Zget02(trans, &n, &n, nrhs, asav.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+							Zget02(trans, &n, &n, nrhs, asav.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							if nofact || (prefac && equed == 'N') {
@@ -343,7 +343,7 @@ func Zdrvge(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Check the error bounds from iterative
 							//                       refinement.
-							Zget07(trans, &n, nrhs, asav.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, true, rwork.Off((*nrhs)+1-1), result.Off(3))
+							Zget07(trans, &n, nrhs, asav.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, true, rwork.Off((*nrhs)), result.Off(3))
 						} else {
 							trfcon = true
 						}

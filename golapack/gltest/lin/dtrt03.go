@@ -39,11 +39,11 @@ func Dtrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, scale
 	tnorm = zero
 	if diag == 'N' {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)*math.Abs(a.Get(j-1, j-1))+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)*math.Abs(a.Get(j-1, j-1))+cnorm.Get(j-1))
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)+cnorm.Get(j-1))
 		}
 	}
 
@@ -51,16 +51,16 @@ func Dtrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, scale
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work, 1)
-		ix = goblas.Idamax(*n, work, 1)
-		xnorm = maxf64(one, math.Abs(x.Get(ix-1, j-1)))
+		goblas.Dcopy(*n, x.Vector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Idamax(*n, work.Off(0, 1))
+		xnorm = math.Max(one, math.Abs(x.Get(ix-1, j-1)))
 		xscal = (one / xnorm) / float64(*n)
-		goblas.Dscal(*n, xscal, work, 1)
-		err = goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, *lda, work, 1)
-		goblas.Daxpy(*n, -(*scale)*xscal, b.Vector(0, j-1), 1, work, 1)
-		ix = goblas.Idamax(*n, work, 1)
+		goblas.Dscal(*n, xscal, work.Off(0, 1))
+		err = goblas.Dtrmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, a, work.Off(0, 1))
+		goblas.Daxpy(*n, -(*scale)*xscal, b.Vector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Idamax(*n, work.Off(0, 1))
 		err2 = (*tscal) * math.Abs(work.Get(ix-1))
-		ix = goblas.Idamax(*n, x.Vector(0, j-1), 1)
+		ix = goblas.Idamax(*n, x.Vector(0, j-1, 1))
 		xnorm = math.Abs(x.Get(ix-1, j-1))
 		if err2*smlnum <= xnorm {
 			if xnorm > zero {
@@ -80,6 +80,6 @@ func Dtrt03(uplo, trans, diag byte, n, nrhs *int, a *mat.Matrix, lda *int, scale
 				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err2)
+		(*resid) = math.Max(*resid, err2)
 	}
 }

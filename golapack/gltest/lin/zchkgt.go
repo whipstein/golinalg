@@ -2,6 +2,7 @@ package lin
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -49,8 +50,8 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	for in = 1; in <= (*nn); in++ {
 		//        Do for each value of N in NVAL.
 		n = (*nval)[in-1]
-		m = maxint(n-1, 0)
-		lda = maxint(1, n)
+		m = max(n-1, 0)
+		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
@@ -68,7 +69,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			zerot = imat >= 8 && imat <= 10
 			if imat <= 6 {
 				//              Types 1-6:  generate matrices of known condition number.
-				koff = maxint(2-ku, 3-maxint(1, n))
+				koff = max(2-ku, 3-max(1, n))
 				*srnamt = "ZLATMS"
 				matgen.Zlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cond, &anorm, &kl, &ku, 'Z', af.CMatrixOff(koff-1, 3, opts), func() *int { y := 3; return &y }(), work, &info)
 
@@ -80,10 +81,10 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				izero = 0
 
 				if n > 1 {
-					goblas.Zcopy(n-1, af.Off(3), 3, a, 1)
-					goblas.Zcopy(n-1, af.Off(2), 3, a.Off(n+m+1-1), 1)
+					goblas.Zcopy(n-1, af.Off(3, 3), a.Off(0, 1))
+					goblas.Zcopy(n-1, af.Off(2, 3), a.Off(n+m, 1))
 				}
-				goblas.Zcopy(n, af.Off(1), 3, a.Off(m+1-1), 1)
+				goblas.Zcopy(n, af.Off(1, 3), a.Off(m, 1))
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
@@ -92,7 +93,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//                 imaginary parts are from [-1,1].
 					golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(n+2*m), a)
 					if anorm != one {
-						goblas.Zdscal(n+2*m, anorm, a, 1)
+						goblas.Zdscal(n+2*m, anorm, a.Off(0, 1))
 					}
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -144,9 +145,9 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			//+    TEST 1
 			//           Factor A as L*U and compute the ratio
 			//              norm(L*U - A) / (n * norm(A) * EPS )
-			goblas.Zcopy(n+2*m, a, 1, af, 1)
+			goblas.Zcopy(n+2*m, a.Off(0, 1), af.Off(0, 1))
 			*srnamt = "ZGTTRF"
-			golapack.Zgttrf(&n, af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, &info)
+			golapack.Zgttrf(&n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, &info)
 
 			//           Check error code from ZGTTRF.
 			if info != izero {
@@ -154,7 +155,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			}
 			trfcon = info != 0
 
-			Zgtt01(&n, a, a.Off(m+1-1), a.Off(n+m+1-1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, work.CMatrix(lda, opts), &lda, rwork, result.GetPtr(0))
+			Zgtt01(&n, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, work.CMatrix(lda, opts), &lda, rwork, result.GetPtr(0))
 
 			//           Print the test ratio if it is .GE. THRESH.
 			if result.Get(0) >= (*thresh) {
@@ -174,7 +175,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				} else {
 					norm = 'I'
 				}
-				anorm = golapack.Zlangt(norm, &n, a, a.Off(m+1-1), a.Off(n+m+1-1))
+				anorm = golapack.Zlangt(norm, &n, a, a.Off(m), a.Off(n+m))
 
 				if !trfcon {
 					//                 Use ZGTTRS to solve for one column at a time of
@@ -185,8 +186,8 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 							x.SetRe(j-1, zero)
 						}
 						x.SetRe(i-1, one)
-						golapack.Zgttrs(trans, &n, func() *int { y := 1; return &y }(), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.CMatrix(lda, opts), &lda, &info)
-						ainvnm = maxf64(ainvnm, goblas.Dzasum(n, x, 1))
+						golapack.Zgttrs(trans, &n, func() *int { y := 1; return &y }(), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.CMatrix(lda, opts), &lda, &info)
+						ainvnm = math.Max(ainvnm, goblas.Dzasum(n, x.Off(0, 1)))
 					}
 
 					//                 Compute RCONDC = 1 / (norm(A) * norm(inv(A))
@@ -208,7 +209,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//              Estimate the reciprocal of the condition number of the
 				//              matrix.
 				*srnamt = "ZGTCON"
-				golapack.Zgtcon(norm, &n, af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, &anorm, &rcond, work, &info)
+				golapack.Zgtcon(norm, &n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, &anorm, &rcond, work, &info)
 
 				//              Check error code from ZGTCON.
 				if info != 0 {
@@ -253,13 +254,13 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					//                 Set the right hand side.
-					golapack.Zlagtm(trans, &n, &nrhs, &one, a, a.Off(m+1-1), a.Off(n+m+1-1), xact.CMatrix(lda, opts), &lda, &zero, b.CMatrix(lda, opts), &lda)
+					golapack.Zlagtm(trans, &n, &nrhs, &one, a, a.Off(m), a.Off(n+m), xact.CMatrix(lda, opts), &lda, &zero, b.CMatrix(lda, opts), &lda)
 
 					//+    TEST 2
 					//              Solve op(A) * X = B and compute the residual.
 					golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 					*srnamt = "ZGTTRS"
-					golapack.Zgttrs(trans, &n, &nrhs, af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, x.CMatrix(lda, opts), &lda, &info)
+					golapack.Zgttrs(trans, &n, &nrhs, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.CMatrix(lda, opts), &lda, &info)
 
 					//              Check error code from ZGTTRS.
 					if info != 0 {
@@ -267,7 +268,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-					Zgtt02(trans, &n, &nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, result.GetPtr(1))
+					Zgtt02(trans, &n, &nrhs, a, a.Off(m), a.Off(n+m), x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, result.GetPtr(1))
 
 					//+    TEST 3
 					//              Check solution from generated exact solution.
@@ -276,7 +277,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TESTS 4, 5, and 6
 					//              Use iterative refinement to improve the solution.
 					*srnamt = "ZGTRFS"
-					golapack.Zgtrfs(trans, &n, &nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), af, af.Off(m+1-1), af.Off(n+m+1-1), af.Off(n+2*m+1-1), iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+					golapack.Zgtrfs(trans, &n, &nrhs, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 					//              Check error code from ZGTRFS.
 					if info != 0 {
@@ -284,7 +285,7 @@ func Zchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-					Zgtt05(trans, &n, &nrhs, a, a.Off(m+1-1), a.Off(n+m+1-1), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+					Zgtt05(trans, &n, &nrhs, a, a.Off(m), a.Off(n+m), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
 
 					//              Print information about the tests that did not pass the
 					//              threshold.

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -40,12 +42,12 @@ func Dptt02(n, nrhs *int, d, e *mat.Vector, x *mat.Matrix, ldx *int, b *mat.Matr
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(*n, b.Vector(0, j-1), 1)
-		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
+		bnorm = goblas.Dasum(*n, b.Vector(0, j-1, 1))
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

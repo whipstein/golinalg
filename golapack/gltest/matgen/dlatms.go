@@ -138,11 +138,11 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	}
 
 	//     Set certain internal parameters
-	mnmin = minint(*m, *n)
-	llb = minint(*kl, (*m)-1)
-	uub = minint(*ku, (*n)-1)
-	mr = minint(*m, (*n)+llb)
-	nc = minint(*n, (*m)+uub)
+	mnmin = min(*m, *n)
+	llb = min(*kl, (*m)-1)
+	uub = min(*ku, (*n)-1)
+	mr = min(*m, (*n)+llb)
+	nc = min(*n, (*m)+uub)
 
 	if ipack == 5 || ipack == 6 {
 		minlda = uub + 1
@@ -156,7 +156,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	//     or if LDA is too small to store the matrix unpacked.
 	givens = false
 	if isym == 1 {
-		if float64(llb+uub) < 0.3*float64(maxint(1, mr+nc)) {
+		if float64(llb+uub) < 0.3*float64(max(1, mr+nc)) {
 			givens = true
 		}
 	} else {
@@ -189,7 +189,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		(*info) = -11
 	} else if ipack == -1 || (isympk == 1 && isym == 1) || (isympk == 2 && isym == 1 && (*kl) > 0) || (isympk == 3 && isym == 1 && (*ku) > 0) || (isympk != 0 && (*m) != (*n)) {
 		(*info) = -12
-	} else if (*lda) < maxint(1, minlda) {
+	} else if (*lda) < max(1, minlda) {
 		(*info) = -14
 	}
 
@@ -228,7 +228,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		//        Scale by DMAX
 		temp = math.Abs(d.Get(0))
 		for i = 2; i <= mnmin; i++ {
-			temp = maxf64(temp, math.Abs(d.Get(i-1)))
+			temp = math.Max(temp, math.Abs(d.Get(i-1)))
 		}
 
 		if temp > zero {
@@ -238,7 +238,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			return
 		}
 
-		goblas.Dscal(mnmin, alpha, d, 1)
+		goblas.Dscal(mnmin, alpha, d.Off(0, 1))
 
 	}
 
@@ -273,7 +273,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	//     Diagonal Matrix -- We are done, unless it
 	//     is to be stored SP/PP/TP (PACK='R' or 'C')
 	if llb == 0 && uub == 0 {
-		goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffst-1, 0), ilda+1)
+		goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffst-1, 0, ilda+1))
 		if ipack <= 2 || ipack >= 5 {
 			ipackg = ipack
 		}
@@ -289,7 +289,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				ipackg = 0
 			}
 
-			goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffst-1, 0), ilda+1)
+			goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffst-1, 0, ilda+1))
 
 			if topdwn {
 				jkl = 0
@@ -298,14 +298,14 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					//
 					//                 Last row actually rotated is M
 					//                 Last column actually rotated is MIN( M+JKU, N )
-					for jr = 1; jr <= minint((*m)+jku, *n)+jkl-1; jr++ {
+					for jr = 1; jr <= min((*m)+jku, *n)+jkl-1; jr++ {
 						extra = zero
 						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
 						c = math.Cos(angle)
 						s = math.Sin(angle)
-						icol = maxint(1, jr-jkl)
+						icol = max(1, jr-jkl)
 						if jr < (*m) {
-							il = minint(*n, jr+jku) + 1 - icol
+							il = min(*n, jr+jku) + 1 - icol
 							Dlarot(true, jr > jkl, false, &il, &c, &s, a.Vector(jr-iskew*icol+ioffst-1, icol-1), &ilda, &extra, &dummy)
 						}
 
@@ -314,16 +314,16 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 						ic = icol
 						for jch = jr - jkl; jch >= 1; jch -= (jkl + jku) {
 							if ir < (*m) {
-								golapack.Dlartg(a.GetPtr(ir+1-iskew*(ic+1)+ioffst-1, ic+1-1), &extra, &c, &s, &dummy)
+								golapack.Dlartg(a.GetPtr(ir+1-iskew*(ic+1)+ioffst-1, ic), &extra, &c, &s, &dummy)
 							}
-							irow = maxint(1, jch-jku)
+							irow = max(1, jch-jku)
 							il = ir + 2 - irow
 							temp = zero
 							iltemp = jch > jku
 							Dlarot(false, iltemp, true, &il, &c, toPtrf64(-s), a.Vector(irow-iskew*ic+ioffst-1, ic-1), &ilda, &temp, &extra)
 							if iltemp {
-								golapack.Dlartg(a.GetPtr(irow+1-iskew*(ic+1)+ioffst-1, ic+1-1), &temp, &c, &s, &dummy)
-								icol = maxint(1, jch-jku-jkl)
+								golapack.Dlartg(a.GetPtr(irow+1-iskew*(ic+1)+ioffst-1, ic), &temp, &c, &s, &dummy)
+								icol = max(1, jch-jku-jkl)
 								il = ic + 2 - icol
 								extra = zero
 								Dlarot(true, jch > jku+jkl, true, &il, &c, toPtrf64(-s), a.Vector(irow-iskew*icol+ioffst-1, icol-1), &ilda, &extra, &temp)
@@ -337,14 +337,14 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				jku = uub
 				for jkl = 1; jkl <= llb; jkl++ {
 					//                 Transform from bandwidth JKL-1, JKU to JKL, JKU
-					for jc = 1; jc <= minint((*n)+jkl, *m)+jku-1; jc++ {
+					for jc = 1; jc <= min((*n)+jkl, *m)+jku-1; jc++ {
 						extra = zero
 						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
 						c = math.Cos(angle)
 						s = math.Sin(angle)
-						irow = maxint(1, jc-jku)
+						irow = max(1, jc-jku)
 						if jc < (*n) {
-							il = minint(*m, jc+jkl) + 1 - irow
+							il = min(*m, jc+jkl) + 1 - irow
 							Dlarot(false, jc > jku, false, &il, &c, &s, a.Vector(irow-iskew*jc+ioffst-1, jc-1), &ilda, &extra, &dummy)
 						}
 
@@ -353,16 +353,16 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 						ir = irow
 						for jch = jc - jku; jch >= 1; jch -= (jkl + jku) {
 							if ic < (*n) {
-								golapack.Dlartg(a.GetPtr(ir+1-iskew*(ic+1)+ioffst-1, ic+1-1), &extra, &c, &s, &dummy)
+								golapack.Dlartg(a.GetPtr(ir+1-iskew*(ic+1)+ioffst-1, ic), &extra, &c, &s, &dummy)
 							}
-							icol = maxint(1, jch-jkl)
+							icol = max(1, jch-jkl)
 							il = ic + 2 - icol
 							temp = zero
 							iltemp = jch > jkl
 							Dlarot(true, iltemp, true, &il, &c, toPtrf64(-s), a.Vector(ir-iskew*icol+ioffst-1, icol-1), &ilda, &temp, &extra)
 							if iltemp {
-								golapack.Dlartg(a.GetPtr(ir+1-iskew*(icol+1)+ioffst-1, icol+1-1), &temp, &c, &s, &dummy)
-								irow = maxint(1, jch-jkl-jku)
+								golapack.Dlartg(a.GetPtr(ir+1-iskew*(icol+1)+ioffst-1, icol), &temp, &c, &s, &dummy)
+								irow = max(1, jch-jkl-jku)
 								il = ir + 2 - irow
 								extra = zero
 								Dlarot(false, jch > jkl+jku, true, &il, &c, toPtrf64(-s), a.Vector(irow-iskew*icol+ioffst-1, icol-1), &ilda, &extra, &temp)
@@ -381,15 +381,15 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					//
 					//                 First row actually rotated is M
 					//                 First column actually rotated is MIN( M+JKU, N )
-					iendch = minint(*m, (*n)+jkl) - 1
-					for jc = minint((*m)+jku, *n) - 1; jc >= 1-jkl; jc-- {
+					iendch = min(*m, (*n)+jkl) - 1
+					for jc = min((*m)+jku, *n) - 1; jc >= 1-jkl; jc-- {
 						extra = zero
 						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
 						c = math.Cos(angle)
 						s = math.Sin(angle)
-						irow = maxint(1, jc-jku+1)
+						irow = max(1, jc-jku+1)
 						if jc > 0 {
-							il = minint(*m, jc+jkl+1) + 1 - irow
+							il = min(*m, jc+jkl+1) + 1 - irow
 							Dlarot(false, false, jc+jkl < (*m), &il, &c, &s, a.Vector(irow-iskew*jc+ioffst-1, jc-1), &ilda, &dummy, &extra)
 						}
 
@@ -400,14 +400,14 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							if ilextr {
 								golapack.Dlartg(a.GetPtr(jch-iskew*ic+ioffst-1, ic-1), &extra, &c, &s, &dummy)
 							}
-							ic = maxint(1, ic)
-							icol = minint((*n)-1, jch+jku)
+							ic = max(1, ic)
+							icol = min((*n)-1, jch+jku)
 							iltemp = jch+jku < (*n)
 							temp = zero
 							Dlarot(true, ilextr, iltemp, toPtr(icol+2-ic), &c, &s, a.Vector(jch-iskew*ic+ioffst-1, ic-1), &ilda, &extra, &temp)
 							if iltemp {
 								golapack.Dlartg(a.GetPtr(jch-iskew*icol+ioffst-1, icol-1), &temp, &c, &s, &dummy)
-								il = minint(iendch, jch+jkl+jku) + 2 - jch
+								il = min(iendch, jch+jkl+jku) + 2 - jch
 								extra = zero
 								Dlarot(false, true, jch+jkl+jku <= iendch, &il, &c, &s, a.Vector(jch-iskew*icol+ioffst-1, icol-1), &ilda, &temp, &extra)
 								ic = icol
@@ -422,15 +422,15 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					//
 					//                 First row actually rotated is MIN( N+JKL, M )
 					//                 First column actually rotated is N
-					iendch = minint(*n, (*m)+jku) - 1
-					for jr = minint((*n)+jkl, *m) - 1; jr >= 1-jku; jr-- {
+					iendch = min(*n, (*m)+jku) - 1
+					for jr = min((*n)+jkl, *m) - 1; jr >= 1-jku; jr-- {
 						extra = zero
 						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
 						c = math.Cos(angle)
 						s = math.Sin(angle)
-						icol = maxint(1, jr-jkl+1)
+						icol = max(1, jr-jkl+1)
 						if jr > 0 {
-							il = minint(*n, jr+jku+1) + 1 - icol
+							il = min(*n, jr+jku+1) + 1 - icol
 							Dlarot(true, false, jr+jku < (*n), &il, &c, &s, a.Vector(jr-iskew*icol+ioffst-1, icol-1), &ilda, &dummy, &extra)
 						}
 
@@ -441,14 +441,14 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							if ilextr {
 								golapack.Dlartg(a.GetPtr(ir-iskew*jch+ioffst-1, jch-1), &extra, &c, &s, &dummy)
 							}
-							ir = maxint(1, ir)
-							irow = minint((*m)-1, jch+jkl)
+							ir = max(1, ir)
+							irow = min((*m)-1, jch+jkl)
 							iltemp = jch+jkl < (*m)
 							temp = zero
 							Dlarot(false, ilextr, iltemp, toPtr(irow+2-ir), &c, &s, a.Vector(ir-iskew*jch+ioffst-1, jch-1), &ilda, &extra, &temp)
 							if iltemp {
 								golapack.Dlartg(a.GetPtr(irow-iskew*jch+ioffst-1, jch-1), &temp, &c, &s, &dummy)
-								il = minint(iendch, jch+jkl+jku) + 2 - jch
+								il = min(iendch, jch+jkl+jku) + 2 - jch
 								extra = zero
 								Dlarot(true, true, jch+jkl+jku <= iendch, &il, &c, &s, a.Vector(irow-iskew*jch+ioffst-1, jch-1), &ilda, &temp, &extra)
 								ir = irow
@@ -471,28 +471,28 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				} else {
 					ipackg = 1
 				}
-				goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffg-1, 0), ilda+1)
+				goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffg-1, 0, ilda+1))
 
 				for k = 1; k <= uub; k++ {
 					for jc = 1; jc <= (*n)-1; jc++ {
-						irow = maxint(1, jc-k)
-						il = minint(jc+1, k+2)
+						irow = max(1, jc-k)
+						il = min(jc+1, k+2)
 						extra = zero
-						temp = a.Get(jc-iskew*(jc+1)+ioffg-1, jc+1-1)
+						temp = a.Get(jc-iskew*(jc+1)+ioffg-1, jc)
 						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
 						c = math.Cos(angle)
 						s = math.Sin(angle)
 						Dlarot(false, jc > k, true, &il, &c, &s, a.Vector(irow-iskew*jc+ioffg-1, jc-1), &ilda, &extra, &temp)
-						Dlarot(true, true, false, toPtr(minint(k, (*n)-jc)+1), &c, &s, a.Vector((1-iskew)*jc+ioffg-1, jc-1), &ilda, &temp, &dummy)
+						Dlarot(true, true, false, toPtr(min(k, (*n)-jc)+1), &c, &s, a.Vector((1-iskew)*jc+ioffg-1, jc-1), &ilda, &temp, &dummy)
 
 						//                    Chase EXTRA back up the matrix
 						icol = jc
 						for jch = jc - k; jch >= 1; jch -= k {
-							golapack.Dlartg(a.GetPtr(jch+1-iskew*(icol+1)+ioffg-1, icol+1-1), &extra, &c, &s, &dummy)
-							temp = a.Get(jch-iskew*(jch+1)+ioffg-1, jch+1-1)
+							golapack.Dlartg(a.GetPtr(jch+1-iskew*(icol+1)+ioffg-1, icol), &extra, &c, &s, &dummy)
+							temp = a.Get(jch-iskew*(jch+1)+ioffg-1, jch)
 							Dlarot(true, true, true, toPtr(k+2), &c, toPtrf64(-s), a.Vector((1-iskew)*jch+ioffg-1, jch-1), &ilda, &temp, &extra)
-							irow = maxint(1, jch-k)
-							il = minint(jch+1, k+2)
+							irow = max(1, jch-k)
+							il = min(jch+1, k+2)
 							extra = zero
 							Dlarot(false, jch > k, true, &il, &c, toPtrf64(-s), a.Vector(irow-iskew*jch+ioffg-1, jch-1), &ilda, &extra, &temp)
 							icol = jch
@@ -505,7 +505,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				if ipack != ipackg && ipack != 3 {
 					for jc = 1; jc <= (*n); jc++ {
 						irow = ioffst - iskew*jc
-						for jr = jc; jr <= minint(*n, jc+uub); jr++ {
+						for jr = jc; jr <= min(*n, jc+uub); jr++ {
 							a.Set(jr+irow-1, jc-1, a.Get(jc-iskew*jr+ioffg-1, jr-1))
 						}
 					}
@@ -532,18 +532,18 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				} else {
 					ipackg = 2
 				}
-				goblas.Dcopy(mnmin, d, 1, a.Vector(1-iskew+ioffg-1, 0), ilda+1)
+				goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffg-1, 0, ilda+1))
 
 				for k = 1; k <= uub; k++ {
 					for jc = (*n) - 1; jc >= 1; jc-- {
-						il = minint((*n)+1-jc, k+2)
+						il = min((*n)+1-jc, k+2)
 						extra = zero
 						temp = a.Get(1+(1-iskew)*jc+ioffg-1, jc-1)
 						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
 						c = math.Cos(angle)
 						s = -math.Sin(angle)
 						Dlarot(false, true, (*n)-jc > k, &il, &c, &s, a.Vector((1-iskew)*jc+ioffg-1, jc-1), &ilda, &temp, &extra)
-						icol = maxint(1, jc-k+1)
+						icol = max(1, jc-k+1)
 						Dlarot(true, false, true, toPtr(jc+2-icol), &c, &s, a.Vector(jc-iskew*icol+ioffg-1, icol-1), &ilda, &dummy, &temp)
 
 						//                    Chase EXTRA back down the matrix
@@ -552,7 +552,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							golapack.Dlartg(a.GetPtr(jch-iskew*icol+ioffg-1, icol-1), &extra, &c, &s, &dummy)
 							temp = a.Get(1+(1-iskew)*jch+ioffg-1, jch-1)
 							Dlarot(true, true, true, toPtr(k+2), &c, &s, a.Vector(jch-iskew*icol+ioffg-1, icol-1), &ilda, &extra, &temp)
-							il = minint((*n)+1-jch, k+2)
+							il = min((*n)+1-jch, k+2)
 							extra = zero
 							Dlarot(false, true, (*n)-jch > k, &il, &c, &s, a.Vector((1-iskew)*jch+ioffg-1, jch-1), &ilda, &temp, &extra)
 							icol = jch
@@ -565,7 +565,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				if ipack != ipackg && ipack != 4 {
 					for jc = (*n); jc >= 1; jc-- {
 						irow = ioffst - iskew*jc
-						for jr = jc; jr >= maxint(1, jc-uub); jr-- {
+						for jr = jc; jr >= max(1, jc-uub); jr-- {
 							a.Set(jr+irow-1, jc-1, a.Get(jc-iskew*jr+ioffg-1, jr-1))
 						}
 					}
@@ -666,14 +666,14 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			}
 
 			for j = 1; j <= uub; j++ {
-				for i = minint(j+llb, *m); i >= 1; i-- {
-					a.Set(i-j+uub+1-1, j-1, a.Get(i-1, j-1))
+				for i = min(j+llb, *m); i >= 1; i-- {
+					a.Set(i-j+uub, j-1, a.Get(i-1, j-1))
 				}
 			}
 
 			for j = uub + 2; j <= (*n); j++ {
-				for i = j - uub; i <= minint(j+llb, *m); i++ {
-					a.Set(i-j+uub+1-1, j-1, a.Get(i-1, j-1))
+				for i = j - uub; i <= min(j+llb, *m); i++ {
+					a.Set(i-j+uub, j-1, a.Get(i-1, j-1))
 				}
 			}
 		}
@@ -702,7 +702,7 @@ func Dlatms(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				for jr = 1; jr <= uub+1-jc; jr++ {
 					a.Set(jr-1, jc-1, zero)
 				}
-				for jr = maxint(1, minint(ir1, ir2-jc)); jr <= (*lda); jr++ {
+				for jr = max(1, min(ir1, ir2-jc)); jr <= (*lda); jr++ {
 					a.Set(jr-1, jc-1, zero)
 				}
 			}

@@ -28,7 +28,7 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < 1 && !lquery {
 		(*info) = -9
@@ -59,7 +59,7 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 	if nb > 1 && nb < (*n) {
 		//        Determine when to cross over from blocked to unblocked code
 		//        (last block is always handled by unblocked code).
-		nx = maxint(nb, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+		nx = max(nb, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 		if nx < (*n) {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*n)
@@ -68,7 +68,7 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 				//              Not enough workspace to use optimal NB:  determine the
 				//              minimum value of NB, and reduce NB or force use of
 				//              unblocked code by setting NX = N.
-				nb = maxint((*lwork)/ldwork, 1)
+				nb = max((*lwork)/ldwork, 1)
 				nbmin = Ilaenv(func() *int { y := 2; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
 				if nb < nbmin {
 					nx = (*n)
@@ -93,7 +93,7 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 
 			//           Update the unreduced submatrix A(1:i-1,1:i-1), using an
 			//           update of the form:  A := A - V*W**H - W*V**H
-			err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, i-1, nb, -cone, a.Off(0, i-1), *lda, work.CMatrix(ldwork, opts), ldwork, one, a, *lda)
+			err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, i-1, nb, -cone, a.Off(0, i-1), work.CMatrix(ldwork, opts), one, a)
 
 			//           Copy superdiagonal elements back into A, and diagonal
 			//           elements into D
@@ -115,12 +115,12 @@ func Zhetrd(uplo byte, n *int, a *mat.CMatrix, lda *int, d, e *mat.Vector, tau, 
 
 			//           Update the unreduced submatrix A(i+nb:n,i+nb:n), using
 			//           an update of the form:  A := A - V*W**H - W*V**H
-			err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, (*n)-i-nb+1, nb, -cone, a.Off(i+nb-1, i-1), *lda, work.CMatrixOff(nb+1-1, ldwork, opts), ldwork, one, a.Off(i+nb-1, i+nb-1), *lda)
+			err = goblas.Zher2k(mat.UploByte(uplo), NoTrans, (*n)-i-nb+1, nb, -cone, a.Off(i+nb-1, i-1), work.CMatrixOff(nb, ldwork, opts), one, a.Off(i+nb-1, i+nb-1))
 
 			//           Copy subdiagonal elements back into A, and diagonal
 			//           elements into D
 			for j = i; j <= i+nb-1; j++ {
-				a.SetRe(j+1-1, j-1, e.Get(j-1))
+				a.SetRe(j, j-1, e.Get(j-1))
 				d.Set(j-1, a.GetRe(j-1, j-1))
 			}
 		}

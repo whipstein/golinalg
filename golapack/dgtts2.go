@@ -28,7 +28,7 @@ func Dgtts2(itrans, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *ma
 				ip = (*ipiv)[i-1]
 				temp = b.Get(i+1-ip+i-1, j-1) - dl.Get(i-1)*b.Get(ip-1, j-1)
 				b.Set(i-1, j-1, b.Get(ip-1, j-1))
-				b.Set(i+1-1, j-1, temp)
+				b.Set(i, j-1, temp)
 			}
 
 			//           Solve U*x = b.
@@ -37,7 +37,7 @@ func Dgtts2(itrans, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *ma
 				b.Set((*n)-1-1, j-1, (b.Get((*n)-1-1, j-1)-du.Get((*n)-1-1)*b.Get((*n)-1, j-1))/d.Get((*n)-1-1))
 			}
 			for i = (*n) - 2; i >= 1; i-- {
-				b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i+1-1, j-1)-du2.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
+				b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i, j-1)-du2.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
 			}
 			if j < (*nrhs) {
 				j = j + 1
@@ -48,11 +48,11 @@ func Dgtts2(itrans, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *ma
 				//              Solve L*x = b.
 				for i = 1; i <= (*n)-1; i++ {
 					if (*ipiv)[i-1] == i {
-						b.Set(i+1-1, j-1, b.Get(i+1-1, j-1)-dl.Get(i-1)*b.Get(i-1, j-1))
+						b.Set(i, j-1, b.Get(i, j-1)-dl.Get(i-1)*b.Get(i-1, j-1))
 					} else {
 						temp = b.Get(i-1, j-1)
-						b.Set(i-1, j-1, b.Get(i+1-1, j-1))
-						b.Set(i+1-1, j-1, temp-dl.Get(i-1)*b.Get(i-1, j-1))
+						b.Set(i-1, j-1, b.Get(i, j-1))
+						b.Set(i, j-1, temp-dl.Get(i-1)*b.Get(i-1, j-1))
 					}
 				}
 
@@ -62,7 +62,7 @@ func Dgtts2(itrans, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *ma
 					b.Set((*n)-1-1, j-1, (b.Get((*n)-1-1, j-1)-du.Get((*n)-1-1)*b.Get((*n)-1, j-1))/d.Get((*n)-1-1))
 				}
 				for i = (*n) - 2; i >= 1; i-- {
-					b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i+1-1, j-1)-du2.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
+					b.Set(i-1, j-1, (b.Get(i-1, j-1)-du.Get(i-1)*b.Get(i, j-1)-du2.Get(i-1)*b.Get(i+2-1, j-1))/d.Get(i-1))
 				}
 			}
 		}
@@ -84,7 +84,7 @@ func Dgtts2(itrans, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *ma
 			//           Solve L**T*x = b.
 			for i = (*n) - 1; i >= 1; i-- {
 				ip = (*ipiv)[i-1]
-				temp = b.Get(i-1, j-1) - dl.Get(i-1)*b.Get(i+1-1, j-1)
+				temp = b.Get(i-1, j-1) - dl.Get(i-1)*b.Get(i, j-1)
 				b.Set(i-1, j-1, b.Get(ip-1, j-1))
 				b.Set(ip-1, j-1, temp)
 			}
@@ -105,10 +105,10 @@ func Dgtts2(itrans, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *ma
 				}
 				for i = (*n) - 1; i >= 1; i-- {
 					if (*ipiv)[i-1] == i {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)-dl.Get(i-1)*b.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)-dl.Get(i-1)*b.Get(i, j-1))
 					} else {
-						temp = b.Get(i+1-1, j-1)
-						b.Set(i+1-1, j-1, b.Get(i-1, j-1)-dl.Get(i-1)*temp)
+						temp = b.Get(i, j-1)
+						b.Set(i, j-1, b.Get(i-1, j-1)-dl.Get(i-1)*temp)
 						b.Set(i-1, j-1, temp)
 					}
 				}

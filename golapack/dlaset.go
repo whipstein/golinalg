@@ -11,7 +11,7 @@ func Dlaset(uplo byte, m, n *int, alpha, beta *float64, a *mat.Matrix, lda *int)
 		//        Set the strictly upper triangular or trapezoidal part of the
 		//        array to ALPHA.
 		for j = 2; j <= *n; j++ {
-			for i = 1; i <= minint(j-1, *m); i++ {
+			for i = 1; i <= min(j-1, *m); i++ {
 				a.Set(i-1, j-1, *alpha)
 			}
 		}
@@ -19,7 +19,7 @@ func Dlaset(uplo byte, m, n *int, alpha, beta *float64, a *mat.Matrix, lda *int)
 	} else if uplo == 'L' {
 		//        Set the strictly lower triangular or trapezoidal part of the
 		//        array to ALPHA.
-		for j = 1; j <= minint(*m, *n); j++ {
+		for j = 1; j <= min(*m, *n); j++ {
 			for i = j + 1; i <= *m; i++ {
 				a.Set(i-1, j-1, *alpha)
 			}
@@ -34,8 +34,8 @@ func Dlaset(uplo byte, m, n *int, alpha, beta *float64, a *mat.Matrix, lda *int)
 		}
 	}
 
-	//     Set the first minint(M,N) diagonal elements to BETA.
-	for i = 1; i <= minint(*m, *n); i++ {
+	//     Set the first min(M,N) diagonal elements to BETA.
+	for i = 1; i <= min(*m, *n); i++ {
 		a.Set(i-1, i-1, *beta)
 	}
 }

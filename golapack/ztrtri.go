@@ -30,7 +30,7 @@ func Ztrtri(uplo, diag byte, n *int, a *mat.CMatrix, lda, info *int) {
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -63,11 +63,11 @@ func Ztrtri(uplo, diag byte, n *int, a *mat.CMatrix, lda, info *int) {
 		if upper {
 			//           Compute inverse of upper triangular matrix
 			for j = 1; j <= (*n); j += nb {
-				jb = minint(nb, (*n)-j+1)
+				jb = min(nb, (*n)-j+1)
 
 				//              Compute rows 1:j-1 of current block column
-				err = goblas.Ztrmm(Left, Upper, NoTrans, mat.DiagByte(diag), j-1, jb, one, a, *lda, a.Off(0, j-1), *lda)
-				err = goblas.Ztrsm(Right, Upper, NoTrans, mat.DiagByte(diag), j-1, jb, -one, a.Off(j-1, j-1), *lda, a.Off(0, j-1), *lda)
+				err = goblas.Ztrmm(Left, Upper, NoTrans, mat.DiagByte(diag), j-1, jb, one, a, a.Off(0, j-1))
+				err = goblas.Ztrsm(Right, Upper, NoTrans, mat.DiagByte(diag), j-1, jb, -one, a.Off(j-1, j-1), a.Off(0, j-1))
 
 				//              Compute inverse of current diagonal block
 				Ztrti2('U', diag, &jb, a.Off(j-1, j-1), lda, info)
@@ -76,11 +76,11 @@ func Ztrtri(uplo, diag byte, n *int, a *mat.CMatrix, lda, info *int) {
 			//           Compute inverse of lower triangular matrix
 			nn = (((*n)-1)/nb)*nb + 1
 			for j = nn; j >= 1; j -= nb {
-				jb = minint(nb, (*n)-j+1)
+				jb = min(nb, (*n)-j+1)
 				if j+jb <= (*n) {
 					//                 Compute rows j+jb:n of current block column
-					err = goblas.Ztrmm(Left, Lower, NoTrans, mat.DiagByte(diag), (*n)-j-jb+1, jb, one, a.Off(j+jb-1, j+jb-1), *lda, a.Off(j+jb-1, j-1), *lda)
-					err = goblas.Ztrsm(Right, Lower, NoTrans, mat.DiagByte(diag), (*n)-j-jb+1, jb, -one, a.Off(j-1, j-1), *lda, a.Off(j+jb-1, j-1), *lda)
+					err = goblas.Ztrmm(Left, Lower, NoTrans, mat.DiagByte(diag), (*n)-j-jb+1, jb, one, a.Off(j+jb-1, j+jb-1), a.Off(j+jb-1, j-1))
+					err = goblas.Ztrsm(Right, Lower, NoTrans, mat.DiagByte(diag), (*n)-j-jb+1, jb, -one, a.Off(j-1, j-1), a.Off(j+jb-1, j-1))
 				}
 
 				//              Compute inverse of current diagonal block

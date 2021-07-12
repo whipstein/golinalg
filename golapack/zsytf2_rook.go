@@ -39,7 +39,7 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -77,13 +77,13 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Izamax(k-1, a.CVector(0, k-1), 1)
+			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
 			colmax = Cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if maxf64(absakk, colmax) == zero {
+		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
 			if (*info) == 0 {
 				(*info) = k
@@ -112,14 +112,14 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax+1-1), *lda)
+					jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax, *lda))
 					rowmax = Cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax > 1 {
-					itemp = goblas.Izamax(imax-1, a.CVector(0, imax-1), 1)
+					itemp = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
 					dtemp = Cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -164,10 +164,10 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//              Interchange rows and column K and P in the leading
 				//              submatrix A(1:k,1:k) if we have a 2-by-2 pivot
 				if p > 1 {
-					goblas.Zswap(p-1, a.CVector(0, k-1), 1, a.CVector(0, p-1), 1)
+					goblas.Zswap(p-1, a.CVector(0, k-1, 1), a.CVector(0, p-1, 1))
 				}
 				if p < (k - 1) {
-					goblas.Zswap(k-p-1, a.CVector(p+1-1, k-1), 1, a.CVector(p-1, p+1-1), *lda)
+					goblas.Zswap(k-p-1, a.CVector(p, k-1, 1), a.CVector(p-1, p, *lda))
 				}
 				t = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(p-1, p-1))
@@ -180,10 +180,10 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, kk-1), 1, a.CVector(0, kp-1), 1)
+					goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
 				}
 				if (kk > 1) && (kp < (kk - 1)) {
-					goblas.Zswap(kk-kp-1, a.CVector(kp+1-1, kk-1), 1, a.CVector(kp-1, kp+1-1), *lda)
+					goblas.Zswap(kk-kp-1, a.CVector(kp, kk-1, 1), a.CVector(kp-1, kp, *lda))
 				}
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
@@ -213,7 +213,7 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						Zsyr(uplo, toPtr(k-1), toPtrc128(-d11), a.CVector(0, k-1), func() *int { y := 1; return &y }(), a, lda)
 
 						//                    Store U(k) in column k
-						goblas.Zscal(k-1, d11, a.CVector(0, k-1), 1)
+						goblas.Zscal(k-1, d11, a.CVector(0, k-1, 1))
 					} else {
 						//                    Store L(k) in column K
 						d11 = a.Get(k-1, k-1)
@@ -306,13 +306,13 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < (*n) {
-			imax = k + goblas.Izamax((*n)-k, a.CVector(k+1-1, k-1), 1)
+			imax = k + goblas.Izamax((*n)-k, a.CVector(k, k-1, 1))
 			colmax = Cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if maxf64(absakk, colmax) == zero {
+		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
 			if (*info) == 0 {
 				(*info) = k
@@ -340,14 +340,14 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1), *lda)
+					jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1, *lda))
 					rowmax = Cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax < (*n) {
-					itemp = imax + goblas.Izamax((*n)-imax, a.CVector(imax+1-1, imax-1), 1)
+					itemp = imax + goblas.Izamax((*n)-imax, a.CVector(imax, imax-1, 1))
 					dtemp = Cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -392,10 +392,10 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//              Interchange rows and column K and P in the trailing
 				//              submatrix A(k:n,k:n) if we have a 2-by-2 pivot
 				if p < (*n) {
-					goblas.Zswap((*n)-p, a.CVector(p+1-1, k-1), 1, a.CVector(p+1-1, p-1), 1)
+					goblas.Zswap((*n)-p, a.CVector(p, k-1, 1), a.CVector(p, p-1, 1))
 				}
 				if p > (k + 1) {
-					goblas.Zswap(p-k-1, a.CVector(k+1-1, k-1), 1, a.CVector(p-1, k+1-1), *lda)
+					goblas.Zswap(p-k-1, a.CVector(k, k-1, 1), a.CVector(p-1, k, *lda))
 				}
 				t = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(p-1, p-1))
@@ -408,17 +408,17 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < (*n) {
-					goblas.Zswap((*n)-kp, a.CVector(kp+1-1, kk-1), 1, a.CVector(kp+1-1, kp-1), 1)
+					goblas.Zswap((*n)-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
 				}
 				if (kk < (*n)) && (kp > (kk + 1)) {
-					goblas.Zswap(kp-kk-1, a.CVector(kk+1-1, kk-1), 1, a.CVector(kp-1, kk+1-1), *lda)
+					goblas.Zswap(kp-kk-1, a.CVector(kk, kk-1, 1), a.CVector(kp-1, kk, *lda))
 				}
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, t)
 				if kstep == 2 {
-					t = a.Get(k+1-1, k-1)
-					a.Set(k+1-1, k-1, a.Get(kp-1, k-1))
+					t = a.Get(k, k-1)
+					a.Set(k, k-1, a.Get(kp-1, k-1))
 					a.Set(kp-1, k-1, t)
 				}
 			}
@@ -438,10 +438,10 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						d11 = cone / a.Get(k-1, k-1)
-						Zsyr(uplo, toPtr((*n)-k), toPtrc128(-d11), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.Off(k+1-1, k+1-1), lda)
+						Zsyr(uplo, toPtr((*n)-k), toPtrc128(-d11), a.CVector(k, k-1), func() *int { y := 1; return &y }(), a.Off(k, k), lda)
 
 						//                    Store L(k) in column k
-						goblas.Zscal((*n)-k, d11, a.CVector(k+1-1, k-1), 1)
+						goblas.Zscal((*n)-k, d11, a.CVector(k, k-1, 1))
 					} else {
 						//                    Store L(k) in column k
 						d11 = a.Get(k-1, k-1)
@@ -453,7 +453,7 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						Zsyr(uplo, toPtr((*n)-k), toPtrc128(-d11), a.CVector(k+1-1, k-1), func() *int { y := 1; return &y }(), a.Off(k+1-1, k+1-1), lda)
+						Zsyr(uplo, toPtr((*n)-k), toPtrc128(-d11), a.CVector(k, k-1), func() *int { y := 1; return &y }(), a.Off(k, k), lda)
 					}
 				}
 
@@ -474,24 +474,24 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 				//              and store L(k) and L(k+1) in columns k and k+1
 				if k < (*n)-1 {
 
-					d21 = a.Get(k+1-1, k-1)
-					d11 = a.Get(k+1-1, k+1-1) / d21
+					d21 = a.Get(k, k-1)
+					d11 = a.Get(k, k) / d21
 					d22 = a.Get(k-1, k-1) / d21
 					t = cone / (d11*d22 - cone)
 
 					for j = k + 2; j <= (*n); j++ {
 						//                    Compute  D21 * ( W(k)W(k+1) ) * inv(D(k)) for row J
-						wk = t * (d11*a.Get(j-1, k-1) - a.Get(j-1, k+1-1))
-						wkp1 = t * (d22*a.Get(j-1, k+1-1) - a.Get(j-1, k-1))
+						wk = t * (d11*a.Get(j-1, k-1) - a.Get(j-1, k))
+						wkp1 = t * (d22*a.Get(j-1, k) - a.Get(j-1, k-1))
 
 						//                    Perform a rank-2 update of A(k+2:n,k+2:n)
 						for i = j; i <= (*n); i++ {
-							a.Set(i-1, j-1, a.Get(i-1, j-1)-(a.Get(i-1, k-1)/d21)*wk-(a.Get(i-1, k+1-1)/d21)*wkp1)
+							a.Set(i-1, j-1, a.Get(i-1, j-1)-(a.Get(i-1, k-1)/d21)*wk-(a.Get(i-1, k)/d21)*wkp1)
 						}
 
 						//                    Store L(k) and L(k+1) in cols k and k+1 for row J
 						a.Set(j-1, k-1, wk/d21)
-						a.Set(j-1, k+1-1, wkp1/d21)
+						a.Set(j-1, k, wkp1/d21)
 
 					}
 
@@ -505,7 +505,7 @@ func Zsytf2rook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *
 			(*ipiv)[k-1] = kp
 		} else {
 			(*ipiv)[k-1] = -p
-			(*ipiv)[k+1-1] = -kp
+			(*ipiv)[k] = -kp
 		}
 
 		//        Increase K and return to the start of the main loop

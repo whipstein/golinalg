@@ -40,18 +40,18 @@ func Zget04(n, nrhs *int, x *mat.CMatrix, ldx *int, xact *mat.CMatrix, ldxact *i
 	//     over all the vectors X and XACT .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		ix = goblas.Izamax(*n, xact.CVector(0, j-1), 1)
+		ix = goblas.Izamax(*n, xact.CVector(0, j-1, 1))
 		xnorm = Cabs1(xact.Get(ix-1, j-1))
 		diffnm = zero
 		for i = 1; i <= (*n); i++ {
-			diffnm = maxf64(diffnm, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diffnm = math.Max(diffnm, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 		if xnorm <= zero {
 			if diffnm > zero {
 				(*resid) = 1.0 / eps
 			}
 		} else {
-			(*resid) = maxf64(*resid, (diffnm/xnorm)*(*rcond))
+			(*resid) = math.Max(*resid, (diffnm/xnorm)*(*rcond))
 		}
 	}
 	if (*resid)*eps < 1.0 {

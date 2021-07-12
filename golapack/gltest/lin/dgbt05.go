@@ -41,18 +41,18 @@ func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
 	notran = trans == 'N'
-	nz = minint((*kl)+(*ku)+2, (*n)+1)
+	nz = min((*kl)+(*ku)+2, (*n)+1)
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1), 1)
-		xnorm = maxf64(math.Abs(x.Get(imax-1, j-1)), unfl)
+		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {
-			diff = maxf64(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -67,7 +67,7 @@ func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.
 	label20:
 		;
 		if diff/xnorm <= ferr.Get(j-1) {
-			errbnd = maxf64(errbnd, (diff/xnorm)/ferr.Get(j-1))
+			errbnd = math.Max(errbnd, (diff/xnorm)/ferr.Get(j-1))
 		} else {
 			errbnd = one / eps
 		}
@@ -81,25 +81,25 @@ func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.
 		for i = 1; i <= (*n); i++ {
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if notran {
-				for j = maxint(i-(*kl), 1); j <= minint(i+(*ku), *n); j++ {
+				for j = max(i-(*kl), 1); j <= min(i+(*ku), *n); j++ {
 					tmp += math.Abs(ab.Get((*ku)+1+i-j-1, j-1)) * math.Abs(x.Get(j-1, k-1))
 				}
 			} else {
-				for j = maxint(i-(*ku), 1); j <= minint(i+(*kl), *n); j++ {
+				for j = max(i-(*ku), 1); j <= min(i+(*kl), *n); j++ {
 					tmp += math.Abs(ab.Get((*ku)+1+j-i-1, i-1)) * math.Abs(x.Get(j-1, k-1))
 				}
 			}
 			if i == 1 {
 				axbi = tmp
 			} else {
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/maxf64(axbi, float64(nz)*unfl))
+		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/math.Max(axbi, float64(nz)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {
-			reslts.Set(1, maxf64(reslts.Get(1), tmp))
+			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
 }

@@ -40,7 +40,7 @@ func Zget03(n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix, ldainv *int, wo
 	(*rcond) = (one / anorm) / ainvnm
 
 	//     Compute I - A * AINV
-	err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, -cone, ainv, *ldainv, a, *lda, czero, work, *ldwork)
+	err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, -cone, ainv, a, czero, work)
 	for i = 1; i <= (*n); i++ {
 		work.Set(i-1, i-1, cone+work.Get(i-1, i-1))
 	}

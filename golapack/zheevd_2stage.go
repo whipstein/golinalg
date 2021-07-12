@@ -41,7 +41,7 @@ func Zheevd2stage(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vect
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 
@@ -57,7 +57,7 @@ func Zheevd2stage(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vect
 			lwtrd = Ilaenv2stage(func() *int { y := 4; return &y }(), []byte("ZHETRD_2STAGE"), []byte{jobz}, n, &kd, &ib, toPtr(-1))
 			if wantz {
 				lwmin = 2*(*n) + (*n)*(*n)
-				lrwmin = 1 + 5*(*n) + 2*powint(*n, 2)
+				lrwmin = 1 + 5*(*n) + 2*pow(*n, 2)
 				liwmin = 3 + 5*(*n)
 			} else {
 				lwmin = (*n) + 1 + lhtrd + lwtrd
@@ -153,7 +153,7 @@ func Zheevd2stage(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vect
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	work.SetRe(0, float64(lwmin))

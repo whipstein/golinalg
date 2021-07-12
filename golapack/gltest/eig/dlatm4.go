@@ -39,9 +39,9 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 	//     Compute diagonal and subdiagonal according to ITYPE, NZ1, NZ2,
 	//     and RCOND
 	if (*itype) != 0 {
-		if absint(*itype) >= 4 {
-			kbeg = maxint(1, minint(*n, (*nz1)+1))
-			kend = maxint(kbeg, minint(*n, (*n)-(*nz2)))
+		if abs(*itype) >= 4 {
+			kbeg = max(1, min(*n, (*nz1)+1))
+			kend = max(kbeg, min(*n, (*n)-(*nz2)))
 			klen = kend + 1 - kbeg
 		} else {
 			kbeg = 1
@@ -50,7 +50,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		}
 		isdb = 1
 		isde = 0
-		switch absint(*itype) {
+		switch abs(*itype) {
 		case 1:
 			goto label10
 		case 2:
@@ -85,7 +85,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 	label30:
 		;
 		for jd = 1; jd <= (*n)-1; jd++ {
-			a.Set(jd+1-1, jd-1, one)
+			a.Set(jd, jd-1, one)
 		}
 		isdb = 1
 		isde = (*n) - 1
@@ -97,7 +97,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		;
 		k = ((*n) - 1) / 2
 		for jd = 1; jd <= k; jd++ {
-			a.Set(jd+1-1, jd-1, one)
+			a.Set(jd, jd-1, one)
 		}
 		isdb = 1
 		isde = k
@@ -180,7 +180,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 			a.Set(jd-1, jd-1, (*amagn)*float64(a.Get(jd-1, jd-1)))
 		}
 		for jd = isdb; jd <= isde; jd++ {
-			a.Set(jd+1-1, jd-1, (*amagn)*float64(a.Get(jd+1-1, jd-1)))
+			a.Set(jd, jd-1, (*amagn)*float64(a.Get(jd, jd-1)))
 		}
 
 		//        If ISIGN = 1 or 2, assign random signs to diagonal and
@@ -194,9 +194,9 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 				}
 			}
 			for jd = isdb; jd <= isde; jd++ {
-				if float64(a.Get(jd+1-1, jd-1)) != zero {
+				if float64(a.Get(jd, jd-1)) != zero {
 					if matgen.Dlaran(iseed) > half {
-						a.Set(jd+1-1, jd-1, -a.Get(jd+1-1, jd-1))
+						a.Set(jd, jd-1, -a.Get(jd, jd-1))
 					}
 				}
 			}
@@ -210,8 +210,8 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 				a.Set(kbeg+kend-jd-1, kbeg+kend-jd-1, temp)
 			}
 			for jd = 1; jd <= ((*n)-1)/2; jd++ {
-				temp = a.Get(jd+1-1, jd-1)
-				a.Set(jd+1-1, jd-1, a.Get((*n)+1-jd-1, (*n)-jd-1))
+				temp = a.Get(jd, jd-1)
+				a.Set(jd, jd-1, a.Get((*n)+1-jd-1, (*n)-jd-1))
 				a.Set((*n)+1-jd-1, (*n)-jd-1, temp)
 			}
 		}
@@ -225,24 +225,24 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 					//                 Rotation on left.
 					cl = two*matgen.Dlaran(iseed) - one
 					sl = two*matgen.Dlaran(iseed) - one
-					temp = one / maxf64(safmin, math.Sqrt(math.Pow(cl, 2)+math.Pow(sl, 2)))
+					temp = one / math.Max(safmin, math.Sqrt(math.Pow(cl, 2)+math.Pow(sl, 2)))
 					cl = cl * temp
 					sl = sl * temp
 
 					//                 Rotation on right.
 					cr = two*matgen.Dlaran(iseed) - one
 					sr = two*matgen.Dlaran(iseed) - one
-					temp = one / maxf64(safmin, math.Sqrt(math.Pow(cr, 2)+math.Pow(sr, 2)))
+					temp = one / math.Max(safmin, math.Sqrt(math.Pow(cr, 2)+math.Pow(sr, 2)))
 					cr = cr * temp
 					sr = sr * temp
 
 					//                 Apply
 					sv1 = a.Get(jd-1, jd-1)
-					sv2 = a.Get(jd+1-1, jd+1-1)
+					sv2 = a.Get(jd, jd)
 					a.Set(jd-1, jd-1, cl*cr*sv1+sl*sr*sv2)
-					a.Set(jd+1-1, jd-1, -sl*cr*sv1+cl*sr*sv2)
-					a.Set(jd-1, jd+1-1, -cl*sr*sv1+sl*cr*sv2)
-					a.Set(jd+1-1, jd+1-1, sl*sr*sv1+cl*cr*sv2)
+					a.Set(jd, jd-1, -sl*cr*sv1+cl*sr*sv2)
+					a.Set(jd-1, jd, -cl*sr*sv1+sl*cr*sv2)
+					a.Set(jd, jd, sl*sr*sv1+cl*cr*sv2)
 				}
 			}
 		}
@@ -256,8 +256,8 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		} else {
 			ioff = 2
 			for jr = 1; jr <= (*n)-1; jr++ {
-				if a.Get(jr+1-1, jr-1) == zero {
-					a.Set(jr-1, jr+1-1, (*triang)*matgen.Dlarnd(idist, iseed))
+				if a.Get(jr, jr-1) == zero {
+					a.Set(jr-1, jr, (*triang)*matgen.Dlarnd(idist, iseed))
 				}
 			}
 		}

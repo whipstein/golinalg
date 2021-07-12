@@ -80,7 +80,7 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 		}
 
 		//        Generate a Householder transformation from the random vector X
-		xnorm = goblas.Dnrm2(ixfrm, x.Off(kbeg-1), 1)
+		xnorm = goblas.Dnrm2(ixfrm, x.Off(kbeg-1, 1))
 		xnorms = math.Copysign(xnorm, x.Get(kbeg-1))
 		x.Set(kbeg+nxfrm-1, math.Copysign(one, -x.Get(kbeg-1)))
 		factor = xnorms * (xnorms + x.Get(kbeg-1))
@@ -96,15 +96,15 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 		//        Apply Householder transformation to A
 		if itype == 1 || itype == 3 {
 			//           Apply H(k) from the left.
-			err = goblas.Dgemv(Trans, ixfrm, *n, one, a.Off(kbeg-1, 0), *lda, x.Off(kbeg-1), 1, zero, x.Off(2*nxfrm+1-1), 1)
-			err = goblas.Dger(ixfrm, *n, -factor, x.Off(kbeg-1), 1, x.Off(2*nxfrm+1-1), 1, a.Off(kbeg-1, 0), *lda)
+			err = goblas.Dgemv(Trans, ixfrm, *n, one, a.Off(kbeg-1, 0), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1))
+			err = goblas.Dger(ixfrm, *n, -factor, x.Off(kbeg-1, 1), x.Off(2*nxfrm, 1), a.Off(kbeg-1, 0))
 
 		}
 
 		if itype == 2 || itype == 3 {
 			//           Apply H(k) from the right.
-			err = goblas.Dgemv(NoTrans, *m, ixfrm, one, a.Off(0, kbeg-1), *lda, x.Off(kbeg-1), 1, zero, x.Off(2*nxfrm+1-1), 1)
-			err = goblas.Dger(*m, ixfrm, -factor, x.Off(2*nxfrm+1-1), 1, x.Off(kbeg-1), 1, a.Off(0, kbeg-1), *lda)
+			err = goblas.Dgemv(NoTrans, *m, ixfrm, one, a.Off(0, kbeg-1), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1))
+			err = goblas.Dger(*m, ixfrm, -factor, x.Off(2*nxfrm, 1), x.Off(kbeg-1, 1), a.Off(0, kbeg-1))
 
 		}
 	}
@@ -114,13 +114,13 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 	//     Scale the matrix A by D.
 	if itype == 1 || itype == 3 {
 		for irow = 1; irow <= (*m); irow++ {
-			goblas.Dscal(*n, x.Get(nxfrm+irow-1), a.Vector(irow-1, 0), *lda)
+			goblas.Dscal(*n, x.Get(nxfrm+irow-1), a.Vector(irow-1, 0, *lda))
 		}
 	}
 
 	if itype == 2 || itype == 3 {
 		for jcol = 1; jcol <= (*n); jcol++ {
-			goblas.Dscal(*m, x.Get(nxfrm+jcol-1), a.Vector(0, jcol-1), 1)
+			goblas.Dscal(*m, x.Get(nxfrm+jcol-1), a.Vector(0, jcol-1, 1))
 		}
 	}
 }

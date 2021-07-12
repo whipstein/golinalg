@@ -47,17 +47,17 @@ func Zlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.CMatrix, l
 		//
 		//        W( 1:n, 1:k ) = C( 1:k, 1:n )**H
 		for j = 1; j <= (*k); j++ {
-			goblas.Zcopy(*n, c.CVector(j-1, 0), *ldc, work.CVector(0, j-1), 1)
+			goblas.Zcopy(*n, c.CVector(j-1, 0, *ldc), work.CVector(0, j-1, 1))
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) + ...
 		//                        C( m-l+1:m, 1:n )**H * V( 1:k, 1:l )**T
 		if (*l) > 0 {
-			err = goblas.Zgemm(Trans, ConjTrans, *n, *k, *l, one, c.Off((*m)-(*l)+1-1, 0), *ldc, v, *ldv, one, work, *ldwork)
+			err = goblas.Zgemm(Trans, ConjTrans, *n, *k, *l, one, c.Off((*m)-(*l), 0), v, one, work)
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) * T**T  or  W( 1:m, 1:k ) * T
-		err = goblas.Ztrmm(Right, Lower, mat.TransByte(transt), NonUnit, *n, *k, one, t, *ldt, work, *ldwork)
+		err = goblas.Ztrmm(Right, Lower, mat.TransByte(transt), NonUnit, *n, *k, one, t, work)
 
 		//        C( 1:k, 1:n ) = C( 1:k, 1:n ) - W( 1:n, 1:k )**H
 		for j = 1; j <= (*n); j++ {
@@ -69,7 +69,7 @@ func Zlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.CMatrix, l
 		//        C( m-l+1:m, 1:n ) = C( m-l+1:m, 1:n ) - ...
 		//                            V( 1:k, 1:l )**H * W( 1:n, 1:k )**H
 		if (*l) > 0 {
-			err = goblas.Zgemm(Trans, Trans, *l, *n, *k, -one, v, *ldv, work, *ldwork, one, c.Off((*m)-(*l)+1-1, 0), *ldc)
+			err = goblas.Zgemm(Trans, Trans, *l, *n, *k, -one, v, work, one, c.Off((*m)-(*l), 0))
 		}
 
 	} else if side == 'R' {
@@ -77,13 +77,13 @@ func Zlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.CMatrix, l
 		//
 		//        W( 1:m, 1:k ) = C( 1:m, 1:k )
 		for j = 1; j <= (*k); j++ {
-			goblas.Zcopy(*m, c.CVector(0, j-1), 1, work.CVector(0, j-1), 1)
+			goblas.Zcopy(*m, c.CVector(0, j-1, 1), work.CVector(0, j-1, 1))
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) + ...
 		//                        C( 1:m, n-l+1:n ) * V( 1:k, 1:l )**H
 		if (*l) > 0 {
-			err = goblas.Zgemm(NoTrans, Trans, *m, *k, *l, one, c.Off(0, (*n)-(*l)+1-1), *ldc, v, *ldv, one, work, *ldwork)
+			err = goblas.Zgemm(NoTrans, Trans, *m, *k, *l, one, c.Off(0, (*n)-(*l)), v, one, work)
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) * conjg( T )  or
@@ -91,7 +91,7 @@ func Zlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.CMatrix, l
 		for j = 1; j <= (*k); j++ {
 			Zlacgv(toPtr((*k)-j+1), t.CVector(j-1, j-1), func() *int { y := 1; return &y }())
 		}
-		err = goblas.Ztrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, *ldt, work, *ldwork)
+		err = goblas.Ztrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, work)
 		for j = 1; j <= (*k); j++ {
 			Zlacgv(toPtr((*k)-j+1), t.CVector(j-1, j-1), func() *int { y := 1; return &y }())
 		}
@@ -109,7 +109,7 @@ func Zlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.CMatrix, l
 			Zlacgv(k, v.CVector(0, j-1), func() *int { y := 1; return &y }())
 		}
 		if (*l) > 0 {
-			err = goblas.Zgemm(NoTrans, NoTrans, *m, *l, *k, -one, work, *ldwork, v, *ldv, one, c.Off(0, (*n)-(*l)+1-1), *ldc)
+			err = goblas.Zgemm(NoTrans, NoTrans, *m, *l, *k, -one, work, v, one, c.Off(0, (*n)-(*l)))
 		}
 		for j = 1; j <= (*l); j++ {
 			Zlacgv(k, v.CVector(0, j-1), func() *int { y := 1; return &y }())

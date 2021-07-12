@@ -65,7 +65,7 @@ func TestZblasLevel3(t *testing.T) {
 		for i = 1; i <= n; i++ {
 			ab.SetRe(i-1, j-1, float64(max(i-j+1, 0)))
 		}
-		ab.SetRe(j-1, nmax+1-1, float64(j))
+		ab.SetRe(j-1, nmax, float64(j))
 		ab.SetRe(0, nmax+j-1, float64(j))
 		c.Set(j-1, 0, zero)
 	}
@@ -76,36 +76,36 @@ func TestZblasLevel3(t *testing.T) {
 	//     the result computed by ZMMCH.
 	transa = NoTrans
 	transb = NoTrans
-	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax+1-1), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
+	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
 	same = lze(cc, ct, n)
 	if !same || err != rzero {
 		t.Fail()
 		fmt.Printf(" ERROR IN ZMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n ZMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", transa, transb, same, err)
 	}
 	transb = ConjTrans
-	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax+1-1), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
+	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
 	same = lze(cc, ct, n)
 	if !same || err != rzero {
 		t.Fail()
 		fmt.Printf(" ERROR IN ZMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n ZMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", transa, transb, same, err)
 	}
 	for j = 1; j <= n; j++ {
-		ab.SetRe(j-1, nmax+1-1, float64(n-j+1))
+		ab.SetRe(j-1, nmax, float64(n-j+1))
 		ab.SetRe(0, nmax+j-1, float64(n-j+1))
 	}
 	for j = 1; j <= n; j++ {
-		cc.SetRe(n-j+1-1, float64(j*((j+1)*j))/2-float64((j+1)*j*(j-1))/3)
+		cc.SetRe(n-j, float64(j*((j+1)*j))/2-float64((j+1)*j*(j-1))/3)
 	}
 	transa = ConjTrans
 	transb = NoTrans
-	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax+1-1), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
+	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
 	same = lze(cc, ct, n)
 	if !same || err != rzero {
 		t.Fail()
 		fmt.Printf(" ERROR IN ZMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n ZMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", transa, transb, same, err)
 	}
 	transb = ConjTrans
-	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax+1-1), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
+	zmmch(transa, transb, n, 1, n, one, ab, nmax, ab.Off(0, nmax), nmax, zero, c, nmax, ct, g, cc.CMatrix(nmax, opts), nmax, eps, &err, &fatal, true, t)
 	same = lze(cc, ct, n)
 	if !same || err != rzero {
 		t.Fail()
@@ -120,7 +120,10 @@ func TestZblasLevel3(t *testing.T) {
 		nc = 0
 		if sname == "Zgemm" {
 			nargs = 13
-			zchkeLevel3("Zgemm")
+
+			if zchkeLevel3(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			for im = 1; im <= nidim; im++ {
 				m = idim[im-1]
@@ -190,7 +193,7 @@ func TestZblasLevel3(t *testing.T) {
 								lbb = ldb * nb
 
 								//                    Generate the matrix B.
-								zmakeL3([]byte("ge"), Full, NonUnit, mb, nb, ab.Off(0, nmax+1-1), nmax, bb, ldb, &reset, zero)
+								zmakeL3([]byte("ge"), Full, NonUnit, mb, nb, ab.Off(0, nmax), nmax, bb, ldb, &reset, zero)
 
 								for ia = 1; ia <= nalf; ia++ {
 									alpha = alf.Get(ia - 1)
@@ -220,7 +223,7 @@ func TestZblasLevel3(t *testing.T) {
 										ldcs = ldc
 
 										//                          Call the subroutine.
-										err2 = Zgemm(transa, transb, m, n, k, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb, beta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zgemm(transa, transb, m, n, k, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts), beta, cc.CMatrix(ldc, opts))
 
 										//                          Check if error-exit was taken incorrectly.
 										if !(*ok) {
@@ -265,7 +268,7 @@ func TestZblasLevel3(t *testing.T) {
 
 										if !null {
 											//                             Check the result.
-											zmmch(transa, transb, m, n, k, alpha, ab, nmax, ab.Off(0, nmax+1-1), nmax, beta, c, nmax, ct, g, cc.CMatrix(ldc, opts), ldc, eps, &err, &fatal, true, t)
+											zmmch(transa, transb, m, n, k, alpha, ab, nmax, ab.Off(0, nmax), nmax, beta, c, nmax, ct, g, cc.CMatrix(ldc, opts), ldc, eps, &err, &fatal, true, t)
 											errmax = math.Max(errmax, err)
 											//                             If got really bad answer, report and
 											//                             return.
@@ -308,10 +311,9 @@ func TestZblasLevel3(t *testing.T) {
 
 		} else if sname == "Zhemm" || sname == "Zsymm" {
 			conj := string((sname)[1:3]) == "he"
-			if conj {
-				zchkeLevel3("Zhemm")
-			} else {
-				zchkeLevel3("Zsymm")
+
+			if zchkeLevel3(sname); !common.infoc.ok {
+				t.Fail()
 			}
 
 			nargs = 12
@@ -347,7 +349,7 @@ func TestZblasLevel3(t *testing.T) {
 					lbb = ldb * n
 
 					//           Generate the matrix B.
-					zmakeL3([]byte("ge"), Full, NonUnit, m, n, ab.Off(0, nmax+1-1), nmax, bb, ldb, &reset, zero)
+					zmakeL3([]byte("ge"), Full, NonUnit, m, n, ab.Off(0, nmax), nmax, bb, ldb, &reset, zero)
 
 					for ics = 1; ics <= 2; ics++ {
 						side = ichs[ics-1]
@@ -403,9 +405,9 @@ func TestZblasLevel3(t *testing.T) {
 
 									//                       Call the subroutine.
 									if conj {
-										err2 = Zhemm(side, uplo, m, n, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb, beta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zhemm(side, uplo, m, n, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts), beta, cc.CMatrix(ldc, opts))
 									} else {
-										err2 = Zsymm(side, uplo, m, n, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb, beta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zsymm(side, uplo, m, n, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts), beta, cc.CMatrix(ldc, opts))
 									}
 
 									//                       Check if error-exit was taken incorrectly.
@@ -452,9 +454,9 @@ func TestZblasLevel3(t *testing.T) {
 									if !null {
 										//                          Check the result.
 										if left {
-											zmmch(NoTrans, NoTrans, m, n, m, alpha, ab, nmax, ab.Off(0, nmax+1-1), nmax, beta, c, nmax, ct, g, cc.CMatrix(ldc, opts), ldc, eps, &err, &fatal, true, t)
+											zmmch(NoTrans, NoTrans, m, n, m, alpha, ab, nmax, ab.Off(0, nmax), nmax, beta, c, nmax, ct, g, cc.CMatrix(ldc, opts), ldc, eps, &err, &fatal, true, t)
 										} else {
-											zmmch(NoTrans, NoTrans, m, n, n, alpha, ab.Off(0, nmax+1-1), nmax, ab, nmax, beta, c, nmax, ct, g, cc.CMatrix(ldc, opts), ldc, eps, &err, &fatal, true, t)
+											zmmch(NoTrans, NoTrans, m, n, n, alpha, ab.Off(0, nmax), nmax, ab, nmax, beta, c, nmax, ct, g, cc.CMatrix(ldc, opts), ldc, eps, &err, &fatal, true, t)
 										}
 										errmax = math.Max(errmax, err)
 										//                          If got really bad answer, report and
@@ -494,14 +496,12 @@ func TestZblasLevel3(t *testing.T) {
 			fmt.Printf(" %6d: %6s('%c','%c',%3d,%3d,%4.1f, A,%3d, B,%3d,%4.1f, C,%3d)    .\n", nc, sname, side.Byte(), uplo.Byte(), m, n, alpha, lda, ldb, beta, ldc)
 
 		} else if sname == "Ztrmm" || sname == "Ztrsm" {
-			if sname[3:] == "mm" {
-				zchkeLevel3("Ztrmm")
-			} else {
-				zchkeLevel3("Ztrsm")
+			if zchkeLevel3(sname); !common.infoc.ok {
+				t.Fail()
 			}
 
 			a := ab
-			b := ab.Off(0, nmax+1-1)
+			b := ab.Off(0, nmax)
 			nargs = 11
 			nc = 0
 			reset = true
@@ -585,9 +585,9 @@ func TestZblasLevel3(t *testing.T) {
 
 										//                          Call the subroutine.
 										if string((sname)[3:5]) == "mm" {
-											err2 = Ztrmm(side, uplo, transa, diag, m, n, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb)
+											err2 = Ztrmm(side, uplo, transa, diag, m, n, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts))
 										} else if string((sname)[3:5]) == "sm" {
-											err2 = Ztrsm(side, uplo, transa, diag, m, n, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb)
+											err2 = Ztrsm(side, uplo, transa, diag, m, n, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts))
 										}
 
 										//                          Check if error-exit was taken incorrectly.
@@ -697,10 +697,8 @@ func TestZblasLevel3(t *testing.T) {
 			conj := string((sname)[1:3]) == "he"
 			icht := []mat.MatTrans{NoTrans, ConjTrans}
 
-			if conj {
-				zchkeLevel3("Zherk")
-			} else {
-				zchkeLevel3("Zsyrk")
+			if zchkeLevel3(sname); !common.infoc.ok {
+				t.Fail()
 			}
 
 			nargs = 10
@@ -800,9 +798,9 @@ func TestZblasLevel3(t *testing.T) {
 
 									//                       Call the subroutine.
 									if conj {
-										err2 = Zherk(uplo, trans, n, k, ralpha, aa.CMatrix(lda, opts), lda, rbeta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zherk(uplo, trans, n, k, ralpha, aa.CMatrix(lda, opts), rbeta, cc.CMatrix(ldc, opts))
 									} else {
-										err2 = Zsyrk(uplo, trans, n, k, alpha, aa.CMatrix(lda, opts), lda, beta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zsyrk(uplo, trans, n, k, alpha, aa.CMatrix(lda, opts), beta, cc.CMatrix(ldc, opts))
 									}
 
 									//                       Check if error-exit was taken incorrectly.
@@ -931,10 +929,8 @@ func TestZblasLevel3(t *testing.T) {
 			conj := string((sname)[1:3]) == "he"
 			icht := []mat.MatTrans{NoTrans, ConjTrans}
 
-			if conj {
-				zchkeLevel3("Zher2k")
-			} else {
-				zchkeLevel3("Zsyr2k")
+			if zchkeLevel3(sname); !common.infoc.ok {
+				t.Fail()
 			}
 
 			nargs = 12
@@ -993,9 +989,9 @@ func TestZblasLevel3(t *testing.T) {
 						ldb = lda
 						lbb = laa
 						if tran {
-							zmakeL3([]byte("ge"), Full, NonUnit, ma, na, _ab.CMatrixOff(k+1-1, 2*nmax, opts), 2*nmax, bb, ldb, &reset, zero)
+							zmakeL3([]byte("ge"), Full, NonUnit, ma, na, _ab.CMatrixOff(k, 2*nmax, opts), 2*nmax, bb, ldb, &reset, zero)
 						} else {
-							zmakeL3([]byte("ge"), Full, NonUnit, ma, na, _ab.CMatrixOff(k*nmax+1-1, nmax, opts), nmax, bb, ldb, &reset, zero)
+							zmakeL3([]byte("ge"), Full, NonUnit, ma, na, _ab.CMatrixOff(k*nmax, nmax, opts), nmax, bb, ldb, &reset, zero)
 						}
 
 						for icu = 1; icu <= 2; icu++ {
@@ -1041,9 +1037,9 @@ func TestZblasLevel3(t *testing.T) {
 
 									//                       Call the subroutine.
 									if conj {
-										err2 = Zher2k(uplo, trans, n, k, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb, rbeta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zher2k(uplo, trans, n, k, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts), rbeta, cc.CMatrix(ldc, opts))
 									} else {
-										err2 = Zsyr2k(uplo, trans, n, k, alpha, aa.CMatrix(lda, opts), lda, bb.CMatrix(ldb, opts), ldb, beta, cc.CMatrix(ldc, opts), ldc)
+										err2 = Zsyr2k(uplo, trans, n, k, alpha, aa.CMatrix(lda, opts), bb.CMatrix(ldb, opts), beta, cc.CMatrix(ldc, opts))
 									}
 
 									//                       Check if error-exit was taken incorrectly.
@@ -1468,877 +1464,1165 @@ func zchkeLevel3(srnamt string) {
 
 	switch srnamt {
 	case "Zgemm":
-		*errt = fmt.Errorf("transa invalid: /")
-		err = Zgemm('/', NoTrans, 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("transa invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm('/', NoTrans, 0, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transa invalid: /")
-		err = Zgemm('/', ConjTrans, 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("transa invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm('/', ConjTrans, 0, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transa invalid: /")
-		err = Zgemm('/', Trans, 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("transa invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm('/', Trans, 0, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transb invalid: /")
-		err = Zgemm(NoTrans, '/', 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("transb invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, '/', 0, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transb invalid: /")
-		err = Zgemm(ConjTrans, '/', 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("transb invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, '/', 0, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transb invalid: /")
-		err = Zgemm(Trans, '/', 0, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(NoTrans, NoTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(NoTrans, ConjTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(NoTrans, Trans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("transb invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, '/', 0, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(ConjTrans, NoTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, NoTrans, -1, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(ConjTrans, ConjTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, ConjTrans, -1, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(ConjTrans, Trans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, Trans, -1, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(Trans, NoTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, NoTrans, -1, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(Trans, ConjTrans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, ConjTrans, -1, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemm(Trans, Trans, -1, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, Trans, -1, 0, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, NoTrans, -1, 0, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, ConjTrans, -1, 0, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, Trans, -1, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(NoTrans, NoTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, NoTrans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(NoTrans, ConjTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, ConjTrans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(NoTrans, Trans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, Trans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(ConjTrans, NoTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, NoTrans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(ConjTrans, ConjTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, ConjTrans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(ConjTrans, Trans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, Trans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(Trans, NoTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, NoTrans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(Trans, ConjTrans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, ConjTrans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemm(Trans, Trans, 0, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, Trans, 0, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(NoTrans, NoTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, NoTrans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(NoTrans, ConjTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, ConjTrans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(NoTrans, Trans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, Trans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(ConjTrans, NoTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, NoTrans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(ConjTrans, ConjTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, ConjTrans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(ConjTrans, Trans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, Trans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(Trans, NoTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, NoTrans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(Trans, ConjTrans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, ConjTrans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zgemm(Trans, Trans, 0, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, Trans, 0, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(NoTrans, NoTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zgemm(NoTrans, NoTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(NoTrans, ConjTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zgemm(NoTrans, ConjTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(NoTrans, Trans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zgemm(NoTrans, Trans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(ConjTrans, NoTrans, 0, 0, 2, alpha, a, 1, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 1
+		err = Zgemm(ConjTrans, NoTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(ConjTrans, ConjTrans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, ConjTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(ConjTrans, Trans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, Trans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(Trans, NoTrans, 0, 0, 2, alpha, a, 1, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 1
+		err = Zgemm(Trans, NoTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(Trans, ConjTrans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, ConjTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemm(Trans, Trans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, Trans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(NoTrans, NoTrans, 0, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, NoTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(ConjTrans, NoTrans, 0, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zgemm(ConjTrans, NoTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(Trans, NoTrans, 0, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zgemm(Trans, NoTrans, 0, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(NoTrans, ConjTrans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, ConjTrans, 0, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(ConjTrans, ConjTrans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, ConjTrans, 0, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(Trans, ConjTrans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, ConjTrans, 0, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(NoTrans, Trans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(NoTrans, Trans, 0, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(ConjTrans, Trans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, Trans, 0, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zgemm(Trans, Trans, 0, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, Trans, 0, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(NoTrans, NoTrans, 2, 0, 0, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zgemm(NoTrans, NoTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(NoTrans, ConjTrans, 2, 0, 0, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zgemm(NoTrans, ConjTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(NoTrans, Trans, 2, 0, 0, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zgemm(NoTrans, Trans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(ConjTrans, NoTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, NoTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(ConjTrans, ConjTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, ConjTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(ConjTrans, Trans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(ConjTrans, Trans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(Trans, NoTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, NoTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(Trans, ConjTrans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, ConjTrans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zgemm(Trans, Trans, 2, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zgemm(Trans, Trans, 2, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 	case "Zhemm":
-		*errt = fmt.Errorf("side invalid: /")
-		err = Zhemm('/', Upper, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("side invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm('/', Upper, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zhemm(Left, '/', 0, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zhemm(Left, Upper, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zhemm(Right, Upper, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Left, '/', 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zhemm(Left, Lower, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Left, Upper, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zhemm(Right, Lower, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Right, Upper, -1, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Left, Lower, -1, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Right, Lower, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhemm(Left, Upper, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Left, Upper, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhemm(Right, Upper, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Right, Upper, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhemm(Left, Lower, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Left, Lower, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhemm(Right, Lower, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Right, Lower, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zhemm(Left, Upper, 2, 0, alpha, a, 1, b, 2, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 2
+		err = Zhemm(Left, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zhemm(Right, Upper, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Right, Upper, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zhemm(Left, Lower, 2, 0, alpha, a, 1, b, 2, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 2
+		err = Zhemm(Left, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zhemm(Right, Lower, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zhemm(Right, Lower, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zhemm(Left, Upper, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zhemm(Left, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zhemm(Right, Upper, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zhemm(Right, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zhemm(Left, Lower, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zhemm(Left, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zhemm(Right, Lower, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zhemm(Right, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zhemm(Left, Upper, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zhemm(Left, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zhemm(Right, Upper, 2, 0, alpha, a, 1, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 1
+		err = Zhemm(Right, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zhemm(Left, Lower, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zhemm(Left, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zhemm(Right, Lower, 2, 0, alpha, a, 1, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 1
+		err = Zhemm(Right, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 	case "Zsymm":
-		*errt = fmt.Errorf("side invalid: /")
-		err = Zsymm('/', Upper, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("side invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm('/', Upper, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zsymm(Left, '/', 0, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zsymm(Left, Upper, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Zsymm(Right, Upper, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Left, '/', 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zsymm(Left, Lower, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Left, Upper, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zsymm(Right, Lower, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Right, Upper, -1, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Left, Lower, -1, 0, alpha, a, b, beta, c)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Right, Lower, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsymm(Left, Upper, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Left, Upper, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsymm(Right, Upper, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Right, Upper, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsymm(Left, Lower, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Left, Lower, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsymm(Right, Lower, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Right, Lower, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsymm(Left, Upper, 2, 0, alpha, a, 1, b, 2, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 2
+		err = Zsymm(Left, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsymm(Right, Upper, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Right, Upper, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsymm(Left, Lower, 2, 0, alpha, a, 1, b, 2, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 2
+		err = Zsymm(Left, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsymm(Right, Lower, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsymm(Right, Lower, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsymm(Left, Upper, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zsymm(Left, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsymm(Right, Upper, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zsymm(Right, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsymm(Left, Lower, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zsymm(Left, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsymm(Right, Lower, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zsymm(Right, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsymm(Left, Upper, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zsymm(Left, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsymm(Right, Upper, 2, 0, alpha, a, 1, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 1
+		err = Zsymm(Right, Upper, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsymm(Left, Lower, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zsymm(Left, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsymm(Right, Lower, 2, 0, alpha, a, 1, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 2, 1
+		err = Zsymm(Right, Lower, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 	case "Ztrmm":
-		*errt = fmt.Errorf("side invalid: /")
-		err = Ztrmm('/', Upper, NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("side invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm('/', Upper, NoTrans, NonUnit, 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztrmm(Left, '/', NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, '/', NoTrans, NonUnit, 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transa invalid: /")
-		err = Ztrmm(Left, Upper, '/', NonUnit, 0, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("transa invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, '/', NonUnit, 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztrmm(Left, Upper, NoTrans, '/', 0, 0, alpha, a, 1, b, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Left, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, NoTrans, '/', 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Left, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, NoTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Right, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Right, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, NoTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Left, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Left, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Lower, NoTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Right, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Lower, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrmm(Right, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, NoTrans, NonUnit, -1, 0, alpha, a, b)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, b)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Left, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Left, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Upper, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Right, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Right, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Left, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Lower, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Left, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Left, Lower, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Right, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmm(Right, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrmm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrmm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Right, Upper, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, NoTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Right, Upper, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, Trans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrmm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrmm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Right, Lower, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, NoTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmm(Right, Lower, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, Trans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrmm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrmm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrmm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Right, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Right, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Upper, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrmm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrmm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrmm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Right, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrmm(Right, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrmm(Right, Lower, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 	case "Ztrsm":
-		*errt = fmt.Errorf("side invalid: /")
-		err = Ztrsm('/', Upper, NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("side invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm('/', Upper, NoTrans, NonUnit, 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztrsm(Left, '/', NoTrans, NonUnit, 0, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, '/', NoTrans, NonUnit, 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("transa invalid: /")
-		err = Ztrsm(Left, Upper, '/', NonUnit, 0, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("transa invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, '/', NonUnit, 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztrsm(Left, Upper, NoTrans, '/', 0, 0, alpha, a, 1, b, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Left, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, NoTrans, '/', 0, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Left, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, NoTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Right, Upper, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Right, Upper, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, NoTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Left, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Left, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Lower, NoTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Right, Lower, NoTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Lower, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Ztrsm(Right, Lower, Trans, NonUnit, -1, 0, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, NoTrans, NonUnit, -1, 0, alpha, a, b)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, -1, 0, alpha, a, b)
+		Chkxer(srnamt, err)
+		*errt = fmt.Errorf("m invalid: -1")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, Trans, NonUnit, -1, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Left, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Left, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Upper, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Right, Upper, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Right, Upper, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Left, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Lower, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Left, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Left, Lower, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Right, Lower, NoTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, NoTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsm(Right, Lower, Trans, NonUnit, 0, -1, alpha, a, 1, b, 1)
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, Trans, NonUnit, 0, -1, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrsm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrsm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Right, Upper, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, NoTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Right, Upper, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, Trans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrsm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 2
+		err = Ztrsm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Right, Lower, NoTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, NoTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsm(Right, Lower, Trans, NonUnit, 0, 2, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, Trans, NonUnit, 0, 2, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrsm(Left, Upper, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrsm(Left, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrsm(Left, Upper, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Right, Upper, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Right, Upper, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Upper, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrsm(Left, Lower, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrsm(Left, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, 2, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 2, 1
+		err = Ztrsm(Left, Lower, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Right, Lower, NoTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, NoTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, ConjTrans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Ztrsm(Right, Lower, Trans, NonUnit, 2, 0, alpha, a, 1, b, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows = 1, 1
+		err = Ztrsm(Right, Lower, Trans, NonUnit, 2, 0, alpha, a, b)
 		Chkxer(srnamt, err)
 	case "Zherk":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zherk('/', NoTrans, 0, 0, ralpha, a, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, c.Rows = 1, 1
+		err = Zherk('/', NoTrans, 0, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("trans invalid: Trans")
-		err = Zherk(Upper, Trans, 0, 0, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, Trans, 0, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zherk(Upper, NoTrans, -1, 0, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, NoTrans, -1, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zherk(Upper, ConjTrans, -1, 0, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, ConjTrans, -1, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zherk(Lower, NoTrans, -1, 0, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Lower, NoTrans, -1, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zherk(Lower, ConjTrans, -1, 0, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Lower, ConjTrans, -1, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zherk(Upper, NoTrans, 0, -1, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, NoTrans, 0, -1, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zherk(Upper, ConjTrans, 0, -1, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, ConjTrans, 0, -1, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zherk(Lower, NoTrans, 0, -1, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Lower, NoTrans, 0, -1, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zherk(Lower, ConjTrans, 0, -1, ralpha, a, 1, rbeta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Lower, ConjTrans, 0, -1, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zherk(Upper, NoTrans, 2, 0, ralpha, a, 1, rbeta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 2
+		err = Zherk(Upper, NoTrans, 2, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zherk(Upper, ConjTrans, 0, 2, ralpha, a, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, ConjTrans, 0, 2, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zherk(Lower, NoTrans, 2, 0, ralpha, a, 1, rbeta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 2
+		err = Zherk(Lower, NoTrans, 2, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zherk(Lower, ConjTrans, 0, 2, ralpha, a, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Lower, ConjTrans, 0, 2, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zherk(Upper, NoTrans, 2, 0, ralpha, a, 2, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 2, 1
+		err = Zherk(Upper, NoTrans, 2, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zherk(Upper, ConjTrans, 2, 0, ralpha, a, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Upper, ConjTrans, 2, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zherk(Lower, NoTrans, 2, 0, ralpha, a, 2, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 2, 1
+		err = Zherk(Lower, NoTrans, 2, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zherk(Lower, ConjTrans, 2, 0, ralpha, a, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zherk(Lower, ConjTrans, 2, 0, ralpha, a, rbeta, c)
 		Chkxer(srnamt, err)
 	case "Zsyrk":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zsyrk('/', NoTrans, 0, 0, alpha, a, 1, beta, c, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk('/', NoTrans, 0, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("trans invalid: ConjTrans")
-		err = Zsyrk(Upper, ConjTrans, 0, 0, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, ConjTrans, 0, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyrk(Upper, NoTrans, -1, 0, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, NoTrans, -1, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyrk(Upper, Trans, -1, 0, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, Trans, -1, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyrk(Lower, NoTrans, -1, 0, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Lower, NoTrans, -1, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyrk(Lower, Trans, -1, 0, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Lower, Trans, -1, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyrk(Upper, NoTrans, 0, -1, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, NoTrans, 0, -1, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyrk(Upper, Trans, 0, -1, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, Trans, 0, -1, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyrk(Lower, NoTrans, 0, -1, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Lower, NoTrans, 0, -1, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyrk(Lower, Trans, 0, -1, alpha, a, 1, beta, c, 1)
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Lower, Trans, 0, -1, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyrk(Upper, NoTrans, 2, 0, alpha, a, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 2
+		err = Zsyrk(Upper, NoTrans, 2, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyrk(Upper, Trans, 0, 2, alpha, a, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, Trans, 0, 2, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyrk(Lower, NoTrans, 2, 0, alpha, a, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 2
+		err = Zsyrk(Lower, NoTrans, 2, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyrk(Lower, Trans, 0, 2, alpha, a, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Lower, Trans, 0, 2, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyrk(Upper, NoTrans, 2, 0, alpha, a, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 2, 1
+		err = Zsyrk(Upper, NoTrans, 2, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyrk(Upper, Trans, 2, 0, alpha, a, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Upper, Trans, 2, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyrk(Lower, NoTrans, 2, 0, alpha, a, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 2, 1
+		err = Zsyrk(Lower, NoTrans, 2, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyrk(Lower, Trans, 2, 0, alpha, a, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, c.Rows = 1, 1
+		err = Zsyrk(Lower, Trans, 2, 0, alpha, a, beta, c)
 		Chkxer(srnamt, err)
 	case "Zher2k":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zher2k('/', NoTrans, 0, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k('/', NoTrans, 0, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("trans invalid: Trans")
-		err = Zher2k(Upper, Trans, 0, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, Trans, 0, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zher2k(Upper, NoTrans, -1, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, NoTrans, -1, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zher2k(Upper, ConjTrans, -1, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, ConjTrans, -1, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zher2k(Lower, NoTrans, -1, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Lower, NoTrans, -1, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zher2k(Lower, ConjTrans, -1, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Lower, ConjTrans, -1, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zher2k(Upper, NoTrans, 0, -1, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, NoTrans, 0, -1, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zher2k(Upper, ConjTrans, 0, -1, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, ConjTrans, 0, -1, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zher2k(Lower, NoTrans, 0, -1, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Lower, NoTrans, 0, -1, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zher2k(Lower, ConjTrans, 0, -1, alpha, a, 1, b, 1, rbeta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Lower, ConjTrans, 0, -1, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zher2k(Upper, NoTrans, 2, 0, alpha, a, 1, b, 1, rbeta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zher2k(Upper, NoTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zher2k(Upper, ConjTrans, 0, 2, alpha, a, 1, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, ConjTrans, 0, 2, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zher2k(Lower, NoTrans, 2, 0, alpha, a, 1, b, 1, rbeta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zher2k(Lower, NoTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zher2k(Lower, ConjTrans, 0, 2, alpha, a, 1, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Lower, ConjTrans, 0, 2, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zher2k(Upper, NoTrans, 2, 0, alpha, a, 2, b, 1, rbeta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zher2k(Upper, NoTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zher2k(Upper, ConjTrans, 0, 2, alpha, a, 2, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zher2k(Upper, ConjTrans, 0, 2, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zher2k(Lower, NoTrans, 2, 0, alpha, a, 2, b, 1, rbeta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zher2k(Lower, NoTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zher2k(Lower, ConjTrans, 0, 2, alpha, a, 2, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zher2k(Lower, ConjTrans, 0, 2, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zher2k(Upper, NoTrans, 2, 0, alpha, a, 2, b, 2, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zher2k(Upper, NoTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zher2k(Upper, ConjTrans, 2, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Upper, ConjTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zher2k(Lower, NoTrans, 2, 0, alpha, a, 2, b, 2, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zher2k(Lower, NoTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zher2k(Lower, ConjTrans, 2, 0, alpha, a, 1, b, 1, rbeta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zher2k(Lower, ConjTrans, 2, 0, alpha, a, b, rbeta, c)
 		Chkxer(srnamt, err)
 	case "Zsyr2k":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zsyr2k('/', NoTrans, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k('/', NoTrans, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("trans invalid: ConjTrans")
-		err = Zsyr2k(Upper, ConjTrans, 0, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, ConjTrans, 0, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyr2k(Upper, NoTrans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, NoTrans, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyr2k(Upper, Trans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, Trans, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyr2k(Lower, NoTrans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Lower, NoTrans, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zsyr2k(Lower, Trans, -1, 0, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Lower, Trans, -1, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyr2k(Upper, NoTrans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, NoTrans, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyr2k(Upper, Trans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, Trans, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyr2k(Lower, NoTrans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Lower, NoTrans, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zsyr2k(Lower, Trans, 0, -1, alpha, a, 1, b, 1, beta, c, 1)
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Lower, Trans, 0, -1, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyr2k(Upper, NoTrans, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zsyr2k(Upper, NoTrans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyr2k(Upper, Trans, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, Trans, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyr2k(Lower, NoTrans, 2, 0, alpha, a, 1, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 2
+		err = Zsyr2k(Lower, NoTrans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zsyr2k(Lower, Trans, 0, 2, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Lower, Trans, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsyr2k(Upper, NoTrans, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zsyr2k(Upper, NoTrans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsyr2k(Upper, Trans, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zsyr2k(Upper, Trans, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsyr2k(Lower, NoTrans, 2, 0, alpha, a, 2, b, 1, beta, c, 2)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 2
+		err = Zsyr2k(Lower, NoTrans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldb invalid: 1")
-		err = Zsyr2k(Lower, Trans, 0, 2, alpha, a, 2, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("b.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 1, 1
+		err = Zsyr2k(Lower, Trans, 0, 2, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyr2k(Upper, NoTrans, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zsyr2k(Upper, NoTrans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyr2k(Upper, Trans, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Upper, Trans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyr2k(Lower, NoTrans, 2, 0, alpha, a, 2, b, 2, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 2, 2, 1
+		err = Zsyr2k(Lower, NoTrans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("ldc invalid: 1")
-		err = Zsyr2k(Lower, Trans, 2, 0, alpha, a, 1, b, 1, beta, c, 1)
+		*errt = fmt.Errorf("c.Rows invalid: 1 < 2")
+		a.Rows, b.Rows, c.Rows = 1, 1, 1
+		err = Zsyr2k(Lower, Trans, 2, 0, alpha, a, b, beta, c)
 		Chkxer(srnamt, err)
 	}
 

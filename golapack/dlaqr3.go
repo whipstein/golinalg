@@ -26,7 +26,7 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	one = 1.0
 
 	//     ==== Estimate optimal workspace. ====
-	jw = minint(*nw, (*kbot)-(*ktop)+1)
+	jw = min(*nw, (*kbot)-(*ktop)+1)
 	if jw <= 2 {
 		lwkopt = 1
 	} else {
@@ -43,7 +43,7 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 		lwk3 = int(work.Get(0))
 
 		//        ==== Optimal workspace ====
-		lwkopt = maxint(jw+maxint(lwk1, lwk2), lwk3)
+		lwkopt = max(jw+max(lwk1, lwk2), lwk3)
 	}
 
 	//     ==== Quick return in case of workspace query. ====
@@ -73,7 +73,7 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	smlnum = safmin * (float64(*n) / ulp)
 
 	//     ==== Setup deflation window ====
-	jw = minint(*nw, (*kbot)-(*ktop)+1)
+	jw = min(*nw, (*kbot)-(*ktop)+1)
 	kwtop = (*kbot) - jw + 1
 	if kwtop == (*ktop) {
 		s = zero
@@ -87,7 +87,7 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 		si.Set(kwtop-1, zero)
 		(*ns) = 1
 		(*nd) = 0
-		if math.Abs(s) <= maxf64(smlnum, ulp*math.Abs(h.Get(kwtop-1, kwtop-1))) {
+		if math.Abs(s) <= math.Max(smlnum, ulp*math.Abs(h.Get(kwtop-1, kwtop-1))) {
 			(*ns) = 0
 			(*nd) = 1
 			if kwtop > (*ktop) {
@@ -104,7 +104,7 @@ func Dlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	//     .    the deflation window that converged using INFQR
 	//     .    here and there to keep track.) ====
 	Dlacpy('U', &jw, &jw, h.Off(kwtop-1, kwtop-1), ldh, t, ldt)
-	goblas.Dcopy(jw-1, h.Vector(kwtop+1-1, kwtop-1), (*ldh)+1, t.Vector(1, 0), (*ldt)+1)
+	goblas.Dcopy(jw-1, h.Vector(kwtop, kwtop-1, (*ldh)+1), t.Vector(1, 0, (*ldt)+1))
 	//
 	Dlaset('A', &jw, &jw, &zero, &one, v, ldv)
 	nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("DLAQR3"), []byte("SV"), &jw, func() *int { y := 1; return &y }(), &jw, lwork)
@@ -142,7 +142,7 @@ label20:
 			if foo == zero {
 				foo = math.Abs(s)
 			}
-			if math.Abs(s*v.Get(0, (*ns)-1)) <= maxf64(smlnum, ulp*foo) {
+			if math.Abs(s*v.Get(0, (*ns)-1)) <= math.Max(smlnum, ulp*foo) {
 				//              ==== Deflatable ====
 				(*ns) = (*ns) - 1
 			} else {
@@ -158,7 +158,7 @@ label20:
 			if foo == zero {
 				foo = math.Abs(s)
 			}
-			if maxf64(math.Abs(s*v.Get(0, (*ns)-1)), math.Abs(s*v.Get(0, (*ns)-1-1))) <= maxf64(smlnum, ulp*foo) {
+			if math.Max(math.Abs(s*v.Get(0, (*ns)-1)), math.Abs(s*v.Get(0, (*ns)-1-1))) <= math.Max(smlnum, ulp*foo) {
 				//              ==== Deflatable ====
 				(*ns) = (*ns) - 2
 			} else {
@@ -197,7 +197,7 @@ label20:
 		i = infqr + 1
 		if i == (*ns) {
 			k = i + 1
-		} else if t.Get(i+1-1, i-1) == zero {
+		} else if t.Get(i, i-1) == zero {
 			k = i + 1
 		} else {
 			k = i + 2
@@ -208,15 +208,15 @@ label20:
 			if k == i+1 {
 				evi = math.Abs(t.Get(i-1, i-1))
 			} else {
-				evi = math.Abs(t.Get(i-1, i-1)) + math.Sqrt(math.Abs(t.Get(i+1-1, i-1)))*math.Sqrt(math.Abs(t.Get(i-1, i+1-1)))
+				evi = math.Abs(t.Get(i-1, i-1)) + math.Sqrt(math.Abs(t.Get(i, i-1)))*math.Sqrt(math.Abs(t.Get(i-1, i)))
 			}
 
 			if k == kend {
 				evk = math.Abs(t.Get(k-1, k-1))
-			} else if t.Get(k+1-1, k-1) == zero {
+			} else if t.Get(k, k-1) == zero {
 				evk = math.Abs(t.Get(k-1, k-1))
 			} else {
-				evk = math.Abs(t.Get(k-1, k-1)) + math.Sqrt(math.Abs(t.Get(k+1-1, k-1)))*math.Sqrt(math.Abs(t.Get(k-1, k+1-1)))
+				evk = math.Abs(t.Get(k-1, k-1)) + math.Sqrt(math.Abs(t.Get(k, k-1)))*math.Sqrt(math.Abs(t.Get(k-1, k)))
 			}
 
 			if evi >= evk {
@@ -234,7 +234,7 @@ label20:
 			}
 			if i == kend {
 				k = i + 1
-			} else if t.Get(i+1-1, i-1) == zero {
+			} else if t.Get(i, i-1) == zero {
 				k = i + 1
 			} else {
 				k = i + 2
@@ -272,18 +272,18 @@ label60:
 	if (*ns) < jw || s == zero {
 		if (*ns) > 1 && s != zero {
 			//           ==== Reflect spike back into lower triangle ====
-			goblas.Dcopy(*ns, v.VectorIdx(0), *ldv, work, 1)
+			goblas.Dcopy(*ns, v.VectorIdx(0), work)
 			beta = work.Get(0)
 			Dlarfg(ns, &beta, work.Off(1), func() *int { y := 1; return &y }(), &tau)
 			work.Set(0, one)
 
 			Dlaset('L', toPtr(jw-2), toPtr(jw-2), &zero, &zero, t.Off(2, 0), ldt)
 
-			Dlarf('L', ns, &jw, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw+1-1))
-			Dlarf('R', ns, ns, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw+1-1))
-			Dlarf('R', &jw, ns, work, func() *int { y := 1; return &y }(), &tau, v, ldv, work.Off(jw+1-1))
+			Dlarf('L', ns, &jw, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw))
+			Dlarf('R', ns, ns, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw))
+			Dlarf('R', &jw, ns, work, func() *int { y := 1; return &y }(), &tau, v, ldv, work.Off(jw))
 
-			Dgehrd(&jw, func() *int { y := 1; return &y }(), ns, t, ldt, work, work.Off(jw+1-1), toPtr((*lwork)-jw), &info)
+			Dgehrd(&jw, func() *int { y := 1; return &y }(), ns, t, ldt, work, work.Off(jw), toPtr((*lwork)-jw), &info)
 		}
 
 		//        ==== Copy updated reduced window into place ====
@@ -291,12 +291,12 @@ label60:
 			h.Set(kwtop-1, kwtop-1-1, s*v.Get(0, 0))
 		}
 		Dlacpy('U', &jw, &jw, t, ldt, h.Off(kwtop-1, kwtop-1), ldh)
-		goblas.Dcopy(jw-1, t.Vector(1, 0), (*ldt)+1, h.Vector(kwtop+1-1, kwtop-1), (*ldh)+1)
+		goblas.Dcopy(jw-1, t.Vector(1, 0, (*ldt)+1), h.Vector(kwtop, kwtop-1, (*ldh)+1))
 
 		//        ==== Accumulate orthogonal matrix in order update
 		//        .    H and Z, if requested.  ====
 		if (*ns) > 1 && s != zero {
-			Dormhr('R', 'N', &jw, ns, func() *int { y := 1; return &y }(), ns, t, ldt, work, v, ldv, work.Off(jw+1-1), toPtr((*lwork)-jw), &info)
+			Dormhr('R', 'N', &jw, ns, func() *int { y := 1; return &y }(), ns, t, ldt, work, v, ldv, work.Off(jw), toPtr((*lwork)-jw), &info)
 		}
 
 		//        ==== Update vertical slab in H ====
@@ -306,16 +306,16 @@ label60:
 			ltop = (*ktop)
 		}
 		for krow = ltop; krow <= kwtop-1; krow += (*nv) {
-			kln = minint(*nv, kwtop-krow)
-			err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), *ldh, v, *ldv, zero, wv, *ldwv)
+			kln = min(*nv, kwtop-krow)
+			err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), v, zero, wv)
 			Dlacpy('A', &kln, &jw, wv, ldwv, h.Off(krow-1, kwtop-1), ldh)
 		}
 
 		//        ==== Update horizontal slab in H ====
 		if wantt {
 			for kcol = (*kbot) + 1; kcol <= (*n); kcol += (*nh) {
-				kln = minint(*nh, (*n)-kcol+1)
-				err = goblas.Dgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, *ldv, h.Off(kwtop-1, kcol-1), *ldh, zero, t, *ldt)
+				kln = min(*nh, (*n)-kcol+1)
+				err = goblas.Dgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, h.Off(kwtop-1, kcol-1), zero, t)
 				Dlacpy('A', &jw, &kln, t, ldt, h.Off(kwtop-1, kcol-1), ldh)
 			}
 		}
@@ -323,8 +323,8 @@ label60:
 		//        ==== Update vertical slab in Z ====
 		if wantz {
 			for krow = (*iloz); krow <= (*ihiz); krow += (*nv) {
-				kln = minint(*nv, (*ihiz)-krow+1)
-				err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), *ldz, v, *ldv, zero, wv, *ldwv)
+				kln = min(*nv, (*ihiz)-krow+1)
+				err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), v, zero, wv)
 				Dlacpy('A', &kln, &jw, wv, ldwv, z.Off(krow-1, kwtop-1), ldz)
 			}
 		}

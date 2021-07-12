@@ -60,7 +60,7 @@ func Ddrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -272,7 +272,7 @@ func Ddrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//                    Solve the system and compute the condition number
 						//                    and error bounds using DPOSVX.
 						*srnamt = "DPOSVX"
-						golapack.Dposvx(fact, uplo, &n, nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, iwork, &info)
+						golapack.Dposvx(fact, uplo, &n, nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, iwork, &info)
 
 						//                    Check the error code from DPOSVX.
 						if info != izero {
@@ -284,7 +284,7 @@ func Ddrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							if !prefac {
 								//                          Reconstruct matrix from factors and compute
 								//                          residual.
-								Dpot01(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+								Dpot01(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 								k1 = 1
 							} else {
 								k1 = 2
@@ -292,7 +292,7 @@ func Ddrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Compute residual of the computed solution.
 							golapack.Dlacpy('F', &n, nrhs, bsav.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-							Dpot02(uplo, &n, nrhs, asav.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+							Dpot02(uplo, &n, nrhs, asav.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							if nofact || (prefac && equed == 'N') {
@@ -303,7 +303,7 @@ func Ddrvpo(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Check the error bounds from iterative
 							//                       refinement.
-							Dpot05(uplo, &n, nrhs, asav.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+							Dpot05(uplo, &n, nrhs, asav.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 						} else {
 							k1 = 6
 						}

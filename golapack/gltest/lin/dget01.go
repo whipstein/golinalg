@@ -35,23 +35,23 @@ func Dget01(m *int, n *int, a *mat.Matrix, lda *int, afac *mat.Matrix, ldafac *i
 	//     column N.
 	for k = (*n); k >= 1; k-- {
 		if k > (*m) {
-			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, *m, afac, *ldafac, afac.Vector(0, k-1), 1)
+			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, *m, afac, afac.Vector(0, k-1, 1))
 		} else {
 			//           Compute elements (K+1:M,K)
 			t = afac.Get(k-1, k-1)
 			if k+1 <= (*m) {
-				goblas.Dscal((*m)-k, t, afac.Vector(k+1-1, k-1), 1)
-				err = goblas.Dgemv(mat.NoTrans, (*m)-k, k-1, one, afac.Off(k+1-1, 0), *ldafac, afac.Vector(0, k-1), 1, one, afac.Vector(k+1-1, k-1), 1)
+				goblas.Dscal((*m)-k, t, afac.Vector(k, k-1, 1))
+				err = goblas.Dgemv(mat.NoTrans, (*m)-k, k-1, one, afac.Off(k, 0), afac.Vector(0, k-1, 1), one, afac.Vector(k, k-1, 1))
 			}
 
 			//           Compute the (K,K) element
-			afac.Set(k-1, k-1, t+goblas.Ddot(k-1, afac.Vector(k-1, 0), *ldafac, afac.Vector(0, k-1), 1))
+			afac.Set(k-1, k-1, t+goblas.Ddot(k-1, afac.Vector(k-1, 0, *ldafac), afac.Vector(0, k-1, 1)))
 
 			//           Compute elements (1:K-1,K)
-			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, k-1, afac, *ldafac, afac.Vector(0, k-1), 1)
+			err = goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, k-1, afac, afac.Vector(0, k-1, 1))
 		}
 	}
-	golapack.Dlaswp(n, afac, ldafac, func() *int { y := 1; return &y }(), toPtr(minint(*m, *n)), ipiv, toPtr(-1))
+	golapack.Dlaswp(n, afac, ldafac, func() *int { y := 1; return &y }(), toPtr(min(*m, *n)), ipiv, toPtr(-1))
 
 	//     Compute the difference  L*U - A  and store in AFAC.
 	for j = 1; j <= (*n); j++ {

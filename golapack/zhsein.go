@@ -50,7 +50,7 @@ func Zhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.CMatrix, l
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*ldh) < maxint(1, *n) {
+	} else if (*ldh) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvl) < 1 || (leftv && (*ldvl) < (*n)) {
 		(*info) = -10
@@ -109,7 +109,7 @@ func Zhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.CMatrix, l
 				kl = i
 				if k > kr {
 					for i = k; i <= (*n)-1; i++ {
-						if h.Get(i+1-1, i-1) == zero {
+						if h.Get(i, i-1) == zero {
 							goto label50
 						}
 					}

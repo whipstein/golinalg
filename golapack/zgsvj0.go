@@ -81,7 +81,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 	//     The boundaries are determined dynamically, based on the number of
 	//     pivots above a threshold.
 
-	kbl = minint(int(8), *n)
+	kbl = min(int(8), *n)
 	//[TP] KBL is a tuning parameter that defines the tile size in the
 	//     tiling of the p-q loops of pivot pairs. In general, an optimal
 	//     value of KBL depends on the matrix dimensions and on the
@@ -92,10 +92,10 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 		nbl = nbl + 1
 	}
 
-	blskip = powint(kbl, 2)
+	blskip = pow(kbl, 2)
 	//[TP] BLKSKIP is a tuning parameter that depends on SWBAND and KBL.
 
-	rowskip = minint(5, kbl)
+	rowskip = min(5, kbl)
 	//[TP] ROWSKIP is a tuning parameter.
 
 	lkahead = 1
@@ -125,17 +125,17 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 
 			igl = (ibr-1)*kbl + 1
 
-			for ir1 = 0; ir1 <= minint(lkahead, nbl-ibr); ir1++ {
+			for ir1 = 0; ir1 <= min(lkahead, nbl-ibr); ir1++ {
 
 				igl = igl + ir1*kbl
 
-				for p = igl; p <= minint(igl+kbl-1, (*n)-1); p++ {
+				for p = igl; p <= min(igl+kbl-1, (*n)-1); p++ {
 					//     .. de Rijk's pivoting
-					q = goblas.Idamax((*n)-p+1, sva.Off(p-1), 1) + p - 1
+					q = goblas.Idamax((*n)-p+1, sva.Off(p-1, 1)) + p - 1
 					if p != q {
-						goblas.Zswap(*m, a.CVector(0, p-1), 1, a.CVector(0, q-1), 1)
+						goblas.Zswap(*m, a.CVector(0, p-1, 1), a.CVector(0, q-1, 1))
 						if rsvec {
-							goblas.Zswap(mvl, v.CVector(0, p-1), 1, v.CVector(0, q-1), 1)
+							goblas.Zswap(mvl, v.CVector(0, p-1, 1), v.CVector(0, q-1, 1))
 						}
 						temp1 = sva.Get(p - 1)
 						sva.Set(p-1, sva.Get(q-1))
@@ -158,7 +158,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 						//        If properly implemented DZNRM2 is available, the IF-THEN-ELSE-END IF
 						//        below should be replaced with "AAPP = DZNRM2( M, A(1,p), 1 )".
 						if (sva.Get(p-1) < rootbig) && (sva.Get(p-1) > rootsfmin) {
-							sva.Set(p-1, goblas.Dznrm2(*m, a.CVector(0, p-1), 1))
+							sva.Set(p-1, goblas.Dznrm2(*m, a.CVector(0, p-1, 1)))
 						} else {
 							temp1 = zero
 							aapp = one
@@ -174,7 +174,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 
 						pskipped = 0
 
-						for q = p + 1; q <= minint(igl+kbl-1, *n); q++ {
+						for q = p + 1; q <= min(igl+kbl-1, *n); q++ {
 
 							aaqq = sva.Get(q - 1)
 
@@ -184,26 +184,26 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 								if aaqq >= one {
 									rotok = (small * aapp) <= aaqq
 									if aapp < (big / aaqq) {
-										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1), 1, a.CVector(0, q-1), 1) / complex(aaqq, 0)) / complex(aapp, 0)
+										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1, 1), a.CVector(0, q-1, 1)) / complex(aaqq, 0)) / complex(aapp, 0)
 									} else {
-										goblas.Zcopy(*m, a.CVector(0, p-1), 1, work, 1)
+										goblas.Zcopy(*m, a.CVector(0, p-1, 1), work.Off(0, 1))
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aapp, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
-										aapq = goblas.Zdotc(*m, work, 1, a.CVector(0, q-1), 1) / complex(aaqq, 0)
+										aapq = goblas.Zdotc(*m, work.Off(0, 1), a.CVector(0, q-1, 1)) / complex(aaqq, 0)
 									}
 								} else {
 									rotok = aapp <= (aaqq / small)
 									if aapp > (small / aaqq) {
-										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1), 1, a.CVector(0, q-1), 1) / complex(aapp, 0)) / complex(aaqq, 0)
+										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1, 1), a.CVector(0, q-1, 1)) / complex(aapp, 0)) / complex(aaqq, 0)
 									} else {
-										goblas.Zcopy(*m, a.CVector(0, q-1), 1, work, 1)
+										goblas.Zcopy(*m, a.CVector(0, q-1, 1), work.Off(0, 1))
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aaqq, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
-										aapq = goblas.Zdotc(*m, a.CVector(0, p-1), 1, work, 1) / complex(aapp, 0)
+										aapq = goblas.Zdotc(*m, a.CVector(0, p-1, 1), work.Off(0, 1)) / complex(aapp, 0)
 									}
 								}
 
 								//                           AAPQ = AAPQ * CONJG( CWORK(p) ) * CWORK(q)
 								aapq1 = -cmplx.Abs(aapq)
-								mxaapq = maxf64(mxaapq, -aapq1)
+								mxaapq = math.Max(mxaapq, -aapq1)
 
 								//        TO rotate or NOT to rotate, THAT is the question ...
 								if math.Abs(aapq1) > (*tol) {
@@ -231,9 +231,9 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 											if rsvec {
 												Zrot(&mvl, v.CVector(0, p-1), func() *int { y := 1; return &y }(), v.CVector(0, q-1), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(ompq)*complex(t, 0)))
 											}
-											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one+t*apoaq*aapq1)))
-											aapp = aapp * math.Sqrt(maxf64(zero, one-t*aqoap*aapq1))
-											mxsinj = maxf64(mxsinj, math.Abs(t))
+											sva.Set(q-1, aaqq*math.Sqrt(math.Max(zero, one+t*apoaq*aapq1)))
+											aapp = aapp * math.Sqrt(math.Max(zero, one-t*aqoap*aapq1))
+											mxsinj = math.Max(mxsinj, math.Abs(t))
 
 										} else {
 											//                 .. choose correct signum for THETA and rotate
@@ -242,9 +242,9 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 											cs = math.Sqrt(one / (one + t*t))
 											sn = t * cs
 
-											mxsinj = maxf64(mxsinj, math.Abs(sn))
-											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one+t*apoaq*aapq1)))
-											aapp = aapp * math.Sqrt(maxf64(zero, one-t*aqoap*aapq1))
+											mxsinj = math.Max(mxsinj, math.Abs(sn))
+											sva.Set(q-1, aaqq*math.Sqrt(math.Max(zero, one+t*apoaq*aapq1)))
+											aapp = aapp * math.Sqrt(math.Max(zero, one-t*aqoap*aapq1))
 
 											Zrot(m, a.CVector(0, p-1), func() *int { y := 1; return &y }(), a.CVector(0, q-1), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(ompq)*complex(sn, 0)))
 											if rsvec {
@@ -255,13 +255,13 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 
 									} else {
 										//              .. have to use modified Gram-Schmidt like transformation
-										goblas.Zcopy(*m, a.CVector(0, p-1), 1, work, 1)
+										goblas.Zcopy(*m, a.CVector(0, p-1, 1), work.Off(0, 1))
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aapp, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aaqq, &one, m, func() *int { y := 1; return &y }(), a.Off(0, q-1), lda, &ierr)
-										goblas.Zaxpy(*m, -aapq, work, 1, a.CVector(0, q-1), 1)
+										goblas.Zaxpy(*m, -aapq, work.Off(0, 1), a.CVector(0, q-1, 1))
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &one, &aaqq, m, func() *int { y := 1; return &y }(), a.Off(0, q-1), lda, &ierr)
-										sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one-aapq1*aapq1)))
-										mxsinj = maxf64(mxsinj, *sfmin)
+										sva.Set(q-1, aaqq*math.Sqrt(math.Max(zero, one-aapq1*aapq1)))
+										mxsinj = math.Max(mxsinj, *sfmin)
 									}
 									//           END IF ROTOK THEN ... ELSE
 									//
@@ -270,7 +270,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 
 									if math.Pow(sva.Get(q-1)/aaqq, 2) <= rooteps {
 										if (aaqq < rootbig) && (aaqq > rootsfmin) {
-											sva.Set(q-1, goblas.Dznrm2(*m, a.CVector(0, q-1), 1))
+											sva.Set(q-1, goblas.Dznrm2(*m, a.CVector(0, q-1, 1)))
 										} else {
 											t = zero
 											aaqq = one
@@ -280,7 +280,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 									}
 									if (aapp / aapp0) <= rooteps {
 										if (aapp < rootbig) && (aapp > rootsfmin) {
-											aapp = goblas.Dznrm2(*m, a.CVector(0, p-1), 1)
+											aapp = goblas.Dznrm2(*m, a.CVector(0, p-1, 1))
 										} else {
 											t = zero
 											aapp = one
@@ -325,7 +325,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 					} else {
 						sva.Set(p-1, aapp)
 						if (ir1 == 0) && (aapp == zero) {
-							notrot = notrot + minint(igl+kbl-1, *n) - p
+							notrot = notrot + min(igl+kbl-1, *n) - p
 						}
 					}
 
@@ -344,14 +344,14 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 
 				//        doing the block at ( ibr, jbc )
 				ijblsk = 0
-				for p = igl; p <= minint(igl+kbl-1, *n); p++ {
+				for p = igl; p <= min(igl+kbl-1, *n); p++ {
 
 					aapp = sva.Get(p - 1)
 					if aapp > zero {
 
 						pskipped = 0
 
-						for q = jgl; q <= minint(jgl+kbl-1, *n); q++ {
+						for q = jgl; q <= min(jgl+kbl-1, *n); q++ {
 
 							aaqq = sva.Get(q - 1)
 							if aaqq > zero {
@@ -367,11 +367,11 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 										rotok = (small * aaqq) <= aapp
 									}
 									if aapp < (big / aaqq) {
-										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1), 1, a.CVector(0, q-1), 1) / complex(aaqq, 0)) / complex(aapp, 0)
+										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1, 1), a.CVector(0, q-1, 1)) / complex(aaqq, 0)) / complex(aapp, 0)
 									} else {
-										goblas.Zcopy(*m, a.CVector(0, p-1), 1, work, 1)
+										goblas.Zcopy(*m, a.CVector(0, p-1, 1), work.Off(0, 1))
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aapp, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
-										aapq = goblas.Zdotc(*m, work, 1, a.CVector(0, q-1), 1) / complex(aaqq, 0)
+										aapq = goblas.Zdotc(*m, work.Off(0, 1), a.CVector(0, q-1, 1)) / complex(aaqq, 0)
 									}
 								} else {
 									if aapp >= aaqq {
@@ -380,17 +380,17 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 										rotok = aaqq <= (aapp / small)
 									}
 									if aapp > (small / aaqq) {
-										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1), 1, a.CVector(0, q-1), 1) / complex(maxf64(aaqq, aapp), 0)) / complex(minf64(aaqq, aapp), 0)
+										aapq = (goblas.Zdotc(*m, a.CVector(0, p-1, 1), a.CVector(0, q-1, 1)) / complex(math.Max(aaqq, aapp), 0)) / complex(math.Min(aaqq, aapp), 0)
 									} else {
-										goblas.Zcopy(*m, a.CVector(0, q-1), 1, work, 1)
+										goblas.Zcopy(*m, a.CVector(0, q-1, 1), work.Off(0, 1))
 										Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aaqq, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
-										aapq = goblas.Zdotc(*m, a.CVector(0, p-1), 1, work, 1) / complex(aapp, 0)
+										aapq = goblas.Zdotc(*m, a.CVector(0, p-1, 1), work.Off(0, 1)) / complex(aapp, 0)
 									}
 								}
 
 								//                           AAPQ = AAPQ * CONJG(CWORK(p))*CWORK(q)
 								aapq1 = -cmplx.Abs(aapq)
-								mxaapq = maxf64(mxaapq, -aapq1)
+								mxaapq = math.Max(mxaapq, -aapq1)
 
 								//        TO rotate or NOT to rotate, THAT is the question ...
 								if math.Abs(aapq1) > (*tol) {
@@ -416,9 +416,9 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 											if rsvec {
 												Zrot(&mvl, v.CVector(0, p-1), func() *int { y := 1; return &y }(), v.CVector(0, q-1), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(ompq)*complex(t, 0)))
 											}
-											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one+t*apoaq*aapq1)))
-											aapp = aapp * math.Sqrt(maxf64(zero, one-t*aqoap*aapq1))
-											mxsinj = maxf64(mxsinj, math.Abs(t))
+											sva.Set(q-1, aaqq*math.Sqrt(math.Max(zero, one+t*apoaq*aapq1)))
+											aapp = aapp * math.Sqrt(math.Max(zero, one-t*aqoap*aapq1))
+											mxsinj = math.Max(mxsinj, math.Abs(t))
 										} else {
 											//                 .. choose correct signum for THETA and rotate
 											thsign = -math.Copysign(one, aapq1)
@@ -428,9 +428,9 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 											t = one / (theta + thsign*math.Sqrt(one+theta*theta))
 											cs = math.Sqrt(one / (one + t*t))
 											sn = t * cs
-											mxsinj = maxf64(mxsinj, math.Abs(sn))
-											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one+t*apoaq*aapq1)))
-											aapp = aapp * math.Sqrt(maxf64(zero, one-t*aqoap*aapq1))
+											mxsinj = math.Max(mxsinj, math.Abs(sn))
+											sva.Set(q-1, aaqq*math.Sqrt(math.Max(zero, one+t*apoaq*aapq1)))
+											aapp = aapp * math.Sqrt(math.Max(zero, one-t*aqoap*aapq1))
 
 											Zrot(m, a.CVector(0, p-1), func() *int { y := 1; return &y }(), a.CVector(0, q-1), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(ompq)*complex(sn, 0)))
 											if rsvec {
@@ -442,21 +442,21 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 									} else {
 										//              .. have to use modified Gram-Schmidt like transformation
 										if aapp > aaqq {
-											goblas.Zcopy(*m, a.CVector(0, p-1), 1, work, 1)
+											goblas.Zcopy(*m, a.CVector(0, p-1, 1), work.Off(0, 1))
 											Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aapp, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
 											Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aaqq, &one, m, func() *int { y := 1; return &y }(), a.Off(0, q-1), lda, &ierr)
-											goblas.Zaxpy(*m, -aapq, work, 1, a.CVector(0, q-1), 1)
+											goblas.Zaxpy(*m, -aapq, work.Off(0, 1), a.CVector(0, q-1, 1))
 											Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &one, &aaqq, m, func() *int { y := 1; return &y }(), a.Off(0, q-1), lda, &ierr)
-											sva.Set(q-1, aaqq*math.Sqrt(maxf64(zero, one-aapq1*aapq1)))
-											mxsinj = maxf64(mxsinj, *sfmin)
+											sva.Set(q-1, aaqq*math.Sqrt(math.Max(zero, one-aapq1*aapq1)))
+											mxsinj = math.Max(mxsinj, *sfmin)
 										} else {
-											goblas.Zcopy(*m, a.CVector(0, q-1), 1, work, 1)
+											goblas.Zcopy(*m, a.CVector(0, q-1, 1), work.Off(0, 1))
 											Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aaqq, &one, m, func() *int { y := 1; return &y }(), work.CMatrix(*lda, opts), lda, &ierr)
 											Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &aapp, &one, m, func() *int { y := 1; return &y }(), a.Off(0, p-1), lda, &ierr)
-											goblas.Zaxpy(*m, -cmplx.Conj(aapq), work, 1, a.CVector(0, p-1), 1)
+											goblas.Zaxpy(*m, -cmplx.Conj(aapq), work.Off(0, 1), a.CVector(0, p-1, 1))
 											Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &one, &aapp, m, func() *int { y := 1; return &y }(), a.Off(0, p-1), lda, &ierr)
-											sva.Set(p-1, aapp*math.Sqrt(maxf64(zero, one-aapq1*aapq1)))
-											mxsinj = maxf64(mxsinj, *sfmin)
+											sva.Set(p-1, aapp*math.Sqrt(math.Max(zero, one-aapq1*aapq1)))
+											mxsinj = math.Max(mxsinj, *sfmin)
 										}
 									}
 									//           END IF ROTOK THEN ... ELSE
@@ -465,7 +465,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 									//           .. recompute SVA(q), SVA(p)
 									if math.Pow(sva.Get(q-1)/aaqq, 2) <= rooteps {
 										if (aaqq < rootbig) && (aaqq > rootsfmin) {
-											sva.Set(q-1, goblas.Dznrm2(*m, a.CVector(0, q-1), 1))
+											sva.Set(q-1, goblas.Dznrm2(*m, a.CVector(0, q-1, 1)))
 										} else {
 											t = zero
 											aaqq = one
@@ -475,7 +475,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 									}
 									if math.Pow(aapp/aapp0, 2) <= rooteps {
 										if (aapp < rootbig) && (aapp > rootsfmin) {
-											aapp = goblas.Dznrm2(*m, a.CVector(0, p-1), 1)
+											aapp = goblas.Dznrm2(*m, a.CVector(0, p-1, 1))
 										} else {
 											t = zero
 											aapp = one
@@ -518,7 +518,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 					} else {
 
 						if aapp == zero {
-							notrot = notrot + minint(jgl+kbl-1, *n) - jgl + 1
+							notrot = notrot + min(jgl+kbl-1, *n) - jgl + 1
 						}
 						if aapp < zero {
 							notrot = 0
@@ -533,7 +533,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 		label2011:
 			;
 			//2011 bailed out of the jbc-loop
-			for p = igl; p <= minint(igl+kbl-1, *n); p++ {
+			for p = igl; p <= min(igl+kbl-1, *n); p++ {
 				sva.Set(p-1, sva.GetMag(p-1))
 			}
 
@@ -542,7 +542,7 @@ func Zgsvj0(jobv byte, m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, sva 
 		//
 		//     .. update SVA(N)
 		if (sva.Get((*n)-1) < rootbig) && (sva.Get((*n)-1) > rootsfmin) {
-			sva.Set((*n)-1, goblas.Dznrm2(*m, a.CVector(0, (*n)-1), 1))
+			sva.Set((*n)-1, goblas.Dznrm2(*m, a.CVector(0, (*n)-1, 1)))
 		} else {
 			t = zero
 			aapp = one
@@ -581,7 +581,7 @@ label1995:
 
 	//     Sort the vector SVA() of column norms.
 	for p = 1; p <= (*n)-1; p++ {
-		q = goblas.Idamax((*n)-p+1, sva.Off(p-1), 1) + p - 1
+		q = goblas.Idamax((*n)-p+1, sva.Off(p-1, 1)) + p - 1
 		if p != q {
 			temp1 = sva.Get(p - 1)
 			sva.Set(p-1, sva.Get(q-1))
@@ -589,9 +589,9 @@ label1995:
 			aapq = d.Get(p - 1)
 			d.Set(p-1, d.Get(q-1))
 			d.Set(q-1, aapq)
-			goblas.Zswap(*m, a.CVector(0, p-1), 1, a.CVector(0, q-1), 1)
+			goblas.Zswap(*m, a.CVector(0, p-1, 1), a.CVector(0, q-1, 1))
 			if rsvec {
-				goblas.Zswap(mvl, v.CVector(0, p-1), 1, v.CVector(0, q-1), 1)
+				goblas.Zswap(mvl, v.CVector(0, p-1, 1), v.CVector(0, q-1, 1))
 			}
 		}
 	}

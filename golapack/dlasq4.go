@@ -49,7 +49,7 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 					gap1 = a2 - (*dn) - (b1 + b2)
 				}
 				if gap1 > zero && gap1 > b1 {
-					s = maxf64((*dn)-(b1/gap1)*b1, half*(*dmin))
+					s = math.Max((*dn)-(b1/gap1)*b1, half*(*dmin))
 					(*ttype) = -2
 				} else {
 					s = zero
@@ -57,9 +57,9 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 						s = (*dn) - b1
 					}
 					if a2 > (b1 + b2) {
-						s = minf64(s, a2-(b1+b2))
+						s = math.Min(s, a2-(b1+b2))
 					}
-					s = maxf64(s, third*(*dmin))
+					s = math.Max(s, third*(*dmin))
 					(*ttype) = -3
 				}
 			} else {
@@ -100,7 +100,7 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 					}
 					b2 = b2 * (z.Get(i4-1) / z.Get(i4-2-1))
 					a2 = a2 + b2
-					if hundrd*maxf64(b2, b1) < a2 || cnst1 < a2 {
+					if hundrd*math.Max(b2, b1) < a2 || cnst1 < a2 {
 						goto label20
 					}
 				}
@@ -142,7 +142,7 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 					}
 					b2 = b2 * (z.Get(i4-1) / z.Get(i4-2-1))
 					a2 = a2 + b2
-					if hundrd*maxf64(b2, b1) < a2 || cnst1 < a2 {
+					if hundrd*math.Max(b2, b1) < a2 || cnst1 < a2 {
 						goto label40
 					}
 				}
@@ -188,7 +188,7 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 				}
 				b1 = b1 * (z.Get(i4-1) / z.Get(i4-2-1))
 				b2 = b2 + b1
-				if hundrd*maxf64(b1, a2) < b2 {
+				if hundrd*math.Max(b1, a2) < b2 {
 					goto label60
 				}
 			}
@@ -198,9 +198,9 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 			a2 = (*dmin1) / (one + math.Pow(b2, 2))
 			gap2 = half*(*dmin2) - a2
 			if gap2 > zero && gap2 > b2*a2 {
-				s = maxf64(s, a2*(one-cnst2*a2*(b2/gap2)*b2))
+				s = math.Max(s, a2*(one-cnst2*a2*(b2/gap2)*b2))
 			} else {
-				s = maxf64(s, a2*(one-cnst2*b2))
+				s = math.Max(s, a2*(one-cnst2*b2))
 				(*ttype) = -8
 			}
 		} else {
@@ -243,9 +243,9 @@ func Dlasq4(i0, n0 *int, z *mat.Vector, pp, n0in *int, dmin, dmin1, dmin2, dn, d
 			a2 = (*dmin2) / (one + math.Pow(b2, 2))
 			gap2 = z.Get(nn-7-1) + z.Get(nn-9-1) - math.Sqrt(z.Get(nn-11-1))*math.Sqrt(z.Get(nn-9-1)) - a2
 			if gap2 > zero && gap2 > b2*a2 {
-				s = maxf64(s, a2*(one-cnst2*a2*(b2/gap2)*b2))
+				s = math.Max(s, a2*(one-cnst2*a2*(b2/gap2)*b2))
 			} else {
-				s = maxf64(s, a2*(one-cnst2*b2))
+				s = math.Max(s, a2*(one-cnst2*b2))
 			}
 		} else {
 			s = qurtr * (*dmin2)

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -17,8 +19,8 @@ func Ztbt06(rcond, rcondc *float64, uplo, diag byte, n, kd *int, ab *mat.CMatrix
 	one = 1.0
 
 	eps = golapack.Dlamch(Epsilon)
-	rmax = maxf64(*rcond, *rcondc)
-	rmin = minf64(*rcond, *rcondc)
+	rmax = math.Max(*rcond, *rcondc)
+	rmin = math.Min(*rcond, *rcondc)
 
 	//     Do the easy cases first.
 	if rmin < zero {
@@ -42,6 +44,6 @@ func Ztbt06(rcond, rcondc *float64, uplo, diag byte, n, kd *int, ab *mat.CMatrix
 		bignum = one / golapack.Dlamch(SafeMinimum)
 		anorm = golapack.Zlantb('M', uplo, diag, n, kd, ab, ldab, rwork)
 		//
-		(*rat) = rmax * minf64(bignum/maxf64(one, anorm), one/eps)
+		(*rat) = rmax * math.Min(bignum/math.Max(one, anorm), one/eps)
 	}
 }

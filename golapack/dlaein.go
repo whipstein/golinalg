@@ -25,7 +25,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 	//     eigenvector.
 	rootn = math.Sqrt(float64(*n))
 	growto = tenth / rootn
-	nrmsml = maxf64(one, (*eps3)*rootn) * (*smlnum)
+	nrmsml = math.Max(one, (*eps3)*rootn) * (*smlnum)
 
 	//     Form B = H - (WR,WI)*I (except that the subdiagonal elements and
 	//     the imaginary parts of the diagonal elements are not stored).
@@ -45,22 +45,22 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			}
 		} else {
 			//           Scale supplied initial vector.
-			vnorm = goblas.Dnrm2(*n, vr, 1)
-			goblas.Dscal(*n, ((*eps3)*rootn)/maxf64(vnorm, nrmsml), vr, 1)
+			vnorm = goblas.Dnrm2(*n, vr.Off(0, 1))
+			goblas.Dscal(*n, ((*eps3)*rootn)/math.Max(vnorm, nrmsml), vr.Off(0, 1))
 		}
 
 		if rightv {
 			//           LU decomposition with partial pivoting of B, replacing zero
 			//           pivots by EPS3.
 			for i = 1; i <= (*n)-1; i++ {
-				ei = h.Get(i+1-1, i-1)
+				ei = h.Get(i, i-1)
 				if math.Abs(b.Get(i-1, i-1)) < math.Abs(ei) {
 					//                 Interchange rows and eliminate.
 					x = b.Get(i-1, i-1) / ei
 					b.Set(i-1, i-1, ei)
 					for j = i + 1; j <= (*n); j++ {
-						temp = b.Get(i+1-1, j-1)
-						b.Set(i+1-1, j-1, b.Get(i-1, j-1)-x*temp)
+						temp = b.Get(i, j-1)
+						b.Set(i, j-1, b.Get(i-1, j-1)-x*temp)
 						b.Set(i-1, j-1, temp)
 					}
 				} else {
@@ -71,7 +71,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 					x = ei / b.Get(i-1, i-1)
 					if x != zero {
 						for j = i + 1; j <= (*n); j++ {
-							b.Set(i+1-1, j-1, b.Get(i+1-1, j-1)-x*b.Get(i-1, j-1))
+							b.Set(i, j-1, b.Get(i, j-1)-x*b.Get(i-1, j-1))
 						}
 					}
 				}
@@ -126,7 +126,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			normin = 'Y'
 
 			//           Test for sufficient growth in the norm of v.
-			vnorm = goblas.Dasum(*n, vr, 1)
+			vnorm = goblas.Dasum(*n, vr.Off(0, 1))
 			if vnorm >= growto*scale {
 				goto label120
 			}
@@ -137,7 +137,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			for i = 2; i <= (*n); i++ {
 				vr.Set(i-1, temp)
 			}
-			vr.Set((*n)-its+1-1, vr.Get((*n)-its+1-1)-(*eps3)*rootn)
+			vr.Set((*n)-its, vr.Get((*n)-its)-(*eps3)*rootn)
 		}
 
 		//        Failure to find eigenvector in N iterations.
@@ -147,8 +147,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 		;
 
 		//        Normalize eigenvector.
-		i = goblas.Idamax(*n, vr, 1)
-		goblas.Dscal(*n, one/math.Abs(vr.Get(i-1)), vr, 1)
+		i = goblas.Idamax(*n, vr.Off(0, 1))
+		goblas.Dscal(*n, one/math.Abs(vr.Get(i-1)), vr.Off(0, 1))
 	} else {
 		//        Complex eigenvalue.
 		if noinit {
@@ -159,10 +159,10 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			}
 		} else {
 			//           Scale supplied initial vector.
-			norm = Dlapy2(func() *float64 { y := goblas.Dnrm2(*n, vr, 1); return &y }(), func() *float64 { y := goblas.Dnrm2(*n, vi, 1); return &y }())
-			rec = ((*eps3) * rootn) / maxf64(norm, nrmsml)
-			goblas.Dscal(*n, rec, vr, 1)
-			goblas.Dscal(*n, rec, vi, 1)
+			norm = Dlapy2(func() *float64 { y := goblas.Dnrm2(*n, vr.Off(0, 1)); return &y }(), func() *float64 { y := goblas.Dnrm2(*n, vi.Off(0, 1)); return &y }())
+			rec = ((*eps3) * rootn) / math.Max(norm, nrmsml)
+			goblas.Dscal(*n, rec, vr.Off(0, 1))
+			goblas.Dscal(*n, rec, vi.Off(0, 1))
 		}
 
 		if rightv {
@@ -173,49 +173,49 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			//           B(j+1,i).
 			b.Set(1, 0, -(*wi))
 			for i = 2; i <= (*n); i++ {
-				b.Set(i+1-1, 0, zero)
+				b.Set(i, 0, zero)
 			}
 
 			for i = 1; i <= (*n)-1; i++ {
-				absbii = Dlapy2(b.GetPtr(i-1, i-1), b.GetPtr(i+1-1, i-1))
-				ei = h.Get(i+1-1, i-1)
+				absbii = Dlapy2(b.GetPtr(i-1, i-1), b.GetPtr(i, i-1))
+				ei = h.Get(i, i-1)
 				if absbii < math.Abs(ei) {
 					//                 Interchange rows and eliminate.
 					xr = b.Get(i-1, i-1) / ei
-					xi = b.Get(i+1-1, i-1) / ei
+					xi = b.Get(i, i-1) / ei
 					b.Set(i-1, i-1, ei)
-					b.Set(i+1-1, i-1, zero)
+					b.Set(i, i-1, zero)
 					for j = i + 1; j <= (*n); j++ {
-						temp = b.Get(i+1-1, j-1)
-						b.Set(i+1-1, j-1, b.Get(i-1, j-1)-xr*temp)
-						b.Set(j+1-1, i+1-1, b.Get(j+1-1, i-1)-xi*temp)
+						temp = b.Get(i, j-1)
+						b.Set(i, j-1, b.Get(i-1, j-1)-xr*temp)
+						b.Set(j, i, b.Get(j, i-1)-xi*temp)
 						b.Set(i-1, j-1, temp)
-						b.Set(j+1-1, i-1, zero)
+						b.Set(j, i-1, zero)
 					}
 					b.Set(i+2-1, i-1, -(*wi))
-					b.Set(i+1-1, i+1-1, b.Get(i+1-1, i+1-1)-xi*(*wi))
-					b.Set(i+2-1, i+1-1, b.Get(i+2-1, i+1-1)+xr*(*wi))
+					b.Set(i, i, b.Get(i, i)-xi*(*wi))
+					b.Set(i+2-1, i, b.Get(i+2-1, i)+xr*(*wi))
 				} else {
 					//                 Eliminate without interchanging rows.
 					if absbii == zero {
 						b.Set(i-1, i-1, *eps3)
-						b.Set(i+1-1, i-1, zero)
+						b.Set(i, i-1, zero)
 						absbii = (*eps3)
 					}
 					ei = (ei / absbii) / absbii
 					xr = b.Get(i-1, i-1) * ei
-					xi = -b.Get(i+1-1, i-1) * ei
+					xi = -b.Get(i, i-1) * ei
 					for j = i + 1; j <= (*n); j++ {
-						b.Set(i+1-1, j-1, b.Get(i+1-1, j-1)-xr*b.Get(i-1, j-1)+xi*b.Get(j+1-1, i-1))
-						b.Set(j+1-1, i+1-1, -xr*b.Get(j+1-1, i-1)-xi*b.Get(i-1, j-1))
+						b.Set(i, j-1, b.Get(i, j-1)-xr*b.Get(i-1, j-1)+xi*b.Get(j, i-1))
+						b.Set(j, i, -xr*b.Get(j, i-1)-xi*b.Get(i-1, j-1))
 					}
-					b.Set(i+2-1, i+1-1, b.Get(i+2-1, i+1-1)-(*wi))
+					b.Set(i+2-1, i, b.Get(i+2-1, i)-(*wi))
 				}
 
 				//              Compute 1-norm of offdiagonal elements of i-th row.
-				work.Set(i-1, goblas.Dasum((*n)-i, b.Vector(i-1, i+1-1), *ldb)+goblas.Dasum((*n)-i, b.Vector(i+2-1, i-1), 1))
+				work.Set(i-1, goblas.Dasum((*n)-i, b.Vector(i-1, i))+goblas.Dasum((*n)-i, b.Vector(i+2-1, i-1, 1)))
 			}
-			if b.Get((*n)-1, (*n)-1) == zero && b.Get((*n)+1-1, (*n)-1) == zero {
+			if b.Get((*n)-1, (*n)-1) == zero && b.Get((*n), (*n)-1) == zero {
 				b.Set((*n)-1, (*n)-1, *eps3)
 			}
 			work.Set((*n)-1, zero)
@@ -229,49 +229,49 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			//
 			//           The imaginary part of the (i,j)-th element of U is stored in
 			//           B(j+1,i).
-			b.Set((*n)+1-1, (*n)-1, *wi)
+			b.Set((*n), (*n)-1, *wi)
 			for j = 1; j <= (*n)-1; j++ {
-				b.Set((*n)+1-1, j-1, zero)
+				b.Set((*n), j-1, zero)
 			}
 
 			for j = (*n); j >= 2; j-- {
 				ej = h.Get(j-1, j-1-1)
-				absbjj = Dlapy2(b.GetPtr(j-1, j-1), b.GetPtr(j+1-1, j-1))
+				absbjj = Dlapy2(b.GetPtr(j-1, j-1), b.GetPtr(j, j-1))
 				if absbjj < math.Abs(ej) {
 					//                 Interchange columns and eliminate
 					xr = b.Get(j-1, j-1) / ej
-					xi = b.Get(j+1-1, j-1) / ej
+					xi = b.Get(j, j-1) / ej
 					b.Set(j-1, j-1, ej)
-					b.Set(j+1-1, j-1, zero)
+					b.Set(j, j-1, zero)
 					for i = 1; i <= j-1; i++ {
 						temp = b.Get(i-1, j-1-1)
 						b.Set(i-1, j-1-1, b.Get(i-1, j-1)-xr*temp)
-						b.Set(j-1, i-1, b.Get(j+1-1, i-1)-xi*temp)
+						b.Set(j-1, i-1, b.Get(j, i-1)-xi*temp)
 						b.Set(i-1, j-1, temp)
-						b.Set(j+1-1, i-1, zero)
+						b.Set(j, i-1, zero)
 					}
-					b.Set(j+1-1, j-1-1, *wi)
+					b.Set(j, j-1-1, *wi)
 					b.Set(j-1-1, j-1-1, b.Get(j-1-1, j-1-1)+xi*(*wi))
 					b.Set(j-1, j-1-1, b.Get(j-1, j-1-1)-xr*(*wi))
 				} else {
 					//                 Eliminate without interchange.
 					if absbjj == zero {
 						b.Set(j-1, j-1, *eps3)
-						b.Set(j+1-1, j-1, zero)
+						b.Set(j, j-1, zero)
 						absbjj = (*eps3)
 					}
 					ej = (ej / absbjj) / absbjj
 					xr = b.Get(j-1, j-1) * ej
-					xi = -b.Get(j+1-1, j-1) * ej
+					xi = -b.Get(j, j-1) * ej
 					for i = 1; i <= j-1; i++ {
-						b.Set(i-1, j-1-1, b.Get(i-1, j-1-1)-xr*b.Get(i-1, j-1)+xi*b.Get(j+1-1, i-1))
-						b.Set(j-1, i-1, -xr*b.Get(j+1-1, i-1)-xi*b.Get(i-1, j-1))
+						b.Set(i-1, j-1-1, b.Get(i-1, j-1-1)-xr*b.Get(i-1, j-1)+xi*b.Get(j, i-1))
+						b.Set(j-1, i-1, -xr*b.Get(j, i-1)-xi*b.Get(i-1, j-1))
 					}
 					b.Set(j-1, j-1-1, b.Get(j-1, j-1-1)+(*wi))
 				}
 
 				//              Compute 1-norm of offdiagonal elements of j-th column.
-				work.Set(j-1, goblas.Dasum(j-1, b.Vector(0, j-1), 1)+goblas.Dasum(j-1, b.Vector(j+1-1, 0), *ldb))
+				work.Set(j-1, goblas.Dasum(j-1, b.Vector(0, j-1, 1))+goblas.Dasum(j-1, b.Vector(j, 0)))
 			}
 			if b.Get(0, 0) == zero && b.Get(1, 0) == zero {
 				b.Set(0, 0, *eps3)
@@ -295,8 +295,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 
 				if work.Get(i-1) > vcrit {
 					rec = one / vmax
-					goblas.Dscal(*n, rec, vr, 1)
-					goblas.Dscal(*n, rec, vi, 1)
+					goblas.Dscal(*n, rec, vr.Off(0, 1))
+					goblas.Dscal(*n, rec, vi.Off(0, 1))
 					scale = scale * rec
 					vmax = one
 					vcrit = (*bignum)
@@ -306,24 +306,24 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 				xi = vi.Get(i - 1)
 				if rightv {
 					for j = i + 1; j <= (*n); j++ {
-						xr = xr - b.Get(i-1, j-1)*vr.Get(j-1) + b.Get(j+1-1, i-1)*vi.Get(j-1)
-						xi = xi - b.Get(i-1, j-1)*vi.Get(j-1) - b.Get(j+1-1, i-1)*vr.Get(j-1)
+						xr = xr - b.Get(i-1, j-1)*vr.Get(j-1) + b.Get(j, i-1)*vi.Get(j-1)
+						xi = xi - b.Get(i-1, j-1)*vi.Get(j-1) - b.Get(j, i-1)*vr.Get(j-1)
 					}
 				} else {
 					for j = 1; j <= i-1; j++ {
-						xr = xr - b.Get(j-1, i-1)*vr.Get(j-1) + b.Get(i+1-1, j-1)*vi.Get(j-1)
-						xi = xi - b.Get(j-1, i-1)*vi.Get(j-1) - b.Get(i+1-1, j-1)*vr.Get(j-1)
+						xr = xr - b.Get(j-1, i-1)*vr.Get(j-1) + b.Get(i, j-1)*vi.Get(j-1)
+						xi = xi - b.Get(j-1, i-1)*vi.Get(j-1) - b.Get(i, j-1)*vr.Get(j-1)
 					}
 				}
 
-				w = math.Abs(b.Get(i-1, i-1)) + math.Abs(b.Get(i+1-1, i-1))
+				w = math.Abs(b.Get(i-1, i-1)) + math.Abs(b.Get(i, i-1))
 				if w > (*smlnum) {
 					if w < one {
 						w1 = math.Abs(xr) + math.Abs(xi)
 						if w1 > w*(*bignum) {
 							rec = one / w1
-							goblas.Dscal(*n, rec, vr, 1)
-							goblas.Dscal(*n, rec, vi, 1)
+							goblas.Dscal(*n, rec, vr.Off(0, 1))
+							goblas.Dscal(*n, rec, vi.Off(0, 1))
 							xr = vr.Get(i - 1)
 							xi = vi.Get(i - 1)
 							scale = scale * rec
@@ -332,8 +332,8 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 					}
 
 					//                 Divide by diagonal element of B.
-					Dladiv(&xr, &xi, b.GetPtr(i-1, i-1), b.GetPtr(i+1-1, i-1), vr.GetPtr(i-1), vi.GetPtr(i-1))
-					vmax = maxf64(math.Abs(vr.Get(i-1))+math.Abs(vi.Get(i-1)), vmax)
+					Dladiv(&xr, &xi, b.GetPtr(i-1, i-1), b.GetPtr(i, i-1), vr.GetPtr(i-1), vi.GetPtr(i-1))
+					vmax = math.Max(math.Abs(vr.Get(i-1))+math.Abs(vi.Get(i-1)), vmax)
 					vcrit = (*bignum) / vmax
 				} else {
 					for j = 1; j <= (*n); j++ {
@@ -349,7 +349,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 			}
 
 			//           Test for sufficient growth in the norm of (VR,VI).
-			vnorm = goblas.Dasum(*n, vr, 1) + goblas.Dasum(*n, vi, 1)
+			vnorm = goblas.Dasum(*n, vr.Off(0, 1)) + goblas.Dasum(*n, vi.Off(0, 1))
 			if vnorm >= growto*scale {
 				goto label280
 			}
@@ -363,7 +363,7 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 				vr.Set(i-1, y)
 				vi.Set(i-1, zero)
 			}
-			vr.Set((*n)-its+1-1, vr.Get((*n)-its+1-1)-(*eps3)*rootn)
+			vr.Set((*n)-its, vr.Get((*n)-its)-(*eps3)*rootn)
 		}
 
 		//        Failure to find eigenvector in N iterations
@@ -375,10 +375,10 @@ func Dlaein(rightv, noinit bool, n *int, h *mat.Matrix, ldh *int, wr, wi *float6
 		//        Normalize eigenvector.
 		vnorm = zero
 		for i = 1; i <= (*n); i++ {
-			vnorm = maxf64(vnorm, math.Abs(vr.Get(i-1))+math.Abs(vi.Get(i-1)))
+			vnorm = math.Max(vnorm, math.Abs(vr.Get(i-1))+math.Abs(vi.Get(i-1)))
 		}
-		goblas.Dscal(*n, one/vnorm, vr, 1)
-		goblas.Dscal(*n, one/vnorm, vi, 1)
+		goblas.Dscal(*n, one/vnorm, vr.Off(0, 1))
+		goblas.Dscal(*n, one/vnorm, vi.Off(0, 1))
 
 	}
 }

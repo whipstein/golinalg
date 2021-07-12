@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -50,21 +52,21 @@ func Dppsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.Vector, equed *byte, s *
 			smin = bignum
 			smax = zero
 			for j = 1; j <= (*n); j++ {
-				smin = minf64(smin, s.Get(j-1))
-				smax = maxf64(smax, s.Get(j-1))
+				smin = math.Min(smin, s.Get(j-1))
+				smax = math.Max(smax, s.Get(j-1))
 			}
 			if smin <= zero {
 				(*info) = -8
 			} else if (*n) > 0 {
-				scond = maxf64(smin, smlnum) / minf64(smax, bignum)
+				scond = math.Max(smin, smlnum) / math.Min(smax, bignum)
 			} else {
 				scond = one
 			}
 		}
 		if (*info) == 0 {
-			if (*ldb) < maxint(1, *n) {
+			if (*ldb) < max(1, *n) {
 				(*info) = -10
-			} else if (*ldx) < maxint(1, *n) {
+			} else if (*ldx) < max(1, *n) {
 				(*info) = -12
 			}
 		}
@@ -96,7 +98,7 @@ func Dppsvx(fact, uplo byte, n, nrhs *int, ap, afp *mat.Vector, equed *byte, s *
 
 	if nofact || equil {
 		//        Compute the Cholesky factorization A = U**T * U or A = L * L**T.
-		goblas.Dcopy((*n)*((*n)+1)/2, ap, 1, afp, 1)
+		goblas.Dcopy((*n)*((*n)+1)/2, ap.Off(0, 1), afp.Off(0, 1))
 		Dpptrf(uplo, n, afp, info)
 
 		//        Return if INFO is non-zero.

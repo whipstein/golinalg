@@ -87,7 +87,7 @@ label10:
 label20:
 	;
 
-	smin = maxf64(eps*maxf64(math.Abs(tl.Get(0, 0)), math.Abs(tr.Get(0, 0)), math.Abs(tr.Get(0, 1)), math.Abs(tr.Get(1, 0)), math.Abs(tr.Get(1, 1))), smlnum)
+	smin = math.Max(eps*math.Max(math.Abs(tl.Get(0, 0)), math.Max(math.Abs(tr.Get(0, 0)), math.Max(math.Abs(tr.Get(0, 1)), math.Max(math.Abs(tr.Get(1, 0)), math.Abs(tr.Get(1, 1)))))), smlnum)
 	tmp.Set(0, tl.Get(0, 0)+sgn*tr.Get(0, 0))
 	tmp.Set(3, tl.Get(0, 0)+sgn*tr.Get(1, 1))
 	if ltranr {
@@ -106,7 +106,7 @@ label20:
 	//            [TL21 TL22] [X21]         [X21]         [B21]
 label30:
 	;
-	smin = maxf64(eps*maxf64(math.Abs(tr.Get(0, 0)), math.Abs(tl.Get(0, 0)), math.Abs(tl.Get(0, 1)), math.Abs(tl.Get(1, 0)), math.Abs(tl.Get(1, 1))), smlnum)
+	smin = math.Max(eps*math.Max(math.Abs(tr.Get(0, 0)), math.Max(math.Abs(tl.Get(0, 0)), math.Max(math.Abs(tl.Get(0, 1)), math.Max(math.Abs(tl.Get(1, 0)), math.Abs(tl.Get(1, 1)))))), smlnum)
 	tmp.Set(0, tl.Get(0, 0)+sgn*tr.Get(0, 0))
 	tmp.Set(3, tl.Get(1, 1)+sgn*tr.Get(0, 0))
 	if ltranl {
@@ -123,7 +123,7 @@ label40:
 
 	//     Solve 2 by 2 system using complete pivoting.
 	//     Set pivots less than SMIN to SMIN.
-	ipiv = goblas.Idamax(4, tmp, 1)
+	ipiv = goblas.Idamax(4, tmp.Off(0, 1))
 	u11 = tmp.Get(ipiv - 1)
 	if math.Abs(u11) <= smin {
 		(*info) = 1
@@ -147,7 +147,7 @@ label40:
 	}
 	(*scale) = one
 	if (two*smlnum)*math.Abs(btmp.Get(1)) > math.Abs(u22) || (two*smlnum)*math.Abs(btmp.Get(0)) > math.Abs(u11) {
-		(*scale) = half / maxf64(math.Abs(btmp.Get(0)), math.Abs(btmp.Get(1)))
+		(*scale) = half / math.Max(math.Abs(btmp.Get(0)), math.Abs(btmp.Get(1)))
 		btmp.Set(0, btmp.Get(0)*(*scale))
 		btmp.Set(1, btmp.Get(1)*(*scale))
 	}
@@ -164,7 +164,7 @@ label40:
 		(*xnorm) = math.Abs(x.Get(0, 0)) + math.Abs(x.Get(0, 1))
 	} else {
 		x.Set(1, 0, x2.Get(1))
-		(*xnorm) = maxf64(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))
+		(*xnorm) = math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))
 	}
 	return
 
@@ -176,11 +176,11 @@ label40:
 	//     Set pivots less than SMIN to SMIN.
 label50:
 	;
-	smin = maxf64(math.Abs(tr.Get(0, 0)), math.Abs(tr.Get(0, 1)), math.Abs(tr.Get(1, 0)), math.Abs(tr.Get(1, 1)))
-	smin = maxf64(smin, math.Abs(tl.Get(0, 0)), math.Abs(tl.Get(0, 1)), math.Abs(tl.Get(1, 0)), math.Abs(tl.Get(1, 1)))
-	smin = maxf64(eps*smin, smlnum)
+	smin = math.Max(math.Abs(tr.Get(0, 0)), math.Max(math.Abs(tr.Get(0, 1)), math.Max(math.Abs(tr.Get(1, 0)), math.Abs(tr.Get(1, 1)))))
+	smin = math.Max(smin, math.Max(math.Abs(tl.Get(0, 0)), math.Max(math.Abs(tl.Get(0, 1)), math.Max(math.Abs(tl.Get(1, 0)), math.Abs(tl.Get(1, 1))))))
+	smin = math.Max(eps*smin, smlnum)
 	btmp.Set(0, zero)
-	goblas.Dcopy(16, btmp, 0, t16.VectorIdx(0), 1)
+	goblas.Dcopy(16, btmp.Off(0, 0), t16.VectorIdx(0, 1))
 	t16.Set(0, 0, tl.Get(0, 0)+sgn*tr.Get(0, 0))
 	t16.Set(1, 1, tl.Get(1, 1)+sgn*tr.Get(0, 0))
 	t16.Set(2, 2, tl.Get(0, 0)+sgn*tr.Get(1, 1))
@@ -225,13 +225,13 @@ label50:
 			}
 		}
 		if ipsv != i {
-			goblas.Dswap(4, t16.Vector(ipsv-1, 0), 4, t16.Vector(i-1, 0), 4)
+			goblas.Dswap(4, t16.Vector(ipsv-1, 0, 4), t16.Vector(i-1, 0, 4))
 			temp = btmp.Get(i - 1)
 			btmp.Set(i-1, btmp.Get(ipsv-1))
 			btmp.Set(ipsv-1, temp)
 		}
 		if jpsv != i {
-			goblas.Dswap(4, t16.Vector(0, jpsv-1), 1, t16.Vector(0, i-1), 1)
+			goblas.Dswap(4, t16.Vector(0, jpsv-1, 1), t16.Vector(0, i-1, 1))
 		}
 		jpiv[i-1] = jpsv
 		if math.Abs(t16.Get(i-1, i-1)) < smin {
@@ -252,7 +252,7 @@ label50:
 	}
 	(*scale) = one
 	if (eight*smlnum)*math.Abs(btmp.Get(0)) > math.Abs(t16.Get(0, 0)) || (eight*smlnum)*math.Abs(btmp.Get(1)) > math.Abs(t16.Get(1, 1)) || (eight*smlnum)*math.Abs(btmp.Get(2)) > math.Abs(t16.Get(2, 2)) || (eight*smlnum)*math.Abs(btmp.Get(3)) > math.Abs(t16.Get(3, 3)) {
-		(*scale) = (one / eight) / maxf64(math.Abs(btmp.Get(0)), math.Abs(btmp.Get(1)), math.Abs(btmp.Get(2)), math.Abs(btmp.Get(3)))
+		(*scale) = (one / eight) / math.Max(math.Abs(btmp.Get(0)), math.Max(math.Abs(btmp.Get(1)), math.Max(math.Abs(btmp.Get(2)), math.Abs(btmp.Get(3)))))
 		btmp.Set(0, btmp.Get(0)*(*scale))
 		btmp.Set(1, btmp.Get(1)*(*scale))
 		btmp.Set(2, btmp.Get(2)*(*scale))
@@ -277,5 +277,5 @@ label50:
 	x.Set(1, 0, tmp.Get(1))
 	x.Set(0, 1, tmp.Get(2))
 	x.Set(1, 1, tmp.Get(3))
-	(*xnorm) = maxf64(math.Abs(tmp.Get(0))+math.Abs(tmp.Get(2)), math.Abs(tmp.Get(1))+math.Abs(tmp.Get(3)))
+	(*xnorm) = math.Max(math.Abs(tmp.Get(0))+math.Abs(tmp.Get(2)), math.Abs(tmp.Get(1))+math.Abs(tmp.Get(3)))
 }

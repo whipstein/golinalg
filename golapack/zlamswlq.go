@@ -41,13 +41,13 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 		(*info) = -4
 	} else if (*k) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -9
-	} else if (*ldt) < maxint(1, *mb) {
+	} else if (*ldt) < max(1, *mb) {
 		(*info) = -11
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -13
-	} else if ((*lwork) < maxint(1, lw)) && (!lquery) {
+	} else if ((*lwork) < max(1, lw)) && (!lquery) {
 		(*info) = -15
 	}
 
@@ -61,11 +61,11 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *k) == 0 {
+	if min(*m, *n, *k) == 0 {
 		return
 	}
 
-	if ((*nb) <= (*k)) || ((*nb) >= maxint(*m, *n, *k)) {
+	if ((*nb) <= (*k)) || ((*nb) >= max(*m, *n, *k)) {
 		Zgemlqt(side, trans, m, n, k, mb, a, lda, t, ldt, c, ldc, work, info)
 		return
 	}
@@ -77,7 +77,7 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 
 		if kk > 0 {
 			ii = (*m) - kk + 1
-			Ztpmlqt('L', 'C', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
+			Ztpmlqt('L', 'C', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
 		} else {
 			ii = (*m) + 1
 		}
@@ -85,7 +85,7 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 		for i = ii - ((*nb) - (*k)); i >= (*nb)+1; i -= ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+NB)
 			ctr = ctr - 1
-			Ztpmlqt('L', 'C', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
+			Ztpmlqt('L', 'C', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
 		}
 
 		//         Multiply Q to the first block of C (1:M,1:NB)
@@ -100,13 +100,13 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 
 		for i = (*nb) + 1; i <= ii-(*nb)+(*k); i += ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (I:I+NB,1:N)
-			Ztpmlqt('L', 'N', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
+			Ztpmlqt('L', 'N', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
 			ctr = ctr + 1
 
 		}
 		if ii <= (*m) {
 			//         Multiply Q to the last block of C
-			Ztpmlqt('L', 'N', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
+			Ztpmlqt('L', 'N', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
 
 		}
 
@@ -116,7 +116,7 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 		ctr = ((*n) - (*k)) / ((*nb) - (*k))
 		if kk > 0 {
 			ii = (*n) - kk + 1
-			Ztpmlqt('R', 'N', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
+			Ztpmlqt('R', 'N', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
 		} else {
 			ii = (*n) + 1
 		}
@@ -124,7 +124,7 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 		for i = ii - ((*nb) - (*k)); i >= (*nb)+1; i -= ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+MB)
 			ctr = ctr - 1
-			Ztpmlqt('R', 'N', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
+			Ztpmlqt('R', 'N', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
 		}
 
 		//         Multiply Q to the first block of C (1:M,1:MB)
@@ -139,13 +139,13 @@ func Zlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.CMatrix, lda *int, 
 
 		for i = (*nb) + 1; i <= ii-(*nb)+(*k); i += ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+MB)
-			Ztpmlqt('R', 'C', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
+			Ztpmlqt('R', 'C', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
 			ctr = ctr + 1
 
 		}
 		if ii <= (*n) {
 			//       Multiply Q to the last block of C
-			Ztpmlqt('R', 'C', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
+			Ztpmlqt('R', 'C', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
 
 		}
 

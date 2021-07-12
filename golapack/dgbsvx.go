@@ -63,13 +63,13 @@ func Dgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, a
 			rcmin = bignum
 			rcmax = zero
 			for j = 1; j <= (*n); j++ {
-				rcmin = minf64(rcmin, r.Get(j-1))
-				rcmax = maxf64(rcmax, r.Get(j-1))
+				rcmin = math.Min(rcmin, r.Get(j-1))
+				rcmax = math.Max(rcmax, r.Get(j-1))
 			}
 			if rcmin <= zero {
 				(*info) = -13
 			} else if (*n) > 0 {
-				rowcnd = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+				rowcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				rowcnd = one
 			}
@@ -78,21 +78,21 @@ func Dgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, a
 			rcmin = bignum
 			rcmax = zero
 			for j = 1; j <= (*n); j++ {
-				rcmin = minf64(rcmin, c.Get(j-1))
-				rcmax = maxf64(rcmax, c.Get(j-1))
+				rcmin = math.Min(rcmin, c.Get(j-1))
+				rcmax = math.Max(rcmax, c.Get(j-1))
 			}
 			if rcmin <= zero {
 				(*info) = -14
 			} else if (*n) > 0 {
-				colcnd = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+				colcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				colcnd = one
 			}
 		}
 		if (*info) == 0 {
-			if (*ldb) < maxint(1, *n) {
+			if (*ldb) < max(1, *n) {
 				(*info) = -16
-			} else if (*ldx) < maxint(1, *n) {
+			} else if (*ldx) < max(1, *n) {
 				(*info) = -18
 			}
 		}
@@ -134,9 +134,9 @@ func Dgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, a
 	if nofact || equil {
 		//        Compute the LU factorization of the band matrix A.
 		for j = 1; j <= (*n); j++ {
-			j1 = maxint(j-(*ku), 1)
-			j2 = minint(j+(*kl), *n)
-			goblas.Dcopy(j2-j1+1, ab.Vector((*ku)+1-j+j1-1, j-1), 1, afb.Vector((*kl)+(*ku)+1-j+j1-1, j-1), 1)
+			j1 = max(j-(*ku), 1)
+			j2 = min(j+(*kl), *n)
+			goblas.Dcopy(j2-j1+1, ab.Vector((*ku)+1-j+j1-1, j-1, 1), afb.Vector((*kl)+(*ku)+1-j+j1-1, j-1, 1))
 		}
 
 		Dgbtrf(n, n, kl, ku, afb, ldafb, ipiv, info)
@@ -147,11 +147,11 @@ func Dgbsvx(fact, trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, a
 			//           leading rank-deficient INFO columns of A.
 			anorm = zero
 			for j = 1; j <= (*info); j++ {
-				for i = maxint((*ku)+2-j, 1); i <= minint((*n)+(*ku)+1-j, (*kl)+(*ku)+1); i++ {
-					anorm = maxf64(anorm, math.Abs(ab.Get(i-1, j-1)))
+				for i = max((*ku)+2-j, 1); i <= min((*n)+(*ku)+1-j, (*kl)+(*ku)+1); i++ {
+					anorm = math.Max(anorm, math.Abs(ab.Get(i-1, j-1)))
 				}
 			}
-			rpvgrw = Dlantb('M', 'U', 'N', info, toPtr(minint((*info)-1, (*kl)+(*ku))), afb.Off(maxint(1, (*kl)+(*ku)+2-(*info))-1, 0), ldafb, work)
+			rpvgrw = Dlantb('M', 'U', 'N', info, toPtr(min((*info)-1, (*kl)+(*ku))), afb.Off(max(1, (*kl)+(*ku)+2-(*info))-1, 0), ldafb, work)
 			if rpvgrw == zero {
 				rpvgrw = one
 			} else {

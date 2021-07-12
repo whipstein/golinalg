@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -38,19 +40,19 @@ func Dppt02(uplo byte, n, nrhs *int, a *mat.Vector, x *mat.Matrix, ldx *int, b *
 
 	//     Compute  B - A*X  for the matrix of right hand sides B.
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Dspmv(mat.UploByte(uplo), *n, -one, a, x.Vector(0, j-1), 1, one, b.Vector(0, j-1), 1)
+		err = goblas.Dspmv(mat.UploByte(uplo), *n, -one, a, x.Vector(0, j-1, 1), one, b.Vector(0, j-1, 1))
 	}
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(*n, b.Vector(0, j-1), 1)
-		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
+		bnorm = goblas.Dasum(*n, b.Vector(0, j-1, 1))
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

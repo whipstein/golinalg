@@ -16,11 +16,11 @@ import (
 //
 // using the 1-norm.  It also tests the normalization of E:
 //
-//    RESULT(2) = maxint | m-norm(E(j)) - 1 | / ( n ulp )
+//    RESULT(2) = max | m-norm(E(j)) - 1 | / ( n ulp )
 //                 j
 //
-// where E(j) is the j-th eigenvector, and m-norm is the maxint-norm of a
-// vector.  The maxint-norm of a complex n-vector x in this case is the
+// where E(j) is the j-th eigenvector, and m-norm is the max-norm of a
+// vector.  The max-norm of a complex n-vector x in this case is the
 // maximum of |re(x(i)| + |im(x(i)| over i = 1, ..., n.
 func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *mat.CMatrix, lde *int, w, work *mat.CVector, rwork, result *mat.Vector) {
 	var norma, norme byte
@@ -73,10 +73,10 @@ func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *ma
 		for jvec = 1; jvec <= (*n); jvec++ {
 			temp1 = zero
 			for j = 1; j <= (*n); j++ {
-				temp1 = maxf64(temp1, math.Abs(e.GetRe(j-1, jvec-1))+math.Abs(e.GetIm(j-1, jvec-1)))
+				temp1 = math.Max(temp1, math.Abs(e.GetRe(j-1, jvec-1))+math.Abs(e.GetIm(j-1, jvec-1)))
 			}
-			enrmin = minf64(enrmin, temp1)
-			enrmax = maxf64(enrmax, temp1)
+			enrmin = math.Min(enrmin, temp1)
+			enrmax = math.Max(enrmax, temp1)
 		}
 	} else {
 		for jvec = 1; jvec <= (*n); jvec++ {
@@ -85,21 +85,21 @@ func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *ma
 
 		for j = 1; j <= (*n); j++ {
 			for jvec = 1; jvec <= (*n); jvec++ {
-				rwork.Set(jvec-1, maxf64(rwork.Get(jvec-1), math.Abs(e.GetRe(jvec-1, j-1))+math.Abs(e.GetIm(jvec-1, j-1))))
+				rwork.Set(jvec-1, math.Max(rwork.Get(jvec-1), math.Abs(e.GetRe(jvec-1, j-1))+math.Abs(e.GetIm(jvec-1, j-1))))
 			}
 		}
 
 		for jvec = 1; jvec <= (*n); jvec++ {
-			enrmin = minf64(enrmin, rwork.Get(jvec-1))
-			enrmax = maxf64(enrmax, rwork.Get(jvec-1))
+			enrmin = math.Min(enrmin, rwork.Get(jvec-1))
+			enrmax = math.Max(enrmax, rwork.Get(jvec-1))
 		}
 	}
 
 	//     Norm of A:
-	anorm = maxf64(golapack.Zlange(norma, n, n, a, lda, rwork), unfl)
+	anorm = math.Max(golapack.Zlange(norma, n, n, a, lda, rwork), unfl)
 
 	//     Norm of E:
-	enorm = maxf64(golapack.Zlange(norme, n, n, e, lde, rwork), ulp)
+	enorm = math.Max(golapack.Zlange(norme, n, n, e, lde, rwork), ulp)
 
 	//     Norm of error:
 	//
@@ -130,7 +130,7 @@ func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *ma
 		joff = joff + (*n)
 	}
 
-	err = goblas.Zgemm(mat.TransByte(transa), mat.TransByte(transe), *n, *n, *n, cone, a, *lda, e, *lde, -cone, work.CMatrix(*n, opts), *n)
+	err = goblas.Zgemm(mat.TransByte(transa), mat.TransByte(transe), *n, *n, *n, cone, a, e, -cone, work.CMatrix(*n, opts))
 
 	errnrm = golapack.Zlange('O', n, n, work.CMatrix(*n, opts), n, rwork) / enorm
 
@@ -139,12 +139,12 @@ func Zget22(transa, transe, transw byte, n *int, a *mat.CMatrix, lda *int, e *ma
 		result.Set(0, (errnrm/anorm)/ulp)
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(errnrm, anorm)/anorm)/ulp)
+			result.Set(0, (math.Min(errnrm, anorm)/anorm)/ulp)
 		} else {
-			result.Set(0, minf64(errnrm/anorm, one)/ulp)
+			result.Set(0, math.Min(errnrm/anorm, one)/ulp)
 		}
 	}
 
 	//     Compute RESULT(2) : the normalization error in E.
-	result.Set(1, maxf64(math.Abs(enrmax-one), math.Abs(enrmin-one))/(float64(*n)*ulp))
+	result.Set(1, math.Max(math.Abs(enrmax-one), math.Abs(enrmin-one))/(float64(*n)*ulp))
 }

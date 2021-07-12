@@ -12,9 +12,9 @@ import (
 //
 // where alpha and beta are scalars, x and y are vectors and A is an
 // m by n band matrix, with kl sub-diagonals and ku super-diagonals.
-func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, lda int, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int) (err error) {
+func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, x *mat.Vector, beta float64, y *mat.Vector) (err error) {
 	var one, temp, zero float64
-	var i, ix, iy, j, jx, jy, k, kup1, kx, ky, lenx, leny int
+	var i, j, k, kup1, lenx, leny int
 
 	one = 1.0
 	zero = 0.0
@@ -30,12 +30,8 @@ func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, l
 		err = fmt.Errorf("kl invalid: %v", kl)
 	} else if ku < 0 {
 		err = fmt.Errorf("ku invalid: %v", ku)
-	} else if lda < (kl + ku + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < (kl + ku + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, kl+ku+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dgbmv"), err)
@@ -56,30 +52,21 @@ func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, l
 		lenx = m
 		leny = n
 	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (lenx-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (leny-1)*incy
-	}
+	xiter := x.Iter(lenx)
+	yiter := y.Iter(leny)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the band part of A.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, i = range y.Iter(leny) {
+				y.Set(i, zero)
 			}
 		} else {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, i = range y.Iter(leny) {
+				y.Set(i, beta*y.Get(i))
 			}
 		}
 	}
@@ -89,28 +76,22 @@ func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, l
 	kup1 = ku + 1
 	if trans == mat.NoTrans {
 		//        Form  y := alpha*A*x + y.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			temp = alpha * x.Get(jx-1)
-			k = kup1 - j
-			for i, iy = max(1, j-ku), ky; i <= min(m, j+kl); i, iy = i+1, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp*a.Get(k+i-1, j-1))
-			}
-			if j > ku {
-				ky += incy
+		for j = 0; j < n; j++ {
+			temp = alpha * x.Get(xiter[j])
+			k = kup1 - (j + 1)
+			for i = max(0, j-ku); i < min(m, (j+1)+kl); i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp*a.Get(k+i, j))
 			}
 		}
 	} else {
 		//        Form  y := alpha*A**T*x + y.
-		for j, jy = 1, ky; j <= n; j, jy = j+1, jy+incy {
+		for j = 0; j < n; j++ {
 			temp = zero
-			k = kup1 - j
-			for i, ix = max(1, j-ku), kx; i <= min(m, j+kl); i, ix = i+1, ix+incx {
-				temp += a.Get(k+i-1, j-1) * x.Get(ix-1)
+			k = kup1 - (j + 1)
+			for i = max(0, j-ku); i < min(m, (j+1)+kl); i++ {
+				temp += a.Get(k+i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp)
-			if j > ku {
-				kx += incx
-			}
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp)
 		}
 	}
 
@@ -123,9 +104,9 @@ func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, l
 //
 // where alpha and beta are scalars, x and y are vectors and A is an
 // m by n matrix.
-func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int) (err error) {
+func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, x *mat.Vector, beta float64, y *mat.Vector) (err error) {
 	var one, temp, zero float64
-	var i, ix, iy, j, jx, jy, kx, ky, lenx, leny int
+	var i, ix, iy, j, jx, jy, leny int
 
 	one = 1.0
 	zero = 0.0
@@ -137,12 +118,8 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, 
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, m) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dgemv"), err)
@@ -157,21 +134,9 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, 
 	//     Set  LENX  and  LENY, the lengths of the vectors x and y, and set
 	//     up the start points in  X  and  Y.
 	if trans == mat.NoTrans {
-		lenx = n
 		leny = m
 	} else {
-		lenx = m
 		leny = n
-	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (lenx-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (leny-1)*incy
 	}
 
 	//     Start the operations. In this version the elements of A are
@@ -179,14 +144,13 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, 
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, i = range y.Iter(leny) {
+				y.Set(i, zero)
 			}
 		} else {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, i = range y.Iter(leny) {
+				y.Set(i, beta*y.Get(i))
 			}
 		}
 	}
@@ -195,93 +159,24 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, 
 	}
 	if trans == mat.NoTrans {
 		//        Form  y := alpha*A*x + y.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			temp = alpha * x.Get(jx-1)
-			for i, iy = 1, ky; i <= m; i, iy = i+1, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp*a.Get(i-1, j-1))
+		for j, jx = range x.Iter(n) {
+			temp = alpha * x.Get(jx)
+			for i, iy = range y.Iter(m) {
+				y.Set(iy, y.Get(iy)+temp*a.Get(i, j))
 			}
 		}
 	} else {
-		for j, jy = 1, ky; j <= n; j, jy = j+1, jy+incy {
+		for j, jy = range y.Iter(n) {
 			temp = zero
-			for i, ix = 1, kx; i <= m; i, ix = i+1, ix+incx {
-				temp += a.Get(i-1, j-1) * x.Get(ix-1)
+			for i, ix = range x.Iter(m) {
+				temp += a.Get(i, j) * x.Get(ix)
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp)
+			y.Set(jy, y.Get(jy)+alpha*temp)
 		}
 	}
 
-	// blocksize := 512
-
-	// if n < minParBlocks*blocksize {
-	// 	dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy)
-	// } else {
-	// 	nblocks := blocks(n, blocksize)
-	// 	var wg sync.WaitGroup
-	// 	defer wg.Wait()
-
-	// 	for i := 0; i < nblocks; i++ {
-	// 		size := blocksize
-	// 		if (i+1)*blocksize > n {
-	// 			size = n - i*blocksize
-	// 		}
-	// 		wg.Add(1)
-	// 		go func(i, size int) {
-	// 			defer wg.Done()
-	// 			dgemv(trans, m, n, alpha, a.Off(), lda, x.Off(i*blocksize*incx), incx, beta, y.Off(i*blocksize*incy), incy)
-	// 		}(i, size)
-	// 	}
-	// }
-
 	return
 }
-
-// func dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int) (err error) {
-// 	var one, temp, zero float64
-// 	var i, ix, iy, j, jx, jy, kx, ky, leny int
-
-// 	one = 1.0
-// 	zero = 0.0
-
-// 	//     Start the operations. In this version the elements of A are
-// 	//     accessed sequentially with one pass through A.
-// 	//
-// 	//     First form  y := beta*y.
-// 	if beta != one {
-// 		iy = ky
-// 		if beta == zero {
-// 			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-// 				y.Set(iy-1, zero)
-// 			}
-// 		} else {
-// 			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-// 				y.Set(iy-1, beta*y.Get(iy-1))
-// 			}
-// 		}
-// 	}
-// 	if alpha == zero {
-// 		return
-// 	}
-// 	if trans == mat.NoTrans {
-// 		//        Form  y := alpha*A*x + y.
-// 		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-// 			temp = alpha * x.Get(jx-1)
-// 			for i, iy = 1, ky; i <= m; i, iy = i+1, iy+incy {
-// 				y.Set(iy-1, y.Get(iy-1)+temp*a.Get(i-1, j-1))
-// 			}
-// 		}
-// 	} else {
-// 		for j, jy = 1, ky; j <= n; j, jy = j+1, jy+incy {
-// 			temp = zero
-// 			for i, ix = 1, kx; i <= m; i, ix = i+1, ix+incx {
-// 				temp += a.Get(i-1, j-1) * x.Get(ix-1)
-// 			}
-// 			y.Set(jy-1, y.Get(jy-1)+alpha*temp)
-// 		}
-// 	}
-
-// 	return
-// }
 
 // Dsbmv performs the matrix-vector  operation
 //
@@ -289,9 +184,9 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, lda int, 
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n symmetric band matrix, with k super-diagonals.
-func Dsbmv(uplo mat.MatUplo, n, k int, alpha float64, a *mat.Matrix, lda int, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int) (err error) {
+func Dsbmv(uplo mat.MatUplo, n, k int, alpha float64, a *mat.Matrix, x *mat.Vector, beta float64, y *mat.Vector) (err error) {
 	var one, temp1, temp2, zero float64
-	var i, ix, iy, j, jx, jy, kplus1, kx, ky, l int
+	var i, j, kplus1, l int
 
 	one = 1.0
 	zero = 0.0
@@ -303,12 +198,8 @@ func Dsbmv(uplo mat.MatUplo, n, k int, alpha float64, a *mat.Matrix, lda int, x 
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < (k + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < (k + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, k+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsbmv"), err)
@@ -320,31 +211,21 @@ func Dsbmv(uplo mat.MatUplo, n, k int, alpha float64, a *mat.Matrix, lda int, x 
 		return
 	}
 
-	//     Set up the start points in  X  and  Y.
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (n-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (n-1)*incy
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of the array A
 	//     are accessed sequentially with one pass through A.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, i = range y.Iter(n) {
+				y.Set(i, zero)
 			}
 		} else {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, i = range y.Iter(n) {
+				y.Set(i, beta*y.Get(i))
 			}
 		}
 	}
@@ -354,31 +235,27 @@ func Dsbmv(uplo mat.MatUplo, n, k int, alpha float64, a *mat.Matrix, lda int, x 
 	if uplo == mat.Upper {
 		//        Form  y  when upper triangle of A is stored.
 		kplus1 = k + 1
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			l = kplus1 - j
-			for i, ix, iy = max(1, j-k), kx, ky; i <= j-1; i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
-				temp2 += a.Get(l+i-1, j-1) * x.Get(ix-1)
+			l = kplus1 - (j + 1)
+			for i = max(0, j-k); i < j; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(l+i, j))
+				temp2 += a.Get(l+i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(kplus1-1, j-1)+alpha*temp2)
-			if j > k {
-				kx += incx
-				ky += incy
-			}
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.Get(kplus1-1, j)+alpha*temp2)
 		}
 	} else {
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(0, j-1))
-			l = 1 - j
-			for i, ix, iy = j+1, jx+incx, jy+incy; i <= min(n, j+k); i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
-				temp2 += a.Get(l+i-1, j-1) * x.Get(ix-1)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.Get(0, j))
+			l = 1 - (j + 1)
+			for i = j + 1; i < min(n, j+1+k); i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(l+i, j))
+				temp2 += a.Get(l+i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp2)
 		}
 	}
 
@@ -391,9 +268,9 @@ func Dsbmv(uplo mat.MatUplo, n, k int, alpha float64, a *mat.Matrix, lda int, x 
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n symmetric matrix, supplied in packed form.
-func Dspmv(uplo mat.MatUplo, n int, alpha float64, ap, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int) (err error) {
+func Dspmv(uplo mat.MatUplo, n int, alpha float64, ap, x *mat.Vector, beta float64, y *mat.Vector) (err error) {
 	var one, temp1, temp2, zero float64
-	var i, ix, iy, j, jx, jy, k, kk, kx, ky int
+	var i, ix, iy, j, k, kk int
 
 	one = 1.0
 	zero = 0.0
@@ -403,10 +280,6 @@ func Dspmv(uplo mat.MatUplo, n int, alpha float64, ap, x *mat.Vector, incx int, 
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dspmv"), err)
@@ -418,31 +291,21 @@ func Dspmv(uplo mat.MatUplo, n int, alpha float64, ap, x *mat.Vector, incx int, 
 		return
 	}
 
-	//     Set up the start points in  X  and  Y.
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (n-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (n-1)*incy
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of the array AP
 	//     are accessed sequentially with one pass through AP.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, i = range y.Iter(n) {
+				y.Set(i, zero)
 			}
 		} else {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, i = range y.Iter(n) {
+				y.Set(i, beta*y.Get(i))
 			}
 		}
 	}
@@ -452,28 +315,28 @@ func Dspmv(uplo mat.MatUplo, n int, alpha float64, ap, x *mat.Vector, incx int, 
 	kk = 1
 	if uplo == mat.Upper {
 		//        Form  y  when AP contains the upper triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			for k, ix, iy = kk, kx, ky; k <= kk+j-2; k, ix, iy = k+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*ap.Get(k-1))
-				temp2 += ap.Get(k-1) * x.Get(ix-1)
+			for k, ix, iy = kk-1, xiter[0], yiter[0]; k < kk+j-1; k, ix, iy = k+1, ix+x.Inc, iy+y.Inc {
+				y.Set(iy, y.Get(iy)+temp1*ap.Get(k))
+				temp2 += ap.Get(k) * x.Get(ix)
 			}
-			y.Set(jy-1, y.Get(jy-1)+temp1*ap.Get(kk+j-1-1)+alpha*temp2)
-			kk += j
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*ap.Get(kk+j-1)+alpha*temp2)
+			kk += j + 1
 		}
 	} else {
 		//        Form  y  when AP contains the lower triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			y.Set(jy-1, y.Get(jy-1)+temp1*ap.Get(kk-1))
-			for k, ix, iy = kk+1, jx+incx, jy+incy; k <= kk+n-j; k, ix, iy = k+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*ap.Get(k-1))
-				temp2 += ap.Get(k-1) * x.Get(ix-1)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*ap.Get(kk-1))
+			for k, ix, iy = kk, xiter[j]+x.Inc, yiter[j]+y.Inc; k < kk+n-(j+1); k, ix, iy = k+1, ix+x.Inc, iy+y.Inc {
+				y.Set(iy, y.Get(iy)+temp1*ap.Get(k))
+				temp2 += ap.Get(k) * x.Get(ix)
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
-			kk += n - j + 1
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp2)
+			kk += n - (j + 1) + 1
 		}
 	}
 
@@ -486,9 +349,9 @@ func Dspmv(uplo mat.MatUplo, n int, alpha float64, ap, x *mat.Vector, incx int, 
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n symmetric matrix.
-func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, lda int, x *mat.Vector, incx int, beta float64, y *mat.Vector, incy int) (err error) {
+func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, x *mat.Vector, beta float64, y *mat.Vector) (err error) {
 	var one, temp1, temp2, zero float64
-	var i, ix, iy, j, jx, jy, kx, ky int
+	var i, j int
 
 	one = 1.0
 	zero = 0.0
@@ -498,12 +361,8 @@ func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, lda int, x *ma
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsymv"), err)
@@ -515,17 +374,8 @@ func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, lda int, x *ma
 		return
 	}
 
-	//     Set up the start points in  X  and  Y.
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (n-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (n-1)*incy
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the triangular part
@@ -533,14 +383,13 @@ func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, lda int, x *ma
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, i = range y.Iter(n) {
+				y.Set(i, zero)
 			}
 		} else {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, i = range y.Iter(n) {
+				y.Set(i, beta*y.Get(i))
 			}
 		}
 	}
@@ -549,26 +398,26 @@ func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, lda int, x *ma
 	}
 	if uplo == mat.Upper {
 		//        Form  y  when A is stored in upper triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			for i, ix, iy = 1, kx, ky; i <= j-1; i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(i-1, j-1))
-				temp2 += a.Get(i-1, j-1) * x.Get(ix-1)
+			for i = 0; i < j; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(i, j))
+				temp2 += a.Get(i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(j-1, j-1)+alpha*temp2)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.Get(j, j)+alpha*temp2)
 		}
 	} else {
 		//        Form  y  when A is stored in lower triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(j-1, j-1))
-			for i, ix, iy = j+1, jx+incx, jy+incy; i <= n; i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(i-1, j-1))
-				temp2 += a.Get(i-1, j-1) * x.Get(ix-1)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.Get(j, j))
+			for i = j + 1; i < n; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(i, j))
+				temp2 += a.Get(i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp2)
 		}
 	}
 
@@ -581,10 +430,10 @@ func Dsymv(uplo mat.MatUplo, n int, alpha float64, a *mat.Matrix, lda int, x *ma
 //
 // where x is an n element vector and  A is an n by n unit, or non-unit,
 // upper or lower triangular band matrix, with ( k + 1 ) diagonals.
-func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.Matrix, lda int, x *mat.Vector, incx int) (err error) {
+func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.Matrix, x *mat.Vector) (err error) {
 	var nounit bool
 	var temp, zero float64
-	var i, ix, j, jx, kplus1, kx, l int
+	var i, j, kplus1, l int
 
 	zero = 0.0
 
@@ -599,10 +448,8 @@ func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < (k + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < (k + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, k+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtbmv"), err)
@@ -618,14 +465,7 @@ func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX   too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
@@ -633,36 +473,29 @@ func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		//         Form  x := A*x.
 		if uplo == mat.Upper {
 			kplus1 = k + 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					l = kplus1 - j
-					for i, ix = max(1, j-k), kx; i <= j-1; i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(l+i-1, j-1))
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					l = kplus1 - (j + 1)
+					for i = max(0, j-k); i < j; i++ {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(l+i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(kplus1-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(kplus1-1, j))
 					}
-				}
-				if j > k {
-					kx += incx
 				}
 			}
 		} else {
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					l = 1 - j
-					for i, ix = min(n, j+k), kx; i >= j+1; i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(l+i-1, j-1))
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					l = 1 - (j + 1)
+					for i = min(n-1, j+k); i > j; i-- {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(l+i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(0, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(0, j))
 					}
-				}
-				if (n - j) >= k {
-					kx -= incx
 				}
 			}
 		}
@@ -670,31 +503,28 @@ func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		//        Form  x := A**T*x.
 		if uplo == mat.Upper {
 			kplus1 = k + 1
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				kx -= incx
-				l = kplus1 - j
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
+				l = kplus1 - (j + 1)
 				if nounit {
-					temp *= a.Get(kplus1-1, j-1)
+					temp *= a.Get(kplus1-1, j)
 				}
-				for i, ix = j-1, kx; i >= max(1, j-k); i, ix = i-1, ix-incx {
-					temp += a.Get(l+i-1, j-1) * x.Get(ix-1)
+				for i = j - 1; i >= max(0, j-k); i-- {
+					temp += a.Get(l+i, j) * x.Get(xiter[i])
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				kx += incx
-				l = 1 - j
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
+				l = 1 - (j + 1)
 				if nounit {
-					temp *= a.Get(0, j-1)
+					temp *= a.Get(0, j)
 				}
-				for i, ix = j+1, kx; i <= min(n, j+k); i, ix = i+1, ix+incx {
-					temp += a.Get(l+i-1, j-1) * x.Get(ix-1)
+				for i = j + 1; i < min(n, j+k+1); i++ {
+					temp += a.Get(l+i, j) * x.Get(xiter[i])
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -712,10 +542,10 @@ func Dtbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 //
 // No test for singularity or near-singularity is included in this
 // routine. Such tests must be performed before calling this routine.
-func Dtbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.Matrix, lda int, x *mat.Vector, incx int) (err error) {
+func Dtbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.Matrix, x *mat.Vector) (err error) {
 	var nounit bool
 	var temp, zero float64
-	var i, ix, j, jx, kplus1, kx, l int
+	var i, j, kplus1, l int
 
 	zero = 0.0
 
@@ -730,10 +560,8 @@ func Dtbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < (k + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < (k + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, k+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtbsv"), err)
@@ -749,46 +577,36 @@ func Dtbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed by sequentially with one pass through A.
 	if trans == mat.NoTrans {
 		//        Form  x := inv( A )*x.
 		if uplo == mat.Upper {
-			kplus1 = k + 1
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				kx -= incx
-				if x.Get(jx-1) != zero {
+			kplus1 = k
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
 					l = kplus1 - j
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(kplus1-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(kplus1, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j-1, kx; i >= max(1, j-k); i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(l+i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j - 1; i >= max(0, j-k); i-- {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(l+i, j))
 					}
 				}
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				kx += incx
-				if x.Get(jx-1) != zero {
-					l = 1 - j
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					l = -j
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(0, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(0, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j+1, kx; i <= min(n, j+k); i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(l+i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j + 1; i < min(n, j+k+1); i++ {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(l+i, j))
 					}
 				}
 			}
@@ -796,36 +614,29 @@ func Dtbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 	} else {
 		//        Form  x := inv( A**T)*x.
 		if uplo == mat.Upper {
-			kplus1 = k + 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
+			kplus1 = k
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				l = kplus1 - j
-				for i, ix = max(1, j-k), kx; i <= j-1; i, ix = i+1, ix+incx {
-					temp -= a.Get(l+i-1, j-1) * x.Get(ix-1)
+				for i = max(0, j-k); i < j; i++ {
+					temp -= a.Get(l+i, j) * x.Get(xiter[i])
 				}
 				if nounit {
-					temp /= a.Get(kplus1-1, j-1)
+					temp /= a.Get(kplus1, j)
 				}
-				x.Set(jx-1, temp)
-				if j > k {
-					kx += incx
-				}
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				l = 1 - j
-				for i, ix = min(n, j+k), kx; i >= j+1; i, ix = i-1, ix-incx {
-					temp -= a.Get(l+i-1, j-1) * x.Get(ix-1)
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
+				l = 1 - j - 1
+				for i = min(n-1, j+k); i > j; i-- {
+					temp -= a.Get(l+i, j) * x.Get(xiter[i])
 				}
 				if nounit {
-					temp /= a.Get(0, j-1)
+					temp /= a.Get(0, j)
 				}
-				x.Set(jx-1, temp)
-				if (n - j) >= k {
-					kx -= incx
-				}
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -839,10 +650,10 @@ func Dtbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 //
 // where x is an n element vector and  A is an n by n unit, or non-unit,
 // upper or lower triangular matrix, supplied in packed form.
-func Dtpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.Vector, incx int) (err error) {
+func Dtpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.Vector) (err error) {
 	var nounit bool
 	var temp, zero float64
-	var ix, j, jx, k, kk, kx int
+	var i, j, k, kk int
 
 	zero = 0.0
 
@@ -855,8 +666,6 @@ func Dtpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtpmv"), err)
@@ -872,76 +681,67 @@ func Dtpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of AP are
 	//     accessed sequentially with one pass through AP.
 	if trans == mat.NoTrans {
 		//        Form  x:= A*x.
 		if uplo == mat.Upper {
-			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for k, ix = kk, kx; k <= kk+j-2; k, ix = k+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*ap.Get(k-1))
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*ap.Get(k))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*ap.Get(kk+j-1-1))
+						x.Set(xiter[j], x.Get(xiter[j])*ap.Get(kk+j))
 					}
 				}
-				kk += j
+				kk += j + 1
 			}
 		} else {
 			kk = (n * (n + 1)) / 2
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for k, ix = kk, kx; k >= kk-(n-(j+1)); k, ix = k-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*ap.Get(k-1))
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i, k = n-1, kk-1; k > kk-n+j; i, k = i-1, k-1 {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*ap.Get(k))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*ap.Get(kk-n+j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*ap.Get(kk-n+j))
 					}
 				}
-				kk -= (n - j + 1)
+				kk -= (n - j)
 			}
 		}
 	} else {
 		//        Form  x := A**T*x.
 		if uplo == mat.Upper {
 			kk = (n * (n + 1)) / 2
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				if nounit {
 					temp *= ap.Get(kk - 1)
 				}
-				for k, ix = kk-1, jx-incx; k >= kk-j+1; k, ix = k-1, ix-incx {
-					temp += ap.Get(k-1) * x.Get(ix-1)
+				for i, k = j-1, kk-2; k >= kk-j-1; i, k = i-1, k-1 {
+					temp += ap.Get(k) * x.Get(xiter[i])
 				}
-				x.Set(jx-1, temp)
-				kk -= j
+				x.Set(xiter[j], temp)
+				kk -= (j + 1)
 			}
 		} else {
 			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				if nounit {
 					temp *= ap.Get(kk - 1)
 				}
-				for k, ix = kk+1, jx+incx; k <= kk+n-j; k, ix = k+1, ix+incx {
-					temp += ap.Get(k-1) * x.Get(ix-1)
+				for i, k = j+1, kk; k < kk+n-(j+1); i, k = i+1, k+1 {
+					temp += ap.Get(k) * x.Get(xiter[i])
 				}
-				x.Set(jx-1, temp)
-				kk += (n - j + 1)
+				x.Set(xiter[j], temp)
+				kk += (n - j)
 			}
 		}
 	}
@@ -958,10 +758,10 @@ func Dtpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 //
 // No test for singularity or near-singularity is included in this
 // routine. Such tests must be performed before calling this routine.
-func Dtpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.Vector, incx int) (err error) {
+func Dtpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.Vector) (err error) {
 	var nounit bool
 	var temp, zero float64
-	var ix, j, jx, k, kk, kx int
+	var i, j, k, kk int
 
 	zero = 0.0
 
@@ -974,8 +774,6 @@ func Dtpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtpsv"), err)
@@ -991,76 +789,66 @@ func Dtpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of AP are
 	//     accessed sequentially with one pass through AP.
 	if trans == mat.NoTrans {
 		//        Form  x := inv( A )*x.
 		if uplo == mat.Upper {
-			kk = (n * (n + 1)) / 2
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
+			kk = (n*(n+1))/2 - 1
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/ap.Get(kk-1))
+						x.Set(xiter[j], x.Get(xiter[j])/ap.Get(kk))
 					}
-					temp = x.Get(jx - 1)
-					for k, ix = kk-1, jx-incx; k >= kk-j+1; k, ix = k-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*ap.Get(k-1))
+					temp = x.Get(xiter[j])
+					for i, k = j-1, kk-1; k >= kk-j; i, k = i-1, k-1 {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*ap.Get(k))
 					}
 				}
-				kk -= j
+				kk -= (j + 1)
 			}
 		} else {
-			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/ap.Get(kk-1))
+						x.Set(xiter[j], x.Get(xiter[j])/ap.Get(kk))
 					}
-					temp = x.Get(jx - 1)
-					for k, ix = kk+1, jx+incx; k <= kk+n-j; k, ix = k+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*ap.Get(k-1))
+					temp = x.Get(xiter[j])
+					for i, k = j+1, kk+1; k <= kk+n-j-1; i, k = i+1, k+1 {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*ap.Get(k))
 					}
 				}
-				kk += (n - j + 1)
+				kk += (n - j)
 			}
 		}
 	} else {
 		//        Form  x := inv( A**T )*x.
 		if uplo == mat.Upper {
-			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				for k, ix = kk, kx; k <= kk+j-2; k, ix = k+1, ix+incx {
-					temp -= ap.Get(k-1) * x.Get(ix-1)
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
+				for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+					temp -= ap.Get(k) * x.Get(xiter[i])
 				}
 				if nounit {
-					temp /= ap.Get(kk + j - 1 - 1)
+					temp /= ap.Get(kk + j)
 				}
-				x.Set(jx-1, temp)
-				kk += j
+				x.Set(xiter[j], temp)
+				kk += j + 1
 			}
 		} else {
 			kk = (n * (n + 1)) / 2
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				for k, ix = kk, kx; k >= kk-(n-(j+1)); k, ix = k-1, ix-incx {
-					temp -= ap.Get(k-1) * x.Get(ix-1)
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
+				for i, k = n-1, kk-1; k >= kk-n+j+1; i, k = i-1, k-1 {
+					temp -= ap.Get(k) * x.Get(xiter[i])
 				}
 				if nounit {
-					temp /= ap.Get(kk - n + j - 1)
+					temp /= ap.Get(kk - n + j)
 				}
-				x.Set(jx-1, temp)
-				kk -= (n - j + 1)
+				x.Set(xiter[j], temp)
+				kk -= (n - j)
 			}
 		}
 	}
@@ -1074,10 +862,10 @@ func Dtpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 //
 // where x is an n element vector and  A is an n by n unit, or non-unit,
 // upper or lower triangular matrix.
-func Dtrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.Matrix, lda int, x *mat.Vector, incx int) (err error) {
+func Dtrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.Matrix, x *mat.Vector) (err error) {
 	var nounit bool
 	var temp, zero float64
-	var i, ix, j, jx, kx int
+	var i, j int
 
 	zero = 0.0
 	if !uplo.IsValid() {
@@ -1088,10 +876,8 @@ func Dtrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtrmv"), err)
@@ -1107,41 +893,33 @@ func Dtrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
 	if trans == mat.NoTrans {
 		//        Form  x := A*x.
 		if uplo == mat.Upper {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for i, ix = 1, kx; i <= j-1; i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(i-1, j-1))
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i = 0; i < j; i++ {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(j, j))
 					}
 				}
 			}
 		} else {
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for i, ix = n, kx; i >= j+1; i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(i-1, j-1))
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i = n - 1; i >= j+1; i-- {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(j, j))
 					}
 				}
 			}
@@ -1149,26 +927,26 @@ func Dtrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 	} else {
 		//        Form  x := A**T*x.
 		if uplo == mat.Upper {
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				if nounit {
-					temp *= a.Get(j-1, j-1)
+					temp *= a.Get(j, j)
 				}
-				for i, ix = j-1, jx-incx; i >= 1; i, ix = i-1, ix-incx {
-					temp += a.Get(i-1, j-1) * x.Get(ix-1)
+				for i = j - 1; i >= 0; i-- {
+					temp += a.Get(i, j) * x.Get(xiter[i])
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				if nounit {
-					temp *= a.Get(j-1, j-1)
+					temp *= a.Get(j, j)
 				}
-				for i, ix = j+1, jx+incx; i <= n; i, ix = i+1, ix+incx {
-					temp += a.Get(i-1, j-1) * x.Get(ix-1)
+				for i = j + 1; i < n; i++ {
+					temp += a.Get(i, j) * x.Get(xiter[i])
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -1185,10 +963,10 @@ func Dtrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 //
 // No test for singularity or near-singularity is included in this
 // routine. Such tests must be performed before calling this routine.
-func Dtrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.Matrix, lda int, x *mat.Vector, incx int) (err error) {
+func Dtrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.Matrix, x *mat.Vector) (err error) {
 	var nounit bool
 	var temp, zero float64
-	var i, ix, j, jx, kx int
+	var i, j int
 
 	zero = 0.0
 
@@ -1201,10 +979,8 @@ func Dtrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dtrsv"), err)
@@ -1220,40 +996,33 @@ func Dtrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
 	if trans == mat.NoTrans {
 		//        Form  x := inv( A )*x.
 		if uplo == mat.Upper {
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(j, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j-1, jx-incx; i >= 1; i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j - 1; i >= 0; i-- {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(i, j))
 					}
 				}
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(j, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j+1, jx+incx; i <= n; i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j + 1; i < n; i++ {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(i, j))
 					}
 				}
 			}
@@ -1261,27 +1030,26 @@ func Dtrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 	} else {
 		//        Form  x := inv( A**T )*x.
 		if uplo == mat.Upper {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				for i, ix = 1, kx; i <= j-1; i, ix = i+1, ix+incx {
-					temp -= a.Get(i-1, j-1) * x.Get(ix-1)
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
+				for i = 0; i < j; i++ {
+					temp -= a.Get(i, j) * x.Get(xiter[i])
 				}
 				if nounit {
-					temp /= a.Get(j-1, j-1)
+					temp /= a.Get(j, j)
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				for i, ix = n, kx; i >= j+1; i, ix = i-1, ix-incx {
-					temp -= a.Get(i-1, j-1) * x.Get(ix-1)
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
+				for i = n - 1; i >= j+1; i-- {
+					temp -= a.Get(i, j) * x.Get(xiter[i])
 				}
 				if nounit {
-					temp /= a.Get(j-1, j-1)
+					temp /= a.Get(j, j)
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -1295,9 +1063,9 @@ func Dtrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 //
 // where alpha is a scalar, x is an m element vector, y is an n element
 // vector and A is an m by n matrix.
-func Dger(m, n int, alpha float64, x *mat.Vector, incx int, y *mat.Vector, incy int, a *mat.Matrix, lda int) (err error) {
+func Dger(m, n int, alpha float64, x *mat.Vector, y *mat.Vector, a *mat.Matrix) (err error) {
 	var temp, zero float64
-	var i, ix, j, jy, kx int
+	var i, j int
 
 	zero = 0.0
 	//     Test the input parameters.
@@ -1305,12 +1073,8 @@ func Dger(m, n int, alpha float64, x *mat.Vector, incx int, y *mat.Vector, incy 
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
-	} else if lda < max(1, m) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dger"), err)
@@ -1324,21 +1088,13 @@ func Dger(m, n int, alpha float64, x *mat.Vector, incx int, y *mat.Vector, incy 
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
-	if incy > 0 {
-		jy = 1
-	} else {
-		jy = 1 - (n-1)*incy
-	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (m-1)*incx
-	}
-	for j = 1; j <= n; j, jy = j+1, jy+incy {
-		if y.Get(jy-1) != zero {
-			temp = alpha * y.Get(jy-1)
-			for i, ix = 1, kx; i <= m; i, ix = i+1, ix+incx {
-				a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+	xiter := x.Iter(m)
+	yiter := y.Iter(n)
+	for j = 0; j < n; j++ {
+		if y.Get(yiter[j]) != zero {
+			temp = alpha * y.Get(yiter[j])
+			for i = 0; i < m; i++ {
+				a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 			}
 		}
 	}
@@ -1352,9 +1108,9 @@ func Dger(m, n int, alpha float64, x *mat.Vector, incx int, y *mat.Vector, incy 
 //
 // where alpha is a real scalar, x is an n element vector and A is an
 // n by n symmetric matrix, supplied in packed form.
-func Dspr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, ap *mat.Vector) (err error) {
+func Dspr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, ap *mat.Vector) (err error) {
 	var temp, zero float64
-	var ix, j, jx, k, kk, kx int
+	var i, j, k, kk int
 
 	zero = 0.0
 
@@ -1363,8 +1119,6 @@ func Dspr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, ap *m
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dspr"), err)
@@ -1377,38 +1131,29 @@ func Dspr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, ap *m
 	}
 
 	//     Set the start point in X if the increment is not unity.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of the array AP
 	//     are accessed sequentially with one pass through AP.
-	kk = 1
 	if uplo == mat.Upper {
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = alpha * x.Get(jx-1)
-				for k, ix = kk, kx; k <= kk+j-1; k, ix = k+1, ix+incx {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = alpha * x.Get(xiter[j])
+				for i, k = 0, kk; k <= kk+j; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp)
 				}
 			}
-			kk += j
+			kk += j + 1
 		}
 	} else {
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = alpha * x.Get(jx-1)
-				ix = jx
-				for k, ix = kk, jx; k <= kk+n-j; k, ix = k+1, ix+incx {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = alpha * x.Get(xiter[j])
+				for i, k = j, kk; k < kk+n-j; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp)
 				}
 			}
-			kk += n - j + 1
+			kk += n - j
 		}
 	}
 
@@ -1421,9 +1166,9 @@ func Dspr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, ap *m
 //
 // where alpha is a real scalar, x is an n element vector and A is an
 // n by n symmetric matrix.
-func Dsyr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, a *mat.Matrix, lda int) (err error) {
+func Dsyr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, a *mat.Matrix) (err error) {
 	var temp, zero float64
-	var i, ix, j, jx, kx int
+	var i, j int
 
 	zero = 0.0
 
@@ -1432,10 +1177,8 @@ func Dsyr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, a *ma
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsyr"), err)
@@ -1448,33 +1191,26 @@ func Dsyr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, a *ma
 	}
 
 	//     Set the start point in X if the increment is not unity.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the triangular part
 	//     of A.
 	if uplo == mat.Upper {
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = alpha * x.Get(jx-1)
-				for i, ix = 1, kx; i <= j; i, ix = i+1, ix+incx {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = alpha * x.Get(xiter[j])
+				for i = 0; i < j+1; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 				}
 			}
 		}
 	} else {
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = alpha * x.Get(jx-1)
-				for i, ix = j, jx; i <= n; i, ix = i+1, ix+incx {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = alpha * x.Get(xiter[j])
+				for i = j; i < n; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 				}
 			}
 		}
@@ -1489,9 +1225,9 @@ func Dsyr(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, a *ma
 //
 // where alpha is a scalar, x and y are n element vectors and A is an
 // n by n symmetric matrix, supplied in packed form.
-func Dspr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *mat.Vector, incy int, ap *mat.Vector) (err error) {
+func Dspr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, y *mat.Vector, ap *mat.Vector) (err error) {
 	var temp1, temp2, zero float64
-	var ix, iy, j, jx, jy, k, kk, kx, ky int
+	var i, j, k, kk int
 
 	zero = 0.0
 
@@ -1500,10 +1236,6 @@ func Dspr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *m
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
 	}
 	if err != nil {
 		Xerbla2([]byte("Dspr2"), err)
@@ -1517,53 +1249,35 @@ func Dspr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *m
 
 	//     Set up the start points in X and Y if the increments are not both
 	//     unity.
-	if (incx != 1) || (incy != 1) {
-		if incx > 0 {
-			kx = 1
-		} else {
-			kx = 1 - (n-1)*incx
-		}
-		if incy > 0 {
-			ky = 1
-		} else {
-			ky = 1 - (n-1)*incy
-		}
-		jx = kx
-		jy = ky
-	}
-	if incx == 1 && incy == 1 {
-		kx++
-		ky++
-		jx++
-		jy++
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of the array AP
 	//     are accessed sequentially with one pass through AP.
 	kk = 1
 	if uplo == mat.Upper {
 		//        Form  A  when upper triangle is stored in AP.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.Get(jy-1)
-				temp2 = alpha * x.Get(jx-1)
-				for k, ix, iy = kk, kx, ky; k <= kk+j-1; k, ix, iy = k+1, ix+incx, iy+incy {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.Get(yiter[j])
+				temp2 = alpha * x.Get(xiter[j])
+				for i, k = 0, kk-1; k < kk+j; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
 			}
-			kk += j
+			kk += j + 1
 		}
 	} else {
 		//        Form  A  when lower triangle is stored in AP.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.Get(jy-1)
-				temp2 = alpha * x.Get(jx-1)
-				for k, ix, iy = kk, jx, jy; k <= kk+n-j; k, ix, iy = k+1, ix+incx, iy+incy {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.Get(yiter[j])
+				temp2 = alpha * x.Get(xiter[j])
+				for i, k = j, kk-1; k < kk+n-j-1; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
 			}
-			kk += n - j + 1
+			kk += n - j
 		}
 	}
 
@@ -1576,9 +1290,9 @@ func Dspr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *m
 //
 // where alpha is a scalar, x and y are n element vectors and A is an n
 // by n symmetric matrix.
-func Dsyr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *mat.Vector, incy int, a *mat.Matrix, lda int) (err error) {
+func Dsyr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, y *mat.Vector, a *mat.Matrix) (err error) {
 	var temp1, temp2, zero float64
-	var i, ix, iy, j, jx, jy, kx, ky int
+	var i, j int
 
 	zero = 0.0
 
@@ -1587,12 +1301,8 @@ func Dsyr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *m
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Dsyr2"), err)
@@ -1606,49 +1316,31 @@ func Dsyr2(uplo mat.MatUplo, n int, alpha float64, x *mat.Vector, incx int, y *m
 
 	//     Set up the start points in X and Y if the increments are not both
 	//     unity.
-	if (incx != 1) || (incy != 1) {
-		if incx > 0 {
-			kx = 1
-		} else {
-			kx = 1 - (n-1)*incx
-		}
-		if incy > 0 {
-			ky = 1
-		} else {
-			ky = 1 - (n-1)*incy
-		}
-		jx = kx
-		jy = ky
-	}
-	if incx == 1 && incy == 1 {
-		jx++
-		jy++
-		kx++
-		ky++
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the triangular part
 	//     of A.
 	if uplo == mat.Upper {
 		//        Form  A  when A is stored in the upper triangle.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.Get(jy-1)
-				temp2 = alpha * x.Get(jx-1)
-				for i, ix, iy = 1, kx, ky; i <= j; i, ix, iy = i+1, ix+incx, iy+incy {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.Get(yiter[j])
+				temp2 = alpha * x.Get(xiter[j])
+				for i = 0; i <= j; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
 			}
 		}
 	} else {
 		//        Form  A  when A is stored in the lower triangle.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.Get(jy-1)
-				temp2 = alpha * x.Get(jx-1)
-				for i, ix, iy = j, jx, jy; i <= n; i, ix, iy = i+1, ix+incx, iy+incy {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.Get(yiter[j])
+				temp2 = alpha * x.Get(xiter[j])
+				for i = j; i < n; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
 			}
 		}

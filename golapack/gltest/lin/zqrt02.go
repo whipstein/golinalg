@@ -43,23 +43,23 @@ func Zqrt02(m, n, k *int, a, af, q, r *mat.CMatrix, lda *int, tau, work *mat.CVe
 	golapack.Zlacpy('U', n, k, af, lda, r, lda)
 
 	//     Compute R(1:n,1:k) - Q(1:m,1:n)' * A(1:m,1:k)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *k, *m, complex(-one, 0), q, *lda, a, *lda, complex(one, 0), r, *lda)
+	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *k, *m, complex(-one, 0), q, a, complex(one, 0), r)
 
 	//     Compute norm( R - Q'*A ) / ( M * norm(A) * EPS ) .
 	anorm = golapack.Zlange('1', m, k, a, lda, rwork)
 	resid = golapack.Zlange('1', n, k, r, lda, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(maxint(1, *m)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, *m)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q'*Q
 	golapack.Zlaset('F', n, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), r, lda)
-	err = goblas.Zherk(Upper, ConjTrans, *n, *m, -one, q, *lda, one, r, *lda)
+	err = goblas.Zherk(Upper, ConjTrans, *n, *m, -one, q, one, r)
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
 	resid = golapack.Zlansy('1', 'U', n, r, lda, rwork)
 
-	result.Set(1, (resid/float64(maxint(1, *m)))/eps)
+	result.Set(1, (resid/float64(max(1, *m)))/eps)
 }

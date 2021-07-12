@@ -36,7 +36,7 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 		}
 		ei = e.Get(i - 1)
 		e.Set(i-1, ei/d.Get(i-1))
-		d.Set(i+1-1, d.Get(i+1-1)-e.Get(i-1)*ei)
+		d.Set(i, d.Get(i)-e.Get(i-1)*ei)
 	}
 
 	for i = i4 + 1; i <= (*n)-4; i += 4 {
@@ -50,17 +50,17 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 		//        Solve for e(i) and d(i+1).
 		ei = e.Get(i - 1)
 		e.Set(i-1, ei/d.Get(i-1))
-		d.Set(i+1-1, d.Get(i+1-1)-e.Get(i-1)*ei)
+		d.Set(i, d.Get(i)-e.Get(i-1)*ei)
 
-		if d.Get(i+1-1) <= zero {
+		if d.Get(i) <= zero {
 			(*info) = i + 1
 			return
 		}
 
 		//        Solve for e(i+1) and d(i+2).
 		ei = e.Get(i + 1 - 1)
-		e.Set(i+1-1, ei/d.Get(i+1-1))
-		d.Set(i+2-1, d.Get(i+2-1)-e.Get(i+1-1)*ei)
+		e.Set(i, ei/d.Get(i))
+		d.Set(i+2-1, d.Get(i+2-1)-e.Get(i)*ei)
 
 		if d.Get(i+2-1) <= zero {
 			(*info) = i + 2

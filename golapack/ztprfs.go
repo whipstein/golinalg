@@ -47,9 +47,9 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 		(*info) = -4
 	} else if (*nrhs) < 0 {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -85,13 +85,13 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 	for j = 1; j <= (*nrhs); j++ {
 		//        Compute residual R = B - op(A) * X,
 		//
-		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
-		err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work, 1)
-		goblas.Zaxpy(*n, -one, b.CVector(0, j-1), 1, work, 1)
+		goblas.Zcopy(*n, x.CVector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off(0, 1))
+		goblas.Zaxpy(*n, -one, b.CVector(0, j-1, 1), work.Off(0, 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
-		//        maxint(i) ( abs(R(i)) / ( abs(op(A))*abs(X) + abs(B) )(i) )
+		//        max(i) ( abs(R(i)) / ( abs(op(A))*abs(X) + abs(B) )(i) )
 		//
 		//        where abs(Z) is the componentwise absolute value of the matrix
 		//        or vector Z.  If the i-th component of the denominator is less
@@ -193,9 +193,9 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -232,11 +232,11 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 		kase = 0
 	label210:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, ferr.GetPtr(j-1), &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
-				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, ap, work, 1)
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, ap, work.Off(0, 1))
 				for i = 1; i <= (*n); i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
@@ -245,7 +245,7 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 				for i = 1; i <= (*n); i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
-				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), *n, ap, work, 1)
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), *n, ap, work.Off(0, 1))
 			}
 			goto label210
 		}
@@ -253,7 +253,7 @@ func Ztprfs(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatri
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, Cabs1(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

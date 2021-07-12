@@ -40,7 +40,7 @@ func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
 	} else {
 		f1 = (*f)
 		g1 = (*g)
-		scale = maxf64(math.Abs(f1), math.Abs(g1))
+		scale = math.Max(math.Abs(f1), math.Abs(g1))
 		if scale >= safmx2 {
 			count = 0
 		label10:
@@ -48,7 +48,7 @@ func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
 			count = count + 1
 			f1 = f1 * safmn2
 			g1 = g1 * safmn2
-			scale = maxf64(math.Abs(f1), math.Abs(g1))
+			scale = math.Max(math.Abs(f1), math.Abs(g1))
 			if scale >= safmx2 {
 				goto label10
 			}
@@ -65,7 +65,7 @@ func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
 			count = count + 1
 			f1 = f1 * safmx2
 			g1 = g1 * safmx2
-			scale = maxf64(math.Abs(f1), math.Abs(g1))
+			scale = math.Max(math.Abs(f1), math.Abs(g1))
 			if scale <= safmn2 {
 				goto label30
 			}

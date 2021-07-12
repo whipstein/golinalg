@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -48,7 +50,7 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 		transu = 'C'
 		k = (*m)
 	}
-	mnmin = minint(*m, *n)
+	mnmin = min(*m, *n)
 
 	if (mnmin+1)*mnmin <= (*lwork) {
 		ldwork = mnmin
@@ -58,7 +60,7 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 	if ldwork > 0 {
 		//        Compute I - U*U' or I - U'*U.
 		golapack.Zlaset('U', &mnmin, &mnmin, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), work.CMatrix(ldwork, opts), &ldwork)
-		err = goblas.Zherk(Upper, mat.TransByte(transu), mnmin, k, -one, u, *ldu, one, work.CMatrix(ldwork, opts), ldwork)
+		err = goblas.Zherk(Upper, mat.TransByte(transu), mnmin, k, -one, u, one, work.CMatrix(ldwork, opts))
 
 		//        Compute norm( I - U*U' ) / ( K * EPS ) .
 		(*resid) = golapack.Zlansy('1', 'U', &mnmin, work.CMatrix(ldwork, opts), &ldwork, rwork)
@@ -72,8 +74,8 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 				} else {
 					tmp = complex(one, 0)
 				}
-				tmp = tmp - goblas.Zdotc(*m, u.CVector(0, i-1), 1, u.CVector(0, j-1), 1)
-				(*resid) = maxf64(*resid, cabs1(tmp))
+				tmp = tmp - goblas.Zdotc(*m, u.CVector(0, i-1, 1), u.CVector(0, j-1, 1))
+				(*resid) = math.Max(*resid, cabs1(tmp))
 			}
 		}
 		(*resid) = ((*resid) / float64(*m)) / eps
@@ -86,8 +88,8 @@ func Zunt01(rowcol byte, m, n *int, u *mat.CMatrix, ldu *int, work *mat.CVector,
 				} else {
 					tmp = complex(one, 0)
 				}
-				tmp = tmp - goblas.Zdotc(*n, u.CVector(j-1, 0), *ldu, u.CVector(i-1, 0), *ldu)
-				(*resid) = maxf64(*resid, cabs1(tmp))
+				tmp = tmp - goblas.Zdotc(*n, u.CVector(j-1, 0, *ldu), u.CVector(i-1, 0, *ldu))
+				(*resid) = math.Max(*resid, cabs1(tmp))
 			}
 		}
 		(*resid) = ((*resid) / float64(*n)) / eps

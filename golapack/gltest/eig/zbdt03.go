@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -38,15 +40,15 @@ func Zbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.CMatrix, ldu *int, s
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, s.GetCmplx(i-1)*vt.Get(i-1, j-1))
 				}
-				err = goblas.Zgemv(NoTrans, *n, *n, -complex(one, 0), u, *ldu, work.Off((*n)+1-1), 1, complex(zero, 0), work, 1)
+				err = goblas.Zgemv(NoTrans, *n, *n, -complex(one, 0), u, work.Off((*n), 1), complex(zero, 0), work.Off(0, 1))
 				work.Set(j-1, work.Get(j-1)+d.GetCmplx(j-1))
 				if j > 1 {
 					work.Set(j-1-1, work.Get(j-1-1)+e.GetCmplx(j-1-1))
-					bnorm = maxf64(bnorm, d.GetMag(j-1)+e.GetMag(j-1-1))
+					bnorm = math.Max(bnorm, d.GetMag(j-1)+e.GetMag(j-1-1))
 				} else {
-					bnorm = maxf64(bnorm, d.GetMag(j-1))
+					bnorm = math.Max(bnorm, d.GetMag(j-1))
 				}
-				(*resid) = maxf64(*resid, goblas.Dzasum(*n, work, 1))
+				(*resid) = math.Max(*resid, goblas.Dzasum(*n, work.Off(0, 1)))
 			}
 		} else {
 			//           B is lower bidiagonal.
@@ -54,15 +56,15 @@ func Zbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.CMatrix, ldu *int, s
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, s.GetCmplx(i-1)*vt.Get(i-1, j-1))
 				}
-				err = goblas.Zgemv(NoTrans, *n, *n, -complex(one, 0), u, *ldu, work.Off((*n)+1-1), 1, complex(zero, 0), work, 1)
+				err = goblas.Zgemv(NoTrans, *n, *n, -complex(one, 0), u, work.Off((*n), 1), complex(zero, 0), work.Off(0, 1))
 				work.Set(j-1, work.Get(j-1)+d.GetCmplx(j-1))
 				if j < (*n) {
-					work.Set(j+1-1, work.Get(j+1-1)+e.GetCmplx(j-1))
-					bnorm = maxf64(bnorm, d.GetMag(j-1)+e.GetMag(j-1))
+					work.Set(j, work.Get(j)+e.GetCmplx(j-1))
+					bnorm = math.Max(bnorm, d.GetMag(j-1)+e.GetMag(j-1))
 				} else {
-					bnorm = maxf64(bnorm, d.GetMag(j-1))
+					bnorm = math.Max(bnorm, d.GetMag(j-1))
 				}
-				(*resid) = maxf64(*resid, goblas.Dzasum(*n, work, 1))
+				(*resid) = math.Max(*resid, goblas.Dzasum(*n, work.Off(0, 1)))
 			}
 		}
 	} else {
@@ -71,11 +73,11 @@ func Zbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.CMatrix, ldu *int, s
 			for i = 1; i <= (*n); i++ {
 				work.Set((*n)+i-1, s.GetCmplx(i-1)*vt.Get(i-1, j-1))
 			}
-			err = goblas.Zgemv(NoTrans, *n, *n, -complex(one, 0), u, *ldu, work.Off((*n)+1-1), 1, complex(zero, 0), work, 1)
+			err = goblas.Zgemv(NoTrans, *n, *n, -complex(one, 0), u, work.Off((*n), 1), complex(zero, 0), work.Off(0, 1))
 			work.Set(j-1, work.Get(j-1)+d.GetCmplx(j-1))
-			(*resid) = maxf64(*resid, goblas.Dzasum(*n, work, 1))
+			(*resid) = math.Max(*resid, goblas.Dzasum(*n, work.Off(0, 1)))
 		}
-		j = goblas.Idamax(*n, d, 1)
+		j = goblas.Idamax(*n, d.Off(0, 1))
 		bnorm = d.GetMag(j - 1)
 	}
 
@@ -91,9 +93,9 @@ func Zbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.CMatrix, ldu *int, s
 			(*resid) = ((*resid) / bnorm) / (float64(*n) * eps)
 		} else {
 			if bnorm < one {
-				(*resid) = (minf64(*resid, float64(*n)*bnorm) / bnorm) / (float64(*n) * eps)
+				(*resid) = (math.Min(*resid, float64(*n)*bnorm) / bnorm) / (float64(*n) * eps)
 			} else {
-				(*resid) = minf64((*resid)/bnorm, float64(*n)) / (float64(*n) * eps)
+				(*resid) = math.Min((*resid)/bnorm, float64(*n)) / (float64(*n) * eps)
 			}
 		}
 	}

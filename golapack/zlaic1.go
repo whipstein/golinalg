@@ -44,7 +44,7 @@ func Zlaic1(job, j *int, x *mat.CVector, sest *float64, w *mat.CVector, gamma *c
 	four = 4.0
 
 	eps = Dlamch(Epsilon)
-	alpha = goblas.Zdotc(*j, x, 1, w, 1)
+	alpha = goblas.Zdotc(*j, x.Off(0, 1), w.Off(0, 1))
 
 	absalp = cmplx.Abs(alpha)
 	absgam = cmplx.Abs(*gamma)
@@ -55,7 +55,7 @@ func Zlaic1(job, j *int, x *mat.CVector, sest *float64, w *mat.CVector, gamma *c
 		//
 		//        special cases
 		if (*sest) == zero {
-			s1 = maxf64(absgam, absalp)
+			s1 = math.Max(absgam, absalp)
 			if s1 == zero {
 				(*s) = complex(zero, 0)
 				(*c) = complex(one, 0)
@@ -72,7 +72,7 @@ func Zlaic1(job, j *int, x *mat.CVector, sest *float64, w *mat.CVector, gamma *c
 		} else if absgam <= eps*absest {
 			(*s) = complex(one, 0)
 			(*c) = complex(zero, 0)
-			tmp = maxf64(absest, absalp)
+			tmp = math.Max(absest, absalp)
 			s1 = absest / tmp
 			s2 = absalp / tmp
 			(*sestpr) = tmp * math.Sqrt(s1*s1+s2*s2)
@@ -135,14 +135,14 @@ func Zlaic1(job, j *int, x *mat.CVector, sest *float64, w *mat.CVector, gamma *c
 		//        special cases
 		if (*sest) == zero {
 			(*sestpr) = zero
-			if maxf64(absgam, absalp) == zero {
+			if math.Max(absgam, absalp) == zero {
 				sine = complex(one, 0)
 				cosine = complex(zero, 0)
 			} else {
 				sine = -cmplx.Conj(*gamma)
 				cosine = cmplx.Conj(alpha)
 			}
-			s1 = maxf64(math.Abs(real(sine)), math.Abs(real(cosine)))
+			s1 = math.Max(math.Abs(real(sine)), math.Abs(real(cosine)))
 			(*s) = sine / complex(s1, 0)
 			(*c) = cosine / complex(s1, 0)
 			tmp = math.Sqrt(real((*s)*cmplx.Conj(*s)) + real((*c)*cmplx.Conj(*c)))
@@ -189,7 +189,7 @@ func Zlaic1(job, j *int, x *mat.CVector, sest *float64, w *mat.CVector, gamma *c
 			zeta1 = absalp / absest
 			zeta2 = absgam / absest
 
-			norma = maxf64(one+zeta1*zeta1+zeta1*zeta2, zeta1*zeta2+zeta2*zeta2)
+			norma = math.Max(one+zeta1*zeta1+zeta1*zeta2, zeta1*zeta2+zeta2*zeta2)
 
 			//           See if root is closer to zero or to ONE
 			test = one + two*(zeta1-zeta2)*(zeta1+zeta2)

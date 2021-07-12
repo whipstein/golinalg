@@ -176,7 +176,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 0
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -229,13 +229,13 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		if n == 0 {
 			goto label260
 		}
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		aninv = one / float64(n1)
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -330,7 +330,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, &imode, &cond, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, &imode, &cond, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 5 {
 				//              Hermitian, eigenvalues specified
@@ -346,23 +346,23 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					conds = zero
 				}
 
-				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Hermitian, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else {
 
@@ -372,7 +372,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -386,26 +386,26 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ilo = 1
 			ihi = n
 
-			golapack.Zgehrd(&n, &ilo, &ihi, h, lda, work, work.Off(n+1-1), toPtr((*nwork)-n), &iinfo)
+			golapack.Zgehrd(&n, &ilo, &ihi, h, lda, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
 
 			if iinfo != 0 {
 				t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGEHRD", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
 			for j = 1; j <= n-1; j++ {
-				uu.Set(j+1-1, j-1, czero)
+				uu.Set(j, j-1, czero)
 				for i = j + 2; i <= n; i++ {
 					u.Set(i-1, j-1, h.Get(i-1, j-1))
 					uu.Set(i-1, j-1, h.Get(i-1, j-1))
 					h.Set(i-1, j-1, czero)
 				}
 			}
-			goblas.Zcopy(n-1, work, 1, tau, 1)
-			golapack.Zunghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n+1-1), toPtr((*nwork)-n), &iinfo)
+			goblas.Zcopy(n-1, work.Off(0, 1), tau.Off(0, 1))
+			golapack.Zunghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
 			ntest = 2
 
 			Zhst01(&n, &ilo, &ihi, a, lda, h, lda, u, ldu, work, nwork, rwork, result.Off(0))
@@ -422,7 +422,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEQR(E)", iinfo, n, jtype, ioldsd)
 				if iinfo <= n+2 {
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					goto label240
 				}
 			}
@@ -434,7 +434,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 && iinfo <= n+2 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEQR(S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
@@ -446,12 +446,12 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 && iinfo <= n+2 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEQR(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
 			//           Compute Z = U' UZ
-			err = goblas.Zgemm(ConjTrans, NoTrans, n, n, n, cone, u, *ldu, uz, *ldu, czero, z, *ldu)
+			err = goblas.Zgemm(ConjTrans, NoTrans, n, n, n, cone, u, uz, czero, z)
 			ntest = 8
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )
@@ -465,15 +465,15 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           Do Test 7: | T2 - T1 | / ( |T| n ulp )
 			Zget10(&n, &n, t2, lda, t1, lda, work, rwork, result.GetPtr(6))
 
-			//           Do Test 8: | W3 - W1 | / ( maxint(|W1|,|W3|) ulp )
+			//           Do Test 8: | W3 - W1 | / ( max(|W1|,|W3|) ulp )
 			temp1 = zero
 			temp2 = zero
 			for j = 1; j <= n; j++ {
-				temp1 = maxf64(temp1, w1.GetMag(j-1), w3.GetMag(j-1))
-				temp2 = maxf64(temp2, cmplx.Abs(w1.Get(j-1)-w3.Get(j-1)))
+				temp1 = math.Max(temp1, math.Max(w1.GetMag(j-1), w3.GetMag(j-1)))
+				temp2 = math.Max(temp2, cmplx.Abs(w1.Get(j-1)-w3.Get(j-1)))
 			}
 
-			result.Set(7, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+			result.Set(7, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 			//           Compute the Left and Right Eigenvectors of T
 			//
@@ -492,7 +492,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(R,A)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
@@ -510,7 +510,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(R,S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
@@ -540,7 +540,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(L,A)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
@@ -558,7 +558,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(L,S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label240
 			}
 
@@ -592,7 +592,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEIN(R)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -621,7 +621,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEIN(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -647,7 +647,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNMHR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -669,7 +669,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNMHR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				if iinfo < 0 {
 					goto label240
 				}

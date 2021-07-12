@@ -27,7 +27,7 @@ func Dgbsv(n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, ipiv *[]int, b *mat.
 		(*info) = -4
 	} else if (*ldab) < 2*(*kl)+(*ku)+1 {
 		(*info) = -6
-	} else if (*ldb) < maxint(*n, 1) {
+	} else if (*ldb) < max(*n, 1) {
 		(*info) = -9
 	}
 	if (*info) != 0 {

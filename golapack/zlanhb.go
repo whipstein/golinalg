@@ -26,13 +26,13 @@ func Zlanhb(norm, uplo byte, n, k *int, ab *mat.CMatrix, ldab *int, work *mat.Ve
 		value = zero
 		if uplo == 'U' {
 			for j = 1; j <= (*n); j++ {
-				for i = maxint((*k)+2-j, 1); i <= (*k); i++ {
+				for i = max((*k)+2-j, 1); i <= (*k); i++ {
 					sum = ab.GetMag(i-1, j-1)
 					if value < sum || Disnan(int(sum)) {
 						value = sum
 					}
 				}
-				sum = math.Abs(ab.GetRe((*k)+1-1, j-1))
+				sum = math.Abs(ab.GetRe((*k), j-1))
 				if value < sum || Disnan(int(sum)) {
 					value = sum
 				}
@@ -43,7 +43,7 @@ func Zlanhb(norm, uplo byte, n, k *int, ab *mat.CMatrix, ldab *int, work *mat.Ve
 				if value < sum || Disnan(int(sum)) {
 					value = sum
 				}
-				for i = 2; i <= minint((*n)+1-j, (*k)+1); i++ {
+				for i = 2; i <= min((*n)+1-j, (*k)+1); i++ {
 					sum = ab.GetMag(i-1, j-1)
 					if value < sum || Disnan(int(sum)) {
 						value = sum
@@ -58,12 +58,12 @@ func Zlanhb(norm, uplo byte, n, k *int, ab *mat.CMatrix, ldab *int, work *mat.Ve
 			for j = 1; j <= (*n); j++ {
 				sum = zero
 				l = (*k) + 1 - j
-				for i = maxint(1, j-(*k)); i <= j-1; i++ {
+				for i = max(1, j-(*k)); i <= j-1; i++ {
 					absa = ab.GetMag(l+i-1, j-1)
 					sum = sum + absa
 					work.Set(i-1, work.Get(i-1)+absa)
 				}
-				work.Set(j-1, sum+math.Abs(ab.GetRe((*k)+1-1, j-1)))
+				work.Set(j-1, sum+math.Abs(ab.GetRe((*k), j-1)))
 			}
 			for i = 1; i <= (*n); i++ {
 				sum = work.Get(i - 1)
@@ -78,7 +78,7 @@ func Zlanhb(norm, uplo byte, n, k *int, ab *mat.CMatrix, ldab *int, work *mat.Ve
 			for j = 1; j <= (*n); j++ {
 				sum = work.Get(j-1) + math.Abs(ab.GetRe(0, j-1))
 				l = 1 - j
-				for i = j + 1; i <= minint(*n, j+(*k)); i++ {
+				for i = j + 1; i <= min(*n, j+(*k)); i++ {
 					absa = ab.GetMag(l+i-1, j-1)
 					sum = sum + absa
 					work.Set(i-1, work.Get(i-1)+absa)
@@ -102,7 +102,7 @@ func Zlanhb(norm, uplo byte, n, k *int, ab *mat.CMatrix, ldab *int, work *mat.Ve
 				for j = 2; j <= (*n); j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Zlassq(toPtr(minint(j-1, *k)), ab.CVector(maxint((*k)+2-j, 1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					Zlassq(toPtr(min(j-1, *k)), ab.CVector(max((*k)+2-j, 1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 					Dcombssq(ssq, colssq)
 				}
 				l = (*k) + 1
@@ -110,7 +110,7 @@ func Zlanhb(norm, uplo byte, n, k *int, ab *mat.CMatrix, ldab *int, work *mat.Ve
 				for j = 1; j <= (*n)-1; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Zlassq(toPtr(minint((*n)-j, *k)), ab.CVector(1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					Zlassq(toPtr(min((*n)-j, *k)), ab.CVector(1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 					Dcombssq(ssq, colssq)
 				}
 				l = 1

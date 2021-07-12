@@ -55,7 +55,7 @@ func Zpot03(uplo byte, n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix, ldai
 			}
 		}
 	}
-	err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *n, -cone, a, *lda, ainv, *ldainv, czero, work, *ldwork)
+	err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *n, -cone, a, ainv, czero, work)
 
 	//     Add the identity matrix to WORK .
 	for i = 1; i <= (*n); i++ {

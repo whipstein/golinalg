@@ -24,7 +24,7 @@ func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Ve
 	one = 1.0
 	rogue = -1.0e+10
 
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the matrix A to the array AF.
@@ -47,23 +47,23 @@ func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Ve
 	golapack.Dlacpy('U', m, n, af, lda, r, lda)
 
 	//     Compute R - Q'*A
-	err = goblas.Dgemm(mat.Trans, mat.NoTrans, *m, *n, *m, -one, q, *lda, a, *lda, one, r, *lda)
+	err = goblas.Dgemm(mat.Trans, mat.NoTrans, *m, *n, *m, -one, q, a, one, r)
 
 	//     Compute norm( R - Q'*A ) / ( M * norm(A) * EPS ) .
 	anorm = golapack.Dlange('1', m, n, a, lda, rwork)
 	resid = golapack.Dlange('1', m, n, r, lda, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(maxint(1, *m)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, *m)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q'*Q
 	golapack.Dlaset('F', m, m, &zero, &one, r, lda)
-	err = goblas.Dsyrk(mat.Upper, mat.Trans, *m, *m, -one, q, *lda, one, r, *lda)
+	err = goblas.Dsyrk(mat.Upper, mat.Trans, *m, *m, -one, q, one, r)
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
 	resid = golapack.Dlansy('1', 'U', m, r, lda, rwork)
 
-	result.Set(1, (resid/float64(maxint(1, *m)))/eps)
+	result.Set(1, (resid/float64(max(1, *m)))/eps)
 }

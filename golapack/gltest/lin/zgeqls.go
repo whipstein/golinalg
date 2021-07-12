@@ -8,7 +8,7 @@ import (
 )
 
 // Zgeqls Solve the least squares problem
-//     minint || A*X - B ||
+//     min || A*X - B ||
 // using the QL factorization
 //     A = Q*L
 // computed by ZGEQLF.
@@ -27,9 +27,9 @@ func Zgeqls(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -8
 	} else if (*lwork) < 1 || (*lwork) < (*nrhs) && (*m) > 0 && (*n) > 0 {
 		(*info) = -10
@@ -48,5 +48,5 @@ func Zgeqls(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	golapack.Zunmql('L', 'C', m, nrhs, n, a, lda, tau, b, ldb, work, lwork, info)
 
 	//     Solve L*X = B(m-n+1:m,:)
-	err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *n, *nrhs, one, a.Off((*m)-(*n)+1-1, 0), *lda, b.Off((*m)-(*n)+1-1, 0), *ldb)
+	err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, *n, *nrhs, one, a.Off((*m)-(*n), 0), b.Off((*m)-(*n), 0))
 }

@@ -20,7 +20,7 @@ import (
 // and stored in decreasing order.  U and VT can be optionally not
 // computed, overwritten on A, or computed partially.
 //
-// A is M by N. Let MNMIN = minint( M, N ). S has dimension MNMIN.
+// A is M by N. Let MNMIN = min( M, N ). S has dimension MNMIN.
 // U can be M by M or M by MNMIN. VT can be N by N or MNMIN by N.
 //
 // When ZDRVBD is called, a number of matrix "sizes" (M's and N's)
@@ -32,7 +32,7 @@ import (
 //
 // Test for ZGESVD:
 //
-// (1)   | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )
+// (1)   | A - U diag(S) VT | / ( |A| max(M,N) ulp )
 //
 // (2)   | I - U'U | / ( M ulp )
 //
@@ -52,7 +52,7 @@ import (
 //
 // Test for ZGESDD:
 //
-// (8)   | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )
+// (8)   | A - U diag(S) VT | / ( |A| max(M,N) ulp )
 //
 // (9)   | I - U'U | / ( M ulp )
 //
@@ -72,7 +72,7 @@ import (
 //
 // Test for ZGESVDQ:
 //
-// (36)  | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )
+// (36)  | A - U diag(S) VT | / ( |A| max(M,N) ulp )
 //
 // (37)  | I - U'U | / ( M ulp )
 //
@@ -83,7 +83,7 @@ import (
 //
 // Test for ZGESVJ:
 //
-// (15)  | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )
+// (15)  | A - U diag(S) VT | / ( |A| max(M,N) ulp )
 //
 // (16)  | I - U'U | / ( M ulp )
 //
@@ -94,7 +94,7 @@ import (
 //
 // Test for ZGEJSV:
 //
-// (19)  | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )
+// (19)  | A - U diag(S) VT | / ( |A| max(M,N) ulp )
 //
 // (20)  | I - U'U | / ( M ulp )
 //
@@ -105,7 +105,7 @@ import (
 //
 // Test for ZGESVDX( 'V', 'V', 'A' )/ZGESVDX( 'N', 'N', 'A' )
 //
-// (23)  | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )
+// (23)  | A - U diag(S) VT | / ( |A| max(M,N) ulp )
 //
 // (24)  | I - U'U | / ( M ulp )
 //
@@ -125,7 +125,7 @@ import (
 //
 // Test for ZGESVDX( 'V', 'V', 'I' )
 //
-// (30)  | U' A VT''' - diag(S) | / ( |A| maxint(M,N) ulp )
+// (30)  | U' A VT''' - diag(S) | / ( |A| max(M,N) ulp )
 //
 // (31)  | I - U'U | / ( M ulp )
 //
@@ -133,7 +133,7 @@ import (
 //
 // Test for ZGESVDX( 'V', 'V', 'V' )
 //
-// (33)   | U' A VT''' - diag(S) | / ( |A| maxint(M,N) ulp )
+// (33)   | U' A VT''' - diag(S) | / ( |A| max(M,N) ulp )
 //
 // (34)   | I - U'U | / ( M ulp )
 //
@@ -193,16 +193,16 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	mnmax = 1
 	minwrk = 1
 	for j = 1; j <= (*nsizes); j++ {
-		mmax = maxint(mmax, (*mm)[j-1])
+		mmax = max(mmax, (*mm)[j-1])
 		if (*mm)[j-1] < 0 {
 			badmm = true
 		}
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
-		mnmax = maxint(mnmax, minint((*mm)[j-1], (*nn)[j-1]))
-		minwrk = maxint(minwrk, maxint(3*minint((*mm)[j-1], (*nn)[j-1])+powint(maxint((*mm)[j-1], (*nn)[j-1]), 2), 5*minint((*mm)[j-1], (*nn)[j-1]), 3*maxint((*mm)[j-1], (*nn)[j-1])))
+		mnmax = max(mnmax, min((*mm)[j-1], (*nn)[j-1]))
+		minwrk = max(minwrk, max(3*min((*mm)[j-1], (*nn)[j-1])+pow(max((*mm)[j-1], (*nn)[j-1]), 2), 5*min((*mm)[j-1], (*nn)[j-1]), 3*max((*mm)[j-1], (*nn)[j-1])))
 	}
 
 	//     Check for errors
@@ -214,11 +214,11 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 		(*info) = -3
 	} else if (*ntypes) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, mmax) {
+	} else if (*lda) < max(1, mmax) {
 		(*info) = -10
-	} else if (*ldu) < maxint(1, mmax) {
+	} else if (*ldu) < max(1, mmax) {
 		(*info) = -12
-	} else if (*ldvt) < maxint(1, nmax) {
+	} else if (*ldvt) < max(1, nmax) {
 		(*info) = -14
 	} else if minwrk > (*lwork) {
 		(*info) = -21
@@ -247,12 +247,12 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		m = (*mm)[jsize-1]
 		n = (*nn)[jsize-1]
-		mnmin = minint(m, n)
+		mnmin = min(m, n)
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -273,14 +273,14 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			if jtype == 1 {
 				//              Zero matrix
 				golapack.Zlaset('F', &m, &n, &czero, &czero, a, lda)
-				for i = 1; i <= minint(m, n); i++ {
+				for i = 1; i <= min(m, n); i++ {
 					s.Set(i-1, zero)
 				}
 
 			} else if jtype == 2 {
 				//              Identity matrix
 				golapack.Zlaset('F', &m, &n, &czero, &cone, a, lda)
-				for i = 1; i <= minint(m, n); i++ {
+				for i = 1; i <= min(m, n); i++ {
 					s.Set(i-1, one)
 				}
 
@@ -299,7 +299,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, m, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 			}
@@ -311,10 +311,10 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Do for minimal and adequate (for blocking) workspace
 			for iwspc = 1; iwspc <= 4; iwspc++ {
 				//              Test for ZGESVD
-				iwtmp = 2*minint(m, n) + maxint(m, n)
+				iwtmp = 2*min(m, n) + max(m, n)
 				lswork = iwtmp + (iwspc-1)*((*lwork)-iwtmp)/3
-				lswork = minint(lswork, *lwork)
-				lswork = maxint(lswork, 1)
+				lswork = min(lswork, *lwork)
+				lswork = max(lswork, 1)
 				if iwspc == 4 {
 					lswork = (*lwork)
 				}
@@ -332,7 +332,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GESVD", iinfo, m, n, jtype, lswork, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 
@@ -344,7 +344,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 				result.Set(3, 0)
 				for i = 1; i <= mnmin-1; i++ {
-					if ssav.Get(i-1) < ssav.Get(i+1-1) {
+					if ssav.Get(i-1) < ssav.Get(i) {
 						result.Set(3, ulpinv)
 					}
 					if ssav.Get(i-1) < zero {
@@ -366,8 +366,8 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						if (iju == 3 && ijvt == 3) || (iju == 1 && ijvt == 1) {
 							goto label90
 						}
-						jobu = cjob[iju+1-1]
-						jobvt = cjob[ijvt+1-1]
+						jobu = cjob[iju]
+						jobvt = cjob[ijvt]
 						golapack.Zlacpy('F', &m, &n, asav, lda, a, lda)
 						*srnamt = "ZGESVD"
 						golapack.Zgesvd(jobu, jobvt, &m, &n, a, lda, s, u, ldu, vt, ldvt, work, &lswork, rwork, &iinfo)
@@ -383,7 +383,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 								Zunt03('C', &m, &m, &m, &mnmin, usav, ldu, u, ldu, work, lwork, rwork, &dif, &iinfo)
 							}
 						}
-						result.Set(4, maxf64(result.Get(4), dif))
+						result.Set(4, math.Max(result.Get(4), dif))
 
 						//                    Compare VT
 						dif = zero
@@ -396,30 +396,30 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 								Zunt03('R', &n, &n, &n, &mnmin, vtsav, ldvt, vt, ldvt, work, lwork, rwork, &dif, &iinfo)
 							}
 						}
-						result.Set(5, maxf64(result.Get(5), dif))
+						result.Set(5, math.Max(result.Get(5), dif))
 
 						//                    Compare S
 						dif = zero
-						div = maxf64(float64(mnmin)*ulp*s.Get(0), golapack.Dlamch(SafeMinimum))
+						div = math.Max(float64(mnmin)*ulp*s.Get(0), golapack.Dlamch(SafeMinimum))
 						for i = 1; i <= mnmin-1; i++ {
-							if ssav.Get(i-1) < ssav.Get(i+1-1) {
+							if ssav.Get(i-1) < ssav.Get(i) {
 								dif = ulpinv
 							}
 							if ssav.Get(i-1) < zero {
 								dif = ulpinv
 							}
-							dif = maxf64(dif, math.Abs(ssav.Get(i-1)-s.Get(i-1))/div)
+							dif = math.Max(dif, math.Abs(ssav.Get(i-1)-s.Get(i-1))/div)
 						}
-						result.Set(6, maxf64(result.Get(6), dif))
+						result.Set(6, math.Max(result.Get(6), dif))
 					label90:
 					}
 				}
 
 				//              Test for ZGESDD
-				iwtmp = 2*mnmin*mnmin + 2*mnmin + maxint(m, n)
+				iwtmp = 2*mnmin*mnmin + 2*mnmin + max(m, n)
 				lswork = iwtmp + (iwspc-1)*((*lwork)-iwtmp)/3
-				lswork = minint(lswork, *lwork)
-				lswork = maxint(lswork, 1)
+				lswork = min(lswork, *lwork)
+				lswork = max(lswork, 1)
 				if iwspc == 4 {
 					lswork = (*lwork)
 				}
@@ -431,7 +431,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GESDD", iinfo, m, n, jtype, lswork, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 
@@ -443,7 +443,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 				result.Set(10, 0)
 				for i = 1; i <= mnmin-1; i++ {
-					if ssav.Get(i-1) < ssav.Get(i+1-1) {
+					if ssav.Get(i-1) < ssav.Get(i) {
 						result.Set(10, ulpinv)
 					}
 					if ssav.Get(i-1) < zero {
@@ -461,7 +461,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				result.Set(12, zero)
 				result.Set(13, zero)
 				for ijq = 0; ijq <= 2; ijq++ {
-					jobq = cjob[ijq+1-1]
+					jobq = cjob[ijq]
 					golapack.Zlacpy('F', &m, &n, asav, lda, a, lda)
 					*srnamt = "ZGESDD"
 					golapack.Zgesdd(jobq, &m, &n, a, lda, s, u, ldu, vt, ldvt, work, &lswork, rwork, iwork, &iinfo)
@@ -479,7 +479,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 							Zunt03('C', &m, &mnmin, &m, &mnmin, usav, ldu, u, ldu, work, lwork, rwork, &dif, &iinfo)
 						}
 					}
-					result.Set(11, maxf64(result.Get(11), dif))
+					result.Set(11, math.Max(result.Get(11), dif))
 
 					//                 Compare VT
 					dif = zero
@@ -494,21 +494,21 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 							Zunt03('R', &n, &mnmin, &n, &mnmin, vtsav, ldvt, vt, ldvt, work, lwork, rwork, &dif, &iinfo)
 						}
 					}
-					result.Set(12, maxf64(result.Get(12), dif))
+					result.Set(12, math.Max(result.Get(12), dif))
 
 					//                 Compare S
 					dif = zero
-					div = maxf64(float64(mnmin)*ulp*s.Get(0), golapack.Dlamch(SafeMinimum))
+					div = math.Max(float64(mnmin)*ulp*s.Get(0), golapack.Dlamch(SafeMinimum))
 					for i = 1; i <= mnmin-1; i++ {
-						if ssav.Get(i-1) < ssav.Get(i+1-1) {
+						if ssav.Get(i-1) < ssav.Get(i) {
 							dif = ulpinv
 						}
 						if ssav.Get(i-1) < zero {
 							dif = ulpinv
 						}
-						dif = maxf64(dif, math.Abs(ssav.Get(i-1)-s.Get(i-1))/div)
+						dif = math.Max(dif, math.Abs(ssav.Get(i-1)-s.Get(i-1))/div)
 					}
-					result.Set(13, maxf64(result.Get(13), dif))
+					result.Set(13, math.Max(result.Get(13), dif))
 				}
 
 				//              Test ZGESVDQ
@@ -519,10 +519,10 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				result.Set(38, zero)
 
 				if m >= n {
-					iwtmp = 2*mnmin*mnmin + 2*mnmin + maxint(m, n)
+					iwtmp = 2*mnmin*mnmin + 2*mnmin + max(m, n)
 					lswork = iwtmp + (iwspc-1)*((*lwork)-iwtmp)/3
-					lswork = minint(lswork, *lwork)
-					lswork = maxint(lswork, 1)
+					lswork = min(lswork, *lwork)
+					lswork = max(lswork, 1)
 					if iwspc == 4 {
 						lswork = (*lwork)
 					}
@@ -530,14 +530,14 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					golapack.Zlacpy('F', &m, &n, asav, lda, a, lda)
 					*srnamt = "ZGESVDQ"
 
-					lrwork = maxint(2, m, 5*n)
-					liwork = maxint(n, 1)
+					lrwork = max(2, m, 5*n)
+					liwork = max(n, 1)
 					golapack.Zgesvdq('H', 'N', 'N', 'A', 'A', &m, &n, a, lda, ssav, usav, ldu, vtsav, ldvt, &numrank, iwork, &liwork, work, lwork, rwork, &lrwork, &iinfo)
 
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "ZGESVDQ", iinfo, m, n, jtype, lswork, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						return
 					}
 
@@ -549,7 +549,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 					result.Set(38, zero)
 					for i = 1; i <= mnmin-1; i++ {
-						if ssav.Get(i-1) < ssav.Get(i+1-1) {
+						if ssav.Get(i-1) < ssav.Get(i) {
 							result.Set(38, ulpinv)
 						}
 						if ssav.Get(i-1) < zero {
@@ -571,11 +571,11 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				result.Set(17, zero)
 
 				if m >= n {
-					iwtmp = 2*mnmin*mnmin + 2*mnmin + maxint(m, n)
+					iwtmp = 2*mnmin*mnmin + 2*mnmin + max(m, n)
 					lswork = iwtmp + (iwspc-1)*((*lwork)-iwtmp)/3
-					lswork = minint(lswork, *lwork)
-					lswork = maxint(lswork, 1)
-					lrwork = maxint(6, n)
+					lswork = min(lswork, *lwork)
+					lswork = max(lswork, 1)
+					lrwork = max(6, n)
 					if iwspc == 4 {
 						lswork = (*lwork)
 					}
@@ -594,7 +594,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GESVJ", iinfo, m, n, jtype, lswork, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						return
 					}
 
@@ -606,7 +606,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 					result.Set(17, zero)
 					for i = 1; i <= mnmin-1; i++ {
-						if ssav.Get(i-1) < ssav.Get(i+1-1) {
+						if ssav.Get(i-1) < ssav.Get(i) {
 							result.Set(17, ulpinv)
 						}
 						if ssav.Get(i-1) < zero {
@@ -627,14 +627,14 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				result.Set(20, zero)
 				result.Set(21, zero)
 				if m >= n {
-					iwtmp = 2*mnmin*mnmin + 2*mnmin + maxint(m, n)
+					iwtmp = 2*mnmin*mnmin + 2*mnmin + max(m, n)
 					lswork = iwtmp + (iwspc-1)*((*lwork)-iwtmp)/3
-					lswork = minint(lswork, *lwork)
-					lswork = maxint(lswork, 1)
+					lswork = min(lswork, *lwork)
+					lswork = max(lswork, 1)
 					if iwspc == 4 {
 						lswork = (*lwork)
 					}
-					lrwork = maxint(7, n+2*m)
+					lrwork = max(7, n+2*m)
 
 					golapack.Zlacpy('F', &m, &n, asav, lda, vtsav, lda)
 					*srnamt = "ZGEJSV"
@@ -650,7 +650,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GEJSV", iinfo, m, n, jtype, lswork, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						return
 					}
 
@@ -662,7 +662,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 					result.Set(21, zero)
 					for i = 1; i <= mnmin-1; i++ {
-						if ssav.Get(i-1) < ssav.Get(i+1-1) {
+						if ssav.Get(i-1) < ssav.Get(i) {
 							result.Set(21, ulpinv)
 						}
 						if ssav.Get(i-1) < zero {
@@ -685,7 +685,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GESVDX", iinfo, m, n, jtype, lswork, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 
@@ -700,7 +700,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 				result.Set(25, zero)
 				for i = 1; i <= mnmin-1; i++ {
-					if ssav.Get(i-1) < ssav.Get(i+1-1) {
+					if ssav.Get(i-1) < ssav.Get(i) {
 						result.Set(25, ulpinv)
 					}
 					if ssav.Get(i-1) < zero {
@@ -722,8 +722,8 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						if (iju == 0 && ijvt == 0) || (iju == 1 && ijvt == 1) {
 							goto label160
 						}
-						jobu = cjobv[iju+1-1]
-						jobvt = cjobv[ijvt+1-1]
+						jobu = cjobv[iju]
+						jobvt = cjobv[ijvt]
 						// _range = cjobr[0]
 						golapack.Zlacpy('F', &m, &n, asav, lda, a, lda)
 						*srnamt = "ZGESVDX"
@@ -736,7 +736,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 								Zunt03('C', &m, &mnmin, &m, &mnmin, usav, ldu, u, ldu, work, lwork, rwork, &dif, &iinfo)
 							}
 						}
-						result.Set(26, maxf64(result.Get(26), dif))
+						result.Set(26, math.Max(result.Get(26), dif))
 
 						//                    Compare VT
 						dif = zero
@@ -745,21 +745,21 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 								Zunt03('R', &n, &mnmin, &n, &mnmin, vtsav, ldvt, vt, ldvt, work, lwork, rwork, &dif, &iinfo)
 							}
 						}
-						result.Set(27, maxf64(result.Get(27), dif))
+						result.Set(27, math.Max(result.Get(27), dif))
 
 						//                    Compare S
 						dif = zero
-						div = maxf64(float64(mnmin)*ulp*s.Get(0), golapack.Dlamch(SafeMinimum))
+						div = math.Max(float64(mnmin)*ulp*s.Get(0), golapack.Dlamch(SafeMinimum))
 						for i = 1; i <= mnmin-1; i++ {
-							if ssav.Get(i-1) < ssav.Get(i+1-1) {
+							if ssav.Get(i-1) < ssav.Get(i) {
 								dif = ulpinv
 							}
 							if ssav.Get(i-1) < zero {
 								dif = ulpinv
 							}
-							dif = maxf64(dif, math.Abs(ssav.Get(i-1)-s.Get(i-1))/div)
+							dif = math.Max(dif, math.Abs(ssav.Get(i-1)-s.Get(i-1))/div)
 						}
-						result.Set(28, maxf64(result.Get(28), dif))
+						result.Set(28, math.Max(result.Get(28), dif))
 					label160:
 					}
 				}
@@ -770,7 +770,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 				if mnmin <= 1 {
 					il = 1
-					iu = maxint(1, mnmin)
+					iu = max(1, mnmin)
 				} else {
 					il = 1 + int(float64(mnmin-1)*matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
 					iu = 1 + int(float64(mnmin-1)*matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
@@ -786,7 +786,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GESVDX", iinfo, m, n, jtype, lswork, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 
@@ -802,19 +802,19 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Do tests 11--13
 				if mnmin > 0 && nsi > 1 {
 					if il != 1 {
-						vu = ssav.Get(il-1) + maxf64(half*math.Abs(ssav.Get(il-1)-ssav.Get(il-1-1)), ulp*anorm, two*rtunfl)
+						vu = ssav.Get(il-1) + math.Max(half*math.Abs(ssav.Get(il-1)-ssav.Get(il-1-1)), math.Max(ulp*anorm, two*rtunfl))
 					} else {
-						vu = ssav.Get(0) + maxf64(half*math.Abs(ssav.Get(ns-1)-ssav.Get(0)), ulp*anorm, two*rtunfl)
+						vu = ssav.Get(0) + math.Max(half*math.Abs(ssav.Get(ns-1)-ssav.Get(0)), math.Max(ulp*anorm, two*rtunfl))
 					}
 					if iu != ns {
-						vl = ssav.Get(iu-1) - maxf64(ulp*anorm, two*rtunfl, half*math.Abs(ssav.Get(iu+1-1)-ssav.Get(iu-1)))
+						vl = ssav.Get(iu-1) - math.Max(ulp*anorm, math.Max(two*rtunfl, half*math.Abs(ssav.Get(iu)-ssav.Get(iu-1))))
 					} else {
-						vl = ssav.Get(ns-1) - maxf64(ulp*anorm, two*rtunfl, half*math.Abs(ssav.Get(ns-1)-ssav.Get(0)))
+						vl = ssav.Get(ns-1) - math.Max(ulp*anorm, math.Max(two*rtunfl, half*math.Abs(ssav.Get(ns-1)-ssav.Get(0))))
 					}
-					vl = maxf64(vl, zero)
-					vu = maxf64(vu, zero)
+					vl = math.Max(vl, zero)
+					vu = math.Max(vu, zero)
 					if vl >= vu {
-						vu = maxf64(vu*2, vu+vl+half)
+						vu = math.Max(vu*2, vu+vl+half)
 					}
 				} else {
 					vl = zero
@@ -826,7 +826,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" ZDRVBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, LSWORK=%6d\n         ISEED=%5d\n", "GESVDX", iinfo, m, n, jtype, lswork, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					return
 				}
 				//
@@ -856,7 +856,7 @@ func Zdrvbd(nsizes *int, mm, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 				if ntestf == 1 {
 					fmt.Printf(" SVD -- Complex Singular Value Decomposition Driver \n Matrix types (see ZDRVBD for details):\n\n 1 = Zero matrix\n 2 = Identity matrix\n 3 = Evenly spaced singular values near 1\n 4 = Evenly spaced singular values near underflow\n 5 = Evenly spaced singular values near overflow\n\n Tests performed: ( A is dense, U and V are unitary,\n                    S is an array, and Upartial, VTpartial, and\n                    Spartial are partially computed U, VT and S),\n\n")
-					fmt.Printf(" Tests performed with Test Threshold = %8.2f\n ZGESVD: \n 1 = | A - U diag(S) VT | / ( |A| maxint(M,N) ulp ) \n 2 = | I - U**T U | / ( M ulp ) \n 3 = | I - VT VT**T | / ( N ulp ) \n 4 = 0 if S contains minint(M,N) nonnegative values in decreasing order, else 1/ulp\n 5 = | U - Upartial | / ( M ulp )\n 6 = | VT - VTpartial | / ( N ulp )\n 7 = | S - Spartial | / ( minint(M,N) ulp |S| )\n ZGESDD: \n 8 = | A - U diag(S) VT | / ( |A| maxint(M,N) ulp ) \n 9 = | I - U**T U | / ( M ulp ) \n10 = | I - VT VT**T | / ( N ulp ) \n11 = 0 if S contains minint(M,N) nonnegative values in decreasing order, else 1/ulp\n12 = | U - Upartial | / ( M ulp )\n13 = | VT - VTpartial | / ( N ulp )\n14 = | S - Spartial | / ( minint(M,N) ulp |S| )\n ZGESVJ: \n\n15 = | A - U diag(S) VT | / ( |A| maxint(M,N) ulp ) \n16 = | I - U**T U | / ( M ulp ) \n17 = | I - VT VT**T | / ( N ulp ) \n18 = 0 if S contains minint(M,N) nonnegative values in decreasing order, else 1/ulp\n ZGESJV: \n\n19 = | A - U diag(S) VT | / ( |A| maxint(M,N) ulp )\n20 = | I - U**T U | / ( M ulp ) \n21 = | I - VT VT**T | / ( N ulp ) \n22 = 0 if S contains minint(M,N) nonnegative values in decreasing order, else 1/ulp\n ZGESVDX(V,V,A): \n23 = | A - U diag(S) VT | / ( |A| maxint(M,N) ulp ) \n24 = | I - U**T U | / ( M ulp ) \n25 = | I - VT VT**T | / ( N ulp ) \n26 = 0 if S contains minint(M,N) nonnegative values in decreasing order, else 1/ulp\n27 = | U - Upartial | / ( M ulp )\n28 = | VT - VTpartial | / ( N ulp )\n29 = | S - Spartial | / ( minint(M,N) ulp |S| )\n ZGESVDX(V,V,I): \n30 = | U**T A VT**T - diag(S) | / ( |A| maxint(M,N) ulp )\n31 = | I - U**T U | / ( M ulp ) \n32 = | I - VT VT**T | / ( N ulp ) \n ZGESVDX(V,V,V) \n33 = | U**T A VT**T - diag(S) | / ( |A| maxint(M,N) ulp )\n34 = | I - U**T U | / ( M ulp ) \n35 = | I - VT VT**T | / ( N ulp )  ZGESVDQ(H,N,N,A,A\n36 = | A - U diag(S) VT | / ( |A| maxint(M,N) ulp ) \n37 = | I - U**T U | / ( M ulp ) \n38 = | I - VT VT**T | / ( N ulp ) \n39 = 0 if S contains minint(M,N) nonnegative values in decreasing order, else 1/ulp\n\n\n", *thresh)
+					fmt.Printf(" Tests performed with Test Threshold = %8.2f\n ZGESVD: \n 1 = | A - U diag(S) VT | / ( |A| max(M,N) ulp ) \n 2 = | I - U**T U | / ( M ulp ) \n 3 = | I - VT VT**T | / ( N ulp ) \n 4 = 0 if S contains min(M,N) nonnegative values in decreasing order, else 1/ulp\n 5 = | U - Upartial | / ( M ulp )\n 6 = | VT - VTpartial | / ( N ulp )\n 7 = | S - Spartial | / ( min(M,N) ulp |S| )\n ZGESDD: \n 8 = | A - U diag(S) VT | / ( |A| max(M,N) ulp ) \n 9 = | I - U**T U | / ( M ulp ) \n10 = | I - VT VT**T | / ( N ulp ) \n11 = 0 if S contains min(M,N) nonnegative values in decreasing order, else 1/ulp\n12 = | U - Upartial | / ( M ulp )\n13 = | VT - VTpartial | / ( N ulp )\n14 = | S - Spartial | / ( min(M,N) ulp |S| )\n ZGESVJ: \n\n15 = | A - U diag(S) VT | / ( |A| max(M,N) ulp ) \n16 = | I - U**T U | / ( M ulp ) \n17 = | I - VT VT**T | / ( N ulp ) \n18 = 0 if S contains min(M,N) nonnegative values in decreasing order, else 1/ulp\n ZGESJV: \n\n19 = | A - U diag(S) VT | / ( |A| max(M,N) ulp )\n20 = | I - U**T U | / ( M ulp ) \n21 = | I - VT VT**T | / ( N ulp ) \n22 = 0 if S contains min(M,N) nonnegative values in decreasing order, else 1/ulp\n ZGESVDX(V,V,A): \n23 = | A - U diag(S) VT | / ( |A| max(M,N) ulp ) \n24 = | I - U**T U | / ( M ulp ) \n25 = | I - VT VT**T | / ( N ulp ) \n26 = 0 if S contains min(M,N) nonnegative values in decreasing order, else 1/ulp\n27 = | U - Upartial | / ( M ulp )\n28 = | VT - VTpartial | / ( N ulp )\n29 = | S - Spartial | / ( min(M,N) ulp |S| )\n ZGESVDX(V,V,I): \n30 = | U**T A VT**T - diag(S) | / ( |A| max(M,N) ulp )\n31 = | I - U**T U | / ( M ulp ) \n32 = | I - VT VT**T | / ( N ulp ) \n ZGESVDX(V,V,V) \n33 = | U**T A VT**T - diag(S) | / ( |A| max(M,N) ulp )\n34 = | I - U**T U | / ( M ulp ) \n35 = | I - VT VT**T | / ( N ulp )  ZGESVDQ(H,N,N,A,A\n36 = | A - U diag(S) VT | / ( |A| max(M,N) ulp ) \n37 = | I - U**T U | / ( M ulp ) \n38 = | I - VT VT**T | / ( N ulp ) \n39 = 0 if S contains min(M,N) nonnegative values in decreasing order, else 1/ulp\n\n\n", *thresh)
 					ntestf = 2
 				}
 

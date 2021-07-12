@@ -49,11 +49,11 @@ func Dort03(rc byte, mu, mv, n, k *int, u *mat.Matrix, ldu *int, v *mat.Matrix, 
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*k) < 0 || (*k) > maxint(*mu, *mv) {
+	} else if (*k) < 0 || (*k) > max(*mu, *mv) {
 		(*info) = -5
-	} else if (irc == 0 && (*ldu) < maxint(1, *mu)) || (irc == 1 && (*ldu) < maxint(1, *n)) {
+	} else if (irc == 0 && (*ldu) < max(1, *mu)) || (irc == 1 && (*ldu) < max(1, *n)) {
 		(*info) = -7
-	} else if (irc == 0 && (*ldv) < maxint(1, *mv)) || (irc == 1 && (*ldv) < maxint(1, *n)) {
+	} else if (irc == 0 && (*ldv) < max(1, *mv)) || (irc == 1 && (*ldv) < max(1, *n)) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -74,10 +74,10 @@ func Dort03(rc byte, mu, mv, n, k *int, u *mat.Matrix, ldu *int, v *mat.Matrix, 
 		//        Compare rows
 		res1 = zero
 		for i = 1; i <= (*k); i++ {
-			lmx = goblas.Idamax(*n, u.Vector(i-1, 0), *ldu)
+			lmx = goblas.Idamax(*n, u.Vector(i-1, 0, *ldu))
 			s = math.Copysign(one, u.Get(i-1, lmx-1)) * math.Copysign(one, v.Get(i-1, lmx-1))
 			for j = 1; j <= (*n); j++ {
-				res1 = maxf64(res1, math.Abs(u.Get(i-1, j-1)-s*v.Get(i-1, j-1)))
+				res1 = math.Max(res1, math.Abs(u.Get(i-1, j-1)-s*v.Get(i-1, j-1)))
 			}
 		}
 		res1 = res1 / (float64(*n) * ulp)
@@ -89,10 +89,10 @@ func Dort03(rc byte, mu, mv, n, k *int, u *mat.Matrix, ldu *int, v *mat.Matrix, 
 		//        Compare columns
 		res1 = zero
 		for i = 1; i <= (*k); i++ {
-			lmx = goblas.Idamax(*n, u.Vector(0, i-1), 1)
+			lmx = goblas.Idamax(*n, u.Vector(0, i-1, 1))
 			s = math.Copysign(one, u.Get(lmx-1, i-1)) * math.Copysign(one, v.Get(lmx-1, i-1))
 			for j = 1; j <= (*n); j++ {
-				res1 = maxf64(res1, math.Abs(u.Get(j-1, i-1)-s*v.Get(j-1, i-1)))
+				res1 = math.Max(res1, math.Abs(u.Get(j-1, i-1)-s*v.Get(j-1, i-1)))
 			}
 		}
 		res1 = res1 / (float64(*n) * ulp)
@@ -101,5 +101,5 @@ func Dort03(rc byte, mu, mv, n, k *int, u *mat.Matrix, ldu *int, v *mat.Matrix, 
 		Dort01('C', n, mv, v, ldv, work, lwork, &res2)
 	}
 
-	(*result) = minf64(maxf64(res1, res2), one/ulp)
+	(*result) = math.Min(math.Max(res1, res2), one/ulp)
 }

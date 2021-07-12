@@ -68,9 +68,9 @@ func Dlasd3(nl, nr, sqre, k *int, d *mat.Vector, q *mat.Matrix, ldq *int, dsigma
 	//     Quick return if possible
 	if (*k) == 1 {
 		d.Set(0, math.Abs(z.Get(0)))
-		goblas.Dcopy(m, vt2.Vector(0, 0), *ldvt2, vt.Vector(0, 0), *ldvt)
+		goblas.Dcopy(m, vt2.Vector(0, 0), vt.Vector(0, 0))
 		if z.Get(0) > zero {
-			goblas.Dcopy(n, u2.Vector(0, 0), 1, u.Vector(0, 0), 1)
+			goblas.Dcopy(n, u2.Vector(0, 0, 1), u.Vector(0, 0, 1))
 		} else {
 			for i = 1; i <= n; i++ {
 				u.Set(i-1, 0, -u2.Get(i-1, 0))
@@ -100,10 +100,10 @@ func Dlasd3(nl, nr, sqre, k *int, d *mat.Vector, q *mat.Matrix, ldq *int, dsigma
 	}
 
 	//     Keep a copy of Z.
-	goblas.Dcopy(*k, z, 1, q.VectorIdx(0), 1)
+	goblas.Dcopy(*k, z.Off(0, 1), q.VectorIdx(0, 1))
 
 	//     Normalize Z.
-	rho = goblas.Dnrm2(*k, z, 1)
+	rho = goblas.Dnrm2(*k, z.Off(0, 1))
 	Dlascl('G', toPtr(0), toPtr(0), &rho, &one, k, toPtr(1), z.Matrix(*k, opts), k, info)
 	rho = rho * rho
 
@@ -124,9 +124,9 @@ func Dlasd3(nl, nr, sqre, k *int, d *mat.Vector, q *mat.Matrix, ldq *int, dsigma
 			z.Set(i-1, z.Get(i-1)*(u.Get(i-1, j-1)*vt.Get(i-1, j-1)/(dsigma.Get(i-1)-dsigma.Get(j-1))/(dsigma.Get(i-1)+dsigma.Get(j-1))))
 		}
 		for j = i; j <= (*k)-1; j++ {
-			z.Set(i-1, z.Get(i-1)*(u.Get(i-1, j-1)*vt.Get(i-1, j-1)/(dsigma.Get(i-1)-dsigma.Get(j+1-1))/(dsigma.Get(i-1)+dsigma.Get(j+1-1))))
+			z.Set(i-1, z.Get(i-1)*(u.Get(i-1, j-1)*vt.Get(i-1, j-1)/(dsigma.Get(i-1)-dsigma.Get(j))/(dsigma.Get(i-1)+dsigma.Get(j))))
 		}
-		z.Set(i-1, signf64(math.Sqrt(math.Abs(z.Get(i-1))), q.Get(i-1, 0)))
+		z.Set(i-1, math.Copysign(math.Sqrt(math.Abs(z.Get(i-1))), q.Get(i-1, 0)))
 	}
 
 	//     Compute left singular vectors of the modified diagonal matrix,
@@ -138,7 +138,7 @@ func Dlasd3(nl, nr, sqre, k *int, d *mat.Vector, q *mat.Matrix, ldq *int, dsigma
 			vt.Set(j-1, i-1, z.Get(j-1)/u.Get(j-1, i-1)/vt.Get(j-1, i-1))
 			u.Set(j-1, i-1, dsigma.Get(j-1)*vt.Get(j-1, i-1))
 		}
-		temp = goblas.Dnrm2(*k, u.Vector(0, i-1), 1)
+		temp = goblas.Dnrm2(*k, u.Vector(0, i-1, 1))
 		q.Set(0, i-1, u.Get(0, i-1)/temp)
 		for j = 2; j <= (*k); j++ {
 			jc = (*idxc)[j-1]
@@ -148,31 +148,31 @@ func Dlasd3(nl, nr, sqre, k *int, d *mat.Vector, q *mat.Matrix, ldq *int, dsigma
 
 	//     Update the left singular vector matrix.
 	if (*k) == 2 {
-		err = goblas.Dgemm(NoTrans, NoTrans, n, *k, *k, one, u2, *ldu2, q, *ldq, zero, u, *ldu)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, *k, *k, one, u2, q, zero, u)
 		goto label100
 	}
 	if (*ctot)[0] > 0 {
-		err = goblas.Dgemm(NoTrans, NoTrans, *nl, *k, (*ctot)[0], one, u2.Off(0, 1), *ldu2, q.Off(1, 0), *ldq, zero, u.Off(0, 0), *ldu)
+		err = goblas.Dgemm(NoTrans, NoTrans, *nl, *k, (*ctot)[0], one, u2.Off(0, 1), q.Off(1, 0), zero, u.Off(0, 0))
 		if (*ctot)[2] > 0 {
 			ktemp = 2 + (*ctot)[0] + (*ctot)[1]
-			err = goblas.Dgemm(NoTrans, NoTrans, *nl, *k, (*ctot)[2], one, u2.Off(0, ktemp-1), *ldu2, q.Off(ktemp-1, 0), *ldq, one, u.Off(0, 0), *ldu)
+			err = goblas.Dgemm(NoTrans, NoTrans, *nl, *k, (*ctot)[2], one, u2.Off(0, ktemp-1), q.Off(ktemp-1, 0), one, u.Off(0, 0))
 		}
 	} else if (*ctot)[2] > 0 {
 		ktemp = 2 + (*ctot)[0] + (*ctot)[1]
-		err = goblas.Dgemm(NoTrans, NoTrans, *nl, *k, (*ctot)[2], one, u2.Off(0, ktemp-1), *ldu2, q.Off(ktemp-1, 0), *ldq, zero, u.Off(0, 0), *ldu)
+		err = goblas.Dgemm(NoTrans, NoTrans, *nl, *k, (*ctot)[2], one, u2.Off(0, ktemp-1), q.Off(ktemp-1, 0), zero, u.Off(0, 0))
 	} else {
 		Dlacpy('F', nl, k, u2, ldu2, u, ldu)
 	}
-	goblas.Dcopy(*k, q.Vector(0, 0), *ldq, u.Vector(nlp1-1, 0), *ldu)
+	goblas.Dcopy(*k, q.Vector(0, 0), u.Vector(nlp1-1, 0))
 	ktemp = 2 + (*ctot)[0]
 	ctemp = (*ctot)[1] + (*ctot)[2]
-	err = goblas.Dgemm(NoTrans, NoTrans, *nr, *k, ctemp, one, u2.Off(nlp2-1, ktemp-1), *ldu2, q.Off(ktemp-1, 0), *ldq, zero, u.Off(nlp2-1, 0), *ldu)
+	err = goblas.Dgemm(NoTrans, NoTrans, *nr, *k, ctemp, one, u2.Off(nlp2-1, ktemp-1), q.Off(ktemp-1, 0), zero, u.Off(nlp2-1, 0))
 
 	//     Generate the right singular vectors.
 label100:
 	;
 	for i = 1; i <= (*k); i++ {
-		temp = goblas.Dnrm2(*k, vt.Vector(0, i-1), 1)
+		temp = goblas.Dnrm2(*k, vt.Vector(0, i-1, 1))
 		q.Set(i-1, 0, vt.Get(0, i-1)/temp)
 		for j = 2; j <= (*k); j++ {
 			jc = (*idxc)[j-1]
@@ -182,14 +182,14 @@ label100:
 
 	//     Update the right singular vector matrix.
 	if (*k) == 2 {
-		err = goblas.Dgemm(NoTrans, NoTrans, *k, m, *k, one, q, *ldq, vt2, *ldvt2, zero, vt, *ldvt)
+		err = goblas.Dgemm(NoTrans, NoTrans, *k, m, *k, one, q, vt2, zero, vt)
 		return
 	}
 	ktemp = 1 + (*ctot)[0]
-	err = goblas.Dgemm(NoTrans, NoTrans, *k, nlp1, ktemp, one, q.Off(0, 0), *ldq, vt2.Off(0, 0), *ldvt2, zero, vt.Off(0, 0), *ldvt)
+	err = goblas.Dgemm(NoTrans, NoTrans, *k, nlp1, ktemp, one, q.Off(0, 0), vt2.Off(0, 0), zero, vt.Off(0, 0))
 	ktemp = 2 + (*ctot)[0] + (*ctot)[1]
 	if ktemp <= (*ldvt2) {
-		err = goblas.Dgemm(NoTrans, NoTrans, *k, nlp1, (*ctot)[2], one, q.Off(0, ktemp-1), *ldq, vt2.Off(ktemp-1, 0), *ldvt2, one, vt.Off(0, 0), *ldvt)
+		err = goblas.Dgemm(NoTrans, NoTrans, *k, nlp1, (*ctot)[2], one, q.Off(0, ktemp-1), vt2.Off(ktemp-1, 0), one, vt.Off(0, 0))
 	}
 
 	ktemp = (*ctot)[0] + 1
@@ -203,5 +203,5 @@ label100:
 		}
 	}
 	ctemp = 1 + (*ctot)[1] + (*ctot)[2]
-	err = goblas.Dgemm(NoTrans, NoTrans, *k, nrp1, ctemp, one, q.Off(0, ktemp-1), *ldq, vt2.Off(ktemp-1, nlp2-1), *ldvt2, zero, vt.Off(0, nlp2-1), *ldvt)
+	err = goblas.Dgemm(NoTrans, NoTrans, *k, nrp1, ctemp, one, q.Off(0, ktemp-1), vt2.Off(ktemp-1, nlp2-1), zero, vt.Off(0, nlp2-1))
 }

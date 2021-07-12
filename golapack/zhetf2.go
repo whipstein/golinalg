@@ -41,7 +41,7 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -75,13 +75,13 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Izamax(k-1, a.CVector(0, k-1), 1)
+			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
 			colmax = Cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if (maxf64(absakk, colmax) == zero) || Disnan(int(absakk)) {
+		if (math.Max(absakk, colmax) == zero) || Disnan(int(absakk)) {
 			//           Column K is zero or underflow, or contains a NaN:
 			//           set INFO and continue
 			if (*info) == 0 {
@@ -100,11 +100,11 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value.
 				//              Determine only ROWMAX.
-				jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax+1-1), *lda)
+				jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax, *lda))
 				rowmax = Cabs1(a.Get(imax-1, jmax-1))
 				if imax > 1 {
-					jmax = goblas.Izamax(imax-1, a.CVector(0, imax-1), 1)
-					rowmax = maxf64(rowmax, Cabs1(a.Get(jmax-1, imax-1)))
+					jmax = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
+					rowmax = math.Max(rowmax, Cabs1(a.Get(jmax-1, imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
@@ -129,7 +129,7 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
-				goblas.Zswap(kp-1, a.CVector(0, kk-1), 1, a.CVector(0, kp-1), 1)
+				goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
 				for j = kp + 1; j <= kk-1; j++ {
 					t = cmplx.Conj(a.Get(j-1, kk-1))
 					a.Set(j-1, kk-1, cmplx.Conj(a.Get(kp-1, j-1)))
@@ -164,10 +164,10 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//
 				//              A := A - U(k)*D(k)*U(k)**H = A - W(k)*1/D(k)*W(k)**H
 				r1 = one / real(a.Get(k-1, k-1))
-				err = goblas.Zher(mat.UploByte(uplo), k-1, -r1, a.CVector(0, k-1), 1, a, *lda)
+				err = goblas.Zher(mat.UploByte(uplo), k-1, -r1, a.CVector(0, k-1, 1), a)
 
 				//              Store U(k) in column k
-				goblas.Zdscal(k-1, r1, a.CVector(0, k-1), 1)
+				goblas.Zdscal(k-1, r1, a.CVector(0, k-1, 1))
 			} else {
 				//              2-by-2 pivot block D(k): columns k and k-1 now hold
 				//
@@ -240,13 +240,13 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < (*n) {
-			imax = k + goblas.Izamax((*n)-k, a.CVector(k+1-1, k-1), 1)
+			imax = k + goblas.Izamax((*n)-k, a.CVector(k, k-1, 1))
 			colmax = Cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if (maxf64(absakk, colmax) == zero) || Disnan(int(absakk)) {
+		if (math.Max(absakk, colmax) == zero) || Disnan(int(absakk)) {
 			//           Column K is zero or underflow, or contains a NaN:
 			//           set INFO and continue
 			if (*info) == 0 {
@@ -265,11 +265,11 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value.
 				//              Determine only ROWMAX.
-				jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1), *lda)
+				jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1, *lda))
 				rowmax = Cabs1(a.Get(imax-1, jmax-1))
 				if imax < (*n) {
-					jmax = imax + goblas.Izamax((*n)-imax, a.CVector(imax+1-1, imax-1), 1)
-					rowmax = maxf64(rowmax, Cabs1(a.Get(jmax-1, imax-1)))
+					jmax = imax + goblas.Izamax((*n)-imax, a.CVector(imax, imax-1, 1))
+					rowmax = math.Max(rowmax, Cabs1(a.Get(jmax-1, imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
@@ -295,7 +295,7 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < (*n) {
-					goblas.Zswap((*n)-kp, a.CVector(kp+1-1, kk-1), 1, a.CVector(kp+1-1, kp-1), 1)
+					goblas.Zswap((*n)-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
 				}
 				for j = kk + 1; j <= kp-1; j++ {
 					t = cmplx.Conj(a.Get(j-1, kk-1))
@@ -308,14 +308,14 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				a.SetRe(kp-1, kp-1, r1)
 				if kstep == 2 {
 					a.Set(k-1, k-1, a.GetReCmplx(k-1, k-1))
-					t = a.Get(k+1-1, k-1)
-					a.Set(k+1-1, k-1, a.Get(kp-1, k-1))
+					t = a.Get(k, k-1)
+					a.Set(k, k-1, a.Get(kp-1, k-1))
 					a.Set(kp-1, k-1, t)
 				}
 			} else {
 				a.Set(k-1, k-1, a.GetReCmplx(k-1, k-1))
 				if kstep == 2 {
-					a.Set(k+1-1, k+1-1, a.GetReCmplx(k+1-1, k+1-1))
+					a.Set(k, k, a.GetReCmplx(k, k))
 				}
 			}
 
@@ -331,10 +331,10 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 					//
 					//                 A := A - L(k)*D(k)*L(k)**H = A - W(k)*(1/D(k))*W(k)**H
 					r1 = one / real(a.Get(k-1, k-1))
-					err = goblas.Zher(mat.UploByte(uplo), (*n)-k, -r1, a.CVector(k+1-1, k-1), 1, a.Off(k+1-1, k+1-1), *lda)
+					err = goblas.Zher(mat.UploByte(uplo), (*n)-k, -r1, a.CVector(k, k-1, 1), a.Off(k, k))
 
 					//                 Store L(k) in column K
-					goblas.Zdscal((*n)-k, r1, a.CVector(k+1-1, k-1), 1)
+					goblas.Zdscal((*n)-k, r1, a.CVector(k, k-1, 1))
 				}
 			} else {
 				//              2-by-2 pivot block D(k)
@@ -346,21 +346,21 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 					//
 					//                 where L(k) and L(k+1) are the k-th and (k+1)-th
 					//                 columns of L
-					d = Dlapy2(toPtrf64(a.GetRe(k+1-1, k-1)), toPtrf64(a.GetIm(k+1-1, k-1)))
-					d11 = real(a.Get(k+1-1, k+1-1)) / d
+					d = Dlapy2(toPtrf64(a.GetRe(k, k-1)), toPtrf64(a.GetIm(k, k-1)))
+					d11 = real(a.Get(k, k)) / d
 					d22 = real(a.Get(k-1, k-1)) / d
 					tt = one / (d11*d22 - one)
-					d21 = a.Get(k+1-1, k-1) / complex(d, 0)
+					d21 = a.Get(k, k-1) / complex(d, 0)
 					d = tt / d
 
 					for j = k + 2; j <= (*n); j++ {
-						wk = complex(d, 0) * (complex(d11, 0)*a.Get(j-1, k-1) - d21*a.Get(j-1, k+1-1))
-						wkp1 = complex(d, 0) * (complex(d22, 0)*a.Get(j-1, k+1-1) - cmplx.Conj(d21)*a.Get(j-1, k-1))
+						wk = complex(d, 0) * (complex(d11, 0)*a.Get(j-1, k-1) - d21*a.Get(j-1, k))
+						wkp1 = complex(d, 0) * (complex(d22, 0)*a.Get(j-1, k) - cmplx.Conj(d21)*a.Get(j-1, k-1))
 						for i = j; i <= (*n); i++ {
-							a.Set(i-1, j-1, a.Get(i-1, j-1)-a.Get(i-1, k-1)*cmplx.Conj(wk)-a.Get(i-1, k+1-1)*cmplx.Conj(wkp1))
+							a.Set(i-1, j-1, a.Get(i-1, j-1)-a.Get(i-1, k-1)*cmplx.Conj(wk)-a.Get(i-1, k)*cmplx.Conj(wkp1))
 						}
 						a.Set(j-1, k-1, wk)
-						a.Set(j-1, k+1-1, wkp1)
+						a.Set(j-1, k, wkp1)
 						a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1))
 					}
 				}
@@ -372,7 +372,7 @@ func Zhetf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 			(*ipiv)[k-1] = kp
 		} else {
 			(*ipiv)[k-1] = -kp
-			(*ipiv)[k+1-1] = -kp
+			(*ipiv)[k] = -kp
 		}
 
 		//        Increase K and return to the start of the main loop

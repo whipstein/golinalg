@@ -224,7 +224,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     problems
 	nmax = 12
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -271,9 +271,9 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -363,11 +363,11 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -380,19 +380,19 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				adumma[0] = ' '
-				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n+1-1), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n+1-1), &iinfo)
+				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 				if n >= 4 {
 					golapack.Dlaset('F', func() *int { y := 2; return &y }(), &n, &zero, &zero, a, lda)
 					golapack.Dlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &zero, &zero, a.Off(2, 0), lda)
@@ -402,7 +402,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else {
 
@@ -412,7 +412,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DDRVVX: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -428,7 +428,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				} else {
 					nnwork = 6*n + 2*int(math.Pow(float64(n), 2))
 				}
-				nnwork = maxint(nnwork, 1)
+				nnwork = max(nnwork, 1)
 
 				//              Test for all balancing options
 				for ibal = 1; ibal <= 4; ibal++ {

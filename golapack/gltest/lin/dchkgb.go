@@ -79,11 +79,11 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 			kuval[3] = (n + 1) / 4
 
 			//           Set limits on the number of loop iterations.
-			nkl = minint(m+1, 4)
+			nkl = min(m+1, 4)
 			if n == 0 {
 				nkl = 2
 			}
-			nku = minint(n+1, 4)
+			nku = min(n+1, 4)
 			if m == 0 {
 				nku = 2
 			}
@@ -141,7 +141,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							//                       test matrix with DLATMS.
 							Dlatb4(path, &imat, &m, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
 
-							koff = maxint(1, ku+2-n)
+							koff = max(1, ku+2-n)
 							for i = 1; i <= koff-1; i++ {
 								a.Set(i-1, zero)
 							}
@@ -156,7 +156,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						} else if izero > 0 {
 							//                       Use the same matrix for types 3 and 4 as for
 							//                       _type 2 by copying back the zeroed out column.
-							goblas.Dcopy(i2-i1+1, b, 1, a.Off(ioff+i1-1), 1)
+							goblas.Dcopy(i2-i1+1, b.Off(0, 1), a.Off(ioff+i1-1, 1))
 						}
 
 						//                    For types 2, 3, and 4, zero one or more columns of
@@ -166,23 +166,23 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							if imat == 2 {
 								izero = 1
 							} else if imat == 3 {
-								izero = minint(m, n)
+								izero = min(m, n)
 							} else {
-								izero = minint(m, n)/2 + 1
+								izero = min(m, n)/2 + 1
 							}
 							ioff = (izero - 1) * lda
 							if imat < 4 {
 								//                          Store the column to be zeroed out in B.
-								i1 = maxint(1, ku+2-izero)
-								i2 = minint(kl+ku+1, ku+1+(m-izero))
-								goblas.Dcopy(i2-i1+1, a.Off(ioff+i1-1), 1, b, 1)
+								i1 = max(1, ku+2-izero)
+								i2 = min(kl+ku+1, ku+1+(m-izero))
+								goblas.Dcopy(i2-i1+1, a.Off(ioff+i1-1, 1), b.Off(0, 1))
 
 								for i = i1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
 							} else {
 								for j = izero; j <= n; j++ {
-									for i = maxint(1, ku+2-j); i <= minint(kl+ku+1, ku+1+(m-j)); i++ {
+									for i = max(1, ku+2-j); i <= min(kl+ku+1, ku+1+(m-j)); i++ {
 										a.Set(ioff+i-1, zero)
 									}
 									ioff = ioff + lda
@@ -204,7 +204,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 
 							//                       Compute the LU factorization of the band matrix.
 							if m > 0 && n > 0 {
-								golapack.Dlacpy('F', toPtr(kl+ku+1), &n, a.Matrix(lda, opts), &lda, afac.MatrixOff(kl+1-1, ldafac, opts), &ldafac)
+								golapack.Dlacpy('F', toPtr(kl+ku+1), &n, a.Matrix(lda, opts), &lda, afac.MatrixOff(kl, ldafac, opts), &ldafac)
 							}
 							*srnamt = "DGBTRF"
 							golapack.Dgbtrf(&m, &n, &kl, &ku, afac.Matrix(ldafac, opts), &ldafac, iwork, &info)
@@ -244,7 +244,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							if info == 0 {
 								//                          Form the inverse of A so we can get a good
 								//                          estimate of CNDNUM = norm(A) * norm(inv(A)).
-								ldb = maxint(1, n)
+								ldb = max(1, n)
 								golapack.Dlaset('F', &n, &n, &zero, &one, work.Matrix(ldb, opts), &ldb)
 								*srnamt = "DGBTRS"
 								golapack.Dgbtrs('N', &n, &kl, &ku, &n, afac.Matrix(ldafac, opts), &ldafac, iwork, work.Matrix(ldb, opts), &ldb, &info)
@@ -318,7 +318,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 									//                             Use iterative refinement to improve the
 									//                             solution.
 									*srnamt = "DGBRFS"
-									golapack.Dgbrfs(trans, &n, &kl, &ku, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(ldafac, opts), &ldafac, iwork, b.Matrix(ldb, opts), &ldb, x.Matrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs+1-1), work, toSlice(iwork, n+1-1), &info)
+									golapack.Dgbrfs(trans, &n, &kl, &ku, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(ldafac, opts), &ldafac, iwork, b.Matrix(ldb, opts), &ldb, x.Matrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs), work, toSlice(iwork, n), &info)
 
 									//                             Check error code from DGBRFS.
 									if info != 0 {
@@ -326,7 +326,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 									}
 
 									Dget04(&n, &nrhs, x.Matrix(ldb, opts), &ldb, xact.Matrix(ldb, opts), &ldb, &rcondc, result.GetPtr(3))
-									Dgbt05(trans, &n, &kl, &ku, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, x.Matrix(ldb, opts), &ldb, xact.Matrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs+1-1), result.Off(4))
+									Dgbt05(trans, &n, &kl, &ku, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, x.Matrix(ldb, opts), &ldb, xact.Matrix(ldb, opts), &ldb, rwork, rwork.Off(nrhs), result.Off(4))
 									for k = 2; k <= 6; k++ {
 										if result.Get(k-1) >= (*thresh) {
 											t.Fail()
@@ -356,7 +356,7 @@ func Dchkgb(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 									norm = 'I'
 								}
 								*srnamt = "DGBCON"
-								golapack.Dgbcon(norm, &n, &kl, &ku, afac.Matrix(ldafac, opts), &ldafac, iwork, &anorm, &rcond, work, toSlice(iwork, n+1-1), &info)
+								golapack.Dgbcon(norm, &n, &kl, &ku, afac.Matrix(ldafac, opts), &ldafac, iwork, &anorm, &rcond, work, toSlice(iwork, n), &info)
 
 								//                             Check error code from DGBCON.
 								if info != 0 {

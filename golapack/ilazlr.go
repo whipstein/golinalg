@@ -19,10 +19,10 @@ func Ilazlr(m, n *int, a *mat.CMatrix, lda *int) (ilazlrReturn int) {
 		ilazlrReturn = 0
 		for j = 1; j <= (*n); j++ {
 			i = (*m)
-			for (a.Get(maxint(i, 1)-1, j-1) == zero) && (i >= 1) {
+			for (a.Get(max(i, 1)-1, j-1) == zero) && (i >= 1) {
 				i = i - 1
 			}
-			ilazlrReturn = maxint(ilazlrReturn, i)
+			ilazlrReturn = max(ilazlrReturn, i)
 		}
 	}
 	return

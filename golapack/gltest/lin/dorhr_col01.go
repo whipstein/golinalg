@@ -33,8 +33,8 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	testzeros = false
 
 	eps = golapack.Dlamch(Epsilon)
-	k = minint(*m, *n)
-	l = maxint(*m, *n, 1)
+	k = min(*m, *n)
+	l = max(*m, *n, 1)
 
 	//     Dynamically allocate local arrays
 	// Allocate(A(m, n), Af(m, n), Q(&l, &l), R(m, &l), Rwork(&l), C(m, n), Cf(m, n), D(n, m), Df(n, m))
@@ -62,7 +62,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	golapack.Dlacpy('F', m, n, a, m, af, m)
 
 	//     Number of row blocks in DLATSQR
-	nrb = maxint(1, int(math.Ceil(float64((*m)-(*n))/float64((*mb1)-(*n)))))
+	nrb = max(1, int(math.Ceil(float64((*m)-(*n))/float64((*mb1)-(*n)))))
 
 	// Allocate(T1(nb1, (*n)*nrb))
 	// Allocate(T2(nb2, n))
@@ -74,19 +74,19 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//     Begin determine LWORK for the array WORK and allocate memory.
 	//
 	//     DLATSQR requires NB1 to be bounded by N.
-	nb1Ub = minint(*nb1, *n)
+	nb1Ub = min(*nb1, *n)
 
 	//     DGEMQRT requires NB2 to be bounded by N.
-	nb2Ub = minint(*nb2, *n)
+	nb2Ub = min(*nb2, *n)
 
 	golapack.Dlatsqr(m, n, mb1, &nb1Ub, af, m, t1, nb1, workquery, toPtr(-1), &info)
 	lwork = int(workquery.Get(0))
 	golapack.Dorgtsqr(m, n, mb1, nb1, af, m, t1, nb1, workquery, toPtr(-1), &info)
-	lwork = maxint(lwork, int(workquery.Get(0)))
+	lwork = max(lwork, int(workquery.Get(0)))
 
 	//     In DGEMQRT, WORK is N*NB2_UB if SIDE = 'L',
 	//                or  M*NB2_UB if SIDE = 'R'.
-	lwork = maxint(lwork, nb2Ub*(*n), nb2Ub*(*m))
+	lwork = max(lwork, nb2Ub*(*n), nb2Ub*(*m))
 
 	// Allocate(Work(&lwork))
 	work := vf(lwork)
@@ -124,7 +124,7 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	for i = 1; i <= (*n); i++ {
 		if diag.Get(i-1) == -one {
-			goblas.Dscal((*n)+1-i, -one, af.Vector(i-1, i-1), *m)
+			goblas.Dscal((*n)+1-i, -one, af.Vector(i-1, i-1, *m))
 		}
 	}
 
@@ -144,12 +144,12 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 1
 	//     Compute |R - (Q**T)*A| / ( eps * m * |A| ) and store in RESULT(1)
-	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, *m, a, *m, one, r, *m)
+	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, a, one, r)
 
 	anorm = golapack.Dlange('1', m, n, a, m, rwork)
 	resid = golapack.Dlange('1', m, n, r, m, rwork)
 	if anorm > zero {
-		result.Set(0, resid/(eps*float64(maxint(1, *m))*anorm))
+		result.Set(0, resid/(eps*float64(max(1, *m))*anorm))
 	} else {
 		result.Set(0, zero)
 	}
@@ -157,9 +157,9 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//     TEST 2
 	//     Compute |I - (Q**T)*Q| / ( eps * m ) and store in RESULT(2)
 	golapack.Dlaset('F', m, m, &zero, &one, r, m)
-	err = goblas.Dsyrk(Upper, Trans, *m, *m, -one, q, *m, one, r, *m)
+	err = goblas.Dsyrk(Upper, Trans, *m, *m, -one, q, one, r)
 	resid = golapack.Dlansy('1', 'U', m, r, m, rwork)
-	result.Set(1, resid/(eps*float64(maxint(1, *m))))
+	result.Set(1, resid/(eps*float64(max(1, *m))))
 
 	//     Generate random m-by-n matrix C
 	for j = 1; j <= (*n); j++ {
@@ -174,10 +174,10 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 3
 	//     Compute |CF - Q*C| / ( eps *  m * |C| )
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
 	resid = golapack.Dlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
-		result.Set(2, resid/(eps*float64(maxint(1, *m))*cnorm))
+		result.Set(2, resid/(eps*float64(max(1, *m))*cnorm))
 	} else {
 		result.Set(2, zero)
 	}
@@ -191,10 +191,10 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 4
 	//     Compute |CF - (Q**T)*C| / ( eps * m * |C|)
-	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
+	err = goblas.Dgemm(Trans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
 	resid = golapack.Dlange('1', m, n, cf, m, rwork)
 	if cnorm > zero {
-		result.Set(3, resid/(eps*float64(maxint(1, *m))*cnorm))
+		result.Set(3, resid/(eps*float64(max(1, *m))*cnorm))
 	} else {
 		result.Set(3, zero)
 	}
@@ -212,10 +212,10 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 5
 	//     Compute |DF - D*Q| / ( eps * m * |D| )
-	err = goblas.Dgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, q, one, df)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
-		result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
+		result.Set(4, resid/(eps*float64(max(1, *m))*dnorm))
 	} else {
 		result.Set(4, zero)
 	}
@@ -229,10 +229,10 @@ func DorhrCol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 
 	//     TEST 6
 	//     Compute |DF - D*(Q**T)| / ( eps * m * |D| )
-	err = goblas.Dgemm(NoTrans, Trans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
+	err = goblas.Dgemm(NoTrans, Trans, *n, *m, *m, -one, d, q, one, df)
 	resid = golapack.Dlange('1', n, m, df, n, rwork)
 	if dnorm > zero {
-		result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))
+		result.Set(5, resid/(eps*float64(max(1, *m))*dnorm))
 	} else {
 		result.Set(5, zero)
 	}

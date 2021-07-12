@@ -9,7 +9,7 @@ func Dgennd(m, n *int, a *mat.Matrix, lda *int) (dgenndReturn bool) {
 
 	zero = 0.0
 
-	k = minint(*m, *n)
+	k = min(*m, *n)
 	for i = 1; i <= k; i++ {
 		if a.Get(i-1, i-1) < zero {
 			dgenndReturn = false

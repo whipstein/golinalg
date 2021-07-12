@@ -84,6 +84,7 @@ func TestZblasLevel2(t *testing.T) {
 		panic("")
 	}
 	trans = Trans
+	x.Inc, y.Inc = -1, -1
 	zmvch(trans, n, n, one, a, nmax, x, -1, zero, y, -1, yt, g, yy, eps, &err, &fatal, true, t)
 	same = lze(yy, yt, n)
 	if !same || err != rzero {
@@ -98,12 +99,14 @@ func TestZblasLevel2(t *testing.T) {
 		errmax = 0.0
 
 		if sname == "Zgemv" || sname == "Zgbmv" {
-			zchkeLevel2(sname)
-
 			full := sname[2] == 'e'
 			banded := sname[2] == 'b'
 			for i := range isame {
 				isame[i] = true
+			}
+
+			if zchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
 			}
 
 			//     Define the number of arguments.
@@ -177,19 +180,21 @@ func TestZblasLevel2(t *testing.T) {
 
 							for ix = 1; ix <= ninc; ix++ {
 								incx = inc[ix-1]
-								lx = absint(incx) * nl
+								lx = abs(incx) * nl
+								x.Inc, xx.Inc = incx, incx
 
 								//                    Generate the vector X.
 								transl = half
-								zmakeL2([]byte("ge"), Full, NonUnit, 1, nl, x.CMatrix(1, opts), 1, xx, absint(incx), 0, nl-1, &reset, transl)
+								zmakeL2([]byte("ge"), Full, NonUnit, 1, nl, x.CMatrix(1, opts), 1, xx, abs(incx), 0, nl-1, &reset, transl)
 								if nl > 1 {
 									x.Set(nl/2-1, zero)
-									xx.Set(1+absint(incx)*(nl/2-1)-1, zero)
+									xx.Set(1+abs(incx)*(nl/2-1)-1, zero)
 								}
 
 								for iy = 1; iy <= ninc; iy++ {
 									incy = inc[iy-1]
-									ly = absint(incy) * ml
+									ly = abs(incy) * ml
+									y.Inc, yy.Inc = incy, incy
 
 									for ia = 1; ia <= nalf; ia++ {
 										alpha = alf.Get(ia - 1)
@@ -199,7 +204,7 @@ func TestZblasLevel2(t *testing.T) {
 
 											//                             Generate the vector Y.
 											transl = zero
-											zmakeL2([]byte("ge"), Full, NonUnit, 1, ml, y.CMatrix(1, opts), 1, yy, absint(incy), 0, ml-1, &reset, transl)
+											zmakeL2([]byte("ge"), Full, NonUnit, 1, ml, y.CMatrix(1, opts), 1, yy, abs(incy), 0, ml-1, &reset, transl)
 
 											nc = nc + 1
 
@@ -221,9 +226,9 @@ func TestZblasLevel2(t *testing.T) {
 
 											//                             Call the subroutine.
 											if full {
-												err2 = Zgemv(trans, m, n, alpha, aa.CMatrix(lda, opts), lda, xx, incx, beta, yy, incy)
+												err2 = Zgemv(trans, m, n, alpha, aa.CMatrix(lda, opts), xx, beta, yy)
 											} else if banded {
-												err2 = Zgbmv(trans, m, n, kl, ku, alpha, aa.CMatrix(lda, opts), lda, xx, incx, beta, yy, incy)
+												err2 = Zgbmv(trans, m, n, kl, ku, alpha, aa.CMatrix(lda, opts), xx, beta, yy)
 											}
 
 											//                             Check if error-exit was taken incorrectly.
@@ -248,7 +253,7 @@ func TestZblasLevel2(t *testing.T) {
 												if null {
 													isame[9] = lze(ys, yy, ly)
 												} else {
-													isame[9] = lzeres([]byte("ge"), Full, 1, ml, ys.CMatrix(absint(incy), opts), yy.CMatrix(absint(incy), opts), absint(incy))
+													isame[9] = lzeres([]byte("ge"), Full, 1, ml, ys.CMatrix(abs(incy), opts), yy.CMatrix(abs(incy), opts), abs(incy))
 												}
 												isame[10] = incys == incy
 											} else if banded {
@@ -263,7 +268,7 @@ func TestZblasLevel2(t *testing.T) {
 												if null {
 													isame[11] = lze(ys, yy, ly)
 												} else {
-													isame[11] = lzeres([]byte("ge"), Full, 1, ml, ys.CMatrix(absint(incy), opts), yy.CMatrix(absint(incy), opts), absint(incy))
+													isame[11] = lzeres([]byte("ge"), Full, 1, ml, ys.CMatrix(abs(incy), opts), yy.CMatrix(abs(incy), opts), abs(incy))
 												}
 												isame[12] = incys == incy
 											}
@@ -340,11 +345,14 @@ func TestZblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Zhemv" || sname == "Zhbmv" || sname == "Zhpmv" {
-			zchkeLevel2(sname)
-
 			full := sname[2] == 'e'
 			banded := sname[2] == 'b'
 			packed := sname[2] == 'p'
+
+			if zchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
+
 			//     Define the number of arguments.
 			if full {
 				nargs = 10
@@ -403,19 +411,21 @@ func TestZblasLevel2(t *testing.T) {
 
 						for ix = 1; ix <= ninc; ix++ {
 							incx = inc[ix-1]
-							lx = absint(incx) * n
+							lx = abs(incx) * n
+							x.Inc, xx.Inc = incx, incx
 
 							//                 Generate the vector X.
 							transl = half
-							zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, absint(incx), 0, n-1, &reset, transl)
+							zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, abs(incx), 0, n-1, &reset, transl)
 							if n > 1 {
 								x.Set(n/2-1, zero)
-								xx.Set(1+absint(incx)*(n/2-1)-1, zero)
+								xx.Set(1+abs(incx)*(n/2-1)-1, zero)
 							}
 
 							for iy = 1; iy <= ninc; iy++ {
 								incy = inc[iy-1]
-								ly = absint(incy) * n
+								ly = abs(incy) * n
+								y.Inc, yy.Inc = incy, incy
 
 								for ia = 1; ia <= nalf; ia++ {
 									alpha = alf.Get(ia - 1)
@@ -425,7 +435,7 @@ func TestZblasLevel2(t *testing.T) {
 
 										//                          Generate the vector Y.
 										transl = zero
-										zmakeL2([]byte("ge"), Full, NonUnit, 1, n, y.CMatrix(1, opts), 1, yy, absint(incy), 0, n-1, &reset, transl)
+										zmakeL2([]byte("ge"), Full, NonUnit, 1, n, y.CMatrix(1, opts), 1, yy, abs(incy), 0, n-1, &reset, transl)
 
 										nc = nc + 1
 
@@ -445,11 +455,11 @@ func TestZblasLevel2(t *testing.T) {
 
 										//                          Call the subroutine.
 										if full {
-											err2 = Zhemv(uplo, n, alpha, aa.CMatrix(lda, opts), lda, xx, incx, beta, yy, incy)
+											err2 = Zhemv(uplo, n, alpha, aa.CMatrix(lda, opts), xx, beta, yy)
 										} else if banded {
-											err2 = Zhbmv(uplo, n, k, alpha, aa.CMatrix(lda, opts), lda, xx, incx, beta, yy, incy)
+											err2 = Zhbmv(uplo, n, k, alpha, aa.CMatrix(lda, opts), xx, beta, yy)
 										} else if packed {
-											err2 = Zhpmv(uplo, n, alpha, aa, xx, incx, beta, yy, incy)
+											err2 = Zhpmv(uplo, n, alpha, aa, xx, beta, yy)
 										}
 
 										//                          Check if error-exit was taken incorrectly.
@@ -473,7 +483,7 @@ func TestZblasLevel2(t *testing.T) {
 											if null {
 												isame[8] = lze(ys, yy, ly)
 											} else {
-												isame[8] = lzeres([]byte("ge"), Full, 1, n, ys.CMatrix(absint(incy), opts), yy.CMatrix(absint(incy), opts), absint(incy))
+												isame[8] = lzeres([]byte("ge"), Full, 1, n, ys.CMatrix(abs(incy), opts), yy.CMatrix(abs(incy), opts), abs(incy))
 											}
 											isame[9] = incys == incy
 										} else if banded {
@@ -487,7 +497,7 @@ func TestZblasLevel2(t *testing.T) {
 											if null {
 												isame[9] = lze(ys, yy, ly)
 											} else {
-												isame[9] = lzeres([]byte("ge"), Full, 1, n, ys.CMatrix(absint(incy), opts), yy.CMatrix(absint(incy), opts), absint(incy))
+												isame[9] = lzeres([]byte("ge"), Full, 1, n, ys.CMatrix(abs(incy), opts), yy.CMatrix(abs(incy), opts), abs(incy))
 											}
 											isame[10] = incys == incy
 										} else if packed {
@@ -499,7 +509,7 @@ func TestZblasLevel2(t *testing.T) {
 											if null {
 												isame[7] = lze(ys, yy, ly)
 											} else {
-												isame[7] = lzeres([]byte("ge"), Full, 1, n, ys.CMatrix(absint(incy), opts), yy.CMatrix(absint(incy), opts), absint(incy))
+												isame[7] = lzeres([]byte("ge"), Full, 1, n, ys.CMatrix(abs(incy), opts), yy.CMatrix(abs(incy), opts), abs(incy))
 											}
 											isame[8] = incys == incy
 										}
@@ -575,12 +585,14 @@ func TestZblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Ztrmv" || sname == "Ztbmv" || sname == "Ztpmv" || sname == "Ztrsv" || sname == "Ztbsv" || sname == "Ztpsv" {
-			zchkeLevel2(sname)
-
 			z := cvf(nmax)
 			full := sname[2] == 'r'
 			banded := sname[2] == 'b'
 			packed := sname[2] == 'p'
+
+			if zchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
 
 			//     Define the number of arguments.
 			opts.Style = mat.Triangular
@@ -655,14 +667,15 @@ func TestZblasLevel2(t *testing.T) {
 
 								for ix = 1; ix <= ninc; ix++ {
 									incx = inc[ix-1]
-									lx = absint(incx) * n
+									lx = abs(incx) * n
+									x.Inc, xx.Inc = incx, incx
 
 									//                       Generate the vector X.
 									transl = half
-									zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, absint(incx), 0, n-1, &reset, transl)
+									zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, abs(incx), 0, n-1, &reset, transl)
 									if n > 1 {
 										x.Set(n/2-1, zero)
-										xx.Set(1+absint(incx)*(n/2-1)-1, zero)
+										xx.Set(1+abs(incx)*(n/2-1)-1, zero)
 									}
 
 									nc = nc + 1
@@ -681,19 +694,19 @@ func TestZblasLevel2(t *testing.T) {
 									//                       Call the subroutine.
 									if string(sname[3:5]) == "mv" {
 										if full {
-											err2 = Ztrmv(uplo, trans, diag, n, aa.CMatrix(lda, opts), lda, xx, incx)
+											err2 = Ztrmv(uplo, trans, diag, n, aa.CMatrix(lda, opts), xx)
 										} else if banded {
-											err2 = Ztbmv(uplo, trans, diag, n, k, aa.CMatrix(lda, opts), lda, xx, incx)
+											err2 = Ztbmv(uplo, trans, diag, n, k, aa.CMatrix(lda, opts), xx)
 										} else if packed {
-											err2 = Ztpmv(uplo, trans, diag, n, aa, xx, incx)
+											err2 = Ztpmv(uplo, trans, diag, n, aa, xx)
 										}
 									} else if string(sname[3:5]) == "sv" {
 										if full {
-											err2 = Ztrsv(uplo, trans, diag, n, aa.CMatrix(lda, opts), lda, xx, incx)
+											err2 = Ztrsv(uplo, trans, diag, n, aa.CMatrix(lda, opts), xx)
 										} else if banded {
-											err2 = Ztbsv(uplo, trans, diag, n, k, aa.CMatrix(lda, opts), lda, xx, incx)
+											err2 = Ztbsv(uplo, trans, diag, n, k, aa.CMatrix(lda, opts), xx)
 										} else if packed {
-											err2 = Ztpsv(uplo, trans, diag, n, aa, xx, incx)
+											err2 = Ztpsv(uplo, trans, diag, n, aa, xx)
 										}
 									}
 
@@ -716,7 +729,7 @@ func TestZblasLevel2(t *testing.T) {
 										if null {
 											isame[6] = lze(xs, xx, lx)
 										} else {
-											isame[6] = lzeres([]byte("ge"), Full, 1, n, xs.CMatrix(absint(incx), opts), xx.CMatrix(absint(incx), opts), absint(incx))
+											isame[6] = lzeres([]byte("ge"), Full, 1, n, xs.CMatrix(abs(incx), opts), xx.CMatrix(abs(incx), opts), abs(incx))
 										}
 										isame[7] = incxs == incx
 									} else if banded {
@@ -726,7 +739,7 @@ func TestZblasLevel2(t *testing.T) {
 										if null {
 											isame[7] = lze(xs, xx, lx)
 										} else {
-											isame[7] = lzeres([]byte("ge"), Full, 1, n, xs.CMatrix(absint(incx), opts), xx.CMatrix(absint(incx), opts), absint(incx))
+											isame[7] = lzeres([]byte("ge"), Full, 1, n, xs.CMatrix(abs(incx), opts), xx.CMatrix(abs(incx), opts), abs(incx))
 										}
 										isame[8] = incxs == incx
 									} else if packed {
@@ -734,7 +747,7 @@ func TestZblasLevel2(t *testing.T) {
 										if null {
 											isame[5] = lze(xs, xx, lx)
 										} else {
-											isame[5] = lzeres([]byte("ge"), Full, 1, n, xs.CMatrix(absint(incx), opts), xx.CMatrix(absint(incx), opts), absint(incx))
+											isame[5] = lzeres([]byte("ge"), Full, 1, n, xs.CMatrix(abs(incx), opts), xx.CMatrix(abs(incx), opts), abs(incx))
 										}
 										isame[6] = incxs == incx
 									}
@@ -755,14 +768,15 @@ func TestZblasLevel2(t *testing.T) {
 									}
 
 									if !null {
+										z.Inc = incx
 										if string(sname[3:5]) == "mv" {
 											//                             Check the result.
 											zmvch(trans, n, n, one, a, nmax, x, incx, zero, z, incx, xt, g, xx, eps, &err, &fatal, true, t)
 										} else if string(sname[3:5]) == "sv" {
 											//                             Compute approximation to original vector.
 											for i = 1; i <= n; i++ {
-												z.Set(i-1, xx.Get(1+(i-1)*absint(incx)-1))
-												xx.Set(1+(i-1)*absint(incx)-1, x.Get(i-1))
+												z.Set(i-1, xx.Get(1+(i-1)*abs(incx)-1))
+												xx.Set(1+(i-1)*abs(incx)-1, x.Get(i-1))
 											}
 											zmvch(trans, n, n, one, a, nmax, z, incx, zero, x, incx, xt, g, xx, eps, &err, &fatal, false, t)
 										}
@@ -816,11 +830,14 @@ func TestZblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Zgerc" || sname == "Zgeru" {
-			zchkeLevel2(sname)
-
 			w := cvf(1)
 			z := cvf(nmax)
 			conj := sname[4] == 'c'
+
+			if zchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
+
 			//     Define the number of arguments.
 			nargs = 9
 
@@ -854,26 +871,28 @@ func TestZblasLevel2(t *testing.T) {
 					//
 					for ix = 1; ix <= ninc; ix++ {
 						incx = inc[ix-1]
-						lx = absint(incx) * m
+						lx = abs(incx) * m
+						x.Inc, xx.Inc = incx, incx
 
 						//              Generate the vector X.
 						transl = half
-						zmakeL2([]byte("ge"), Full, NonUnit, 1, m, x.CMatrix(1, opts), 1, xx, absint(incx), 0, m-1, &reset, transl)
+						zmakeL2([]byte("ge"), Full, NonUnit, 1, m, x.CMatrix(1, opts), 1, xx, abs(incx), 0, m-1, &reset, transl)
 						if m > 1 {
 							x.Set(m/2-1, zero)
-							xx.Set(1+absint(incx)*(m/2-1)-1, zero)
+							xx.Set(1+abs(incx)*(m/2-1)-1, zero)
 						}
 						//
 						for iy = 1; iy <= ninc; iy++ {
 							incy = inc[iy-1]
-							ly = absint(incy) * n
+							ly = abs(incy) * n
+							y.Inc, yy.Inc = incy, incy
 
 							//                 Generate the vector Y.
 							transl = zero
-							zmakeL2([]byte("ge"), Full, NonUnit, 1, n, y.CMatrix(1, opts), 1, yy, absint(incy), 0, n-1, &reset, transl)
+							zmakeL2([]byte("ge"), Full, NonUnit, 1, n, y.CMatrix(1, opts), 1, yy, abs(incy), 0, n-1, &reset, transl)
 							if n > 1 {
 								y.Set(n/2-1, zero)
-								yy.Set(1+absint(incy)*(n/2-1)-1, zero)
+								yy.Set(1+abs(incy)*(n/2-1)-1, zero)
 							}
 
 							for ia = 1; ia <= nalf; ia++ {
@@ -904,9 +923,9 @@ func TestZblasLevel2(t *testing.T) {
 
 								//                    Call the subroutine.
 								if conj {
-									err2 = Zgerc(m, n, alpha, xx, incx, yy, incy, aa.CMatrix(lda, opts), lda)
+									err2 = Zgerc(m, n, alpha, xx, yy, aa.CMatrix(lda, opts))
 								} else {
-									err2 = Zgeru(m, n, alpha, xx, incx, yy, incy, aa.CMatrix(lda, opts), lda)
+									err2 = Zgeru(m, n, alpha, xx, yy, aa.CMatrix(lda, opts))
 								}
 
 								//                    Check if error-exit was taken incorrectly.
@@ -954,19 +973,19 @@ func TestZblasLevel2(t *testing.T) {
 										}
 									} else {
 										for i = 1; i <= m; i++ {
-											z.Set(i-1, x.Get(m-i+1-1))
+											z.Set(i-1, x.Get(m-i))
 										}
 									}
 									for j = 1; j <= n; j++ {
 										if incy > 0 {
 											w.Set(0, y.Get(j-1))
 										} else {
-											w.Set(0, y.Get(n-j+1-1))
+											w.Set(0, y.Get(n-j))
 										}
 										if conj {
 											w.Set(0, w.GetConj(0))
 										}
-										zmvch(NoTrans, m, 1, alpha, z.CMatrix(nmax, opts), nmax, w, 1, one, a.CVector(0, j-1), 1, yt, g, aa.Off(1+(j-1)*lda-1), eps, &err, &fatal, true, t)
+										zmvch(NoTrans, m, 1, alpha, z.CMatrix(nmax, opts), nmax, w, 1, one, a.CVector(0, j-1, 1), 1, yt, g, aa.Off(1+(j-1)*lda-1), eps, &err, &fatal, true, t)
 										errmax = math.Max(errmax, err)
 										//                          If got really bad answer, report and return.
 										if fatal {
@@ -1009,12 +1028,15 @@ func TestZblasLevel2(t *testing.T) {
 			fmt.Printf(" %6d: %6s(%3d,%3d,%4.1f, X,%2d, Y,%2d, A,%3d)                         .\n", nc, sname, m, n, alpha, incx, incy, lda)
 
 		} else if sname == "Zher" || sname == "Zhpr" {
-			zchkeLevel2(sname)
-
 			w := cvf(1)
 			z := cvf(nmax)
 			full := sname[2] == 'e'
 			packed := sname[2] == 'p'
+
+			if zchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
+
 			//     Define the number of arguments.
 			if full {
 				nargs = 7
@@ -1049,16 +1071,17 @@ func TestZblasLevel2(t *testing.T) {
 
 					for ix = 1; ix <= ninc; ix++ {
 						incx = inc[ix-1]
-						lx = absint(incx) * n
+						lx = abs(incx) * n
+						x.Inc, xx.Inc = incx, incx
 
 						//              Generate the vector X.
 						transl = half
-						zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, absint(incx), 0, n-1, &reset, transl)
+						zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, abs(incx), 0, n-1, &reset, transl)
 						if n > 1 {
 							x.Set(n/2-1, zero)
-							xx.Set(1+absint(incx)*(n/2-1)-1, zero)
+							xx.Set(1+abs(incx)*(n/2-1)-1, zero)
 						}
-						//
+
 						for ia = 1; ia <= nalf; ia++ {
 							ralpha := real(alf.Get(ia - 1))
 							alpha = complex(ralpha, rzero)
@@ -1068,7 +1091,7 @@ func TestZblasLevel2(t *testing.T) {
 							transl = zero
 							zmakeL2([]byte(sname[1:3]), uplo, NonUnit, n, n, a, nmax, aa, lda, n-1, n-1, &reset, transl)
 
-							nc = nc + 1
+							nc++
 
 							//                 Save every datum before calling the subroutine.
 							uplos = uplo
@@ -1085,9 +1108,9 @@ func TestZblasLevel2(t *testing.T) {
 
 							//                 Call the subroutine.
 							if full {
-								err2 = Zher(uplo, n, ralpha, xx, incx, aa.CMatrix(lda, opts), lda)
+								err2 = Zher(uplo, n, ralpha, xx, aa.CMatrix(lda, opts))
 							} else if packed {
-								err2 = Zhpr(uplo, n, ralpha, xx, incx, aa)
+								err2 = Zhpr(uplo, n, ralpha, xx, aa)
 							}
 
 							//                 Check if error-exit was taken incorrectly.
@@ -1135,7 +1158,7 @@ func TestZblasLevel2(t *testing.T) {
 									}
 								} else {
 									for i = 1; i <= n; i++ {
-										z.Set(i-1, x.Get(n-i+1-1))
+										z.Set(i-1, x.Get(n-i))
 									}
 								}
 								ja = 1
@@ -1148,7 +1171,7 @@ func TestZblasLevel2(t *testing.T) {
 										jj = j
 										lj = n - j + 1
 									}
-									zmvch(NoTrans, lj, 1, alpha, z.CMatrixOff(jj-1, lj, opts), lj, w, 1, one, a.CVector(jj-1, j-1), 1, yt, g, aa.Off(ja-1), eps, &err, &fatal, true, t)
+									zmvch(NoTrans, lj, 1, alpha, z.CMatrixOff(jj-1, lj, opts), lj, w, 1, one, a.CVector(jj-1, j-1, 1), 1, yt, g, aa.Off(ja-1), eps, &err, &fatal, true, t)
 									if full {
 										if upper {
 											ja = ja + lda
@@ -1204,12 +1227,15 @@ func TestZblasLevel2(t *testing.T) {
 			}
 
 		} else if sname == "Zher2" || sname == "Zhpr2" {
-			zchkeLevel2(sname)
-
 			w := cvf(2)
 			z := cmf(nmax, 2, opts)
 			full := sname[2] == 'e'
 			packed := sname[2] == 'p'
+
+			if zchkeLevel2(sname); !common.infoc.ok {
+				t.Fail()
+			}
+
 			//     Define the number of arguments.
 			if full {
 				nargs = 9
@@ -1244,26 +1270,28 @@ func TestZblasLevel2(t *testing.T) {
 
 					for ix = 1; ix <= ninc; ix++ {
 						incx = inc[ix-1]
-						lx = absint(incx) * n
+						lx = abs(incx) * n
+						x.Inc, xx.Inc = incx, incx
 
 						//              Generate the vector X.
 						transl = half
-						zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, absint(incx), 0, n-1, &reset, transl)
+						zmakeL2([]byte("ge"), Full, NonUnit, 1, n, x.CMatrix(1, opts), 1, xx, abs(incx), 0, n-1, &reset, transl)
 						if n > 1 {
 							x.Set(n/2-1, zero)
-							xx.Set(1+absint(incx)*(n/2-1)-1, zero)
+							xx.Set(1+abs(incx)*(n/2-1)-1, zero)
 						}
 						//
 						for iy = 1; iy <= ninc; iy++ {
 							incy = inc[iy-1]
-							ly = absint(incy) * n
+							ly = abs(incy) * n
+							y.Inc, yy.Inc = incy, incy
 
 							//                 Generate the vector Y.
 							transl = zero
-							zmakeL2([]byte("ge"), Full, NonUnit, 1, n, y.CMatrix(1, opts), 1, yy, absint(incy), 0, n-1, &reset, transl)
+							zmakeL2([]byte("ge"), Full, NonUnit, 1, n, y.CMatrix(1, opts), 1, yy, abs(incy), 0, n-1, &reset, transl)
 							if n > 1 {
 								y.Set(n/2-1, zero)
-								yy.Set(1+absint(incy)*(n/2-1)-1, zero)
+								yy.Set(1+abs(incy)*(n/2-1)-1, zero)
 							}
 
 							for ia = 1; ia <= nalf; ia++ {
@@ -1295,9 +1323,9 @@ func TestZblasLevel2(t *testing.T) {
 
 								//                    Call the subroutine.
 								if full {
-									err2 = Zher2(uplo, n, alpha, xx, incx, yy, incy, aa.CMatrix(lda, opts), lda)
+									err2 = Zher2(uplo, n, alpha, xx, yy, aa.CMatrix(lda, opts))
 								} else if packed {
-									err2 = Zhpr2(uplo, n, alpha, xx, incx, yy, incy, aa)
+									err2 = Zhpr2(uplo, n, alpha, xx, yy, aa)
 								}
 
 								//                    Check if error-exit was taken incorrectly.
@@ -1347,7 +1375,7 @@ func TestZblasLevel2(t *testing.T) {
 										}
 									} else {
 										for i = 1; i <= n; i++ {
-											z.Set(i-1, 0, x.Get(n-i+1-1))
+											z.Set(i-1, 0, x.Get(n-i))
 										}
 									}
 									if incy > 0 {
@@ -1356,7 +1384,7 @@ func TestZblasLevel2(t *testing.T) {
 										}
 									} else {
 										for i = 1; i <= n; i++ {
-											z.Set(i-1, 1, y.Get(n-i+1-1))
+											z.Set(i-1, 1, y.Get(n-i))
 										}
 									}
 									ja = 1
@@ -1370,7 +1398,7 @@ func TestZblasLevel2(t *testing.T) {
 											jj = j
 											lj = n - j + 1
 										}
-										zmvch(NoTrans, lj, 2, one, z.Off(jj-1, 0), nmax, w, 1, one, a.CVector(jj-1, j-1), 1, yt, g, aa.Off(ja-1), eps, &err, &fatal, true, t)
+										zmvch(NoTrans, lj, 2, one, z.Off(jj-1, 0), nmax, w, 1, one, a.CVector(jj-1, j-1, 1), 1, yt, g, aa.Off(ja-1), eps, &err, &fatal, true, t)
 										if full {
 											if upper {
 												ja = ja + lda
@@ -1611,14 +1639,14 @@ func zmvch(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, nmax 
 		ml = m
 		nl = n
 	}
-	if incx < 0 {
+	if x.Inc < 0 {
 		kx = nl
 		incxl = -1
 	} else {
 		kx = 1
 		incxl = 1
 	}
-	if incy < 0 {
+	if y.Inc < 0 {
 		ky = ml
 		incyl = -1
 	} else {
@@ -1660,7 +1688,7 @@ func zmvch(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, nmax 
 	//     Compute the error ratio for this result.
 	(*err) = rzero
 	for i = 1; i <= ml; i++ {
-		erri = cmplx.Abs(yt.Get(i-1)-yy.Get(1+(i-1)*absint(incy)-1)) / eps
+		erri = cmplx.Abs(yt.Get(i-1)-yy.Get(1+(i-1)*abs(y.Inc)-1)) / eps
 		if g.Get(i-1) != rzero {
 			erri = erri / g.Get(i-1)
 		}
@@ -1680,9 +1708,9 @@ label60:
 	fmt.Printf(" ******* FATAL ERROR - COMPUTED RESULT IS LESS THAN HALF ACCURATE *******\n                       EXPECTED RESULT                    COMPUTED RESULT\n")
 	for i = 1; i <= ml; i++ {
 		if mv {
-			fmt.Printf(" %7d  (%15.6f,%15.6f)\n", i, yt.Get(i-1), yy.Get(1+(i-1)*absint(incy)-1))
+			fmt.Printf(" %7d  (%15.6f,%15.6f)\n", i, yt.Get(i-1), yy.Get(1+(i-1)*abs(incy)-1))
 		} else {
-			fmt.Printf(" %7d  (%15.6f,%15.6f)\n", i, yy.Get(1+(i-1)*absint(incy)-1), yt.Get(i-1))
+			fmt.Printf(" %7d  (%15.6f,%15.6f)\n", i, yy.Get(1+(i-1)*abs(incy)-1), yt.Get(i-1))
 		}
 	}
 }
@@ -1822,294 +1850,216 @@ func zchkeLevel2(srnamt string) {
 
 	switch srnamt {
 	case "Zgemv":
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Zgemv('/', 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Zgemv('/', 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgemv(NoTrans, -1, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zgemv(NoTrans, -1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgemv(NoTrans, 0, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zgemv(NoTrans, 0, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgemv(NoTrans, 2, 0, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zgemv(NoTrans, 0, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zgemv(NoTrans, 0, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zgemv(NoTrans, 2, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Zgbmv":
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Zgbmv('/', 0, 0, 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Zgbmv('/', 0, 0, 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgbmv(NoTrans, -1, 0, 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zgbmv(NoTrans, -1, 0, 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgbmv(NoTrans, 0, -1, 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zgbmv(NoTrans, 0, -1, 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("kl invalid: -1")
-		err = Zgbmv(NoTrans, 0, 0, -1, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zgbmv(NoTrans, 0, 0, -1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("ku invalid: -1")
-		err = Zgbmv(NoTrans, 2, 0, 0, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zgbmv(NoTrans, 2, 0, 0, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgbmv(NoTrans, 0, 0, 1, 0, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zgbmv(NoTrans, 0, 0, 0, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zgbmv(NoTrans, 0, 0, 0, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zgbmv(NoTrans, 0, 0, 1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Zhemv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zhemv('/', 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zhemv('/', 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhemv(Upper, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zhemv(Upper, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zhemv(Upper, 2, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zhemv(Upper, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zhemv(Upper, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zhemv(Upper, 2, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Zhbmv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zhbmv('/', 0, 0, alpha, a, 1, x, 1, beta, y, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zhbmv('/', 0, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhbmv(Upper, -1, 0, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zhbmv(Upper, -1, 0, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Zhbmv(Upper, 0, -1, alpha, a, 1, x, 1, beta, y, 1)
+		err = Zhbmv(Upper, 0, -1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zhbmv(Upper, 0, 1, alpha, a, 1, x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zhbmv(Upper, 0, 0, alpha, a, 1, x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zhbmv(Upper, 0, 0, alpha, a, 1, x, 1, beta, y, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zhbmv(Upper, 0, 1, alpha, a, x, beta, y)
 		Chkxer(srnamt, err)
 	case "Zhpmv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zhpmv('/', 0, alpha, a.CVectorIdx(0), x, 1, beta, y, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zhpmv('/', 0, alpha, a.CVectorIdx(0), x, beta, y)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhpmv(Upper, -1, alpha, a.CVectorIdx(0), x, 1, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zhpmv(Upper, 0, alpha, a.CVectorIdx(0), x, 0, beta, y, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zhpmv(Upper, 0, alpha, a.CVectorIdx(0), x, 1, beta, y, 0)
+		err = Zhpmv(Upper, -1, alpha, a.CVectorIdx(0), x, beta, y)
 		Chkxer(srnamt, err)
 	case "Ztrmv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztrmv('/', NoTrans, NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Ztrmv('/', NoTrans, NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Ztrmv(Upper, '/', NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Ztrmv(Upper, '/', NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztrmv(Upper, NoTrans, '/', 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Ztrmv(Upper, NoTrans, '/', 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrmv(Upper, NoTrans, NonUnit, -1, a, 1, x, 1)
+		err = Ztrmv(Upper, NoTrans, NonUnit, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrmv(Upper, NoTrans, NonUnit, 2, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Ztrmv(Upper, NoTrans, NonUnit, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Ztrmv(Upper, NoTrans, NonUnit, 2, a, x)
 		Chkxer(srnamt, err)
 	case "Ztbmv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztbmv('/', NoTrans, NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Ztbmv('/', NoTrans, NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Ztbmv(Upper, '/', NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Ztbmv(Upper, '/', NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztbmv(Upper, NoTrans, '/', 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Ztbmv(Upper, NoTrans, '/', 0, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztbmv(Upper, NoTrans, NonUnit, -1, 0, a, 1, x, 1)
+		err = Ztbmv(Upper, NoTrans, NonUnit, -1, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Ztbmv(Upper, NoTrans, NonUnit, 0, -1, a, 1, x, 1)
+		err = Ztbmv(Upper, NoTrans, NonUnit, 0, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztbmv(Upper, NoTrans, NonUnit, 0, 1, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Ztbmv(Upper, NoTrans, NonUnit, 0, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Ztbmv(Upper, NoTrans, NonUnit, 0, 1, a, x)
 		Chkxer(srnamt, err)
 	case "Ztpmv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztpmv('/', NoTrans, NonUnit, 0, a.CVectorIdx(0), x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Ztpmv('/', NoTrans, NonUnit, 0, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Ztpmv(Upper, '/', NonUnit, 0, a.CVectorIdx(0), x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Ztpmv(Upper, '/', NonUnit, 0, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztpmv(Upper, NoTrans, '/', 0, a.CVectorIdx(0), x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Ztpmv(Upper, NoTrans, '/', 0, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztpmv(Upper, NoTrans, NonUnit, -1, a.CVectorIdx(0), x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Ztpmv(Upper, NoTrans, NonUnit, 0, a.CVectorIdx(0), x, 0)
+		err = Ztpmv(Upper, NoTrans, NonUnit, -1, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
 	case "Ztrsv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztrsv('/', NoTrans, NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Ztrsv('/', NoTrans, NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Ztrsv(Upper, '/', NonUnit, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Ztrsv(Upper, '/', NonUnit, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztrsv(Upper, NoTrans, '/', 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Ztrsv(Upper, NoTrans, '/', 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztrsv(Upper, NoTrans, NonUnit, -1, a, 1, x, 1)
+		err = Ztrsv(Upper, NoTrans, NonUnit, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztrsv(Upper, NoTrans, NonUnit, 2, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Ztrsv(Upper, NoTrans, NonUnit, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Ztrsv(Upper, NoTrans, NonUnit, 2, a, x)
 		Chkxer(srnamt, err)
 	case "Ztbsv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztbsv('/', NoTrans, NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Ztbsv('/', NoTrans, NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Ztbsv(Upper, '/', NonUnit, 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Ztbsv(Upper, '/', NonUnit, 0, 0, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztbsv(Upper, NoTrans, '/', 0, 0, a, 1, x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Ztbsv(Upper, NoTrans, '/', 0, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztbsv(Upper, NoTrans, NonUnit, -1, 0, a, 1, x, 1)
+		err = Ztbsv(Upper, NoTrans, NonUnit, -1, 0, a, x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("k invalid: -1")
-		err = Ztbsv(Upper, NoTrans, NonUnit, 0, -1, a, 1, x, 1)
+		err = Ztbsv(Upper, NoTrans, NonUnit, 0, -1, a, x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Ztbsv(Upper, NoTrans, NonUnit, 0, 1, a, 1, x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Ztbsv(Upper, NoTrans, NonUnit, 0, 0, a, 1, x, 0)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Ztbsv(Upper, NoTrans, NonUnit, 0, 1, a, x)
 		Chkxer(srnamt, err)
 	case "Ztpsv":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Ztpsv('/', NoTrans, NonUnit, 0, a.CVectorIdx(0), x, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Ztpsv('/', NoTrans, NonUnit, 0, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("trans invalid: /")
-		err = Ztpsv(Upper, '/', NonUnit, 0, a.CVectorIdx(0), x, 1)
+		*errt = fmt.Errorf("trans invalid: Unrecognized: /")
+		err = Ztpsv(Upper, '/', NonUnit, 0, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("diag invalid: /")
-		err = Ztpsv(Upper, NoTrans, '/', 0, a.CVectorIdx(0), x, 1)
+		*errt = fmt.Errorf("diag invalid: Unrecognized: /")
+		err = Ztpsv(Upper, NoTrans, '/', 0, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Ztpsv(Upper, NoTrans, NonUnit, -1, a.CVectorIdx(0), x, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Ztpsv(Upper, NoTrans, NonUnit, 0, a.CVectorIdx(0), x, 0)
+		err = Ztpsv(Upper, NoTrans, NonUnit, -1, a.CVectorIdx(0), x)
 		Chkxer(srnamt, err)
 	case "Zgerc":
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgerc(-1, 0, alpha, x, 1, y, 1, a, 1)
+		err = Zgerc(-1, 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgerc(0, -1, alpha, x, 1, y, 1, a, 1)
+		err = Zgerc(0, -1, alpha, x, y, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zgerc(0, 0, alpha, x, 0, y, 1, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zgerc(0, 0, alpha, x, 1, y, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgerc(2, 0, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zgerc(2, 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 	case "Zgeru":
 		*errt = fmt.Errorf("m invalid: -1")
-		err = Zgeru(-1, 0, alpha, x, 1, y, 1, a, 1)
+		err = Zgeru(-1, 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zgeru(0, -1, alpha, x, 1, y, 1, a, 1)
+		err = Zgeru(0, -1, alpha, x, y, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zgeru(0, 0, alpha, x, 0, y, 1, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zgeru(0, 0, alpha, x, 1, y, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zgeru(2, 0, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zgeru(2, 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 	case "Zher":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zher('/', 0, ralpha, x, 1, a, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zher('/', 0, ralpha, x, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zher(Upper, -1, ralpha, x, 1, a, 1)
+		err = Zher(Upper, -1, ralpha, x, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zher(Upper, 0, ralpha, x, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zher(Upper, 2, ralpha, x, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zher(Upper, 2, ralpha, x, a)
 		Chkxer(srnamt, err)
 	case "Zhpr":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zhpr('/', 0, ralpha, x, 1, a.CVectorIdx(0))
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zhpr('/', 0, ralpha, x, a.CVectorIdx(0))
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhpr(Upper, -1, ralpha, x, 1, a.CVectorIdx(0))
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zhpr(Upper, 0, ralpha, x, 0, a.CVectorIdx(0))
+		err = Zhpr(Upper, -1, ralpha, x, a.CVectorIdx(0))
 		Chkxer(srnamt, err)
 	case "Zher2":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zher2('/', 0, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zher2('/', 0, alpha, x, y, a)
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zher2(Upper, -1, alpha, x, 1, y, 1, a, 1)
+		err = Zher2(Upper, -1, alpha, x, y, a)
 		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zher2(Upper, 0, alpha, x, 0, y, 1, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zher2(Upper, 0, alpha, x, 1, y, 0, a, 1)
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("lda invalid: 1")
-		err = Zher2(Upper, 2, alpha, x, 1, y, 1, a, 1)
+		*errt = fmt.Errorf("a.Rows invalid: 1 < 2")
+		err = Zher2(Upper, 2, alpha, x, y, a)
 		Chkxer(srnamt, err)
 	case "Zhpr2":
-		*errt = fmt.Errorf("uplo invalid: /")
-		err = Zhpr2('/', 0, alpha, x, 1, y, 1, a.CVectorIdx(0))
+		*errt = fmt.Errorf("uplo invalid: Unrecognized: /")
+		err = Zhpr2('/', 0, alpha, x, y, a.CVectorIdx(0))
 		Chkxer(srnamt, err)
 		*errt = fmt.Errorf("n invalid: -1")
-		err = Zhpr2(Upper, -1, alpha, x, 1, y, 1, a.CVectorIdx(0))
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incx invalid: 0")
-		err = Zhpr2(Upper, 0, alpha, x, 0, y, 1, a.CVectorIdx(0))
-		Chkxer(srnamt, err)
-		*errt = fmt.Errorf("incy invalid: 0")
-		err = Zhpr2(Upper, 0, alpha, x, 1, y, 0, a.CVectorIdx(0))
+		err = Zhpr2(Upper, -1, alpha, x, y, a.CVectorIdx(0))
 		Chkxer(srnamt, err)
 	}
 

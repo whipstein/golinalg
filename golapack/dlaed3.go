@@ -37,7 +37,7 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 		(*info) = -1
 	} else if (*n) < (*k) {
 		(*info) = -2
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -6
 	}
 	if (*info) != 0 {
@@ -95,10 +95,10 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(*k, w, 1, s, 1)
+	goblas.Dcopy(*k, w, s)
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(*k, q.VectorIdx(0), (*ldq)+1, w, 1)
+	goblas.Dcopy(*k, q.VectorIdx(0, (*ldq)+1), w)
 	for j = 1; j <= (*k); j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
@@ -108,7 +108,7 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 		}
 	}
 	for i = 1; i <= (*k); i++ {
-		w.Set(i-1, signf64(math.Sqrt(-w.Get(i-1)), s.Get(i-1)))
+		w.Set(i-1, math.Copysign(math.Sqrt(-w.Get(i-1)), s.Get(i-1)))
 	}
 
 	//     Compute eigenvectors of the modified rank-1 modification.
@@ -116,7 +116,7 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 		for i = 1; i <= (*k); i++ {
 			s.Set(i-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(*k, s, 1)
+		temp = goblas.Dnrm2(*k, s)
 		for i = 1; i <= (*k); i++ {
 			ii = (*indx)[i-1]
 			q.Set(i-1, j-1, s.Get(ii-1)/temp)
@@ -131,17 +131,17 @@ label110:
 	n12 = (*ctot)[0] + (*ctot)[1]
 	n23 = (*ctot)[1] + (*ctot)[2]
 
-	Dlacpy('A', &n23, k, q.Off((*ctot)[0]+1-1, 0), ldq, s.Matrix(n23, opts), &n23)
+	Dlacpy('A', &n23, k, q.Off((*ctot)[0], 0), ldq, s.Matrix(n23, opts), &n23)
 	iq2 = (*n1)*n12 + 1
 	if n23 != 0 {
-		err = goblas.Dgemm(NoTrans, NoTrans, n2, *k, n23, one, q2.MatrixOff(iq2-1, n2, opts), n2, s.Matrix(n23, opts), n23, zero, q.Off((*n1)+1-1, 0), *ldq)
+		err = goblas.Dgemm(NoTrans, NoTrans, n2, *k, n23, one, q2.MatrixOff(iq2-1, n2, opts), s.Matrix(n23, opts), zero, q.Off((*n1), 0))
 	} else {
-		Dlaset('A', &n2, k, &zero, &zero, q.Off((*n1)+1-1, 0), ldq)
+		Dlaset('A', &n2, k, &zero, &zero, q.Off((*n1), 0), ldq)
 	}
 
 	Dlacpy('A', &n12, k, q, ldq, s.Matrix(n12, opts), &n12)
 	if n12 != 0 {
-		err = goblas.Dgemm(NoTrans, NoTrans, *n1, *k, n12, one, q2.Matrix(*n1, opts), *n1, s.Matrix(n12, opts), n12, zero, q, *ldq)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n1, *k, n12, one, q2.Matrix(*n1, opts), s.Matrix(n12, opts), zero, q)
 	} else {
 		Dlaset('A', n1, k, &zero, &zero, q.Off(0, 0), ldq)
 	}

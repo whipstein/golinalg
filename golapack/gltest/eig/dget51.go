@@ -52,14 +52,14 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 
 	if (*itype) <= 2 {
 		//        Tests scaled by the norm(A)
-		anorm = maxf64(golapack.Dlange('1', n, n, a, lda, work), unfl)
+		anorm = math.Max(golapack.Dlange('1', n, n, a, lda, work), unfl)
 
 		if (*itype) == 1 {
 			//           ITYPE=1: Compute W = A - UBV'
 			golapack.Dlacpy(' ', n, n, a, lda, work.Matrix(*n, opts), n)
-			err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, u, *ldu, b, *ldb, zero, work.MatrixOff(int(math.Pow(float64(*n), 2))+1-1, *n, opts), *n)
+			err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, u, b, zero, work.MatrixOff(int(math.Pow(float64(*n), 2)), *n, opts))
 
-			err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, -one, work.MatrixOff(int(math.Pow(float64(*n), 2))+1-1, *n, opts), *n, v, *ldv, one, work.Matrix(*n, opts), *n)
+			err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, -one, work.MatrixOff(int(math.Pow(float64(*n), 2)), *n, opts), v, one, work.Matrix(*n, opts))
 
 		} else {
 			//           ITYPE=2: Compute W = A - B
@@ -73,15 +73,15 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 		}
 
 		//        Compute norm(W)/ ( ulp*norm(A) )
-		wnorm = golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1))
+		wnorm = golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
 
 		if anorm > wnorm {
 			(*result) = (wnorm / anorm) / (float64(*n) * ulp)
 		} else {
 			if anorm < one {
-				(*result) = (minf64(wnorm, float64(*n)*anorm) / anorm) / (float64(*n) * ulp)
+				(*result) = (math.Min(wnorm, float64(*n)*anorm) / anorm) / (float64(*n) * ulp)
 			} else {
-				(*result) = minf64(wnorm/anorm, float64(*n)) / (float64(*n) * ulp)
+				(*result) = math.Min(wnorm/anorm, float64(*n)) / (float64(*n) * ulp)
 			}
 		}
 
@@ -89,12 +89,12 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  UU' - I
-		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
+		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, u, zero, work.Matrix(*n, opts))
 
 		for jdiag = 1; jdiag <= (*n); jdiag++ {
-			work.Set(((*n)+1)*(jdiag-1)+1-1, work.Get(((*n)+1)*(jdiag-1)+1-1)-one)
+			work.Set(((*n)+1)*(jdiag-1), work.Get(((*n)+1)*(jdiag-1))-one)
 		}
 
-		(*result) = minf64(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1)), float64(*n)) / (float64(*n) * ulp)
+		(*result) = math.Min(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))), float64(*n)) / (float64(*n) * ulp)
 	}
 }

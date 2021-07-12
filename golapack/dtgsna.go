@@ -49,9 +49,9 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	} else if wants && (*ldvl) < (*n) {
 		(*info) = -10
@@ -68,13 +68,13 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 					pair = false
 				} else {
 					if k < (*n) {
-						if a.Get(k+1-1, k-1) == zero {
+						if a.Get(k, k-1) == zero {
 							if _select[k-1] {
 								(*m) = (*m) + 1
 							}
 						} else {
 							pair = true
-							if _select[k-1] || _select[k+1-1] {
+							if _select[k-1] || _select[k] {
 								(*m) = (*m) + 2
 							}
 						}
@@ -130,7 +130,7 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 			goto label20
 		} else {
 			if k < (*n) {
-				pair = a.Get(k+1-1, k-1) != zero
+				pair = a.Get(k, k-1) != zero
 			}
 		}
 
@@ -138,7 +138,7 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 		//        eigenpair.
 		if somcon {
 			if pair {
-				if !_select[k-1] && !_select[k+1-1] {
+				if !_select[k-1] && !_select[k] {
 					goto label20
 				}
 			} else {
@@ -155,38 +155,38 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 			//           eigenvalue.
 			if pair {
 				//              Complex eigenvalue pair.
-				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks+1-1), 1)))
-				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks+1-1), 1)))
-				err = goblas.Dgemv(NoTrans, *n, *n, one, a, *lda, vr.Vector(0, ks-1), 1, zero, work, 1)
-				tmprr = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
-				tmpri = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
-				err = goblas.Dgemv(NoTrans, *n, *n, one, a, *lda, vr.Vector(0, ks+1-1), 1, zero, work, 1)
-				tmpii = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
-				tmpir = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
+				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks, 1))))
+				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks, 1))))
+				err = goblas.Dgemv(NoTrans, *n, *n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				tmprr = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				tmpri = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				err = goblas.Dgemv(NoTrans, *n, *n, one, a, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
+				tmpii = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				tmpir = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
 				uhav = tmprr + tmpii
 				uhavi = tmpir - tmpri
-				err = goblas.Dgemv(NoTrans, *n, *n, one, b, *ldb, vr.Vector(0, ks-1), 1, zero, work, 1)
-				tmprr = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
-				tmpri = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
-				err = goblas.Dgemv(NoTrans, *n, *n, one, b, *ldb, vr.Vector(0, ks+1-1), 1, zero, work, 1)
-				tmpii = goblas.Ddot(*n, work, 1, vl.Vector(0, ks+1-1), 1)
-				tmpir = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				tmprr = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				tmpri = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				err = goblas.Dgemv(NoTrans, *n, *n, one, b, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
+				tmpii = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				tmpir = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
 				uhbv = tmprr + tmpii
 				uhbvi = tmpir - tmpri
 				uhav = Dlapy2(&uhav, &uhavi)
 				uhbv = Dlapy2(&uhbv, &uhbvi)
 				cond = Dlapy2(&uhav, &uhbv)
 				s.Set(ks-1, cond/(rnrm*lnrm))
-				s.Set(ks+1-1, s.Get(ks-1))
+				s.Set(ks, s.Get(ks-1))
 
 			} else {
 				//              Real eigenvalue.
-				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1), 1)
-				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1), 1)
-				err = goblas.Dgemv(NoTrans, *n, *n, one, a, *lda, vr.Vector(0, ks-1), 1, zero, work, 1)
-				uhav = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
-				err = goblas.Dgemv(NoTrans, *n, *n, one, b, *ldb, vr.Vector(0, ks-1), 1, zero, work, 1)
-				uhbv = goblas.Ddot(*n, work, 1, vl.Vector(0, ks-1), 1)
+				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1, 1))
+				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1, 1))
+				err = goblas.Dgemv(NoTrans, *n, *n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				uhav = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				err = goblas.Dgemv(NoTrans, *n, *n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				uhbv = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
 				cond = Dlapy2(&uhav, &uhbv)
 				if cond == zero {
 					s.Set(ks-1, -one)
@@ -208,13 +208,13 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 				//              Copy the  2-by 2 pencil beginning at (A(k,k), B(k, k)).
 				//              Compute the eigenvalue(s) at position K.
 				work.Set(0, a.Get(k-1, k-1))
-				work.Set(1, a.Get(k+1-1, k-1))
-				work.Set(2, a.Get(k-1, k+1-1))
-				work.Set(3, a.Get(k+1-1, k+1-1))
+				work.Set(1, a.Get(k, k-1))
+				work.Set(2, a.Get(k-1, k))
+				work.Set(3, a.Get(k, k))
 				work.Set(4, b.Get(k-1, k-1))
-				work.Set(5, b.Get(k+1-1, k-1))
-				work.Set(6, b.Get(k-1, k+1-1))
-				work.Set(7, b.Get(k+1-1, k+1-1))
+				work.Set(5, b.Get(k, k-1))
+				work.Set(6, b.Get(k-1, k))
+				work.Set(7, b.Get(k, k))
 				Dlag2(work.Matrix(2, opts), func() *int { y := 2; return &y }(), work.MatrixOff(4, 2, opts), func() *int { y := 2; return &y }(), toPtrf64(smlnum*eps), &beta, dummy1.GetPtr(0), &alphar, dummy.GetPtr(0), &alphai)
 				alprqt = one
 				c1 = two * (alphar*alphar + alphai*alphai + beta*beta)
@@ -222,17 +222,17 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 				root1 = c1 + math.Sqrt(c1*c1-4.0*c2)
 				root2 = c2 / root1
 				root1 = root1 / two
-				cond = minf64(math.Sqrt(root1), math.Sqrt(root2))
+				cond = math.Min(math.Sqrt(root1), math.Sqrt(root2))
 			}
 
 			//           Copy the matrix (A, B) to the array WORK and swap the
 			//           diagonal block beginning at A(k,k) to the (1,1) position.
 			Dlacpy('F', n, n, a, lda, work.Matrix(*n, opts), n)
-			Dlacpy('F', n, n, b, ldb, work.MatrixOff((*n)*(*n)+1-1, *n, opts), n)
+			Dlacpy('F', n, n, b, ldb, work.MatrixOff((*n)*(*n), *n, opts), n)
 			ifst = k
 			ilst = 1
 
-			Dtgexc(false, false, n, work.Matrix(*n, opts), n, work.MatrixOff((*n)*(*n)+1-1, *n, opts), n, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), dummy1.Matrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, work.Off((*n)*(*n)*2+1-1), toPtr((*lwork)-2*(*n)*(*n)), &ierr)
+			Dtgexc(false, false, n, work.Matrix(*n, opts), n, work.MatrixOff((*n)*(*n), *n, opts), n, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), dummy1.Matrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, work.Off((*n)*(*n)*2), toPtr((*lwork)-2*(*n)*(*n)), &ierr)
 
 			if ierr > 0 {
 				//              Ill-conditioned problem - swap rejected.
@@ -253,15 +253,15 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 				} else {
 					i = (*n)*(*n) + 1
 					iz = 2*(*n)*(*n) + 1
-					Dtgsyl('N', &difdri, &n2, &n1, work.MatrixOff((*n)*n1+n1+1-1, *n, opts), n, work.Matrix(*n, opts), n, work.MatrixOff(n1+1-1, *n, opts), n, work.MatrixOff((*n)*n1+n1+i-1, *n, opts), n, work.MatrixOff(i-1, *n, opts), n, work.MatrixOff(n1+i-1, *n, opts), n, &scale, dif.GetPtr(ks-1), work.Off(iz+1-1), toPtr((*lwork)-2*(*n)*(*n)), iwork, &ierr)
+					Dtgsyl('N', &difdri, &n2, &n1, work.MatrixOff((*n)*n1+n1, *n, opts), n, work.Matrix(*n, opts), n, work.MatrixOff(n1, *n, opts), n, work.MatrixOff((*n)*n1+n1+i-1, *n, opts), n, work.MatrixOff(i-1, *n, opts), n, work.MatrixOff(n1+i-1, *n, opts), n, &scale, dif.GetPtr(ks-1), work.Off(iz), toPtr((*lwork)-2*(*n)*(*n)), iwork, &ierr)
 
 					if pair {
-						dif.Set(ks-1, minf64(maxf64(one, alprqt)*dif.Get(ks-1), cond))
+						dif.Set(ks-1, math.Min(math.Max(one, alprqt)*dif.Get(ks-1), cond))
 					}
 				}
 			}
 			if pair {
-				dif.Set(ks+1-1, dif.Get(ks-1))
+				dif.Set(ks, dif.Get(ks-1))
 			}
 		}
 		if pair {

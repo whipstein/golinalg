@@ -58,7 +58,8 @@ func cabs1(cdum complex128) float64 {
 }
 
 func abs1(cdum complex128) float64 {
-	return maxf64(math.Abs(real(cdum)) + math.Abs(imag(cdum)))
+	// return math.Max(math.Abs(real(cdum)) + math.Abs(imag(cdum)))
+	return math.Abs(real(cdum)) + math.Abs(imag(cdum))
 }
 
 func abssq(cdum complex128) float64 {

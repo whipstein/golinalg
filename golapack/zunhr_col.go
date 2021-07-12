@@ -32,9 +32,9 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		(*info) = -2
 	} else if (*nb) < 1 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldt) < maxint(1, minint(*nb, *n)) {
+	} else if (*ldt) < max(1, min(*nb, *n)) {
 		(*info) = -7
 	}
 
@@ -45,7 +45,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -65,7 +65,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 
 	//     (1-2) Solve for V2.
 	if (*m) > (*n) {
-		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, cone, a, *lda, a.Off((*n)+1-1, 0), *lda)
+		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, cone, a, a.Off((*n), 0))
 	}
 
 	//     (2) Reconstruct the block reflector T stored in T(1:NB, 1:N)
@@ -78,7 +78,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 	nplusone = (*n) + 1
 	for jb = 1; jb <= (*n); jb += (*nb) {
 		//        (2-0) Determine the column block size JNB.
-		jnb = minint(nplusone-jb, *nb)
+		jnb = min(nplusone-jb, *nb)
 
 		//        (2-1) Copy the upper-triangular part of the current JNB-by-JNB
 		//        diagonal block U(JB) (of the N-by-N matrix U) stored
@@ -87,7 +87,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		//        column-by-column, total JNB*(JNB+1)/2 elements.
 		jbtemp1 = jb - 1
 		for j = jb; j <= jb+jnb-1; j++ {
-			goblas.Zcopy(j-jbtemp1, a.CVector(jb-1, j-1), 1, t.CVector(0, j-1), 1)
+			goblas.Zcopy(j-jbtemp1, a.CVector(jb-1, j-1, 1), t.CVector(0, j-1, 1))
 		}
 
 		//        (2-2) Perform on the upper-triangular part of the current
@@ -102,7 +102,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		//        S(JB), i.e. S(J,J) that is stored in the array element D(J).
 		for j = jb; j <= jb+jnb-1; j++ {
 			if d.Get(j-1) == cone {
-				goblas.Zscal(j-jbtemp1, -cone, t.CVector(0, j-1), 1)
+				goblas.Zscal(j-jbtemp1, -cone, t.CVector(0, j-1, 1))
 			}
 		}
 
@@ -149,7 +149,7 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1), *lda, t.Off(0, jb-1), *ldt)
+		err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1), t.Off(0, jb-1))
 
 	}
 }

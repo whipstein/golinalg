@@ -30,7 +30,7 @@ func Dlaqsb(uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, s *mat.Vector, sco
 			//           Upper triangle of A is stored in band format.
 			for j = 1; j <= (*n); j++ {
 				cj = s.Get(j - 1)
-				for i = maxint(1, j-(*kd)); i <= j; i++ {
+				for i = max(1, j-(*kd)); i <= j; i++ {
 					ab.Set((*kd)+1+i-j-1, j-1, cj*s.Get(i-1)*ab.Get((*kd)+1+i-j-1, j-1))
 				}
 			}
@@ -38,7 +38,7 @@ func Dlaqsb(uplo byte, n, kd *int, ab *mat.Matrix, ldab *int, s *mat.Vector, sco
 			//           Lower triangle of A is stored.
 			for j = 1; j <= (*n); j++ {
 				cj = s.Get(j - 1)
-				for i = j; i <= minint(*n, j+(*kd)); i++ {
+				for i = j; i <= min(*n, j+(*kd)); i++ {
 					ab.Set(1+i-j-1, j-1, cj*s.Get(i-1)*ab.Get(1+i-j-1, j-1))
 				}
 			}

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -38,19 +40,19 @@ func Ztpt03(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, scale *float6
 		if uplo == 'U' {
 			jj = 1
 			for j = 1; j <= (*n); j++ {
-				tnorm = maxf64(tnorm, (*tscal)*ap.GetMag(jj-1)+cnorm.Get(j-1))
+				tnorm = math.Max(tnorm, (*tscal)*ap.GetMag(jj-1)+cnorm.Get(j-1))
 				jj = jj + j
 			}
 		} else {
 			jj = 1
 			for j = 1; j <= (*n); j++ {
-				tnorm = maxf64(tnorm, (*tscal)*ap.GetMag(jj-1)+cnorm.Get(j-1))
+				tnorm = math.Max(tnorm, (*tscal)*ap.GetMag(jj-1)+cnorm.Get(j-1))
 				jj = jj + (*n) - j + 1
 			}
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			tnorm = maxf64(tnorm, (*tscal)+cnorm.Get(j-1))
+			tnorm = math.Max(tnorm, (*tscal)+cnorm.Get(j-1))
 		}
 	}
 	//
@@ -59,16 +61,16 @@ func Ztpt03(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, scale *float6
 	//
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
-		ix = goblas.Izamax(*n, work, 1)
-		xnorm = maxf64(one, x.GetMag(ix-1, j-1))
+		goblas.Zcopy(*n, x.CVector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Izamax(*n, work.Off(0, 1))
+		xnorm = math.Max(one, x.GetMag(ix-1, j-1))
 		xscal = (one / xnorm) / float64(*n)
-		goblas.Zdscal(*n, xscal, work, 1)
-		err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work, 1)
-		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1), 1, work, 1)
-		ix = goblas.Izamax(*n, work, 1)
+		goblas.Zdscal(*n, xscal, work.Off(0, 1))
+		err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off(0, 1))
+		goblas.Zaxpy(*n, complex(-(*scale)*xscal, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
+		ix = goblas.Izamax(*n, work.Off(0, 1))
 		err2 = (*tscal) * work.GetMag(ix-1)
-		ix = goblas.Izamax(*n, x.CVector(0, j-1), 1)
+		ix = goblas.Izamax(*n, x.CVector(0, j-1, 1))
 		xnorm = x.GetMag(ix-1, j-1)
 		if err2*smlnum <= xnorm {
 			if xnorm > zero {
@@ -88,6 +90,6 @@ func Ztpt03(uplo, trans, diag byte, n, nrhs *int, ap *mat.CVector, scale *float6
 				err2 = one / eps
 			}
 		}
-		(*resid) = maxf64(*resid, err2)
+		(*resid) = math.Max(*resid, err2)
 	}
 }

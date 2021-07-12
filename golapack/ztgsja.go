@@ -128,9 +128,9 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 		(*info) = -5
 	} else if (*n) < 0 {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -10
-	} else if (*ldb) < maxint(1, *p) {
+	} else if (*ldb) < max(1, *p) {
 		(*info) = -12
 	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
 		(*info) = -18
@@ -193,15 +193,15 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 
 				//              Update (K+I)-th and (K+J)-th rows of matrix A: U**H *A
 				if (*k)+j <= (*m) {
-					Zrot(l, a.CVector((*k)+j-1, (*n)-(*l)+1-1), lda, a.CVector((*k)+i-1, (*n)-(*l)+1-1), lda, &csu, toPtrc128(cmplx.Conj(snu)))
+					Zrot(l, a.CVector((*k)+j-1, (*n)-(*l)), lda, a.CVector((*k)+i-1, (*n)-(*l)), lda, &csu, toPtrc128(cmplx.Conj(snu)))
 				}
 
 				//              Update I-th and J-th rows of matrix B: V**H *B
-				Zrot(l, b.CVector(j-1, (*n)-(*l)+1-1), ldb, b.CVector(i-1, (*n)-(*l)+1-1), ldb, &csv, toPtrc128(cmplx.Conj(snv)))
+				Zrot(l, b.CVector(j-1, (*n)-(*l)), ldb, b.CVector(i-1, (*n)-(*l)), ldb, &csv, toPtrc128(cmplx.Conj(snv)))
 
 				//              Update (N-L+I)-th and (N-L+J)-th columns of matrices
 				//              A and B: A*Q and B*Q
-				Zrot(toPtr(minint((*k)+(*l), *m)), a.CVector(0, (*n)-(*l)+j-1), func() *int { y := 1; return &y }(), a.CVector(0, (*n)-(*l)+i-1), func() *int { y := 1; return &y }(), &csq, &snq)
+				Zrot(toPtr(min((*k)+(*l), *m)), a.CVector(0, (*n)-(*l)+j-1), func() *int { y := 1; return &y }(), a.CVector(0, (*n)-(*l)+i-1), func() *int { y := 1; return &y }(), &csq, &snq)
 
 				Zrot(l, b.CVector(0, (*n)-(*l)+j-1), func() *int { y := 1; return &y }(), b.CVector(0, (*n)-(*l)+i-1), func() *int { y := 1; return &y }(), &csq, &snq)
 
@@ -250,14 +250,14 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 			//           Convergence test: test the parallelism of the corresponding
 			//           rows of A and B.
 			_error = zero
-			for i = 1; i <= minint(*l, (*m)-(*k)); i++ {
-				goblas.Zcopy((*l)-i+1, a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda, work, 1)
-				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1), *ldb, work.Off((*l)+1-1), 1)
-				Zlapll(toPtr((*l)-i+1), work, func() *int { y := 1; return &y }(), work.Off((*l)+1-1), func() *int { y := 1; return &y }(), &ssmin)
-				_error = maxf64(_error, ssmin)
+			for i = 1; i <= min(*l, (*m)-(*k)); i++ {
+				goblas.Zcopy((*l)-i+1, a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda), work.Off(0, 1))
+				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1, *ldb), work.Off((*l), 1))
+				Zlapll(toPtr((*l)-i+1), work, func() *int { y := 1; return &y }(), work.Off((*l)), func() *int { y := 1; return &y }(), &ssmin)
+				_error = math.Max(_error, ssmin)
 			}
 
-			if math.Abs(_error) <= minf64(*tola, *tolb) {
+			if math.Abs(_error) <= math.Min(*tola, *tolb) {
 				goto label50
 			}
 		}
@@ -272,7 +272,7 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 label50:
 	;
 
-	//     If ERROR <= minint(TOLA,TOLB), then the algorithm has converged.
+	//     If ERROR <= min(TOLA,TOLB), then the algorithm has converged.
 	//     Compute the generalized singular value pairs (ALPHA, BETA), and
 	//     set the triangular matrix R to array A.
 	for i = 1; i <= (*k); i++ {
@@ -280,7 +280,7 @@ label50:
 		beta.Set(i-1, zero)
 	}
 
-	for i = 1; i <= minint(*l, (*m)-(*k)); i++ {
+	for i = 1; i <= min(*l, (*m)-(*k)); i++ {
 
 		a1 = a.GetRe((*k)+i-1, (*n)-(*l)+i-1)
 		b1 = b.GetRe(i-1, (*n)-(*l)+i-1)
@@ -289,26 +289,26 @@ label50:
 			gamma = b1 / a1
 			//
 			if gamma < zero {
-				goblas.Zdscal((*l)-i+1, -one, b.CVector(i-1, (*n)-(*l)+i-1), *ldb)
+				goblas.Zdscal((*l)-i+1, -one, b.CVector(i-1, (*n)-(*l)+i-1, *ldb))
 				if wantv {
-					goblas.Zdscal(*p, -one, v.CVector(0, i-1), 1)
+					goblas.Zdscal(*p, -one, v.CVector(0, i-1, 1))
 				}
 			}
 
 			Dlartg(toPtrf64(math.Abs(gamma)), &one, beta.GetPtr((*k)+i-1), alpha.GetPtr((*k)+i-1), &rwk)
 
 			if alpha.Get((*k)+i-1) >= beta.Get((*k)+i-1) {
-				goblas.Zdscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda)
+				goblas.Zdscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda))
 			} else {
-				goblas.Zdscal((*l)-i+1, one/beta.Get((*k)+i-1), b.CVector(i-1, (*n)-(*l)+i-1), *ldb)
-				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1), *ldb, a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda)
+				goblas.Zdscal((*l)-i+1, one/beta.Get((*k)+i-1), b.CVector(i-1, (*n)-(*l)+i-1, *ldb))
+				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1, *ldb), a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda))
 			}
 
 		} else {
 
 			alpha.Set((*k)+i-1, zero)
 			beta.Set((*k)+i-1, one)
-			goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1), *ldb, a.CVector((*k)+i-1, (*n)-(*l)+i-1), *lda)
+			goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1, *ldb), a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda))
 		}
 	}
 

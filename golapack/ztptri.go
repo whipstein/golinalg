@@ -68,8 +68,8 @@ func Ztptri(uplo, diag byte, n *int, ap *mat.CVector, info *int) {
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			err = goblas.Ztpmv(Upper, NoTrans, mat.DiagByte(diag), j-1, ap, ap.Off(jc-1), 1)
-			goblas.Zscal(j-1, ajj, ap.Off(jc-1), 1)
+			err = goblas.Ztpmv(Upper, NoTrans, mat.DiagByte(diag), j-1, ap, ap.Off(jc-1, 1))
+			goblas.Zscal(j-1, ajj, ap.Off(jc-1, 1))
 			jc = jc + j
 		}
 
@@ -85,8 +85,8 @@ func Ztptri(uplo, diag byte, n *int, ap *mat.CVector, info *int) {
 			}
 			if j < (*n) {
 				//              Compute elements j+1:n of j-th column.
-				err = goblas.Ztpmv(Lower, NoTrans, mat.DiagByte(diag), (*n)-j, ap.Off(jclast-1), ap.Off(jc+1-1), 1)
-				goblas.Zscal((*n)-j, ajj, ap.Off(jc+1-1), 1)
+				err = goblas.Ztpmv(Lower, NoTrans, mat.DiagByte(diag), (*n)-j, ap.Off(jclast-1), ap.Off(jc, 1))
+				goblas.Zscal((*n)-j, ajj, ap.Off(jc, 1))
 			}
 			jclast = jc
 			jc = jc - (*n) + j - 2

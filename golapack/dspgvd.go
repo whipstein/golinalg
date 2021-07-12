@@ -90,8 +90,8 @@ func Dspgvd(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.M
 	//     Transform problem to standard eigenvalue problem and solve.
 	Dspgst(itype, uplo, n, ap, bp, info)
 	Dspevd(jobz, uplo, n, ap, w, z, ldz, work, lwork, iwork, liwork, info)
-	lwmin = maxint(lwmin, int(work.Get(0)))
-	liwmin = maxint(liwmin, (*iwork)[0])
+	lwmin = max(lwmin, int(work.Get(0)))
+	liwmin = max(liwmin, (*iwork)[0])
 
 	if wantz {
 		//        Backtransform eigenvectors to the original problem.
@@ -109,7 +109,7 @@ func Dspgvd(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.M
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
 			}
 
 		} else if (*itype) == 3 {
@@ -122,7 +122,7 @@ func Dspgvd(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.M
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
+				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
 			}
 		}
 	}

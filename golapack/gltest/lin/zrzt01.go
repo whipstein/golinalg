@@ -42,16 +42,16 @@ func Zrzt01(m, n *int, a, af *mat.CMatrix, lda *int, tau, work *mat.CVector, lwo
 	}
 
 	//     R = R * P(1) * ... *P(m)
-	golapack.Zunmrz('R', 'N', m, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*n)+1-1), toPtr((*lwork)-(*m)*(*n)), &info)
+	golapack.Zunmrz('R', 'N', m, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*n)), toPtr((*lwork)-(*m)*(*n)), &info)
 
 	//     R = R - A
 	for i = 1; i <= (*n); i++ {
-		goblas.Zaxpy(*m, complex(-one, 0), a.CVector(0, i-1), 1, work.Off((i-1)*(*m)+1-1), 1)
+		goblas.Zaxpy(*m, complex(-one, 0), a.CVector(0, i-1, 1), work.Off((i-1)*(*m), 1))
 	}
 
 	zrzt01Return = golapack.Zlange('O', m, n, work.CMatrix(*m, opts), m, rwork)
 
-	zrzt01Return = zrzt01Return / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n)))
+	zrzt01Return = zrzt01Return / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
 	if norma != zero {
 		zrzt01Return = zrzt01Return / norma
 	}

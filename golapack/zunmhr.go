@@ -42,15 +42,15 @@ func Zunmhr(side, trans byte, m, n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*ilo) < 1 || (*ilo) > maxint(1, nq) {
+	} else if (*ilo) < 1 || (*ilo) > max(1, nq) {
 		(*info) = -5
-	} else if (*ihi) < minint(*ilo, nq) || (*ihi) > nq {
+	} else if (*ihi) < min(*ilo, nq) || (*ihi) > nq {
 		(*info) = -6
-	} else if (*lda) < maxint(1, nq) {
+	} else if (*lda) < max(1, nq) {
 		(*info) = -8
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -11
-	} else if (*lwork) < maxint(1, nw) && !lquery {
+	} else if (*lwork) < max(1, nw) && !lquery {
 		(*info) = -13
 	}
 
@@ -60,7 +60,7 @@ func Zunmhr(side, trans byte, m, n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau
 		} else {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{side, trans}, m, &nh, &nh, toPtr(-1))
 		}
-		lwkopt = maxint(1, nw) * nb
+		lwkopt = max(1, nw) * nb
 		work.SetRe(0, float64(lwkopt))
 	}
 
@@ -89,7 +89,7 @@ func Zunmhr(side, trans byte, m, n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau
 		i2 = (*ilo) + 1
 	}
 
-	Zunmqr(side, trans, &mi, &ni, &nh, a.Off((*ilo)+1-1, (*ilo)-1), lda, tau.Off((*ilo)-1), c.Off(i1-1, i2-1), ldc, work, lwork, &iinfo)
+	Zunmqr(side, trans, &mi, &ni, &nh, a.Off((*ilo), (*ilo)-1), lda, tau.Off((*ilo)-1), c.Off(i1-1, i2-1), ldc, work, lwork, &iinfo)
 
 	work.SetRe(0, float64(lwkopt))
 }

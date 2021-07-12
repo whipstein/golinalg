@@ -29,7 +29,7 @@ func Zgtsv(n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ldb, info *int)
 		(*info) = -1
 	} else if (*nrhs) < 0 {
 		(*info) = -2
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -53,9 +53,9 @@ func Zgtsv(n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ldb, info *int)
 		} else if Cabs1(d.Get(k-1)) >= Cabs1(dl.Get(k-1)) {
 			//           No row interchange required
 			mult = dl.Get(k-1) / d.Get(k-1)
-			d.Set(k+1-1, d.Get(k+1-1)-mult*du.Get(k-1))
+			d.Set(k, d.Get(k)-mult*du.Get(k-1))
 			for j = 1; j <= (*nrhs); j++ {
-				b.Set(k+1-1, j-1, b.Get(k+1-1, j-1)-mult*b.Get(k-1, j-1))
+				b.Set(k, j-1, b.Get(k, j-1)-mult*b.Get(k-1, j-1))
 			}
 			if k < ((*n) - 1) {
 				dl.Set(k-1, zero)
@@ -65,16 +65,16 @@ func Zgtsv(n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ldb, info *int)
 			mult = d.Get(k-1) / dl.Get(k-1)
 			d.Set(k-1, dl.Get(k-1))
 			temp = d.Get(k + 1 - 1)
-			d.Set(k+1-1, du.Get(k-1)-mult*temp)
+			d.Set(k, du.Get(k-1)-mult*temp)
 			if k < ((*n) - 1) {
-				dl.Set(k-1, du.Get(k+1-1))
-				du.Set(k+1-1, -mult*dl.Get(k-1))
+				dl.Set(k-1, du.Get(k))
+				du.Set(k, -mult*dl.Get(k-1))
 			}
 			du.Set(k-1, temp)
 			for j = 1; j <= (*nrhs); j++ {
 				temp = b.Get(k-1, j-1)
-				b.Set(k-1, j-1, b.Get(k+1-1, j-1))
-				b.Set(k+1-1, j-1, temp-mult*b.Get(k+1-1, j-1))
+				b.Set(k-1, j-1, b.Get(k, j-1))
+				b.Set(k, j-1, temp-mult*b.Get(k, j-1))
 			}
 		}
 	}
@@ -90,7 +90,7 @@ func Zgtsv(n, nrhs *int, dl, d, du *mat.CVector, b *mat.CMatrix, ldb, info *int)
 			b.Set((*n)-1-1, j-1, (b.Get((*n)-1-1, j-1)-du.Get((*n)-1-1)*b.Get((*n)-1, j-1))/d.Get((*n)-1-1))
 		}
 		for k = (*n) - 2; k >= 1; k-- {
-			b.Set(k-1, j-1, (b.Get(k-1, j-1)-du.Get(k-1)*b.Get(k+1-1, j-1)-dl.Get(k-1)*b.Get(k+2-1, j-1))/d.Get(k-1))
+			b.Set(k-1, j-1, (b.Get(k-1, j-1)-du.Get(k-1)*b.Get(k, j-1)-dl.Get(k-1)*b.Get(k+2-1, j-1))/d.Get(k-1))
 		}
 	}
 }

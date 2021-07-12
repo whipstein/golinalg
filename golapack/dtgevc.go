@@ -89,9 +89,9 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lds) < maxint(1, *n) {
+	} else if (*lds) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldp) < maxint(1, *n) {
+	} else if (*ldp) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -109,12 +109,12 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				goto label10
 			}
 			if j < (*n) {
-				if s.Get(j+1-1, j-1) != zero {
+				if s.Get(j, j-1) != zero {
 					ilcplx = true
 				}
 			}
 			if ilcplx {
-				if _select[j-1] || _select[j+1-1] {
+				if _select[j-1] || _select[j] {
 					im = im + 2
 				}
 			} else {
@@ -132,12 +132,12 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 	ilabad = false
 	ilbbad = false
 	for j = 1; j <= (*n)-1; j++ {
-		if s.Get(j+1-1, j-1) != zero {
-			if p.Get(j-1, j-1) == zero || p.Get(j+1-1, j+1-1) == zero || p.Get(j-1, j+1-1) != zero {
+		if s.Get(j, j-1) != zero {
+			if p.Get(j-1, j-1) == zero || p.Get(j, j) == zero || p.Get(j-1, j) != zero {
 				ilbbad = true
 			}
 			if j < (*n)-1 {
-				if s.Get(j+2-1, j+1-1) != zero {
+				if s.Get(j+2-1, j) != zero {
 					ilabad = true
 				}
 			}
@@ -185,7 +185,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 	}
 	bnorm = math.Abs(p.Get(0, 0))
 	work.Set(0, zero)
-	work.Set((*n)+1-1, zero)
+	work.Set((*n), zero)
 
 	for j = 2; j <= (*n); j++ {
 		temp = zero
@@ -201,16 +201,16 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 		}
 		work.Set(j-1, temp)
 		work.Set((*n)+j-1, temp2)
-		for i = iend + 1; i <= minint(j+1, *n); i++ {
+		for i = iend + 1; i <= min(j+1, *n); i++ {
 			temp = temp + math.Abs(s.Get(i-1, j-1))
 			temp2 = temp2 + math.Abs(p.Get(i-1, j-1))
 		}
-		anorm = maxf64(anorm, temp)
-		bnorm = maxf64(bnorm, temp2)
+		anorm = math.Max(anorm, temp)
+		bnorm = math.Max(bnorm, temp2)
 	}
 
-	ascale = one / maxf64(anorm, safmin)
-	bscale = one / maxf64(bnorm, safmin)
+	ascale = one / math.Max(anorm, safmin)
+	bscale = one / math.Max(bnorm, safmin)
 
 	//     Left eigenvectors
 	if compl {
@@ -229,7 +229,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			}
 			nw = 1
 			if je < (*n) {
-				if s.Get(je+1-1, je-1) != zero {
+				if s.Get(je, je-1) != zero {
 					ilcplx = true
 					nw = 2
 				}
@@ -237,7 +237,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			if ilall {
 				ilcomp = true
 			} else if ilcplx {
-				ilcomp = _select[je-1] || _select[je+1-1]
+				ilcomp = _select[je-1] || _select[je]
 			} else {
 				ilcomp = _select[je-1]
 			}
@@ -269,7 +269,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			//              b  is  BCOEFR + i*BCOEFI
 			if !ilcplx {
 				//              Real eigenvalue
-				temp = one / maxf64(math.Abs(s.Get(je-1, je-1))*ascale, math.Abs(p.Get(je-1, je-1))*bscale, safmin)
+				temp = one / math.Max(math.Abs(s.Get(je-1, je-1))*ascale, math.Max(math.Abs(p.Get(je-1, je-1))*bscale, safmin))
 				salfar = (temp * s.Get(je-1, je-1)) * ascale
 				sbeta = (temp * p.Get(je-1, je-1)) * bscale
 				acoef = sbeta * ascale
@@ -281,13 +281,13 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				lsa = math.Abs(sbeta) >= safmin && math.Abs(acoef) < small
 				lsb = math.Abs(salfar) >= safmin && math.Abs(bcoefr) < small
 				if lsa {
-					scale = (small / math.Abs(sbeta)) * minf64(anorm, big)
+					scale = (small / math.Abs(sbeta)) * math.Min(anorm, big)
 				}
 				if lsb {
-					scale = maxf64(scale, (small/math.Abs(salfar))*minf64(bnorm, big))
+					scale = math.Max(scale, (small/math.Abs(salfar))*math.Min(bnorm, big))
 				}
 				if lsa || lsb {
-					scale = minf64(scale, one/(safmin*maxf64(one, math.Abs(acoef), math.Abs(bcoefr))))
+					scale = math.Min(scale, one/(safmin*math.Max(one, math.Max(math.Abs(acoef), math.Abs(bcoefr)))))
 					if lsa {
 						acoef = ascale * (scale * sbeta)
 					} else {
@@ -322,13 +322,13 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 					scale = (safmin / ulp) / acoefa
 				}
 				if bcoefa*ulp < safmin && bcoefa >= safmin {
-					scale = maxf64(scale, (safmin/ulp)/bcoefa)
+					scale = math.Max(scale, (safmin/ulp)/bcoefa)
 				}
 				if safmin*acoefa > ascale {
 					scale = ascale / (safmin * acoefa)
 				}
 				if safmin*bcoefa > bscale {
-					scale = minf64(scale, bscale/(safmin*bcoefa))
+					scale = math.Min(scale, bscale/(safmin*bcoefa))
 				}
 				if scale != one {
 					acoef = scale * acoef
@@ -339,25 +339,25 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				}
 
 				//              Compute first two components of eigenvector
-				temp = acoef * s.Get(je+1-1, je-1)
+				temp = acoef * s.Get(je, je-1)
 				temp2r = acoef*s.Get(je-1, je-1) - bcoefr*p.Get(je-1, je-1)
 				temp2i = -bcoefi * p.Get(je-1, je-1)
 				if math.Abs(temp) > math.Abs(temp2r)+math.Abs(temp2i) {
 					work.Set(2*(*n)+je-1, one)
 					work.Set(3*(*n)+je-1, zero)
-					work.Set(2*(*n)+je+1-1, -temp2r/temp)
-					work.Set(3*(*n)+je+1-1, -temp2i/temp)
+					work.Set(2*(*n)+je, -temp2r/temp)
+					work.Set(3*(*n)+je, -temp2i/temp)
 				} else {
-					work.Set(2*(*n)+je+1-1, one)
-					work.Set(3*(*n)+je+1-1, zero)
-					temp = acoef * s.Get(je-1, je+1-1)
-					work.Set(2*(*n)+je-1, (bcoefr*p.Get(je+1-1, je+1-1)-acoef*s.Get(je+1-1, je+1-1))/temp)
-					work.Set(3*(*n)+je-1, bcoefi*p.Get(je+1-1, je+1-1)/temp)
+					work.Set(2*(*n)+je, one)
+					work.Set(3*(*n)+je, zero)
+					temp = acoef * s.Get(je-1, je)
+					work.Set(2*(*n)+je-1, (bcoefr*p.Get(je, je)-acoef*s.Get(je, je))/temp)
+					work.Set(3*(*n)+je-1, bcoefi*p.Get(je, je)/temp)
 				}
-				xmax = maxf64(math.Abs(work.Get(2*(*n)+je-1))+math.Abs(work.Get(3*(*n)+je-1)), math.Abs(work.Get(2*(*n)+je+1-1))+math.Abs(work.Get(3*(*n)+je+1-1)))
+				xmax = math.Max(math.Abs(work.Get(2*(*n)+je-1))+math.Abs(work.Get(3*(*n)+je-1)), math.Abs(work.Get(2*(*n)+je))+math.Abs(work.Get(3*(*n)+je)))
 			}
 
-			dmin = maxf64(ulp*acoefa*anorm, ulp*bcoefa*bnorm, safmin)
+			dmin = math.Max(ulp*acoefa*anorm, math.Max(ulp*bcoefa*bnorm, safmin))
 
 			//                                           T
 			//           Triangular solve of  (a A - b B)  y = 0
@@ -375,18 +375,18 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				na = 1
 				bdiag.Set(0, p.Get(j-1, j-1))
 				if j < (*n) {
-					if s.Get(j+1-1, j-1) != zero {
+					if s.Get(j, j-1) != zero {
 						il2by2 = true
-						bdiag.Set(1, p.Get(j+1-1, j+1-1))
+						bdiag.Set(1, p.Get(j, j))
 						na = 2
 					}
 				}
 
 				//              Check whether scaling is necessary for dot products
-				xscale = one / maxf64(one, xmax)
-				temp = maxf64(work.Get(j-1), work.Get((*n)+j-1), acoefa*work.Get(j-1)+bcoefa*work.Get((*n)+j-1))
+				xscale = one / math.Max(one, xmax)
+				temp = math.Max(work.Get(j-1), math.Max(work.Get((*n)+j-1), acoefa*work.Get(j-1)+bcoefa*work.Get((*n)+j-1)))
 				if il2by2 {
-					temp = maxf64(temp, work.Get(j+1-1), work.Get((*n)+j+1-1), acoefa*work.Get(j+1-1)+bcoefa*work.Get((*n)+j+1-1))
+					temp = math.Max(temp, math.Max(work.Get(j), math.Max(work.Get((*n)+j), acoefa*work.Get(j)+bcoefa*work.Get((*n)+j))))
 				}
 				if temp > bignum*xscale {
 					for jw = 0; jw <= nw-1; jw++ {
@@ -444,7 +444,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 					}
 					xmax = scale * xmax
 				}
-				xmax = maxf64(xmax, temp)
+				xmax = math.Max(xmax, temp)
 			label160:
 			}
 
@@ -453,12 +453,12 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			ieig = ieig + 1
 			if ilback {
 				for jw = 0; jw <= nw-1; jw++ {
-					err = goblas.Dgemv(NoTrans, *n, (*n)+1-je, one, vl.Off(0, je-1), *ldvl, work.Off((jw+2)*(*n)+je-1), 1, zero, work.Off((jw+4)*(*n)+1-1), 1)
+					err = goblas.Dgemv(NoTrans, *n, (*n)+1-je, one, vl.Off(0, je-1), work.Off((jw+2)*(*n)+je-1, 1), zero, work.Off((jw+4)*(*n), 1))
 				}
-				Dlacpy(' ', n, &nw, work.MatrixOff(4*(*n)+1-1, *n, opts), n, vl.Off(0, je-1), ldvl)
+				Dlacpy(' ', n, &nw, work.MatrixOff(4*(*n), *n, opts), n, vl.Off(0, je-1), ldvl)
 				ibeg = 1
 			} else {
-				Dlacpy(' ', n, &nw, work.MatrixOff(2*(*n)+1-1, *n, opts), n, vl.Off(0, ieig-1), ldvl)
+				Dlacpy(' ', n, &nw, work.MatrixOff(2*(*n), *n, opts), n, vl.Off(0, ieig-1), ldvl)
 				ibeg = je
 			}
 
@@ -466,11 +466,11 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			xmax = zero
 			if ilcplx {
 				for j = ibeg; j <= (*n); j++ {
-					xmax = maxf64(xmax, math.Abs(vl.Get(j-1, ieig-1))+math.Abs(vl.Get(j-1, ieig+1-1)))
+					xmax = math.Max(xmax, math.Abs(vl.Get(j-1, ieig-1))+math.Abs(vl.Get(j-1, ieig)))
 				}
 			} else {
 				for j = ibeg; j <= (*n); j++ {
-					xmax = maxf64(xmax, math.Abs(vl.Get(j-1, ieig-1)))
+					xmax = math.Max(xmax, math.Abs(vl.Get(j-1, ieig-1)))
 				}
 			}
 
@@ -551,7 +551,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			//              b  is  BCOEFR + i*BCOEFI
 			if !ilcplx {
 				//              Real eigenvalue
-				temp = one / maxf64(math.Abs(s.Get(je-1, je-1))*ascale, math.Abs(p.Get(je-1, je-1))*bscale, safmin)
+				temp = one / math.Max(math.Abs(s.Get(je-1, je-1))*ascale, math.Max(math.Abs(p.Get(je-1, je-1))*bscale, safmin))
 				salfar = (temp * s.Get(je-1, je-1)) * ascale
 				sbeta = (temp * p.Get(je-1, je-1)) * bscale
 				acoef = sbeta * ascale
@@ -563,13 +563,13 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				lsa = math.Abs(sbeta) >= safmin && math.Abs(acoef) < small
 				lsb = math.Abs(salfar) >= safmin && math.Abs(bcoefr) < small
 				if lsa {
-					scale = (small / math.Abs(sbeta)) * minf64(anorm, big)
+					scale = (small / math.Abs(sbeta)) * math.Min(anorm, big)
 				}
 				if lsb {
-					scale = maxf64(scale, (small/math.Abs(salfar))*minf64(bnorm, big))
+					scale = math.Max(scale, (small/math.Abs(salfar))*math.Min(bnorm, big))
 				}
 				if lsa || lsb {
-					scale = minf64(scale, one/(safmin*maxf64(one, math.Abs(acoef), math.Abs(bcoefr))))
+					scale = math.Min(scale, one/(safmin*math.Max(one, math.Max(math.Abs(acoef), math.Abs(bcoefr)))))
 					if lsa {
 						acoef = ascale * (scale * sbeta)
 					} else {
@@ -609,13 +609,13 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 					scale = (safmin / ulp) / acoefa
 				}
 				if bcoefa*ulp < safmin && bcoefa >= safmin {
-					scale = maxf64(scale, (safmin/ulp)/bcoefa)
+					scale = math.Max(scale, (safmin/ulp)/bcoefa)
 				}
 				if safmin*acoefa > ascale {
 					scale = ascale / (safmin * acoefa)
 				}
 				if safmin*bcoefa > bscale {
-					scale = minf64(scale, bscale/(safmin*bcoefa))
+					scale = math.Min(scale, bscale/(safmin*bcoefa))
 				}
 				if scale != one {
 					acoef = scale * acoef
@@ -643,7 +643,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 					work.Set(3*(*n)+je-1, bcoefi*p.Get(je-1-1, je-1-1)/temp)
 				}
 
-				xmax = maxf64(math.Abs(work.Get(2*(*n)+je-1))+math.Abs(work.Get(3*(*n)+je-1)), math.Abs(work.Get(2*(*n)+je-1-1))+math.Abs(work.Get(3*(*n)+je-1-1)))
+				xmax = math.Max(math.Abs(work.Get(2*(*n)+je-1))+math.Abs(work.Get(3*(*n)+je-1)), math.Abs(work.Get(2*(*n)+je-1-1))+math.Abs(work.Get(3*(*n)+je-1-1)))
 
 				//              Compute contribution from columns JE and JE-1
 				//              of A and B to the sums.
@@ -661,7 +661,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				}
 			}
 
-			dmin = maxf64(ulp*acoefa*anorm, ulp*bcoefa*bnorm, safmin)
+			dmin = math.Max(ulp*acoefa*anorm, math.Max(ulp*bcoefa*bnorm, safmin))
 
 			//           Columnwise triangular solve of  (a A - b B)  x = 0
 			il2by2 = false
@@ -677,7 +677,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				bdiag.Set(0, p.Get(j-1, j-1))
 				if il2by2 {
 					na = 2
-					bdiag.Set(1, p.Get(j+1-1, j+1-1))
+					bdiag.Set(1, p.Get(j, j))
 				} else {
 					na = 1
 				}
@@ -692,7 +692,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 						}
 					}
 				}
-				xmax = maxf64(scale*xmax, temp)
+				xmax = math.Max(scale*xmax, temp)
 
 				for jw = 1; jw <= nw; jw++ {
 					for ja = 1; ja <= na; ja++ {
@@ -703,12 +703,12 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				//              w = w + x(j)*(a S(*,j) - b P(*,j) ) with scaling
 				if j > 1 {
 					//                 Check whether scaling is necessary for sum.
-					xscale = one / maxf64(one, xmax)
+					xscale = one / math.Max(one, xmax)
 					temp = acoefa*work.Get(j-1) + bcoefa*work.Get((*n)+j-1)
 					if il2by2 {
-						temp = maxf64(temp, acoefa*work.Get(j+1-1)+bcoefa*work.Get((*n)+j+1-1))
+						temp = math.Max(temp, acoefa*work.Get(j)+bcoefa*work.Get((*n)+j))
 					}
-					temp = maxf64(temp, acoefa, bcoefa)
+					temp = math.Max(temp, math.Max(acoefa, bcoefa))
 					if temp > bignum*xscale {
 
 						for jw = 0; jw <= nw-1; jw++ {
@@ -753,7 +753,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 				for jw = 0; jw <= nw-1; jw++ {
 					for jr = 1; jr <= (*n); jr++ {
-						work.Set((jw+4)*(*n)+jr-1, work.Get((jw+2)*(*n)+1-1)*vr.Get(jr-1, 0))
+						work.Set((jw+4)*(*n)+jr-1, work.Get((jw+2)*(*n))*vr.Get(jr-1, 0))
 					}
 
 					//                 A series of compiler directives to defeat
@@ -786,11 +786,11 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			xmax = zero
 			if ilcplx {
 				for j = 1; j <= iend; j++ {
-					xmax = maxf64(xmax, math.Abs(vr.Get(j-1, ieig-1))+math.Abs(vr.Get(j-1, ieig+1-1)))
+					xmax = math.Max(xmax, math.Abs(vr.Get(j-1, ieig-1))+math.Abs(vr.Get(j-1, ieig)))
 				}
 			} else {
 				for j = 1; j <= iend; j++ {
-					xmax = maxf64(xmax, math.Abs(vr.Get(j-1, ieig-1)))
+					xmax = math.Max(xmax, math.Abs(vr.Get(j-1, ieig-1)))
 				}
 			}
 

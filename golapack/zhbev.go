@@ -51,7 +51,7 @@ func Zhbev(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat.Vecto
 		if lower {
 			w.Set(0, ab.GetRe(0, 0))
 		} else {
-			w.Set(0, ab.GetRe((*kd)+1-1, 0))
+			w.Set(0, ab.GetRe((*kd), 0))
 		}
 		if wantz {
 			z.SetRe(0, 0, one)
@@ -104,6 +104,6 @@ func Zhbev(jobz, uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, w *mat.Vecto
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 }

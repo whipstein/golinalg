@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -44,13 +46,13 @@ func Zstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *i
 	if (*n) > 1 {
 		anorm = ad.GetMag(0) + ae.GetMag(0)
 		for j = 2; j <= (*n)-1; j++ {
-			anorm = maxf64(anorm, ad.GetMag(j-1)+ae.GetMag(j-1)+ae.GetMag(j-1-1))
+			anorm = math.Max(anorm, ad.GetMag(j-1)+ae.GetMag(j-1)+ae.GetMag(j-1-1))
 		}
-		anorm = maxf64(anorm, ad.GetMag((*n)-1)+ae.GetMag((*n)-1-1))
+		anorm = math.Max(anorm, ad.GetMag((*n)-1)+ae.GetMag((*n)-1-1))
 	} else {
 		anorm = ad.GetMag(0)
 	}
-	anorm = maxf64(anorm, unfl)
+	anorm = math.Max(anorm, unfl)
 
 	//     Norm of U*AU - S
 	for i = 1; i <= (*m); i++ {
@@ -59,7 +61,7 @@ func Zstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *i
 			for k = 1; k <= (*n); k++ {
 				aukj = ad.GetCmplx(k-1) * u.Get(k-1, j-1)
 				if k != (*n) {
-					aukj = aukj + ae.GetCmplx(k-1)*u.Get(k+1-1, j-1)
+					aukj = aukj + ae.GetCmplx(k-1)*u.Get(k, j-1)
 				}
 				if k != 1 {
 					aukj = aukj + ae.GetCmplx(k-1-1)*u.Get(k-1-1, j-1)
@@ -73,7 +75,7 @@ func Zstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *i
 				work.Set(i-1, i-1-1, work.Get(i-1, i-1-1)-se.GetCmplx(i-1-1))
 			}
 			if i != (*n) {
-				work.Set(i-1, i+1-1, work.Get(i-1, i+1-1)-se.GetCmplx(i-1))
+				work.Set(i-1, i, work.Get(i-1, i)-se.GetCmplx(i-1))
 			}
 		}
 	}
@@ -84,20 +86,20 @@ func Zstt22(n, m, kband *int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, ldu *i
 		result.Set(0, (wnorm/anorm)/(float64(*m)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*m)*anorm)/anorm)/(float64(*m)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*m)*anorm)/anorm)/(float64(*m)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*m))/(float64(*m)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*m))/(float64(*m)*ulp))
 		}
 	}
 
 	//     Do Test 2
 	//
 	//     Compute  U*U - I
-	err = goblas.Zgemm(Trans, NoTrans, *m, *m, *n, cone, u, *ldu, u, *ldu, czero, work, *m)
+	err = goblas.Zgemm(Trans, NoTrans, *m, *m, *n, cone, u, u, czero, work)
 
 	for j = 1; j <= (*m); j++ {
 		work.Set(j-1, j-1, work.Get(j-1, j-1)-complex(one, 0))
 	}
 
-	result.Set(1, minf64(float64(*m), golapack.Zlange('1', m, m, work, m, rwork))/(float64(*m)*ulp))
+	result.Set(1, math.Min(float64(*m), golapack.Zlange('1', m, m, work, m, rwork))/(float64(*m)*ulp))
 }

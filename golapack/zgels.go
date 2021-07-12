@@ -43,7 +43,7 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 
 	//     Test the input arguments.
 	(*info) = 0
-	mn = minint(*m, *n)
+	mn = min(*m, *n)
 	lquery = ((*lwork) == -1)
 	if !(trans == 'N' || trans == 'C') {
 		(*info) = -1
@@ -53,11 +53,11 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *m, *n) {
+	} else if (*ldb) < max(1, *m, *n) {
 		(*info) = -8
-	} else if (*lwork) < maxint(1, mn+maxint(mn, *nrhs)) && !lquery {
+	} else if (*lwork) < max(1, mn+max(mn, *nrhs)) && !lquery {
 		(*info) = -10
 	}
 
@@ -72,20 +72,20 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 		if (*m) >= (*n) {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 			if tpsd {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), m, nrhs, n, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LN"), m, nrhs, n, toPtr(-1)))
 			} else {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
 			}
 		} else {
 			nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 			if tpsd {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LC"), n, nrhs, m, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LC"), n, nrhs, m, toPtr(-1)))
 			} else {
-				nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LN"), n, nrhs, m, toPtr(-1)))
+				nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LN"), n, nrhs, m, toPtr(-1)))
 			}
 		}
 
-		wsize = maxint(1, mn+maxint(mn, *nrhs)*nb)
+		wsize = max(1, mn+max(mn, *nrhs)*nb)
 		work.SetRe(0, float64(wsize))
 
 	}
@@ -98,8 +98,8 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *nrhs) == 0 {
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+	if min(*m, *n, *nrhs) == 0 {
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		return
 	}
 
@@ -108,7 +108,7 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 	bignum = one / smlnum
 	Dlabad(&smlnum, &bignum)
 
-	//     Scale A, B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A, B if max element outside range [SMLNUM,BIGNUM]
 	//
 	anrm = Zlange('M', m, n, a, lda, rwork)
 	iascl = 0
@@ -122,7 +122,7 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		goto label50
 	}
 	//
@@ -144,14 +144,14 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 
 	if (*m) >= (*n) {
 		//        compute QR factorization of A
-		Zgeqrf(m, n, a, lda, work.Off(0), work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+		Zgeqrf(m, n, a, lda, work.Off(0), work.Off(mn), toPtr((*lwork)-mn), info)
 
 		//        workspace at least N, optimally N*NB
 		if !tpsd {
-			//           Least-Squares Problem minint || A * X - B ||
+			//           Least-Squares Problem min || A * X - B ||
 			//
 			//           B(1:M,1:NRHS) := Q**H * B(1:M,1:NRHS)
-			Zunmqr('L', 'C', m, nrhs, n, a, lda, work.Off(0), b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Zunmqr('L', 'C', m, nrhs, n, a, lda, work.Off(0), b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//
@@ -182,7 +182,7 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 			}
 
 			//           B(1:M,1:NRHS) := Q(1:N,:) * B(1:N,1:NRHS)
-			Zunmqr('L', 'N', m, nrhs, n, a, lda, work.Off(0), b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Zunmqr('L', 'N', m, nrhs, n, a, lda, work.Off(0), b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			scllen = (*m)
@@ -191,7 +191,7 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 
 	} else {
 		//        Compute LQ factorization of A
-		Zgelqf(m, n, a, lda, work.Off(0), work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+		Zgelqf(m, n, a, lda, work.Off(0), work.Off(mn), toPtr((*lwork)-mn), info)
 
 		//        workspace at least M, optimally M*NB.
 		if !tpsd {
@@ -212,16 +212,16 @@ func Zgels(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix
 			}
 
 			//           B(1:N,1:NRHS) := Q(1:N,:)**H * B(1:M,1:NRHS)
-			Zunmlq('L', 'C', n, nrhs, m, a, lda, work.Off(0), b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Zunmlq('L', 'C', n, nrhs, m, a, lda, work.Off(0), b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			scllen = (*n)
 
 		} else {
-			//           overdetermined system minint || A**H * X - B ||
+			//           overdetermined system min || A**H * X - B ||
 			//
 			//           B(1:N,1:NRHS) := Q * B(1:N,1:NRHS)
-			Zunmlq('L', 'N', n, nrhs, m, a, lda, work.Off(0), b, ldb, work.Off(mn+1-1), toPtr((*lwork)-mn), info)
+			Zunmlq('L', 'N', n, nrhs, m, a, lda, work.Off(0), b, ldb, work.Off(mn), toPtr((*lwork)-mn), info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//

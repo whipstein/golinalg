@@ -198,7 +198,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -228,9 +228,9 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	//       following subroutine, as returned by ILAENV.
 	minwrk = 1
 	if (*info) == 0 && (*lwork) >= 1 {
-		minwrk = maxint(1, 8*nmax, nmax*(nmax+1))
+		minwrk = max(1, 8*nmax, nmax*(nmax+1))
 		maxwrk = 7*nmax + nmax*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, &nmax, func() *int { y := 1; return &y }(), &nmax, func() *int { y := 0; return &y }())
-		maxwrk = maxint(maxwrk, nmax*(nmax+1))
+		maxwrk = max(maxwrk, nmax*(nmax+1))
 		work.Set(0, float64(maxwrk))
 	}
 
@@ -266,14 +266,14 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -315,7 +315,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 			ierr = 0
 			if kclass[jtype-1] < 3 {
 				//              Generate A (w/o rotation)
-				if absint(katype[jtype-1]) == 3 {
+				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Dlaset('F', &n, &n, &zero, &zero, a, lda)
@@ -330,7 +330,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				}
 
 				//              Generate B (w/o rotation)
-				if absint(kbtype[jtype-1]) == 3 {
+				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Dlaset('F', &n, &n, &zero, &zero, b, lda)
@@ -354,10 +354,10 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 							q.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
 							z.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
 						}
-						golapack.Dlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.Vector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						golapack.Dlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
 						work.Set(2*n+jc-1, math.Copysign(one, q.Get(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, one)
-						golapack.Dlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.Vector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						golapack.Dlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
 						work.Set(3*n+jc-1, math.Copysign(one, z.Get(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, one)
 					}
@@ -375,19 +375,19 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.Get(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), a, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), a, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), b, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), b, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
@@ -408,7 +408,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 			if ierr != 0 {
 				_t.Fail()
 				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "Generator", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				return
 			}
 
@@ -427,7 +427,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV31", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -453,7 +453,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV32", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -472,7 +472,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV33", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -499,7 +499,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV34", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 

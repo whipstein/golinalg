@@ -34,7 +34,7 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 
 	//     Test the input parameters
 	(*info) = 0
-	mn = minint(*m, *n)
+	mn = min(*m, *n)
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
 		(*info) = -1
@@ -42,9 +42,9 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 		(*info) = -2
 	} else if (*p) < 0 || (*p) > (*n) || (*p) < (*n)-(*m) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *p) {
+	} else if (*ldb) < max(1, *p) {
 		(*info) = -7
 	}
 
@@ -58,9 +58,9 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 			nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 			nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, m, n, p, toPtr(-1))
 			nb4 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMRQ"), []byte{' '}, m, n, p, toPtr(-1))
-			nb = maxint(nb1, nb2, nb3, nb4)
+			nb = max(nb1, nb2, nb3, nb4)
 			lwkmin = (*m) + (*n) + (*p)
-			lwkopt = (*p) + mn + maxint(*m, *n)*nb
+			lwkopt = (*p) + mn + max(*m, *n)*nb
 		}
 		work.Set(0, float64(lwkopt))
 
@@ -89,17 +89,17 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 	//
 	//     where T12 and R11 are upper triangular, and Q and Z are
 	//     orthogonal.
-	Dggrqf(p, m, n, b, ldb, work, a, lda, work.Off((*p)+1-1), work.Off((*p)+mn+1-1), toPtr((*lwork)-(*p)-mn), info)
+	Dggrqf(p, m, n, b, ldb, work, a, lda, work.Off((*p)), work.Off((*p)+mn), toPtr((*lwork)-(*p)-mn), info)
 	lopt = int(work.Get((*p) + mn + 1 - 1))
 
 	//     Update c = Z**T *c = ( c1 ) N-P
 	//                          ( c2 ) M+P-N
-	Dormqr('L', 'T', m, func() *int { y := 1; return &y }(), &mn, a, lda, work.Off((*p)+1-1), c.Matrix(maxint(1, *m), opts), toPtr(maxint(1, *m)), work.Off((*p)+mn+1-1), toPtr((*lwork)-(*p)-mn), info)
-	lopt = maxint(lopt, int(work.Get((*p)+mn+1-1)))
+	Dormqr('L', 'T', m, func() *int { y := 1; return &y }(), &mn, a, lda, work.Off((*p)), c.Matrix(max(1, *m), opts), toPtr(max(1, *m)), work.Off((*p)+mn), toPtr((*lwork)-(*p)-mn), info)
+	lopt = max(lopt, int(work.Get((*p)+mn)))
 
 	//     Solve T12*x2 = d for x2
 	if (*p) > 0 {
-		Dtrtrs('U', 'N', 'N', p, func() *int { y := 1; return &y }(), b.Off(0, (*n)-(*p)+1-1), ldb, d.Matrix(*p, opts), p, info)
+		Dtrtrs('U', 'N', 'N', p, func() *int { y := 1; return &y }(), b.Off(0, (*n)-(*p)), ldb, d.Matrix(*p, opts), p, info)
 
 		if (*info) > 0 {
 			(*info) = 1
@@ -107,10 +107,10 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 		}
 
 		//        Put the solution in X
-		goblas.Dcopy(*p, d, 1, x.Off((*n)-(*p)+1-1), 1)
+		goblas.Dcopy(*p, d.Off(0, 1), x.Off((*n)-(*p), 1))
 
 		//        Update c1
-		err = goblas.Dgemv(NoTrans, (*n)-(*p), *p, -one, a.Off(0, (*n)-(*p)+1-1), *lda, d, 1, one, c, 1)
+		err = goblas.Dgemv(NoTrans, (*n)-(*p), *p, -one, a.Off(0, (*n)-(*p)), d.Off(0, 1), one, c.Off(0, 1))
 	}
 
 	//     Solve R11*x1 = c1 for x1
@@ -123,24 +123,24 @@ func Dgglse(m, n, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, c, d
 		}
 
 		//        Put the solutions in X
-		goblas.Dcopy((*n)-(*p), c, 1, x, 1)
+		goblas.Dcopy((*n)-(*p), c.Off(0, 1), x.Off(0, 1))
 	}
 
 	//     Compute the residual vector:
 	if (*m) < (*n) {
 		nr = (*m) + (*p) - (*n)
 		if nr > 0 {
-			err = goblas.Dgemv(NoTrans, nr, (*n)-(*m), -one, a.Off((*n)-(*p)+1-1, (*m)+1-1), *lda, d.Off(nr+1-1), 1, one, c.Off((*n)-(*p)+1-1), 1)
+			err = goblas.Dgemv(NoTrans, nr, (*n)-(*m), -one, a.Off((*n)-(*p), (*m)), d.Off(nr, 1), one, c.Off((*n)-(*p), 1))
 		}
 	} else {
 		nr = (*p)
 	}
 	if nr > 0 {
-		err = goblas.Dtrmv(Upper, NoTrans, NonUnit, nr, a.Off((*n)-(*p)+1-1, (*n)-(*p)+1-1), *lda, d, 1)
-		goblas.Daxpy(nr, -one, d, 1, c.Off((*n)-(*p)+1-1), 1)
+		err = goblas.Dtrmv(Upper, NoTrans, NonUnit, nr, a.Off((*n)-(*p), (*n)-(*p)), d.Off(0, 1))
+		goblas.Daxpy(nr, -one, d.Off(0, 1), c.Off((*n)-(*p), 1))
 	}
 
 	//     Backward transformation x = Q**T*x
-	Dormrq('L', 'T', n, func() *int { y := 1; return &y }(), p, b, ldb, work, x.Matrix(*n, opts), n, work.Off((*p)+mn+1-1), toPtr((*lwork)-(*p)-mn), info)
-	work.Set(0, float64((*p)+mn+maxint(lopt, int(work.Get((*p)+mn+1-1)))))
+	Dormrq('L', 'T', n, func() *int { y := 1; return &y }(), p, b, ldb, work, x.Matrix(*n, opts), n, work.Off((*p)+mn), toPtr((*lwork)-(*p)-mn), info)
+	work.Set(0, float64((*p)+mn+max(lopt, int(work.Get((*p)+mn)))))
 }

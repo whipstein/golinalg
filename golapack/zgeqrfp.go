@@ -30,9 +30,9 @@ func Zgeqrfp(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork,
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
-	} else if (*lwork) < maxint(1, *n) && !lquery {
+	} else if (*lwork) < max(1, *n) && !lquery {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -43,7 +43,7 @@ func Zgeqrfp(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork,
 	}
 
 	//     Quick return if possible
-	k = minint(*m, *n)
+	k = min(*m, *n)
 	if k == 0 {
 		work.Set(0, 1)
 		return
@@ -54,7 +54,7 @@ func Zgeqrfp(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork,
 	iws = (*n)
 	if nb > 1 && nb < k {
 		//        Determine when to cross over from blocked to unblocked code.
-		nx = maxint(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+		nx = max(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
 		if nx < k {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*n)
@@ -63,7 +63,7 @@ func Zgeqrfp(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork,
 				//              Not enough workspace to use optimal NB:  reduce NB and
 				//              determine the minimum value of NB.
 				nb = (*lwork) / ldwork
-				nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+				nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func Zgeqrfp(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork,
 	if nb >= nbmin && nb < k && nx < k {
 		//        Use blocked code initially
 		for i = 1; i <= k-nx; i += nb {
-			ib = minint(k-i+1, nb)
+			ib = min(k-i+1, nb)
 
 			//           Compute the QR factorization of the current block
 			//           A(i:m,i:i+ib-1)
@@ -82,7 +82,7 @@ func Zgeqrfp(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork,
 				Zlarft('F', 'C', toPtr((*m)-i+1), &ib, a.Off(i-1, i-1), lda, tau.Off(i-1), work.CMatrix(ldwork, opts), &ldwork)
 
 				//              Apply H**H to A(i:m,i+ib:n) from the left
-				Zlarfb('L', 'C', 'F', 'C', toPtr((*m)-i+1), toPtr((*n)-i-ib+1), &ib, a.Off(i-1, i-1), lda, work.CMatrix(ldwork, opts), &ldwork, a.Off(i-1, i+ib-1), lda, work.CMatrixOff(ib+1-1, ldwork, opts), &ldwork)
+				Zlarfb('L', 'C', 'F', 'C', toPtr((*m)-i+1), toPtr((*n)-i-ib+1), &ib, a.Off(i-1, i-1), lda, work.CMatrix(ldwork, opts), &ldwork, a.Off(i-1, i+ib-1), lda, work.CMatrixOff(ib, ldwork, opts), &ldwork)
 			}
 		}
 	} else {

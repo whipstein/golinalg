@@ -47,7 +47,7 @@ func DdrvsyRk(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 	for i = 1; i <= 4; i++ {
 		iseed[i-1] = iseedy[i-1]
 	}
-	lwork = maxint(2*(*nmax), (*nmax)*(*nrhs))
+	lwork = max(2*(*nmax), (*nmax)*(*nrhs))
 
 	//     Test the error exits
 	if *tsterr {
@@ -65,7 +65,7 @@ func DdrvsyRk(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -145,7 +145,7 @@ func DdrvsyRk(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -154,7 +154,7 @@ func DdrvsyRk(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 						} else {
 							//                       Set the last IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, zero)
 								}

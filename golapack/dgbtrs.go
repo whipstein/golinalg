@@ -34,7 +34,7 @@ func Dgbtrs(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, ipiv *[
 		(*info) = -5
 	} else if (*ldab) < (2*(*kl) + (*ku) + 1) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -61,35 +61,35 @@ func Dgbtrs(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, ipiv *[
 		//        the identity matrix.
 		if lnoti {
 			for j = 1; j <= (*n)-1; j++ {
-				lm = minint(*kl, (*n)-j)
+				lm = min(*kl, (*n)-j)
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Dswap(*nrhs, b.Vector(l-1, 0), *ldb, b.Vector(j-1, 0), *ldb)
+					goblas.Dswap(*nrhs, b.Vector(l-1, 0), b.Vector(j-1, 0))
 				}
-				err = goblas.Dger(lm, *nrhs, -one, ab.Vector(kd+1-1, j-1), 1, b.Vector(j-1, 0), *ldb, b.Off(j+1-1, 0), *ldb)
+				err = goblas.Dger(lm, *nrhs, -one, ab.Vector(kd, j-1, 1), b.Vector(j-1, 0), b.Off(j, 0))
 			}
 		}
 
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve U*X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, *n, (*kl)+(*ku), ab, *ldab, b.Vector(0, i-1), 1)
+			err = goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, *n, (*kl)+(*ku), ab, b.Vector(0, i-1, 1))
 		}
 
 	} else {
 		//        Solve A**T*X = B.
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve U**T*X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, *n, (*kl)+(*ku), ab, *ldab, b.Vector(0, i-1), 1)
+			err = goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, *n, (*kl)+(*ku), ab, b.Vector(0, i-1, 1))
 		}
 
 		//        Solve L**T*X = B, overwriting B with X.
 		if lnoti {
 			for j = (*n) - 1; j >= 1; j-- {
-				lm = minint(*kl, (*n)-j)
-				err = goblas.Dgemv(mat.Trans, lm, *nrhs, -one, b.Off(j+1-1, 0), *ldb, ab.Vector(kd+1-1, j-1), 1, one, b.Vector(j-1, 0), *ldb)
+				lm = min(*kl, (*n)-j)
+				err = goblas.Dgemv(mat.Trans, lm, *nrhs, -one, b.Off(j, 0), ab.Vector(kd, j-1, 1), one, b.Vector(j-1, 0))
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Dswap(*nrhs, b.Vector(l-1, 0), *ldb, b.Vector(j-1, 0), *ldb)
+					goblas.Dswap(*nrhs, b.Vector(l-1, 0), b.Vector(j-1, 0))
 				}
 			}
 		}

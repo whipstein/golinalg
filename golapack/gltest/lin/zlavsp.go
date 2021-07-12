@@ -42,7 +42,7 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -78,18 +78,18 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 			if (*ipiv)[k-1] > 0 {
 				//              Multiply by the diagonal element if forming U * D.
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(kc+k-1-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(kc+k-1-1), b.CVector(k-1, 0, *ldb))
 				}
 
 				//              Multiply by P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformation.
-					err = goblas.Zgeru(k-1, *nrhs, one, a.Off(kc-1), 1, b.CVector(k-1, 0), *ldb, b, *ldb)
+					err = goblas.Zgeru(k-1, *nrhs, one, a.Off(kc-1, 1), b.CVector(k-1, 0, *ldb), b)
 
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				kc = kc + k
@@ -106,22 +106,22 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 					d21 = d12
 					for j = 1; j <= (*nrhs); j++ {
 						t1 = b.Get(k-1, j-1)
-						t2 = b.Get(k+1-1, j-1)
+						t2 = b.Get(k, j-1)
 						b.Set(k-1, j-1, d11*t1+d12*t2)
-						b.Set(k+1-1, j-1, d21*t1+d22*t2)
+						b.Set(k, j-1, d21*t1+d22*t2)
 					}
 				}
 
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformations.
-					err = goblas.Zgeru(k-1, *nrhs, one, a.Off(kc-1), 1, b.CVector(k-1, 0), *ldb, b, *ldb)
-					err = goblas.Zgeru(k-1, *nrhs, one, a.Off(kcnext-1), 1, b.CVector(k+1-1, 0), *ldb, b, *ldb)
+					err = goblas.Zgeru(k-1, *nrhs, one, a.Off(kc-1, 1), b.CVector(k-1, 0, *ldb), b)
+					err = goblas.Zgeru(k-1, *nrhs, one, a.Off(kcnext-1, 1), b.CVector(k, 0, *ldb), b)
 
 					//                 Interchange if P(K) != I.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				kc = kcnext + k + 1
@@ -150,7 +150,7 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 				//
 				//              Multiply by the diagonal element if forming L * D.
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(kc-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(kc-1), b.CVector(k-1, 0, *ldb))
 				}
 
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
@@ -158,12 +158,12 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 					kp = (*ipiv)[k-1]
 
 					//                 Apply the transformation.
-					err = goblas.Zgeru((*n)-k, *nrhs, one, a.Off(kc+1-1), 1, b.CVector(k-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
+					err = goblas.Zgeru((*n)-k, *nrhs, one, a.Off(kc, 1), b.CVector(k-1, 0, *ldb), b.Off(k, 0))
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				k = k - 1
@@ -189,14 +189,14 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
 				if k != (*n) {
 					//                 Apply the transformation.
-					err = goblas.Zgeru((*n)-k, *nrhs, one, a.Off(kc+1-1), 1, b.CVector(k-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
-					err = goblas.Zgeru((*n)-k, *nrhs, one, a.Off(kcnext+2-1), 1, b.CVector(k-1-1, 0), *ldb, b.Off(k+1-1, 0), *ldb)
+					err = goblas.Zgeru((*n)-k, *nrhs, one, a.Off(kc, 1), b.CVector(k-1, 0, *ldb), b.Off(k, 0))
+					err = goblas.Zgeru((*n)-k, *nrhs, one, a.Off(kcnext+2-1, 1), b.CVector(k-1-1, 0, *ldb), b.Off(k, 0))
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 				}
 				kc = kcnext
@@ -231,16 +231,16 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformation:
 					//                    y := y - B' * conjg(x)
 					//                 where x is a column of A and y is a row of B.
-					err = goblas.Zgemv(Trans, k-1, *nrhs, one, b, *ldb, a.Off(kc-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(Trans, k-1, *nrhs, one, b, a.Off(kc-1, 1), one, b.CVector(k-1, 0, *ldb))
 				}
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(kc+k-1-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(kc+k-1-1), b.CVector(k-1, 0, *ldb))
 				}
 				k = k - 1
 
@@ -249,15 +249,15 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 				kcnext = kc - (k - 1)
 				if k > 2 {
 					//                 Interchange if P(K) != I.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k-1 {
-						goblas.Zswap(*nrhs, b.CVector(k-1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformations.
-					err = goblas.Zgemv(Trans, k-2, *nrhs, one, b, *ldb, a.Off(kc-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(Trans, k-2, *nrhs, one, b, a.Off(kc-1, 1), one, b.CVector(k-1, 0, *ldb))
 
-					err = goblas.Zgemv(Trans, k-2, *nrhs, one, b, *ldb, a.Off(kcnext-1), 1, one, b.CVector(k-1-1, 0), *ldb)
+					err = goblas.Zgemv(Trans, k-2, *nrhs, one, b, a.Off(kcnext-1, 1), one, b.CVector(k-1-1, 0, *ldb))
 				}
 
 				//              Multiply by the diagonal block if non-unit.
@@ -298,14 +298,14 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(*nrhs, b.CVector(k-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k-1, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformation
-					err = goblas.Zgemv(Trans, (*n)-k, *nrhs, one, b.Off(k+1-1, 0), *ldb, a.Off(kc+1-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(Trans, (*n)-k, *nrhs, one, b.Off(k, 0), a.Off(kc, 1), one, b.CVector(k-1, 0, *ldb))
 				}
 				if nounit {
-					goblas.Zscal(*nrhs, a.Get(kc-1), b.CVector(k-1, 0), *ldb)
+					goblas.Zscal(*nrhs, a.Get(kc-1), b.CVector(k-1, 0, *ldb))
 				}
 				kc = kc + (*n) - k + 1
 				k = k + 1
@@ -315,15 +315,15 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 				kcnext = kc + (*n) - k + 1
 				if k < (*n)-1 {
 					//              Interchange if P(K) != I.
-					kp = absint((*ipiv)[k-1])
+					kp = abs((*ipiv)[k-1])
 					if kp != k+1 {
-						goblas.Zswap(*nrhs, b.CVector(k+1-1, 0), *ldb, b.CVector(kp-1, 0), *ldb)
+						goblas.Zswap(*nrhs, b.CVector(k, 0, *ldb), b.CVector(kp-1, 0, *ldb))
 					}
 
 					//                 Apply the transformation
-					err = goblas.Zgemv(Trans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), *ldb, a.Off(kcnext+1-1), 1, one, b.CVector(k+1-1, 0), *ldb)
+					err = goblas.Zgemv(Trans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), a.Off(kcnext, 1), one, b.CVector(k, 0, *ldb))
 
-					err = goblas.Zgemv(Trans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), *ldb, a.Off(kc+2-1), 1, one, b.CVector(k-1, 0), *ldb)
+					err = goblas.Zgemv(Trans, (*n)-k-1, *nrhs, one, b.Off(k+2-1, 0), a.Off(kc+2-1, 1), one, b.CVector(k-1, 0, *ldb))
 				}
 
 				//              Multiply by the diagonal block if non-unit.
@@ -334,9 +334,9 @@ func Zlavsp(uplo, trans, diag byte, n, nrhs *int, a *mat.CVector, ipiv *[]int, b
 					d12 = d21
 					for j = 1; j <= (*nrhs); j++ {
 						t1 = b.Get(k-1, j-1)
-						t2 = b.Get(k+1-1, j-1)
+						t2 = b.Get(k, j-1)
 						b.Set(k-1, j-1, d11*t1+d12*t2)
-						b.Set(k+1-1, j-1, d21*t1+d22*t2)
+						b.Set(k, j-1, d21*t1+d22*t2)
 					}
 				}
 				kc = kcnext + ((*n) - k)

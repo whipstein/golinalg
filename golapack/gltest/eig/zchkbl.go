@@ -277,16 +277,16 @@ func Zchkbl(t *testing.T) {
 
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
-				temp = maxf64(cabs1(a.Get(i-1, j-1)), cabs1(ain.Get(i-1, j-1)))
-				temp = maxf64(temp, sfmin)
-				vmax = maxf64(vmax, cabs1(a.Get(i-1, j-1)-ain.Get(i-1, j-1))/temp)
+				temp = math.Max(cabs1(a.Get(i-1, j-1)), cabs1(ain.Get(i-1, j-1)))
+				temp = math.Max(temp, sfmin)
+				vmax = math.Max(vmax, cabs1(a.Get(i-1, j-1)-ain.Get(i-1, j-1))/temp)
 			}
 		}
 
 		for i = 1; i <= n; i++ {
-			temp = maxf64(scale.Get(i-1), scalin.Get(i-1))
-			temp = maxf64(temp, sfmin)
-			vmax = maxf64(vmax, math.Abs(scale.Get(i-1)-scalin.Get(i-1))/temp)
+			temp = math.Max(scale.Get(i-1), scalin.Get(i-1))
+			temp = math.Max(temp, sfmin)
+			vmax = math.Max(vmax, math.Abs(scale.Get(i-1)-scalin.Get(i-1))/temp)
 		}
 
 		if vmax > rmax {

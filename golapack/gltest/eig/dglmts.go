@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -19,14 +21,14 @@ func Dglmts(n, m, p *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *i
 
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
-	anorm = maxf64(golapack.Dlange('1', n, m, a, lda, rwork), unfl)
-	bnorm = maxf64(golapack.Dlange('1', n, p, b, ldb, rwork), unfl)
+	anorm = math.Max(golapack.Dlange('1', n, m, a, lda, rwork), unfl)
+	bnorm = math.Max(golapack.Dlange('1', n, p, b, ldb, rwork), unfl)
 
 	//     Copy the matrices A and B to the arrays AF and BF,
 	//     and the vector D the array DF.
 	golapack.Dlacpy('F', n, m, a, lda, af, lda)
 	golapack.Dlacpy('F', n, p, b, ldb, bf, ldb)
-	goblas.Dcopy(*n, d, 1, df, 1)
+	goblas.Dcopy(*n, d.Off(0, 1), df.Off(0, 1))
 
 	//     Solve GLM problem
 	golapack.Dggglm(n, m, p, af, lda, bf, ldb, df, x, u, work, lwork, &info)
@@ -36,13 +38,13 @@ func Dglmts(n, m, p *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *i
 	//                       norm( d - A*x - B*u )
 	//       RESULT = -----------------------------------------
 	//                (norm(A)+norm(B))*(norm(x)+norm(u))*EPS
-	goblas.Dcopy(*n, d, 1, df, 1)
-	err = goblas.Dgemv(NoTrans, *n, *m, -one, a, *lda, x, 1, one, df, 1)
+	goblas.Dcopy(*n, d.Off(0, 1), df.Off(0, 1))
+	err = goblas.Dgemv(NoTrans, *n, *m, -one, a, x.Off(0, 1), one, df.Off(0, 1))
 
-	err = goblas.Dgemv(NoTrans, *n, *p, -one, b, *ldb, u, 1, one, df, 1)
+	err = goblas.Dgemv(NoTrans, *n, *p, -one, b, u.Off(0, 1), one, df.Off(0, 1))
 
-	dnorm = goblas.Dasum(*n, df, 1)
-	xnorm = goblas.Dasum(*m, x, 1) + goblas.Dasum(*p, u, 1)
+	dnorm = goblas.Dasum(*n, df.Off(0, 1))
+	xnorm = goblas.Dasum(*m, x.Off(0, 1)) + goblas.Dasum(*p, u.Off(0, 1))
 	ynorm = anorm + bnorm
 
 	if xnorm <= zero {

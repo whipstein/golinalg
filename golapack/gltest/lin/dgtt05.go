@@ -48,11 +48,11 @@ func Dgtt05(trans byte, n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb 
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1), 1)
-		xnorm = maxf64(math.Abs(x.Get(imax-1, j-1)), unfl)
+		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {
-			diff = maxf64(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -67,7 +67,7 @@ func Dgtt05(trans byte, n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb 
 	label20:
 		;
 		if diff/xnorm <= ferr.Get(j-1) {
-			errbnd = maxf64(errbnd, (diff/xnorm)/ferr.Get(j-1))
+			errbnd = math.Max(errbnd, (diff/xnorm)/ferr.Get(j-1))
 		} else {
 			errbnd = one / eps
 		}
@@ -84,11 +84,11 @@ func Dgtt05(trans byte, n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb 
 			} else {
 				axbi = math.Abs(b.Get(0, k-1)) + math.Abs(d.Get(0)*x.Get(0, k-1)) + math.Abs(du.Get(0)*x.Get(1, k-1))
 				for i = 2; i <= (*n)-1; i++ {
-					tmp = math.Abs(b.Get(i-1, k-1)) + math.Abs(dl.Get(i-1-1)*x.Get(i-1-1, k-1)) + math.Abs(d.Get(i-1)*x.Get(i-1, k-1)) + math.Abs(du.Get(i-1)*x.Get(i+1-1, k-1))
-					axbi = minf64(axbi, tmp)
+					tmp = math.Abs(b.Get(i-1, k-1)) + math.Abs(dl.Get(i-1-1)*x.Get(i-1-1, k-1)) + math.Abs(d.Get(i-1)*x.Get(i-1, k-1)) + math.Abs(du.Get(i-1)*x.Get(i, k-1))
+					axbi = math.Min(axbi, tmp)
 				}
 				tmp = math.Abs(b.Get((*n)-1, k-1)) + math.Abs(dl.Get((*n)-1-1)*x.Get((*n)-1-1, k-1)) + math.Abs(d.Get((*n)-1)*x.Get((*n)-1, k-1))
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		} else {
 			if (*n) == 1 {
@@ -96,18 +96,18 @@ func Dgtt05(trans byte, n, nrhs *int, dl, d, du *mat.Vector, b *mat.Matrix, ldb 
 			} else {
 				axbi = math.Abs(b.Get(0, k-1)) + math.Abs(d.Get(0)*x.Get(0, k-1)) + math.Abs(dl.Get(0)*x.Get(1, k-1))
 				for i = 2; i <= (*n)-1; i++ {
-					tmp = math.Abs(b.Get(i-1, k-1)) + math.Abs(du.Get(i-1-1)*x.Get(i-1-1, k-1)) + math.Abs(d.Get(i-1)*x.Get(i-1, k-1)) + math.Abs(dl.Get(i-1)*x.Get(i+1-1, k-1))
-					axbi = minf64(axbi, tmp)
+					tmp = math.Abs(b.Get(i-1, k-1)) + math.Abs(du.Get(i-1-1)*x.Get(i-1-1, k-1)) + math.Abs(d.Get(i-1)*x.Get(i-1, k-1)) + math.Abs(dl.Get(i-1)*x.Get(i, k-1))
+					axbi = math.Min(axbi, tmp)
 				}
 				tmp = math.Abs(b.Get((*n)-1, k-1)) + math.Abs(du.Get((*n)-1-1)*x.Get((*n)-1-1, k-1)) + math.Abs(d.Get((*n)-1)*x.Get((*n)-1, k-1))
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/maxf64(axbi, float64(nz)*unfl))
+		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/math.Max(axbi, float64(nz)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {
-			reslts.Set(1, maxf64(reslts.Get(1), tmp))
+			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
 }

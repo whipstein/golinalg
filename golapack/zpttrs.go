@@ -24,7 +24,7 @@ func Zpttrs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, b *mat.CMatr
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {
@@ -41,7 +41,7 @@ func Zpttrs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, b *mat.CMatr
 	if (*nrhs) == 1 {
 		nb = 1
 	} else {
-		nb = maxint(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZPTTRS"), []byte{uplo}, n, nrhs, toPtr(-1), toPtr(-1)))
+		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZPTTRS"), []byte{uplo}, n, nrhs, toPtr(-1), toPtr(-1)))
 	}
 
 	//     Decode UPLO
@@ -55,7 +55,7 @@ func Zpttrs(uplo byte, n, nrhs *int, d *mat.Vector, e *mat.CVector, b *mat.CMatr
 		Zptts2(&iuplo, n, nrhs, d, e, b, ldb)
 	} else {
 		for j = 1; j <= (*nrhs); j += nb {
-			jb = minint((*nrhs)-j+1, nb)
+			jb = min((*nrhs)-j+1, nb)
 			Zptts2(&iuplo, n, &jb, d, e, b.Off(0, j-1), ldb)
 		}
 	}

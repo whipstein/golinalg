@@ -42,7 +42,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	(*info) = 0
 	// abstol = 2 * Dlamch(SafeMinimum)
 	lquery = ((*lwork) == -1)
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 	wantu = jobu == 'V'
 	wantvt = jobvt == 'V'
 	if wantu || wantvt {
@@ -75,9 +75,9 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 				(*info) = -9
 			}
 		} else if inds {
-			if (*il) < 1 || (*il) > maxint(1, minmn) {
+			if (*il) < 1 || (*il) > max(1, minmn) {
 				(*info) = -10
-			} else if (*iu) < minint(minmn, *il) || (*iu) > minmn {
+			} else if (*iu) < min(minmn, *il) || (*iu) > minmn {
 				(*info) = -11
 			}
 		}
@@ -111,52 +111,52 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 				if (*m) >= mnthr {
 					//                 Path 1 (M much larger than N)
 					maxwrk = (*n) + (*n)*Ilaenv(toPtr(1), []byte("DGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = maxint(maxwrk, (*n)*((*n)+5)+2*(*n)*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+					maxwrk = max(maxwrk, (*n)*((*n)+5)+2*(*n)*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
 					if wantu {
-						maxwrk = maxint(maxwrk, (*n)*((*n)*3+6)+(*n)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*n)*((*n)*3+6)+(*n)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
 					}
 					if wantvt {
-						maxwrk = maxint(maxwrk, (*n)*((*n)*3+6)+(*n)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*n)*((*n)*3+6)+(*n)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
 					}
 					minwrk = (*n) * ((*n)*3 + 20)
 				} else {
 					//                 Path 2 (M at least N, but not much larger)
 					maxwrk = 4*(*n) + ((*m)+(*n))*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 					if wantu {
-						maxwrk = maxint(maxwrk, (*n)*((*n)*2+5)+(*n)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*n)*((*n)*2+5)+(*n)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
 					}
 					if wantvt {
-						maxwrk = maxint(maxwrk, (*n)*((*n)*2+5)+(*n)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*n)*((*n)*2+5)+(*n)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
 					}
-					minwrk = maxint((*n)*((*n)*2+19), 4*(*n)+(*m))
+					minwrk = max((*n)*((*n)*2+19), 4*(*n)+(*m))
 				}
 			} else {
 				mnthr = Ilaenv(toPtr(6), []byte("DGESVD"), []byte{jobu, jobvt}, m, n, toPtr(0), toPtr(0))
 				if (*n) >= mnthr {
 					//                 Path 1t (N much larger than M)
 					maxwrk = (*m) + (*m)*Ilaenv(toPtr(1), []byte("DGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = maxint(maxwrk, (*m)*((*m)+5)+2*(*m)*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+					maxwrk = max(maxwrk, (*m)*((*m)+5)+2*(*m)*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
 					if wantu {
-						maxwrk = maxint(maxwrk, (*m)*((*m)*3+6)+(*m)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*m)*((*m)*3+6)+(*m)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
 					}
 					if wantvt {
-						maxwrk = maxint(maxwrk, (*m)*((*m)*3+6)+(*m)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*m)*((*m)*3+6)+(*m)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
 					}
 					minwrk = (*m) * ((*m)*3 + 20)
 				} else {
 					//                 Path 2t (N at least M, but not much larger)
 					maxwrk = 4*(*m) + ((*m)+(*n))*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
 					if wantu {
-						maxwrk = maxint(maxwrk, (*m)*((*m)*2+5)+(*m)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*m)*((*m)*2+5)+(*m)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
 					}
 					if wantvt {
-						maxwrk = maxint(maxwrk, (*m)*((*m)*2+5)+(*m)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, (*m)*((*m)*2+5)+(*m)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
 					}
-					minwrk = maxint((*m)*((*m)*2+19), 4*(*m)+(*n))
+					minwrk = max((*m)*((*m)*2+19), 4*(*m)+(*n))
 				}
 			}
 		}
-		maxwrk = maxint(maxwrk, minwrk)
+		maxwrk = max(maxwrk, minwrk)
 		work.Set(0, float64(maxwrk))
 
 		if (*lwork) < minwrk && !lquery {
@@ -180,7 +180,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	if alls {
 		rngtgk = 'I'
 		iltgk = 1
-		iutgk = minint(*m, *n)
+		iutgk = min(*m, *n)
 	} else if inds {
 		rngtgk = 'I'
 		iltgk = (*il)
@@ -196,7 +196,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	smlnum = math.Sqrt(Dlamch(SafeMinimum)) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside _range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside _range [SMLNUM,BIGNUM]
 	anrm = Dlange('M', m, n, a, lda, dum)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
@@ -232,7 +232,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			itaup = itauq + (*n)
 			itemp = itaup + (*n)
 			Dlacpy('U', n, n, a, lda, work.MatrixOff(iqrf-1, *n, opts), n)
-			Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iqrf+1-1, *n, opts), n)
+			Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iqrf, *n, opts), n)
 			Dgebrd(n, n, work.MatrixOff(iqrf-1, *n, opts), n, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
@@ -245,10 +245,10 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), 1, u.Vector(0, i-1), 1)
+					goblas.Dcopy(*n, work.Off(j-1), u.Vector(0, i-1, 1))
 					j = j + (*n)*2
 				}
-				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n)+1-1, 0), ldu)
+				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n), 0), ldu)
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
@@ -263,7 +263,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*n)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
+					goblas.Dcopy(*n, work.Off(j-1), vt.Vector(i-1, 0))
 					j = j + (*n)*2
 				}
 
@@ -296,10 +296,10 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), 1, u.Vector(0, i-1), 1)
+					goblas.Dcopy(*n, work.Off(j-1), u.Vector(0, i-1, 1))
 					j = j + (*n)*2
 				}
-				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n)+1-1, 0), ldu)
+				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n), 0), ldu)
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
@@ -310,7 +310,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*n)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
+					goblas.Dcopy(*n, work.Off(j-1), vt.Vector(i-1, 0))
 					j = j + (*n)*2
 				}
 
@@ -357,7 +357,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), 1, u.Vector(0, i-1), 1)
+					goblas.Dcopy(*m, work.Off(j-1), u.Vector(0, i-1, 1))
 					j = j + (*m)*2
 				}
 
@@ -370,10 +370,10 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*m)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
+					goblas.Dcopy(*m, work.Off(j-1), vt.Vector(i-1, 0))
 					j = j + (*m)*2
 				}
-				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)+1-1), ldvt)
+				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)), ldvt)
 
 				//              Call DORMBR to compute (VB**T)*(PB**T)
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
@@ -408,7 +408,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantu {
 				j = itgkz
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), 1, u.Vector(0, i-1), 1)
+					goblas.Dcopy(*m, work.Off(j-1), u.Vector(0, i-1, 1))
 					j = j + (*m)*2
 				}
 
@@ -421,10 +421,10 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			if wantvt {
 				j = itgkz + (*m)
 				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), 1, vt.Vector(i-1, 0), *ldvt)
+					goblas.Dcopy(*m, work.Off(j-1), vt.Vector(i-1, 0))
 					j = j + (*m)*2
 				}
-				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)+1-1), ldvt)
+				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)), ldvt)
 
 				//              Call DORMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)

@@ -74,9 +74,9 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvl) < 1 || (ilvl && (*ldvl) < (*n)) {
 		(*info) = -11
@@ -92,11 +92,11 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 	//       following subroutine, as returned by ILAENV. The workspace is
 	//       computed assuming ILO = 1 and IHI = N, the worst case.)
 	if (*info) == 0 {
-		lwkmin = maxint(1, 2*(*n))
-		lwkopt = maxint(1, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
-		lwkopt = maxint(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
+		lwkmin = max(1, 2*(*n))
+		lwkopt = max(1, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
+		lwkopt = max(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
 		if ilvl {
-			lwkopt = maxint(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+			lwkopt = max(lwkopt, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
 		}
 		work.SetRe(0, float64(lwkopt))
 
@@ -125,7 +125,7 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', n, n, a, lda, rwork)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
@@ -139,7 +139,7 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
 	}
 
-	//     Scale B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale B if max element outside range [SMLNUM,BIGNUM]
 	bnrm = Zlange('M', n, n, b, ldb, rwork)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
@@ -181,7 +181,7 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 	if ilvl {
 		Zlaset('F', n, n, &czero, &cone, vl, ldvl)
 		if irows > 1 {
-			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vl.Off(ilo+1-1, ilo-1), ldvl)
+			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vl.Off(ilo, ilo-1), ldvl)
 		}
 		Zungqr(&irows, &irows, &irows, vl.Off(ilo-1, ilo-1), ldvl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -248,7 +248,7 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 			for jc = 1; jc <= (*n); jc++ {
 				temp = zero
 				for jr = 1; jr <= (*n); jr++ {
-					temp = maxf64(temp, abs1(vl.Get(jr-1, jc-1)))
+					temp = math.Max(temp, abs1(vl.Get(jr-1, jc-1)))
 				}
 				if temp < smlnum {
 					goto label30
@@ -265,7 +265,7 @@ func Zggev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, 
 			for jc = 1; jc <= (*n); jc++ {
 				temp = zero
 				for jr = 1; jr <= (*n); jr++ {
-					temp = maxf64(temp, abs1(vr.Get(jr-1, jc-1)))
+					temp = math.Max(temp, abs1(vr.Get(jr-1, jc-1)))
 				}
 				if temp < smlnum {
 					goto label60

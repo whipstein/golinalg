@@ -34,19 +34,19 @@ func Dorgbr(vect byte, m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vec
 	//     Test the input arguments
 	(*info) = 0
 	wantq = vect == 'Q'
-	mn = minint(*m, *n)
+	mn = min(*m, *n)
 	lquery = ((*lwork) == -1)
 	if !wantq && vect != 'P' {
 		(*info) = -1
 	} else if (*m) < 0 {
 		(*info) = -2
-	} else if (*n) < 0 || (wantq && ((*n) > (*m) || (*n) < minint(*m, *k))) || (!wantq && ((*m) > (*n) || (*m) < minint(*n, *k))) {
+	} else if (*n) < 0 || (wantq && ((*n) > (*m) || (*n) < min(*m, *k))) || (!wantq && ((*m) > (*n) || (*m) < min(*n, *k))) {
 		(*info) = -3
 	} else if (*k) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*lwork) < maxint(1, mn) && !lquery {
+	} else if (*lwork) < max(1, mn) && !lquery {
 		(*info) = -9
 	}
 
@@ -70,7 +70,7 @@ func Dorgbr(vect byte, m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vec
 			}
 		}
 		lwkopt = int(work.Get(0))
-		lwkopt = maxint(lwkopt, mn)
+		lwkopt = max(lwkopt, mn)
 	}
 
 	if (*info) != 0 {

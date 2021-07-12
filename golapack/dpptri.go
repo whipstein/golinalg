@@ -49,10 +49,10 @@ func Dpptri(uplo byte, n *int, ap *mat.Vector, info *int) {
 			jc = jj + 1
 			jj = jj + j
 			if j > 1 {
-				err = goblas.Dspr(mat.Upper, j-1, one, ap.Off(jc-1), 1, ap)
+				err = goblas.Dspr(mat.Upper, j-1, one, ap.Off(jc-1, 1), ap)
 			}
 			ajj = ap.Get(jj - 1)
-			goblas.Dscal(j, ajj, ap.Off(jc-1), 1)
+			goblas.Dscal(j, ajj, ap.Off(jc-1, 1))
 		}
 
 	} else {
@@ -60,9 +60,9 @@ func Dpptri(uplo byte, n *int, ap *mat.Vector, info *int) {
 		jj = 1
 		for j = 1; j <= (*n); j++ {
 			jjn = jj + (*n) - j + 1
-			ap.Set(jj-1, goblas.Ddot((*n)-j+1, ap.Off(jj-1), 1, ap.Off(jj-1), 1))
+			ap.Set(jj-1, goblas.Ddot((*n)-j+1, ap.Off(jj-1, 1), ap.Off(jj-1, 1)))
 			if j < (*n) {
-				err = goblas.Dtpmv(mat.Lower, mat.Trans, mat.NonUnit, (*n)-j, ap.Off(jjn-1), ap.Off(jj+1-1), 1)
+				err = goblas.Dtpmv(mat.Lower, mat.Trans, mat.NonUnit, (*n)-j, ap.Off(jjn-1), ap.Off(jj, 1))
 			}
 			jj = jjn
 		}

@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -30,9 +32,9 @@ func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat
 	kd = (*ku) + 1
 	anorm = zero
 	for j = 1; j <= (*n); j++ {
-		i1 = maxint(kd+1-j, 1)
-		i2 = minint(kd+(*m)-j, (*kl)+kd)
-		anorm = maxf64(anorm, goblas.Dasum(i2-i1+1, a.Vector(i1-1, j-1), 1))
+		i1 = max(kd+1-j, 1)
+		i2 = min(kd+(*m)-j, (*kl)+kd)
+		anorm = math.Max(anorm, goblas.Dasum(i2-i1+1, a.Vector(i1-1, j-1, 1)))
 	}
 	if anorm <= zero {
 		(*resid) = one / eps
@@ -47,7 +49,7 @@ func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat
 
 	//     Compute  B - A*X (or  B - A'*X )
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Dgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, -one, a, *lda, x.Vector(0, j-1), 1, one, b.Vector(0, j-1), 1)
+		err = goblas.Dgbmv(mat.TransByte(trans), *m, *n, *kl, *ku, -one, a, x.Vector(0, j-1, 1), one, b.Vector(0, j-1, 1))
 	}
 	//
 	//     Compute the maximum over the number of right hand sides of
@@ -55,12 +57,12 @@ func Dgbt02(trans byte, m, n, kl, ku, nrhs *int, a *mat.Matrix, lda *int, x *mat
 	//
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(n1, b.Vector(0, j-1), 1)
-		xnorm = goblas.Dasum(n1, x.Vector(0, j-1), 1)
+		bnorm = goblas.Dasum(n1, b.Vector(0, j-1, 1))
+		xnorm = goblas.Dasum(n1, x.Vector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

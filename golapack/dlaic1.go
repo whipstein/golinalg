@@ -42,7 +42,7 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 	four = 4.0
 
 	eps = Dlamch(Epsilon)
-	alpha = goblas.Ddot(*j, x, 1, w, 1)
+	alpha = goblas.Ddot(*j, x.Off(0, 1), w.Off(0, 1))
 
 	absalp = math.Abs(alpha)
 	absgam = math.Abs(*gamma)
@@ -53,7 +53,7 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 		//
 		//        special cases
 		if (*sest) == zero {
-			s1 = maxf64(absgam, absalp)
+			s1 = math.Max(absgam, absalp)
 			if s1 == zero {
 				(*s) = zero
 				(*c) = one
@@ -70,7 +70,7 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 		} else if absgam <= eps*absest {
 			(*s) = one
 			(*c) = zero
-			tmp = maxf64(absest, absalp)
+			tmp = math.Max(absest, absalp)
 			s1 = absest / tmp
 			s2 = absalp / tmp
 			(*sestpr) = tmp * math.Sqrt(s1*s1+s2*s2)
@@ -96,13 +96,13 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 				(*s) = math.Sqrt(one + tmp*tmp)
 				(*sestpr) = s2 * (*s)
 				(*c) = ((*gamma) / s2) / (*s)
-				(*s) = signf64(one, alpha) / (*s)
+				(*s) = math.Copysign(one, alpha) / (*s)
 			} else {
 				tmp = s2 / s1
 				(*c) = math.Sqrt(one + tmp*tmp)
 				(*sestpr) = s1 * (*c)
 				(*s) = (alpha / s1) / (*c)
-				(*c) = signf64(one, *gamma) / (*c)
+				(*c) = math.Copysign(one, *gamma) / (*c)
 			}
 			return
 		} else {
@@ -133,14 +133,14 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 		//        special cases
 		if (*sest) == zero {
 			(*sestpr) = zero
-			if maxf64(absgam, absalp) == zero {
+			if math.Max(absgam, absalp) == zero {
 				sine = one
 				cosine = zero
 			} else {
 				sine = -(*gamma)
 				cosine = alpha
 			}
-			s1 = maxf64(math.Abs(sine), math.Abs(cosine))
+			s1 = math.Max(math.Abs(sine), math.Abs(cosine))
 			(*s) = sine / s1
 			(*c) = cosine / s1
 			tmp = math.Sqrt((*s)*(*s) + (*c)*(*c))
@@ -173,13 +173,13 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 				(*c) = math.Sqrt(one + tmp*tmp)
 				(*sestpr) = absest * (tmp / (*c))
 				(*s) = -((*gamma) / s2) / (*c)
-				(*c) = signf64(one, alpha) / (*c)
+				(*c) = math.Copysign(one, alpha) / (*c)
 			} else {
 				tmp = s2 / s1
 				(*s) = math.Sqrt(one + tmp*tmp)
 				(*sestpr) = absest / (*s)
 				(*c) = (alpha / s1) / (*s)
-				(*s) = -signf64(one, *gamma) / (*s)
+				(*s) = -math.Copysign(one, *gamma) / (*s)
 			}
 			return
 		} else {
@@ -187,7 +187,7 @@ func Dlaic1(job, j *int, x *mat.Vector, sest *float64, w *mat.Vector, gamma, ses
 			zeta1 = alpha / absest
 			zeta2 = (*gamma) / absest
 
-			norma = maxf64(one+zeta1*zeta1+math.Abs(zeta1*zeta2), math.Abs(zeta1*zeta2)+zeta2*zeta2)
+			norma = math.Max(one+zeta1*zeta1+math.Abs(zeta1*zeta2), math.Abs(zeta1*zeta2)+zeta2*zeta2)
 
 			//           See if root is closer to zero or to ONE
 			test = one + two*(zeta1-zeta2)*(zeta1+zeta2)

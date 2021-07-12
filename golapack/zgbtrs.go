@@ -34,7 +34,7 @@ func Zgbtrs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, ipiv *
 		(*info) = -5
 	} else if (*ldab) < (2*(*kl) + (*ku) + 1) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -61,35 +61,35 @@ func Zgbtrs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, ipiv *
 		//        the identity matrix.
 		if lnoti {
 			for j = 1; j <= (*n)-1; j++ {
-				lm = minint(*kl, (*n)-j)
+				lm = min(*kl, (*n)-j)
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Zswap(*nrhs, b.CVector(l-1, 0), *ldb, b.CVector(j-1, 0), *ldb)
+					goblas.Zswap(*nrhs, b.CVector(l-1, 0, *ldb), b.CVector(j-1, 0, *ldb))
 				}
-				err = goblas.Zgeru(lm, *nrhs, -one, ab.CVector(kd+1-1, j-1), 1, b.CVector(j-1, 0), *ldb, b.Off(j+1-1, 0), *ldb)
+				err = goblas.Zgeru(lm, *nrhs, -one, ab.CVector(kd, j-1, 1), b.CVector(j-1, 0, *ldb), b.Off(j, 0))
 			}
 		}
 
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve U*X = B, overwriting B with X.
-			err = goblas.Ztbsv(Upper, NoTrans, NonUnit, *n, (*kl)+(*ku), ab, *ldab, b.CVector(0, i-1), 1)
+			err = goblas.Ztbsv(Upper, NoTrans, NonUnit, *n, (*kl)+(*ku), ab, b.CVector(0, i-1, 1))
 		}
 
 	} else if trans == 'T' {
 		//        Solve A**T * X = B.
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve U**T * X = B, overwriting B with X.
-			err = goblas.Ztbsv(Upper, Trans, NonUnit, *n, (*kl)+(*ku), ab, *ldab, b.CVector(0, i-1), 1)
+			err = goblas.Ztbsv(Upper, Trans, NonUnit, *n, (*kl)+(*ku), ab, b.CVector(0, i-1, 1))
 		}
 
 		//        Solve L**T * X = B, overwriting B with X.
 		if lnoti {
 			for j = (*n) - 1; j >= 1; j-- {
-				lm = minint(*kl, (*n)-j)
-				err = goblas.Zgemv(Trans, lm, *nrhs, -one, b.Off(j+1-1, 0), *ldb, ab.CVector(kd+1-1, j-1), 1, one, b.CVector(j-1, 0), *ldb)
+				lm = min(*kl, (*n)-j)
+				err = goblas.Zgemv(Trans, lm, *nrhs, -one, b.Off(j, 0), ab.CVector(kd, j-1, 1), one, b.CVector(j-1, 0, *ldb))
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Zswap(*nrhs, b.CVector(l-1, 0), *ldb, b.CVector(j-1, 0), *ldb)
+					goblas.Zswap(*nrhs, b.CVector(l-1, 0, *ldb), b.CVector(j-1, 0, *ldb))
 				}
 			}
 		}
@@ -98,19 +98,19 @@ func Zgbtrs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, ipiv *
 		//        Solve A**H * X = B.
 		for i = 1; i <= (*nrhs); i++ {
 			//           Solve U**H * X = B, overwriting B with X.
-			err = goblas.Ztbsv(Upper, ConjTrans, NonUnit, *n, (*kl)+(*ku), ab, *ldab, b.CVector(0, i-1), 1)
+			err = goblas.Ztbsv(Upper, ConjTrans, NonUnit, *n, (*kl)+(*ku), ab, b.CVector(0, i-1, 1))
 		}
 
 		//        Solve L**H * X = B, overwriting B with X.
 		if lnoti {
 			for j = (*n) - 1; j >= 1; j-- {
-				lm = minint(*kl, (*n)-j)
+				lm = min(*kl, (*n)-j)
 				Zlacgv(nrhs, b.CVector(j-1, 0), ldb)
-				err = goblas.Zgemv(ConjTrans, lm, *nrhs, -one, b.Off(j+1-1, 0), *ldb, ab.CVector(kd+1-1, j-1), 1, one, b.CVector(j-1, 0), *ldb)
+				err = goblas.Zgemv(ConjTrans, lm, *nrhs, -one, b.Off(j, 0), ab.CVector(kd, j-1, 1), one, b.CVector(j-1, 0, *ldb))
 				Zlacgv(nrhs, b.CVector(j-1, 0), ldb)
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Zswap(*nrhs, b.CVector(l-1, 0), *ldb, b.CVector(j-1, 0), *ldb)
+					goblas.Zswap(*nrhs, b.CVector(l-1, 0, *ldb), b.CVector(j-1, 0, *ldb))
 				}
 			}
 		}

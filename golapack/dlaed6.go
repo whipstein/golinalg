@@ -64,7 +64,7 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 			a = c*(d.Get(0)+d.Get(1)) + z.Get(0) + z.Get(1)
 			b = c*d.Get(0)*d.Get(1) + z.Get(0)*d.Get(1) + z.Get(1)*d.Get(0)
 		}
-		temp = maxf64(math.Abs(a), math.Abs(b), math.Abs(c))
+		temp = math.Max(math.Abs(a), math.Max(math.Abs(b), math.Abs(c)))
 		a = a / temp
 		b = b / temp
 		c = c / temp
@@ -108,9 +108,9 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 	//     Determine if scaling of inputs necessary to avoid overflow
 	//     when computing 1/TEMP**3
 	if orgati {
-		temp = minf64(math.Abs(d.Get(1)-(*tau)), math.Abs(d.Get(2)-(*tau)))
+		temp = math.Min(math.Abs(d.Get(1)-(*tau)), math.Abs(d.Get(2)-(*tau)))
 	} else {
-		temp = minf64(math.Abs(d.Get(0)-(*tau)), math.Abs(d.Get(1)-(*tau)))
+		temp = math.Min(math.Abs(d.Get(0)-(*tau)), math.Abs(d.Get(1)-(*tau)))
 	}
 	scale = false
 	if temp <= small1 {
@@ -188,7 +188,7 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 		a = (temp1+temp2)*f - temp1*temp2*df
 		b = temp1 * temp2 * f
 		c = f - (temp1+temp2)*df + temp1*temp2*ddf
-		temp = maxf64(math.Abs(a), math.Abs(b), math.Abs(c))
+		temp = math.Max(math.Abs(a), math.Max(math.Abs(b), math.Abs(c)))
 		a = a / temp
 		b = b / temp
 		c = c / temp

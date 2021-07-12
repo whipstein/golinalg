@@ -40,7 +40,7 @@ func Dsyevd2stage(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 
@@ -141,7 +141,7 @@ func Dsyevd2stage(jobz, uplo byte, n *int, a *mat.Matrix, lda *int, w, work *mat
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(*n, one/sigma, w, 1)
+		goblas.Dscal(*n, one/sigma, w.Off(0, 1))
 	}
 
 	work.Set(0, float64(lwmin))

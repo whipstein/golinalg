@@ -58,9 +58,9 @@ func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.M
 		(*info) = -2
 	} else if (*icompq) == 1 && (*qsiz) < (*n) {
 		(*info) = -3
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -9
-	} else if minint(1, *n) > (*cutpnt) || (*n) < (*cutpnt) {
+	} else if min(1, *n) > (*cutpnt) || (*n) < (*cutpnt) {
 		(*info) = -12
 	}
 	if (*info) != 0 {
@@ -112,9 +112,9 @@ func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.M
 	}
 
 	//     Sort and Deflate eigenvalues.
-	Dlaed8(icompq, &k, n, qsiz, d, q, ldq, indxq, rho, cutpnt, work.Off(iz-1), work.Off(idlmda-1), work.MatrixOff(iq2-1, ldq2, opts), &ldq2, work.Off(iw-1), toSlice(perm, (*prmptr)[curr-1]-1), &((*givptr)[curr+1-1]), toSlice(givcol, 0+((*givptr)[curr-1]-1)*2), givnum.Off(0, (*givptr)[curr-1]-1), toSlice(iwork, indxp-1), toSlice(iwork, indx-1), info)
-	(*prmptr)[curr+1-1] = (*prmptr)[curr-1] + (*n)
-	(*givptr)[curr+1-1] = (*givptr)[curr+1-1] + (*givptr)[curr-1]
+	Dlaed8(icompq, &k, n, qsiz, d, q, ldq, indxq, rho, cutpnt, work.Off(iz-1), work.Off(idlmda-1), work.MatrixOff(iq2-1, ldq2, opts), &ldq2, work.Off(iw-1), toSlice(perm, (*prmptr)[curr-1]-1), &((*givptr)[curr]), toSlice(givcol, 0+((*givptr)[curr-1]-1)*2), givnum.Off(0, (*givptr)[curr-1]-1), toSlice(iwork, indxp-1), toSlice(iwork, indx-1), info)
+	(*prmptr)[curr] = (*prmptr)[curr-1] + (*n)
+	(*givptr)[curr] = (*givptr)[curr] + (*givptr)[curr-1]
 
 	//     Solve Secular Equation.
 	if k != 0 {
@@ -123,16 +123,16 @@ func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm *int, d *mat.Vector, q *mat.M
 			return
 		}
 		if (*icompq) == 1 {
-			err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, k, k, one, work.MatrixOff(iq2-1, ldq2, opts), ldq2, qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), k, zero, q, *ldq)
+			err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, k, k, one, work.MatrixOff(iq2-1, ldq2, opts), qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), zero, q)
 		}
-		(*qptr)[curr+1-1] = (*qptr)[curr-1] + int(math.Pow(float64(k), 2))
+		(*qptr)[curr] = (*qptr)[curr-1] + int(math.Pow(float64(k), 2))
 
 		//     Prepare the INDXQ sorting permutation.
 		n1 = k
 		n2 = (*n) - k
 		Dlamrg(&n1, &n2, d, func() *int { y := 1; return &y }(), toPtr(-1), indxq)
 	} else {
-		(*qptr)[curr+1-1] = (*qptr)[curr-1]
+		(*qptr)[curr] = (*qptr)[curr-1]
 		for i = 1; i <= (*n); i++ {
 			(*indxq)[i-1] = i
 		}

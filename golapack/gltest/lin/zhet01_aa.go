@@ -48,29 +48,29 @@ func Zhet01aa(uplo byte, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ld
 
 		//        Call ZTRMM to form the product U' * D (or L * D ).
 		if uplo == 'U' {
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), ConjTrans, Unit, (*n)-1, *n, cone, afac.Off(0, 1), *ldafac, c.Off(1, 0), *ldc)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), ConjTrans, Unit, (*n)-1, *n, cone, afac.Off(0, 1), c.Off(1, 0))
 		} else {
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), NoTrans, Unit, (*n)-1, *n, cone, afac.Off(1, 0), *ldafac, c.Off(1, 0), *ldc)
+			err = goblas.Ztrmm(Left, mat.UploByte(uplo), NoTrans, Unit, (*n)-1, *n, cone, afac.Off(1, 0), c.Off(1, 0))
 		}
 
 		//        Call ZTRMM again to multiply by U (or L ).
 		if uplo == 'U' {
-			err = goblas.Ztrmm(Right, mat.UploByte(uplo), NoTrans, Unit, *n, (*n)-1, cone, afac.Off(0, 1), *ldafac, c.Off(0, 1), *ldc)
+			err = goblas.Ztrmm(Right, mat.UploByte(uplo), NoTrans, Unit, *n, (*n)-1, cone, afac.Off(0, 1), c.Off(0, 1))
 		} else {
-			err = goblas.Ztrmm(Right, mat.UploByte(uplo), ConjTrans, Unit, *n, (*n)-1, cone, afac.Off(1, 0), *ldafac, c.Off(0, 1), *ldc)
+			err = goblas.Ztrmm(Right, mat.UploByte(uplo), ConjTrans, Unit, *n, (*n)-1, cone, afac.Off(1, 0), c.Off(0, 1))
 		}
 
 		//        Apply hermitian pivots
 		for j = (*n); j >= 1; j-- {
 			i = (*ipiv)[j-1]
 			if i != j {
-				goblas.Zswap(*n, c.CVector(j-1, 0), *ldc, c.CVector(i-1, 0), *ldc)
+				goblas.Zswap(*n, c.CVector(j-1, 0, *ldc), c.CVector(i-1, 0, *ldc))
 			}
 		}
 		for j = (*n); j >= 1; j-- {
 			i = (*ipiv)[j-1]
 			if i != j {
-				goblas.Zswap(*n, c.CVector(0, j-1), 1, c.CVector(0, i-1), 1)
+				goblas.Zswap(*n, c.CVector(0, j-1, 1), c.CVector(0, i-1, 1))
 			}
 		}
 	}

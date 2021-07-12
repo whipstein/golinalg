@@ -25,13 +25,13 @@ func Dlaed0(icompq, qsiz, n *int, d, e *mat.Vector, q *mat.Matrix, ldq *int, qst
 
 	if (*icompq) < 0 || (*icompq) > 2 {
 		(*info) = -1
-	} else if ((*icompq) == 1) && ((*qsiz) < maxint(0, *n)) {
+	} else if ((*icompq) == 1) && ((*qsiz) < max(0, *n)) {
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*ldq) < maxint(1, *n) {
+	} else if (*ldq) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldqs) < maxint(1, *n) {
+	} else if (*ldqs) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -115,7 +115,7 @@ label10:
 			matsiz = (*iwork)[0]
 		} else {
 			submat = (*iwork)[i-1] + 1
-			matsiz = (*iwork)[i+1-1] - (*iwork)[i-1]
+			matsiz = (*iwork)[i] - (*iwork)[i-1]
 		}
 		if (*icompq) == 2 {
 			Dsteqr('I', &matsiz, d.Off(submat-1), e.Off(submat-1), q.Off(submat-1, submat-1), ldq, work, info)
@@ -128,13 +128,13 @@ label10:
 				goto label130
 			}
 			if (*icompq) == 1 {
-				err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, matsiz, matsiz, one, q.Off(0, submat-1), *ldq, work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), matsiz, zero, qstore.Off(0, submat-1), *ldqs)
+				err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, matsiz, matsiz, one, q.Off(0, submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), zero, qstore.Off(0, submat-1))
 			}
-			(*iwork)[iqptr+curr+1-1] = (*iwork)[iqptr+curr-1] + int(math.Pow(float64(matsiz), 2))
+			(*iwork)[iqptr+curr] = (*iwork)[iqptr+curr-1] + int(math.Pow(float64(matsiz), 2))
 			curr = curr + 1
 		}
 		k = 1
-		for j = submat; j <= (*iwork)[i+1-1]; j++ {
+		for j = submat; j <= (*iwork)[i]; j++ {
 			(*iwork)[indxq+j-1] = k
 			k = k + 1
 		}
@@ -170,14 +170,14 @@ label80:
 			//     and eigenvectors of a full symmetric matrix (which was reduced to
 			//     tridiagonal form) are desired.
 			if (*icompq) == 2 {
-				Dlaed1(&matsiz, d.Off(submat-1), q.Off(submat-1, submat-1), ldq, toSlice(iwork, indxq+submat-1), e.GetPtr(submat+msd2-1-1), &msd2, work, toSlice(iwork, subpbs+1-1), info)
+				Dlaed1(&matsiz, d.Off(submat-1), q.Off(submat-1, submat-1), ldq, toSlice(iwork, indxq+submat-1), e.GetPtr(submat+msd2-1-1), &msd2, work, toSlice(iwork, subpbs), info)
 			} else {
-				Dlaed7(icompq, &matsiz, qsiz, &tlvls, &curlvl, &curprb, d.Off(submat-1), qstore.Off(0, submat-1), ldqs, toSlice(iwork, indxq+submat-1), e.GetPtr(submat+msd2-1-1), &msd2, work.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), work.MatrixOff(igivnm-1, 2, opts), work.Off(iwrem-1), toSlice(iwork, subpbs+1-1), info)
+				Dlaed7(icompq, &matsiz, qsiz, &tlvls, &curlvl, &curprb, d.Off(submat-1), qstore.Off(0, submat-1), ldqs, toSlice(iwork, indxq+submat-1), e.GetPtr(submat+msd2-1-1), &msd2, work.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), work.MatrixOff(igivnm-1, 2, opts), work.Off(iwrem-1), toSlice(iwork, subpbs), info)
 			}
 			if (*info) != 0 {
 				goto label130
 			}
-			(*iwork)[i/2+1-1] = (*iwork)[i+2-1]
+			(*iwork)[i/2] = (*iwork)[i+2-1]
 		}
 		subpbs = subpbs / 2
 		curlvl = curlvl + 1
@@ -192,23 +192,23 @@ label80:
 		for i = 1; i <= (*n); i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(*qsiz, qstore.Vector(0, j-1), 1, q.Vector(0, i-1), 1)
+			goblas.Dcopy(*qsiz, qstore.Vector(0, j-1, 1), q.Vector(0, i-1, 1))
 		}
-		goblas.Dcopy(*n, work, 1, d, 1)
+		goblas.Dcopy(*n, work.Off(0, 1), d.Off(0, 1))
 	} else if (*icompq) == 2 {
 		for i = 1; i <= (*n); i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(*n, q.Vector(0, j-1), 1, work.Off((*n)*i+1-1), 1)
+			goblas.Dcopy(*n, q.Vector(0, j-1, 1), work.Off((*n)*i, 1))
 		}
-		goblas.Dcopy(*n, work, 1, d, 1)
-		Dlacpy('A', n, n, work.MatrixOff((*n)+1-1, *n, opts), n, q, ldq)
+		goblas.Dcopy(*n, work, d)
+		Dlacpy('A', n, n, work.MatrixOff((*n), *n, opts), n, q, ldq)
 	} else {
 		for i = 1; i <= (*n); i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
 		}
-		goblas.Dcopy(*n, work, 1, d, 1)
+		goblas.Dcopy(*n, work, d)
 	}
 	return
 

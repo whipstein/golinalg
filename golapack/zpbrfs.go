@@ -45,9 +45,9 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 		(*info) = -6
 	} else if (*ldafb) < (*kd)+1 {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -12
 	}
 	if (*info) != 0 {
@@ -65,7 +65,7 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 	}
 
 	//     NZ = maximum number of nonzero elements in each row of A, plus 1
-	nz = minint((*n)+1, 2*(*kd)+2)
+	nz = min((*n)+1, 2*(*kd)+2)
 	eps = Dlamch(Epsilon)
 	safmin = Dlamch(SafeMinimum)
 	safe1 = float64(nz) * safmin
@@ -82,8 +82,8 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
-		err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kd, -one, ab, *ldab, x.CVector(0, j-1), 1, one, work, 1)
+		goblas.Zcopy(*n, b.CVector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Zhbmv(mat.UploByte(uplo), *n, *kd, -one, ab, x.CVector(0, j-1, 1), one, work.Off(0, 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -103,11 +103,11 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 				s = zero
 				xk = Cabs1(x.Get(k-1, j-1))
 				l = (*kd) + 1 - k
-				for i = maxint(1, k-(*kd)); i <= k-1; i++ {
+				for i = max(1, k-(*kd)); i <= k-1; i++ {
 					rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get(l+i-1, k-1))*xk)
 					s = s + Cabs1(ab.Get(l+i-1, k-1))*Cabs1(x.Get(i-1, j-1))
 				}
-				rwork.Set(k-1, rwork.Get(k-1)+math.Abs(ab.GetRe((*kd)+1-1, k-1))*xk+s)
+				rwork.Set(k-1, rwork.Get(k-1)+math.Abs(ab.GetRe((*kd), k-1))*xk+s)
 			}
 		} else {
 			for k = 1; k <= (*n); k++ {
@@ -115,7 +115,7 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 				xk = Cabs1(x.Get(k-1, j-1))
 				rwork.Set(k-1, rwork.Get(k-1)+math.Abs(ab.GetRe(0, k-1))*xk)
 				l = 1 - k
-				for i = k + 1; i <= minint(*n, k+(*kd)); i++ {
+				for i = k + 1; i <= min(*n, k+(*kd)); i++ {
 					rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get(l+i-1, k-1))*xk)
 					s = s + Cabs1(ab.Get(l+i-1, k-1))*Cabs1(x.Get(i-1, j-1))
 				}
@@ -125,9 +125,9 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -140,7 +140,7 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, one, work, 1, x.CVector(0, j-1), 1)
+			goblas.Zaxpy(*n, one, work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -178,7 +178,7 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 		kase = 0
 	label100:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, ferr.GetPtr(j-1), &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(A**H).
@@ -199,7 +199,7 @@ func Zpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, afb *mat.CM
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, Cabs1(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

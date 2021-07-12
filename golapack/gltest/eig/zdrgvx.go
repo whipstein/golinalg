@@ -28,15 +28,15 @@ import (
 // For each matrix pair, the following tests will be performed and
 // compared with the threshold THRESH.
 //
-// (1) maxint over all left eigenvalue/-vector pairs (beta/alpha,l) of
+// (1) max over all left eigenvalue/-vector pairs (beta/alpha,l) of
 //
-//    | l**H * (beta A - alpha B) | / ( ulp maxint( |beta A|, |alpha B| ) )
+//    | l**H * (beta A - alpha B) | / ( ulp max( |beta A|, |alpha B| ) )
 //
 //     where l**H is the conjugate tranpose of l.
 //
-// (2) maxint over all right eigenvalue/-vector pairs (beta/alpha,r) of
+// (2) max over all right eigenvalue/-vector pairs (beta/alpha,r) of
 //
-//       | (beta A - alpha B) r | / ( ulp maxint( |beta A|, |alpha B| ) )
+//       | (beta A - alpha B) r | / ( ulp max( |beta A|, |alpha B| ) )
 //
 // (3) The condition number S(i) of eigenvalues computed by ZGGEVX
 //     differs less than a factor THRESH from the exact S(i) (see
@@ -113,7 +113,7 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 	if (*info) == 0 && (*lwork) >= 1 {
 		minwrk = 2 * nmax * (nmax + 1)
 		maxwrk = nmax * (1 + Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, &nmax, func() *int { y := 1; return &y }(), &nmax, func() *int { y := 0; return &y }()))
-		maxwrk = maxint(maxwrk, 2*nmax*(nmax+1))
+		maxwrk = max(maxwrk, 2*nmax*(nmax+1))
 		work.SetRe(0, float64(maxwrk))
 	}
 
@@ -168,7 +168,7 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 
 						//                    Compute the norm(A, B)
 						golapack.Zlacpy('F', &n, &n, ai, lda, work.CMatrix(n, opts), &n)
-						golapack.Zlacpy('F', &n, &n, bi, lda, work.CMatrixOff(n*n+1-1, n, opts), &n)
+						golapack.Zlacpy('F', &n, &n, bi, lda, work.CMatrixOff(n*n, n, opts), &n)
 						abnorm = golapack.Zlange('F', &n, toPtr(2*n), work.CMatrix(n, opts), &n, rwork)
 
 						//                    Tests (1) and (2)
@@ -196,8 +196,8 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 									result.Set(2, ulpinv)
 								}
 							} else {
-								rwork.Set(i-1, maxf64(math.Abs(dtru.Get(i-1)/s.Get(i-1)), math.Abs(s.Get(i-1)/dtru.Get(i-1))))
-								result.Set(2, maxf64(result.Get(2), rwork.Get(i-1)))
+								rwork.Set(i-1, math.Max(math.Abs(dtru.Get(i-1)/s.Get(i-1)), math.Abs(s.Get(i-1)/dtru.Get(i-1))))
+								result.Set(2, math.Max(result.Get(2), rwork.Get(i-1)))
 							}
 						}
 
@@ -220,9 +220,9 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 								result.Set(3, ulpinv)
 							}
 						} else {
-							ratio1 = maxf64(math.Abs(diftru.Get(0)/dif.Get(0)), math.Abs(dif.Get(0)/diftru.Get(0)))
-							ratio2 = maxf64(math.Abs(diftru.Get(4)/dif.Get(4)), math.Abs(dif.Get(4)/diftru.Get(4)))
-							result.Set(3, maxf64(ratio1, ratio2))
+							ratio1 = math.Max(math.Abs(diftru.Get(0)/dif.Get(0)), math.Abs(dif.Get(0)/diftru.Get(0)))
+							ratio2 = math.Max(math.Abs(diftru.Get(4)/dif.Get(4)), math.Abs(dif.Get(4)/diftru.Get(4)))
+							result.Set(3, math.Max(ratio1, ratio2))
 						}
 
 						ntestt = ntestt + 4
@@ -244,7 +244,7 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 									fmt.Printf(" TYPE 2: Da is quasi-diagonal, Db is identity, \n     A = Y^(-H) Da X^(-1), B = Y^(-H) Db X^(-1) \n     YH and X are left and right eigenvectors. \n\n")
 
 									//                          Tests performed
-									fmt.Printf("\n Tests performed:  \n     a is alpha, b is beta, l is a left eigenvector, \n     r is a right eigenvector and %s means %s.\n 1 = maxint | ( b A - a B )%s l | / const.\n 2 = maxint | ( b A - a B ) r | / const.\n 3 = maxint ( Sest/Stru, Stru/Sest )  over all eigenvalues\n 4 = maxint( DIFest/DIFtru, DIFtru/DIFest )  over the 1st and 5th eigenvectors\n\n", "'", "transpose", "'")
+									fmt.Printf("\n Tests performed:  \n     a is alpha, b is beta, l is a left eigenvector, \n     r is a right eigenvector and %s means %s.\n 1 = max | ( b A - a B )%s l | / const.\n 2 = max | ( b A - a B ) r | / const.\n 3 = max ( Sest/Stru, Stru/Sest )  over all eigenvalues\n 4 = max( DIFest/DIFtru, DIFtru/DIFest )  over the 1st and 5th eigenvectors\n\n", "'", "transpose", "'")
 
 								}
 								nerrs = nerrs + 1
@@ -333,7 +333,7 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 
 		//     Compute the norm(A, B)
 		golapack.Zlacpy('F', &n, &n, ai, lda, work.CMatrix(n, opts), &n)
-		golapack.Zlacpy('F', &n, &n, bi, lda, work.CMatrixOff(n*n+1-1, n, opts), &n)
+		golapack.Zlacpy('F', &n, &n, bi, lda, work.CMatrixOff(n*n, n, opts), &n)
 		abnorm = golapack.Zlange('F', &n, toPtr(2*n), work.CMatrix(n, opts), &n, rwork)
 
 		//     Tests (1) and (2)
@@ -363,8 +363,8 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 					result.Set(2, ulpinv)
 				}
 			} else {
-				rwork.Set(i-1, maxf64(math.Abs(dtru.Get(i-1)/s.Get(i-1)), math.Abs(s.Get(i-1)/dtru.Get(i-1))))
-				result.Set(2, maxf64(result.Get(2), rwork.Get(i-1)))
+				rwork.Set(i-1, math.Max(math.Abs(dtru.Get(i-1)/s.Get(i-1)), math.Abs(s.Get(i-1)/dtru.Get(i-1))))
+				result.Set(2, math.Max(result.Get(2), rwork.Get(i-1)))
 			}
 		}
 
@@ -387,9 +387,9 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 				result.Set(3, ulpinv)
 			}
 		} else {
-			ratio1 = maxf64(math.Abs(diftru.Get(0)/dif.Get(0)), math.Abs(dif.Get(0)/diftru.Get(0)))
-			ratio2 = maxf64(math.Abs(diftru.Get(4)/dif.Get(4)), math.Abs(dif.Get(4)/diftru.Get(4)))
-			result.Set(3, maxf64(ratio1, ratio2))
+			ratio1 = math.Max(math.Abs(diftru.Get(0)/dif.Get(0)), math.Abs(dif.Get(0)/diftru.Get(0)))
+			ratio2 = math.Max(math.Abs(diftru.Get(4)/dif.Get(4)), math.Abs(dif.Get(4)/diftru.Get(4)))
+			result.Set(3, math.Max(ratio1, ratio2))
 		}
 
 		ntestt = ntestt + 4
@@ -409,7 +409,7 @@ func Zdrgvx(nsize *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b,
 					fmt.Printf("Input Example\n")
 
 					//              Tests performed
-					fmt.Printf("\n Tests performed:  \n     a is alpha, b is beta, l is a left eigenvector, \n     r is a right eigenvector and %s means %s.\n 1 = maxint | ( b A - a B )%s l | / const.\n 2 = maxint | ( b A - a B ) r | / const.\n 3 = maxint ( Sest/Stru, Stru/Sest )  over all eigenvalues\n 4 = maxint( DIFest/DIFtru, DIFtru/DIFest )  over the 1st and 5th eigenvectors\n\n", "'", "transpose", "'")
+					fmt.Printf("\n Tests performed:  \n     a is alpha, b is beta, l is a left eigenvector, \n     r is a right eigenvector and %s means %s.\n 1 = max | ( b A - a B )%s l | / const.\n 2 = max | ( b A - a B ) r | / const.\n 3 = max ( Sest/Stru, Stru/Sest )  over all eigenvalues\n 4 = max( DIFest/DIFtru, DIFtru/DIFest )  over the 1st and 5th eigenvectors\n\n", "'", "transpose", "'")
 
 				}
 				nerrs = nerrs + 1

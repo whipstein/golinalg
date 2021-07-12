@@ -56,9 +56,9 @@ func Dsygvd(itype *int, jobz, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 
@@ -95,8 +95,8 @@ func Dsygvd(itype *int, jobz, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat
 	//     Transform problem to standard eigenvalue problem and solve.
 	Dsygst(itype, uplo, n, a, lda, b, ldb, info)
 	Dsyevd(jobz, uplo, n, a, lda, w, work, lwork, iwork, liwork, info)
-	lopt = maxint(lopt, int(work.Get(0)))
-	liopt = maxint(liopt, (*iwork)[0])
+	lopt = max(lopt, int(work.Get(0)))
+	liopt = max(liopt, (*iwork)[0])
 
 	if wantz && (*info) == 0 {
 		//        Backtransform eigenvectors to the original problem.
@@ -109,7 +109,7 @@ func Dsygvd(itype *int, jobz, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat
 				trans = 'T'
 			}
 
-			err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, one, b, *ldb, a, *lda)
+			err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, one, b, a)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -120,7 +120,7 @@ func Dsygvd(itype *int, jobz, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat
 				trans = 'N'
 			}
 
-			err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, one, b, *ldb, a, *lda)
+			err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *n, one, b, a)
 		}
 	}
 

@@ -423,17 +423,18 @@ func (m *Matrix) AppendRow(x []float64) {
 func (m *Matrix) Get(r, c int) float64 {
 	rnew, cnew := r, c
 
-	// if m.validate {
-	// 	if r > m.rows || c > m.cols || r < 0 || c < 0 {
-	// 		// log.Fatalf("MatrixDense.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 		log.Panicf("MatrixDense.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 	}
-	// }
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("Matrix.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	return m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)]
 }
 func (m *Matrix) GetPtr(r, c int) *float64 {
 	rnew, cnew := r, c
+
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("Matrix.GetPtr: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	return &m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)]
 }
@@ -444,9 +445,17 @@ func (m *Matrix) GetIdxPtr(idx int) *float64 {
 	return &m.Data[idx]
 }
 func (m *Matrix) GetCmplx(r, c int) complex128 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("Matrix.GetCmplx: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return complex(m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)], 0)
 }
 func (m *Matrix) GetMag(r, c int) float64 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("Matrix.GetMag: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return math.Abs(m.Get(r, c))
 }
 func (m *Matrix) GetCmplxIdx(idx int) complex128 {
@@ -456,12 +465,9 @@ func (m *Matrix) GetMagIdx(idx int) float64 {
 	return math.Abs(m.Data[idx])
 }
 func (m *Matrix) Set(r, c int, x float64) {
-	// if m.validate {
-	// 	if r > m.rows || c > m.cols || r < 0 || c < 0 {
-	// 		// log.Fatalf("MatrixDense.Set: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 		log.Panicf("MatrixDense.Set: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 	}
-	// }
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("Matrix.Set: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = x
 }
@@ -534,12 +540,29 @@ func (m *Matrix) Off(r, c int) *Matrix {
 func (m *Matrix) OffIdx(idx int) *Matrix {
 	return &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: m.Opts, Data: m.Data[idx:]}
 }
-func (m *Matrix) Vector(r, c int) *Vector {
+func (m *Matrix) Vector(r, c int, n ...int) *Vector {
+	inc := 1
+	if n != nil {
+		inc = n[0]
+	} else if m.Opts.Major == Row {
+		inc = m.Cols
+	} else {
+		inc = m.Rows
+	}
 	idx := getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)
-	return &Vector{Size: len(m.Data[idx:]), Data: m.Data[idx:]}
+
+	return &Vector{Size: len(m.Data[idx:]), Inc: inc, Data: m.Data[idx:]}
 }
-func (m *Matrix) VectorIdx(idx int) *Vector {
-	return &Vector{Size: len(m.Data), Data: m.Data[idx:]}
+func (m *Matrix) VectorIdx(idx int, n ...int) *Vector {
+	inc := 1
+	if n != nil {
+		inc = n[0]
+	} else if m.Opts.Major == Row {
+		inc = m.Cols
+	} else {
+		inc = m.Rows
+	}
+	return &Vector{Size: len(m.Data), Inc: inc, Data: m.Data[idx:]}
 }
 func (m *Matrix) UpdateSize(r, c int) *Matrix {
 	m.Rows, m.Cols = r, c
@@ -659,52 +682,90 @@ func (m *CMatrix) AppendRow(x []complex128) {
 func (m *CMatrix) Get(r, c int) complex128 {
 	rnew, cnew := r, c
 
-	// if m.validate {
-	// 	if r > m.rows || c > m.cols || r < 0 || c < 0 {
-	// 		// log.Fatalf("MatrixDense.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 		log.Panicf("MatrixDense.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 	}
-	// }
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		// 		// log.Fatalf("MatrixDense.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
+		log.Panicf("MatrixDense.Get: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	return m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)]
 }
 func (m *CMatrix) GetConj(r, c int) complex128 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetConj: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return cmplx.Conj(m.Get(r, c))
 }
 func (m *CMatrix) GetMag(r, c int) float64 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetMag: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return cmplx.Abs(m.Get(r, c))
 }
 func (m *CMatrix) GetArg(r, c int) float64 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetArg: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return cmplx.Phase(m.Get(r, c))
 }
 func (m *CMatrix) GetDeg(r, c int) float64 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetDeg: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return cmplx.Phase(m.Get(r, c)) * 180 / math.Pi
 }
 func (m *CMatrix) GetRe(r, c int) float64 {
 	rnew, cnew := r, c
+
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetRe: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	return real(m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)])
 }
 func (m *CMatrix) GetIm(r, c int) float64 {
 	rnew, cnew := r, c
 
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetIm: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return imag(m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)])
 }
 func (m *CMatrix) GetReCmplx(r, c int) complex128 {
 	rnew, cnew := r, c
+
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetReCmplx: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	return complex(real(m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)]), 0)
 }
 func (m *CMatrix) GetImCmplx(r, c int) complex128 {
 	rnew, cnew := r, c
 
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetImCmplx: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return complex(0, imag(m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)]))
 }
 func (m *CMatrix) GetConjProd(r, c int) float64 {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetConjProd: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	return real(cmplx.Conj(m.Get(r, c)) * m.Get(r, c))
 }
 func (m *CMatrix) GetPtr(r, c int) *complex128 {
 	rnew, cnew := r, c
+
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.GetPtr: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	return &m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, rnew, cnew)]
 }
@@ -736,12 +797,9 @@ func (m *CMatrix) GetIdxPtr(idx int) *complex128 {
 	return &m.Data[idx]
 }
 func (m *CMatrix) Set(r, c int, x complex128) {
-	// if m.validate {
-	// 	if r > m.rows || c > m.cols || r < 0 || c < 0 {
-	// 		// log.Fatalf("MatrixDense.Set: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 		log.Panicf("MatrixDense.Set: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.rows, m.cols)
-	// 	}
-	// }
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.Set: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
 
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = x
 }
@@ -761,9 +819,17 @@ func (m *CMatrix) SetRow(r int, x complex128) {
 	}
 }
 func (m *CMatrix) SetRe(r, c int, x float64) {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.SetRe: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = complex(x, 0)
 }
 func (m *CMatrix) SetIm(r, c int, x float64) {
+	if r > m.Rows || c > m.Cols || r < 0 || c < 0 {
+		log.Panicf("CMatrix.SetIm: Invalid row/column: got (%d,%d) have (%d,%d)\n", r, c, m.Rows, m.Cols)
+	}
+
 	m.Data[getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)] = complex(0, x)
 }
 func (m *CMatrix) SetReAll(x float64) {
@@ -848,12 +914,29 @@ func (m *CMatrix) Off(r, c int) *CMatrix {
 func (m *CMatrix) OffIdx(idx int) *CMatrix {
 	return &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: m.Opts, Data: m.Data[idx:]}
 }
-func (m *CMatrix) CVector(r, c int) *CVector {
+func (m *CMatrix) CVector(r, c int, n ...int) *CVector {
+	inc := 1
+	if n != nil {
+		inc = n[0]
+	} else if m.Opts.Major == Row {
+		inc = m.Cols
+	} else {
+		inc = m.Rows
+	}
 	idx := getIdx(m.Opts.Major, m.Rows, m.Cols, r, c)
-	return &CVector{Size: len(m.Data[idx:]), Data: m.Data[idx:]}
+
+	return &CVector{Size: len(m.Data[idx:]), Inc: inc, Data: m.Data[idx:]}
 }
-func (m *CMatrix) CVectorIdx(idx int) *CVector {
-	return &CVector{Size: len(m.Data), Data: m.Data[idx:]}
+func (m *CMatrix) CVectorIdx(idx int, n ...int) *CVector {
+	inc := 1
+	if n != nil {
+		inc = n[0]
+	} else if m.Opts.Major == Row {
+		inc = m.Cols
+	} else {
+		inc = m.Rows
+	}
+	return &CVector{Size: len(m.Data), Inc: inc, Data: m.Data[idx:]}
 }
 func (m *CMatrix) UpdateSize(r, c int) *CMatrix {
 	m.Rows, m.Cols = r, c

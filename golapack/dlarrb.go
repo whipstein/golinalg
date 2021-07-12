@@ -56,7 +56,7 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 		right = w.Get(ii-1) + werr.Get(ii-1)
 		lgap = rgap
 		rgap = wgap.Get(ii - 1)
-		gap = minf64(lgap, rgap)
+		gap = math.Min(lgap, rgap)
 		//        Make sure that [LEFT,RIGHT] contains the desired eigenvalue
 		//        Compute negcount from dstqds facto L+D+L+^T = L D L^T - LEFT
 		//
@@ -84,8 +84,8 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 			goto label50
 		}
 		width = half * math.Abs(left-right)
-		tmp = maxf64(math.Abs(left), math.Abs(right))
-		cvrgd = maxf64((*rtol1)*gap, (*rtol2)*tmp)
+		tmp = math.Max(math.Abs(left), math.Abs(right))
+		cvrgd = math.Max((*rtol1)*gap, (*rtol2)*tmp)
 		if width <= cvrgd || width <= mnwdth {
 			//           This interval has already converged and does not need refinement.
 			//           (Note that the gaps might change through refining the
@@ -126,15 +126,15 @@ label80:
 		if ii > 1 {
 			lgap = wgap.Get(ii - 1 - 1)
 		}
-		gap = minf64(lgap, rgap)
+		gap = math.Min(lgap, rgap)
 		next = (*iwork)[k-1-1]
 		left = work.Get(k - 1 - 1)
 		right = work.Get(k - 1)
 		mid = half * (left + right)
 		//        semiwidth of interval
 		width = right - mid
-		tmp = maxf64(math.Abs(left), math.Abs(right))
-		cvrgd = maxf64((*rtol1)*gap, (*rtol2)*tmp)
+		tmp = math.Max(math.Abs(left), math.Abs(right))
+		cvrgd = math.Max((*rtol1)*gap, (*rtol2)*tmp)
 		if (width <= cvrgd) || (width <= mnwdth) || (iter == maxitr) {
 			//           reduce number of unconverged intervals
 			nint = nint - 1
@@ -185,6 +185,6 @@ label80:
 	for i = (*ifirst) + 1; i <= (*ilast); i++ {
 		k = 2 * i
 		ii = i - (*offset)
-		wgap.Set(ii-1-1, maxf64(zero, w.Get(ii-1)-werr.Get(ii-1)-w.Get(ii-1-1)-werr.Get(ii-1-1)))
+		wgap.Set(ii-1-1, math.Max(zero, w.Get(ii-1)-werr.Get(ii-1)-w.Get(ii-1-1)-werr.Get(ii-1-1)))
 	}
 }

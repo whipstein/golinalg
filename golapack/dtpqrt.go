@@ -18,13 +18,13 @@ func Dtpqrt(m, n, l, nb *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*l) < 0 || ((*l) > minint(*m, *n) && minint(*m, *n) >= 0) {
+	} else if (*l) < 0 || ((*l) > min(*m, *n) && min(*m, *n) >= 0) {
 		(*info) = -3
 	} else if (*nb) < 1 || ((*nb) > (*n) && (*n) > 0) {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -8
 	} else if (*ldt) < (*nb) {
 		(*info) = -10
@@ -41,8 +41,8 @@ func Dtpqrt(m, n, l, nb *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, 
 
 	for i = 1; i <= (*n); i += (*nb) {
 		//     Compute the QR factorization of the current block
-		ib = minint((*n)-i+1, *nb)
-		mb = minint((*m)-(*l)+i+ib-1, *m)
+		ib = min((*n)-i+1, *nb)
+		mb = min((*m)-(*l)+i+ib-1, *m)
 		if i >= (*l) {
 			lb = 0
 		} else {

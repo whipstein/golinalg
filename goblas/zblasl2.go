@@ -15,10 +15,10 @@ import (
 //
 // where alpha and beta are scalars, x and y are vectors and A is an
 // m by n band matrix, with kl sub-diagonals and ku super-diagonals.
-func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatrix, lda int, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
+func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var noconj bool
 	var one, temp, zero complex128
-	var i, info, ix, iy, j, jx, jy, k, kup1, kx, ky, lenx, leny int
+	var i, info, iy, j, k, kup1, lenx, leny int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -35,12 +35,8 @@ func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatri
 		err = fmt.Errorf("kl invalid: %v", kl)
 	} else if ku < 0 {
 		err = fmt.Errorf("ku invalid: %v", ku)
-	} else if lda < (kl + ku + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < (kl + ku + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, (kl + ku + 1))
 	}
 	if info != 0 {
 		Xerbla([]byte("Zgbmv"), info)
@@ -63,30 +59,22 @@ func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatri
 		lenx = m
 		leny = n
 	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (lenx-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (leny-1)*incy
-	}
+
+	xiter := x.Iter(lenx)
+	yiter := y.Iter(leny)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the band part of A.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, iy = range yiter {
+				y.Set(iy, zero)
 			}
 		} else {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, iy = range yiter {
+				y.Set(iy, beta*y.Get(iy))
 			}
 		}
 	}
@@ -96,35 +84,28 @@ func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatri
 	kup1 = ku + 1
 	if trans == NoTrans {
 		//        Form  y := alpha*A*x + y.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			temp = alpha * x.Get(jx-1)
-			k = kup1 - j
-			for i, iy = max(1, j-ku), ky; i <= min(m, j+kl); i, iy = i+1, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp*a.Get(k+i-1, j-1))
-			}
-			if j > ku {
-				ky += incy
+		for j = 0; j < n; j++ {
+			temp = alpha * x.Get(xiter[j])
+			k = kup1 - j - 1
+			for i = max(0, j-ku); i < min(m, j+kl+1); i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp*a.Get(k+i, j))
 			}
 		}
 	} else {
 		//        Form  y := alpha*A**T*x + y  or  y := alpha*A**H*x + y.
-		for j, jy = 1, ky; j <= n; j, jy = j+1, jy+incy {
+		for j = 0; j < n; j++ {
 			temp = zero
-			ix = kx
-			k = kup1 - j
+			k = kup1 - j - 1
 			if noconj {
-				for i = max(1, j-ku); i <= min(m, j+kl); i, ix = i+1, ix+incx {
-					temp += a.Get(k+i-1, j-1) * x.Get(ix-1)
+				for i = max(0, j-ku); i < min(m, j+kl+1); i++ {
+					temp += a.Get(k+i, j) * x.Get(xiter[i])
 				}
 			} else {
-				for i = max(1, j-ku); i <= min(m, j+kl); i, ix = i+1, ix+incx {
-					temp += a.GetConj(k+i-1, j-1) * x.Get(ix-1)
+				for i = max(0, j-ku); i < min(m, j+kl+1); i++ {
+					temp += a.GetConj(k+i, j) * x.Get(xiter[i])
 				}
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp)
-			if j > ku {
-				kx += incx
-			}
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp)
 		}
 	}
 
@@ -139,10 +120,10 @@ func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatri
 //
 // where alpha and beta are scalars, x and y are vectors and A is an
 // m by n matrix.
-func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, lda int, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
+func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var noconj bool
 	var one, temp, zero complex128
-	var i, ix, iy, j, jx, jy, kx, ky, lenx, leny int
+	var i, iy, j, lenx, leny int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -154,12 +135,8 @@ func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, lda i
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, m) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zgemv"), err)
@@ -182,30 +159,22 @@ func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, lda i
 		lenx = m
 		leny = n
 	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (lenx-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (leny-1)*incy
-	}
+
+	xiter := x.Iter(lenx)
+	yiter := y.Iter(leny)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, iy = range yiter {
+				y.Set(iy, zero)
 			}
 		} else {
-			for i = 1; i <= leny; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, iy = range yiter {
+				y.Set(iy, beta*y.Get(iy))
 			}
 		}
 	}
@@ -214,27 +183,26 @@ func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, lda i
 	}
 	if trans == NoTrans {
 		//        Form  y := alpha*A*x + y.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			temp = alpha * x.Get(jx-1)
-			for i, iy = 1, ky; i <= m; i, iy = i+1, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp*a.Get(i-1, j-1))
+		for j = 0; j < n; j++ {
+			temp = alpha * x.Get(xiter[j])
+			for i = 0; i < m; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp*a.Get(i, j))
 			}
 		}
 	} else {
 		//        Form  y := alpha*A**T*x + y  or  y := alpha*A**H*x + y.
-		for j, jy = 1, ky; j <= n; j, jy = j+1, jy+incy {
+		for j = 0; j < n; j++ {
 			temp = zero
-			ix = kx
 			if noconj {
-				for i = 1; i <= m; i, ix = i+1, ix+incx {
-					temp += a.Get(i-1, j-1) * x.Get(ix-1)
+				for i = 0; i < m; i++ {
+					temp += a.Get(i, j) * x.Get(xiter[i])
 				}
 			} else {
-				for i = 1; i <= m; i, ix = i+1, ix+incx {
-					temp += a.GetConj(i-1, j-1) * x.Get(ix-1)
+				for i = 0; i < m; i++ {
+					temp += a.GetConj(i, j) * x.Get(xiter[i])
 				}
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp)
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp)
 		}
 	}
 
@@ -247,9 +215,9 @@ func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, lda i
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n hermitian band matrix, with k super-diagonals.
-func Zhbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, lda int, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
+func Zhbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var one, temp1, temp2, zero complex128
-	var i, ix, iy, j, jx, jy, kplus1, kx, ky, l int
+	var i, iy, j, kplus1, l int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -261,12 +229,8 @@ func Zhbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, lda int
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < (k + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < (k + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, k+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Zhbmv"), err)
@@ -279,30 +243,21 @@ func Zhbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, lda int
 	}
 
 	//     Set up the start points in  X  and  Y.
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (n-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (n-1)*incy
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of the array A
 	//     are accessed sequentially with one pass through A.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, iy = range yiter {
+				y.Set(iy, zero)
 			}
 		} else {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, iy = range yiter {
+				y.Set(iy, beta*y.Get(iy))
 			}
 		}
 	}
@@ -311,33 +266,29 @@ func Zhbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, lda int
 	}
 	if uplo == Upper {
 		//        Form  y  when upper triangle of A is stored.
-		kplus1 = k + 1
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		kplus1 = k
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
 			l = kplus1 - j
-			for i, ix, iy = max(1, j-k), kx, ky; i <= j-1; i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
-				temp2 += a.GetConj(l+i-1, j-1) * x.Get(ix-1)
+			for i = max(0, j-k); i < j; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(l+i, j))
+				temp2 += a.GetConj(l+i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.GetReCmplx(kplus1-1, j-1)+alpha*temp2)
-			if j > k {
-				kx += incx
-				ky += incy
-			}
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.GetReCmplx(kplus1, j)+alpha*temp2)
 		}
 	} else {
 		//        Form  y  when lower triangle of A is stored.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.GetReCmplx(0, j-1))
-			l = 1 - j
-			for i, ix, iy = j+1, jx+incx, jy+incy; i <= min(n, j+k); i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
-				temp2 += a.GetConj(l+i-1, j-1) * x.Get(ix-1)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.GetReCmplx(0, j))
+			l = 1 - j - 1
+			for i = j + 1; i < min(n, j+k+1); i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(l+i, j))
+				temp2 += a.GetConj(l+i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp2)
 		}
 	}
 
@@ -350,9 +301,9 @@ func Zhbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, lda int
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n hermitian matrix.
-func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, lda int, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
+func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var one, temp1, temp2, zero complex128
-	var i, ix, iy, j, jx, jy, kx, ky int
+	var i, iy, j int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -362,12 +313,8 @@ func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, lda int, x
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zhemv"), err)
@@ -380,16 +327,8 @@ func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, lda int, x
 	}
 
 	//     Set up the start points in  X  and  Y.
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (n-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (n-1)*incy
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the triangular part
@@ -397,15 +336,13 @@ func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, lda int, x
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		// if incy == 1 {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, iy = range yiter {
+				y.Set(iy, zero)
 			}
 		} else {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, iy = range yiter {
+				y.Set(iy, beta*y.Get(iy))
 			}
 		}
 	}
@@ -414,26 +351,26 @@ func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, lda int, x
 	}
 	if uplo == Upper {
 		//        Form  y  when A is stored in upper triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			for i, ix, iy = 1, kx, ky; i <= j-1; i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(i-1, j-1))
-				temp2 += a.GetConj(i-1, j-1) * x.Get(ix-1)
+			for i = 0; i < j; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(i, j))
+				temp2 += a.GetConj(i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.GetReCmplx(j-1, j-1)+alpha*temp2)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.GetReCmplx(j, j)+alpha*temp2)
 		}
 	} else {
 		//        Form  y  when A is stored in lower triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			y.Set(jy-1, y.Get(jy-1)+temp1*a.GetReCmplx(j-1, j-1))
-			for i, ix, iy = j+1, jx+incx, jy+incy; i <= n; i, ix, iy = i+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(i-1, j-1))
-				temp2 += a.GetConj(i-1, j-1) * x.Get(ix-1)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*a.GetReCmplx(j, j))
+			for i = j + 1; i < n; i++ {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*a.Get(i, j))
+				temp2 += a.GetConj(i, j) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp2)
 		}
 	}
 
@@ -446,9 +383,9 @@ func Zhemv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, lda int, x
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n hermitian matrix, supplied in packed form.
-func Zhpmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
+func Zhpmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var one, temp1, temp2, zero complex128
-	var i, ix, iy, j, jx, jy, k, kk, kx, ky int
+	var i, iy, j, k, kk int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -458,10 +395,6 @@ func Zhpmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, incx i
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
 	}
 	if err != nil {
 		Xerbla2([]byte("Zhpmv"), err)
@@ -474,61 +407,51 @@ func Zhpmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, incx i
 	}
 
 	//     Set up the start points in  X  and  Y.
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (n-1)*incx
-	}
-	if incy > 0 {
-		ky = 1
-	} else {
-		ky = 1 - (n-1)*incy
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of the array AP
 	//     are accessed sequentially with one pass through AP.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		iy = ky
 		if beta == zero {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, zero)
+			for _, iy = range yiter {
+				y.Set(iy, zero)
 			}
 		} else {
-			for i = 1; i <= n; i, iy = i+1, iy+incy {
-				y.Set(iy-1, beta*y.Get(iy-1))
+			for _, iy = range yiter {
+				y.Set(iy, beta*y.Get(iy))
 			}
 		}
 	}
 	if alpha == zero {
 		return
 	}
-	kk = 1
 	if uplo == Upper {
 		//        Form  y  when AP contains the upper triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			for k, ix, iy = kk, kx, ky; k <= kk+j-2; k, ix, iy = k+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*ap.Get(k-1))
-				temp2 += ap.GetConj(k-1) * x.Get(ix-1)
+			for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*ap.Get(k))
+				temp2 += ap.GetConj(k) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+temp1*ap.GetReCmplx(kk+j-1-1)+alpha*temp2)
-			kk += j
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*ap.GetReCmplx(kk+j)+alpha*temp2)
+			kk += j + 1
 		}
 	} else {
 		//        Form  y  when AP contains the lower triangle.
-		for j, jx, jy = 1, kx, ky; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			temp1 = alpha * x.Get(jx-1)
+		for j = 0; j < n; j++ {
+			temp1 = alpha * x.Get(xiter[j])
 			temp2 = zero
-			y.Set(jy-1, y.Get(jy-1)+temp1*ap.GetReCmplx(kk-1))
-			for k, ix, iy = kk+1, jx+incx, jy+incy; k <= kk+n-j; k, ix, iy = k+1, ix+incx, iy+incy {
-				y.Set(iy-1, y.Get(iy-1)+temp1*ap.Get(k-1))
-				temp2 += ap.GetConj(k-1) * x.Get(ix-1)
+			y.Set(yiter[j], y.Get(yiter[j])+temp1*ap.GetReCmplx(kk))
+			for i, k = j+1, kk+1; k < kk+n-j; i, k = i+1, k+1 {
+				y.Set(yiter[i], y.Get(yiter[i])+temp1*ap.Get(k))
+				temp2 += ap.GetConj(k) * x.Get(xiter[i])
 			}
-			y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
-			kk += (n - j + 1)
+			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp2)
+			kk += (n - j)
 		}
 	}
 
@@ -541,10 +464,10 @@ func Zhpmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, incx i
 //
 // where x is an n element vector and  A is an n by n unit, or non-unit,
 // upper or lower triangular band matrix, with ( k + 1 ) diagonals.
-func Ztbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.CMatrix, lda int, x *mat.CVector, incx int) (err error) {
+func Ztbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.CMatrix, x *mat.CVector) (err error) {
 	var noconj, nounit bool
 	var temp, zero complex128
-	var i, ix, j, jx, kplus1, kx, l int
+	var i, j, kplus1, l int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -559,10 +482,8 @@ func Ztbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < (k + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < (k + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, k+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztbmv"), err)
@@ -579,14 +500,7 @@ func Ztbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX   too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
@@ -594,89 +508,76 @@ func Ztbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		//         Form  x := A*x.
 		if uplo == Upper {
 			kplus1 = k + 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					l = kplus1 - j
-					for i, ix = max(1, j-k), kx; i <= j-1; i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(l+i-1, j-1))
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					l = kplus1 - j - 1
+					for i = max(0, j-k); i < j; i++ {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(l+i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(kplus1-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(kplus1-1, j))
 					}
-				}
-				if j > k {
-					kx = kx + incx
 				}
 			}
 		} else {
-			kx = kx + (n-1)*incx
-			jx = kx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					l = 1 - j
-					for i, ix = min(n, j+k), kx; i >= j+1; i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(l+i-1, j-1))
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					l = 1 - j - 1
+					for i = min(n-1, j+k); i >= j+1; i-- {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(l+i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(0, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(0, j))
 					}
-				}
-				if (n - j) >= k {
-					kx -= incx
 				}
 			}
 		}
 	} else {
 		//        Form  x := A**T*x  or  x := A**H*x.
 		if uplo == Upper {
-			kplus1 = k + 1
-			kx = kx + (n-1)*incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				kx = kx - incx
-				ix = kx
+			kplus1 = k
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				l = kplus1 - j
 				if noconj {
 					if nounit {
-						temp *= a.Get(kplus1-1, j-1)
+						temp *= a.Get(kplus1, j)
 					}
-					for i = j - 1; i >= max(1, j-k); i, ix = i-1, ix-incx {
-						temp += a.Get(l+i-1, j-1) * x.Get(ix-1)
+					for i = j - 1; i >= max(0, j-k); i-- {
+						temp += a.Get(l+i, j) * x.Get(xiter[i])
 					}
 				} else {
 					if nounit {
-						temp *= a.GetConj(kplus1-1, j-1)
+						temp *= a.GetConj(kplus1, j)
 					}
-					for i = j - 1; i >= max(1, j-k); i, ix = i-1, ix-incx {
-						temp += a.GetConj(l+i-1, j-1) * x.Get(ix-1)
+					for i = j - 1; i >= max(0, j-k); i-- {
+						temp += a.GetConj(l+i, j) * x.Get(xiter[i])
 					}
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				kx = kx + incx
-				ix = kx
-				l = 1 - j
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
+				l = 1 - j - 1
 				if noconj {
 					if nounit {
-						temp *= a.Get(0, j-1)
+						temp *= a.Get(0, j)
 					}
-					for i = j + 1; i <= min(n, j+k); i, ix = i+1, ix+incx {
-						temp += a.Get(l+i-1, j-1) * x.Get(ix-1)
+					for i = j + 1; i < min(n, j+k+1); i++ {
+						temp += a.Get(l+i, j) * x.Get(xiter[i])
 					}
 				} else {
 					if nounit {
-						temp *= a.GetConj(0, j-1)
+						temp *= a.GetConj(0, j)
 					}
-					for i = j + 1; i <= min(n, j+k); i, ix = i+1, ix+incx {
-						temp += a.GetConj(l+i-1, j-1) * x.Get(ix-1)
+					for i = j + 1; i < min(n, j+k+1); i++ {
+						temp += a.GetConj(l+i, j) * x.Get(xiter[i])
 					}
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -694,10 +595,10 @@ func Ztbmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 //
 // No test for singularity or near-singularity is included in this
 // routine. Such tests must be performed before calling this routine.
-func Ztbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.CMatrix, lda int, x *mat.CVector, incx int) (err error) {
+func Ztbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *mat.CMatrix, x *mat.CVector) (err error) {
 	var noconj, nounit bool
 	var temp, zero complex128
-	var i, ix, j, jx, kplus1, kx, l int
+	var i, j, kplus1, l int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -712,10 +613,8 @@ func Ztbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 		err = fmt.Errorf("n invalid: %v", n)
 	} else if k < 0 {
 		err = fmt.Errorf("k invalid: %v", k)
-	} else if lda < (k + 1) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < (k + 1) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, k+1)
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztbsv"), err)
@@ -732,46 +631,36 @@ func Ztbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed by sequentially with one pass through A.
 	if trans == NoTrans {
 		//        Form  x := inv( A )*x.
 		if uplo == Upper {
-			kplus1 = k + 1
-			kx = kx + (n-1)*incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				kx -= incx
-				if x.Get(jx-1) != zero {
+			kplus1 = k
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
 					l = kplus1 - j
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(kplus1-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(kplus1, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j-1, kx; i >= max(1, j-k); i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(l+i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j - 1; i >= max(0, j-k); i-- {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(l+i, j))
 					}
 				}
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				kx += incx
-				if x.Get(jx-1) != zero {
-					l = 1 - j
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					l = 1 - j - 1
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(0, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(0, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j+1, kx; i <= min(n, j+k); i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(l+i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j + 1; i < min(n, j+k+1); i++ {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(l+i, j))
 					}
 				}
 			}
@@ -779,56 +668,47 @@ func Ztbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 	} else {
 		//        Form  x := inv( A**T )*x  or  x := inv( A**H )*x.
 		if uplo == Upper {
-			kplus1 = k + 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				ix = kx
+			kplus1 = k
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				l = kplus1 - j
 				if noconj {
-					for i = max(1, j-k); i <= j-1; i, ix = i+1, ix+incx {
-						temp -= a.Get(l+i-1, j-1) * x.Get(ix-1)
+					for i = max(0, j-k); i < j; i++ {
+						temp -= a.Get(l+i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.Get(kplus1-1, j-1)
+						temp /= a.Get(kplus1, j)
 					}
 				} else {
-					for i = max(1, j-k); i <= j-1; i, ix = i+1, ix+incx {
-						temp -= a.GetConj(l+i-1, j-1) * x.Get(ix-1)
+					for i = max(0, j-k); i < j; i++ {
+						temp -= a.GetConj(l+i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.GetConj(kplus1-1, j-1)
+						temp /= a.GetConj(kplus1, j)
 					}
 				}
-				x.Set(jx-1, temp)
-				if j > k {
-					kx += incx
-				}
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				ix = kx
-				l = 1 - j
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
+				l = -j
 				if noconj {
-					for i = min(n, j+k); i >= j+1; i, ix = i-1, ix-incx {
-						temp -= a.Get(l+i-1, j-1) * x.Get(ix-1)
+					for i = min(n-1, j+k); i >= j+1; i-- {
+						temp -= a.Get(l+i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.Get(0, j-1)
+						temp /= a.Get(0, j)
 					}
 				} else {
-					for i = min(n, j+k); i >= j+1; i, ix = i-1, ix-incx {
-						temp -= a.GetConj(l+i-1, j-1) * x.Get(ix-1)
+					for i = min(n-1, j+k); i >= j+1; i-- {
+						temp -= a.GetConj(l+i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.GetConj(0, j-1)
+						temp /= a.GetConj(0, j)
 					}
 				}
-				x.Set(jx-1, temp)
-				if (n - j) >= k {
-					kx -= incx
-				}
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -842,10 +722,10 @@ func Ztbsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, k int, a *
 //
 // where x is an n element vector and  A is an n by n unit, or non-unit,
 // upper or lower triangular matrix, supplied in packed form.
-func Ztpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.CVector, incx int) (err error) {
+func Ztpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.CVector) (err error) {
 	var noconj, nounit bool
 	var temp, zero complex128
-	var ix, j, jx, k, kk, kx int
+	var i, j, k, kk int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -858,8 +738,6 @@ func Ztpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztpmv"), err)
@@ -876,96 +754,84 @@ func Ztpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of AP are
 	//     accessed sequentially with one pass through AP.
 	if trans == NoTrans {
 		//        Form  x:= A*x.
 		if uplo == Upper {
-			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for k, ix = kk, kx; k <= kk+j-2; k, ix = k+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*ap.Get(k-1))
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*ap.Get(k))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*ap.Get(kk+j-1-1))
+						x.Set(xiter[j], x.Get(xiter[j])*ap.Get(kk+j))
 					}
 				}
-				kk += j
+				kk += j + 1
 			}
 		} else {
 			kk = (n * (n + 1)) / 2
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for k, ix = kk, kx; k >= kk-(n-(j+1)); k, ix = k-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*ap.Get(k-1))
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i, k = n-1, kk-1; k >= kk-n+j+1; i, k = i-1, k-1 {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*ap.Get(k))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*ap.Get(kk-n+j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*ap.Get(kk-n+j))
 					}
 				}
-				kk -= (n - j + 1)
+				kk -= (n - j)
 			}
 		}
 	} else {
 		//        Form  x := A**T*x  or  x := A**H*x.
 		if uplo == Upper {
-			kk = (n * (n + 1)) / 2
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				ix = jx - incx
+			kk = (n*(n+1))/2 - 1
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				if noconj {
 					if nounit {
-						temp *= ap.Get(kk - 1)
+						temp *= ap.Get(kk)
 					}
-					for k = kk - 1; k >= kk-j+1; k, ix = k-1, ix-incx {
-						temp += ap.Get(k-1) * x.Get(ix-1)
+					for i, k = j-1, kk-1; k >= kk-j; i, k = i-1, k-1 {
+						temp += ap.Get(k) * x.Get(xiter[i])
 					}
 				} else {
 					if nounit {
-						temp *= ap.GetConj(kk - 1)
+						temp *= ap.GetConj(kk)
 					}
-					for k = kk - 1; k >= kk-j+1; k, ix = k-1, ix-incx {
-						temp += ap.GetConj(k-1) * x.Get(ix-1)
+					for i, k = j-1, kk-1; k >= kk-j; i, k = i-1, k-1 {
+						temp += ap.GetConj(k) * x.Get(xiter[i])
 					}
 				}
-				x.Set(jx-1, temp)
-				kk -= j
+				x.Set(xiter[j], temp)
+				kk -= j + 1
 			}
 		} else {
-			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				ix = jx + incx
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				if noconj {
 					if nounit {
-						temp *= ap.Get(kk - 1)
+						temp *= ap.Get(kk)
 					}
-					for k = kk + 1; k <= kk+n-j; k, ix = k+1, ix+incx {
-						temp += ap.Get(k-1) * x.Get(ix-1)
+					for i, k = j+1, kk+1; k < kk+n-j; i, k = i+1, k+1 {
+						temp += ap.Get(k) * x.Get(xiter[i])
 					}
 				} else {
 					if nounit {
-						temp *= ap.GetConj(kk - 1)
+						temp *= ap.GetConj(kk)
 					}
-					for k = kk + 1; k <= kk+n-j; k, ix = k+1, ix+incx {
-						temp += ap.GetConj(k-1) * x.Get(ix-1)
+					for i, k = j+1, kk+1; k < kk+n-j; i, k = i+1, k+1 {
+						temp += ap.GetConj(k) * x.Get(xiter[i])
 					}
 				}
-				x.Set(jx-1, temp)
-				kk += (n - j + 1)
+				x.Set(xiter[j], temp)
+				kk += (n - j)
 			}
 		}
 	}
@@ -982,10 +848,10 @@ func Ztpmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 //
 // No test for singularity or near-singularity is included in this
 // routine. Such tests must be performed before calling this routine.
-func Ztpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.CVector, incx int) (err error) {
+func Ztpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x *mat.CVector) (err error) {
 	var noconj, nounit bool
 	var temp, zero complex128
-	var ix, j, jx, k, kk, kx int
+	var i, j, k, kk int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -998,8 +864,6 @@ func Ztpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztpsv"), err)
@@ -1016,97 +880,84 @@ func Ztpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of AP are
 	//     accessed sequentially with one pass through AP.
 	if trans == NoTrans {
 		//        Form  x := inv( A )*x.
 		if uplo == Upper {
-			kk = (n * (n + 1)) / 2
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
+			kk = (n*(n+1))/2 - 1
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/ap.Get(kk-1))
+						x.Set(xiter[j], x.Get(xiter[j])/ap.Get(kk))
 					}
-					temp = x.Get(jx - 1)
-					for k, ix = kk-1, jx-incx; k >= kk-j+1; k, ix = k-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*ap.Get(k-1))
+					temp = x.Get(xiter[j])
+					for i, k = j-1, kk-1; k >= kk-j; i, k = i-1, k-1 {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*ap.Get(k))
 					}
 				}
-				kk -= j
+				kk -= j + 1
 			}
 		} else {
-			kk = 1
-			jx = kx
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/ap.Get(kk-1))
+						x.Set(xiter[j], x.Get(xiter[j])/ap.Get(kk))
 					}
-					temp = x.Get(jx - 1)
-					for k, ix = kk+1, jx+incx; k <= kk+n-j; k, ix = k+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*ap.Get(k-1))
+					temp = x.Get(xiter[j])
+					for i, k = j+1, kk+1; k < kk+n-j; i, k = i+1, k+1 {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*ap.Get(k))
 					}
 				}
-				kk += (n - j + 1)
+				kk += (n - j)
 			}
 		}
 	} else {
 		//        Form  x := inv( A**T )*x  or  x := inv( A**H )*x.
 		if uplo == Upper {
-			kk = 1
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				ix = kx
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				if noconj {
-					for k = kk; k <= kk+j-2; k, ix = k+1, ix+incx {
-						temp -= ap.Get(k-1) * x.Get(ix-1)
+					for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+						temp -= ap.Get(k) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= ap.Get(kk + j - 1 - 1)
+						temp /= ap.Get(kk + j)
 					}
 				} else {
-					for k = kk; k <= kk+j-2; k, ix = k+1, ix+incx {
-						temp -= ap.GetConj(k-1) * x.Get(ix-1)
+					for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+						temp -= ap.GetConj(k) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= ap.GetConj(kk + j - 1 - 1)
+						temp /= ap.GetConj(kk + j)
 					}
 				}
-				x.Set(jx-1, temp)
-				kk += j
+				x.Set(xiter[j], temp)
+				kk += j + 1
 			}
 		} else {
 			kk = (n * (n + 1)) / 2
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				ix = kx
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				if noconj {
-					for k = kk; k >= kk-(n-(j+1)); k, ix = k-1, ix-incx {
-						temp -= ap.Get(k-1) * x.Get(ix-1)
+					for i, k = n-1, kk-1; k >= kk-n+j+1; i, k = i-1, k-1 {
+						temp -= ap.Get(k) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= ap.Get(kk - n + j - 1)
+						temp /= ap.Get(kk - n + j)
 					}
 				} else {
-					for k = kk; k >= kk-(n-(j+1)); k, ix = k-1, ix-incx {
-						temp -= ap.GetConj(k-1) * x.Get(ix-1)
+					for i, k = n-1, kk-1; k >= kk-n+j+1; i, k = i-1, k-1 {
+						temp -= ap.GetConj(k) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= ap.GetConj(kk - n + j - 1)
+						temp /= ap.GetConj(kk - n + j)
 					}
 				}
-				x.Set(jx-1, temp)
-				kk -= (n - j + 1)
+				x.Set(xiter[j], temp)
+				kk -= (n - j)
 			}
 		}
 	}
@@ -1120,10 +971,10 @@ func Ztpsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, ap, x 
 //
 // where x is an n element vector and  A is an n by n unit, or non-unit,
 // upper or lower triangular matrix.
-func Ztrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.CMatrix, lda int, x *mat.CVector, incx int) (err error) {
+func Ztrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.CMatrix, x *mat.CVector) (err error) {
 	var noconj, nounit bool
 	var temp, zero complex128
-	var i, ix, j, jx, kx int
+	var i, j int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1136,10 +987,8 @@ func Ztrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztrmv"), err)
@@ -1156,41 +1005,33 @@ func Ztrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
 	if trans == NoTrans {
 		//        Form  x := A*x.
 		if uplo == Upper {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for i, ix = 1, kx; i <= j-1; i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(i-1, j-1))
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i = 0; i < j; i++ {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(j, j))
 					}
 				}
 			}
 		} else {
-			kx += (n - 1) * incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
-					temp = x.Get(jx - 1)
-					for i, ix = n, kx; i >= j+1; i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)+temp*a.Get(i-1, j-1))
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
+					temp = x.Get(xiter[j])
+					for i = n - 1; i >= j+1; i-- {
+						x.Set(xiter[i], x.Get(xiter[i])+temp*a.Get(i, j))
 					}
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)*a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])*a.Get(j, j))
 					}
 				}
 			}
@@ -1198,46 +1039,44 @@ func Ztrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 	} else {
 		//        Form  x := A**T*x  or  x := A**H*x.
 		if uplo == Upper {
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				temp = x.Get(jx - 1)
-				ix = jx - incx
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				if noconj {
 					if nounit {
-						temp *= a.Get(j-1, j-1)
+						temp *= a.Get(j, j)
 					}
-					for i = j - 1; i >= 1; i, ix = i-1, ix-incx {
-						temp += a.Get(i-1, j-1) * x.Get(ix-1)
+					for i = j - 1; i >= 0; i-- {
+						temp += a.Get(i, j) * x.Get(xiter[i])
 					}
 				} else {
 					if nounit {
-						temp *= a.GetConj(j-1, j-1)
+						temp *= a.GetConj(j, j)
 					}
-					for i = j - 1; i >= 1; i, ix = i-1, ix-incx {
-						temp += a.GetConj(i-1, j-1) * x.Get(ix-1)
+					for i = j - 1; i >= 0; i-- {
+						temp += a.GetConj(i, j) * x.Get(xiter[i])
 					}
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				temp = x.Get(jx - 1)
-				ix = jx + incx
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				if noconj {
 					if nounit {
-						temp *= a.Get(j-1, j-1)
+						temp *= a.Get(j, j)
 					}
-					for i = j + 1; i <= n; i, ix = i+1, ix+incx {
-						temp += a.Get(i-1, j-1) * x.Get(ix-1)
+					for i = j + 1; i < n; i++ {
+						temp += a.Get(i, j) * x.Get(xiter[i])
 					}
 				} else {
 					if nounit {
-						temp *= a.GetConj(j-1, j-1)
+						temp *= a.GetConj(j, j)
 					}
-					for i = j + 1; i <= n; i, ix = i+1, ix+incx {
-						temp += a.GetConj(i-1, j-1) * x.Get(ix-1)
+					for i = j + 1; i < n; i++ {
+						temp += a.GetConj(i, j) * x.Get(xiter[i])
 					}
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -1254,10 +1093,10 @@ func Ztrmv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 //
 // No test for singularity or near-singularity is included in this
 // routine. Such tests must be performed before calling this routine.
-func Ztrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.CMatrix, lda int, x *mat.CVector, incx int) (err error) {
+func Ztrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat.CMatrix, x *mat.CVector) (err error) {
 	var noconj, nounit bool
 	var temp, zero complex128
-	var i, ix, j, jx, kx int
+	var i, j int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1270,10 +1109,8 @@ func Ztrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 		err = fmt.Errorf("diag invalid: %v", diag.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Ztrsv"), err)
@@ -1290,40 +1127,33 @@ func Ztrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 
 	//     Set up the start point in X if the increment is not unity. This
 	//     will be  ( N - 1 )*INCX  too small for descending loops.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
 	if trans == NoTrans {
 		//        Form  x := inv( A )*x.
 		if uplo == Upper {
-			for j, jx = n, kx+(n-1)*incx; j >= 1; j, jx = j-1, jx-incx {
-				if x.Get(jx-1) != zero {
+			for j = n - 1; j >= 0; j-- {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(j, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j-1, jx-incx; i >= 1; i, ix = i-1, ix-incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j - 1; i >= 0; i-- {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(i, j))
 					}
 				}
 			}
 		} else {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				if x.Get(jx-1) != zero {
+			for j = 0; j < n; j++ {
+				if x.Get(xiter[j]) != zero {
 					if nounit {
-						x.Set(jx-1, x.Get(jx-1)/a.Get(j-1, j-1))
+						x.Set(xiter[j], x.Get(xiter[j])/a.Get(j, j))
 					}
-					temp = x.Get(jx - 1)
-					for i, ix = j+1, jx+incx; i <= n; i, ix = i+1, ix+incx {
-						x.Set(ix-1, x.Get(ix-1)-temp*a.Get(i-1, j-1))
+					temp = x.Get(xiter[j])
+					for i = j + 1; i < n; i++ {
+						x.Set(xiter[i], x.Get(xiter[i])-temp*a.Get(i, j))
 					}
 				}
 			}
@@ -1331,47 +1161,44 @@ func Ztrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 	} else {
 		//        Form  x := inv( A**T )*x  or  x := inv( A**H )*x.
 		if uplo == Upper {
-			for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-				ix = kx
-				temp = x.Get(jx - 1)
+			for j = 0; j < n; j++ {
+				temp = x.Get(xiter[j])
 				if noconj {
-					for i = 1; i <= j-1; i, ix = i+1, ix+incx {
-						temp -= a.Get(i-1, j-1) * x.Get(ix-1)
+					for i = 0; i < j; i++ {
+						temp -= a.Get(i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.Get(j-1, j-1)
+						temp /= a.Get(j, j)
 					}
 				} else {
-					for i = 1; i <= j-1; i, ix = i+1, ix+incx {
-						temp -= a.GetConj(i-1, j-1) * x.Get(ix-1)
+					for i = 0; i < j; i++ {
+						temp -= a.GetConj(i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.GetConj(j-1, j-1)
+						temp /= a.GetConj(j, j)
 					}
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		} else {
-			kx = kx + (n-1)*incx
-			for j, jx = n, kx; j >= 1; j, jx = j-1, jx-incx {
-				ix = kx
-				temp = x.Get(jx - 1)
+			for j = n - 1; j >= 0; j-- {
+				temp = x.Get(xiter[j])
 				if noconj {
-					for i = n; i >= j+1; i, ix = i-1, ix-incx {
-						temp -= a.Get(i-1, j-1) * x.Get(ix-1)
+					for i = n - 1; i >= j+1; i-- {
+						temp -= a.Get(i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.Get(j-1, j-1)
+						temp /= a.Get(j, j)
 					}
 				} else {
-					for i = n; i >= j+1; i, ix = i-1, ix-incx {
-						temp -= a.GetConj(i-1, j-1) * x.Get(ix-1)
+					for i = n - 1; i >= j+1; i-- {
+						temp -= a.GetConj(i, j) * x.Get(xiter[i])
 					}
 					if nounit {
-						temp /= a.GetConj(j-1, j-1)
+						temp /= a.GetConj(j, j)
 					}
 				}
-				x.Set(jx-1, temp)
+				x.Set(xiter[j], temp)
 			}
 		}
 	}
@@ -1385,9 +1212,9 @@ func Ztrsv(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n int, a *mat
 //
 // where alpha is a scalar, x is an m element vector, y is an n element
 // vector and A is an m by n matrix.
-func Zgerc(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector, incy int, a *mat.CMatrix, lda int) (err error) {
+func Zgerc(m, n int, alpha complex128, x *mat.CVector, y *mat.CVector, a *mat.CMatrix) (err error) {
 	var temp, zero complex128
-	var i, ix, j, jy, kx int
+	var i, j int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1396,12 +1223,8 @@ func Zgerc(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector,
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
-	} else if lda < max(1, m) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zgerc"), err)
@@ -1415,21 +1238,14 @@ func Zgerc(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector,
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
-	if incy > 0 {
-		jy = 1
-	} else {
-		jy = 1 - (n-1)*incy
-	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (m-1)*incx
-	}
-	for j = 1; j <= n; j, jy = j+1, jy+incy {
-		if y.Get(jy-1) != zero {
-			temp = alpha * y.GetConj(jy-1)
-			for i, ix = 1, kx; i <= m; i, ix = i+1, ix+incx {
-				a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+	xiter := x.Iter(m)
+	yiter := y.Iter(n)
+
+	for j = 0; j < n; j++ {
+		if y.Get(yiter[j]) != zero {
+			temp = alpha * y.GetConj(yiter[j])
+			for i = 0; i < m; i++ {
+				a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 			}
 		}
 	}
@@ -1443,9 +1259,9 @@ func Zgerc(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector,
 //
 // where alpha is a scalar, x is an m element vector, y is an n element
 // vector and A is an m by n matrix.
-func Zgeru(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector, incy int, a *mat.CMatrix, lda int) (err error) {
+func Zgeru(m, n int, alpha complex128, x *mat.CVector, y *mat.CVector, a *mat.CMatrix) (err error) {
 	var temp, zero complex128
-	var i, ix, j, jy, kx int
+	var i, j int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1454,12 +1270,8 @@ func Zgeru(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector,
 		err = fmt.Errorf("m invalid: %v", m)
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
-	} else if lda < max(1, m) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, m))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zgeru"), err)
@@ -1473,21 +1285,14 @@ func Zgeru(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector,
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
-	if incy > 0 {
-		jy = 1
-	} else {
-		jy = 1 - (n-1)*incy
-	}
-	if incx > 0 {
-		kx = 1
-	} else {
-		kx = 1 - (m-1)*incx
-	}
-	for j = 1; j <= n; j, jy = j+1, jy+incy {
-		if y.Get(jy-1) != zero {
-			temp = alpha * y.Get(jy-1)
-			for i, ix = 1, kx; i <= m; i, ix = i+1, ix+incx {
-				a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+	xiter := x.Iter(m)
+	yiter := y.Iter(n)
+
+	for j = 0; j < n; j++ {
+		if y.Get(yiter[j]) != zero {
+			temp = alpha * y.Get(yiter[j])
+			for i = 0; i < m; i++ {
+				a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 			}
 		}
 	}
@@ -1501,9 +1306,9 @@ func Zgeru(m, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector,
 //
 // where alpha is a real scalar, x is an n element vector and A is an
 // n by n hermitian matrix.
-func Zher(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, a *mat.CMatrix, lda int) (err error) {
+func Zher(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, a *mat.CMatrix) (err error) {
 	var temp, zero complex128
-	var i, ix, j, jx, kx int
+	var i, j int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1512,10 +1317,8 @@ func Zher(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, a *m
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zher"), err)
@@ -1528,42 +1331,35 @@ func Zher(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, a *m
 	}
 
 	//     Set the start point in X if the increment is not unity.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the triangular part
 	//     of A.
 	if uplo == Upper {
 		//        Form  A  when A is stored in upper triangle.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = complex(alpha, 0) * x.GetConj(jx-1)
-				for i, ix = 1, kx; i <= j-1; i, ix = i+1, ix+incx {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = complex(alpha, 0) * x.GetConj(xiter[j])
+				for i = 0; i < j; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 				}
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1)+complex(real(x.Get(jx-1)*temp), 0))
+				a.Set(j, j, a.GetReCmplx(j, j)+complex(real(x.Get(xiter[j])*temp), 0))
 			} else {
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1))
+				a.Set(j, j, a.GetReCmplx(j, j))
 			}
 		}
 	} else {
 		//        Form  A  when A is stored in lower triangle.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = complex(alpha, 0) * x.GetConj(jx-1)
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1)+complex(real(temp*x.Get(jx-1)), 0))
-				for i, ix = j+1, jx+incx; i <= n; i, ix = i+1, ix+incx {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = complex(alpha, 0) * x.GetConj(xiter[j])
+				a.Set(j, j, a.GetReCmplx(j, j)+complex(real(temp*x.Get(xiter[j])), 0))
+				for i = j + 1; i < n; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp)
 				}
 			} else {
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1))
+				a.Set(j, j, a.GetReCmplx(j, j))
 			}
 		}
 	}
@@ -1577,9 +1373,9 @@ func Zher(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, a *m
 //
 // where alpha is a real scalar, x is an n element vector and A is an
 // n by n hermitian matrix, supplied in packed form.
-func Zhpr(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, ap *mat.CVector) (err error) {
+func Zhpr(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, ap *mat.CVector) (err error) {
 	var temp, zero complex128
-	var ix, j, jx, k, kk, kx int
+	var i, j, k, kk int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1588,8 +1384,6 @@ func Zhpr(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, ap *
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
 	}
 	if err != nil {
 		Xerbla2([]byte("Zhpr"), err)
@@ -1602,43 +1396,35 @@ func Zhpr(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, ap *
 	}
 
 	//     Set the start point in X if the increment is not unity.
-	if incx <= 0 {
-		kx = 1 - (n-1)*incx
-	} else if incx != 1 {
-		kx = 1
-	}
-	if incx == 1 {
-		kx++
-	}
+	xiter := x.Iter(n)
 
 	//     Start the operations. In this version the elements of the array AP
 	//     are accessed sequentially with one pass through AP.
-	kk = 1
 	if uplo == Upper {
 		//        Form  A  when upper triangle is stored in AP.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = complex(alpha, 0) * x.GetConj(jx-1)
-				for k, ix = kk, kx; k <= kk+j-2; k, ix = k+1, ix+incx {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp)
+		for j = 0; j < n; j++ {
+			if x.Get(xiter[j]) != zero {
+				temp = complex(alpha, 0) * x.GetConj(xiter[j])
+				for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp)
 				}
-				ap.Set(kk+j-1-1, ap.GetReCmplx(kk+j-1-1)+complex(real(x.Get(jx-1)*temp), 0))
+				ap.Set(kk+j, ap.GetReCmplx(kk+j)+complex(real(x.Get(xiter[j])*temp), 0))
 			} else {
-				ap.Set(kk+j-1-1, ap.GetReCmplx(kk+j-1-1))
+				ap.Set(kk+j, ap.GetReCmplx(kk+j))
 			}
-			kk += j
+			kk += j + 1
 		}
 	} else {
 		//        Form  A  when lower triangle is stored in AP.
-		for j, jx = 1, kx; j <= n; j, jx = j+1, jx+incx {
-			if x.Get(jx-1) != zero {
-				temp = complex(alpha, 0) * x.GetConj(jx-1)
-				ap.Set(kk-1, ap.GetReCmplx(kk-1)+complex(real(temp*x.Get(jx-1)), 0))
-				for k, ix = kk+1, jx+incx; k <= kk+n-j; k, ix = k+1, ix+incx {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp)
+		for j = 1; j <= n; j++ {
+			if x.Get(xiter[j-1]) != zero {
+				temp = complex(alpha, 0) * x.GetConj(xiter[j-1])
+				ap.Set(kk, ap.GetReCmplx(kk)+complex(real(temp*x.Get(xiter[j-1])), 0))
+				for i, k = j, kk+2; k <= kk+n-j+1; i, k = i+1, k+1 {
+					ap.Set(k-1, ap.Get(k-1)+x.Get(xiter[i])*temp)
 				}
 			} else {
-				ap.Set(kk-1, ap.GetReCmplx(kk-1))
+				ap.Set(kk, ap.GetReCmplx(kk))
 			}
 			kk += (n - j + 1)
 		}
@@ -1653,9 +1439,9 @@ func Zhpr(uplo mat.MatUplo, n int, alpha float64, x *mat.CVector, incx int, ap *
 //
 // where alpha is a scalar, x and y are n element vectors and A is an n
 // by n hermitian matrix.
-func Zher2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector, incy int, a *mat.CMatrix, lda int) (err error) {
+func Zher2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, y *mat.CVector, a *mat.CMatrix) (err error) {
 	var temp1, temp2, zero complex128
-	var i, ix, iy, j, jx, jy, kx, ky int
+	var i, j int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1664,12 +1450,8 @@ func Zher2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, 
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
-	} else if lda < max(1, n) {
-		err = fmt.Errorf("lda invalid: %v", lda)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows invalid: %v < %v", a.Rows, max(1, n))
 	}
 	if err != nil {
 		Xerbla2([]byte("Zher2"), err)
@@ -1683,56 +1465,38 @@ func Zher2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, 
 
 	//     Set up the start points in X and Y if the increments are not both
 	//     unity.
-	if (incx != 1) || (incy != 1) {
-		if incx > 0 {
-			kx = 1
-		} else {
-			kx = 1 - (n-1)*incx
-		}
-		if incy > 0 {
-			ky = 1
-		} else {
-			ky = 1 - (n-1)*incy
-		}
-		jx = kx
-		jy = ky
-	}
-	if incx == 1 && incy == 1 {
-		kx++
-		ky++
-		jx++
-		jy++
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through the triangular part
 	//     of A.
 	if uplo == Upper {
 		//        Form  A  when A is stored in the upper triangle.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.GetConj(jy-1)
-				temp2 = cmplx.Conj(alpha * x.Get(jx-1))
-				for i, ix, iy = 1, kx, ky; i <= j-1; i, ix, iy = i+1, ix+incx, iy+incy {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.GetConj(yiter[j])
+				temp2 = cmplx.Conj(alpha * x.Get(xiter[j]))
+				for i = 0; i < j; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1)+complex(real(x.Get(jx-1)*temp1+y.Get(jy-1)*temp2), 0))
+				a.Set(j, j, a.GetReCmplx(j, j)+complex(real(x.Get(xiter[j])*temp1+y.Get(yiter[j])*temp2), 0))
 			} else {
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1))
+				a.Set(j, j, a.GetReCmplx(j, j))
 			}
 		}
 	} else {
 		//        Form  A  when A is stored in the lower triangle.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.GetConj(jy-1)
-				temp2 = cmplx.Conj(alpha * x.Get(jx-1))
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1)+complex(real(x.Get(jx-1)*temp1+y.Get(jy-1)*temp2), 0))
-				for i, ix, iy = j+1, jx+incx, jy+incy; i <= n; i, ix, iy = i+1, ix+incx, iy+incy {
-					a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.GetConj(yiter[j])
+				temp2 = cmplx.Conj(alpha * x.Get(xiter[j]))
+				a.Set(j, j, a.GetReCmplx(j, j)+complex(real(x.Get(xiter[j])*temp1+y.Get(yiter[j])*temp2), 0))
+				for i = j + 1; i < n; i++ {
+					a.Set(i, j, a.Get(i, j)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
 			} else {
-				a.Set(j-1, j-1, a.GetReCmplx(j-1, j-1))
+				a.Set(j, j, a.GetReCmplx(j, j))
 			}
 		}
 	}
@@ -1746,9 +1510,9 @@ func Zher2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, 
 //
 // where alpha is a scalar, x and y are n element vectors and A is an
 // n by n hermitian matrix, supplied in packed form.
-func Zhpr2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, y *mat.CVector, incy int, ap *mat.CVector) (err error) {
+func Zhpr2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, y *mat.CVector, ap *mat.CVector) (err error) {
 	var temp1, temp2, zero complex128
-	var ix, iy, j, jx, jy, k, kk, kx, ky int
+	var i, j, k, kk int
 
 	zero = (0.0 + 0.0*1i)
 
@@ -1757,10 +1521,6 @@ func Zhpr2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, 
 		err = fmt.Errorf("uplo invalid: %v", uplo.String())
 	} else if n < 0 {
 		err = fmt.Errorf("n invalid: %v", n)
-	} else if incx == 0 {
-		err = fmt.Errorf("incx invalid: %v", incx)
-	} else if incy == 0 {
-		err = fmt.Errorf("incy invalid: %v", incy)
 	}
 	if err != nil {
 		Xerbla2([]byte("Zhpr2"), err)
@@ -1774,59 +1534,40 @@ func Zhpr2(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, 
 
 	//     Set up the start points in X and Y if the increments are not both
 	//     unity.
-	if (incx != 1) || (incy != 1) {
-		if incx > 0 {
-			kx = 1
-		} else {
-			kx = 1 - (n-1)*incx
-		}
-		if incy > 0 {
-			ky = 1
-		} else {
-			ky = 1 - (n-1)*incy
-		}
-		jx = kx
-		jy = ky
-	}
-	if incx == 1 && incy == 1 {
-		kx++
-		ky++
-		jx++
-		jy++
-	}
+	xiter := x.Iter(n)
+	yiter := y.Iter(n)
 
 	//     Start the operations. In this version the elements of the array AP
 	//     are accessed sequentially with one pass through AP.
-	kk = 1
 	if uplo == Upper {
 		//        Form  A  when upper triangle is stored in AP.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.GetConj(jy-1)
-				temp2 = cmplx.Conj(alpha * x.Get(jx-1))
-				for k, ix, iy = kk, kx, ky; k <= kk+j-2; k, ix, iy = k+1, ix+incx, iy+incy {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.GetConj(yiter[j])
+				temp2 = cmplx.Conj(alpha * x.Get(xiter[j]))
+				for i, k = 0, kk; k < kk+j; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
-				ap.Set(kk+j-1-1, ap.GetReCmplx(kk+j-1-1)+complex(real(x.Get(jx-1)*temp1+y.Get(jy-1)*temp2), 0))
+				ap.Set(kk+j, ap.GetReCmplx(kk+j)+complex(real(x.Get(xiter[j])*temp1+y.Get(yiter[j])*temp2), 0))
 			} else {
-				ap.Set(kk+j-1-1, ap.GetReCmplx(kk+j-1-1))
+				ap.Set(kk+j, ap.GetReCmplx(kk+j))
 			}
-			kk += j
+			kk += j + 1
 		}
 	} else {
 		//        Form  A  when lower triangle is stored in AP.
-		for j = 1; j <= n; j, jx, jy = j+1, jx+incx, jy+incy {
-			if (x.Get(jx-1) != zero) || (y.Get(jy-1) != zero) {
-				temp1 = alpha * y.GetConj(jy-1)
-				temp2 = cmplx.Conj(alpha * x.Get(jx-1))
-				ap.Set(kk-1, ap.GetReCmplx(kk-1)+complex(real(x.Get(jx-1)*temp1+y.Get(jy-1)*temp2), 0))
-				for k, ix, iy = kk+1, jx+incx, jy+incy; k <= kk+n-j; k, ix, iy = k+1, ix+incx, iy+incy {
-					ap.Set(k-1, ap.Get(k-1)+x.Get(ix-1)*temp1+y.Get(iy-1)*temp2)
+		for j = 0; j < n; j++ {
+			if (x.Get(xiter[j]) != zero) || (y.Get(yiter[j]) != zero) {
+				temp1 = alpha * y.GetConj(yiter[j])
+				temp2 = cmplx.Conj(alpha * x.Get(xiter[j]))
+				ap.Set(kk, ap.GetReCmplx(kk)+complex(real(x.Get(xiter[j])*temp1+y.Get(yiter[j])*temp2), 0))
+				for i, k = j+1, kk+1; k < kk+n-j; i, k = i+1, k+1 {
+					ap.Set(k, ap.Get(k)+x.Get(xiter[i])*temp1+y.Get(yiter[i])*temp2)
 				}
 			} else {
-				ap.Set(kk-1, ap.GetReCmplx(kk-1))
+				ap.Set(kk, ap.GetReCmplx(kk))
 			}
-			kk += n - j + 1
+			kk += n - j
 		}
 	}
 

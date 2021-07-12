@@ -87,7 +87,7 @@ label50:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label70:
 	;
-	goblas.Zcopy(*n, x, 1, v, 1)
+	goblas.Zcopy(*n, x.Off(0, 1), v.Off(0, 1))
 	estold = (*est)
 	(*est) = Dzsum1(n, v, func() *int { y := 1; return &y }())
 
@@ -137,7 +137,7 @@ label120:
 	;
 	temp = two * (Dzsum1(n, x, func() *int { y := 1; return &y }()) / float64(3*(*n)))
 	if temp > (*est) {
-		goblas.Zcopy(*n, x, 1, v, 1)
+		goblas.Zcopy(*n, x.Off(0, 1), v.Off(0, 1))
 		(*est) = temp
 	}
 

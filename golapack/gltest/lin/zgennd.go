@@ -10,7 +10,7 @@ func Zgennd(m, n *int, a *mat.CMatrix, lda *int) (zgenndReturn bool) {
 
 	zero = 0.0
 
-	k = minint(*m, *n)
+	k = min(*m, *n)
 	for i = 1; i <= k; i++ {
 		aii = a.Get(i-1, i-1)
 		if real(aii) < zero || imag(aii) != zero {

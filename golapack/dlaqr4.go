@@ -91,16 +91,16 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 		//        .    (In fact, there is enough subdiagonal space for
 		//        .    NWR.GE.3.) ====
 		nwr = Ilaenv(func() *int { y := 13; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
-		nwr = maxint(2, nwr)
-		nwr = minint((*ihi)-(*ilo)+1, ((*n)-1)/3, nwr)
+		nwr = max(2, nwr)
+		nwr = min((*ihi)-(*ilo)+1, ((*n)-1)/3, nwr)
 
 		//        ==== NSR = recommended number of simultaneous shifts.
 		//        .    At this point N .GT. NTINY = 11, so there is at
 		//        .    enough subdiagonal workspace for NSR to be even
 		//        .    and greater than or equal to two as required. ====
 		nsr = Ilaenv(func() *int { y := 15; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
-		nsr = minint(nsr, ((*n)+6)/9, (*ihi)-(*ilo))
-		nsr = maxint(2, nsr-(nsr%2))
+		nsr = min(nsr, ((*n)+6)/9, (*ihi)-(*ilo))
+		nsr = max(2, nsr-(nsr%2))
 
 		//        ==== Estimate optimal workspace ====
 		//
@@ -108,7 +108,7 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 		Dlaqr2(wantt, wantz, n, ilo, ihi, toPtr(nwr+1), h, ldh, iloz, ihiz, z, ldz, &ls, &ld, wr, wi, h, ldh, n, h, ldh, n, h, ldh, work, toPtr(-1))
 
 		//        ==== Optimal workspace = MAX(DLAQR5, DLAQR2) ====
-		lwkopt = maxint(3*nsr/2, int(work.Get(0)))
+		lwkopt = max(3*nsr/2, int(work.Get(0)))
 
 		//        ==== Quick return in case of workspace query. ====
 		if (*lwork) == -1 {
@@ -118,33 +118,33 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 
 		//        ==== DLAHQR/DLAQR0 crossover point ====
 		nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
-		nmin = maxint(ntiny, nmin)
+		nmin = max(ntiny, nmin)
 
 		//        ==== Nibble crossover point ====
 		nibble = Ilaenv(func() *int { y := 14; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
-		nibble = maxint(0, nibble)
+		nibble = max(0, nibble)
 
 		//        ==== Accumulate reflections during ttswp?  Use block
 		//        .    2-by-2 structure during matrix-matrix multiply? ====
 		kacc22 = Ilaenv(func() *int { y := 16; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
-		kacc22 = maxint(0, kacc22)
-		kacc22 = minint(2, kacc22)
+		kacc22 = max(0, kacc22)
+		kacc22 = min(2, kacc22)
 
 		//        ==== NWMAX = the largest possible deflation window for
 		//        .    which there is sufficient workspace. ====
-		nwmax = minint(((*n)-1)/3, (*lwork)/2)
+		nwmax = min(((*n)-1)/3, (*lwork)/2)
 		nw = nwmax
 
 		//        ==== NSMAX = the Largest number of simultaneous shifts
 		//        .    for which there is sufficient workspace. ====
-		nsmax = minint(((*n)+6)/9, 2*(*lwork)/3)
+		nsmax = min(((*n)+6)/9, 2*(*lwork)/3)
 		nsmax = nsmax - (nsmax % 2)
 
 		//        ==== NDFL: an iteration count restarted at deflation. ====
 		ndfl = 1
 
 		//        ==== ITMAX = iteration limit ====
-		itmax = maxint(30, 2*kexsh) * maxint(10, (*ihi)-(*ilo)+1)
+		itmax = max(30, 2*kexsh) * max(10, (*ihi)-(*ilo)+1)
 
 		//        ==== Last row and column in the active block ====
 		kbot = (*ihi)
@@ -183,11 +183,11 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 			//           .      rapidly increase the window to the maximum possible.
 			//           .      Then, gradually reduce the window size. ====
 			nh = kbot - ktop + 1
-			nwupbd = minint(nh, nwmax)
+			nwupbd = min(nh, nwmax)
 			if ndfl < kexnw {
-				nw = minint(nwupbd, nwr)
+				nw = min(nwupbd, nwr)
 			} else {
-				nw = minint(nwupbd, 2*nw)
+				nw = min(nwupbd, 2*nw)
 			}
 			if nw < nwmax {
 				if nw >= nh-1 {
@@ -239,11 +239,11 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 			//           .    will deflate without it.  Here, the QR sweep is
 			//           .    skipped if many eigenvalues have just been deflated
 			//           .    or if the remaining active block is small.
-			if (ld == 0) || ((100*ld <= nw*nibble) && (kbot-ktop+1 > minint(nmin, nwmax))) {
+			if (ld == 0) || ((100*ld <= nw*nibble) && (kbot-ktop+1 > min(nmin, nwmax))) {
 				//              ==== NS = nominal number of simultaneous shifts.
 				//              .    This may be lowered (slightly) if DLAQR2
 				//              .    did not provide that many shifts. ====
-				ns = minint(nsmax, nsr, maxint(2, kbot-ktop))
+				ns = min(nsmax, nsr, max(2, kbot-ktop))
 				ns = ns - (ns % 2)
 
 				//              ==== If there have been no deflations
@@ -254,7 +254,7 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 				//              .    of a trailing principal submatrix. ====
 				if (ndfl % kexsh) == 0 {
 					ks = kbot - ns + 1
-					for i = kbot; i >= maxint(ks+1, ktop+2); i -= 2 {
+					for i = kbot; i >= max(ks+1, ktop+2); i -= 2 {
 						ss = math.Abs(h.Get(i-1, i-1-1)) + math.Abs(h.Get(i-1-1, i-2-1))
 						aa = wilk1*ss + h.Get(i-1, i-1)
 						bb = ss
@@ -263,10 +263,10 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 						Dlanv2(&aa, &bb, &cc, &dd, wr.GetPtr(i-1-1), wi.GetPtr(i-1-1), wr.GetPtr(i-1), wi.GetPtr(i-1), &cs, &sn)
 					}
 					if ks == ktop {
-						wr.Set(ks+1-1, h.Get(ks+1-1, ks+1-1))
-						wi.Set(ks+1-1, zero)
-						wr.Set(ks-1, wr.Get(ks+1-1))
-						wi.Set(ks-1, wi.Get(ks+1-1))
+						wr.Set(ks, h.Get(ks, ks))
+						wi.Set(ks, zero)
+						wr.Set(ks-1, wr.Get(ks))
+						wi.Set(ks-1, wi.Get(ks))
 					}
 				} else {
 					//                 ==== Got NS/2 or fewer shifts? Use DLAHQR
@@ -305,16 +305,16 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 							}
 							sorted = true
 							for i = ks; i <= k-1; i++ {
-								if math.Abs(wr.Get(i-1))+math.Abs(wi.Get(i-1)) < math.Abs(wr.Get(i+1-1))+math.Abs(wi.Get(i+1-1)) {
+								if math.Abs(wr.Get(i-1))+math.Abs(wi.Get(i-1)) < math.Abs(wr.Get(i))+math.Abs(wi.Get(i)) {
 									sorted = false
 
 									swap = wr.Get(i - 1)
-									wr.Set(i-1, wr.Get(i+1-1))
-									wr.Set(i+1-1, swap)
+									wr.Set(i-1, wr.Get(i))
+									wr.Set(i, swap)
 
 									swap = wi.Get(i - 1)
-									wi.Set(i-1, wi.Get(i+1-1))
-									wi.Set(i+1-1, swap)
+									wi.Set(i-1, wi.Get(i))
+									wi.Set(i, swap)
 								}
 							}
 						}
@@ -358,7 +358,7 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 				//              .    shifts.  If there aren't NS shifts available,
 				//              .    then use them all, possibly dropping one to
 				//              .    make the number of shifts even. ====
-				ns = minint(ns, kbot-ks+1)
+				ns = min(ns, kbot-ks+1)
 				ns = ns - (ns % 2)
 				ks = kbot - ns + 1
 

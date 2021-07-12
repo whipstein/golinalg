@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -42,18 +44,18 @@ func Dget02(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix,
 	}
 
 	//     Compute  B - A*X  (or  B - A'*X ) and store in B.
-	err = goblas.Dgemm(mat.TransByte(trans), NoTrans, n1, *nrhs, n2, -one, a, *lda, x, *ldx, one, b, *ldb)
+	err = goblas.Dgemm(mat.TransByte(trans), NoTrans, n1, *nrhs, n2, -one, a, x, one, b)
 
 	//     Compute the maximum over the number of right hand sides of
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ) .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		bnorm = goblas.Dasum(n1, b.Vector(0, j-1), 1)
-		xnorm = goblas.Dasum(n2, x.Vector(0, j-1), 1)
+		bnorm = goblas.Dasum(n1, b.Vector(0, j-1, 1))
+		xnorm = goblas.Dasum(n2, x.Vector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

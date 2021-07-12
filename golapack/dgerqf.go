@@ -18,12 +18,12 @@ func Dgerqf(m, n *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork, in
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 
 	if (*info) == 0 {
-		k = minint(*m, *n)
+		k = min(*m, *n)
 		if k == 0 {
 			lwkopt = 1
 		} else {
@@ -32,7 +32,7 @@ func Dgerqf(m, n *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork, in
 		}
 		work.Set(0, float64(lwkopt))
 		//
-		if (*lwork) < maxint(1, *m) && !lquery {
+		if (*lwork) < max(1, *m) && !lquery {
 			(*info) = -7
 		}
 	}
@@ -54,7 +54,7 @@ func Dgerqf(m, n *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork, in
 	iws = (*m)
 	if nb > 1 && nb < k {
 		//        Determine when to cross over from blocked to unblocked code.
-		nx = maxint(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("DGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+		nx = max(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("DGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
 		if nx < k {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*m)
@@ -63,7 +63,7 @@ func Dgerqf(m, n *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork, in
 				//              Not enough workspace to use optimal NB:  reduce NB and
 				//              determine the minimum value of NB.
 				nb = (*lwork) / ldwork
-				nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
+				nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
 			}
 		}
 	}
@@ -72,10 +72,10 @@ func Dgerqf(m, n *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork, in
 		//        Use blocked code initially.
 		//        The last kk rows are handled by the block method.
 		ki = ((k - nx - 1) / nb) * nb
-		kk = minint(k, ki+nb)
+		kk = min(k, ki+nb)
 
 		for i = k - kk + ki + 1; i >= k-kk+1; i -= nb {
-			ib = minint(k-i+1, nb)
+			ib = min(k-i+1, nb)
 
 			//           Compute the RQ factorization of the current block
 			//           A(m-k+i:m-k+i+ib-1,1:n-k+i+ib-1)
@@ -86,7 +86,7 @@ func Dgerqf(m, n *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork, in
 				Dlarft('B', 'R', toPtr((*n)-k+i+ib-1), &ib, a.Off((*m)-k+i-1, 0), lda, tau.Off(i-1), work.Matrix(ldwork, opts), &ldwork)
 
 				//              Apply H to A(1:m-k+i-1,1:n-k+i+ib-1) from the right
-				Dlarfb('R', 'N', 'B', 'R', toPtr((*m)-k+i-1), toPtr((*n)-k+i+ib-1), &ib, a.Off((*m)-k+i-1, 0), lda, work.Matrix(ldwork, opts), &ldwork, a, lda, work.MatrixOff(ib+1-1, ldwork, opts), &ldwork)
+				Dlarfb('R', 'N', 'B', 'R', toPtr((*m)-k+i-1), toPtr((*n)-k+i+ib-1), &ib, a.Off((*m)-k+i-1, 0), lda, work.Matrix(ldwork, opts), &ldwork, a, lda, work.MatrixOff(ib, ldwork, opts), &ldwork)
 			}
 		}
 		mu = (*m) - k + i + nb - 1

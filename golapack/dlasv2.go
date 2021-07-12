@@ -114,9 +114,9 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 			if mm == zero {
 				//              Note that M is very tiny
 				if l == zero {
-					t = signf64(two, ft) * signf64(one, gt)
+					t = math.Copysign(two, ft) * math.Copysign(one, gt)
 				} else {
-					t = gt/signf64(d, ft) + m/t
+					t = gt/math.Copysign(d, ft) + m/t
 				}
 			} else {
 				t = (m/(s+t) + m/(r+l)) * (one + a)
@@ -142,14 +142,14 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 
 	//     Correct signs of SSMAX and SSMIN
 	if pmax == 1 {
-		tsign = signf64(one, *csr) * signf64(one, *csl) * signf64(one, *f)
+		tsign = math.Copysign(one, *csr) * math.Copysign(one, *csl) * math.Copysign(one, *f)
 	}
 	if pmax == 2 {
-		tsign = signf64(one, *snr) * signf64(one, *csl) * signf64(one, *g)
+		tsign = math.Copysign(one, *snr) * math.Copysign(one, *csl) * math.Copysign(one, *g)
 	}
 	if pmax == 3 {
-		tsign = signf64(one, *snr) * signf64(one, *snl) * signf64(one, *h)
+		tsign = math.Copysign(one, *snr) * math.Copysign(one, *snl) * math.Copysign(one, *h)
 	}
-	(*ssmax) = signf64(*ssmax, tsign)
-	(*ssmin) = signf64(*ssmin, tsign*signf64(one, *f)*signf64(one, *h))
+	(*ssmax) = math.Copysign(*ssmax, tsign)
+	(*ssmin) = math.Copysign(*ssmin, tsign*math.Copysign(one, *f)*math.Copysign(one, *h))
 }

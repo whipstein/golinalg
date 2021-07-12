@@ -26,7 +26,7 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < 1 && !lquery {
 		(*info) = -9
@@ -57,7 +57,7 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 	if nb > 1 && nb < (*n) {
 		//        Determine when to cross over from blocked to unblocked code
 		//        (last block is always handled by unblocked code).
-		nx = maxint(nb, Ilaenv(func() *int { y := 3; return &y }(), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+		nx = max(nb, Ilaenv(func() *int { y := 3; return &y }(), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 		if nx < (*n) {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*n)
@@ -66,7 +66,7 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 				//              Not enough workspace to use optimal NB:  determine the
 				//              minimum value of NB, and reduce NB or force use of
 				//              unblocked code by setting NX = N.
-				nb = maxint((*lwork)/ldwork, 1)
+				nb = max((*lwork)/ldwork, 1)
 				nbmin = Ilaenv(func() *int { y := 2; return &y }(), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
 				if nb < nbmin {
 					nx = (*n)
@@ -91,7 +91,7 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 
 			//           Update the unreduced submatrix A(1:i-1,1:i-1), using an
 			//           update of the form:  A := A - V*W**T - W*V**T
-			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, i-1, nb, -one, a.Off(0, i-1), *lda, work.Matrix(ldwork, opts), ldwork, one, a, *lda)
+			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, i-1, nb, -one, a.Off(0, i-1), work.Matrix(ldwork, opts), one, a)
 
 			//           Copy superdiagonal elements back into A, and diagonal
 			//           elements into D
@@ -113,12 +113,12 @@ func Dsytrd(uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, work *mat.Vec
 
 			//           Update the unreduced submatrix A(i+ib:n,i+ib:n), using
 			//           an update of the form:  A := A - V*W**T - W*V**T
-			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, (*n)-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), *lda, work.MatrixOff(nb+1-1, ldwork, opts), ldwork, one, a.Off(i+nb-1, i+nb-1), *lda)
+			err = goblas.Dsyr2k(mat.UploByte(uplo), NoTrans, (*n)-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.MatrixOff(nb, ldwork, opts), one, a.Off(i+nb-1, i+nb-1))
 
 			//           Copy subdiagonal elements back into A, and diagonal
 			//           elements into D
 			for j = i; j <= i+nb-1; j++ {
-				a.Set(j+1-1, j-1, e.Get(j-1))
+				a.Set(j, j-1, e.Get(j-1))
 				d.Set(j-1, a.Get(j-1, j-1))
 			}
 		}

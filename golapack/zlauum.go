@@ -34,7 +34,7 @@ func Zlauum(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -58,23 +58,23 @@ func Zlauum(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		if upper {
 			//           Compute the product U * U**H.
 			for i = 1; i <= (*n); i += nb {
-				ib = minint(nb, (*n)-i+1)
-				err = goblas.Ztrmm(Right, Upper, ConjTrans, NonUnit, i-1, ib, cone, a.Off(i-1, i-1), *lda, a.Off(0, i-1), *lda)
+				ib = min(nb, (*n)-i+1)
+				err = goblas.Ztrmm(Right, Upper, ConjTrans, NonUnit, i-1, ib, cone, a.Off(i-1, i-1), a.Off(0, i-1))
 				Zlauu2('U', &ib, a.Off(i-1, i-1), lda, info)
 				if i+ib <= (*n) {
-					err = goblas.Zgemm(NoTrans, ConjTrans, i-1, ib, (*n)-i-ib+1, cone, a.Off(0, i+ib-1), *lda, a.Off(i-1, i+ib-1), *lda, cone, a.Off(0, i-1), *lda)
-					err = goblas.Zherk(Upper, NoTrans, ib, (*n)-i-ib+1, one, a.Off(i-1, i+ib-1), *lda, one, a.Off(i-1, i-1), *lda)
+					err = goblas.Zgemm(NoTrans, ConjTrans, i-1, ib, (*n)-i-ib+1, cone, a.Off(0, i+ib-1), a.Off(i-1, i+ib-1), cone, a.Off(0, i-1))
+					err = goblas.Zherk(Upper, NoTrans, ib, (*n)-i-ib+1, one, a.Off(i-1, i+ib-1), one, a.Off(i-1, i-1))
 				}
 			}
 		} else {
 			//           Compute the product L**H * L.
 			for i = 1; i <= (*n); i += nb {
-				ib = minint(nb, (*n)-i+1)
-				err = goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, ib, i-1, cone, a.Off(i-1, i-1), *lda, a.Off(i-1, 0), *lda)
+				ib = min(nb, (*n)-i+1)
+				err = goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, ib, i-1, cone, a.Off(i-1, i-1), a.Off(i-1, 0))
 				Zlauu2('L', &ib, a.Off(i-1, i-1), lda, info)
 				if i+ib <= (*n) {
-					err = goblas.Zgemm(ConjTrans, NoTrans, ib, i-1, (*n)-i-ib+1, cone, a.Off(i+ib-1, i-1), *lda, a.Off(i+ib-1, 0), *lda, cone, a.Off(i-1, 0), *lda)
-					err = goblas.Zherk(Lower, ConjTrans, ib, (*n)-i-ib+1, one, a.Off(i+ib-1, i-1), *lda, one, a.Off(i-1, i-1), *lda)
+					err = goblas.Zgemm(ConjTrans, NoTrans, ib, i-1, (*n)-i-ib+1, cone, a.Off(i+ib-1, i-1), a.Off(i+ib-1, 0), cone, a.Off(i-1, 0))
+					err = goblas.Zherk(Lower, ConjTrans, ib, (*n)-i-ib+1, one, a.Off(i+ib-1, i-1), one, a.Off(i-1, i-1))
 				}
 			}
 		}

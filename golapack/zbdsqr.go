@@ -64,11 +64,11 @@ func Zbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.CMatrix
 		(*info) = -4
 	} else if (*ncc) < 0 {
 		(*info) = -5
-	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < maxint(1, *n)) {
+	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < max(1, *n)) {
 		(*info) = -9
-	} else if (*ldu) < maxint(1, *nru) {
+	} else if (*ldu) < max(1, *nru) {
 		(*info) = -11
-	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < maxint(1, *n)) {
+	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < max(1, *n)) {
 		(*info) = -13
 	}
 	if (*info) != 0 {
@@ -111,8 +111,8 @@ func Zbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.CMatrix
 		for i = 1; i <= (*n)-1; i++ {
 			Dlartg(d.GetPtr(i-1), e.GetPtr(i-1), &cs, &sn, &r)
 			d.Set(i-1, r)
-			e.Set(i-1, sn*d.Get(i+1-1))
-			d.Set(i+1-1, cs*d.Get(i+1-1))
+			e.Set(i-1, sn*d.Get(i))
+			d.Set(i, cs*d.Get(i))
 			rwork.Set(i-1, cs)
 			rwork.Set(nm1+i-1, sn)
 		}
@@ -129,16 +129,16 @@ func Zbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.CMatrix
 	//     Compute singular values to relative accuracy TOL
 	//     (By setting TOL to be negative, algorithm will compute
 	//     singular values to absolute accuracy ABS(TOL)*norm(input matrix))
-	tolmul = maxf64(ten, minf64(hndrd, math.Pow(eps, meigth)))
+	tolmul = math.Max(ten, math.Min(hndrd, math.Pow(eps, meigth)))
 	tol = tolmul * eps
 
 	//     Compute approximate maximum, minimum singular values
 	smax = zero
 	for i = 1; i <= (*n); i++ {
-		smax = maxf64(smax, math.Abs(d.Get(i-1)))
+		smax = math.Max(smax, math.Abs(d.Get(i-1)))
 	}
 	for i = 1; i <= (*n)-1; i++ {
-		smax = maxf64(smax, math.Abs(e.Get(i-1)))
+		smax = math.Max(smax, math.Abs(e.Get(i-1)))
 	}
 	sminl = zero
 	if tol >= zero {
@@ -150,7 +150,7 @@ func Zbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.CMatrix
 		mu = sminoa
 		for i = 2; i <= (*n); i++ {
 			mu = math.Abs(d.Get(i-1)) * (mu / (mu + math.Abs(e.Get(i-1-1))))
-			sminoa = minf64(sminoa, mu)
+			sminoa = math.Min(sminoa, mu)
 			if sminoa == zero {
 				goto label50
 			}
@@ -158,10 +158,10 @@ func Zbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.CMatrix
 	label50:
 		;
 		sminoa = sminoa / math.Sqrt(float64(*n))
-		thresh = maxf64(tol*sminoa, float64(maxitr*(*n)*(*n))*unfl)
+		thresh = math.Max(tol*sminoa, float64(maxitr*(*n)*(*n))*unfl)
 	} else {
 		//        Absolute accuracy desired
-		thresh = maxf64(math.Abs(tol)*smax, float64(maxitr*(*n)*(*n))*unfl)
+		thresh = math.Max(math.Abs(tol)*smax, float64(maxitr*(*n)*(*n))*unfl)
 	}
 
 	//     Prepare for main iteration loop for the singular values
@@ -203,8 +203,8 @@ label60:
 		if abse <= thresh {
 			goto label80
 		}
-		smin = minf64(smin, abss)
-		smax = maxf64(smax, abss, abse)
+		smin = math.Min(smin, abss)
+		smax = math.Max(smax, math.Max(abss, abse))
 	}
 	ll = 0
 	goto label90
@@ -232,13 +232,13 @@ label90:
 
 		//        Compute singular vectors, if desired
 		if (*ncvt) > 0 {
-			goblas.Zdrot(*ncvt, vt.CVector(m-1-1, 0), *ldvt, vt.CVector(m-1, 0), *ldvt, cosr, sinr)
+			goblas.Zdrot(*ncvt, vt.CVector(m-1-1, 0, *ldvt), vt.CVector(m-1, 0, *ldvt), cosr, sinr)
 		}
 		if (*nru) > 0 {
-			goblas.Zdrot(*nru, u.CVector(0, m-1-1), 1, u.CVector(0, m-1), 1, cosl, sinl)
+			goblas.Zdrot(*nru, u.CVector(0, m-1-1, 1), u.CVector(0, m-1, 1), cosl, sinl)
 		}
 		if (*ncc) > 0 {
-			goblas.Zdrot(*ncc, c.CVector(m-1-1, 0), *ldc, c.CVector(m-1, 0), *ldc, cosl, sinl)
+			goblas.Zdrot(*ncc, c.CVector(m-1-1, 0, *ldc), c.CVector(m-1, 0, *ldc), cosl, sinl)
 		}
 		m = m - 2
 		goto label60
@@ -275,8 +275,8 @@ label90:
 					e.Set(lll-1, zero)
 					goto label60
 				}
-				mu = math.Abs(d.Get(lll+1-1)) * (mu / (mu + math.Abs(e.Get(lll-1))))
-				sminl = minf64(sminl, mu)
+				mu = math.Abs(d.Get(lll)) * (mu / (mu + math.Abs(e.Get(lll-1))))
+				sminl = math.Min(sminl, mu)
 			}
 		}
 
@@ -299,7 +299,7 @@ label90:
 					goto label60
 				}
 				mu = math.Abs(d.Get(lll-1)) * (mu / (mu + math.Abs(e.Get(lll-1))))
-				sminl = minf64(sminl, mu)
+				sminl = math.Min(sminl, mu)
 			}
 		}
 	}
@@ -308,7 +308,7 @@ label90:
 
 	//     Compute shift.  First, test if shifting would ruin relative
 	//     accuracy, and if so set the shift to zero.
-	if tol >= zero && float64(*n)*tol*(sminl/smax) <= maxf64(eps, hndrth*tol) {
+	if tol >= zero && float64(*n)*tol*(sminl/smax) <= math.Max(eps, hndrth*tol) {
 		//        Use a zero shift to avoid loss of relative accuracy
 		shift = zero
 	} else {
@@ -318,7 +318,7 @@ label90:
 			Dlas2(d.GetPtr(m-1-1), e.GetPtr(m-1-1), d.GetPtr(m-1), &shift, &r)
 		} else {
 			sll = math.Abs(d.Get(m - 1))
-			Dlas2(d.GetPtr(ll-1), e.GetPtr(ll-1), d.GetPtr(ll+1-1), &shift, &r)
+			Dlas2(d.GetPtr(ll-1), e.GetPtr(ll-1), d.GetPtr(ll), &shift, &r)
 		}
 
 		//        Test if shift negligible, and if so set to zero
@@ -344,8 +344,8 @@ label90:
 				if i > ll {
 					e.Set(i-1-1, oldsn*r)
 				}
-				Dlartg(toPtrf64(oldcs*r), toPtrf64(d.Get(i+1-1)*sn), &oldcs, &oldsn, d.GetPtr(i-1))
-				rwork.Set(i-ll+1-1, cs)
+				Dlartg(toPtrf64(oldcs*r), toPtrf64(d.Get(i)*sn), &oldcs, &oldsn, d.GetPtr(i-1))
+				rwork.Set(i-ll, cs)
 				rwork.Set(i-ll+1+nm1-1, sn)
 				rwork.Set(i-ll+1+nm12-1, oldcs)
 				rwork.Set(i-ll+1+nm13-1, oldsn)
@@ -359,10 +359,10 @@ label90:
 				Zlasr('L', 'V', 'F', toPtr(m-ll+1), ncvt, rwork.Off(0), rwork.Off((*n)-1), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
-				Zlasr('R', 'V', 'F', nru, toPtr(m-ll+1), rwork.Off(nm12+1-1), rwork.Off(nm13+1-1), u.Off(0, ll-1), ldu)
+				Zlasr('R', 'V', 'F', nru, toPtr(m-ll+1), rwork.Off(nm12), rwork.Off(nm13), u.Off(0, ll-1), ldu)
 			}
 			if (*ncc) > 0 {
-				Zlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, rwork.Off(nm12+1-1), rwork.Off(nm13+1-1), c.Off(ll-1, 0), ldc)
+				Zlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, rwork.Off(nm12), rwork.Off(nm13), c.Off(ll-1, 0), ldc)
 			}
 
 			//           Test convergence
@@ -392,7 +392,7 @@ label90:
 
 			//           Update singular vectors
 			if (*ncvt) > 0 {
-				Zlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, rwork.Off(nm12+1-1), rwork.Off(nm13+1-1), vt.Off(ll-1, 0), ldvt)
+				Zlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, rwork.Off(nm12), rwork.Off(nm13), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
 				Zlasr('R', 'V', 'B', nru, toPtr(m-ll+1), rwork.Off(0), rwork.Off((*n)-1), u.Off(0, ll-1), ldu)
@@ -420,17 +420,17 @@ label90:
 				}
 				f = cosr*d.Get(i-1) + sinr*e.Get(i-1)
 				e.Set(i-1, cosr*e.Get(i-1)-sinr*d.Get(i-1))
-				g = sinr * d.Get(i+1-1)
-				d.Set(i+1-1, cosr*d.Get(i+1-1))
+				g = sinr * d.Get(i)
+				d.Set(i, cosr*d.Get(i))
 				Dlartg(&f, &g, &cosl, &sinl, &r)
 				d.Set(i-1, r)
-				f = cosl*e.Get(i-1) + sinl*d.Get(i+1-1)
-				d.Set(i+1-1, cosl*d.Get(i+1-1)-sinl*e.Get(i-1))
+				f = cosl*e.Get(i-1) + sinl*d.Get(i)
+				d.Set(i, cosl*d.Get(i)-sinl*e.Get(i-1))
 				if i < m-1 {
-					g = sinl * e.Get(i+1-1)
-					e.Set(i+1-1, cosl*e.Get(i+1-1))
+					g = sinl * e.Get(i)
+					e.Set(i, cosl*e.Get(i))
 				}
-				rwork.Set(i-ll+1-1, cosr)
+				rwork.Set(i-ll, cosr)
 				rwork.Set(i-ll+1+nm1-1, sinr)
 				rwork.Set(i-ll+1+nm12-1, cosl)
 				rwork.Set(i-ll+1+nm13-1, sinl)
@@ -442,10 +442,10 @@ label90:
 				Zlasr('L', 'V', 'F', toPtr(m-ll+1), ncvt, rwork.Off(0), rwork.Off((*n)-1), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
-				Zlasr('R', 'V', 'F', nru, toPtr(m-ll+1), rwork.Off(nm12+1-1), rwork.Off(nm13+1-1), u.Off(0, ll-1), ldu)
+				Zlasr('R', 'V', 'F', nru, toPtr(m-ll+1), rwork.Off(nm12), rwork.Off(nm13), u.Off(0, ll-1), ldu)
 			}
 			if (*ncc) > 0 {
-				Zlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, rwork.Off(nm12+1-1), rwork.Off(nm13+1-1), c.Off(ll-1, 0), ldc)
+				Zlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, rwork.Off(nm12), rwork.Off(nm13), c.Off(ll-1, 0), ldc)
 			}
 
 			//           Test convergence
@@ -489,7 +489,7 @@ label90:
 
 			//           Update singular vectors if desired
 			if (*ncvt) > 0 {
-				Zlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, rwork.Off(nm12+1-1), rwork.Off(nm13+1-1), vt.Off(ll-1, 0), ldvt)
+				Zlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, rwork.Off(nm12), rwork.Off(nm13), vt.Off(ll-1, 0), ldvt)
 			}
 			if (*nru) > 0 {
 				Zlasr('R', 'V', 'B', nru, toPtr(m-ll+1), rwork.Off(0), rwork.Off((*n)-1), u.Off(0, ll-1), ldu)
@@ -512,7 +512,7 @@ label160:
 
 			//           Change sign of singular vectors, if desired
 			if (*ncvt) > 0 {
-				goblas.Zdscal(*ncvt, negone, vt.CVector(i-1, 0), *ldvt)
+				goblas.Zdscal(*ncvt, negone, vt.CVector(i-1, 0, *ldvt))
 			}
 		}
 	}
@@ -534,13 +534,13 @@ label160:
 			d.Set(isub-1, d.Get((*n)+1-i-1))
 			d.Set((*n)+1-i-1, smin)
 			if (*ncvt) > 0 {
-				goblas.Zswap(*ncvt, vt.CVector(isub-1, 0), *ldvt, vt.CVector((*n)+1-i-1, 0), *ldvt)
+				goblas.Zswap(*ncvt, vt.CVector(isub-1, 0, *ldvt), vt.CVector((*n)+1-i-1, 0, *ldvt))
 			}
 			if (*nru) > 0 {
-				goblas.Zswap(*nru, u.CVector(0, isub-1), 1, u.CVector(0, (*n)+1-i-1), 1)
+				goblas.Zswap(*nru, u.CVector(0, isub-1, 1), u.CVector(0, (*n)+1-i-1, 1))
 			}
 			if (*ncc) > 0 {
-				goblas.Zswap(*ncc, c.CVector(isub-1, 0), *ldc, c.CVector((*n)+1-i-1, 0), *ldc)
+				goblas.Zswap(*ncc, c.CVector(isub-1, 0, *ldc), c.CVector((*n)+1-i-1, 0, *ldc))
 			}
 		}
 	}

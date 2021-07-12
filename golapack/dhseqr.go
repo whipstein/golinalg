@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -31,7 +33,7 @@ func Dhseqr(job, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *
 	wantt = job == 'S'
 	initz = compz == 'I'
 	wantz = initz || compz == 'V'
-	work.Set(0, float64(maxint(1, *n)))
+	work.Set(0, float64(max(1, *n)))
 	lquery = (*lwork) == -1
 
 	(*info) = 0
@@ -41,15 +43,15 @@ func Dhseqr(job, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*ilo) < 1 || (*ilo) > maxint(1, *n) {
+	} else if (*ilo) < 1 || (*ilo) > max(1, *n) {
 		(*info) = -4
-	} else if (*ihi) < minint(*ilo, *n) || (*ihi) > (*n) {
+	} else if (*ihi) < min(*ilo, *n) || (*ihi) > (*n) {
 		(*info) = -5
-	} else if (*ldh) < maxint(1, *n) {
+	} else if (*ldh) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldz) < 1 || (wantz && (*ldz) < maxint(1, *n)) {
+	} else if (*ldz) < 1 || (wantz && (*ldz) < max(1, *n)) {
 		(*info) = -11
-	} else if (*lwork) < maxint(1, *n) && !lquery {
+	} else if (*lwork) < max(1, *n) && !lquery {
 		(*info) = -13
 	}
 
@@ -67,7 +69,7 @@ func Dhseqr(job, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *
 		Dlaqr0(wantt, wantz, n, ilo, ihi, h, ldh, wr, wi, ilo, ihi, z, ldz, work, lwork, info)
 		//        ==== Ensure reported workspace size is backward-compatible with
 		//        .    previous LAPACK versions. ====
-		work.Set(0, maxf64(float64(maxint(1, *n)), work.Get(0)))
+		work.Set(0, math.Max(float64(max(1, *n)), work.Get(0)))
 		return
 
 	} else {
@@ -95,7 +97,7 @@ func Dhseqr(job, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *
 
 		//        ==== DLAHQR/DLAQR0 crossover point ====
 		nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("DHSEQR"), []byte{job, compz}, n, ilo, ihi, lwork)
-		nmin = maxint(ntiny, nmin)
+		nmin = max(ntiny, nmin)
 
 		//        ==== DLAQR0 for big matrices; DLAHQR for small ones ====
 		if (*n) > nmin {
@@ -120,8 +122,8 @@ func Dhseqr(job, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *
 					//                 .    tiny matrices must be copied into a larger
 					//                 .    array before calling DLAQR0. ====
 					Dlacpy('A', n, n, h, ldh, hl, &nl)
-					hl.Set((*n)+1-1, (*n)-1, zero)
-					Dlaset('A', &nl, toPtr(nl-(*n)), &zero, &zero, hl.Off(0, (*n)+1-1), &nl)
+					hl.Set((*n), (*n)-1, zero)
+					Dlaset('A', &nl, toPtr(nl-(*n)), &zero, &zero, hl.Off(0, (*n)), &nl)
 					Dlaqr0(wantt, wantz, &nl, ilo, &kbot, hl, &nl, wr, wi, ilo, ihi, z, ldz, workl, &nl, info)
 					if wantt || (*info) != 0 {
 						Dlacpy('A', n, n, hl, &nl, h, ldh)
@@ -137,6 +139,6 @@ func Dhseqr(job, compz byte, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *
 
 		//        ==== Ensure reported workspace size is backward-compatible with
 		//        .    previous LAPACK versions. ====
-		work.Set(0, maxf64(float64(maxint(1, *n)), work.Get(0)))
+		work.Set(0, math.Max(float64(max(1, *n)), work.Get(0)))
 	}
 }

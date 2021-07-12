@@ -25,7 +25,7 @@ func Zsyr(uplo byte, n *int, alpha *complex128, x *mat.CVector, incx *int, a *ma
 		info = 2
 	} else if (*incx) == 0 {
 		info = 5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		info = 7
 	}
 	if info != 0 {

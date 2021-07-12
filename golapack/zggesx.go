@@ -97,9 +97,9 @@ func Zggesx(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool,
 		(*info) = -5
 	} else if (*n) < 0 {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
 	} else if (*ldvsl) < 1 || (ilvsl && (*ldvsl) < (*n)) {
 		(*info) = -15
@@ -117,13 +117,13 @@ func Zggesx(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool,
 		if (*n) > 0 {
 			minwrk = 2 * (*n)
 			maxwrk = (*n) * (1 + Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
-			maxwrk = maxint(maxwrk, (*n)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1))))
+			maxwrk = max(maxwrk, (*n)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1))))
 			if ilvsl {
-				maxwrk = maxint(maxwrk, (*n)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1))))
+				maxwrk = max(maxwrk, (*n)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1))))
 			}
 			lwrk = maxwrk
 			if ijob >= 1 {
-				lwrk = maxint(lwrk, (*n)*(*n)/2)
+				lwrk = max(lwrk, (*n)*(*n)/2)
 			}
 		} else {
 			minwrk = 1
@@ -218,7 +218,7 @@ func Zggesx(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool,
 	if ilvsl {
 		Zlaset('F', n, n, &czero, &cone, vsl, ldvsl)
 		if irows > 1 {
-			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vsl.Off(ilo+1-1, ilo-1), ldvsl)
+			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vsl.Off(ilo, ilo-1), ldvsl)
 		}
 		Zungqr(&irows, &irows, &irows, vsl.Off(ilo-1, ilo-1), ldvsl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -273,7 +273,7 @@ func Zggesx(jobvsl, jobvsr, sort byte, selctg func(complex128, complex128) bool,
 		Ztgsen(&ijob, ilvsl, ilvsr, *bwork, n, a, lda, b, ldb, alpha, beta, vsl, ldvsl, vsr, ldvsr, sdim, &pl, &pr, dif, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), iwork, liwork, &ierr)
 
 		if ijob >= 1 {
-			maxwrk = maxint(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
+			maxwrk = max(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
 		}
 		if ierr == -21 {
 			//            not enough complex workspace

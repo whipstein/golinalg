@@ -14,8 +14,8 @@ import (
 // The basic test for right eigenvectors is:
 //
 //                           | b(j) A E(j) -  a(j) B E(j) |
-//         RESULT(1) = maxf64   -------------------------------
-//                      j    n ulp maxf64( |b(j) A|, |a(j) B| )
+//         RESULT(1) = math.Max   -------------------------------
+//                      j    n ulp math.Max( |b(j) A|, |a(j) B| )
 //
 // using the 1-norm.  Here, a(j)/b(j) = w is the j-th generalized
 // eigenvalue of A - w B, or, equivalently, b(j)/a(j) = m is the j-th
@@ -26,9 +26,9 @@ import (
 // Er(j) + i*Ei(j) and ar(j) + i*ai(j), resp., so the test for that
 // eigenvector becomes
 //
-//                 maxf64( |Wr|, |Wi| )
+//                 math.Max( |Wr|, |Wi| )
 //     --------------------------------------------
-//     n ulp maxf64( |b(j) A|, (|ar(j)|+|ai(j)|) |B| )
+//     n ulp math.Max( |b(j) A|, (|ar(j)|+|ai(j)|) |B| )
 //
 // where
 //
@@ -47,7 +47,7 @@ import (
 // if a(j)=b(j)=0, then the eigenvector is set to be the jth coordinate
 // vector.  The normalization test is:
 //
-//         RESULT(2) =      maxf64       | M(v(j)) - 1 | / ( n ulp )
+//         RESULT(2) =      math.Max       | M(v(j)) - 1 | / ( n ulp )
 //                    eigenvectors v(j)
 func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, e *mat.Matrix, lde *int, alphar, alphai, beta, work, result *mat.Vector) {
 	var ilcplx bool
@@ -80,14 +80,14 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	}
 
 	//     Norm of A, B, and E:
-	anorm = maxf64(golapack.Dlange(normab, n, n, a, lda, work), safmin)
-	bnorm = maxf64(golapack.Dlange(normab, n, n, b, ldb, work), safmin)
-	enorm = maxf64(golapack.Dlange('O', n, n, e, lde, work), ulp)
-	alfmax = safmax / maxf64(one, bnorm)
-	betmax = safmax / maxf64(one, anorm)
+	anorm = math.Max(golapack.Dlange(normab, n, n, a, lda, work), safmin)
+	bnorm = math.Max(golapack.Dlange(normab, n, n, b, ldb, work), safmin)
+	enorm = math.Max(golapack.Dlange('O', n, n, e, lde, work), ulp)
+	alfmax = safmax / math.Max(one, bnorm)
+	betmax = safmax / math.Max(one, anorm)
 
 	//     Compute error matrix.
-	//     Column i = ( b(i) A - a(i) B ) E(i) / maxf64( |a(i) B| |b(i) A| )
+	//     Column i = ( b(i) A - a(i) B ) E(i) / math.Max( |a(i) B| |b(i) A| )
 	ilcplx = false
 	for jvec = 1; jvec <= (*n); jvec++ {
 		if ilcplx {
@@ -99,17 +99,17 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 			sbeta = beta.Get(jvec - 1)
 			if salfi == zero {
 				//              Real eigenvalue and -vector
-				abmax = maxf64(math.Abs(salfr), math.Abs(sbeta))
+				abmax = math.Max(math.Abs(salfr), math.Abs(sbeta))
 				if math.Abs(salfr) > alfmax || math.Abs(sbeta) > betmax || abmax < one {
-					scale = one / maxf64(abmax, safmin)
+					scale = one / math.Max(abmax, safmin)
 					salfr = scale * salfr
 					sbeta = scale * sbeta
 				}
-				scale = one / maxf64(math.Abs(salfr)*bnorm, math.Abs(sbeta)*anorm, safmin)
+				scale = one / math.Max(math.Abs(salfr)*bnorm, math.Max(math.Abs(sbeta)*anorm, safmin))
 				acoef = scale * sbeta
 				bcoefr = scale * salfr
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, *lda, e.Vector(0, jvec-1), 1, zero, work.Off((*n)*(jvec-1)+1-1), 1)
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, *lda, e.Vector(0, jvec-1), 1, one, work.Off((*n)*(jvec-1)+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off((*n)*(jvec-1), 1))
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off((*n)*(jvec-1), 1))
 			} else {
 				//              Complex conjugate pair
 				ilcplx = true
@@ -117,14 +117,14 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					result.Set(0, ten/ulp)
 					return
 				}
-				abmax = maxf64(math.Abs(salfr)+math.Abs(salfi), math.Abs(sbeta))
+				abmax = math.Max(math.Abs(salfr)+math.Abs(salfi), math.Abs(sbeta))
 				if math.Abs(salfr)+math.Abs(salfi) > alfmax || math.Abs(sbeta) > betmax || abmax < one {
-					scale = one / maxf64(abmax, safmin)
+					scale = one / math.Max(abmax, safmin)
 					salfr = scale * salfr
 					salfi = scale * salfi
 					sbeta = scale * sbeta
 				}
-				scale = one / maxf64((math.Abs(salfr)+math.Abs(salfi))*bnorm, math.Abs(sbeta)*anorm, safmin)
+				scale = one / math.Max((math.Abs(salfr)+math.Abs(salfi))*bnorm, math.Max(math.Abs(sbeta)*anorm, safmin))
 				acoef = scale * sbeta
 				bcoefr = scale * salfr
 				bcoefi = scale * salfi
@@ -132,18 +132,18 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					bcoefi = -bcoefi
 				}
 
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, *lda, e.Vector(0, jvec-1), 1, zero, work.Off((*n)*(jvec-1)+1-1), 1)
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, *lda, e.Vector(0, jvec-1), 1, one, work.Off((*n)*(jvec-1)+1-1), 1)
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, bcoefi, b, *lda, e.Vector(0, jvec+1-1), 1, one, work.Off((*n)*(jvec-1)+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off((*n)*(jvec-1), 1))
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off((*n)*(jvec-1), 1))
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, bcoefi, b, e.Vector(0, jvec, 1), one, work.Off((*n)*(jvec-1), 1))
 
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, *lda, e.Vector(0, jvec+1-1), 1, zero, work.Off((*n)*jvec+1-1), 1)
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefi, b, *lda, e.Vector(0, jvec-1), 1, one, work.Off((*n)*jvec+1-1), 1)
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, *lda, e.Vector(0, jvec+1-1), 1, one, work.Off((*n)*jvec+1-1), 1)
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, e.Vector(0, jvec, 1), zero, work.Off((*n)*jvec, 1))
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefi, b, e.Vector(0, jvec-1, 1), one, work.Off((*n)*jvec, 1))
+				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, e.Vector(0, jvec, 1), one, work.Off((*n)*jvec, 1))
 			}
 		}
 	}
 
-	errnrm = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1)) / enorm
+	errnrm = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))) / enorm
 
 	//     Compute RESULT(1)
 	result.Set(0, errnrm/ulp)
@@ -158,15 +158,15 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 			temp1 = zero
 			if alphai.Get(jvec-1) == zero {
 				for j = 1; j <= (*n); j++ {
-					temp1 = maxf64(temp1, math.Abs(e.Get(j-1, jvec-1)))
+					temp1 = math.Max(temp1, math.Abs(e.Get(j-1, jvec-1)))
 				}
-				enrmer = maxf64(enrmer, temp1-one)
+				enrmer = math.Max(enrmer, temp1-one)
 			} else {
 				ilcplx = true
 				for j = 1; j <= (*n); j++ {
-					temp1 = maxf64(temp1, math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec+1-1)))
+					temp1 = math.Max(temp1, math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec)))
 				}
-				enrmer = maxf64(enrmer, temp1-one)
+				enrmer = math.Max(enrmer, temp1-one)
 			}
 		}
 	}

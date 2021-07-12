@@ -62,7 +62,7 @@ func Zpbcon(uplo byte, n, kd *int, ab *mat.CMatrix, ldab *int, anorm, rcond *flo
 	normin = 'N'
 label10:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if upper {
 			//           Multiply by inv(U**H).
@@ -83,7 +83,7 @@ label10:
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Izamax(*n, work, 1)
+			ix = goblas.Izamax(*n, work.Off(0, 1))
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

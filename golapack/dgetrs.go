@@ -26,9 +26,9 @@ func Dgetrs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int,
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -48,18 +48,18 @@ func Dgetrs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, ipiv *[]int,
 		Dlaswp(nrhs, b, ldb, func() *int { y := 1; return &y }(), n, ipiv, func() *int { y := 1; return &y }())
 
 		//        Solve L*X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, b)
 
 		//        Solve U*X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, b)
 	} else {
 		//        Solve A**T * X = B.
 		//
 		//        Solve U**T *X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, b)
 
 		//        Solve L**T *X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, *n, *nrhs, one, a, b)
 
 		//        Apply row interchanges to the solution vectors.
 		Dlaswp(nrhs, b, ldb, func() *int { y := 1; return &y }(), n, ipiv, toPtr(-1))

@@ -34,10 +34,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 	testzeros = false
 
 	eps = golapack.Dlamch(Epsilon)
-	k = minint(*m, *n)
-	l = maxint(*m, *n, 1)
-	mnb = maxint(*mb, *nb)
-	lwork = maxint(3, l) * mnb
+	k = min(*m, *n)
+	l = max(*m, *n, 1)
+	mnb = max(*mb, *nb)
+	lwork = max(3, l) * mnb
 
 	//     Dynamically allocate local arrays
 	a := cmf(*m, *n, opts)
@@ -70,15 +70,15 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		tsize = int(tquery.GetRe(0))
 		lwork = int(workquery.GetRe(0))
 		golapack.Zgemqr('L', 'N', m, m, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemqr('L', 'N', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemqr('L', 'C', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemqr('R', 'N', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemqr('R', 'C', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		t := cvf(tsize)
 		work := cvf(lwork)
 		*srnamt = "ZGEQR"
@@ -94,20 +94,20 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zlacpy('U', m, n, af, m, r, m)
 
 		//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-		err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, *m, a, *m, one, r, *m)
+		err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, a, one, r)
 		anorm = golapack.Zlange('1', m, n, a, m, rwork)
 		resid = golapack.Zlange('1', m, n, r, m, rwork)
 		if anorm > zero {
-			result.Set(0, resid/(eps*float64(maxint(1, *m))*anorm))
+			result.Set(0, resid/(eps*float64(max(1, *m))*anorm))
 		} else {
 			result.Set(0, zero)
 		}
 
 		//     Compute |I - Q'*Q| and store in RESULT(2)
 		golapack.Zlaset('F', m, m, &czero, &one, r, m)
-		err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-one), q, *m, real(one), r, *m)
+		err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-one), q, real(one), r)
 		resid = golapack.Zlansy('1', 'U', m, r, m, rwork)
-		result.Set(1, resid/(eps*float64(maxint(1, *m))))
+		result.Set(1, resid/(eps*float64(max(1, *m))))
 
 		//     Generate random m-by-n matrix C and a copy CF
 		for j = 1; j <= (*n); j++ {
@@ -121,10 +121,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemqr('L', 'N', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |Q*C - Q*C| / |C|
-		err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
+		err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
 		resid = golapack.Zlange('1', m, n, cf, m, rwork)
 		if cnorm > zero {
-			result.Set(2, resid/(eps*float64(maxint(1, *m))*cnorm))
+			result.Set(2, resid/(eps*float64(max(1, *m))*cnorm))
 		} else {
 			result.Set(2, zero)
 		}
@@ -137,10 +137,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemqr('L', 'C', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |QT*C - QT*C| / |C|
-		goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, *m, c, *m, one, cf, *m)
+		goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
 		resid = golapack.Zlange('1', m, n, cf, m, rwork)
 		if cnorm > zero {
-			result.Set(3, resid/(eps*float64(maxint(1, *m))*cnorm))
+			result.Set(3, resid/(eps*float64(max(1, *m))*cnorm))
 		} else {
 			result.Set(3, zero)
 		}
@@ -157,10 +157,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemqr('R', 'N', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |D*Q - D*Q| / |D|
-		err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
+		err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, q, one, df)
 		resid = golapack.Zlange('1', n, m, df, n, rwork)
 		if dnorm > zero {
-			result.Set(4, resid/(eps*float64(maxint(1, *m))*dnorm))
+			result.Set(4, resid/(eps*float64(max(1, *m))*dnorm))
 		} else {
 			result.Set(4, zero)
 		}
@@ -172,10 +172,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemqr('R', 'C', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |D*QT - D*QT| / |D|
-		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -one, d, *n, q, *m, one, df, *n)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -one, d, q, one, df)
 		resid = golapack.Zlange('1', n, m, df, n, rwork)
 		if cnorm > zero {
-			result.Set(5, resid/(eps*float64(maxint(1, *m))*dnorm))
+			result.Set(5, resid/(eps*float64(max(1, *m))*dnorm))
 		} else {
 			result.Set(5, zero)
 		}
@@ -186,15 +186,15 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		tsize = int(tquery.GetRe(0))
 		lwork = int(workquery.GetRe(0))
 		golapack.Zgemlq('R', 'N', n, n, &k, af, m, tquery, &tsize, q, n, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemlq('L', 'N', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemlq('L', 'C', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemlq('R', 'N', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		golapack.Zgemlq('R', 'C', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
-		lwork = maxint(lwork, int(workquery.GetRe(0)))
+		lwork = max(lwork, int(workquery.GetRe(0)))
 		t := cvf(tsize)
 		work := cvf(lwork)
 		*srnamt = "ZGELQ"
@@ -210,20 +210,20 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zlacpy('L', m, n, af, m, lq, &l)
 
 		//     Compute |L - A*Q'| / |A| and store in RESULT(1)
-		err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -one, a, *m, q, *n, one, lq, l)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -one, a, q, one, lq)
 		anorm = golapack.Zlange('1', m, n, a, m, rwork)
 		resid = golapack.Zlange('1', m, n, lq, &l, rwork)
 		if anorm > zero {
-			result.Set(0, resid/(eps*float64(maxint(1, *n))*anorm))
+			result.Set(0, resid/(eps*float64(max(1, *n))*anorm))
 		} else {
 			result.Set(0, zero)
 		}
 
 		//     Compute |I - Q'*Q| and store in RESULT(2)
 		golapack.Zlaset('F', n, n, &czero, &one, lq, &l)
-		err = goblas.Zherk(Upper, ConjTrans, *n, *n, real(-one), q, *n, real(one), lq, l)
+		err = goblas.Zherk(Upper, ConjTrans, *n, *n, real(-one), q, real(one), lq)
 		resid = golapack.Zlansy('1', 'U', n, lq, &l, rwork)
-		result.Set(1, resid/(eps*float64(maxint(1, *n))))
+		result.Set(1, resid/(eps*float64(max(1, *n))))
 
 		//     Generate random m-by-n matrix C and a copy CF
 		for j = 1; j <= (*m); j++ {
@@ -236,10 +236,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemlq('L', 'N', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |Q*D - Q*D| / |D|
-		err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *n, -one, q, *n, d, *n, one, df, *n)
+		err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *n, -one, q, d, one, df)
 		resid = golapack.Zlange('1', n, m, df, n, rwork)
 		if dnorm > zero {
-			result.Set(2, resid/(eps*float64(maxint(1, *n))*dnorm))
+			result.Set(2, resid/(eps*float64(max(1, *n))*dnorm))
 		} else {
 			result.Set(2, zero)
 		}
@@ -251,10 +251,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemlq('L', 'C', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
 
 		//     Compute |QT*D - QT*D| / |D|
-		err = goblas.Zgemm(ConjTrans, NoTrans, *n, *m, *n, -one, q, *n, d, *n, one, df, *n)
+		err = goblas.Zgemm(ConjTrans, NoTrans, *n, *m, *n, -one, q, d, one, df)
 		resid = golapack.Zlange('1', n, m, df, n, rwork)
 		if dnorm > zero {
-			result.Set(3, resid/(eps*float64(maxint(1, *n))*dnorm))
+			result.Set(3, resid/(eps*float64(max(1, *n))*dnorm))
 		} else {
 			result.Set(3, zero)
 		}
@@ -270,10 +270,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemlq('R', 'N', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |C*Q - C*Q| / |C|
-		err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, c, *m, q, *n, one, cf, *m)
+		err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, c, q, one, cf)
 		resid = golapack.Zlange('1', n, m, df, n, rwork)
 		if cnorm > zero {
-			result.Set(4, resid/(eps*float64(maxint(1, *n))*cnorm))
+			result.Set(4, resid/(eps*float64(max(1, *n))*cnorm))
 		} else {
 			result.Set(4, zero)
 		}
@@ -285,10 +285,10 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 		golapack.Zgemlq('R', 'C', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
 
 		//     Compute |C*QT - C*QT| / |C|
-		err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -one, c, *m, q, *n, one, cf, *m)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -one, c, q, one, cf)
 		resid = golapack.Zlange('1', m, n, cf, m, rwork)
 		if cnorm > zero {
-			result.Set(5, resid/(eps*float64(maxint(1, *n))*cnorm))
+			result.Set(5, resid/(eps*float64(max(1, *n))*cnorm))
 		} else {
 			result.Set(5, zero)
 		}

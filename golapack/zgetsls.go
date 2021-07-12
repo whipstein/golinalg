@@ -47,9 +47,9 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 
 	//     Test the input arguments.
 	(*info) = 0
-	// minmn = minint(*m, *n)
-	maxmn = maxint(*m, *n)
-	// mnk = maxint(minmn, *nrhs)
+	// minmn = min(*m, *n)
+	maxmn = max(*m, *n)
+	// mnk = max(minmn, *nrhs)
 	tran = trans == 'C'
 
 	lquery = ((*lwork) == -1 || (*lwork) == -2)
@@ -61,9 +61,9 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *m, *n) {
+	} else if (*ldb) < max(1, *m, *n) {
 		(*info) = -8
 	}
 
@@ -74,12 +74,12 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 			tszo = int(tq.GetRe(0))
 			lwo = int(workq.GetRe(0))
 			Zgemqr('L', trans, m, nrhs, n, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
-			lwo = maxint(lwo, int(workq.GetRe(0)))
+			lwo = max(lwo, int(workq.GetRe(0)))
 			Zgeqr(m, n, a, lda, tq, toPtr(-2), workq, toPtr(-2), &info2)
 			tszm = int(tq.GetRe(0))
 			lwm = int(workq.GetRe(0))
 			Zgemqr('L', trans, m, nrhs, n, a, lda, tq, &tszm, b, ldb, workq, toPtr(-1), &info2)
-			lwm = maxint(lwm, int(workq.GetRe(0)))
+			lwm = max(lwm, int(workq.GetRe(0)))
 			wsizeo = tszo + lwo
 			wsizem = tszm + lwm
 		} else {
@@ -87,12 +87,12 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 			tszo = int(tq.GetRe(0))
 			lwo = int(workq.GetRe(0))
 			Zgemlq('L', trans, n, nrhs, m, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
-			lwo = maxint(lwo, int(workq.GetRe(0)))
+			lwo = max(lwo, int(workq.GetRe(0)))
 			Zgelq(m, n, a, lda, tq, toPtr(-2), workq, toPtr(-2), &info2)
 			tszm = int(tq.GetRe(0))
 			lwm = int(workq.GetRe(0))
 			Zgemlq('L', trans, n, nrhs, m, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
-			lwm = maxint(lwm, int(workq.GetRe(0)))
+			lwm = max(lwm, int(workq.GetRe(0)))
 			wsizeo = tszo + lwo
 			wsizem = tszm + lwm
 		}
@@ -126,8 +126,8 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *nrhs) == 0 {
-		Zlaset('F', toPtr(maxint(*m, *n)), nrhs, &czero, &czero, b, ldb)
+	if min(*m, *n, *nrhs) == 0 {
+		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
 		return
 	}
 
@@ -136,7 +136,7 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 	bignum = one / smlnum
 	Dlabad(&smlnum, &bignum)
 
-	//     Scale A, B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A, B if max element outside range [SMLNUM,BIGNUM]
 	anrm = Zlange('M', m, n, a, lda, dum)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
@@ -171,12 +171,12 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 
 	if (*m) >= (*n) {
 		//        compute QR factorization of A
-		Zgeqr(m, n, a, lda, work.Off(lw2+1-1), &lw1, work, &lw2, info)
+		Zgeqr(m, n, a, lda, work.Off(lw2), &lw1, work, &lw2, info)
 		if !tran {
-			//           Least-Squares Problem minint || A * X - B ||
+			//           Least-Squares Problem min || A * X - B ||
 			//
 			//           B(1:M,1:NRHS) := Q**T * B(1:M,1:NRHS)
-			Zgemqr('L', 'C', m, nrhs, n, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Zgemqr('L', 'C', m, nrhs, n, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			//           B(1:N,1:NRHS) := inv(R) * B(1:N,1:NRHS)
 			Ztrtrs('U', 'N', 'N', n, nrhs, a, lda, b, ldb, info)
@@ -202,7 +202,7 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 			}
 
 			//           B(1:M,1:NRHS) := Q(1:N,:) * B(1:N,1:NRHS)
-			Zgemqr('L', 'N', m, nrhs, n, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Zgemqr('L', 'N', m, nrhs, n, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			scllen = (*m)
 
@@ -210,7 +210,7 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 
 	} else {
 		//        Compute LQ factorization of A
-		Zgelq(m, n, a, lda, work.Off(lw2+1-1), &lw1, work, &lw2, info)
+		Zgelq(m, n, a, lda, work.Off(lw2), &lw1, work, &lw2, info)
 
 		//        workspace at least M, optimally M*NB.
 		if !tran {
@@ -231,16 +231,16 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 			}
 
 			//           B(1:N,1:NRHS) := Q(1:N,:)**T * B(1:M,1:NRHS)
-			Zgemlq('L', 'C', n, nrhs, m, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Zgemlq('L', 'C', n, nrhs, m, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			scllen = (*n)
 
 		} else {
-			//           overdetermined system minint || A**T * X - B ||
+			//           overdetermined system min || A**T * X - B ||
 			//
 			//           B(1:N,1:NRHS) := Q * B(1:N,1:NRHS)
-			Zgemlq('L', 'N', n, nrhs, m, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Zgemlq('L', 'N', n, nrhs, m, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//

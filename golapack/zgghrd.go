@@ -81,9 +81,9 @@ func Zgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.CMatrix, lda *int, b *ma
 		(*info) = -4
 	} else if (*ihi) > (*n) || (*ihi) < (*ilo)-1 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (ilq && (*ldq) < (*n)) || (*ldq) < 1 {
 		(*info) = -11
@@ -123,7 +123,7 @@ func Zgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.CMatrix, lda *int, b *ma
 			ctemp = a.Get(jrow-1-1, jcol-1)
 			Zlartg(&ctemp, a.GetPtr(jrow-1, jcol-1), &c, &s, a.GetPtr(jrow-1-1, jcol-1))
 			a.Set(jrow-1, jcol-1, czero)
-			Zrot(toPtr((*n)-jcol), a.CVector(jrow-1-1, jcol+1-1), lda, a.CVector(jrow-1, jcol+1-1), lda, &c, &s)
+			Zrot(toPtr((*n)-jcol), a.CVector(jrow-1-1, jcol), lda, a.CVector(jrow-1, jcol), lda, &c, &s)
 			Zrot(toPtr((*n)+2-jrow), b.CVector(jrow-1-1, jrow-1-1), ldb, b.CVector(jrow-1, jrow-1-1), ldb, &c, &s)
 			if ilq {
 				Zrot(n, q.CVector(0, jrow-1-1), func() *int { y := 1; return &y }(), q.CVector(0, jrow-1), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))

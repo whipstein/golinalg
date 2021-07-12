@@ -47,11 +47,11 @@ func Ztrt01(uplo, diag byte, n *int, a *mat.CMatrix, lda *int, ainv *mat.CMatrix
 	//     Compute A * AINV, overwriting AINV.
 	if uplo == 'U' {
 		for j = 1; j <= (*n); j++ {
-			err = goblas.Ztrmv(Upper, NoTrans, mat.DiagByte(diag), j, a, *lda, ainv.CVector(0, j-1), 1)
+			err = goblas.Ztrmv(Upper, NoTrans, mat.DiagByte(diag), j, a, ainv.CVector(0, j-1, 1))
 		}
 	} else {
 		for j = 1; j <= (*n); j++ {
-			err = goblas.Ztrmv(Lower, NoTrans, mat.DiagByte(diag), (*n)-j+1, a.Off(j-1, j-1), *lda, ainv.CVector(j-1, j-1), 1)
+			err = goblas.Ztrmv(Lower, NoTrans, mat.DiagByte(diag), (*n)-j+1, a.Off(j-1, j-1), ainv.CVector(j-1, j-1, 1))
 		}
 	}
 

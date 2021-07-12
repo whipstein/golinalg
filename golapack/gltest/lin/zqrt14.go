@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -11,7 +13,7 @@ import (
 // [sqrt(eps), 1/sqrt(eps)], then computing a QR factorization of [A,X]
 // (if TRANS = 'C') or an LQ factorization of [A',X]' (if TRANS = 'N'),
 // and returning the norm of the trailing triangle, scaled by
-// maxint(M,N,NRHS)*eps.
+// max(M,N,NRHS)*eps.
 func Zqrt14(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatrix, ldx *int, work *mat.CVector, lwork *int) (zqrt14Return float64) {
 	var tpsd bool
 	var anrm, err, one, xnrm, zero float64
@@ -56,22 +58,22 @@ func Zqrt14(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatri
 	//     Copy X or X' into the right place and scale it
 	if tpsd {
 		//        Copy X into columns n+1:n+nrhs of work
-		golapack.Zlacpy('A', m, nrhs, x, ldx, work.CMatrixOff((*n)*ldwork+1-1, ldwork, opts), &ldwork)
-		xnrm = golapack.Zlange('M', m, nrhs, work.CMatrixOff((*n)*ldwork+1-1, ldwork, opts), &ldwork, rwork)
+		golapack.Zlacpy('A', m, nrhs, x, ldx, work.CMatrixOff((*n)*ldwork, ldwork, opts), &ldwork)
+		xnrm = golapack.Zlange('M', m, nrhs, work.CMatrixOff((*n)*ldwork, ldwork, opts), &ldwork, rwork)
 		if xnrm != zero {
-			golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, m, nrhs, work.CMatrixOff((*n)*ldwork+1-1, ldwork, opts), &ldwork, &info)
+			golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, m, nrhs, work.CMatrixOff((*n)*ldwork, ldwork, opts), &ldwork, &info)
 		}
 		anrm = golapack.Zlange('O', m, toPtr((*n)+(*nrhs)), work.CMatrix(ldwork, opts), &ldwork, rwork)
 
 		//        Compute QR factorization of X
-		golapack.Zgeqr2(m, toPtr((*n)+(*nrhs)), work.CMatrix(ldwork, opts), &ldwork, work.Off(ldwork*((*n)+(*nrhs))+1-1), work.Off(ldwork*((*n)+(*nrhs))+minint(*m, (*n)+(*nrhs))+1-1), &info)
+		golapack.Zgeqr2(m, toPtr((*n)+(*nrhs)), work.CMatrix(ldwork, opts), &ldwork, work.Off(ldwork*((*n)+(*nrhs))), work.Off(ldwork*((*n)+(*nrhs))+min(*m, (*n)+(*nrhs))), &info)
 
 		//        Compute largest entry in upper triangle of
 		//        work(n+1:m,n+1:n+nrhs)
 		err = zero
 		for j = (*n) + 1; j <= (*n)+(*nrhs); j++ {
-			for i = (*n) + 1; i <= minint(*m, j); i++ {
-				err = maxf64(err, work.GetMag(i+(j-1)*(*m)-1))
+			for i = (*n) + 1; i <= min(*m, j); i++ {
+				err = math.Max(err, work.GetMag(i+(j-1)*(*m)-1))
 			}
 		}
 
@@ -83,26 +85,26 @@ func Zqrt14(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatri
 			}
 		}
 
-		xnrm = golapack.Zlange('M', nrhs, n, work.CMatrixOff((*m)+1-1, ldwork, opts), &ldwork, rwork)
+		xnrm = golapack.Zlange('M', nrhs, n, work.CMatrixOff((*m), ldwork, opts), &ldwork, rwork)
 		if xnrm != zero {
-			golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, nrhs, n, work.CMatrixOff((*m)+1-1, ldwork, opts), &ldwork, &info)
+			golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, nrhs, n, work.CMatrixOff((*m), ldwork, opts), &ldwork, &info)
 		}
 
 		//        Compute LQ factorization of work
-		golapack.Zgelq2(&ldwork, n, work.CMatrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)+1-1), work.Off(ldwork*((*n)+1)+1-1), &info)
+		golapack.Zgelq2(&ldwork, n, work.CMatrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)), work.Off(ldwork*((*n)+1)), &info)
 
 		//        Compute largest entry in lower triangle in
 		//        work(m+1:m+nrhs,m+1:n)
 		err = zero
 		for j = (*m) + 1; j <= (*n); j++ {
 			for i = j; i <= ldwork; i++ {
-				err = maxf64(err, work.GetMag(i+(j-1)*ldwork-1))
+				err = math.Max(err, work.GetMag(i+(j-1)*ldwork-1))
 			}
 		}
 
 	}
 
-	zqrt14Return = err / (float64(maxint(*m, *n, *nrhs)) * golapack.Dlamch(Epsilon))
+	zqrt14Return = err / (float64(max(*m, *n, *nrhs)) * golapack.Dlamch(Epsilon))
 
 	return
 }

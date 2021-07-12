@@ -156,7 +156,7 @@ func Dlaruv(iseed *[]int, n *int, x *mat.Vector) {
 	i3 = (*iseed)[2]
 	i4 = (*iseed)[3]
 
-	for i = 1; i <= minint(*n, lv); i++ {
+	for i = 1; i <= min(*n, lv); i++ {
 
 	label20:
 		;

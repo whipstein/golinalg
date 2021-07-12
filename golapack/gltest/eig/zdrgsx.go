@@ -196,14 +196,14 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 
 		//        workspace for cggesx
 		maxwrk = (*nsize) * (1 + Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, func() *int { y := 0; return &y }()))
-		maxwrk = maxint(maxwrk, (*nsize)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, toPtr(-1))))
+		maxwrk = max(maxwrk, (*nsize)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, toPtr(-1))))
 
 		//        workspace for zgesvd
 		bdspac = 3 * (*nsize) * (*nsize) / 2
-		maxwrk = maxint(maxwrk, (*nsize)*(*nsize)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, toPtr((*nsize)*(*nsize)/2), toPtr((*nsize)*(*nsize)/2), toPtr(-1), toPtr(-1))))
-		maxwrk = maxint(maxwrk, bdspac)
+		maxwrk = max(maxwrk, (*nsize)*(*nsize)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, toPtr((*nsize)*(*nsize)/2), toPtr((*nsize)*(*nsize)/2), toPtr(-1), toPtr(-1))))
+		maxwrk = max(maxwrk, bdspac)
 
-		maxwrk = maxint(maxwrk, minwrk)
+		maxwrk = max(maxwrk, minwrk)
 
 		work.SetRe(0, float64(maxwrk))
 	}
@@ -256,7 +256,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 					golapack.Zlaset('F', mplusn, mplusn, &czero, &czero, ai, lda)
 					golapack.Zlaset('F', mplusn, mplusn, &czero, &czero, bi, lda)
 
-					matgen.Zlatm5(&prtype, m, n, ai, lda, ai.Off((*m)+1-1, (*m)+1-1), lda, ai.Off(0, (*m)+1-1), lda, bi, lda, bi.Off((*m)+1-1, (*m)+1-1), lda, bi.Off(0, (*m)+1-1), lda, q, lda, z, lda, &weight, &qba, &qbb)
+					matgen.Zlatm5(&prtype, m, n, ai, lda, ai.Off((*m), (*m)), lda, ai.Off(0, (*m)), lda, bi, lda, bi.Off((*m), (*m)), lda, bi.Off(0, (*m)), lda, q, lda, z, lda, &weight, &qba, &qbb)
 
 					//                 Compute the Schur factorization and swapping the
 					//                 m-by-m (1,1)-blocks with n-by-n (2,2)-blocks.
@@ -287,7 +287,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 
 					//                 Compute the norm(A, B)
 					golapack.Zlacpy('F', mplusn, mplusn, ai, lda, work.CMatrix(*mplusn, opts), mplusn)
-					golapack.Zlacpy('F', mplusn, mplusn, bi, lda, work.CMatrixOff((*mplusn)*(*mplusn)+1-1, *mplusn, opts), mplusn)
+					golapack.Zlacpy('F', mplusn, mplusn, bi, lda, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts), mplusn)
 					abnrm = golapack.Zlange('F', mplusn, toPtr(2*(*mplusn)), work.CMatrix(*mplusn, opts), mplusn, rwork)
 
 					//                 Do tests (1) to (4)
@@ -306,9 +306,9 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 
 					for j = 1; j <= (*mplusn); j++ {
 						ilabad = false
-						temp2 = (abs1(alpha.Get(j-1)-ai.Get(j-1, j-1))/maxf64(smlnum, abs1(alpha.Get(j-1)), abs1(ai.Get(j-1, j-1))) + abs1(beta.Get(j-1)-bi.Get(j-1, j-1))/maxf64(smlnum, abs1(beta.Get(j-1)), abs1(bi.Get(j-1, j-1)))) / ulp
+						temp2 = (abs1(alpha.Get(j-1)-ai.Get(j-1, j-1))/math.Max(smlnum, math.Max(abs1(alpha.Get(j-1)), abs1(ai.Get(j-1, j-1)))) + abs1(beta.Get(j-1)-bi.Get(j-1, j-1))/math.Max(smlnum, math.Max(abs1(beta.Get(j-1)), abs1(bi.Get(j-1, j-1))))) / ulp
 						if j < (*mplusn) {
-							if ai.GetRe(j+1-1, j-1) != zero {
+							if ai.GetRe(j, j-1) != zero {
 								ilabad = true
 								result.Set(4, ulpinv)
 							}
@@ -319,7 +319,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 								result.Set(4, ulpinv)
 							}
 						}
-						temp1 = maxf64(temp1, temp2)
+						temp1 = math.Max(temp1, temp2)
 						if ilabad {
 							fmt.Printf(" ZDRGSX: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", j, *mplusn, prtype)
 						}
@@ -343,7 +343,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 					if ifunc >= 2 && mn2 <= (*ncmax)*(*ncmax) {
 						//                    Note: for either following two cases, there are
 						//                    almost same number of test cases fail the test.
-						matgen.Zlakf2(&mm, toPtr((*mplusn)-mm), ai, lda, ai.Off(mm+1-1, mm+1-1), bi, bi.Off(mm+1-1, mm+1-1), c, ldc)
+						matgen.Zlakf2(&mm, toPtr((*mplusn)-mm), ai, lda, ai.Off(mm, mm), bi, bi.Off(mm, mm), c, ldc)
 
 						golapack.Zgesvd('N', 'N', &mn2, &mn2, c, ldc, s, work.CMatrix(1, opts), func() *int { y := 1; return &y }(), work.CMatrixOff(1, 1, opts), func() *int { y := 1; return &y }(), work.Off(2), toPtr((*lwork)-2), rwork, info)
 						diftru = s.Get(mn2 - 1)
@@ -357,7 +357,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 								result.Set(7, ulpinv)
 							}
 						} else if (diftru > thrsh2*difest.Get(1)) || (diftru*thrsh2 < difest.Get(1)) {
-							result.Set(7, maxf64(diftru/difest.Get(1), difest.Get(1)/diftru))
+							result.Set(7, math.Max(diftru/difest.Get(1), difest.Get(1)/diftru))
 						}
 						ntest = ntest + 1
 					}
@@ -484,7 +484,7 @@ label70:
 		//     Compute the norm(A, B)
 		//        (should this be norm of (A,B) or (AI,BI)?)
 		golapack.Zlacpy('F', mplusn, mplusn, ai, lda, work.CMatrix(*mplusn, opts), mplusn)
-		golapack.Zlacpy('F', mplusn, mplusn, bi, lda, work.CMatrixOff((*mplusn)*(*mplusn)+1-1, *mplusn, opts), mplusn)
+		golapack.Zlacpy('F', mplusn, mplusn, bi, lda, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts), mplusn)
 		abnrm = golapack.Zlange('F', mplusn, toPtr(2*(*mplusn)), work.CMatrix(*mplusn, opts), mplusn, rwork)
 
 		//     Do tests (1) to (4)
@@ -502,9 +502,9 @@ label70:
 
 		for j = 1; j <= (*mplusn); j++ {
 			ilabad = false
-			temp2 = (abs1(alpha.Get(j-1)-ai.Get(j-1, j-1))/maxf64(smlnum, abs1(alpha.Get(j-1)), abs1(ai.Get(j-1, j-1))) + abs1(beta.Get(j-1)-bi.Get(j-1, j-1))/maxf64(smlnum, abs1(beta.Get(j-1)), abs1(bi.Get(j-1, j-1)))) / ulp
+			temp2 = (abs1(alpha.Get(j-1)-ai.Get(j-1, j-1))/math.Max(smlnum, math.Max(abs1(alpha.Get(j-1)), abs1(ai.Get(j-1, j-1)))) + abs1(beta.Get(j-1)-bi.Get(j-1, j-1))/math.Max(smlnum, math.Max(abs1(beta.Get(j-1)), abs1(bi.Get(j-1, j-1))))) / ulp
 			if j < (*mplusn) {
-				if ai.GetRe(j+1-1, j-1) != zero {
+				if ai.GetRe(j, j-1) != zero {
 					ilabad = true
 					result.Set(4, ulpinv)
 				}
@@ -515,7 +515,7 @@ label70:
 					result.Set(4, ulpinv)
 				}
 			}
-			temp1 = maxf64(temp1, temp2)
+			temp1 = math.Max(temp1, temp2)
 			if ilabad {
 				fmt.Printf(" ZDRGSX: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", j, *mplusn, nptknt)
 			}
@@ -541,7 +541,7 @@ label70:
 				result.Set(7, ulpinv)
 			}
 		} else if (diftru > thrsh2*difest.Get(1)) || (diftru*thrsh2 < difest.Get(1)) {
-			result.Set(7, maxf64(diftru/difest.Get(1), difest.Get(1)/diftru))
+			result.Set(7, math.Max(diftru/difest.Get(1), difest.Get(1)/diftru))
 		}
 
 		//     Test (9)

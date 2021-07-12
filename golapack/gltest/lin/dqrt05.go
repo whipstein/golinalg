@@ -52,12 +52,12 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	}
 	if (*m) > 0 {
 		for j = 1; j <= (*n); j++ {
-			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)-(*l)), a.Vector(minint((*n)+(*m), (*n)+1)-1, j-1))
+			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)-(*l)), a.Vector(min((*n)+(*m), (*n)+1)-1, j-1))
 		}
 	}
 	if (*l) > 0 {
 		for j = 1; j <= (*n); j++ {
-			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(minint(j, *l)), a.Vector(minint((*n)+(*m), (*n)+(*m)-(*l)+1)-1, j-1))
+			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(min(j, *l)), a.Vector(min((*n)+(*m), (*n)+(*m)-(*l)+1)-1, j-1))
 		}
 	}
 
@@ -76,20 +76,20 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Dlacpy('U', &m2, n, af, &m2, r, &m2)
 
 	//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-	err = goblas.Dgemm(Trans, NoTrans, m2, *n, m2, -one, q, m2, a, m2, one, r, m2)
+	err = goblas.Dgemm(Trans, NoTrans, m2, *n, m2, -one, q, a, one, r)
 	anorm = golapack.Dlange('1', &m2, n, a, &m2, rwork)
 	resid = golapack.Dlange('1', &m2, n, r, &m2, rwork)
 	if anorm > zero {
-		result.Set(0, resid/(eps*anorm*float64(maxint(1, m2))))
+		result.Set(0, resid/(eps*anorm*float64(max(1, m2))))
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute |I - Q'*Q| and store in RESULT(2)
 	golapack.Dlaset('F', &m2, &m2, &zero, &one, r, &m2)
-	err = goblas.Dsyrk(Upper, ConjTrans, m2, m2, -one, q, m2, one, r, m2)
+	err = goblas.Dsyrk(Upper, ConjTrans, m2, m2, -one, q, one, r)
 	resid = golapack.Dlansy('1', 'U', &m2, r, &m2, rwork)
-	result.Set(1, resid/(eps*float64(maxint(1, m2))))
+	result.Set(1, resid/(eps*float64(max(1, m2))))
 
 	//     Generate random m-by-n matrix C and a copy CF
 	for j = 1; j <= (*n); j++ {
@@ -102,10 +102,10 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Dtpmqrt('L', 'N', m, n, &k, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, cf, &m2, cf.Off(np1-1, 0), &m2, work, &info)
 
 	//     Compute |Q*C - Q*C| / |C|
-	err = goblas.Dgemm(NoTrans, NoTrans, m2, *n, m2, -one, q, m2, c, m2, one, cf, m2)
+	err = goblas.Dgemm(NoTrans, NoTrans, m2, *n, m2, -one, q, c, one, cf)
 	resid = golapack.Dlange('1', &m2, n, cf, &m2, rwork)
 	if cnorm > zero {
-		result.Set(2, resid/(eps*float64(maxint(1, m2))*cnorm))
+		result.Set(2, resid/(eps*float64(max(1, m2))*cnorm))
 	} else {
 		result.Set(2, zero)
 	}
@@ -117,10 +117,10 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Dtpmqrt('L', 'T', m, n, &k, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, cf, &m2, cf.Off(np1-1, 0), &m2, work, &info)
 
 	//     Compute |QT*C - QT*C| / |C|
-	err = goblas.Dgemm(Trans, NoTrans, m2, *n, m2, -one, q, m2, c, m2, one, cf, m2)
+	err = goblas.Dgemm(Trans, NoTrans, m2, *n, m2, -one, q, c, one, cf)
 	resid = golapack.Dlange('1', &m2, n, cf, &m2, rwork)
 	if cnorm > zero {
-		result.Set(3, resid/(eps*float64(maxint(1, m2))*cnorm))
+		result.Set(3, resid/(eps*float64(max(1, m2))*cnorm))
 	} else {
 		result.Set(3, zero)
 	}
@@ -136,10 +136,10 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Dtpmqrt('R', 'N', n, m, n, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, df, n, df.Off(0, np1-1), n, work, &info)
 
 	//     Compute |D*Q - D*Q| / |D|
-	err = goblas.Dgemm(NoTrans, NoTrans, *n, m2, m2, -one, d, *n, q, m2, one, df, *n)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, m2, m2, -one, d, q, one, df)
 	resid = golapack.Dlange('1', n, &m2, df, n, rwork)
 	if cnorm > zero {
-		result.Set(4, resid/(eps*float64(maxint(1, m2))*dnorm))
+		result.Set(4, resid/(eps*float64(max(1, m2))*dnorm))
 	} else {
 		result.Set(4, zero)
 	}
@@ -151,10 +151,10 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	golapack.Dtpmqrt('R', 'T', n, m, n, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, df, n, df.Off(0, np1-1), n, work, &info)
 
 	//     Compute |D*QT - D*QT| / |D|
-	err = goblas.Dgemm(NoTrans, Trans, *n, m2, m2, -one, d, *n, q, m2, one, df, *n)
+	err = goblas.Dgemm(NoTrans, Trans, *n, m2, m2, -one, d, q, one, df)
 	resid = golapack.Dlange('1', n, &m2, df, n, rwork)
 	if cnorm > zero {
-		result.Set(5, resid/(eps*float64(maxint(1, m2))*dnorm))
+		result.Set(5, resid/(eps*float64(max(1, m2))*dnorm))
 	} else {
 		result.Set(5, zero)
 	}

@@ -343,7 +343,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			tau = tau2 / (d.Get((*i)-1) + math.Sqrt(d.Get((*i)-1)*d.Get((*i)-1)+tau2))
 			temp = math.Sqrt(eps)
 			if (d.Get((*i)-1) <= temp*d.Get(ip1-1)) && (math.Abs(z.Get((*i)-1)) <= temp) && (d.Get((*i)-1) > zero) {
-				tau = minf64(ten*d.Get((*i)-1), sgub)
+				tau = math.Min(ten*d.Get((*i)-1), sgub)
 				geomavg = true
 			}
 		} else {
@@ -429,9 +429,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		}
 
 		if w <= zero {
-			sglb = maxf64(sglb, tau)
+			sglb = math.Max(sglb, tau)
 		} else {
-			sgub = minf64(sgub, tau)
+			sgub = math.Min(sgub, tau)
 		}
 
 		//        Calculate the new step
@@ -615,9 +615,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			}
 
 			if w <= zero {
-				sglb = maxf64(sglb, tau)
+				sglb = math.Max(sglb, tau)
 			} else {
-				sgub = minf64(sgub, tau)
+				sgub = math.Min(sgub, tau)
 			}
 
 			//           Calculate the new step

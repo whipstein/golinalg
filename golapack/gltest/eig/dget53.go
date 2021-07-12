@@ -13,11 +13,11 @@ import (
 //
 //                              | det( s A - w B ) |
 //     RESULT =  ---------------------------------------------------
-//               ulp maxf64( s norm(A), |w| norm(B) )*norm( s A - w B )
+//               ulp math.Max( s norm(A), |w| norm(B) )*norm( s A - w B )
 //
 // Two "safety checks" are performed:
 //
-// (1)  ulp*maxf64( s*norm(A), |w|*norm(B) )  must be at least
+// (1)  ulp*math.Max( s*norm(A), |w|*norm(B) )  must be at least
 //      safe_minimum.  This insures that the test performed is
 //      not essentially  det(0*A + 0*B)=0.
 //
@@ -43,8 +43,8 @@ func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, res
 	safmin = golapack.Dlamch(SafeMinimum)
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	absw = math.Abs(wrs) + math.Abs(wis)
-	anorm = maxf64(math.Abs(a.Get(0, 0))+math.Abs(a.Get(1, 0)), math.Abs(a.Get(0, 1))+math.Abs(a.Get(1, 1)), safmin)
-	bnorm = maxf64(math.Abs(b.Get(0, 0)), math.Abs(b.Get(0, 1))+math.Abs(b.Get(1, 1)), safmin)
+	anorm = math.Max(math.Abs(a.Get(0, 0))+math.Abs(a.Get(1, 0)), math.Max(math.Abs(a.Get(0, 1))+math.Abs(a.Get(1, 1)), safmin))
+	bnorm = math.Max(math.Abs(b.Get(0, 0)), math.Max(math.Abs(b.Get(0, 1))+math.Abs(b.Get(1, 1)), safmin))
 
 	//     Check for possible overflow.
 	temp = (safmin*bnorm)*absw + (safmin*anorm)*scales
@@ -57,7 +57,7 @@ func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, res
 		wis = wis * temp
 		absw = math.Abs(wrs) + math.Abs(wis)
 	}
-	s1 = maxf64(ulp*maxf64(scales*anorm, absw*bnorm), safmin*maxf64(scales, absw))
+	s1 = math.Max(ulp*math.Max(scales*anorm, absw*bnorm), safmin*math.Max(scales, absw))
 
 	//     Check for W and SCALE essentially zero.
 	if s1 < safmin {
@@ -69,12 +69,12 @@ func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, res
 		}
 
 		//        Scale up to avoid underflow
-		temp = one / maxf64(scales*anorm+absw*bnorm, safmin)
+		temp = one / math.Max(scales*anorm+absw*bnorm, safmin)
 		scales = scales * temp
 		wrs = wrs * temp
 		wis = wis * temp
 		absw = math.Abs(wrs) + math.Abs(wis)
-		s1 = maxf64(ulp*maxf64(scales*anorm, absw*bnorm), safmin*maxf64(scales, absw))
+		s1 = math.Max(ulp*math.Max(scales*anorm, absw*bnorm), safmin*math.Max(scales, absw))
 		if s1 < safmin {
 			(*info) = 3
 			(*result) = one / ulp
@@ -96,7 +96,7 @@ func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, res
 	//                 |det( s A - w B )|
 	//     sigma_min = ------------------
 	//                 norm( s A - w B )
-	cnorm = maxf64(math.Abs(cr11)+math.Abs(ci11)+math.Abs(cr21), math.Abs(cr12)+math.Abs(ci12)+math.Abs(cr22)+math.Abs(ci22), safmin)
+	cnorm = math.Max(math.Abs(cr11)+math.Abs(ci11)+math.Abs(cr21), math.Max(math.Abs(cr12)+math.Abs(ci12)+math.Abs(cr22)+math.Abs(ci22), safmin))
 	cscale = one / math.Sqrt(cnorm)
 	detr = (cscale*cr11)*(cscale*cr22) - (cscale*ci11)*(cscale*ci22) - (cscale*cr12)*(cscale*cr21)
 	deti = (cscale*cr11)*(cscale*ci22) + (cscale*ci11)*(cscale*cr22) - (cscale*ci12)*(cscale*cr21)

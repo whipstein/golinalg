@@ -71,7 +71,7 @@ func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKLSE   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
@@ -79,18 +79,18 @@ func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKLSE   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
 			//           Generate the right-hand sides C and D for the LSE.
-			Dlarhs([]byte("DGE"), toPtrByte('N'), 'U', 'N', &m, &n, toPtr(maxint(m-1, 0)), toPtr(maxint(n-1, 0)), func() *int { y := 1; return &y }(), a.Matrix(lda, opts), &lda, x.MatrixOff(4*(*nmax)+1-1, maxint(n, 1), opts), toPtr(maxint(n, 1)), x.Matrix(maxint(m, 1), opts), toPtr(maxint(m, 1)), iseed, &iinfo)
+			Dlarhs([]byte("DGE"), toPtrByte('N'), 'U', 'N', &m, &n, toPtr(max(m-1, 0)), toPtr(max(n-1, 0)), func() *int { y := 1; return &y }(), a.Matrix(lda, opts), &lda, x.MatrixOff(4*(*nmax), max(n, 1), opts), toPtr(max(n, 1)), x.Matrix(max(m, 1), opts), toPtr(max(m, 1)), iseed, &iinfo)
 
-			Dlarhs([]byte("DGE"), toPtrByte('C'), 'U', 'N', &p, &n, toPtr(maxint(p-1, 0)), toPtr(maxint(n-1, 0)), func() *int { y := 1; return &y }(), b.Matrix(ldb, opts), &ldb, x.MatrixOff(4*(*nmax)+1-1, maxint(n, 1), opts), toPtr(maxint(n, 1)), x.MatrixOff(2*(*nmax)+1-1, maxint(p, 1), opts), toPtr(maxint(p, 1)), iseed, &iinfo)
+			Dlarhs([]byte("DGE"), toPtrByte('C'), 'U', 'N', &p, &n, toPtr(max(p-1, 0)), toPtr(max(n-1, 0)), func() *int { y := 1; return &y }(), b.Matrix(ldb, opts), &ldb, x.MatrixOff(4*(*nmax), max(n, 1), opts), toPtr(max(n, 1)), x.MatrixOff(2*(*nmax), max(p, 1), opts), toPtr(max(p, 1)), iseed, &iinfo)
 
 			nt = 2
 
-			Dlsets(&m, &p, &n, a.Matrix(lda, opts), af.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), bf.Matrix(ldb, opts), &ldb, x, x.Off((*nmax)+1-1), x.Off(2*(*nmax)+1-1), x.Off(3*(*nmax)+1-1), x.Off(4*(*nmax)+1-1), work, &lwork, rwork, result)
+			Dlsets(&m, &p, &n, a.Matrix(lda, opts), af.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), bf.Matrix(ldb, opts), &ldb, x, x.Off((*nmax)), x.Off(2*(*nmax)), x.Off(3*(*nmax)), x.Off(4*(*nmax)), work, &lwork, rwork, result)
 
 			//           Print information about the tests that did not
 			//           pass the threshold.

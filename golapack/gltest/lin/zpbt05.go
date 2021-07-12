@@ -42,18 +42,18 @@ func Zpbt05(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMat
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
 	upper = uplo == 'U'
-	nz = 2*maxint(*kd, (*n)-1) + 1
+	nz = 2*max(*kd, (*n)-1) + 1
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Izamax(*n, x.CVector(0, j-1), 1)
-		xnorm = maxf64(Cabs1(x.Get(imax-1, j-1)), unfl)
+		imax = goblas.Izamax(*n, x.CVector(0, j-1, 1))
+		xnorm = math.Max(Cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {
-			diff = maxf64(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diff = math.Max(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -68,7 +68,7 @@ func Zpbt05(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMat
 	label20:
 		;
 		if diff/xnorm <= ferr.Get(j-1) {
-			errbnd = maxf64(errbnd, (diff/xnorm)/ferr.Get(j-1))
+			errbnd = math.Max(errbnd, (diff/xnorm)/ferr.Get(j-1))
 		} else {
 			errbnd = one / eps
 		}
@@ -82,33 +82,33 @@ func Zpbt05(uplo byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMat
 		for i = 1; i <= (*n); i++ {
 			tmp = Cabs1(b.Get(i-1, k-1))
 			if upper {
-				for j = maxint(i-(*kd), 1); j <= i-1; j++ {
+				for j = max(i-(*kd), 1); j <= i-1; j++ {
 					tmp = tmp + Cabs1(ab.Get((*kd)+1-i+j-1, i-1))*Cabs1(x.Get(j-1, k-1))
 				}
-				tmp = tmp + math.Abs(ab.GetRe((*kd)+1-1, i-1))*Cabs1(x.Get(i-1, k-1))
-				for j = i + 1; j <= minint(i+(*kd), *n); j++ {
+				tmp = tmp + math.Abs(ab.GetRe((*kd), i-1))*Cabs1(x.Get(i-1, k-1))
+				for j = i + 1; j <= min(i+(*kd), *n); j++ {
 					tmp = tmp + Cabs1(ab.Get((*kd)+1+i-j-1, j-1))*Cabs1(x.Get(j-1, k-1))
 				}
 			} else {
-				for j = maxint(i-(*kd), 1); j <= i-1; j++ {
+				for j = max(i-(*kd), 1); j <= i-1; j++ {
 					tmp = tmp + Cabs1(ab.Get(1+i-j-1, j-1))*Cabs1(x.Get(j-1, k-1))
 				}
 				tmp = tmp + math.Abs(ab.GetRe(0, i-1))*Cabs1(x.Get(i-1, k-1))
-				for j = i + 1; j <= minint(i+(*kd), *n); j++ {
+				for j = i + 1; j <= min(i+(*kd), *n); j++ {
 					tmp = tmp + Cabs1(ab.Get(1+j-i-1, i-1))*Cabs1(x.Get(j-1, k-1))
 				}
 			}
 			if i == 1 {
 				axbi = tmp
 			} else {
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/maxf64(axbi, float64(nz)*unfl))
+		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/math.Max(axbi, float64(nz)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {
-			reslts.Set(1, maxf64(reslts.Get(1), tmp))
+			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
 }

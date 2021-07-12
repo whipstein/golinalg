@@ -180,7 +180,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 0
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -321,11 +321,11 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -338,19 +338,19 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				adumma[0] = ' '
-				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n+1-1), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n+1-1), &iinfo)
+				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 				if n >= 4 {
 					golapack.Dlaset('F', func() *int { y := 2; return &y }(), &n, &zero, &zero, a, lda)
 					golapack.Dlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &zero, &zero, a.Off(2, 0), lda)
@@ -360,7 +360,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else {
 
@@ -370,7 +370,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -384,7 +384,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				} else {
 					nnwork = 5*n + 2*int(math.Pow(float64(n), 2))
 				}
-				nnwork = maxint(nnwork, 1)
+				nnwork = max(nnwork, 1)
 
 				//              Initialize RESULT
 				for j = 1; j <= 13; j++ {
@@ -408,7 +408,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						t.Fail()
 						result.Set(1+rsub-1, ulpinv)
 						fmt.Printf(" DDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEES1", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						goto label220
 					}
 
@@ -422,20 +422,20 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						}
 					}
 					for i = 1; i <= n-2; i++ {
-						if h.Get(i+1-1, i-1) != zero && h.Get(i+2-1, i+1-1) != zero {
+						if h.Get(i, i-1) != zero && h.Get(i+2-1, i) != zero {
 							result.Set(1+rsub-1, ulpinv)
 						}
 					}
 					for i = 1; i <= n-1; i++ {
-						if h.Get(i+1-1, i-1) != zero {
-							if h.Get(i-1, i-1) != h.Get(i+1-1, i+1-1) || h.Get(i-1, i+1-1) == zero || math.Copysign(one, h.Get(i+1-1, i-1)) == math.Copysign(one, h.Get(i-1, i+1-1)) {
+						if h.Get(i, i-1) != zero {
+							if h.Get(i-1, i-1) != h.Get(i, i) || h.Get(i-1, i) == zero || math.Copysign(one, h.Get(i, i-1)) == math.Copysign(one, h.Get(i-1, i)) {
 								result.Set(1+rsub-1, ulpinv)
 							}
 						}
 					}
 
 					//                 Do Tests (2) and (3) or Tests (8) and (9)
-					lwork = maxint(1, 2*n*n)
+					lwork = max(1, 2*n*n)
 					Dhst01(&n, func() *int { y := 1; return &y }(), &n, a, lda, h, lda, vs, ldvs, work, &lwork, res)
 					result.Set(2+rsub-1, res.Get(0))
 					result.Set(3+rsub-1, res.Get(1))
@@ -456,12 +456,12 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						}
 					}
 					for i = 1; i <= n-1; i++ {
-						if h.Get(i+1-1, i-1) != zero {
-							tmp = math.Sqrt(math.Abs(h.Get(i+1-1, i-1))) * math.Sqrt(math.Abs(h.Get(i-1, i+1-1)))
-							result.Set(4+rsub-1, maxf64(result.Get(4+rsub-1), math.Abs(wi.Get(i-1)-tmp)/maxf64(ulp*tmp, unfl)))
-							result.Set(4+rsub-1, maxf64(result.Get(4+rsub-1), math.Abs(wi.Get(i+1-1)+tmp)/maxf64(ulp*tmp, unfl)))
+						if h.Get(i, i-1) != zero {
+							tmp = math.Sqrt(math.Abs(h.Get(i, i-1))) * math.Sqrt(math.Abs(h.Get(i-1, i)))
+							result.Set(4+rsub-1, math.Max(result.Get(4+rsub-1), math.Abs(wi.Get(i-1)-tmp)/math.Max(ulp*tmp, unfl)))
+							result.Set(4+rsub-1, math.Max(result.Get(4+rsub-1), math.Abs(wi.Get(i)+tmp)/math.Max(ulp*tmp, unfl)))
 						} else if i > 1 {
-							if h.Get(i+1-1, i-1) == zero && h.Get(i-1, i-1-1) == zero && wi.Get(i-1) != zero {
+							if h.Get(i, i-1) == zero && h.Get(i-1, i-1-1) == zero && wi.Get(i-1) != zero {
 								result.Set(4+rsub-1, ulpinv)
 							}
 						}
@@ -474,7 +474,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						t.Fail()
 						result.Set(5+rsub-1, ulpinv)
 						fmt.Printf(" DDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEES2", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						goto label220
 					}
 
@@ -504,7 +504,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 								knteig = knteig + 1
 							}
 							if i < n {
-								if (Dslect(wr.GetPtr(i+1-1), wi.GetPtr(i+1-1)) || Dslect(wr.GetPtr(i+1-1), toPtrf64(-wi.Get(i+1-1)))) && (!(Dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || Dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))))) && iinfo != n+2 {
+								if (Dslect(wr.GetPtr(i), wi.GetPtr(i)) || Dslect(wr.GetPtr(i), toPtrf64(-wi.Get(i)))) && (!(Dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || Dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))))) && iinfo != n+2 {
 									result.Set(12, ulpinv)
 								}
 							}

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,7 +49,7 @@ func Zgetc2(n *int, a *mat.CMatrix, lda *int, ipiv, jpiv *[]int, info *int) {
 	//     Factorize A using complete pivoting.
 	//     Set pivots less than SMIN to SMIN
 	for i = 1; i <= (*n)-1; i++ {
-		//        Find maxint element in matrix A
+		//        Find max element in matrix A
 		xmax = zero
 		for ip = i; ip <= (*n); ip++ {
 			for jp = i; jp <= (*n); jp++ {
@@ -59,18 +61,18 @@ func Zgetc2(n *int, a *mat.CMatrix, lda *int, ipiv, jpiv *[]int, info *int) {
 			}
 		}
 		if i == 1 {
-			smin = maxf64(eps*xmax, smlnum)
+			smin = math.Max(eps*xmax, smlnum)
 		}
 
 		//        Swap rows
 		if ipv != i {
-			goblas.Zswap(*n, a.CVector(ipv-1, 0), *lda, a.CVector(i-1, 0), *lda)
+			goblas.Zswap(*n, a.CVector(ipv-1, 0, *lda), a.CVector(i-1, 0, *lda))
 		}
 		(*ipiv)[i-1] = ipv
 
 		//        Swap columns
 		if jpv != i {
-			goblas.Zswap(*n, a.CVector(0, jpv-1), 1, a.CVector(0, i-1), 1)
+			goblas.Zswap(*n, a.CVector(0, jpv-1, 1), a.CVector(0, i-1, 1))
 		}
 		(*jpiv)[i-1] = jpv
 
@@ -82,7 +84,7 @@ func Zgetc2(n *int, a *mat.CMatrix, lda *int, ipiv, jpiv *[]int, info *int) {
 		for j = i + 1; j <= (*n); j++ {
 			a.Set(j-1, i-1, a.Get(j-1, i-1)/a.Get(i-1, i-1))
 		}
-		err = goblas.Zgeru((*n)-i, (*n)-i, -complex(one, 0), a.CVector(i+1-1, i-1), 1, a.CVector(i-1, i+1-1), *lda, a.Off(i+1-1, i+1-1), *lda)
+		err = goblas.Zgeru((*n)-i, (*n)-i, -complex(one, 0), a.CVector(i, i-1, 1), a.CVector(i-1, i, *lda), a.Off(i, i))
 	}
 
 	if a.GetMag((*n)-1, (*n)-1) < smin {

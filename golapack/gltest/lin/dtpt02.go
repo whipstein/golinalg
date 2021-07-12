@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -46,15 +48,15 @@ func Dtpt02(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, x *mat.Matrix,
 	//        norm(op(A)*x - b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Dcopy(*n, x.Vector(0, j-1), 1, work, 1)
-		err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work, 1)
-		goblas.Daxpy(*n, -one, b.Vector(0, j-1), 1, work, 1)
-		bnorm = goblas.Dasum(*n, work, 1)
-		xnorm = goblas.Dasum(*n, x.Vector(0, j-1), 1)
+		goblas.Dcopy(*n, x.Vector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, work.Off(0, 1))
+		goblas.Daxpy(*n, -one, b.Vector(0, j-1, 1), work.Off(0, 1))
+		bnorm = goblas.Dasum(*n, work.Off(0, 1))
+		xnorm = goblas.Dasum(*n, x.Vector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

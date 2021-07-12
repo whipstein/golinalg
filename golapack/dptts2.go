@@ -17,7 +17,7 @@ func Dptts2(n, nrhs *int, d, e *mat.Vector, b *mat.Matrix, ldb *int) {
 	//     Quick return if possible
 	if (*n) <= 1 {
 		if (*n) == 1 {
-			goblas.Dscal(*nrhs, 1./d.Get(0), b.VectorIdx(0), *ldb)
+			goblas.Dscal(*nrhs, 1./d.Get(0), b.VectorIdx(0, *ldb))
 		}
 		return
 	}
@@ -33,7 +33,7 @@ func Dptts2(n, nrhs *int, d, e *mat.Vector, b *mat.Matrix, ldb *int) {
 		//           Solve D * L**T * x = b.
 		b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)/d.Get((*n)-1))
 		for i = (*n) - 1; i >= 1; i-- {
-			b.Set(i-1, j-1, b.Get(i-1, j-1)/d.Get(i-1)-b.Get(i+1-1, j-1)*e.Get(i-1))
+			b.Set(i-1, j-1, b.Get(i-1, j-1)/d.Get(i-1)-b.Get(i, j-1)*e.Get(i-1))
 		}
 	}
 }

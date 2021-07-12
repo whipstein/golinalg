@@ -42,18 +42,18 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	upper = uplo == 'U'
 	notran = trans == 'N'
 	unit = diag == 'U'
-	nz = minint(*kd, (*n)-1) + 1
+	nz = min(*kd, (*n)-1) + 1
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1), 1)
-		xnorm = maxf64(math.Abs(x.Get(imax-1, j-1)), unfl)
+		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {
-			diff = maxf64(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -68,7 +68,7 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	label20:
 		;
 		if diff/xnorm <= ferr.Get(j-1) {
-			errbnd = maxf64(errbnd, (diff/xnorm)/ferr.Get(j-1))
+			errbnd = math.Max(errbnd, (diff/xnorm)/ferr.Get(j-1))
 		} else {
 			errbnd = one / eps
 		}
@@ -87,7 +87,7 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if upper {
 				if !notran {
-					for j = maxint(i-(*kd), 1); j <= i-ifu; j++ {
+					for j = max(i-(*kd), 1); j <= i-ifu; j++ {
 						tmp = tmp + math.Abs(ab.Get((*kd)+1-i+j-1, i-1))*math.Abs(x.Get(j-1, k-1))
 					}
 					if unit {
@@ -97,13 +97,13 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 					if unit {
 						tmp = tmp + math.Abs(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= minint(i+(*kd), *n); j++ {
+					for j = i + ifu; j <= min(i+(*kd), *n); j++ {
 						tmp = tmp + math.Abs(ab.Get((*kd)+1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
 					}
 				}
 			} else {
 				if notran {
-					for j = maxint(i-(*kd), 1); j <= i-ifu; j++ {
+					for j = max(i-(*kd), 1); j <= i-ifu; j++ {
 						tmp = tmp + math.Abs(ab.Get(1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
 					}
 					if unit {
@@ -113,7 +113,7 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 					if unit {
 						tmp = tmp + math.Abs(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= minint(i+(*kd), *n); j++ {
+					for j = i + ifu; j <= min(i+(*kd), *n); j++ {
 						tmp = tmp + math.Abs(ab.Get(1+j-i-1, i-1))*math.Abs(x.Get(j-1, k-1))
 					}
 				}
@@ -121,14 +121,14 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 			if i == 1 {
 				axbi = tmp
 			} else {
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/maxf64(axbi, float64(nz)*unfl))
+		tmp = berr.Get(k-1) / (float64(nz)*eps + float64(nz)*unfl/math.Max(axbi, float64(nz)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {
-			reslts.Set(1, maxf64(reslts.Get(1), tmp))
+			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
 }

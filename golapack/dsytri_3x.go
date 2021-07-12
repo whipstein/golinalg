@@ -36,7 +36,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 
@@ -95,18 +95,18 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			if (*ipiv)[k-1] > 0 {
 				//              1 x 1 diagonal NNB
 				_work.Set(k-1, invd-1, one/a.Get(k-1, k-1))
-				_work.Set(k-1, invd+1-1, zero)
+				_work.Set(k-1, invd, zero)
 			} else {
 				//              2 x 2 diagonal NNB
-				t = _work.Get(k+1-1, 0)
+				t = _work.Get(k, 0)
 				ak = a.Get(k-1, k-1) / t
-				akp1 = a.Get(k+1-1, k+1-1) / t
-				akkp1 = _work.Get(k+1-1, 0) / t
+				akp1 = a.Get(k, k) / t
+				akkp1 = _work.Get(k, 0) / t
 				d = t * (ak*akp1 - one)
 				_work.Set(k-1, invd-1, akp1/d)
-				_work.Set(k+1-1, invd+1-1, ak/d)
-				_work.Set(k-1, invd+1-1, -akkp1/d)
-				_work.Set(k+1-1, invd-1, _work.Get(k-1, invd+1-1))
+				_work.Set(k, invd, ak/d)
+				_work.Set(k-1, invd, -akkp1/d)
+				_work.Set(k, invd-1, _work.Get(k-1, invd))
 				k = k + 1
 			}
 			k = k + 1
@@ -163,9 +163,9 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 				} else {
 					for j = 1; j <= nnb; j++ {
 						u01IJ = _work.Get(i-1, j-1)
-						u01Ip1J = _work.Get(i+1-1, j-1)
-						_work.Set(i-1, j-1, _work.Get(i-1, invd-1)*u01IJ+_work.Get(i-1, invd+1-1)*u01Ip1J)
-						_work.Set(i+1-1, j-1, _work.Get(i+1-1, invd-1)*u01IJ+_work.Get(i+1-1, invd+1-1)*u01Ip1J)
+						u01Ip1J = _work.Get(i, j-1)
+						_work.Set(i-1, j-1, _work.Get(i-1, invd-1)*u01IJ+_work.Get(i-1, invd)*u01Ip1J)
+						_work.Set(i, j-1, _work.Get(i, invd-1)*u01IJ+_work.Get(i, invd)*u01Ip1J)
 					}
 					i = i + 1
 				}
@@ -182,9 +182,9 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 				} else {
 					for j = i; j <= nnb; j++ {
 						u11IJ = _work.Get(u11+i-1, j-1)
-						u11Ip1J = _work.Get(u11+i+1-1, j-1)
-						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1)+_work.Get(cut+i-1, invd+1-1)*_work.Get(u11+i+1-1, j-1))
-						_work.Set(u11+i+1-1, j-1, _work.Get(cut+i+1-1, invd-1)*u11IJ+_work.Get(cut+i+1-1, invd+1-1)*u11Ip1J)
+						u11Ip1J = _work.Get(u11+i, j-1)
+						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1)+_work.Get(cut+i-1, invd)*_work.Get(u11+i, j-1))
+						_work.Set(u11+i, j-1, _work.Get(cut+i, invd-1)*u11IJ+_work.Get(cut+i, invd)*u11Ip1J)
 					}
 					i = i + 1
 				}
@@ -192,7 +192,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           U11**T * invD1 * U11 -> U11
-			err = goblas.Dtrmm(mat.Left, mat.Upper, mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut+1-1, cut+1-1), *lda, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+			err = goblas.Dtrmm(mat.Left, mat.Upper, mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
 
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
@@ -201,7 +201,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           U01**T * invD * U01 -> A( CUT+I, CUT+J )
-			err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, cut, one, a.Off(0, cut+1-1), *lda, _work, (*n)+(*nb)+1, zero, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+			err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, cut, one, a.Off(0, cut), _work.Off(0, 0).UpdateRows((*n)+(*nb)+1), zero, _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
 
 			//           U11 =  U11**T * invD1 * U11 + U01**T * invD * U01
 			for i = 1; i <= nnb; i++ {
@@ -211,7 +211,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           U01 =  U00**T * invD0 * U01
-			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, cut, nnb, one, a, *lda, _work, (*n)+(*nb)+1)
+			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, cut, nnb, one, a, _work.Off(0, 0).UpdateRows((*n)+(*nb)+1))
 
 			//           Update U01
 			for i = 1; i <= cut; i++ {
@@ -234,7 +234,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 		//        and 2x2 pivot cases, i.e. we don't need separate code branches
 		//        for 1x1 and 2x2 pivot cases )
 		for i = 1; i <= (*n); i++ {
-			ip = absint((*ipiv)[i-1])
+			ip = abs((*ipiv)[i-1])
 			if ip != i {
 				if i < ip {
 					Dsyswapr(uplo, n, a, lda, &i, &ip)
@@ -257,7 +257,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			if (*ipiv)[k-1] > 0 {
 				//              1 x 1 diagonal NNB
 				_work.Set(k-1, invd-1, one/a.Get(k-1, k-1))
-				_work.Set(k-1, invd+1-1, zero)
+				_work.Set(k-1, invd, zero)
 			} else {
 				//              2 x 2 diagonal NNB
 				t = _work.Get(k-1-1, 0)
@@ -267,8 +267,8 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 				d = t * (ak*akp1 - one)
 				_work.Set(k-1-1, invd-1, akp1/d)
 				_work.Set(k-1, invd-1, ak/d)
-				_work.Set(k-1, invd+1-1, -akkp1/d)
-				_work.Set(k-1-1, invd+1-1, _work.Get(k-1, invd+1-1))
+				_work.Set(k-1, invd, -akkp1/d)
+				_work.Set(k-1-1, invd, _work.Get(k-1, invd))
 				k = k - 1
 			}
 			k = k - 1
@@ -325,8 +325,8 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 					for j = 1; j <= nnb; j++ {
 						u01IJ = _work.Get(i-1, j-1)
 						u01Ip1J = _work.Get(i-1-1, j-1)
-						_work.Set(i-1, j-1, _work.Get(cut+nnb+i-1, invd-1)*u01IJ+_work.Get(cut+nnb+i-1, invd+1-1)*u01Ip1J)
-						_work.Set(i-1-1, j-1, _work.Get(cut+nnb+i-1-1, invd+1-1)*u01IJ+_work.Get(cut+nnb+i-1-1, invd-1)*u01Ip1J)
+						_work.Set(i-1, j-1, _work.Get(cut+nnb+i-1, invd-1)*u01IJ+_work.Get(cut+nnb+i-1, invd)*u01Ip1J)
+						_work.Set(i-1-1, j-1, _work.Get(cut+nnb+i-1-1, invd)*u01IJ+_work.Get(cut+nnb+i-1-1, invd-1)*u01Ip1J)
 					}
 					i = i - 1
 				}
@@ -344,8 +344,8 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 					for j = 1; j <= nnb; j++ {
 						u11IJ = _work.Get(u11+i-1, j-1)
 						u11Ip1J = _work.Get(u11+i-1-1, j-1)
-						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1)+_work.Get(cut+i-1, invd+1-1)*u11Ip1J)
-						_work.Set(u11+i-1-1, j-1, _work.Get(cut+i-1-1, invd+1-1)*u11IJ+_work.Get(cut+i-1-1, invd-1)*u11Ip1J)
+						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1)+_work.Get(cut+i-1, invd)*u11Ip1J)
+						_work.Set(u11+i-1-1, j-1, _work.Get(cut+i-1-1, invd)*u11IJ+_work.Get(cut+i-1-1, invd-1)*u11Ip1J)
 					}
 					i = i - 1
 				}
@@ -353,7 +353,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 			}
 
 			//           L11**T * invD1 * L11 -> L11
-			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut+1-1, cut+1-1), *lda, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
 
 			for i = 1; i <= nnb; i++ {
 				for j = 1; j <= i; j++ {
@@ -363,7 +363,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 
 			if (cut + nnb) < (*n) {
 				//              L21**T * invD2*L21 -> A( CUT+I, CUT+J )
-				err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, (*n)-nnb-cut, one, a.Off(cut+nnb+1-1, cut+1-1), *lda, _work, (*n)+(*nb)+1, zero, _work.Off(u11+1-1, 0), (*n)+(*nb)+1)
+				err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, (*n)-nnb-cut, one, a.Off(cut+nnb, cut), _work.Off(0, 0).UpdateRows((*n)+(*nb)+1), zero, _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
 
 				//              L11 =  L11**T * invD1 * L11 + U01**T * invD * U01
 				for i = 1; i <= nnb; i++ {
@@ -373,7 +373,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 				}
 
 				//              L01 =  L22**T * invD2 * L21
-				err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, (*n)-nnb-cut, nnb, one, a.Off(cut+nnb+1-1, cut+nnb+1-1), *lda, _work, (*n)+(*nb)+1)
+				err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, (*n)-nnb-cut, nnb, one, a.Off(cut+nnb, cut+nnb), _work.Off(0, 0).UpdateRows((*n)+(*nb)+1))
 
 				//              Update L21
 				for i = 1; i <= (*n)-cut-nnb; i++ {
@@ -407,7 +407,7 @@ func Dsytri3x(uplo byte, n *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[
 		//        and 2x2 pivot cases, i.e. we don't need separate code branches
 		//        for 1x1 and 2x2 pivot cases )
 		for i = (*n); i >= 1; i-- {
-			ip = absint((*ipiv)[i-1])
+			ip = abs((*ipiv)[i-1])
 			if ip != i {
 				if i < ip {
 					Dsyswapr(uplo, n, a, lda, &i, &ip)

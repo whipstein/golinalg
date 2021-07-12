@@ -41,9 +41,9 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 		(*info) = -4
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else {
 		if valeig {
@@ -51,9 +51,9 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 				(*info) = -11
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -12
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -13
 			}
 		}
@@ -65,9 +65,9 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 	}
 
 	if (*info) == 0 {
-		lwkmin = maxint(1, 8*(*n))
+		lwkmin = max(1, 8*(*n))
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = maxint(lwkmin, (nb+3)*(*n))
+		lwkopt = max(lwkmin, (nb+3)*(*n))
 		work.Set(0, float64(lwkopt))
 
 		if (*lwork) < lwkmin && !lquery {
@@ -113,7 +113,7 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 				trans = 'T'
 			}
 
-			err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, one, b, *ldb, z, *ldz)
+			err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, one, b, z)
 
 		} else if (*itype) == 3 {
 			//           For B*A*x=(lambda)*x;
@@ -124,7 +124,7 @@ func Dsygvx(itype *int, jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int
 				trans = 'N'
 			}
 
-			err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, one, b, *ldb, z, *ldz)
+			err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, *m, one, b, z)
 		}
 	}
 

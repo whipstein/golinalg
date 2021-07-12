@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -42,9 +44,9 @@ func Dposvx(fact, uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldaf) < maxint(1, *n) {
+	} else if (*ldaf) < max(1, *n) {
 		(*info) = -8
 	} else if fact == 'F' && !(rcequ || *equed == 'N') {
 		(*info) = -9
@@ -53,21 +55,21 @@ func Dposvx(fact, uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 			smin = bignum
 			smax = zero
 			for j = 1; j <= (*n); j++ {
-				smin = minf64(smin, s.Get(j-1))
-				smax = maxf64(smax, s.Get(j-1))
+				smin = math.Min(smin, s.Get(j-1))
+				smax = math.Max(smax, s.Get(j-1))
 			}
 			if smin <= zero {
 				(*info) = -10
 			} else if (*n) > 0 {
-				scond = maxf64(smin, smlnum) / minf64(smax, bignum)
+				scond = math.Max(smin, smlnum) / math.Min(smax, bignum)
 			} else {
 				scond = one
 			}
 		}
 		if (*info) == 0 {
-			if (*ldb) < maxint(1, *n) {
+			if (*ldb) < max(1, *n) {
 				(*info) = -12
-			} else if (*ldx) < maxint(1, *n) {
+			} else if (*ldx) < max(1, *n) {
 				(*info) = -14
 			}
 		}

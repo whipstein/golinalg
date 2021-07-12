@@ -1,6 +1,8 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -47,15 +49,15 @@ func Ztbt02(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	//        norm(op(A)*x - b) / ( norm(op(A)) * norm(x) * EPS ).
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		goblas.Zcopy(*n, x.CVector(0, j-1), 1, work, 1)
-		err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, *ldab, work, 1)
-		goblas.Zaxpy(*n, complex(-one, 0), b.CVector(0, j-1), 1, work, 1)
-		bnorm = goblas.Dzasum(*n, work, 1)
-		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1), 1)
+		goblas.Zcopy(*n, x.CVector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, work.Off(0, 1))
+		goblas.Zaxpy(*n, complex(-one, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
+		bnorm = goblas.Dzasum(*n, work.Off(0, 1))
+		xnorm = goblas.Dzasum(*n, x.CVector(0, j-1, 1))
 		if xnorm <= zero {
 			(*resid) = one / eps
 		} else {
-			(*resid) = maxf64(*resid, ((bnorm/anorm)/xnorm)/eps)
+			(*resid) = math.Max(*resid, ((bnorm/anorm)/xnorm)/eps)
 		}
 	}
 }

@@ -50,28 +50,28 @@ func Zpbtf2(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 		return
 	}
 
-	kld = maxint(1, (*ldab)-1)
+	kld = max(1, (*ldab)-1)
 
 	if upper {
 		//        Compute the Cholesky factorization A = U**H * U.
 		for j = 1; j <= (*n); j++ {
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = ab.GetRe((*kd)+1-1, j-1)
+			ajj = ab.GetRe((*kd), j-1)
 			if ajj <= zero {
-				ab.SetRe((*kd)+1-1, j-1, ajj)
+				ab.SetRe((*kd), j-1, ajj)
 				goto label30
 			}
 			ajj = math.Sqrt(ajj)
-			ab.SetRe((*kd)+1-1, j-1, ajj)
+			ab.SetRe((*kd), j-1, ajj)
 
 			//           Compute elements J+1:J+KN of row J and update the
 			//           trailing submatrix within the band.
-			kn = minint(*kd, (*n)-j)
+			kn = min(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Zdscal(kn, one/ajj, ab.CVector((*kd)-1, j+1-1), kld)
-				Zlacgv(&kn, ab.CVector((*kd)-1, j+1-1), &kld)
-				err = goblas.Zher(Upper, kn, -one, ab.CVector((*kd)-1, j+1-1), kld, ab.Off((*kd)+1-1, j+1-1).UpdateRows(kld), kld)
-				Zlacgv(&kn, ab.CVector((*kd)-1, j+1-1), &kld)
+				goblas.Zdscal(kn, one/ajj, ab.CVector((*kd)-1, j, kld))
+				Zlacgv(&kn, ab.CVector((*kd)-1, j), &kld)
+				err = goblas.Zher(Upper, kn, -one, ab.CVector((*kd)-1, j, kld), ab.Off((*kd), j).UpdateRows(kld))
+				Zlacgv(&kn, ab.CVector((*kd)-1, j), &kld)
 			}
 		}
 	} else {
@@ -88,10 +88,10 @@ func Zpbtf2(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 
 			//           Compute elements J+1:J+KN of column J and update the
 			//           trailing submatrix within the band.
-			kn = minint(*kd, (*n)-j)
+			kn = min(*kd, (*n)-j)
 			if kn > 0 {
-				goblas.Zdscal(kn, one/ajj, ab.CVector(1, j-1), 1)
-				err = goblas.Zher(Lower, kn, -one, ab.CVector(1, j-1), 1, ab.Off(0, j+1-1).UpdateRows(kld), kld)
+				goblas.Zdscal(kn, one/ajj, ab.CVector(1, j-1, 1))
+				err = goblas.Zher(Lower, kn, -one, ab.CVector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld))
 			}
 		}
 	}

@@ -42,7 +42,7 @@ func Zsteqr(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < maxint(1, *n)) {
+	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < max(1, *n)) {
 		(*info) = -6
 	}
 	if (*info) != 0 {
@@ -99,7 +99,7 @@ label10:
 			if tst == zero {
 				goto label30
 			}
-			if tst <= (math.Sqrt(d.GetMag(m-1))*math.Sqrt(d.GetMag(m+1-1)))*eps {
+			if tst <= (math.Sqrt(d.GetMag(m-1))*math.Sqrt(d.GetMag(m)))*eps {
 				e.Set(m-1, zero)
 				goto label30
 			}
@@ -150,7 +150,7 @@ label30:
 			lendm1 = lend - 1
 			for m = l; m <= lendm1; m++ {
 				tst = math.Pow(e.GetMag(m-1), 2)
-				if tst <= (eps2*d.GetMag(m-1))*d.GetMag(m+1-1)+safmin {
+				if tst <= (eps2*d.GetMag(m-1))*d.GetMag(m)+safmin {
 					goto label60
 				}
 			}
@@ -172,15 +172,15 @@ label30:
 		//        to compute its eigensystem.
 		if m == l+1 {
 			if icompz > 0 {
-				Dlaev2(d.GetPtr(l-1), e.GetPtr(l-1), d.GetPtr(l+1-1), &rt1, &rt2, &c, &s)
+				Dlaev2(d.GetPtr(l-1), e.GetPtr(l-1), d.GetPtr(l), &rt1, &rt2, &c, &s)
 				work.Set(l-1, c)
 				work.Set((*n)-1+l-1, s)
 				Zlasr('R', 'V', 'B', n, func() *int { y := 2; return &y }(), work.Off(l-1), work.Off((*n)-1+l-1), z.Off(0, l-1), ldz)
 			} else {
-				Dlae2(d.GetPtr(l-1), e.GetPtr(l-1), d.GetPtr(l+1-1), &rt1, &rt2)
+				Dlae2(d.GetPtr(l-1), e.GetPtr(l-1), d.GetPtr(l), &rt1, &rt2)
 			}
 			d.Set(l-1, rt1)
-			d.Set(l+1-1, rt2)
+			d.Set(l, rt2)
 			e.Set(l-1, zero)
 			l = l + 2
 			if l <= lend {
@@ -195,7 +195,7 @@ label30:
 		jtot = jtot + 1
 
 		//        Form shift.
-		g = (d.Get(l+1-1) - p) / (two * e.Get(l-1))
+		g = (d.Get(l) - p) / (two * e.Get(l-1))
 		r = Dlapy2(&g, &one)
 		g = d.Get(m-1) - p + (e.Get(l-1) / (g + math.Copysign(r, g)))
 
@@ -210,12 +210,12 @@ label30:
 			b = c * e.Get(i-1)
 			Dlartg(&g, &f, &c, &s, &r)
 			if i != m-1 {
-				e.Set(i+1-1, r)
+				e.Set(i, r)
 			}
-			g = d.Get(i+1-1) - p
+			g = d.Get(i) - p
 			r = (d.Get(i-1)-g)*s + two*c*b
 			p = s * r
-			d.Set(i+1-1, g+p)
+			d.Set(i, g+p)
 			g = c*r - b
 
 			//           If eigenvectors are desired, then save rotations.
@@ -320,7 +320,7 @@ label30:
 				e.Set(i-1-1, r)
 			}
 			g = d.Get(i-1) - p
-			r = (d.Get(i+1-1)-g)*s + two*c*b
+			r = (d.Get(i)-g)*s + two*c*b
 			p = s * r
 			d.Set(i-1, g+p)
 			g = c*r - b
@@ -401,7 +401,7 @@ label160:
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, k-1), 1)
+				goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, k-1, 1))
 			}
 		}
 	}

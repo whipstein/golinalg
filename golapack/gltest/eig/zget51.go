@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -53,14 +55,14 @@ func Zget51(itype, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, u
 
 	if (*itype) <= 2 {
 		//        Tests scaled by the norm(A)
-		anorm = maxf64(golapack.Zlange('1', n, n, a, lda, rwork), unfl)
+		anorm = math.Max(golapack.Zlange('1', n, n, a, lda, rwork), unfl)
 
 		if (*itype) == 1 {
 			//           ITYPE=1: Compute W = A - U B V**H
 			golapack.Zlacpy(' ', n, n, a, lda, work.CMatrix(*n, opts), n)
-			err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, u, *ldu, b, *ldb, czero, work.CMatrixOff(powint(*n, 2)+1-1, *n, opts), *n)
+			err = goblas.Zgemm(NoTrans, NoTrans, *n, *n, *n, cone, u, b, czero, work.CMatrixOff(pow(*n, 2), *n, opts))
 
-			err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, -cone, work.CMatrixOff(powint(*n, 2)+1-1, *n, opts), *n, v, *ldv, cone, work.CMatrix(*n, opts), *n)
+			err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, -cone, work.CMatrixOff(pow(*n, 2), *n, opts), v, cone, work.CMatrix(*n, opts))
 
 		} else {
 			//           ITYPE=2: Compute W = A - B
@@ -80,9 +82,9 @@ func Zget51(itype, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, u
 			(*result) = (wnorm / anorm) / (float64(*n) * ulp)
 		} else {
 			if anorm < one {
-				(*result) = (minf64(wnorm, float64(*n)*anorm) / anorm) / (float64(*n) * ulp)
+				(*result) = (math.Min(wnorm, float64(*n)*anorm) / anorm) / (float64(*n) * ulp)
 			} else {
-				(*result) = minf64(wnorm/anorm, float64(*n)) / (float64(*n) * ulp)
+				(*result) = math.Min(wnorm/anorm, float64(*n)) / (float64(*n) * ulp)
 			}
 		}
 
@@ -90,12 +92,12 @@ func Zget51(itype, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, u
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  U U**H - I
-		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, *ldu, u, *ldu, czero, work.CMatrix(*n, opts), *n)
+		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *n, *n, cone, u, u, czero, work.CMatrix(*n, opts))
 
 		for jdiag = 1; jdiag <= (*n); jdiag++ {
-			work.Set(((*n)+1)*(jdiag-1)+1-1, work.Get(((*n)+1)*(jdiag-1)+1-1)-cone)
+			work.Set(((*n)+1)*(jdiag-1), work.Get(((*n)+1)*(jdiag-1))-cone)
 		}
 
-		(*result) = minf64(golapack.Zlange('1', n, n, work.CMatrix(*n, opts), n, rwork), float64(*n)) / (float64(*n) * ulp)
+		(*result) = math.Min(golapack.Zlange('1', n, n, work.CMatrix(*n, opts), n, rwork), float64(*n)) / (float64(*n) * ulp)
 	}
 }

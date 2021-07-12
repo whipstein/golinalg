@@ -52,7 +52,7 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 	//     Do for each value of M in MVAL
 	for im = 1; im <= (*nm); im++ {
 		m = (*mval)[im-1]
-		lda = maxint(1, m)
+		lda = max(1, m)
 
 		//        Do for each value of N in NVAL
 		for in = 1; in <= (*nn); in++ {
@@ -94,9 +94,9 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 					if imat == 5 {
 						izero = 1
 					} else if imat == 6 {
-						izero = minint(m, n)
+						izero = min(m, n)
 					} else {
-						izero = minint(m, n)/2 + 1
+						izero = min(m, n)/2 + 1
 					}
 					ioff = (izero - 1) * lda
 					if imat < 7 {
@@ -104,7 +104,7 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 							a.Set(ioff+i-1, zero)
 						}
 					} else {
-						golapack.Dlaset('F', &m, toPtr(n-izero+1), &zero, &zero, a.MatrixOff(ioff+1-1, lda, opts), &lda)
+						golapack.Dlaset('F', &m, toPtr(n-izero+1), &zero, &zero, a.MatrixOff(ioff, lda, opts), &lda)
 					}
 				} else {
 					izero = 0
@@ -145,7 +145,7 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 						golapack.Dlacpy('F', &n, &n, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda)
 						*srnamt = "DGETRI"
 						nrhs = (*nsval)[0]
-						lwork = (*nmax) * maxint(3, nrhs)
+						lwork = (*nmax) * max(3, nrhs)
 						golapack.Dgetri(&n, ainv.Matrix(lda, opts), &lda, iwork, work.Matrix(lwork, opts), &lwork, &info)
 
 						//                    Check error code from DGETRI.
@@ -238,7 +238,7 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 							//                       Use iterative refinement to improve the
 							//                       solution.
 							*srnamt = "DGERFS"
-							golapack.Dgerfs(trans, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, toSlice(iwork, n+1-1), &info)
+							golapack.Dgerfs(trans, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, toSlice(iwork, n), &info)
 
 							//                       Check error code from DGERFS.
 							if info != 0 {
@@ -246,7 +246,7 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 							}
 
 							Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-							Dget07(trans, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, true, rwork.Off(nrhs+1-1), result.Off(5))
+							Dget07(trans, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, true, rwork.Off(nrhs), result.Off(5))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.
@@ -278,7 +278,7 @@ func Dchkge(dotype []bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int,
 							norm = 'I'
 						}
 						*srnamt = "DGECON"
-						golapack.Dgecon(norm, &n, afac.Matrix(lda, opts), &lda, &anorm, &rcond, work, toSlice(iwork, n+1-1), &info)
+						golapack.Dgecon(norm, &n, afac.Matrix(lda, opts), &lda, &anorm, &rcond, work, toSlice(iwork, n), &info)
 
 						//                       Check error code from DGECON.
 						if info != 0 {

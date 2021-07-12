@@ -56,8 +56,8 @@ func TestVector(t *testing.T) {
 		if xx.Get(ixx[i]) != yy[i*xx.Inc] || xx.Data[i] != yy[i] {
 			t.Errorf("VectorFactory failed: got %v  want %v\n", xx.Get(ixx[i]), yy[i*xx.Inc])
 		}
-		if xxx.Get(ixxx[i]) != yy[(len(y)-1-i)*absint(xxx.Inc)] || xxx.Data[i] != yy[i] {
-			t.Errorf("VectorFactory failed: got %v  want %v\n", xxx.Get(ixxx[i]), yy[(len(y)-1-i)*absint(xxx.Inc)])
+		if xxx.Get(ixxx[i]) != yy[(len(y)-1-i)*abs(xxx.Inc)] || xxx.Data[i] != yy[i] {
+			t.Errorf("VectorFactory failed: got %v  want %v\n", xxx.Get(ixxx[i]), yy[(len(y)-1-i)*abs(xxx.Inc)])
 		}
 		x.Set(i, 0.5*x.Get(i))
 		xx.Set(i, 0.5*xx.Get(i))
@@ -69,8 +69,8 @@ func TestVector(t *testing.T) {
 		if xx.Get(ixx[i]) != yy[i*xx.Inc] || xx.Data[i] != yy[i] {
 			t.Errorf("VectorFactory failed: got %v  want %v\n", xx.Get(ixx[i]), yy[i*xx.Inc])
 		}
-		if xxx.Get(ixxx[i]) != yy[(len(y)-1-i)*absint(xxx.Inc)] || xxx.Data[i] != yy[i] {
-			t.Errorf("VectorFactory failed: got %v  want %v\n", xxx.Get(ixxx[i]), yy[(len(y)-1-i)*absint(xxx.Inc)])
+		if xxx.Get(ixxx[i]) != yy[(len(y)-1-i)*abs(xxx.Inc)] || xxx.Data[i] != yy[i] {
+			t.Errorf("VectorFactory failed: got %v  want %v\n", xxx.Get(ixxx[i]), yy[(len(y)-1-i)*abs(xxx.Inc)])
 		}
 	}
 
@@ -106,8 +106,8 @@ func TestVector(t *testing.T) {
 		if xx.Get(ixx[i]) == yy[i*xx.Inc] {
 			t.Errorf("VectorFactory failed: got %v  want %v\n", xx.Get(ixx[i]), yy[i*xx.Inc])
 		}
-		if xxx.Get(ixxx[i]) == yy[(len(y)-1-i)*absint(xxx.Inc)] {
-			t.Errorf("VectorFactory failed: got %v  want %v\n", xxx.Get(ixxx[i]), yy[(len(y)-1-i)*absint(xxx.Inc)])
+		if xxx.Get(ixxx[i]) == yy[(len(y)-1-i)*abs(xxx.Inc)] {
+			t.Errorf("VectorFactory failed: got %v  want %v\n", xxx.Get(ixxx[i]), yy[(len(y)-1-i)*abs(xxx.Inc)])
 		}
 	}
 }

@@ -19,7 +19,7 @@ func Zgerq2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *i
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -27,7 +27,7 @@ func Zgerq2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *i
 		return
 	}
 
-	k = minint(*m, *n)
+	k = min(*m, *n)
 	for i = k; i >= 1; i-- {
 		//        Generate elementary reflector H(i) to annihilate
 		//        A(m-k+i,1:n-k+i-1)

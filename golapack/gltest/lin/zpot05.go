@@ -47,11 +47,11 @@ func Zpot05(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, l
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Izamax(*n, x.CVector(0, j-1), 1)
-		xnorm = maxf64(Cabs1(x.Get(imax-1, j-1)), unfl)
+		imax = goblas.Izamax(*n, x.CVector(0, j-1, 1))
+		xnorm = math.Max(Cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= (*n); i++ {
-			diff = maxf64(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diff = math.Max(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -66,7 +66,7 @@ func Zpot05(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, l
 	label20:
 		;
 		if diff/xnorm <= ferr.Get(j-1) {
-			errbnd = maxf64(errbnd, (diff/xnorm)/ferr.Get(j-1))
+			errbnd = math.Max(errbnd, (diff/xnorm)/ferr.Get(j-1))
 		} else {
 			errbnd = one / eps
 		}
@@ -99,14 +99,14 @@ func Zpot05(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, l
 			if i == 1 {
 				axbi = tmp
 			} else {
-				axbi = minf64(axbi, tmp)
+				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / ((float64(*n)+1)*eps + (float64(*n)+1)*unfl/maxf64(axbi, (float64(*n)+1)*unfl))
+		tmp = berr.Get(k-1) / ((float64(*n)+1)*eps + (float64(*n)+1)*unfl/math.Max(axbi, (float64(*n)+1)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {
-			reslts.Set(1, maxf64(reslts.Get(1), tmp))
+			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
 }

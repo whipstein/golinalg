@@ -2,6 +2,7 @@ package eig
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
@@ -180,7 +181,7 @@ func Zchkbk(t *testing.T) {
 				if cabs1(e.Get(i-1, j-1)) > safmin {
 					x = x / cabs1(e.Get(i-1, j-1))
 				}
-				vmax = maxf64(vmax, x)
+				vmax = math.Max(vmax, x)
 			}
 		}
 

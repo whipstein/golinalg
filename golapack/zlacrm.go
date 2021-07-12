@@ -30,7 +30,7 @@ func Zlacrm(m, n *int, a *mat.CMatrix, lda *int, b *mat.Matrix, ldb *int, c *mat
 	}
 
 	l = (*m)*(*n) + 1
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, rwork.Matrix(*m, opts), *m, b, *ldb, zero, rwork.MatrixOff(l-1, *m, opts), *m)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, rwork.Matrix(*m, opts), b, zero, rwork.MatrixOff(l-1, *m, opts))
 	for j = 1; j <= (*n); j++ {
 		for i = 1; i <= (*m); i++ {
 			c.Set(i-1, j-1, rwork.GetCmplx(l+(j-1)*(*m)+i-1-1))
@@ -42,7 +42,7 @@ func Zlacrm(m, n *int, a *mat.CMatrix, lda *int, b *mat.Matrix, ldb *int, c *mat
 			rwork.Set((j-1)*(*m)+i-1, a.GetIm(i-1, j-1))
 		}
 	}
-	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, rwork.Matrix(*m, opts), *m, b, *ldb, zero, rwork.MatrixOff(l-1, *m, opts), *m)
+	err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, rwork.Matrix(*m, opts), b, zero, rwork.MatrixOff(l-1, *m, opts))
 	for j = 1; j <= (*n); j++ {
 		for i = 1; i <= (*m); i++ {
 			c.Set(i-1, j-1, complex(c.GetRe(i-1, j-1), rwork.Get(l+(j-1)*(*m)+i-1-1)))

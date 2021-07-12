@@ -63,7 +63,7 @@ func Zchkheaa(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 			fmt.Printf(" Invalid input value: %4s=%6d; must be <=%6d\n", "M ", n, *nmax)
 			goto label180
 		}
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -143,7 +143,7 @@ func Zchkheaa(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							//                       Set the first IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, czero)
 								}
@@ -154,7 +154,7 @@ func Zchkheaa(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							//                       Set the last IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, czero)
 								}
@@ -188,7 +188,7 @@ func Zchkheaa(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					//                 matrix. IWORK stores details of the interchanges and
 					//                 the block structure of D. AINV is a work array for
 					//                 block factorization, LWORK is the length of AINV.
-					lwork = maxint(1, (nb+1)*lda)
+					lwork = max(1, (nb+1)*lda)
 					*srnamt = "ZHETRF_AA"
 					golapack.Zhetrfaa(uplo, &n, afac.CMatrix(lda, opts), &lda, iwork, ainv, &lwork, &info)
 
@@ -256,7 +256,7 @@ func Zchkheaa(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 						golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 						//
 						*srnamt = "ZHETRS_AA"
-						lwork = maxint(1, 3*n-2)
+						lwork = max(1, 3*n-2)
 						golapack.Zhetrsaa(uplo, &n, &nrhs, afac.CMatrix(lda, opts), &lda, iwork, x.CMatrix(lda, opts), &lda, work, &lwork, &info)
 
 						//                    Check error code from ZHETRS and handle error.

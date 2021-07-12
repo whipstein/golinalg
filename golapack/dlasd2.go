@@ -63,9 +63,9 @@ func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat
 	z1 = (*alpha) * vt.Get(nlp1-1, nlp1-1)
 	z.Set(0, z1)
 	for i = (*nl); i >= 1; i-- {
-		z.Set(i+1-1, (*alpha)*vt.Get(i-1, nlp1-1))
-		d.Set(i+1-1, d.Get(i-1))
-		(*idxq)[i+1-1] = (*idxq)[i-1] + 1
+		z.Set(i, (*alpha)*vt.Get(i-1, nlp1-1))
+		d.Set(i, d.Get(i-1))
+		(*idxq)[i] = (*idxq)[i-1] + 1
 	}
 
 	//     Generate the second part of the vector Z.
@@ -105,8 +105,8 @@ func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat
 
 	//     Calculate the allowable deflation tolerance
 	eps = Dlamch(Epsilon)
-	tol = maxf64(math.Abs(*alpha), math.Abs(*beta))
-	tol = eight * eps * maxf64(math.Abs(d.Get(n-1)), tol)
+	tol = math.Max(math.Abs(*alpha), math.Abs(*beta))
+	tol = eight * eps * math.Max(math.Abs(d.Get(n-1)), tol)
 
 	//     There are 2 kinds of deflation -- first a value in the z-vector
 	//     is small, second two (or more) singular values are very close
@@ -173,16 +173,16 @@ label100:
 
 			//           Apply back the Givens rotation to the left and right
 			//           singular vector matrices.
-			idxjp = (*idxq)[(*idx)[jprev-1]+1-1]
-			idxj = (*idxq)[(*idx)[j-1]+1-1]
+			idxjp = (*idxq)[(*idx)[jprev-1]]
+			idxj = (*idxq)[(*idx)[j-1]]
 			if idxjp <= nlp1 {
 				idxjp = idxjp - 1
 			}
 			if idxj <= nlp1 {
 				idxj = idxj - 1
 			}
-			goblas.Drot(n, u.Vector(0, idxjp-1), 1, u.Vector(0, idxj-1), 1, c, s)
-			goblas.Drot(m, vt.Vector(idxjp-1, 0), *ldvt, vt.Vector(idxj-1, 0), *ldvt, c, s)
+			goblas.Drot(n, u.Vector(0, idxjp-1, 1), u.Vector(0, idxj-1, 1), c, s)
+			goblas.Drot(m, vt.Vector(idxjp-1, 0), vt.Vector(idxj-1, 0), c, s)
 			if (*coltyp)[j-1] != (*coltyp)[jprev-1] {
 				(*coltyp)[j-1] = 3
 			}
@@ -249,12 +249,12 @@ label120:
 	for j = 2; j <= n; j++ {
 		jp = (*idxp)[j-1]
 		dsigma.Set(j-1, d.Get(jp-1))
-		idxj = (*idxq)[(*idx)[(*idxp)[(*idxc)[j-1]-1]-1]+1-1]
+		idxj = (*idxq)[(*idx)[(*idxp)[(*idxc)[j-1]-1]-1]]
 		if idxj <= nlp1 {
 			idxj = idxj - 1
 		}
-		goblas.Dcopy(n, u.Vector(0, idxj-1), 1, u2.Vector(0, j-1), 1)
-		goblas.Dcopy(m, vt.Vector(idxj-1, 0), *ldvt, vt2.Vector(j-1, 0), *ldvt2)
+		goblas.Dcopy(n, u.Vector(0, idxj-1, 1), u2.Vector(0, j-1, 1))
+		goblas.Dcopy(m, vt.Vector(idxj-1, 0), vt2.Vector(j-1, 0))
 	}
 
 	//     Determine DSIGMA(1), DSIGMA(2) and Z(1)
@@ -282,7 +282,7 @@ label120:
 	}
 
 	//     Move the rest of the updating row to Z.
-	goblas.Dcopy((*k)-1, u2.Vector(1, 0), 1, z.Off(1), 1)
+	goblas.Dcopy((*k)-1, u2.Vector(1, 0, 1), z.Off(1, 1))
 
 	//     Determine the first column of U2, the first row of VT2 and the
 	//     last row of VT.
@@ -298,18 +298,18 @@ label120:
 			vt.Set(m-1, i-1, c*vt.Get(m-1, i-1))
 		}
 	} else {
-		goblas.Dcopy(m, vt.Vector(nlp1-1, 0), *ldvt, vt2.Vector(0, 0), *ldvt2)
+		goblas.Dcopy(m, vt.Vector(nlp1-1, 0), vt2.Vector(0, 0))
 	}
 	if m > n {
-		goblas.Dcopy(m, vt.Vector(m-1, 0), *ldvt, vt2.Vector(m-1, 0), *ldvt2)
+		goblas.Dcopy(m, vt.Vector(m-1, 0), vt2.Vector(m-1, 0))
 	}
 
 	//     The deflated singular values and their corresponding vectors go
 	//     into the back of D, U, and V respectively.
 	if n > (*k) {
-		goblas.Dcopy(n-(*k), dsigma.Off((*k)+1-1), 1, d.Off((*k)+1-1), 1)
-		Dlacpy('A', &n, toPtr(n-(*k)), u2.Off(0, (*k)+1-1), ldu2, u.Off(0, (*k)+1-1), ldu)
-		Dlacpy('A', toPtr(n-(*k)), &m, vt2.Off((*k)+1-1, 0), ldvt2, vt.Off((*k)+1-1, 0), ldvt)
+		goblas.Dcopy(n-(*k), dsigma.Off((*k), 1), d.Off((*k), 1))
+		Dlacpy('A', &n, toPtr(n-(*k)), u2.Off(0, (*k)), ldu2, u.Off(0, (*k)), ldu)
+		Dlacpy('A', toPtr(n-(*k)), &m, vt2.Off((*k), 0), ldvt2, vt.Off((*k), 0), ldvt)
 	}
 
 	//     Copy CTOT into COLTYP for referencing in DLASD3.

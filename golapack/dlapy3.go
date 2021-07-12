@@ -12,7 +12,7 @@ func Dlapy3(x, y, z *float64) (dlapy3Return float64) {
 	xabs = math.Abs(*x)
 	yabs = math.Abs(*y)
 	zabs = math.Abs(*z)
-	w = maxf64(xabs, yabs, zabs)
+	w = math.Max(xabs, math.Max(yabs, zabs))
 	if w == zero {
 		//     W can be zero for max(0,nan,0)
 		//     adding all three entries together will make sure

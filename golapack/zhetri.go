@@ -28,7 +28,7 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -81,42 +81,42 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Zcopy(k-1, a.CVector(0, k-1), 1, work, 1)
-				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, *lda, work, 1, zero, a.CVector(0, k-1), 1)
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(k-1, work, 1, a.CVector(0, k-1), 1)), 0))
+				goblas.Zcopy(k-1, a.CVector(0, k-1, 1), work.Off(0, 1))
+				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k-1, 1))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(k-1, work.Off(0, 1), a.CVector(0, k-1, 1))), 0))
 			}
 			kstep = 1
 		} else {
 			//           2 x 2 diagonal block
 			//
 			//           Invert the diagonal block.
-			t = a.GetMag(k-1, k+1-1)
+			t = a.GetMag(k-1, k)
 			ak = a.GetRe(k-1, k-1) / t
-			akp1 = a.GetRe(k+1-1, k+1-1) / t
-			akkp1 = a.Get(k-1, k+1-1) / complex(t, 0)
+			akp1 = a.GetRe(k, k) / t
+			akkp1 = a.Get(k-1, k) / complex(t, 0)
 			d = t * (ak*akp1 - one)
 			a.SetRe(k-1, k-1, akp1/d)
-			a.SetRe(k+1-1, k+1-1, ak/d)
-			a.Set(k-1, k+1-1, -akkp1/complex(d, 0))
+			a.SetRe(k, k, ak/d)
+			a.Set(k-1, k, -akkp1/complex(d, 0))
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Zcopy(k-1, a.CVector(0, k-1), 1, work, 1)
-				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, *lda, work, 1, zero, a.CVector(0, k-1), 1)
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(k-1, work, 1, a.CVector(0, k-1), 1)), 0))
-				a.Set(k-1, k+1-1, a.Get(k-1, k+1-1)-goblas.Zdotc(k-1, a.CVector(0, k-1), 1, a.CVector(0, k+1-1), 1))
-				goblas.Zcopy(k-1, a.CVector(0, k+1-1), 1, work, 1)
-				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, *lda, work, 1, zero, a.CVector(0, k+1-1), 1)
-				a.Set(k+1-1, k+1-1, a.Get(k+1-1, k+1-1)-complex(real(goblas.Zdotc(k-1, work, 1, a.CVector(0, k+1-1), 1)), 0))
+				goblas.Zcopy(k-1, a.CVector(0, k-1, 1), work.Off(0, 1))
+				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k-1, 1))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(k-1, work.Off(0, 1), a.CVector(0, k-1, 1))), 0))
+				a.Set(k-1, k, a.Get(k-1, k)-goblas.Zdotc(k-1, a.CVector(0, k-1, 1), a.CVector(0, k, 1)))
+				goblas.Zcopy(k-1, a.CVector(0, k, 1), work.Off(0, 1))
+				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k, 1))
+				a.Set(k, k, a.Get(k, k)-complex(real(goblas.Zdotc(k-1, work.Off(0, 1), a.CVector(0, k, 1))), 0))
 			}
 			kstep = 2
 		}
 
-		kp = absint((*ipiv)[k-1])
+		kp = abs((*ipiv)[k-1])
 		if kp != k {
 			//           Interchange rows and columns K and KP in the leading
 			//           submatrix A(1:k+1,1:k+1)
-			goblas.Zswap(kp-1, a.CVector(0, k-1), 1, a.CVector(0, kp-1), 1)
+			goblas.Zswap(kp-1, a.CVector(0, k-1, 1), a.CVector(0, kp-1, 1))
 			for j = kp + 1; j <= k-1; j++ {
 				temp = a.GetConj(j-1, k-1)
 				a.Set(j-1, k-1, a.GetConj(kp-1, j-1))
@@ -127,9 +127,9 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 			a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 			a.Set(kp-1, kp-1, temp)
 			if kstep == 2 {
-				temp = a.Get(k-1, k+1-1)
-				a.Set(k-1, k+1-1, a.Get(kp-1, k+1-1))
-				a.Set(kp-1, k+1-1, temp)
+				temp = a.Get(k-1, k)
+				a.Set(k-1, k, a.Get(kp-1, k))
+				a.Set(kp-1, k, temp)
 			}
 		}
 
@@ -158,9 +158,9 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 
 			//           Compute column K of the inverse.
 			if k < (*n) {
-				goblas.Zcopy((*n)-k, a.CVector(k+1-1, k-1), 1, work, 1)
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k+1-1, k+1-1), *lda, work, 1, zero, a.CVector(k+1-1, k-1), 1)
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc((*n)-k, work, 1, a.CVector(k+1-1, k-1), 1)), 0))
+				goblas.Zcopy((*n)-k, a.CVector(k, k-1, 1), work.Off(0, 1))
+				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1, 1))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc((*n)-k, work.Off(0, 1), a.CVector(k, k-1, 1))), 0))
 			}
 			kstep = 1
 		} else {
@@ -178,23 +178,23 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < (*n) {
-				goblas.Zcopy((*n)-k, a.CVector(k+1-1, k-1), 1, work, 1)
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k+1-1, k+1-1), *lda, work, 1, zero, a.CVector(k+1-1, k-1), 1)
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc((*n)-k, work, 1, a.CVector(k+1-1, k-1), 1)), 0))
-				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotc((*n)-k, a.CVector(k+1-1, k-1), 1, a.CVector(k+1-1, k-1-1), 1))
-				goblas.Zcopy((*n)-k, a.CVector(k+1-1, k-1-1), 1, work, 1)
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k+1-1, k+1-1), *lda, work, 1, zero, a.CVector(k+1-1, k-1-1), 1)
-				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-complex(real(goblas.Zdotc((*n)-k, work, 1, a.CVector(k+1-1, k-1-1), 1)), 0))
+				goblas.Zcopy((*n)-k, a.CVector(k, k-1, 1), work.Off(0, 1))
+				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1, 1))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc((*n)-k, work.Off(0, 1), a.CVector(k, k-1, 1))), 0))
+				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotc((*n)-k, a.CVector(k, k-1, 1), a.CVector(k, k-1-1, 1)))
+				goblas.Zcopy((*n)-k, a.CVector(k, k-1-1, 1), work.Off(0, 1))
+				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1-1, 1))
+				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-complex(real(goblas.Zdotc((*n)-k, work.Off(0, 1), a.CVector(k, k-1-1, 1))), 0))
 			}
 			kstep = 2
 		}
 
-		kp = absint((*ipiv)[k-1])
+		kp = abs((*ipiv)[k-1])
 		if kp != k {
 			//           Interchange rows and columns K and KP in the trailing
 			//           submatrix A(k-1:n,k-1:n)
 			if kp < (*n) {
-				goblas.Zswap((*n)-kp, a.CVector(kp+1-1, k-1), 1, a.CVector(kp+1-1, kp-1), 1)
+				goblas.Zswap((*n)-kp, a.CVector(kp, k-1, 1), a.CVector(kp, kp-1, 1))
 			}
 			for j = k + 1; j <= kp-1; j++ {
 				temp = a.GetConj(j-1, k-1)

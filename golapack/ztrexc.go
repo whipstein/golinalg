@@ -27,9 +27,9 @@ func Ztrexc(compq byte, n *int, t *mat.CMatrix, ldt *int, q *mat.CMatrix, ldq, i
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -4
-	} else if (*ldq) < 1 || (wantq && (*ldq) < maxint(1, *n)) {
+	} else if (*ldq) < 1 || (wantq && (*ldq) < max(1, *n)) {
 		(*info) = -6
 	} else if ((*ifst) < 1 || (*ifst) > (*n)) && ((*n) > 0) {
 		(*info) = -7
@@ -61,23 +61,23 @@ func Ztrexc(compq byte, n *int, t *mat.CMatrix, ldt *int, q *mat.CMatrix, ldq, i
 	for _, k = range genIter((*ifst)+m1, (*ilst)+m2, m3) {
 		//        Interchange the k-th and (k+1)-th diagonal elements.
 		t11 = t.Get(k-1, k-1)
-		t22 = t.Get(k+1-1, k+1-1)
+		t22 = t.Get(k, k)
 
 		//        Determine the transformation to perform the interchange.
-		Zlartg(t.GetPtr(k-1, k+1-1), toPtrc128(t22-t11), &cs, &sn, &temp)
+		Zlartg(t.GetPtr(k-1, k), toPtrc128(t22-t11), &cs, &sn, &temp)
 
 		//        Apply transformation to the matrix T.
 		if k+2 <= (*n) {
-			Zrot(toPtr((*n)-k-1), t.CVector(k-1, k+2-1), ldt, t.CVector(k+1-1, k+2-1), ldt, &cs, &sn)
+			Zrot(toPtr((*n)-k-1), t.CVector(k-1, k+2-1), ldt, t.CVector(k, k+2-1), ldt, &cs, &sn)
 		}
-		Zrot(toPtr(k-1), t.CVector(0, k-1), func() *int { y := 1; return &y }(), t.CVector(0, k+1-1), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(sn)))
+		Zrot(toPtr(k-1), t.CVector(0, k-1), func() *int { y := 1; return &y }(), t.CVector(0, k), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(sn)))
 
 		t.Set(k-1, k-1, t22)
-		t.Set(k+1-1, k+1-1, t11)
+		t.Set(k, k, t11)
 
 		if wantq {
 			//           Accumulate transformation in the matrix Q.
-			Zrot(n, q.CVector(0, k-1), func() *int { y := 1; return &y }(), q.CVector(0, k+1-1), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(sn)))
+			Zrot(n, q.CVector(0, k-1), func() *int { y := 1; return &y }(), q.CVector(0, k), func() *int { y := 1; return &y }(), &cs, toPtrc128(cmplx.Conj(sn)))
 		}
 
 	}

@@ -40,7 +40,7 @@ func Zheevd(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vector, wo
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 
@@ -55,14 +55,14 @@ func Zheevd(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vector, wo
 		} else {
 			if wantz {
 				lwmin = 2*(*n) + (*n)*(*n)
-				lrwmin = 1 + 5*(*n) + 2*powint(*n, 2)
+				lrwmin = 1 + 5*(*n) + 2*pow(*n, 2)
 				liwmin = 3 + 5*(*n)
 			} else {
 				lwmin = (*n) + 1
 				lrwmin = (*n)
 				liwmin = 1
 			}
-			lopt = maxint(lwmin, (*n)+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+			lopt = max(lwmin, (*n)+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 			lropt = lrwmin
 			liopt = liwmin
 		}
@@ -152,7 +152,7 @@ func Zheevd(jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, w *mat.Vector, wo
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	work.SetRe(0, float64(lopt))

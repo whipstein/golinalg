@@ -133,10 +133,10 @@ func Iparam2stage(ispec *int, name, opts []byte, ni, nbi, ibi, nxi *int) (iparam
 		//     Will add the VECT OPTION HERE next release
 		vect = opts[0]
 		if vect == 'N' {
-			lhous = maxint(1, 4*(*ni))
+			lhous = max(1, 4*(*ni))
 		} else {
 			//           This is not correct, it need to call the ALGO and the stage2
-			lhous = maxint(1, 4*(*ni)) + (*ibi)
+			lhous = max(1, 4*(*ni)) + (*ibi)
 		}
 		if lhous >= 0 {
 			iparam2stageReturn = lhous
@@ -163,25 +163,25 @@ func Iparam2stage(ispec *int, name, opts []byte, ni, nbi, ibi, nxi *int) (iparam
 		qroptnb = Ilaenv(func() *int { y := 1; return &y }(), []byte(string(prec)+"GEQRF"+string(subnam[6:])), []byte(" "), ni, nbi, toPtr(-1), toPtr(-1))
 		lqoptnb = Ilaenv(func() *int { y := 1; return &y }(), []byte(string(prec)+"GELQF"+string(subnam[6:])), []byte(" "), nbi, ni, toPtr(-1), toPtr(-1))
 		//        Could be QR or LQ for TRD and the max for BRD
-		factoptnb = maxint(qroptnb, lqoptnb)
+		factoptnb = max(qroptnb, lqoptnb)
 		if string(algo) == "TRD" {
 			if string(stag) == "2STAG" {
-				lwork = (*ni)*(*nbi) + (*ni)*maxint((*nbi)+1, factoptnb) + maxint(2*(*nbi)*(*nbi), (*nbi)*nthreads) + ((*nbi)+1)*(*ni)
+				lwork = (*ni)*(*nbi) + (*ni)*max((*nbi)+1, factoptnb) + max(2*(*nbi)*(*nbi), (*nbi)*nthreads) + ((*nbi)+1)*(*ni)
 			} else if (string(stag) == "HE2HB") || (string(stag) == "SY2SB") {
-				lwork = (*ni)*(*nbi) + (*ni)*maxint(*nbi, factoptnb) + 2*(*nbi)*(*nbi)
+				lwork = (*ni)*(*nbi) + (*ni)*max(*nbi, factoptnb) + 2*(*nbi)*(*nbi)
 			} else if (string(stag) == "HB2ST") || (string(stag) == "SB2ST") {
 				lwork = (2*(*nbi)+1)*(*ni) + (*nbi)*nthreads
 			}
 		} else if string(algo) == "BRD" {
 			if string(stag) == "2STAG" {
-				lwork = 2*(*ni)*(*nbi) + (*ni)*maxint((*nbi)+1, factoptnb) + maxint(2*(*nbi)*(*nbi), (*nbi)*nthreads) + ((*nbi)+1)*(*ni)
+				lwork = 2*(*ni)*(*nbi) + (*ni)*max((*nbi)+1, factoptnb) + max(2*(*nbi)*(*nbi), (*nbi)*nthreads) + ((*nbi)+1)*(*ni)
 			} else if string(stag) == "GE2GB" {
-				lwork = (*ni)*(*nbi) + (*ni)*maxint(*nbi, factoptnb) + 2*(*nbi)*(*nbi)
+				lwork = (*ni)*(*nbi) + (*ni)*max(*nbi, factoptnb) + 2*(*nbi)*(*nbi)
 			} else if string(stag) == "GB2BD" {
 				lwork = (3*(*nbi)+1)*(*ni) + (*nbi)*nthreads
 			}
 		}
-		lwork = maxint(1, lwork)
+		lwork = max(1, lwork)
 		if lwork > 0 {
 			iparam2stageReturn = lwork
 		} else {

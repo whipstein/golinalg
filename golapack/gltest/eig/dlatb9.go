@@ -50,28 +50,28 @@ func Dlatb9(path []byte, imat, m, p, n *int, _type *byte, kla, kua, klb, kub *in
 			(*kla) = 0
 			(*kua) = 0
 			(*klb) = 0
-			(*kub) = maxint((*n)-1, 0)
+			(*kub) = max((*n)-1, 0)
 
 		} else if (*imat) == 2 {
 			//           A: upper triangular, B: upper triangular
 			(*kla) = 0
-			(*kua) = maxint((*n)-1, 0)
+			(*kua) = max((*n)-1, 0)
 			(*klb) = 0
-			(*kub) = maxint((*n)-1, 0)
+			(*kub) = max((*n)-1, 0)
 
 		} else if (*imat) == 3 {
 			//           A: lower triangular, B: upper triangular
-			(*kla) = maxint((*m)-1, 0)
+			(*kla) = max((*m)-1, 0)
 			(*kua) = 0
 			(*klb) = 0
-			(*kub) = maxint((*n)-1, 0)
+			(*kub) = max((*n)-1, 0)
 
 		} else {
 			//           A: general dense, B: general dense
-			(*kla) = maxint((*m)-1, 0)
-			(*kua) = maxint((*n)-1, 0)
-			(*klb) = maxint((*p)-1, 0)
-			(*kub) = maxint((*n)-1, 0)
+			(*kla) = max((*m)-1, 0)
+			(*kua) = max((*n)-1, 0)
+			(*klb) = max((*p)-1, 0)
+			(*kub) = max((*n)-1, 0)
 
 		}
 
@@ -81,28 +81,28 @@ func Dlatb9(path []byte, imat, m, p, n *int, _type *byte, kla, kua, klb, kub *in
 			//           A: diagonal, B: lower triangular
 			(*kla) = 0
 			(*kua) = 0
-			(*klb) = maxint((*n)-1, 0)
+			(*klb) = max((*n)-1, 0)
 			(*kub) = 0
 		} else if (*imat) == 2 {
 			//           A: lower triangular, B: diagonal
-			(*kla) = maxint((*n)-1, 0)
+			(*kla) = max((*n)-1, 0)
 			(*kua) = 0
 			(*klb) = 0
 			(*kub) = 0
 
 		} else if (*imat) == 3 {
 			//           A: lower triangular, B: upper triangular
-			(*kla) = maxint((*n)-1, 0)
+			(*kla) = max((*n)-1, 0)
 			(*kua) = 0
 			(*klb) = 0
-			(*kub) = maxint((*p)-1, 0)
+			(*kub) = max((*p)-1, 0)
 
 		} else {
 			//           A: general dense, B: general dense
-			(*kla) = maxint((*n)-1, 0)
-			(*kua) = maxint((*m)-1, 0)
-			(*klb) = maxint((*n)-1, 0)
-			(*kub) = maxint((*p)-1, 0)
+			(*kla) = max((*n)-1, 0)
+			(*kua) = max((*m)-1, 0)
+			(*klb) = max((*n)-1, 0)
+			(*kub) = max((*p)-1, 0)
 		}
 
 	}

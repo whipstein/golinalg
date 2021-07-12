@@ -43,7 +43,7 @@ func Dtrsen(job, compq byte, _select []bool, n *int, t *mat.Matrix, ldt *int, q 
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -6
 	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
 		(*info) = -8
@@ -57,13 +57,13 @@ func Dtrsen(job, compq byte, _select []bool, n *int, t *mat.Matrix, ldt *int, q 
 				pair = false
 			} else {
 				if k < (*n) {
-					if t.Get(k+1-1, k-1) == zero {
+					if t.Get(k, k-1) == zero {
 						if _select[k-1] {
 							(*m) = (*m) + 1
 						}
 					} else {
 						pair = true
-						if _select[k-1] || _select[k+1-1] {
+						if _select[k-1] || _select[k] {
 							(*m) = (*m) + 2
 						}
 					}
@@ -80,13 +80,13 @@ func Dtrsen(job, compq byte, _select []bool, n *int, t *mat.Matrix, ldt *int, q 
 		nn = n1 * n2
 
 		if wantsp {
-			lwmin = maxint(1, 2*nn)
-			liwmin = maxint(1, nn)
+			lwmin = max(1, 2*nn)
+			liwmin = max(1, nn)
 		} else if job == 'N' {
-			lwmin = maxint(1, *n)
+			lwmin = max(1, *n)
 			liwmin = 1
 		} else if job == 'E' {
-			lwmin = maxint(1, nn)
+			lwmin = max(1, nn)
 			liwmin = 1
 		}
 
@@ -129,9 +129,9 @@ func Dtrsen(job, compq byte, _select []bool, n *int, t *mat.Matrix, ldt *int, q 
 		} else {
 			swap = _select[k-1]
 			if k < (*n) {
-				if t.Get(k+1-1, k-1) != zero {
+				if t.Get(k, k-1) != zero {
 					pair = true
-					swap = swap || _select[k+1-1]
+					swap = swap || _select[k]
 				}
 			}
 			if swap {
@@ -165,8 +165,8 @@ func Dtrsen(job, compq byte, _select []bool, n *int, t *mat.Matrix, ldt *int, q 
 		//        Solve Sylvester equation for R:
 		//
 		//           T11*R - R*T22 = scale*T12
-		Dlacpy('F', &n1, &n2, t.Off(0, n1+1-1), ldt, work.Matrix(n1, opts), &n1)
-		Dtrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1+1-1, n1+1-1), ldt, work.Matrix(n1, opts), &n1, &scale, &ierr)
+		Dlacpy('F', &n1, &n2, t.Off(0, n1), ldt, work.Matrix(n1, opts), &n1)
+		Dtrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1, n1), ldt, work.Matrix(n1, opts), &n1, &scale, &ierr)
 
 		//        Estimate the reciprocal of the condition number of the cluster
 		//        of eigenvalues.
@@ -184,14 +184,14 @@ func Dtrsen(job, compq byte, _select []bool, n *int, t *mat.Matrix, ldt *int, q 
 		kase = 0
 	label30:
 		;
-		Dlacn2(&nn, work.Off(nn+1-1), work, iwork, &est, &kase, &isave)
+		Dlacn2(&nn, work.Off(nn), work, iwork, &est, &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Solve  T11*R - R*T22 = scale*X.
-				Dtrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1+1-1, n1+1-1), ldt, work.Matrix(n1, opts), &n1, &scale, &ierr)
+				Dtrsyl('N', 'N', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1, n1), ldt, work.Matrix(n1, opts), &n1, &scale, &ierr)
 			} else {
 				//              Solve T11**T*R - R*T22**T = scale*X.
-				Dtrsyl('T', 'T', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1+1-1, n1+1-1), ldt, work.Matrix(n1, opts), &n1, &scale, &ierr)
+				Dtrsyl('T', 'T', toPtr(-1), &n1, &n2, t, ldt, t.Off(n1, n1), ldt, work.Matrix(n1, opts), &n1, &scale, &ierr)
 			}
 			goto label30
 		}
@@ -208,9 +208,9 @@ label40:
 		wi.Set(k-1, zero)
 	}
 	for k = 1; k <= (*n)-1; k++ {
-		if t.Get(k+1-1, k-1) != zero {
-			wi.Set(k-1, math.Sqrt(math.Abs(t.Get(k-1, k+1-1)))*math.Sqrt(math.Abs(t.Get(k+1-1, k-1))))
-			wi.Set(k+1-1, -wi.Get(k-1))
+		if t.Get(k, k-1) != zero {
+			wi.Set(k-1, math.Sqrt(math.Abs(t.Get(k-1, k)))*math.Sqrt(math.Abs(t.Get(k, k-1))))
+			wi.Set(k, -wi.Get(k-1))
 		}
 	}
 

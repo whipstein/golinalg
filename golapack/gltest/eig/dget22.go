@@ -16,12 +16,12 @@ import (
 //
 // using the 1-norm.  It also tests the normalization of E:
 //
-//    RESULT(2) = maxf64 | m-norm(E(j)) - 1 | / ( n ulp )
+//    RESULT(2) = math.Max | m-norm(E(j)) - 1 | / ( n ulp )
 //                 j
 //
-// where E(j) is the j-th eigenvector, and m-norm is the maxf64-norm of a
+// where E(j) is the j-th eigenvector, and m-norm is the math.Max-norm of a
 // vector.  If an eigenvector is complex, as determined from WI(j)
-// nonzero, then the maxf64-norm of the vector ( er + i*ei ) is the maximum
+// nonzero, then the math.Max-norm of the vector ( er + i*ei ) is the maximum
 // of
 //    |er(1)| + |ei(1)|, ... , |er(n)| + |ei(n)|
 //
@@ -90,20 +90,20 @@ func Dget22(transa, transe, transw byte, n *int, a *mat.Matrix, lda *int, e *mat
 			if ipair == 1 {
 				//              Complex eigenvector
 				for j = 1; j <= (*n); j++ {
-					temp1 = maxf64(temp1, math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec+1-1)))
+					temp1 = math.Max(temp1, math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec)))
 				}
-				enrmin = minf64(enrmin, temp1)
-				enrmax = maxf64(enrmax, temp1)
+				enrmin = math.Min(enrmin, temp1)
+				enrmax = math.Max(enrmax, temp1)
 				ipair = 2
 			} else if ipair == 2 {
 				ipair = 0
 			} else {
 				//              Real eigenvector
 				for j = 1; j <= (*n); j++ {
-					temp1 = maxf64(temp1, math.Abs(e.Get(j-1, jvec-1)))
+					temp1 = math.Max(temp1, math.Abs(e.Get(j-1, jvec-1)))
 				}
-				enrmin = minf64(enrmin, temp1)
-				enrmax = maxf64(enrmax, temp1)
+				enrmin = math.Min(enrmin, temp1)
+				enrmax = math.Max(enrmax, temp1)
 				ipair = 0
 			}
 		}
@@ -121,28 +121,28 @@ func Dget22(transa, transe, transw byte, n *int, a *mat.Matrix, lda *int, e *mat
 					ipair = 1
 				}
 				if ipair == 1 {
-					work.Set(jvec-1, maxf64(work.Get(jvec-1), math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec+1-1))))
-					work.Set(jvec+1-1, work.Get(jvec-1))
+					work.Set(jvec-1, math.Max(work.Get(jvec-1), math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec))))
+					work.Set(jvec, work.Get(jvec-1))
 				} else if ipair == 2 {
 					ipair = 0
 				} else {
-					work.Set(jvec-1, maxf64(work.Get(jvec-1), math.Abs(e.Get(j-1, jvec-1))))
+					work.Set(jvec-1, math.Max(work.Get(jvec-1), math.Abs(e.Get(j-1, jvec-1))))
 					ipair = 0
 				}
 			}
 		}
 
 		for jvec = 1; jvec <= (*n); jvec++ {
-			enrmin = minf64(enrmin, work.Get(jvec-1))
-			enrmax = maxf64(enrmax, work.Get(jvec-1))
+			enrmin = math.Min(enrmin, work.Get(jvec-1))
+			enrmax = math.Max(enrmax, work.Get(jvec-1))
 		}
 	}
 
 	//     Norm of A:
-	anorm = maxf64(golapack.Dlange(norma, n, n, a, lda, work), unfl)
+	anorm = math.Max(golapack.Dlange(norma, n, n, a, lda, work), unfl)
 
 	//     Norm of E:
-	enorm = maxf64(golapack.Dlange(norme, n, n, e, lde, work), ulp)
+	enorm = math.Max(golapack.Dlange(norme, n, n, e, lde, work), ulp)
 
 	//     Norm of error:
 	//
@@ -169,34 +169,35 @@ func Dget22(transa, transe, transw byte, n *int, a *mat.Matrix, lda *int, e *mat
 			wmat.Set(1, 0, -wi.Get(jcol-1))
 			wmat.Set(0, 1, wi.Get(jcol-1))
 			wmat.Set(1, 1, wr.Get(jcol-1))
-			err = goblas.Dgemm(mat.TransByte(transe), mat.TransByte(transw), *n, 2, 2, one, e.Off(ierow-1, iecol-1), *lde, wmat, 2, zero, work.MatrixOff((*n)*(jcol-1)+1-1, *n, opts), *n)
+			// err = goblas.Dgemm(mat.TransByte(transe), mat.TransByte(transw), *n, 2, 2, one, e.Off(ierow-1, iecol-1), *lde, wmat, 2, zero, work.MatrixOff((*n)*(jcol-1), *n, opts), *n)
+			err = goblas.Dgemm(mat.TransByte(transe), mat.TransByte(transw), *n, 2, 2, one, e.Off(ierow-1, iecol-1), wmat, zero, work.MatrixOff((*n)*(jcol-1), *n, opts))
 			ipair = 2
 		} else if ipair == 2 {
 			ipair = 0
 
 		} else {
 
-			goblas.Daxpy(*n, wr.Get(jcol-1), e.Vector(ierow-1, iecol-1), ince, work.Off((*n)*(jcol-1)+1-1), 1)
+			goblas.Daxpy(*n, wr.Get(jcol-1), e.Vector(ierow-1, iecol-1, ince), work.Off((*n)*(jcol-1), 1))
 			ipair = 0
 		}
 
 	}
 
-	err = goblas.Dgemm(mat.TransByte(transa), mat.TransByte(transe), *n, *n, *n, one, a, *lda, e, *lde, -one, work.Matrix(*n, opts), *n)
+	err = goblas.Dgemm(mat.TransByte(transa), mat.TransByte(transe), *n, *n, *n, one, a, e, -one, work.Matrix(*n, opts))
 
-	errnrm = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, work.Off((*n)*(*n)+1-1)) / enorm
+	errnrm = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, work.Off((*n)*(*n))) / enorm
 
 	//     Compute RESULT(1) (avoiding under/overflow)
 	if anorm > errnrm {
 		result.Set(0, (errnrm/anorm)/ulp)
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(errnrm, anorm)/anorm)/ulp)
+			result.Set(0, (math.Min(errnrm, anorm)/anorm)/ulp)
 		} else {
-			result.Set(0, minf64(errnrm/anorm, one)/ulp)
+			result.Set(0, math.Min(errnrm/anorm, one)/ulp)
 		}
 	}
 
 	//     Compute RESULT(2) : the normalization error in E.
-	result.Set(1, maxf64(math.Abs(enrmax-one), math.Abs(enrmin-one))/(float64(*n)*ulp))
+	result.Set(1, math.Max(math.Abs(enrmax-one), math.Abs(enrmin-one))/(float64(*n)*ulp))
 }

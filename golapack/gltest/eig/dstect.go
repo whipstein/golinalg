@@ -29,7 +29,7 @@ func Dstect(n *int, a, b *mat.Vector, shift *float64, num *int) {
 	//     Find largest entry
 	mx = math.Abs(a.Get(0))
 	for i = 1; i <= (*n)-1; i++ {
-		mx = maxf64(mx, math.Abs(a.Get(i+1-1)), math.Abs(b.Get(i-1)))
+		mx = math.Max(mx, math.Max(math.Abs(a.Get(i)), math.Abs(b.Get(i-1))))
 	}
 
 	//     Handle easy cases, including zero matrix

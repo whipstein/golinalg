@@ -29,7 +29,7 @@ func Drqt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 	iseed[0], iseed[1], iseed[2], iseed[3] = 1988, 1989, 1990, 1991
 
 	eps = golapack.Dlamch(Epsilon)
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 
 	//     Quick return if possible
 	if minmn == 0 {
@@ -43,15 +43,15 @@ func Drqt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 	//     Copy the last k rows of the factorization to the array Q
 	golapack.Dlaset('F', n, n, &rogue, &rogue, q, lda)
 	if (*k) > 0 && (*n) > (*k) {
-		golapack.Dlacpy('F', k, toPtr((*n)-(*k)), af.Off((*m)-(*k)+1-1, 0), lda, q.Off((*n)-(*k)+1-1, 0), lda)
+		golapack.Dlacpy('F', k, toPtr((*n)-(*k)), af.Off((*m)-(*k), 0), lda, q.Off((*n)-(*k), 0), lda)
 	}
 	if (*k) > 1 {
-		golapack.Dlacpy('L', toPtr((*k)-1), toPtr((*k)-1), af.Off((*m)-(*k)+2-1, (*n)-(*k)+1-1), lda, q.Off((*n)-(*k)+2-1, (*n)-(*k)+1-1), lda)
+		golapack.Dlacpy('L', toPtr((*k)-1), toPtr((*k)-1), af.Off((*m)-(*k)+2-1, (*n)-(*k)), lda, q.Off((*n)-(*k)+2-1, (*n)-(*k)), lda)
 	}
 
 	//     Generate the n-by-n matrix Q
 	*srnamt = "DORGRQ"
-	golapack.Dorgrq(n, n, k, q, lda, tau.Off(minmn-(*k)+1-1), work, lwork, &info)
+	golapack.Dorgrq(n, n, k, q, lda, tau.Off(minmn-(*k)), work, lwork, &info)
 
 	for iside = 1; iside <= 2; iside++ {
 		if iside == 1 {
@@ -86,19 +86,19 @@ func Drqt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 			//           Apply Q or Q' to C
 			*srnamt = "DORMRQ"
 			if (*k) > 0 {
-				golapack.Dormrq(side, trans, &mc, &nc, k, af.Off((*m)-(*k)+1-1, 0), lda, tau.Off(minmn-(*k)+1-1), cc, lda, work, lwork, &info)
+				golapack.Dormrq(side, trans, &mc, &nc, k, af.Off((*m)-(*k), 0), lda, tau.Off(minmn-(*k)), cc, lda, work, lwork, &info)
 			}
 
 			//           Form explicit product and subtract
 			if side == 'L' {
-				err = goblas.Dgemm(mat.TransByte(trans), mat.NoTrans, mc, nc, mc, -one, q, *lda, c, *lda, one, cc, *lda)
+				err = goblas.Dgemm(mat.TransByte(trans), mat.NoTrans, mc, nc, mc, -one, q, c, one, cc)
 			} else {
-				err = goblas.Dgemm(mat.NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, *lda, q, *lda, one, cc, *lda)
+				err = goblas.Dgemm(mat.NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, q, one, cc)
 			}
 
 			//           Compute error in the difference
 			resid = golapack.Dlange('1', &mc, &nc, cc, lda, rwork)
-			result.Set((iside-1)*2+itrans-1, resid/(float64(maxint(1, *n))*cnorm*eps))
+			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, *n))*cnorm*eps))
 
 		}
 	}

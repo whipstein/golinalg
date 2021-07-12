@@ -224,7 +224,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -252,9 +252,9 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//       following subroutine, as returned by ILAENV.
 	minwrk = 1
 	if (*info) == 0 && (*lwork) >= 1 {
-		minwrk = maxint(10*(nmax+1), 3*nmax*nmax)
-		nb = maxint(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
-		maxwrk = maxint(10*(nmax+1), 2*nmax+nmax*nb, 3*nmax*nmax)
+		minwrk = max(10*(nmax+1), 3*nmax*nmax)
+		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
+		maxwrk = max(10*(nmax+1), 2*nmax+nmax*nb, 3*nmax*nmax)
 		work.Set(0, float64(maxwrk))
 	}
 
@@ -290,14 +290,14 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		//        Loop over matrix types
@@ -346,7 +346,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			iinfo = 0
 			if kclass[jtype-1] < 3 {
 				//              Generate A (w/o rotation)
-				if absint(katype[jtype-1]) == 3 {
+				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Dlaset('F', &n, &n, &zero, &zero, a, lda)
@@ -361,7 +361,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Generate B (w/o rotation)
-				if absint(kbtype[jtype-1]) == 3 {
+				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Dlaset('F', &n, &n, &zero, &zero, b, lda)
@@ -385,10 +385,10 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							q.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
 							z.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
 						}
-						golapack.Dlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.Vector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						golapack.Dlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
 						work.Set(2*n+jc-1, math.Copysign(one, q.Get(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, one)
-						golapack.Dlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.Vector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						golapack.Dlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
 						work.Set(3*n+jc-1, math.Copysign(one, z.Get(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, one)
 					}
@@ -406,19 +406,19 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.Get(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
@@ -439,7 +439,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DDRGES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%4d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -470,7 +470,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					_t.Fail()
 					result.Set(1+rsub+isort-1, ulpinv)
 					fmt.Printf(" DDRGES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGES", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					goto label160
 				}
 
@@ -495,10 +495,10 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for j = 1; j <= n; j++ {
 					ilabad = false
 					if alphai.Get(j-1) == zero {
-						temp2 = (math.Abs(alphar.Get(j-1)-s.Get(j-1, j-1))/maxf64(safmin, math.Abs(alphar.Get(j-1)), math.Abs(s.Get(j-1, j-1))) + math.Abs(beta.Get(j-1)-t.Get(j-1, j-1))/maxf64(safmin, math.Abs(beta.Get(j-1)), math.Abs(t.Get(j-1, j-1)))) / ulp
+						temp2 = (math.Abs(alphar.Get(j-1)-s.Get(j-1, j-1))/math.Max(safmin, math.Max(math.Abs(alphar.Get(j-1)), math.Abs(s.Get(j-1, j-1)))) + math.Abs(beta.Get(j-1)-t.Get(j-1, j-1))/math.Max(safmin, math.Max(math.Abs(beta.Get(j-1)), math.Abs(t.Get(j-1, j-1))))) / ulp
 
 						if j < n {
-							if s.Get(j+1-1, j-1) != zero {
+							if s.Get(j, j-1) != zero {
 								ilabad = true
 								result.Set(5+rsub-1, ulpinv)
 							}
@@ -519,7 +519,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						if i1 <= 0 || i1 >= n {
 							ilabad = true
 						} else if i1 < n-1 {
-							if s.Get(i1+2-1, i1+1-1) != zero {
+							if s.Get(i1+2-1, i1) != zero {
 								ilabad = true
 								result.Set(5+rsub-1, ulpinv)
 							}
@@ -534,14 +534,14 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							if ierr >= 3 {
 								_t.Fail()
 								fmt.Printf(" DDRGES: DGET53 returned INFO=%1d for eigenvalue %6d.\n         N=%6d, JTYPE=%6d, ISEED=%4d\n", ierr, j, n, jtype, ioldsd)
-								(*info) = absint(ierr)
+								(*info) = abs(ierr)
 							}
 						} else {
 							temp2 = ulpinv
 						}
 
 					}
-					temp1 = maxf64(temp1, temp2)
+					temp1 = math.Max(temp1, temp2)
 					if ilabad {
 						_t.Fail()
 						fmt.Printf(" DDRGES: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", j, n, jtype, ioldsd)
@@ -559,7 +559,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							knteig = knteig + 1
 						}
 						if i < n {
-							if (Dlctes(alphar.GetPtr(i+1-1), alphai.GetPtr(i+1-1), beta.GetPtr(i+1-1)) || Dlctes(alphar.GetPtr(i+1-1), toPtrf64(-alphai.Get(i+1-1)), beta.GetPtr(i+1-1))) && (!(Dlctes(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1)) || Dlctes(alphar.GetPtr(i-1), toPtrf64(-alphai.Get(i-1)), beta.GetPtr(i-1)))) && iinfo != n+2 {
+							if (Dlctes(alphar.GetPtr(i), alphai.GetPtr(i), beta.GetPtr(i)) || Dlctes(alphar.GetPtr(i), toPtrf64(-alphai.Get(i)), beta.GetPtr(i))) && (!(Dlctes(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1)) || Dlctes(alphar.GetPtr(i-1), toPtrf64(-alphai.Get(i-1)), beta.GetPtr(i-1)))) && iinfo != n+2 {
 								result.Set(11, ulpinv)
 							}
 						}

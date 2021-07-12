@@ -50,7 +50,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 	golapack.Dlabad(&smlnum, &bignum)
 
 	//     EPSIN = 2**(-24) = precision to which input data computed
-	eps = maxf64(eps, epsin)
+	eps = math.Max(eps, epsin)
 	rmax.Set(0, zero)
 	rmax.Set(1, zero)
 	rmax.Set(2, zero)
@@ -266,7 +266,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			golapack.Zlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Zdscal(n, vmul, t.CVector(0, i-1), 1)
+				goblas.Zdscal(n, vmul, t.CVector(0, i-1, 1))
 			}
 			if tnrm == zero {
 				vmul = one
@@ -274,7 +274,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			golapack.Zlacpy('F', &n, &n, t, &ldt, tsav, &ldt)
 
 			//        Compute Schur form
-			golapack.Zgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n+1-1), toPtr(lwork-n), &info)
+			golapack.Zgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
 			if info != 0 {
 				(*lmax)[0] = (*knt)
 				(*ninfo)[0] = (*ninfo)[0] + 1
@@ -283,7 +283,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 
 			//        Generate unitary matrix
 			golapack.Zlacpy('L', &n, &n, t, &ldt, q, &ldt)
-			golapack.Zunghr(&n, func() *int { y := 1; return &y }(), &n, q, &ldt, work.Off(0), work.Off(n+1-1), toPtr(lwork-n), &info)
+			golapack.Zunghr(&n, func() *int { y := 1; return &y }(), &n, q, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
 
 			//        Compute Schur form
 			for j = 1; j <= n-2; j++ {
@@ -345,7 +345,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 
 			//        Compute residuals
 			Zhst01(&n, func() *int { y := 1; return &y }(), &n, tsav, &ldt, t, &ldt, q, &ldt, work, &lwork, rwork, result)
-			vmax = maxf64(result.Get(0), result.Get(1))
+			vmax = math.Max(result.Get(0), result.Get(1))
 			if vmax > rmax.Get(0) {
 				rmax.Set(0, vmax)
 				if (*ninfo)[0] == 0 {
@@ -355,7 +355,7 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 
 			//        Compare condition number for eigenvalue cluster
 			//        taking its condition number into account
-			v = maxf64(two*float64(n)*eps*tnrm, smlnum)
+			v = math.Max(two*float64(n)*eps*tnrm, smlnum)
 			if tnrm == zero {
 				v = one
 			}
@@ -369,8 +369,8 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			} else {
 				tolin = v / sepin
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(sin-tolin) > stmp+tol {
 				vmax = one / eps
 			} else if sin-tolin > stmp+tol {
@@ -401,8 +401,8 @@ func Zget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int, _t *testing.T) {
 			} else {
 				tolin = v / sin
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(sepin-tolin) > septmp+tol {
 				vmax = one / eps
 			} else if sepin-tolin > septmp+tol {

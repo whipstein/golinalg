@@ -503,7 +503,7 @@ label100:
 	;
 
 	//     ISPEC = 6:  crossover point for SVD (used by xGELSS and xGESVD)
-	ilaenvReturn = int(float64(minint(*n1, *n2)) * 1.6)
+	ilaenvReturn = int(float64(min(*n1, *n2)) * 1.6)
 	return
 
 label110:

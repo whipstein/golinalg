@@ -45,7 +45,7 @@ func Dsbevx2stage(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int
 		(*info) = -5
 	} else if (*ldab) < (*kd)+1 {
 		(*info) = -7
-	} else if wantz && (*ldq) < maxint(1, *n) {
+	} else if wantz && (*ldq) < max(1, *n) {
 		(*info) = -9
 	} else {
 		if valeig {
@@ -53,9 +53,9 @@ func Dsbevx2stage(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int
 				(*info) = -11
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -12
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -13
 			}
 		}
@@ -101,7 +101,7 @@ func Dsbevx2stage(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int
 		if lower {
 			tmp1 = ab.Get(0, 0)
 		} else {
-			tmp1 = ab.Get((*kd)+1-1, 0)
+			tmp1 = ab.Get((*kd), 0)
 		}
 		if valeig {
 			if !((*vl) < tmp1 && (*vu) >= tmp1) {
@@ -123,7 +123,7 @@ func Dsbevx2stage(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int
 	smlnum = safmin / eps
 	bignum = one / smlnum
 	rmin = math.Sqrt(smlnum)
-	rmax = minf64(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
+	rmax = math.Min(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
@@ -177,14 +177,14 @@ func Dsbevx2stage(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int
 		}
 	}
 	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
+		goblas.Dcopy(*n, work.Off(indd-1, 1), w.Off(0, 1))
 		indee = indwrk + 2*(*n)
 		if !wantz {
-			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
+			goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
 			Dlacpy('A', n, n, q, ldq, z, ldz)
-			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
+			goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
 			Dsteqr(jobz, n, w, work.Off(indee-1), z, ldz, work.Off(indwrk-1), info)
 			if (*info) == 0 {
 				for i = 1; i <= (*n); i++ {
@@ -216,8 +216,8 @@ func Dsbevx2stage(jobz, _range, uplo byte, n, kd *int, ab *mat.Matrix, ldab *int
 		//        Apply orthogonal matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by DSTEIN.
 		for j = 1; j <= (*m); j++ {
-			goblas.Dcopy(*n, z.Vector(0, j-1), 1, work, 1)
-			err = goblas.Dgemv(NoTrans, *n, *n, one, q, *ldq, work, 1, zero, z.Vector(0, j-1), 1)
+			goblas.Dcopy(*n, z.Vector(0, j-1, 1), work.Off(0, 1))
+			err = goblas.Dgemv(NoTrans, *n, *n, one, q, work.Off(0, 1), zero, z.Vector(0, j-1, 1))
 		}
 	}
 
@@ -230,7 +230,7 @@ label30:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -252,7 +252,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
+				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
 				if (*info) != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

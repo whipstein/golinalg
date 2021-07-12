@@ -42,7 +42,7 @@ func Dsb2stkernels(uplo byte, wantz bool, ttype, st, ed, sweep, n, nb, ib *int, 
 				a.Set(ofdpos-i-1, (*st)+i-1, zero)
 			}
 			ctmp = (a.Get(ofdpos-1, (*st)-1))
-			Dlarfg(&lm, &ctmp, v.Off(vpos+1-1), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
+			Dlarfg(&lm, &ctmp, v.Off(vpos), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
 			a.Set(ofdpos-1, (*st)-1, ctmp)
 
 			lm = (*ed) - (*st) + 1
@@ -57,7 +57,7 @@ func Dsb2stkernels(uplo byte, wantz bool, ttype, st, ed, sweep, n, nb, ib *int, 
 
 		if (*ttype) == 2 {
 			j1 = (*ed) + 1
-			j2 = minint((*ed)+(*nb), *n)
+			j2 = min((*ed)+(*nb), *n)
 			ln = (*ed) - (*st) + 1
 			lm = j2 - j1 + 1
 			if lm > 0 {
@@ -77,10 +77,10 @@ func Dsb2stkernels(uplo byte, wantz bool, ttype, st, ed, sweep, n, nb, ib *int, 
 					a.Set(dpos-(*nb)-i-1, j1+i-1, zero)
 				}
 				ctmp = (a.Get(dpos-(*nb)-1, j1-1))
-				Dlarfg(&lm, &ctmp, v.Off(vpos+1-1), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
+				Dlarfg(&lm, &ctmp, v.Off(vpos), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
 				a.Set(dpos-(*nb)-1, j1-1, ctmp)
 
-				Dlarfx('R', toPtr(ln-1), &lm, v.Off(vpos-1), tau.GetPtr(taupos-1), a.OffIdx(dpos-(*nb)+1-1+(j1-1)*(*lda)).UpdateRows((*lda)-1), toPtr((*lda)-1), work)
+				Dlarfx('R', toPtr(ln-1), &lm, v.Off(vpos-1), tau.GetPtr(taupos-1), a.OffIdx(dpos-(*nb)+(j1-1)*(*lda)).UpdateRows((*lda)-1), toPtr((*lda)-1), work)
 			}
 		}
 
@@ -103,7 +103,7 @@ func Dsb2stkernels(uplo byte, wantz bool, ttype, st, ed, sweep, n, nb, ib *int, 
 				v.Set(vpos+i-1, a.Get(ofdpos+i-1, (*st)-1-1))
 				a.Set(ofdpos+i-1, (*st)-1-1, zero)
 			}
-			Dlarfg(&lm, a.GetPtr(ofdpos-1, (*st)-1-1), v.Off(vpos+1-1), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
+			Dlarfg(&lm, a.GetPtr(ofdpos-1, (*st)-1-1), v.Off(vpos), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
 
 			lm = (*ed) - (*st) + 1
 
@@ -118,7 +118,7 @@ func Dsb2stkernels(uplo byte, wantz bool, ttype, st, ed, sweep, n, nb, ib *int, 
 
 		if (*ttype) == 2 {
 			j1 = (*ed) + 1
-			j2 = minint((*ed)+(*nb), *n)
+			j2 = min((*ed)+(*nb), *n)
 			ln = (*ed) - (*st) + 1
 			lm = j2 - j1 + 1
 
@@ -138,9 +138,9 @@ func Dsb2stkernels(uplo byte, wantz bool, ttype, st, ed, sweep, n, nb, ib *int, 
 					v.Set(vpos+i-1, a.Get(dpos+(*nb)+i-1, (*st)-1))
 					a.Set(dpos+(*nb)+i-1, (*st)-1, zero)
 				}
-				Dlarfg(&lm, a.GetPtr(dpos+(*nb)-1, (*st)-1), v.Off(vpos+1-1), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
+				Dlarfg(&lm, a.GetPtr(dpos+(*nb)-1, (*st)-1), v.Off(vpos), func() *int { y := 1; return &y }(), tau.GetPtr(taupos-1))
 
-				Dlarfx('L', &lm, toPtr(ln-1), v.Off(vpos-1), tau.GetPtr(taupos-1), a.OffIdx(dpos+(*nb)-1-1+((*st)+1-1)*(*lda)).UpdateRows((*lda)-1), toPtr((*lda)-1), work)
+				Dlarfx('L', &lm, toPtr(ln-1), v.Off(vpos-1), tau.GetPtr(taupos-1), a.OffIdx(dpos+(*nb)-1-1+(*st)*(*lda)).UpdateRows((*lda)-1), toPtr((*lda)-1), work)
 			}
 		}
 	}

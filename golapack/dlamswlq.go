@@ -41,13 +41,13 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		(*info) = -4
 	} else if (*k) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -9
-	} else if (*ldt) < maxint(1, *mb) {
+	} else if (*ldt) < max(1, *mb) {
 		(*info) = -11
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -13
-	} else if ((*lwork) < maxint(1, lw)) && (!lquery) {
+	} else if ((*lwork) < max(1, lw)) && (!lquery) {
 		(*info) = -15
 	}
 
@@ -61,11 +61,11 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *k) == 0 {
+	if min(*m, *n, *k) == 0 {
 		return
 	}
 
-	if ((*nb) <= (*k)) || ((*nb) >= maxint(*m, *n, *k)) {
+	if ((*nb) <= (*k)) || ((*nb) >= max(*m, *n, *k)) {
 		Dgemlqt(side, trans, m, n, k, mb, a, lda, t, ldt, c, ldc, work, info)
 		return
 	}
@@ -76,7 +76,7 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		ctr = ((*m) - (*k)) / ((*nb) - (*k))
 		if kk > 0 {
 			ii = (*m) - kk + 1
-			Dtpmlqt('L', 'T', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
+			Dtpmlqt('L', 'T', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
 		} else {
 			ii = (*m) + 1
 		}
@@ -84,7 +84,7 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		for i = ii - ((*nb) - (*k)); i >= (*nb)+1; i -= ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+NB)
 			ctr = ctr - 1
-			Dtpmlqt('L', 'T', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
+			Dtpmlqt('L', 'T', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
 		}
 
 		//         Multiply Q to the first block of C (1:M,1:NB)
@@ -99,13 +99,13 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 
 		for i = (*nb) + 1; i <= ii-(*nb)+(*k); i += ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (I:I+NB,1:N)
-			Dtpmlqt('L', 'N', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
+			Dtpmlqt('L', 'N', toPtr((*nb)-(*k)), n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(i-1, 0), ldc, work, info)
 			ctr = ctr + 1
 
 		}
 		if ii <= (*m) {
 			//         Multiply Q to the last block of C
-			Dtpmlqt('L', 'N', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
+			Dtpmlqt('L', 'N', &kk, n, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(ii-1, 0), ldc, work, info)
 
 		}
 
@@ -115,7 +115,7 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		ctr = ((*n) - (*k)) / ((*nb) - (*k))
 		if kk > 0 {
 			ii = (*n) - kk + 1
-			Dtpmlqt('R', 'N', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
+			Dtpmlqt('R', 'N', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
 		} else {
 			ii = (*n) + 1
 		}
@@ -123,7 +123,7 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 		for i = ii - ((*nb) - (*k)); i >= (*nb)+1; i -= ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+MB)
 			ctr = ctr - 1
-			Dtpmlqt('R', 'N', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
+			Dtpmlqt('R', 'N', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
 
 		}
 
@@ -139,13 +139,13 @@ func Dlamswlq(side, trans byte, m, n, k, mb, nb *int, a *mat.Matrix, lda *int, t
 
 		for i = (*nb) + 1; i <= ii-(*nb)+(*k); i += ((*nb) - (*k)) {
 			//         Multiply Q to the current block of C (1:M,I:I+MB)
-			Dtpmlqt('R', 'T', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
+			Dtpmlqt('R', 'T', m, toPtr((*nb)-(*k)), k, func() *int { y := 0; return &y }(), mb, a.Off(0, i-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, i-1), ldc, work, info)
 			ctr = ctr + 1
 
 		}
 		if ii <= (*n) {
 			//       Multiply Q to the last block of C
-			Dtpmlqt('R', 'T', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)+1-1), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
+			Dtpmlqt('R', 'T', m, &kk, k, func() *int { y := 0; return &y }(), mb, a.Off(0, ii-1), lda, t.Off(0, ctr*(*k)), ldt, c, ldc, c.Off(0, ii-1), ldc, work, info)
 
 		}
 

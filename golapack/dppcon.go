@@ -56,29 +56,29 @@ func Dppcon(uplo byte, n *int, ap *mat.Vector, anorm, rcond *float64, work *mat.
 	normin = 'N'
 label10:
 	;
-	Dlacn2(n, work.Off((*n)+1-1), work, iwork, &ainvnm, &kase, &isave)
+	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if upper {
 			//           Multiply by inv(U**T).
-			Dlatps('U', 'T', 'N', normin, n, ap, work, &scalel, work.Off(2*(*n)+1-1), info)
+			Dlatps('U', 'T', 'N', normin, n, ap, work, &scalel, work.Off(2*(*n)), info)
 			normin = 'Y'
 
 			//           Multiply by inv(U).
-			Dlatps('U', 'N', 'N', normin, n, ap, work, &scaleu, work.Off(2*(*n)+1-1), info)
+			Dlatps('U', 'N', 'N', normin, n, ap, work, &scaleu, work.Off(2*(*n)), info)
 		} else {
 
 			//           Multiply by inv(L).
-			Dlatps('L', 'N', 'N', normin, n, ap, work, &scalel, work.Off(2*(*n)+1-1), info)
+			Dlatps('L', 'N', 'N', normin, n, ap, work, &scalel, work.Off(2*(*n)), info)
 			normin = 'Y'
 
 			//           Multiply by inv(L**T).
-			Dlatps('L', 'T', 'N', normin, n, ap, work, &scaleu, work.Off(2*(*n)+1-1), info)
+			Dlatps('L', 'T', 'N', normin, n, ap, work, &scaleu, work.Off(2*(*n)), info)
 		}
 
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Idamax(*n, work, 1)
+			ix = goblas.Idamax(*n, work.Off(0, 1))
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

@@ -33,8 +33,8 @@ func Zlapll(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, ssmin 
 	a11 = x.Get(0)
 	x.Set(0, cone)
 
-	c = -cmplx.Conj(tau) * goblas.Zdotc(*n, x, *incx, y, *incy)
-	goblas.Zaxpy(*n, c, x, *incx, y, *incy)
+	c = -cmplx.Conj(tau) * goblas.Zdotc(*n, x.Off(0, *incx), y.Off(0, *incy))
+	goblas.Zaxpy(*n, c, x.Off(0, *incx), y.Off(0, *incy))
 
 	Zlarfg(toPtr((*n)-1), y.GetPtr(1+(*incy)-1), y.Off(1+2*(*incy)-1), incy, &tau)
 

@@ -34,13 +34,13 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 	lquery = ((*lwork) == -1)
 	if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldq) < 1 || wantq && ((*ldq) < maxint(1, *n)) {
+	} else if (*ldq) < 1 || wantq && ((*ldq) < max(1, *n)) {
 		(*info) = -9
-	} else if (*ldz) < 1 || wantz && ((*ldz) < maxint(1, *n)) {
+	} else if (*ldz) < 1 || wantz && ((*ldz) < max(1, *n)) {
 		(*info) = -11
 	} else if (*ifst) < 1 || (*ifst) > (*n) {
 		(*info) = -12
@@ -82,7 +82,7 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 	}
 	nbf = 1
 	if (*ifst) < (*n) {
-		if a.Get((*ifst)+1-1, (*ifst)-1) != zero {
+		if a.Get((*ifst), (*ifst)-1) != zero {
 			nbf = 2
 		}
 	}
@@ -96,7 +96,7 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 	}
 	nbl = 1
 	if (*ilst) < (*n) {
-		if a.Get((*ilst)+1-1, (*ilst)-1) != zero {
+		if a.Get((*ilst), (*ilst)-1) != zero {
 			nbl = 2
 		}
 	}
@@ -123,7 +123,7 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 			//           Current block either 1-by-1 or 2-by-2.
 			nbnext = 1
 			if here+nbf+1 <= (*n) {
-				if a.Get(here+nbf+1-1, here+nbf-1) != zero {
+				if a.Get(here+nbf, here+nbf-1) != zero {
 					nbnext = 2
 				}
 			}
@@ -136,7 +136,7 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 
 			//           Test if 2-by-2 block breaks into two 1-by-1 blocks.
 			if nbf == 2 {
-				if a.Get(here+1-1, here-1) == zero {
+				if a.Get(here, here-1) == zero {
 					nbf = 3
 				}
 			}
@@ -166,7 +166,7 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 
 			} else {
 				//              Recompute NBNEXT in case of 2-by-2 split.
-				if a.Get(here+2-1, here+1-1) == zero {
+				if a.Get(here+2-1, here) == zero {
 					nbnext = 1
 				}
 				if nbnext == 2 {
@@ -222,7 +222,7 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 
 			//           Test if 2-by-2 block breaks into two 1-by-1 blocks.
 			if nbf == 2 {
-				if a.Get(here+1-1, here-1) == zero {
+				if a.Get(here, here-1) == zero {
 					nbf = 3
 				}
 			}

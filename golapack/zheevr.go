@@ -86,9 +86,9 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 
 	lquery = (((*lwork) == -1) || ((*lrwork) == -1) || ((*liwork) == -1))
 
-	lrwmin = maxint(1, 24*(*n))
-	liwmin = maxint(1, 10*(*n))
-	lwmin = maxint(1, 2*(*n))
+	lrwmin = max(1, 24*(*n))
+	liwmin = max(1, 10*(*n))
+	lwmin = max(1, 2*(*n))
 
 	(*info) = 0
 	if !(wantz || jobz == 'N') {
@@ -99,7 +99,7 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	} else {
 		if valeig {
@@ -107,9 +107,9 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 				(*info) = -8
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -9
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -10
 			}
 		}
@@ -122,8 +122,8 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 
 	if (*info) == 0 {
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		nb = maxint(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMTR"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
-		lwkopt = maxint((nb+1)*(*n), lwmin)
+		nb = max(nb, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMTR"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+		lwkopt = max((nb+1)*(*n), lwmin)
 		work.SetRe(0, float64(lwkopt))
 		rwork.Set(0, float64(lrwmin))
 		(*iwork)[0] = liwmin
@@ -176,7 +176,7 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 	smlnum = safmin / eps
 	bignum = one / smlnum
 	rmin = math.Sqrt(smlnum)
-	rmax = minf64(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
+	rmax = math.Min(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
@@ -196,11 +196,11 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= (*n); j++ {
-				goblas.Zdscal((*n)-j+1, sigma, a.CVector(j-1, j-1), 1)
+				goblas.Zdscal((*n)-j+1, sigma, a.CVector(j-1, j-1, 1))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				goblas.Zdscal(j, sigma, a.CVector(0, j-1), 1)
+				goblas.Zdscal(j, sigma, a.CVector(0, j-1, 1))
 			}
 		}
 		if (*abstol) > 0 {
@@ -263,12 +263,12 @@ func Zheevr(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *f
 	}
 	if (alleig || test) && (ieeeok == 1) {
 		if !wantz {
-			goblas.Dcopy(*n, rwork.Off(indrd-1), 1, w, 1)
-			goblas.Dcopy((*n)-1, rwork.Off(indre-1), 1, rwork.Off(indree-1), 1)
+			goblas.Dcopy(*n, rwork.Off(indrd-1, 1), w.Off(0, 1))
+			goblas.Dcopy((*n)-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
 			Dsterf(n, w, rwork.Off(indree-1), info)
 		} else {
-			goblas.Dcopy((*n)-1, rwork.Off(indre-1), 1, rwork.Off(indree-1), 1)
-			goblas.Dcopy(*n, rwork.Off(indrd-1), 1, rwork.Off(indrdd-1), 1)
+			goblas.Dcopy((*n)-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
+			goblas.Dcopy(*n, rwork.Off(indrd-1, 1), rwork.Off(indrdd-1, 1))
 			//
 			if (*abstol) <= two*float64(*n)*eps {
 				tryrac = true
@@ -321,7 +321,7 @@ label30:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -343,7 +343,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(*n, z.CVector(0, i-1), 1, z.CVector(0, j-1), 1)
+				goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
 			}
 		}
 	}

@@ -36,23 +36,23 @@ func Zget01(m, n *int, a *mat.CMatrix, lda *int, afac *mat.CMatrix, ldafac *int,
 	//     column N.
 	for k = (*n); k >= 1; k-- {
 		if k > (*m) {
-			err = goblas.Ztrmv(Lower, NoTrans, Unit, *m, afac, *ldafac, afac.CVector(0, k-1), 1)
+			err = goblas.Ztrmv(Lower, NoTrans, Unit, *m, afac, afac.CVector(0, k-1, 1))
 		} else {
 			//           Compute elements (K+1:M,K)
 			t = afac.Get(k-1, k-1)
 			if k+1 <= (*m) {
-				goblas.Zscal((*m)-k, t, afac.CVector(k+1-1, k-1), 1)
-				err = goblas.Zgemv(NoTrans, (*m)-k, k-1, cone, afac.Off(k+1-1, 0), *ldafac, afac.CVector(0, k-1), 1, cone, afac.CVector(k+1-1, k-1), 1)
+				goblas.Zscal((*m)-k, t, afac.CVector(k, k-1, 1))
+				err = goblas.Zgemv(NoTrans, (*m)-k, k-1, cone, afac.Off(k, 0), afac.CVector(0, k-1, 1), cone, afac.CVector(k, k-1, 1))
 			}
 
 			//           Compute the (K,K) element
-			afac.Set(k-1, k-1, t+goblas.Zdotu(k-1, afac.CVector(k-1, 0), *ldafac, afac.CVector(0, k-1), 1))
+			afac.Set(k-1, k-1, t+goblas.Zdotu(k-1, afac.CVector(k-1, 0), afac.CVector(0, k-1, 1)))
 
 			//           Compute elements (1:K-1,K)
-			err = goblas.Ztrmv(Lower, NoTrans, Unit, k-1, afac, *ldafac, afac.CVector(0, k-1), 1)
+			err = goblas.Ztrmv(Lower, NoTrans, Unit, k-1, afac, afac.CVector(0, k-1, 1))
 		}
 	}
-	golapack.Zlaswp(n, afac, ldafac, func() *int { y := 1; return &y }(), toPtr(minint(*m, *n)), ipiv, toPtr(-1))
+	golapack.Zlaswp(n, afac, ldafac, func() *int { y := 1; return &y }(), toPtr(min(*m, *n)), ipiv, toPtr(-1))
 
 	//     Compute the difference  L*U - A  and store in AFAC.
 	for j = 1; j <= (*n); j++ {

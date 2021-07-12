@@ -28,7 +28,7 @@ func Zungr2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*m) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -60,7 +60,7 @@ func Zungr2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 		Zlacgv(toPtr((*n)-(*m)+ii-1), a.CVector(ii-1, 0), lda)
 		a.Set(ii-1, (*n)-(*m)+ii-1, one)
 		Zlarf('R', toPtr(ii-1), toPtr((*n)-(*m)+ii), a.CVector(ii-1, 0), lda, toPtrc128(tau.GetConj(i-1)), a, lda, work)
-		goblas.Zscal((*n)-(*m)+ii-1, -tau.Get(i-1), a.CVector(ii-1, 0), *lda)
+		goblas.Zscal((*n)-(*m)+ii-1, -tau.Get(i-1), a.CVector(ii-1, 0, *lda))
 		Zlacgv(toPtr((*n)-(*m)+ii-1), a.CVector(ii-1, 0), lda)
 		a.Set(ii-1, (*n)-(*m)+ii-1, one-tau.GetConj(i-1))
 

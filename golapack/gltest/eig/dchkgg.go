@@ -71,24 +71,24 @@ import (
 //               T
 // (8)   | I - ZZ  | / ( n ulp )
 //
-// (9)   maxf64 over all left eigenvalue/-vector pairs (beta/alpha,l) of
+// (9)   math.Max over all left eigenvalue/-vector pairs (beta/alpha,l) of
 //
-//    | l**H * (beta S - alpha P) | / ( ulp maxf64( |beta S|, |alpha P| ) )
+//    | l**H * (beta S - alpha P) | / ( ulp math.Max( |beta S|, |alpha P| ) )
 //
-// (10)  maxf64 over all left eigenvalue/-vector pairs (beta/alpha,l') of
+// (10)  math.Max over all left eigenvalue/-vector pairs (beta/alpha,l') of
 //                           T
-//   | l'**H * (beta H - alpha T) | / ( ulp maxf64( |beta H|, |alpha T| ) )
+//   | l'**H * (beta H - alpha T) | / ( ulp math.Max( |beta H|, |alpha T| ) )
 //
 //       where the eigenvectors l' are the result of passing Q to
 //       DTGEVC and back transforming (HOWMNY='B').
 //
-// (11)  maxf64 over all right eigenvalue/-vector pairs (beta/alpha,r) of
+// (11)  math.Max over all right eigenvalue/-vector pairs (beta/alpha,r) of
 //
-//       | (beta S - alpha T) r | / ( ulp maxf64( |beta S|, |alpha T| ) )
+//       | (beta S - alpha T) r | / ( ulp math.Max( |beta S|, |alpha T| ) )
 //
-// (12)  maxf64 over all right eigenvalue/-vector pairs (beta/alpha,r') of
+// (12)  math.Max over all right eigenvalue/-vector pairs (beta/alpha,r') of
 //
-//       | (beta H - alpha T) r' | / ( ulp maxf64( |beta H|, |alpha T| ) )
+//       | (beta H - alpha T) r' | / ( ulp math.Max( |beta H|, |alpha T| ) )
 //
 //       where the eigenvectors r' are the result of passing Z to
 //       DTGEVC and back transforming (HOWMNY='B').
@@ -101,7 +101,7 @@ import (
 //
 // (14)  | P(Q,Z computed) - P(Q,Z not computed) | / ( |P| ulp )
 //
-// (15)  maxf64( |alpha(Q,Z computed) - alpha(Q,Z not computed)|/|S| ,
+// (15)  math.Max( |alpha(Q,Z computed) - alpha(Q,Z not computed)|/|S| ,
 //            |beta(Q,Z computed) - beta(Q,Z not computed)|/|P| ) / ulp
 //
 // In addition, the normalization of L and R are checked, and compared
@@ -235,7 +235,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -243,7 +243,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	//     Maximum blocksize and shift -- we assume that blocksize and number
 	//     of shifts are monotone increasing functions of N.
-	lwkopt = maxint(6*nmax, 2*nmax*nmax, 1)
+	lwkopt = max(6*nmax, 2*nmax*nmax, 1)
 
 	//     Check for errors
 	if (*nsizes) < 0 {
@@ -290,14 +290,14 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -345,7 +345,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			iinfo = 0
 			if kclass[jtype-1] < 3 {
 				//              Generate A (w/o rotation)
-				if absint(katype[jtype-1]) == 3 {
+				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Dlaset('F', &n, &n, &zero, &zero, a, lda)
@@ -360,7 +360,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Generate B (w/o rotation)
-				if absint(kbtype[jtype-1]) == 3 {
+				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Dlaset('F', &n, &n, &zero, &zero, b, lda)
@@ -384,10 +384,10 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							u.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
 							v.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
 						}
-						golapack.Dlarfg(toPtr(n+1-jc), u.GetPtr(jc-1, jc-1), u.Vector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						golapack.Dlarfg(toPtr(n+1-jc), u.GetPtr(jc-1, jc-1), u.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
 						work.Set(2*n+jc-1, math.Copysign(one, u.Get(jc-1, jc-1)))
 						u.Set(jc-1, jc-1, one)
-						golapack.Dlarfg(toPtr(n+1-jc), v.GetPtr(jc-1, jc-1), v.Vector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						golapack.Dlarfg(toPtr(n+1-jc), v.GetPtr(jc-1, jc-1), v.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
 						work.Set(3*n+jc-1, math.Copysign(one, v.Get(jc-1, jc-1)))
 						v.Set(jc-1, jc-1, one)
 					}
@@ -405,19 +405,19 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.Get(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), v, ldu, work.Off(n+1-1), a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), v, ldu, work.Off(n), a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), v, ldu, work.Off(n+1-1), b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), v, ldu, work.Off(n), b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
@@ -441,7 +441,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -454,28 +454,28 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ntest = 1
 			result.Set(0, ulpinv)
 
-			golapack.Dgeqr2(&n, &n, t, lda, work, work.Off(n+1-1), &iinfo)
+			golapack.Dgeqr2(&n, &n, t, lda, work, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEQR2", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
-			golapack.Dorm2r('L', 'T', &n, &n, &n, t, lda, work, h, lda, work.Off(n+1-1), &iinfo)
+			golapack.Dorm2r('L', 'T', &n, &n, &n, t, lda, work, h, lda, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORM2R", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
 			golapack.Dlaset('F', &n, &n, &zero, &one, u, ldu)
-			golapack.Dorm2r('R', 'N', &n, &n, &n, t, lda, work, u, ldu, work.Off(n+1-1), &iinfo)
+			golapack.Dorm2r('R', 'N', &n, &n, &n, t, lda, work, u, ldu, work.Off(n), &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORM2R", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -483,7 +483,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGGHRD", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 			ntest = 4
@@ -508,7 +508,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHGEQZ(E)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -520,7 +520,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHGEQZ(S)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -532,7 +532,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHGEQZ(V)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -565,7 +565,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(L,S1)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -577,11 +577,11 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				(*llwork)[j-1] = true
 			}
 
-			golapack.Dtgevc('L', 'S', *llwork, &n, s1, lda, p1, lda, evectl.Off(0, i1+1-1), ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
+			golapack.Dtgevc('L', 'S', *llwork, &n, s1, lda, p1, lda, evectl.Off(0, i1), ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(L,S2)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -601,7 +601,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(L,B)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -631,7 +631,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(R,S1)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -643,11 +643,11 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				(*llwork)[j-1] = true
 			}
 
-			golapack.Dtgevc('R', 'S', *llwork, &n, s1, lda, p1, lda, dumma.Matrix(*ldu, opts), ldu, evectr.Off(0, i1+1-1), ldu, &n, &in, work, &iinfo)
+			golapack.Dtgevc('R', 'S', *llwork, &n, s1, lda, p1, lda, dumma.Matrix(*ldu, opts), ldu, evectr.Off(0, i1), ldu, &n, &in, work, &iinfo)
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(R,S2)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -667,7 +667,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(R,B)", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label210
 			}
 
@@ -688,13 +688,13 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				temp1 = zero
 				temp2 = zero
 				for j = 1; j <= n; j++ {
-					temp1 = maxf64(temp1, math.Abs(alphr1.Get(j-1)-alphr3.Get(j-1))+math.Abs(alphi1.Get(j-1)-alphi3.Get(j-1)))
-					temp2 = maxf64(temp2, math.Abs(beta1.Get(j-1)-beta3.Get(j-1)))
+					temp1 = math.Max(temp1, math.Abs(alphr1.Get(j-1)-alphr3.Get(j-1))+math.Abs(alphi1.Get(j-1)-alphi3.Get(j-1)))
+					temp2 = math.Max(temp2, math.Abs(beta1.Get(j-1)-beta3.Get(j-1)))
 				}
 
-				temp1 = temp1 / maxf64(safmin, ulp*maxf64(temp1, anorm))
-				temp2 = temp2 / maxf64(safmin, ulp*maxf64(temp2, bnorm))
-				result.Set(14, maxf64(temp1, temp2))
+				temp1 = temp1 / math.Max(safmin, ulp*math.Max(temp1, anorm))
+				temp2 = temp2 / math.Max(safmin, ulp*math.Max(temp2, bnorm))
+				result.Set(14, math.Max(temp1, temp2))
 				ntest = 15
 			} else {
 				result.Set(12, zero)
@@ -724,7 +724,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						fmt.Printf(" Matrices Rotated by Random %s Matrices U, V:\n  16=Transposed Jordan Blocks             19=geometric alpha, beta=0,1\n  17=arithm. alpha&beta                   20=arithmetic alpha, beta=0,1\n  18=clustered alpha, beta=0,1            21=random alpha, beta=0,1\n Large & Small Matrices:\n  22=(large, small)   23=(small,large)    24=(small,small)    25=(large,large)\n  26=random O(1) matrices.\n", "Orthogonal")
 
 						//                    Tests performed
-						fmt.Printf("\n Tests performed:   (H is Hessenberg, S is Schur, B, T, P are triangular,\n                    U, V, Q, and Z are %s, l and r are the\n                    appropriate left and right eigenvectors, resp., a is\n                    alpha, b is beta, and %s means %s.)\n 1 = | A - U H V%s | / ( |A| n ulp )      2 = | B - U T V%s | / ( |B| n ulp )\n 3 = | I - UU%s | / ( n ulp )             4 = | I - VV%s | / ( n ulp )\n 5 = | H - Q S Z%s | / ( |H| n ulp )      6 = | T - Q P Z%s | / ( |T| n ulp )\n 7 = | I - QQ%s | / ( n ulp )             8 = | I - ZZ%s | / ( n ulp )\n 9 = maxf64 | ( b S - a P )%s l | / const.  10 = maxf64 | ( b H - a T )%s l | / const.\n 11= maxf64 | ( b S - a P ) r | / const.   12 = maxf64 | ( b H - a T ) r | / const.\n \n", "orthogonal", "'", "transpose", "'", "'", "'", "'", "'", "'", "'", "'", "'", "'")
+						fmt.Printf("\n Tests performed:   (H is Hessenberg, S is Schur, B, T, P are triangular,\n                    U, V, Q, and Z are %s, l and r are the\n                    appropriate left and right eigenvectors, resp., a is\n                    alpha, b is beta, and %s means %s.)\n 1 = | A - U H V%s | / ( |A| n ulp )      2 = | B - U T V%s | / ( |B| n ulp )\n 3 = | I - UU%s | / ( n ulp )             4 = | I - VV%s | / ( n ulp )\n 5 = | H - Q S Z%s | / ( |H| n ulp )      6 = | T - Q P Z%s | / ( |T| n ulp )\n 7 = | I - QQ%s | / ( n ulp )             8 = | I - ZZ%s | / ( n ulp )\n 9 = math.Max | ( b S - a P )%s l | / const.  10 = math.Max | ( b H - a T )%s l | / const.\n 11= math.Max | ( b S - a P ) r | / const.   12 = math.Max | ( b H - a T ) r | / const.\n \n", "orthogonal", "'", "transpose", "'", "'", "'", "'", "'", "'", "'", "'", "'", "'")
 
 					}
 					nerrs = nerrs + 1

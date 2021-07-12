@@ -49,7 +49,7 @@ func Zpteqr(compz byte, n *int, d, e *mat.Vector, z *mat.CMatrix, ldz *int, work
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < maxint(1, *n)) {
+	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < max(1, *n)) {
 		(*info) = -6
 	}
 	if (*info) != 0 {

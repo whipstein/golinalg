@@ -50,9 +50,9 @@ func Zunmr3(side, trans byte, m, n, k, l *int, a *mat.CMatrix, lda *int, tau *ma
 		(*info) = -5
 	} else if (*l) < 0 || (left && ((*l) > (*m))) || (!left && ((*l) > (*n))) {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -8
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -11
 	}
 	if (*info) != 0 {

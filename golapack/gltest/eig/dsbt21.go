@@ -38,7 +38,7 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 		return
 	}
 
-	ika = maxint(0, minint((*n)-1, *ka))
+	ika = max(0, min((*n)-1, *ka))
 	lw = ((*n) * ((*n) + 1)) / 2
 
 	if uplo == 'U' {
@@ -57,7 +57,7 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 	//     Do Test 1
 	//
 	//     Norm of A:
-	anorm = maxf64(golapack.Dlansb('1', cuplo, n, &ika, a, lda, work), unfl)
+	anorm = math.Max(golapack.Dlansb('1', cuplo, n, &ika, a, lda, work), unfl)
 
 	//     Compute error matrix:    Error = A - U S U**T
 	//
@@ -65,7 +65,7 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 	j = 0
 	for jc = 1; jc <= (*n); jc++ {
 		if lower {
-			for jr = 1; jr <= minint(ika+1, (*n)+1-jc); jr++ {
+			for jr = 1; jr <= min(ika+1, (*n)+1-jc); jr++ {
 				j = j + 1
 				work.Set(j-1, a.Get(jr-1, jc-1))
 			}
@@ -78,7 +78,7 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 				j = j + 1
 				work.Set(j-1, zero)
 			}
-			for jr = minint(ika, jc-1); jr >= 0; jr-- {
+			for jr = min(ika, jc-1); jr >= 0; jr-- {
 				j = j + 1
 				work.Set(j-1, a.Get(ika+1-jr-1, jc-1))
 			}
@@ -86,34 +86,34 @@ func Dsbt21(uplo byte, n, ka, ks *int, a *mat.Matrix, lda *int, d, e *mat.Vector
 	}
 
 	for j = 1; j <= (*n); j++ {
-		err = goblas.Dspr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1), 1, work)
+		err = goblas.Dspr(mat.UploByte(cuplo), *n, -d.Get(j-1), u.Vector(0, j-1, 1), work)
 	}
 
 	if (*n) > 1 && (*ks) == 1 {
 		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Dspr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1), 1, u.Vector(0, j+1-1), 1, work)
+			err = goblas.Dspr2(mat.UploByte(cuplo), *n, -e.Get(j-1), u.Vector(0, j-1, 1), u.Vector(0, j, 1), work)
 		}
 	}
-	wnorm = golapack.Dlansp('1', cuplo, n, work, work.Off(lw+1-1))
+	wnorm = golapack.Dlansp('1', cuplo, n, work, work.Off(lw))
 
 	if anorm > wnorm {
 		result.Set(0, (wnorm/anorm)/(float64(*n)*ulp))
 	} else {
 		if anorm < one {
-			result.Set(0, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+			result.Set(0, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 		} else {
-			result.Set(0, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+			result.Set(0, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 		}
 	}
 
 	//     Do Test 2
 	//
 	//     Compute  U U**T - I
-	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, *ldu, u, *ldu, zero, work.Matrix(*n, opts), *n)
+	err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, u, zero, work.Matrix(*n, opts))
 
 	for j = 1; j <= (*n); j++ {
-		work.Set(((*n)+1)*(j-1)+1-1, work.Get(((*n)+1)*(j-1)+1-1)-one)
+		work.Set(((*n)+1)*(j-1), work.Get(((*n)+1)*(j-1))-one)
 	}
 
-	result.Set(1, minf64(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))+1-1)), float64(*n))/(float64(*n)*ulp))
+	result.Set(1, math.Min(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))), float64(*n))/(float64(*n)*ulp))
 }

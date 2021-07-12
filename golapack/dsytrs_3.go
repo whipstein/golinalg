@@ -35,9 +35,9 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -64,20 +64,20 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		//        since the ABS value of IPIV( I ) represents the row index
 		//        of the interchange with row i in both 1x1 and 2x2 pivot cases)
 		for k = (*n); k >= 1; k-- {
-			kp = absint((*ipiv)[k-1])
+			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0, *ldb), b.Vector(kp-1, 0, *ldb))
 			}
 		}
 
 		//        Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, b)
 
 		//        Compute D \ B -> B   [ D \ (U \P**T * B) ]
 		i = (*n)
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Dscal(*nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0), *ldb)
+				goblas.Dscal(*nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0, *ldb))
 			} else if i > 1 {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1-1, i-1-1) / akm1k
@@ -95,7 +95,7 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		}
 
 		//        Compute (U**T \ B) -> B   [ U**T \ (D \ (U \P**T * B) ) ]
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.Unit, *n, *nrhs, one, a, b)
 
 		//        P * B  [ P * (U**T \ (D \ (U \P**T * B) )) ]
 		//
@@ -106,9 +106,9 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		//        since the ABS value of IPIV(I) represents the row index
 		//        of the interchange with row i in both 1x1 and 2x2 pivot cases)
 		for k = 1; k <= (*n); k++ {
-			kp = absint((*ipiv)[k-1])
+			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0, *ldb), b.Vector(kp-1, 0, *ldb))
 			}
 		}
 
@@ -125,30 +125,30 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		//        since the ABS value of IPIV(I) represents the row index
 		//        of the interchange with row i in both 1x1 and 2x2 pivot cases)
 		for k = 1; k <= (*n); k++ {
-			kp = absint((*ipiv)[k-1])
+			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0, *ldb), b.Vector(kp-1, 0, *ldb))
 			}
 		}
 
 		//        Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, *n, *nrhs, one, a, b)
 
 		//        Compute D \ B -> B   [ D \ (L \P**T * B) ]
 		i = 1
 		for i <= (*n) {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Dscal(*nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0), *ldb)
+				goblas.Dscal(*nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0, *ldb))
 			} else if i < (*n) {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / akm1k
-				ak = a.Get(i+1-1, i+1-1) / akm1k
+				ak = a.Get(i, i) / akm1k
 				denom = akm1*ak - one
 				for j = 1; j <= (*nrhs); j++ {
 					bkm1 = b.Get(i-1, j-1) / akm1k
-					bk = b.Get(i+1-1, j-1) / akm1k
+					bk = b.Get(i, j-1) / akm1k
 					b.Set(i-1, j-1, (ak*bkm1-bk)/denom)
-					b.Set(i+1-1, j-1, (akm1*bk-bkm1)/denom)
+					b.Set(i, j-1, (akm1*bk-bkm1)/denom)
 				}
 				i = i + 1
 			}
@@ -156,7 +156,7 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		}
 
 		//        Compute (L**T \ B) -> B   [ L**T \ (D \ (L \P**T * B) ) ]
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, *n, *nrhs, one, a, *lda, b, *ldb)
+		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.Unit, *n, *nrhs, one, a, b)
 
 		//        P * B  [ P * (L**T \ (D \ (L \P**T * B) )) ]
 		//
@@ -167,9 +167,9 @@ func Dsytrs3(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 		//        since the ABS value of IPIV(I) represents the row index
 		//        of the interchange with row i in both 1x1 and 2x2 pivot cases)
 		for k = (*n); k >= 1; k-- {
-			kp = absint((*ipiv)[k-1])
+			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Dswap(*nrhs, b.Vector(k-1, 0), *ldb, b.Vector(kp-1, 0), *ldb)
+				goblas.Dswap(*nrhs, b.Vector(k-1, 0, *ldb), b.Vector(kp-1, 0, *ldb))
 			}
 		}
 

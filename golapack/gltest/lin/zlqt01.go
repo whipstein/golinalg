@@ -24,7 +24,7 @@ func Zlqt01(m, n *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVecto
 	rogue = (-1.0e+10 + (-1.0e+10)*1i)
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the matrix A to the array AF.
@@ -49,23 +49,23 @@ func Zlqt01(m, n *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVecto
 	golapack.Zlacpy('L', m, n, af, lda, l, lda)
 
 	//     Compute L - A*Q'
-	err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, complex(-one, 0), a, *lda, q, *lda, complex(one, 0), l, *lda)
+	err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, complex(-one, 0), a, q, complex(one, 0), l)
 
 	//     Compute norm( L - Q'*A ) / ( N * norm(A) * EPS ) .
 	anorm = golapack.Zlange('1', m, n, a, lda, rwork)
 	resid = golapack.Zlange('1', m, n, l, lda, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(maxint(1, *n)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, *n)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q*Q'
 	golapack.Zlaset('F', n, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), l, lda)
-	err = goblas.Zherk(Upper, NoTrans, *n, *n, -one, q, *lda, one, l, *lda)
+	err = goblas.Zherk(Upper, NoTrans, *n, *n, -one, q, one, l)
 
 	//     Compute norm( I - Q*Q' ) / ( N * EPS ) .
 	resid = golapack.Zlansy('1', 'U', n, l, lda, rwork)
 
-	result.Set(1, (resid/float64(maxint(1, *n)))/eps)
+	result.Set(1, (resid/float64(max(1, *n)))/eps)
 }

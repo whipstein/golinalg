@@ -86,9 +86,9 @@ func Dgges3(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix,
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	} else if (*ldvsl) < 1 || (ilvsl && (*ldvsl) < (*n)) {
 		(*info) = -15
@@ -101,20 +101,20 @@ func Dgges3(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix,
 	//     Compute workspace
 	if (*info) == 0 {
 		Dgeqrf(n, n, b, ldb, work, work, toPtr(-1), &ierr)
-		lwkopt = maxint(6*(*n)+16, 3*(*n)+int(work.Get(0)))
+		lwkopt = max(6*(*n)+16, 3*(*n)+int(work.Get(0)))
 		Dormqr('L', 'T', n, n, n, b, ldb, work, a, lda, work, toPtr(-1), &ierr)
-		lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+		lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 		if ilvsl {
 			Dorgqr(n, n, n, vsl, ldvsl, work, work, toPtr(-1), &ierr)
-			lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 		}
 		Dgghd3(jobvsl, jobvsr, n, func() *int { y := 1; return &y }(), n, a, lda, b, ldb, vsl, ldvsl, vsr, ldvsr, work, toPtr(-1), &ierr)
-		lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+		lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 		Dhgeqz('S', jobvsl, jobvsr, n, func() *int { y := 1; return &y }(), n, a, lda, b, ldb, alphar, alphai, beta, vsl, ldvsl, vsr, ldvsr, work, toPtr(-1), &ierr)
-		lwkopt = maxint(lwkopt, 2*(*n)+int(work.Get(0)))
+		lwkopt = max(lwkopt, 2*(*n)+int(work.Get(0)))
 		if wantst {
 			Dtgsen(func() *int { y := 0; return &y }(), ilvsl, ilvsr, *bwork, n, a, lda, b, ldb, alphar, alphai, beta, vsl, ldvsl, vsr, ldvsr, sdim, &pvsl, &pvsr, dif, work, toPtr(-1), &idum, func() *int { y := 1; return &y }(), &ierr)
-			lwkopt = maxint(lwkopt, 2*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 2*(*n)+int(work.Get(0)))
 		}
 		work.Set(0, float64(lwkopt))
 	}
@@ -188,7 +188,7 @@ func Dgges3(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix,
 	if ilvsl {
 		Dlaset('F', n, n, &zero, &one, vsl, ldvsl)
 		if irows > 1 {
-			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vsl.Off(ilo+1-1, ilo-1), ldvsl)
+			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vsl.Off(ilo, ilo-1), ldvsl)
 		}
 		Dorgqr(&irows, &irows, &irows, vsl.Off(ilo-1, ilo-1), ldvsl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -260,7 +260,7 @@ func Dgges3(jobvsl, jobvsr, sort byte, selctg dlctesFunc, n *int, a *mat.Matrix,
 					alphar.Set(i-1, alphar.Get(i-1)*work.Get(0))
 					alphai.Set(i-1, alphai.Get(i-1)*work.Get(0))
 				} else if (alphai.Get(i-1)/safmax) > (anrmto/anrm) || (safmin/alphai.Get(i-1)) > (anrm/anrmto) {
-					work.Set(0, math.Abs(a.Get(i-1, i+1-1)/alphai.Get(i-1)))
+					work.Set(0, math.Abs(a.Get(i-1, i)/alphai.Get(i-1)))
 					beta.Set(i-1, beta.Get(i-1)*work.Get(0))
 					alphar.Set(i-1, alphar.Get(i-1)*work.Get(0))
 					alphai.Set(i-1, alphai.Get(i-1)*work.Get(0))

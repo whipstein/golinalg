@@ -40,7 +40,7 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	for i = 1; i <= 4; i++ {
 		iseed[i-1] = iseedy[i-1]
 	}
-	lwork = maxint(2*(*nmax), (*nmax)*(*nrhs))
+	lwork = max(2*(*nmax), (*nmax)*(*nrhs))
 
 	//     Test the error exits
 	if *tsterr {
@@ -57,7 +57,7 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -134,7 +134,7 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								//                          Set the first IZERO rows to zero.
 								ioff = 0
 								for j = 1; j <= n; j++ {
-									i2 = minint(j, izero)
+									i2 = min(j, izero)
 									for i = 1; i <= i2; i++ {
 										a.SetRe(ioff+i-1, zero)
 									}
@@ -144,7 +144,7 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								//                          Set the last IZERO rows to zero.
 								ioff = 0
 								for j = 1; j <= n; j++ {
-									i1 = maxint(j, izero)
+									i1 = max(j, izero)
 									for i = i1; i <= n; i++ {
 										a.SetRe(ioff+i-1, zero)
 									}
@@ -272,7 +272,7 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Solve the system and compute the condition number and
 					//                 error bounds using ZSYSVX.
 					*srnamt = "ZSYSVX"
-					golapack.Zsysvx(fact, uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, &lwork, rwork.Off(2*(*nrhs)+1-1), &info)
+					golapack.Zsysvx(fact, uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, &lwork, rwork.Off(2*(*nrhs)), &info)
 
 					//                 Adjust the expected value of INFO to account for
 					//                 pivoting.
@@ -302,7 +302,7 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if ifact >= 2 {
 							//                       Reconstruct matrix from factors and compute
 							//                       residual.
-							Zsyt01(uplo, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, ainv.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+							Zsyt01(uplo, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, ainv.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 							k1 = 1
 						} else {
 							k1 = 2
@@ -310,13 +310,13 @@ func Zdrvsy(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						//                    Compute residual of the computed solution.
 						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-						Zsyt02(uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+						Zsyt02(uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 						//                    Check solution from generated exact solution.
 						Zget04(&n, nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 						//                    Check the error bounds from iterative refinement.
-						Zpot05(uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+						Zpot05(uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 					} else {
 						k1 = 6
 					}

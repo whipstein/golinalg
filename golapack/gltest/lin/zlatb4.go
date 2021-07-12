@@ -53,13 +53,13 @@ func Zlatb4(path []byte, imat, m, n *int, _type *byte, kl, ku *int, anorm *float
 			(*ku) = 0
 		} else if (*imat) == 2 {
 			(*kl) = 0
-			(*ku) = maxint((*n)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		} else if (*imat) == 3 {
-			(*kl) = maxint((*m)-1, 0)
+			(*kl) = max((*m)-1, 0)
 			(*ku) = 0
 		} else {
-			(*kl) = maxint((*m)-1, 0)
-			(*ku) = maxint((*n)-1, 0)
+			(*kl) = max((*m)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		}
 
 		//        Set the condition number and norm.
@@ -91,13 +91,13 @@ func Zlatb4(path []byte, imat, m, n *int, _type *byte, kl, ku *int, anorm *float
 			(*ku) = 0
 		} else if (*imat) == 2 {
 			(*kl) = 0
-			(*ku) = maxint((*n)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		} else if (*imat) == 3 {
-			(*kl) = maxint((*m)-1, 0)
+			(*kl) = max((*m)-1, 0)
 			(*ku) = 0
 		} else {
-			(*kl) = maxint((*m)-1, 0)
-			(*ku) = maxint((*n)-1, 0)
+			(*kl) = max((*m)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		}
 
 		//        Set the condition number and norm.
@@ -182,7 +182,7 @@ func Zlatb4(path []byte, imat, m, n *int, _type *byte, kl, ku *int, anorm *float
 		if (*imat) == 1 {
 			(*kl) = 0
 		} else {
-			(*kl) = maxint((*n)-1, 0)
+			(*kl) = max((*n)-1, 0)
 		}
 		(*ku) = (*kl)
 
@@ -214,7 +214,7 @@ func Zlatb4(path []byte, imat, m, n *int, _type *byte, kl, ku *int, anorm *float
 		if (*imat) == 1 {
 			(*kl) = 0
 		} else {
-			(*kl) = maxint((*n)-1, 0)
+			(*kl) = max((*n)-1, 0)
 		}
 		(*ku) = (*kl)
 
@@ -298,11 +298,11 @@ func Zlatb4(path []byte, imat, m, n *int, _type *byte, kl, ku *int, anorm *float
 			(*kl) = 0
 			(*ku) = 0
 		} else if (*imat) < 0 {
-			(*kl) = maxint((*n)-1, 0)
+			(*kl) = max((*n)-1, 0)
 			(*ku) = 0
 		} else {
 			(*kl) = 0
-			(*ku) = maxint((*n)-1, 0)
+			(*ku) = max((*n)-1, 0)
 		}
 
 		//        Set the condition number and norm.

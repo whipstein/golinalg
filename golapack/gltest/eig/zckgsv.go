@@ -57,7 +57,7 @@ func Zckgsv(nm *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZLATMS in ZCKGSV   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label20
 			}
 
@@ -66,7 +66,7 @@ func Zckgsv(nm *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZLATMS in ZCKGSV   INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label20
 			}
 

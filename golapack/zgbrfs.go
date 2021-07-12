@@ -47,9 +47,9 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		(*info) = -7
 	} else if (*ldafb) < 2*(*kl)+(*ku)+1 {
 		(*info) = -9
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -12
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -14
 	}
 	if (*info) != 0 {
@@ -75,7 +75,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 	}
 
 	//     NZ = maximum number of nonzero elements in each row of A, plus 1
-	nz = minint((*kl)+(*ku)+2, (*n)+1)
+	nz = min((*kl)+(*ku)+2, (*n)+1)
 	eps = Dlamch(Epsilon)
 	safmin = Dlamch(SafeMinimum)
 	safe1 = float64(nz) * safmin
@@ -93,8 +93,8 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
-		err = goblas.Zgbmv(mat.TransByte(trans), *n, *n, *kl, *ku, -cone, ab, *ldab, x.CVector(0, j-1), 1, cone, work, 1)
+		goblas.Zcopy(*n, b.CVector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Zgbmv(mat.TransByte(trans), *n, *n, *kl, *ku, -cone, ab, x.CVector(0, j-1, 1), cone, work.Off(0, 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -113,7 +113,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 			for k = 1; k <= (*n); k++ {
 				kk = (*ku) + 1 - k
 				xk = Cabs1(x.Get(k-1, j-1))
-				for i = maxint(1, k-(*ku)); i <= minint(*n, k+(*kl)); i++ {
+				for i = max(1, k-(*ku)); i <= min(*n, k+(*kl)); i++ {
 					rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get(kk+i-1, k-1))*xk)
 				}
 			}
@@ -121,7 +121,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 			for k = 1; k <= (*n); k++ {
 				s = zero
 				kk = (*ku) + 1 - k
-				for i = maxint(1, k-(*ku)); i <= minint(*n, k+(*kl)); i++ {
+				for i = max(1, k-(*ku)); i <= min(*n, k+(*kl)); i++ {
 					s = s + Cabs1(ab.Get(kk+i-1, k-1))*Cabs1(x.Get(i-1, j-1))
 				}
 				rwork.Set(k-1, rwork.Get(k-1)+s)
@@ -130,9 +130,9 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -145,7 +145,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zgbtrs(trans, n, kl, ku, func() *int { y := 1; return &y }(), afb, ldafb, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, cone, work, 1, x.CVector(0, j-1), 1)
+			goblas.Zaxpy(*n, cone, work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -183,7 +183,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		kase = 0
 	label100:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, ferr.GetPtr(j-1), &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
@@ -204,7 +204,7 @@ func Zgbrfs(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, afb *m
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, Cabs1(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

@@ -31,9 +31,9 @@ func Dgtsvx(fact, trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.Ve
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -14
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -16
 	}
 	if (*info) != 0 {
@@ -43,10 +43,10 @@ func Dgtsvx(fact, trans byte, n, nrhs *int, dl, d, du, dlf, df, duf, du2 *mat.Ve
 
 	if nofact {
 		//        Compute the LU factorization of A.
-		goblas.Dcopy(*n, d, 1, df, 1)
+		goblas.Dcopy(*n, d.Off(0, 1), df.Off(0, 1))
 		if (*n) > 1 {
-			goblas.Dcopy((*n)-1, dl, 1, dlf, 1)
-			goblas.Dcopy((*n)-1, du, 1, duf, 1)
+			goblas.Dcopy((*n)-1, dl.Off(0, 1), dlf.Off(0, 1))
+			goblas.Dcopy((*n)-1, du.Off(0, 1), duf.Off(0, 1))
 		}
 		Dgttrf(n, dlf, df, duf, du2, ipiv, info)
 

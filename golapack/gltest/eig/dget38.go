@@ -49,7 +49,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 	golapack.Dlabad(&smlnum, &bignum)
 
 	//     EPSIN = 2**(-24) = precision to which input data computed
-	eps = maxf64(eps, epsin)
+	eps = math.Max(eps, epsin)
 	rmax.Set(0, zero)
 	rmax.Set(1, zero)
 	rmax.Set(2, zero)
@@ -335,7 +335,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			golapack.Dlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Dscal(n, vmul, t.Vector(0, i-1), 1)
+				goblas.Dscal(n, vmul, t.Vector(0, i-1, 1))
 			}
 			if tnrm == zero {
 				vmul = one
@@ -343,7 +343,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			golapack.Dlacpy('F', &n, &n, t, &ldt, tsav, &ldt)
 
 			//        Compute Schur form
-			golapack.Dgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n+1-1), toPtr(lwork-n), &info)
+			golapack.Dgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
 			if info != 0 {
 				(*lmax)[0] = (*knt)
 				(*ninfo)[0] = (*ninfo)[0] + 1
@@ -352,7 +352,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 
 			//        Generate orthogonal matrix
 			golapack.Dlacpy('L', &n, &n, t, &ldt, q, &ldt)
-			golapack.Dorghr(&n, func() *int { y := 1; return &y }(), &n, q, &ldt, work.Off(0), work.Off(n+1-1), toPtr(lwork-n), &info)
+			golapack.Dorghr(&n, func() *int { y := 1; return &y }(), &n, q, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
 
 			//        Compute Schur form
 			golapack.Dhseqr('S', 'V', &n, func() *int { y := 1; return &y }(), &n, t, &ldt, wr, wi, q, &ldt, work, &lwork, &info)
@@ -367,8 +367,8 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 				ipnt[i-1] = i
 				_select[i-1] = false
 			}
-			goblas.Dcopy(n, wr, 1, wrtmp, 1)
-			goblas.Dcopy(n, wi, 1, witmp, 1)
+			goblas.Dcopy(n, wr.Off(0, 1), wrtmp.Off(0, 1))
+			goblas.Dcopy(n, wi.Off(0, 1), witmp.Off(0, 1))
 			for i = 1; i <= n-1; i++ {
 				kmin = i
 				vrmin = wrtmp.Get(i - 1)
@@ -406,7 +406,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 
 			//        Compute residuals
 			Dhst01(&n, func() *int { y := 1; return &y }(), &n, tsav, &ldt, t, &ldt, q, &ldt, work, &lwork, result)
-			vmax = maxf64(result.Get(0), result.Get(1))
+			vmax = math.Max(result.Get(0), result.Get(1))
 			if vmax > rmax.Get(0) {
 				rmax.Set(0, vmax)
 				if (*ninfo)[0] == 0 {
@@ -416,7 +416,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 
 			//        Compare condition number for eigenvalue cluster
 			//        taking its condition number into account
-			v = maxf64(two*float64(n)*eps*tnrm, smlnum)
+			v = math.Max(two*float64(n)*eps*tnrm, smlnum)
 			if tnrm == zero {
 				v = one
 			}
@@ -430,8 +430,8 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			} else {
 				tolin = v / sepin
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(sin-tolin) > stmp+tol {
 				vmax = one / eps
 			} else if sin-tolin > stmp+tol {
@@ -462,8 +462,8 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			} else {
 				tolin = v / sin
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(sepin-tolin) > septmp+tol {
 				vmax = one / eps
 			} else if sepin-tolin > septmp+tol {

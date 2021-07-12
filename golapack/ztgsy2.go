@@ -71,17 +71,17 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 			(*info) = -3
 		} else if (*n) <= 0 {
 			(*info) = -4
-		} else if (*lda) < maxint(1, *m) {
+		} else if (*lda) < max(1, *m) {
 			(*info) = -6
-		} else if (*ldb) < maxint(1, *n) {
+		} else if (*ldb) < max(1, *n) {
 			(*info) = -8
-		} else if (*ldc) < maxint(1, *m) {
+		} else if (*ldc) < max(1, *m) {
 			(*info) = -10
-		} else if (*ldd) < maxint(1, *m) {
+		} else if (*ldd) < max(1, *m) {
 			(*info) = -12
-		} else if (*lde) < maxint(1, *n) {
+		} else if (*lde) < max(1, *n) {
 			(*info) = -14
-		} else if (*ldf) < maxint(1, *m) {
+		} else if (*ldf) < max(1, *m) {
 			(*info) = -16
 		}
 	}
@@ -118,8 +118,8 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 					Zgesc2(&ldz, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 					if scaloc != one {
 						for k = 1; k <= (*n); k++ {
-							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
-							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
+							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 						}
 						(*scale) = (*scale) * scaloc
 					}
@@ -134,12 +134,12 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				//              Substitute R(I, J) and L(I, J) into remaining equation.
 				if i > 1 {
 					alpha = -rhs.Get(0)
-					goblas.Zaxpy(i-1, alpha, a.CVector(0, i-1), 1, c.CVector(0, j-1), 1)
-					goblas.Zaxpy(i-1, alpha, d.CVector(0, i-1), 1, f.CVector(0, j-1), 1)
+					goblas.Zaxpy(i-1, alpha, a.CVector(0, i-1, 1), c.CVector(0, j-1, 1))
+					goblas.Zaxpy(i-1, alpha, d.CVector(0, i-1, 1), f.CVector(0, j-1, 1))
 				}
 				if j < (*n) {
-					goblas.Zaxpy((*n)-j, rhs.Get(1), b.CVector(j-1, j+1-1), *ldb, c.CVector(i-1, j+1-1), *ldc)
-					goblas.Zaxpy((*n)-j, rhs.Get(1), e.CVector(j-1, j+1-1), *lde, f.CVector(i-1, j+1-1), *ldf)
+					goblas.Zaxpy((*n)-j, rhs.Get(1), b.CVector(j-1, j, *ldb), c.CVector(i-1, j, *ldc))
+					goblas.Zaxpy((*n)-j, rhs.Get(1), e.CVector(j-1, j, *lde), f.CVector(i-1, j, *ldf))
 				}
 
 			}
@@ -171,8 +171,8 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				Zgesc2(&ldz, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
 				if scaloc != one {
 					for k = 1; k <= (*n); k++ {
-						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1), 1)
-						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1), 1)
+						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 					}
 					(*scale) = (*scale) * scaloc
 				}

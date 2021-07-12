@@ -37,9 +37,9 @@ func Zhesvrook(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	} else if (*lwork) < 1 && !lquery {
 		(*info) = -10

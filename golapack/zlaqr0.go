@@ -84,24 +84,24 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 		//        .    (In fact, there is enough subdiagonal space for
 		//        .    NWR.GE.3.) ====
 		nwr = Ilaenv(func() *int { y := 13; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
-		nwr = maxint(2, nwr)
-		nwr = minint((*ihi)-(*ilo)+1, ((*n)-1)/3, nwr)
+		nwr = max(2, nwr)
+		nwr = min((*ihi)-(*ilo)+1, ((*n)-1)/3, nwr)
 
 		//        ==== NSR = recommended number of simultaneous shifts.
 		//        .    At this point N .GT. NTINY = 11, so there is at
 		//        .    enough subdiagonal workspace for NSR to be even
 		//        .    and greater than or equal to two as required. ====
 		nsr = Ilaenv(func() *int { y := 15; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
-		nsr = minint(nsr, ((*n)+6)/9, (*ihi)-(*ilo))
-		nsr = maxint(2, nsr-(nsr%2))
+		nsr = min(nsr, ((*n)+6)/9, (*ihi)-(*ilo))
+		nsr = max(2, nsr-(nsr%2))
 
 		//        ==== Estimate optimal workspace ====
 		//
 		//        ==== Workspace query call to ZLAQR3 ====
 		Zlaqr3(wantt, wantz, n, ilo, ihi, toPtr(nwr+1), h, ldh, iloz, ihiz, z, ldz, &ls, &ld, w, h, ldh, n, h, ldh, n, h, ldh, work, toPtr(-1))
 
-		//        ==== Optimal workspace = maxint(ZLAQR5, ZLAQR3) ====
-		lwkopt = maxint(3*nsr/2, int(work.GetRe(0)))
+		//        ==== Optimal workspace = max(ZLAQR5, ZLAQR3) ====
+		lwkopt = max(3*nsr/2, int(work.GetRe(0)))
 
 		//        ==== Quick return in case of workspace query. ====
 		if (*lwork) == -1 {
@@ -111,33 +111,33 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 
 		//        ==== ZLAHQR/ZLAQR0 crossover point ====
 		nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
-		nmin = maxint(ntiny, nmin)
+		nmin = max(ntiny, nmin)
 
 		//        ==== Nibble crossover point ====
 		nibble = Ilaenv(func() *int { y := 14; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
-		nibble = maxint(0, nibble)
+		nibble = max(0, nibble)
 
 		//        ==== Accumulate reflections during ttswp?  Use block
 		//        .    2-by-2 structure during matrix-matrix multiply? ====
 		kacc22 = Ilaenv(func() *int { y := 16; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
-		kacc22 = maxint(0, kacc22)
-		kacc22 = minint(2, kacc22)
+		kacc22 = max(0, kacc22)
+		kacc22 = min(2, kacc22)
 
 		//        ==== NWMAX = the largest possible deflation window for
 		//        .    which there is sufficient workspace. ====
-		nwmax = minint(((*n)-1)/3, (*lwork)/2)
+		nwmax = min(((*n)-1)/3, (*lwork)/2)
 		nw = nwmax
 
 		//        ==== NSMAX = the Largest number of simultaneous shifts
 		//        .    for which there is sufficient workspace. ====
-		nsmax = minint(((*n)+6)/9, 2*(*lwork)/3)
+		nsmax = min(((*n)+6)/9, 2*(*lwork)/3)
 		nsmax = nsmax - (nsmax % 2)
 
 		//        ==== NDFL: an iteration count restarted at deflation. ====
 		ndfl = 1
 
 		//        ==== ITMAX = iteration limit ====
-		itmax = maxint(30, 2*kexsh) * maxint(10, (*ihi)-(*ilo)+1)
+		itmax = max(30, 2*kexsh) * max(10, (*ihi)-(*ilo)+1)
 
 		//        ==== Last row and column in the active block ====
 		kbot = (*ihi)
@@ -163,8 +163,8 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			//           ==== Select deflation window size:
 			//           .    Typical Case:
 			//           .      If possible and advisable, nibble the entire
-			//           .      active block.  If not, use size minint(NWR,NWMAX)
-			//           .      or minint(NWR+1,NWMAX) depending upon which has
+			//           .      active block.  If not, use size min(NWR,NWMAX)
+			//           .      or min(NWR+1,NWMAX) depending upon which has
 			//           .      the smaller corresponding subdiagonal entry
 			//           .      (a heuristic).
 			//           .
@@ -176,11 +176,11 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			//           .      rapidly increase the window to the maximum possible.
 			//           .      Then, gradually reduce the window size. ====
 			nh = kbot - ktop + 1
-			nwupbd = minint(nh, nwmax)
+			nwupbd = min(nh, nwmax)
 			if ndfl < kexnw {
-				nw = minint(nwupbd, nwr)
+				nw = min(nwupbd, nwr)
 			} else {
-				nw = minint(nwupbd, 2*nw)
+				nw = min(nwupbd, 2*nw)
 			}
 			if nw < nwmax {
 				if nw >= nh-1 {
@@ -232,11 +232,11 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			//           .    will deflate without it.  Here, the QR sweep is
 			//           .    skipped if many eigenvalues have just been deflated
 			//           .    or if the remaining active block is small.
-			if (ld == 0) || ((100*ld <= nw*nibble) && (kbot-ktop+1 > minint(nmin, nwmax))) {
+			if (ld == 0) || ((100*ld <= nw*nibble) && (kbot-ktop+1 > min(nmin, nwmax))) {
 				//              ==== NS = nominal number of simultaneous shifts.
 				//              .    This may be lowered (slightly) if ZLAQR3
 				//              .    did not provide that many shifts. ====
-				ns = minint(nsmax, nsr, maxint(2, kbot-ktop))
+				ns = min(nsmax, nsr, max(2, kbot-ktop))
 				ns = ns - (ns % 2)
 
 				//              ==== If there have been no deflations
@@ -299,11 +299,11 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 							}
 							sorted = true
 							for i = ks; i <= k-1; i++ {
-								if cabs1(w.Get(i-1)) < cabs1(w.Get(i+1-1)) {
+								if cabs1(w.Get(i-1)) < cabs1(w.Get(i)) {
 									sorted = false
 									swap = w.Get(i - 1)
-									w.Set(i-1, w.Get(i+1-1))
-									w.Set(i+1-1, swap)
+									w.Set(i-1, w.Get(i))
+									w.Set(i, swap)
 								}
 							}
 						}
@@ -325,7 +325,7 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 				//              .    shifts.  If there aren't NS shifts available,
 				//              .    then use them all, possibly dropping one to
 				//              .    make the number of shifts even. ====
-				ns = minint(ns, kbot-ks+1)
+				ns = min(ns, kbot-ks+1)
 				ns = ns - (ns % 2)
 				ks = kbot - ns + 1
 

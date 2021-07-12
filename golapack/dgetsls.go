@@ -44,9 +44,9 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 
 	//     Test the input arguments.
 	(*info) = 0
-	// minmn = minint(*m, *n)
-	maxmn = maxint(*m, *n)
-	// mnk = maxint(minmn, *nrhs)
+	// minmn = min(*m, *n)
+	maxmn = max(*m, *n)
+	// mnk = max(minmn, *nrhs)
 	tran = trans == 'T'
 
 	lquery = ((*lwork) == -1 || (*lwork) == -2)
@@ -58,9 +58,9 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *m, *n) {
+	} else if (*ldb) < max(1, *m, *n) {
 		(*info) = -8
 	}
 
@@ -71,12 +71,12 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 			tszo = int(tq.Get(0))
 			lwo = int(workq.Get(0))
 			Dgemqr('L', trans, m, nrhs, n, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
-			lwo = maxint(lwo, int(workq.Get(0)))
+			lwo = max(lwo, int(workq.Get(0)))
 			Dgeqr(m, n, a, lda, tq, toPtr(-2), workq, toPtr(-2), &info2)
 			tszm = int(tq.Get(0))
 			lwm = int(workq.Get(0))
 			Dgemqr('L', trans, m, nrhs, n, a, lda, tq, &tszm, b, ldb, workq, toPtr(-1), &info2)
-			lwm = maxint(lwm, int(workq.Get(0)))
+			lwm = max(lwm, int(workq.Get(0)))
 			wsizeo = tszo + lwo
 			wsizem = tszm + lwm
 		} else {
@@ -84,12 +84,12 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 			tszo = int(tq.Get(0))
 			lwo = int(workq.Get(0))
 			Dgemlq('L', trans, n, nrhs, m, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
-			lwo = maxint(lwo, int(workq.Get(0)))
+			lwo = max(lwo, int(workq.Get(0)))
 			Dgelq(m, n, a, lda, tq, toPtr(-2), workq, toPtr(-2), &info2)
 			tszm = int(tq.Get(0))
 			lwm = int(workq.Get(0))
 			Dgemlq('L', trans, n, nrhs, m, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
-			lwm = maxint(lwm, int(workq.Get(0)))
+			lwm = max(lwm, int(workq.Get(0)))
 			wsizeo = tszo + lwo
 			wsizem = tszm + lwm
 		}
@@ -123,8 +123,8 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *nrhs) == 0 {
-		Dlaset('F', toPtr(maxint(*m, *n)), nrhs, &zero, &zero, b, ldb)
+	if min(*m, *n, *nrhs) == 0 {
+		Dlaset('F', toPtr(max(*m, *n)), nrhs, &zero, &zero, b, ldb)
 		return
 	}
 
@@ -168,12 +168,12 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 
 	if (*m) >= (*n) {
 		//        compute QR factorization of A
-		Dgeqr(m, n, a, lda, work.Off(lw2+1-1), &lw1, work, &lw2, info)
+		Dgeqr(m, n, a, lda, work.Off(lw2), &lw1, work, &lw2, info)
 		if !tran {
 			//           Least-Squares Problem min || A * X - B ||
 			//
 			//           B(1:M,1:NRHS) := Q**T * B(1:M,1:NRHS)
-			Dgemqr('L', 'T', m, nrhs, n, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Dgemqr('L', 'T', m, nrhs, n, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			//           B(1:N,1:NRHS) := inv(R) * B(1:N,1:NRHS)
 			Dtrtrs('U', 'N', 'N', n, nrhs, a, lda, b, ldb, info)
@@ -199,7 +199,7 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 			}
 
 			//           B(1:M,1:NRHS) := Q(1:N,:) * B(1:N,1:NRHS)
-			Dgemqr('L', 'N', m, nrhs, n, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Dgemqr('L', 'N', m, nrhs, n, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			scllen = (*m)
 
@@ -207,7 +207,7 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 
 	} else {
 		//        Compute LQ factorization of A
-		Dgelq(m, n, a, lda, work.Off(lw2+1-1), &lw1, work, &lw2, info)
+		Dgelq(m, n, a, lda, work.Off(lw2), &lw1, work, &lw2, info)
 
 		//        workspace at least M, optimally M*NB.
 		if !tran {
@@ -228,7 +228,7 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 			}
 
 			//           B(1:N,1:NRHS) := Q(1:N,:)**T * B(1:M,1:NRHS)
-			Dgemlq('L', 'T', n, nrhs, m, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Dgemlq('L', 'T', n, nrhs, m, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			scllen = (*n)
@@ -237,7 +237,7 @@ func Dgetsls(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix
 			//           overdetermined system min || A**T * X - B ||
 			//
 			//           B(1:N,1:NRHS) := Q * B(1:N,1:NRHS)
-			Dgemlq('L', 'N', n, nrhs, m, a, lda, work.Off(lw2+1-1), &lw1, b, ldb, work, &lw2, info)
+			Dgemlq('L', 'N', n, nrhs, m, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//

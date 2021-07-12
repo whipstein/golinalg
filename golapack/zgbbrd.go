@@ -44,11 +44,11 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 		(*info) = -6
 	} else if (*ldab) < klu1 {
 		(*info) = -8
-	} else if (*ldq) < 1 || wantq && (*ldq) < maxint(1, *m) {
+	} else if (*ldq) < 1 || wantq && (*ldq) < max(1, *m) {
 		(*info) = -12
-	} else if (*ldpt) < 1 || wantpt && (*ldpt) < maxint(1, *n) {
+	} else if (*ldpt) < 1 || wantpt && (*ldpt) < max(1, *n) {
 		(*info) = -14
-	} else if (*ldc) < 1 || wantc && (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < 1 || wantc && (*ldc) < max(1, *m) {
 		(*info) = -16
 	}
 	if (*info) != 0 {
@@ -69,7 +69,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 		return
 	}
 
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 
 	if (*kl)+(*ku) > 1 {
 		//        Reduce to upper bidiagonal form if KU > 0; if KU = 0, reduce
@@ -88,8 +88,8 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 		//
 		//        The complex sines of the plane rotations are stored in WORK,
 		//        and the real cosines in RWORK.
-		klm = minint((*m)-1, *kl)
-		kun = minint((*n)-1, *ku)
+		klm = min((*m)-1, *kl)
+		kun = min((*n)-1, *ku)
 		kb = klm + kun
 		kb1 = kb + 1
 		inca = kb1 * (*ldab)
@@ -119,7 +119,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 						nrt = nr
 					}
 					if nrt > 0 {
-						Zlartv(&nrt, ab.CVector(klu1-l-1, j1-klm+l-1-1), &inca, ab.CVector(klu1-l+1-1, j1-klm+l-1-1), &inca, rwork.Off(j1-1), work.Off(j1-1), &kb1)
+						Zlartv(&nrt, ab.CVector(klu1-l-1, j1-klm+l-1-1), &inca, ab.CVector(klu1-l, j1-klm+l-1-1), &inca, rwork.Off(j1-1), work.Off(j1-1), &kb1)
 					}
 				}
 
@@ -130,7 +130,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 						Zlartg(ab.GetPtr((*ku)+ml-1-1, i-1), ab.GetPtr((*ku)+ml-1, i-1), rwork.GetPtr(i+ml-1-1), work.GetPtr(i+ml-1-1), &ra)
 						ab.Set((*ku)+ml-1-1, i-1, ra)
 						if i < (*n) {
-							Zrot(toPtr(minint((*ku)+ml-2, (*n)-i)), ab.CVector((*ku)+ml-2-1, i+1-1), toPtr((*ldab)-1), ab.CVector((*ku)+ml-1-1, i+1-1), toPtr((*ldab)-1), rwork.GetPtr(i+ml-1-1), work.GetPtr(i+ml-1-1))
+							Zrot(toPtr(min((*ku)+ml-2, (*n)-i)), ab.CVector((*ku)+ml-2-1, i), toPtr((*ldab)-1), ab.CVector((*ku)+ml-1-1, i), toPtr((*ldab)-1), rwork.GetPtr(i+ml-1-1), work.GetPtr(i+ml-1-1))
 						}
 					}
 					nr = nr + 1
@@ -178,7 +178,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 						nrt = nr
 					}
 					if nrt > 0 {
-						Zlartv(&nrt, ab.CVector(l+1-1, j1+kun-1-1), &inca, ab.CVector(l-1, j1+kun-1), &inca, rwork.Off(j1+kun-1), work.Off(j1+kun-1), &kb1)
+						Zlartv(&nrt, ab.CVector(l, j1+kun-1-1), &inca, ab.CVector(l-1, j1+kun-1), &inca, rwork.Off(j1+kun-1), work.Off(j1+kun-1), &kb1)
 					}
 				}
 
@@ -188,7 +188,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 						//                    within the band, and apply rotation from the right
 						Zlartg(ab.GetPtr((*ku)-mu+3-1, i+mu-2-1), ab.GetPtr((*ku)-mu+2-1, i+mu-1-1), rwork.GetPtr(i+mu-1-1), work.GetPtr(i+mu-1-1), &ra)
 						ab.Set((*ku)-mu+3-1, i+mu-2-1, ra)
-						Zrot(toPtr(minint((*kl)+mu-2, (*m)-i)), ab.CVector((*ku)-mu+4-1, i+mu-2-1), func() *int { y := 1; return &y }(), ab.CVector((*ku)-mu+3-1, i+mu-1-1), func() *int { y := 1; return &y }(), rwork.GetPtr(i+mu-1-1), work.GetPtr(i+mu-1-1))
+						Zrot(toPtr(min((*kl)+mu-2, (*m)-i)), ab.CVector((*ku)-mu+4-1, i+mu-2-1), func() *int { y := 1; return &y }(), ab.CVector((*ku)-mu+3-1, i+mu-1-1), func() *int { y := 1; return &y }(), rwork.GetPtr(i+mu-1-1), work.GetPtr(i+mu-1-1))
 					}
 					nr = nr + 1
 					j1 = j1 - kb1
@@ -229,18 +229,18 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 		//        Transform lower bidiagonal form to upper bidiagonal by applying
 		//        plane rotations from the left, overwriting superdiagonal
 		//        elements on subdiagonal elements
-		for i = 1; i <= minint((*m)-1, *n); i++ {
+		for i = 1; i <= min((*m)-1, *n); i++ {
 			Zlartg(ab.GetPtr(0, i-1), ab.GetPtr(1, i-1), &rc, &rs, &ra)
 			ab.Set(0, i-1, ra)
 			if i < (*n) {
-				ab.Set(1, i-1, rs*ab.Get(0, i+1-1))
-				ab.Set(0, i+1-1, toCmplx(rc)*ab.Get(0, i+1-1))
+				ab.Set(1, i-1, rs*ab.Get(0, i))
+				ab.Set(0, i, toCmplx(rc)*ab.Get(0, i))
 			}
 			if wantq {
-				Zrot(m, q.CVector(0, i-1), func() *int { y := 1; return &y }(), q.CVector(0, i+1-1), func() *int { y := 1; return &y }(), &rc, toPtrc128(cmplx.Conj(rs)))
+				Zrot(m, q.CVector(0, i-1), func() *int { y := 1; return &y }(), q.CVector(0, i), func() *int { y := 1; return &y }(), &rc, toPtrc128(cmplx.Conj(rs)))
 			}
 			if wantc {
-				Zrot(ncc, c.CVector(i-1, 0), ldc, c.CVector(i+1-1, 0), ldc, &rc, &rs)
+				Zrot(ncc, c.CVector(i-1, 0), ldc, c.CVector(i, 0), ldc, &rc, &rs)
 			}
 		}
 	} else {
@@ -249,16 +249,16 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 		if (*ku) > 0 && (*m) < (*n) {
 			//           Annihilate a(m,m+1) by applying plane rotations from the
 			//           right
-			rb = ab.Get((*ku)-1, (*m)+1-1)
+			rb = ab.Get((*ku)-1, (*m))
 			for i = (*m); i >= 1; i-- {
-				Zlartg(ab.GetPtr((*ku)+1-1, i-1), &rb, &rc, &rs, &ra)
-				ab.Set((*ku)+1-1, i-1, ra)
+				Zlartg(ab.GetPtr((*ku), i-1), &rb, &rc, &rs, &ra)
+				ab.Set((*ku), i-1, ra)
 				if i > 1 {
 					rb = -cmplx.Conj(rs) * ab.Get((*ku)-1, i-1)
 					ab.Set((*ku)-1, i-1, toCmplx(rc)*ab.Get((*ku)-1, i-1))
 				}
 				if wantpt {
-					Zrot(n, pt.CVector(i-1, 0), ldpt, pt.CVector((*m)+1-1, 0), ldpt, &rc, toPtrc128(cmplx.Conj(rs)))
+					Zrot(n, pt.CVector(i-1, 0), ldpt, pt.CVector((*m), 0), ldpt, &rc, toPtrc128(cmplx.Conj(rs)))
 				}
 			}
 		}
@@ -266,7 +266,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 
 	//     Make diagonal and superdiagonal elements real, storing them in D
 	//     and E
-	t = ab.Get((*ku)+1-1, 0)
+	t = ab.Get((*ku), 0)
 	for i = 1; i <= minmn; i++ {
 		abst = cmplx.Abs(t)
 		d.Set(i-1, abst)
@@ -276,20 +276,20 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 			t = cone
 		}
 		if wantq {
-			goblas.Zscal(*m, t, q.CVector(0, i-1), 1)
+			goblas.Zscal(*m, t, q.CVector(0, i-1, 1))
 		}
 		if wantc {
-			goblas.Zscal(*ncc, cmplx.Conj(t), c.CVector(i-1, 0), *ldc)
+			goblas.Zscal(*ncc, cmplx.Conj(t), c.CVector(i-1, 0, *ldc))
 		}
 		if i < minmn {
 			if (*ku) == 0 && (*kl) == 0 {
 				e.Set(i-1, zero)
-				t = ab.Get(0, i+1-1)
+				t = ab.Get(0, i)
 			} else {
 				if (*ku) == 0 {
 					t = ab.Get(1, i-1) * cmplx.Conj(t)
 				} else {
-					t = ab.Get((*ku)-1, i+1-1) * cmplx.Conj(t)
+					t = ab.Get((*ku)-1, i) * cmplx.Conj(t)
 				}
 				abst = cmplx.Abs(t)
 				e.Set(i-1, abst)
@@ -299,9 +299,9 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku *int, ab *mat.CMatrix, ldab *int, d, e 
 					t = cone
 				}
 				if wantpt {
-					goblas.Zscal(*n, t, pt.CVector(i+1-1, 0), *ldpt)
+					goblas.Zscal(*n, t, pt.CVector(i, 0, *ldpt))
 				}
-				t = ab.Get((*ku)+1-1, i+1-1) * cmplx.Conj(t)
+				t = ab.Get((*ku), i) * cmplx.Conj(t)
 			}
 		}
 	}

@@ -22,7 +22,7 @@ func Zlarnv(idist *int, iseed *[]int, n *int, x *mat.CVector) {
 	twopi = 6.2831853071795864769252867663
 
 	for iv = 1; iv <= (*n); iv += lv / 2 {
-		il = minint(lv/2, (*n)-iv+1)
+		il = min(lv/2, (*n)-iv+1)
 
 		//        Call DLARUV to generate 2*IL real numbers from a uniform (0,1)
 		//        distribution (2*IL <= LV)

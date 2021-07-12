@@ -38,7 +38,7 @@ func Dlatsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int
 		(*info) = -3
 	} else if (*nb) < 1 || ((*nb) > (*n) && (*n) > 0) {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	} else if (*ldt) < (*nb) {
 		(*info) = -8
@@ -56,7 +56,7 @@ func Dlatsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -75,13 +75,13 @@ func Dlatsqr(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int
 	ctr = 1
 	for i = (*mb) + 1; i <= ii-(*mb)+(*n); i += ((*mb) - (*n)) {
 		//      Compute the QR factorization of the current block A(I:I+MB-N,1:N)
-		Dtpqrt(toPtr((*mb)-(*n)), n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(i-1, 0), lda, t.Off(0, ctr*(*n)+1-1), ldt, work, info)
+		Dtpqrt(toPtr((*mb)-(*n)), n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(i-1, 0), lda, t.Off(0, ctr*(*n)), ldt, work, info)
 		ctr = ctr + 1
 	}
 
 	//      Compute the QR factorization of the last block A(II:M,1:N)
 	if ii <= (*m) {
-		Dtpqrt(&kk, n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*n)+1-1), ldt, work, info)
+		Dtpqrt(&kk, n, func() *int { y := 0; return &y }(), nb, a, lda, a.Off(ii-1, 0), lda, t.Off(0, ctr*(*n)), ldt, work, info)
 	}
 
 	work.Set(0, float64((*n)*(*nb)))

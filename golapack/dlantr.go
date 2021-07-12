@@ -20,7 +20,7 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 	one = 1.0
 	zero = 0.0
 
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		value = zero
 	} else if norm == 'M' {
 		//        Find max(abs(A(i,j))).
@@ -28,7 +28,7 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 			value = one
 			if uplo == 'U' {
 				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= minint(*m, j-1); i++ {
+					for i = 1; i <= min(*m, j-1); i++ {
 						sum = math.Abs(a.Get(i-1, j-1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -49,7 +49,7 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 			value = zero
 			if uplo == 'U' {
 				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= minint(*m, j); i++ {
+					for i = 1; i <= min(*m, j); i++ {
 						sum = math.Abs(a.Get(i-1, j-1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -80,7 +80,7 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 					}
 				} else {
 					sum = zero
-					for i = 1; i <= minint(*m, j); i++ {
+					for i = 1; i <= min(*m, j); i++ {
 						sum += math.Abs(a.Get(i-1, j-1))
 					}
 				}
@@ -114,7 +114,7 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 					work.Set(i-1, one)
 				}
 				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= minint(*m, j-1); i++ {
+					for i = 1; i <= min(*m, j-1); i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(a.Get(i-1, j-1)))
 					}
 				}
@@ -123,7 +123,7 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 					work.Set(i-1, zero)
 				}
 				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= minint(*m, j); i++ {
+					for i = 1; i <= min(*m, j); i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(a.Get(i-1, j-1)))
 					}
 				}
@@ -167,11 +167,11 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 		if uplo == 'U' {
 			if diag == 'U' {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(minint(*m, *n)))
+				ssq.Set(1, float64(min(*m, *n)))
 				for j = 2; j <= (*n); j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr(minint(*m, j-1)), a.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					Dlassq(toPtr(min(*m, j-1)), a.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 					Dcombssq(ssq, colssq)
 					//Label290:
 				}
@@ -181,18 +181,18 @@ func Dlantr(norm, uplo, diag byte, m, n *int, a *mat.Matrix, lda *int, work *mat
 				for j = 1; j <= (*n); j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr(minint(*m, j)), a.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					Dlassq(toPtr(min(*m, j)), a.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 					Dcombssq(ssq, colssq)
 				}
 			}
 		} else {
 			if diag == 'U' {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(minint(*m, *n)))
+				ssq.Set(1, float64(min(*m, *n)))
 				for j = 1; j <= (*n); j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr((*m)-j), a.Vector(minint(*m, j+1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					Dlassq(toPtr((*m)-j), a.Vector(min(*m, j+1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 					Dcombssq(ssq, colssq)
 				}
 			} else {

@@ -36,9 +36,9 @@ func Zsprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -10
 	}
 	if (*info) != 0 {
@@ -73,12 +73,12 @@ func Zsprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Zcopy(*n, b.CVector(0, j-1), 1, work, 1)
+		goblas.Zcopy(*n, b.CVector(0, j-1, 1), work.Off(0, 1))
 		Zspmv(uplo, n, toPtrc128(-one), ap, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &one, work, func() *int { y := 1; return &y }())
 
 		//        Compute componentwise relative backward error from formula
 		//
-		//        maxint(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) )
+		//        max(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) )
 		//
 		//        where abs(Z) is the componentwise absolute value of the matrix
 		//        or vector Z.  If the i-th component of the denominator is less
@@ -121,9 +121,9 @@ func Zsprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = maxf64(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = maxf64(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -136,7 +136,7 @@ func Zsprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
 			Zsptrs(uplo, n, func() *int { y := 1; return &y }(), afp, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, one, work, 1, x.CVector(0, j-1), 1)
+			goblas.Zaxpy(*n, one, work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -174,7 +174,7 @@ func Zsprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		kase = 0
 	label100:
 		;
-		Zlacn2(n, work.Off((*n)+1-1), work, ferr.GetPtr(j-1), &kase, &isave)
+		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(A**T).
@@ -195,7 +195,7 @@ func Zsprfs(uplo byte, n, nrhs *int, ap, afp *mat.CVector, ipiv *[]int, b *mat.C
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, Cabs1(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

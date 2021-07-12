@@ -24,13 +24,13 @@ func Ztpqrt2(m, n, l *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, t
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*l) < 0 || (*l) > minint(*m, *n) {
+	} else if (*l) < 0 || (*l) > min(*m, *n) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -7
-	} else if (*ldt) < maxint(1, *n) {
+	} else if (*ldt) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -45,21 +45,21 @@ func Ztpqrt2(m, n, l *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, t
 
 	for i = 1; i <= (*n); i++ {
 		//        Generate elementary reflector H(I) to annihilate B(:,I)
-		p = (*m) - (*l) + minint(*l, i)
+		p = (*m) - (*l) + min(*l, i)
 		Zlarfg(toPtr(p+1), a.GetPtr(i-1, i-1), b.CVector(0, i-1), func() *int { y := 1; return &y }(), t.GetPtr(i-1, 0))
 		if i < (*n) {
 			//           W(1:N-I) := C(I:M,I+1:N)**H * C(I:M,I) [use W = T(:,N)]
 			for j = 1; j <= (*n)-i; j++ {
 				t.Set(j-1, (*n)-1, a.GetConj(i-1, i+j-1))
 			}
-			err = goblas.Zgemv(ConjTrans, p, (*n)-i, one, b.Off(0, i+1-1), *ldb, b.CVector(0, i-1), 1, one, t.CVector(0, (*n)-1), 1)
+			err = goblas.Zgemv(ConjTrans, p, (*n)-i, one, b.Off(0, i), b.CVector(0, i-1, 1), one, t.CVector(0, (*n)-1, 1))
 
 			//           C(I:M,I+1:N) = C(I:m,I+1:N) + alpha*C(I:M,I)*W(1:N-1)**H
 			alpha = -t.GetConj(i-1, 0)
 			for j = 1; j <= (*n)-i; j++ {
 				a.Set(i-1, i+j-1, a.Get(i-1, i+j-1)+alpha*t.GetConj(j-1, (*n)-1))
 			}
-			err = goblas.Zgerc(p, (*n)-i, alpha, b.CVector(0, i-1), 1, t.CVector(0, (*n)-1), 1, b.Off(0, i+1-1), *ldb)
+			err = goblas.Zgerc(p, (*n)-i, alpha, b.CVector(0, i-1, 1), t.CVector(0, (*n)-1, 1), b.Off(0, i))
 		}
 	}
 
@@ -69,24 +69,24 @@ func Ztpqrt2(m, n, l *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, t
 		for j = 1; j <= i-1; j++ {
 			t.Set(j-1, i-1, zero)
 		}
-		p = minint(i-1, *l)
-		mp = minint((*m)-(*l)+1, *m)
-		np = minint(p+1, *n)
+		p = min(i-1, *l)
+		mp = min((*m)-(*l)+1, *m)
+		np = min(p+1, *n)
 
 		//        Triangular part of B2
 		for j = 1; j <= p; j++ {
 			t.Set(j-1, i-1, alpha*b.Get((*m)-(*l)+j-1, i-1))
 		}
-		err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, p, b.Off(mp-1, 0), *ldb, t.CVector(0, i-1), 1)
+		err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, p, b.Off(mp-1, 0), t.CVector(0, i-1, 1))
 
 		//        Rectangular part of B2
-		err = goblas.Zgemv(ConjTrans, *l, i-1-p, alpha, b.Off(mp-1, np-1), *ldb, b.CVector(mp-1, i-1), 1, zero, t.CVector(np-1, i-1), 1)
+		err = goblas.Zgemv(ConjTrans, *l, i-1-p, alpha, b.Off(mp-1, np-1), b.CVector(mp-1, i-1, 1), zero, t.CVector(np-1, i-1, 1))
 
 		//        B1
-		err = goblas.Zgemv(ConjTrans, (*m)-(*l), i-1, alpha, b, *ldb, b.CVector(0, i-1), 1, one, t.CVector(0, i-1), 1)
+		err = goblas.Zgemv(ConjTrans, (*m)-(*l), i-1, alpha, b, b.CVector(0, i-1, 1), one, t.CVector(0, i-1, 1))
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		err = goblas.Ztrmv(Upper, NoTrans, NonUnit, i-1, t, *ldt, t.CVector(0, i-1), 1)
+		err = goblas.Ztrmv(Upper, NoTrans, NonUnit, i-1, t, t.CVector(0, i-1, 1))
 
 		//        T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(i-1, 0))

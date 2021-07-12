@@ -123,9 +123,9 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 		(*info) = -5
 	} else if (*n) < 0 {
 		(*info) = -6
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -10
-	} else if (*ldb) < maxint(1, *p) {
+	} else if (*ldb) < max(1, *p) {
 		(*info) = -12
 	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
 		(*info) = -18
@@ -188,17 +188,17 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 
 				//              Update (K+I)-th and (K+J)-th rows of matrix A: U**T *A
 				if (*k)+j <= (*m) {
-					goblas.Drot(*l, a.Vector((*k)+j-1, (*n)-(*l)+1-1), *lda, a.Vector((*k)+i-1, (*n)-(*l)+1-1), *lda, csu, snu)
+					goblas.Drot(*l, a.Vector((*k)+j-1, (*n)-(*l), *lda), a.Vector((*k)+i-1, (*n)-(*l), *lda), csu, snu)
 				}
 
 				//              Update I-th and J-th rows of matrix B: V**T *B
-				goblas.Drot(*l, b.Vector(j-1, (*n)-(*l)+1-1), *ldb, b.Vector(i-1, (*n)-(*l)+1-1), *ldb, csv, snv)
+				goblas.Drot(*l, b.Vector(j-1, (*n)-(*l), *ldb), b.Vector(i-1, (*n)-(*l), *ldb), csv, snv)
 
 				//              Update (N-L+I)-th and (N-L+J)-th columns of matrices
 				//              A and B: A*Q and B*Q
-				goblas.Drot(minint((*k)+(*l), *m), a.Vector(0, (*n)-(*l)+j-1), 1, a.Vector(0, (*n)-(*l)+i-1), 1, csq, snq)
+				goblas.Drot(min((*k)+(*l), *m), a.Vector(0, (*n)-(*l)+j-1, 1), a.Vector(0, (*n)-(*l)+i-1, 1), csq, snq)
 
-				goblas.Drot(*l, b.Vector(0, (*n)-(*l)+j-1), 1, b.Vector(0, (*n)-(*l)+i-1), 1, csq, snq)
+				goblas.Drot(*l, b.Vector(0, (*n)-(*l)+j-1, 1), b.Vector(0, (*n)-(*l)+i-1, 1), csq, snq)
 
 				if upper {
 					if (*k)+i <= (*m) {
@@ -214,15 +214,15 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 
 				//              Update orthogonal matrices U, V, Q, if desired.
 				if wantu && (*k)+j <= (*m) {
-					goblas.Drot(*m, u.Vector(0, (*k)+j-1), 1, u.Vector(0, (*k)+i-1), 1, csu, snu)
+					goblas.Drot(*m, u.Vector(0, (*k)+j-1, 1), u.Vector(0, (*k)+i-1, 1), csu, snu)
 				}
 
 				if wantv {
-					goblas.Drot(*p, v.Vector(0, j-1), 1, v.Vector(0, i-1), 1, csv, snv)
+					goblas.Drot(*p, v.Vector(0, j-1, 1), v.Vector(0, i-1, 1), csv, snv)
 				}
 
 				if wantq {
-					goblas.Drot(*n, q.Vector(0, (*n)-(*l)+j-1), 1, q.Vector(0, (*n)-(*l)+i-1), 1, csq, snq)
+					goblas.Drot(*n, q.Vector(0, (*n)-(*l)+j-1, 1), q.Vector(0, (*n)-(*l)+i-1, 1), csq, snq)
 				}
 
 			}
@@ -235,14 +235,14 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 			//           Convergence test: test the parallelism of the corresponding
 			//           rows of A and B.
 			error = zero
-			for i = 1; i <= minint(*l, (*m)-(*k)); i++ {
-				goblas.Dcopy((*l)-i+1, a.Vector((*k)+i-1, (*n)-(*l)+i-1), *lda, work, 1)
-				goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1), *ldb, work.Off((*l)+1-1), 1)
-				Dlapll(toPtr((*l)-i+1), work, toPtr(1), work.Off((*l)+1-1), toPtr(1), &ssmin)
-				error = maxf64(error, ssmin)
+			for i = 1; i <= min(*l, (*m)-(*k)); i++ {
+				goblas.Dcopy((*l)-i+1, a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda), work.Off(0, 1))
+				goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1, *ldb), work.Off((*l), 1))
+				Dlapll(toPtr((*l)-i+1), work, toPtr(1), work.Off((*l)), toPtr(1), &ssmin)
+				error = math.Max(error, ssmin)
 			}
 
-			if math.Abs(error) <= minf64(*tola, *tolb) {
+			if math.Abs(error) <= math.Min(*tola, *tolb) {
 				goto label50
 			}
 		}
@@ -265,7 +265,7 @@ label50:
 		beta.Set(i-1, zero)
 	}
 
-	for i = 1; i <= minint(*l, (*m)-(*k)); i++ {
+	for i = 1; i <= min(*l, (*m)-(*k)); i++ {
 
 		a1 = a.Get((*k)+i-1, (*n)-(*l)+i-1)
 		b1 = b.Get(i-1, (*n)-(*l)+i-1)
@@ -275,26 +275,26 @@ label50:
 
 			//           change sign if necessary
 			if gamma < zero {
-				goblas.Dscal((*l)-i+1, -one, b.Vector(i-1, (*n)-(*l)+i-1), *ldb)
+				goblas.Dscal((*l)-i+1, -one, b.Vector(i-1, (*n)-(*l)+i-1, *ldb))
 				if wantv {
-					goblas.Dscal(*p, -one, v.Vector(0, i-1), 1)
+					goblas.Dscal(*p, -one, v.Vector(0, i-1, 1))
 				}
 			}
 
 			Dlartg(toPtrf64(math.Abs(gamma)), &one, beta.GetPtr((*k)+i-1), alpha.GetPtr((*k)+i-1), &rwk)
 
 			if alpha.Get((*k)+i-1) >= beta.Get((*k)+i-1) {
-				goblas.Dscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.Vector((*k)+i-1, (*n)-(*l)+i-1), *lda)
+				goblas.Dscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda))
 			} else {
-				goblas.Dscal((*l)-i+1, one/beta.Get((*k)+i-1), b.Vector(i-1, (*n)-(*l)+i-1), *ldb)
-				goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1), *ldb, a.Vector((*k)+i-1, (*n)-(*l)+i-1), *lda)
+				goblas.Dscal((*l)-i+1, one/beta.Get((*k)+i-1), b.Vector(i-1, (*n)-(*l)+i-1, *ldb))
+				goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1, *ldb), a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda))
 			}
 
 		} else {
 
 			alpha.Set((*k)+i-1, zero)
 			beta.Set((*k)+i-1, one)
-			goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1), *ldb, a.Vector((*k)+i-1, (*n)-(*l)+i-1), *lda)
+			goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1, *ldb), a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda))
 
 		}
 

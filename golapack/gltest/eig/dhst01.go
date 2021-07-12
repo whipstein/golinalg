@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -42,20 +44,20 @@ func Dhst01(n, ilo, ihi *int, a *mat.Matrix, lda *int, h *mat.Matrix, ldh *int, 
 	//     Test 1:  Compute norm( A - Q*H*Q' ) / ( norm(A) * N * EPS )
 	//
 	//     Copy A to WORK
-	ldwork = maxint(1, *n)
+	ldwork = max(1, *n)
 	golapack.Dlacpy(' ', n, n, a, lda, work.Matrix(ldwork, opts), &ldwork)
 
 	//     Compute Q*H
-	err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, q, *ldq, h, *ldh, zero, work.MatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork)
+	err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, q, h, zero, work.MatrixOff(ldwork*(*n), ldwork, opts))
 
 	//     Compute A - Q*H*Q'
-	err = goblas.Dgemm(NoTrans, Trans, *n, *n, *n, -one, work.MatrixOff(ldwork*(*n)+1-1, ldwork, opts), ldwork, q, *ldq, one, work.Matrix(ldwork, opts), ldwork)
+	err = goblas.Dgemm(NoTrans, Trans, *n, *n, *n, -one, work.MatrixOff(ldwork*(*n), ldwork, opts), q, one, work.Matrix(ldwork, opts))
 
-	anorm = maxf64(golapack.Dlange('1', n, n, a, lda, work.Off(ldwork*(*n)+1-1)), unfl)
-	wnorm = golapack.Dlange('1', n, n, work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)+1-1))
+	anorm = math.Max(golapack.Dlange('1', n, n, a, lda, work.Off(ldwork*(*n))), unfl)
+	wnorm = golapack.Dlange('1', n, n, work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)))
 
 	//     Note that RESULT(1) cannot overflow and is bounded by 1/(N*EPS)
-	result.Set(0, minf64(wnorm, anorm)/maxf64(smlnum, anorm*eps)/float64(*n))
+	result.Set(0, math.Min(wnorm, anorm)/math.Max(smlnum, anorm*eps)/float64(*n))
 
 	//     Test 2:  Compute norm( I - Q'*Q ) / ( N * EPS )
 	Dort01('C', n, n, q, ldq, work, lwork, result.GetPtr(1))

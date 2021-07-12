@@ -57,7 +57,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		npp = n * (n + 1) / 2
 		xtype = 'N'
 		nimat = ntypes
@@ -140,7 +140,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.SetRe(ioff+i-1, zero)
 								}
@@ -149,7 +149,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						} else {
 							//                       Set the last IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.SetRe(ioff+i-1, zero)
 								}
@@ -185,11 +185,11 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						anorm = golapack.Zlanhp('1', uplo, &n, a, rwork)
 
 						//                    Factor the matrix A.
-						goblas.Zcopy(npp, a, 1, afac, 1)
+						goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 						golapack.Zhptrf(uplo, &n, afac, iwork, &info)
 
 						//                    Compute inv(A) and take its norm.
-						goblas.Zcopy(npp, afac, 1, ainv, 1)
+						goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 						golapack.Zhptri(uplo, &n, ainv, iwork, work, &info)
 						ainvnm = golapack.Zlanhp('1', uplo, &n, ainv, rwork)
 
@@ -208,7 +208,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 					//                 --- Test ZHPSV  ---
 					if ifact == 2 {
-						goblas.Zcopy(npp, a, 1, afac, 1)
+						goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
 
 						//                    Factor the matrix and solve the system using ZHPSV.
@@ -278,7 +278,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Solve the system and compute the condition number and
 					//                 error bounds using ZHPSVX.
 					*srnamt = "ZHPSVX"
-					golapack.Zhpsvx(fact, uplo, &n, nrhs, a, afac, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, rwork.Off(2*(*nrhs)+1-1), &info)
+					golapack.Zhpsvx(fact, uplo, &n, nrhs, a, afac, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
 
 					//                 Adjust the expected value of INFO to account for
 					//                 pivoting.
@@ -308,7 +308,7 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if ifact >= 2 {
 							//                       Reconstruct matrix from factors and compute
 							//                       residual.
-							Zhpt01(uplo, &n, a, afac, iwork, ainv.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+							Zhpt01(uplo, &n, a, afac, iwork, ainv.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 							k1 = 1
 						} else {
 							k1 = 2
@@ -316,13 +316,13 @@ func Zdrvhp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						//                    Compute residual of the computed solution.
 						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-						Zppt02(uplo, &n, nrhs, a, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+						Zppt02(uplo, &n, nrhs, a, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 						//                    Check solution from generated exact solution.
 						Zget04(&n, nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 						//                    Check the error bounds from iterative refinement.
-						Zppt05(uplo, &n, nrhs, a, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+						Zppt05(uplo, &n, nrhs, a, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 					} else {
 						k1 = 6
 					}

@@ -48,7 +48,7 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 				}
 			} else {
 				pair = true
-				if (*_select)[k-1] || (*_select)[k+1-1] {
+				if (*_select)[k-1] || (*_select)[k] {
 					(*_select)[k-1] = true
 					(*m) = (*m) + 2
 				}
@@ -65,7 +65,7 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -5
-	} else if (*ldh) < maxint(1, *n) {
+	} else if (*ldh) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvl) < 1 || (leftv && (*ldvl) < (*n)) {
 		(*info) = -11
@@ -125,7 +125,7 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 				kl = i
 				if k > kr {
 					for i = k; i <= (*n)-1; i++ {
-						if h.Get(i+1-1, i-1) == zero {
+						if h.Get(i, i-1) == zero {
 							goto label50
 						}
 					}
@@ -174,7 +174,7 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 			}
 			if leftv {
 				//              Compute left eigenvector.
-				Dlaein(false, noinit, toPtr((*n)-kl+1), h.Off(kl-1, kl-1), ldh, &wkr, &wki, vl.Vector(kl-1, ksr-1), vl.Vector(kl-1, ksi-1), work.Matrix(ldwork, opts), &ldwork, work.Off((*n)*(*n)+(*n)+1-1), &eps3, &smlnum, &bignum, &iinfo)
+				Dlaein(false, noinit, toPtr((*n)-kl+1), h.Off(kl-1, kl-1), ldh, &wkr, &wki, vl.Vector(kl-1, ksr-1), vl.Vector(kl-1, ksi-1), work.Matrix(ldwork, opts), &ldwork, work.Off((*n)*(*n)+(*n)), &eps3, &smlnum, &bignum, &iinfo)
 				if iinfo > 0 {
 					if pair {
 						(*info) = (*info) + 2
@@ -198,7 +198,7 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 			}
 			if rightv {
 				//              Compute right eigenvector.
-				Dlaein(true, noinit, &kr, h, ldh, &wkr, &wki, vr.Vector(0, ksr-1), vr.Vector(0, ksi-1), work.Matrix(ldwork, opts), &ldwork, work.Off((*n)*(*n)+(*n)+1-1), &eps3, &smlnum, &bignum, &iinfo)
+				Dlaein(true, noinit, &kr, h, ldh, &wkr, &wki, vr.Vector(0, ksr-1), vr.Vector(0, ksi-1), work.Matrix(ldwork, opts), &ldwork, work.Off((*n)*(*n)+(*n)), &eps3, &smlnum, &bignum, &iinfo)
 				if iinfo > 0 {
 					if pair {
 						(*info) = (*info) + 2

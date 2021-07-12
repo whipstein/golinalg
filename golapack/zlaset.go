@@ -11,23 +11,23 @@ func Zlaset(uplo byte, m, n *int, alpha, beta *complex128, a *mat.CMatrix, lda *
 		//        Set the diagonal to BETA and the strictly upper triangular
 		//        part of the array to ALPHA.
 		for j = 2; j <= (*n); j++ {
-			for i = 1; i <= minint(j-1, *m); i++ {
+			for i = 1; i <= min(j-1, *m); i++ {
 				a.Set(i-1, j-1, (*alpha))
 			}
 		}
-		for i = 1; i <= minint(*n, *m); i++ {
+		for i = 1; i <= min(*n, *m); i++ {
 			a.Set(i-1, i-1, (*beta))
 		}
 
 	} else if uplo == 'L' {
 		//        Set the diagonal to BETA and the strictly lower triangular
 		//        part of the array to ALPHA.
-		for j = 1; j <= minint(*m, *n); j++ {
+		for j = 1; j <= min(*m, *n); j++ {
 			for i = j + 1; i <= (*m); i++ {
 				a.Set(i-1, j-1, (*alpha))
 			}
 		}
-		for i = 1; i <= minint(*n, *m); i++ {
+		for i = 1; i <= min(*n, *m); i++ {
 			a.Set(i-1, i-1, (*beta))
 		}
 
@@ -39,7 +39,7 @@ func Zlaset(uplo byte, m, n *int, alpha, beta *complex128, a *mat.CMatrix, lda *
 				a.Set(i-1, j-1, (*alpha))
 			}
 		}
-		for i = 1; i <= minint(*m, *n); i++ {
+		for i = 1; i <= min(*m, *n); i++ {
 			a.Set(i-1, i-1, (*beta))
 		}
 	}

@@ -14,7 +14,7 @@ import (
 //
 // where:
 //    S is a m-by-n diagonal sign matrix with the diagonal D, so that
-//    D(i) = S(i,i), 1 <= i <= minint(M,N). The diagonal D is constructed
+//    D(i) = S(i,i), 1 <= i <= min(M,N). The diagonal D is constructed
 //    as D(i)=-SIGN(A(i,i)), where A(i,i) is the value after performing
 //    i-1 steps of Gaussian elimination. This means that the diagonal
 //    element at each step of "modified" Gaussian elimination is
@@ -61,7 +61,7 @@ func Zlaunhrcolgetrfnp(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, info
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -70,29 +70,29 @@ func Zlaunhrcolgetrfnp(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, info
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
 	//     Determine the block size for this environment.
 	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZLAUNHR_COL_GETRFNP"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-	if nb <= 1 || nb >= minint(*m, *n) {
+	if nb <= 1 || nb >= min(*m, *n) {
 		//        Use unblocked code.
 		Zlaunhrcolgetrfnp2(m, n, a, lda, d, info)
 	} else {
 		//        Use blocked code.
-		for j = 1; j <= minint(*m, *n); j += nb {
-			jb = minint(minint(*m, *n)-j+1, nb)
+		for j = 1; j <= min(*m, *n); j += nb {
+			jb = min(min(*m, *n)-j+1, nb)
 
 			//           Factor diagonal and subdiagonal blocks.
 			Zlaunhrcolgetrfnp2(toPtr((*m)-j+1), &jb, a.Off(j-1, j-1), lda, d.Off(j-1), &iinfo)
 
 			if j+jb <= (*n) {
 				//              Compute block row of U.
-				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
+				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -cone, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, cone, a.Off(j+jb-1, j+jb-1), *lda)
+					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -cone, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), cone, a.Off(j+jb-1, j+jb-1))
 				}
 			}
 		}

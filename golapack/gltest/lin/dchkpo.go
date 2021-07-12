@@ -50,7 +50,7 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -210,7 +210,7 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						//+    TESTS 5, 6, and 7
 						//                 Use iterative refinement to improve the solution.
 						*srnamt = "DPORFS"
-						golapack.Dporfs(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, iwork, &info)
+						golapack.Dporfs(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, iwork, &info)
 
 						//                 Check error code from DPORFS.
 						if info != 0 {
@@ -218,7 +218,7 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						}
 						//
 						Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-						Dpot05(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(5))
+						Dpot05(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.

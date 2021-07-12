@@ -73,20 +73,20 @@ func Zgbcon(norm byte, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, 
 	kase = 0
 label10:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(L).
 			if lnoti {
 				for j = 1; j <= (*n)-1; j++ {
-					lm = minint(*kl, (*n)-j)
+					lm = min(*kl, (*n)-j)
 					jp = (*ipiv)[j-1]
 					t = work.Get(jp - 1)
 					if jp != j {
 						work.Set(jp-1, work.Get(j-1))
 						work.Set(j-1, t)
 					}
-					goblas.Zaxpy(lm, -t, ab.CVector(kd+1-1, j-1), 1, work.Off(j+1-1), 1)
+					goblas.Zaxpy(lm, -t, ab.CVector(kd, j-1, 1), work.Off(j, 1))
 				}
 			}
 
@@ -99,8 +99,8 @@ label10:
 			//           Multiply by inv(L**H).
 			if lnoti {
 				for j = (*n) - 1; j >= 1; j-- {
-					lm = minint(*kl, (*n)-j)
-					work.Set(j-1, work.Get(j-1)-goblas.Zdotc(lm, ab.CVector(kd+1-1, j-1), 1, work.Off(j+1-1), 1))
+					lm = min(*kl, (*n)-j)
+					work.Set(j-1, work.Get(j-1)-goblas.Zdotc(lm, ab.CVector(kd, j-1, 1), work.Off(j, 1)))
 					jp = (*ipiv)[j-1]
 					if jp != j {
 						t = work.Get(jp - 1)
@@ -114,7 +114,7 @@ label10:
 		//        Divide X by 1/SCALE if doing so will not cause overflow.
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Izamax(*n, work, 1)
+			ix = goblas.Izamax(*n, work.Off(0, 1))
 			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}

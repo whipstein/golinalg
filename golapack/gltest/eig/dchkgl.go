@@ -380,17 +380,17 @@ func Dchkgl(t *testing.T) {
 		vmax = zero
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
-				vmax = maxf64(vmax, math.Abs(a.Get(i-1, j-1)-ain.Get(i-1, j-1)))
-				vmax = maxf64(vmax, math.Abs(b.Get(i-1, j-1)-bin.Get(i-1, j-1)))
+				vmax = math.Max(vmax, math.Abs(a.Get(i-1, j-1)-ain.Get(i-1, j-1)))
+				vmax = math.Max(vmax, math.Abs(b.Get(i-1, j-1)-bin.Get(i-1, j-1)))
 			}
 		}
 
 		for i = 1; i <= n; i++ {
-			vmax = maxf64(vmax, math.Abs(lscale.Get(i-1)-lsclin.Get(i-1)))
-			vmax = maxf64(vmax, math.Abs(rscale.Get(i-1)-rsclin.Get(i-1)))
+			vmax = math.Max(vmax, math.Abs(lscale.Get(i-1)-lsclin.Get(i-1)))
+			vmax = math.Max(vmax, math.Abs(rscale.Get(i-1)-rsclin.Get(i-1)))
 		}
 
-		vmax = vmax / (eps * maxf64(anorm, bnorm))
+		vmax = vmax / (eps * math.Max(anorm, bnorm))
 
 		if vmax > rmax {
 			lmax[2] = knt

@@ -49,7 +49,7 @@ func Zgbtf2(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 	//     Gaussian elimination with partial pivoting
 	//
 	//     Set fill-in elements in columns KU+2 to KV to zero.
-	for j = (*ku) + 2; j <= minint(kv, *n); j++ {
+	for j = (*ku) + 2; j <= min(kv, *n); j++ {
 		for i = kv - j + 2; i <= (*kl); i++ {
 			ab.Set(i-1, j-1, zero)
 		}
@@ -59,7 +59,7 @@ func Zgbtf2(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 	//     of the factorization.
 	ju = 1
 
-	for j = 1; j <= minint(*m, *n); j++ {
+	for j = 1; j <= min(*m, *n); j++ {
 		//        Set fill-in elements in column J+KV to zero.
 		if j+kv <= (*n) {
 			for i = 1; i <= (*kl); i++ {
@@ -69,23 +69,23 @@ func Zgbtf2(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 
 		//        Find pivot and test for singularity. KM is the number of
 		//        subdiagonal elements in the current column.
-		km = minint(*kl, (*m)-j)
-		jp = goblas.Izamax(km+1, ab.CVector(kv+1-1, j-1), 1)
+		km = min(*kl, (*m)-j)
+		jp = goblas.Izamax(km+1, ab.CVector(kv, j-1, 1))
 		(*ipiv)[j-1] = jp + j - 1
 		if ab.Get(kv+jp-1, j-1) != zero {
-			ju = maxint(ju, minint(j+(*ku)+jp-1, *n))
+			ju = max(ju, min(j+(*ku)+jp-1, *n))
 
 			//           Apply interchange to columns J to JU.
 			if jp != 1 {
-				goblas.Zswap(ju-j+1, ab.CVector(kv+jp-1, j-1), (*ldab)-1, ab.CVector(kv+1-1, j-1), (*ldab)-1)
+				goblas.Zswap(ju-j+1, ab.CVector(kv+jp-1, j-1, (*ldab)-1), ab.CVector(kv, j-1, (*ldab)-1))
 			}
 			if km > 0 {
 				//              Compute multipliers.
-				goblas.Zscal(km, one/ab.Get(kv+1-1, j-1), ab.CVector(kv+2-1, j-1), 1)
+				goblas.Zscal(km, one/ab.Get(kv, j-1), ab.CVector(kv+2-1, j-1, 1))
 
 				//              Update trailing submatrix within the band.
 				if ju > j {
-					err = goblas.Zgeru(km, ju-j, -one, ab.CVector(kv+2-1, j-1), 1, ab.CVector(kv-1, j+1-1), (*ldab)-1, ab.Off(kv+1-1, j+1-1).UpdateRows((*ldab)-1), (*ldab)-1)
+					err = goblas.Zgeru(km, ju-j, -one, ab.CVector(kv+2-1, j-1, 1), ab.CVector(kv-1, j, (*ldab)-1), ab.Off(kv, j).UpdateRows((*ldab)-1))
 				}
 			}
 		} else {

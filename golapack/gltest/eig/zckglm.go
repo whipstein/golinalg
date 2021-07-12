@@ -68,7 +68,7 @@ func Zckglm(nn *int, nval, mval, pval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZLATMS in ZCKGLM INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
@@ -76,7 +76,7 @@ func Zckglm(nn *int, nval, mval, pval *[]int, nmats *int, iseed *[]int, thresh *
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZLATMS in ZCKGLM INFO = %5d\n", iinfo)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				goto label30
 			}
 
@@ -85,7 +85,7 @@ func Zckglm(nn *int, nval, mval, pval *[]int, nmats *int, iseed *[]int, thresh *
 				x.Set(i-1, matgen.Zlarnd(func() *int { y := 2; return &y }(), iseed))
 			}
 
-			Zglmts(&n, &m, &p, a.CMatrix(lda, opts), af.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), bf.CMatrix(ldb, opts), &ldb, x, x.Off((*nmax)+1-1), x.Off(2*(*nmax)+1-1), x.Off(3*(*nmax)+1-1), work, &lwork, rwork, &resid)
+			Zglmts(&n, &m, &p, a.CMatrix(lda, opts), af.CMatrix(lda, opts), &lda, b.CMatrix(ldb, opts), bf.CMatrix(ldb, opts), &ldb, x, x.Off((*nmax)), x.Off(2*(*nmax)), x.Off(3*(*nmax)), work, &lwork, rwork, &resid)
 
 			//           Print information about the tests that did not
 			//           pass the threshold.

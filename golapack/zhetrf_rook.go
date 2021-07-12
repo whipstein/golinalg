@@ -28,7 +28,7 @@ func Zhetrfrook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < 1 && !lquery {
 		(*info) = -7
@@ -37,7 +37,7 @@ func Zhetrfrook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 	if (*info) == 0 {
 		//        Determine the block size
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRF_ROOK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = maxint(1, (*n)*nb)
+		lwkopt = max(1, (*n)*nb)
 		work.SetRe(0, float64(lwkopt))
 	}
 
@@ -53,8 +53,8 @@ func Zhetrfrook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *
 	if nb > 1 && nb < (*n) {
 		iws = ldwork * nb
 		if (*lwork) < iws {
-			nb = maxint((*lwork)/ldwork, 1)
-			nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZHETRF_ROOK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+			nb = max((*lwork)/ldwork, 1)
+			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZHETRF_ROOK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 		}
 	} else {
 		iws = 1

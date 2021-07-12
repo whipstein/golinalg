@@ -45,7 +45,7 @@ func Zlagtm(trans byte, n, nrhs *int, alpha *float64, dl, d, du *mat.CVector, x 
 					b.Set(0, j-1, b.Get(0, j-1)+d.Get(0)*x.Get(0, j-1)+du.Get(0)*x.Get(1, j-1))
 					b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)+dl.Get((*n)-1-1)*x.Get((*n)-1-1, j-1)+d.Get((*n)-1)*x.Get((*n)-1, j-1))
 					for i = 2; i <= (*n)-1; i++ {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)+dl.Get(i-1-1)*x.Get(i-1-1, j-1)+d.Get(i-1)*x.Get(i-1, j-1)+du.Get(i-1)*x.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)+dl.Get(i-1-1)*x.Get(i-1-1, j-1)+d.Get(i-1)*x.Get(i-1, j-1)+du.Get(i-1)*x.Get(i, j-1))
 					}
 				}
 			}
@@ -58,7 +58,7 @@ func Zlagtm(trans byte, n, nrhs *int, alpha *float64, dl, d, du *mat.CVector, x 
 					b.Set(0, j-1, b.Get(0, j-1)+d.Get(0)*x.Get(0, j-1)+dl.Get(0)*x.Get(1, j-1))
 					b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)+du.Get((*n)-1-1)*x.Get((*n)-1-1, j-1)+d.Get((*n)-1)*x.Get((*n)-1, j-1))
 					for i = 2; i <= (*n)-1; i++ {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)+du.Get(i-1-1)*x.Get(i-1-1, j-1)+d.Get(i-1)*x.Get(i-1, j-1)+dl.Get(i-1)*x.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)+du.Get(i-1-1)*x.Get(i-1-1, j-1)+d.Get(i-1)*x.Get(i-1, j-1)+dl.Get(i-1)*x.Get(i, j-1))
 					}
 				}
 			}
@@ -71,7 +71,7 @@ func Zlagtm(trans byte, n, nrhs *int, alpha *float64, dl, d, du *mat.CVector, x 
 					b.Set(0, j-1, b.Get(0, j-1)+d.GetConj(0)*x.Get(0, j-1)+dl.GetConj(0)*x.Get(1, j-1))
 					b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)+du.GetConj((*n)-1-1)*x.Get((*n)-1-1, j-1)+d.GetConj((*n)-1)*x.Get((*n)-1, j-1))
 					for i = 2; i <= (*n)-1; i++ {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)+du.GetConj(i-1-1)*x.Get(i-1-1, j-1)+d.GetConj(i-1)*x.Get(i-1, j-1)+dl.GetConj(i-1)*x.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)+du.GetConj(i-1-1)*x.Get(i-1-1, j-1)+d.GetConj(i-1)*x.Get(i-1, j-1)+dl.GetConj(i-1)*x.Get(i, j-1))
 					}
 				}
 			}
@@ -86,7 +86,7 @@ func Zlagtm(trans byte, n, nrhs *int, alpha *float64, dl, d, du *mat.CVector, x 
 					b.Set(0, j-1, b.Get(0, j-1)-d.Get(0)*x.Get(0, j-1)-du.Get(0)*x.Get(1, j-1))
 					b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)-dl.Get((*n)-1-1)*x.Get((*n)-1-1, j-1)-d.Get((*n)-1)*x.Get((*n)-1, j-1))
 					for i = 2; i <= (*n)-1; i++ {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)-dl.Get(i-1-1)*x.Get(i-1-1, j-1)-d.Get(i-1)*x.Get(i-1, j-1)-du.Get(i-1)*x.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)-dl.Get(i-1-1)*x.Get(i-1-1, j-1)-d.Get(i-1)*x.Get(i-1, j-1)-du.Get(i-1)*x.Get(i, j-1))
 					}
 				}
 			}
@@ -99,7 +99,7 @@ func Zlagtm(trans byte, n, nrhs *int, alpha *float64, dl, d, du *mat.CVector, x 
 					b.Set(0, j-1, b.Get(0, j-1)-d.Get(0)*x.Get(0, j-1)-dl.Get(0)*x.Get(1, j-1))
 					b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)-du.Get((*n)-1-1)*x.Get((*n)-1-1, j-1)-d.Get((*n)-1)*x.Get((*n)-1, j-1))
 					for i = 2; i <= (*n)-1; i++ {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)-du.Get(i-1-1)*x.Get(i-1-1, j-1)-d.Get(i-1)*x.Get(i-1, j-1)-dl.Get(i-1)*x.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)-du.Get(i-1-1)*x.Get(i-1-1, j-1)-d.Get(i-1)*x.Get(i-1, j-1)-dl.Get(i-1)*x.Get(i, j-1))
 					}
 				}
 			}
@@ -112,7 +112,7 @@ func Zlagtm(trans byte, n, nrhs *int, alpha *float64, dl, d, du *mat.CVector, x 
 					b.Set(0, j-1, b.Get(0, j-1)-d.GetConj(0)*x.Get(0, j-1)-dl.GetConj(0)*x.Get(1, j-1))
 					b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)-du.GetConj((*n)-1-1)*x.Get((*n)-1-1, j-1)-d.GetConj((*n)-1)*x.Get((*n)-1, j-1))
 					for i = 2; i <= (*n)-1; i++ {
-						b.Set(i-1, j-1, b.Get(i-1, j-1)-du.GetConj(i-1-1)*x.Get(i-1-1, j-1)-d.GetConj(i-1)*x.Get(i-1, j-1)-dl.GetConj(i-1)*x.Get(i+1-1, j-1))
+						b.Set(i-1, j-1, b.Get(i-1, j-1)-du.GetConj(i-1-1)*x.Get(i-1-1, j-1)-d.GetConj(i-1)*x.Get(i-1, j-1)-dl.GetConj(i-1)*x.Get(i, j-1))
 					}
 				}
 			}

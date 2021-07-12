@@ -28,14 +28,14 @@ func Zhetri3(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv *
 	lquery = ((*lwork) == -1)
 
 	//     Determine the block size
-	nb = maxint(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRI_3"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+	nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRI_3"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
 	lwkopt = ((*n) + nb + 1) * (nb + 3)
 
 	if !upper && uplo != 'L' {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	} else if (*lwork) < lwkopt && !lquery {
 		(*info) = -8

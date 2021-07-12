@@ -535,7 +535,7 @@ func TestDlin(t *testing.T) {
 			Alareq(&nmats, &dotype)
 
 			if tstdrv {
-				Ddrvls(&dotype, &nm, &mval, &nn, &nval, &nns, &nsval, &nnb, &nbval, &nxval, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), rwork, rwork.Off(nmax+1-1), &nout, t)
+				Ddrvls(&dotype, &nm, &mval, &nn, &nval, &nns, &nsval, &nnb, &nbval, &nxval, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), rwork, rwork.Off(nmax), &nout, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -798,7 +798,6 @@ func TestZlin(t *testing.T) {
 	nrhs = nsval[0]
 
 	//     Check first character for correct precision.
-	// []string{"ZGE", "ZGB", "ZGT", "ZPO", "ZPS", "ZPP", "ZPB", "ZPT", "ZHE", "ZHR", "ZHK", "ZHA", "ZH2", "ZSA", "ZS2", "ZHP", "ZSY", "ZSR", "ZSK", "ZSP", "ZTR", "ZTP", "ZTB", "ZQR", "ZRQ", "ZLQ", "ZQL", "ZQP", "ZTZ", "ZLS", "ZEQ", "ZQT", "ZQX", "ZXQ", "ZTQ", "ZTS", "ZHH"}
 	for _, c2 = range []string{"ZGE", "ZGB", "ZGT", "ZPO", "ZPS", "ZPP", "ZPB", "ZPT", "ZHE", "ZHR", "ZHK", "ZHA", "ZH2", "ZSA", "ZS2", "ZHP", "ZSY", "ZSR", "ZSK", "ZSP", "ZTR", "ZTP", "ZTB", "ZQR", "ZRQ", "ZLQ", "ZQL", "ZQP", "ZTZ", "ZLS", "ZEQ", "ZQT", "ZQX", "ZXQ", "ZTQ", "ZTS", "ZHH"} {
 		switch c2 {
 		case "ZGE":
@@ -1263,7 +1262,7 @@ func TestZlin(t *testing.T) {
 			Alareq(&nmats, &dotype)
 
 			if tstdrv {
-				Zdrvls(&dotype, &nm, &mval, &nn, &nval, &nns, &nsval, &nnb, &nbval, &nxval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), s, s.Off(nmax+1-1), &nout, t)
+				Zdrvls(&dotype, &nm, &mval, &nn, &nval, &nns, &nsval, &nnb, &nbval, &nxval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), s, s.Off(nmax), &nout, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1327,28 +1326,79 @@ func TestZlin(t *testing.T) {
 	fmt.Printf("\n End of tests\n")
 }
 
-func TestMatrixInverse(t *testing.T) {
-	var info int
-	a := cmf(2, 2, opts)
-	a.Opts.Major = mat.Row
-	a.Set(0, 0, 1+0i)
-	a.Set(0, 1, 1-2i)
-	a.Set(1, 0, 8-2i)
-	a.Set(1, 1, 4+2i)
-	lwork := a.Rows
-	work := cvf(lwork)
-	ipiv := make([]int, lwork)
+// func TestMatrixInverse(t *testing.T) {
+// 	var info int
 
-	golapack.Zgetrf(&a.Rows, &a.Cols, a, &a.Cols, &ipiv, &info)
-	if info != 0 {
-		panic(info)
-	}
+// 	s := [][][]complex128{
+// 		{
+// 			{1 + 0i, 1 - 2i},
+// 			{8 - 2i, 4 + 2i},
+// 		},
+// 		{
+// 			{2 - 6i, 4 + 1i, 2 + 0i},
+// 			{10 + 6i, 2 - 8i, 1 + 0i},
+// 			{2 - 2i, 4 + 1i, 4 - 6i},
+// 		},
+// 	}
+// 	st := [][][]complex128{
+// 		{
+// 			{0.1 - 0.2i, 0.1 + 0.05i},
+// 			{0.1 + 0.4i, 0 - 0.05i},
+// 		},
+// 		{
+// 			{0.022688110281447446 + 0.08859850660539921i, 0.03360137851809305 - 0.01751866743251005i, 0.012349224583572665 - 0.0213957495692131i},
+// 			{0.11783288846842586 + 0.010963949048890092i, 0.017028752914146704 + 0.06351995134642026i, -0.00957867351420752 - 0.03572997263236139i},
+// 			{-0.01866743251005169 - 0.10137851809304999i, 0.016657093624353823 - 0.01723147616312464i, 0.05313038483630097 + 0.13469270534175762i},
+// 		},
+// 	}
 
-	a = a.ToColMajor()
+// 	for k, val := range s {
+// 		a := cmf(len(val), len(val[0]), mat.NewMatOptsCol())
+// 		b := cmf(len(val), len(val[0]), mat.NewMatOpts())
+// 		b.Opts.Major = mat.Row
+// 		x := cmf(len(val), len(val[0]), mat.NewMatOptsCol())
+// 		for i, r := range val {
+// 			for j, c := range r {
+// 				a.Set(i, j, c)
+// 				b.Set(i, j, c)
+// 				x.Set(i, j, st[k][i][j])
+// 			}
+// 		}
 
-	golapack.Zgetri(&a.Cols, a, &a.Cols, &ipiv, work, &lwork, &info)
-	if info != 0 {
-		panic(info)
-	}
-	a = a.ToRowMajor()
-}
+// 		lwork := a.Rows
+// 		work := cvf(lwork)
+// 		ipiv := make([]int, lwork)
+
+// 		golapack.Zgetrf(&a.Rows, &a.Cols, a, &a.Cols, &ipiv, &info)
+// 		if info != 0 {
+// 			panic(info)
+// 		}
+// 		golapack.Zgetri(&a.Cols, a, &a.Cols, &ipiv, work, &lwork, &info)
+// 		if info != 0 {
+// 			panic(info)
+// 		}
+// 		for i := 0; i < a.Rows; i++ {
+// 			for j := 0; j < a.Cols; j++ {
+// 				if a.Get(i, j) != x.Get(i, j) {
+// 					t.Errorf("Failed Col major inverse: got %v, want %v\n", a.Get(i, j), x.Get(i, j))
+// 				}
+// 			}
+// 		}
+
+// 		golapack.Zgetrf(&b.Rows, &b.Cols, b, &b.Cols, &ipiv, &info)
+// 		if info != 0 {
+// 			panic(info)
+// 		}
+// 		golapack.Zgetri(&b.Cols, b, &b.Cols, &ipiv, work, &lwork, &info)
+// 		if info != 0 {
+// 			panic(info)
+// 		}
+// 		for i := 0; i < a.Rows; i++ {
+// 			for j := 0; j < a.Cols; j++ {
+// 				if b.Get(i, j) != x.Get(i, j) {
+// 					t.Errorf("Failed Row major inverse: got %v, want %v\n", b.Get(i, j), x.Get(i, j))
+// 				}
+// 			}
+// 		}
+// 	}
+// }

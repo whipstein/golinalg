@@ -24,19 +24,19 @@ func Zunghr(n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, 
 	lquery = ((*lwork) == -1)
 	if (*n) < 0 {
 		(*info) = -1
-	} else if (*ilo) < 1 || (*ilo) > maxint(1, *n) {
+	} else if (*ilo) < 1 || (*ilo) > max(1, *n) {
 		(*info) = -2
-	} else if (*ihi) < minint(*ilo, *n) || (*ihi) > (*n) {
+	} else if (*ihi) < min(*ilo, *n) || (*ihi) > (*n) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*lwork) < maxint(1, nh) && !lquery {
+	} else if (*lwork) < max(1, nh) && !lquery {
 		(*info) = -8
 	}
 
 	if (*info) == 0 {
 		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, &nh, &nh, &nh, toPtr(-1))
-		lwkopt = maxint(1, nh) * nb
+		lwkopt = max(1, nh) * nb
 		work.SetRe(0, float64(lwkopt))
 	}
 
@@ -82,7 +82,7 @@ func Zunghr(n, ilo, ihi *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, 
 
 	if nh > 0 {
 		//        Generate Q(ilo+1:ihi,ilo+1:ihi)
-		Zungqr(&nh, &nh, &nh, a.Off((*ilo)+1-1, (*ilo)+1-1), lda, tau.Off((*ilo)-1), work, lwork, &iinfo)
+		Zungqr(&nh, &nh, &nh, a.Off((*ilo), (*ilo)), lda, tau.Off((*ilo)-1), work, lwork, &iinfo)
 	}
 	work.SetRe(0, float64(lwkopt))
 }

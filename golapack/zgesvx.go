@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -45,9 +47,9 @@ func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CM
 		(*info) = -3
 	} else if (*nrhs) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldaf) < maxint(1, *n) {
+	} else if (*ldaf) < max(1, *n) {
 		(*info) = -8
 	} else if fact == 'F' && !(rowequ || colequ || (*equed) == 'N') {
 		(*info) = -10
@@ -56,13 +58,13 @@ func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CM
 			rcmin = bignum
 			rcmax = zero
 			for j = 1; j <= (*n); j++ {
-				rcmin = minf64(rcmin, r.Get(j-1))
-				rcmax = maxf64(rcmax, r.Get(j-1))
+				rcmin = math.Min(rcmin, r.Get(j-1))
+				rcmax = math.Max(rcmax, r.Get(j-1))
 			}
 			if rcmin <= zero {
 				(*info) = -11
 			} else if (*n) > 0 {
-				rowcnd = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+				rowcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				rowcnd = one
 			}
@@ -71,21 +73,21 @@ func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CM
 			rcmin = bignum
 			rcmax = zero
 			for j = 1; j <= (*n); j++ {
-				rcmin = minf64(rcmin, c.Get(j-1))
-				rcmax = maxf64(rcmax, c.Get(j-1))
+				rcmin = math.Min(rcmin, c.Get(j-1))
+				rcmax = math.Max(rcmax, c.Get(j-1))
 			}
 			if rcmin <= zero {
 				(*info) = -12
 			} else if (*n) > 0 {
-				colcnd = maxf64(rcmin, smlnum) / minf64(rcmax, bignum)
+				colcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				colcnd = one
 			}
 		}
 		if (*info) == 0 {
-			if (*ldb) < maxint(1, *n) {
+			if (*ldb) < max(1, *n) {
 				(*info) = -14
-			} else if (*ldx) < maxint(1, *n) {
+			} else if (*ldx) < max(1, *n) {
 				(*info) = -16
 			}
 		}

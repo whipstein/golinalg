@@ -41,9 +41,9 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 		(*info) = -6
 	} else if (*ldafb) < (*kd)+1 {
 		(*info) = -8
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -10
-	} else if (*ldx) < maxint(1, *n) {
+	} else if (*ldx) < max(1, *n) {
 		(*info) = -12
 	}
 	if (*info) != 0 {
@@ -61,7 +61,7 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 	}
 
 	//     NZ = maximum number of nonzero elements in each row of A, plus 1
-	nz = minint((*n)+1, 2*(*kd)+2)
+	nz = min((*n)+1, 2*(*kd)+2)
 	eps = Dlamch(Epsilon)
 	safmin = Dlamch(SafeMinimum)
 	safe1 = float64(nz) * safmin
@@ -78,8 +78,8 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Dcopy(*n, b.Vector(0, j-1), 1, work.Off((*n)+1-1), 1)
-		err = goblas.Dsbmv(mat.UploByte(uplo), *n, *kd, -one, ab, *ldab, x.Vector(0, j-1), 1, one, work.Off((*n)+1-1), 1)
+		goblas.Dcopy(*n, b.Vector(0, j-1, 1), work.Off((*n), 1))
+		err = goblas.Dsbmv(mat.UploByte(uplo), *n, *kd, -one, ab, x.Vector(0, j-1, 1), one, work.Off((*n), 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -99,11 +99,11 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 				s = zero
 				xk = math.Abs(x.Get(k-1, j-1))
 				l = (*kd) + 1 - k
-				for i = maxint(1, k-(*kd)); i <= k-1; i++ {
+				for i = max(1, k-(*kd)); i <= k-1; i++ {
 					work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(l+i-1, k-1))*xk)
 					s = s + math.Abs(ab.Get(l+i-1, k-1))*math.Abs(x.Get(i-1, j-1))
 				}
-				work.Set(k-1, work.Get(k-1)+math.Abs(ab.Get((*kd)+1-1, k-1))*xk+s)
+				work.Set(k-1, work.Get(k-1)+math.Abs(ab.Get((*kd), k-1))*xk+s)
 			}
 		} else {
 			for k = 1; k <= (*n); k++ {
@@ -111,7 +111,7 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 				xk = math.Abs(x.Get(k-1, j-1))
 				work.Set(k-1, work.Get(k-1)+math.Abs(ab.Get(0, k-1))*xk)
 				l = 1 - k
-				for i = k + 1; i <= minint(*n, k+(*kd)); i++ {
+				for i = k + 1; i <= min(*n, k+(*kd)); i++ {
 					work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(l+i-1, k-1))*xk)
 					s = s + math.Abs(ab.Get(l+i-1, k-1))*math.Abs(x.Get(i-1, j-1))
 				}
@@ -121,9 +121,9 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 		s = zero
 		for i = 1; i <= (*n); i++ {
 			if work.Get(i-1) > safe2 {
-				s = maxf64(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
+				s = math.Max(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
 			} else {
-				s = maxf64(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
+				s = math.Max(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -135,8 +135,8 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			Dpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.MatrixOff((*n)+1-1, *n, opts), n, info)
-			goblas.Daxpy(*n, one, work.Off((*n)+1-1), 1, x.Vector(0, j-1), 1)
+			Dpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.MatrixOff((*n), *n, opts), n, info)
+			goblas.Daxpy(*n, one, work.Off((*n), 1), x.Vector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -174,11 +174,11 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 		kase = 0
 	label100:
 		;
-		Dlacn2(n, work.Off(2*(*n)+1-1), work.Off((*n)+1-1), iwork, ferr.GetPtr(j-1), &kase, &isave)
+		Dlacn2(n, work.Off(2*(*n)), work.Off((*n)), iwork, ferr.GetPtr(j-1), &kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(A**T).
-				Dpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.MatrixOff((*n)+1-1, *n, opts), n, info)
+				Dpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.MatrixOff((*n), *n, opts), n, info)
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get((*n)+i-1)*work.Get(i-1))
 				}
@@ -187,7 +187,7 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, work.Get((*n)+i-1)*work.Get(i-1))
 				}
-				Dpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.MatrixOff((*n)+1-1, *n, opts), n, info)
+				Dpbtrs(uplo, n, kd, func() *int { y := 1; return &y }(), afb, ldafb, work.MatrixOff((*n), *n, opts), n, info)
 			}
 			goto label100
 		}
@@ -195,7 +195,7 @@ func Dpbrfs(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Mat
 		//        Normalize error.
 		lstres = zero
 		for i = 1; i <= (*n); i++ {
-			lstres = maxf64(lstres, math.Abs(x.Get(i-1, j-1)))
+			lstres = math.Max(lstres, math.Abs(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)

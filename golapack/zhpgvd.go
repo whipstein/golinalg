@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -52,7 +54,7 @@ func Zhpgvd(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vec
 		} else {
 			if wantz {
 				lwmin = 2 * (*n)
-				lrwmin = 1 + 5*(*n) + 2*powint(*n, 2)
+				lrwmin = 1 + 5*(*n) + 2*pow(*n, 2)
 				liwmin = 3 + 5*(*n)
 			} else {
 				lwmin = (*n)
@@ -95,9 +97,9 @@ func Zhpgvd(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vec
 	//     Transform problem to standard eigenvalue problem and solve.
 	Zhpgst(itype, uplo, n, ap, bp, info)
 	Zhpevd(jobz, uplo, n, ap, w, z, ldz, work, lwork, rwork, lrwork, iwork, liwork, info)
-	lwmin = int(maxf64(float64(lwmin), work.GetRe(0)))
-	lrwmin = int(maxf64(float64(lrwmin), rwork.Get(0)))
-	liwmin = int(maxf64(float64(liwmin), float64((*iwork)[0])))
+	lwmin = int(math.Max(float64(lwmin), work.GetRe(0)))
+	lrwmin = int(math.Max(float64(lrwmin), rwork.Get(0)))
+	liwmin = int(math.Max(float64(liwmin), float64((*iwork)[0])))
 
 	if wantz {
 		//        Backtransform eigenvectors to the original problem.
@@ -115,7 +117,7 @@ func Zhpgvd(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vec
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1), 1)
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1, 1))
 			}
 
 		} else if (*itype) == 3 {
@@ -128,7 +130,7 @@ func Zhpgvd(itype *int, jobz, uplo byte, n *int, ap, bp *mat.CVector, w *mat.Vec
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1), 1)
+				err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1, 1))
 			}
 		}
 	}

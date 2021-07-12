@@ -46,7 +46,7 @@ func Dchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	Xlaenv(2, 2)
 
 	lda = (*nmax)
-	lwork = (*nmax) * maxint(*nmax, *nrhs)
+	lwork = (*nmax) * max(*nmax, *nrhs)
 
 	//     Do for each value of M in MVAL.
 	for im = 1; im <= (*nm); im++ {
@@ -55,7 +55,7 @@ func Dchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 		//        Do for each value of N in NVAL.
 		for in = 1; in <= (*nn); in++ {
 			n = (*nval)[in-1]
-			minmn = minint(m, n)
+			minmn = min(m, n)
 			for imat = 1; imat <= ntypes; imat++ {
 				//              Do the tests only if DOTYPE( IMAT ) is true.
 				if !(*dotype)[imat-1] {
@@ -138,7 +138,7 @@ func Dchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 									Alaerh(path, []byte("DGEQLS"), &info, func() *int { y := 0; return &y }(), []byte(" "), &m, &n, nrhs, toPtr(-1), &nb, &imat, &nfail, &nerrs)
 								}
 
-								Dget02('N', &m, &n, nrhs, a.Matrix(lda, opts), &lda, x.MatrixOff(m-n+1-1, lda, opts), &lda, b.Matrix(lda, opts), &lda, rwork, result.GetPtr(6))
+								Dget02('N', &m, &n, nrhs, a.Matrix(lda, opts), &lda, x.MatrixOff(m-n, lda, opts), &lda, b.Matrix(lda, opts), &lda, rwork, result.GetPtr(6))
 								nt = nt + 1
 							}
 						}

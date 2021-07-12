@@ -30,7 +30,7 @@ func Zgetrf(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -45,13 +45,13 @@ func Zgetrf(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 
 	//     Determine the block size for this environment.
 	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGETRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-	if nb <= 1 || nb >= minint(*m, *n) {
+	if nb <= 1 || nb >= min(*m, *n) {
 		//        Use unblocked code.
 		Zgetrf2(m, n, a, lda, ipiv, info)
 	} else {
 		//        Use blocked code.
-		for j = 1; j <= minint(*m, *n); j += nb {
-			jb = minint(minint(*m, *n)-j+1, nb)
+		for j = 1; j <= min(*m, *n); j += nb {
+			jb = min(min(*m, *n)-j+1, nb)
 
 			//           Factor diagonal and subdiagonal blocks and test for exact
 			//           singularity.
@@ -61,7 +61,7 @@ func Zgetrf(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 			if (*info) == 0 && iinfo > 0 {
 				(*info) = iinfo + j - 1
 			}
-			for i = j; i <= minint(*m, j+jb-1); i++ {
+			for i = j; i <= min(*m, j+jb-1); i++ {
 				(*ipiv)[i-1] = j - 1 + (*ipiv)[i-1]
 			}
 
@@ -73,10 +73,10 @@ func Zgetrf(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 				Zlaswp(toPtr((*n)-j-jb+1), a.Off(0, j+jb-1), lda, &j, toPtr(j+jb-1), ipiv, func() *int { y := 1; return &y }())
 
 				//              Compute block row of U.
-				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda)
+				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, one, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
 				if j+jb <= (*m) {
 					//                 Update trailing submatrix.
-					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), *lda, a.Off(j-1, j+jb-1), *lda, one, a.Off(j+jb-1, j+jb-1), *lda)
+					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), one, a.Off(j+jb-1, j+jb-1))
 				}
 			}
 		}

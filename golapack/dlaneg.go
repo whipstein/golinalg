@@ -40,7 +40,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 	for bj = 1; bj <= (*r)-1; bj += blklen {
 		neg1 = 0
 		bsav = t
-		for j = bj; j <= minint(bj+blklen-1, (*r)-1); j++ {
+		for j = bj; j <= min(bj+blklen-1, (*r)-1); j++ {
 			dplus = d.Get(j-1) + t
 			if dplus < zero {
 				neg1 = neg1 + 1
@@ -56,7 +56,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 		if sawnan {
 			neg1 = 0
 			t = bsav
-			for j = bj; j <= minint(bj+blklen-1, (*r)-1); j++ {
+			for j = bj; j <= min(bj+blklen-1, (*r)-1); j++ {
 				dplus = d.Get(j-1) + t
 				if dplus < zero {
 					neg1 = neg1 + 1
@@ -76,7 +76,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 	for bj = (*n) - 1; bj >= (*r); bj -= blklen {
 		neg2 = 0
 		bsav = p
-		for j = bj; j >= maxint(bj-blklen+1, *r); j-- {
+		for j = bj; j >= max(bj-blklen+1, *r); j-- {
 			dminus = lld.Get(j-1) + p
 			if dminus < zero {
 				neg2 = neg2 + 1
@@ -90,7 +90,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 		if sawnan {
 			neg2 = 0
 			p = bsav
-			for j = bj; j >= maxint(bj-blklen+1, *r); j-- {
+			for j = bj; j >= max(bj-blklen+1, *r); j-- {
 				dminus = lld.Get(j-1) + p
 				if dminus < zero {
 					neg2 = neg2 + 1

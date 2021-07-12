@@ -39,7 +39,7 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
 	}
 	if (*info) != 0 {
@@ -89,7 +89,7 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					ip = (*ipiv)[i-1]
 					if i < (*n) {
 						if ip != i {
-							goblas.Zswap((*n)-i, a.CVector(i-1, i+1-1), *lda, a.CVector(ip-1, i+1-1), *lda)
+							goblas.Zswap((*n)-i, a.CVector(i-1, i, *lda), a.CVector(ip-1, i, *lda))
 						}
 					}
 
@@ -102,10 +102,10 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					ip2 = -(*ipiv)[i-1-1]
 					if i < (*n) {
 						if ip != i {
-							goblas.Zswap((*n)-i, a.CVector(i-1, i+1-1), *lda, a.CVector(ip-1, i+1-1), *lda)
+							goblas.Zswap((*n)-i, a.CVector(i-1, i, *lda), a.CVector(ip-1, i, *lda))
 						}
 						if ip2 != (i - 1) {
-							goblas.Zswap((*n)-i, a.CVector(i-1-1, i+1-1), *lda, a.CVector(ip2-1, i+1-1), *lda)
+							goblas.Zswap((*n)-i, a.CVector(i-1-1, i, *lda), a.CVector(ip2-1, i, *lda))
 						}
 					}
 					i = i - 1
@@ -131,7 +131,7 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					ip = (*ipiv)[i-1]
 					if i < (*n) {
 						if ip != i {
-							goblas.Zswap((*n)-i, a.CVector(ip-1, i+1-1), *lda, a.CVector(i-1, i+1-1), *lda)
+							goblas.Zswap((*n)-i, a.CVector(ip-1, i, *lda), a.CVector(i-1, i, *lda))
 						}
 					}
 
@@ -145,10 +145,10 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					ip2 = -(*ipiv)[i-1-1]
 					if i < (*n) {
 						if ip2 != (i - 1) {
-							goblas.Zswap((*n)-i, a.CVector(ip2-1, i+1-1), *lda, a.CVector(i-1-1, i+1-1), *lda)
+							goblas.Zswap((*n)-i, a.CVector(ip2-1, i, *lda), a.CVector(i-1-1, i, *lda))
 						}
 						if ip != i {
-							goblas.Zswap((*n)-i, a.CVector(ip-1, i+1-1), *lda, a.CVector(i-1, i+1-1), *lda)
+							goblas.Zswap((*n)-i, a.CVector(ip-1, i, *lda), a.CVector(i-1, i, *lda))
 						}
 					}
 
@@ -184,9 +184,9 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 			e.Set((*n)-1, zero)
 			for i <= (*n) {
 				if i < (*n) && (*ipiv)[i-1] < 0 {
-					e.Set(i-1, a.Get(i+1-1, i-1))
-					e.Set(i+1-1, zero)
-					a.Set(i+1-1, i-1, zero)
+					e.Set(i-1, a.Get(i, i-1))
+					e.Set(i, zero)
+					a.Set(i, i-1, zero)
 					i = i + 1
 				} else {
 					e.Set(i-1, zero)
@@ -207,7 +207,7 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					ip = (*ipiv)[i-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(i-1, 0), *lda, a.CVector(ip-1, 0), *lda)
+							goblas.Zswap(i-1, a.CVector(i-1, 0, *lda), a.CVector(ip-1, 0, *lda))
 						}
 					}
 
@@ -217,13 +217,13 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					//                 Swap rows i and IPIV(i) and i+1 and IPIV(i+1)
 					//                 in A(i:N,1:i-1)
 					ip = -(*ipiv)[i-1]
-					ip2 = -(*ipiv)[i+1-1]
+					ip2 = -(*ipiv)[i]
 					if i > 1 {
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(i-1, 0), *lda, a.CVector(ip-1, 0), *lda)
+							goblas.Zswap(i-1, a.CVector(i-1, 0, *lda), a.CVector(ip-1, 0, *lda))
 						}
 						if ip2 != (i + 1) {
-							goblas.Zswap(i-1, a.CVector(i+1-1, 0), *lda, a.CVector(ip2-1, 0), *lda)
+							goblas.Zswap(i-1, a.CVector(i, 0, *lda), a.CVector(ip2-1, 0, *lda))
 						}
 					}
 					i = i + 1
@@ -249,7 +249,7 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					ip = (*ipiv)[i-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(ip-1, 0), *lda, a.CVector(i-1, 0), *lda)
+							goblas.Zswap(i-1, a.CVector(ip-1, 0, *lda), a.CVector(i-1, 0, *lda))
 						}
 					}
 
@@ -260,13 +260,13 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 					//                 in A(i:N,1:i-1)
 					i = i - 1
 					ip = -(*ipiv)[i-1]
-					ip2 = -(*ipiv)[i+1-1]
+					ip2 = -(*ipiv)[i]
 					if i > 1 {
 						if ip2 != (i + 1) {
-							goblas.Zswap(i-1, a.CVector(ip2-1, 0), *lda, a.CVector(i+1-1, 0), *lda)
+							goblas.Zswap(i-1, a.CVector(ip2-1, 0, *lda), a.CVector(i, 0, *lda))
 						}
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(ip-1, 0), *lda, a.CVector(i-1, 0), *lda)
+							goblas.Zswap(i-1, a.CVector(ip-1, 0, *lda), a.CVector(i-1, 0, *lda))
 						}
 					}
 
@@ -280,7 +280,7 @@ func Zsyconvfrook(uplo, way byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVect
 			i = 1
 			for i <= (*n)-1 {
 				if (*ipiv)[i-1] < 0 {
-					a.Set(i+1-1, i-1, e.Get(i-1))
+					a.Set(i, i-1, e.Get(i-1))
 					i = i + 1
 				}
 				i = i + 1

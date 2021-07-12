@@ -40,15 +40,15 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, s.Get(i-1)*vt.Get(i-1, j-1))
 				}
-				err = goblas.Dgemv(NoTrans, *n, *n, -one, u, *ldu, work.Off((*n)+1-1), 1, zero, work, 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, -one, u, work.Off((*n), 1), zero, work.Off(0, 1))
 				work.Set(j-1, work.Get(j-1)+d.Get(j-1))
 				if j > 1 {
 					work.Set(j-1-1, work.Get(j-1-1)+e.Get(j-1-1))
-					bnorm = maxf64(bnorm, math.Abs(d.Get(j-1))+math.Abs(e.Get(j-1-1)))
+					bnorm = math.Max(bnorm, math.Abs(d.Get(j-1))+math.Abs(e.Get(j-1-1)))
 				} else {
-					bnorm = maxf64(bnorm, math.Abs(d.Get(j-1)))
+					bnorm = math.Max(bnorm, math.Abs(d.Get(j-1)))
 				}
-				(*resid) = maxf64(*resid, goblas.Dasum(*n, work, 1))
+				(*resid) = math.Max(*resid, goblas.Dasum(*n, work.Off(0, 1)))
 			}
 		} else {
 			//           B is lower bidiagonal.
@@ -56,15 +56,15 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 				for i = 1; i <= (*n); i++ {
 					work.Set((*n)+i-1, s.Get(i-1)*vt.Get(i-1, j-1))
 				}
-				err = goblas.Dgemv(NoTrans, *n, *n, -one, u, *ldu, work.Off((*n)+1-1), 1, zero, work, 1)
+				err = goblas.Dgemv(NoTrans, *n, *n, -one, u, work.Off((*n), 1), zero, work.Off(0, 1))
 				work.Set(j-1, work.Get(j-1)+d.Get(j-1))
 				if j < (*n) {
-					work.Set(j+1-1, work.Get(j+1-1)+e.Get(j-1))
-					bnorm = maxf64(bnorm, math.Abs(d.Get(j-1))+math.Abs(e.Get(j-1)))
+					work.Set(j, work.Get(j)+e.Get(j-1))
+					bnorm = math.Max(bnorm, math.Abs(d.Get(j-1))+math.Abs(e.Get(j-1)))
 				} else {
-					bnorm = maxf64(bnorm, math.Abs(d.Get(j-1)))
+					bnorm = math.Max(bnorm, math.Abs(d.Get(j-1)))
 				}
-				(*resid) = maxf64(*resid, goblas.Dasum(*n, work, 1))
+				(*resid) = math.Max(*resid, goblas.Dasum(*n, work.Off(0, 1)))
 			}
 		}
 	} else {
@@ -73,11 +73,11 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 			for i = 1; i <= (*n); i++ {
 				work.Set((*n)+i-1, s.Get(i-1)*vt.Get(i-1, j-1))
 			}
-			err = goblas.Dgemv(NoTrans, *n, *n, -one, u, *ldu, work.Off((*n)+1-1), 1, zero, work, 1)
+			err = goblas.Dgemv(NoTrans, *n, *n, -one, u, work.Off((*n), 1), zero, work.Off(0, 1))
 			work.Set(j-1, work.Get(j-1)+d.Get(j-1))
-			(*resid) = maxf64(*resid, goblas.Dasum(*n, work, 1))
+			(*resid) = math.Max(*resid, goblas.Dasum(*n, work.Off(0, 1)))
 		}
-		j = goblas.Idamax(*n, d, 1)
+		j = goblas.Idamax(*n, d.Off(0, 1))
 		bnorm = math.Abs(d.Get(j - 1))
 	}
 
@@ -93,9 +93,9 @@ func Dbdt03(uplo byte, n, kd *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, s 
 			(*resid) = ((*resid) / bnorm) / (float64(*n) * eps)
 		} else {
 			if bnorm < one {
-				(*resid) = (minf64(*resid, float64(*n)*bnorm) / bnorm) / (float64(*n) * eps)
+				(*resid) = (math.Min(*resid, float64(*n)*bnorm) / bnorm) / (float64(*n) * eps)
 			} else {
-				(*resid) = minf64((*resid)/bnorm, float64(*n)) / (float64(*n) * eps)
+				(*resid) = math.Min((*resid)/bnorm, float64(*n)) / (float64(*n) * eps)
 			}
 		}
 	}

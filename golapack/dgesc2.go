@@ -40,10 +40,10 @@ func Dgesc2(n *int, a *mat.Matrix, lda *int, rhs *mat.Vector, ipiv, jpiv *[]int,
 	(*scale) = one
 
 	//     Check for scaling
-	i = goblas.Idamax(*n, rhs, 1)
+	i = goblas.Idamax(*n, rhs)
 	if two*smlnum*math.Abs(rhs.Get(i-1)) > math.Abs(a.Get((*n)-1, (*n)-1)) {
 		temp = (one / two) / math.Abs(rhs.Get(i-1))
-		goblas.Dscal(*n, temp, rhs, 1)
+		goblas.Dscal(*n, temp, rhs)
 		(*scale) = (*scale) * temp
 	}
 

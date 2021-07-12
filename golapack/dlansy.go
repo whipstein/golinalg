@@ -98,7 +98,7 @@ func Dlansy(norm, uplo byte, n *int, a *mat.Matrix, lda *int, work *mat.Vector) 
 			for j = 1; j <= (*n)-1; j++ {
 				colssq.Set(0, zero)
 				colssq.Set(1, one)
-				Dlassq(toPtr((*n)-j), a.Vector(j+1-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+				Dlassq(toPtr((*n)-j), a.Vector(j, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
 				Dcombssq(ssq, colssq)
 			}
 		}

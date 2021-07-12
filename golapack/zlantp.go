@@ -23,7 +23,7 @@ func Zlantp(norm, uplo, diag byte, n *int, ap *mat.CVector, work *mat.Vector) (z
 	if (*n) == 0 {
 		value = zero
 	} else if norm == 'M' {
-		//        Find maxint(abs(A(i,j))).
+		//        Find max(abs(A(i,j))).
 		k = 1
 		if diag == 'U' {
 			value = one

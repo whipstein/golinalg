@@ -47,7 +47,7 @@ func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
 	sigmx = zero
 	for i = 1; i <= (*n)-1; i++ {
 		d.Set(i-1, math.Abs(d.Get(i-1)))
-		sigmx = maxf64(sigmx, math.Abs(e.Get(i-1)))
+		sigmx = math.Max(sigmx, math.Abs(e.Get(i-1)))
 	}
 	d.Set((*n)-1, math.Abs(d.Get((*n)-1)))
 
@@ -58,7 +58,7 @@ func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
 	}
 
 	for i = 1; i <= (*n); i++ {
-		sigmx = maxf64(sigmx, d.Get(i-1))
+		sigmx = math.Max(sigmx, d.Get(i-1))
 	}
 
 	//     Copy D and E into WORK (in the Z format) and scale (squaring the
@@ -66,8 +66,8 @@ func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
 	eps = Dlamch(Precision)
 	safmin = Dlamch(SafeMinimum)
 	scale = math.Sqrt(eps / safmin)
-	goblas.Dcopy(*n, d, 1, work, 2)
-	goblas.Dcopy((*n)-1, e, 1, work.Off(1), 2)
+	goblas.Dcopy(*n, d.Off(0, 1), work.Off(0, 2))
+	goblas.Dcopy((*n)-1, e.Off(0, 1), work.Off(1, 2))
 	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &sigmx, &scale, toPtr(2*(*n)-1), func() *int { y := 1; return &y }(), work.Matrix(2*(*n)-1, opts), toPtr(2*(*n)-1), &iinfo)
 
 	//     Compute the q's and e's.

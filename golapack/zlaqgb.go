@@ -31,7 +31,7 @@ func Zlaqgb(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, r, c *mat.Vector, row
 			//           Column scaling
 			for j = 1; j <= (*n); j++ {
 				cj = c.Get(j - 1)
-				for i = maxint(1, j-(*ku)); i <= minint(*m, j+(*kl)); i++ {
+				for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
 					ab.Set((*ku)+1+i-j-1, j-1, complex(cj, 0)*ab.Get((*ku)+1+i-j-1, j-1))
 				}
 			}
@@ -40,7 +40,7 @@ func Zlaqgb(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, r, c *mat.Vector, row
 	} else if (*colcnd) >= thresh {
 		//        Row scaling, no column scaling
 		for j = 1; j <= (*n); j++ {
-			for i = maxint(1, j-(*ku)); i <= minint(*m, j+(*kl)); i++ {
+			for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
 				ab.Set((*ku)+1+i-j-1, j-1, r.GetCmplx(i-1)*ab.Get((*ku)+1+i-j-1, j-1))
 			}
 		}
@@ -49,7 +49,7 @@ func Zlaqgb(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, r, c *mat.Vector, row
 		//        Row and column scaling
 		for j = 1; j <= (*n); j++ {
 			cj = c.Get(j - 1)
-			for i = maxint(1, j-(*ku)); i <= minint(*m, j+(*kl)); i++ {
+			for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
 				ab.Set((*ku)+1+i-j-1, j-1, complex(cj*r.Get(i-1), 0)*ab.Get((*ku)+1+i-j-1, j-1))
 			}
 		}

@@ -42,7 +42,7 @@ func Dpotrf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -81,11 +81,11 @@ func Dpotrf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		//        Compute the Cholesky factorization A = U**T*U
 		if upper {
 			//           Update and scale A12
-			err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n1, n2, one, a, *lda, a.Off(0, n1+1-1), *lda)
+			err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n1, n2, one, a, a.Off(0, n1))
 
 			//           Update and factor A22
-			err = goblas.Dsyrk(mat.UploByte(uplo), mat.Trans, n2, n1, -one, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
-			Dpotrf2(uplo, &n2, a.Off(n1+1-1, n1+1-1), lda, &iinfo)
+			err = goblas.Dsyrk(mat.UploByte(uplo), mat.Trans, n2, n1, -one, a.Off(0, n1), one, a.Off(n1, n1))
+			Dpotrf2(uplo, &n2, a.Off(n1, n1), lda, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo + n1
 				return
@@ -94,11 +94,11 @@ func Dpotrf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 			//        Compute the Cholesky factorization A = L*L**T
 		} else {
 			//           Update and scale A21
-			err = goblas.Dtrsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, n2, n1, one, a, *lda, a.Off(n1+1-1, 0), *lda)
+			err = goblas.Dtrsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, n2, n1, one, a, a.Off(n1, 0))
 
 			//           Update and factor A22
-			err = goblas.Dsyrk(mat.UploByte(uplo), mat.NoTrans, n2, n1, -one, a.Off(n1+1-1, 0), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
-			Dpotrf2(uplo, &n2, a.Off(n1+1-1, n1+1-1), lda, &iinfo)
+			err = goblas.Dsyrk(mat.UploByte(uplo), mat.NoTrans, n2, n1, -one, a.Off(n1, 0), one, a.Off(n1, n1))
+			Dpotrf2(uplo, &n2, a.Off(n1, n1), lda, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo + n1
 				return

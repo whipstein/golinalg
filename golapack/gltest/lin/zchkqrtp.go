@@ -36,8 +36,8 @@ func Zchkqrtp(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval
 			n = (*nval)[j-1]
 
 			//           Do for each value of L
-			minmn = minint(m, n)
-			for l = 0; l <= minmn; l += maxint(minmn, 1) {
+			minmn = min(m, n)
+			for l = 0; l <= minmn; l += max(minmn, 1) {
 				//              Do for each possible value of NB
 				for k = 1; k <= (*nnb); k++ {
 					nb = (*nbval)[k-1]

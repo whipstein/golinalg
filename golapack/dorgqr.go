@@ -22,7 +22,7 @@ func Dorgqr(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork,
 	//     Test the input arguments
 	(*info) = 0
 	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, m, n, k, toPtr(-1))
-	lwkopt = maxint(1, *n) * nb
+	lwkopt = max(1, *n) * nb
 	work.Set(0, float64(lwkopt))
 	lquery = ((*lwork) == -1)
 	if (*m) < 0 {
@@ -31,9 +31,9 @@ func Dorgqr(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork,
 		(*info) = -2
 	} else if (*k) < 0 || (*k) > (*n) {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*lwork) < maxint(1, *n) && !lquery {
+	} else if (*lwork) < max(1, *n) && !lquery {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -54,7 +54,7 @@ func Dorgqr(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork,
 	iws = (*n)
 	if nb > 1 && nb < (*k) {
 		//        Determine when to cross over from blocked to unblocked code.
-		nx = maxint(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("DORGQR"), []byte{' '}, m, n, k, toPtr(-1)))
+		nx = max(0, Ilaenv(func() *int { y := 3; return &y }(), []byte("DORGQR"), []byte{' '}, m, n, k, toPtr(-1)))
 		if nx < (*k) {
 			//           Determine if workspace is large enough for blocked code.
 			ldwork = (*n)
@@ -63,7 +63,7 @@ func Dorgqr(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork,
 				//              Not enough workspace to use optimal NB:  reduce NB and
 				//              determine the minimum value of NB.
 				nb = (*lwork) / ldwork
-				nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DORGQR"), []byte{' '}, m, n, k, toPtr(-1)))
+				nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DORGQR"), []byte{' '}, m, n, k, toPtr(-1)))
 			}
 		}
 	}
@@ -72,7 +72,7 @@ func Dorgqr(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork,
 		//        Use blocked code after the last block.
 		//        The first kk columns are handled by the block method.
 		ki = (((*k) - nx - 1) / nb) * nb
-		kk = minint(*k, ki+nb)
+		kk = min(*k, ki+nb)
 
 		//        Set A(1:kk,kk+1:n) to zero.
 		for j = kk + 1; j <= (*n); j++ {
@@ -86,20 +86,20 @@ func Dorgqr(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork,
 
 	//     Use unblocked code for the last or only block.
 	if kk < (*n) {
-		Dorg2r(toPtr((*m)-kk), toPtr((*n)-kk), toPtr((*k)-kk), a.Off(kk+1-1, kk+1-1), lda, tau.Off(kk+1-1), work, &iinfo)
+		Dorg2r(toPtr((*m)-kk), toPtr((*n)-kk), toPtr((*k)-kk), a.Off(kk, kk), lda, tau.Off(kk), work, &iinfo)
 	}
 
 	if kk > 0 {
 		//        Use blocked code
 		for i = ki + 1; i >= 1; i -= nb {
-			ib = minint(nb, (*k)-i+1)
+			ib = min(nb, (*k)-i+1)
 			if i+ib <= (*n) {
 				//              Form the triangular factor of the block reflector
 				//              H = H(i) H(i+1) . . . H(i+ib-1)
 				Dlarft('F', 'C', toPtr((*m)-i+1), &ib, a.Off(i-1, i-1), lda, tau.Off(i-1), work.Matrix(ldwork, opts), &ldwork)
 
 				//              Apply H to A(i:m,i+ib:n) from the left
-				Dlarfb('L', 'N', 'F', 'C', toPtr((*m)-i+1), toPtr((*n)-i-ib+1), &ib, a.Off(i-1, i-1), lda, work.Matrix(ldwork, opts), &ldwork, a.Off(i-1, i+ib-1), lda, work.MatrixOff(ib+1-1, ldwork, opts), &ldwork)
+				Dlarfb('L', 'N', 'F', 'C', toPtr((*m)-i+1), toPtr((*n)-i-ib+1), &ib, a.Off(i-1, i-1), lda, work.Matrix(ldwork, opts), &ldwork, a.Off(i-1, i+ib-1), lda, work.MatrixOff(ib, ldwork, opts), &ldwork)
 			}
 
 			//           Apply H to rows i:m of current block

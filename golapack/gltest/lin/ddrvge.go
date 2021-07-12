@@ -62,7 +62,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -111,7 +111,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 						a.Set(ioff+i-1, zero)
 					}
 				} else {
-					golapack.Dlaset('F', &n, toPtr(n-izero+1), &zero, &zero, a.MatrixOff(ioff+1-1, lda, opts), &lda)
+					golapack.Dlaset('F', &n, toPtr(n-izero+1), &zero, &zero, a.MatrixOff(ioff, lda, opts), &lda)
 				}
 			} else {
 				izero = 0
@@ -150,7 +150,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 						if equil || iequed > 1 {
 							//                       Compute row and column scale factors to
 							//                       equilibrate the matrix A.
-							golapack.Dgeequ(&n, &n, afac.Matrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &info)
+							golapack.Dgeequ(&n, &n, afac.Matrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &info)
 							if info == 0 && n > 0 {
 								if equed == 'R' {
 									rowcnd = zero
@@ -164,7 +164,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 								}
 
 								//                          Equilibrate the matrix.
-								golapack.Dlaqge(&n, &n, afac.Matrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &equed)
+								golapack.Dlaqge(&n, &n, afac.Matrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &equed)
 							}
 						}
 
@@ -185,7 +185,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 
 						//                    Form the inverse of A.
 						golapack.Dlacpy('F', &n, &n, afac.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-						lwork = (*nmax) * maxint(3, *nrhs)
+						lwork = (*nmax) * max(3, *nrhs)
 						*srnamt = "DGETRI"
 						golapack.Dgetri(&n, a.Matrix(lda, opts), &lda, iwork, work.Matrix(lda, opts), &lwork, &info)
 
@@ -277,13 +277,13 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 						if iequed > 1 && n > 0 {
 							//                       Equilibrate the matrix if FACT = 'F' and
 							//                       EQUED = 'R', 'C', or 'B'.
-							golapack.Dlaqge(&n, &n, a.Matrix(lda, opts), &lda, s, s.Off(n+1-1), &rowcnd, &colcnd, &amax, &equed)
+							golapack.Dlaqge(&n, &n, a.Matrix(lda, opts), &lda, s, s.Off(n), &rowcnd, &colcnd, &amax, &equed)
 						}
 
 						//                    Solve the system and compute the condition number
 						//                    and error bounds using DGESVX.
 						*srnamt = "DGESVX"
-						golapack.Dgesvx(fact, trans, &n, nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, &equed, s, s.Off(n+1-1), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, toSlice(iwork, n+1-1), &info)
+						golapack.Dgesvx(fact, trans, &n, nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, &equed, s, s.Off(n), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, toSlice(iwork, n), &info)
 
 						//                    Check the error code from DGESVX.
 						if info != izero {
@@ -307,12 +307,12 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 								rpvgrw = golapack.Dlange('M', &n, &n, a.Matrix(lda, opts), &lda, work) / rpvgrw
 							}
 						}
-						result.Set(6, math.Abs(rpvgrw-work.Get(0))/maxf64(work.Get(0), rpvgrw)/golapack.Dlamch(Epsilon))
+						result.Set(6, math.Abs(rpvgrw-work.Get(0))/math.Max(work.Get(0), rpvgrw)/golapack.Dlamch(Epsilon))
 
 						if !prefac {
 							//                       Reconstruct matrix from factors and compute
 							//                       residual.
-							Dget01(&n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+							Dget01(&n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 							k1 = 1
 						} else {
 							k1 = 2
@@ -323,7 +323,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 
 							//                       Compute residual of the computed solution.
 							golapack.Dlacpy('F', &n, nrhs, bsav.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-							Dget02(trans, &n, &n, nrhs, asav.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+							Dget02(trans, &n, &n, nrhs, asav.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							if nofact || (prefac && equed == 'N') {
@@ -339,7 +339,7 @@ func Ddrvge(dotype []bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tst
 
 							//                       Check the error bounds from iterative
 							//                       refinement.
-							Dget07(trans, &n, nrhs, asav.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, true, rwork.Off((*nrhs)+1-1), result.Off(3))
+							Dget07(trans, &n, nrhs, asav.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, true, rwork.Off((*nrhs)), result.Off(3))
 						} else {
 							trfcon = true
 						}

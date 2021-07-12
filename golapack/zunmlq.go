@@ -51,18 +51,18 @@ func Zunmlq(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > nq {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *k) {
+	} else if (*lda) < max(1, *k) {
 		(*info) = -7
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -10
-	} else if (*lwork) < maxint(1, nw) && !lquery {
+	} else if (*lwork) < max(1, nw) && !lquery {
 		(*info) = -12
 	}
 
 	if (*info) == 0 {
 		//        Compute the workspace requirements
-		nb = minint(nbmax, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte{side, trans}, m, n, k, toPtr(-1)))
-		lwkopt = maxint(1, nw)*nb + tsize
+		nb = min(nbmax, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte{side, trans}, m, n, k, toPtr(-1)))
+		lwkopt = max(1, nw)*nb + tsize
 		work.SetRe(0, float64(lwkopt))
 	}
 
@@ -84,7 +84,7 @@ func Zunmlq(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 	if nb > 1 && nb < (*k) {
 		if (*lwork) < nw*nb+tsize {
 			nb = ((*lwork) - tsize) / ldwork
-			nbmin = maxint(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZUNMLQ"), []byte{side, trans}, m, n, k, toPtr(-1)))
+			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZUNMLQ"), []byte{side, trans}, m, n, k, toPtr(-1)))
 		}
 	}
 
@@ -119,7 +119,7 @@ func Zunmlq(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 		}
 
 		for _, i = range genIter(i1, i2, i3) {
-			ib = minint(nb, (*k)-i+1)
+			ib = min(nb, (*k)-i+1)
 
 			//           Form the triangular factor of the block reflector
 			//           H = H(i) H(i+1) . . . H(i+ib-1)

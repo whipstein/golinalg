@@ -49,7 +49,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -130,7 +130,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -139,7 +139,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 						} else {
 							//                       Set the last IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -153,7 +153,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 
 				//              Compute the L*D*L' or U*D*U' factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Dcopy(npp, a, 1, afac, 1)
+				goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 				*srnamt = "DSPTRF"
 				golapack.Dsptrf(uplo, &n, afac, iwork, &info)
 
@@ -192,7 +192,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
 				if !trfcon {
-					goblas.Dcopy(npp, afac, 1, ainv, 1)
+					goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 					*srnamt = "DSPTRI"
 					golapack.Dsptri(uplo, &n, ainv, iwork, work, &info)
 
@@ -252,7 +252,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					//+    TESTS 5, 6, and 7
 					//              Use iterative refinement to improve the solution.
 					*srnamt = "DSPRFS"
-					golapack.Dsprfs(uplo, &n, &nrhs, a, afac, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, toSlice(iwork, n+1-1), &info)
+					golapack.Dsprfs(uplo, &n, &nrhs, a, afac, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, toSlice(iwork, n), &info)
 
 					//              Check error code from DSPRFS.
 					if info != 0 {
@@ -260,7 +260,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					}
 
 					Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-					Dppt05(uplo, &n, &nrhs, a, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(5))
+					Dppt05(uplo, &n, &nrhs, a, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
@@ -283,7 +283,7 @@ func Dchksp(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				;
 				anorm = golapack.Dlansp('1', uplo, &n, a, rwork)
 				*srnamt = "DSPCON"
-				golapack.Dspcon(uplo, &n, afac, iwork, &anorm, &rcond, work, toSlice(iwork, n+1-1), &info)
+				golapack.Dspcon(uplo, &n, afac, iwork, &anorm, &rcond, work, toSlice(iwork, n), &info)
 
 				//              Check error code from DSPCON.
 				if info != 0 {

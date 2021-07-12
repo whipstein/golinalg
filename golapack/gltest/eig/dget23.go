@@ -172,7 +172,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		} else {
 			fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX1", iinfo, *n, (*iseed)[0])
 		}
-		(*info) = absint(iinfo)
+		(*info) = abs(iinfo)
 		return
 	}
 
@@ -188,20 +188,20 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	for j = 1; j <= (*n); j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(*n, vr.Vector(0, j-1), 1)
+			tnrm = goblas.Dnrm2(*n, vr.Vector(0, j-1, 1))
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j-1), 1)), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j+1-1), 1)))
+			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j, 1))))
 		}
-		result.Set(2, maxf64(result.Get(2), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
+		result.Set(2, math.Max(result.Get(2), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {
 			vmx = zero
 			vrmx = zero
 			for jj = 1; jj <= (*n); jj++ {
-				vtst = golapack.Dlapy2(vr.GetPtr(jj-1, j-1), vr.GetPtr(jj-1, j+1-1))
+				vtst = golapack.Dlapy2(vr.GetPtr(jj-1, j-1), vr.GetPtr(jj-1, j))
 				if vtst > vmx {
 					vmx = vtst
 				}
-				if vr.Get(jj-1, j+1-1) == zero && math.Abs(vr.Get(jj-1, j-1)) > vrmx {
+				if vr.Get(jj-1, j) == zero && math.Abs(vr.Get(jj-1, j-1)) > vrmx {
 					vrmx = math.Abs(vr.Get(jj-1, j-1))
 				}
 			}
@@ -215,20 +215,20 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	for j = 1; j <= (*n); j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(*n, vl.Vector(0, j-1), 1)
+			tnrm = goblas.Dnrm2(*n, vl.Vector(0, j-1, 1))
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j-1), 1)), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j+1-1), 1)))
+			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j, 1))))
 		}
-		result.Set(3, maxf64(result.Get(3), minf64(ulpinv, math.Abs(tnrm-one)/ulp)))
+		result.Set(3, math.Max(result.Get(3), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {
 			vmx = zero
 			vrmx = zero
 			for jj = 1; jj <= (*n); jj++ {
-				vtst = golapack.Dlapy2(vl.GetPtr(jj-1, j-1), vl.GetPtr(jj-1, j+1-1))
+				vtst = golapack.Dlapy2(vl.GetPtr(jj-1, j-1), vl.GetPtr(jj-1, j))
 				if vtst > vmx {
 					vmx = vtst
 				}
-				if vl.Get(jj-1, j+1-1) == zero && math.Abs(vl.Get(jj-1, j-1)) > vrmx {
+				if vl.Get(jj-1, j) == zero && math.Abs(vl.Get(jj-1, j-1)) > vrmx {
 					vrmx = math.Abs(vl.Get(jj-1, j-1))
 				}
 			}
@@ -253,7 +253,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX2", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label190
 		}
 
@@ -301,7 +301,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX3", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label190
 		}
 
@@ -358,7 +358,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX4", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label190
 		}
 
@@ -415,7 +415,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		if iinfo != 0 {
 			result.Set(0, ulpinv)
 			fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX5", iinfo, *n, (*iseed)[0])
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -447,8 +447,8 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		//        Compare condition numbers for eigenvectors
 		//        taking their condition numbers into account
 		result.Set(9, zero)
-		eps = maxf64(epsin, ulp)
-		v = maxf64(float64(*n)*eps*abnrm, smlnum)
+		eps = math.Max(epsin, ulp)
+		v = math.Max(float64(*n)*eps*abnrm, smlnum)
 		if abnrm == zero {
 			v = one
 		}
@@ -463,8 +463,8 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				tolin = v / rcdein.Get(i-1)
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(rcdvin.Get(i-1)-tolin) > rcondv.Get(i-1)+tol {
 				vmax = one / eps
 			} else if rcdvin.Get(i-1)-tolin > rcondv.Get(i-1)+tol {
@@ -476,7 +476,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				vmax = one
 			}
-			result.Set(9, maxf64(result.Get(9), vmax))
+			result.Set(9, math.Max(result.Get(9), vmax))
 		}
 
 		//        Compare condition numbers for eigenvalues
@@ -493,8 +493,8 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				tolin = v / rcdvin.Get(i-1)
 			}
-			tol = maxf64(tol, smlnum/eps)
-			tolin = maxf64(tolin, smlnum/eps)
+			tol = math.Max(tol, smlnum/eps)
+			tolin = math.Max(tolin, smlnum/eps)
 			if eps*(rcdein.Get(i-1)-tolin) > rconde.Get(i-1)+tol {
 				vmax = one / eps
 			} else if rcdein.Get(i-1)-tolin > rconde.Get(i-1)+tol {
@@ -506,7 +506,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 			} else {
 				vmax = one
 			}
-			result.Set(10, maxf64(result.Get(10), vmax))
+			result.Set(10, math.Max(result.Get(10), vmax))
 		}
 	label250:
 	}

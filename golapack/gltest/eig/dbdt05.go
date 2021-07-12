@@ -1,6 +1,8 @@
 package eig
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
@@ -24,7 +26,7 @@ func Dbdt05(m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, ns *int, u *mat.M
 
 	//     Quick return if possible.
 	(*resid) = zero
-	if minint(*m, *n) <= 0 || (*ns) <= 0 {
+	if min(*m, *n) <= 0 || (*ns) <= 0 {
 		return
 	}
 
@@ -32,14 +34,14 @@ func Dbdt05(m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, ns *int, u *mat.M
 	anorm = golapack.Dlange('M', m, n, a, lda, work)
 
 	//     Compute U' * A * V.
-	err = goblas.Dgemm(NoTrans, Trans, *m, *ns, *n, one, a, *lda, vt, *ldvt, zero, work.MatrixOff(1+(*ns)*(*ns)-1, *m, opts), *m)
-	err = goblas.Dgemm(Trans, NoTrans, *ns, *ns, *m, -one, u, *ldu, work.MatrixOff(1+(*ns)*(*ns)-1, *m, opts), *m, zero, work.Matrix(*ns, opts), *ns)
+	err = goblas.Dgemm(NoTrans, Trans, *m, *ns, *n, one, a, vt, zero, work.MatrixOff(1+(*ns)*(*ns)-1, *m, opts))
+	err = goblas.Dgemm(Trans, NoTrans, *ns, *ns, *m, -one, u, work.MatrixOff(1+(*ns)*(*ns)-1, *m, opts), zero, work.Matrix(*ns, opts))
 
 	//     norm(S - U' * B * V)
 	j = 0
 	for i = 1; i <= (*ns); i++ {
 		work.Set(j+i-1, work.Get(j+i-1)+s.Get(i-1))
-		(*resid) = maxf64(*resid, goblas.Dasum(*ns, work.Off(j+1-1), 1))
+		(*resid) = math.Max(*resid, goblas.Dasum(*ns, work.Off(j, 1)))
 		j = j + (*ns)
 	}
 
@@ -52,9 +54,9 @@ func Dbdt05(m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, ns *int, u *mat.M
 			(*resid) = ((*resid) / anorm) / (float64(*n) * eps)
 		} else {
 			if anorm < one {
-				(*resid) = (minf64(*resid, float64(*n)*anorm) / anorm) / (float64(*n) * eps)
+				(*resid) = (math.Min(*resid, float64(*n)*anorm) / anorm) / (float64(*n) * eps)
 			} else {
-				(*resid) = minf64((*resid)/anorm, float64(*n)) / (float64(*n) * eps)
+				(*resid) = math.Min((*resid)/anorm, float64(*n)) / (float64(*n) * eps)
 			}
 		}
 	}

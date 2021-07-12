@@ -54,7 +54,7 @@ import (
 //
 //                     |alpha(j) - S(j,j)|        |beta(j) - T(j,j)|
 //           D(j) = ------------------------ + -----------------------
-//                  maxint(|alpha(j)|,|S(j,j)|)   maxint(|beta(j)|,|T(j,j)|)
+//                  max(|alpha(j)|,|S(j,j)|)   max(|beta(j)|,|T(j,j)|)
 //
 //       (no sorting of eigenvalues)
 //
@@ -73,7 +73,7 @@ import (
 //
 //                     |alpha(j) - S(j,j)|        |beta(j) - T(j,j)|
 //           D(j) = ------------------------ + -----------------------
-//                  maxint(|alpha(j)|,|S(j,j)|)   maxint(|beta(j)|,|T(j,j)|)
+//                  max(|alpha(j)|,|S(j,j)|)   max(|beta(j)|,|T(j,j)|)
 //
 //       (with sorting of eigenvalues).
 //
@@ -210,7 +210,7 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -239,8 +239,8 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	minwrk = 1
 	if (*info) == 0 && (*lwork) >= 1 {
 		minwrk = 3 * nmax * nmax
-		nb = maxint(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
-		maxwrk = maxint(nmax+nmax*nb, 3*nmax*nmax)
+		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
+		maxwrk = max(nmax+nmax*nb, 3*nmax*nmax)
 		work.SetRe(0, float64(maxwrk))
 	}
 
@@ -276,14 +276,14 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		//        Loop over matrix types
@@ -330,7 +330,7 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 			iinfo = 0
 			if kclass[jtype-1] < 3 {
 				//              Generate A (w/o rotation)
-				if absint(katype[jtype-1]) == 3 {
+				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Zlaset('F', &n, &n, &czero, &czero, a, lda)
@@ -345,7 +345,7 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				}
 
 				//              Generate B (w/o rotation)
-				if absint(kbtype[jtype-1]) == 3 {
+				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Zlaset('F', &n, &n, &czero, &czero, b, lda)
@@ -369,10 +369,10 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 							q.Set(jr-1, jc-1, matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed))
 							z.Set(jr-1, jc-1, matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed))
 						}
-						golapack.Zlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.CVector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						golapack.Zlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.CVector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
 						work.SetRe(2*n+jc-1, math.Copysign(one, q.GetRe(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, cone)
-						golapack.Zlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.CVector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						golapack.Zlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.CVector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
 						work.SetRe(3*n+jc-1, math.Copysign(one, z.GetRe(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, cone)
 					}
@@ -392,19 +392,19 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.GetConj(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), a, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n), a, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
-					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), b, lda, work.Off(2*n+1-1), &iinfo)
+					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n), b, lda, work.Off(2*n), &iinfo)
 					if iinfo != 0 {
 						goto label100
 					}
@@ -425,7 +425,7 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 			if iinfo != 0 {
 				_t.Fail()
 				fmt.Printf(" ZDRGES3: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -456,7 +456,7 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 					_t.Fail()
 					result.Set(1+rsub+isort-1, ulpinv)
 					fmt.Printf(" ZDRGES3: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGGES3", iinfo, n, jtype, ioldsd)
-					(*info) = absint(iinfo)
+					(*info) = abs(iinfo)
 					goto label160
 				}
 
@@ -481,10 +481,10 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 				for j = 1; j <= n; j++ {
 					ilabad = false
-					temp2 = (abs1(alpha.Get(j-1)-s.Get(j-1, j-1))/maxf64(safmin, abs1(alpha.Get(j-1)), abs1(s.Get(j-1, j-1))) + abs1(beta.Get(j-1)-t.Get(j-1, j-1))/maxf64(safmin, abs1(beta.Get(j-1)), abs1(t.Get(j-1, j-1)))) / ulp
+					temp2 = (abs1(alpha.Get(j-1)-s.Get(j-1, j-1))/math.Max(safmin, math.Max(abs1(alpha.Get(j-1)), abs1(s.Get(j-1, j-1)))) + abs1(beta.Get(j-1)-t.Get(j-1, j-1))/math.Max(safmin, math.Max(abs1(beta.Get(j-1)), abs1(t.Get(j-1, j-1))))) / ulp
 
 					if j < n {
-						if s.GetRe(j+1-1, j-1) != zero {
+						if s.GetRe(j, j-1) != zero {
 							ilabad = true
 							result.Set(5+rsub-1, ulpinv)
 						}
@@ -495,7 +495,7 @@ func Zdrges3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 							result.Set(5+rsub-1, ulpinv)
 						}
 					}
-					temp1 = maxf64(temp1, temp2)
+					temp1 = math.Max(temp1, temp2)
 					if ilabad {
 						fmt.Printf(" ZDRGES3: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", j, n, jtype, ioldsd)
 					}

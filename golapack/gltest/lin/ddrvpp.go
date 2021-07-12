@@ -54,7 +54,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		npp = n * (n + 1) / 2
 		xtype = 'N'
 		nimat = ntypes
@@ -132,7 +132,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				//              Save a copy of the matrix A in ASAV.
-				goblas.Dcopy(npp, a.Off(0), 1, asav.Off(0), 1)
+				goblas.Dcopy(npp, a.Off(0, 1), asav.Off(0, 1))
 
 				for iequed = 1; iequed <= 2; iequed++ {
 					equed = equeds[iequed-1]
@@ -159,7 +159,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//                       the value returned by DPPSVX (FACT = 'N' reuses
 							//                       the condition number from the previous iteration
 							//                       with FACT = 'F').
-							goblas.Dcopy(npp, asav.Off(0), 1, afac.Off(0), 1)
+							goblas.Dcopy(npp, asav.Off(0, 1), afac.Off(0, 1))
 							if equil || iequed > 1 {
 								//                          Compute row and column scale factors to
 								//                          equilibrate the matrix A.
@@ -187,7 +187,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							golapack.Dpptrf(uplo, &n, afac, &info)
 
 							//                       Form the inverse of A.
-							goblas.Dcopy(npp, afac.Off(0), 1, a.Off(0), 1)
+							goblas.Dcopy(npp, afac.Off(0, 1), a.Off(0, 1))
 							golapack.Dpptri(uplo, &n, a, &info)
 
 							//                       Compute the 1-norm condition number of A.
@@ -200,7 +200,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						}
 
 						//                    Restore the matrix A.
-						goblas.Dcopy(npp, asav, 1, a, 1)
+						goblas.Dcopy(npp, asav.Off(0, 1), a.Off(0, 1))
 
 						//                    Form an exact solution and set the right hand side.
 						*srnamt = "DLARHS"
@@ -213,7 +213,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							//
 							//                       Compute the L*L' or U'*U factorization of the
 							//                       matrix and solve the system.
-							goblas.Dcopy(npp, a, 1, afac, 1)
+							goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 							golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 
 							*srnamt = "DPPSV "
@@ -269,7 +269,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						//                    Solve the system and compute the condition number
 						//                    and error bounds using DPPSVX.
 						*srnamt = "DPPSVX"
-						golapack.Dppsvx(fact, uplo, &n, nrhs, a, afac, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, iwork, &info)
+						golapack.Dppsvx(fact, uplo, &n, nrhs, a, afac, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, iwork, &info)
 
 						//                    Check the error code from DPPSVX.
 						if info != izero {
@@ -281,7 +281,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							if !prefac {
 								//                          Reconstruct matrix from factors and compute
 								//                          residual.
-								Dppt01(uplo, &n, a, afac, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+								Dppt01(uplo, &n, a, afac, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 								k1 = 1
 							} else {
 								k1 = 2
@@ -289,7 +289,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Compute residual of the computed solution.
 							golapack.Dlacpy('F', &n, nrhs, bsav.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-							Dppt02(uplo, &n, nrhs, asav, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+							Dppt02(uplo, &n, nrhs, asav, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 							//                       Check solution from generated exact solution.
 							if nofact || (prefac && equed == 'N') {
@@ -300,7 +300,7 @@ func Ddrvpp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							//                       Check the error bounds from iterative
 							//                       refinement.
-							Dppt05(uplo, &n, nrhs, asav, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+							Dppt05(uplo, &n, nrhs, asav, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 						} else {
 							k1 = 6
 						}

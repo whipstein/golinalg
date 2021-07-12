@@ -36,7 +36,7 @@ func Dtptrs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 		(*info) = -4
 	} else if (*nrhs) < 0 {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	}
 	if (*info) != 0 {
@@ -73,6 +73,6 @@ func Dtptrs(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 
 	//     Solve A * x = b  or  A**T * x = b.
 	for j = 1; j <= (*nrhs); j++ {
-		err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, b.Vector(0, j-1), 1)
+		err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, ap, b.Vector(0, j-1, 1))
 	}
 }

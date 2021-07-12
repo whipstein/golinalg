@@ -91,8 +91,8 @@ func Dsyevr2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 	ib = Ilaenv2stage(func() *int { y := 2; return &y }(), []byte("DSYTRD_2STAGE"), []byte{jobz}, n, &kd, toPtr(-1), toPtr(-1))
 	lhtrd = Ilaenv2stage(func() *int { y := 3; return &y }(), []byte("DSYTRD_2STAGE"), []byte{jobz}, n, &kd, &ib, toPtr(-1))
 	lwtrd = Ilaenv2stage(func() *int { y := 4; return &y }(), []byte("DSYTRD_2STAGE"), []byte{jobz}, n, &kd, &ib, toPtr(-1))
-	lwmin = maxint(26*(*n), 5*(*n)+lhtrd+lwtrd)
-	liwmin = maxint(1, 10*(*n))
+	lwmin = max(26*(*n), 5*(*n)+lhtrd+lwtrd)
+	liwmin = max(1, 10*(*n))
 
 	(*info) = 0
 	if jobz != 'N' {
@@ -103,7 +103,7 @@ func Dsyevr2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 		(*info) = -3
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
 	} else {
 		if valeig {
@@ -111,9 +111,9 @@ func Dsyevr2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 				(*info) = -8
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > maxint(1, *n) {
+			if (*il) < 1 || (*il) > max(1, *n) {
 				(*info) = -9
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -10
 			}
 		}
@@ -175,7 +175,7 @@ func Dsyevr2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 	smlnum = safmin / eps
 	bignum = one / smlnum
 	rmin = math.Sqrt(smlnum)
-	rmax = minf64(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
+	rmax = math.Min(math.Sqrt(bignum), one/math.Sqrt(math.Sqrt(safmin)))
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
@@ -195,11 +195,11 @@ func Dsyevr2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal((*n)-j+1, sigma, a.Vector(j-1, j-1), 1)
+				goblas.Dscal((*n)-j+1, sigma, a.Vector(j-1, j-1, 1))
 			}
 		} else {
 			for j = 1; j <= (*n); j++ {
-				goblas.Dscal(j, sigma, a.Vector(0, j-1), 1)
+				goblas.Dscal(j, sigma, a.Vector(0, j-1, 1))
 			}
 		}
 		if (*abstol) > 0 {
@@ -253,12 +253,12 @@ func Dsyevr2stage(jobz, _range, uplo byte, n *int, a *mat.Matrix, lda *int, vl, 
 	//     then call DSTERF or DSTEMR and DORMTR.
 	if (alleig || (indeig && (*il) == 1 && (*iu) == (*n))) && ieeeok == 1 {
 		if !wantz {
-			goblas.Dcopy(*n, work.Off(indd-1), 1, w, 1)
-			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
+			goblas.Dcopy(*n, work.Off(indd-1, 1), w.Off(0, 1))
+			goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
 			Dsterf(n, w, work.Off(indee-1), info)
 		} else {
-			goblas.Dcopy((*n)-1, work.Off(inde-1), 1, work.Off(indee-1), 1)
-			goblas.Dcopy(*n, work.Off(indd-1), 1, work.Off(inddd-1), 1)
+			goblas.Dcopy((*n)-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+			goblas.Dcopy(*n, work.Off(indd-1, 1), work.Off(inddd-1, 1))
 
 			if (*abstol) <= two*float64(*n)*eps {
 				tryrac = true
@@ -315,7 +315,7 @@ label30:
 		} else {
 			imax = (*info) - 1
 		}
-		goblas.Dscal(imax, one/sigma, w, 1)
+		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -336,7 +336,7 @@ label30:
 			if i != 0 {
 				w.Set(i-1, w.Get(j-1))
 				w.Set(j-1, tmp1)
-				goblas.Dswap(*n, z.Vector(0, i-1), 1, z.Vector(0, j-1), 1)
+				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
 			}
 		}
 	}

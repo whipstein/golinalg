@@ -34,9 +34,9 @@ func Ztrtrs(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 		(*info) = -4
 	} else if (*nrhs) < 0 {
 		(*info) = -5
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -7
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -9
 	}
 	if (*info) != 0 {
@@ -60,5 +60,5 @@ func Ztrtrs(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 	(*info) = 0
 
 	//     Solve A * x = b,  A**T * x = b,  or  A**H * x = b.
-	err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, *lda, b, *ldb)
+	err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *nrhs, one, a, b)
 }

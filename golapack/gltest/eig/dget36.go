@@ -256,16 +256,16 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 		loc = 1
 	label70:
 		;
-		if t2.Get(loc+1-1, loc-1) != zero {
+		if t2.Get(loc, loc-1) != zero {
 			//        2 by 2 block
-			if t2.Get(loc-1, loc+1-1) == zero || t2.Get(loc-1, loc-1) != t2.Get(loc+1-1, loc+1-1) || math.Copysign(one, t2.Get(loc-1, loc+1-1)) == math.Copysign(one, t2.Get(loc+1-1, loc-1)) {
+			if t2.Get(loc-1, loc) == zero || t2.Get(loc-1, loc-1) != t2.Get(loc, loc) || math.Copysign(one, t2.Get(loc-1, loc)) == math.Copysign(one, t2.Get(loc, loc-1)) {
 				res = res + one/eps
 			}
 			for i = loc + 2; i <= n; i++ {
 				if t2.Get(i-1, loc-1) != zero {
 					res = res + one/res
 				}
-				if t2.Get(i-1, loc+1-1) != zero {
+				if t2.Get(i-1, loc) != zero {
 					res = res + one/res
 				}
 			}

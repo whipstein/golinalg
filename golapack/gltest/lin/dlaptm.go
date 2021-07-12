@@ -44,7 +44,7 @@ func Dlaptm(n, nrhs *int, alpha *float64, d, e *mat.Vector, x *mat.Matrix, ldx *
 				b.Set(0, j-1, b.Get(0, j-1)+d.Get(0)*x.Get(0, j-1)+e.Get(0)*x.Get(1, j-1))
 				b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)+e.Get((*n)-1-1)*x.Get((*n)-1-1, j-1)+d.Get((*n)-1)*x.Get((*n)-1, j-1))
 				for i = 2; i <= (*n)-1; i++ {
-					b.Set(i-1, j-1, b.Get(i-1, j-1)+e.Get(i-1-1)*x.Get(i-1-1, j-1)+d.Get(i-1)*x.Get(i-1, j-1)+e.Get(i-1)*x.Get(i+1-1, j-1))
+					b.Set(i-1, j-1, b.Get(i-1, j-1)+e.Get(i-1-1)*x.Get(i-1-1, j-1)+d.Get(i-1)*x.Get(i-1, j-1)+e.Get(i-1)*x.Get(i, j-1))
 				}
 			}
 		}
@@ -57,7 +57,7 @@ func Dlaptm(n, nrhs *int, alpha *float64, d, e *mat.Vector, x *mat.Matrix, ldx *
 				b.Set(0, j-1, b.Get(0, j-1)-d.Get(0)*x.Get(0, j-1)-e.Get(0)*x.Get(1, j-1))
 				b.Set((*n)-1, j-1, b.Get((*n)-1, j-1)-e.Get((*n)-1-1)*x.Get((*n)-1-1, j-1)-d.Get((*n)-1)*x.Get((*n)-1, j-1))
 				for i = 2; i <= (*n)-1; i++ {
-					b.Set(i-1, j-1, b.Get(i-1, j-1)-e.Get(i-1-1)*x.Get(i-1-1, j-1)-d.Get(i-1)*x.Get(i-1, j-1)-e.Get(i-1)*x.Get(i+1-1, j-1))
+					b.Set(i-1, j-1, b.Get(i-1, j-1)-e.Get(i-1-1)*x.Get(i-1-1, j-1)-d.Get(i-1)*x.Get(i-1, j-1)-e.Get(i-1)*x.Get(i, j-1))
 				}
 			}
 		}

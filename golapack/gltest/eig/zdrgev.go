@@ -37,9 +37,9 @@ import (
 //
 // Results from ZGGEV:
 //
-// (1)  maxint over all left eigenvalue/-vector pairs (alpha/beta,l) of
+// (1)  max over all left eigenvalue/-vector pairs (alpha/beta,l) of
 //
-//      | VL**H * (beta A - alpha B) |/( ulp maxint(|beta A|, |alpha B|) )
+//      | VL**H * (beta A - alpha B) |/( ulp max(|beta A|, |alpha B|) )
 //
 //      where VL**H is the conjugate-transpose of VL.
 //
@@ -47,9 +47,9 @@ import (
 //
 //      VL(i) denotes the i-th column of VL.
 //
-// (3)  maxint over all left eigenvalue/-vector pairs (alpha/beta,r) of
+// (3)  max over all left eigenvalue/-vector pairs (alpha/beta,r) of
 //
-//      | (beta A - alpha B) * VR | / ( ulp maxint(|beta A|, |alpha B|) )
+//      | (beta A - alpha B) * VR | / ( ulp max(|beta A|, |alpha B|) )
 //
 // (4)  | |VR(i)| - 1 | / ulp and whether largest component real
 //
@@ -201,7 +201,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	badnn = false
 	nmax = 1
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -232,8 +232,8 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	minwrk = 1
 	if (*info) == 0 && (*lwork) >= 1 {
 		minwrk = nmax * (nmax + 1)
-		nb = maxint(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
-		maxwrk = maxint(2*nmax, nmax*(nb+1), nmax*(nmax+1))
+		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
+		maxwrk = max(2*nmax, nmax*(nb+1), nmax*(nmax+1))
 		work.SetRe(0, float64(maxwrk))
 	}
 
@@ -269,14 +269,14 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		n1 = maxint(1, n)
+		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -316,7 +316,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ierr = 0
 			if kclass[jtype-1] < 3 {
 				//              Generate A (w/o rotation)
-				if absint(katype[jtype-1]) == 3 {
+				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Zlaset('F', &n, &n, &czero, &czero, a, lda)
@@ -331,7 +331,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Generate B (w/o rotation)
-				if absint(kbtype[jtype-1]) == 3 {
+				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
 						golapack.Zlaset('F', &n, &n, &czero, &czero, b, lda)
@@ -355,10 +355,10 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							q.Set(jr-1, jc-1, matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed))
 							z.Set(jr-1, jc-1, matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed))
 						}
-						golapack.Zlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.CVector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						golapack.Zlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.CVector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
 						work.SetRe(2*n+jc-1, math.Copysign(one, q.GetRe(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, cone)
-						golapack.Zlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.CVector(jc+1-1, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						golapack.Zlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.CVector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
 						work.SetRe(3*n+jc-1, math.Copysign(one, z.GetRe(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, cone)
 					}
@@ -378,19 +378,19 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.GetConj(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
-					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), a, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n), a, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
-					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Zunm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
-					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n+1-1), b, lda, work.Off(2*n+1-1), &ierr)
+					golapack.Zunm2r('R', 'C', &n, &n, toPtr(n-1), z, ldq, work.Off(n), b, lda, work.Off(2*n), &ierr)
 					if ierr != 0 {
 						goto label90
 					}
@@ -411,7 +411,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if ierr != 0 {
 				_t.Fail()
 				fmt.Printf(" ZDRGEV: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				return
 			}
 
@@ -430,7 +430,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" ZDRGEV: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGGEV1", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -456,7 +456,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" ZDRGEV: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGGEV2", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -475,7 +475,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" ZDRGEV: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGGEV3", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -502,7 +502,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				_t.Fail()
 				result.Set(0, ulpinv)
 				fmt.Printf(" ZDRGEV: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGGEV4", ierr, n, jtype, ioldsd)
-				(*info) = absint(ierr)
+				(*info) = abs(ierr)
 				goto label190
 			}
 
@@ -541,7 +541,7 @@ func Zdrgev(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						fmt.Printf(" Matrices Rotated by Random %s Matrices U, V:\n  16=Transposed Jordan Blocks             19=geometric alpha, beta=0,1\n  17=arithm. alpha&beta                   20=arithmetic alpha, beta=0,1\n  18=clustered alpha, beta=0,1            21=random alpha, beta=0,1\n Large & Small Matrices:\n  22=(large, small)   23=(small,large)    24=(small,small)    25=(large,large)\n  26=random O(1) matrices.\n", "Orthogonal")
 
 						//                    Tests performed
-						fmt.Printf("\n Tests performed:    \n 1 = maxint | ( b A - a B )'*l | / const.,\n 2 = | |VR(i)| - 1 | / ulp,\n 3 = maxint | ( b A - a B )*r | / const.\n 4 = | |VL(i)| - 1 | / ulp,\n 5 = 0 if W same no matter if r or l computed,\n 6 = 0 if l same no matter if l computed,\n 7 = 0 if r same no matter if r computed,\n \n")
+						fmt.Printf("\n Tests performed:    \n 1 = max | ( b A - a B )'*l | / const.,\n 2 = | |VR(i)| - 1 | / ulp,\n 3 = max | ( b A - a B )*r | / const.\n 4 = | |VL(i)| - 1 | / ulp,\n 5 = 0 if W same no matter if r or l computed,\n 6 = 0 if l same no matter if l computed,\n 7 = 0 if r same no matter if r computed,\n \n")
 
 					}
 					nerrs = nerrs + 1

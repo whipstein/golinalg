@@ -32,7 +32,7 @@ func Dlauu2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -50,10 +50,10 @@ func Dlauu2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		for i = 1; i <= (*n); i++ {
 			aii = a.Get(i-1, i-1)
 			if i < (*n) {
-				a.Set(i-1, i-1, goblas.Ddot((*n)-i+1, a.Vector(i-1, i-1), *lda, a.Vector(i-1, i-1), *lda))
-				err = goblas.Dgemv(NoTrans, i-1, (*n)-i, one, a.Off(0, i+1-1), *lda, a.Vector(i-1, i+1-1), *lda, aii, a.Vector(0, i-1), 1)
+				a.Set(i-1, i-1, goblas.Ddot((*n)-i+1, a.Vector(i-1, i-1), a.Vector(i-1, i-1)))
+				err = goblas.Dgemv(NoTrans, i-1, (*n)-i, one, a.Off(0, i), a.Vector(i-1, i), aii, a.Vector(0, i-1, 1))
 			} else {
-				goblas.Dscal(i, aii, a.Vector(0, i-1), 1)
+				goblas.Dscal(i, aii, a.Vector(0, i-1, 1))
 			}
 		}
 
@@ -62,10 +62,10 @@ func Dlauu2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 		for i = 1; i <= (*n); i++ {
 			aii = a.Get(i-1, i-1)
 			if i < (*n) {
-				a.Set(i-1, i-1, goblas.Ddot((*n)-i+1, a.Vector(i-1, i-1), 1, a.Vector(i-1, i-1), 1))
-				err = goblas.Dgemv(Trans, (*n)-i, i-1, one, a.Off(i+1-1, 0), *lda, a.Vector(i+1-1, i-1), 1, aii, a.Vector(i-1, 0), *lda)
+				a.Set(i-1, i-1, goblas.Ddot((*n)-i+1, a.Vector(i-1, i-1, 1), a.Vector(i-1, i-1, 1)))
+				err = goblas.Dgemv(Trans, (*n)-i, i-1, one, a.Off(i, 0), a.Vector(i, i-1, 1), aii, a.Vector(i-1, 0))
 			} else {
-				goblas.Dscal(i, aii, a.Vector(i-1, 0), *lda)
+				goblas.Dscal(i, aii, a.Vector(i-1, 0))
 			}
 		}
 	}

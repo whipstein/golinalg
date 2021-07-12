@@ -9,7 +9,7 @@ import (
 
 // Zqrt17 computes the ratio
 //
-//    || R'*op(A) ||/(||A||*alpha*maxint(M,N,NRHS)*eps)
+//    || R'*op(A) ||/(||A||*alpha*max(M,N,NRHS)*eps)
 //
 // where R = op(A)*X - B, op(A) is A or A', and
 //
@@ -55,7 +55,7 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 
 	//     compute residual and scale it
 	golapack.Zlacpy('A', &nrows, nrhs, b, ldb, c, ldb)
-	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, *nrhs, ncols, complex(-one, 0), a, *lda, x, *ldx, complex(one, 0), c, *ldb)
+	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, *nrhs, ncols, complex(-one, 0), a, x, complex(one, 0), c)
 	normrs = golapack.Zlange('M', &nrows, nrhs, c, ldb, rwork)
 	if normrs > smlnum {
 		iscl = 1
@@ -63,7 +63,7 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 	}
 
 	//     compute R'*A
-	err = goblas.Zgemm(ConjTrans, mat.TransByte(trans), *nrhs, ncols, nrows, complex(one, 0), c, *ldb, a, *lda, complex(zero, 0), work.CMatrix(*nrhs, opts), *nrhs)
+	err = goblas.Zgemm(ConjTrans, mat.TransByte(trans), *nrhs, ncols, nrows, complex(one, 0), c, a, complex(zero, 0), work.CMatrix(*nrhs, opts))
 
 	//     compute and properly scale error
 	err2 = golapack.Zlange('O', nrhs, &ncols, work.CMatrix(*nrhs, opts), nrhs, rwork)
@@ -86,6 +86,6 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 		}
 	}
 
-	zqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(maxint(*m, *n, *nrhs)))
+	zqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(max(*m, *n, *nrhs)))
 	return
 }

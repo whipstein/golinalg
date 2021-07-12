@@ -96,7 +96,7 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 		info = 4
 	} else if (*n) < 0 {
 		info = 5
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		info = 9
 	}
 	if info != 0 {
@@ -117,8 +117,8 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
 						for i = 1; i <= (*n); i++ {
-							temp = a.Get(j+1-1, i-1)
-							a.Set(j+1-1, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(j-1, i-1))
+							temp = a.Get(j, i-1)
+							a.Set(j, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(j-1, i-1))
 							a.Set(j-1, i-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(j-1, i-1))
 						}
 					}
@@ -129,8 +129,8 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
 						for i = 1; i <= (*n); i++ {
-							temp = a.Get(j+1-1, i-1)
-							a.Set(j+1-1, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(j-1, i-1))
+							temp = a.Get(j, i-1)
+							a.Set(j, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(j-1, i-1))
 							a.Set(j-1, i-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(j-1, i-1))
 						}
 					}
@@ -198,8 +198,8 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
 						for i = 1; i <= (*m); i++ {
-							temp = a.Get(i-1, j+1-1)
-							a.Set(i-1, j+1-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, j-1))
+							temp = a.Get(i-1, j)
+							a.Set(i-1, j, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, j-1))
 							a.Set(i-1, j-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(i-1, j-1))
 						}
 					}
@@ -210,8 +210,8 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
 						for i = 1; i <= (*m); i++ {
-							temp = a.Get(i-1, j+1-1)
-							a.Set(i-1, j+1-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, j-1))
+							temp = a.Get(i-1, j)
+							a.Set(i-1, j, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, j-1))
 							a.Set(i-1, j-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(i-1, j-1))
 						}
 					}

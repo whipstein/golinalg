@@ -98,7 +98,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 	label15:
 		;
 		if wend < (*m) {
-			if (*iblock)[wend+1-1] == jblk {
+			if (*iblock)[wend] == jblk {
 				wend = wend + 1
 				goto label15
 			}
@@ -115,8 +115,8 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		gl = gers.Get(2*ibegin - 1 - 1)
 		gu = gers.Get(2*ibegin - 1)
 		for i = ibegin + 1; i <= iend; i++ {
-			gl = minf64(gers.Get(2*i-1-1), gl)
-			gu = maxf64(gers.Get(2*i-1), gu)
+			gl = math.Min(gers.Get(2*i-1-1), gl)
+			gu = math.Max(gers.Get(2*i-1), gu)
 		}
 		spdiam = gu - gl
 		//        OLDIEN is the last index of the previous block
@@ -143,7 +143,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		//        The eigenvalue approximations will be refined when necessary as
 		//        high relative accuracy is required for the computation of the
 		//        corresponding eigenvectors.
-		goblas.Dcopy(im, w.Off(wbegin-1), 1, work.Off(wbegin-1), 1)
+		goblas.Dcopy(im, w.Off(wbegin-1, 1), work.Off(wbegin-1, 1))
 		//        We store in W the eigenvalue approximations w.r.t. the original
 		//        matrix T.
 		for i = 1; i <= im; i++ {
@@ -156,7 +156,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		//        NCLUS is the number of clusters for the next level of the
 		//        representation tree, we start with NCLUS = 1 for the root
 		nclus = 1
-		(*iwork)[iindc1+1-1] = 1
+		(*iwork)[iindc1] = 1
 		(*iwork)[iindc1+2-1] = im
 		//        IDONE is the number of eigenvectors already computed in the current
 		//        block
@@ -216,10 +216,10 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 					}
 					for k = 1; k <= in-1; k++ {
 						d.Set(ibegin+k-1-1, z.GetRe(ibegin+k-1-1, j-1))
-						l.Set(ibegin+k-1-1, z.GetRe(ibegin+k-1-1, j+1-1))
+						l.Set(ibegin+k-1-1, z.GetRe(ibegin+k-1-1, j))
 					}
 					d.Set(iend-1, z.GetRe(iend-1, j-1))
-					sigma = z.GetRe(iend-1, j+1-1)
+					sigma = z.GetRe(iend-1, j)
 					//                 Set the corresponding entries in Z to zero
 					Zlaset('F', &in, func() *int { y := 2; return &y }(), &czero, &czero, z.Off(ibegin-1, j-1), ldz)
 				}
@@ -253,10 +253,10 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 					//                 However, we only allow the gaps to become greater since
 					//                 this is what should happen when we decrease WERR
 					if oldfst > 1 {
-						wgap.Set(wbegin+oldfst-2-1, maxf64(wgap.Get(wbegin+oldfst-2-1), w.Get(wbegin+oldfst-1-1)-werr.Get(wbegin+oldfst-1-1)-w.Get(wbegin+oldfst-2-1)-werr.Get(wbegin+oldfst-2-1)))
+						wgap.Set(wbegin+oldfst-2-1, math.Max(wgap.Get(wbegin+oldfst-2-1), w.Get(wbegin+oldfst-1-1)-werr.Get(wbegin+oldfst-1-1)-w.Get(wbegin+oldfst-2-1)-werr.Get(wbegin+oldfst-2-1)))
 					}
 					if wbegin+oldlst-1 < wend {
-						wgap.Set(wbegin+oldlst-1-1, maxf64(wgap.Get(wbegin+oldlst-1-1), w.Get(wbegin+oldlst-1)-werr.Get(wbegin+oldlst-1)-w.Get(wbegin+oldlst-1-1)-werr.Get(wbegin+oldlst-1-1)))
+						wgap.Set(wbegin+oldlst-1-1, math.Max(wgap.Get(wbegin+oldlst-1-1), w.Get(wbegin+oldlst-1)-werr.Get(wbegin+oldlst-1)-w.Get(wbegin+oldlst-1-1)-werr.Get(wbegin+oldlst-1-1)))
 					}
 					//                 Each time the eigenvalues in WORK get refined, we store
 					//                 the newly found approximation with all shifts applied in W
@@ -314,7 +314,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						//                    in W might be of the same order so that gaps are not
 						//                    exhibited correctly for very close eigenvalues.
 						if newfst == 1 {
-							lgap = maxf64(zero, w.Get(wbegin-1)-werr.Get(wbegin-1)-(*vl))
+							lgap = math.Max(zero, w.Get(wbegin-1)-werr.Get(wbegin-1)-(*vl))
 						} else {
 							lgap = wgap.Get(wbegin + newfst - 2 - 1)
 						}
@@ -356,14 +356,14 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						//                    workspace
 						for k = 1; k <= in-1; k++ {
 							z.SetRe(ibegin+k-1-1, newftt-1, work.Get(indin1+k-1-1))
-							z.SetRe(ibegin+k-1-1, newftt+1-1, work.Get(indin2+k-1-1))
+							z.SetRe(ibegin+k-1-1, newftt, work.Get(indin2+k-1-1))
 						}
 						z.SetRe(iend-1, newftt-1, work.Get(indin1+in-1-1))
 						if iinfo == 0 {
 							//                       a new RRR for the cluster was found by DLARRF
 							//                       update shift and store it
 							ssigma = sigma + tau
-							z.SetRe(iend-1, newftt+1-1, ssigma)
+							z.SetRe(iend-1, newftt, ssigma)
 							//                       WORK() are the midpoints and WERR() the semi-width
 							//                       Note that the entries in W are unchanged.
 							for k = newfst; k <= newlst; k++ {
@@ -396,8 +396,8 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 
 						k = newfst
 						windex = wbegin + k - 1
-						windmn = maxint(windex-1, 1)
-						windpl = minint(windex+1, *m)
+						windmn = max(windex-1, 1)
+						windpl = min(windex+1, *m)
 						lambda = work.Get(windex - 1)
 						done = done + 1
 						//                    Check if eigenvector computation is to be skipped
@@ -419,11 +419,11 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						if k == 1 {
 							//                       In the case RANGE='I' and with not much initial
 							//                       accuracy in LAMBDA and VL, the formula
-							//                       LGAP = maxint( ZERO, (SIGMA - VL) + LAMBDA )
+							//                       LGAP = max( ZERO, (SIGMA - VL) + LAMBDA )
 							//                       can lead to an overestimation of the left gap and
 							//                       thus to inadequately early RQI 'convergence'.
 							//                       Prevent this by forcing a small left gap.
-							lgap = eps * maxf64(math.Abs(left), math.Abs(right))
+							lgap = eps * math.Max(math.Abs(left), math.Abs(right))
 						} else {
 							lgap = wgap.Get(windmn - 1)
 						}
@@ -433,11 +433,11 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							//                       can lead to an overestimation of the right gap and
 							//                       thus to inadequately early RQI 'convergence'.
 							//                       Prevent this by forcing a small right gap.
-							rgap = eps * maxf64(math.Abs(left), math.Abs(right))
+							rgap = eps * math.Max(math.Abs(left), math.Abs(right))
 						} else {
 							rgap = wgap.Get(windex - 1)
 						}
-						gap = minf64(lgap, rgap)
+						gap = math.Min(lgap, rgap)
 						if (k == 1) || (k == im) {
 							//                       The eigenvector support can become wrong
 							//                       because significant entries could be cut off due to a
@@ -492,8 +492,8 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							bstres = resid
 							bstw = lambda
 						}
-						isupmn = minint(isupmn, (*isuppz)[2*windex-1-1])
-						isupmx = maxint(isupmx, (*isuppz)[2*windex-1])
+						isupmn = min(isupmn, (*isuppz)[2*windex-1-1])
+						isupmx = max(isupmx, (*isuppz)[2*windex-1])
 						iter = iter + 1
 						//                    sin alpha <= |resid|/gap
 						//                    Note that both the residual and the gap are
@@ -527,14 +527,14 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 									//                             as a bracket but to be modified if the RQCORR
 									//                             chooses to. In this case, the RIGHT side should
 									//                             be modified as follows:
-									//                              RIGHT = maxint(RIGHT, LAMBDA + RQCORR)
+									//                              RIGHT = max(RIGHT, LAMBDA + RQCORR)
 								} else {
 									//                             The current LAMBDA is on the right of the true
 									//                             eigenvalue
 									right = lambda
 									//                             See comment about assuming the error estimate is
 									//                             correct above.
-									//                              LEFT = minint(LEFT, LAMBDA + RQCORR)
+									//                              LEFT = min(LEFT, LAMBDA + RQCORR)
 								}
 								work.Set(windex-1, half*(right+left))
 								//                          Take RQCORR since it has the correct sign and
@@ -590,7 +590,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 								z.SetRe(ii-1, windex-1, zero)
 							}
 						}
-						goblas.Zdscal(zto-zfrom+1, nrminv, z.CVector(zfrom-1, windex-1), 1)
+						goblas.Zdscal(zto-zfrom+1, nrminv, z.CVector(zfrom-1, windex-1, 1))
 					label125:
 						;
 						//                    Update W
@@ -603,10 +603,10 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						//                    to WERR being too crude.)
 						if !eskip {
 							if k > 1 {
-								wgap.Set(windmn-1, maxf64(wgap.Get(windmn-1), w.Get(windex-1)-werr.Get(windex-1)-w.Get(windmn-1)-werr.Get(windmn-1)))
+								wgap.Set(windmn-1, math.Max(wgap.Get(windmn-1), w.Get(windex-1)-werr.Get(windex-1)-w.Get(windmn-1)-werr.Get(windmn-1)))
 							}
 							if windex < wend {
-								wgap.Set(windex-1, maxf64(savgap, w.Get(windpl-1)-werr.Get(windpl-1)-w.Get(windex-1)-werr.Get(windex-1)))
+								wgap.Set(windex-1, math.Max(savgap, w.Get(windpl-1)-werr.Get(windpl-1)-w.Get(windex-1)-werr.Get(windex-1)))
 							}
 						}
 						idone = idone + 1

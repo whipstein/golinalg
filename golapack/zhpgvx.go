@@ -46,7 +46,7 @@ func Zhpgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.CVector, vl
 		} else if indeig {
 			if (*il) < 1 {
 				(*info) = -10
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -11
 			}
 		}
@@ -93,7 +93,7 @@ func Zhpgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.CVector, vl
 			}
 
 			for j = 1; j <= (*m); j++ {
-				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1), 1)
+				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1, 1))
 			}
 
 		} else if (*itype) == 3 {
@@ -106,7 +106,7 @@ func Zhpgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.CVector, vl
 			}
 
 			for j = 1; j <= (*m); j++ {
-				err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1), 1)
+				err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1, 1))
 			}
 		}
 	}

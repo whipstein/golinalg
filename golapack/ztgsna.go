@@ -44,9 +44,9 @@ func Ztgsna(job, howmny byte, _select []bool, n *int, a *mat.CMatrix, lda *int, 
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -6
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
 	} else if wants && (*ldvl) < (*n) {
 		(*info) = -10
@@ -114,12 +114,12 @@ func Ztgsna(job, howmny byte, _select []bool, n *int, a *mat.CMatrix, lda *int, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1), 1)
-			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1), 1)
-			err = goblas.Zgemv(NoTrans, *n, *n, complex(one, zero), a, *lda, vr.CVector(0, ks-1), 1, complex(zero, zero), work, 1)
-			yhax = goblas.Zdotc(*n, work, 1, vl.CVector(0, ks-1), 1)
-			err = goblas.Zgemv(NoTrans, *n, *n, complex(one, zero), b, *ldb, vr.CVector(0, ks-1), 1, complex(zero, zero), work, 1)
-			yhbx = goblas.Zdotc(*n, work, 1, vl.CVector(0, ks-1), 1)
+			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1, 1))
+			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1, 1))
+			err = goblas.Zgemv(NoTrans, *n, *n, complex(one, zero), a, vr.CVector(0, ks-1, 1), complex(zero, zero), work.Off(0, 1))
+			yhax = goblas.Zdotc(*n, work.Off(0, 1), vl.CVector(0, ks-1, 1))
+			err = goblas.Zgemv(NoTrans, *n, *n, complex(one, zero), b, vr.CVector(0, ks-1, 1), complex(zero, zero), work.Off(0, 1))
+			yhbx = goblas.Zdotc(*n, work.Off(0, 1), vl.CVector(0, ks-1, 1))
 			cond = Dlapy2(toPtrf64(cmplx.Abs(yhax)), toPtrf64(cmplx.Abs(yhbx)))
 			if cond == zero {
 				s.Set(ks-1, -one)
@@ -138,11 +138,11 @@ func Ztgsna(job, howmny byte, _select []bool, n *int, a *mat.CMatrix, lda *int, 
 				//              Copy the matrix (A, B) to the array WORK and move the
 				//              (k,k)th pair to the (1,1) position.
 				Zlacpy('F', n, n, a, lda, work.CMatrix(*n, opts), n)
-				Zlacpy('F', n, n, b, ldb, work.CMatrixOff((*n)*(*n)+1-1, *n, opts), n)
+				Zlacpy('F', n, n, b, ldb, work.CMatrixOff((*n)*(*n), *n, opts), n)
 				ifst = k
 				ilst = 1
 
-				Ztgexc(false, false, n, work.CMatrix(*n, opts), n, work.CMatrixOff((*n)*(*n)+1-1, *n, opts), n, dummy.CMatrix(1, opts), func() *int { y := 1; return &y }(), dummy1.CMatrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, &ierr)
+				Ztgexc(false, false, n, work.CMatrix(*n, opts), n, work.CMatrixOff((*n)*(*n), *n, opts), n, dummy.CMatrix(1, opts), func() *int { y := 1; return &y }(), dummy1.CMatrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, &ierr)
 
 				if ierr > 0 {
 					//                 Ill-conditioned problem - swap rejected.
@@ -156,7 +156,7 @@ func Ztgsna(job, howmny byte, _select []bool, n *int, a *mat.CMatrix, lda *int, 
 					n1 = 1
 					n2 = (*n) - n1
 					i = (*n)*(*n) + 1
-					Ztgsyl('N', &idifjb, &n2, &n1, work.CMatrixOff((*n)*n1+n1+1-1, *n, opts), n, work.CMatrix(*n, opts), n, work.CMatrixOff(n1+1-1, *n, opts), n, work.CMatrixOff((*n)*n1+n1+i-1, *n, opts), n, work.CMatrixOff(i-1, *n, opts), n, work.CMatrixOff(n1+i-1, *n, opts), n, &scale, dif.GetPtr(ks-1), dummy, func() *int { y := 1; return &y }(), iwork, &ierr)
+					Ztgsyl('N', &idifjb, &n2, &n1, work.CMatrixOff((*n)*n1+n1, *n, opts), n, work.CMatrix(*n, opts), n, work.CMatrixOff(n1, *n, opts), n, work.CMatrixOff((*n)*n1+n1+i-1, *n, opts), n, work.CMatrixOff(i-1, *n, opts), n, work.CMatrixOff(n1+i-1, *n, opts), n, &scale, dif.GetPtr(ks-1), dummy, func() *int { y := 1; return &y }(), iwork, &ierr)
 				}
 			}
 		}

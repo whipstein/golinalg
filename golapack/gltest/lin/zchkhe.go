@@ -54,7 +54,7 @@ func Zchkhe(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
 		if n <= 0 {
@@ -134,7 +134,7 @@ func Zchkhe(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//                       Set the first IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, czero)
 								}
@@ -144,7 +144,7 @@ func Zchkhe(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 							//                       Set the last IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, czero)
 								}
@@ -178,7 +178,7 @@ func Zchkhe(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					//                 matrix. IWORK stores details of the interchanges and
 					//                 the block structure of D. AINV is a work array for
 					//                 block factorization, LWORK is the length of AINV.
-					lwork = maxint(2, nb) * lda
+					lwork = max(2, nb) * lda
 					*srnamt = "ZHETRF"
 					golapack.Zhetrf(uplo, &n, afac.CMatrix(lda, opts), &lda, iwork, ainv, &lwork, &info)
 
@@ -320,7 +320,7 @@ func Zchkhe(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						//+    TESTS 6, 7, and 8
 						//                 Use iterative refinement to improve the solution.
 						*srnamt = "ZHERFS"
-						golapack.Zherfs(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), work, rwork.Off(2*nrhs+1-1), &info)
+						golapack.Zherfs(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
 
 						//                    Check error code from ZHERFS.
 						if info != 0 {
@@ -329,7 +329,7 @@ func Zchkhe(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						}
 
 						Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(5))
-						Zpot05(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs+1-1), result.Off(6))
+						Zpot05(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(6))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.

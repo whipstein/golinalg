@@ -57,13 +57,13 @@ func Dgemqr(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, t *mat.Vect
 		(*info) = -4
 	} else if (*k) < 0 || (*k) > mn {
 		(*info) = -5
-	} else if (*lda) < maxint(1, mn) {
+	} else if (*lda) < max(1, mn) {
 		(*info) = -7
 	} else if (*tsize) < 5 {
 		(*info) = -9
-	} else if (*ldc) < maxint(1, *m) {
+	} else if (*ldc) < max(1, *m) {
 		(*info) = -11
-	} else if ((*lwork) < maxint(1, lw)) && (!lquery) {
+	} else if ((*lwork) < max(1, lw)) && (!lquery) {
 		(*info) = -13
 	}
 
@@ -79,11 +79,11 @@ func Dgemqr(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, t *mat.Vect
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n, *k) == 0 {
+	if min(*m, *n, *k) == 0 {
 		return
 	}
 
-	if (left && (*m) <= (*k)) || (right && (*n) <= (*k)) || (mb <= (*k)) || (mb >= maxint(*m, *n, *k)) {
+	if (left && (*m) <= (*k)) || (right && (*n) <= (*k)) || (mb <= (*k)) || (mb >= max(*m, *n, *k)) {
 		Dgemqrt(side, trans, m, n, k, &nb, a, lda, t.MatrixOff(5, nb, opts), &nb, c, ldc, work, info)
 	} else {
 		Dlamtsqr(side, trans, m, n, k, &mb, &nb, a, lda, t.MatrixOff(5, nb, opts), &nb, c, ldc, work, lwork, info)

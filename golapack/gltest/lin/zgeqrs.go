@@ -8,7 +8,7 @@ import (
 )
 
 // Zgeqrs Solve the least squares problem
-//     minint || A*X - B ||
+//     min || A*X - B ||
 // using the QR factorization
 //     A = Q*R
 // computed by ZGEQRF.
@@ -27,9 +27,9 @@ func Zgeqrs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *m) {
+	} else if (*ldb) < max(1, *m) {
 		(*info) = -8
 	} else if (*lwork) < 1 || (*lwork) < (*nrhs) && (*m) > 0 && (*n) > 0 {
 		(*info) = -10
@@ -48,5 +48,5 @@ func Zgeqrs(m, n, nrhs *int, a *mat.CMatrix, lda *int, tau *mat.CVector, b *mat.
 	golapack.Zunmqr('L', 'C', m, nrhs, n, a, lda, tau, b, ldb, work, lwork, info)
 
 	//     Solve R*X = B(1:n,:)
-	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, *lda, b, *ldb)
+	err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, *n, *nrhs, one, a, b)
 }

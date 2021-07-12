@@ -172,7 +172,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	badnn = false
 	nmax = 0
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -189,9 +189,9 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 		(*info) = -9
 	} else if (*ldz) <= 1 || (*ldz) < nmax {
 		(*info) = -16
-	} else if 2*int(math.Pow(float64(maxint(nmax, 3)), 2)) > (*nwork) {
+	} else if 2*int(math.Pow(float64(max(nmax, 3)), 2)) > (*nwork) {
 		(*info) = -21
-	} else if 2*int(math.Pow(float64(maxint(nmax, 3)), 2)) > (*liwork) {
+	} else if 2*int(math.Pow(float64(max(nmax, 3)), 2)) > (*liwork) {
 		(*info) = -23
 	}
 
@@ -224,12 +224,12 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
-		aninv = one / float64(maxint(1, n))
+		aninv = one / float64(max(1, n))
 
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		ka9 = 0
@@ -317,25 +317,25 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				//              Diagonal Matrix, [Eigen]values Specified
 				ka = 0
 				kb = 0
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              symmetric, eigenvalues specified
-				ka = maxint(0, n-1)
+				ka = max(0, n-1)
 				kb = ka
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
 				ka = 0
 				kb = 0
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 8 {
 				//              symmetric, random eigenvalues
-				ka = maxint(0, n-1)
+				ka = max(0, n-1)
 				kb = ka
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				matgen.Dlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
 
 			} else if itype == 9 {
 				//              symmetric banded, eigenvalues specified
@@ -353,9 +353,9 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					ka9 = ka9 + 1
 					kb9 = 1
 				}
-				ka = maxint(0, minint(n-1, ka9))
-				kb = maxint(0, minint(n-1, kb9))
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &ka, &ka, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				ka = max(0, min(n-1, ka9))
+				kb = max(0, min(n-1, kb9))
+				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &ka, &ka, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else {
 
@@ -365,7 +365,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -405,7 +405,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 					//                 Generate random well-conditioned positive definite
 					//                 matrix B, of bandwidth not greater than that of A.
-					matgen.Dlatms(&n, &n, 'U', iseed, 'P', work, func() *int { y := 5; return &y }(), &ten, &one, &kb, &kb, uplo, b, ldb, work.Off(n+1-1), &iinfo)
+					matgen.Dlatms(&n, &n, 'U', iseed, 'P', work, func() *int { y := 5; return &y }(), &ten, &one, &kb, &kb, uplo, b, ldb, work.Off(n), &iinfo)
 
 					//                 Test DSYGV
 					ntest = ntest + 1
@@ -417,7 +417,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYGV(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -439,7 +439,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYGV_2STAGE(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -459,11 +459,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					temp1 = zero
 					temp2 = zero
 					for j = 1; j <= n; j++ {
-						temp1 = maxf64(temp1, math.Abs(d.Get(j-1)), math.Abs(d2.Get(j-1)))
-						temp2 = maxf64(temp2, math.Abs(d.Get(j-1)-d2.Get(j-1)))
+						temp1 = math.Max(temp1, math.Max(math.Abs(d.Get(j-1)), math.Abs(d2.Get(j-1))))
+						temp2 = math.Max(temp2, math.Abs(d.Get(j-1)-d2.Get(j-1)))
 					}
 
-					result.Set(ntest-1, temp2/maxf64(unfl, ulp*maxf64(temp1, temp2)))
+					result.Set(ntest-1, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
 					//                 Test DSYGVD
 					ntest = ntest + 1
@@ -475,7 +475,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYGVD(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -493,11 +493,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					golapack.Dlacpy(' ', &n, &n, a, lda, ab, lda)
 					golapack.Dlacpy(uplo, &n, &n, b, ldb, bb, ldb)
 
-					golapack.Dsygvx(&ibtype, 'V', 'A', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+					golapack.Dsygvx(&ibtype, 'V', 'A', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, toSlice(iwork, n), iwork, &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYGVX(V,A"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -520,11 +520,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//                 in this interval.
 					vl = zero
 					vu = anorm
-					golapack.Dsygvx(&ibtype, 'V', 'V', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+					golapack.Dsygvx(&ibtype, 'V', 'V', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, toSlice(iwork, n), iwork, &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYGVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -541,11 +541,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					golapack.Dlacpy(' ', &n, &n, a, lda, ab, lda)
 					golapack.Dlacpy(uplo, &n, &n, b, ldb, bb, ldb)
 
-					golapack.Dsygvx(&ibtype, 'V', 'I', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, toSlice(iwork, n+1-1), iwork, &iinfo)
+					golapack.Dsygvx(&ibtype, 'V', 'I', uplo, &n, ab, lda, bb, ldb, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, nwork, toSlice(iwork, n), iwork, &iinfo)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYGVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -588,7 +588,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPGV(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -628,7 +628,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPGVD(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -664,11 +664,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						}
 					}
 
-					golapack.Dspgvx(&ibtype, 'V', 'A', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n+1-1), iwork, info)
+					golapack.Dspgvx(&ibtype, 'V', 'A', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n), iwork, info)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPGVX(V,A"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -705,11 +705,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 					vl = zero
 					vu = anorm
-					golapack.Dspgvx(&ibtype, 'V', 'V', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n+1-1), iwork, info)
+					golapack.Dspgvx(&ibtype, 'V', 'V', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n), iwork, info)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPGVX(V,V"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -744,11 +744,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						}
 					}
 
-					golapack.Dspgvx(&ibtype, 'V', 'I', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n+1-1), iwork, info)
+					golapack.Dspgvx(&ibtype, 'V', 'I', uplo, &n, ap, bp, &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n), iwork, info)
 					if iinfo != 0 {
 						t.Fail()
 						fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPGVX(V,I"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-						(*info) = absint(iinfo)
+						(*info) = abs(iinfo)
 						if iinfo < 0 {
 							return
 						} else {
@@ -770,19 +770,19 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
@@ -792,7 +792,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBGV(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -810,19 +810,19 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
@@ -832,7 +832,7 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBGVD(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -850,29 +850,29 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						}
 
-						golapack.Dsbgvx('V', 'A', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.Matrix(maxint(1, n), opts), toPtr(maxint(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n+1-1), iwork, &iinfo)
+						golapack.Dsbgvx('V', 'A', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.Matrix(max(1, n), opts), toPtr(max(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n), iwork, &iinfo)
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBGVX(V,A"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -889,19 +889,19 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
@@ -909,11 +909,11 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 						vl = zero
 						vu = anorm
-						golapack.Dsbgvx('V', 'V', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.Matrix(maxint(1, n), opts), toPtr(maxint(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n+1-1), iwork, &iinfo)
+						golapack.Dsbgvx('V', 'V', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.Matrix(max(1, n), opts), toPtr(max(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n), iwork, &iinfo)
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBGVX(V,V"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {
@@ -930,29 +930,29 @@ func Ddrvsg2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						//                    Copy the matrices into band storage.
 						if uplo == 'U' {
 							for j = 1; j <= n; j++ {
-								for i = maxint(1, j-ka); i <= j; i++ {
+								for i = max(1, j-ka); i <= j; i++ {
 									ab.Set(ka+1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = maxint(1, j-kb); i <= j; i++ {
+								for i = max(1, j-kb); i <= j; i++ {
 									bb.Set(kb+1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						} else {
 							for j = 1; j <= n; j++ {
-								for i = j; i <= minint(n, j+ka); i++ {
+								for i = j; i <= min(n, j+ka); i++ {
 									ab.Set(1+i-j-1, j-1, a.Get(i-1, j-1))
 								}
-								for i = j; i <= minint(n, j+kb); i++ {
+								for i = j; i <= min(n, j+kb); i++ {
 									bb.Set(1+i-j-1, j-1, b.Get(i-1, j-1))
 								}
 							}
 						}
 
-						golapack.Dsbgvx('V', 'I', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.Matrix(maxint(1, n), opts), toPtr(maxint(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n+1-1), iwork, &iinfo)
+						golapack.Dsbgvx('V', 'I', uplo, &n, &ka, &kb, ab, lda, bb, ldb, bp.Matrix(max(1, n), opts), toPtr(max(1, n)), &vl, &vu, &il, &iu, &abstol, &m, d, z, ldz, work, toSlice(iwork, n), iwork, &iinfo)
 						if iinfo != 0 {
 							t.Fail()
 							fmt.Printf(" DDRVSG2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBGVX(V,I"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-							(*info) = absint(iinfo)
+							(*info) = abs(iinfo)
 							if iinfo < 0 {
 								return
 							} else {

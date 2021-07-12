@@ -26,7 +26,7 @@ func Dspsv(uplo byte, n, nrhs *int, ap *mat.Vector, ipiv *[]int, b *mat.Matrix, 
 		(*info) = -2
 	} else if (*nrhs) < 0 {
 		(*info) = -3
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	}
 	if (*info) != 0 {

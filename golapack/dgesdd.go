@@ -18,10 +18,10 @@ import (
 //      A = U * SIGMA * transpose(V)
 //
 // where SIGMA is an M-by-N matrix which is zero except for its
-// minint(m,n) diagonal elements, U is an M-by-M orthogonal matrix, and
+// min(m,n) diagonal elements, U is an M-by-M orthogonal matrix, and
 // V is an N-by-N orthogonal matrix.  The diagonal elements of SIGMA
 // are the singular values of A; they are real and non-negative, and
-// are returned in descending order.  The first minint(m,n) columns of
+// are returned in descending order.  The first min(m,n) columns of
 // U and V are the left and right singular vectors of A.
 //
 // Note that the routine returns VT = V**T, not V.
@@ -47,7 +47,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 
 	//     Test the input arguments
 	(*info) = 0
-	minmn = minint(*m, *n)
+	minmn = min(*m, *n)
 	wntqa = jobz == 'A'
 	wntqs = jobz == 'S'
 	wntqas = wntqa || wntqs
@@ -61,7 +61,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	} else if (*ldu) < 1 || (wntqas && (*ldu) < (*m)) || (wntqo && (*m) < (*n) && (*ldu) < (*m)) {
 		(*info) = -8
@@ -125,66 +125,66 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				if wntqn {
 					//                 Path 1 (M >> N, JOBZ='N')
 					wrkbl = (*n) + lworkDgeqrfMn
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDgebrdNn)
-					maxwrk = maxint(wrkbl, bdspac+(*n))
+					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrdNn)
+					maxwrk = max(wrkbl, bdspac+(*n))
 					minwrk = bdspac + (*n)
 				} else if wntqo {
 					//                 Path 2 (M >> N, JOBZ='O')
 					wrkbl = (*n) + lworkDgeqrfMn
-					wrkbl = maxint(wrkbl, (*n)+lworkDorgqrMn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDgebrdNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrQlnNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrPrtNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+bdspac)
+					wrkbl = max(wrkbl, (*n)+lworkDorgqrMn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrdNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrQlnNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrPrtNn)
+					wrkbl = max(wrkbl, 3*(*n)+bdspac)
 					maxwrk = wrkbl + 2*(*n)*(*n)
 					minwrk = bdspac + 2*(*n)*(*n) + 3*(*n)
 				} else if wntqs {
 					//                 Path 3 (M >> N, JOBZ='S')
 					wrkbl = (*n) + lworkDgeqrfMn
-					wrkbl = maxint(wrkbl, (*n)+lworkDorgqrMn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDgebrdNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrQlnNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrPrtNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+bdspac)
+					wrkbl = max(wrkbl, (*n)+lworkDorgqrMn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrdNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrQlnNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrPrtNn)
+					wrkbl = max(wrkbl, 3*(*n)+bdspac)
 					maxwrk = wrkbl + (*n)*(*n)
 					minwrk = bdspac + (*n)*(*n) + 3*(*n)
 				} else if wntqa {
 					//                 Path 4 (M >> N, JOBZ='A')
 					wrkbl = (*n) + lworkDgeqrfMn
-					wrkbl = maxint(wrkbl, (*n)+lworkDorgqrMm)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDgebrdNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrQlnNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrPrtNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+bdspac)
+					wrkbl = max(wrkbl, (*n)+lworkDorgqrMm)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrdNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrQlnNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrPrtNn)
+					wrkbl = max(wrkbl, 3*(*n)+bdspac)
 					maxwrk = wrkbl + (*n)*(*n)
-					minwrk = (*n)*(*n) + maxint(3*(*n)+bdspac, (*n)+(*m))
+					minwrk = (*n)*(*n) + max(3*(*n)+bdspac, (*n)+(*m))
 				}
 			} else {
 				//              Path 5 (M >= N, but not much larger)
 				wrkbl = 3*(*n) + lworkDgebrdMn
 				if wntqn {
 					//                 Path 5n (M >= N, jobz='N')
-					maxwrk = maxint(wrkbl, 3*(*n)+bdspac)
-					minwrk = 3*(*n) + maxint(*m, bdspac)
+					maxwrk = max(wrkbl, 3*(*n)+bdspac)
+					minwrk = 3*(*n) + max(*m, bdspac)
 				} else if wntqo {
 					//                 Path 5o (M >= N, jobz='O')
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrPrtNn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrQlnMn)
-					wrkbl = maxint(wrkbl, 3*(*n)+bdspac)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrPrtNn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrQlnMn)
+					wrkbl = max(wrkbl, 3*(*n)+bdspac)
 					maxwrk = wrkbl + (*m)*(*n)
-					minwrk = 3*(*n) + maxint(*m, (*n)*(*n)+bdspac)
+					minwrk = 3*(*n) + max(*m, (*n)*(*n)+bdspac)
 				} else if wntqs {
 					//                 Path 5s (M >= N, jobz='S')
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrQlnMn)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrPrtNn)
-					maxwrk = maxint(wrkbl, 3*(*n)+bdspac)
-					minwrk = 3*(*n) + maxint(*m, bdspac)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrQlnMn)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrPrtNn)
+					maxwrk = max(wrkbl, 3*(*n)+bdspac)
+					minwrk = 3*(*n) + max(*m, bdspac)
 				} else if wntqa {
 					//                 Path 5a (M >= N, jobz='A')
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*n)+lworkDormbrPrtNn)
-					maxwrk = maxint(wrkbl, 3*(*n)+bdspac)
-					minwrk = 3*(*n) + maxint(*m, bdspac)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*n)+lworkDormbrPrtNn)
+					maxwrk = max(wrkbl, 3*(*n)+bdspac)
+					minwrk = 3*(*n) + max(*m, bdspac)
 				}
 			}
 		} else if minmn > 0 {
@@ -232,70 +232,70 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				if wntqn {
 					//                 Path 1t (N >> M, JOBZ='N')
 					wrkbl = (*m) + lworkDgelqfMn
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDgebrdMm)
-					maxwrk = maxint(wrkbl, bdspac+(*m))
+					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrdMm)
+					maxwrk = max(wrkbl, bdspac+(*m))
 					minwrk = bdspac + (*m)
 				} else if wntqo {
 					//                 Path 2t (N >> M, JOBZ='O')
 					wrkbl = (*m) + lworkDgelqfMn
-					wrkbl = maxint(wrkbl, (*m)+lworkDorglqMn)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDgebrdMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrPrtMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+bdspac)
+					wrkbl = max(wrkbl, (*m)+lworkDorglqMn)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrdMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrPrtMm)
+					wrkbl = max(wrkbl, 3*(*m)+bdspac)
 					maxwrk = wrkbl + 2*(*m)*(*m)
 					minwrk = bdspac + 2*(*m)*(*m) + 3*(*m)
 				} else if wntqs {
 					//                 Path 3t (N >> M, JOBZ='S')
 					wrkbl = (*m) + lworkDgelqfMn
-					wrkbl = maxint(wrkbl, (*m)+lworkDorglqMn)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDgebrdMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrPrtMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+bdspac)
+					wrkbl = max(wrkbl, (*m)+lworkDorglqMn)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrdMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrPrtMm)
+					wrkbl = max(wrkbl, 3*(*m)+bdspac)
 					maxwrk = wrkbl + (*m)*(*m)
 					minwrk = bdspac + (*m)*(*m) + 3*(*m)
 				} else if wntqa {
 					//                 Path 4t (N >> M, JOBZ='A')
 					wrkbl = (*m) + lworkDgelqfMn
-					wrkbl = maxint(wrkbl, (*m)+lworkDorglqNn)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDgebrdMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrPrtMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+bdspac)
+					wrkbl = max(wrkbl, (*m)+lworkDorglqNn)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrdMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrPrtMm)
+					wrkbl = max(wrkbl, 3*(*m)+bdspac)
 					maxwrk = wrkbl + (*m)*(*m)
-					minwrk = (*m)*(*m) + maxint(3*(*m)+bdspac, (*m)+(*n))
+					minwrk = (*m)*(*m) + max(3*(*m)+bdspac, (*m)+(*n))
 				}
 			} else {
 				//              Path 5t (N > M, but not much larger)
 				wrkbl = 3*(*m) + lworkDgebrdMn
 				if wntqn {
 					//                 Path 5tn (N > M, jobz='N')
-					maxwrk = maxint(wrkbl, 3*(*m)+bdspac)
-					minwrk = 3*(*m) + maxint(*n, bdspac)
+					maxwrk = max(wrkbl, 3*(*m)+bdspac)
+					minwrk = 3*(*m) + max(*n, bdspac)
 				} else if wntqo {
 					//                 Path 5to (N > M, jobz='O')
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrPrtMn)
-					wrkbl = maxint(wrkbl, 3*(*m)+bdspac)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrPrtMn)
+					wrkbl = max(wrkbl, 3*(*m)+bdspac)
 					maxwrk = wrkbl + (*m)*(*n)
-					minwrk = 3*(*m) + maxint(*n, (*m)*(*m)+bdspac)
+					minwrk = 3*(*m) + max(*n, (*m)*(*m)+bdspac)
 				} else if wntqs {
 					//                 Path 5ts (N > M, jobz='S')
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrPrtMn)
-					maxwrk = maxint(wrkbl, 3*(*m)+bdspac)
-					minwrk = 3*(*m) + maxint(*n, bdspac)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrPrtMn)
+					maxwrk = max(wrkbl, 3*(*m)+bdspac)
+					minwrk = 3*(*m) + max(*n, bdspac)
 				} else if wntqa {
 					//                 Path 5ta (N > M, jobz='A')
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrQlnMm)
-					wrkbl = maxint(wrkbl, 3*(*m)+lworkDormbrPrtNn)
-					maxwrk = maxint(wrkbl, 3*(*m)+bdspac)
-					minwrk = 3*(*m) + maxint(*n, bdspac)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrQlnMm)
+					wrkbl = max(wrkbl, 3*(*m)+lworkDormbrPrtNn)
+					maxwrk = max(wrkbl, 3*(*m)+bdspac)
+					minwrk = 3*(*m) + max(*n, bdspac)
 				}
 			}
 		}
-		maxwrk = maxint(maxwrk, minwrk)
+		maxwrk = max(maxwrk, minwrk)
 		work.Set(0, float64(maxwrk))
 
 		if (*lwork) < minwrk && !lquery {
@@ -320,7 +320,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 	smlnum = math.Sqrt(Dlamch(SafeMinimum)) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Dlange('M', m, n, a, lda, dum)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
@@ -387,7 +387,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 
 				//              Copy R to WORK(IR), zeroing out below it
 				Dlacpy('U', n, n, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-				Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir+1-1, ldwrkr, opts), &ldwrkr)
+				Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir, ldwrkr, opts), &ldwrkr)
 
 				//              Generate Q in A
 				//              Workspace: need   N*N [R] + N [tau] + N    [work]
@@ -425,8 +425,8 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				//              Workspace: need   N*N [R] + 3*N [e, tauq, taup] + N*N [U]
 				//              Workspace: prefer M*N [R] + 3*N [e, tauq, taup] + N*N [U]
 				for i = 1; i <= (*m); i += ldwrkr {
-					chunk = minint((*m)-i+1, ldwrkr)
-					err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), *lda, work.MatrixOff(iu-1, *n, opts), *n, zero, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr)
+					chunk = min((*m)-i+1, ldwrkr)
+					err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), work.MatrixOff(iu-1, *n, opts), zero, work.MatrixOff(ir-1, ldwrkr, opts))
 					Dlacpy('F', &chunk, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a.Off(i-1, 0), lda)
 				}
 
@@ -448,7 +448,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 
 				//              Copy R to WORK(IR), zeroing out below it
 				Dlacpy('U', n, n, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-				Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir+1-1, ldwrkr, opts), &ldwrkr)
+				Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir, ldwrkr, opts), &ldwrkr)
 
 				//              Generate Q in A
 				//              Workspace: need   N*N [R] + N [tau] + N    [work]
@@ -482,7 +482,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				//              WORK(IR), storing result in U
 				//              Workspace: need   N*N [R]
 				Dlacpy('F', n, n, u, ldu, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, *lda, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr, zero, u, *ldu)
+				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, work.MatrixOff(ir-1, ldwrkr, opts), zero, u)
 
 			} else if wntqa {
 				//              Path 4 (M >> N, JOBZ='A')
@@ -533,7 +533,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				//              Multiply Q in U by left singular vectors of R in
 				//              WORK(IU), storing result in A
 				//              Workspace: need   N*N [U]
-				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, *ldu, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, zero, a, *lda)
+				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
 
 				//              Copy left singular vectors of A from A to U
 				Dlacpy('F', m, n, a, lda, u, ldu)
@@ -614,8 +614,8 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 					//                 Workspace: need   3*N [e, tauq, taup] + N*N [U] + NB*N [R]
 					//                 Workspace: prefer 3*N [e, tauq, taup] + N*N [U] + M*N  [R]
 					for i = 1; i <= (*m); i += ldwrkr {
-						chunk = minint((*m)-i+1, ldwrkr)
-						err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), *lda, work.MatrixOff(iu-1, ldwrku, opts), ldwrku, zero, work.MatrixOff(ir-1, ldwrkr, opts), ldwrkr)
+						chunk = min((*m)-i+1, ldwrkr)
+						err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), work.MatrixOff(iu-1, ldwrku, opts), zero, work.MatrixOff(ir-1, ldwrkr, opts))
 						Dlacpy('F', &chunk, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a.Off(i-1, 0), lda)
 					}
 				}
@@ -646,7 +646,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 
 				//              Set the right corner of U to identity matrix
 				if (*m) > (*n) {
-					Dlaset('F', toPtr((*m)-(*n)), toPtr((*m)-(*n)), &zero, &one, u.Off((*n)+1-1, (*n)+1-1), ldu)
+					Dlaset('F', toPtr((*m)-(*n)), toPtr((*m)-(*n)), &zero, &one, u.Off((*n), (*n)), ldu)
 				}
 
 				//              Overwrite U by left singular vectors of A and VT
@@ -754,8 +754,8 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				//              Workspace: prefer M*M [VT] + M*N [L]
 				//              At this point, L is resized as M by chunk.
 				for i = 1; i <= (*n); i += chunk {
-					blk = minint((*n)-i+1, chunk)
-					err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ivt-1, *m, opts), *m, a.Off(0, i-1), *lda, zero, work.MatrixOff(il-1, ldwrkl, opts), ldwrkl)
+					blk = min((*n)-i+1, chunk)
+					err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ivt-1, *m, opts), a.Off(0, i-1), zero, work.MatrixOff(il-1, ldwrkl, opts))
 					Dlacpy('F', m, &blk, work.MatrixOff(il-1, ldwrkl, opts), &ldwrkl, a.Off(0, i-1), lda)
 				}
 
@@ -810,7 +810,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				//              Q in A, storing result in VT
 				//              Workspace: need   M*M [L]
 				Dlacpy('F', m, m, vt, ldvt, work.MatrixOff(il-1, ldwrkl, opts), &ldwrkl)
-				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(il-1, ldwrkl, opts), ldwrkl, a, *lda, zero, vt, *ldvt)
+				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(il-1, ldwrkl, opts), a, zero, vt)
 
 			} else if wntqa {
 				//              Path 4t (N >> M, JOBZ='A')
@@ -862,7 +862,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 				//              Multiply right singular vectors of L in WORK(IVT) by
 				//              Q in VT, storing result in A
 				//              Workspace: need   M*M [VT]
-				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(ivt-1, ldwkvt, opts), ldwkvt, vt, *ldvt, zero, a, *lda)
+				err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(ivt-1, ldwkvt, opts), vt, zero, a)
 
 				//              Copy right singular vectors of A from A to VT
 				Dlacpy('F', m, n, a, lda, vt, ldvt)
@@ -940,8 +940,8 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 					//                 Workspace: need   3*M [e, tauq, taup] + M*M [VT] + M*NB [L]
 					//                 Workspace: prefer 3*M [e, tauq, taup] + M*M [VT] + M*N  [L]
 					for i = 1; i <= (*n); i += chunk {
-						blk = minint((*n)-i+1, chunk)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ivt-1, ldwkvt, opts), ldwkvt, a.Off(0, i-1), *lda, zero, work.MatrixOff(il-1, *m, opts), *m)
+						blk = min((*n)-i+1, chunk)
+						err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ivt-1, ldwkvt, opts), a.Off(0, i-1), zero, work.MatrixOff(il-1, *m, opts))
 						Dlacpy('F', m, &blk, work.MatrixOff(il-1, *m, opts), m, a.Off(0, i-1), lda)
 					}
 				}
@@ -971,7 +971,7 @@ func Dgesdd(jobz byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat
 
 				//              Set the right corner of VT to identity matrix
 				if (*n) > (*m) {
-					Dlaset('F', toPtr((*n)-(*m)), toPtr((*n)-(*m)), &zero, &one, vt.Off((*m)+1-1, (*m)+1-1), ldvt)
+					Dlaset('F', toPtr((*n)-(*m)), toPtr((*n)-(*m)), &zero, &one, vt.Off((*m), (*m)), ldvt)
 				}
 
 				//              Overwrite U by left singular vectors of A and VT

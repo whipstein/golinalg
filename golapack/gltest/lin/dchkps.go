@@ -48,7 +48,7 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1

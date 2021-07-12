@@ -15,8 +15,8 @@ func Zlsets(m, p, n *int, a, af *mat.CMatrix, lda *int, b, bf *mat.CMatrix, ldb 
 	//     and the vectors C and D to the arrays CF and DF,
 	golapack.Zlacpy('F', m, n, a, lda, af, lda)
 	golapack.Zlacpy('F', p, n, b, ldb, bf, ldb)
-	goblas.Zcopy(*m, c, 1, cf, 1)
-	goblas.Zcopy(*p, d, 1, df, 1)
+	goblas.Zcopy(*m, c.Off(0, 1), cf.Off(0, 1))
+	goblas.Zcopy(*p, d.Off(0, 1), df.Off(0, 1))
 
 	//     Solve LSE problem
 	golapack.Zgglse(m, n, p, af, lda, bf, ldb, cf, df, x, work, lwork, &info)
@@ -24,8 +24,8 @@ func Zlsets(m, p, n *int, a, af *mat.CMatrix, lda *int, b, bf *mat.CMatrix, ldb 
 	//     Test the residual for the solution of LSE
 	//
 	//     Compute RESULT(1) = norm( A*x - c ) / norm(A)*norm(X)*EPS
-	goblas.Zcopy(*m, c, 1, cf, 1)
-	goblas.Zcopy(*p, d, 1, df, 1)
+	goblas.Zcopy(*m, c.Off(0, 1), cf.Off(0, 1))
+	goblas.Zcopy(*p, d.Off(0, 1), df.Off(0, 1))
 	Zget02('N', m, n, func() *int { y := 1; return &y }(), a, lda, x.CMatrix(*n, opts), n, cf.CMatrix(*m, opts), m, rwork, result.GetPtr(0))
 
 	//     Compute result(2) = norm( B*x - d ) / norm(B)*norm(X)*EPS

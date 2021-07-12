@@ -46,7 +46,7 @@ func Dspgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.Vector, vl,
 		} else if indeig {
 			if (*il) < 1 {
 				(*info) = -10
-			} else if (*iu) < minint(*n, *il) || (*iu) > (*n) {
+			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
 				(*info) = -11
 			}
 		}
@@ -94,7 +94,7 @@ func Dspgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.Vector, vl,
 			}
 
 			for j = 1; j <= (*m); j++ {
-				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
+				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
 			}
 
 		} else if (*itype) == 3 {
@@ -107,7 +107,7 @@ func Dspgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.Vector, vl,
 			}
 
 			for j = 1; j <= (*m); j++ {
-				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1), 1)
+				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
 			}
 		}
 	}

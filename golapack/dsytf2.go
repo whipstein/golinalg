@@ -37,7 +37,7 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -71,13 +71,13 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Idamax(k-1, a.Vector(0, k-1), 1)
+			imax = goblas.Idamax(k-1, a.Vector(0, k-1, 1))
 			colmax = math.Abs(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if (maxf64(absakk, colmax) == zero) || Disnan(int(absakk)) {
+		if (math.Max(absakk, colmax) == zero) || Disnan(int(absakk)) {
 			//           Column K is zero or underflow, or contains a NaN:
 			//           set INFO and continue
 			if (*info) == 0 {
@@ -91,11 +91,11 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 			} else {
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
-				jmax = imax + goblas.Idamax(k-imax, a.Vector(imax-1, imax+1-1), *lda)
+				jmax = imax + goblas.Idamax(k-imax, a.Vector(imax-1, imax, *lda))
 				rowmax = math.Abs(a.Get(imax-1, jmax-1))
 				if imax > 1 {
-					jmax = goblas.Idamax(imax-1, a.Vector(0, imax-1), 1)
-					rowmax = maxf64(rowmax, math.Abs(a.Get(jmax-1, imax-1)))
+					jmax = goblas.Idamax(imax-1, a.Vector(0, imax-1, 1))
+					rowmax = math.Max(rowmax, math.Abs(a.Get(jmax-1, imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
@@ -117,8 +117,8 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
-				goblas.Dswap(kp-1, a.Vector(0, kk-1), 1, a.Vector(0, kp-1), 1)
-				goblas.Dswap(kk-kp-1, a.Vector(kp+1-1, kk-1), 1, a.Vector(kp-1, kp+1-1), *lda)
+				goblas.Dswap(kp-1, a.Vector(0, kk-1, 1), a.Vector(0, kp-1, 1))
+				goblas.Dswap(kk-kp-1, a.Vector(kp, kk-1, 1), a.Vector(kp-1, kp, *lda))
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, t)
@@ -141,10 +141,10 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 				//
 				//              A := A - U(k)*D(k)*U(k)**T = A - W(k)*1/D(k)*W(k)**T
 				r1 = one / a.Get(k-1, k-1)
-				err = goblas.Dsyr(mat.UploByte(uplo), k-1, -r1, a.Vector(0, k-1), 1, a, *lda)
+				err = goblas.Dsyr(mat.UploByte(uplo), k-1, -r1, a.Vector(0, k-1, 1), a)
 
 				//              Store U(k) in column k
-				goblas.Dscal(k-1, r1, a.Vector(0, k-1), 1)
+				goblas.Dscal(k-1, r1, a.Vector(0, k-1, 1))
 			} else {
 				//              2-by-2 pivot block D(k): columns k and k-1 now hold
 				//
@@ -215,13 +215,13 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < (*n) {
-			imax = k + goblas.Idamax((*n)-k, a.Vector(k+1-1, k-1), 1)
+			imax = k + goblas.Idamax((*n)-k, a.Vector(k, k-1, 1))
 			colmax = math.Abs(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
 
-		if (maxf64(absakk, colmax) == zero) || Disnan(int(absakk)) {
+		if (math.Max(absakk, colmax) == zero) || Disnan(int(absakk)) {
 			//           Column K is zero or underflow, or contains a NaN:
 			//           set INFO and continue
 			if (*info) == 0 {
@@ -235,11 +235,11 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 			} else {
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
-				jmax = k - 1 + goblas.Idamax(imax-k, a.Vector(imax-1, k-1), *lda)
+				jmax = k - 1 + goblas.Idamax(imax-k, a.Vector(imax-1, k-1, *lda))
 				rowmax = math.Abs(a.Get(imax-1, jmax-1))
 				if imax < (*n) {
-					jmax = imax + goblas.Idamax((*n)-imax, a.Vector(imax+1-1, imax-1), 1)
-					rowmax = maxf64(rowmax, math.Abs(a.Get(jmax-1, imax-1)))
+					jmax = imax + goblas.Idamax((*n)-imax, a.Vector(imax, imax-1, 1))
+					rowmax = math.Max(rowmax, math.Abs(a.Get(jmax-1, imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
@@ -262,15 +262,15 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < (*n) {
-					goblas.Dswap((*n)-kp, a.Vector(kp+1-1, kk-1), 1, a.Vector(kp+1-1, kp-1), 1)
+					goblas.Dswap((*n)-kp, a.Vector(kp, kk-1, 1), a.Vector(kp, kp-1, 1))
 				}
-				goblas.Dswap(kp-kk-1, a.Vector(kk+1-1, kk-1), 1, a.Vector(kp-1, kk+1-1), *lda)
+				goblas.Dswap(kp-kk-1, a.Vector(kk, kk-1, 1), a.Vector(kp-1, kk, *lda))
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, t)
 				if kstep == 2 {
-					t = a.Get(k+1-1, k-1)
-					a.Set(k+1-1, k-1, a.Get(kp-1, k-1))
+					t = a.Get(k, k-1)
+					a.Set(k, k-1, a.Get(kp-1, k-1))
 					a.Set(kp-1, k-1, t)
 				}
 			}
@@ -287,10 +287,10 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 					//
 					//                 A := A - L(k)*D(k)*L(k)**T = A - W(k)*(1/D(k))*W(k)**T
 					d11 = one / a.Get(k-1, k-1)
-					err = goblas.Dsyr(mat.UploByte(uplo), (*n)-k, -d11, a.Vector(k+1-1, k-1), 1, a.Off(k+1-1, k+1-1), *lda)
+					err = goblas.Dsyr(mat.UploByte(uplo), (*n)-k, -d11, a.Vector(k, k-1, 1), a.Off(k, k))
 
 					//                 Store L(k) in column K
-					goblas.Dscal((*n)-k, d11, a.Vector(k+1-1, k-1), 1)
+					goblas.Dscal((*n)-k, d11, a.Vector(k, k-1, 1))
 				}
 			} else {
 				//              2-by-2 pivot block D(k)
@@ -301,23 +301,23 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 					//
 					//                 where L(k) and L(k+1) are the k-th and (k+1)-th
 					//                 columns of L
-					d21 = a.Get(k+1-1, k-1)
-					d11 = a.Get(k+1-1, k+1-1) / d21
+					d21 = a.Get(k, k-1)
+					d11 = a.Get(k, k) / d21
 					d22 = a.Get(k-1, k-1) / d21
 					t = one / (d11*d22 - one)
 					d21 = t / d21
 
 					for j = k + 2; j <= (*n); j++ {
 
-						wk = d21 * (d11*a.Get(j-1, k-1) - a.Get(j-1, k+1-1))
-						wkp1 = d21 * (d22*a.Get(j-1, k+1-1) - a.Get(j-1, k-1))
+						wk = d21 * (d11*a.Get(j-1, k-1) - a.Get(j-1, k))
+						wkp1 = d21 * (d22*a.Get(j-1, k) - a.Get(j-1, k-1))
 
 						for i = j; i <= (*n); i++ {
-							a.Set(i-1, j-1, a.Get(i-1, j-1)-a.Get(i-1, k-1)*wk-a.Get(i-1, k+1-1)*wkp1)
+							a.Set(i-1, j-1, a.Get(i-1, j-1)-a.Get(i-1, k-1)*wk-a.Get(i-1, k)*wkp1)
 						}
 
 						a.Set(j-1, k-1, wk)
-						a.Set(j-1, k+1-1, wkp1)
+						a.Set(j-1, k, wkp1)
 
 					}
 				}
@@ -329,7 +329,7 @@ func Dsytf2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) 
 			(*ipiv)[k-1] = kp
 		} else {
 			(*ipiv)[k-1] = -kp
-			(*ipiv)[k+1-1] = -kp
+			(*ipiv)[k] = -kp
 		}
 
 		//        Increase K and return to the start of the main loop

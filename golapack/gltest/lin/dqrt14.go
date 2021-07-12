@@ -58,22 +58,22 @@ func Dqrt14(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix,
 	//     Copy X or X' into the right place and scale it
 	if tpsd {
 		//        Copy X into columns n+1:n+nrhs of work
-		golapack.Dlacpy('A', m, nrhs, x, ldx, work.MatrixOff((*n)*ldwork+1-1, ldwork, opts), &ldwork)
-		xnrm = golapack.Dlange('M', m, nrhs, work.MatrixOff((*n)*ldwork+1-1, ldwork, opts), &ldwork, rwork)
+		golapack.Dlacpy('A', m, nrhs, x, ldx, work.MatrixOff((*n)*ldwork, ldwork, opts), &ldwork)
+		xnrm = golapack.Dlange('M', m, nrhs, work.MatrixOff((*n)*ldwork, ldwork, opts), &ldwork, rwork)
 		if xnrm != zero {
-			golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, m, nrhs, work.MatrixOff((*n)*ldwork+1-1, ldwork, opts), &ldwork, &info)
+			golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, m, nrhs, work.MatrixOff((*n)*ldwork, ldwork, opts), &ldwork, &info)
 		}
 		anrm = golapack.Dlange('O', m, toPtr((*n)+(*nrhs)), work.Matrix(ldwork, opts), &ldwork, rwork)
 
 		//        Compute QR factorization of X
-		golapack.Dgeqr2(m, toPtr((*n)+(*nrhs)), work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*((*n)+(*nrhs))+1-1), work.Off(ldwork*((*n)+(*nrhs))+minint(*m, (*n)+(*nrhs))+1-1), &info)
+		golapack.Dgeqr2(m, toPtr((*n)+(*nrhs)), work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*((*n)+(*nrhs))), work.Off(ldwork*((*n)+(*nrhs))+min(*m, (*n)+(*nrhs))), &info)
 
 		//        Compute largest entry in upper triangle of
 		//        work(n+1:m,n+1:n+nrhs)
 		err = zero
 		for j = (*n) + 1; j <= (*n)+(*nrhs); j++ {
-			for i = (*n) + 1; i <= minint(*m, j); i++ {
-				err = maxf64(err, math.Abs(work.Get(i+(j-1)*(*m)-1)))
+			for i = (*n) + 1; i <= min(*m, j); i++ {
+				err = math.Max(err, math.Abs(work.Get(i+(j-1)*(*m)-1)))
 			}
 		}
 
@@ -85,26 +85,26 @@ func Dqrt14(trans byte, m, n, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix,
 			}
 		}
 
-		xnrm = golapack.Dlange('M', nrhs, n, work.MatrixOff((*m)+1-1, ldwork, opts), &ldwork, rwork)
+		xnrm = golapack.Dlange('M', nrhs, n, work.MatrixOff((*m), ldwork, opts), &ldwork, rwork)
 		if xnrm != zero {
-			golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, nrhs, n, work.MatrixOff((*m)+1-1, ldwork, opts), &ldwork, &info)
+			golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &xnrm, &one, nrhs, n, work.MatrixOff((*m), ldwork, opts), &ldwork, &info)
 		}
 
 		//        Compute LQ factorization of work
-		golapack.Dgelq2(&ldwork, n, work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)+1-1), work.Off(ldwork*((*n)+1)+1-1), &info)
+		golapack.Dgelq2(&ldwork, n, work.Matrix(ldwork, opts), &ldwork, work.Off(ldwork*(*n)), work.Off(ldwork*((*n)+1)), &info)
 
 		//        Compute largest entry in lower triangle in
 		//        work(m+1:m+nrhs,m+1:n)
 		err = zero
 		for j = (*m) + 1; j <= (*n); j++ {
 			for i = j; i <= ldwork; i++ {
-				err = maxf64(err, math.Abs(work.Get(i+(j-1)*ldwork-1)))
+				err = math.Max(err, math.Abs(work.Get(i+(j-1)*ldwork-1)))
 			}
 		}
 
 	}
 
-	dqrt14Return = err / (float64(maxint(*m, *n, *nrhs)) * golapack.Dlamch(Epsilon))
+	dqrt14Return = err / (float64(max(*m, *n, *nrhs)) * golapack.Dlamch(Epsilon))
 
 	return
 }

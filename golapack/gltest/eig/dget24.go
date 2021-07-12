@@ -168,12 +168,12 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX1", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			return
 		}
 		if isort == 0 {
-			goblas.Dcopy(*n, wr, 1, wrtmp, 1)
-			goblas.Dcopy(*n, wi, 1, witmp, 1)
+			goblas.Dcopy(*n, wr.Off(0, 1), wrtmp.Off(0, 1))
+			goblas.Dcopy(*n, wi.Off(0, 1), witmp.Off(0, 1))
 		}
 
 		//        Do Test (1) or Test (7)
@@ -186,13 +186,13 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			}
 		}
 		for i = 1; i <= (*n)-2; i++ {
-			if h.Get(i+1-1, i-1) != zero && h.Get(i+2-1, i+1-1) != zero {
+			if h.Get(i, i-1) != zero && h.Get(i+2-1, i) != zero {
 				result.Set(1+rsub-1, ulpinv)
 			}
 		}
 		for i = 1; i <= (*n)-1; i++ {
-			if h.Get(i+1-1, i-1) != zero {
-				if h.Get(i-1, i-1) != h.Get(i+1-1, i+1-1) || h.Get(i-1, i+1-1) == zero || math.Copysign(one, h.Get(i+1-1, i-1)) == math.Copysign(one, h.Get(i-1, i+1-1)) {
+			if h.Get(i, i-1) != zero {
+				if h.Get(i-1, i-1) != h.Get(i, i) || h.Get(i-1, i) == zero || math.Copysign(one, h.Get(i, i-1)) == math.Copysign(one, h.Get(i-1, i)) {
 					result.Set(1+rsub-1, ulpinv)
 				}
 			}
@@ -204,21 +204,21 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 		golapack.Dlacpy(' ', n, n, a, lda, vs1, ldvs)
 
 		//        Compute Q*H and store in HT.
-		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, vs, *ldvs, h, *lda, zero, ht, *lda)
+		err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, vs, h, zero, ht)
 
 		//        Compute A - Q*H*Q'
-		err = goblas.Dgemm(NoTrans, Trans, *n, *n, *n, -one, ht, *lda, vs, *ldvs, one, vs1, *ldvs)
+		err = goblas.Dgemm(NoTrans, Trans, *n, *n, *n, -one, ht, vs, one, vs1)
 
-		anorm = maxf64(golapack.Dlange('1', n, n, a, lda, work), smlnum)
+		anorm = math.Max(golapack.Dlange('1', n, n, a, lda, work), smlnum)
 		wnorm = golapack.Dlange('1', n, n, vs1, ldvs, work)
 
 		if anorm > wnorm {
 			result.Set(2+rsub-1, (wnorm/anorm)/(float64(*n)*ulp))
 		} else {
 			if anorm < one {
-				result.Set(2+rsub-1, (minf64(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
+				result.Set(2+rsub-1, (math.Min(wnorm, float64(*n)*anorm)/anorm)/(float64(*n)*ulp))
 			} else {
-				result.Set(2+rsub-1, minf64(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
+				result.Set(2+rsub-1, math.Min(wnorm/anorm, float64(*n))/(float64(*n)*ulp))
 			}
 		}
 
@@ -241,12 +241,12 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			}
 		}
 		for i = 1; i <= (*n)-1; i++ {
-			if h.Get(i+1-1, i-1) != zero {
-				tmp = math.Sqrt(math.Abs(h.Get(i+1-1, i-1))) * math.Sqrt(math.Abs(h.Get(i-1, i+1-1)))
-				result.Set(4+rsub-1, maxf64(result.Get(4+rsub-1), math.Abs(wi.Get(i-1)-tmp)/maxf64(ulp*tmp, smlnum)))
-				result.Set(4+rsub-1, maxf64(result.Get(4+rsub-1), math.Abs(wi.Get(i+1-1)+tmp)/maxf64(ulp*tmp, smlnum)))
+			if h.Get(i, i-1) != zero {
+				tmp = math.Sqrt(math.Abs(h.Get(i, i-1))) * math.Sqrt(math.Abs(h.Get(i-1, i)))
+				result.Set(4+rsub-1, math.Max(result.Get(4+rsub-1), math.Abs(wi.Get(i-1)-tmp)/math.Max(ulp*tmp, smlnum)))
+				result.Set(4+rsub-1, math.Max(result.Get(4+rsub-1), math.Abs(wi.Get(i)+tmp)/math.Max(ulp*tmp, smlnum)))
 			} else if i > 1 {
-				if h.Get(i+1-1, i-1) == zero && h.Get(i-1, i-1-1) == zero && wi.Get(i-1) != zero {
+				if h.Get(i, i-1) == zero && h.Get(i-1, i-1-1) == zero && wi.Get(i-1) != zero {
 					result.Set(4+rsub-1, ulpinv)
 				}
 			}
@@ -262,7 +262,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX2", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -292,7 +292,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 					knteig = knteig + 1
 				}
 				if i < (*n) {
-					if (Dslect(wr.GetPtr(i+1-1), wi.GetPtr(i+1-1)) || Dslect(wr.GetPtr(i+1-1), toPtrf64(-wi.Get(i+1-1)))) && (!(Dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || Dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))))) && iinfo != (*n)+2 {
+					if (Dslect(wr.GetPtr(i), wi.GetPtr(i)) || Dslect(wr.GetPtr(i), toPtrf64(-wi.Get(i)))) && (!(Dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || Dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))))) && iinfo != (*n)+2 {
 						result.Set(12, ulpinv)
 					}
 				}
@@ -321,7 +321,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX3", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -354,7 +354,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX4", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -394,7 +394,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX5", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -431,7 +431,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX6", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -468,7 +468,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX7", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -505,7 +505,7 @@ func Dget24(comp bool, jtype *int, thresh *float64, iseed *[]int, nounit *int, n
 			} else {
 				fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX8", iinfo, *n, (*iseed)[0])
 			}
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label250
 		}
 
@@ -545,7 +545,7 @@ label250:
 		//        by NSLCT and ISLCT.
 		(*seldim) = (*n)
 		(*selopt) = 1
-		eps = maxf64(ulp, epsin)
+		eps = math.Max(ulp, epsin)
 		for i = 1; i <= (*n); i++ {
 			ipnt[i-1] = i
 			(*selval)[i-1] = false
@@ -582,14 +582,14 @@ label250:
 			result.Set(15, ulpinv)
 			result.Set(16, ulpinv)
 			fmt.Printf(" DGET24: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEESX9", iinfo, *n, (*iseed)[0])
-			(*info) = absint(iinfo)
+			(*info) = abs(iinfo)
 			goto label300
 		}
 
 		//        Compare condition number for average of selected eigenvalues
 		//        taking its condition number into account
 		anorm = golapack.Dlange('1', n, n, a, lda, work)
-		v = maxf64(float64(*n)*eps*anorm, smlnum)
+		v = math.Max(float64(*n)*eps*anorm, smlnum)
 		if anorm == zero {
 			v = one
 		}
@@ -603,8 +603,8 @@ label250:
 		} else {
 			tolin = v / (*rcdvin)
 		}
-		tol = maxf64(tol, smlnum/eps)
-		tolin = maxf64(tolin, smlnum/eps)
+		tol = math.Max(tol, smlnum/eps)
+		tolin = math.Max(tolin, smlnum/eps)
 		if eps*((*rcdein)-tolin) > rconde+tol {
 			result.Set(15, ulpinv)
 		} else if (*rcdein)-tolin > rconde+tol {
@@ -629,8 +629,8 @@ label250:
 		} else {
 			tolin = v / (*rcdein)
 		}
-		tol = maxf64(tol, smlnum/eps)
-		tolin = maxf64(tolin, smlnum/eps)
+		tol = math.Max(tol, smlnum/eps)
+		tolin = math.Max(tolin, smlnum/eps)
 		if eps*((*rcdvin)-tolin) > rcondv+tol {
 			result.Set(16, ulpinv)
 		} else if (*rcdvin)-tolin > rcondv+tol {

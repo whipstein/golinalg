@@ -38,18 +38,18 @@ func Dget04(n *int, nrhs *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact
 	//     over all the vectors X and XACT .
 	(*resid) = zero
 	for j = 1; j <= (*nrhs); j++ {
-		ix = goblas.Idamax(*n, xact.Vector(0, j-1), 1)
+		ix = goblas.Idamax(*n, xact.Vector(0, j-1, 1))
 		xnorm = math.Abs(xact.Get(ix-1, j-1))
 		diffnm = zero
 		for i = 1; i <= (*n); i++ {
-			diffnm = maxf64(diffnm, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+			diffnm = math.Max(diffnm, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 		if xnorm <= zero {
 			if diffnm > zero {
 				(*resid) = 1.0 / eps
 			}
 		} else {
-			(*resid) = maxf64(*resid, (diffnm/xnorm)*(*rcond))
+			(*resid) = math.Max(*resid, (diffnm/xnorm)*(*rcond))
 		}
 	}
 	if (*resid)*eps < 1.0 {

@@ -35,7 +35,7 @@ func Dlaswlq(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int
 		(*info) = -3
 	} else if (*nb) <= (*m) {
 		(*info) = -4
-	} else if (*lda) < maxint(1, *m) {
+	} else if (*lda) < max(1, *m) {
 		(*info) = -5
 	} else if (*ldt) < (*mb) {
 		(*info) = -8
@@ -54,7 +54,7 @@ func Dlaswlq(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int
 	}
 
 	//     Quick return if possible
-	if minint(*m, *n) == 0 {
+	if min(*m, *n) == 0 {
 		return
 	}
 
@@ -73,13 +73,13 @@ func Dlaswlq(m, n, mb, nb *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt *int
 
 	for i = (*nb) + 1; i <= ii-(*nb)+(*m); i += ((*nb) - (*m)) {
 		//      Compute the QR factorization of the current block A(1:M,I:I+NB-M)
-		Dtplqt(m, toPtr((*nb)-(*m)), func() *int { y := 0; return &y }(), mb, a, lda, a.Off(0, i-1), lda, t.Off(0, ctr*(*m)+1-1), ldt, work, info)
+		Dtplqt(m, toPtr((*nb)-(*m)), func() *int { y := 0; return &y }(), mb, a, lda, a.Off(0, i-1), lda, t.Off(0, ctr*(*m)), ldt, work, info)
 		ctr = ctr + 1
 	}
 
 	//     Compute the QR factorization of the last block A(1:M,II:N)
 	if ii <= (*n) {
-		Dtplqt(m, &kk, func() *int { y := 0; return &y }(), mb, a, lda, a.Off(0, ii-1), lda, t.Off(0, ctr*(*m)+1-1), ldt, work, info)
+		Dtplqt(m, &kk, func() *int { y := 0; return &y }(), mb, a, lda, a.Off(0, ii-1), lda, t.Off(0, ctr*(*m)), ldt, work, info)
 	}
 
 	work.Set(0, float64((*m)*(*mb)))

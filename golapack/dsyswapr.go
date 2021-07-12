@@ -17,7 +17,7 @@ func Dsyswapr(uplo byte, n *int, a *mat.Matrix, lda, i1, i2 *int) {
 		//         UPPER
 		//         first swap
 		//          - swap column I1 and I2 from I1 to I1-1
-		goblas.Dswap((*i1)-1, a.Vector(0, (*i1)-1), 1, a.Vector(0, (*i2)-1), 1)
+		goblas.Dswap((*i1)-1, a.Vector(0, (*i1)-1, 1), a.Vector(0, (*i2)-1, 1))
 
 		//          second swap :
 		//          - swap A(I1,I1) and A(I2,I2)
@@ -45,7 +45,7 @@ func Dsyswapr(uplo byte, n *int, a *mat.Matrix, lda, i1, i2 *int) {
 		//         LOWER
 		//         first swap
 		//          - swap row I1 and I2 from I1 to I1-1
-		goblas.Dswap((*i1)-1, a.Vector((*i1)-1, 0), *lda, a.Vector((*i2)-1, 0), *lda)
+		goblas.Dswap((*i1)-1, a.Vector((*i1)-1, 0, *lda), a.Vector((*i2)-1, 0, *lda))
 
 		//         second swap :
 		//          - swap A(I1,I1) and A(I2,I2)

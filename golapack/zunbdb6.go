@@ -44,9 +44,9 @@ func Zunbdb6(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2
 		(*info) = -5
 	} else if (*incx2) < 1 {
 		(*info) = -7
-	} else if (*ldq1) < maxint(1, *m1) {
+	} else if (*ldq1) < max(1, *m1) {
 		(*info) = -9
-	} else if (*ldq2) < maxint(1, *m2) {
+	} else if (*ldq2) < max(1, *m2) {
 		(*info) = -11
 	} else if (*lwork) < (*n) {
 		(*info) = -13
@@ -72,13 +72,13 @@ func Zunbdb6(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2
 			work.Set(i-1, zero)
 		}
 	} else {
-		err = goblas.Zgemv(ConjTrans, *m1, *n, one, q1, *ldq1, x1, *incx1, zero, work, 1)
+		err = goblas.Zgemv(ConjTrans, *m1, *n, one, q1, x1.Off(0, *incx1), zero, work.Off(0, 1))
 	}
 
-	err = goblas.Zgemv(ConjTrans, *m2, *n, one, q2, *ldq2, x2, *incx2, one, work, 1)
+	err = goblas.Zgemv(ConjTrans, *m2, *n, one, q2, x2.Off(0, *incx2), one, work.Off(0, 1))
 
-	err = goblas.Zgemv(NoTrans, *m1, *n, negone, q1, *ldq1, work, 1, one, x1, *incx1)
-	err = goblas.Zgemv(NoTrans, *m2, *n, negone, q2, *ldq2, work, 1, one, x2, *incx2)
+	err = goblas.Zgemv(NoTrans, *m1, *n, negone, q1, work.Off(0, 1), one, x1.Off(0, *incx1))
+	err = goblas.Zgemv(NoTrans, *m2, *n, negone, q2, work.Off(0, 1), one, x2.Off(0, *incx2))
 
 	scl1 = realzero
 	ssq1 = realone
@@ -110,13 +110,13 @@ func Zunbdb6(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2
 			work.Set(i-1, zero)
 		}
 	} else {
-		err = goblas.Zgemv(ConjTrans, *m1, *n, one, q1, *ldq1, x1, *incx1, zero, work, 1)
+		err = goblas.Zgemv(ConjTrans, *m1, *n, one, q1, x1.Off(0, *incx1), zero, work.Off(0, 1))
 	}
 
-	err = goblas.Zgemv(ConjTrans, *m2, *n, one, q2, *ldq2, x2, *incx2, one, work, 1)
+	err = goblas.Zgemv(ConjTrans, *m2, *n, one, q2, x2.Off(0, *incx2), one, work.Off(0, 1))
 
-	err = goblas.Zgemv(NoTrans, *m1, *n, negone, q1, *ldq1, work, 1, one, x1, *incx1)
-	err = goblas.Zgemv(NoTrans, *m2, *n, negone, q2, *ldq2, work, 1, one, x2, *incx2)
+	err = goblas.Zgemv(NoTrans, *m1, *n, negone, q1, work.Off(0, 1), one, x1.Off(0, *incx1))
+	err = goblas.Zgemv(NoTrans, *m2, *n, negone, q2, work.Off(0, 1), one, x2.Off(0, *incx2))
 
 	scl1 = realzero
 	ssq1 = realone

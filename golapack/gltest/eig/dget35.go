@@ -100,7 +100,7 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 												} else {
 													a.Set(i-1, j-1, a.Get(i-1, j-1)*vm1.Get(imloff-1))
 												}
-												tnrm = maxf64(tnrm, math.Abs(a.Get(i-1, j-1)))
+												tnrm = math.Max(tnrm, math.Abs(a.Get(i-1, j-1)))
 											}
 										}
 										for i = 1; i <= n; i++ {
@@ -111,14 +111,14 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 												} else {
 													b.Set(i-1, j-1, b.Get(i-1, j-1)*vm1.Get(imloff-1))
 												}
-												tnrm = maxf64(tnrm, math.Abs(b.Get(i-1, j-1)))
+												tnrm = math.Max(tnrm, math.Abs(b.Get(i-1, j-1)))
 											}
 										}
 										cnrm = zero
 										for i = 1; i <= m; i++ {
 											for j = 1; j <= n; j++ {
 												c.Set(i-1, j-1, math.Sin(float64(i*j)))
-												cnrm = maxf64(cnrm, c.Get(i-1, j-1))
+												cnrm = math.Max(cnrm, c.Get(i-1, j-1))
 												cc.Set(i-1, j-1, c.Get(i-1, j-1))
 											}
 										}
@@ -131,13 +131,13 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 										rmul = one
 										if xnrm > one && tnrm > one {
 											if xnrm > bignum/tnrm {
-												rmul = one / maxf64(xnrm, tnrm)
+												rmul = one / math.Max(xnrm, tnrm)
 											}
 										}
-										err = goblas.Dgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, 6, c, 6, -scale*rmul, cc, 6)
-										err = goblas.Dgemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, 6, b, 6, one, cc, 6)
+										err = goblas.Dgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, -scale*rmul, cc)
+										err = goblas.Dgemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, b, one, cc)
 										res1 = golapack.Dlange('M', &m, &n, cc, func() *int { y := 6; return &y }(), dum)
-										res = res1 / maxf64(smlnum, smlnum*xnrm, ((rmul*tnrm)*eps)*xnrm)
+										res = res1 / math.Max(smlnum, math.Max(smlnum*xnrm, ((rmul*tnrm)*eps)*xnrm))
 										if res > (*rmax) {
 											(*lmax) = (*knt)
 											(*rmax) = res

@@ -41,7 +41,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	for i = 1; i <= 4; i++ {
 		iseed[i-1] = iseedy[i-1]
 	}
-	// lwork = maxint(2*(*nmax), (*nmax)*(*nrhs))
+	// lwork = max(2*(*nmax), (*nmax)*(*nrhs))
 
 	//     Test the error exits
 	if *tsterr {
@@ -52,7 +52,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Do for each value of N in NVAL
 	for in = 1; in <= (*nn); in++ {
 		n = (*nval)[in-1]
-		lda = maxint(n, 1)
+		lda = max(n, 1)
 		npp = n * (n + 1) / 2
 		xtype = 'N'
 		nimat = ntypes
@@ -135,7 +135,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if iuplo == 1 {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i2 = minint(j, izero)
+								i2 = min(j, izero)
 								for i = 1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -144,7 +144,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						} else {
 							//                       Set the last IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
-								i1 = maxint(j, izero)
+								i1 = max(j, izero)
 								for i = i1; i <= n; i++ {
 									a.Set(ioff+i-1, zero)
 								}
@@ -173,11 +173,11 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						anorm = golapack.Dlansp('1', uplo, &n, a, rwork)
 
 						//                    Factor the matrix A.
-						goblas.Dcopy(npp, a, 1, afac, 1)
+						goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 						golapack.Dsptrf(uplo, &n, afac, iwork, &info)
 
 						//                    Compute inv(A) and take its norm.
-						goblas.Dcopy(npp, afac, 1, ainv, 1)
+						goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
 						golapack.Dsptri(uplo, &n, ainv, iwork, work, &info)
 						ainvnm = golapack.Dlansp('1', uplo, &n, ainv, rwork)
 
@@ -196,7 +196,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 					//                 --- Test DSPSV  ---
 					if ifact == 2 {
-						goblas.Dcopy(npp, a, 1, afac, 1)
+						goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
 
 						//                    Factor the matrix and solve the system using DSPSV.
@@ -265,7 +265,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					//                 Solve the system and compute the condition number and
 					//                 error bounds using DSPSVX.
 					*srnamt = "DSPSVX"
-					golapack.Dspsvx(fact, uplo, &n, nrhs, a, afac, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)+1-1), work, toSlice(iwork, n+1-1), &info)
+					golapack.Dspsvx(fact, uplo, &n, nrhs, a, afac, iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, toSlice(iwork, n), &info)
 
 					//                 Adjust the expected value of INFO to account for
 					//                 pivoting.
@@ -294,7 +294,7 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						if ifact >= 2 {
 							//                       Reconstruct matrix from factors and compute
 							//                       residual.
-							Dspt01(uplo, &n, a, afac, iwork, ainv.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(0))
+							Dspt01(uplo, &n, a, afac, iwork, ainv.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(0))
 							k1 = 1
 						} else {
 							k1 = 2
@@ -302,13 +302,13 @@ func Ddrvsp(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 						//                    Compute residual of the computed solution.
 						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-						Dppt02(uplo, &n, nrhs, a, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)+1-1), result.GetPtr(1))
+						Dppt02(uplo, &n, nrhs, a, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
 
 						//                    Check solution from generated exact solution.
 						Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
 
 						//                    Check the error bounds from iterative refinement.
-						Dppt05(uplo, &n, nrhs, a, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)+1-1), result.Off(3))
+						Dppt05(uplo, &n, nrhs, a, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
 					} else {
 						k1 = 6
 					}

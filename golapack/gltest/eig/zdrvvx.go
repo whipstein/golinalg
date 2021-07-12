@@ -216,7 +216,7 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     problems
 	nmax = 7
 	for j = 1; j <= (*nsizes); j++ {
-		nmax = maxint(nmax, (*nn)[j-1])
+		nmax = max(nmax, (*nn)[j-1])
 		if (*nn)[j-1] < 0 {
 			badnn = true
 		}
@@ -239,7 +239,7 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		(*info) = -17
 	} else if (*ldlre) < 1 || (*ldlre) < nmax {
 		(*info) = -19
-	} else if 6*nmax+2*powint(nmax, 2) > (*nwork) {
+	} else if 6*nmax+2*pow(nmax, 2) > (*nwork) {
 		(*info) = -30
 	}
 
@@ -268,9 +268,9 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	for jsize = 1; jsize <= (*nsizes); jsize++ {
 		n = (*nn)[jsize-1]
 		if (*nsizes) != 1 {
-			mtypes = minint(maxtyp, *ntypes)
+			mtypes = min(maxtyp, *ntypes)
 		} else {
-			mtypes = minint(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, *ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
@@ -359,11 +359,11 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n+1-1), &iinfo)
+				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -375,19 +375,19 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					conds = zero
 				}
 
-				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n+1-1), &iinfo)
+				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
 				if n >= 4 {
 					golapack.Zlaset('F', func() *int { y := 2; return &y }(), &n, &czero, &czero, a, lda)
 					golapack.Zlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &czero, &czero, a.Off(2, 0), lda)
@@ -397,7 +397,7 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n+1-1), func() *int { y := 1; return &y }(), &one, work.Off(2*n+1-1), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
 
 			} else {
 
@@ -407,7 +407,7 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ZDRVVX: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = absint(iinfo)
+				(*info) = abs(iinfo)
 				return
 			}
 
@@ -419,11 +419,11 @@ func Zdrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if iwk == 1 {
 					nnwork = 2 * n
 				} else if iwk == 2 {
-					nnwork = 2*n + powint(n, 2)
+					nnwork = 2*n + pow(n, 2)
 				} else {
-					nnwork = 6*n + 2*powint(n, 2)
+					nnwork = 6*n + 2*pow(n, 2)
 				}
-				nnwork = maxint(nnwork, 1)
+				nnwork = max(nnwork, 1)
 
 				//              Test for all balancing options
 				for ibal = 1; ibal <= 4; ibal++ {
@@ -762,7 +762,7 @@ label160:
 			rcdvin.Set(i-1, wlist[_i][(i-1)*(4)+3])
 			w1.Set(i-1, complex(wr, wi))
 		}
-		Zget23(true, &isrt, 'N', func() *int { y := 22; return &y }(), thresh, iseed, nounit, &n, a, lda, h, w, w1, vl, ldvl, vr, ldvr, lre, ldlre, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work, toPtr(6*n+2*powint(n, 2)), rwork, info)
+		Zget23(true, &isrt, 'N', func() *int { y := 22; return &y }(), thresh, iseed, nounit, &n, a, lda, h, w, w1, vl, ldvl, vr, ldvr, lre, ldlre, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work, toPtr(6*n+2*pow(n, 2)), rwork, info)
 
 		//     Check for RESULT(j) > THRESH
 		ntest = 0

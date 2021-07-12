@@ -60,7 +60,7 @@ func Zgtcon(norm byte, n *int, dl, d, du, du2 *mat.CVector, ipiv *[]int, anorm, 
 	kase = 0
 label20:
 	;
-	Zlacn2(n, work.Off((*n)+1-1), work, &ainvnm, &kase, &isave)
+	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(U)*inv(L).

@@ -44,7 +44,7 @@ func Zpotrf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -4
 	}
 	if (*info) != 0 {
@@ -84,11 +84,11 @@ func Zpotrf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 		//        Compute the Cholesky factorization A = U**H*U
 		if upper {
 			//           Update and scale A12
-			err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, n1, n2, cone, a, *lda, a.Off(0, n1+1-1), *lda)
+			err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, n1, n2, cone, a, a.Off(0, n1))
 
 			//           Update and factor A22
-			err = goblas.Zherk(mat.UploByte(uplo), ConjTrans, n2, n1, -one, a.Off(0, n1+1-1), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
-			Zpotrf2(uplo, &n2, a.Off(n1+1-1, n1+1-1), lda, &iinfo)
+			err = goblas.Zherk(mat.UploByte(uplo), ConjTrans, n2, n1, -one, a.Off(0, n1), one, a.Off(n1, n1))
+			Zpotrf2(uplo, &n2, a.Off(n1, n1), lda, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo + n1
 				return
@@ -97,11 +97,11 @@ func Zpotrf2(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 			//        Compute the Cholesky factorization A = L*L**H
 		} else {
 			//           Update and scale A21
-			err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, n2, n1, cone, a, *lda, a.Off(n1+1-1, 0), *lda)
+			err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, n2, n1, cone, a, a.Off(n1, 0))
 
 			//           Update and factor A22
-			err = goblas.Zherk(mat.UploByte(uplo), NoTrans, n2, n1, -one, a.Off(n1+1-1, 0), *lda, one, a.Off(n1+1-1, n1+1-1), *lda)
-			Zpotrf2(uplo, &n2, a.Off(n1+1-1, n1+1-1), lda, &iinfo)
+			err = goblas.Zherk(mat.UploByte(uplo), NoTrans, n2, n1, -one, a.Off(n1, 0), one, a.Off(n1, n1))
+			Zpotrf2(uplo, &n2, a.Off(n1, n1), lda, &iinfo)
 			if iinfo != 0 {
 				(*info) = iinfo + n1
 				return

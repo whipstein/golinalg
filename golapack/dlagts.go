@@ -28,7 +28,7 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 	zero = 0.0
 
 	(*info) = 0
-	if (absint(*job) > 2) || ((*job) == 0) {
+	if (abs(*job) > 2) || ((*job) == 0) {
 		(*info) = -1
 	} else if (*n) < 0 {
 		(*info) = -2
@@ -50,10 +50,10 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 		if (*tol) <= zero {
 			(*tol) = math.Abs(a.Get(0))
 			if (*n) > 1 {
-				(*tol) = maxf64(*tol, math.Abs(a.Get(1)), math.Abs(b.Get(0)))
+				(*tol) = math.Max(*tol, math.Max(math.Abs(a.Get(1)), math.Abs(b.Get(0))))
 			}
 			for k = 3; k <= (*n); k++ {
-				(*tol) = maxf64(*tol, math.Abs(a.Get(k-1)), math.Abs(b.Get(k-1-1)), math.Abs(d.Get(k-2-1)))
+				(*tol) = math.Max(*tol, math.Max(math.Abs(a.Get(k-1)), math.Max(math.Abs(b.Get(k-1-1)), math.Abs(d.Get(k-2-1)))))
 			}
 			(*tol) = (*tol) * eps
 			if (*tol) == zero {
@@ -62,7 +62,7 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 		}
 	}
 
-	if absint(*job) == 1 {
+	if abs(*job) == 1 {
 		for k = 2; k <= (*n); k++ {
 			if (*in)[k-1-1] == 0 {
 				y.Set(k-1, y.Get(k-1)-c.Get(k-1-1)*y.Get(k-1-1))
@@ -75,9 +75,9 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 		if (*job) == 1 {
 			for k = (*n); k >= 1; k-- {
 				if k <= (*n)-2 {
-					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k+1-1) - d.Get(k-1)*y.Get(k+2-1)
+					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k) - d.Get(k-1)*y.Get(k+2-1)
 				} else if k == (*n)-1 {
-					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k+1-1)
+					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k)
 				} else {
 					temp = y.Get(k - 1)
 				}
@@ -102,14 +102,14 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 		} else {
 			for k = (*n); k >= 1; k-- {
 				if k <= (*n)-2 {
-					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k+1-1) - d.Get(k-1)*y.Get(k+2-1)
+					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k) - d.Get(k-1)*y.Get(k+2-1)
 				} else if k == (*n)-1 {
-					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k+1-1)
+					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k)
 				} else {
 					temp = y.Get(k - 1)
 				}
 				ak = a.Get(k - 1)
-				pert = signf64(*tol, ak)
+				pert = math.Copysign(*tol, ak)
 			label40:
 				;
 				absak = math.Abs(ak)
@@ -171,7 +171,7 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 					temp = y.Get(k - 1)
 				}
 				ak = a.Get(k - 1)
-				pert = signf64(*tol, ak)
+				pert = math.Copysign(*tol, ak)
 			label70:
 				;
 				absak = math.Abs(ak)

@@ -48,11 +48,11 @@ func Dlasdq(uplo byte, sqre, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.M
 		(*info) = -5
 	} else if (*ncc) < 0 {
 		(*info) = -6
-	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < maxint(1, *n)) {
+	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < max(1, *n)) {
 		(*info) = -10
-	} else if (*ldu) < maxint(1, *nru) {
+	} else if (*ldu) < max(1, *nru) {
 		(*info) = -12
-	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < maxint(1, *n)) {
+	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < max(1, *n)) {
 		(*info) = -14
 	}
 	if (*info) != 0 {
@@ -74,8 +74,8 @@ func Dlasdq(uplo byte, sqre, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.M
 		for i = 1; i <= (*n)-1; i++ {
 			Dlartg(d.GetPtr(i-1), e.GetPtr(i-1), &cs, &sn, &r)
 			d.Set(i-1, r)
-			e.Set(i-1, sn*d.Get(i+1-1))
-			d.Set(i+1-1, cs*d.Get(i+1-1))
+			e.Set(i-1, sn*d.Get(i))
+			d.Set(i, cs*d.Get(i))
 			if rotate {
 				work.Set(i-1, cs)
 				work.Set((*n)+i-1, sn)
@@ -103,8 +103,8 @@ func Dlasdq(uplo byte, sqre, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.M
 		for i = 1; i <= (*n)-1; i++ {
 			Dlartg(d.GetPtr(i-1), e.GetPtr(i-1), &cs, &sn, &r)
 			d.Set(i-1, r)
-			e.Set(i-1, sn*d.Get(i+1-1))
-			d.Set(i+1-1, cs*d.Get(i+1-1))
+			e.Set(i-1, sn*d.Get(i))
+			d.Set(i, cs*d.Get(i))
 			if rotate {
 				work.Set(i-1, cs)
 				work.Set((*n)+i-1, sn)
@@ -160,13 +160,13 @@ func Dlasdq(uplo byte, sqre, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.M
 			d.Set(isub-1, d.Get(i-1))
 			d.Set(i-1, smin)
 			if (*ncvt) > 0 {
-				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), *ldvt, vt.Vector(i-1, 0), *ldvt)
+				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), vt.Vector(i-1, 0))
 			}
 			if (*nru) > 0 {
-				goblas.Dswap(*nru, u.Vector(0, isub-1), 1, u.Vector(0, i-1), 1)
+				goblas.Dswap(*nru, u.Vector(0, isub-1, 1), u.Vector(0, i-1, 1))
 			}
 			if (*ncc) > 0 {
-				goblas.Dswap(*ncc, c.Vector(isub-1, 0), *ldc, c.Vector(i-1, 0), *ldc)
+				goblas.Dswap(*ncc, c.Vector(isub-1, 0), c.Vector(i-1, 0))
 			}
 		}
 	}

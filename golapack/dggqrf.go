@@ -41,8 +41,8 @@ func Dggqrf(n, m, p *int, a *mat.Matrix, lda *int, taua *mat.Vector, b *mat.Matr
 	nb1 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, m, toPtr(-1), toPtr(-1))
 	nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGERQF"), []byte{' '}, n, p, toPtr(-1), toPtr(-1))
 	nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, m, p, toPtr(-1))
-	nb = maxint(nb1, nb2, nb3)
-	lwkopt = maxint(*n, *m, *p) * nb
+	nb = max(nb1, nb2, nb3)
+	lwkopt = max(*n, *m, *p) * nb
 	work.Set(0, float64(lwkopt))
 	lquery = ((*lwork) == -1)
 	if (*n) < 0 {
@@ -51,11 +51,11 @@ func Dggqrf(n, m, p *int, a *mat.Matrix, lda *int, taua *mat.Vector, b *mat.Matr
 		(*info) = -2
 	} else if (*p) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -8
-	} else if (*lwork) < maxint(1, *n, *m, *p) && !lquery {
+	} else if (*lwork) < max(1, *n, *m, *p) && !lquery {
 		(*info) = -11
 	}
 	if (*info) != 0 {
@@ -70,10 +70,10 @@ func Dggqrf(n, m, p *int, a *mat.Matrix, lda *int, taua *mat.Vector, b *mat.Matr
 	lopt = int(work.Get(0))
 
 	//     Update B := Q**T*B.
-	Dormqr('L', 'T', n, p, toPtr(minint(*n, *m)), a, lda, taua, b, ldb, work, lwork, info)
-	lopt = maxint(lopt, int(work.Get(0)))
+	Dormqr('L', 'T', n, p, toPtr(min(*n, *m)), a, lda, taua, b, ldb, work, lwork, info)
+	lopt = max(lopt, int(work.Get(0)))
 
 	//     RQ factorization of N-by-P matrix B: B = T*Z.
 	Dgerqf(n, p, b, ldb, taub, work, lwork, info)
-	work.Set(0, float64(maxint(lopt, int(work.Get(0)))))
+	work.Set(0, float64(max(lopt, int(work.Get(0)))))
 }

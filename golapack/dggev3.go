@@ -72,38 +72,38 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		(*info) = -2
 	} else if (*n) < 0 {
 		(*info) = -3
-	} else if (*lda) < maxint(1, *n) {
+	} else if (*lda) < max(1, *n) {
 		(*info) = -5
-	} else if (*ldb) < maxint(1, *n) {
+	} else if (*ldb) < max(1, *n) {
 		(*info) = -7
 	} else if (*ldvl) < 1 || (ilvl && (*ldvl) < (*n)) {
 		(*info) = -12
 	} else if (*ldvr) < 1 || (ilvr && (*ldvr) < (*n)) {
 		(*info) = -14
-	} else if (*lwork) < maxint(1, 8*(*n)) && !lquery {
+	} else if (*lwork) < max(1, 8*(*n)) && !lquery {
 		(*info) = -16
 	}
 
 	//     Compute workspace
 	if (*info) == 0 {
 		Dgeqrf(n, n, b, ldb, work, work, toPtr(-1), &ierr)
-		lwkopt = maxint(1, 8*(*n), 3*(*n)+int(work.Get(0)))
+		lwkopt = max(1, 8*(*n), 3*(*n)+int(work.Get(0)))
 		Dormqr('L', 'T', n, n, n, b, ldb, work, a, lda, work, toPtr(-1), &ierr)
-		lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+		lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 		if ilvl {
 			Dorgqr(n, n, n, vl, ldvl, work, work, toPtr(-1), &ierr)
-			lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 		}
 		if ilv {
 			Dgghd3(jobvl, jobvr, n, func() *int { y := 1; return &y }(), n, a, lda, b, ldb, vl, ldvl, vr, ldvr, work, toPtr(-1), &ierr)
-			lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 			Dhgeqz('S', jobvl, jobvr, n, func() *int { y := 1; return &y }(), n, a, lda, b, ldb, alphar, alphai, beta, vl, ldvl, vr, ldvr, work, toPtr(-1), &ierr)
-			lwkopt = maxint(lwkopt, 2*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 2*(*n)+int(work.Get(0)))
 		} else {
 			Dgghd3('N', 'N', n, func() *int { y := 1; return &y }(), n, a, lda, b, ldb, vl, ldvl, vr, ldvr, work, toPtr(-1), &ierr)
-			lwkopt = maxint(lwkopt, 3*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 3*(*n)+int(work.Get(0)))
 			Dhgeqz('E', jobvl, jobvr, n, func() *int { y := 1; return &y }(), n, a, lda, b, ldb, alphar, alphai, beta, vl, ldvl, vr, ldvr, work, toPtr(-1), &ierr)
-			lwkopt = maxint(lwkopt, 2*(*n)+int(work.Get(0)))
+			lwkopt = max(lwkopt, 2*(*n)+int(work.Get(0)))
 		}
 		work.Set(0, float64(lwkopt))
 	}
@@ -128,7 +128,7 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
-	//     Scale A if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale A if max element outside range [SMLNUM,BIGNUM]
 	anrm = Dlange('M', n, n, a, lda, work)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
@@ -142,7 +142,7 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
 	}
 
-	//     Scale B if maxint element outside range [SMLNUM,BIGNUM]
+	//     Scale B if max element outside range [SMLNUM,BIGNUM]
 	bnrm = Dlange('M', n, n, b, ldb, work)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
@@ -180,7 +180,7 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 	if ilvl {
 		Dlaset('F', n, n, &zero, &one, vl, ldvl)
 		if irows > 1 {
-			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo+1-1, ilo-1), ldb, vl.Off(ilo+1-1, ilo-1), ldvl)
+			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vl.Off(ilo, ilo-1), ldvl)
 		}
 		Dorgqr(&irows, &irows, &irows, vl.Off(ilo-1, ilo-1), ldvl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
 	}
@@ -245,11 +245,11 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 				temp = zero
 				if alphai.Get(jc-1) == zero {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vl.Get(jr-1, jc-1)))
+						temp = math.Max(temp, math.Abs(vl.Get(jr-1, jc-1)))
 					}
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vl.Get(jr-1, jc-1))+math.Abs(vl.Get(jr-1, jc+1-1)))
+						temp = math.Max(temp, math.Abs(vl.Get(jr-1, jc-1))+math.Abs(vl.Get(jr-1, jc)))
 					}
 				}
 				if temp < smlnum {
@@ -263,7 +263,7 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
 						vl.Set(jr-1, jc-1, vl.Get(jr-1, jc-1)*temp)
-						vl.Set(jr-1, jc+1-1, vl.Get(jr-1, jc+1-1)*temp)
+						vl.Set(jr-1, jc, vl.Get(jr-1, jc)*temp)
 					}
 				}
 			label50:
@@ -278,11 +278,11 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 				temp = zero
 				if alphai.Get(jc-1) == zero {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vr.Get(jr-1, jc-1)))
+						temp = math.Max(temp, math.Abs(vr.Get(jr-1, jc-1)))
 					}
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
-						temp = maxf64(temp, math.Abs(vr.Get(jr-1, jc-1))+math.Abs(vr.Get(jr-1, jc+1-1)))
+						temp = math.Max(temp, math.Abs(vr.Get(jr-1, jc-1))+math.Abs(vr.Get(jr-1, jc)))
 					}
 				}
 				if temp < smlnum {
@@ -296,7 +296,7 @@ func Dggev3(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 				} else {
 					for jr = 1; jr <= (*n); jr++ {
 						vr.Set(jr-1, jc-1, vr.Get(jr-1, jc-1)*temp)
-						vr.Set(jr-1, jc+1-1, vr.Get(jr-1, jc+1-1)*temp)
+						vr.Set(jr-1, jc, vr.Get(jr-1, jc)*temp)
 					}
 				}
 			label100:

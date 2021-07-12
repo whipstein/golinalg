@@ -39,7 +39,7 @@ func Dlarra(n *int, d, e, e2 *mat.Vector, spltol, tnrm *float64, nsplit *int, is
 		//        Criterion that guarantees relative accuracy
 		for i = 1; i <= (*n)-1; i++ {
 			eabs = math.Abs(e.Get(i - 1))
-			if eabs <= (*spltol)*math.Sqrt(math.Abs(d.Get(i-1)))*math.Sqrt(math.Abs(d.Get(i+1-1))) {
+			if eabs <= (*spltol)*math.Sqrt(math.Abs(d.Get(i-1)))*math.Sqrt(math.Abs(d.Get(i))) {
 				e.Set(i-1, zero)
 				e2.Set(i-1, zero)
 				(*isplit)[(*nsplit)-1] = i

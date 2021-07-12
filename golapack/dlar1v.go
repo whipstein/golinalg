@@ -181,8 +181,8 @@ label60:
 	//     Compute the FP vector upwards from R
 	if !sawnan1 && !sawnan2 {
 		for i = (*r) - 1; i >= (*b1); i-- {
-			z.Set(i-1, -(work.Get(indlpl+i-1) * z.Get(i+1-1)))
-			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i+1-1)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
+			z.Set(i-1, -(work.Get(indlpl+i-1) * z.Get(i)))
+			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
 				z.Set(i-1, zero)
 				(*isuppz)[0] = i + 1
 				goto label220
@@ -193,12 +193,12 @@ label60:
 	} else {
 		//        Run slower loop if NaN occurred.
 		for i = (*r) - 1; i >= (*b1); i-- {
-			if z.Get(i+1-1) == zero {
-				z.Set(i-1, -(ld.Get(i+1-1)/ld.Get(i-1))*z.Get(i+2-1))
+			if z.Get(i) == zero {
+				z.Set(i-1, -(ld.Get(i)/ld.Get(i-1))*z.Get(i+2-1))
 			} else {
-				z.Set(i-1, -(work.Get(indlpl+i-1) * z.Get(i+1-1)))
+				z.Set(i-1, -(work.Get(indlpl+i-1) * z.Get(i)))
 			}
-			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i+1-1)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
+			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
 				z.Set(i-1, zero)
 				(*isuppz)[0] = i + 1
 				goto label240
@@ -210,29 +210,29 @@ label60:
 	//     Compute the FP vector downwards from R in blocks of size BLKSIZ
 	if !sawnan1 && !sawnan2 {
 		for i = (*r); i <= (*bn)-1; i++ {
-			z.Set(i+1-1, -(work.Get(indumn+i-1) * z.Get(i-1)))
-			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i+1-1)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
-				z.Set(i+1-1, zero)
+			z.Set(i, -(work.Get(indumn+i-1) * z.Get(i-1)))
+			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
+				z.Set(i, zero)
 				(*isuppz)[1] = i
 				goto label260
 			}
-			(*ztz) = (*ztz) + z.Get(i+1-1)*z.Get(i+1-1)
+			(*ztz) = (*ztz) + z.Get(i)*z.Get(i)
 		}
 	label260:
 	} else {
 		//        Run slower loop if NaN occurred.
 		for i = (*r); i <= (*bn)-1; i++ {
 			if z.Get(i-1) == zero {
-				z.Set(i+1-1, -(ld.Get(i-1-1)/ld.Get(i-1))*z.Get(i-1-1))
+				z.Set(i, -(ld.Get(i-1-1)/ld.Get(i-1))*z.Get(i-1-1))
 			} else {
-				z.Set(i+1-1, -(work.Get(indumn+i-1) * z.Get(i-1)))
+				z.Set(i, -(work.Get(indumn+i-1) * z.Get(i-1)))
 			}
-			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i+1-1)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
-				z.Set(i+1-1, zero)
+			if (math.Abs(z.Get(i-1))+math.Abs(z.Get(i)))*math.Abs(ld.Get(i-1)) < (*gaptol) {
+				z.Set(i, zero)
 				(*isuppz)[1] = i
 				goto label280
 			}
-			(*ztz) = (*ztz) + z.Get(i+1-1)*z.Get(i+1-1)
+			(*ztz) = (*ztz) + z.Get(i)*z.Get(i)
 		}
 	label280:
 	}

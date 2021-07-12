@@ -13,7 +13,7 @@ import (
 // a matrix pair (A, B).
 func Dchkgk(t *testing.T) {
 	var anorm, bnorm, eps, one, rmax, vmax, zero float64
-	var _i, i, ihi, ilo, info, j, knt, lda, ldb, lde, ldf, ldvl, ldvr, ldwork, m, n, ninfo int
+	var _i, i, ihi, ilo, info, j, knt, lda, ldb, ldvl, ldvr, m, n, ninfo int
 	var err error
 	_ = err
 
@@ -36,9 +36,9 @@ func Dchkgk(t *testing.T) {
 	ldb = 50
 	ldvl = 50
 	ldvr = 50
-	lde = 50
-	ldf = 50
-	ldwork = 50
+	// lde = 50
+	// ldf = 50
+	// ldwork = 50
 	zero = 0.0
 	one = 1.0
 
@@ -387,38 +387,38 @@ func Dchkgk(t *testing.T) {
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, af, lda, vr, ldvr, zero, work, ldwork)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, ldvl, work, ldwork, zero, e, lde)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, af, vr, zero, work)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e)
 
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, a, lda, vrf, ldvr, zero, work, ldwork)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, ldvl, work, ldwork, zero, f, ldf)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, a, vrf, zero, work)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
 			for i = 1; i <= m; i++ {
-				vmax = maxf64(vmax, math.Abs(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
+				vmax = math.Max(vmax, math.Abs(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
 			}
 		}
-		vmax = vmax / (eps * maxf64(anorm, bnorm))
+		vmax = vmax / (eps * math.Max(anorm, bnorm))
 		if vmax > rmax {
 			lmax[3] = knt
 			rmax = vmax
 		}
 
 		//     Check tilde(VL)'*B*tilde(VR) - VL'*tilde(B)*VR
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, bf, ldb, vr, ldvr, zero, work, ldwork)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, ldvl, work, ldwork, zero, e, lde)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, bf, vr, zero, work)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e)
 
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, b, ldb, vrf, ldvr, zero, work, ldwork)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, ldvl, work, ldwork, zero, f, ldf)
+		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, b, vrf, zero, work)
+		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
 			for i = 1; i <= m; i++ {
-				vmax = maxf64(vmax, math.Abs(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
+				vmax = math.Max(vmax, math.Abs(e.Get(i-1, j-1)-f.Get(i-1, j-1)))
 			}
 		}
-		vmax = vmax / (eps * maxf64(anorm, bnorm))
+		vmax = vmax / (eps * math.Max(anorm, bnorm))
 		if vmax > rmax {
 			lmax[3] = knt
 			rmax = vmax
