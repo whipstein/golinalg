@@ -90,7 +90,7 @@ func (v *Vector) Iter(n int) []int {
 }
 
 // Matrix references same data in memory
-func (v *Vector) Matrix(r int, opts *MatOpts) *Matrix {
+func (v *Vector) Matrix(r int, opts MatOpts) *Matrix {
 	var c int
 
 	mf := MatrixFactory()
@@ -105,7 +105,7 @@ func (v *Vector) Matrix(r int, opts *MatOpts) *Matrix {
 }
 
 // MatrixOff references same data in memory
-func (v *Vector) MatrixOff(idx, r int, opts *MatOpts) *Matrix {
+func (v *Vector) MatrixOff(idx, r int, opts MatOpts) *Matrix {
 	var c int
 
 	mf := MatrixFactory()
@@ -261,7 +261,7 @@ func (v *CVector) Iter(n int) []int {
 }
 
 // CMatrix references same data in memory
-func (v *CVector) CMatrix(r int, opts *MatOpts) *CMatrix {
+func (v *CVector) CMatrix(r int, opts MatOpts) *CMatrix {
 	var c int
 
 	mf := CMatrixFactory()
@@ -276,7 +276,7 @@ func (v *CVector) CMatrix(r int, opts *MatOpts) *CMatrix {
 }
 
 // CMatrixOff references same data in memory
-func (v *CVector) CMatrixOff(idx, r int, opts *MatOpts) *CMatrix {
+func (v *CVector) CMatrixOff(idx, r int, opts MatOpts) *CMatrix {
 	var c int
 
 	mf := CMatrixFactory()

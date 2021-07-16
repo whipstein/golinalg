@@ -2,6 +2,7 @@ package goblas
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/whipstein/golinalg/mat"
@@ -61,7 +62,8 @@ func passL1() {
 
 func passL2(name string, n, x int, t *testing.T) {
 	if n != x {
-		t.Errorf(" %6s: Incorrect number of tests performed: want %v got %v\n", name, x, n)
+		t.Fail()
+		fmt.Printf(" %6s: Incorrect number of tests performed: want %v got %v\n", name, x, n)
 	} else {
 		fmt.Printf(" %6s passed %6d computational tests\n", name, n)
 	}
@@ -105,4 +107,8 @@ func blocks(dim int, bsize ...int) int {
 		size = bsize[0]
 	}
 	return (dim + size - 1) / size
+}
+
+func abs1(c complex128) float64 {
+	return math.Abs(real(c)) + math.Abs(imag(c))
 }

@@ -123,7 +123,7 @@ func Zgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha complex128, a *mat.CMatri
 func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var noconj bool
 	var one, temp, zero complex128
-	var i, iy, j, lenx, leny int
+	var i, ix, iy, j, jx, jy, lenx, leny int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -183,26 +183,26 @@ func Zgemv(trans mat.MatTrans, m, n int, alpha complex128, a *mat.CMatrix, x *ma
 	}
 	if trans == NoTrans {
 		//        Form  y := alpha*A*x + y.
-		for j = 0; j < n; j++ {
-			temp = alpha * x.Get(xiter[j])
-			for i = 0; i < m; i++ {
-				y.Set(yiter[i], y.Get(yiter[i])+temp*a.Get(i, j))
+		for j, jx = range xiter {
+			temp = alpha * x.Get(jx)
+			for i, iy = range yiter {
+				y.Set(iy, y.Get(iy)+temp*a.Get(i, j))
 			}
 		}
 	} else {
 		//        Form  y := alpha*A**T*x + y  or  y := alpha*A**H*x + y.
-		for j = 0; j < n; j++ {
+		for j, jy = range yiter {
 			temp = zero
 			if noconj {
-				for i = 0; i < m; i++ {
-					temp += a.Get(i, j) * x.Get(xiter[i])
+				for i, ix = range xiter {
+					temp += a.Get(i, j) * x.Get(ix)
 				}
 			} else {
-				for i = 0; i < m; i++ {
-					temp += a.GetConj(i, j) * x.Get(xiter[i])
+				for i, ix = range xiter {
+					temp += a.GetConj(i, j) * x.Get(ix)
 				}
 			}
-			y.Set(yiter[j], y.Get(yiter[j])+alpha*temp)
+			y.Set(jy, y.Get(jy)+alpha*temp)
 		}
 	}
 

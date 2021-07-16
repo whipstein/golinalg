@@ -74,7 +74,7 @@ func TestDblasLevel2(t *testing.T) {
 		ok = true
 		errmax = 0.0
 		if sname == "Dgemv" || sname == "Dgbmv" {
-			var i, iku, im, incx, incy, kl, kls, ku, kus, lda, ldas, m, ml, ms, n, nargs, nc, nd, nk, nl, ns int
+			var i, iku, im, incx, incy, kl, kls, ku, kus, lda, m, ml, ms, n, nargs, nc, nd, nk, nl, ns int
 			var full bool = sname[2] == 'e'
 			var banded bool = sname[2] == 'b'
 
@@ -98,198 +98,200 @@ func TestDblasLevel2(t *testing.T) {
 
 			nc = 0
 
-			for _, n = range idim {
-				nd = n/2 + 1
+			for _, maj := range []mat.MatMajor{mat.Row, mat.Col} {
+				opts.Major = maj
+				optsfull.Major = maj
 
-				for im = 1; im <= 2; im++ {
-					if im == 1 {
-						m = max(n-nd, 0)
-					}
-					if im == 2 {
-						m = min(n+nd, nmax)
-					}
+				for _, n = range idim {
+					nd = n/2 + 1
 
-					if banded {
-						nk = nkb
-					} else {
-						nk = 1
-					}
+					for im = 1; im <= 2; im++ {
+						if im == 1 {
+							m = max(n-nd, 0)
+						}
+						if im == 2 {
+							m = min(n+nd, nmax)
+						}
 
-					for iku = 1; iku <= nk; iku++ {
 						if banded {
-							ku = kb[iku-1]
-							kl = max(ku-1, 0)
+							nk = nkb
 						} else {
-							ku = n - 1
-							kl = m - 1
+							nk = 1
 						}
-						opts.Kl, opts.Ku = kl, ku
 
-						//              Set LDA to 1 more than minimum value if room.
-						if banded {
-							lda = kl + ku + 1
-						} else {
-							lda = m
-						}
-						if lda < nmax {
-							lda++
-						}
-						//              Skip tests if not enough room.
-						if lda > nmax {
-							continue
-						}
-						null = n <= 0 || m <= 0
-
-						//              Generate the matrix A.
-						a = mf(nmax, n, optsfull)
-						aa = mf(lda, n, opts)
-						dmakeL2M(m, n, a, nmax, aa, lda, kl, ku, &reset, 0.0)
-
-						for _, trans := range mat.IterMatTrans() {
-							tran = trans.IsTrans()
-
-							if tran {
-								ml = n
-								nl = m
+						for iku = 1; iku <= nk; iku++ {
+							if banded {
+								ku = kb[iku-1]
+								kl = max(ku-1, 0)
 							} else {
-								ml = m
-								nl = n
+								ku = n - 1
+								kl = m - 1
 							}
+							opts.Kl, opts.Ku = kl, ku
 
-							for _, incx = range inc {
-								lx := abs(incx) * nl
+							//              Set LDA to 1 more than minimum value if room.
+							if banded {
+								lda = kl + ku + 1
+							} else {
+								lda = m
+							}
+							if lda < nmax {
+								lda++
+							}
+							//              Skip tests if not enough room.
+							if lda > nmax {
+								continue
+							}
+							null = n <= 0 || m <= 0
 
-								//                    Generate the vector X.
-								x = vf(nl, incx)
-								xx = vf(lx, incx)
-								dmakeL2V(1, nl, x, 1, xx, abs(incx), 0, nl-1, &reset, 0.5)
-								if nl > 1 {
-									x.Set(nl/2-1, 0)
-									xx.Set(abs(incx)*(nl/2-1), 0)
+							//              Generate the matrix A.
+							a = mf(nmax, n, optsfull)
+							aa = mf(lda, n, opts)
+							dmakeL2M(m, n, a, nmax, aa, lda, kl, ku, &reset, 0.0)
+
+							for _, trans := range mat.IterMatTrans() {
+								tran = trans.IsTrans()
+
+								if tran {
+									ml = n
+									nl = m
+								} else {
+									ml = m
+									nl = n
 								}
 
-								for _, incy = range inc {
-									ly := abs(incy) * ml
+								for _, incx = range inc {
+									lx := abs(incx) * nl
 
-									for _, alpha = range alf {
-
-										for _, beta = range bet {
-											//                             Generate the vector Y.
-											y = vf(ml, incy)
-											yy = vf(ly, incy)
-											dmakeL2V(1, ml, y, 1, yy, abs(incy), 0, ml-1, &reset, 0.0)
-
-											nc++
-
-											//                             Save every datum before calling the
-											//                             subroutine.
-											transs := trans
-											ms = m
-											ns = n
-											kls = kl
-											kus = ku
-											als = alpha
-											as = aa.DeepCopy()
-											ldas = lda
-											xs := xx.DeepCopy()
-											bls = beta
-											ys := yy.DeepCopy()
-
-											//                             Call the subroutine.
-											if full {
-												err2 = Dgemv(trans, m, n, alpha, aa, xx, beta, yy)
-											} else if banded {
-												err2 = Dgbmv(trans, m, n, kl, ku, alpha, aa, xx, beta, yy)
-											}
-
-											//                             Check if error-exit was taken incorrectly.
-											if !ok {
-												t.Fail()
-												fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
-												fatal = true
-												goto label130
-											}
-
-											//                             See what data changed inside subroutines.
-											isame[0] = trans == transs
-											isame[1] = ms == m
-											isame[2] = ns == n
-											if full {
-												isame[3] = als == alpha
-												// isame[4] = reflect.DeepEqual(*aa, *as)
-												isame[5] = ldas == lda
-												isame[6] = reflect.DeepEqual(*xx, *xs)
-												isame[8] = bls == beta
-												if null {
-													isame[9] = reflect.DeepEqual(*yy, *ys)
-												} else {
-													isame[9] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, abs(incy))
-												}
-											} else if banded {
-												isame[3] = kls == kl
-												isame[4] = kus == ku
-												isame[5] = als == alpha
-												isame[6] = reflect.DeepEqual(aa, as)
-												isame[7] = ldas == lda
-												isame[8] = reflect.DeepEqual(xx, xs)
-												isame[10] = bls == beta
-												if null {
-													isame[11] = reflect.DeepEqual(yy, ys)
-												} else {
-													isame[11] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, abs(incy))
-												}
-											}
-
-											//                             If data was incorrectly changed, report
-											//                             and return.
-											same = true
-											for i = 1; i <= nargs; i++ {
-												same = same && isame[i-1]
-												if !isame[i-1] {
-													t.Fail()
-													fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
-												}
-											}
-											if !same {
-												fatal = true
-												goto label130
-											}
-
-											if !null {
-												//                                Check the result.
-												dmvch(trans, m, n, alpha, a, nmax, x, beta, y, yt, g, yy, eps, &err, &fatal, true, t)
-												errmax = math.Max(errmax, err)
-												//                                If got really bad answer, report and
-												//                                return.
-												if fatal {
-													goto label130
-												}
-											} else {
-												//                                Avoid repeating tests with M.le.0 or
-												//                                N.le.0.
-												goto label110
-											}
-										}
+									//                    Generate the vector X.
+									x = vf(nl, incx)
+									xx = vf(lx, incx)
+									dmakeL2V(1, nl, x, 1, xx, abs(incx), 0, nl-1, &reset, 0.5)
+									if nl > 1 {
+										x.Set(nl/2-1, 0)
+										xx.Set(abs(incx)*(nl/2-1), 0)
 									}
 
+									for _, incy = range inc {
+										ly := abs(incy) * ml
+
+										for _, alpha = range alf {
+
+											for _, beta = range bet {
+												//                             Generate the vector Y.
+												y = vf(ml, incy)
+												yy = vf(ly, incy)
+												dmakeL2V(1, ml, y, 1, yy, abs(incy), 0, ml-1, &reset, 0.0)
+
+												nc++
+
+												//                             Save every datum before calling the
+												//                             subroutine.
+												transs := trans
+												ms = m
+												ns = n
+												kls = kl
+												kus = ku
+												als = alpha
+												as = aa.DeepCopy()
+												xs := xx.DeepCopy()
+												bls = beta
+												ys := yy.DeepCopy()
+
+												//                             Call the subroutine.
+												if full {
+													err2 = Dgemv(trans, m, n, alpha, aa, xx, beta, yy)
+												} else if banded {
+													err2 = Dgbmv(trans, m, n, kl, ku, alpha, aa, xx, beta, yy)
+												}
+
+												//                             Check if error-exit was taken incorrectly.
+												if !ok {
+													t.Fail()
+													fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
+													fatal = true
+													goto label130
+												}
+
+												//                             See what data changed inside subroutines.
+												isame[0] = trans == transs
+												isame[1] = ms == m
+												isame[2] = ns == n
+												if full {
+													isame[3] = als == alpha
+													isame[4] = reflect.DeepEqual(*aa, *as)
+													isame[6] = reflect.DeepEqual(*xx, *xs)
+													isame[8] = bls == beta
+													if null {
+														isame[9] = reflect.DeepEqual(*yy, *ys)
+													} else {
+														isame[9] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, abs(incy))
+													}
+												} else if banded {
+													isame[3] = kls == kl
+													isame[4] = kus == ku
+													isame[5] = als == alpha
+													isame[6] = reflect.DeepEqual(*aa, *as)
+													isame[8] = reflect.DeepEqual(*xx, *xs)
+													isame[10] = bls == beta
+													if null {
+														isame[11] = reflect.DeepEqual(*yy, *ys)
+													} else {
+														isame[11] = lderesV(mat.General, mat.Full, 1, ml, ys, yy, abs(incy))
+													}
+												}
+
+												//                             If data was incorrectly changed, report
+												//                             and return.
+												same = true
+												for i = 1; i <= nargs; i++ {
+													same = same && isame[i-1]
+													if !isame[i-1] {
+														t.Fail()
+														fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
+													}
+												}
+												if !same {
+													fatal = true
+													goto label130
+												}
+
+												if !null {
+													//                                Check the result.
+													dmvch(trans, m, n, alpha, a, nmax, x, beta, y, yt, g, yy, eps, &err, &fatal, true, t)
+													errmax = math.Max(errmax, err)
+													//                                If got really bad answer, report and
+													//                                return.
+													if fatal {
+														goto label130
+													}
+												} else {
+													//                                Avoid repeating tests with M.le.0 or
+													//                                N.le.0.
+													goto label110
+												}
+											}
+										}
+
+									}
 								}
+
 							}
 
 						}
 
+					label110:
 					}
 
-				label110:
 				}
-
 			}
 
 			//     Report result.
 			if errmax < thresh {
 				if full {
-					passL2(sname, nc, 3460, t)
+					passL2(sname, nc, 3460*2, t)
 				} else if banded {
-					passL2(sname, nc, 13828, t)
+					passL2(sname, nc, 13828*2, t)
 				}
 			} else {
 				fmt.Printf(" %6s passed %6d computational tests\n ******* but with maximum test ratio %8.2f - SUSPECT *******\n", sname, nc, errmax)
@@ -325,189 +327,201 @@ func TestDblasLevel2(t *testing.T) {
 			} else if packed {
 				nargs = 9
 				opts.Storage = mat.Packed
+				opts.Major = mat.Col
+				optsfull.Major = mat.Col
 			}
 
 			nc = 0
 
-			for _, n = range idim {
-				if banded {
-					nk = nkb
-				} else {
-					nk = 1
+			for _, maj := range []mat.MatMajor{mat.Row, mat.Col} {
+				if packed && maj == mat.Row {
+					continue
 				}
+				opts.Major = maj
+				optsfull.Major = maj
 
-				for ik = 1; ik <= nk; ik++ {
+				for _, n = range idim {
 					if banded {
-						k = kb[ik-1]
+						nk = nkb
 					} else {
-						k = n - 1
+						nk = 1
 					}
-					opts.Kl, opts.Ku = k, k
-					//           Set LDA to 1 more than minimum value if room.
-					if banded {
-						lda = k + 1
-					} else {
-						lda = n
-					}
-					if lda < nmax {
-						lda++
-					}
-					//           Skip tests if not enough room.
-					if lda > nmax {
-						goto label1100
-					}
-					null = n <= 0
 
-					for _, uplo = range ichu {
-						opts.Uplo = uplo
-						optsfull.Uplo = uplo
-						//              Generate the matrix A.
-						a = mf(nmax, nmax, optsfull)
-						aa = mf(nmax, n, opts)
-						dmakeL2M(n, n, a, nmax, aa, lda, k, k, &reset, 0.0)
+					for ik = 1; ik <= nk; ik++ {
+						if banded {
+							k = kb[ik-1]
+						} else {
+							k = n - 1
+						}
+						opts.Kl, opts.Ku = k, k
+						//           Set LDA to 1 more than minimum value if room.
+						if banded {
+							lda = k + 1
+						} else {
+							lda = n
+						}
+						if lda < nmax {
+							lda++
+						}
+						//           Skip tests if not enough room.
+						if lda > nmax {
+							goto label1100
+						}
+						null = n <= 0
 
-						for _, incx = range inc {
-							lx = abs(incx) * n
+						for _, uplo = range ichu {
+							opts.Uplo = uplo
+							optsfull.Uplo = uplo
+							//              Generate the matrix A.
+							a = mf(nmax, nmax, optsfull)
+							aa = mf(nmax, n, opts)
+							dmakeL2M(n, n, a, nmax, aa, lda, k, k, &reset, 0.0)
 
-							//                 Generate the vector X.
-							x = vf(n, incx)
-							xx = vf(lx, incx)
-							dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
-							if n > 1 {
-								x.Set(n/2-1, 0)
-								xx.Set(abs(incx)*(n/2-1), 0)
-							}
+							for _, incx = range inc {
+								lx = abs(incx) * n
 
-							for _, incy = range inc {
-								ly = abs(incy) * n
+								//                 Generate the vector X.
+								x = vf(n, incx)
+								xx = vf(lx, incx)
+								dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
+								if n > 1 {
+									x.Set(n/2-1, 0)
+									xx.Set(abs(incx)*(n/2-1), 0)
+								}
 
-								for _, alpha = range alf {
+								for _, incy = range inc {
+									ly = abs(incy) * n
 
-									for _, beta = range bet {
-										//                          Generate the vector Y.
-										y = vf(n, incy)
-										yy = vf(ly, incy)
-										dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
+									for _, alpha = range alf {
 
-										nc++
+										for _, beta = range bet {
+											//                          Generate the vector Y.
+											y = vf(n, incy)
+											yy = vf(ly, incy)
+											dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
 
-										//                          Save every datum before calling the
-										//                          subroutine.
-										uplos = uplo
-										ns = n
-										ks = k
-										als = alpha
-										as = aa.DeepCopy()
-										ldas = lda
-										xs := xx.DeepCopy()
-										bls = beta
-										ys := yy.DeepCopy()
+											nc++
 
-										//                          Call the subroutine.
-										if full {
-											err2 = Dsymv(uplo, n, alpha, aa, xx, beta, yy)
-										} else if banded {
-											err2 = Dsbmv(uplo, n, k, alpha, aa, xx, beta, yy)
-										} else if packed {
-											err2 = Dspmv(uplo, n, alpha, aa.VectorIdx(0), xx, beta, yy)
-										}
+											//                          Save every datum before calling the
+											//                          subroutine.
+											uplos = uplo
+											ns = n
+											ks = k
+											als = alpha
+											as = aa.DeepCopy()
+											ldas = lda
+											xs := xx.DeepCopy()
+											bls = beta
+											ys := yy.DeepCopy()
 
-										//                          Check if error-exit was taken incorrectly.
-										if !ok {
-											t.Fail()
-											fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
-											fatal = true
-											goto label1120
-										}
-
-										//                          See what data changed inside subroutines.
-										isame[0] = uplo == uplos
-										isame[1] = ns == n
-										if full {
-											isame[2] = als == alpha
-											isame[3] = reflect.DeepEqual(aa, as)
-											isame[4] = ldas == lda
-											isame[5] = reflect.DeepEqual(xx, xs)
-											isame[7] = bls == beta
-											if null {
-												isame[8] = reflect.DeepEqual(yy, ys)
-											} else {
-												isame[8] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
+											//                          Call the subroutine.
+											if full {
+												err2 = Dsymv(uplo, n, alpha, aa, xx, beta, yy)
+											} else if banded {
+												err2 = Dsbmv(uplo, n, k, alpha, aa, xx, beta, yy)
+											} else if packed {
+												err2 = Dspmv(uplo, n, alpha, aa.VectorIdx(0), xx, beta, yy)
 											}
-										} else if banded {
-											isame[2] = ks == k
-											isame[3] = als == alpha
-											isame[4] = reflect.DeepEqual(aa, as)
-											isame[5] = ldas == lda
-											isame[6] = reflect.DeepEqual(xx, xs)
-											isame[8] = bls == beta
-											if null {
-												isame[9] = reflect.DeepEqual(yy, ys)
-											} else {
-												isame[9] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
-											}
-										} else if packed {
-											isame[2] = als == alpha
-											isame[3] = reflect.DeepEqual(aa, as)
-											isame[4] = reflect.DeepEqual(xx, xs)
-											isame[6] = bls == beta
-											if null {
-												isame[7] = reflect.DeepEqual(yy, ys)
-											} else {
-												isame[7] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
-											}
-										}
 
-										//                          If data was incorrectly changed, report and
-										//                          return.
-										same = true
-										for i = 1; i <= nargs; i++ {
-											same = same && isame[i-1]
-											if !isame[i-1] {
+											//                          Check if error-exit was taken incorrectly.
+											if !ok {
 												t.Fail()
-												fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
-											}
-										}
-										if !same {
-											fatal = true
-											goto label1120
-										}
-
-										if !null {
-											//                             Check the result.
-											dmvch(mat.NoTrans, n, n, alpha, a, nmax, x, beta, y, yt, g, yy, eps, &err, &fatal, true, t)
-
-											errmax = math.Max(errmax, err)
-
-											//                             If got really bad answer, report and
-											//                             return.
-											if fatal {
+												fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
+												fatal = true
 												goto label1120
 											}
-										} else {
-											//                             Avoid repeating tests with N.le.0
-											goto label1110
+
+											//                          See what data changed inside subroutines.
+											isame[0] = uplo == uplos
+											isame[1] = ns == n
+											if full {
+												isame[2] = als == alpha
+												isame[3] = reflect.DeepEqual(aa, as)
+												isame[4] = ldas == lda
+												isame[5] = reflect.DeepEqual(xx, xs)
+												isame[7] = bls == beta
+												if null {
+													isame[8] = reflect.DeepEqual(yy, ys)
+												} else {
+													isame[8] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
+												}
+											} else if banded {
+												isame[2] = ks == k
+												isame[3] = als == alpha
+												isame[4] = reflect.DeepEqual(aa, as)
+												isame[5] = ldas == lda
+												isame[6] = reflect.DeepEqual(xx, xs)
+												isame[8] = bls == beta
+												if null {
+													isame[9] = reflect.DeepEqual(yy, ys)
+												} else {
+													isame[9] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
+												}
+											} else if packed {
+												isame[2] = als == alpha
+												isame[3] = reflect.DeepEqual(aa, as)
+												isame[4] = reflect.DeepEqual(xx, xs)
+												isame[6] = bls == beta
+												if null {
+													isame[7] = reflect.DeepEqual(yy, ys)
+												} else {
+													isame[7] = lderesV(mat.General, mat.Full, 1, n, ys, yy, abs(incy))
+												}
+											}
+
+											//                          If data was incorrectly changed, report and
+											//                          return.
+											same = true
+											for i = 1; i <= nargs; i++ {
+												same = same && isame[i-1]
+												if !isame[i-1] {
+													t.Fail()
+													fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
+												}
+											}
+											if !same {
+												fatal = true
+												goto label1120
+											}
+
+											if !null {
+												//                             Check the result.
+												dmvch(mat.NoTrans, n, n, alpha, a, nmax, x, beta, y, yt, g, yy, eps, &err, &fatal, true, t)
+
+												errmax = math.Max(errmax, err)
+
+												//                             If got really bad answer, report and
+												//                             return.
+												if fatal {
+													goto label1120
+												}
+											} else {
+												//                             Avoid repeating tests with N.le.0
+												goto label1110
+											}
+
 										}
 
 									}
-
 								}
 							}
 						}
+
+					label1100:
 					}
 
-				label1100:
+				label1110:
 				}
-
-			label1110:
 			}
 
 			//     Report result.
 			if errmax < thresh {
-				if full || packed {
+				if full {
+					passL2(sname, nc, 1441*2, t)
+				} else if packed {
 					passL2(sname, nc, 1441, t)
 				} else if banded {
-					passL2(sname, nc, 5761, t)
+					passL2(sname, nc, 5761*2, t)
 				}
 			} else {
 				fmt.Printf(" %6s passed %6d computational tests\n ******* but with maximum test ratio %8.2f - SUSPECT *******\n", sname, nc, errmax)
@@ -546,193 +560,204 @@ func TestDblasLevel2(t *testing.T) {
 			} else if packed {
 				nargs = 7
 				opts.Storage = mat.Packed
+				opts.Major = mat.Col
+				optsfull.Major = mat.Col
 			}
 
 			nc = 0
-
-			for _, n = range idim {
-				if banded {
-					nk = nkb
-				} else {
-					nk = 1
+			for _, maj := range []mat.MatMajor{mat.Row, mat.Col} {
+				if packed && maj == mat.Row {
+					continue
 				}
+				opts.Major = maj
+				optsfull.Major = maj
 
-				for ik = 1; ik <= nk; ik++ {
+				for _, n = range idim {
 					if banded {
-						k = kb[ik-1]
+						nk = nkb
 					} else {
-						k = n - 1
+						nk = 1
 					}
-					opts.Kl, opts.Ku = k, k
-					//           Set LDA to 1 more than minimum value if room.
-					if banded {
-						lda = k + 1
-					} else {
-						lda = n
-					}
-					if lda < nmax {
-						lda++
-					}
-					//           Skip tests if not enough room.
-					if lda > nmax {
-						goto label2100
-					}
-					null = n <= 0
 
-					for _, uplo = range ichu {
-						opts.Uplo = uplo
-						optsfull.Uplo = uplo
+					for ik = 1; ik <= nk; ik++ {
+						if banded {
+							k = kb[ik-1]
+						} else {
+							k = n - 1
+						}
+						opts.Kl, opts.Ku = k, k
+						//           Set LDA to 1 more than minimum value if room.
+						if banded {
+							lda = k + 1
+						} else {
+							lda = n
+						}
+						if lda < nmax {
+							lda++
+						}
+						//           Skip tests if not enough room.
+						if lda > nmax {
+							goto label2100
+						}
+						null = n <= 0
 
-						for _, trans = range icht {
+						for _, uplo = range ichu {
+							opts.Uplo = uplo
+							optsfull.Uplo = uplo
 
-							for _, diag = range ichd {
-								opts.Diag = diag
-								optsfull.Diag = diag
+							for _, trans = range icht {
 
-								//                    Generate the matrix A.
-								a = mf(nmax, nmax, optsfull)
-								aa = mf(nmax, nmax, opts)
-								dmakeL2M(n, n, a, nmax, aa, lda, k, k, &reset, 0.0)
+								for _, diag = range ichd {
+									opts.Diag = diag
+									optsfull.Diag = diag
 
-								for _, incx = range inc {
-									lx = abs(incx) * n
+									//                    Generate the matrix A.
+									a = mf(nmax, nmax, optsfull)
+									aa = mf(nmax, nmax, opts)
+									dmakeL2M(n, n, a, nmax, aa, lda, k, k, &reset, 0.0)
 
-									//                       Generate the vector X.
-									x = vf(n, incx)
-									xx = vf(lx, incx)
-									dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
-									if n > 1 {
-										x.Set(n/2-1, 0)
-										xx.Set(abs(incx)*(n/2-1), 0)
-									}
+									for _, incx = range inc {
+										lx = abs(incx) * n
 
-									nc++
-
-									//                       Save every datum before calling the subroutine.
-									uplos = uplo
-									transs = trans
-									diags = diag
-									ns = n
-									ks = k
-									as = aa.DeepCopy()
-									ldas = lda
-									xs := xx.DeepCopy()
-
-									//                       Call the subroutine.
-									if sname[3:5] == "mv" {
-										if full {
-											err2 = Dtrmv(uplo, trans, diag, n, aa, xx)
-										} else if banded {
-											err2 = Dtbmv(uplo, trans, diag, n, k, aa, xx)
-										} else if packed {
-											err2 = Dtpmv(uplo, trans, diag, n, aa.VectorIdx(0), xx)
+										//                       Generate the vector X.
+										x = vf(n, incx)
+										xx = vf(lx, incx)
+										dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
+										if n > 1 {
+											x.Set(n/2-1, 0)
+											xx.Set(abs(incx)*(n/2-1), 0)
 										}
-									} else if sname[3:5] == "sv" {
-										if full {
-											err2 = Dtrsv(uplo, trans, diag, n, aa, xx)
-										} else if banded {
-											err2 = Dtbsv(uplo, trans, diag, n, k, aa, xx)
-										} else if packed {
-											err2 = Dtpsv(uplo, trans, diag, n, aa.VectorIdx(0), xx)
-										}
-									}
 
-									//                       Check if error-exit was taken incorrectly.
-									if !ok {
-										t.Fail()
-										fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
-										fatal = true
-										goto label2120
-									}
+										nc++
 
-									//                       See what data changed inside subroutines.
-									isame[0] = uplo == uplos
-									isame[1] = trans == transs
-									isame[2] = diag == diags
-									isame[3] = ns == n
-									if full {
-										isame[4] = reflect.DeepEqual(aa, as)
-										isame[5] = ldas == lda
-										if null {
-											isame[6] = reflect.DeepEqual(xx, xs)
-										} else {
-											isame[6] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
-										}
-									} else if banded {
-										isame[4] = ks == k
-										isame[5] = reflect.DeepEqual(aa, as)
-										isame[6] = ldas == lda
-										if null {
-											isame[7] = reflect.DeepEqual(xx, xs)
-										} else {
-											isame[7] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
-										}
-									} else if packed {
-										isame[4] = reflect.DeepEqual(aa, as)
-										if null {
-											isame[5] = reflect.DeepEqual(xx, xs)
-										} else {
-											isame[5] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
-										}
-									}
+										//                       Save every datum before calling the subroutine.
+										uplos = uplo
+										transs = trans
+										diags = diag
+										ns = n
+										ks = k
+										as = aa.DeepCopy()
+										ldas = lda
+										xs := xx.DeepCopy()
 
-									//                       If data was incorrectly changed, report and
-									//                       return.
-									same = true
-									for i = 1; i <= nargs; i++ {
-										same = same && isame[i-1]
-										if !isame[i-1] {
-											t.Fail()
-											fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
-										}
-									}
-									if !same {
-										fatal = true
-										goto label2120
-									}
-
-									if !null {
-										z := x.DeepCopy()
+										//                       Call the subroutine.
 										if sname[3:5] == "mv" {
-											//                             Check the result.
-											dmvch(trans, n, n, 1.0, a, nmax, x, 0.0, z, xt, g, xx, eps, &err, &fatal, true, t)
-										} else if sname[3:5] == "sv" {
-											//                             Compute approximation to original vector.
-											for i = 1; i <= n; i++ {
-												z.Set(i-1, xx.Get((i-1)*abs(incx)))
-												xx.Set((i-1)*abs(incx), x.Get(i-1))
+											if full {
+												err2 = Dtrmv(uplo, trans, diag, n, aa, xx)
+											} else if banded {
+												err2 = Dtbmv(uplo, trans, diag, n, k, aa, xx)
+											} else if packed {
+												err2 = Dtpmv(uplo, trans, diag, n, aa.VectorIdx(0), xx)
 											}
-											dmvch(trans, n, n, 1.0, a, nmax, z, 0.0, x, xt, g, xx, eps, &err, &fatal, true, t)
+										} else if sname[3:5] == "sv" {
+											if full {
+												err2 = Dtrsv(uplo, trans, diag, n, aa, xx)
+											} else if banded {
+												err2 = Dtbsv(uplo, trans, diag, n, k, aa, xx)
+											} else if packed {
+												err2 = Dtpsv(uplo, trans, diag, n, aa.VectorIdx(0), xx)
+											}
 										}
-										errmax = math.Max(errmax, err)
-										//                          If got really bad answer, report and return.
-										if fatal {
+
+										//                       Check if error-exit was taken incorrectly.
+										if !ok {
+											t.Fail()
+											fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
+											fatal = true
 											goto label2120
 										}
-									} else {
-										//                          Avoid repeating tests with N.le.0.
-										goto label2110
-									}
 
+										//                       See what data changed inside subroutines.
+										isame[0] = uplo == uplos
+										isame[1] = trans == transs
+										isame[2] = diag == diags
+										isame[3] = ns == n
+										if full {
+											isame[4] = reflect.DeepEqual(aa, as)
+											isame[5] = ldas == lda
+											if null {
+												isame[6] = reflect.DeepEqual(xx, xs)
+											} else {
+												isame[6] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
+											}
+										} else if banded {
+											isame[4] = ks == k
+											isame[5] = reflect.DeepEqual(aa, as)
+											isame[6] = ldas == lda
+											if null {
+												isame[7] = reflect.DeepEqual(xx, xs)
+											} else {
+												isame[7] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
+											}
+										} else if packed {
+											isame[4] = reflect.DeepEqual(aa, as)
+											if null {
+												isame[5] = reflect.DeepEqual(xx, xs)
+											} else {
+												isame[5] = lderesV(mat.General, mat.Full, 1, n, xs, xx, abs(incx))
+											}
+										}
+
+										//                       If data was incorrectly changed, report and
+										//                       return.
+										same = true
+										for i = 1; i <= nargs; i++ {
+											same = same && isame[i-1]
+											if !isame[i-1] {
+												t.Fail()
+												fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
+											}
+										}
+										if !same {
+											fatal = true
+											goto label2120
+										}
+
+										if !null {
+											z := x.DeepCopy()
+											if sname[3:5] == "mv" {
+												//                             Check the result.
+												dmvch(trans, n, n, 1.0, a, nmax, x, 0.0, z, xt, g, xx, eps, &err, &fatal, true, t)
+											} else if sname[3:5] == "sv" {
+												//                             Compute approximation to original vector.
+												for i = 1; i <= n; i++ {
+													z.Set(i-1, xx.Get((i-1)*abs(incx)))
+													xx.Set((i-1)*abs(incx), x.Get(i-1))
+												}
+												dmvch(trans, n, n, 1.0, a, nmax, z, 0.0, x, xt, g, xx, eps, &err, &fatal, true, t)
+											}
+											errmax = math.Max(errmax, err)
+											//                          If got really bad answer, report and return.
+											if fatal {
+												goto label2120
+											}
+										} else {
+											//                          Avoid repeating tests with N.le.0.
+											goto label2110
+										}
+
+									}
 								}
+
 							}
 
 						}
 
+					label2100:
 					}
 
-				label2100:
+				label2110:
 				}
-
-			label2110:
 			}
 
 			//     Report result.
 			if errmax < thresh {
-				if full || packed {
+				if full {
+					passL2(sname, nc, 241*2, t)
+				} else if packed {
 					passL2(sname, nc, 241, t)
 				} else if banded {
-					passL2(sname, nc, 961, t)
+					passL2(sname, nc, 961*2, t)
 				}
 			} else {
 				fmt.Printf(" %6s passed %6d computational tests\n ******* but with maximum test ratio %8.2f - SUSPECT *******\n", sname, nc, errmax)
@@ -766,152 +791,161 @@ func TestDblasLevel2(t *testing.T) {
 				isame[i] = true
 			}
 
-			for _, n = range idim {
-				nd = n/2 + 1
+			for _, maj := range []mat.MatMajor{mat.Row, mat.Col} {
+				opts.Major = maj
+				optsfull.Major = maj
 
-				for im = 1; im <= 2; im++ {
-					if im == 1 {
-						m = max(n-nd, 0)
-					}
-					if im == 2 {
-						m = min(n+nd, nmax)
-					}
-					//
-					//           Set LDA to 1 more than minimum value if room.
-					lda = m
-					if lda < nmax {
-						lda++
-					}
-					//           Skip tests if not enough room.
-					if lda > nmax {
-						continue
-					}
-					// laa = lda * n
-					null = n <= 0 || m <= 0
+				for _, n = range idim {
+					nd = n/2 + 1
 
-					for _, incx = range inc {
-						lx = abs(incx) * m
-
-						//              Generate the vector X.
-						x = vf(m, incx)
-						xx = vf(lx, incx)
-						dmakeL2V(1, m, x, 1, xx, abs(incx), 0, m-1, &reset, 0.5)
-						if m > 1 {
-							x.Set(m/2-1, 0)
-							xx.Set(abs(incx)*(m/2-1), 0)
+					for im = 1; im <= 2; im++ {
+						if im == 1 {
+							m = max(n-nd, 0)
 						}
+						if im == 2 {
+							m = min(n+nd, nmax)
+						}
+						//
+						//           Set LDA to 1 more than minimum value if room.
+						lda = m
+						if lda < nmax {
+							lda++
+						}
+						//           Skip tests if not enough room.
+						if lda > nmax {
+							continue
+						}
+						// laa = lda * n
+						null = n <= 0 || m <= 0
 
-						for _, incy = range inc {
-							ly = abs(incy) * n
+						for _, incx = range inc {
+							lx = abs(incx) * m
 
-							//                 Generate the vector Y.
-							y = vf(n, incy)
-							yy = vf(ly, incy)
-							dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
-							if n > 1 {
-								y.Set(n/2-1, 0)
-								yy.Set(abs(incy)*(n/2-1), 0)
+							//              Generate the vector X.
+							x = vf(m, incx)
+							xx = vf(lx, incx)
+							dmakeL2V(1, m, x, 1, xx, abs(incx), 0, m-1, &reset, 0.5)
+							if m > 1 {
+								x.Set(m/2-1, 0)
+								xx.Set(abs(incx)*(m/2-1), 0)
 							}
 
-							for _, alpha = range alf {
-								//                    Generate the matrix A.
-								a = mf(nmax, nmax, optsfull)
-								aa = mf(lda, n, opts)
-								dmakeL2M(m, n, a, nmax, aa, lda, m-1, n-1, &reset, 0.0)
+							for _, incy = range inc {
+								ly = abs(incy) * n
 
-								nc++
-
-								//                    Save every datum before calling the subroutine.
-								ms = m
-								ns = n
-								als = alpha
-								as = aa.DeepCopy()
-								ldas = lda
-								xs = xx.DeepCopy()
-								ys = yy.DeepCopy()
-
-								//                    Call the subroutine.
-								err2 = Dger(m, n, alpha, xx, yy, aa)
-
-								//                    Check if error-exit was taken incorrectly.
-								if !ok {
-									t.Fail()
-									fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
-									fatal = true
-									goto label3140
+								//                 Generate the vector Y.
+								y = vf(n, incy)
+								yy = vf(ly, incy)
+								dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
+								if n > 1 {
+									y.Set(n/2-1, 0)
+									yy.Set(abs(incy)*(n/2-1), 0)
 								}
 
-								//                    See what data changed inside subroutine.
-								isame[0] = ms == m
-								isame[1] = ns == n
-								isame[2] = als == alpha
-								isame[3] = reflect.DeepEqual(xx, xs)
-								isame[4] = ldas == lda
-								isame[5] = reflect.DeepEqual(yy, ys)
-								if null {
-									isame[7] = reflect.DeepEqual(aa, as)
-								} else {
-									isame[7] = lderesM(m, n, as, aa, lda)
-								}
+								for _, alpha = range alf {
+									//                    Generate the matrix A.
+									a = mf(nmax, nmax, optsfull)
+									aa = mf(lda, n, opts)
+									dmakeL2M(m, n, a, nmax, aa, lda, m-1, n-1, &reset, 0.0)
 
-								//                    If data was incorrectly changed, report and return.
-								same = true
-								for i = 1; i <= nargs; i++ {
-									same = same && isame[i-1]
-									if !isame[i-1] {
+									nc++
+
+									//                    Save every datum before calling the subroutine.
+									ms = m
+									ns = n
+									als = alpha
+									as = aa.DeepCopy()
+									ldas = lda
+									xs = xx.DeepCopy()
+									ys = yy.DeepCopy()
+
+									//                    Call the subroutine.
+									err2 = Dger(m, n, alpha, xx, yy, aa)
+
+									//                    Check if error-exit was taken incorrectly.
+									if !ok {
 										t.Fail()
-										fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
+										fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
+										fatal = true
+										goto label3140
 									}
-								}
-								if !same {
-									fatal = true
-									goto label3140
-								}
 
-								if !null {
-									//                       Check the result column by column.
-									z := mf(m, nmax, opts)
-									w := y.DeepCopy()
-									if incx > 0 {
-										for i = 1; i <= m; i++ {
-											z.Set(i-1, 0, x.Get(i-1))
-										}
+									//                    See what data changed inside subroutine.
+									isame[0] = ms == m
+									isame[1] = ns == n
+									isame[2] = als == alpha
+									isame[3] = reflect.DeepEqual(xx, xs)
+									isame[4] = ldas == lda
+									isame[5] = reflect.DeepEqual(yy, ys)
+									if null {
+										isame[7] = reflect.DeepEqual(aa, as)
 									} else {
-										for i = 1; i <= m; i++ {
-											z.Set(i-1, 0, x.Get(m-i))
+										isame[7] = lderesM(m, n, as, aa, lda)
+									}
+
+									//                    If data was incorrectly changed, report and return.
+									same = true
+									for i = 1; i <= nargs; i++ {
+										same = same && isame[i-1]
+										if !isame[i-1] {
+											t.Fail()
+											fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
 										}
 									}
-									for j = 1; j <= n; j++ {
-										if incy > 0 {
-											w.Set(0, y.Get(j-1))
+									if !same {
+										fatal = true
+										goto label3140
+									}
+
+									if !null {
+										a.ToColMajor()
+										aa.ToColMajor()
+										//                       Check the result column by column.
+										z := mf(m, nmax, a.Opts.DeepCopy())
+										w := y.DeepCopy()
+										if incx > 0 {
+											for i = 1; i <= m; i++ {
+												z.Set(i-1, 0, x.Get(i-1))
+											}
 										} else {
-											w.Set(0, y.Get(n-j))
+											for i = 1; i <= m; i++ {
+												z.Set(i-1, 0, x.Get(m-i))
+											}
 										}
-										dmvch(mat.NoTrans, m, 1, alpha, z, nmax, w, 1.0, a.Vector(0, j-1, 1), yt, g, aa.Vector(0, j-1), eps, &err, &fatal, true, t)
-										errmax = math.Max(errmax, err)
-										//                          If got really bad answer, report and return.
-										if fatal {
-											goto label3130
-										}
+										for j = 1; j <= n; j++ {
+											if incy > 0 {
+												w.Set(0, y.Get(j-1))
+											} else {
+												w.Set(0, y.Get(n-j))
+											}
+											dmvch(mat.NoTrans, m, 1, alpha, z, nmax, w, 1.0, a.Vector(0, j-1, 1), yt, g, aa.Vector(0, j-1), eps, &err, &fatal, true, t)
+											errmax = math.Max(errmax, err)
+											//                          If got really bad answer, report and return.
+											if fatal {
+												goto label3130
+											}
 
+										}
+										a.ToRowMajor()
+										aa.ToRowMajor()
+									} else {
+										//                       Avoid repeating tests with M.le.0 or N.le.0.
+										goto label3110
 									}
-								} else {
-									//                       Avoid repeating tests with M.le.0 or N.le.0.
-									goto label3110
-								}
 
+								}
 							}
 						}
+
+					label3110:
 					}
 
-				label3110:
 				}
-
 			}
 
 			//     Report result.
 			if errmax < thresh {
-				passL2(sname, nc, 388, t)
+				passL2(sname, nc, 388*2, t)
 			} else {
 				fmt.Printf(" %6s passed %6d computational tests\n ******* but with maximum test ratio %8.2f - SUSPECT *******\n", sname, nc, errmax)
 			}
@@ -943,155 +977,173 @@ func TestDblasLevel2(t *testing.T) {
 			} else if packed {
 				nargs = 6
 				opts.Storage = mat.Packed
+				opts.Major = mat.Col
+				optsfull.Major = mat.Col
 			}
 
 			nc = 0
 
-			for _, n = range idim {
-				//        Set LDA to 1 more than minimum value if room.
-				lda = n
-				if lda < nmax {
-					lda++
+			for _, maj := range []mat.MatMajor{mat.Row, mat.Col} {
+				if packed && maj == mat.Row {
+					continue
 				}
-				//        Skip tests if not enough room.
-				if lda > nmax {
-					goto label4100
-				}
+				opts.Major = maj
+				optsfull.Major = maj
 
-				for _, uplo = range ichu {
-					upper = uplo == mat.Upper
-					opts.Uplo = uplo
-					optsfull.Uplo = uplo
-
-					for _, incx = range inc {
-						lx = abs(incx) * n
-
-						//              Generate the vector X.
-						x = vf(n, incx)
-						xx = vf(lx, incx)
-						dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
-						if n > 1 {
-							x.Set(n/2-1, 0)
-							xx.Set(abs(incx)*(n/2-1), 0)
-						}
-
-						for _, alpha = range alf {
-							null = n <= 0 || alpha == 0
-
-							//                 Generate the matrix A.
-							a = mf(nmax, nmax, optsfull)
-							aa = mf(lda, n, opts)
-
-							nc++
-
-							//                 Save every datum before calling the subroutine.
-							uplos = uplo
-							ns = n
-							als = alpha
-							as = aa.DeepCopy()
-							ldas = lda
-							xs := xx.DeepCopy()
-
-							//                 Call the subroutine.
-							if full {
-								err2 = Dsyr(uplo, n, alpha, xx, aa)
-							} else if packed {
-								err2 = Dspr(uplo, n, alpha, xx, aa.VectorIdx(0))
-							}
-
-							//                 Check if error-exit was taken incorrectly.
-							if !ok {
-								t.Fail()
-								fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
-								fatal = true
-								goto label4120
-							}
-
-							//                 See what data changed inside subroutines.
-							isame[0] = uplo == uplos
-							isame[1] = ns == n
-							isame[2] = als == alpha
-							isame[3] = reflect.DeepEqual(xx, xs)
-							if null {
-								isame[5] = reflect.DeepEqual(aa, as)
-							} else {
-								isame[5] = lderesM(n, n, as, aa, lda)
-							}
-							if !packed {
-								isame[6] = ldas == lda
-							}
-
-							//                 If data was incorrectly changed, report and return.
-							same = true
-							for i = 1; i <= nargs; i++ {
-								same = same && isame[i-1]
-								if !isame[i-1] {
-									t.Fail()
-									fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
-								}
-							}
-							if !same {
-								fatal = true
-								goto label4120
-							}
-
-							if !null {
-								//                    Check the result column by column.
-								z := mf(n, 1, optsge)
-								w := vf(n)
-								if incx > 0 {
-									for i = 1; i <= n; i++ {
-										z.Set(i-1, 0, x.Get(i-1))
-									}
-								} else {
-									for i = 1; i <= n; i++ {
-										z.Set(i-1, 0, x.Get(n-i))
-									}
-								}
-								ja = 1
-								for j = 1; j <= n; j++ {
-									w.Set(0, z.Get(j-1, 0))
-									if upper {
-										jj = 1
-										lj = j
-									} else {
-										jj = j
-										lj = n - j + 1
-									}
-									dmvch(mat.NoTrans, lj, 1, alpha, z.OffIdx(jj-1), lj, w, 1.0, a.Vector(jj-1, j-1, 1), yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
-									if full {
-										if upper {
-											ja += lda
-										} else {
-											ja += lda + 1
-										}
-									} else {
-										ja += lj
-									}
-									errmax = math.Max(errmax, err)
-									//                       If got really bad answer, report and return.
-									if fatal {
-										goto label4110
-									}
-								}
-							} else {
-								//                    Avoid repeating tests if N.le.0.
-								if n <= 0 {
-									goto label4100
-								}
-							}
-
-						}
+				for _, n = range idim {
+					//        Set LDA to 1 more than minimum value if room.
+					lda = n
+					if lda < nmax {
+						lda++
+					}
+					//        Skip tests if not enough room.
+					if lda > nmax {
+						goto label4100
 					}
 
-				}
+					for _, uplo = range ichu {
+						upper = uplo == mat.Upper
+						opts.Uplo = uplo
+						optsfull.Uplo = uplo
 
-			label4100:
+						for _, incx = range inc {
+							lx = abs(incx) * n
+
+							//              Generate the vector X.
+							x = vf(n, incx)
+							xx = vf(lx, incx)
+							dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
+							if n > 1 {
+								x.Set(n/2-1, 0)
+								xx.Set(abs(incx)*(n/2-1), 0)
+							}
+
+							for _, alpha = range alf {
+								null = n <= 0 || alpha == 0
+
+								//                 Generate the matrix A.
+								a = mf(nmax, nmax, optsfull)
+								aa = mf(lda, n, opts)
+
+								nc++
+
+								//                 Save every datum before calling the subroutine.
+								uplos = uplo
+								ns = n
+								als = alpha
+								as = aa.DeepCopy()
+								ldas = lda
+								xs := xx.DeepCopy()
+
+								//                 Call the subroutine.
+								if full {
+									err2 = Dsyr(uplo, n, alpha, xx, aa)
+								} else if packed {
+									err2 = Dspr(uplo, n, alpha, xx, aa.VectorIdx(0))
+								}
+
+								//                 Check if error-exit was taken incorrectly.
+								if !ok {
+									t.Fail()
+									fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
+									fatal = true
+									goto label4120
+								}
+
+								//                 See what data changed inside subroutines.
+								isame[0] = uplo == uplos
+								isame[1] = ns == n
+								isame[2] = als == alpha
+								isame[3] = reflect.DeepEqual(xx, xs)
+								if null {
+									isame[5] = reflect.DeepEqual(aa, as)
+								} else {
+									isame[5] = lderesM(n, n, as, aa, lda)
+								}
+								if !packed {
+									isame[6] = ldas == lda
+								}
+
+								//                 If data was incorrectly changed, report and return.
+								same = true
+								for i = 1; i <= nargs; i++ {
+									same = same && isame[i-1]
+									if !isame[i-1] {
+										t.Fail()
+										fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
+									}
+								}
+								if !same {
+									fatal = true
+									goto label4120
+								}
+
+								if !null {
+									a.ToColMajor()
+									aa.ToColMajor()
+									//                    Check the result column by column.
+									z := mf(n, 1, optsge)
+									w := vf(n)
+									if incx > 0 {
+										for i = 1; i <= n; i++ {
+											z.Set(i-1, 0, x.Get(i-1))
+										}
+									} else {
+										for i = 1; i <= n; i++ {
+											z.Set(i-1, 0, x.Get(n-i))
+										}
+									}
+									ja = 1
+									for j = 1; j <= n; j++ {
+										w.Set(0, z.Get(j-1, 0))
+										if upper {
+											jj = 1
+											lj = j
+										} else {
+											jj = j
+											lj = n - j + 1
+										}
+										dmvch(mat.NoTrans, lj, 1, alpha, z.OffIdx(jj-1), lj, w, 1.0, a.Vector(jj-1, j-1, 1), yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
+										if full {
+											if upper {
+												ja += lda
+											} else {
+												ja += lda + 1
+											}
+										} else {
+											ja += lj
+										}
+										errmax = math.Max(errmax, err)
+										//                       If got really bad answer, report and return.
+										if fatal {
+											goto label4110
+										}
+									}
+									a.ToRowMajor()
+									aa.ToRowMajor()
+								} else {
+									//                    Avoid repeating tests if N.le.0.
+									if n <= 0 {
+										goto label4100
+									}
+								}
+
+							}
+						}
+
+					}
+
+				label4100:
+				}
 			}
 
 			//     Report result.
 			if errmax < thresh {
-				passL2(sname, nc, 121, t)
+				if packed {
+					passL2(sname, nc, 121, t)
+				} else {
+					passL2(sname, nc, 121*2, t)
+				}
 			} else {
 				fmt.Printf(" %6s passed %6d computational tests\n ******* but with maximum test ratio %8.2f - SUSPECT *******\n", sname, nc, errmax)
 			}
@@ -1127,180 +1179,198 @@ func TestDblasLevel2(t *testing.T) {
 			} else if packed {
 				nargs = 8
 				opts.Storage = mat.Packed
+				opts.Major = mat.Col
+				optsfull.Major = mat.Col
 			}
 
 			nc = 0
 
-			for _, n = range idim {
-				//        Set LDA to 1 more than minimum value if room.
-				lda = n
-				if lda < nmax {
-					lda++
+			for _, maj := range []mat.MatMajor{mat.Row, mat.Col} {
+				if packed && maj == mat.Row {
+					continue
 				}
-				//        Skip tests if not enough room.
-				if lda > nmax {
-					goto label5140
-				}
+				opts.Major = maj
+				optsfull.Major = maj
 
-				for _, uplo = range ichu {
-					upper = uplo == mat.Upper
-					opts.Uplo = uplo
-					optsfull.Uplo = uplo
-
-					for _, incx = range inc {
-						lx = abs(incx) * n
-
-						//              Generate the vector X.
-						x = vf(n, incx)
-						xx = vf(lx, incx)
-						dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
-						if n > 1 {
-							x.Set(n/2-1, 0)
-							xx.Set(abs(incx)*(n/2-1), 0)
-						}
-
-						for _, incy = range inc {
-							ly = abs(incy) * n
-
-							//                 Generate the vector Y.
-							y = vf(n, incy)
-							yy = vf(ly, incy)
-							dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
-							if n > 1 {
-								y.Set(n/2-1, 0)
-								yy.Set(abs(incy)*(n/2-1), 0)
-							}
-
-							for _, alpha = range alf {
-								null = n <= 0 || alpha == 0
-
-								//                    Generate the matrix A.
-								a = mf(nmax, nmax, optsfull)
-								aa = mf(lda, n, opts)
-
-								nc++
-
-								//                    Save every datum before calling the subroutine.
-								uplos = uplo
-								ns = n
-								als = alpha
-								as = aa.DeepCopy()
-								ldas = lda
-								xs = xx.DeepCopy()
-								ys = yy.DeepCopy()
-
-								//                    Call the subroutine.
-								if full {
-									err2 = Dsyr2(uplo, n, alpha, xx, yy, aa)
-								} else if packed {
-									err2 = Dspr2(uplo, n, alpha, xx, yy, aa.VectorIdx(0))
-								}
-
-								//                    Check if error-exit was taken incorrectly.
-								if !ok {
-									t.Fail()
-									fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
-									fatal = true
-									goto label5160
-								}
-
-								//                    See what data changed inside subroutines.
-								isame[0] = uplo == uplos
-								isame[1] = ns == n
-								isame[2] = als == alpha
-								isame[3] = reflect.DeepEqual(xx, xs)
-								isame[5] = reflect.DeepEqual(yy, ys)
-								if null {
-									isame[7] = reflect.DeepEqual(aa, as)
-								} else {
-									isame[7] = lderesM(n, n, as, aa, lda)
-								}
-								if !packed {
-									isame[8] = ldas == lda
-								}
-
-								//                    If data was incorrectly changed, report and return.
-								same = true
-								for i = 1; i <= nargs; i++ {
-									same = same && isame[i-1]
-									if !isame[i-1] {
-										t.Fail()
-										fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
-									}
-								}
-								if !same {
-									fatal = true
-									goto label5160
-								}
-
-								if !null {
-									//                    Check the result column by column.
-									z := mf(n, 2, optsge)
-									w := vf(2)
-									if incx > 0 {
-										for i = 1; i <= n; i++ {
-											z.Set(i-1, 0, x.Get(i-1))
-										}
-									} else {
-										for i = 1; i <= n; i++ {
-											z.Set(i-1, 0, x.Get(n-i))
-										}
-									}
-									if incy > 0 {
-										for i = 1; i <= n; i++ {
-											z.Set(i-1, 1, y.Get(i-1))
-										}
-									} else {
-										for i = 1; i <= n; i++ {
-											z.Set(i-1, 1, y.Get(n-i))
-										}
-									}
-									ja = 1
-									for j = 1; j <= n; j++ {
-										w.Set(0, z.Get(j-1, 1))
-										w.Set(1, z.Get(j-1, 0))
-										if upper {
-											jj = 1
-											lj = j
-										} else {
-											jj = j
-											lj = n - j + 1
-										}
-										dmvch(mat.NoTrans, lj, 2, alpha, z.OffIdx(jj-1), nmax, w, 1.0, a.Vector(jj-1, j-1, 1), yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
-										if full {
-											if upper {
-												ja += lda
-											} else {
-												ja += lda + 1
-											}
-										} else {
-											ja += lj
-										}
-										errmax = math.Max(errmax, err)
-										//                          If got really bad answer, report and return.
-										if fatal {
-											goto label5150
-										}
-									}
-								} else {
-									//                       Avoid repeating tests with N.le.0.
-									if n <= 0 {
-										goto label5140
-									}
-								}
-
-							}
-						}
+				for _, n = range idim {
+					//        Set LDA to 1 more than minimum value if room.
+					lda = n
+					if lda < nmax {
+						lda++
+					}
+					//        Skip tests if not enough room.
+					if lda > nmax {
+						goto label5140
 					}
 
-				}
+					for _, uplo = range ichu {
+						upper = uplo == mat.Upper
+						opts.Uplo = uplo
+						optsfull.Uplo = uplo
 
-			label5140:
+						for _, incx = range inc {
+							lx = abs(incx) * n
+
+							//              Generate the vector X.
+							x = vf(n, incx)
+							xx = vf(lx, incx)
+							dmakeL2V(1, n, x, 1, xx, abs(incx), 0, n-1, &reset, 0.5)
+							if n > 1 {
+								x.Set(n/2-1, 0)
+								xx.Set(abs(incx)*(n/2-1), 0)
+							}
+
+							for _, incy = range inc {
+								ly = abs(incy) * n
+
+								//                 Generate the vector Y.
+								y = vf(n, incy)
+								yy = vf(ly, incy)
+								dmakeL2V(1, n, y, 1, yy, abs(incy), 0, n-1, &reset, 0.0)
+								if n > 1 {
+									y.Set(n/2-1, 0)
+									yy.Set(abs(incy)*(n/2-1), 0)
+								}
+
+								for _, alpha = range alf {
+									null = n <= 0 || alpha == 0
+
+									//                    Generate the matrix A.
+									a = mf(nmax, nmax, optsfull)
+									aa = mf(lda, n, opts)
+
+									nc++
+
+									//                    Save every datum before calling the subroutine.
+									uplos = uplo
+									ns = n
+									als = alpha
+									as = aa.DeepCopy()
+									ldas = lda
+									xs = xx.DeepCopy()
+									ys = yy.DeepCopy()
+
+									//                    Call the subroutine.
+									if full {
+										err2 = Dsyr2(uplo, n, alpha, xx, yy, aa)
+									} else if packed {
+										err2 = Dspr2(uplo, n, alpha, xx, yy, aa.VectorIdx(0))
+									}
+
+									//                    Check if error-exit was taken incorrectly.
+									if !ok {
+										t.Fail()
+										fmt.Printf(" ******* FATAL ERROR - ERROR-EXIT TAKEN ON VALID CALL *******\n")
+										fatal = true
+										goto label5160
+									}
+
+									//                    See what data changed inside subroutines.
+									isame[0] = uplo == uplos
+									isame[1] = ns == n
+									isame[2] = als == alpha
+									isame[3] = reflect.DeepEqual(xx, xs)
+									isame[5] = reflect.DeepEqual(yy, ys)
+									if null {
+										isame[7] = reflect.DeepEqual(aa, as)
+									} else {
+										isame[7] = lderesM(n, n, as, aa, lda)
+									}
+									if !packed {
+										isame[8] = ldas == lda
+									}
+
+									//                    If data was incorrectly changed, report and return.
+									same = true
+									for i = 1; i <= nargs; i++ {
+										same = same && isame[i-1]
+										if !isame[i-1] {
+											t.Fail()
+											fmt.Printf(" ******* FATAL ERROR - PARAMETER NUMBER %2d WAS CHANGED INCORRECTLY *******\n", i)
+										}
+									}
+									if !same {
+										fatal = true
+										goto label5160
+									}
+
+									if !null {
+										a.ToColMajor()
+										aa.ToColMajor()
+										//                    Check the result column by column.
+										z := mf(n, 2, optsge)
+										w := vf(2)
+										if incx > 0 {
+											for i = 1; i <= n; i++ {
+												z.Set(i-1, 0, x.Get(i-1))
+											}
+										} else {
+											for i = 1; i <= n; i++ {
+												z.Set(i-1, 0, x.Get(n-i))
+											}
+										}
+										if incy > 0 {
+											for i = 1; i <= n; i++ {
+												z.Set(i-1, 1, y.Get(i-1))
+											}
+										} else {
+											for i = 1; i <= n; i++ {
+												z.Set(i-1, 1, y.Get(n-i))
+											}
+										}
+										ja = 1
+										for j = 1; j <= n; j++ {
+											w.Set(0, z.Get(j-1, 1))
+											w.Set(1, z.Get(j-1, 0))
+											if upper {
+												jj = 1
+												lj = j
+											} else {
+												jj = j
+												lj = n - j + 1
+											}
+											dmvch(mat.NoTrans, lj, 2, alpha, z.OffIdx(jj-1), nmax, w, 1.0, a.Vector(jj-1, j-1, 1), yt, g, aa.VectorIdx(ja-1), eps, &err, &fatal, true, t)
+											if full {
+												if upper {
+													ja += lda
+												} else {
+													ja += lda + 1
+												}
+											} else {
+												ja += lj
+											}
+											errmax = math.Max(errmax, err)
+											//                          If got really bad answer, report and return.
+											if fatal {
+												goto label5150
+											}
+										}
+										a.ToRowMajor()
+										aa.ToRowMajor()
+									} else {
+										//                       Avoid repeating tests with N.le.0.
+										if n <= 0 {
+											goto label5140
+										}
+									}
+
+								}
+							}
+						}
+
+					}
+
+				label5140:
+				}
 			}
 
 			//     Report result.
 			if errmax < thresh {
-				passL2(sname, nc, 481, t)
+				if packed {
+					passL2(sname, nc, 481, t)
+				} else {
+					passL2(sname, nc, 481*2, t)
+				}
 			} else {
 				fmt.Printf(" %6s passed %6d computational tests\n ******* but with maximum test ratio %8.2f - SUSPECT *******\n", sname, nc, errmax)
 			}
@@ -1321,7 +1391,7 @@ func TestDblasLevel2(t *testing.T) {
 	}
 }
 
-func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int, x *mat.Vector, beta float64, y *mat.Vector, yt, g, yy *mat.Vector, eps float64, err *float64, fatal *bool, mv bool, t *testing.T) {
+func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int, x *mat.Vector, beta float64, y, yt, g, yy *mat.Vector, eps float64, err *float64, fatal *bool, mv bool, t *testing.T) {
 	var tran bool
 	var erri, one, zero float64
 	var i, incxl, incyl, iy, j, jx, kx, ky, ml, nl int
@@ -1395,7 +1465,7 @@ func dmvch(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, nmax int,
 	//     Report fatal error.
 label50:
 	;
-	(*fatal) = true
+	*fatal = true
 	fmt.Printf(" ******* FATAL ERROR - COMPUTED RESULT IS LESS THAN HALF ACCURATE *******\n           EXPECTED RESULT   COMPUTED RESULT\n")
 	for i = 0; i < ml; i++ {
 		if mv {

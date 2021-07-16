@@ -106,7 +106,7 @@ func Dgbmv(trans mat.MatTrans, m, n, kl, ku int, alpha float64, a *mat.Matrix, x
 // m by n matrix.
 func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, x *mat.Vector, beta float64, y *mat.Vector) (err error) {
 	var one, temp, zero float64
-	var i, ix, iy, j, jx, jy, leny int
+	var i, ix, iy, j, jx, jy, lenx, leny int
 
 	one = 1.0
 	zero = 0.0
@@ -134,10 +134,15 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, x *mat.Ve
 	//     Set  LENX  and  LENY, the lengths of the vectors x and y, and set
 	//     up the start points in  X  and  Y.
 	if trans == mat.NoTrans {
+		lenx = n
 		leny = m
 	} else {
+		lenx = m
 		leny = n
 	}
+
+	xiter := x.Iter(lenx)
+	yiter := y.Iter(leny)
 
 	//     Start the operations. In this version the elements of A are
 	//     accessed sequentially with one pass through A.
@@ -145,12 +150,12 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, x *mat.Ve
 	//     First form  y := beta*y.
 	if beta != one {
 		if beta == zero {
-			for _, i = range y.Iter(leny) {
-				y.Set(i, zero)
+			for _, iy = range yiter {
+				y.Set(iy, zero)
 			}
 		} else {
-			for _, i = range y.Iter(leny) {
-				y.Set(i, beta*y.Get(i))
+			for _, iy = range yiter {
+				y.Set(iy, beta*y.Get(iy))
 			}
 		}
 	}
@@ -159,16 +164,16 @@ func Dgemv(trans mat.MatTrans, m, n int, alpha float64, a *mat.Matrix, x *mat.Ve
 	}
 	if trans == mat.NoTrans {
 		//        Form  y := alpha*A*x + y.
-		for j, jx = range x.Iter(n) {
+		for j, jx = range xiter {
 			temp = alpha * x.Get(jx)
-			for i, iy = range y.Iter(m) {
+			for i, iy = range yiter {
 				y.Set(iy, y.Get(iy)+temp*a.Get(i, j))
 			}
 		}
 	} else {
-		for j, jy = range y.Iter(n) {
+		for j, jy = range yiter {
 			temp = zero
-			for i, ix = range x.Iter(m) {
+			for i, ix = range xiter {
 				temp += a.Get(i, j) * x.Get(ix)
 			}
 			y.Set(jy, y.Get(jy)+alpha*temp)

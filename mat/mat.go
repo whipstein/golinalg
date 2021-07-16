@@ -327,8 +327,8 @@ type MatOpts struct {
 	Major   MatMajor
 }
 
-func NewMatOpts() *MatOpts {
-	return &MatOpts{
+func NewMatOpts() MatOpts {
+	return MatOpts{
 		Style:   General,
 		Storage: Dense,
 		Uplo:    Full,
@@ -337,8 +337,8 @@ func NewMatOpts() *MatOpts {
 		Major:   Row,
 	}
 }
-func NewMatOptsCol() *MatOpts {
-	return &MatOpts{
+func NewMatOptsCol() MatOpts {
+	return MatOpts{
 		Style:   General,
 		Storage: Dense,
 		Uplo:    Full,
@@ -347,16 +347,16 @@ func NewMatOptsCol() *MatOpts {
 		Major:   Col,
 	}
 }
-func (m *MatOpts) DeepCopy() *MatOpts {
+func (m MatOpts) DeepCopy() MatOpts {
 	b := bytes.Buffer{}
 	e := gob.NewEncoder(&b)
 	_ = e.Encode(m)
 	d := gob.NewDecoder(&b)
 	result := MatOpts{}
 	_ = d.Decode(&result)
-	return &result
+	return result
 }
-func (m *MatOpts) Iter() map[string]interface{} {
+func (m MatOpts) Iter() map[string]interface{} {
 	opts := make(map[string]interface{})
 	opts["style"] = m.Style
 	opts["storage"] = m.Storage
@@ -391,7 +391,7 @@ func (t *TransBuilder) T() []float64 {
 type Matrix struct {
 	Rows, Cols int
 	Data       []float64
-	Opts       *MatOpts
+	Opts       MatOpts
 }
 
 func (m *Matrix) AppendCol(x []float64) {
@@ -578,45 +578,51 @@ func (m *Matrix) UpdateRows(r int) *Matrix {
 	m.Cols = len(m.Data) / m.Rows
 	return m
 }
-func (m *Matrix) ToColMajor() *Matrix {
+func (m *Matrix) ToColMajor() {
 	if m.Opts.Major == Col {
-		return m
+		return
 	}
 
 	optsNew := m.Opts.DeepCopy()
 	optsNew.Major = Col
-	a := &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]float64, m.Rows*m.Cols)}
+	a := &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: newMatrixData(m.Rows, m.Cols)}
 	for i := 0; i < m.Rows; i++ {
 		for j := 0; j < m.Cols; j++ {
 			a.Set(i, j, m.Get(i, j))
 		}
 	}
-	m = a.Copy(0, 0)
-	return m
+	m.Opts.Major = Col
+	m.Data = a.Data
 }
-func (m *Matrix) ToRowMajor() *Matrix {
+func (m *Matrix) ToRowMajor() {
 	if m.Opts.Major == Row {
-		return m
+		return
 	}
 
 	optsNew := m.Opts.DeepCopy()
 	optsNew.Major = Row
-	a := &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]float64, m.Rows*m.Cols)}
+	a := &Matrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: newMatrixData(m.Rows, m.Cols)}
 	for i := 0; i < m.Rows; i++ {
 		for j := 0; j < m.Cols; j++ {
 			a.Set(i, j, m.Get(i, j))
 		}
 	}
-	m = a.Copy(0, 0)
-	return m
+	m.Opts.Major = Row
+	m.Data = a.Data
 }
 
-func MatrixFactory() func(int, int, ...*MatOpts) *Matrix {
-	return func(r, c int, opts ...*MatOpts) *Matrix {
-		if opts[0] != nil {
-			return &Matrix{Rows: r, Cols: c, Opts: opts[0], Data: make([]float64, r*c)}
-		}
-		return &Matrix{Rows: r, Cols: c, Opts: NewMatOpts(), Data: make([]float64, r*c)}
+func NewMatrix(r, c int, opts ...MatOpts) *Matrix {
+	var o MatOpts
+
+	if opts != nil {
+		o = opts[0]
+	}
+	return &Matrix{Rows: r, Cols: c, Opts: o, Data: newMatrixData(r, c)}
+}
+
+func MatrixFactory() func(int, int, ...MatOpts) *Matrix {
+	return func(r, c int, opts ...MatOpts) *Matrix {
+		return NewMatrix(r, c, opts...)
 	}
 }
 
@@ -626,6 +632,10 @@ func MatrixDataFactory() func(*Matrix, []float64) *Matrix {
 		out.Data = d
 		return out
 	}
+}
+
+func newMatrixData(r, c int) []float64 {
+	return make([]float64, r*c)
 }
 
 type CTransBuilder struct {
@@ -650,7 +660,7 @@ func (t *CTransBuilder) T() []complex128 {
 type CMatrix struct {
 	Rows, Cols int
 	Data       []complex128
-	Opts       *MatOpts
+	Opts       MatOpts
 }
 
 func (m *CMatrix) AppendCol(x []complex128) {
@@ -952,45 +962,57 @@ func (m *CMatrix) UpdateRows(r int) *CMatrix {
 	m.Cols = len(m.Data) / m.Rows
 	return m
 }
-func (m *CMatrix) ToColMajor() *CMatrix {
+func (m *CMatrix) ToColMajor() {
 	if m.Opts.Major == Col {
-		return m
+		return
 	}
 
 	optsNew := m.Opts.DeepCopy()
 	optsNew.Major = Col
-	a := &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]complex128, m.Rows*m.Cols)}
+	a := &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: newCMatrixData(m.Rows, m.Cols)}
 	for i := 0; i < m.Rows; i++ {
 		for j := 0; j < m.Cols; j++ {
 			a.Set(i, j, m.Get(i, j))
 		}
 	}
-	m = a.Copy(0, 0)
-	return m
+	m.Opts.Major = Col
+	m.Data = a.Data
 }
-func (m *CMatrix) ToRowMajor() *CMatrix {
+func (m *CMatrix) ToRowMajor() {
 	if m.Opts.Major == Row {
-		return m
+		return
 	}
 
 	optsNew := m.Opts.DeepCopy()
 	optsNew.Major = Row
-	a := &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: make([]complex128, m.Rows*m.Cols)}
+	a := &CMatrix{Rows: m.Rows, Cols: m.Cols, Opts: optsNew, Data: newCMatrixData(m.Rows, m.Cols)}
 	for i := 0; i < m.Rows; i++ {
 		for j := 0; j < m.Cols; j++ {
 			a.Set(i, j, m.Get(i, j))
 		}
 	}
-	m = a.Copy(0, 0)
-	return m
+	m.Opts.Major = Row
+	m.Data = a.Data
 }
 
-func CMatrixFactory() func(int, int, ...*MatOpts) *CMatrix {
-	return func(r, c int, opts ...*MatOpts) *CMatrix {
-		if opts[0] != nil {
-			return &CMatrix{Rows: r, Cols: c, Opts: opts[0], Data: make([]complex128, r*c)}
-		}
-		return &CMatrix{Rows: r, Cols: c, Opts: NewMatOpts(), Data: make([]complex128, r*c)}
+func newCMatrixData(r, c int) []complex128 {
+	return make([]complex128, r*c)
+}
+
+func NewCMatrix(r, c int, opts ...MatOpts) *CMatrix {
+	var o MatOpts
+
+	if opts != nil {
+		o = opts[0]
+	} else {
+		o = NewMatOpts()
+	}
+	return &CMatrix{Rows: r, Cols: c, Opts: o, Data: newCMatrixData(r, c)}
+}
+
+func CMatrixFactory() func(int, int, ...MatOpts) *CMatrix {
+	return func(r, c int, opts ...MatOpts) *CMatrix {
+		return NewCMatrix(r, c, opts...)
 	}
 }
 

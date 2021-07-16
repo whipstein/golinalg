@@ -621,7 +621,7 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 								b.Set(i-1, j-1, b.Get(i-1, j-1)+temp*a.Get(i-1, k-1))
 							}
 							if nounit {
-								temp = temp * a.Get(k-1, k-1)
+								temp *= a.Get(k-1, k-1)
 							}
 							b.Set(k-1, j-1, temp)
 						}
@@ -651,17 +651,17 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 						temp = b.Get(i-1, j-1)
 						if noconj {
 							if nounit {
-								temp = temp * a.Get(i-1, i-1)
+								temp *= a.Get(i-1, i-1)
 							}
 							for k = 1; k <= i-1; k++ {
-								temp = temp + a.Get(k-1, i-1)*b.Get(k-1, j-1)
+								temp += a.Get(k-1, i-1) * b.Get(k-1, j-1)
 							}
 						} else {
 							if nounit {
-								temp = temp * a.GetConj(i-1, i-1)
+								temp *= a.GetConj(i-1, i-1)
 							}
 							for k = 1; k <= i-1; k++ {
-								temp = temp + a.GetConj(k-1, i-1)*b.Get(k-1, j-1)
+								temp += a.GetConj(k-1, i-1) * b.Get(k-1, j-1)
 							}
 						}
 						b.Set(i-1, j-1, alpha*temp)
@@ -673,17 +673,17 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 						temp = b.Get(i-1, j-1)
 						if noconj {
 							if nounit {
-								temp = temp * a.Get(i-1, i-1)
+								temp *= a.Get(i-1, i-1)
 							}
 							for k = i + 1; k <= m; k++ {
-								temp = temp + a.Get(k-1, i-1)*b.Get(k-1, j-1)
+								temp += a.Get(k-1, i-1) * b.Get(k-1, j-1)
 							}
 						} else {
 							if nounit {
-								temp = temp * a.GetConj(i-1, i-1)
+								temp *= a.GetConj(i-1, i-1)
 							}
 							for k = i + 1; k <= m; k++ {
-								temp = temp + a.GetConj(k-1, i-1)*b.Get(k-1, j-1)
+								temp += a.GetConj(k-1, i-1) * b.Get(k-1, j-1)
 							}
 						}
 						b.Set(i-1, j-1, alpha*temp)
@@ -698,7 +698,7 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 				for j = n; j >= 1; j-- {
 					temp = alpha
 					if nounit {
-						temp = temp * a.Get(j-1, j-1)
+						temp *= a.Get(j-1, j-1)
 					}
 					for i = 1; i <= m; i++ {
 						b.Set(i-1, j-1, temp*b.Get(i-1, j-1))
@@ -716,7 +716,7 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 				for j = 1; j <= n; j++ {
 					temp = alpha
 					if nounit {
-						temp = temp * a.Get(j-1, j-1)
+						temp *= a.Get(j-1, j-1)
 					}
 					for i = 1; i <= m; i++ {
 						b.Set(i-1, j-1, temp*b.Get(i-1, j-1))
@@ -750,9 +750,9 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 					temp = alpha
 					if nounit {
 						if noconj {
-							temp = temp * a.Get(k-1, k-1)
+							temp *= a.Get(k-1, k-1)
 						} else {
-							temp = temp * a.GetConj(k-1, k-1)
+							temp *= a.GetConj(k-1, k-1)
 						}
 					}
 					if temp != one {
@@ -778,9 +778,9 @@ func Ztrmm(side mat.MatSide, uplo mat.MatUplo, transa mat.MatTrans, diag mat.Mat
 					temp = alpha
 					if nounit {
 						if noconj {
-							temp = temp * a.Get(k-1, k-1)
+							temp *= a.Get(k-1, k-1)
 						} else {
-							temp = temp * a.GetConj(k-1, k-1)
+							temp *= a.GetConj(k-1, k-1)
 						}
 					}
 					if temp != one {
