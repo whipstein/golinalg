@@ -12,39 +12,40 @@ import "math"
 // 1) CC = 0 so that AA and DD are real eigenvalues of the matrix, or
 // 2) AA = DD and BB*CC < 0, so that AA + or - math.Sqrt(BB*CC) are complex
 // conjugate eigenvalues.
-func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
+func Dlanv2(a, b, c, d float64) (aOut, bOut, cOut, dOut, rt1r, rt1i, rt2r, rt2i, cs, sn float64) {
 	var aa, bb, bcmax, bcmis, cc, cs1, dd, eps, half, multpl, one, p, sab, sac, scale, sigma, sn1, tau, temp, z, zero float64
 
 	zero = 0.0
 	half = 0.5
 	one = 1.0
 	multpl = 4.0
+	aOut, bOut, cOut, dOut = a, b, c, d
 
 	eps = Dlamch(Precision)
-	if (*c) == zero {
-		(*cs) = one
-		(*sn) = zero
+	if cOut == zero {
+		cs = one
+		sn = zero
 
-	} else if (*b) == zero {
+	} else if bOut == zero {
 		//        Swap rows and columns
-		(*cs) = zero
-		(*sn) = one
-		temp = (*d)
-		(*d) = (*a)
-		(*a) = temp
-		(*b) = -(*c)
-		(*c) = zero
+		cs = zero
+		sn = one
+		temp = dOut
+		dOut = aOut
+		aOut = temp
+		bOut = -cOut
+		cOut = zero
 
-	} else if ((*a)-(*d)) == zero && math.Copysign(one, *b) != math.Copysign(one, *c) {
-		(*cs) = one
-		(*sn) = zero
+	} else if (aOut-dOut) == zero && math.Copysign(one, bOut) != math.Copysign(one, cOut) {
+		cs = one
+		sn = zero
 
 	} else {
 
-		temp = (*a) - (*d)
+		temp = aOut - dOut
 		p = half * temp
-		bcmax = math.Max(math.Abs(*b), math.Abs(*c))
-		bcmis = math.Min(math.Abs(*b), math.Abs(*c)) * math.Copysign(one, *b) * math.Copysign(one, *c)
+		bcmax = math.Max(math.Abs(bOut), math.Abs(cOut))
+		bcmis = math.Min(math.Abs(bOut), math.Abs(cOut)) * math.Copysign(one, bOut) * math.Copysign(one, cOut)
 		scale = math.Max(math.Abs(p), bcmax)
 		z = (p/scale)*p + (bcmax/scale)*bcmis
 
@@ -53,66 +54,66 @@ func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
 		if z >= multpl*eps {
 			//           Real eigenvalues. Compute A and D.
 			z = p + math.Copysign(math.Sqrt(scale)*math.Sqrt(z), p)
-			(*a) = (*d) + z
-			(*d) = (*d) - (bcmax/z)*bcmis
+			aOut = dOut + z
+			dOut = dOut - (bcmax/z)*bcmis
 
 			//           Compute B and the rotation matrix
-			tau = Dlapy2(c, &z)
-			(*cs) = z / tau
-			(*sn) = (*c) / tau
-			(*b) = (*b) - (*c)
-			(*c) = zero
+			tau = Dlapy2(cOut, z)
+			cs = z / tau
+			sn = cOut / tau
+			bOut = bOut - cOut
+			cOut = zero
 
 		} else {
 			//           Complex eigenvalues, or real (almost) equal eigenvalues.
 			//           Make diagonal elements equal.
-			sigma = (*b) + (*c)
-			tau = Dlapy2(&sigma, &temp)
-			(*cs) = math.Sqrt(half * (one + math.Abs(sigma)/tau))
-			(*sn) = -(p / (tau * (*cs))) * math.Copysign(one, sigma)
+			sigma = bOut + cOut
+			tau = Dlapy2(sigma, temp)
+			cs = math.Sqrt(half * (one + math.Abs(sigma)/tau))
+			sn = -(p / (tau * cs)) * math.Copysign(one, sigma)
 
 			//           Compute [ AA  BB ] = [ A  B ] [ CS -SN ]
 			//                   [ CC  DD ]   [ C  D ] [ SN  CS ]
-			aa = (*a)*(*cs) + (*b)*(*sn)
-			bb = -(*a)*(*sn) + (*b)*(*cs)
-			cc = (*c)*(*cs) + (*d)*(*sn)
-			dd = -(*c)*(*sn) + (*d)*(*cs)
+			aa = aOut*cs + bOut*sn
+			bb = -aOut*sn + bOut*cs
+			cc = cOut*cs + dOut*sn
+			dd = -cOut*sn + dOut*cs
 
 			//           Compute [ A  B ] = [ CS  SN ] [ AA  BB ]
 			//                   [ C  D ]   [-SN  CS ] [ CC  DD ]
-			(*a) = aa*(*cs) + cc*(*sn)
-			(*b) = bb*(*cs) + dd*(*sn)
-			(*c) = -aa*(*sn) + cc*(*cs)
-			(*d) = -bb*(*sn) + dd*(*cs)
+			aOut = aa*cs + cc*sn
+			bOut = bb*cs + dd*sn
+			cOut = -aa*sn + cc*cs
+			dOut = -bb*sn + dd*cs
 
-			temp = half * ((*a) + (*d))
-			(*a) = temp
-			(*d) = temp
+			temp = half * (aOut + dOut)
+			aOut = temp
+			dOut = temp
 
-			if (*c) != zero {
-				if (*b) != zero {
-					if math.Copysign(one, *b) == math.Copysign(one, *c) {
+			if cOut != zero {
+				if bOut != zero {
+					if math.Copysign(one, bOut) == math.Copysign(one, cOut) {
 						//                    Real eigenvalues: reduce to upper triangular form
-						sab = math.Sqrt(math.Abs(*b))
-						sac = math.Sqrt(math.Abs(*c))
-						p = math.Copysign(sab*sac, *c)
-						tau = one / math.Sqrt(math.Abs((*b)+(*c)))
-						(*a) = temp + p
-						(*d) = temp - p
-						(*b) = (*b) - (*c)
-						(*c) = zero
+						sab = math.Sqrt(math.Abs(bOut))
+						sac = math.Sqrt(math.Abs(cOut))
+						p = math.Copysign(sab*sac, cOut)
+						tau = one / math.Sqrt(math.Abs(bOut+cOut))
+						aOut = temp + p
+						dOut = temp - p
+						bOut = bOut - cOut
+						cOut = zero
 						cs1 = sab * tau
 						sn1 = sac * tau
-						temp = (*cs)*cs1 - (*sn)*sn1
-						(*sn) = (*cs)*sn1 + (*sn)*cs1
-						(*cs) = temp
+						temp = cs*cs1 - sn*sn1
+						sn = cs*sn1 + sn*cs1
+						cs = temp
 					}
 				} else {
-					(*b) = -(*c)
-					(*c) = zero
-					temp = (*cs)
-					(*cs) = -(*sn)
-					(*sn) = temp
+					bOut = -cOut
+					cOut = zero
+					temp = cs
+					cs = -sn
+					sn = temp
 				}
 			}
 		}
@@ -120,13 +121,15 @@ func Dlanv2(a, b, c, d, rt1r, rt1i, rt2r, rt2i, cs, sn *float64) {
 	}
 
 	//     Store eigenvalues in (RT1R,RT1I) and (RT2R,RT2I).
-	(*rt1r) = (*a)
-	(*rt2r) = (*d)
-	if (*c) == zero {
-		(*rt1i) = zero
-		(*rt2i) = zero
+	rt1r = aOut
+	rt2r = dOut
+	if cOut == zero {
+		rt1i = zero
+		rt2i = zero
 	} else {
-		(*rt1i) = math.Sqrt(math.Abs(*b)) * math.Sqrt(math.Abs(*c))
-		(*rt2i) = -(*rt1i)
+		rt1i = math.Sqrt(math.Abs(bOut)) * math.Sqrt(math.Abs(cOut))
+		rt2i = -rt1i
 	}
+
+	return
 }

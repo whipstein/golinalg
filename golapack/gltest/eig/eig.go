@@ -16,6 +16,7 @@ const (
 	ConjTrans = mat.ConjTrans
 	Left      = mat.Left
 	Right     = mat.Right
+	Both      = mat.Both
 	NonUnit   = mat.NonUnit
 	Unit      = mat.Unit
 )

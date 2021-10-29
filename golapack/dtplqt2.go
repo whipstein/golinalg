@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -9,93 +11,104 @@ import (
 // Dtplqt2 computes a LQ a factorization of a real "triangular-pentagonal"
 // matrix C, which is composed of a triangular block A and pentagonal block B,
 // using the compact WY representation for Q.
-func Dtplqt2(m, n, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, t *mat.Matrix, ldt, info *int) {
+func Dtplqt2(m, n, l int, a, b, t *mat.Matrix) (err error) {
 	var alpha, one, zero float64
 	var i, j, mp, np, p int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input arguments
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*l) < 0 || (*l) > min(*m, *n) {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *m) {
-		(*info) = -7
-	} else if (*ldt) < max(1, *m) {
-		(*info) = -9
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if l < 0 || l > min(m, n) {
+		err = fmt.Errorf("l < 0 || l > min(m, n): l=%v, m=%v, n=%v", l, m, n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows < max(1, m): b.Rows=%v, m=%v", b.Rows, m)
+	} else if t.Rows < max(1, m) {
+		err = fmt.Errorf("t.Rows < max(1, m): t.Rows=%v, m=%v", t.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTPLQT2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtplqt2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*m) == 0 {
+	if n == 0 || m == 0 {
 		return
 	}
 
-	for i = 1; i <= (*m); i++ {
+	for i = 1; i <= m; i++ {
 		//        Generate elementary reflector H(I) to annihilate B(I,:)
-		p = (*n) - (*l) + min(*l, i)
-		Dlarfg(toPtr(p+1), a.GetPtr(i-1, i-1), b.Vector(i-1, 0), ldb, t.GetPtr(0, i-1))
-		if i < (*m) {
+		p = n - l + min(l, i)
+		*a.GetPtr(i-1, i-1), *t.GetPtr(0, i-1) = Dlarfg(p+1, a.Get(i-1, i-1), b.Vector(i-1, 0))
+		if i < m {
 			//           W(M-I:1) := C(I+1:M,I:N) * C(I,I:N) [use W = T(M,:)]
-			for j = 1; j <= (*m)-i; j++ {
-				t.Set((*m)-1, j-1, a.Get(i+j-1, i-1))
+			for j = 1; j <= m-i; j++ {
+				t.Set(m-1, j-1, a.Get(i+j-1, i-1))
 			}
-			err = goblas.Dgemv(NoTrans, (*m)-i, p, one, b.Off(i, 0), b.Vector(i-1, 0, *ldb), one, t.Vector((*m)-1, 0, *ldt))
+			if err = goblas.Dgemv(NoTrans, m-i, p, one, b.Off(i, 0), b.Vector(i-1, 0), one, t.Vector(m-1, 0)); err != nil {
+				panic(err)
+			}
 
 			//           C(I+1:M,I:N) = C(I+1:M,I:N) + alpha * C(I,I:N)*W(M-1:1)^H
 			alpha = -t.Get(0, i-1)
-			for j = 1; j <= (*m)-i; j++ {
-				a.Set(i+j-1, i-1, a.Get(i+j-1, i-1)+alpha*t.Get((*m)-1, j-1))
+			for j = 1; j <= m-i; j++ {
+				a.Set(i+j-1, i-1, a.Get(i+j-1, i-1)+alpha*t.Get(m-1, j-1))
 			}
-			err = goblas.Dger((*m)-i, p, alpha, t.Vector((*m)-1, 0, *ldt), b.Vector(i-1, 0, *ldb), b.Off(i, 0))
+			if err = goblas.Dger(m-i, p, alpha, t.Vector(m-1, 0), b.Vector(i-1, 0), b.Off(i, 0)); err != nil {
+				panic(err)
+			}
 		}
 	}
 
-	for i = 2; i <= (*m); i++ {
+	for i = 2; i <= m; i++ {
 		//        T(I,1:I-1) := C(I:I-1,1:N) * (alpha * C(I,I:N)^H)
 		alpha = -t.Get(0, i-1)
 		for j = 1; j <= i-1; j++ {
 			t.Set(i-1, j-1, zero)
 		}
-		p = min(i-1, *l)
-		np = min((*n)-(*l)+1, *n)
-		mp = min(p+1, *m)
+		p = min(i-1, l)
+		np = min(n-l+1, n)
+		mp = min(p+1, m)
 
 		//        Triangular part of B2
 		for j = 1; j <= p; j++ {
-			t.Set(i-1, j-1, alpha*b.Get(i-1, (*n)-(*l)+j-1))
+			t.Set(i-1, j-1, alpha*b.Get(i-1, n-l+j-1))
 		}
-		err = goblas.Dtrmv(Lower, NoTrans, NonUnit, p, b.Off(0, np-1), t.Vector(i-1, 0, *ldt))
+		if err = goblas.Dtrmv(Lower, NoTrans, NonUnit, p, b.Off(0, np-1), t.Vector(i-1, 0)); err != nil {
+			panic(err)
+		}
 
 		//        Rectangular part of B2
-		err = goblas.Dgemv(NoTrans, i-1-p, *l, alpha, b.Off(mp-1, np-1), b.Vector(i-1, np-1, *ldb), zero, t.Vector(i-1, mp-1, *ldt))
+		if err = goblas.Dgemv(NoTrans, i-1-p, l, alpha, b.Off(mp-1, np-1), b.Vector(i-1, np-1), zero, t.Vector(i-1, mp-1)); err != nil {
+			panic(err)
+		}
 
 		//        B1
-		err = goblas.Dgemv(NoTrans, i-1, (*n)-(*l), alpha, b, b.Vector(i-1, 0, *ldb), one, t.Vector(i-1, 0, *ldt))
+		if err = goblas.Dgemv(NoTrans, i-1, n-l, alpha, b, b.Vector(i-1, 0), one, t.Vector(i-1, 0)); err != nil {
+			panic(err)
+		}
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(I,1:I-1)
-		err = goblas.Dtrmv(Lower, Trans, NonUnit, i-1, t, t.Vector(i-1, 0, *ldt))
+		if err = goblas.Dtrmv(Lower, Trans, NonUnit, i-1, t, t.Vector(i-1, 0)); err != nil {
+			panic(err)
+		}
 
 		//        T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(0, i-1))
 		t.Set(0, i-1, zero)
 	}
-	for i = 1; i <= (*m); i++ {
-		for j = i + 1; j <= (*m); j++ {
+	for i = 1; i <= m; i++ {
+		for j = i + 1; j <= m; j++ {
 			t.Set(i-1, j-1, t.Get(j-1, i-1))
 			t.Set(j-1, i-1, zero)
 		}
 	}
+
+	return
 }

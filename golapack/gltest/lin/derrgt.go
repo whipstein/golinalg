@@ -1,17 +1,18 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrgt tests the error exits for the DOUBLE PRECISION tridiagonal
+// derrgt tests the error exits for the DOUBLE PRECISION tridiagonal
 // routines.
-func Derrgt(path []byte, t *testing.T) {
-	var anorm, rcond float64
-	var info int
+func derrgt(path string, t *testing.T) {
+	var anorm float64
+	var err error
 
 	b := mf(2, 1, opts)
 	c := vf(2)
@@ -27,9 +28,8 @@ func Derrgt(path []byte, t *testing.T) {
 	x := mf(2, 1, opts)
 	ip := make([]int, 2)
 	iw := make([]int, 2)
-	lerr := &gltest.Common.Infoc.Lerr
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	c2 := path[1:3]
@@ -44,110 +44,111 @@ func Derrgt(path []byte, t *testing.T) {
 	anorm = 1.0
 	(*ok) = true
 
-	if string(c2) == "GT" {
+	if c2 == "gt" {
 		//        Test error exits for the general tridiagonal routines.
 		//
-		//        DGTTRF
-		*srnamt = "DGTTRF"
-		*infot = 1
-		golapack.Dgttrf(toPtr(-1), c, d, e, f, &ip, &info)
-		if *infot == abs(info) {
-			*lerr = true
-		}
-		Chkxer("DGTTRF", &info, lerr, ok, t)
+		//        Dgttrf
+		*srnamt = "Dgttrf"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgttrf(-1, c, d, e, f, &ip)
+		chkxer2("Dgttrf", err)
 
-		//        DGTTRS
-		*srnamt = "DGTTRS"
-		*infot = 1
-		golapack.Dgttrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), c, d, e, f, &ip, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGTTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgttrs('N', toPtr(-1), func() *int { y := 0; return &y }(), c, d, e, f, &ip, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGTTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgttrs('N', func() *int { y := 0; return &y }(), toPtr(-1), c, d, e, f, &ip, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGTTRS", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dgttrs('N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), c, d, e, f, &ip, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGTTRS", &info, lerr, ok, t)
+		//        Dgttrs
+		*srnamt = "Dgttrs"
+		*errt = fmt.Errorf("!trans.IsValid(): trans=Unrecognized: /")
+		err = golapack.Dgttrs('/', 0, 0, c, d, e, f, ip, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgttrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dgttrs(NoTrans, -1, 0, c, d, e, f, ip, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgttrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dgttrs(NoTrans, 0, -1, c, d, e, f, ip, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgttrs", err)
+		*errt = fmt.Errorf("b.Rows < max(n, 1): b.Rows=1, n=2")
+		err = golapack.Dgttrs(NoTrans, 2, 1, c, d, e, f, ip, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgttrs", err)
 
-		//        DGTRFS
-		*srnamt = "DGTRFS"
-		*infot = 1
-		golapack.Dgtrfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), c, d, e, cf, df, ef, f, &ip, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DGTRFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgtrfs('N', toPtr(-1), func() *int { y := 0; return &y }(), c, d, e, cf, df, ef, f, &ip, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DGTRFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgtrfs('N', func() *int { y := 0; return &y }(), toPtr(-1), c, d, e, cf, df, ef, f, &ip, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DGTRFS", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Dgtrfs('N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), c, d, e, cf, df, ef, f, &ip, b, func() *int { y := 1; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DGTRFS", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Dgtrfs('N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), c, d, e, cf, df, ef, f, &ip, b, func() *int { y := 2; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DGTRFS", &info, lerr, ok, t)
+		//        Dgtrfs
+		*srnamt = "Dgtrfs"
+		*errt = fmt.Errorf("!trans.IsValid(): trans=Unrecognized: /")
+		err = golapack.Dgtrfs('/', 0, 0, c, d, e, cf, df, ef, f, ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtrfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dgtrfs(NoTrans, -1, 0, c, d, e, cf, df, ef, f, ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtrfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dgtrfs(NoTrans, 0, -1, c, d, e, cf, df, ef, f, ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtrfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dgtrfs(NoTrans, 2, 1, c, d, e, cf, df, ef, f, ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dgtrfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Dgtrfs(NoTrans, 2, 1, c, d, e, cf, df, ef, f, ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtrfs", err)
 
-		//        DGTCON
-		*srnamt = "DGTCON"
-		*infot = 1
-		golapack.Dgtcon('/', func() *int { y := 0; return &y }(), c, d, e, f, &ip, &anorm, &rcond, w, &iw, &info)
-		Chkxer("DGTCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgtcon('I', toPtr(-1), c, d, e, f, &ip, &anorm, &rcond, w, &iw, &info)
-		Chkxer("DGTCON", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dgtcon('I', func() *int { y := 0; return &y }(), c, d, e, f, &ip, func() *float64 { y := -anorm; return &y }(), &rcond, w, &iw, &info)
-		Chkxer("DGTCON", &info, lerr, ok, t)
-		//
-	} else if string(c2) == "PT" {
+		//        Dgtcon
+		*srnamt = "Dgtcon"
+		*errt = fmt.Errorf("!onenrm && norm != 'I': norm=/")
+		_, err = golapack.Dgtcon('/', 0, c, d, e, f, ip, anorm, w, &iw)
+		chkxer2("Dgtcon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgtcon('I', -1, c, d, e, f, ip, anorm, w, &iw)
+		chkxer2("Dgtcon", err)
+		*errt = fmt.Errorf("anorm < zero: anorm=-1")
+		_, err = golapack.Dgtcon('I', 0, c, d, e, f, ip, -anorm, w, &iw)
+		chkxer2("Dgtcon", err)
+
+	} else if c2 == "pt" {
 		//        Test error exits for the positive definite tridiagonal
 		//        routines.
 		//
-		//        DPTTRF
-		*srnamt = "DPTTRF"
-		*infot = 1
-		golapack.Dpttrf(toPtr(-1), d, e, &info)
-		Chkxer("DPTTRF", &info, lerr, ok, t)
+		//        Dpttrf
+		*srnamt = "Dpttrf"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpttrf(-1, d, e)
+		chkxer2("Dpttrf", err)
 
-		//        DPTTRS
-		*srnamt = "DPTTRS"
-		*infot = 1
-		golapack.Dpttrs(toPtr(-1), func() *int { y := 0; return &y }(), d, e, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPTTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpttrs(func() *int { y := 0; return &y }(), toPtr(-1), d, e, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPTTRS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dpttrs(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), d, e, x, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPTTRS", &info, lerr, ok, t)
+		//        Dpttrs
+		*srnamt = "Dpttrs"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dpttrs(-1, 0, d, e, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpttrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dpttrs(0, -1, d, e, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpttrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dpttrs(2, 1, d, e, x.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpttrs", err)
 
-		//        DPTRFS
-		*srnamt = "DPTRFS"
-		*infot = 1
-		golapack.Dptrfs(toPtr(-1), func() *int { y := 0; return &y }(), d, e, df, ef, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &info)
-		Chkxer("DPTRFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dptrfs(func() *int { y := 0; return &y }(), toPtr(-1), d, e, df, ef, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &info)
-		Chkxer("DPTRFS", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dptrfs(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), d, e, df, ef, b, func() *int { y := 1; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &info)
-		Chkxer("DPTRFS", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dptrfs(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), d, e, df, ef, b, func() *int { y := 2; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &info)
-		Chkxer("DPTRFS", &info, lerr, ok, t)
+		//        Dptrfs
+		*srnamt = "Dptrfs"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dptrfs(-1, 0, d, e, df, ef, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptrfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dptrfs(0, -1, d, e, df, ef, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptrfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dptrfs(2, 1, d, e, df, ef, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w)
+		chkxer2("Dptrfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Dptrfs(2, 1, d, e, df, ef, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptrfs", err)
 
-		//        DPTCON
-		*srnamt = "DPTCON"
-		*infot = 1
-		golapack.Dptcon(toPtr(-1), d, e, &anorm, &rcond, w, &info)
-		Chkxer("DPTCON", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dptcon(func() *int { y := 0; return &y }(), d, e, func() *float64 { y := -anorm; return &y }(), &rcond, w, &info)
-		Chkxer("DPTCON", &info, lerr, ok, t)
+		//        Dptcon
+		*srnamt = "Dptcon"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dptcon(-1, d, e, anorm, w)
+		chkxer2("Dptcon", err)
+		*errt = fmt.Errorf("anorm < zero: anorm=-1")
+		_, err = golapack.Dptcon(0, d, e, -anorm, w)
+		chkxer2("Dptcon", err)
 	}
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

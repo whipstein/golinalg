@@ -15,26 +15,29 @@ import (
 // where  tau  is a scalar and  v  is a vector.
 //
 // If  tau  is  zero, then  H  is taken to be the unit matrix.
-func Dlarfy(uplo byte, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.Matrix, ldc *int, work *mat.Vector) {
+func Dlarfy(uplo mat.MatUplo, n int, v *mat.Vector, tau float64, c *mat.Matrix, work *mat.Vector) {
 	var alpha, half, one, zero float64
 	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 	half = 0.5
 
-	if (*tau) == zero {
+	if tau == zero {
 		return
 	}
 
 	//     Form  w:= C * v
-	err = goblas.Dsymv(mat.UploByte(uplo), *n, one, c, v, zero, work)
+	if err = goblas.Dsymv(uplo, n, one, c, v, zero, work); err != nil {
+		panic(err)
+	}
 
-	alpha = -half * (*tau) * goblas.Ddot(*n, work, v)
-	goblas.Daxpy(*n, alpha, v, work)
+	alpha = -half * tau * goblas.Ddot(n, work, v)
+	goblas.Daxpy(n, alpha, v, work)
 
 	//     C := C - v * w' - w * v'
 
-	err = goblas.Dsyr2(mat.UploByte(uplo), *n, -(*tau), v, work, c)
+	if err = goblas.Dsyr2(uplo, n, -tau, v, work, c); err != nil {
+		panic(err)
+	}
 }

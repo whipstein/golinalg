@@ -8,13 +8,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget37 tests DTRSNA, a routine for estimating condition numbers of
+// dget37 tests DTRSNA, a routine for estimating condition numbers of
 // eigenvalues and/or right eigenvectors of a matrix.
 //
 // The test matrices are read from a file with logical unit number NIN.
-func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
+func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 	var bignum, eps, epsin, one, smlnum, tnrm, tol, tolin, two, v, vimin, vmax, vmul, vrmin, zero float64
-	var _i, i, icmp, ifnd, info, iscl, j, kmin, ldt, lwork, m, n int
+	var _i, i, icmp, ifnd, info, iscl, j, kmin, ldt, lwork, n int
+	var err error
 
 	cnt := 0
 	zero = 0.0
@@ -49,7 +50,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     EPSIN = 2**(-24) = precision to which input data computed
 	eps = math.Max(eps, epsin)
@@ -59,7 +60,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 	(*lmax)[0] = 0
 	(*lmax)[1] = 0
 	(*lmax)[2] = 0
-	(*knt) = 0
+	knt = 0
 	(*ninfo)[0] = 0
 	(*ninfo)[1] = 0
 	(*ninfo)[2] = 0
@@ -546,13 +547,13 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			sin.Set(i-1, sinlist[_i][i-1])
 			sepin.Set(i-1, sepinlist[_i][i-1])
 		}
-		tnrm = golapack.Dlange('M', &n, &n, tmp, &ldt, work)
+		tnrm = golapack.Dlange('M', n, n, tmp, work)
 
 		//     Begin test
 		for iscl = 1; iscl <= 3; iscl++ {
 			//        Scale input matrix
-			(*knt) = (*knt) + 1
-			golapack.Dlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
+			knt = knt + 1
+			golapack.Dlacpy(Full, n, n, tmp, t)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
 				goblas.Dscal(n, vmul, t.Vector(0, i-1, 1))
@@ -562,9 +563,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			}
 
 			//        Compute eigenvalues and eigenvectors
-			golapack.Dgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work, work.Off(n), toPtr(lwork-n), &info)
-			if info != 0 {
-				(*lmax)[0] = (*knt)
+			if err = golapack.Dgehrd(n, 1, n, t, work, work.Off(n), lwork-n); err != nil {
+				(*lmax)[0] = knt
 				(*ninfo)[0] = (*ninfo)[0] + 1
 				goto label240
 			}
@@ -575,20 +575,20 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			}
 
 			//        Compute Schur form
-			golapack.Dhseqr('S', 'N', &n, func() *int { y := 1; return &y }(), &n, t, &ldt, wr, wi, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work, &lwork, &info)
-			if info != 0 {
-				(*lmax)[1] = (*knt)
+			if info, err = golapack.Dhseqr('S', 'N', n, 1, n, t, wr, wi, dum.Matrix(1, opts), work, lwork); info != 0 || err != nil {
+				(*lmax)[1] = knt
 				(*ninfo)[1] = (*ninfo)[1] + 1
 				goto label240
 			}
 
 			//        Compute eigenvectors
-			golapack.Dtrevc('B', 'A', &_select, &n, t, &ldt, le, &ldt, re, &ldt, &n, &m, work, &info)
+			if _, err = golapack.Dtrevc(Both, 'A', &_select, n, t, le, re, n, work); err != nil {
+				panic(err)
+			}
 
 			//        Compute condition numbers
-			golapack.Dtrsna('B', 'A', _select, &n, t, &ldt, le, &ldt, re, &ldt, s, sep, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('B', 'A', _select, n, t, le, re, s, sep, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -656,7 +656,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 				if vmax > rmax.Get(1) {
 					rmax.Set(1, vmax)
 					if (*ninfo)[1] == 0 {
-						(*lmax)[1] = (*knt)
+						(*lmax)[1] = knt
 					}
 				}
 			}
@@ -690,7 +690,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 				if vmax > rmax.Get(1) {
 					rmax.Set(1, vmax)
 					if (*ninfo)[1] == 0 {
-						(*lmax)[1] = (*knt)
+						(*lmax)[1] = knt
 					}
 				}
 			}
@@ -714,7 +714,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 				if vmax > rmax.Get(2) {
 					rmax.Set(2, vmax)
 					if (*ninfo)[2] == 0 {
-						(*lmax)[2] = (*knt)
+						(*lmax)[2] = knt
 					}
 				}
 			}
@@ -738,7 +738,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 				if vmax > rmax.Get(2) {
 					rmax.Set(2, vmax)
 					if (*ninfo)[2] == 0 {
-						(*lmax)[2] = (*knt)
+						(*lmax)[2] = knt
 					}
 				}
 			}
@@ -748,9 +748,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			dum.Set(0, -one)
 			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('E', 'A', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('E', 'A', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -766,9 +765,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			//        Compute eigenvector condition numbers only and compare
 			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('V', 'A', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('V', 'A', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -787,9 +785,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			}
 			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('B', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('B', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -805,9 +802,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			//        Compute eigenvalue condition numbers using SELECT and compare
 			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('E', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('E', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -823,9 +819,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			//        Compute eigenvector condition numbers using SELECT and compare
 			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('V', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('V', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -840,7 +835,7 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(0) {
 				rmax.Set(0, vmax)
 				if (*ninfo)[0] == 0 {
-					(*lmax)[0] = (*knt)
+					(*lmax)[0] = knt
 				}
 			}
 
@@ -890,9 +885,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			//        Compute all selected condition numbers
 			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('B', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('B', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -909,9 +903,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			//        Compute selected eigenvalue condition numbers
 			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('E', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('E', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -928,9 +921,8 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			//        Compute selected eigenvector condition numbers
 			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
 			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
-			golapack.Dtrsna('V', 'S', _select, &n, t, &ldt, le, &ldt, re, &ldt, stmp, septmp, &n, &m, work.Matrix(n, opts), &n, &iwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, err = golapack.Dtrsna('V', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label240
 			}
@@ -946,10 +938,12 @@ func Dget37(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(0) {
 				rmax.Set(0, vmax)
 				if (*ninfo)[0] == 0 {
-					(*lmax)[0] = (*knt)
+					(*lmax)[0] = knt
 				}
 			}
 		label240:
 		}
 	}
+
+	return
 }

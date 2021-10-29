@@ -9,20 +9,14 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zchkgk tests ZGGBAK, a routine for backward balancing  of
+// zchkgk tests Zggbak, a routine for backward balancing  of
 // a matrix pair (A, B).
-func Zchkgk(t *testing.T) {
+func zchkgk(t *testing.T) {
 	var cone, czero complex128
 	var anorm, bnorm, eps, rmax, vmax, zero float64
-	var _i, i, ihi, ilo, info, j, knt, lda, ldb, ldvl, ldvr, ldwork, m, n, ninfo int
+	var _i, i, ihi, ilo, j, knt, ldwork, m, n, ninfo int
 	var err error
-	_ = err
-	lda = 50
-	ldb = 50
-	ldvl = 50
-	ldvr = 50
-	// lde = 50
-	// ldf = 50
+
 	ldwork = 50
 	zero = 0.0
 	czero = (0.0 + 0.0*1i)
@@ -408,34 +402,31 @@ func Zchkgk(t *testing.T) {
 
 		knt = knt + 1
 
-		anorm = golapack.Zlange('M', &n, &n, a, &lda, rwork)
-		bnorm = golapack.Zlange('M', &n, &n, b, &ldb, rwork)
+		anorm = golapack.Zlange('M', n, n, a, rwork)
+		bnorm = golapack.Zlange('M', n, n, b, rwork)
 
-		golapack.Zlacpy('F', &n, &n, a, &lda, af, &lda)
-		golapack.Zlacpy('F', &n, &n, b, &ldb, bf, &ldb)
+		golapack.Zlacpy(Full, n, n, a, af)
+		golapack.Zlacpy(Full, n, n, b, bf)
 
-		golapack.Zggbal('B', &n, a, &lda, b, &ldb, &ilo, &ihi, lscale, rscale, rwork, &info)
-		if info != 0 {
+		if ilo, ihi, err = golapack.Zggbal('B', n, a, b, lscale, rscale, rwork); err != nil {
 			ninfo = ninfo + 1
 			lmax[0] = knt
 		}
 
-		golapack.Zlacpy('F', &n, &m, vl, &ldvl, vlf, &ldvl)
-		golapack.Zlacpy('F', &n, &m, vr, &ldvr, vrf, &ldvr)
+		golapack.Zlacpy(Full, n, m, vl, vlf)
+		golapack.Zlacpy(Full, n, m, vr, vrf)
 
-		golapack.Zggbak('B', 'L', &n, &ilo, &ihi, lscale, rscale, &m, vl, &ldvl, &info)
-		if info != 0 {
+		if err = golapack.Zggbak('B', Left, n, ilo, ihi, lscale, rscale, m, vl); err != nil {
 			ninfo = ninfo + 1
 			lmax[1] = knt
 		}
 
-		golapack.Zggbak('B', 'R', &n, &ilo, &ihi, lscale, rscale, &m, vr, &ldvr, &info)
-		if info != 0 {
+		if err = golapack.Zggbak('B', Right, n, ilo, ihi, lscale, rscale, m, vr); err != nil {
 			ninfo = ninfo + 1
 			lmax[2] = knt
 		}
 
-		//     Test of ZGGBAK
+		//     Test of Zggbak
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
@@ -477,12 +468,12 @@ func Zchkgk(t *testing.T) {
 		}
 	}
 
-	fmt.Printf(" .. test output of ZGGBAK .. \n")
+	fmt.Printf(" .. test output of Zggbak .. \n")
 
 	fmt.Printf(" value of largest test error                  =%12.3E\n", rmax)
-	fmt.Printf(" example number where ZGGBAL info is not 0    =%4d\n", lmax[0])
-	fmt.Printf(" example number where ZGGBAK(L) info is not 0 =%4d\n", lmax[1])
-	fmt.Printf(" example number where ZGGBAK(R) info is not 0 =%4d\n", lmax[2])
+	fmt.Printf(" example number where Zggbal info is not 0    =%4d\n", lmax[0])
+	fmt.Printf(" example number where Zggbak(L) info is not 0 =%4d\n", lmax[1])
+	fmt.Printf(" example number where Zggbak(R) info is not 0 =%4d\n", lmax[2])
 	fmt.Printf(" example number having largest error          =%4d\n", lmax[3])
 	fmt.Printf(" number of examples where info is not 0       =%4d\n", ninfo)
 	fmt.Printf(" total number of examples tested              =%4d\n\n", knt)

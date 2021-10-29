@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget52 does an eigenvector check for the generalized eigenvalue
+// dget52 does an eigenvector check for the generalized eigenvalue
 // problem.
 //
 // The basic test for right eigenvectors is:
@@ -49,13 +49,13 @@ import (
 //
 //         RESULT(2) =      math.Max       | M(v(j)) - 1 | / ( n ulp )
 //                    eigenvectors v(j)
-func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, e *mat.Matrix, lde *int, alphar, alphai, beta, work, result *mat.Vector) {
+func dget52(left bool, n int, a, b, e *mat.Matrix, alphar, alphai, beta, work, result *mat.Vector) {
 	var ilcplx bool
-	var normab, trans byte
+	var normab byte
+	var trans mat.MatTrans
 	var abmax, acoef, alfmax, anorm, bcoefi, bcoefr, betmax, bnorm, enorm, enrmer, errnrm, one, safmax, safmin, salfi, salfr, sbeta, scale, temp1, ten, ulp, zero float64
 	var j, jvec int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -63,7 +63,7 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 
 	result.Set(0, zero)
 	result.Set(1, zero)
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
@@ -72,24 +72,24 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 
 	if left {
-		trans = 'T'
+		trans = Trans
 		normab = 'I'
 	} else {
-		trans = 'N'
+		trans = NoTrans
 		normab = 'O'
 	}
 
 	//     Norm of A, B, and E:
-	anorm = math.Max(golapack.Dlange(normab, n, n, a, lda, work), safmin)
-	bnorm = math.Max(golapack.Dlange(normab, n, n, b, ldb, work), safmin)
-	enorm = math.Max(golapack.Dlange('O', n, n, e, lde, work), ulp)
+	anorm = math.Max(golapack.Dlange(normab, n, n, a, work), safmin)
+	bnorm = math.Max(golapack.Dlange(normab, n, n, b, work), safmin)
+	enorm = math.Max(golapack.Dlange('O', n, n, e, work), ulp)
 	alfmax = safmax / math.Max(one, bnorm)
 	betmax = safmax / math.Max(one, anorm)
 
 	//     Compute error matrix.
 	//     Column i = ( b(i) A - a(i) B ) E(i) / math.Max( |a(i) B| |b(i) A| )
 	ilcplx = false
-	for jvec = 1; jvec <= (*n); jvec++ {
+	for jvec = 1; jvec <= n; jvec++ {
 		if ilcplx {
 			//           2nd Eigenvalue/-vector of pair -- do nothing
 			ilcplx = false
@@ -108,12 +108,16 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 				scale = one / math.Max(math.Abs(salfr)*bnorm, math.Max(math.Abs(sbeta)*anorm, safmin))
 				acoef = scale * sbeta
 				bcoefr = scale * salfr
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off((*n)*(jvec-1), 1))
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off((*n)*(jvec-1), 1))
+				if err = goblas.Dgemv(trans, n, n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off(n*(jvec-1), 1)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemv(trans, n, n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off(n*(jvec-1), 1)); err != nil {
+					panic(err)
+				}
 			} else {
 				//              Complex conjugate pair
 				ilcplx = true
-				if jvec == (*n) {
+				if jvec == n {
 					result.Set(0, ten/ulp)
 					return
 				}
@@ -132,18 +136,30 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 					bcoefi = -bcoefi
 				}
 
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off((*n)*(jvec-1), 1))
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off((*n)*(jvec-1), 1))
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, bcoefi, b, e.Vector(0, jvec, 1), one, work.Off((*n)*(jvec-1), 1))
+				if err = goblas.Dgemv(trans, n, n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off(n*(jvec-1), 1)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemv(trans, n, n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off(n*(jvec-1), 1)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemv(trans, n, n, bcoefi, b, e.Vector(0, jvec, 1), one, work.Off(n*(jvec-1), 1)); err != nil {
+					panic(err)
+				}
 
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, acoef, a, e.Vector(0, jvec, 1), zero, work.Off((*n)*jvec, 1))
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefi, b, e.Vector(0, jvec-1, 1), one, work.Off((*n)*jvec, 1))
-				err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -bcoefr, b, e.Vector(0, jvec, 1), one, work.Off((*n)*jvec, 1))
+				if err = goblas.Dgemv(trans, n, n, acoef, a, e.Vector(0, jvec, 1), zero, work.Off(n*jvec, 1)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemv(trans, n, n, -bcoefi, b, e.Vector(0, jvec-1, 1), one, work.Off(n*jvec, 1)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemv(trans, n, n, -bcoefr, b, e.Vector(0, jvec, 1), one, work.Off(n*jvec, 1)); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
 
-	errnrm = golapack.Dlange('O', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))) / enorm
+	errnrm = golapack.Dlange('O', n, n, work.Matrix(n, opts), work.Off(pow(n, 2))) / enorm
 
 	//     Compute RESULT(1)
 	result.Set(0, errnrm/ulp)
@@ -151,19 +167,19 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	//     Normalization of E:
 	enrmer = zero
 	ilcplx = false
-	for jvec = 1; jvec <= (*n); jvec++ {
+	for jvec = 1; jvec <= n; jvec++ {
 		if ilcplx {
 			ilcplx = false
 		} else {
 			temp1 = zero
 			if alphai.Get(jvec-1) == zero {
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					temp1 = math.Max(temp1, math.Abs(e.Get(j-1, jvec-1)))
 				}
 				enrmer = math.Max(enrmer, temp1-one)
 			} else {
 				ilcplx = true
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					temp1 = math.Max(temp1, math.Abs(e.Get(j-1, jvec-1))+math.Abs(e.Get(j-1, jvec)))
 				}
 				enrmer = math.Max(enrmer, temp1-one)
@@ -172,5 +188,5 @@ func Dget52(left bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int,
 	}
 
 	//     Compute RESULT(2) : the normalization error in E.
-	result.Set(1, enrmer/(float64(*n)*ulp))
+	result.Set(1, enrmer/(float64(n)*ulp))
 }

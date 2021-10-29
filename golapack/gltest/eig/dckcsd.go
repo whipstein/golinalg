@@ -11,10 +11,10 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dckcsd tests DORCSD:
+// dckcsd tests DORCSD:
 //        the CSD for an M-by-M orthogonal matrix X partitioned as
 //        [ X11 X12; X21 X22 ]. X11 is P-by-Q.
-func Dckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[]int, thresh *float64, mmax *int, x, xf, u1, u2, v1t, v2t, theta *mat.Vector, iwork *[]int, work, rwork *mat.Vector, nout *int, info *int, t *testing.T) {
+func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, thresh float64, mmax int, x, xf, u1, u2, v1t, v2t, theta *mat.Vector, iwork []int, work, rwork *mat.Vector, nout int, t *testing.T) (err error) {
 	var firstt bool
 	var gapdigit, one, orth, piover2, ten, zero float64
 	var i, iinfo, im, imat, j, ldu1, ldu2, ldv1t, ldv2t, ldx, lwork, m, nfail, nrun, nt, ntypes, p, q, r int
@@ -31,24 +31,23 @@ func Dckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 	zero = 0.0
 
 	//     Initialize constants and the random number seed.
-	path := []byte("CSD")
-	(*info) = 0
+	path := "Csd"
 	nrun = 0
 	nfail = 0
 	firstt = true
-	Alareq(nmats, &dotype)
-	ldx = (*mmax)
-	ldu1 = (*mmax)
-	ldu2 = (*mmax)
-	ldv1t = (*mmax)
-	ldv2t = (*mmax)
-	lwork = (*mmax) * (*mmax)
+	alareq(nmats, &dotype)
+	ldx = mmax
+	ldu1 = mmax
+	ldu2 = mmax
+	ldv1t = mmax
+	ldv2t = mmax
+	lwork = mmax * mmax
 
 	//     Do for each value of M in MVAL.
-	for im = 1; im <= (*nm); im++ {
-		m = (*mval)[im-1]
-		p = (*pval)[im-1]
-		q = (*qval)[im-1]
+	for im = 1; im <= nm; im++ {
+		m = mval[im-1]
+		p = pval[im-1]
+		q = qval[im-1]
 
 		for imat = 1; imat <= ntypes; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
@@ -58,28 +57,28 @@ func Dckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 
 			//           Generate X
 			if imat == 1 {
-				matgen.Dlaror('L', 'I', &m, &m, x.Matrix(ldx, opts), &ldx, iseed, work, &iinfo)
-				if m != 0 && iinfo != 0 {
+				err = matgen.Dlaror('L', 'I', m, m, x.Matrix(ldx, opts), &iseed, work)
+				if m != 0 && err != nil {
 					t.Fail()
-					fmt.Printf(" DLAROR in DCKCSD: M = %5d, INFO = %15d\n", m, iinfo)
-					(*info) = abs(iinfo)
+					fmt.Printf(" Dlaror in dchkcsd: M = %5d, info = %15d\n", m, iinfo)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label20
 				}
 			} else if imat == 2 {
 				r = min(p, m-p, q, m-q)
 				for i = 1; i <= r; i++ {
-					theta.Set(i-1, piover2*matgen.Dlarnd(func() *int { y := 1; return &y }(), iseed))
+					theta.Set(i-1, piover2*matgen.Dlarnd(1, &iseed))
 				}
-				Dlacsg(&m, &p, &q, theta, iseed, x.Matrix(ldx, opts), &ldx, work)
+				dlacsg(&m, &p, &q, theta, &iseed, x.Matrix(ldx, opts), &ldx, work)
 				for i = 1; i <= m; i++ {
 					for j = 1; j <= m; j++ {
-						x.Set(i+(j-1)*ldx-1, x.Get(i+(j-1)*ldx-1)+orth*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
+						x.Set(i+(j-1)*ldx-1, x.Get(i+(j-1)*ldx-1)+orth*matgen.Dlarnd(2, &iseed))
 					}
 				}
 			} else if imat == 3 {
 				r = min(p, m-p, q, m-q)
 				for i = 1; i <= r+1; i++ {
-					theta.Set(i-1, math.Pow(ten, -matgen.Dlarnd(func() *int { y := 1; return &y }(), iseed)*gapdigit))
+					theta.Set(i-1, math.Pow(ten, -matgen.Dlarnd(1, &iseed)*gapdigit))
 				}
 				for i = 2; i <= r+1; i++ {
 					theta.Set(i-1, theta.Get(i-1-1)+theta.Get(i-1))
@@ -87,11 +86,11 @@ func Dckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 				for i = 1; i <= r; i++ {
 					theta.Set(i-1, piover2*theta.Get(i-1)/theta.Get(r))
 				}
-				Dlacsg(&m, &p, &q, theta, iseed, x.Matrix(ldx, opts), &ldx, work)
+				dlacsg(&m, &p, &q, theta, &iseed, x.Matrix(ldx, opts), &ldx, work)
 			} else {
-				golapack.Dlaset('F', &m, &m, &zero, &one, x.Matrix(ldx, opts), &ldx)
+				golapack.Dlaset(Full, m, m, zero, one, x.Matrix(ldx, opts))
 				for i = 1; i <= m; i++ {
-					j = int(matgen.Dlaran(iseed))*m + 1
+					j = int(matgen.Dlaran(&iseed))*m + 1
 					if j != i {
 						goblas.Drot(m, x.Off(1+(i-1)*ldx-1, 1), x.Off(1+(j-1)*ldx-1, 1), zero, one)
 					}
@@ -100,19 +99,19 @@ func Dckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 
 			nt = 15
 
-			Dcsdts(&m, &p, &q, x.Matrix(ldx, opts), xf.Matrix(ldx, opts), &ldx, u1.Matrix(ldu1, opts), &ldu1, u2.Matrix(ldu2, opts), &ldu2, v1t.Matrix(ldv1t, opts), &ldv1t, v2t.Matrix(ldv2t, opts), &ldv2t, theta, iwork, work, &lwork, rwork, result)
+			dcsdts(m, p, q, x.Matrix(ldx, opts), xf.Matrix(ldx, opts), u1.Matrix(ldu1, opts), u2.Matrix(ldu2, opts), v1t.Matrix(ldv1t, opts), v2t.Matrix(ldv2t, opts), theta, iwork, work, lwork, rwork, result)
 
 			//           Print information about the tests that did not
 			//           pass the threshold.
 			for i = 1; i <= nt; i++ {
-				if result.Get(i-1) >= (*thresh) {
+				if result.Get(i-1) >= thresh {
 					t.Fail()
 					if nfail == 0 && firstt {
 						firstt = false
-						Alahdg(path)
+						alahdg(path)
 					}
 					fmt.Printf(" M=%4d P=%4d, Q=%4d, type %2d, test %2d, ratio=%13.6f\n", m, p, q, imat, i, result.Get(i-1))
-					nfail = nfail + 1
+					nfail++
 				}
 			}
 			nrun = nrun + nt
@@ -121,19 +120,22 @@ func Dckcsd(nm *int, mval *[]int, pval *[]int, qval *[]int, nmats *int, iseed *[
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, func() *int { y := 0; return &y }())
+	alasum(path, nfail, nrun, 0)
+
+	return
 }
 
-func Dlacsg(m, p, q *int, theta *mat.Vector, iseed *[]int, x *mat.Matrix, ldx *int, work *mat.Vector) {
+func dlacsg(m, p, q *int, theta *mat.Vector, iseed *[]int, x *mat.Matrix, ldx *int, work *mat.Vector) {
 	var one, zero float64
-	var i, info, r int
+	var i, r int
+	var err error
 
 	one = 1.0
 	zero = 0.0
 
 	r = min(*p, (*m)-(*p), *q, (*m)-(*q))
 
-	golapack.Dlaset('F', m, m, &zero, &zero, x, ldx)
+	golapack.Dlaset(Full, *m, *m, zero, zero, x)
 
 	for i = 1; i <= min(*p, *q)-r; i++ {
 		x.Set(i-1, i-1, one)
@@ -159,8 +161,16 @@ func Dlacsg(m, p, q *int, theta *mat.Vector, iseed *[]int, x *mat.Matrix, ldx *i
 	for i = 1; i <= r; i++ {
 		x.Set((*p)+(min((*m)-(*p), (*m)-(*q))-r)+i-1, (*q)+(min((*m)-(*p), (*m)-(*q))-r)+i-1, math.Cos(theta.Get(i-1)))
 	}
-	matgen.Dlaror('L', 'N', p, m, x, ldx, iseed, work, &info)
-	matgen.Dlaror('L', 'N', toPtr((*m)-(*p)), m, x.Off((*p), 0), ldx, iseed, work, &info)
-	matgen.Dlaror('R', 'N', m, q, x, ldx, iseed, work, &info)
-	matgen.Dlaror('R', 'N', m, toPtr((*m)-(*q)), x.Off(0, (*q)), ldx, iseed, work, &info)
+	if err = matgen.Dlaror('L', 'N', *p, *m, x, iseed, work); err != nil {
+		panic(err)
+	}
+	if err = matgen.Dlaror('L', 'N', (*m)-(*p), *m, x.Off(*p, 0), iseed, work); err != nil {
+		panic(err)
+	}
+	if err = matgen.Dlaror('R', 'N', *m, *q, x, iseed, work); err != nil {
+		panic(err)
+	}
+	if err = matgen.Dlaror('R', 'N', *m, (*m)-(*q), x.Off(0, *q), iseed, work); err != nil {
+		panic(err)
+	}
 }

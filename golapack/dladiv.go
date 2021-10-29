@@ -11,19 +11,19 @@ import "math"
 // The algorithm is due to Michael Baudin and Robert L. Smith
 // and can be found in the paper
 // "A Robust Complex Division in Scilab"
-func Dladiv(a, b, c, d, p, q *float64) {
+func Dladiv(a, b, c, d float64) (p, q float64) {
 	var aa, ab, bb, be, bs, cc, cd, dd, eps, half, ov, s, two, un float64
 
 	bs = 2.0
 	half = 0.5
 	two = 2.0
 
-	aa = (*a)
-	bb = (*b)
-	cc = (*c)
-	dd = (*d)
-	ab = math.Max(math.Abs(*a), math.Abs(*b))
-	cd = math.Max(math.Abs(*c), math.Abs(*d))
+	aa = a
+	bb = b
+	cc = c
+	dd = d
+	ab = math.Max(math.Abs(a), math.Abs(b))
+	cd = math.Max(math.Abs(c), math.Abs(d))
 	s = 1.0
 	ov = Dlamch(Overflow)
 	un = Dlamch(SafeMinimum)
@@ -49,44 +49,48 @@ func Dladiv(a, b, c, d, p, q *float64) {
 		dd = dd * be
 		s = s * be
 	}
-	if math.Abs(*d) <= math.Abs(*c) {
-		Dladiv1(&aa, &bb, &cc, &dd, p, q)
+	if math.Abs(d) <= math.Abs(c) {
+		p, q = Dladiv1(aa, bb, cc, dd)
 	} else {
-		Dladiv1(&bb, &aa, &dd, &cc, p, q)
-		(*q) = -(*q)
+		p, q = Dladiv1(bb, aa, dd, cc)
+		q = -q
 	}
-	(*p) = (*p) * s
-	(*q) = (*q) * s
+	p = p * s
+	q = q * s
+
+	return
 }
 
 // \ingroup doubleOTHERauxiliary
-func Dladiv1(a, b, c, d, p, q *float64) {
+func Dladiv1(a, b, c, d float64) (p, q float64) {
 	var one, r, t float64
 
 	one = 1.0
 
-	r = (*d) / (*c)
-	t = one / ((*c) + (*d)*r)
-	(*p) = Dladiv2(a, b, c, d, &r, &t)
-	(*a) = -(*a)
-	(*q) = Dladiv2(b, a, c, d, &r, &t)
+	r = d / c
+	t = one / (c + d*r)
+	p = Dladiv2(a, b, c, d, r, t)
+	a = -a
+	q = Dladiv2(b, a, c, d, r, t)
+
+	return
 }
 
 // \ingroup doubleOTHERauxiliary
-func Dladiv2(a, b, c, d, r, t *float64) (dladiv2Return float64) {
+func Dladiv2(a, b, c, d, r, t float64) (dladiv2Return float64) {
 	var br, zero float64
 
 	zero = 0.0
 
-	if (*r) != zero {
-		br = (*b) * (*r)
+	if r != zero {
+		br = b * r
 		if br != zero {
-			dladiv2Return = ((*a) + br) * (*t)
+			dladiv2Return = (a + br) * t
 		} else {
-			dladiv2Return = (*a)*(*t) + ((*b)*(*t))*(*r)
+			dladiv2Return = a*t + (b*t)*r
 		}
 	} else {
-		dladiv2Return = ((*a) + (*d)*((*b)/(*c))) * (*t)
+		dladiv2Return = (a + d*(b/c)) * t
 	}
 
 	return

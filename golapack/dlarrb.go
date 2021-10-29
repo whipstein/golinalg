@@ -14,7 +14,7 @@ import (
 // and WGAP, respectively. During bisection, intervals
 // [left, right] are maintained by storing their mid-points and
 // semi-widths in the arrays W and WERR respectively.
-func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float64, offset *int, w, wgap, werr, work *mat.Vector, iwork *[]int, pivmin, spdiam *float64, twist, info *int) {
+func Dlarrb(n int, d, lld *mat.Vector, ifirst, ilast int, rtol1, rtol2 float64, offset int, w, wgap, werr, work *mat.Vector, iwork *[]int, pivmin, spdiam float64, twist int) {
 	var back, cvrgd, gap, half, left, lgap, mid, mnwdth, rgap, right, tmp, two, width, zero float64
 	var i, i1, ii, ip, iter, k, maxitr, negcnt, next, nint, olnint, prev, r int
 
@@ -22,19 +22,17 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 	two = 2.0
 	half = 0.5
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
-	maxitr = int((math.Log((*spdiam)+(*pivmin))-math.Log(*pivmin))/math.Log(two)) + 2
-	mnwdth = two * (*pivmin)
+	maxitr = int((math.Log(spdiam+pivmin)-math.Log(pivmin))/math.Log(two)) + 2
+	mnwdth = two * pivmin
 
-	r = (*twist)
-	if (r < 1) || (r > (*n)) {
-		r = (*n)
+	r = twist
+	if (r < 1) || (r > n) {
+		r = n
 	}
 
 	//     Initialize unconverged intervals in [ WORK(2*I-1), WORK(2*I) ].
@@ -43,15 +41,15 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 	//     for an unconverged interval is set to the index of the next unconverged
 	//     interval, and is -1 or 0 for a converged interval. Thus a linked
 	//     list of unconverged intervals is set up.
-	i1 = (*ifirst)
+	i1 = ifirst
 	//     The number of unconverged intervals
 	nint = 0
 	//     The last unconverged interval found
 	prev = 0
-	rgap = wgap.Get(i1 - (*offset) - 1)
-	for i = i1; i <= (*ilast); i++ {
+	rgap = wgap.Get(i1 - offset - 1)
+	for i = i1; i <= ilast; i++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		left = w.Get(ii-1) - werr.Get(ii-1)
 		right = w.Get(ii-1) + werr.Get(ii-1)
 		lgap = rgap
@@ -65,7 +63,7 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 		back = werr.Get(ii - 1)
 	label20:
 		;
-		negcnt = Dlaneg(n, d, lld, &left, pivmin, &r)
+		negcnt = Dlaneg(n, d, lld, left, pivmin, r)
 		if negcnt > i-1 {
 			left = left - back
 			back = two * back
@@ -77,7 +75,7 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 		back = werr.Get(ii - 1)
 	label50:
 		;
-		negcnt = Dlaneg(n, d, lld, &right, pivmin, &r)
+		negcnt = Dlaneg(n, d, lld, right, pivmin, r)
 		if negcnt < i {
 			right = right + back
 			back = two * back
@@ -85,7 +83,7 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 		}
 		width = half * math.Abs(left-right)
 		tmp = math.Max(math.Abs(left), math.Abs(right))
-		cvrgd = math.Max((*rtol1)*gap, (*rtol2)*tmp)
+		cvrgd = math.Max(rtol1*gap, rtol2*tmp)
 		if width <= cvrgd || width <= mnwdth {
 			//           This interval has already converged and does not need refinement.
 			//           (Note that the gaps might change through refining the
@@ -93,10 +91,10 @@ func Dlarrb(n *int, d, lld *mat.Vector, ifirst, ilast *int, rtol1, rtol2 *float6
 			//           Remove it from the list.
 			(*iwork)[k-1-1] = -1
 			//           Make sure that I1 always points to the first unconverged interval
-			if (i == i1) && (i < (*ilast)) {
+			if (i == i1) && (i < ilast) {
 				i1 = i + 1
 			}
-			if (prev >= i1) && (i <= (*ilast)) {
+			if (prev >= i1) && (i <= ilast) {
 				(*iwork)[2*prev-1-1] = i + 1
 			}
 		} else {
@@ -120,7 +118,7 @@ label80:
 	olnint = nint
 	for ip = 1; ip <= olnint; ip++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		rgap = wgap.Get(ii - 1)
 		lgap = rgap
 		if ii > 1 {
@@ -134,7 +132,7 @@ label80:
 		//        semiwidth of interval
 		width = right - mid
 		tmp = math.Max(math.Abs(left), math.Abs(right))
-		cvrgd = math.Max((*rtol1)*gap, (*rtol2)*tmp)
+		cvrgd = math.Max(rtol1*gap, rtol2*tmp)
 		if (width <= cvrgd) || (width <= mnwdth) || (iter == maxitr) {
 			//           reduce number of unconverged intervals
 			nint = nint - 1
@@ -154,7 +152,7 @@ label80:
 		prev = i
 
 		//        Perform one bisection step
-		negcnt = Dlaneg(n, d, lld, &mid, pivmin, &r)
+		negcnt = Dlaneg(n, d, lld, mid, pivmin, r)
 		if negcnt <= i-1 {
 			work.Set(k-1-1, mid)
 		} else {
@@ -172,9 +170,9 @@ label80:
 	}
 
 	//     At this point, all the intervals have converged
-	for i = (*ifirst); i <= (*ilast); i++ {
+	for i = ifirst; i <= ilast; i++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		//        All intervals marked by '0' have been refined.
 		if (*iwork)[k-1-1] == 0 {
 			w.Set(ii-1, half*(work.Get(k-1-1)+work.Get(k-1)))
@@ -182,9 +180,9 @@ label80:
 		}
 	}
 
-	for i = (*ifirst) + 1; i <= (*ilast); i++ {
+	for i = ifirst + 1; i <= ilast; i++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		wgap.Set(ii-1-1, math.Max(zero, w.Get(ii-1)-werr.Get(ii-1)-w.Get(ii-1-1)-werr.Get(ii-1-1)))
 	}
 }

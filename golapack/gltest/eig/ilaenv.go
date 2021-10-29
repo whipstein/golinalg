@@ -7,54 +7,54 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Ilaenv returns problem-dependent parameters for the local
+// ilaenv returns problem-dependent parameters for the local
 // environment.  See ISPEC for a description of the parameters.
 //
 // In this version, the problem-dependent parameters are contained in
 // the integer array IPARMS in the common block CLAENV and the value
 // with index ISPEC is copied to ILAENV.  This version of ILAENV is
 // to be used in conjunction with XLAENV in TESTING and TIMING.
-func Ilaenv(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenvReturn int) {
+func ilaenv(ispec int, name string, opts []byte, n1, n2, n3, n4 int) (ilaenvReturn int) {
 	iparms := &gltest.Common.Claenv.Iparms
 
-	if (*ispec) >= 1 && (*ispec) <= 5 {
+	if ispec >= 1 && ispec <= 5 {
 		//        Return a value from the common block.
-		ilaenvReturn = (*iparms)[(*ispec)-1]
+		ilaenvReturn = (*iparms)[ispec-1]
 
-	} else if (*ispec) == 6 {
+	} else if ispec == 6 {
 		//        Compute SVD crossover point.
-		ilaenvReturn = int(float64(min(*n1, *n2)) * 1.6)
+		ilaenvReturn = int(float64(min(n1, n2)) * 1.6)
 
-	} else if (*ispec) >= 7 && (*ispec) <= 9 {
+	} else if ispec >= 7 && ispec <= 9 {
 		//        Return a value from the common block.
-		ilaenvReturn = (*iparms)[(*ispec)-1]
+		ilaenvReturn = (*iparms)[ispec-1]
 
-	} else if (*ispec) == 10 {
+	} else if ispec == 10 {
 		//        IEEE NaN arithmetic can be trusted not to trap
 		//C        ILAENV = 0
 		ilaenvReturn = 1
 		if ilaenvReturn == 1 {
-			ilaenvReturn = golapack.Ieeeck(func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }())
+			ilaenvReturn = golapack.Ieeeck(1, 0.0, 1.0)
 		}
 
-	} else if (*ispec) == 11 {
+	} else if ispec == 11 {
 		//        Infinity arithmetic can be trusted not to trap
 		//
 		//C        ILAENV = 0
 		ilaenvReturn = 1
 		if ilaenvReturn == 1 {
-			ilaenvReturn = golapack.Ieeeck(func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }())
+			ilaenvReturn = golapack.Ieeeck(0, 0.0, 1.0)
 		}
 
-	} else if ((*ispec) >= 12) && ((*ispec) <= 16) {
+	} else if (ispec >= 12) && (ispec <= 16) {
 		//     12 <= ISPEC <= 16: xHSEQR or one of its subroutines.
-		ilaenvReturn = (*iparms)[(*ispec)-1]
+		ilaenvReturn = (*iparms)[ispec-1]
 		//         WRITE(*,*) 'ISPEC = ',ISPEC,' ILAENV =',ILAENV
 		//         ILAENV = IPARMQ( ISPEC, NAME, OPTS, N1, N2, N3, N4 )
 
-	} else if ((*ispec) >= 17) && ((*ispec) <= 21) {
+	} else if (ispec >= 17) && (ispec <= 21) {
 		//     17 <= ISPEC <= 21: 2stage eigenvalues SVD routines.
-		if (*ispec) == 17 {
+		if ispec == 17 {
 			ilaenvReturn = (*iparms)[0]
 		} else {
 			ilaenvReturn = golapack.Iparam2stage(ispec, name, opts, n1, n2, n3, n4)
@@ -68,18 +68,18 @@ func Ilaenv(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenvReturn in
 	return
 }
 
-func Ilaenv2stage(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenv2stageReturn int) {
+func ilaenv2stage(ispec int, name string, opts []byte, n1, n2, n3, n4 int) (ilaenv2stageReturn int) {
 	var iispec int
 
 	iparms := &gltest.Common.Claenv.Iparms
 
-	if ((*ispec) >= 1) && ((*ispec) <= 5) {
+	if (ispec >= 1) && (ispec <= 5) {
 		//     1 <= ISPEC <= 5: 2stage eigenvalues SVD routines.
-		if (*ispec) == 1 {
+		if ispec == 1 {
 			ilaenv2stageReturn = (*iparms)[0]
 		} else {
-			iispec = 16 + (*ispec)
-			ilaenv2stageReturn = golapack.Iparam2stage(&iispec, name, opts, n1, n2, n3, n4)
+			iispec = 16 + ispec
+			ilaenv2stageReturn = golapack.Iparam2stage(iispec, name, opts, n1, n2, n3, n4)
 		}
 
 	} else {
@@ -90,7 +90,7 @@ func Ilaenv2stage(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenv2st
 	return
 }
 
-func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqReturn int) {
+func iparmq(ispec int, name string, opts []byte, n, ilo, ihi, lwork int) (iparmqReturn int) {
 	var two float64
 	var iacc22, inibl, inmin, inwin, ishfts, k22min, kacmin, knwswp, nh, nibble, nmin, ns int
 
@@ -106,9 +106,9 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 	knwswp = 500
 	two = 2.0
 
-	if ((*ispec) == ishfts) || ((*ispec) == inwin) || ((*ispec) == iacc22) {
+	if (ispec == ishfts) || (ispec == inwin) || (ispec == iacc22) {
 		//        ==== Set the number simultaneous shifts ====
-		nh = (*ihi) - (*ilo) + 1
+		nh = ihi - ilo + 1
 		ns = 2
 		if nh >= 30 {
 			ns = 4
@@ -131,23 +131,23 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 		ns = max(2, ns-(ns%2))
 	}
 
-	if (*ispec) == inmin {
+	if ispec == inmin {
 		//        ===== Matrices of order smaller than NMIN get sent
 		//        .     to LAHQR, the classic double shift algorithm.
 		//        .     This must be at least 11. ====
 		iparmqReturn = nmin
 
-	} else if (*ispec) == inibl {
+	} else if ispec == inibl {
 		//        ==== INIBL: skip a multi-shift qr iteration and
 		//        .    whenever aggressive early deflation finds
 		//        .    at least (NIBBLE*(window size)/100) deflations. ====
 		iparmqReturn = nibble
 
-	} else if (*ispec) == ishfts {
+	} else if ispec == ishfts {
 		//        ==== NSHFTS: The number of simultaneous shifts =====
 		iparmqReturn = ns
 
-	} else if (*ispec) == inwin {
+	} else if ispec == inwin {
 		//        ==== NW: deflation window size.  ====
 		if nh <= knwswp {
 			iparmqReturn = ns
@@ -155,7 +155,7 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 			iparmqReturn = 3 * ns / 2
 		}
 
-	} else if (*ispec) == iacc22 {
+	} else if ispec == iacc22 {
 		//        ==== IACC22: Whether to accumulate reflections
 		//        .     before updating the far-from-diagonal elements
 		//        .     and whether to use 2-by-2 block structure while

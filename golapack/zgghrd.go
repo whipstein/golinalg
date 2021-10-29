@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math/cmplx"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -30,9 +31,9 @@ import (
 //      Q1 * A * Z1**H = (Q1*Q) * H * (Z1*Z)**H
 //      Q1 * B * Z1**H = (Q1*Q) * T * (Z1*Z)**H
 // If Q1 is the unitary matrix from the QR factorization of B in the
-// original equation A*x = lambda*B*x, then ZGGHRD reduces the original
+// original equation A*x = lambda*B*x, then Zgghrd reduces the original
 // problem to generalized Hessenberg form.
-func Zgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, q *mat.CMatrix, ldq *int, z *mat.CMatrix, ldz, info *int) {
+func Zgghrd(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix) (err error) {
 	var ilq, ilz bool
 	var cone, ctemp, czero, s complex128
 	var c float64
@@ -70,74 +71,75 @@ func Zgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.CMatrix, lda *int, b *ma
 	}
 
 	//     Test the input parameters.
-	(*info) = 0
 	if icompq <= 0 {
-		(*info) = -1
+		err = fmt.Errorf("icompq <= 0: compq='%c'", compq)
 	} else if icompz <= 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*ilo) < 1 {
-		(*info) = -4
-	} else if (*ihi) > (*n) || (*ihi) < (*ilo)-1 {
-		(*info) = -5
-	} else if (*lda) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -9
-	} else if (ilq && (*ldq) < (*n)) || (*ldq) < 1 {
-		(*info) = -11
-	} else if (ilz && (*ldz) < (*n)) || (*ldz) < 1 {
-		(*info) = -13
+		err = fmt.Errorf("icompz <= 0: compz='%c'", compz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if ilo < 1 {
+		err = fmt.Errorf("ilo < 1: ilo=%v", ilo)
+	} else if ihi > n || ihi < ilo-1 {
+		err = fmt.Errorf("ihi > n || ihi < ilo-1: ilo=%v, ihi=%v, n=%v", ilo, ihi, n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if (ilq && q.Rows < n) || q.Rows < 1 {
+		err = fmt.Errorf("(ilq && q.Rows < n) || q.Rows < 1: q.Rows=%v, n=%v, ilq=%v", q.Rows, n, ilq)
+	} else if (ilz && z.Rows < n) || z.Rows < 1 {
+		err = fmt.Errorf("(ilz && z.Rows < n) || z.Rows < 1: z.Rows=%v, n=%v, ilz=%v", z.Rows, n, ilz)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGGHRD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgghrd", err)
 		return
 	}
 
 	//     Initialize Q and Z if desired.
 	if icompq == 3 {
-		Zlaset('F', n, n, &czero, &cone, q, ldq)
+		Zlaset(Full, n, n, czero, cone, q)
 	}
 	if icompz == 3 {
-		Zlaset('F', n, n, &czero, &cone, z, ldz)
+		Zlaset(Full, n, n, czero, cone, z)
 	}
 
 	//     Quick return if possible
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
 
 	//     Zero out lower triangle of B
-	for jcol = 1; jcol <= (*n)-1; jcol++ {
-		for jrow = jcol + 1; jrow <= (*n); jrow++ {
+	for jcol = 1; jcol <= n-1; jcol++ {
+		for jrow = jcol + 1; jrow <= n; jrow++ {
 			b.Set(jrow-1, jcol-1, czero)
 		}
 	}
 
 	//     Reduce A and B
-	for jcol = (*ilo); jcol <= (*ihi)-2; jcol++ {
+	for jcol = ilo; jcol <= ihi-2; jcol++ {
 
-		for jrow = (*ihi); jrow >= jcol+2; jrow-- { //
+		for jrow = ihi; jrow >= jcol+2; jrow-- { //
 			//           Step 1: rotate rows JROW-1, JROW to kill A(JROW,JCOL)
 			ctemp = a.Get(jrow-1-1, jcol-1)
-			Zlartg(&ctemp, a.GetPtr(jrow-1, jcol-1), &c, &s, a.GetPtr(jrow-1-1, jcol-1))
+			c, s, *a.GetPtr(jrow-1-1, jcol-1) = Zlartg(ctemp, a.Get(jrow-1, jcol-1))
 			a.Set(jrow-1, jcol-1, czero)
-			Zrot(toPtr((*n)-jcol), a.CVector(jrow-1-1, jcol), lda, a.CVector(jrow-1, jcol), lda, &c, &s)
-			Zrot(toPtr((*n)+2-jrow), b.CVector(jrow-1-1, jrow-1-1), ldb, b.CVector(jrow-1, jrow-1-1), ldb, &c, &s)
+			Zrot(n-jcol, a.CVector(jrow-1-1, jcol), a.CVector(jrow-1, jcol), c, s)
+			Zrot(n+2-jrow, b.CVector(jrow-1-1, jrow-1-1), b.CVector(jrow-1, jrow-1-1), c, s)
 			if ilq {
-				Zrot(n, q.CVector(0, jrow-1-1), func() *int { y := 1; return &y }(), q.CVector(0, jrow-1), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
+				Zrot(n, q.CVector(0, jrow-1-1, 1), q.CVector(0, jrow-1, 1), c, cmplx.Conj(s))
 			}
 
 			//           Step 2: rotate columns JROW, JROW-1 to kill B(JROW,JROW-1)
 			ctemp = b.Get(jrow-1, jrow-1)
-			Zlartg(&ctemp, b.GetPtr(jrow-1, jrow-1-1), &c, &s, b.GetPtr(jrow-1, jrow-1))
+			c, s, *b.GetPtr(jrow-1, jrow-1) = Zlartg(ctemp, b.Get(jrow-1, jrow-1-1))
 			b.Set(jrow-1, jrow-1-1, czero)
-			Zrot(ihi, a.CVector(0, jrow-1), func() *int { y := 1; return &y }(), a.CVector(0, jrow-1-1), func() *int { y := 1; return &y }(), &c, &s)
-			Zrot(toPtr(jrow-1), b.CVector(0, jrow-1), func() *int { y := 1; return &y }(), b.CVector(0, jrow-1-1), func() *int { y := 1; return &y }(), &c, &s)
+			Zrot(ihi, a.CVector(0, jrow-1, 1), a.CVector(0, jrow-1-1, 1), c, s)
+			Zrot(jrow-1, b.CVector(0, jrow-1, 1), b.CVector(0, jrow-1-1, 1), c, s)
 			if ilz {
-				Zrot(n, z.CVector(0, jrow-1), func() *int { y := 1; return &y }(), z.CVector(0, jrow-1-1), func() *int { y := 1; return &y }(), &c, &s)
+				Zrot(n, z.CVector(0, jrow-1, 1), z.CVector(0, jrow-1-1, 1), c, s)
 			}
 		}
 	}
+
+	return
 }

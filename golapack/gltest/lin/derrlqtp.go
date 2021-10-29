@@ -1,19 +1,21 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrlqtp tests the error exits for the REAL routines
+// derrlqtp tests the error exits for the REAL routines
 // that use the LQT decomposition of a triangular-pentagonal matrix.
-func Derrlqtp(path []byte, _t *testing.T) {
-	var i, info, j, nmax int
-	lerr := &gltest.Common.Infoc.Lerr
+func derrlqtp(path string, _t *testing.T) {
+	var i, j, nmax int
+	var err error
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 2
@@ -37,92 +39,97 @@ func Derrlqtp(path []byte, _t *testing.T) {
 
 	//     Error exits for TPLQT factorization
 	//
-	//     DTPLQT
-	*srnamt = "DTPLQT"
-	*infot = 1
-	golapack.Dtplqt(toPtr(-1), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Dtplqt(func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Dtplqt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Dtplqt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Dtplqt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Dtplqt(func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 6
-	golapack.Dtplqt(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 8
-	golapack.Dtplqt(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
-	*infot = 10
-	golapack.Dtplqt(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPLQT", &info, lerr, ok, _t)
+	//     Dtplqt
+	*srnamt = "Dtplqt"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dtplqt(-1, 1, 0, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dtplqt(1, -1, 0, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("l < 0 || (l > min(m, n) && min(m, n) >= 0): l=-1, m=0, n=1")
+	err = golapack.Dtplqt(0, 1, -1, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("l < 0 || (l > min(m, n) && min(m, n) >= 0): l=1, m=0, n=1")
+	err = golapack.Dtplqt(0, 1, 1, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("mb < 1 || (mb > m && m > 0): mb=0, m=0")
+	err = golapack.Dtplqt(0, 1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("mb < 1 || (mb > m && m > 0): mb=2, m=1")
+	err = golapack.Dtplqt(1, 1, 0, 2, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dtplqt(2, 1, 0, 2, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("b.Rows < max(1, m): b.Rows=1, m=2")
+	err = golapack.Dtplqt(2, 1, 0, 1, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
+	*errt = fmt.Errorf("t.Rows < mb: t.Rows=1, mb=2")
+	err = golapack.Dtplqt(2, 2, 1, 2, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtplqt", err)
 
-	//     DTPLQT2
-	*srnamt = "DTPLQT2"
-	*infot = 1
-	golapack.Dtplqt2(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DTPLQT2", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Dtplqt2(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DTPLQT2", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Dtplqt2(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DTPLQT2", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Dtplqt2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), t, func() *int { y := 2; return &y }(), &info)
-	Chkxer("DTPLQT2", &info, lerr, ok, _t)
-	*infot = 7
-	golapack.Dtplqt2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 2; return &y }(), &info)
-	Chkxer("DTPLQT2", &info, lerr, ok, _t)
-	*infot = 9
-	golapack.Dtplqt2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DTPLQT2", &info, lerr, ok, _t)
+	//     Dtplqt2
+	*srnamt = "Dtplqt2"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dtplqt2(-1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dtplqt2", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dtplqt2(0, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dtplqt2", err)
+	*errt = fmt.Errorf("l < 0 || l > min(m, n): l=-1, m=0, n=0")
+	err = golapack.Dtplqt2(0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dtplqt2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dtplqt2(2, 2, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(2))
+	chkxer2("Dtplqt2", err)
+	*errt = fmt.Errorf("b.Rows < max(1, m): b.Rows=1, m=2")
+	err = golapack.Dtplqt2(2, 2, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(2))
+	chkxer2("Dtplqt2", err)
+	*errt = fmt.Errorf("t.Rows < max(1, m): t.Rows=1, m=2")
+	err = golapack.Dtplqt2(2, 2, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dtplqt2", err)
 
-	//     DTPMLQT
-	*srnamt = "DTPMLQT"
-	*infot = 1
-	golapack.Dtpmlqt('/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Dtpmlqt('L', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Dtpmlqt('L', 'N', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Dtpmlqt('L', 'N', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Dtpmlqt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	*infot = 6
-	golapack.Dtpmlqt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 7
-	golapack.Dtpmlqt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 9
-	golapack.Dtpmlqt('R', 'N', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 11
-	golapack.Dtpmlqt('R', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 0; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 13
-	golapack.Dtpmlqt('L', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 0; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
-	*infot = 15
-	golapack.Dtpmlqt('L', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 0; return &y }(), w, &info)
-	Chkxer("DTPMLQT", &info, lerr, ok, _t)
+	//     Dtpmlqt
+	*srnamt = "Dtpmlqt"
+	*errt = fmt.Errorf("!left && !right: side=Unrecognized: /")
+	err = golapack.Dtpmlqt('/', NoTrans, 0, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("!tran && !notran: trans=Unrecognized: /")
+	err = golapack.Dtpmlqt(Left, '/', 0, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dtpmlqt(Left, NoTrans, -1, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dtpmlqt(Left, NoTrans, 0, -1, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("k < 0: k=-1")
+	err = golapack.Dtpmlqt(Left, NoTrans, 0, 0, -1, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("l < 0 || l > k: l=-1, k=0")
+	err = golapack.Dtpmlqt(Left, NoTrans, 0, 0, 0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("mb < 1 || (mb > k && k > 0): mb=0, k=0")
+	err = golapack.Dtpmlqt(Left, NoTrans, 0, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("v.Rows < k: v.Rows=1, k=2")
+	err = golapack.Dtpmlqt(Right, NoTrans, 2, 2, 2, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("t.Rows < mb: t.Rows=1, mb=2")
+	err = golapack.Dtpmlqt(Right, NoTrans, 1, 1, 2, 1, 2, a.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("a.Rows < ldaq: a.Rows=1, ldaq=2")
+	err = golapack.Dtpmlqt(Left, NoTrans, 2, 1, 2, 1, 1, a.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
+	*errt = fmt.Errorf("b.Rows < max(1, m): b.Rows=1, m=2")
+	err = golapack.Dtpmlqt(Left, NoTrans, 2, 1, 1, 1, 1, a.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dtpmlqt", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		_t.Fail()
+	}
 }

@@ -8,19 +8,20 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zchkbl tests ZGEBAL, a routine for balancing a general complex
+// zchkbl tests Zgebal, a routine for balancing a general complex
 // matrix and isolating some of its eigenvalues.
-func Zchkbl(t *testing.T) {
+func zchkbl(t *testing.T) {
 	var rmax, sfmin, temp, vmax, zero float64
-	var _i, i, ihi, ihiin, ilo, iloin, info, j, knt, lda, n, ninfo int
-	// dummy := vf(1)
+	var _i, i, ihi, ihiin, ilo, iloin, j, knt, n, ninfo int
+	var err error
+
 	scale := vf(20)
 	scalin := vf(20)
 	lmax := make([]int, 3)
 	a := cmf(20, 20, opts)
 	ain := cmf(20, 20, opts)
 
-	lda = 20
+	// lda = 20
 	zero = 0.0
 
 	lmax[0] = 0
@@ -31,7 +32,6 @@ func Zchkbl(t *testing.T) {
 	rmax = zero
 	vmax = zero
 	sfmin = golapack.Dlamch(SafeMinimum)
-	// meps = golapack.Dlamch(Epsilon)
 
 	nlist := []int{5, 5, 5, 4, 6, 5, 4, 4, 5, 6, 7, 5, 6}
 	alist := [][]complex128{
@@ -261,9 +261,7 @@ func Zchkbl(t *testing.T) {
 		}
 
 		knt = knt + 1
-		golapack.Zgebal('B', &n, a, &lda, &ilo, &ihi, scale, &info)
-
-		if info != 0 {
+		if ilo, ihi, err = golapack.Zgebal('B', n, a, scale); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt
@@ -296,7 +294,7 @@ func Zchkbl(t *testing.T) {
 
 	}
 
-	fmt.Printf(" .. test output of ZGEBAL .. \n")
+	fmt.Printf(" .. test output of Zgebal .. \n")
 
 	fmt.Printf(" value of largest test error            = %12.3E\n", rmax)
 	fmt.Printf(" example number where info is not zero  = %4d\n", lmax[0])

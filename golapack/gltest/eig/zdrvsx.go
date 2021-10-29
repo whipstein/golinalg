@@ -3,7 +3,6 @@ package eig
 import (
 	"fmt"
 	"math"
-	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -11,15 +10,15 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zdrvsx checks the nonsymmetric eigenvalue (Schur form) problem
+// zdrvsx checks the nonsymmetric eigenvalue (Schur form) problem
 //    expert driver ZGEESX.
 //
-//    ZDRVSX uses both test matrices generated randomly depending on
+//    zdrvsx uses both test matrices generated randomly depending on
 //    data supplied in the calling sequence, as well as on data
 //    read from an input file and including precomputed condition
 //    numbers to which it compares the ones it computes.
 //
-//    When ZDRVSX is called, a number of matrix "sizes" ("n's") and a
+//    When zdrvsx is called, a number of matrix "sizes" ("n's") and a
 //    number of matrix "types" are specified.  For each size ("n")
 //    and each _type of matrix, one matrix will be generated and used
 //    to test the nonsymmetric eigenroutines.  For each matrix, 15
@@ -184,7 +183,7 @@ import (
 //      number of RCONDV, and takes errors in computing RCONDV into
 //      account, so that the resulting quantity should be O(ULP).
 //      cond(RCONDV) is essentially given by norm(A)/RCONDE.
-func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.CMatrix, lda *int, h, ht *mat.CMatrix, w, wt, wtmp *mat.CVector, vs *mat.CMatrix, ldvs *int, vs1 *mat.CMatrix, result *mat.Vector, work *mat.CVector, lwork *int, rwork *mat.Vector, bwork *[]bool, info *int, t *testing.T) {
+func zdrvsx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, ht *mat.CMatrix, w, wt, wtmp *mat.CVector, vs, vs1 *mat.CMatrix, result *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, bwork []bool) (err error) {
 	var badnn bool
 	var cone, czero complex128
 	var anorm, cond, conds, one, ovfl, rcdein, rcdvin, rtulp, rtulpi, ulp, ulpinv, unfl, zero float64
@@ -192,10 +191,10 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	islct := make([]int, 20)
-	kconds := make([]int, 21)
-	kmagn := make([]int, 21)
-	kmode := make([]int, 21)
-	ktype := make([]int, 21)
+	kconds := []int{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0}
+	kmagn := []int{1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1}
+	ktype := []int{1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -203,17 +202,11 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	one = 1.0
 	maxtyp = 21
 
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15], ktype[16], ktype[17], ktype[18], ktype[19], ktype[20] = 1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15], kmagn[16], kmagn[17], kmagn[18], kmagn[19], kmagn[20] = 1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1
-	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
-
-	path := []byte("ZSX")
+	path := "Zsx"
 
 	//     Check for errors
 	ntestt = 0
 	ntestf = 0
-	(*info) = 0
 
 	//     Important constants
 	badnn = false
@@ -221,46 +214,44 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     8 is the largest dimension in the input file of precomputed
 	//     problems
 	nmax = 8
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*nounit) <= 0 {
-		(*info) = -8
-	} else if (*lda) < 1 || (*lda) < nmax {
-		(*info) = -10
-	} else if (*ldvs) < 1 || (*ldvs) < nmax {
-		(*info) = -20
-	} else if max(3*nmax, 2*pow(nmax, 2)) > (*lwork) {
-		(*info) = -24
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows < 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if vs.Rows < 1 || vs.Rows < nmax {
+		err = fmt.Errorf("vs.Rows < 1 || vs.Rows < nmax: vs.Rows=%v, nmax=%v", vs.Rows, nmax)
+	} else if max(3*nmax, 2*pow(nmax, 2)) > lwork {
+		err = fmt.Errorf("max(3*nmax, 2*pow(nmax, 2)) > lwork: nmax=%v, lwork=%v", nmax, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZDRVSX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zdrvsx", err)
 		return
 	}
 
 	//     If nothing to do check on NIUNIT
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		goto label150
 	}
 
 	//     More Important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Precision)
 	ulpinv = one / ulp
 	rtulp = math.Sqrt(ulp)
@@ -269,22 +260,22 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     Loop over sizes, types
 	nerrs = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label130
 			}
 
 			//           Save ISEED in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Compute "A"
@@ -337,7 +328,7 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label60:
 			;
 
-			golapack.Zlaset('F', lda, &n, &czero, &czero, a, lda)
+			golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -363,11 +354,11 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'H', rwork, imode, cond, anorm, 0, 0, 'N', a, work.Off(n))
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'H', rwork, imode, cond, anorm, n, n, 'N', a, work.Off(n))
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -379,39 +370,38 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					conds = zero
 				}
 
-				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
+				err = matgen.Zlatme(n, 'D', &iseed, work, imode, cond, cone, 'T', 'T', 'T', rwork, 4, conds, n, n, anorm, a, work.Off(2*n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &idumma)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'H', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &idumma)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &idumma)
 				if n >= 4 {
-					golapack.Zlaset('F', func() *int { y := 2; return &y }(), &n, &czero, &czero, a, lda)
-					golapack.Zlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &czero, &czero, a.Off(2, 0), lda)
-					golapack.Zlaset('F', toPtr(n-3), func() *int { y := 2; return &y }(), &czero, &czero, a.Off(2, n-1-1), lda)
-					golapack.Zlaset('F', func() *int { y := 1; return &y }(), &n, &czero, &czero, a.Off(n-1, 0), lda)
+					golapack.Zlaset(Full, 2, n, czero, czero, a)
+					golapack.Zlaset(Full, n-3, 1, czero, czero, a.Off(2, 0))
+					golapack.Zlaset(Full, n-3, 2, czero, czero, a.Off(2, n-1-1))
+					golapack.Zlaset(Full, 1, n, czero, czero, a.Off(n-1, 0))
 				}
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, 0, zero, anorm, 'N', a, &idumma)
 
 			} else {
 
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZDRVSX: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo != 0 || err != nil {
+				fmt.Printf(" zdrvsx: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -427,38 +417,37 @@ func Zdrvsx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 				nnwork = max(nnwork, 1)
 
-				Zget24(false, &jtype, thresh, &ioldsd, nounit, &n, a, lda, h, ht, w, wt, wtmp, vs, ldvs, vs1, &rcdein, &rcdvin, &nslct, &islct, func() *int { y := 0; return &y }(), result, work, &nnwork, rwork, bwork, info)
+				err = zget24(false, jtype, thresh, ioldsd, n, a, h, ht, w, wt, wtmp, vs, vs1, rcdein, rcdvin, nslct, islct, 0, result, work, nnwork, rwork, &bwork)
 
 				//              Check for RESULT(j) > THRESH
 				ntest = 0
 				nfail = 0
 				for j = 1; j <= 15; j++ {
 					if result.Get(j-1) >= zero {
-						ntest = ntest + 1
+						ntest++
 					}
-					if result.Get(j-1) >= (*thresh) {
-						t.Fail()
-						nfail = nfail + 1
+					if result.Get(j-1) >= thresh {
+						nfail++
 					}
 				}
 
 				if nfail > 0 {
-					ntestf = ntestf + 1
+					ntestf++
 				}
 				if ntestf == 1 {
-					fmt.Printf("\n %3s -- Complex Schur Form Decomposition Expert Driver\n Matrix types (see ZDRVSX for details): \n", path)
+					fmt.Printf("\n %3s -- Complex Schur Form Decomposition Expert Driver\n Matrix types (see zdrvsx for details): \n", path)
 					fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: geometr. spaced entries.\n  2=Identity matrix.                      6=Diagonal: clustered entries.\n  3=Transposed Jordan block.              7=Diagonal: large, evenly spaced.\n  4=Diagonal: evenly spaced entries.      8=Diagonal: small, evenly spaced.\n")
 					fmt.Printf(" Dense, Non-Symmetric Matrices:\n  9=Well-cond., evenly spaced eigenvals. 14=Ill-cond., geomet. spaced eigenals.\n 10=Well-cond., geom. spaced eigenvals.  15=Ill-conditioned, clustered e.vals.\n 11=Well-conditioned, clustered e.vals.  16=Ill-cond., random complex \n 12=Well-cond., random complex           17=Ill-cond., large rand. complx \n 13=Ill-conditioned, evenly spaced.      18=Ill-cond., small rand. complx \n")
 					fmt.Printf(" 19=Matrix with random O(1) entries.     21=Matrix with small random entries.\n 20=Matrix with large random entries.   \n\n")
-					fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if W are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if W same no matter if VS computed (no sort),  1/ulp otherwise\n", *thresh)
+					fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if W are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if W same no matter if VS computed (no sort),  1/ulp otherwise\n", thresh)
 					fmt.Printf(" 7 = 0 if T in Schur form (sort),   1/ulp otherwise\n 8 = | A - VS T transpose(VS) | / ( n |A| ulp ) (sort)\n 9 = | I - VS transpose(VS) | / ( n ulp ) (sort) \n 10 = 0 if W are eigenvalues of T (sort),  1/ulp otherwise\n 11 = 0 if T same no matter what else computed (sort),  1/ulp otherwise\n 12 = 0 if W same no matter what else computed (sort), 1/ulp otherwise\n 13 = 0 if sorting successful, 1/ulp otherwise\n 14 = 0 if RCONDE same no matter what else computed, 1/ulp otherwise\n 15 = 0 if RCONDv same no matter what else computed, 1/ulp otherwise\n 16 = | RCONDE - RCONDE(precomputed) | / cond(RCONDE),\n 17 = | RCONDV - RCONDV(precomputed) | / cond(RCONDV),\n")
 					ntestf = 2
 				}
 
 				for j = 1; j <= 15; j++ {
-					if result.Get(j-1) >= (*thresh) {
-						t.Fail()
+					if result.Get(j-1) >= thresh {
 						fmt.Printf(" N=%5d, IWK=%2d, seed=%4d, _type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
+						err = fmt.Errorf(" N=%5d, IWK=%2d, seed=%4d, _type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
 					}
 				}
 
@@ -658,7 +647,7 @@ label150:
 		isrt = isrtlist[_i]
 
 		jtype = jtype + 1
-		(*iseed)[0] = jtype
+		iseed[0] = jtype
 		for i = 1; i <= nslct; i++ {
 			islct[i-1] = islctlist[_i][i-1]
 		}
@@ -670,7 +659,7 @@ label150:
 		rcdein = rlist[_i][0]
 		rcdvin = rlist[_i][1]
 
-		Zget24(true, func() *int { y := 22; return &y }(), thresh, iseed, nounit, &n, a, lda, h, ht, w, wt, wtmp, vs, ldvs, vs1, &rcdein, &rcdvin, &nslct, &islct, &isrt, result, work, lwork, rwork, bwork, info)
+		err = zget24(true, 22, thresh, iseed, n, a, h, ht, w, wt, wtmp, vs, vs1, rcdein, rcdvin, nslct, islct, isrt, result, work, lwork, rwork, &bwork)
 
 		//     Check for RESULT(j) > THRESH
 		ntest = 0
@@ -679,8 +668,8 @@ label150:
 			if result.Get(j-1) >= zero {
 				ntest = ntest + 1
 			}
-			if result.Get(j-1) >= (*thresh) {
-				nfail = nfail + 1
+			if result.Get(j-1) >= thresh {
+				nfail++
 			}
 		}
 
@@ -688,16 +677,16 @@ label150:
 			ntestf = ntestf + 1
 		}
 		if ntestf == 1 {
-			fmt.Printf("\n %3s -- Complex Schur Form Decomposition Expert Driver\n Matrix types (see ZDRVSX for details): \n", path)
+			fmt.Printf("\n %3s -- Complex Schur Form Decomposition Expert Driver\n Matrix types (see zdrvsx for details): \n", path)
 			fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: geometr. spaced entries.\n  2=Identity matrix.                      6=Diagonal: clustered entries.\n  3=Transposed Jordan block.              7=Diagonal: large, evenly spaced.\n  4=Diagonal: evenly spaced entries.      8=Diagonal: small, evenly spaced.\n")
 			fmt.Printf(" Dense, Non-Symmetric Matrices:\n  9=Well-cond., evenly spaced eigenvals. 14=Ill-cond., geomet. spaced eigenals.\n 10=Well-cond., geom. spaced eigenvals.  15=Ill-conditioned, clustered e.vals.\n 11=Well-conditioned, clustered e.vals.  16=Ill-cond., random complex \n 12=Well-cond., random complex           17=Ill-cond., large rand. complx \n 13=Ill-conditioned, evenly spaced.      18=Ill-cond., small rand. complx \n")
 			fmt.Printf(" 19=Matrix with random O(1) entries.     21=Matrix with small random entries.\n 20=Matrix with large random entries.   \n\n")
-			fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if W are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if W same no matter if VS computed (no sort),  1/ulp otherwise\n", *thresh)
+			fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if W are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if W same no matter if VS computed (no sort),  1/ulp otherwise\n", thresh)
 			fmt.Printf(" 7 = 0 if T in Schur form (sort),   1/ulp otherwise\n 8 = | A - VS T transpose(VS) | / ( n |A| ulp ) (sort)\n 9 = | I - VS transpose(VS) | / ( n ulp ) (sort) \n 10 = 0 if W are eigenvalues of T (sort),  1/ulp otherwise\n 11 = 0 if T same no matter what else computed (sort),  1/ulp otherwise\n 12 = 0 if W same no matter what else computed (sort), 1/ulp otherwise\n 13 = 0 if sorting successful, 1/ulp otherwise\n 14 = 0 if RCONDE same no matter what else computed, 1/ulp otherwise\n 15 = 0 if RCONDv same no matter what else computed, 1/ulp otherwise\n 16 = | RCONDE - RCONDE(precomputed) | / cond(RCONDE),\n 17 = | RCONDV - RCONDV(precomputed) | / cond(RCONDV),\n")
 			ntestf = 2
 		}
 		for j = 1; j <= 17; j++ {
-			if result.Get(j-1) >= (*thresh) {
+			if result.Get(j-1) >= thresh {
 				fmt.Printf(" N=%5d, input example =%3d,  test(%2d)=%10.3f\n", n, jtype, j, result.Get(j-1))
 			}
 		}
@@ -707,5 +696,7 @@ label150:
 	}
 
 	//     Summary
-	Dlasum(path, &nerrs, &ntestt)
+	dlasum(path, nerrs, ntestt)
+
+	return
 }

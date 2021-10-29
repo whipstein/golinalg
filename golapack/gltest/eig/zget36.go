@@ -1,13 +1,11 @@
 package eig
 
 import (
-	"testing"
-
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zget36 tests ZTREXC, a routine for reordering diagonal entries of a
+// zget36 tests ZTREXC, a routine for reordering diagonal entries of a
 // matrix in complex Schur form. Thus, ZLAEXC computes a unitary matrix
 // Q such that
 //
@@ -21,10 +19,11 @@ import (
 // ILST.
 //
 // The test matrices are read from a file with logical unit number NIN.
-func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
+func zget36() (rmax float64, lmax, ninfo, knt int) {
 	var cone, ctemp, czero complex128
 	var eps, one, res, zero float64
 	var _i, i, ifst, ilst, info1, info2, j, ldt, lwork, n int
+	var err error
 
 	zero = 0.0
 	one = 1.0
@@ -42,10 +41,6 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 	tmp := cmf(10, 10, opts)
 
 	eps = golapack.Dlamch(Precision)
-	(*rmax) = zero
-	(*lmax) = 0
-	(*knt) = 0
-	(*ninfo) = 0
 
 	nlist := []int{1, 3, 4, 4, 4, 5, 4, 6}
 	ifstlist := []int{1, 1, 4, 4, 1, 5, 4, 5}
@@ -103,19 +98,21 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 		ifst = ifstlist[_i]
 		ilst = ilstlist[_i]
 
-		(*knt) = (*knt) + 1
+		knt = knt + 1
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
 				tmp.Set(i-1, j-1, tmplist[_i][(i-1)*(n)+j-1])
 			}
 		}
-		golapack.Zlacpy('F', &n, &n, tmp, &ldt, t1, &ldt)
-		golapack.Zlacpy('F', &n, &n, tmp, &ldt, t2, &ldt)
+		golapack.Zlacpy(Full, n, n, tmp, t1)
+		golapack.Zlacpy(Full, n, n, tmp, t2)
 		res = zero
 
 		//     Test without accumulating Q
-		golapack.Zlaset('F', &n, &n, &czero, &cone, q, &ldt)
-		golapack.Ztrexc('N', &n, t1, &ldt, q, &ldt, &ifst, &ilst, &info1)
+		golapack.Zlaset(Full, n, n, czero, cone, q)
+		if err = golapack.Ztrexc('N', n, t1, q, ifst, ilst); err != nil {
+			panic(err)
+		}
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
 				if i == j && q.Get(i-1, j-1) != cone {
@@ -128,8 +125,10 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 		}
 
 		//     Test with accumulating Q
-		golapack.Zlaset('F', &n, &n, &czero, &cone, q, &ldt)
-		golapack.Ztrexc('V', &n, t2, &ldt, q, &ldt, &ifst, &ilst, &info2)
+		golapack.Zlaset(Full, n, n, czero, cone, q)
+		if err = golapack.Ztrexc('V', n, t2, q, ifst, ilst); err != nil {
+			panic(err)
+		}
 
 		//     Compare T1 with T2
 		for i = 1; i <= n; i++ {
@@ -140,7 +139,7 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 			}
 		}
 		if info1 != 0 || info2 != 0 {
-			(*ninfo) = (*ninfo) + 1
+			ninfo = ninfo + 1
 		}
 		if info1 != info2 {
 			res = res + one/eps
@@ -168,7 +167,7 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 		}
 
 		//     Test for small residual, and orthogonality of Q
-		Zhst01(&n, func() *int { y := 1; return &y }(), &n, tmp, &ldt, t2, &ldt, q, &ldt, work, &lwork, rwork, result)
+		zhst01(n, 1, n, tmp, t2, q, work, lwork, rwork, result)
 		res = res + result.Get(0) + result.Get(1)
 
 		//     Test for T2 being in Schur form
@@ -179,9 +178,11 @@ func Zget36(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 				}
 			}
 		}
-		if res > (*rmax) {
-			(*rmax) = res
-			(*lmax) = (*knt)
+		if res > rmax {
+			rmax = res
+			lmax = knt
 		}
 	}
+
+	return
 }

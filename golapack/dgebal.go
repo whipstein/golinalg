@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -17,7 +18,7 @@ import (
 //
 // Balancing may reduce the 1-norm of the matrix, and improve the
 // accuracy of the computed eigenvalues and/or eigenvectors.
-func Dgebal(job byte, n *int, a *mat.Matrix, lda, ilo, ihi *int, scale *mat.Vector, info *int) {
+func Dgebal(job byte, n int, a *mat.Matrix, scale *mat.Vector) (ilo, ihi int, err error) {
 	var noconv bool
 	var c, ca, f, factor, g, one, r, ra, s, sclfac, sfmax1, sfmax2, sfmin1, sfmin2, zero float64
 	var i, ica, iexc, ira, j, k, l, m int
@@ -28,28 +29,27 @@ func Dgebal(job byte, n *int, a *mat.Matrix, lda, ilo, ihi *int, scale *mat.Vect
 	factor = 0.95
 
 	//     Test the input parameters
-	(*info) = 0
 	if job != 'N' && job != 'P' && job != 'S' && job != 'B' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+		err = fmt.Errorf("job != 'N' && job != 'P' && job != 'S' && job != 'B': job='%c'", job)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGEBAL"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgebal", err)
 		return
 	}
 
 	k = 1
-	l = (*n)
+	l = n
 
-	if (*n) == 0 {
+	if n == 0 {
 		goto label210
 	}
 
 	if job == 'N' {
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			scale.Set(i-1, one)
 		}
 		goto label210
@@ -71,7 +71,7 @@ label20:
 	}
 
 	goblas.Dswap(l, a.Vector(0, j-1, 1), a.Vector(0, m-1, 1))
-	goblas.Dswap((*n)-k+1, a.Vector(j-1, k-1), a.Vector(m-1, k-1))
+	goblas.Dswap(n-k+1, a.Vector(j-1, k-1), a.Vector(m-1, k-1))
 
 label30:
 	;
@@ -165,7 +165,7 @@ label140:
 		r = goblas.Dnrm2(l-k+1, a.Vector(i-1, k-1))
 		ica = goblas.Idamax(l, a.Vector(0, i-1, 1))
 		ca = math.Abs(a.Get(ica-1, i-1))
-		ira = goblas.Idamax((*n)-k+1, a.Vector(i-1, k-1))
+		ira = goblas.Idamax(n-k+1, a.Vector(i-1, k-1))
 		ra = math.Abs(a.Get(i-1, ira+k-1-1))
 
 		//        Guard against zero C or R due to underflow.
@@ -182,8 +182,8 @@ label140:
 		}
 		if Disnan(int(c + f + ca + r + g + ra)) {
 			//           Exit if NaN to avoid infinite loop
-			(*info) = -3
-			gltest.Xerbla([]byte("DGEBAL"), -(*info))
+			err = fmt.Errorf("Disnan(int(c + f + ca + r + g + ra)): c=%v, f=%v, ca=%v, r=%v, g=%v, ra=%v", c, f, ca, r, g, ra)
+			gltest.Xerbla2("Dgebal", err)
 			return
 		}
 		f = f * sclfac
@@ -230,7 +230,7 @@ label140:
 		scale.Set(i-1, scale.Get(i-1)*f)
 		noconv = true
 
-		goblas.Dscal((*n)-k+1, g, a.Vector(i-1, k-1))
+		goblas.Dscal(n-k+1, g, a.Vector(i-1, k-1))
 		goblas.Dscal(l, f, a.Vector(0, i-1, 1))
 
 	label200:
@@ -242,6 +242,8 @@ label140:
 
 label210:
 	;
-	(*ilo) = k
-	(*ihi) = l
+	ilo = k
+	ihi = l
+
+	return
 }

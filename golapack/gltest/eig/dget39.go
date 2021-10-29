@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dget39 tests DLAQTR, a routine for solving the real or
+// dget39 tests DLAQTR, a routine for solving the real or
 // special complex quasi upper triangular system
 //
 //      op(T)*p = scale*c,
@@ -45,11 +45,10 @@ import (
 //
 // (The (||T||+||B||)*smlnum/ulp term accounts for possible
 //  (gradual or nongradual) underflow in x1 and x2.)
-func Dget39(rmax *float64, lmax, ninfo, knt *int) {
+func dget39() (rmax float64, lmax, ninfo, knt int) {
 	var bignum, domin, dumm, eps, norm, normtb, one, resid, scale, smlnum, w, xnorm, zero float64
 	var i, info, ivm1, ivm2, ivm3, ivm4, ivm5, j, k, ldt, ldt2, n, ndim int
 	var err error
-	_ = err
 
 	ldt = 10
 	ldt2 = 2 * ldt
@@ -77,7 +76,7 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     Set up test case parameters
 	vm1.Set(0, one)
@@ -109,9 +108,9 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 	vm5.Set(2, math.Sqrt(smlnum))
 
 	//     Initialization
-	(*knt) = 0
-	(*rmax) = zero
-	(*ninfo) = 0
+	knt = 0
+	rmax = zero
+	ninfo = 0
 	smlnum = smlnum / eps
 
 	//     Begin test loop
@@ -142,35 +141,37 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 								d.Set(i-1, math.Sin(float64(i))*vm4.Get(ivm4-1))
 							}
 
-							norm = golapack.Dlange('1', &n, &n, t, &ldt, work)
+							norm = golapack.Dlange('1', n, n, t, work)
 							k = goblas.Idamax(n, b.Off(0, 1))
 							normtb = norm + math.Abs(b.Get(k-1)) + math.Abs(w)
 
 							goblas.Dcopy(n, d.Off(0, 1), x.Off(0, 1))
-							(*knt) = (*knt) + 1
-							golapack.Dlaqtr(false, true, &n, t, &ldt, dum, &dumm, &scale, x, work, &info)
+							knt = knt + 1
+							scale, info = golapack.Dlaqtr(false, true, n, t, dum, dumm, x, work)
 							if info != 0 {
-								(*ninfo) = (*ninfo) + 1
+								ninfo = ninfo + 1
 							}
 
 							//                       || T*x - scale*d || /
 							//                         max(ulp*||T||*||x||,smlnum/ulp*||T||,smlnum)
 							goblas.Dcopy(n, d.Off(0, 1), y.Off(0, 1))
-							err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(0, 1), -scale, y.Off(0, 1))
+							if err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(0, 1), -scale, y.Off(0, 1)); err != nil {
+								panic(err)
+							}
 							xnorm = goblas.Dasum(n, x.Off(0, 1))
 							resid = goblas.Dasum(n, y.Off(0, 1))
 							domin = math.Max(smlnum, math.Max((smlnum/eps)*norm, (norm*eps)*xnorm))
 							resid = resid / domin
-							if resid > (*rmax) {
-								(*rmax) = resid
-								(*lmax) = (*knt)
+							if resid > rmax {
+								rmax = resid
+								lmax = knt
 							}
 
 							goblas.Dcopy(n, d.Off(0, 1), x.Off(0, 1))
-							(*knt) = (*knt) + 1
-							golapack.Dlaqtr(true, true, &n, t, &ldt, dum, &dumm, &scale, x, work, &info)
+							knt = knt + 1
+							scale, info = golapack.Dlaqtr(true, true, n, t, dum, dumm, x, work)
 							if info != 0 {
-								(*ninfo) = (*ninfo) + 1
+								ninfo = ninfo + 1
 							}
 
 							//                       || T*x - scale*d || /
@@ -181,16 +182,16 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 							resid = goblas.Dasum(n, y.Off(0, 1))
 							domin = math.Max(smlnum, math.Max((smlnum/eps)*norm, (norm*eps)*xnorm))
 							resid = resid / domin
-							if resid > (*rmax) {
-								(*rmax) = resid
-								(*lmax) = (*knt)
+							if resid > rmax {
+								rmax = resid
+								lmax = knt
 							}
 
 							goblas.Dcopy(2*n, d.Off(0, 1), x.Off(0, 1))
-							(*knt) = (*knt) + 1
-							golapack.Dlaqtr(false, false, &n, t, &ldt, b, &w, &scale, x, work, &info)
+							knt = knt + 1
+							scale, info = golapack.Dlaqtr(false, false, n, t, b, w, x, work)
 							if info != 0 {
-								(*ninfo) = (*ninfo) + 1
+								ninfo = ninfo + 1
 							}
 
 							//                       ||(T+i*B)*(x1+i*x2) - scale*(d1+i*d2)|| /
@@ -202,27 +203,31 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 							for i = 2; i <= n; i++ {
 								y.Set(i-1, w*x.Get(i+n-1)+scale*y.Get(i-1))
 							}
-							err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(0, 1), -one, y.Off(0, 1))
+							if err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(0, 1), -one, y.Off(0, 1)); err != nil {
+								panic(err)
+							}
 
 							y.Set(1+n-1, goblas.Ddot(n, b.Off(0, 1), x.Off(0, 1))-scale*y.Get(1+n-1))
 							for i = 2; i <= n; i++ {
 								y.Set(i+n-1, w*x.Get(i-1)-scale*y.Get(i+n-1))
 							}
-							err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(1+n-1, 1), one, y.Off(1+n-1, 1))
+							if err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(1+n-1, 1), one, y.Off(1+n-1, 1)); err != nil {
+								panic(err)
+							}
 
 							resid = goblas.Dasum(2*n, y.Off(0, 1))
 							domin = math.Max(smlnum, math.Max((smlnum/eps)*normtb, eps*(normtb*goblas.Dasum(2*n, x.Off(0, 1)))))
 							resid = resid / domin
-							if resid > (*rmax) {
-								(*rmax) = resid
-								(*lmax) = (*knt)
+							if resid > rmax {
+								rmax = resid
+								lmax = knt
 							}
 
 							goblas.Dcopy(2*n, d.Off(0, 1), x.Off(0, 1))
-							(*knt) = (*knt) + 1
-							golapack.Dlaqtr(true, false, &n, t, &ldt, b, &w, &scale, x, work, &info)
+							knt = knt + 1
+							scale, info = golapack.Dlaqtr(true, false, n, t, b, w, x, work)
 							if info != 0 {
-								(*ninfo) = (*ninfo) + 1
+								ninfo = ninfo + 1
 							}
 
 							//                       ||(T+i*B)*(x1+i*x2) - scale*(d1+i*d2)|| /
@@ -233,20 +238,24 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 							for i = 2; i <= n; i++ {
 								y.Set(i-1, b.Get(i-1)*x.Get(1+n-1)+w*x.Get(i+n-1)-scale*y.Get(i-1))
 							}
-							err = goblas.Dgemv(Trans, n, n, one, t, x.Off(0, 1), one, y.Off(0, 1))
+							if err = goblas.Dgemv(Trans, n, n, one, t, x.Off(0, 1), one, y.Off(0, 1)); err != nil {
+								panic(err)
+							}
 
 							y.Set(1+n-1, b.Get(0)*x.Get(0)+scale*y.Get(1+n-1))
 							for i = 2; i <= n; i++ {
 								y.Set(i+n-1, b.Get(i-1)*x.Get(0)+w*x.Get(i-1)+scale*y.Get(i+n-1))
 							}
-							err = goblas.Dgemv(Trans, n, n, one, t, x.Off(1+n-1, 1), -one, y.Off(1+n-1, 1))
+							if err = goblas.Dgemv(Trans, n, n, one, t, x.Off(1+n-1, 1), -one, y.Off(1+n-1, 1)); err != nil {
+								panic(err)
+							}
 
 							resid = goblas.Dasum(2*n, y.Off(0, 1))
 							domin = math.Max(smlnum, math.Max((smlnum/eps)*normtb, eps*(normtb*goblas.Dasum(2*n, x.Off(0, 1)))))
 							resid = resid / domin
-							if resid > (*rmax) {
-								(*rmax) = resid
-								(*lmax) = (*knt)
+							if resid > rmax {
+								rmax = resid
+								lmax = knt
 							}
 
 						}
@@ -255,4 +264,6 @@ func Dget39(rmax *float64, lmax, ninfo, knt *int) {
 			}
 		}
 	}
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -9,76 +11,77 @@ import (
 // Dsytri2x computes the inverse of a real symmetric indefinite matrix
 // A using the factorization A = U*D*U**T or A = L*D*L**T computed by
 // DSYTRF.
-func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Vector, nb *int, info *int) {
+func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vector, nb int) (info int, err error) {
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, u01IJ, u01Ip1J, u11IJ, u11Ip1J, zero float64
-	var count, cut, i, iinfo, invd, ip, j, k, nnb, u11 int
-	var err error
-	_ = err
+	var count, cut, i, invd, ip, j, k, nnb, u11 int
 
-	_work := work.Matrix((*n)+(*nb)+1, opts)
+	_work := work.Matrix(n+nb+1, opts)
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
 
 	//     Quick return if possible
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRI2X"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsytri2x", err)
 		return
 	}
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Convert A
 	//     Workspace got Non-diag elements of D
-	Dsyconv(uplo, 'C', n, a, lda, ipiv, work, &iinfo)
+	if err = Dsyconv(uplo, 'C', n, a, ipiv, work); err != nil {
+		panic(err)
+	}
 
 	//     Check that the diagonal matrix D is nonsingular.
 	if upper {
 		//        Upper triangular storage: examine D from bottom to top
-		for (*info) = (*n); (*info) >= 1; (*info)-- {
-			if (*ipiv)[(*info)-1] > 0 && a.Get((*info)-1, (*info)-1) == zero {
+		for info = n; info >= 1; info-- {
+			if (*ipiv)[info-1] > 0 && a.Get(info-1, info-1) == zero {
 				return
 			}
 		}
 	} else {
 		//        Lower triangular storage: examine D from top to bottom.
-		for (*info) = 1; (*info) <= (*n); (*info)++ {
-			if (*ipiv)[(*info)-1] > 0 && a.Get((*info)-1, (*info)-1) == zero {
+		for info = 1; info <= n; info++ {
+			if (*ipiv)[info-1] > 0 && a.Get(info-1, info-1) == zero {
 				return
 			}
 		}
 	}
-	(*info) = 0
+	info = 0
 
 	//  Splitting Workspace
 	//     U01 is a block (N,NB+1)
 	//     The first element of U01 is in WORK(1,1)
 	//     U11 is a block (NB+1,NB+1)
 	//     The first element of U11 is in WORK(N+1,1)
-	u11 = (*n)
+	u11 = n
 	//     INVD is a block (N,2)
 	//     The first element of INVD is in WORK(1,INVD)
-	invd = (*nb) + 2
+	invd = nb + 2
 	if upper {
 		//        invA = P * inv(U**T)*inv(D)*inv(U)*P**T.
-		Dtrtri(uplo, 'U', n, a, lda, info)
+		if info, err = Dtrtri(uplo, Unit, n, a); err != nil {
+			panic(err)
+		}
 
 		//       inv(D) and inv(D)*inv(U)
 		k = 1
-		for k <= (*n) {
+		for k <= n {
 			if (*ipiv)[k-1] > 0 {
 				//           1 x 1 diagonal NNB
 				_work.Set(k-1, invd-1, one/a.Get(k-1, k-1))
@@ -102,9 +105,9 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 		//       inv(U**T) = (inv(U))**T
 		//
 		//       inv(U**T)*inv(D)*inv(U)
-		cut = (*n)
+		cut = n
 		for cut > 0 {
-			nnb = (*nb)
+			nnb = nb
 			if cut <= nnb {
 				nnb = cut
 			} else {
@@ -179,7 +182,9 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 			}
 
 			//       U11**T*invD1*U11->U11
-			err = goblas.Dtrmm(mat.Left, mat.Upper, mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
+			if err = goblas.Dtrmm(Left, Upper, Trans, Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+				panic(err)
+			}
 
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
@@ -188,7 +193,9 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 			}
 
 			//          U01**T*invD*U01->A(CUT+I,CUT+J)
-			err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, cut, one, a.Off(0, cut), _work.Off(0, 0).UpdateRows((*n)+(*nb)+1), zero, _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
+			if err = goblas.Dgemm(Trans, NoTrans, nnb, nnb, cut, one, a.Off(0, cut), _work.Off(0, 0).UpdateRows(n+nb+1), zero, _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+				panic(err)
+			}
 
 			//        U11 =  U11**T*invD1*U11 + U01**T*invD*U01
 			for i = 1; i <= nnb; i++ {
@@ -198,7 +205,9 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 			}
 
 			//        U01 =  U00**T*invD0*U01
-			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, cut, nnb, one, a, _work.Off(0, 0).UpdateRows((*n)+(*nb)+1))
+			if err = goblas.Dtrmm(Left, uplo, Trans, Unit, cut, nnb, one, a, _work.Off(0, 0).UpdateRows(n+nb+1)); err != nil {
+				panic(err)
+			}
 
 			//        Update U01
 			for i = 1; i <= cut; i++ {
@@ -212,23 +221,23 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 
 		//        Apply PERMUTATIONS P and P**T: P * inv(U**T)*inv(D)*inv(U) *P**T
 		i = 1
-		for i <= (*n) {
+		for i <= n {
 			if (*ipiv)[i-1] > 0 {
 				ip = (*ipiv)[i-1]
 				if i < ip {
-					Dsyswapr(uplo, n, a, lda, &i, &ip)
+					Dsyswapr(uplo, n, a, i, ip)
 				}
 				if i > ip {
-					Dsyswapr(uplo, n, a, lda, &ip, &i)
+					Dsyswapr(uplo, n, a, ip, i)
 				}
 			} else {
 				ip = -(*ipiv)[i-1]
 				i = i + 1
 				if (i - 1) < ip {
-					Dsyswapr(uplo, n, a, lda, toPtr(i-1), &ip)
+					Dsyswapr(uplo, n, a, i-1, ip)
 				}
 				if (i - 1) > ip {
-					Dsyswapr(uplo, n, a, lda, &ip, toPtr(i-1))
+					Dsyswapr(uplo, n, a, ip, i-1)
 				}
 			}
 			i = i + 1
@@ -238,10 +247,12 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 		//        LOWER...
 		//
 		//        invA = P * inv(U**T)*inv(D)*inv(U)*P**T.
-		Dtrtri(uplo, 'U', n, a, lda, info)
+		if info, err = Dtrtri(uplo, Unit, n, a); err != nil {
+			panic(err)
+		}
 
 		//       inv(D) and inv(D)*inv(U)
-		k = (*n)
+		k = n
 		for k >= 1 {
 			if (*ipiv)[k-1] > 0 {
 				//           1 x 1 diagonal NNB
@@ -267,10 +278,10 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 		//
 		//       inv(U**T)*inv(D)*inv(U)
 		cut = 0
-		for cut < (*n) {
-			nnb = (*nb)
-			if cut+nnb > (*n) {
-				nnb = (*n) - cut
+		for cut < n {
+			nnb = nb
+			if cut+nnb > n {
+				nnb = n - cut
 			} else {
 				count = 0
 				//             count negative elements,
@@ -285,7 +296,7 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 				}
 			}
 			//     L21 Block
-			for i = 1; i <= (*n)-cut-nnb; i++ {
+			for i = 1; i <= n-cut-nnb; i++ {
 				for j = 1; j <= nnb; j++ {
 					_work.Set(i-1, j-1, a.Get(cut+nnb+i-1, cut+j-1))
 				}
@@ -302,7 +313,7 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 			}
 
 			//          invD*L21
-			i = (*n) - cut - nnb
+			i = n - cut - nnb
 			for i >= 1 {
 				if (*ipiv)[cut+nnb+i-1] > 0 {
 					for j = 1; j <= nnb; j++ {
@@ -340,7 +351,9 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 			}
 
 			//       L11**T*invD1*L11->L11
-			err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
+			if err = goblas.Dtrmm(Left, uplo, Trans, Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+				panic(err)
+			}
 
 			for i = 1; i <= nnb; i++ {
 				for j = 1; j <= i; j++ {
@@ -348,9 +361,11 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 				}
 			}
 
-			if (cut + nnb) < (*n) {
+			if (cut + nnb) < n {
 				//          L21**T*invD2*L21->A(CUT+I,CUT+J)
-				err = goblas.Dgemm(mat.Trans, mat.NoTrans, nnb, nnb, (*n)-nnb-cut, one, a.Off(cut+nnb, cut), _work.Off(0, 0).UpdateRows((*n)+(*nb)+1), zero, _work.Off(u11, 0).UpdateRows((*n)+(*nb)+1))
+				if err = goblas.Dgemm(Trans, NoTrans, nnb, nnb, n-nnb-cut, one, a.Off(cut+nnb, cut), _work.Off(0, 0).UpdateRows(n+nb+1), zero, _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+					panic(err)
+				}
 
 				//        L11 =  L11**T*invD1*L11 + U01**T*invD*U01
 				for i = 1; i <= nnb; i++ {
@@ -360,10 +375,12 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 				}
 
 				//        L01 =  L22**T*invD2*L21
-				err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.Unit, (*n)-nnb-cut, nnb, one, a.Off(cut+nnb, cut+nnb), _work.Off(0, 0).UpdateRows((*n)+(*nb)+1))
+				if err = goblas.Dtrmm(Left, uplo, Trans, Unit, n-nnb-cut, nnb, one, a.Off(cut+nnb, cut+nnb), _work.Off(0, 0).UpdateRows(n+nb+1)); err != nil {
+					panic(err)
+				}
 
 				//      Update L21
-				for i = 1; i <= (*n)-cut-nnb; i++ {
+				for i = 1; i <= n-cut-nnb; i++ {
 					for j = 1; j <= nnb; j++ {
 						a.Set(cut+nnb+i-1, cut+j-1, _work.Get(i-1, j-1))
 					}
@@ -382,27 +399,29 @@ func Dsytri2x(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat
 		}
 
 		//        Apply PERMUTATIONS P and P**T: P * inv(U**T)*inv(D)*inv(U) *P**T
-		i = (*n)
+		i = n
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
 				ip = (*ipiv)[i-1]
 				if i < ip {
-					Dsyswapr(uplo, n, a, lda, &i, &ip)
+					Dsyswapr(uplo, n, a, i, ip)
 				}
 				if i > ip {
-					Dsyswapr(uplo, n, a, lda, &ip, &i)
+					Dsyswapr(uplo, n, a, ip, i)
 				}
 			} else {
 				ip = -(*ipiv)[i-1]
 				if i < ip {
-					Dsyswapr(uplo, n, a, lda, &i, &ip)
+					Dsyswapr(uplo, n, a, i, ip)
 				}
 				if i > ip {
-					Dsyswapr(uplo, n, a, lda, &ip, &i)
+					Dsyswapr(uplo, n, a, ip, i)
 				}
 				i = i - 1
 			}
 			i = i - 1
 		}
 	}
+
+	return
 }

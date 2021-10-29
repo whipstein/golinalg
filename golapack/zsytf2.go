@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -18,7 +19,7 @@ import (
 // block diagonal with 1-by-1 and 2-by-2 diagonal blocks.
 //
 // This is the unblocked version of the algorithm, calling Level 2 BLAS.
-func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
+func Zsytf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 	var upper bool
 	var cone, d11, d12, d21, d22, r1, t, wk, wkm1, wkp1 complex128
 	var absakk, alpha, colmax, eight, one, rowmax, sevten, zero float64
@@ -30,20 +31,17 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 	sevten = 17.0
 	cone = (1.0 + 0.0*1i)
 
-	Cabs1 := func(z complex128) float64 { return math.Abs(real(z)) + math.Abs(imag(z)) }
-
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZSYTF2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zsytf2", err)
 		return
 	}
 
@@ -55,7 +53,7 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		//
 		//        K is the main loop index, decreasing from N to 1 in steps of
 		//        1 or 2
-		k = (*n)
+		k = n
 	label10:
 		;
 
@@ -67,14 +65,14 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 
 		//        Determine rows and columns to be interchanged and whether
 		//        a 1-by-1 or 2-by-2 pivot block will be used
-		absakk = Cabs1(a.Get(k-1, k-1))
+		absakk = cabs1(a.Get(k-1, k-1))
 
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
 			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
-			colmax = Cabs1(a.Get(imax-1, k-1))
+			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
@@ -82,8 +80,8 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		if math.Max(absakk, colmax) == zero || Disnan(int(absakk)) {
 			//           Column K is zero or underflow, or contains a NaN:
 			//           set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -93,17 +91,17 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 			} else {
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
-				jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax, *lda))
-				rowmax = Cabs1(a.Get(imax-1, jmax-1))
+				jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax))
+				rowmax = cabs1(a.Get(imax-1, jmax-1))
 				if imax > 1 {
 					jmax = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
-					rowmax = math.Max(rowmax, Cabs1(a.Get(jmax-1, imax-1)))
+					rowmax = math.Max(rowmax, cabs1(a.Get(jmax-1, imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
 					//                 no interchange, use 1-by-1 pivot block
 					kp = k
-				} else if Cabs1(a.Get(imax-1, imax-1)) >= alpha*rowmax {
+				} else if cabs1(a.Get(imax-1, imax-1)) >= alpha*rowmax {
 					//                 interchange rows and columns K and IMAX, use 1-by-1
 					//                 pivot block
 					kp = imax
@@ -120,7 +118,7 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
 				goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
-				goblas.Zswap(kk-kp-1, a.CVector(kp, kk-1, 1), a.CVector(kp-1, kp, *lda))
+				goblas.Zswap(kk-kp-1, a.CVector(kp, kk-1, 1), a.CVector(kp-1, kp))
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, t)
@@ -143,7 +141,9 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//
 				//              A := A - U(k)*D(k)*U(k)**T = A - W(k)*1/D(k)*W(k)**T
 				r1 = cone / a.Get(k-1, k-1)
-				Zsyr(uplo, toPtr(k-1), toPtrc128(-r1), a.CVector(0, k-1), func() *int { y := 1; return &y }(), a, lda)
+				if err = Zsyr(uplo, k-1, -r1, a.CVector(0, k-1, 1), a); err != nil {
+					panic(err)
+				}
 
 				//              Store U(k) in column k
 				goblas.Zscal(k-1, r1, a.CVector(0, k-1, 1))
@@ -204,21 +204,21 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		;
 
 		//        If K > N, exit from loop
-		if k > (*n) {
+		if k > n {
 			return
 		}
 		kstep = 1
 
 		//        Determine rows and columns to be interchanged and whether
 		//        a 1-by-1 or 2-by-2 pivot block will be used
-		absakk = Cabs1(a.Get(k-1, k-1))
+		absakk = cabs1(a.Get(k-1, k-1))
 
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
-		if k < (*n) {
-			imax = k + goblas.Izamax((*n)-k, a.CVector(k, k-1, 1))
-			colmax = Cabs1(a.Get(imax-1, k-1))
+		if k < n {
+			imax = k + goblas.Izamax(n-k, a.CVector(k, k-1, 1))
+			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
 		}
@@ -226,8 +226,8 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 		if math.Max(absakk, colmax) == zero || Disnan(int(absakk)) {
 			//           Column K is zero or underflow, or contains a NaN:
 			//           set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -237,17 +237,17 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 			} else {
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
-				jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1, *lda))
-				rowmax = Cabs1(a.Get(imax-1, jmax-1))
-				if imax < (*n) {
-					jmax = imax + goblas.Izamax((*n)-imax, a.CVector(imax, imax-1, 1))
-					rowmax = math.Max(rowmax, Cabs1(a.Get(jmax-1, imax-1)))
+				jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1))
+				rowmax = cabs1(a.Get(imax-1, jmax-1))
+				if imax < n {
+					jmax = imax + goblas.Izamax(n-imax, a.CVector(imax, imax-1, 1))
+					rowmax = math.Max(rowmax, cabs1(a.Get(jmax-1, imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
 					//                 no interchange, use 1-by-1 pivot block
 					kp = k
-				} else if Cabs1(a.Get(imax-1, imax-1)) >= alpha*rowmax {
+				} else if cabs1(a.Get(imax-1, imax-1)) >= alpha*rowmax {
 					//                 interchange rows and columns K and IMAX, use 1-by-1
 					//                 pivot block
 					kp = imax
@@ -263,10 +263,10 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
-				if kp < (*n) {
-					goblas.Zswap((*n)-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
+				if kp < n {
+					goblas.Zswap(n-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
 				}
-				goblas.Zswap(kp-kk-1, a.CVector(kk, kk-1, 1), a.CVector(kp-1, kk, *lda))
+				goblas.Zswap(kp-kk-1, a.CVector(kk, kk-1, 1), a.CVector(kp-1, kk))
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, t)
@@ -284,19 +284,21 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 				//              W(k) = L(k)*D(k)
 				//
 				//              where L(k) is the k-th column of L
-				if k < (*n) {
+				if k < n {
 					//                 Perform a rank-1 update of A(k+1:n,k+1:n) as
 					//
 					//                 A := A - L(k)*D(k)*L(k)**T = A - W(k)*(1/D(k))*W(k)**T
 					r1 = cone / a.Get(k-1, k-1)
-					Zsyr(uplo, toPtr((*n)-k), toPtrc128(-r1), a.CVector(k, k-1), func() *int { y := 1; return &y }(), a.Off(k, k), lda)
+					if err = Zsyr(uplo, n-k, -r1, a.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+						panic(err)
+					}
 
 					//                 Store L(k) in column K
-					goblas.Zscal((*n)-k, r1, a.CVector(k, k-1, 1))
+					goblas.Zscal(n-k, r1, a.CVector(k, k-1, 1))
 				}
 			} else {
 				//              2-by-2 pivot block D(k)
-				if k < (*n)-1 {
+				if k < n-1 {
 					//                 Perform a rank-2 update of A(k+2:n,k+2:n) as
 					//
 					//                 A := A - ( L(k) L(k+1) )*D(k)*( L(k) L(k+1) )**T
@@ -310,10 +312,10 @@ func Zsytf2(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int)
 					t = cone / (d11*d22 - cone)
 					d21 = t / d21
 
-					for j = k + 2; j <= (*n); j++ {
+					for j = k + 2; j <= n; j++ {
 						wk = d21 * (d11*a.Get(j-1, k-1) - a.Get(j-1, k))
 						wkp1 = d21 * (d22*a.Get(j-1, k) - a.Get(j-1, k-1))
-						for i = j; i <= (*n); i++ {
+						for i = j; i <= n; i++ {
 							a.Set(i-1, j-1, a.Get(i-1, j-1)-a.Get(i-1, k-1)*wk-a.Get(i-1, k)*wkp1)
 						}
 						a.Set(j-1, k-1, wk)

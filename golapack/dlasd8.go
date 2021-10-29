@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,33 +16,31 @@ import (
 // the arrays VF and VL, the first and last components of all the
 // right singular vectors of the original bidiagonal matrix.
 //
-// DLASD8 is called from DLASD6.
-func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, lddifr *int, dsigma, work *mat.Vector, info *int) {
+// Dlasd8 is called from DLASD6.
+func Dlasd8(icompq, k int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, dsigma, work *mat.Vector) (info int, err error) {
 	var diflj, difrj, dj, dsigj, dsigjp, one, rho, temp float64
 	var i, iwk1, iwk2, iwk2i, iwk3, iwk3i, j int
 
 	one = 1.0
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if ((*icompq) < 0) || ((*icompq) > 1) {
-		(*info) = -1
-	} else if (*k) < 1 {
-		(*info) = -2
-	} else if (*lddifr) < (*k) {
-		(*info) = -9
+	if (icompq < 0) || (icompq > 1) {
+		err = fmt.Errorf("(icompq < 0) || (icompq > 1): icompq=%v", icompq)
+	} else if k < 1 {
+		err = fmt.Errorf("k < 1: k=%v", k)
+	} else if difr.Rows < k {
+		err = fmt.Errorf("difr.Rows < k: difr.Rows=%v, k=%v", difr.Rows, k)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLASD8"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlasd8", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*k) == 1 {
+	if k == 1 {
 		d.Set(0, math.Abs(z.Get(0)))
 		difl.Set(0, d.Get(0))
-		if (*icompq) == 1 {
+		if icompq == 1 {
 			difl.Set(1, one)
 			difr.Set(0, 1, one)
 		}
@@ -64,32 +63,34 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 	//     (we know of none). We use a subroutine call to compute
 	//     2*DLAMBDA(I) to prevent optimizing compilers from eliminating
 	//     this code.
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		dsigma.Set(i-1, Dlamc3(dsigma.GetPtr(i-1), dsigma.GetPtr(i-1))-dsigma.Get(i-1))
 	}
 
 	//     Book keeping.
 	iwk1 = 1
-	iwk2 = iwk1 + (*k)
-	iwk3 = iwk2 + (*k)
+	iwk2 = iwk1 + k
+	iwk3 = iwk2 + k
 	iwk2i = iwk2 - 1
 	iwk3i = iwk3 - 1
 
 	//     Normalize Z.
-	rho = goblas.Dnrm2(*k, z.Off(0, 1))
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &rho, &one, k, func() *int { y := 1; return &y }(), z.Matrix(*k, opts), k, info)
+	rho = goblas.Dnrm2(k, z.Off(0, 1))
+	if err = Dlascl('G', 0, 0, rho, one, k, 1, z.Matrix(k, opts)); err != nil {
+		panic(err)
+	}
 	rho = rho * rho
 
 	//     Initialize WORK(IWK3).
-	Dlaset('A', k, func() *int { y := 1; return &y }(), &one, &one, work.MatrixOff(iwk3-1, *k, opts), k)
+	Dlaset(Full, k, 1, one, one, work.MatrixOff(iwk3-1, k, opts))
 
 	//     Compute the updated singular values, the arrays DIFL, DIFR,
 	//     and the updated Z.
-	for j = 1; j <= (*k); j++ {
-		Dlasd4(k, &j, dsigma, z, work.Off(iwk1-1), &rho, d.GetPtr(j-1), work.Off(iwk2-1), info)
+	for j = 1; j <= k; j++ {
+		*d.GetPtr(j - 1), info = Dlasd4(k, j, dsigma, z, work.Off(iwk1-1), rho, work.Off(iwk2-1))
 
 		//        If the root finder fails, report the convergence failure.
-		if (*info) != 0 {
+		if info != 0 {
 			return
 		}
 		work.Set(iwk3i+j-1, work.Get(iwk3i+j-1)*work.Get(j-1)*work.Get(iwk2i+j-1))
@@ -98,22 +99,22 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 		for i = 1; i <= j-1; i++ {
 			work.Set(iwk3i+i-1, work.Get(iwk3i+i-1)*work.Get(i-1)*work.Get(iwk2i+i-1)/(dsigma.Get(i-1)-dsigma.Get(j-1))/(dsigma.Get(i-1)+dsigma.Get(j-1)))
 		}
-		for i = j + 1; i <= (*k); i++ {
+		for i = j + 1; i <= k; i++ {
 			work.Set(iwk3i+i-1, work.Get(iwk3i+i-1)*work.Get(i-1)*work.Get(iwk2i+i-1)/(dsigma.Get(i-1)-dsigma.Get(j-1))/(dsigma.Get(i-1)+dsigma.Get(j-1)))
 		}
 	}
 
 	//     Compute updated Z.
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		z.Set(i-1, math.Copysign(math.Sqrt(math.Abs(work.Get(iwk3i+i-1))), z.Get(i-1)))
 	}
 
 	//     Update VF and VL.
-	for j = 1; j <= (*k); j++ {
+	for j = 1; j <= k; j++ {
 		diflj = difl.Get(j - 1)
 		dj = d.Get(j - 1)
 		dsigj = -dsigma.Get(j - 1)
-		if j < (*k) {
+		if j < k {
 			difrj = -difr.Get(j-1, 0)
 			dsigjp = -dsigma.Get(j + 1 - 1)
 		}
@@ -121,17 +122,19 @@ func Dlasd8(icompq, k *int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, ld
 		for i = 1; i <= j-1; i++ {
 			work.Set(i-1, z.Get(i-1)/(Dlamc3(dsigma.GetPtr(i-1), &dsigj)-diflj)/(dsigma.Get(i-1)+dj))
 		}
-		for i = j + 1; i <= (*k); i++ {
+		for i = j + 1; i <= k; i++ {
 			work.Set(i-1, z.Get(i-1)/(Dlamc3(dsigma.GetPtr(i-1), &dsigjp)+difrj)/(dsigma.Get(i-1)+dj))
 		}
-		temp = goblas.Dnrm2(*k, work.Off(0, 1))
-		work.Set(iwk2i+j-1, goblas.Ddot(*k, work.Off(0, 1), vf.Off(0, 1))/temp)
-		work.Set(iwk3i+j-1, goblas.Ddot(*k, work.Off(0, 1), vl.Off(0, 1))/temp)
-		if (*icompq) == 1 {
+		temp = goblas.Dnrm2(k, work.Off(0, 1))
+		work.Set(iwk2i+j-1, goblas.Ddot(k, work.Off(0, 1), vf.Off(0, 1))/temp)
+		work.Set(iwk3i+j-1, goblas.Ddot(k, work.Off(0, 1), vl.Off(0, 1))/temp)
+		if icompq == 1 {
 			difr.Set(j-1, 1, temp)
 		}
 	}
 
-	goblas.Dcopy(*k, work.Off(iwk2-1, 1), vf.Off(0, 1))
-	goblas.Dcopy(*k, work.Off(iwk3-1, 1), vl.Off(0, 1))
+	goblas.Dcopy(k, work.Off(iwk2-1, 1), vf.Off(0, 1))
+	goblas.Dcopy(k, work.Off(iwk3-1, 1), vl.Off(0, 1))
+
+	return
 }

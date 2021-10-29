@@ -1,7 +1,6 @@
 package goblas
 
 import (
-	"math"
 	"testing"
 )
 
@@ -12,7 +11,7 @@ func TestAbsint(t *testing.T) {
 			mult = -1
 		}
 		valint := i * mult
-		if got, want := abs(valint), int(math.Abs(float64(valint))); got != want {
+		if got, want := abs(valint), abs(valint); got != want {
 			t.Errorf("abs: values do not match: expected %d got %d", want, got)
 		}
 	}

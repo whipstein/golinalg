@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget53 checks the generalized eigenvalues computed by DLAG2.
+// dget53 checks the generalized eigenvalues computed by DLAG2.
 //
 // The basic test for an eigenvalue is:
 //
@@ -26,18 +26,18 @@ import (
 //
 // If these tests are not passed, then  s  and  w  are scaled and
 // tested anyway, if this is possible.
-func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, result *float64, info *int) {
+func dget53(a, b *mat.Matrix, scale, wr, wi float64) (result float64, info int) {
 	var absw, anorm, bnorm, ci11, ci12, ci22, cnorm, cr11, cr12, cr21, cr22, cscale, deti, detr, one, s1, safmin, scales, sigmin, temp, ulp, wis, wrs, zero float64
 
 	zero = 0.0
 	one = 1.0
 
 	//     Initialize
-	(*info) = 0
-	(*result) = zero
-	scales = (*scale)
-	wrs = (*wr)
-	wis = (*wi)
+	info = 0
+	result = zero
+	scales = scale
+	wrs = wr
+	wis = wi
 
 	//     Machine constants and norms
 	safmin = golapack.Dlamch(SafeMinimum)
@@ -50,34 +50,34 @@ func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, res
 	temp = (safmin*bnorm)*absw + (safmin*anorm)*scales
 	if temp >= one {
 		//        Scale down to avoid overflow
-		(*info) = 1
+		info = 1
 		temp = one / temp
-		scales = scales * temp
-		wrs = wrs * temp
-		wis = wis * temp
+		scales *= temp
+		wrs *= temp
+		wis *= temp
 		absw = math.Abs(wrs) + math.Abs(wis)
 	}
 	s1 = math.Max(ulp*math.Max(scales*anorm, absw*bnorm), safmin*math.Max(scales, absw))
 
 	//     Check for W and SCALE essentially zero.
 	if s1 < safmin {
-		(*info) = 2
+		info = 2
 		if scales < safmin && absw < safmin {
-			(*info) = 3
-			(*result) = one / ulp
+			info = 3
+			result = one / ulp
 			return
 		}
 
 		//        Scale up to avoid underflow
 		temp = one / math.Max(scales*anorm+absw*bnorm, safmin)
-		scales = scales * temp
-		wrs = wrs * temp
-		wis = wis * temp
+		scales *= temp
+		wrs *= temp
+		wis *= temp
 		absw = math.Abs(wrs) + math.Abs(wis)
 		s1 = math.Max(ulp*math.Max(scales*anorm, absw*bnorm), safmin*math.Max(scales, absw))
 		if s1 < safmin {
-			(*info) = 3
-			(*result) = one / ulp
+			info = 3
+			result = one / ulp
 			return
 		}
 	}
@@ -101,5 +101,7 @@ func Dget53(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, scale, wr, wi, res
 	detr = (cscale*cr11)*(cscale*cr22) - (cscale*ci11)*(cscale*ci22) - (cscale*cr12)*(cscale*cr21)
 	deti = (cscale*cr11)*(cscale*ci22) + (cscale*ci11)*(cscale*cr22) - (cscale*ci12)*(cscale*cr21)
 	sigmin = math.Abs(detr) + math.Abs(deti)
-	(*result) = sigmin / s1
+	result = sigmin / s1
+
+	return
 }

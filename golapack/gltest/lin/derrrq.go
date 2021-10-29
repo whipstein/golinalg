@@ -1,19 +1,20 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrrq tests the error exits for the DOUBLE PRECISION routines
+// derrrq tests the error exits for the DOUBLE PRECISION routines
 // that use the RQ decomposition of a general matrix.
-func Derrrq(path []byte, t *testing.T) {
-	var i, info, j, nmax int
-	lerr := &gltest.Common.Infoc.Lerr
+func derrrq(path string, t *testing.T) {
+	var i, j, nmax int
+	var err error
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 2
@@ -37,174 +38,178 @@ func Derrrq(path []byte, t *testing.T) {
 	(*ok) = true
 
 	//     Error exits for RQ factorization
-	//     DGERQF
-	*srnamt = "DGERQF"
-	*infot = 1
-	golapack.Dgerqf(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGERQF", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dgerqf(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGERQF", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Dgerqf(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, w, func() *int { y := 2; return &y }(), &info)
-	Chkxer("DGERQF", &info, lerr, ok, t)
-	*infot = 7
-	golapack.Dgerqf(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), b, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGERQF", &info, lerr, ok, t)
+	//     Dgerqf
+	*srnamt = "Dgerqf"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dgerqf(-1, 0, a.Off(0, 0).UpdateRows(1), b, w, 1)
+	chkxer2("Dgerqf", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dgerqf(0, -1, a.Off(0, 0).UpdateRows(1), b, w, 1)
+	chkxer2("Dgerqf", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dgerqf(2, 1, a.Off(0, 0).UpdateRows(1), b, w, 2)
+	chkxer2("Dgerqf", err)
+	*errt = fmt.Errorf("lwork < max(1, m) && !lquery: lwork=1, m=2, lquery=false")
+	err = golapack.Dgerqf(2, 1, a.Off(0, 0).UpdateRows(2), b, w, 1)
+	chkxer2("Dgerqf", err)
 
-	//     DGERQ2
-	*srnamt = "DGERQ2"
-	*infot = 1
-	golapack.Dgerq2(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, w, &info)
-	Chkxer("DGERQ2", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dgerq2(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, w, &info)
-	Chkxer("DGERQ2", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Dgerq2(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, w, &info)
-	Chkxer("DGERQ2", &info, lerr, ok, t)
+	//     Dgerq2
+	*srnamt = "Dgerq2"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dgerq2(-1, 0, a.Off(0, 0).UpdateRows(1), b, w)
+	chkxer2("Dgerq2", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dgerq2(0, -1, a.Off(0, 0).UpdateRows(1), b, w)
+	chkxer2("Dgerq2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dgerq2(2, 1, a.Off(0, 0).UpdateRows(1), b, w)
+	chkxer2("Dgerq2", err)
 
-	//     DGERQS
-	*srnamt = "DGERQS"
-	*infot = 1
-	Dgerqs(toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
-	*infot = 2
-	Dgerqs(toPtr(0), toPtr(-1), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
-	*infot = 2
-	Dgerqs(toPtr(2), toPtr(1), toPtr(0), a, toPtr(2), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
-	*infot = 3
-	Dgerqs(toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
-	*infot = 5
-	Dgerqs(toPtr(2), toPtr(2), toPtr(0), a, toPtr(1), x, af, toPtr(2), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
-	*infot = 8
-	Dgerqs(toPtr(2), toPtr(2), toPtr(0), a, toPtr(2), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
-	*infot = 10
-	Dgerqs(toPtr(1), toPtr(1), toPtr(2), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DGERQS", &info, lerr, ok, t)
+	//     Dgerqs
+	*srnamt = "Dgerqs"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = dgerqs(-1, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dgerqs", err)
+	*errt = fmt.Errorf("n < 0 || m > n: m=0, n=-1")
+	err = dgerqs(0, -1, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dgerqs", err)
+	*errt = fmt.Errorf("n < 0 || m > n: m=2, n=1")
+	err = dgerqs(2, 1, 0, a.Off(0, 0).UpdateRows(2), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dgerqs", err)
+	*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+	err = dgerqs(0, 0, -1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dgerqs", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = dgerqs(2, 2, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(2), w, 1)
+	chkxer2("Dgerqs", err)
+	*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+	err = dgerqs(2, 2, 0, a.Off(0, 0).UpdateRows(2), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dgerqs", err)
+	*errt = fmt.Errorf("lwork < 1 || lwork < nrhs && m > 0 && n > 0: lwork=1, nrhs=2, m=1, n=1")
+	err = dgerqs(1, 1, 2, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dgerqs", err)
 
-	//     DORGRQ
-	*srnamt = "DORGRQ"
-	*infot = 1
-	golapack.Dorgrq(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dorgrq(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dorgrq(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 2; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
-	*infot = 3
-	golapack.Dorgrq(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
-	*infot = 3
-	golapack.Dorgrq(func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dorgrq(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 2; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
-	*infot = 8
-	golapack.Dorgrq(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DORGRQ", &info, lerr, ok, t)
+	//     Dorgrq
+	*srnamt = "Dorgrq"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dorgrq(-1, 0, 0, a.Off(0, 0).UpdateRows(1), x, w, 1)
+	chkxer2("Dorgrq", err)
+	*errt = fmt.Errorf("n < m: n=-1, m=0")
+	err = golapack.Dorgrq(0, -1, 0, a.Off(0, 0).UpdateRows(1), x, w, 1)
+	chkxer2("Dorgrq", err)
+	*errt = fmt.Errorf("n < m: n=1, m=2")
+	err = golapack.Dorgrq(2, 1, 0, a.Off(0, 0).UpdateRows(2), x, w, 2)
+	chkxer2("Dorgrq", err)
+	*errt = fmt.Errorf("k < 0 || k > m: k=-1, m=0")
+	err = golapack.Dorgrq(0, 0, -1, a.Off(0, 0).UpdateRows(1), x, w, 1)
+	chkxer2("Dorgrq", err)
+	*errt = fmt.Errorf("k < 0 || k > m: k=2, m=1")
+	err = golapack.Dorgrq(1, 2, 2, a.Off(0, 0).UpdateRows(1), x, w, 1)
+	chkxer2("Dorgrq", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dorgrq(2, 2, 0, a.Off(0, 0).UpdateRows(1), x, w, 2)
+	chkxer2("Dorgrq", err)
+	*errt = fmt.Errorf("lwork < max(1, m) && !lquery: lwork=1, m=2, lquery=false")
+	err = golapack.Dorgrq(2, 2, 0, a.Off(0, 0).UpdateRows(2), x, w, 1)
+	chkxer2("Dorgrq", err)
 
-	//     DORGR2
-	*srnamt = "DORGR2"
-	*infot = 1
-	golapack.Dorgr2(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, &info)
-	Chkxer("DORGR2", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dorgr2(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, &info)
-	Chkxer("DORGR2", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dorgr2(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), x, w, &info)
-	Chkxer("DORGR2", &info, lerr, ok, t)
-	*infot = 3
-	golapack.Dorgr2(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), x, w, &info)
-	Chkxer("DORGR2", &info, lerr, ok, t)
-	*infot = 3
-	golapack.Dorgr2(func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, &info)
-	Chkxer("DORGR2", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dorgr2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, &info)
-	Chkxer("DORGR2", &info, lerr, ok, t)
+	//     Dorgr2
+	*srnamt = "Dorgr2"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dorgr2(-1, 0, 0, a.Off(0, 0).UpdateRows(1), x, w)
+	chkxer2("Dorgr2", err)
+	*errt = fmt.Errorf("n < m: n=-1, m=0")
+	err = golapack.Dorgr2(0, -1, 0, a.Off(0, 0).UpdateRows(1), x, w)
+	chkxer2("Dorgr2", err)
+	*errt = fmt.Errorf("n < m: n=1, m=2")
+	err = golapack.Dorgr2(2, 1, 0, a.Off(0, 0).UpdateRows(2), x, w)
+	chkxer2("Dorgr2", err)
+	*errt = fmt.Errorf("k < 0 || k > m: k=-1, m=0")
+	err = golapack.Dorgr2(0, 0, -1, a.Off(0, 0).UpdateRows(1), x, w)
+	chkxer2("Dorgr2", err)
+	*errt = fmt.Errorf("k < 0 || k > m: k=2, m=1")
+	err = golapack.Dorgr2(1, 2, 2, a.Off(0, 0).UpdateRows(2), x, w)
+	chkxer2("Dorgr2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dorgr2(2, 2, 0, a.Off(0, 0).UpdateRows(1), x, w)
+	chkxer2("Dorgr2", err)
 
-	//     DORMRQ
-	*srnamt = "DORMRQ"
-	*infot = 1
-	golapack.Dormrq('/', 'N', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dormrq('L', '/', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 3
-	golapack.Dormrq('L', 'N', toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Dormrq('L', 'N', toPtr(0), toPtr(-1), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dormrq('L', 'N', toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dormrq('L', 'N', toPtr(0), toPtr(1), toPtr(1), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dormrq('R', 'N', toPtr(1), toPtr(0), toPtr(1), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 7
-	golapack.Dormrq('L', 'N', toPtr(2), toPtr(1), toPtr(2), a, toPtr(1), x, af, toPtr(2), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 7
-	golapack.Dormrq('R', 'N', toPtr(1), toPtr(2), toPtr(2), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 10
-	golapack.Dormrq('L', 'N', toPtr(2), toPtr(1), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 12
-	golapack.Dormrq('L', 'N', toPtr(1), toPtr(2), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
-	*infot = 12
-	golapack.Dormrq('R', 'N', toPtr(2), toPtr(1), toPtr(0), a, toPtr(1), x, af, toPtr(2), w, toPtr(1), &info)
-	Chkxer("DORMRQ", &info, lerr, ok, t)
+	//     Dormrq
+	*srnamt = "Dormrq"
+	*errt = fmt.Errorf("!left && side != Right: side=Unrecognized: /")
+	err = golapack.Dormrq('/', NoTrans, 0, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("!notran && trans != Trans: trans=Unrecognized: /")
+	err = golapack.Dormrq(Left, '/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dormrq(Left, NoTrans, -1, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dormrq(Left, NoTrans, 0, -1, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("k < 0 || k > nq: k=-1, nq=0")
+	err = golapack.Dormrq(Left, NoTrans, 0, 0, -1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("k < 0 || k > nq: k=1, nq=0")
+	err = golapack.Dormrq(Left, NoTrans, 0, 1, 1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("k < 0 || k > nq: k=1, nq=0")
+	err = golapack.Dormrq(Right, NoTrans, 1, 0, 1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("a.Rows < max(1, k): a.Rows=1, k=2")
+	err = golapack.Dormrq(Left, NoTrans, 2, 1, 2, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(2), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("a.Rows < max(1, k): a.Rows=1, k=2")
+	err = golapack.Dormrq(Right, NoTrans, 1, 2, 2, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+	err = golapack.Dormrq(Left, NoTrans, 2, 1, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("lwork < nw && !lquery: lwork=1, nw=2, lquery=false")
+	err = golapack.Dormrq(Left, NoTrans, 1, 2, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w, 1)
+	chkxer2("Dormrq", err)
+	*errt = fmt.Errorf("lwork < nw && !lquery: lwork=1, nw=2, lquery=false")
+	err = golapack.Dormrq(Right, NoTrans, 2, 1, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(2), w, 1)
+	chkxer2("Dormrq", err)
 
-	//     DORMR2
-	*srnamt = "DORMR2"
-	*infot = 1
-	golapack.Dormr2('/', 'N', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dormr2('L', '/', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 3
-	golapack.Dormr2('L', 'N', toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Dormr2('L', 'N', toPtr(0), toPtr(-1), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dormr2('L', 'N', toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dormr2('L', 'N', toPtr(0), toPtr(1), toPtr(1), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 5
-	golapack.Dormr2('R', 'N', toPtr(1), toPtr(0), toPtr(1), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 7
-	golapack.Dormr2('L', 'N', toPtr(2), toPtr(1), toPtr(2), a, toPtr(1), x, af, toPtr(2), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 7
-	golapack.Dormr2('R', 'N', toPtr(1), toPtr(2), toPtr(2), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
-	*infot = 10
-	golapack.Dormr2('L', 'N', toPtr(2), toPtr(1), toPtr(0), a, toPtr(1), x, af, toPtr(1), w, &info)
-	Chkxer("DORMR2", &info, lerr, ok, t)
+	//     Dormr2
+	*srnamt = "Dormr2"
+	*errt = fmt.Errorf("!left && side != Right: side=Unrecognized: /")
+	err = golapack.Dormr2('/', NoTrans, 0, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("!notran && trans != Trans: trans=Unrecognized: /")
+	err = golapack.Dormr2(Left, '/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dormr2(Left, NoTrans, -1, 0, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dormr2(Left, NoTrans, 0, -1, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("k < 0 || k > nq: k=-1, nq=0")
+	err = golapack.Dormr2(Left, NoTrans, 0, 0, -1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("k < 0 || k > nq: k=1, nq=0")
+	err = golapack.Dormr2(Left, NoTrans, 0, 1, 1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("k < 0 || k > nq: k=1, nq=0")
+	err = golapack.Dormr2(Right, NoTrans, 1, 0, 1, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, k): a.Rows=1, k=2")
+	err = golapack.Dormr2(Left, NoTrans, 2, 1, 2, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(2), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, k): a.Rows=1, k=2")
+	err = golapack.Dormr2(Right, NoTrans, 1, 2, 2, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
+	*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+	err = golapack.Dormr2(Left, NoTrans, 2, 1, 0, a.Off(0, 0).UpdateRows(1), x, af.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dormr2", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

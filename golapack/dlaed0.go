@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -10,45 +11,41 @@ import (
 
 // Dlaed0 computes all eigenvalues and corresponding eigenvectors of a
 // symmetric tridiagonal matrix using the divide and conquer method.
-func Dlaed0(icompq, qsiz, n *int, d, e *mat.Vector, q *mat.Matrix, ldq *int, qstore *mat.Matrix, ldqs *int, work *mat.Vector, iwork *[]int, info *int) {
+func Dlaed0(icompq, qsiz, n int, d, e *mat.Vector, q, qstore *mat.Matrix, work *mat.Vector, iwork *[]int) (info int, err error) {
 	var one, temp, two, zero float64
 	var curlvl, curprb, curr, i, igivcl, igivnm, igivpt, indxq, iperm, iprmpt, iq, iqptr, iwrem, j, k, lgn, matsiz, msd2, smlsiz, smm1, spm1, spm2, submat, subpbs, tlvls int
-	var err error
-	_ = err
 
 	zero = 0.
 	one = 1.
 	two = 2.
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if (*icompq) < 0 || (*icompq) > 2 {
-		(*info) = -1
-	} else if ((*icompq) == 1) && ((*qsiz) < max(0, *n)) {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*ldq) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldqs) < max(1, *n) {
-		(*info) = -9
+	if icompq < 0 || icompq > 2 {
+		err = fmt.Errorf("icompq < 0 || icompq > 2: icompq=%v", icompq)
+	} else if (icompq == 1) && (qsiz < max(0, n)) {
+		err = fmt.Errorf("(icompq == 1) && (qsiz < max(0, n)): icompq=%v, qsiz=%v", icompq, qsiz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if q.Rows < max(1, n) {
+		err = fmt.Errorf("q.Rows < max(1, n): q.Rows=%v, n=%v", q.Rows, n)
+	} else if qstore.Rows < max(1, n) {
+		err = fmt.Errorf("qstore.Rows < max(1, n): qstore.Rows=%v, n=%v", qstore.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLAED0"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlaed0", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	smlsiz = Ilaenv(func() *int { y := 9; return &y }(), []byte("DLAED0"), []byte{' '}, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }())
+	smlsiz = Ilaenv(9, "Dlaed0", []byte{' '}, 0, 0, 0, 0)
 
 	//     Determine the size and placement of the submatrices, and save in
 	//     the leading elements of IWORK.
-	(*iwork)[0] = (*n)
+	(*iwork)[0] = n
 	subpbs = 1
 	tlvls = 0
 label10:
@@ -76,27 +73,27 @@ label10:
 		d.Set(submat-1, d.Get(submat-1)-math.Abs(e.Get(smm1-1)))
 	}
 
-	indxq = 4*(*n) + 3
-	if (*icompq) != 2 {
+	indxq = 4*n + 3
+	if icompq != 2 {
 		//        Set up workspaces for eigenvalues only/accumulate new vectors
 		//        routine
-		temp = math.Log(float64(*n)) / math.Log(two)
+		temp = math.Log(float64(n)) / math.Log(two)
 		lgn = int(temp)
-		if int(math.Pow(2, float64(lgn))) < (*n) {
+		if int(math.Pow(2, float64(lgn))) < n {
 			lgn = lgn + 1
 		}
-		if int(math.Pow(2, float64(lgn))) < (*n) {
+		if int(math.Pow(2, float64(lgn))) < n {
 			lgn = lgn + 1
 		}
-		iprmpt = indxq + (*n) + 1
-		iperm = iprmpt + (*n)*lgn
-		iqptr = iperm + (*n)*lgn
-		igivpt = iqptr + (*n) + 2
-		igivcl = igivpt + (*n)*lgn
+		iprmpt = indxq + n + 1
+		iperm = iprmpt + n*lgn
+		iqptr = iperm + n*lgn
+		igivpt = iqptr + n + 2
+		igivcl = igivpt + n*lgn
 
 		igivnm = 1
-		iq = igivnm + 2*(*n)*lgn
-		iwrem = iq + int(math.Pow(float64(*n), 2)) + 1
+		iq = igivnm + 2*n*lgn
+		iwrem = iq + pow(n, 2) + 1
 
 		//        Initialize pointers
 		for i = 0; i <= subpbs; i++ {
@@ -117,18 +114,24 @@ label10:
 			submat = (*iwork)[i-1] + 1
 			matsiz = (*iwork)[i] - (*iwork)[i-1]
 		}
-		if (*icompq) == 2 {
-			Dsteqr('I', &matsiz, d.Off(submat-1), e.Off(submat-1), q.Off(submat-1, submat-1), ldq, work, info)
-			if (*info) != 0 {
+		if icompq == 2 {
+			if info, err = Dsteqr('I', matsiz, d.Off(submat-1), e.Off(submat-1), q.Off(submat-1, submat-1), work); err != nil {
+				panic(err)
+			}
+			if info != 0 {
 				goto label130
 			}
 		} else {
-			Dsteqr('I', &matsiz, d.Off(submat-1), e.Off(submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), &matsiz, work, info)
-			if (*info) != 0 {
+			if info, err = Dsteqr('I', matsiz, d.Off(submat-1), e.Off(submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), work); err != nil {
+				panic(err)
+			}
+			if info != 0 {
 				goto label130
 			}
-			if (*icompq) == 1 {
-				err = goblas.Dgemm(NoTrans, NoTrans, *qsiz, matsiz, matsiz, one, q.Off(0, submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), zero, qstore.Off(0, submat-1))
+			if icompq == 1 {
+				if err = goblas.Dgemm(NoTrans, NoTrans, qsiz, matsiz, matsiz, one, q.Off(0, submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), zero, qstore.Off(0, submat-1)); err != nil {
+					panic(err)
+				}
 			}
 			(*iwork)[iqptr+curr] = (*iwork)[iqptr+curr-1] + int(math.Pow(float64(matsiz), 2))
 			curr = curr + 1
@@ -169,12 +172,16 @@ label80:
 			//     DLAED7 handles the cases in which eigenvalues only or eigenvalues
 			//     and eigenvectors of a full symmetric matrix (which was reduced to
 			//     tridiagonal form) are desired.
-			if (*icompq) == 2 {
-				Dlaed1(&matsiz, d.Off(submat-1), q.Off(submat-1, submat-1), ldq, toSlice(iwork, indxq+submat-1), e.GetPtr(submat+msd2-1-1), &msd2, work, toSlice(iwork, subpbs), info)
+			if icompq == 2 {
+				if info, err = Dlaed1(matsiz, d.Off(submat-1), q.Off(submat-1, submat-1), toSlice(iwork, indxq+submat-1), e.Get(submat+msd2-1-1), msd2, work, toSlice(iwork, subpbs)); err != nil {
+					panic(err)
+				}
 			} else {
-				Dlaed7(icompq, &matsiz, qsiz, &tlvls, &curlvl, &curprb, d.Off(submat-1), qstore.Off(0, submat-1), ldqs, toSlice(iwork, indxq+submat-1), e.GetPtr(submat+msd2-1-1), &msd2, work.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), work.MatrixOff(igivnm-1, 2, opts), work.Off(iwrem-1), toSlice(iwork, subpbs), info)
+				if info, err = Dlaed7(icompq, matsiz, qsiz, tlvls, curlvl, curprb, d.Off(submat-1), qstore.Off(0, submat-1), toSlice(iwork, indxq+submat-1), e.Get(submat+msd2-1-1), msd2, work.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), work.MatrixOff(igivnm-1, 2, opts), work.Off(iwrem-1), toSlice(iwork, subpbs)); err != nil {
+					panic(err)
+				}
 			}
-			if (*info) != 0 {
+			if info != 0 {
 				goto label130
 			}
 			(*iwork)[i/2] = (*iwork)[i+2-1]
@@ -188,31 +195,33 @@ label80:
 	//
 	//     Re-merge the eigenvalues/vectors which were deflated at the final
 	//     merge step.
-	if (*icompq) == 1 {
-		for i = 1; i <= (*n); i++ {
+	if icompq == 1 {
+		for i = 1; i <= n; i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(*qsiz, qstore.Vector(0, j-1, 1), q.Vector(0, i-1, 1))
+			goblas.Dcopy(qsiz, qstore.Vector(0, j-1, 1), q.Vector(0, i-1, 1))
 		}
-		goblas.Dcopy(*n, work.Off(0, 1), d.Off(0, 1))
-	} else if (*icompq) == 2 {
-		for i = 1; i <= (*n); i++ {
+		goblas.Dcopy(n, work.Off(0, 1), d.Off(0, 1))
+	} else if icompq == 2 {
+		for i = 1; i <= n; i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(*n, q.Vector(0, j-1, 1), work.Off((*n)*i, 1))
+			goblas.Dcopy(n, q.Vector(0, j-1, 1), work.Off(n*i, 1))
 		}
-		goblas.Dcopy(*n, work, d)
-		Dlacpy('A', n, n, work.MatrixOff((*n), *n, opts), n, q, ldq)
+		goblas.Dcopy(n, work, d)
+		Dlacpy(Full, n, n, work.MatrixOff(n, n, opts), q)
 	} else {
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
 		}
-		goblas.Dcopy(*n, work, d)
+		goblas.Dcopy(n, work, d)
 	}
 	return
 
 label130:
 	;
-	(*info) = submat*((*n)+1) + submat + matsiz - 1
+	info = submat*(n+1) + submat + matsiz - 1
+
+	return
 }

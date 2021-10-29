@@ -8,17 +8,16 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrvx tests the error exits for the DOUBLE PRECISION driver routines
+// derrvx tests the error exits for the DOUBLE PRECISION driver routines
 // for solving linear systems of equations.
-func Derrvx(path []byte, t *testing.T) {
+func derrvx(path string, t *testing.T) {
 	var eq byte
-	var rcond float64
-	var i, info, j, nmax int
+	var i, j, nmax int
+	var err error
 	ip := make([]int, 4)
 	iw := make([]int, 4)
-	lerr := &gltest.Common.Infoc.Lerr
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 4
@@ -57,434 +56,434 @@ func Derrvx(path []byte, t *testing.T) {
 	eq = ' '
 	*ok = true
 
-	if string(c2) == "GE" {
+	if c2 == "ge" {
 		//        DGESV
-		*srnamt = "DGESV "
-		*infot = 1
-		golapack.Dgesv(toPtr(-1), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGESV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgesv(toPtr(0), toPtr(-1), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGESV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgesv(toPtr(2), toPtr(1), a, toPtr(1), &ip, b, toPtr(2), &info)
-		Chkxer("DGESV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dgesv(toPtr(2), toPtr(1), a, toPtr(2), &ip, b, toPtr(1), &info)
-		Chkxer("DGESV ", &info, lerr, ok, t)
+		*srnamt = "Dgesv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgesv(-1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgesv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dgesv(0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgesv", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dgesv(2, 1, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(2))
+		chkxer2("Dgesv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dgesv(2, 1, a.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgesv", err)
 
-		//        DGESVX
-		*srnamt = "DGESVX"
-		*infot = 1
-		golapack.Dgesvx('/', 'N', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgesvx('N', '/', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgesvx('N', 'N', toPtr(-1), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgesvx('N', 'N', toPtr(0), toPtr(-1), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dgesvx('N', 'N', toPtr(2), toPtr(1), a, toPtr(1), af, toPtr(2), &ip, &eq, r, c, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dgesvx('N', 'N', toPtr(2), toPtr(1), a, toPtr(2), af, toPtr(1), &ip, &eq, r, c, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 10
+		//        Dgesvx
+		*srnamt = "Dgesvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Dgesvx('/', NoTrans, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("!notran && trans != Trans && trans != ConjTrans: trans=Unrecognized: /")
+		_, _, _, err = golapack.Dgesvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Dgesvx('N', NoTrans, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Dgesvx('N', NoTrans, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, _, err = golapack.Dgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), &ip, eq, r, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, _, err = golapack.Dgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rowequ || colequ || equedOut == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Dgesvx('F', 'N', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 11
+		_, _, _, err = golapack.Dgesvx('F', NoTrans, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: rcmin=0")
 		eq = 'R'
-		golapack.Dgesvx('F', 'N', toPtr(1), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 12
+		_, _, _, err = golapack.Dgesvx('F', NoTrans, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: rcmin=0")
 		eq = 'C'
-		golapack.Dgesvx('F', 'N', toPtr(1), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Dgesvx('N', 'N', toPtr(2), toPtr(1), a, toPtr(2), af, toPtr(2), &ip, &eq, r, c, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
-		*infot = 16
-		golapack.Dgesvx('N', 'N', toPtr(2), toPtr(1), a, toPtr(2), af, toPtr(2), &ip, &eq, r, c, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGESVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Dgesvx('F', NoTrans, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Dgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Dgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, eq, r, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgesvx", err)
 
-	} else if string(c2) == "GB" {
+	} else if c2 == "gb" {
 		//        DGBSV
-		*srnamt = "DGBSV "
-		*infot = 1
-		golapack.Dgbsv(toPtr(-1), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGBSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgbsv(toPtr(1), toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGBSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgbsv(toPtr(1), toPtr(0), toPtr(-1), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGBSV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgbsv(toPtr(0), toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGBSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dgbsv(toPtr(1), toPtr(1), toPtr(1), toPtr(0), a, toPtr(3), &ip, b, toPtr(1), &info)
-		Chkxer("DGBSV ", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dgbsv(toPtr(2), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), &info)
-		Chkxer("DGBSV ", &info, lerr, ok, t)
+		*srnamt = "Dgbsv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgbsv(-1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgbsv", err)
+		*errt = fmt.Errorf("kl < 0: kl=-1")
+		_, err = golapack.Dgbsv(1, -1, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgbsv", err)
+		*errt = fmt.Errorf("ku < 0: ku=-1")
+		_, err = golapack.Dgbsv(1, 0, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgbsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dgbsv(0, 0, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgbsv", err)
+		*errt = fmt.Errorf("ab.Rows < 2*kl+ku+1: ab.Rows=3, kl=1, ku=1")
+		_, err = golapack.Dgbsv(1, 1, 1, 0, a.Off(0, 0).UpdateRows(3), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgbsv", err)
+		*errt = fmt.Errorf("b.Rows < max(n, 1): b.Rows=1, n=2")
+		_, err = golapack.Dgbsv(2, 0, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgbsv", err)
 
-		//        DGBSVX
-		*srnamt = "DGBSVX"
-		*infot = 1
-		golapack.Dgbsvx('/', 'N', toPtr(0), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgbsvx('N', '/', toPtr(0), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgbsvx('N', 'N', toPtr(-1), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgbsvx('N', 'N', toPtr(1), toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dgbsvx('N', 'N', toPtr(1), toPtr(0), toPtr(-1), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dgbsvx('N', 'N', toPtr(0), toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dgbsvx('N', 'N', toPtr(1), toPtr(1), toPtr(1), toPtr(0), a, toPtr(2), af, toPtr(4), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dgbsvx('N', 'N', toPtr(1), toPtr(1), toPtr(1), toPtr(0), a, toPtr(3), af, toPtr(3), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 12
+		//        Dgbsvx
+		*srnamt = "Dgbsvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		eq, _, _, err = golapack.Dgbsvx('/', NoTrans, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("!trans.IsValid(): trans=Unrecognized: /")
+		eq, _, _, err = golapack.Dgbsvx('N', '/', 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, -1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("kl < 0: kl=-1")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 1, -1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("ku < 0: ku=-1")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 1, 0, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 0, 0, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("ab.Rows < kl+ku+1: ab.Rows=2, kl=1, ku=1")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 1, 1, 1, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(4), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("afb.Rows < 2*kl+ku+1: afb.Rows=3, kl=1, ku=1")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 1, 1, 1, 0, a.Off(0, 0).UpdateRows(3), af.Off(0, 0).UpdateRows(3), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rowequ || colequ || equed == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Dgbsvx('F', 'N', toPtr(0), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 13
+		eq, _, _, err = golapack.Dgbsvx('F', NoTrans, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: equed='R', rcmin=0")
 		eq = 'R'
-		golapack.Dgbsvx('F', 'N', toPtr(1), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 14
+		eq, _, _, err = golapack.Dgbsvx('F', NoTrans, 1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: equed='C', rcmin=0")
 		eq = 'C'
-		golapack.Dgbsvx('F', 'N', toPtr(1), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 16
-		golapack.Dgbsvx('N', 'N', toPtr(2), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Dgbsvx('N', 'N', toPtr(2), toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, &eq, r, c, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGBSVX", &info, lerr, ok, t)
+		eq, _, _, err = golapack.Dgbsvx('F', NoTrans, 1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 2, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		eq, _, _, err = golapack.Dgbsvx('N', NoTrans, 2, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgbsvx", err)
 
-	} else if string(c2) == "GT" {
+	} else if c2 == "gt" {
 		//        DGTSV
-		*srnamt = "DGTSV "
-		*infot = 1
-		golapack.Dgtsv(toPtr(-1), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), b, toPtr(1), &info)
-		Chkxer("DGTSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgtsv(toPtr(0), toPtr(-1), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), b, toPtr(1), &info)
-		Chkxer("DGTSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dgtsv(toPtr(2), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), b, toPtr(1), &info)
-		Chkxer("DGTSV ", &info, lerr, ok, t)
+		*srnamt = "Dgtsv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgtsv(-1, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgtsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dgtsv(0, -1, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgtsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dgtsv(2, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dgtsv", err)
 
-		//        DGTSVX
-		*srnamt = "DGTSVX"
-		*infot = 1
-		golapack.Dgtsvx('/', 'N', toPtr(0), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGTSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgtsvx('N', '/', toPtr(0), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGTSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgtsvx('N', 'N', toPtr(-1), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGTSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgtsvx('N', 'N', toPtr(0), toPtr(-1), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGTSVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Dgtsvx('N', 'N', toPtr(2), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGTSVX", &info, lerr, ok, t)
-		*infot = 16
-		golapack.Dgtsvx('N', 'N', toPtr(2), toPtr(0), a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DGTSVX", &info, lerr, ok, t)
+		//        Dgtsvx
+		*srnamt = "Dgtsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Dgtsvx('/', NoTrans, 0, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtsvx", err)
+		*errt = fmt.Errorf("!trans.IsValid(): trans=Unrecognized: /")
+		_, _, err = golapack.Dgtsvx('N', '/', 0, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Dgtsvx('N', NoTrans, -1, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Dgtsvx('N', NoTrans, 0, -1, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Dgtsvx('N', NoTrans, 2, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dgtsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Dgtsvx('N', NoTrans, 2, 0, a.VectorIdx(0), a.VectorIdx(1), a.VectorIdx(2), af.VectorIdx(0), af.VectorIdx(1), af.VectorIdx(2), af.VectorIdx(3), &ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dgtsvx", err)
 
-	} else if string(c2) == "PO" {
-		//        DPOSV
-		*srnamt = "DPOSV "
-		*infot = 1
-		golapack.Dposv('/', toPtr(0), toPtr(0), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPOSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dposv('U', toPtr(-1), toPtr(0), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPOSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dposv('U', toPtr(0), toPtr(-1), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPOSV ", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dposv('U', toPtr(2), toPtr(0), a, toPtr(1), b, toPtr(2), &info)
-		Chkxer("DPOSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dposv('U', toPtr(2), toPtr(0), a, toPtr(2), b, toPtr(1), &info)
-		Chkxer("DPOSV ", &info, lerr, ok, t)
+	} else if c2 == "po" {
+		//        Dposv
+		*srnamt = "Dposv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dposv('/', 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dposv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dposv(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dposv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dposv(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dposv", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dposv(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2))
+		chkxer2("Dposv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dposv(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dposv", err)
 
-		//        DPOSVX
-		*srnamt = "DPOSVX"
-		*infot = 1
-		golapack.Dposvx('/', 'U', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dposvx('N', '/', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dposvx('N', 'U', toPtr(-1), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dposvx('N', 'U', toPtr(0), toPtr(-1), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dposvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(1), af, toPtr(2), &eq, c, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dposvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(1), &eq, c, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 9
+		//        Dposvx
+		*srnamt = "Dposvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Dposvx('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Dposvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Dposvx('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Dposvx('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, _, err = golapack.Dposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, _, err = golapack.Dposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rcequ || equed == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Dposvx('F', 'U', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 10
+		_, _, _, err = golapack.Dposvx('F', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("smin <= zero: smin=0")
 		eq = 'Y'
-		golapack.Dposvx('F', 'U', toPtr(1), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Dposvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(2), &eq, c, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Dposvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(2), &eq, c, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPOSVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Dposvx('F', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Dposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Dposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dposvx", err)
 
-	} else if string(c2) == "PP" {
+	} else if c2 == "pp" {
 		//        DPPSV
-		*srnamt = "DPPSV "
-		*infot = 1
-		golapack.Dppsv('/', toPtr(0), toPtr(0), ap, b, toPtr(1), &info)
-		Chkxer("DPPSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dppsv('U', toPtr(-1), toPtr(0), ap, b, toPtr(1), &info)
-		Chkxer("DPPSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dppsv('U', toPtr(0), toPtr(-1), ap, b, toPtr(1), &info)
-		Chkxer("DPPSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dppsv('U', toPtr(2), toPtr(0), ap, b, toPtr(1), &info)
-		Chkxer("DPPSV ", &info, lerr, ok, t)
+		*srnamt = "Dppsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dppsv('/', 0, 0, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dppsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dppsv(Upper, -1, 0, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dppsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dppsv(Upper, 0, -1, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dppsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dppsv(Upper, 2, 0, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dppsv", err)
 
-		//        DPPSVX
-		*srnamt = "DPPSVX"
-		*infot = 1
-		golapack.Dppsvx('/', 'U', toPtr(0), toPtr(0), ap, afp, &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dppsvx('N', '/', toPtr(0), toPtr(0), ap, afp, &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dppsvx('N', 'U', toPtr(-1), toPtr(0), ap, afp, &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dppsvx('N', 'U', toPtr(0), toPtr(-1), ap, afp, &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 7
+		//        Dppsvx
+		*srnamt = "Dppsvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		eq, _, _, err = golapack.Dppsvx('/', Upper, 0, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		eq, _, _, err = golapack.Dppsvx('N', '/', 0, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		eq, _, _, err = golapack.Dppsvx('N', Upper, -1, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		eq, _, _, err = golapack.Dppsvx('N', Upper, 0, -1, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rcequ || equed == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Dppsvx('F', 'U', toPtr(0), toPtr(0), ap, afp, &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 8
+		eq, _, _, err = golapack.Dppsvx('F', Upper, 0, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("smin <= zero: smin=0")
 		eq = 'Y'
-		golapack.Dppsvx('F', 'U', toPtr(1), toPtr(0), ap, afp, &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dppsvx('N', 'U', toPtr(2), toPtr(0), ap, afp, &eq, c, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Dppsvx('N', 'U', toPtr(2), toPtr(0), ap, afp, &eq, c, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPPSVX", &info, lerr, ok, t)
+		eq, _, _, err = golapack.Dppsvx('F', Upper, 1, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		eq, _, _, err = golapack.Dppsvx('N', Upper, 2, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		eq, _, _, err = golapack.Dppsvx('N', Upper, 2, 0, ap, afp, eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dppsvx", err)
 
-	} else if string(c2) == "PB" {
+	} else if c2 == "pb" {
 		//        DPBSV
-		*srnamt = "DPBSV "
-		*infot = 1
-		golapack.Dpbsv('/', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPBSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbsv('U', toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPBSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbsv('U', toPtr(1), toPtr(-1), toPtr(0), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPBSV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpbsv('U', toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPBSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dpbsv('U', toPtr(1), toPtr(1), toPtr(0), a, toPtr(1), b, toPtr(2), &info)
-		Chkxer("DPBSV ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dpbsv('U', toPtr(2), toPtr(0), toPtr(0), a, toPtr(1), b, toPtr(1), &info)
-		Chkxer("DPBSV ", &info, lerr, ok, t)
+		*srnamt = "Dpbsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpbsv('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpbsv(Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbsv", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Dpbsv(Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dpbsv(Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbsv", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Dpbsv(Upper, 1, 1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2))
+		chkxer2("Dpbsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dpbsv(Upper, 2, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbsv", err)
 
-		//        DPBSVX
-		*srnamt = "DPBSVX"
-		*infot = 1
-		golapack.Dpbsvx('/', 'U', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbsvx('N', '/', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbsvx('N', 'U', toPtr(-1), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpbsvx('N', 'U', toPtr(1), toPtr(-1), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dpbsvx('N', 'U', toPtr(0), toPtr(0), toPtr(-1), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dpbsvx('N', 'U', toPtr(1), toPtr(1), toPtr(0), a, toPtr(1), af, toPtr(2), &eq, c, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dpbsvx('N', 'U', toPtr(1), toPtr(1), toPtr(0), a, toPtr(2), af, toPtr(1), &eq, c, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 10
+		//        Dpbsvx
+		*srnamt = "Dpbsvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Dpbsvx('/', Upper, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Dpbsvx('N', '/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, 1, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("afb.Rows < kd+1: afb.Rows=1, kd=1")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, 1, 1, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rcequ || equedOut == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Dpbsvx('F', 'U', toPtr(0), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 11
+		_, _, _, err = golapack.Dpbsvx('F', Upper, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("smin <= zero: smin=0")
 		eq = 'Y'
-		golapack.Dpbsvx('F', 'U', toPtr(1), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Dpbsvx('N', 'U', toPtr(2), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Dpbsvx('N', 'U', toPtr(2), toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &eq, c, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DPBSVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Dpbsvx('F', Upper, 1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, 2, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Dpbsvx('N', Upper, 2, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbsvx", err)
 
-	} else if string(c2) == "PT" {
+	} else if c2 == "pt" {
 		//        DPTSV
-		*srnamt = "DPTSV "
-		*infot = 1
-		golapack.Dptsv(toPtr(-1), toPtr(0), a.Vector(0, 0), a.Vector(0, 1), b, toPtr(1), &info)
-		Chkxer("DPTSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dptsv(toPtr(0), toPtr(-1), a.Vector(0, 0), a.Vector(0, 1), b, toPtr(1), &info)
-		Chkxer("DPTSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dptsv(toPtr(2), toPtr(0), a.Vector(0, 0), a.Vector(0, 1), b, toPtr(1), &info)
-		Chkxer("DPTSV ", &info, lerr, ok, t)
+		*srnamt = "Dptsv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dptsv(-1, 0, a.Vector(0, 0), a.Vector(0, 1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dptsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dptsv(0, -1, a.Vector(0, 0), a.Vector(0, 1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dptsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dptsv(2, 0, a.Vector(0, 0), a.Vector(0, 1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dptsv", err)
 
-		//        DPTSVX
-		*srnamt = "DPTSVX"
-		*infot = 1
-		golapack.Dptsvx('/', toPtr(0), toPtr(0), a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &info)
-		Chkxer("DPTSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dptsvx('N', toPtr(-1), toPtr(0), a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &info)
-		Chkxer("DPTSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dptsvx('N', toPtr(0), toPtr(-1), a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &info)
-		Chkxer("DPTSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dptsvx('N', toPtr(2), toPtr(0), a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &info)
-		Chkxer("DPTSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Dptsvx('N', toPtr(2), toPtr(0), a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &info)
-		Chkxer("DPTSVX", &info, lerr, ok, t)
+		//        Dptsvx
+		*srnamt = "Dptsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Dptsvx('/', 0, 0, a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Dptsvx('N', -1, 0, a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Dptsvx('N', 0, -1, a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Dptsvx('N', 2, 0, a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w)
+		chkxer2("Dptsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Dptsvx('N', 2, 0, a.Vector(0, 0), a.Vector(0, 1), af.Vector(0, 0), af.Vector(0, 1), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w)
+		chkxer2("Dptsvx", err)
 
-	} else if string(c2) == "SY" {
+	} else if c2 == "sy" {
 		//        DSYSV
-		*srnamt = "DSYSV "
-		*infot = 1
-		golapack.Dsysv('/', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dsysv('U', toPtr(-1), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dsysv('U', toPtr(0), toPtr(-1), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV ", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dsysv('U', toPtr(2), toPtr(0), a, toPtr(1), &ip, b, toPtr(2), w, toPtr(1), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dsysv('U', toPtr(2), toPtr(0), a, toPtr(2), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dsysv('U', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(0), &info)
-		Chkxer("DSYSV ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dsysv('U', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(-2), &info)
-		Chkxer("DSYSV ", &info, lerr, ok, t)
+		*srnamt = "Dsysv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dsysv('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dsysv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dsysv(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dsysv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dsysv(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dsysv", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dsysv(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("Dsysv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dsysv(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dsysv", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.Dsysv(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 0)
+		chkxer2("Dsysv", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.Dsysv(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, -2)
+		chkxer2("Dsysv", err)
 
-		//        DSYSVX
-		*srnamt = "DSYSVX"
-		*infot = 1
-		golapack.Dsysvx('/', 'U', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, toPtr(1), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dsysvx('N', '/', toPtr(0), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, toPtr(1), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dsysvx('N', 'U', toPtr(-1), toPtr(0), a, toPtr(1), af, toPtr(1), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, toPtr(1), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dsysvx('N', 'U', toPtr(0), toPtr(-1), a, toPtr(1), af, toPtr(1), &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, toPtr(1), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dsysvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(1), af, toPtr(2), &ip, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, toPtr(4), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dsysvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(1), &ip, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, toPtr(4), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Dsysvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(2), &ip, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, toPtr(4), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Dsysvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(2), &ip, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, toPtr(4), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Dsysvx('N', 'U', toPtr(2), toPtr(0), a, toPtr(2), af, toPtr(2), &ip, b, toPtr(2), x, toPtr(2), &rcond, r1, r2, w, toPtr(3), &iw, &info)
-		Chkxer("DSYSVX", &info, lerr, ok, t)
+		//        Dsysvx
+		*srnamt = "Dsysvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Dsysvx('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, 1, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, err = golapack.Dsysvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, 1, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Dsysvx('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, 1, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Dsysvx('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, 1, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Dsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, 4, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, err = golapack.Dsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, 4, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Dsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, 4, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Dsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, 4, &iw)
+		chkxer2("Dsysvx", err)
+		*errt = fmt.Errorf("lwork < max(1, 3*n) && !lquery: lwork=3, n=2, lquery=false")
+		_, _, err = golapack.Dsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, 3, &iw)
+		chkxer2("Dsysvx", err)
 
-	} else if string(c2) == "SR" {
-		//        DSYSV_ROOK
-		*srnamt = "DSYSV_ROOK"
-		*infot = 1
-		golapack.DsysvRook('/', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 2
-		golapack.DsysvRook('U', toPtr(-1), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 3
-		golapack.DsysvRook('U', toPtr(0), toPtr(-1), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 5
-		golapack.DsysvRook('U', toPtr(2), toPtr(0), a, toPtr(1), &ip, b, toPtr(2), w, toPtr(1), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 8
-		golapack.DsysvRook('U', toPtr(2), toPtr(0), a, toPtr(2), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 10
-		golapack.DsysvRook('U', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(0), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 10
-		golapack.DsysvRook('U', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(-2), &info)
-		Chkxer("DSYSV_ROOK", &info, lerr, ok, t)
+	} else if c2 == "sr" {
+		//        DsysvRook
+		*srnamt = "DsysvRook"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.DsysvRook('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRook", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.DsysvRook(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRook", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.DsysvRook(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRook", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.DsysvRook(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("DsysvRook", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.DsysvRook(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRook", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.DsysvRook(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 0)
+		chkxer2("DsysvRook", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.DsysvRook(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, -2)
+		chkxer2("DsysvRook", err)
 
-	} else if string(c2) == "SK" {
-		//        DSYSV_RK
+	} else if c2 == "sk" {
+		//        DsysvRk
 		//
 		//        Test error exits of the driver that uses factorization
 		//        of a symmetric indefinite matrix with rook
@@ -493,103 +492,106 @@ func Derrvx(path []byte, t *testing.T) {
 		//
 		//        L (or U) is stored in A, diagonal of D is stored on the
 		//        diagonal of A, subdiagonal of D is stored in a separate array E.
-		*srnamt = "DSYSV_RK"
-		*infot = 1
-		golapack.DsysvRk('/', toPtr(0), toPtr(0), a, toPtr(1), e, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
-		*infot = 2
-		golapack.DsysvRk('U', toPtr(-1), toPtr(0), a, toPtr(1), e, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
-		*infot = 3
-		golapack.DsysvRk('U', toPtr(0), toPtr(-1), a, toPtr(1), e, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
-		*infot = 5
-		golapack.DsysvRk('U', toPtr(2), toPtr(0), a, toPtr(1), e, &ip, b, toPtr(2), w, toPtr(1), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
-		*infot = 9
-		golapack.DsysvRk('U', toPtr(2), toPtr(0), a, toPtr(2), e, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
-		*infot = 11
-		golapack.DsysvRk('U', toPtr(0), toPtr(0), a, toPtr(1), e, &ip, b, toPtr(1), w, toPtr(0), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
-		*infot = 11
-		golapack.DsysvRk('U', toPtr(0), toPtr(0), a, toPtr(1), e, &ip, b, toPtr(1), w, toPtr(-2), &info)
-		Chkxer("DSYSV_RK", &info, lerr, ok, t)
+		*srnamt = "DsysvRk"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.DsysvRk('/', 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRk", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.DsysvRk(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRk", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.DsysvRk(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), e, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRk", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.DsysvRk(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("DsysvRk", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.DsysvRk(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), e, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvRk", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.DsysvRk(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.Off(0, 0).UpdateRows(1), w, 0)
+		chkxer2("DsysvRk", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.DsysvRk(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.Off(0, 0).UpdateRows(1), w, -2)
+		chkxer2("DsysvRk", err)
 
-	} else if string(c2) == "SA" {
-		//        DSYSV_AA
-		*srnamt = "DSYSV_AA"
-		*infot = 1
-		golapack.DsysvAa('/', toPtr(0), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA", &info, lerr, ok, t)
-		*infot = 2
-		golapack.DsysvAa('U', toPtr(-1), toPtr(0), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA", &info, lerr, ok, t)
-		*infot = 3
-		golapack.DsysvAa('U', toPtr(0), toPtr(-1), a, toPtr(1), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA", &info, lerr, ok, t)
-		*infot = 8
-		golapack.DsysvAa('U', toPtr(2), toPtr(0), a, toPtr(2), &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA", &info, lerr, ok, t)
+	} else if c2 == "sa" {
+		//        DsysvAa
+		*srnamt = "DsysvAa"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.DsysvAa('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.DsysvAa(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.DsysvAa(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa", err)
+		// *errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		// *errt = fmt.Errorf("lwork < max(2*n, 3*n-2) && !lquery: lwork=%v, n=%v, lquery=%v", lwork, n, lquery)
+		_, err = golapack.DsysvAa(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa", err)
 
-	} else if string(c2) == "S2" {
-		//        DSYSV_AASEN_2STAGE
-		*srnamt = "DSYSV_AA_2STAGE"
-		*infot = 1
-		golapack.DsysvAa2stage('/', toPtr(0), toPtr(0), a, toPtr(1), a, toPtr(1), &ip, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.DsysvAa2stage('U', toPtr(-1), toPtr(0), a, toPtr(1), a, toPtr(1), &ip, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.DsysvAa2stage('U', toPtr(0), toPtr(-1), a, toPtr(1), a, toPtr(1), &ip, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 5
-		golapack.DsysvAa2stage('U', toPtr(2), toPtr(1), a, toPtr(1), a, toPtr(1), &ip, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 11
-		golapack.DsysvAa2stage('U', toPtr(2), toPtr(1), a, toPtr(2), a, toPtr(8), &ip, &ip, b, toPtr(1), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 7
-		golapack.DsysvAa2stage('U', toPtr(2), toPtr(1), a, toPtr(2), a, toPtr(1), &ip, &ip, b, toPtr(2), w, toPtr(1), &info)
-		Chkxer("DSYSV_AA_2STAGE", &info, lerr, ok, t)
+	} else if c2 == "s2" {
+		//        DsysvAa2stage
+		*srnamt = "DsysvAa2stage"
+		// *errt = fmt.Errorf("lwork < n && !wquery: lwork=%v, n=%v, wquery=%v", lwork, n, wquery)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.DsysvAa2stage('/', 0, 0, a.Off(0, 0).UpdateRows(1), a, 1, &ip, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.DsysvAa2stage(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), a, 1, &ip, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa2stage", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.DsysvAa2stage(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), a, 1, &ip, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.DsysvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), a, 1, &ip, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa2stage", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.DsysvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), a, 8, &ip, &ip, b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("DsysvAa2stage", err)
+		*errt = fmt.Errorf("ltb < (4*n) && !tquery: ltb=1, n=2, tquery=false")
+		_, err = golapack.DsysvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), a, 1, &ip, &ip, b.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("DsysvAa2stage", err)
 
-	} else if string(c2) == "SP" {
+	} else if c2 == "sp" {
 		//        DSPSV
-		*srnamt = "DSPSV "
-		*infot = 1
-		golapack.Dspsv('/', toPtr(0), toPtr(0), ap, &ip, b, toPtr(1), &info)
-		Chkxer("DSPSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dspsv('U', toPtr(-1), toPtr(0), ap, &ip, b, toPtr(1), &info)
-		Chkxer("DSPSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dspsv('U', toPtr(0), toPtr(-1), ap, &ip, b, toPtr(1), &info)
-		Chkxer("DSPSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dspsv('U', toPtr(2), toPtr(0), ap, &ip, b, toPtr(1), &info)
-		Chkxer("DSPSV ", &info, lerr, ok, t)
+		*srnamt = "Dspsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dspsv('/', 0, 0, ap, &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dspsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dspsv(Upper, -1, 0, ap, &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dspsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dspsv(Upper, 0, -1, ap, &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dspsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Dspsv(Upper, 2, 0, ap, &ip, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dspsv", err)
 
-		//        DSPSVX
-		*srnamt = "DSPSVX"
-		*infot = 1
-		golapack.Dspsvx('/', 'U', toPtr(0), toPtr(0), ap, afp, &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DSPSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dspsvx('N', '/', toPtr(0), toPtr(0), ap, afp, &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DSPSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dspsvx('N', 'U', toPtr(-1), toPtr(0), ap, afp, &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DSPSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dspsvx('N', 'U', toPtr(0), toPtr(-1), ap, afp, &ip, b, toPtr(1), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DSPSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dspsvx('N', 'U', toPtr(2), toPtr(0), ap, afp, &ip, b, toPtr(1), x, toPtr(2), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DSPSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Dspsvx('N', 'U', toPtr(2), toPtr(0), ap, afp, &ip, b, toPtr(2), x, toPtr(1), &rcond, r1, r2, w, &iw, &info)
-		Chkxer("DSPSVX", &info, lerr, ok, t)
+		//        Dspsvx
+		*srnamt = "Dspsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Dspsvx('/', Upper, 0, 0, ap, afp, &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dspsvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, err = golapack.Dspsvx('N', '/', 0, 0, ap, afp, &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dspsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Dspsvx('N', Upper, -1, 0, ap, afp, &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dspsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Dspsvx('N', Upper, 0, -1, ap, afp, &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dspsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Dspsvx('N', Upper, 2, 0, ap, afp, &ip, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dspsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Dspsvx('N', Upper, 2, 0, ap, afp, &ip, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dspsvx", err)
 
 	}
 
@@ -598,5 +600,9 @@ func Derrvx(path []byte, t *testing.T) {
 		fmt.Printf(" %3s drivers passed the tests of the error exits\n", path)
 	} else {
 		fmt.Printf(" *** %3s drivers failed the tests of the error exits ***\n", path)
+	}
+
+	if !(*ok) {
+		t.Fail()
 	}
 }

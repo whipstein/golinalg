@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -26,22 +27,20 @@ import (
 // The code currently calls DLASDQ if singular values only are desired.
 // However, it can be slightly modified to compute singular values
 // using the divide and conquer method.
-func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int, vt *mat.Matrix, ldvt *int, q *mat.Vector, iq *[]int, work *mat.Vector, iwork *[]int, info *int) {
+func Dbdsdc(uplo mat.MatUplo, compq byte, n int, d, e *mat.Vector, u, vt *mat.Matrix, q *mat.Vector, iq *[]int, work *mat.Vector, iwork *[]int) (err error) {
 	var cs, eps, one, orgnrm, p, r, sn, two, zero float64
-	var difl, difr, givcol, givnum, givptr, i, ic, icompq, ierr, ii, is, iu, iuplo, ivt, j, k, kk, mlvl, nm1, nsize, perm, poles, qstart, smlsiz, smlszp, sqre, start, wstart, z int
+	var difl, difr, givcol, givnum, givptr, i, ic, icompq, ii, info, is, iu, iuplo, ivt, j, k, kk, mlvl, nm1, nsize, perm, poles, qstart, smlsiz, smlszp, sqre, start, wstart, z int
 
 	zero = 0.0
 	one = 1.0
 	two = 2.0
 
 	//     Test the input parameters.
-	(*info) = 0
-
 	iuplo = 0
-	if uplo == 'U' {
+	if uplo == Upper {
 		iuplo = 1
 	}
-	if uplo == 'L' {
+	if uplo == Lower {
 		iuplo = 2
 	}
 	if compq == 'N' {
@@ -54,30 +53,30 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 		icompq = -1
 	}
 	if iuplo == 0 {
-		(*info) = -1
+		err = fmt.Errorf("iuplo == 0: uplo=%s", uplo)
 	} else if icompq < 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if ((*ldu) < 1) || ((icompq == 2) && ((*ldu) < (*n))) {
-		(*info) = -7
-	} else if ((*ldvt) < 1) || ((icompq == 2) && ((*ldvt) < (*n))) {
-		(*info) = -9
+		err = fmt.Errorf("icompq < 0: compq='%c'", compq)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if (u.Rows < 1) || ((icompq == 2) && (u.Rows < n)) {
+		err = fmt.Errorf("(u.Rows < 1) || ((icompq == 2) && (u.Rows < n)): compq='%c', u.Rows=%v, n=%v", compq, u.Rows, n)
+	} else if (vt.Rows < 1) || ((icompq == 2) && (vt.Rows < n)) {
+		err = fmt.Errorf("(vt.Rows < 1) || ((icompq == 2) && (vt.Rows < n)): compq='%c', vt.Rows=%v, n=%v", compq, vt.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DBDSDC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dbdsdc", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
-	smlsiz = Ilaenv(func() *int { y := 9; return &y }(), []byte("DBDSDC"), []byte{' '}, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }())
-	if (*n) == 1 {
+	smlsiz = Ilaenv(9, "Dbdsdc", []byte{' '}, 0, 0, 0, 0)
+	if n == 1 {
 		if icompq == 1 {
 			q.Set(0, math.Copysign(one, d.Get(0)))
-			q.Set(1+smlsiz*(*n)-1, one)
+			q.Set(1+smlsiz*n-1, one)
 		} else if icompq == 2 {
 			u.Set(0, 0, math.Copysign(one, d.Get(0)))
 			vt.Set(0, 0, one)
@@ -85,29 +84,29 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 		d.Set(0, math.Abs(d.Get(0)))
 		return
 	}
-	nm1 = (*n) - 1
+	nm1 = n - 1
 
 	//     If matrix lower bidiagonal, rotate to be upper bidiagonal
 	//     by applying Givens rotations on the left
 	wstart = 1
 	qstart = 3
 	if icompq == 1 {
-		goblas.Dcopy(*n, d, q)
-		goblas.Dcopy((*n)-1, e, q.Off((*n)))
+		goblas.Dcopy(n, d, q)
+		goblas.Dcopy(n-1, e, q.Off(n))
 	}
 	if iuplo == 2 {
 		qstart = 5
 		if icompq == 2 {
-			wstart = 2*(*n) - 1
+			wstart = 2*n - 1
 		}
-		for i = 1; i <= (*n)-1; i++ {
-			Dlartg(d.GetPtr(i-1), e.GetPtr(i-1), &cs, &sn, &r)
+		for i = 1; i <= n-1; i++ {
+			cs, sn, r = Dlartg(d.Get(i-1), e.Get(i-1))
 			d.Set(i-1, r)
 			e.Set(i-1, sn*d.Get(i))
 			d.Set(i, cs*d.Get(i))
 			if icompq == 1 {
-				q.Set(i+2*(*n)-1, cs)
-				q.Set(i+3*(*n)-1, sn)
+				q.Set(i+2*n-1, cs)
+				q.Set(i+3*n-1, sn)
 			} else if icompq == 2 {
 				work.Set(i-1, cs)
 				work.Set(nm1+i-1, -sn)
@@ -120,30 +119,36 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 		//        Ignore WSTART, instead using WORK( 1 ), since the two vectors
 		//        for CS and -SN above are added only if ICOMPQ == 2,
 		//        and adding them exceeds documented WORK size of 4*n.
-		Dlasdq('U', func() *int { y := 0; return &y }(), n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, vt, ldvt, u, ldu, u, ldu, work, info)
+		if info, err = Dlasdq(Upper, 0, n, 0, 0, 0, d, e, vt, u, u, work); err != nil {
+			panic(err)
+		}
 		goto label40
 	}
 
 	//     If N is smaller than the minimum divide size SMLSIZ, then solve
 	//     the problem with another solver.
-	if (*n) <= smlsiz {
+	if n <= smlsiz {
 		if icompq == 2 {
-			Dlaset('A', n, n, &zero, &one, u, ldu)
-			Dlaset('A', n, n, &zero, &one, vt, ldvt)
-			Dlasdq('U', func() *int { y := 0; return &y }(), n, n, n, func() *int { y := 0; return &y }(), d, e, vt, ldvt, u, ldu, u, ldu, work.Off(wstart-1), info)
+			Dlaset(Full, n, n, zero, one, u)
+			Dlaset(Full, n, n, zero, one, vt)
+			if info, err = Dlasdq(Upper, 0, n, n, n, 0, d, e, vt, u, u, work.Off(wstart-1)); err != nil {
+				panic(err)
+			}
 		} else if icompq == 1 {
 			iu = 1
-			ivt = iu + (*n)
-			Dlaset('A', n, n, &zero, &one, q.MatrixOff(iu+(qstart-1)*(*n)-1, *n, opts), n)
-			Dlaset('A', n, n, &zero, &one, q.MatrixOff(ivt+(qstart-1)*(*n)-1, *n, opts), n)
-			Dlasdq('U', func() *int { y := 0; return &y }(), n, n, n, func() *int { y := 0; return &y }(), d, e, q.MatrixOff(ivt+(qstart-1)*(*n)-1, *n, opts), n, q.MatrixOff(iu+(qstart-1)*(*n)-1, *n, opts), n, q.MatrixOff(iu+(qstart-1)*(*n)-1, *n, opts), n, work.Off(wstart-1), info)
+			ivt = iu + n
+			Dlaset(Full, n, n, zero, one, q.MatrixOff(iu+(qstart-1)*n-1, n, opts))
+			Dlaset(Full, n, n, zero, one, q.MatrixOff(ivt+(qstart-1)*n-1, n, opts))
+			if info, err = Dlasdq(Upper, 0, n, n, n, 0, d, e, q.MatrixOff(ivt+(qstart-1)*n-1, n, opts), q.MatrixOff(iu+(qstart-1)*n-1, n, opts), q.MatrixOff(iu+(qstart-1)*n-1, n, opts), work.Off(wstart-1)); err != nil {
+				panic(err)
+			}
 		}
 		goto label40
 	}
 
 	if icompq == 2 {
-		Dlaset('A', n, n, &zero, &one, u, ldu)
-		Dlaset('A', n, n, &zero, &one, vt, ldvt)
+		Dlaset(Full, n, n, zero, one, u)
+		Dlaset(Full, n, n, zero, one, vt)
 	}
 
 	//     Scale.
@@ -151,12 +156,16 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 	if orgnrm == zero {
 		return
 	}
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &orgnrm, &one, n, func() *int { y := 1; return &y }(), d.Matrix(*n, opts), n, &ierr)
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &orgnrm, &one, &nm1, func() *int { y := 1; return &y }(), e.Matrix(nm1, opts), &nm1, &ierr)
+	if err = Dlascl('G', 0, 0, orgnrm, one, n, 1, d.Matrix(n, opts)); err != nil {
+		panic(err)
+	}
+	if err = Dlascl('G', 0, 0, orgnrm, one, nm1, 1, e.Matrix(nm1, opts)); err != nil {
+		panic(err)
+	}
 
 	eps = 0.9 * Dlamch(Epsilon)
 
-	mlvl = int(math.Log(float64(*n)/float64(smlsiz+1))/math.Log(two)) + 1
+	mlvl = int(math.Log(float64(n)/float64(smlsiz+1))/math.Log(two)) + 1
 	smlszp = smlsiz + 1
 
 	if icompq == 1 {
@@ -176,7 +185,7 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 		givcol = perm + mlvl
 	}
 
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		if math.Abs(d.Get(i-1)) < eps {
 			d.Set(i-1, math.Copysign(eps, d.Get(i-1)))
 		}
@@ -194,27 +203,29 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 				nsize = i - start + 1
 			} else if math.Abs(e.Get(i-1)) >= eps {
 				//              A subproblem with E(NM1) not too small but I = NM1.
-				nsize = (*n) - start + 1
+				nsize = n - start + 1
 			} else {
 				//              A subproblem with E(NM1) small. This implies an
 				//              1-by-1 subproblem at D(N). Solve this 1-by-1 problem
 				//              first.
 				nsize = i - start + 1
 				if icompq == 2 {
-					u.Set((*n)-1, (*n)-1, math.Copysign(one, d.Get((*n)-1)))
-					vt.Set((*n)-1, (*n)-1, one)
+					u.Set(n-1, n-1, math.Copysign(one, d.Get(n-1)))
+					vt.Set(n-1, n-1, one)
 				} else if icompq == 1 {
-					q.Set((*n)+(qstart-1)*(*n)-1, math.Copysign(one, d.Get((*n)-1)))
-					q.Set((*n)+(smlsiz+qstart-1)*(*n)-1, one)
+					q.Set(n+(qstart-1)*n-1, math.Copysign(one, d.Get(n-1)))
+					q.Set(n+(smlsiz+qstart-1)*n-1, one)
 				}
-				d.Set((*n)-1, math.Abs(d.Get((*n)-1)))
+				d.Set(n-1, math.Abs(d.Get(n-1)))
 			}
 			if icompq == 2 {
-				Dlasd0(&nsize, &sqre, d.Off(start-1), e.Off(start-1), u.Off(start-1, start-1), ldu, vt.Off(start-1, start-1), ldvt, &smlsiz, iwork, work.Off(wstart-1), info)
+				info, err = Dlasd0(nsize, sqre, d.Off(start-1), e.Off(start-1), u.Off(start-1, start-1), vt.Off(start-1, start-1), smlsiz, iwork, work.Off(wstart-1))
 			} else {
-				Dlasda(&icompq, &smlsiz, &nsize, &sqre, d.Off(start-1), e.Off(start-1), q.MatrixOff(start+(iu+qstart-2)*(*n)-1, *n, opts), n, q.MatrixOff(start+(ivt+qstart-2)*(*n)-1, *n, opts), toSlice(iq, start+k*(*n)-1), q.MatrixOff(start+(difl+qstart-2)*(*n)-1, *n, opts), q.MatrixOff(start+(difr+qstart-2)*(*n)-1, *n, opts), q.MatrixOff(start+(z+qstart-2)*(*n)-1, *n, opts), q.MatrixOff(start+(poles+qstart-2)*(*n)-1, *n, opts), toSlice(iq, start+givptr*(*n)-1), toSlice(iq, start+givcol*(*n)-1), n, toSlice(iq, start+perm*(*n)-1), q.MatrixOff(start+(givnum+qstart-2)*(*n)-1, *n, opts), q.Off(start+(ic+qstart-2)*(*n)-1), q.Off(start+(is+qstart-2)*(*n)-1), work.Off(wstart-1), iwork, info)
+				if info, err = Dlasda(icompq, smlsiz, nsize, sqre, d.Off(start-1), e.Off(start-1), q.MatrixOff(start+(iu+qstart-2)*n-1, n, opts), q.MatrixOff(start+(ivt+qstart-2)*n-1, n, opts), toSlice(iq, start+k*n-1), q.MatrixOff(start+(difl+qstart-2)*n-1, n, opts), q.MatrixOff(start+(difr+qstart-2)*n-1, n, opts), q.MatrixOff(start+(z+qstart-2)*n-1, n, opts), q.MatrixOff(start+(poles+qstart-2)*n-1, n, opts), toSlice(iq, start+givptr*n-1), toSlice(iq, start+givcol*n-1), n, toSlice(iq, start+perm*n-1), q.MatrixOff(start+(givnum+qstart-2)*n-1, n, opts), q.Off(start+(ic+qstart-2)*n-1), q.Off(start+(is+qstart-2)*n-1), work.Off(wstart-1), iwork); err != nil {
+					panic(err)
+				}
 			}
-			if (*info) != 0 {
+			if info != 0 {
 				return
 			}
 			start = i + 1
@@ -222,16 +233,18 @@ func Dbdsdc(uplo, compq byte, n *int, d, e *mat.Vector, u *mat.Matrix, ldu *int,
 	}
 
 	//     Unscale
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &one, &orgnrm, n, func() *int { y := 1; return &y }(), d.Matrix(*n, opts), n, &ierr)
+	if err = Dlascl('G', 0, 0, one, orgnrm, n, 1, d.Matrix(n, opts)); err != nil {
+		panic(err)
+	}
 label40:
 	;
 
 	//     Use Selection Sort to minimize swaps of singular vectors
-	for ii = 2; ii <= (*n); ii++ {
+	for ii = 2; ii <= n; ii++ {
 		i = ii - 1
 		kk = i
 		p = d.Get(i - 1)
-		for j = ii; j <= (*n); j++ {
+		for j = ii; j <= n; j++ {
 			if d.Get(j-1) > p {
 				kk = j
 				p = d.Get(j - 1)
@@ -243,8 +256,8 @@ label40:
 			if icompq == 1 {
 				(*iq)[i-1] = kk
 			} else if icompq == 2 {
-				goblas.Dswap(*n, u.Vector(0, i-1, 1), u.Vector(0, kk-1, 1))
-				goblas.Dswap(*n, vt.Vector(i-1, 0), vt.Vector(kk-1, 0))
+				goblas.Dswap(n, u.Vector(0, i-1, 1), u.Vector(0, kk-1, 1))
+				goblas.Dswap(n, vt.Vector(i-1, 0), vt.Vector(kk-1, 0))
 			}
 		} else if icompq == 1 {
 			(*iq)[i-1] = i
@@ -254,15 +267,19 @@ label40:
 	//     If ICOMPQ = 1, use IQ(N,1) as the indicator for UPLO
 	if icompq == 1 {
 		if iuplo == 1 {
-			(*iq)[(*n)-1] = 1
+			(*iq)[n-1] = 1
 		} else {
-			(*iq)[(*n)-1] = 0
+			(*iq)[n-1] = 0
 		}
 	}
 
 	//     If B is lower bidiagonal, update U by those Givens rotations
 	//     which rotated B to be upper bidiagonal
 	if (iuplo == 2) && (icompq == 2) {
-		Dlasr('L', 'V', 'B', n, n, work, work.Off((*n)-1), u, ldu)
+		if err = Dlasr(Left, 'V', 'B', n, n, work, work.Off(n-1), u); err != nil {
+			panic(err)
+		}
 	}
+
+	return
 }

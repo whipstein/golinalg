@@ -1,6 +1,7 @@
 package matgen
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,12 +16,10 @@ import (
 //    U is generated using the method of G.W. Stewart
 //    ( SIAM J. Numer. Anal. 17, 1980, pp. 403-409 ).
 //    (BLAS-2 version)
-func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, x *mat.CVector, info *int) {
+func Zlaror(side, init byte, m, n int, a *mat.CMatrix, iseed *[]int, x *mat.CVector) (err error) {
 	var cone, csign, czero, xnorms complex128
 	var factor, one, toosml, xabs, xnorm, zero float64
 	var irow, itype, ixfrm, j, jcol, kbeg, nxfrm int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -28,8 +27,7 @@ func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
 
-	(*info) = 0
-	if (*n) == 0 || (*m) == 0 {
+	if n == 0 || m == 0 {
 		return
 	}
 
@@ -46,28 +44,28 @@ func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, 
 
 	//     Check for argument errors.
 	if itype == 0 {
-		(*info) = -1
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 || (itype == 3 && (*n) != (*m)) {
-		(*info) = -4
-	} else if (*lda) < (*m) {
-		(*info) = -6
+		err = fmt.Errorf("itype == 0: side='%c'", side)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 || (itype == 3 && n != m) {
+		err = fmt.Errorf("n < 0 || (itype == 3 && n != m): side='%c', m=%v, n=%v", side, m, n)
+	} else if a.Rows < m {
+		err = fmt.Errorf("a.Rows < m: a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZLAROR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zlaror", err)
 		return
 	}
 
 	if itype == 1 {
-		nxfrm = (*m)
+		nxfrm = m
 	} else {
-		nxfrm = (*n)
+		nxfrm = n
 	}
 
 	//     Initialize A to the identity matrix if desired
 	if init == 'I' {
-		golapack.Zlaset('F', m, n, &czero, &cone, a, lda)
+		golapack.Zlaset(Full, m, n, czero, cone, a)
 	}
 
 	//     If no rotation possible, still multiply by
@@ -85,7 +83,7 @@ func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, 
 
 		//        Generate independent normal( 0, 1 ) random numbers
 		for j = kbeg; j <= nxfrm; j++ {
-			x.Set(j-1, Zlarnd(func() *int { y := 3; return &y }(), iseed))
+			x.Set(j-1, Zlarnd(3, *iseed))
 		}
 
 		//        Generate a Householder transformation from the random vector X
@@ -100,8 +98,8 @@ func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, 
 		x.Set(nxfrm+kbeg-1, -csign)
 		factor = xnorm * (xnorm + xabs)
 		if math.Abs(factor) < toosml {
-			(*info) = 1
-			gltest.Xerbla([]byte("ZLAROR"), -(*info))
+			err = fmt.Errorf("math.Abs(factor) < toosml: factor=%v, toosml=%v", factor, toosml)
+			gltest.Xerbla2("Zlaror", err)
 			return
 		} else {
 			factor = one / factor
@@ -111,24 +109,32 @@ func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, 
 		//        Apply Householder transformation to A
 		if itype == 1 || itype == 3 || itype == 4 {
 			//           Apply H(k) on the left of A
-			err = goblas.Zgemv(ConjTrans, ixfrm, *n, cone, a.Off(kbeg-1, 0), x.Off(kbeg-1, 1), czero, x.Off(2*nxfrm, 1))
-			err = goblas.Zgerc(ixfrm, *n, -complex(factor, 0), x.Off(kbeg-1, 1), x.Off(2*nxfrm, 1), a.Off(kbeg-1, 0))
+			if err = goblas.Zgemv(ConjTrans, ixfrm, n, cone, a.Off(kbeg-1, 0), x.Off(kbeg-1, 1), czero, x.Off(2*nxfrm, 1)); err != nil {
+				panic(err)
+			}
+			if err = goblas.Zgerc(ixfrm, n, -complex(factor, 0), x.Off(kbeg-1, 1), x.Off(2*nxfrm, 1), a.Off(kbeg-1, 0)); err != nil {
+				panic(err)
+			}
 
 		}
 
 		if itype >= 2 && itype <= 4 {
 			//           Apply H(k)* (or H(k)') on the right of A
 			if itype == 4 {
-				golapack.Zlacgv(&ixfrm, x.Off(kbeg-1), func() *int { y := 1; return &y }())
+				golapack.Zlacgv(ixfrm, x.Off(kbeg-1, 1))
 			}
 
-			err = goblas.Zgemv(NoTrans, *m, ixfrm, cone, a.Off(0, kbeg-1), x.Off(kbeg-1, 1), czero, x.Off(2*nxfrm, 1))
-			err = goblas.Zgerc(*m, ixfrm, -complex(factor, 0), x.Off(2*nxfrm, 1), x.Off(kbeg-1, 1), a.Off(0, kbeg-1))
+			if err = goblas.Zgemv(NoTrans, m, ixfrm, cone, a.Off(0, kbeg-1), x.Off(kbeg-1, 1), czero, x.Off(2*nxfrm, 1)); err != nil {
+				panic(err)
+			}
+			if err = goblas.Zgerc(m, ixfrm, -complex(factor, 0), x.Off(2*nxfrm, 1), x.Off(kbeg-1, 1), a.Off(0, kbeg-1)); err != nil {
+				panic(err)
+			}
 
 		}
 	}
 
-	x.Set(0, Zlarnd(func() *int { y := 3; return &y }(), iseed))
+	x.Set(0, Zlarnd(3, *iseed))
 	xabs = x.GetMag(0)
 	if xabs != zero {
 		csign = x.Get(0) / complex(xabs, 0)
@@ -139,20 +145,22 @@ func Zlaror(side, init byte, m, n *int, a *mat.CMatrix, lda *int, iseed *[]int, 
 
 	//     Scale the matrix A by D.
 	if itype == 1 || itype == 3 || itype == 4 {
-		for irow = 1; irow <= (*m); irow++ {
-			goblas.Zscal(*n, x.GetConj(nxfrm+irow-1), a.CVector(irow-1, 0, *lda))
+		for irow = 1; irow <= m; irow++ {
+			goblas.Zscal(n, x.GetConj(nxfrm+irow-1), a.CVector(irow-1, 0, *&a.Rows))
 		}
 	}
 
 	if itype == 2 || itype == 3 {
-		for jcol = 1; jcol <= (*n); jcol++ {
-			goblas.Zscal(*m, x.Get(nxfrm+jcol-1), a.CVector(0, jcol-1, 1))
+		for jcol = 1; jcol <= n; jcol++ {
+			goblas.Zscal(m, x.Get(nxfrm+jcol-1), a.CVector(0, jcol-1, 1))
 		}
 	}
 
 	if itype == 4 {
-		for jcol = 1; jcol <= (*n); jcol++ {
-			goblas.Zscal(*m, x.GetConj(nxfrm+jcol-1), a.CVector(0, jcol-1, 1))
+		for jcol = 1; jcol <= n; jcol++ {
+			goblas.Zscal(m, x.GetConj(nxfrm+jcol-1), a.CVector(0, jcol-1, 1))
 		}
 	}
+
+	return
 }

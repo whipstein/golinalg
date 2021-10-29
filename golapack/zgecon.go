@@ -1,7 +1,7 @@
 package golapack
 
 import (
-	"math"
+	"fmt"
 
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -15,41 +15,39 @@ import (
 // An estimate is obtained for norm(inv(A)), and the reciprocal of the
 // condition number is computed as
 //    RCOND = 1 / ( norm(A) * norm(inv(A)) ).
-func Zgecon(norm byte, n *int, a *mat.CMatrix, lda *int, anorm, rcond *float64, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Zgecon(norm byte, n int, a *mat.CMatrix, anorm float64, work *mat.CVector, rwork *mat.Vector) (rcond float64, err error) {
 	var onenrm bool
 	var normin byte
 	var ainvnm, one, scale, sl, smlnum, su, zero float64
 	var ix, kase, kase1 int
+
 	isave := make([]int, 3)
 
 	one = 1.0
 	zero = 0.0
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
 	//     Test the input parameters.
-	(*info) = 0
 	onenrm = norm == '1' || norm == 'O'
 	if !onenrm && norm != 'I' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*anorm) < zero {
-		(*info) = -5
+		err = fmt.Errorf("!onenrm && norm != 'I': norm='%c'", norm)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if anorm < zero {
+		err = fmt.Errorf("anorm < zero: anorm=%v", anorm)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGECON"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgecon", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*rcond) = zero
-	if (*n) == 0 {
-		(*rcond) = one
+	rcond = zero
+	if n == 0 {
+		rcond = one
 		return
-	} else if (*anorm) == zero {
+	} else if anorm == zero {
 		return
 	}
 
@@ -66,37 +64,47 @@ func Zgecon(norm byte, n *int, a *mat.CMatrix, lda *int, anorm, rcond *float64, 
 	kase = 0
 label10:
 	;
-	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
+	ainvnm, kase = Zlacn2(n, work.Off(n), work, ainvnm, kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(L).
-			Zlatrs('L', 'N', 'U', normin, n, a, lda, work, &sl, rwork, info)
+			if sl, err = Zlatrs(Lower, NoTrans, Unit, normin, n, a, work, rwork); err != nil {
+				panic(err)
+			}
 
 			//           Multiply by inv(U).
-			Zlatrs('U', 'N', 'N', normin, n, a, lda, work, &su, rwork.Off((*n)), info)
+			if su, err = Zlatrs(Upper, NoTrans, NonUnit, normin, n, a, work, rwork.Off(n)); err != nil {
+				panic(err)
+			}
 		} else {
 			//           Multiply by inv(U**H).
-			Zlatrs('U', 'C', 'N', normin, n, a, lda, work, &su, rwork.Off((*n)), info)
+			if su, err = Zlatrs(Upper, ConjTrans, NonUnit, normin, n, a, work, rwork.Off(n)); err != nil {
+				panic(err)
+			}
 
 			//           Multiply by inv(L**H).
-			Zlatrs('L', 'C', 'U', normin, n, a, lda, work, &sl, rwork, info)
+			if sl, err = Zlatrs(Lower, ConjTrans, Unit, normin, n, a, work, rwork); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Divide X by 1/(SL*SU) if doing so will not cause overflow.
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Izamax(*n, work.Off(0, 1))
-			if scale < Cabs1(work.Get(ix-1))*smlnum || scale == zero {
+			ix = goblas.Izamax(n, work.Off(0, 1))
+			if scale < cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}
-			Zdrscl(n, &scale, work, func() *int { y := 1; return &y }())
+			Zdrscl(n, scale, work.Off(0, 1))
 		}
 		goto label10
 	}
 
 	//     Compute the estimate of the reciprocal condition number.
 	if ainvnm != zero {
-		(*rcond) = (one / ainvnm) / (*anorm)
+		rcond = (one / ainvnm) / anorm
 	}
+
+	return
 }

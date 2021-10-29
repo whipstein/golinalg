@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -15,77 +17,92 @@ import (
 // where U is an upper triangular matrix and L is lower triangular.
 //
 // This is the block version of the algorithm, calling Level 3 BLAS.
-func Zpotrf(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
+func Zpotrf(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 	var upper bool
 	var cone complex128
 	var one float64
 	var j, jb, nb int
-	var err error
-	_ = err
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZPOTRF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zpotrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Determine the block size for this environment.
-	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZPOTRF"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-	if nb <= 1 || nb >= (*n) {
+	nb = Ilaenv(1, "Zpotrf", []byte{uplo.Byte()}, n, -1, -1, -1)
+	if nb <= 1 || nb >= n {
 		//        Use unblocked code.
-		Zpotrf2(uplo, n, a, lda, info)
+		if info, err = Zpotrf2(uplo, n, a); err != nil {
+			panic(err)
+		}
 	} else {
 		//        Use blocked code.
 		if upper {
 			//           Compute the Cholesky factorization A = U**H *U.
-			for j = 1; j <= (*n); j += nb {
+			for j = 1; j <= n; j += nb {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
-				jb = min(nb, (*n)-j+1)
-				err = goblas.Zherk(Upper, ConjTrans, jb, j-1, -one, a.Off(0, j-1), one, a.Off(j-1, j-1))
-				Zpotrf2('U', &jb, a.Off(j-1, j-1), lda, info)
-				if (*info) != 0 {
+				jb = min(nb, n-j+1)
+				if err = goblas.Zherk(Upper, ConjTrans, jb, j-1, -one, a.Off(0, j-1), one, a.Off(j-1, j-1)); err != nil {
+					panic(err)
+				}
+				if info, err = Zpotrf2(Upper, jb, a.Off(j-1, j-1)); err != nil {
+					panic(err)
+				}
+				if info != 0 {
 					goto label30
 				}
-				if j+jb <= (*n) {
+				if j+jb <= n {
 					//                 Compute the current block row.
-					err = goblas.Zgemm(ConjTrans, NoTrans, jb, (*n)-j-jb+1, j-1, -cone, a.Off(0, j-1), a.Off(0, j+jb-1), cone, a.Off(j-1, j+jb-1))
-					err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
+					if err = goblas.Zgemm(ConjTrans, NoTrans, jb, n-j-jb+1, j-1, -cone, a.Off(0, j-1), a.Off(0, j+jb-1), cone, a.Off(j-1, j+jb-1)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, jb, n-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1)); err != nil {
+						panic(err)
+					}
 				}
 			}
 
 		} else {
 			//           Compute the Cholesky factorization A = L*L**H.
-			for j = 1; j <= (*n); j += nb {
+			for j = 1; j <= n; j += nb {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
-				jb = min(nb, (*n)-j+1)
-				err = goblas.Zherk(Lower, NoTrans, jb, j-1, -one, a.Off(j-1, 0), one, a.Off(j-1, j-1))
-				Zpotrf2('L', &jb, a.Off(j-1, j-1), lda, info)
-				if (*info) != 0 {
+				jb = min(nb, n-j+1)
+				if err = goblas.Zherk(Lower, NoTrans, jb, j-1, -one, a.Off(j-1, 0), one, a.Off(j-1, j-1)); err != nil {
+					panic(err)
+				}
+				if info, err = Zpotrf2(Lower, jb, a.Off(j-1, j-1)); err != nil {
+					panic(err)
+				}
+				if info != 0 {
 					goto label30
 				}
-				if j+jb <= (*n) {
+				if j+jb <= n {
 					//                 Compute the current block column.
-					err = goblas.Zgemm(NoTrans, ConjTrans, (*n)-j-jb+1, jb, j-1, -cone, a.Off(j+jb-1, 0), a.Off(j-1, 0), cone, a.Off(j+jb-1, j-1))
-					err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, (*n)-j-jb+1, jb, cone, a.Off(j-1, j-1), a.Off(j+jb-1, j-1))
+					if err = goblas.Zgemm(NoTrans, ConjTrans, n-j-jb+1, jb, j-1, -cone, a.Off(j+jb-1, 0), a.Off(j-1, 0), cone, a.Off(j+jb-1, j-1)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, n-j-jb+1, jb, cone, a.Off(j-1, j-1), a.Off(j+jb-1, j-1)); err != nil {
+						panic(err)
+					}
 				}
 			}
 		}
@@ -94,5 +111,7 @@ func Zpotrf(uplo byte, n *int, a *mat.CMatrix, lda, info *int) {
 
 label30:
 	;
-	(*info) = (*info) + j - 1
+	info = info + j - 1
+
+	return
 }

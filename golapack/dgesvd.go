@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -22,12 +23,10 @@ import (
 // U and V are the left and right singular vectors of A.
 //
 // Note that the routine returns V**T, not V.
-func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector, u *mat.Matrix, ldu *int, vt *mat.Matrix, ldvt *int, work *mat.Vector, lwork *int, info *int) {
+func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat.Matrix, work *mat.Vector, lwork int) (info int, err error) {
 	var lquery, wntua, wntuas, wntun, wntuo, wntus, wntva, wntvas, wntvn, wntvo, wntvs bool
 	var anrm, bignum, eps, one, smlnum, zero float64
-	var bdspac, blk, chunk, i, ie, ierr, ir, iscl, itau, itaup, itauq, iu, iwork, ldwrkr, ldwrku, lworkDgebrd, lworkDgelqf, lworkDgeqrf, lworkDorgbrP, lworkDorgbrQ, lworkDorglqM, lworkDorglqN, lworkDorgqrM, lworkDorgqrN, maxwrk, minmn, minwrk, mnthr, ncu, ncvt, nru, nrvt, wrkbl int
-	var err error
-	_ = err
+	var bdspac, blk, chunk, i, ie, ir, iscl, itau, itaup, itauq, iu, iwork, ldwrkr, ldwrku, lworkDgebrd, lworkDgelqf, lworkDgeqrf, lworkDorgbrP, lworkDorgbrQ, lworkDorglqM, lworkDorglqN, lworkDorgqrM, lworkDorgqrN, maxwrk, minmn, minwrk, mnthr, ncu, ncvt, nru, nrvt, wrkbl int
 
 	dum := vf(1)
 
@@ -35,8 +34,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 	one = 1.0
 
 	//     Test the input arguments
-	(*info) = 0
-	minmn = min(*m, *n)
+	minmn = min(m, n)
 	wntua = jobu == 'A'
 	wntus = jobu == 'S'
 	wntuas = wntua || wntus
@@ -47,22 +45,22 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 	wntvas = wntva || wntvs
 	wntvo = jobvt == 'O'
 	wntvn = jobvt == 'N'
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 
 	if !(wntua || wntus || wntuo || wntun) {
-		(*info) = -1
+		err = fmt.Errorf("!(wntua || wntus || wntuo || wntun): jobu='%c'", jobu)
 	} else if !(wntva || wntvs || wntvo || wntvn) || (wntvo && wntuo) {
-		(*info) = -2
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *m) {
-		(*info) = -6
-	} else if (*ldu) < 1 || (wntuas && (*ldu) < (*m)) {
-		(*info) = -9
-	} else if (*ldvt) < 1 || (wntva && (*ldvt) < (*n)) || (wntvs && (*ldvt) < minmn) {
-		(*info) = -11
+		err = fmt.Errorf("!(wntva || wntvs || wntvo || wntvn) || (wntvo && wntuo): jobvt='%c'", jobvt)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if u.Rows < 1 || (wntuas && u.Rows < m) {
+		err = fmt.Errorf("u.Rows < 1 || (wntuas && u.Rows < m): jobu='%c', u.Rows=%v, m=%v", jobu, u.Rows, m)
+	} else if vt.Rows < 1 || (wntva && vt.Rows < n) || (wntvs && vt.Rows < minmn) {
+		err = fmt.Errorf("vt.Rows < 1 || (wntva && vt.Rows < n) || (wntvs && vt.Rows < minmn): jobvt='%c', vt.Rows=%v, m=%v, n=%v", jobvt, vt.Rows, m, n)
 	}
 
 	//     Compute workspace
@@ -71,295 +69,331 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 	//       as well as the preferred amount for good performance.
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV.)
-	if (*info) == 0 {
+	if err == nil {
 		minwrk = 1
 		maxwrk = 1
-		if (*m) >= (*n) && minmn > 0 {
+		if m >= n && minmn > 0 {
 			//           Compute space needed for DBDSQR
-			mnthr = Ilaenv(func() *int { y := 6; return &y }(), []byte("DGESVD"), []byte{jobu, jobvt}, m, n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }())
-			bdspac = 5 * (*n)
+			mnthr = Ilaenv(6, "Dgesvd", []byte{jobu, jobvt}, m, n, 0, 0)
+			bdspac = 5 * n
 			//           Compute space needed for DGEQRF
-			Dgeqrf(m, n, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dgeqrf(m, n, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDgeqrf = int(dum.Get(0))
 			//           Compute space needed for DORGQR
-			Dorgqr(m, n, n, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dorgqr(m, n, n, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorgqrN = int(dum.Get(0))
-			Dorgqr(m, m, n, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dorgqr(m, m, n, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorgqrM = int(dum.Get(0))
 			//           Compute space needed for DGEBRD
-			Dgebrd(n, n, a, lda, s, dum, dum, dum, dum, toPtr(-1), &ierr)
+			if err = Dgebrd(n, n, a, s, dum, dum, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDgebrd = int(dum.Get(0))
 			//           Compute space needed for DORGBR P
-			Dorgbr('P', n, n, n, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dorgbr('P', n, n, n, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorgbrP = int(dum.Get(0))
 			//           Compute space needed for DORGBR Q
-			Dorgbr('Q', n, n, n, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dorgbr('Q', n, n, n, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorgbrQ = int(dum.Get(0))
 			//
-			if (*m) >= mnthr {
+			if m >= mnthr {
 				if wntun {
 					//                 Path 1 (M much larger than N, JOBU='N')
-					maxwrk = (*n) + lworkDgeqrf
-					maxwrk = max(maxwrk, 3*(*n)+lworkDgebrd)
+					maxwrk = n + lworkDgeqrf
+					maxwrk = max(maxwrk, 3*n+lworkDgebrd)
 					if wntvo || wntvas {
-						maxwrk = max(maxwrk, 3*(*n)+lworkDorgbrP)
+						maxwrk = max(maxwrk, 3*n+lworkDorgbrP)
 					}
 					maxwrk = max(maxwrk, bdspac)
-					minwrk = max(4*(*n), bdspac)
+					minwrk = max(4*n, bdspac)
 				} else if wntuo && wntvn {
 					//                 Path 2 (M much larger than N, JOBU='O', JOBVT='N')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrN)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrN)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = max((*n)*(*n)+wrkbl, (*n)*(*n)+(*m)*(*n)+(*n))
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = max(n*n+wrkbl, n*n+m*n+n)
+					minwrk = max(3*n+m, bdspac)
 				} else if wntuo && wntvas {
 					//                 Path 3 (M much larger than N, JOBU='O', JOBVT='S' or
 					//                 'A')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrN)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrP)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrN)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = max((*n)*(*n)+wrkbl, (*n)*(*n)+(*m)*(*n)+(*n))
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = max(n*n+wrkbl, n*n+m*n+n)
+					minwrk = max(3*n+m, bdspac)
 				} else if wntus && wntvn {
 					//                 Path 4 (M much larger than N, JOBU='S', JOBVT='N')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrN)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrN)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*n)*(*n) + wrkbl
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = n*n + wrkbl
+					minwrk = max(3*n+m, bdspac)
 				} else if wntus && wntvo {
 					//                 Path 5 (M much larger than N, JOBU='S', JOBVT='O')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrN)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrP)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrN)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = 2*(*n)*(*n) + wrkbl
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = 2*n*n + wrkbl
+					minwrk = max(3*n+m, bdspac)
 				} else if wntus && wntvas {
 					//                 Path 6 (M much larger than N, JOBU='S', JOBVT='S' or
 					//                 'A')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrN)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrP)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrN)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*n)*(*n) + wrkbl
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = n*n + wrkbl
+					minwrk = max(3*n+m, bdspac)
 				} else if wntua && wntvn {
 					//                 Path 7 (M much larger than N, JOBU='A', JOBVT='N')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrM)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrM)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*n)*(*n) + wrkbl
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = n*n + wrkbl
+					minwrk = max(3*n+m, bdspac)
 				} else if wntua && wntvo {
 					//                 Path 8 (M much larger than N, JOBU='A', JOBVT='O')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrM)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrP)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrM)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = 2*(*n)*(*n) + wrkbl
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = 2*n*n + wrkbl
+					minwrk = max(3*n+m, bdspac)
 				} else if wntua && wntvas {
 					//                 Path 9 (M much larger than N, JOBU='A', JOBVT='S' or
 					//                 'A')
-					wrkbl = (*n) + lworkDgeqrf
-					wrkbl = max(wrkbl, (*n)+lworkDorgqrM)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrQ)
-					wrkbl = max(wrkbl, 3*(*n)+lworkDorgbrP)
+					wrkbl = n + lworkDgeqrf
+					wrkbl = max(wrkbl, n+lworkDorgqrM)
+					wrkbl = max(wrkbl, 3*n+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrQ)
+					wrkbl = max(wrkbl, 3*n+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*n)*(*n) + wrkbl
-					minwrk = max(3*(*n)+(*m), bdspac)
+					maxwrk = n*n + wrkbl
+					minwrk = max(3*n+m, bdspac)
 				}
 			} else {
 				//              Path 10 (M at least N, but not much larger)
-				Dgebrd(m, n, a, lda, s, dum, dum, dum, dum, toPtr(-1), &ierr)
+				if err = Dgebrd(m, n, a, s, dum, dum, dum, dum, -1); err != nil {
+					panic(err)
+				}
 				lworkDgebrd = int(dum.Get(0))
-				maxwrk = 3*(*n) + lworkDgebrd
+				maxwrk = 3*n + lworkDgebrd
 				if wntus || wntuo {
-					Dorgbr('Q', m, n, n, a, lda, dum, dum, toPtr(-1), &ierr)
+					if err = Dorgbr('Q', m, n, n, a, dum, dum, -1); err != nil {
+						panic(err)
+					}
 					lworkDorgbrQ = int(dum.Get(0))
-					maxwrk = max(maxwrk, 3*(*n)+lworkDorgbrQ)
+					maxwrk = max(maxwrk, 3*n+lworkDorgbrQ)
 				}
 				if wntua {
-					Dorgbr('Q', m, m, n, a, lda, dum, dum, toPtr(-1), &ierr)
+					if err = Dorgbr('Q', m, m, n, a, dum, dum, -1); err != nil {
+						panic(err)
+					}
 					lworkDorgbrQ = int(dum.Get(0))
-					maxwrk = max(maxwrk, 3*(*n)+lworkDorgbrQ)
+					maxwrk = max(maxwrk, 3*n+lworkDorgbrQ)
 				}
 				if !wntvn {
-					maxwrk = max(maxwrk, 3*(*n)+lworkDorgbrP)
+					maxwrk = max(maxwrk, 3*n+lworkDorgbrP)
 				}
 				maxwrk = max(maxwrk, bdspac)
-				minwrk = max(3*(*n)+(*m), bdspac)
+				minwrk = max(3*n+m, bdspac)
 			}
 		} else if minmn > 0 {
 			//           Compute space needed for DBDSQR
-			mnthr = Ilaenv(func() *int { y := 6; return &y }(), []byte("DGESVD"), []byte{jobu, jobvt}, m, n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }())
-			bdspac = 5 * (*m)
+			mnthr = Ilaenv(6, "Dgesvd", []byte{jobu, jobvt}, m, n, 0, 0)
+			bdspac = 5 * m
 			//           Compute space needed for DGELQF
-			Dgelqf(m, n, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dgelqf(m, n, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDgelqf = int(dum.Get(0))
 			//           Compute space needed for DORGLQ
-			Dorglq(n, n, m, dum.Matrix(*n, opts), n, dum, dum, toPtr(-1), &ierr)
+			if err = Dorglq(n, n, m, dum.Matrix(n, opts), dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorglqN = int(dum.Get(0))
-			Dorglq(m, n, m, a, lda, dum, dum, toPtr(-1), &ierr)
+			if err = Dorglq(m, n, m, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorglqM = int(dum.Get(0))
 			//           Compute space needed for DGEBRD
-			Dgebrd(m, m, a, lda, s, dum, dum, dum, dum, toPtr(-1), &ierr)
+			if err = Dgebrd(m, m, a, s, dum, dum, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDgebrd = int(dum.Get(0))
 			//            Compute space needed for DORGBR P
-			Dorgbr('P', m, m, m, a, n, dum, dum, toPtr(-1), &ierr)
+			if err = Dorgbr('P', m, m, m, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorgbrP = int(dum.Get(0))
 			//           Compute space needed for DORGBR Q
-			Dorgbr('Q', m, m, m, a, n, dum, dum, toPtr(-1), &ierr)
+			if err = Dorgbr('Q', m, m, m, a, dum, dum, -1); err != nil {
+				panic(err)
+			}
 			lworkDorgbrQ = int(dum.Get(0))
-			if (*n) >= mnthr {
+			if n >= mnthr {
 				if wntvn {
 					//                 Path 1t(N much larger than M, JOBVT='N')
-					maxwrk = (*m) + lworkDgelqf
-					maxwrk = max(maxwrk, 3*(*m)+lworkDgebrd)
+					maxwrk = m + lworkDgelqf
+					maxwrk = max(maxwrk, 3*m+lworkDgebrd)
 					if wntuo || wntuas {
-						maxwrk = max(maxwrk, 3*(*m)+lworkDorgbrQ)
+						maxwrk = max(maxwrk, 3*m+lworkDorgbrQ)
 					}
 					maxwrk = max(maxwrk, bdspac)
-					minwrk = max(4*(*m), bdspac)
+					minwrk = max(4*m, bdspac)
 				} else if wntvo && wntun {
 					//                 Path 2t(N much larger than M, JOBU='N', JOBVT='O')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqM)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqM)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = max((*m)*(*m)+wrkbl, (*m)*(*m)+(*m)*(*n)+(*m))
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = max(m*m+wrkbl, m*m+m*n+m)
+					minwrk = max(3*m+n, bdspac)
 				} else if wntvo && wntuas {
 					//                 Path 3t(N much larger than M, JOBU='S' or 'A',
 					//                 JOBVT='O')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqM)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrQ)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqM)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = max((*m)*(*m)+wrkbl, (*m)*(*m)+(*m)*(*n)+(*m))
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = max(m*m+wrkbl, m*m+m*n+m)
+					minwrk = max(3*m+n, bdspac)
 				} else if wntvs && wntun {
 					//                 Path 4t(N much larger than M, JOBU='N', JOBVT='S')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqM)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqM)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*m)*(*m) + wrkbl
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = m*m + wrkbl
+					minwrk = max(3*m+n, bdspac)
 				} else if wntvs && wntuo {
 					//                 Path 5t(N much larger than M, JOBU='O', JOBVT='S')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqM)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrQ)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqM)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = 2*(*m)*(*m) + wrkbl
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = 2*m*m + wrkbl
+					minwrk = max(3*m+n, bdspac)
 				} else if wntvs && wntuas {
 					//                 Path 6t(N much larger than M, JOBU='S' or 'A',
 					//                 JOBVT='S')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqM)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrQ)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqM)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*m)*(*m) + wrkbl
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = m*m + wrkbl
+					minwrk = max(3*m+n, bdspac)
 				} else if wntva && wntun {
 					//                 Path 7t(N much larger than M, JOBU='N', JOBVT='A')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqN)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqN)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*m)*(*m) + wrkbl
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = m*m + wrkbl
+					minwrk = max(3*m+n, bdspac)
 				} else if wntva && wntuo {
 					//                 Path 8t(N much larger than M, JOBU='O', JOBVT='A')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqN)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrQ)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqN)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = 2*(*m)*(*m) + wrkbl
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = 2*m*m + wrkbl
+					minwrk = max(3*m+n, bdspac)
 				} else if wntva && wntuas {
 					//                 Path 9t(N much larger than M, JOBU='S' or 'A',
 					//                 JOBVT='A')
-					wrkbl = (*m) + lworkDgelqf
-					wrkbl = max(wrkbl, (*m)+lworkDorglqN)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDgebrd)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrP)
-					wrkbl = max(wrkbl, 3*(*m)+lworkDorgbrQ)
+					wrkbl = m + lworkDgelqf
+					wrkbl = max(wrkbl, m+lworkDorglqN)
+					wrkbl = max(wrkbl, 3*m+lworkDgebrd)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrP)
+					wrkbl = max(wrkbl, 3*m+lworkDorgbrQ)
 					wrkbl = max(wrkbl, bdspac)
-					maxwrk = (*m)*(*m) + wrkbl
-					minwrk = max(3*(*m)+(*n), bdspac)
+					maxwrk = m*m + wrkbl
+					minwrk = max(3*m+n, bdspac)
 				}
 			} else {
 				//              Path 10t(N greater than M, but not much larger)
-				Dgebrd(m, n, a, lda, s, dum, dum, dum, dum, toPtr(-1), &ierr)
+				if err = Dgebrd(m, n, a, s, dum, dum, dum, dum, -1); err != nil {
+					panic(err)
+				}
 				lworkDgebrd = int(dum.Get(0))
-				maxwrk = 3*(*m) + lworkDgebrd
+				maxwrk = 3*m + lworkDgebrd
 				if wntvs || wntvo {
 					//                Compute space needed for DORGBR P
-					Dorgbr('P', m, n, m, a, n, dum, dum, toPtr(-1), &ierr)
+					if err = Dorgbr('P', m, n, m, a, dum, dum, -1); err != nil {
+						panic(err)
+					}
 					lworkDorgbrP = int(dum.Get(0))
-					maxwrk = max(maxwrk, 3*(*m)+lworkDorgbrP)
+					maxwrk = max(maxwrk, 3*m+lworkDorgbrP)
 				}
 				if wntva {
-					Dorgbr('P', n, n, m, a, n, dum, dum, toPtr(-1), &ierr)
+					if err = Dorgbr('P', n, n, m, a, dum, dum, -1); err != nil {
+						panic(err)
+					}
 					lworkDorgbrP = int(dum.Get(0))
-					maxwrk = max(maxwrk, 3*(*m)+lworkDorgbrP)
+					maxwrk = max(maxwrk, 3*m+lworkDorgbrP)
 				}
 				if !wntun {
-					maxwrk = max(maxwrk, 3*(*m)+lworkDorgbrQ)
+					maxwrk = max(maxwrk, 3*m+lworkDorgbrQ)
 				}
 				maxwrk = max(maxwrk, bdspac)
-				minwrk = max(3*(*m)+(*n), bdspac)
+				minwrk = max(3*m+n, bdspac)
 			}
 		}
 		maxwrk = max(maxwrk, minwrk)
 		work.Set(0, float64(maxwrk))
 
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -13
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGESVD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgesvd", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
@@ -369,146 +403,168 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 	bignum = one / smlnum
 
 	//     Scale A if max element outside range [SMLNUM,BIGNUM]
-	anrm = Dlange('M', m, n, a, lda, dum)
+	anrm = Dlange('M', m, n, a, dum)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
 		iscl = 1
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, m, n, a, lda, &ierr)
+		if err = Dlascl('G', 0, 0, anrm, smlnum, m, n, a); err != nil {
+			panic(err)
+		}
 	} else if anrm > bignum {
 		iscl = 1
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, m, n, a, lda, &ierr)
+		if err = Dlascl('G', 0, 0, anrm, bignum, m, n, a); err != nil {
+			panic(err)
+		}
 	}
 
-	if (*m) >= (*n) {
+	if m >= n {
 		//        A has at least as many rows as columns. If A has sufficiently
 		//        more rows than columns, first reduce using the QR
 		//        decomposition (if sufficient workspace available)
-		if (*m) >= mnthr {
+		if m >= mnthr {
 
 			if wntun {
 				//              Path 1 (M much larger than N, JOBU='N')
 				//              No left singular vectors to be computed
 				itau = 1
-				iwork = itau + (*n)
+				iwork = itau + n
 
 				//              Compute A=Q*R
 				//              (Workspace: need 2*N, prefer N + N*NB)
-				Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 
 				//              Zero out below R
-				if (*n) > 1 {
-					Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, a.Off(1, 0), lda)
+				if n > 1 {
+					Dlaset(Lower, n-1, n-1, zero, zero, a.Off(1, 0))
 				}
 				ie = 1
-				itauq = ie + (*n)
-				itaup = itauq + (*n)
-				iwork = itaup + (*n)
+				itauq = ie + n
+				itaup = itauq + n
+				iwork = itaup + n
 
 				//              Bidiagonalize R in A
 				//              (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-				Dgebrd(n, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dgebrd(n, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 				ncvt = 0
 				if wntvo || wntvas {
 					//                 If right singular vectors desired, generate P'.
 					//                 (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-					Dorgbr('P', n, n, n, a, lda, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					ncvt = (*n)
+					if err = Dorgbr('P', n, n, n, a, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					ncvt = n
 				}
-				iwork = ie + (*n)
+				iwork = ie + n
 
 				//              Perform bidiagonal QR iteration, computing right
 				//              singular vectors of A in A if desired
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('U', n, &ncvt, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Upper, n, ncvt, 0, 0, s, work.Off(ie-1), a, dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 				//              If right singular vectors desired in VT, copy them there
 				if wntvas {
-					Dlacpy('F', n, n, a, lda, vt, ldvt)
+					Dlacpy(Full, n, n, a, vt)
 				}
 
 			} else if wntuo && wntvn {
 				//              Path 2 (M much larger than N, JOBU='O', JOBVT='N')
 				//              N left singular vectors to be overwritten on A and
 				//              no right singular vectors to be computed
-				if (*lwork) >= (*n)*(*n)+max(4*(*n), bdspac) {
+				if lwork >= n*n+max(4*n, bdspac) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*n))+(*lda)*(*n) {
+					if lwork >= max(wrkbl, a.Rows*n+n)+a.Rows*n {
 						//                    WORK(IU) is LDA by N, WORK(IR) is LDA by N
-						ldwrku = (*lda)
-						ldwrkr = (*lda)
-					} else if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*n))+(*n)*(*n) {
+						ldwrku = a.Rows
+						ldwrkr = a.Rows
+					} else if lwork >= max(wrkbl, a.Rows*n+n)+n*n {
 						//                    WORK(IU) is LDA by N, WORK(IR) is N by N
-						ldwrku = (*lda)
-						ldwrkr = (*n)
+						ldwrku = a.Rows
+						ldwrkr = n
 					} else {
 						//                    WORK(IU) is LDWRKU by N, WORK(IR) is N by N
-						ldwrku = ((*lwork) - (*n)*(*n) - (*n)) / (*n)
-						ldwrkr = (*n)
+						ldwrku = (lwork - n*n - n) / n
+						ldwrkr = n
 					}
-					itau = ir + ldwrkr*(*n)
-					iwork = itau + (*n)
+					itau = ir + ldwrkr*n
+					iwork = itau + n
 
 					//                 Compute A=Q*R
 					//                 (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-					Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Copy R to WORK(IR) and zero out below it
-					Dlacpy('U', n, n, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-					Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir, ldwrkr, opts), &ldwrkr)
+					Dlacpy(Upper, n, n, a, work.MatrixOff(ir-1, ldwrkr, opts))
+					Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(ir, ldwrkr, opts))
 
 					//                 Generate Q in A
 					//                 (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-					Dorgqr(m, n, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorgqr(m, n, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 					ie = itau
-					itauq = ie + (*n)
-					itaup = itauq + (*n)
-					iwork = itaup + (*n)
+					itauq = ie + n
+					itaup = itauq + n
+					iwork = itaup + n
 
 					//                 Bidiagonalize R in WORK(IR)
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-					Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate left vectors bidiagonalizing R
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-					Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*n)
+					if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + n
 
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of R in WORK(IR)
 					//                 (Workspace: need N*N + BDSPAC)
-					Dbdsqr('U', n, func() *int { y := 0; return &y }(), n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
-					iu = ie + (*n)
+					info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+					iu = ie + n
 
 					//                 Multiply Q in A by left singular vectors of R in
 					//                 WORK(IR), storing result in WORK(IU) and copying to A
 					//                 (Workspace: need N*N + 2*N, prefer N*N + M*N + N)
-					for i = 1; i <= (*m); i += ldwrku {
-						chunk = min((*m)-i+1, ldwrku)
-						err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), work.MatrixOff(ir-1, ldwrkr, opts), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy('F', &chunk, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(i-1, 0), lda)
+					for i = 1; i <= m; i += ldwrku {
+						chunk = min(m-i+1, ldwrku)
+						err = goblas.Dgemm(NoTrans, NoTrans, chunk, n, n, one, a.Off(i-1, 0), work.MatrixOff(ir-1, ldwrkr, opts), zero, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlacpy(Full, chunk, n, work.MatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
 					}
 
 				} else {
 					//                 Insufficient workspace for a fast algorithm
 					ie = 1
-					itauq = ie + (*n)
-					itaup = itauq + (*n)
-					iwork = itaup + (*n)
+					itauq = ie + n
+					itaup = itauq + n
+					iwork = itaup + n
 
 					//                 Bidiagonalize A
 					//                 (Workspace: need 3*N + M, prefer 3*N + (M + N)*NB)
-					Dgebrd(m, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgebrd(m, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate left vectors bidiagonalizing A
 					//                 (Workspace: need 4*N, prefer 3*N + N*NB)
-					Dorgbr('Q', m, n, n, a, lda, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*n)
+					if err = Dorgbr('Q', m, n, n, a, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + n
 
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of A in A
 					//                 (Workspace: need BDSPAC)
-					Dbdsqr('U', n, func() *int { y := 0; return &y }(), m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+					info, err = Dbdsqr(Upper, n, 0, m, 0, s, work.Off(ie-1), dum.Matrix(1, opts), a, dum.Matrix(1, opts), work.Off(iwork-1))
 
 				}
 
@@ -516,114 +572,134 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 				//              Path 3 (M much larger than N, JOBU='O', JOBVT='S' or 'A')
 				//              N left singular vectors to be overwritten on A and
 				//              N right singular vectors to be computed in VT
-				if (*lwork) >= (*n)*(*n)+max(4*(*n), bdspac) {
+				if lwork >= n*n+max(4*n, bdspac) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*n))+(*lda)*(*n) {
+					if lwork >= max(wrkbl, a.Rows*n+n)+a.Rows*n {
 						//                    WORK(IU) is LDA by N and WORK(IR) is LDA by N
-						ldwrku = (*lda)
-						ldwrkr = (*lda)
-					} else if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*n))+(*n)*(*n) {
+						ldwrku = a.Rows
+						ldwrkr = a.Rows
+					} else if lwork >= max(wrkbl, a.Rows*n+n)+n*n {
 						//                    WORK(IU) is LDA by N and WORK(IR) is N by N
-						ldwrku = (*lda)
-						ldwrkr = (*n)
+						ldwrku = a.Rows
+						ldwrkr = n
 					} else {
 						//                    WORK(IU) is LDWRKU by N and WORK(IR) is N by N
-						ldwrku = ((*lwork) - (*n)*(*n) - (*n)) / (*n)
-						ldwrkr = (*n)
+						ldwrku = (lwork - n*n - n) / n
+						ldwrkr = n
 					}
-					itau = ir + ldwrkr*(*n)
-					iwork = itau + (*n)
+					itau = ir + ldwrkr*n
+					iwork = itau + n
 
 					//                 Compute A=Q*R
 					//                 (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-					Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Copy R to VT, zeroing out below it
-					Dlacpy('U', n, n, a, lda, vt, ldvt)
-					if (*n) > 1 {
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, vt.Off(1, 0), ldvt)
+					Dlacpy(Upper, n, n, a, vt)
+					if n > 1 {
+						Dlaset(Lower, n-1, n-1, zero, zero, vt.Off(1, 0))
 					}
 
 					//                 Generate Q in A
 					//                 (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-					Dorgqr(m, n, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorgqr(m, n, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 					ie = itau
-					itauq = ie + (*n)
-					itaup = itauq + (*n)
-					iwork = itaup + (*n)
+					itauq = ie + n
+					itaup = itauq + n
+					iwork = itaup + n
 
 					//                 Bidiagonalize R in VT, copying result to WORK(IR)
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-					Dgebrd(n, n, vt, ldvt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					Dlacpy('L', n, n, vt, ldvt, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+					if err = Dgebrd(n, n, vt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					Dlacpy(Lower, n, n, vt, work.MatrixOff(ir-1, ldwrkr, opts))
 
 					//                 Generate left vectors bidiagonalizing R in WORK(IR)
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-					Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate right vectors bidiagonalizing R in VT
 					//                 (Workspace: need N*N + 4*N-1, prefer N*N + 3*N + (N-1)*NB)
-					Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*n)
+					if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + n
 
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of R in WORK(IR) and computing right
 					//                 singular vectors of R in VT
 					//                 (Workspace: need N*N + BDSPAC)
-					Dbdsqr('U', n, n, n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
-					iu = ie + (*n)
+					info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+					iu = ie + n
 
 					//                 Multiply Q in A by left singular vectors of R in
 					//                 WORK(IR), storing result in WORK(IU) and copying to A
 					//                 (Workspace: need N*N + 2*N, prefer N*N + M*N + N)
-					for i = 1; i <= (*m); i += ldwrku {
-						chunk = min((*m)-i+1, ldwrku)
-						err = goblas.Dgemm(NoTrans, NoTrans, chunk, *n, *n, one, a.Off(i-1, 0), work.MatrixOff(ir-1, ldwrkr, opts), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy('F', &chunk, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(i-1, 0), lda)
+					for i = 1; i <= m; i += ldwrku {
+						chunk = min(m-i+1, ldwrku)
+						err = goblas.Dgemm(NoTrans, NoTrans, chunk, n, n, one, a.Off(i-1, 0), work.MatrixOff(ir-1, ldwrkr, opts), zero, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlacpy(Full, chunk, n, work.MatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
 					}
 
 				} else {
 					//                 Insufficient workspace for a fast algorithm
 					itau = 1
-					iwork = itau + (*n)
+					iwork = itau + n
 
 					//                 Compute A=Q*R
 					//                 (Workspace: need 2*N, prefer N + N*NB)
-					Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Copy R to VT, zeroing out below it
-					Dlacpy('U', n, n, a, lda, vt, ldvt)
-					if (*n) > 1 {
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, vt.Off(1, 0), ldvt)
+					Dlacpy(Upper, n, n, a, vt)
+					if n > 1 {
+						Dlaset(Lower, n-1, n-1, zero, zero, vt.Off(1, 0))
 					}
 
 					//                 Generate Q in A
 					//                 (Workspace: need 2*N, prefer N + N*NB)
-					Dorgqr(m, n, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorgqr(m, n, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 					ie = itau
-					itauq = ie + (*n)
-					itaup = itauq + (*n)
-					iwork = itaup + (*n)
+					itauq = ie + n
+					itaup = itauq + n
+					iwork = itaup + n
 
 					//                 Bidiagonalize R in VT
 					//                 (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-					Dgebrd(n, n, vt, ldvt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgebrd(n, n, vt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Multiply Q in A by left vectors bidiagonalizing R
 					//                 (Workspace: need 3*N + M, prefer 3*N + M*NB)
-					Dormbr('Q', 'R', 'N', m, n, n, vt, ldvt, work.Off(itauq-1), a, lda, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dormbr('Q', Right, NoTrans, m, n, n, vt, work.Off(itauq-1), a, work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate right vectors bidiagonalizing R in VT
 					//                 (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-					Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*n)
+					if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + n
 
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of A in A and computing right
 					//                 singular vectors of A in VT
 					//                 (Workspace: need BDSPAC)
-					Dbdsqr('U', n, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+					info, err = Dbdsqr(Upper, n, n, m, 0, s, work.Off(ie-1), vt, a, dum.Matrix(1, opts), work.Off(iwork-1))
 
 				}
 
@@ -633,90 +709,106 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 4 (M much larger than N, JOBU='S', JOBVT='N')
 					//                 N left singular vectors to be computed in U and
 					//                 no right singular vectors to be computed
-					if (*lwork) >= (*n)*(*n)+max(4*(*n), bdspac) {
+					if lwork >= n*n+max(4*n, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						ir = 1
-						if (*lwork) >= wrkbl+(*lda)*(*n) {
+						if lwork >= wrkbl+a.Rows*n {
 							//                       WORK(IR) is LDA by N
-							ldwrkr = (*lda)
+							ldwrkr = a.Rows
 						} else {
 							//                       WORK(IR) is N by N
-							ldwrkr = (*n)
+							ldwrkr = n
 						}
-						itau = ir + ldwrkr*(*n)
-						iwork = itau + (*n)
+						itau = ir + ldwrkr*n
+						iwork = itau + n
 
 						//                    Compute A=Q*R
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R to WORK(IR), zeroing out below it
-						Dlacpy('U', n, n, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir, ldwrkr, opts), &ldwrkr)
+						Dlacpy(Upper, n, n, a, work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(ir, ldwrkr, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-						Dorgqr(m, n, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, n, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left vectors bidiagonalizing R in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IR)
 						//                    (Workspace: need N*N + BDSPAC)
-						Dbdsqr('U', n, func() *int { y := 0; return &y }(), n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IR), storing result in U
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, work.MatrixOff(ir-1, ldwrkr, opts), zero, u)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, work.MatrixOff(ir-1, ldwrkr, opts), zero, u)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*n)
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dorgqr(m, n, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, n, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Zero out below R in A
-						if (*n) > 1 {
-							Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, a.Off(1, 0), lda)
+						if n > 1 {
+							Dlaset(Lower, n-1, n-1, zero, zero, a.Off(1, 0))
 						}
 
 						//                    Bidiagonalize R in A
 						//                    (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-						Dgebrd(n, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply Q in U by left vectors bidiagonalizing R
 						//                    (Workspace: need 3*N + M, prefer 3*N + M*NB)
-						Dormbr('Q', 'R', 'N', m, n, n, a, lda, work.Off(itauq-1), u, ldu, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dormbr('Q', Right, NoTrans, m, n, n, a, work.Off(itauq-1), u, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', n, func() *int { y := 0; return &y }(), m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, 0, m, 0, s, work.Off(ie-1), dum.Matrix(1, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -724,117 +816,137 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 5 (M much larger than N, JOBU='S', JOBVT='O')
 					//                 N left singular vectors to be computed in U and
 					//                 N right singular vectors to be overwritten on A
-					if (*lwork) >= 2*(*n)*(*n)+max(4*(*n), bdspac) {
+					if lwork >= 2*n*n+max(4*n, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+2*(*lda)*(*n) {
+						if lwork >= wrkbl+2*a.Rows*n {
 							//                       WORK(IU) is LDA by N and WORK(IR) is LDA by N
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*n)
-							ldwrkr = (*lda)
-						} else if (*lwork) >= wrkbl+((*lda)+(*n))*(*n) {
+							ldwrku = a.Rows
+							ir = iu + ldwrku*n
+							ldwrkr = a.Rows
+						} else if lwork >= wrkbl+(a.Rows+n)*n {
 							//                       WORK(IU) is LDA by N and WORK(IR) is N by N
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*n)
-							ldwrkr = (*n)
+							ldwrku = a.Rows
+							ir = iu + ldwrku*n
+							ldwrkr = n
 						} else {
 							//                       WORK(IU) is N by N and WORK(IR) is N by N
-							ldwrku = (*n)
-							ir = iu + ldwrku*(*n)
-							ldwrkr = (*n)
+							ldwrku = n
+							ir = iu + ldwrku*n
+							ldwrkr = n
 						}
-						itau = ir + ldwrkr*(*n)
-						iwork = itau + (*n)
+						itau = ir + ldwrkr*n
+						iwork = itau + n
 
 						//                    Compute A=Q*R
 						//                    (Workspace: need 2*N*N + 2*N, prefer 2*N*N + N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy('U', n, n, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iu, ldwrku, opts), &ldwrku)
+						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need 2*N*N + 2*N, prefer 2*N*N + N + N*NB)
-						Dorgqr(m, n, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, n, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in WORK(IU), copying result to
 						//                    WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N,
 						//                                prefer 2*N*N+3*N+2*N*NB)
-						Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*N*N + 4*N, prefer 2*N*N + 3*N + N*NB)
-						Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N-1,
 						//                                prefer 2*N*N+3*N+(N-1)*NB)
-						Dorgbr('P', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in WORK(IR)
 						//                    (Workspace: need 2*N*N + BDSPAC)
-						Dbdsqr('U', n, n, n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IU), storing result in U
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, work.MatrixOff(iu-1, ldwrku, opts), zero, u)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, work.MatrixOff(iu-1, ldwrku, opts), zero, u)
 
 						//                    Copy right singular vectors of R to A
 						//                    (Workspace: need N*N)
-						Dlacpy('F', n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a, lda)
+						Dlacpy(Full, n, n, work.MatrixOff(ir-1, ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*n)
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dorgqr(m, n, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, n, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Zero out below R in A
-						if (*n) > 1 {
-							Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, a.Off(1, 0), lda)
+						if n > 1 {
+							Dlaset(Lower, n-1, n-1, zero, zero, a.Off(1, 0))
 						}
 
 						//                    Bidiagonalize R in A
 						//                    (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-						Dgebrd(n, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply Q in U by left vectors bidiagonalizing R
 						//                    (Workspace: need 3*N + M, prefer 3*N + M*NB)
-						Dormbr('Q', 'R', 'N', m, n, n, a, lda, work.Off(itauq-1), u, ldu, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('Q', Right, NoTrans, m, n, n, a, work.Off(itauq-1), u, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right vectors bidiagonalizing R in A
 						//                    (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-						Dorgbr('P', n, n, n, a, lda, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, a, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U and computing right
 						//                    singular vectors of A in A
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', n, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, m, 0, s, work.Off(ie-1), a, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -843,104 +955,124 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                         or 'A')
 					//                 N left singular vectors to be computed in U and
 					//                 N right singular vectors to be computed in VT
-					if (*lwork) >= (*n)*(*n)+max(4*(*n), bdspac) {
+					if lwork >= n*n+max(4*n, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+(*lda)*(*n) {
+						if lwork >= wrkbl+a.Rows*n {
 							//                       WORK(IU) is LDA by N
-							ldwrku = (*lda)
+							ldwrku = a.Rows
 						} else {
 							//                       WORK(IU) is N by N
-							ldwrku = (*n)
+							ldwrku = n
 						}
-						itau = iu + ldwrku*(*n)
-						iwork = itau + (*n)
+						itau = iu + ldwrku*n
+						iwork = itau + n
 
 						//                    Compute A=Q*R
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy('U', n, n, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iu, ldwrku, opts), &ldwrku)
+						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-						Dorgqr(m, n, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, n, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in WORK(IU), copying result to VT
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, vt, ldvt)
+						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), vt)
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in VT
 						//                    (Workspace: need N*N + 4*N-1,
 						//                                prefer N*N+3*N+(N-1)*NB)
-						Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in VT
 						//                    (Workspace: need N*N + BDSPAC)
-						Dbdsqr('U', n, n, n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IU), storing result in U
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, a, work.MatrixOff(iu-1, ldwrku, opts), zero, u)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, work.MatrixOff(iu-1, ldwrku, opts), zero, u)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*n)
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dorgqr(m, n, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, n, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R to VT, zeroing out below it
-						Dlacpy('U', n, n, a, lda, vt, ldvt)
-						if (*n) > 1 {
-							Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, vt.Off(1, 0), ldvt)
+						Dlacpy(Upper, n, n, a, vt)
+						if n > 1 {
+							Dlaset(Lower, n-1, n-1, zero, zero, vt.Off(1, 0))
 						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in VT
 						//                    (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-						Dgebrd(n, n, vt, ldvt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, vt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply Q in U by left bidiagonalizing vectors
 						//                    in VT
 						//                    (Workspace: need 3*N + M, prefer 3*N + M*NB)
-						Dormbr('Q', 'R', 'N', m, n, n, vt, ldvt, work.Off(itauq-1), u, ldu, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('Q', Right, NoTrans, m, n, n, vt, work.Off(itauq-1), u, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in VT
 						//                    (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-						Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U and computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', n, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, m, 0, s, work.Off(ie-1), vt, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -952,95 +1084,111 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 7 (M much larger than N, JOBU='A', JOBVT='N')
 					//                 M left singular vectors to be computed in U and
 					//                 no right singular vectors to be computed
-					if (*lwork) >= (*n)*(*n)+max((*n)+(*m), 4*(*n), bdspac) {
+					if lwork >= n*n+max(n+m, 4*n, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						ir = 1
-						if (*lwork) >= wrkbl+(*lda)*(*n) {
+						if lwork >= wrkbl+a.Rows*n {
 							//                       WORK(IR) is LDA by N
-							ldwrkr = (*lda)
+							ldwrkr = a.Rows
 						} else {
 							//                       WORK(IR) is N by N
-							ldwrkr = (*n)
+							ldwrkr = n
 						}
-						itau = ir + ldwrkr*(*n)
-						iwork = itau + (*n)
+						itau = ir + ldwrkr*n
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Copy R to WORK(IR), zeroing out below it
-						Dlacpy('U', n, n, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(ir, ldwrkr, opts), &ldwrkr)
+						Dlacpy(Upper, n, n, a, work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(ir, ldwrkr, opts))
 
 						//                    Generate Q in U
 						//                    (Workspace: need N*N + N + M, prefer N*N + N + M*NB)
-						Dorgqr(m, m, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, m, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IR)
 						//                    (Workspace: need N*N + BDSPAC)
-						Dbdsqr('U', n, func() *int { y := 0; return &y }(), n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IR), storing result in A
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, work.MatrixOff(ir-1, ldwrkr, opts), zero, a)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, u, work.MatrixOff(ir-1, ldwrkr, opts), zero, a)
 
 						//                    Copy left singular vectors of A from A to U
-						Dlacpy('F', m, n, a, lda, u, ldu)
+						Dlacpy(Full, m, n, a, u)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*n)
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need N + M, prefer N + M*NB)
-						Dorgqr(m, m, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, m, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Zero out below R in A
-						if (*n) > 1 {
-							Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, a.Off(1, 0), lda)
+						if n > 1 {
+							Dlaset(Lower, n-1, n-1, zero, zero, a.Off(1, 0))
 						}
 
 						//                    Bidiagonalize R in A
 						//                    (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-						Dgebrd(n, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply Q in U by left bidiagonalizing vectors
 						//                    in A
 						//                    (Workspace: need 3*N + M, prefer 3*N + M*NB)
-						Dormbr('Q', 'R', 'N', m, n, n, a, lda, work.Off(itauq-1), u, ldu, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dormbr('Q', Right, NoTrans, m, n, n, a, work.Off(itauq-1), u, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', n, func() *int { y := 0; return &y }(), m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, 0, m, 0, s, work.Off(ie-1), dum.Matrix(1, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -1048,121 +1196,141 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 8 (M much larger than N, JOBU='A', JOBVT='O')
 					//                 M left singular vectors to be computed in U and
 					//                 N right singular vectors to be overwritten on A
-					if (*lwork) >= 2*(*n)*(*n)+max((*n)+(*m), 4*(*n), bdspac) {
+					if lwork >= 2*n*n+max(n+m, 4*n, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+2*(*lda)*(*n) {
+						if lwork >= wrkbl+2*a.Rows*n {
 							//                       WORK(IU) is LDA by N and WORK(IR) is LDA by N
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*n)
-							ldwrkr = (*lda)
-						} else if (*lwork) >= wrkbl+((*lda)+(*n))*(*n) {
+							ldwrku = a.Rows
+							ir = iu + ldwrku*n
+							ldwrkr = a.Rows
+						} else if lwork >= wrkbl+(a.Rows+n)*n {
 							//                       WORK(IU) is LDA by N and WORK(IR) is N by N
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*n)
-							ldwrkr = (*n)
+							ldwrku = a.Rows
+							ir = iu + ldwrku*n
+							ldwrkr = n
 						} else {
 							//                       WORK(IU) is N by N and WORK(IR) is N by N
-							ldwrku = (*n)
-							ir = iu + ldwrku*(*n)
-							ldwrkr = (*n)
+							ldwrku = n
+							ir = iu + ldwrku*n
+							ldwrkr = n
 						}
-						itau = ir + ldwrkr*(*n)
-						iwork = itau + (*n)
+						itau = ir + ldwrkr*n
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N*N + 2*N, prefer 2*N*N + N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need 2*N*N + N + M, prefer 2*N*N + N + M*NB)
-						Dorgqr(m, m, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, m, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy('U', n, n, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iu, ldwrku, opts), &ldwrku)
+						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in WORK(IU), copying result to
 						//                    WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N,
 						//                                prefer 2*N*N+3*N+2*N*NB)
-						Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*N*N + 4*N, prefer 2*N*N + 3*N + N*NB)
-						Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N-1,
 						//                                prefer 2*N*N+3*N+(N-1)*NB)
-						Dorgbr('P', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in WORK(IR)
 						//                    (Workspace: need 2*N*N + BDSPAC)
-						Dbdsqr('U', n, n, n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IU), storing result in A
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
 
 						//                    Copy left singular vectors of A from A to U
-						Dlacpy('F', m, n, a, lda, u, ldu)
+						Dlacpy(Full, m, n, a, u)
 
 						//                    Copy right singular vectors of R from WORK(IR) to A
-						Dlacpy('F', n, n, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a, lda)
+						Dlacpy(Full, n, n, work.MatrixOff(ir-1, ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*n)
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need N + M, prefer N + M*NB)
-						Dorgqr(m, m, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, m, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Zero out below R in A
-						if (*n) > 1 {
-							Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, a.Off(1, 0), lda)
+						if n > 1 {
+							Dlaset(Lower, n-1, n-1, zero, zero, a.Off(1, 0))
 						}
 
 						//                    Bidiagonalize R in A
 						//                    (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-						Dgebrd(n, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply Q in U by left bidiagonalizing vectors
 						//                    in A
 						//                    (Workspace: need 3*N + M, prefer 3*N + M*NB)
-						Dormbr('Q', 'R', 'N', m, n, n, a, lda, work.Off(itauq-1), u, ldu, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('Q', Right, NoTrans, m, n, n, a, work.Off(itauq-1), u, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in A
 						//                    (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-						Dorgbr('P', n, n, n, a, lda, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, a, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U and computing right
 						//                    singular vectors of A in A
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', n, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, m, 0, s, work.Off(ie-1), a, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -1171,108 +1339,128 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                         or 'A')
 					//                 M left singular vectors to be computed in U and
 					//                 N right singular vectors to be computed in VT
-					if (*lwork) >= (*n)*(*n)+max((*n)+(*m), 4*(*n), bdspac) {
+					if lwork >= n*n+max(n+m, 4*n, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+(*lda)*(*n) {
+						if lwork >= wrkbl+a.Rows*n {
 							//                       WORK(IU) is LDA by N
-							ldwrku = (*lda)
+							ldwrku = a.Rows
 						} else {
 							//                       WORK(IU) is N by N
-							ldwrku = (*n)
+							ldwrku = n
 						}
-						itau = iu + ldwrku*(*n)
-						iwork = itau + (*n)
+						itau = iu + ldwrku*n
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need N*N + N + M, prefer N*N + N + M*NB)
-						Dorgqr(m, m, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, m, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy('U', n, n, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iu, ldwrku, opts), &ldwrku)
+						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in WORK(IU), copying result to VT
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, vt, ldvt)
+						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), vt)
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in VT
 						//                    (Workspace: need N*N + 4*N-1,
 						//                                prefer N*N+3*N+(N-1)*NB)
-						Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in VT
 						//                    (Workspace: need N*N + BDSPAC)
-						Dbdsqr('U', n, n, n, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IU), storing result in A
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
 
 						//                    Copy left singular vectors of A from A to U
-						Dlacpy('F', m, n, a, lda, u, ldu)
+						Dlacpy(Full, m, n, a, u)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*n)
+						iwork = itau + n
 
 						//                    Compute A=Q*R, copying result to U
 						//                    (Workspace: need 2*N, prefer N + N*NB)
-						Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, n, a, lda, u, ldu)
+						if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, n, a, u)
 
 						//                    Generate Q in U
 						//                    (Workspace: need N + M, prefer N + M*NB)
-						Dorgqr(m, m, n, u, ldu, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgqr(m, m, n, u, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy R from A to VT, zeroing out below it
-						Dlacpy('U', n, n, a, lda, vt, ldvt)
-						if (*n) > 1 {
-							Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, vt.Off(1, 0), ldvt)
+						Dlacpy(Upper, n, n, a, vt)
+						if n > 1 {
+							Dlaset(Lower, n-1, n-1, zero, zero, vt.Off(1, 0))
 						}
 						ie = itau
-						itauq = ie + (*n)
-						itaup = itauq + (*n)
-						iwork = itaup + (*n)
+						itauq = ie + n
+						itaup = itauq + n
+						iwork = itaup + n
 
 						//                    Bidiagonalize R in VT
 						//                    (Workspace: need 4*N, prefer 3*N + 2*N*NB)
-						Dgebrd(n, n, vt, ldvt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(n, n, vt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply Q in U by left bidiagonalizing vectors
 						//                    in VT
 						//                    (Workspace: need 3*N + M, prefer 3*N + M*NB)
-						Dormbr('Q', 'R', 'N', m, n, n, vt, ldvt, work.Off(itauq-1), u, ldu, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('Q', Right, NoTrans, m, n, n, vt, work.Off(itauq-1), u, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in VT
 						//                    (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-						Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*n)
+						if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + n
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U and computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', n, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, n, n, m, 0, s, work.Off(ie-1), vt, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -1286,54 +1474,64 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 			//           Path 10 (M at least N, but not much larger)
 			//           Reduce to bidiagonal form without QR decomposition
 			ie = 1
-			itauq = ie + (*n)
-			itaup = itauq + (*n)
-			iwork = itaup + (*n)
+			itauq = ie + n
+			itaup = itauq + n
+			iwork = itaup + n
 
 			//           Bidiagonalize A
 			//           (Workspace: need 3*N + M, prefer 3*N + (M + N)*NB)
-			Dgebrd(m, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+			if err = Dgebrd(m, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+				panic(err)
+			}
 			if wntuas {
 				//              If left singular vectors desired in U, copy result to U
 				//              and generate left bidiagonalizing vectors in U
 				//              (Workspace: need 3*N + NCU, prefer 3*N + NCU*NB)
-				Dlacpy('L', m, n, a, lda, u, ldu)
+				Dlacpy(Lower, m, n, a, u)
 				if wntus {
-					ncu = (*n)
+					ncu = n
 				}
 				if wntua {
-					ncu = (*m)
+					ncu = m
 				}
-				Dorgbr('Q', m, &ncu, n, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dorgbr('Q', m, ncu, n, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
 			if wntvas {
 				//              If right singular vectors desired in VT, copy result to
 				//              VT and generate right bidiagonalizing vectors in VT
 				//              (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-				Dlacpy('U', n, n, a, lda, vt, ldvt)
-				Dorgbr('P', n, n, n, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				Dlacpy(Upper, n, n, a, vt)
+				if err = Dorgbr('P', n, n, n, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
 			if wntuo {
 				//              If left singular vectors desired in A, generate left
 				//              bidiagonalizing vectors in A
 				//              (Workspace: need 4*N, prefer 3*N + N*NB)
-				Dorgbr('Q', m, n, n, a, lda, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dorgbr('Q', m, n, n, a, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
 			if wntvo {
 				//              If right singular vectors desired in A, generate right
 				//              bidiagonalizing vectors in A
 				//              (Workspace: need 4*N-1, prefer 3*N + (N-1)*NB)
-				Dorgbr('P', n, n, n, a, lda, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dorgbr('P', n, n, n, a, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
-			iwork = ie + (*n)
+			iwork = ie + n
 			if wntuas || wntuo {
-				nru = (*m)
+				nru = m
 			}
 			if wntun {
 				nru = 0
 			}
 			if wntvas || wntvo {
-				ncvt = (*n)
+				ncvt = n
 			}
 			if wntvn {
 				ncvt = 0
@@ -1343,19 +1541,19 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 				//              left singular vectors in U and computing right singular
 				//              vectors in VT
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('U', n, &ncvt, &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Upper, n, ncvt, nru, 0, s, work.Off(ie-1), vt, u, dum.Matrix(1, opts), work.Off(iwork-1))
 			} else if (!wntuo) && wntvo {
 				//              Perform bidiagonal QR iteration, if desired, computing
 				//              left singular vectors in U and computing right singular
 				//              vectors in A
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('U', n, &ncvt, &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Upper, n, ncvt, nru, 0, s, work.Off(ie-1), a, u, dum.Matrix(1, opts), work.Off(iwork-1))
 			} else {
 				//              Perform bidiagonal QR iteration, if desired, computing
 				//              left singular vectors in A and computing right singular
 				//              vectors in VT
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('U', n, &ncvt, &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Upper, n, ncvt, nru, 0, s, work.Off(ie-1), vt, a, dum.Matrix(1, opts), work.Off(iwork-1))
 			}
 
 		}
@@ -1364,135 +1562,153 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 		//        A has more columns than rows. If A has sufficiently more
 		//        columns than rows, first reduce using the LQ decomposition (if
 		//        sufficient workspace available)
-		if (*n) >= mnthr {
+		if n >= mnthr {
 
 			if wntvn {
 				//              Path 1t(N much larger than M, JOBVT='N')
 				//              No right singular vectors to be computed
 				itau = 1
-				iwork = itau + (*m)
+				iwork = itau + m
 
 				//              Compute A=L*Q
 				//              (Workspace: need 2*M, prefer M + M*NB)
-				Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 
 				//              Zero out above L
-				Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, a.Off(0, 1), lda)
+				Dlaset(Upper, m-1, m-1, zero, zero, a.Off(0, 1))
 				ie = 1
-				itauq = ie + (*m)
-				itaup = itauq + (*m)
-				iwork = itaup + (*m)
+				itauq = ie + m
+				itaup = itauq + m
+				iwork = itaup + m
 
 				//              Bidiagonalize L in A
 				//              (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-				Dgebrd(m, m, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dgebrd(m, m, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 				if wntuo || wntuas {
 					//                 If left singular vectors desired, generate Q
 					//                 (Workspace: need 4*M, prefer 3*M + M*NB)
-					Dorgbr('Q', m, m, m, a, lda, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorgbr('Q', m, m, m, a, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 				}
-				iwork = ie + (*m)
+				iwork = ie + m
 				nru = 0
 				if wntuo || wntuas {
-					nru = (*m)
+					nru = m
 				}
 
 				//              Perform bidiagonal QR iteration, computing left singular
 				//              vectors of A in A if desired
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('U', m, func() *int { y := 0; return &y }(), &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Upper, m, 0, nru, 0, s, work.Off(ie-1), dum.Matrix(1, opts), a, dum.Matrix(1, opts), work.Off(iwork-1))
 
 				//              If left singular vectors desired in U, copy them there
 				if wntuas {
-					Dlacpy('F', m, m, a, lda, u, ldu)
+					Dlacpy(Full, m, m, a, u)
 				}
 
 			} else if wntvo && wntun {
 				//              Path 2t(N much larger than M, JOBU='N', JOBVT='O')
 				//              M right singular vectors to be overwritten on A and
 				//              no left singular vectors to be computed
-				if (*lwork) >= (*m)*(*m)+max(4*(*m), bdspac) {
+				if lwork >= m*m+max(4*m, bdspac) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*m))+(*lda)*(*m) {
+					if lwork >= max(wrkbl, a.Rows*n+m)+a.Rows*m {
 						//                    WORK(IU) is LDA by N and WORK(IR) is LDA by M
-						ldwrku = (*lda)
-						chunk = (*n)
-						ldwrkr = (*lda)
-					} else if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*m))+(*m)*(*m) {
+						ldwrku = a.Rows
+						chunk = n
+						ldwrkr = a.Rows
+					} else if lwork >= max(wrkbl, a.Rows*n+m)+m*m {
 						//                    WORK(IU) is LDA by N and WORK(IR) is M by M
-						ldwrku = (*lda)
-						chunk = (*n)
-						ldwrkr = (*m)
+						ldwrku = a.Rows
+						chunk = n
+						ldwrkr = m
 					} else {
 						//                    WORK(IU) is M by CHUNK and WORK(IR) is M by M
-						ldwrku = (*m)
-						chunk = ((*lwork) - (*m)*(*m) - (*m)) / (*m)
-						ldwrkr = (*m)
+						ldwrku = m
+						chunk = (lwork - m*m - m) / m
+						ldwrkr = m
 					}
-					itau = ir + ldwrkr*(*m)
-					iwork = itau + (*m)
+					itau = ir + ldwrkr*m
+					iwork = itau + m
 
 					//                 Compute A=L*Q
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-					Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Copy L to WORK(IR) and zero out above it
-					Dlacpy('L', m, m, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-					Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts), &ldwrkr)
+					Dlacpy(Lower, m, m, a, work.MatrixOff(ir-1, ldwrkr, opts))
+					Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts))
 
 					//                 Generate Q in A
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-					Dorglq(m, n, m, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorglq(m, n, m, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 					ie = itau
-					itauq = ie + (*m)
-					itaup = itauq + (*m)
-					iwork = itaup + (*m)
+					itauq = ie + m
+					itaup = itauq + m
+					iwork = itaup + m
 
 					//                 Bidiagonalize L in WORK(IR)
 					//                 (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-					Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate right vectors bidiagonalizing L
 					//                 (Workspace: need M*M + 4*M-1, prefer M*M + 3*M + (M-1)*NB)
-					Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*m)
+					if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + m
 
 					//                 Perform bidiagonal QR iteration, computing right
 					//                 singular vectors of L in WORK(IR)
 					//                 (Workspace: need M*M + BDSPAC)
-					Dbdsqr('U', m, m, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
-					iu = ie + (*m)
+					info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+					iu = ie + m
 
 					//                 Multiply right singular vectors of L in WORK(IR) by Q
 					//                 in A, storing result in WORK(IU) and copying to A
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M*N + M)
-					for i = 1; i <= (*n); i += chunk {
-						blk = min((*n)-i+1, chunk)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy('F', m, &blk, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(0, i-1), lda)
+					for i = 1; i <= n; i += chunk {
+						blk = min(n-i+1, chunk)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, blk, m, one, work.MatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), zero, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlacpy(Full, m, blk, work.MatrixOff(iu-1, ldwrku, opts), a.Off(0, i-1))
 					}
 
 				} else {
 					//                 Insufficient workspace for a fast algorithm
 					ie = 1
-					itauq = ie + (*m)
-					itaup = itauq + (*m)
-					iwork = itaup + (*m)
+					itauq = ie + m
+					itaup = itauq + m
+					iwork = itaup + m
 
 					//                 Bidiagonalize A
 					//                 (Workspace: need 3*M + N, prefer 3*M + (M + N)*NB)
-					Dgebrd(m, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgebrd(m, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate right vectors bidiagonalizing A
 					//                 (Workspace: need 4*M, prefer 3*M + M*NB)
-					Dorgbr('P', m, n, m, a, lda, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*m)
+					if err = Dorgbr('P', m, n, m, a, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + m
 
 					//                 Perform bidiagonal QR iteration, computing right
 					//                 singular vectors of A in A
 					//                 (Workspace: need BDSPAC)
-					Dbdsqr('L', m, n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+					info, err = Dbdsqr(Lower, m, n, 0, 0, s, work.Off(ie-1), a, dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 				}
 
@@ -1500,113 +1716,133 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 				//              Path 3t(N much larger than M, JOBU='S' or 'A', JOBVT='O')
 				//              M right singular vectors to be overwritten on A and
 				//              M left singular vectors to be computed in U
-				if (*lwork) >= (*m)*(*m)+max(4*(*m), bdspac) {
+				if lwork >= m*m+max(4*m, bdspac) {
 					//                 Sufficient workspace for a fast algorithm
 					ir = 1
-					if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*m))+(*lda)*(*m) {
+					if lwork >= max(wrkbl, a.Rows*n+m)+a.Rows*m {
 						//                    WORK(IU) is LDA by N and WORK(IR) is LDA by M
-						ldwrku = (*lda)
-						chunk = (*n)
-						ldwrkr = (*lda)
-					} else if (*lwork) >= max(wrkbl, (*lda)*(*n)+(*m))+(*m)*(*m) {
+						ldwrku = a.Rows
+						chunk = n
+						ldwrkr = a.Rows
+					} else if lwork >= max(wrkbl, a.Rows*n+m)+m*m {
 						//                    WORK(IU) is LDA by N and WORK(IR) is M by M
-						ldwrku = (*lda)
-						chunk = (*n)
-						ldwrkr = (*m)
+						ldwrku = a.Rows
+						chunk = n
+						ldwrkr = m
 					} else {
 						//                    WORK(IU) is M by CHUNK and WORK(IR) is M by M
-						ldwrku = (*m)
-						chunk = ((*lwork) - (*m)*(*m) - (*m)) / (*m)
-						ldwrkr = (*m)
+						ldwrku = m
+						chunk = (lwork - m*m - m) / m
+						ldwrkr = m
 					}
-					itau = ir + ldwrkr*(*m)
-					iwork = itau + (*m)
+					itau = ir + ldwrkr*m
+					iwork = itau + m
 
 					//                 Compute A=L*Q
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-					Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Copy L to U, zeroing about above it
-					Dlacpy('L', m, m, a, lda, u, ldu)
-					Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, u.Off(0, 1), ldu)
+					Dlacpy(Lower, m, m, a, u)
+					Dlaset(Upper, m-1, m-1, zero, zero, u.Off(0, 1))
 
 					//                 Generate Q in A
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-					Dorglq(m, n, m, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorglq(m, n, m, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 					ie = itau
-					itauq = ie + (*m)
-					itaup = itauq + (*m)
-					iwork = itaup + (*m)
+					itauq = ie + m
+					itaup = itauq + m
+					iwork = itaup + m
 
 					//                 Bidiagonalize L in U, copying result to WORK(IR)
 					//                 (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-					Dgebrd(m, m, u, ldu, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					Dlacpy('U', m, m, u, ldu, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+					if err = Dgebrd(m, m, u, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					Dlacpy(Upper, m, m, u, work.MatrixOff(ir-1, ldwrkr, opts))
 
 					//                 Generate right vectors bidiagonalizing L in WORK(IR)
 					//                 (Workspace: need M*M + 4*M-1, prefer M*M + 3*M + (M-1)*NB)
-					Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate left vectors bidiagonalizing L in U
 					//                 (Workspace: need M*M + 4*M, prefer M*M + 3*M + M*NB)
-					Dorgbr('Q', m, m, m, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*m)
+					if err = Dorgbr('Q', m, m, m, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + m
 
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of L in U, and computing right
 					//                 singular vectors of L in WORK(IR)
 					//                 (Workspace: need M*M + BDSPAC)
-					Dbdsqr('U', m, m, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
-					iu = ie + (*m)
+					info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
+					iu = ie + m
 
 					//                 Multiply right singular vectors of L in WORK(IR) by Q
 					//                 in A, storing result in WORK(IU) and copying to A
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M*N + M))
-					for i = 1; i <= (*n); i += chunk {
-						blk = min((*n)-i+1, chunk)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, blk, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy('F', m, &blk, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, a.Off(0, i-1), lda)
+					for i = 1; i <= n; i += chunk {
+						blk = min(n-i+1, chunk)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, blk, m, one, work.MatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), zero, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlacpy(Full, m, blk, work.MatrixOff(iu-1, ldwrku, opts), a.Off(0, i-1))
 					}
 
 				} else {
 					//                 Insufficient workspace for a fast algorithm
 					itau = 1
-					iwork = itau + (*m)
+					iwork = itau + m
 
 					//                 Compute A=L*Q
 					//                 (Workspace: need 2*M, prefer M + M*NB)
-					Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Copy L to U, zeroing out above it
-					Dlacpy('L', m, m, a, lda, u, ldu)
-					Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, u.Off(0, 1), ldu)
+					Dlacpy(Lower, m, m, a, u)
+					Dlaset(Upper, m-1, m-1, zero, zero, u.Off(0, 1))
 
 					//                 Generate Q in A
 					//                 (Workspace: need 2*M, prefer M + M*NB)
-					Dorglq(m, n, m, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dorglq(m, n, m, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 					ie = itau
-					itauq = ie + (*m)
-					itaup = itauq + (*m)
-					iwork = itaup + (*m)
+					itauq = ie + m
+					itaup = itauq + m
+					iwork = itaup + m
 
 					//                 Bidiagonalize L in U
 					//                 (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-					Dgebrd(m, m, u, ldu, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dgebrd(m, m, u, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Multiply right vectors bidiagonalizing L by Q in A
 					//                 (Workspace: need 3*M + N, prefer 3*M + N*NB)
-					Dormbr('P', 'L', 'T', m, n, m, u, ldu, work.Off(itaup-1), a, lda, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+					if err = Dormbr('P', Left, Trans, m, n, m, u, work.Off(itaup-1), a, work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
 
 					//                 Generate left vectors bidiagonalizing L in U
 					//                 (Workspace: need 4*M, prefer 3*M + M*NB)
-					Dorgbr('Q', m, m, m, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-					iwork = ie + (*m)
+					if err = Dorgbr('Q', m, m, m, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						panic(err)
+					}
+					iwork = ie + m
 
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of A in U and computing right
 					//                 singular vectors of A in A
 					//                 (Workspace: need BDSPAC)
-					Dbdsqr('U', m, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+					info, err = Dbdsqr(Upper, m, n, m, 0, s, work.Off(ie-1), a, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 				}
 
@@ -1616,91 +1852,107 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 4t(N much larger than M, JOBU='N', JOBVT='S')
 					//                 M right singular vectors to be computed in VT and
 					//                 no left singular vectors to be computed
-					if (*lwork) >= (*m)*(*m)+max(4*(*m), bdspac) {
+					if lwork >= m*m+max(4*m, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						ir = 1
-						if (*lwork) >= wrkbl+(*lda)*(*m) {
+						if lwork >= wrkbl+a.Rows*m {
 							//                       WORK(IR) is LDA by M
-							ldwrkr = (*lda)
+							ldwrkr = a.Rows
 						} else {
 							//                       WORK(IR) is M by M
-							ldwrkr = (*m)
+							ldwrkr = m
 						}
-						itau = ir + ldwrkr*(*m)
-						iwork = itau + (*m)
+						itau = ir + ldwrkr*m
+						iwork = itau + m
 
 						//                    Compute A=L*Q
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to WORK(IR), zeroing out above it
-						Dlacpy('L', m, m, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts), &ldwrkr)
+						Dlacpy(Lower, m, m, a, work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-						Dorglq(m, n, m, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(m, n, m, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in WORK(IR)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right vectors bidiagonalizing L in
 						//                    WORK(IR)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + (M-1)*NB)
-						Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing right
 						//                    singular vectors of L in WORK(IR)
 						//                    (Workspace: need M*M + BDSPAC)
-						Dbdsqr('U', m, m, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IR) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), a, zero, vt)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(ir-1, ldwrkr, opts), a, zero, vt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*m)
+						iwork = itau + m
 
 						//                    Compute A=L*Q
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy result to VT
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dorglq(m, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(m, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Zero out above L in A
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, a.Off(0, 1), lda)
+						Dlaset(Upper, m-1, m-1, zero, zero, a.Off(0, 1))
 
 						//                    Bidiagonalize L in A
 						//                    (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-						Dgebrd(m, m, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply right vectors bidiagonalizing L by Q in VT
 						//                    (Workspace: need 3*M + N, prefer 3*M + N*NB)
-						Dormbr('P', 'L', 'T', m, n, m, a, lda, work.Off(itaup-1), vt, ldvt, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dormbr('P', Left, Trans, m, n, m, a, work.Off(itaup-1), vt, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', m, n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, n, 0, 0, s, work.Off(ie-1), vt, dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -1708,115 +1960,135 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 5t(N much larger than M, JOBU='O', JOBVT='S')
 					//                 M right singular vectors to be computed in VT and
 					//                 M left singular vectors to be overwritten on A
-					if (*lwork) >= 2*(*m)*(*m)+max(4*(*m), bdspac) {
+					if lwork >= 2*m*m+max(4*m, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+2*(*lda)*(*m) {
+						if lwork >= wrkbl+2*a.Rows*m {
 							//                       WORK(IU) is LDA by M and WORK(IR) is LDA by M
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*m)
-							ldwrkr = (*lda)
-						} else if (*lwork) >= wrkbl+((*lda)+(*m))*(*m) {
+							ldwrku = a.Rows
+							ir = iu + ldwrku*m
+							ldwrkr = a.Rows
+						} else if lwork >= wrkbl+(a.Rows+m)*m {
 							//                       WORK(IU) is LDA by M and WORK(IR) is M by M
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*m)
-							ldwrkr = (*m)
+							ldwrku = a.Rows
+							ir = iu + ldwrku*m
+							ldwrkr = m
 						} else {
 							//                       WORK(IU) is M by M and WORK(IR) is M by M
-							ldwrku = (*m)
-							ir = iu + ldwrku*(*m)
-							ldwrkr = (*m)
+							ldwrku = m
+							ir = iu + ldwrku*m
+							ldwrkr = m
 						}
-						itau = ir + ldwrkr*(*m)
-						iwork = itau + (*m)
+						itau = ir + ldwrkr*m
+						iwork = itau + m
 
 						//                    Compute A=L*Q
 						//                    (Workspace: need 2*M*M + 2*M, prefer 2*M*M + M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to WORK(IU), zeroing out below it
-						Dlacpy('L', m, m, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts), &ldwrku)
+						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need 2*M*M + 2*M, prefer 2*M*M + M + M*NB)
-						Dorglq(m, n, m, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(m, n, m, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in WORK(IU), copying result to
 						//                    WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M,
 						//                                prefer 2*M*M+3*M+2*M*NB)
-						Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*M*M + 4*M-1,
 						//                                prefer 2*M*M+3*M+(M-1)*NB)
-						Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M, prefer 2*M*M + 3*M + M*NB)
-						Dorgbr('Q', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of L in WORK(IR) and computing
 						//                    right singular vectors of L in WORK(IU)
 						//                    (Workspace: need 2*M*M + BDSPAC)
-						Dbdsqr('U', m, m, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), a, zero, vt)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), a, zero, vt)
 
 						//                    Copy left singular vectors of L to A
 						//                    (Workspace: need M*M)
-						Dlacpy('F', m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a, lda)
+						Dlacpy(Full, m, m, work.MatrixOff(ir-1, ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*m)
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dorglq(m, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(m, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Zero out above L in A
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, a.Off(0, 1), lda)
+						Dlaset(Upper, m-1, m-1, zero, zero, a.Off(0, 1))
 
 						//                    Bidiagonalize L in A
 						//                    (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-						Dgebrd(m, m, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply right vectors bidiagonalizing L by Q in VT
 						//                    (Workspace: need 3*M + N, prefer 3*M + N*NB)
-						Dormbr('P', 'L', 'T', m, n, m, a, lda, work.Off(itaup-1), vt, ldvt, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('P', Left, Trans, m, n, m, a, work.Off(itaup-1), vt, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors of L in A
 						//                    (Workspace: need 4*M, prefer 3*M + M*NB)
-						Dorgbr('Q', m, m, m, a, lda, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, a, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, compute left
 						//                    singular vectors of A in A and compute right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', m, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, n, m, 0, s, work.Off(ie-1), vt, a, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -1825,102 +2097,122 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                         JOBVT='S')
 					//                 M right singular vectors to be computed in VT and
 					//                 M left singular vectors to be computed in U
-					if (*lwork) >= (*m)*(*m)+max(4*(*m), bdspac) {
+					if lwork >= m*m+max(4*m, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+(*lda)*(*m) {
+						if lwork >= wrkbl+a.Rows*m {
 							//                       WORK(IU) is LDA by N
-							ldwrku = (*lda)
+							ldwrku = a.Rows
 						} else {
 							//                       WORK(IU) is LDA by M
-							ldwrku = (*m)
+							ldwrku = m
 						}
-						itau = iu + ldwrku*(*m)
-						iwork = itau + (*m)
+						itau = iu + ldwrku*m
+						iwork = itau + m
 
 						//                    Compute A=L*Q
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Dlacpy('L', m, m, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts), &ldwrku)
+						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-						Dorglq(m, n, m, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(m, n, m, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in WORK(IU), copying result to U
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, u, ldu)
+						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), u)
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need M*M + 4*M-1,
 						//                                prefer M*M+3*M+(M-1)*NB)
-						Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in U
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + M*NB)
-						Dorgbr('Q', m, m, m, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of L in U and computing right
 						//                    singular vectors of L in WORK(IU)
 						//                    (Workspace: need M*M + BDSPAC)
-						Dbdsqr('U', m, m, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), a, zero, vt)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), a, zero, vt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*m)
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dorglq(m, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(m, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to U, zeroing out above it
-						Dlacpy('L', m, m, a, lda, u, ldu)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, u.Off(0, 1), ldu)
+						Dlacpy(Lower, m, m, a, u)
+						Dlaset(Upper, m-1, m-1, zero, zero, u.Off(0, 1))
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in U
 						//                    (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-						Dgebrd(m, m, u, ldu, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, u, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply right bidiagonalizing vectors in U by Q
 						//                    in VT
 						//                    (Workspace: need 3*M + N, prefer 3*M + N*NB)
-						Dormbr('P', 'L', 'T', m, n, m, u, ldu, work.Off(itaup-1), vt, ldvt, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('P', Left, Trans, m, n, m, u, work.Off(itaup-1), vt, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in U
 						//                    (Workspace: need 4*M, prefer 3*M + M*NB)
-						Dorgbr('Q', m, m, m, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U and computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', m, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, n, m, 0, s, work.Off(ie-1), vt, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -1932,94 +2224,110 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 7t(N much larger than M, JOBU='N', JOBVT='A')
 					//                 N right singular vectors to be computed in VT and
 					//                 no left singular vectors to be computed
-					if (*lwork) >= (*m)*(*m)+max((*n)+(*m), 4*(*m), bdspac) {
+					if lwork >= m*m+max(n+m, 4*m, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						ir = 1
-						if (*lwork) >= wrkbl+(*lda)*(*m) {
+						if lwork >= wrkbl+a.Rows*m {
 							//                       WORK(IR) is LDA by M
-							ldwrkr = (*lda)
+							ldwrkr = a.Rows
 						} else {
 							//                       WORK(IR) is M by M
-							ldwrkr = (*m)
+							ldwrkr = m
 						}
-						itau = ir + ldwrkr*(*m)
-						iwork = itau + (*m)
+						itau = ir + ldwrkr*m
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Copy L to WORK(IR), zeroing out above it
-						Dlacpy('L', m, m, a, lda, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts), &ldwrkr)
+						Dlacpy(Lower, m, m, a, work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts))
 
 						//                    Generate Q in VT
 						//                    (Workspace: need M*M + M + N, prefer M*M + M + N*NB)
-						Dorglq(n, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(n, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in WORK(IR)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate right bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need M*M + 4*M-1,
 						//                                prefer M*M+3*M+(M-1)*NB)
-						Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing right
 						//                    singular vectors of L in WORK(IR)
 						//                    (Workspace: need M*M + BDSPAC)
-						Dbdsqr('U', m, m, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IR) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(ir-1, ldwrkr, opts), vt, zero, a)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(ir-1, ldwrkr, opts), vt, zero, a)
 
 						//                    Copy right singular vectors of A from A to VT
-						Dlacpy('F', m, n, a, lda, vt, ldvt)
+						Dlacpy(Full, m, n, a, vt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*m)
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need M + N, prefer M + N*NB)
-						Dorglq(n, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(n, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Zero out above L in A
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, a.Off(0, 1), lda)
+						Dlaset(Upper, m-1, m-1, zero, zero, a.Off(0, 1))
 
 						//                    Bidiagonalize L in A
 						//                    (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-						Dgebrd(m, m, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply right bidiagonalizing vectors in A by Q
 						//                    in VT
 						//                    (Workspace: need 3*M + N, prefer 3*M + N*NB)
-						Dormbr('P', 'L', 'T', m, n, m, a, lda, work.Off(itaup-1), vt, ldvt, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dormbr('P', Left, Trans, m, n, m, a, work.Off(itaup-1), vt, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', m, n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, n, 0, 0, s, work.Off(ie-1), vt, dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -2027,119 +2335,139 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                 Path 8t(N much larger than M, JOBU='O', JOBVT='A')
 					//                 N right singular vectors to be computed in VT and
 					//                 M left singular vectors to be overwritten on A
-					if (*lwork) >= 2*(*m)*(*m)+max((*n)+(*m), 4*(*m), bdspac) {
+					if lwork >= 2*m*m+max(n+m, 4*m, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+2*(*lda)*(*m) {
+						if lwork >= wrkbl+2*a.Rows*m {
 							//                       WORK(IU) is LDA by M and WORK(IR) is LDA by M
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*m)
-							ldwrkr = (*lda)
-						} else if (*lwork) >= wrkbl+((*lda)+(*m))*(*m) {
+							ldwrku = a.Rows
+							ir = iu + ldwrku*m
+							ldwrkr = a.Rows
+						} else if lwork >= wrkbl+(a.Rows+m)*m {
 							//                       WORK(IU) is LDA by M and WORK(IR) is M by M
-							ldwrku = (*lda)
-							ir = iu + ldwrku*(*m)
-							ldwrkr = (*m)
+							ldwrku = a.Rows
+							ir = iu + ldwrku*m
+							ldwrkr = m
 						} else {
 							//                       WORK(IU) is M by M and WORK(IR) is M by M
-							ldwrku = (*m)
-							ir = iu + ldwrku*(*m)
-							ldwrkr = (*m)
+							ldwrku = m
+							ir = iu + ldwrku*m
+							ldwrkr = m
 						}
-						itau = ir + ldwrkr*(*m)
-						iwork = itau + (*m)
+						itau = ir + ldwrkr*m
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need 2*M*M + 2*M, prefer 2*M*M + M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need 2*M*M + M + N, prefer 2*M*M + M + N*NB)
-						Dorglq(n, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(n, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Dlacpy('L', m, m, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts), &ldwrku)
+						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in WORK(IU), copying result to
 						//                    WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M,
 						//                                prefer 2*M*M+3*M+2*M*NB)
-						Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr)
+						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*M*M + 4*M-1,
 						//                                prefer 2*M*M+3*M+(M-1)*NB)
-						Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M, prefer 2*M*M + 3*M + M*NB)
-						Dorgbr('Q', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of L in WORK(IR) and computing
 						//                    right singular vectors of L in WORK(IU)
 						//                    (Workspace: need 2*M*M + BDSPAC)
-						Dbdsqr('U', m, m, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), vt, zero, a)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), vt, zero, a)
 
 						//                    Copy right singular vectors of A from A to VT
-						Dlacpy('F', m, n, a, lda, vt, ldvt)
+						Dlacpy(Full, m, n, a, vt)
 
 						//                    Copy left singular vectors of A from WORK(IR) to A
-						Dlacpy('F', m, m, work.MatrixOff(ir-1, ldwrkr, opts), &ldwrkr, a, lda)
+						Dlacpy(Full, m, m, work.MatrixOff(ir-1, ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*m)
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need M + N, prefer M + N*NB)
-						Dorglq(n, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(n, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Zero out above L in A
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, a.Off(0, 1), lda)
+						Dlaset(Upper, m-1, m-1, zero, zero, a.Off(0, 1))
 
 						//                    Bidiagonalize L in A
 						//                    (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-						Dgebrd(m, m, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply right bidiagonalizing vectors in A by Q
 						//                    in VT
 						//                    (Workspace: need 3*M + N, prefer 3*M + N*NB)
-						Dormbr('P', 'L', 'T', m, n, m, a, lda, work.Off(itaup-1), vt, ldvt, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('P', Left, Trans, m, n, m, a, work.Off(itaup-1), vt, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in A
 						//                    (Workspace: need 4*M, prefer 3*M + M*NB)
-						Dorgbr('Q', m, m, m, a, lda, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, a, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in A and computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', m, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, n, m, 0, s, work.Off(ie-1), vt, a, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -2148,105 +2476,125 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 					//                         JOBVT='A')
 					//                 N right singular vectors to be computed in VT and
 					//                 M left singular vectors to be computed in U
-					if (*lwork) >= (*m)*(*m)+max((*n)+(*m), 4*(*m), bdspac) {
+					if lwork >= m*m+max(n+m, 4*m, bdspac) {
 						//                    Sufficient workspace for a fast algorithm
 						iu = 1
-						if (*lwork) >= wrkbl+(*lda)*(*m) {
+						if lwork >= wrkbl+a.Rows*m {
 							//                       WORK(IU) is LDA by M
-							ldwrku = (*lda)
+							ldwrku = a.Rows
 						} else {
 							//                       WORK(IU) is M by M
-							ldwrku = (*m)
+							ldwrku = m
 						}
-						itau = iu + ldwrku*(*m)
-						iwork = itau + (*m)
+						itau = iu + ldwrku*m
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need M*M + M + N, prefer M*M + M + N*NB)
-						Dorglq(n, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(n, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Dlacpy('L', m, m, a, lda, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts), &ldwrku)
+						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in WORK(IU), copying result to U
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('L', m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, u, ldu)
+						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), u)
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + (M-1)*NB)
-						Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in U
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + M*NB)
-						Dorgbr('Q', m, m, m, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of L in U and computing right
 						//                    singular vectors of L in WORK(IU)
 						//                    (Workspace: need M*M + BDSPAC)
-						Dbdsqr('U', m, m, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), &ldwrku, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, *m, *n, *m, one, work.MatrixOff(iu-1, ldwrku, opts), vt, zero, a)
+						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), vt, zero, a)
 
 						//                    Copy right singular vectors of A from A to VT
-						Dlacpy('F', m, n, a, lda, vt, ldvt)
+						Dlacpy(Full, m, n, a, vt)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
 						itau = 1
-						iwork = itau + (*m)
+						iwork = itau + m
 
 						//                    Compute A=L*Q, copying result to VT
 						//                    (Workspace: need 2*M, prefer M + M*NB)
-						Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						Dlacpy('U', m, n, a, lda, vt, ldvt)
+						if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Generate Q in VT
 						//                    (Workspace: need M + N, prefer M + N*NB)
-						Dorglq(n, n, m, vt, ldvt, work.Off(itau-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dorglq(n, n, m, vt, work.Off(itau-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Copy L to U, zeroing out above it
-						Dlacpy('L', m, m, a, lda, u, ldu)
-						Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, u.Off(0, 1), ldu)
+						Dlacpy(Lower, m, m, a, u)
+						Dlaset(Upper, m-1, m-1, zero, zero, u.Off(0, 1))
 						ie = itau
-						itauq = ie + (*m)
-						itaup = itauq + (*m)
-						iwork = itaup + (*m)
+						itauq = ie + m
+						itaup = itauq + m
+						iwork = itaup + m
 
 						//                    Bidiagonalize L in U
 						//                    (Workspace: need 4*M, prefer 3*M + 2*M*NB)
-						Dgebrd(m, m, u, ldu, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dgebrd(m, m, u, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Multiply right bidiagonalizing vectors in U by Q
 						//                    in VT
 						//                    (Workspace: need 3*M + N, prefer 3*M + N*NB)
-						Dormbr('P', 'L', 'T', m, n, m, u, ldu, work.Off(itaup-1), vt, ldvt, work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+						if err = Dormbr('P', Left, Trans, m, n, m, u, work.Off(itaup-1), vt, work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
 
 						//                    Generate left bidiagonalizing vectors in U
 						//                    (Workspace: need 4*M, prefer 3*M + M*NB)
-						Dorgbr('Q', m, m, m, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
-						iwork = ie + (*m)
+						if err = Dorgbr('Q', m, m, m, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+							panic(err)
+						}
+						iwork = ie + m
 
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of A in U and computing right
 						//                    singular vectors of A in VT
 						//                    (Workspace: need BDSPAC)
-						Dbdsqr('U', m, n, m, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+						info, err = Dbdsqr(Upper, m, n, m, 0, s, work.Off(ie-1), vt, u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 					}
 
@@ -2260,54 +2608,64 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 			//           Path 10t(N greater than M, but not much larger)
 			//           Reduce to bidiagonal form without LQ decomposition
 			ie = 1
-			itauq = ie + (*m)
-			itaup = itauq + (*m)
-			iwork = itaup + (*m)
+			itauq = ie + m
+			itaup = itauq + m
+			iwork = itaup + m
 
 			//           Bidiagonalize A
 			//           (Workspace: need 3*M + N, prefer 3*M + (M + N)*NB)
-			Dgebrd(m, n, a, lda, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+			if err = Dgebrd(m, n, a, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+				panic(err)
+			}
 			if wntuas {
 				//              If left singular vectors desired in U, copy result to U
 				//              and generate left bidiagonalizing vectors in U
 				//              (Workspace: need 4*M-1, prefer 3*M + (M-1)*NB)
-				Dlacpy('L', m, m, a, lda, u, ldu)
-				Dorgbr('Q', m, m, n, u, ldu, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				Dlacpy(Lower, m, m, a, u)
+				if err = Dorgbr('Q', m, m, n, u, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
 			if wntvas {
 				//              If right singular vectors desired in VT, copy result to
 				//              VT and generate right bidiagonalizing vectors in VT
 				//              (Workspace: need 3*M + NRVT, prefer 3*M + NRVT*NB)
-				Dlacpy('U', m, n, a, lda, vt, ldvt)
+				Dlacpy(Upper, m, n, a, vt)
 				if wntva {
-					nrvt = (*n)
+					nrvt = n
 				}
 				if wntvs {
-					nrvt = (*m)
+					nrvt = m
 				}
-				Dorgbr('P', &nrvt, n, m, vt, ldvt, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dorgbr('P', nrvt, n, m, vt, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
 			if wntuo {
 				//              If left singular vectors desired in A, generate left
 				//              bidiagonalizing vectors in A
 				//              (Workspace: need 4*M-1, prefer 3*M + (M-1)*NB)
-				Dorgbr('Q', m, m, n, a, lda, work.Off(itauq-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dorgbr('Q', m, m, n, a, work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
 			if wntvo {
 				//              If right singular vectors desired in A, generate right
 				//              bidiagonalizing vectors in A
 				//              (Workspace: need 4*M, prefer 3*M + M*NB)
-				Dorgbr('P', m, n, m, a, lda, work.Off(itaup-1), work.Off(iwork-1), toPtr((*lwork)-iwork+1), &ierr)
+				if err = Dorgbr('P', m, n, m, a, work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					panic(err)
+				}
 			}
-			iwork = ie + (*m)
+			iwork = ie + m
 			if wntuas || wntuo {
-				nru = (*m)
+				nru = m
 			}
 			if wntun {
 				nru = 0
 			}
 			if wntvas || wntvo {
-				ncvt = (*n)
+				ncvt = n
 			}
 			if wntvn {
 				ncvt = 0
@@ -2317,19 +2675,19 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 				//              left singular vectors in U and computing right singular
 				//              vectors in VT
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('L', m, &ncvt, &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Lower, m, ncvt, nru, 0, s, work.Off(ie-1), vt, u, dum.Matrix(1, opts), work.Off(iwork-1))
 			} else if (!wntuo) && wntvo {
 				//              Perform bidiagonal QR iteration, if desired, computing
 				//              left singular vectors in U and computing right singular
 				//              vectors in A
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('L', m, &ncvt, &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), a, lda, u, ldu, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Lower, m, ncvt, nru, 0, s, work.Off(ie-1), a, u, dum.Matrix(1, opts), work.Off(iwork-1))
 			} else {
 				//              Perform bidiagonal QR iteration, if desired, computing
 				//              left singular vectors in A and computing right singular
 				//              vectors in VT
 				//              (Workspace: need BDSPAC)
-				Dbdsqr('L', m, &ncvt, &nru, func() *int { y := 0; return &y }(), s, work.Off(ie-1), vt, ldvt, a, lda, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), work.Off(iwork-1), info)
+				info, err = Dbdsqr(Lower, m, ncvt, nru, 0, s, work.Off(ie-1), vt, a, dum.Matrix(1, opts), work.Off(iwork-1))
 			}
 
 		}
@@ -2338,7 +2696,7 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 
 	//     If DBDSQR failed to converge, copy unconverged superdiagonals
 	//     to WORK( 2:MINMN )
-	if (*info) != 0 {
+	if info != 0 {
 		if ie > 2 {
 			for i = 1; i <= minmn-1; i++ {
 				work.Set(i, work.Get(i+ie-1-1))
@@ -2354,19 +2712,29 @@ func Dgesvd(jobu, jobvt byte, m, n *int, a *mat.Matrix, lda *int, s *mat.Vector,
 	//     Undo scaling if necessary
 	if iscl == 1 {
 		if anrm > bignum {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &anrm, &minmn, func() *int { y := 1; return &y }(), s.Matrix(minmn, opts), &minmn, &ierr)
+			if err = Dlascl('G', 0, 0, bignum, anrm, minmn, 1, s.Matrix(minmn, opts)); err != nil {
+				panic(err)
+			}
 		}
-		if (*info) != 0 && anrm > bignum {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &anrm, toPtr(minmn-1), func() *int { y := 1; return &y }(), work.MatrixOff(1, minmn, opts), &minmn, &ierr)
+		if info != 0 && anrm > bignum {
+			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, work.MatrixOff(1, minmn, opts)); err != nil {
+				panic(err)
+			}
 		}
 		if anrm < smlnum {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &anrm, &minmn, func() *int { y := 1; return &y }(), s.Matrix(minmn, opts), &minmn, &ierr)
+			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn, 1, s.Matrix(minmn, opts)); err != nil {
+				panic(err)
+			}
 		}
-		if (*info) != 0 && anrm < smlnum {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &anrm, toPtr(minmn-1), func() *int { y := 1; return &y }(), work.MatrixOff(1, minmn, opts), &minmn, &ierr)
+		if info != 0 && anrm < smlnum {
+			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, work.MatrixOff(1, minmn, opts)); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	//     Return optimal workspace in WORK(1)
 	work.Set(0, float64(maxwrk))
+
+	return
 }

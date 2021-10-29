@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dget34 tests DLAEXC, a routine for swapping adjacent blocks (either
+// dget34 tests DLAEXC, a routine for swapping adjacent blocks (either
 // 1 by 1 or 2 by 2) on the diagonal of a matrix in real Schur form.
 // Thus, DLAEXC computes an orthogonal matrix Q such that
 //
@@ -21,7 +21,7 @@ import (
 //
 // The test code verifies these last last assertions, as well as that
 // the residual in the above equation is small.
-func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
+func dget34(ninfo *[]int) (rmax float64, lmax, knt int) {
 	var bignum, eps, half, one, res, smlnum, three, tnrm, two, zero float64
 	var i, ia, ia11, ia12, ia21, ia22, iam, ib, ic, ic11, ic12, ic21, ic22, icm, info, j, lwork int
 
@@ -44,7 +44,7 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     Set up test case parameters
 	val.Set(0, zero)
@@ -62,9 +62,9 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 
 	(*ninfo)[0] = 0
 	(*ninfo)[1] = 0
-	(*knt) = 0
-	(*lmax) = 0
-	(*rmax) = zero
+	knt = 0
+	lmax = 0
+	rmax = zero
 
 	//     Begin test loop
 	for ia = 1; ia <= 9; ia++ {
@@ -79,11 +79,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 					goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
 					goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
 					goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
-					golapack.Dlaexc(true, func() *int { y := 2; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, &info)
-					if info != 0 {
+					if info = golapack.Dlaexc(true, 2, t, q, 1, 1, 1, work); info != 0 {
 						(*ninfo)[info-1] = (*ninfo)[info-1] + 1
 					}
-					Dhst01(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), t1, func() *int { y := 4; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), work, &lwork, result)
+					dhst01(2, 1, 2, t1, t, q, work, lwork, result)
 					res = result.Get(0) + result.Get(1)
 					if info != 0 {
 						res = res + one/eps
@@ -97,10 +96,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 					if t.Get(1, 0) != zero {
 						res = res + one/eps
 					}
-					(*knt) = (*knt) + 1
-					if res > (*rmax) {
-						(*lmax) = (*knt)
-						(*rmax) = res
+					knt = knt + 1
+					if res > rmax {
+						lmax = knt
+						rmax = res
 					}
 				}
 			}
@@ -127,11 +126,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 								goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
 								goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
 								goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
-								golapack.Dlaexc(true, func() *int { y := 3; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), work, &info)
-								if info != 0 {
+								if info = golapack.Dlaexc(true, 3, t, q, 1, 1, 2, work); info != 0 {
 									(*ninfo)[info-1] = (*ninfo)[info-1] + 1
 								}
-								Dhst01(func() *int { y := 3; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 3; return &y }(), t1, func() *int { y := 4; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), work, &lwork, result)
+								dhst01(3, 1, 3, t1, t, q, work, lwork, result)
 								res = result.Get(0) + result.Get(1)
 								if info == 0 {
 									if t1.Get(0, 0) != t.Get(2, 2) {
@@ -147,10 +145,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										res = res + one/eps
 									}
 								}
-								(*knt) = (*knt) + 1
-								if res > (*rmax) {
-									(*lmax) = (*knt)
-									(*rmax) = res
+								knt = knt + 1
+								if res > rmax {
+									lmax = knt
+									rmax = res
 								}
 							}
 						}
@@ -180,11 +178,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 								goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
 								goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
 								goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
-								golapack.Dlaexc(true, func() *int { y := 3; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), work, &info)
-								if info != 0 {
+								if info = golapack.Dlaexc(true, 3, t, q, 1, 2, 1, work); info != 0 {
 									(*ninfo)[info-1] = (*ninfo)[info-1] + 1
 								}
-								Dhst01(func() *int { y := 3; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 3; return &y }(), t1, func() *int { y := 4; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), work, &lwork, result)
+								dhst01(3, 1, 3, t1, t, q, work, lwork, result)
 								res = result.Get(0) + result.Get(1)
 								if info == 0 {
 									if t1.Get(2, 2) != t.Get(0, 0) {
@@ -200,10 +197,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										res = res + one/eps
 									}
 								}
-								(*knt) = (*knt) + 1
-								if res > (*rmax) {
-									(*lmax) = (*knt)
-									(*rmax) = res
+								knt = knt + 1
+								if res > rmax {
+									lmax = knt
+									rmax = res
 								}
 							}
 						}
@@ -249,11 +246,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 											goblas.Dcopy(16, t.VectorIdx(0, 1), t1.VectorIdx(0, 1))
 											goblas.Dcopy(16, val.Off(0, 0), q.VectorIdx(0, 1))
 											goblas.Dcopy(4, val.Off(2, 0), q.VectorIdx(0, 5))
-											golapack.Dlaexc(true, func() *int { y := 4; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), work, &info)
-											if info != 0 {
+											if info = golapack.Dlaexc(true, 4, t, q, 1, 2, 2, work); info != 0 {
 												(*ninfo)[info-1] = (*ninfo)[info-1] + 1
 											}
-											Dhst01(func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 4; return &y }(), t1, func() *int { y := 4; return &y }(), t, func() *int { y := 4; return &y }(), q, func() *int { y := 4; return &y }(), work, &lwork, result)
+											dhst01(4, 1, 4, t1, t, q, work, lwork, result)
 											res = result.Get(0) + result.Get(1)
 											if info == 0 {
 												if t.Get(2, 0) != zero {
@@ -275,10 +271,10 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 													res = res + one/eps
 												}
 											}
-											(*knt) = (*knt) + 1
-											if res > (*rmax) {
-												(*lmax) = (*knt)
-												(*rmax) = res
+											knt = knt + 1
+											if res > rmax {
+												lmax = knt
+												rmax = res
 											}
 										}
 									}
@@ -290,4 +286,6 @@ func Dget34(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 			}
 		}
 	}
+
+	return
 }

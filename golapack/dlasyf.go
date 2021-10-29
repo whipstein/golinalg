@@ -23,23 +23,20 @@ import (
 // DLASYF is an auxiliary routine called by DSYTRF. It uses blocked code
 // (calling Level 3 BLAS) to update the submatrix A11 (if UPLO = 'U') or
 // A22 (if UPLO = 'L').
-func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *mat.Matrix, ldw, info *int) {
+func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matrix) (kb, info int) {
 	var absakk, alpha, colmax, d11, d21, d22, eight, one, r1, rowmax, sevten, t, zero float64
 	var imax, j, jb, jj, jmax, jp, k, kk, kkw, kp, kstep, kw int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 	eight = 8.0
 	sevten = 17.0
 
-	(*info) = 0
-
 	//     Initialize ALPHA for use in choosing pivot block size.
 	alpha = (one + math.Sqrt(sevten)) / eight
 
-	if uplo == 'U' {
+	if uplo == Upper {
 		//        Factorize the trailing columns of A using the upper triangle
 		//        of A and working backwards, and compute the matrix W = U12*D
 		//        for use in updating A11
@@ -47,20 +44,20 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		//        K is the main loop index, decreasing from N in steps of 1 or 2
 		//
 		//        KW is the column of W which corresponds to column K of A
-		k = (*n)
+		k = n
 	label10:
 		;
-		kw = (*nb) + k - (*n)
+		kw = nb + k - n
 
 		//        Exit from loop
-		if (k <= (*n)-(*nb)+1 && (*nb) < (*n)) || k < 1 {
+		if (k <= n-nb+1 && nb < n) || k < 1 {
 			goto label30
 		}
 
 		//        Copy column K of A to column KW of W and update it
 		goblas.Dcopy(k, a.Vector(0, k-1, 1), w.Vector(0, kw-1, 1))
-		if k < (*n) {
-			err = goblas.Dgemv(NoTrans, k, (*n)-k, -one, a.Off(0, k), w.Vector(k-1, kw), one, w.Vector(0, kw-1, 1))
+		if k < n {
+			err = goblas.Dgemv(NoTrans, k, n-k, -one, a.Off(0, k), w.Vector(k-1, kw), one, w.Vector(0, kw-1, 1))
 		}
 
 		kstep = 1
@@ -81,8 +78,8 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -93,8 +90,10 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 				//              Copy column IMAX to column KW-1 of W and update it
 				goblas.Dcopy(imax, a.Vector(0, imax-1, 1), w.Vector(0, kw-1-1, 1))
 				goblas.Dcopy(k-imax, a.Vector(imax-1, imax), w.Vector(imax, kw-1-1, 1))
-				if k < (*n) {
-					err = goblas.Dgemv(NoTrans, k, (*n)-k, -one, a.Off(0, k), w.Vector(imax-1, kw, *ldw), one, w.Vector(0, kw-1-1, 1))
+				if k < n {
+					if err = goblas.Dgemv(NoTrans, k, n-k, -one, a.Off(0, k), w.Vector(imax-1, kw), one, w.Vector(0, kw-1-1, 1)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              JMAX is the column-index of the largest off-diagonal
@@ -130,7 +129,7 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 			kk = k - kstep + 1
 
 			//           KKW is the column of W which corresponds to column KK of A
-			kkw = (*nb) + kk - (*n)
+			kkw = nb + kk - n
 
 			//           Interchange rows and columns KP and KK.
 			//           Updated column KP is already stored in column KKW of W.
@@ -149,10 +148,10 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 				//              (columns K (or K and K-1 for 2-by-2 pivot) of A will be
 				//              later overwritten). Interchange rows KK and KP
 				//              in last KKW to NB columns of W.
-				if k < (*n) {
-					goblas.Dswap((*n)-k, a.Vector(kk-1, k), a.Vector(kp-1, k))
+				if k < n {
+					goblas.Dswap(n-k, a.Vector(kk-1, k), a.Vector(kp-1, k))
 				}
-				goblas.Dswap((*n)-kk+1, w.Vector(kk-1, kkw-1), w.Vector(kp-1, kkw-1))
+				goblas.Dswap(n-kk+1, w.Vector(kk-1, kkw-1), w.Vector(kp-1, kkw-1))
 			}
 
 			if kstep == 1 {
@@ -257,16 +256,20 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		//        A11 := A11 - U12*D*U12**T = A11 - U12*W**T
 		//
 		//        computing blocks of NB columns at a time
-		for j = ((k-1)/(*nb))*(*nb) + 1; j >= 1; j -= (*nb) {
-			jb = min(*nb, k-j+1)
+		for j = ((k-1)/nb)*nb + 1; j >= 1; j -= nb {
+			jb = min(nb, k-j+1)
 
 			//           Update the upper triangle of the diagonal block
 			for jj = j; jj <= j+jb-1; jj++ {
-				err = goblas.Dgemv(NoTrans, jj-j+1, (*n)-k, -one, a.Off(j-1, k), w.Vector(jj-1, kw), one, a.Vector(j-1, jj-1, 1))
+				if err = goblas.Dgemv(NoTrans, jj-j+1, n-k, -one, a.Off(j-1, k), w.Vector(jj-1, kw), one, a.Vector(j-1, jj-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Update the rectangular superdiagonal block
-			err = goblas.Dgemm(NoTrans, Trans, j-1, jb, (*n)-k, -one, a.Off(0, k), w.Off(j-1, kw), one, a.Off(0, j-1))
+			if err = goblas.Dgemm(NoTrans, Trans, j-1, jb, n-k, -one, a.Off(0, k), w.Off(j-1, kw), one, a.Off(0, j-1)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Put U12 in standard form by partially undoing the interchanges
@@ -289,15 +292,15 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		//           (NOTE: Here, J is used to determine row length. Length N-J+1
 		//           of the rows to swap back doesn't include diagonal element)
 		j = j + 1
-		if jp != jj && j <= (*n) {
-			goblas.Dswap((*n)-j+1, a.Vector(jp-1, j-1), a.Vector(jj-1, j-1))
+		if jp != jj && j <= n {
+			goblas.Dswap(n-j+1, a.Vector(jp-1, j-1), a.Vector(jj-1, j-1))
 		}
-		if j < (*n) {
+		if j < n {
 			goto label60
 		}
 
 		//        Set KB to the number of columns factorized
-		(*kb) = (*n) - k
+		kb = n - k
 
 	} else {
 		//        Factorize the leading columns of A using the lower triangle
@@ -310,13 +313,15 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		;
 
 		//        Exit from loop
-		if (k >= (*nb) && (*nb) < (*n)) || k > (*n) {
+		if (k >= nb && nb < n) || k > n {
 			goto label90
 		}
 
 		//        Copy column K of A to column K of W and update it
-		goblas.Dcopy((*n)-k+1, a.Vector(k-1, k-1, 1), w.Vector(k-1, k-1, 1))
-		err = goblas.Dgemv(NoTrans, (*n)-k+1, k-1, -one, a.Off(k-1, 0), w.Vector(k-1, 0), one, w.Vector(k-1, k-1, 1))
+		goblas.Dcopy(n-k+1, a.Vector(k-1, k-1, 1), w.Vector(k-1, k-1, 1))
+		if err = goblas.Dgemv(NoTrans, n-k+1, k-1, -one, a.Off(k-1, 0), w.Vector(k-1, 0), one, w.Vector(k-1, k-1, 1)); err != nil {
+			panic(err)
+		}
 
 		kstep = 1
 
@@ -327,8 +332,8 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
-		if k < (*n) {
-			imax = k + goblas.Idamax((*n)-k, w.Vector(k, k-1, 1))
+		if k < n {
+			imax = k + goblas.Idamax(n-k, w.Vector(k, k-1, 1))
 			colmax = math.Abs(w.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -336,8 +341,8 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -347,15 +352,17 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 			} else {
 				//              Copy column IMAX to column K+1 of W and update it
 				goblas.Dcopy(imax-k, a.Vector(imax-1, k-1), w.Vector(k-1, k, 1))
-				goblas.Dcopy((*n)-imax+1, a.Vector(imax-1, imax-1, 1), w.Vector(imax-1, k, 1))
-				err = goblas.Dgemv(NoTrans, (*n)-k+1, k-1, -one, a.Off(k-1, 0), w.Vector(imax-1, 0), one, w.Vector(k-1, k, 1))
+				goblas.Dcopy(n-imax+1, a.Vector(imax-1, imax-1, 1), w.Vector(imax-1, k, 1))
+				if err = goblas.Dgemv(NoTrans, n-k+1, k-1, -one, a.Off(k-1, 0), w.Vector(imax-1, 0), one, w.Vector(k-1, k, 1)); err != nil {
+					panic(err)
+				}
 
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
 				jmax = k - 1 + goblas.Idamax(imax-k, w.Vector(k-1, k, 1))
 				rowmax = math.Abs(w.Get(jmax-1, k))
-				if imax < (*n) {
-					jmax = imax + goblas.Idamax((*n)-imax, w.Vector(imax, k, 1))
+				if imax < n {
+					jmax = imax + goblas.Idamax(n-imax, w.Vector(imax, k, 1))
 					rowmax = math.Max(rowmax, math.Abs(w.Get(jmax-1, k)))
 				}
 
@@ -368,7 +375,7 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 					kp = imax
 
 					//                 copy column K+1 of W to column K of W
-					goblas.Dcopy((*n)-k+1, w.Vector(k-1, k, 1), w.Vector(k-1, k-1, 1))
+					goblas.Dcopy(n-k+1, w.Vector(k-1, k, 1), w.Vector(k-1, k-1, 1))
 				} else {
 					//                 interchange rows and columns K+1 and IMAX, use 2-by-2
 					//                 pivot block
@@ -391,8 +398,8 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 				//              will be later overwritten.
 				a.Set(kp-1, kp-1, a.Get(kk-1, kk-1))
 				goblas.Dcopy(kp-kk-1, a.Vector(kk, kk-1, 1), a.Vector(kp-1, kk))
-				if kp < (*n) {
-					goblas.Dcopy((*n)-kp, a.Vector(kp, kk-1, 1), a.Vector(kp, kp-1, 1))
+				if kp < n {
+					goblas.Dcopy(n-kp, a.Vector(kp, kk-1, 1), a.Vector(kp, kp-1, 1))
 				}
 
 				//              Interchange rows KK and KP in first K-1 columns of A
@@ -418,10 +425,10 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 				//              and not stored)
 				//                 A(k,k) := D(k,k) = W(k,k)
 				//                 A(k+1:N,k) := L(k+1:N,k) = W(k+1:N,k)/D(k,k)
-				goblas.Dcopy((*n)-k+1, w.Vector(k-1, k-1, 1), a.Vector(k-1, k-1, 1))
-				if k < (*n) {
+				goblas.Dcopy(n-k+1, w.Vector(k-1, k-1, 1), a.Vector(k-1, k-1, 1))
+				if k < n {
 					r1 = one / a.Get(k-1, k-1)
-					goblas.Dscal((*n)-k, r1, a.Vector(k, k-1, 1))
+					goblas.Dscal(n-k, r1, a.Vector(k, k-1, 1))
 				}
 
 			} else {
@@ -439,7 +446,7 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 				//                 A(k:k+1,k:k+1) := D(k:k+1,k:k+1) = W(k:k+1,k:k+1)
 				//                 A(k+2:N,k:k+1) := L(k+2:N,k:k+1) =
 				//                 = W(k+2:N,k:k+1) * ( D(k:k+1,k:k+1)**(-1) )
-				if k < (*n)-1 {
+				if k < n-1 {
 					//                 Compose the columns of the inverse of 2-by-2 pivot
 					//                 block D in the following way to reduce the number
 					//                 of FLOPS when we myltiply panel ( W(k) W(k+1) ) by
@@ -473,7 +480,7 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 					//                 Update elements in columns A(k) and A(k+1) as
 					//                 dot products of rows of ( W(k) W(k+1) ) and columns
 					//                 of D**(-1)
-					for j = k + 2; j <= (*n); j++ {
+					for j = k + 2; j <= n; j++ {
 						a.Set(j-1, k-1, d21*(d11*w.Get(j-1, k-1)-w.Get(j-1, k)))
 						a.Set(j-1, k, d21*(d22*w.Get(j-1, k)-w.Get(j-1, k-1)))
 					}
@@ -508,17 +515,21 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		//        A22 := A22 - L21*D*L21**T = A22 - L21*W**T
 		//
 		//        computing blocks of NB columns at a time
-		for j = k; j <= (*n); j += (*nb) {
-			jb = min(*nb, (*n)-j+1)
+		for j = k; j <= n; j += nb {
+			jb = min(nb, n-j+1)
 
 			//           Update the lower triangle of the diagonal block
 			for jj = j; jj <= j+jb-1; jj++ {
-				err = goblas.Dgemv(NoTrans, j+jb-jj, k-1, -one, a.Off(jj-1, 0), w.Vector(jj-1, 0), one, a.Vector(jj-1, jj-1, 1))
+				if err = goblas.Dgemv(NoTrans, j+jb-jj, k-1, -one, a.Off(jj-1, 0), w.Vector(jj-1, 0), one, a.Vector(jj-1, jj-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Update the rectangular subdiagonal block
-			if j+jb <= (*n) {
-				err = goblas.Dgemm(NoTrans, mat.Trans, (*n)-j-jb+1, jb, k-1, -one, a.Off(j+jb-1, 0), w.Off(j-1, 0), one, a.Off(j+jb-1, j-1))
+			if j+jb <= n {
+				if err = goblas.Dgemm(NoTrans, mat.Trans, n-j-jb+1, jb, k-1, -one, a.Off(j+jb-1, 0), w.Off(j-1, 0), one, a.Off(j+jb-1, j-1)); err != nil {
+					panic(err)
+				}
 			}
 		}
 
@@ -550,7 +561,9 @@ func Dlasyf(uplo byte, n, nb, kb *int, a *mat.Matrix, lda *int, ipiv *[]int, w *
 		}
 
 		//        Set KB to the number of columns factorized
-		(*kb) = k - 1
+		kb = k - 1
 
 	}
+
+	return
 }

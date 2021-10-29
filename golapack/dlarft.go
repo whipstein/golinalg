@@ -21,23 +21,22 @@ import (
 // H(i) is stored in the i-th row of the array V, and
 //
 //    H  =  I - V**T * T * V
-func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Vector, t *mat.Matrix, ldt *int) {
+func Dlarft(direct, storev byte, n, k int, v *mat.Matrix, tau *mat.Vector, t *mat.Matrix) {
 	var one, zero float64
 	var i, j, lastv, prevlastv int
 	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	if direct == 'F' {
-		prevlastv = (*n)
-		for i = 1; i <= (*k); i++ {
+		prevlastv = n
+		for i = 1; i <= k; i++ {
 			prevlastv = max(i, prevlastv)
 			if tau.Get(i-1) == zero {
 				//              H(i)  =  I
@@ -48,7 +47,7 @@ func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 				//              general case
 				if storev == 'C' {
 					//                 Skip any trailing zeros.
-					for lastv = (*n); lastv >= i+1; lastv-- {
+					for lastv = n; lastv >= i+1; lastv-- {
 						if v.Get(lastv-1, i-1) != zero {
 							break
 						}
@@ -59,10 +58,12 @@ func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 					j = min(lastv, prevlastv)
 
 					//                 T(1:i-1,i) := - tau(i) * V(i:j,1:i-1)**T * V(i:j,i)
-					err = goblas.Dgemv(Trans, j-i, i-1, -tau.Get(i-1), v.Off(i, 0), v.Vector(i, i-1, 1), one, t.Vector(0, i-1, 1))
+					if err = goblas.Dgemv(Trans, j-i, i-1, -tau.Get(i-1), v.Off(i, 0), v.Vector(i, i-1, 1), one, t.Vector(0, i-1, 1)); err != nil {
+						panic(err)
+					}
 				} else {
 					//                 Skip any trailing zeros.
-					for lastv = (*n); lastv >= i+1; lastv-- {
+					for lastv = n; lastv >= i+1; lastv-- {
 						if v.Get(i-1, lastv-1) != zero {
 							break
 						}
@@ -73,11 +74,15 @@ func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 					j = min(lastv, prevlastv)
 
 					//                 T(1:i-1,i) := - tau(i) * V(1:i-1,i:j) * V(i,i:j)**T
-					err = goblas.Dgemv(NoTrans, i-1, j-i, -tau.Get(i-1), v.Off(0, i), v.Vector(i-1, i), one, t.Vector(0, i-1, 1))
+					if err = goblas.Dgemv(NoTrans, i-1, j-i, -tau.Get(i-1), v.Off(0, i), v.Vector(i-1, i), one, t.Vector(0, i-1, 1)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              T(1:i-1,i) := T(1:i-1,1:i-1) * T(1:i-1,i)
-				err = goblas.Dtrmv(Upper, NoTrans, NonUnit, i-1, t, t.Vector(0, i-1, 1))
+				if err = goblas.Dtrmv(Upper, NoTrans, NonUnit, i-1, t, t.Vector(0, i-1, 1)); err != nil {
+					panic(err)
+				}
 				t.Set(i-1, i-1, tau.Get(i-1))
 				if i > 1 {
 					prevlastv = max(prevlastv, lastv)
@@ -88,15 +93,15 @@ func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 		}
 	} else {
 		prevlastv = 1
-		for i = (*k); i >= 1; i-- {
+		for i = k; i >= 1; i-- {
 			if tau.Get(i-1) == zero {
 				//              H(i)  =  I
-				for j = i; j <= (*k); j++ {
+				for j = i; j <= k; j++ {
 					t.Set(j-1, i-1, zero)
 				}
 			} else {
 				//              general case
-				if i < (*k) {
+				if i < k {
 					if storev == 'C' {
 						//                    Skip any leading zeros.
 						for lastv = 1; lastv <= i-1; lastv++ {
@@ -104,13 +109,15 @@ func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 								break
 							}
 						}
-						for j = i + 1; j <= (*k); j++ {
-							t.Set(j-1, i-1, -tau.Get(i-1)*v.Get((*n)-(*k)+i-1, j-1))
+						for j = i + 1; j <= k; j++ {
+							t.Set(j-1, i-1, -tau.Get(i-1)*v.Get(n-k+i-1, j-1))
 						}
 						j = max(lastv, prevlastv)
 
 						//                    T(i+1:k,i) = -tau(i) * V(j:n-k+i,i+1:k)**T * V(j:n-k+i,i)
-						err = goblas.Dgemv(Trans, (*n)-(*k)+i-j, (*k)-i, -tau.Get(i-1), v.Off(j-1, i), v.Vector(j-1, i-1, 1), one, t.Vector(i, i-1, 1))
+						if err = goblas.Dgemv(Trans, n-k+i-j, k-i, -tau.Get(i-1), v.Off(j-1, i), v.Vector(j-1, i-1, 1), one, t.Vector(i, i-1, 1)); err != nil {
+							panic(err)
+						}
 					} else {
 						//                    Skip any leading zeros.
 						for lastv = 1; lastv <= i-1; lastv++ {
@@ -118,17 +125,21 @@ func Dlarft(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Ve
 								break
 							}
 						}
-						for j = i + 1; j <= (*k); j++ {
-							t.Set(j-1, i-1, -tau.Get(i-1)*v.Get(j-1, (*n)-(*k)+i-1))
+						for j = i + 1; j <= k; j++ {
+							t.Set(j-1, i-1, -tau.Get(i-1)*v.Get(j-1, n-k+i-1))
 						}
 						j = max(lastv, prevlastv)
 
 						//                    T(i+1:k,i) = -tau(i) * V(i+1:k,j:n-k+i) * V(i,j:n-k+i)**T
-						err = goblas.Dgemv(NoTrans, (*k)-i, (*n)-(*k)+i-j, -tau.Get(i-1), v.Off(i, j-1), v.Vector(i-1, j-1), one, t.Vector(i, i-1, 1))
+						if err = goblas.Dgemv(NoTrans, k-i, n-k+i-j, -tau.Get(i-1), v.Off(i, j-1), v.Vector(i-1, j-1), one, t.Vector(i, i-1, 1)); err != nil {
+							panic(err)
+						}
 					}
 
 					//                 T(i+1:k,i) := T(i+1:k,i+1:k) * T(i+1:k,i)
-					err = goblas.Dtrmv(Lower, NoTrans, NonUnit, (*k)-i, t.Off(i, i), t.Vector(i, i-1, 1))
+					if err = goblas.Dtrmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), t.Vector(i, i-1, 1)); err != nil {
+						panic(err)
+					}
 					if i > 1 {
 						prevlastv = min(prevlastv, lastv)
 					} else {

@@ -1,20 +1,22 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrorhrcol tests the error exits for DORHR_COL that does
+// derrorhrcol tests the error exits for DorhrCol that does
 // Householder reconstruction from the ouput of tall-skinny
 // factorization DLATSQR.
-func DerrorhrCol(path []byte, _t *testing.T) {
-	var i, info, j, nmax int
-	lerr := &gltest.Common.Infoc.Lerr
+func derrorhrCol(path string, _t *testing.T) {
+	var i, j, nmax int
+	var err error
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 2
@@ -35,36 +37,40 @@ func DerrorhrCol(path []byte, _t *testing.T) {
 
 	//     Error exits for Householder reconstruction
 	//
-	//     DORHR_COL
-	*srnamt = "DORHR_COL"
-	*infot = 1
-	golapack.DorhrCol(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	golapack.DorhrCol(func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, toPtr(-1), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 0; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	golapack.DorhrCol(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	*infot = 7
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, toPtr(-1), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	golapack.DorhrCol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 0; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
-	golapack.DorhrCol(func() *int { y := 4; return &y }(), func() *int { y := 3; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 4; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("DORHR_COL", &info, lerr, ok, _t)
+	//     DorhrCol
+	*srnamt = "DorhrCol"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.DorhrCol(-1, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("n < 0 || n > m: n=-1, m=0")
+	err = golapack.DorhrCol(0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("n < 0 || n > m: n=2, m=1")
+	err = golapack.DorhrCol(1, 2, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("nb < 1: nb=-1")
+	err = golapack.DorhrCol(0, 0, -1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("nb < 1: nb=0")
+	err = golapack.DorhrCol(0, 0, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=-1, m=0")
+	err = golapack.DorhrCol(0, 0, 1, a.Off(0, 0).UpdateRows(-1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.DorhrCol(2, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("t.Rows < max(1, min(nb, n)): t.Rows=-1, nb=1, n=0")
+	err = golapack.DorhrCol(0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(-1), d)
+	chkxer2("DorhrCol", err)
+	*errt = fmt.Errorf("t.Rows < max(1, min(nb, n)): t.Rows=1, nb=2, n=3")
+	err = golapack.DorhrCol(4, 3, 2, a.Off(0, 0).UpdateRows(4), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("DorhrCol", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		_t.Fail()
+	}
 }

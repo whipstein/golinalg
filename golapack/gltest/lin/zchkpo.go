@@ -10,15 +10,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkpo tests ZPOTRF, -TRI, -TRS, -RFS, and -CON
-func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *int, nsval *[]int, thresh *float64, tsterr *bool, nmax *int, a, afac, ainv, b, x, xact, work *mat.CVector, rwork *mat.Vector, nout *int, t *testing.T) {
+// zchkpo tests Zpotrf, -TRI, -TRS, -RFS, and -CON
+func zchkpo(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, nsval []int, thresh float64, tsterr bool, nmax int, a, afac, ainv, b, x, xact, work *mat.CVector, rwork *mat.Vector, t *testing.T) {
 	var zerot bool
-	var dist, _type, uplo, xtype byte
+	var dist, _type, xtype byte
+	var uplo mat.MatUplo
 	var czero complex128
 	var anorm, cndnum, rcond, rcondc float64
-	var i, imat, in, inb, info, ioff, irhs, iuplo, izero, k, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrhs, nrun, ntypes int
+	var i, imat, in, inb, info, ioff, irhs, izero, k, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrhs, nrun, ntypes int
+	var err error
 
-	uplos := make([]byte, 2)
 	result := vf(8)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
@@ -29,10 +30,9 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1] = 'U', 'L'
 
 	//     Initialize constants and the random number seed.
-	path := []byte("ZPO")
+	path := "Zpo"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -41,14 +41,14 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Zerrpo(path, t)
+	if tsterr {
+		zerrpo(path, t)
 	}
 	(*infot) = 0
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
@@ -59,7 +59,7 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 		izero = 0
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label110
 			}
 
@@ -69,20 +69,16 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 				goto label110
 			}
 
-			//           Do first for UPLO = 'U', then for UPLO = 'L'
-			for iuplo = 1; iuplo <= 2; iuplo++ {
-				uplo = uplos[iuplo-1]
+			//           Do first for uplo='U', then for uplo='L'
+			for _, uplo = range mat.IterMatUplo(false) {
 
 				//              Set up parameters with ZLATB4 and generate a test matrix
-				//              with ZLATMS.
-				Zlatb4(path, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				//              with Zlatms.
+				_type, kl, ku, anorm, mode, cndnum, dist = zlatb4(path, imat, n, n)
 
-				*srnamt = "ZLATMS"
-				matgen.Zlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, uplo, a.CMatrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from ZLATMS.
-				if info != 0 {
-					Alaerh(path, []byte("ZLATMS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Zlatms"
+				if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, uplo.Byte(), a.CMatrix(lda, opts), work); err != nil {
+					nerrs = alaerh(path, "Zlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					goto label100
 				}
 
@@ -99,7 +95,7 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					ioff = (izero - 1) * lda
 
 					//                 Set row and column IZERO of A to 0.
-					if iuplo == 1 {
+					if uplo == Upper {
 						for i = 1; i <= izero-1; i++ {
 							a.Set(ioff+i-1, czero)
 						}
@@ -124,21 +120,18 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 				}
 
 				//              Set the imaginary part of the diagonals.
-				Zlaipd(&n, a, toPtr(lda+1), func() *int { y := 0; return &y }())
+				zlaipd(n, a, lda+1, 0)
 
 				//              Do for each value of NB in NBVAL
-				for inb = 1; inb <= (*nnb); inb++ {
-					nb = (*nbval)[inb-1]
-					Xlaenv(1, nb)
+				for inb = 1; inb <= nnb; inb++ {
+					nb = nbval[inb-1]
+					xlaenv(1, nb)
 
 					//                 Compute the L*L' or U'*U factorization of the matrix.
-					golapack.Zlacpy(uplo, &n, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda)
-					*srnamt = "ZPOTRF"
-					golapack.Zpotrf(uplo, &n, afac.CMatrix(lda, opts), &lda, &info)
-
-					//                 Check error code from ZPOTRF.
-					if info != izero {
-						Alaerh(path, []byte("ZPOTRF"), &info, &izero, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nb, &imat, &nfail, &nerrs)
+					golapack.Zlacpy(uplo, n, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts))
+					*srnamt = "Zpotrf"
+					if info, err = golapack.Zpotrf(uplo, n, afac.CMatrix(lda, opts)); err != nil || info != izero {
+						nerrs = alaerh(path, "Zpotrf", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nb, imat, nfail, nerrs)
 						goto label90
 					}
 
@@ -149,36 +142,33 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 					//+    TEST 1
 					//                 Reconstruct matrix from factors and compute residual.
-					golapack.Zlacpy(uplo, &n, &n, afac.CMatrix(lda, opts), &lda, ainv.CMatrix(lda, opts), &lda)
-					Zpot01(uplo, &n, a.CMatrix(lda, opts), &lda, ainv.CMatrix(lda, opts), &lda, rwork, result.GetPtr(0))
+					golapack.Zlacpy(uplo, n, n, afac.CMatrix(lda, opts), ainv.CMatrix(lda, opts))
+					*result.GetPtr(0) = zpot01(uplo, n, a.CMatrix(lda, opts), ainv.CMatrix(lda, opts), rwork)
 
 					//+    TEST 2
 					//                 Form the inverse and compute the residual.
-					golapack.Zlacpy(uplo, &n, &n, afac.CMatrix(lda, opts), &lda, ainv.CMatrix(lda, opts), &lda)
-					*srnamt = "ZPOTRI"
-					golapack.Zpotri(uplo, &n, ainv.CMatrix(lda, opts), &lda, &info)
-
-					//                 Check error code from ZPOTRI.
-					if info != 0 {
+					golapack.Zlacpy(uplo, n, n, afac.CMatrix(lda, opts), ainv.CMatrix(lda, opts))
+					*srnamt = "Zpotri"
+					if info, err = golapack.Zpotri(uplo, n, ainv.CMatrix(lda, opts)); err != nil || info != 0 {
 						t.Fail()
-						Alaerh(path, []byte("ZPOTRI"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Zpotri", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					Zpot03(uplo, &n, a.CMatrix(lda, opts), &lda, ainv.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork, &rcondc, result.GetPtr(1))
+					rcondc, *result.GetPtr(1) = zpot03(uplo, n, a.CMatrix(lda, opts), ainv.CMatrix(lda, opts), work.CMatrix(lda, opts), rwork)
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 1; k <= 2; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							t.Fail()
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
-							fmt.Printf(" UPLO = '%c', N =%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" uplo=%s, n=%5d, nb=%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
-					nrun = nrun + 2
+					nrun += 2
 
 					//                 Skip the rest of the tests unless this is the first
 					//                 blocksize.
@@ -186,82 +176,75 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						goto label90
 					}
 
-					for irhs = 1; irhs <= (*nns); irhs++ {
-						nrhs = (*nsval)[irhs-1]
+					for irhs = 1; irhs <= nns; irhs++ {
+						nrhs = nsval[irhs-1]
 
 						//+    TEST 3
 						//                 Solve and compute residual for A * X = B .
-						*srnamt = "ZLARHS"
-						Zlarhs(path, xtype, uplo, ' ', &n, &n, &kl, &ku, &nrhs, a.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, &iseed, &info)
-						golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
+						*srnamt = "zlarhs"
+						if err = zlarhs(path, xtype, uplo, NoTrans, n, n, kl, ku, nrhs, a.CMatrix(lda, opts), xact.CMatrix(lda, opts), b.CMatrix(lda, opts), &iseed); err != nil {
+							panic(err)
+						}
+						golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), x.CMatrix(lda, opts))
 
-						*srnamt = "ZPOTRS"
-						golapack.Zpotrs(uplo, &n, &nrhs, afac.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &info)
-
-						//                 Check error code from ZPOTRS.
-						if info != 0 {
-							Alaerh(path, []byte("ZPOTRS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+						*srnamt = "Zpotrs"
+						if err = golapack.Zpotrs(uplo, n, nrhs, afac.CMatrix(lda, opts), x.CMatrix(lda, opts)); err != nil {
+							nerrs = alaerh(path, "Zpotrs", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 						}
 
-						golapack.Zlacpy('F', &n, &nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-						Zpot02(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork, result.GetPtr(2))
+						golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), work.CMatrix(lda, opts))
+						*result.GetPtr(2) = zpot02(uplo, n, nrhs, a.CMatrix(lda, opts), x.CMatrix(lda, opts), work.CMatrix(lda, opts), rwork)
 
 						//+    TEST 4
 						//                 Check solution from generated exact solution.
-						Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
+						*result.GetPtr(3) = zget04(n, nrhs, x.CMatrix(lda, opts), xact.CMatrix(lda, opts), rcondc)
 
 						//+    TESTS 5, 6, and 7
 						//                 Use iterative refinement to improve the solution.
-						*srnamt = "ZPORFS"
-						golapack.Zporfs(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs), &info)
-
-						//                 Check error code from ZPORFS.
-						if info != 0 {
-							Alaerh(path, []byte("ZPORFS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+						*srnamt = "Zporfs"
+						if err = golapack.Zporfs(uplo, n, nrhs, a.CMatrix(lda, opts), afac.CMatrix(lda, opts), b.CMatrix(lda, opts), x.CMatrix(lda, opts), rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs)); err != nil {
+							nerrs = alaerh(path, "Zporfs", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 						}
 
-						Zget04(&n, &nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-						Zpot05(uplo, &n, &nrhs, a.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
+						*result.GetPtr(4) = zget04(n, nrhs, x.CMatrix(lda, opts), xact.CMatrix(lda, opts), rcondc)
+						zpot05(uplo, n, nrhs, a.CMatrix(lda, opts), b.CMatrix(lda, opts), x.CMatrix(lda, opts), xact.CMatrix(lda, opts), rwork, rwork.Off(nrhs), result.Off(5))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
 						for k = 3; k <= 7; k++ {
-							if result.Get(k-1) >= (*thresh) {
+							if result.Get(k-1) >= thresh {
 								t.Fail()
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
-								fmt.Printf(" UPLO = '%c', N =%5d, NRHS=%3d, _type %2d, test(%2d) =%12.5f\n", uplo, n, nrhs, imat, k, result.Get(k-1))
-								nfail = nfail + 1
+								fmt.Printf(" uplo=%s, n=%5d, nrhs=%3d, _type %2d, test(%2d) =%12.5f\n", uplo, n, nrhs, imat, k, result.Get(k-1))
+								nfail++
 							}
 						}
-						nrun = nrun + 5
+						nrun += 5
 					}
 
 					//+    TEST 8
 					//                 Get an estimate of RCOND = 1/CNDNUM.
-					anorm = golapack.Zlanhe('1', uplo, &n, a.CMatrix(lda, opts), &lda, rwork)
-					*srnamt = "ZPOCON"
-					golapack.Zpocon(uplo, &n, afac.CMatrix(lda, opts), &lda, &anorm, &rcond, work, rwork, &info)
-
-					//                 Check error code from ZPOCON.
-					if info != 0 {
+					anorm = golapack.Zlanhe('1', uplo, n, a.CMatrix(lda, opts), rwork)
+					*srnamt = "Zpocon"
+					if rcond, err = golapack.Zpocon(uplo, n, afac.CMatrix(lda, opts), anorm, work, rwork); err != nil {
 						t.Fail()
-						Alaerh(path, []byte("ZPOCON"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Zpocon", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					result.Set(7, Dget06(&rcond, &rcondc))
+					result.Set(7, dget06(rcond, rcondc))
 
 					//                 Print the test ratio if it is .GE. THRESH.
-					if result.Get(7) >= (*thresh) {
+					if result.Get(7) >= thresh {
 						t.Fail()
 						if nfail == 0 && nerrs == 0 {
-							Alahd(path)
+							alahd(path)
 						}
-						fmt.Printf(" UPLO = '%c', N =%5d,           _type %2d, test(%2d) =%12.5f\n", uplo, n, imat, 8, result.Get(7))
-						nfail = nfail + 1
+						fmt.Printf(" uplo=%s, n=%5d,           _type %2d, test(%2d) =%12.5f\n", uplo, n, imat, 8, result.Get(7))
+						nfail++
 					}
-					nrun = nrun + 1
+					nrun++
 				label90:
 				}
 			label100:
@@ -271,5 +254,5 @@ func Zchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

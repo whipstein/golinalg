@@ -8,9 +8,9 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dckglm tests DGGGLM - subroutine for solving generalized linear
+// dckglm tests DGGGLM - subroutine for solving generalized linear
 //                       model problem.
-func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *float64, nmax *int, a, af, b, bf, x, work, rwork *mat.Vector, nout, info *int, t *testing.T) {
+func dckglm(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work, rwork *mat.Vector, nout int, t *testing.T) (err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb, resid float64
@@ -20,21 +20,20 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 	ntypes = 8
 
 	//     Initialize constants.
-	path := []byte("GLM")
-	(*info) = 0
+	path := "Glm"
 	nrun = 0
 	nfail = 0
 	firstt = true
-	Alareq(nmats, &dotype)
-	lda = (*nmax)
-	ldb = (*nmax)
-	lwork = (*nmax) * (*nmax)
+	alareq(nmats, &dotype)
+	lda = nmax
+	ldb = nmax
+	lwork = nmax * nmax
 
 	//     Check for valid input values.
-	for ik = 1; ik <= (*nn); ik++ {
-		m = (*mval)[ik-1]
-		p = (*pval)[ik-1]
-		n = (*nval)[ik-1]
+	for ik = 1; ik <= nn; ik++ {
+		m = mval[ik-1]
+		p = pval[ik-1]
+		n = nval[ik-1]
 		if m > n || n > m+p {
 			if firstt {
 				fmt.Printf("\n")
@@ -46,10 +45,10 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 	firstt = true
 
 	//     Do for each value of M in MVAL.
-	for ik = 1; ik <= (*nn); ik++ {
-		m = (*mval)[ik-1]
-		p = (*pval)[ik-1]
-		n = (*nval)[ik-1]
+	for ik = 1; ik <= nn; ik++ {
+		m = mval[ik-1]
+		p = pval[ik-1]
+		n = nval[ik-1]
 		if m > n || n > m+p {
 			goto label40
 		}
@@ -62,43 +61,41 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 
 			//           Set up parameters with DLATB9 and generate test
 			//           matrices A and B with DLATMS.
-			Dlatb9(path, &imat, &m, &p, &n, &_type, &kla, &kua, &klb, &kub, &anorm, &bnorm, &modea, &modeb, &cndnma, &cndnmb, &dista, &distb)
+			_type, kla, kua, klb, kub, anorm, bnorm, modea, modeb, cndnma, cndnmb, dista, distb = dlatb9(path, imat, m, p, n)
 
-			matgen.Dlatms(&n, &m, dista, iseed, _type, rwork, &modea, &cndnma, &anorm, &kla, &kua, 'N', a.Matrix(lda, opts), &lda, work, &iinfo)
-			if iinfo != 0 {
+			if iinfo, err = matgen.Dlatms(n, m, dista, &iseed, _type, rwork, modea, cndnma, anorm, kla, kua, 'N', a.Matrix(lda, opts), work); iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKGLM INFO = %5d\n", iinfo)
-				(*info) = abs(iinfo)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label30
 			}
 
-			matgen.Dlatms(&n, &p, distb, iseed, _type, rwork, &modeb, &cndnmb, &bnorm, &klb, &kub, 'N', b.Matrix(ldb, opts), &ldb, work, &iinfo)
-			if iinfo != 0 {
+			if iinfo, err = matgen.Dlatms(n, p, distb, &iseed, _type, rwork, modeb, cndnmb, bnorm, klb, kub, 'N', b.Matrix(ldb, opts), work); iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKGLM INFO = %5d\n", iinfo)
-				(*info) = abs(iinfo)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label30
 			}
 
 			//           Generate random left hand side vector of GLM
 			for i = 1; i <= n; i++ {
-				x.Set(i-1, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
+				x.Set(i-1, matgen.Dlarnd(2, &iseed))
 			}
 
-			Dglmts(&n, &m, &p, a.Matrix(lda, opts), af.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), bf.Matrix(ldb, opts), &ldb, x, x.Off((*nmax)), x.Off(2*(*nmax)), x.Off(3*(*nmax)), work, &lwork, rwork, &resid)
+			resid = dglmts(n, m, p, a.Matrix(lda, opts), af.Matrix(lda, opts), b.Matrix(ldb, opts), bf.Matrix(ldb, opts), x, x.Off(nmax), x.Off(2*nmax), x.Off(3*nmax), work, lwork, rwork)
 
 			//           Print information about the tests that did not
 			//           pass the threshold.
-			if resid >= (*thresh) {
+			if resid >= thresh {
 				t.Fail()
 				if nfail == 0 && firstt {
 					firstt = false
-					Alahdg(path)
+					alahdg(path)
 				}
 				fmt.Printf(" N=%4d M=%4d, P=%4d, _type %2d, test %2d, ratio=%13.6f\n", n, m, p, imat, 1, resid)
-				nfail = nfail + 1
+				nfail++
 			}
-			nrun = nrun + 1
+			nrun++
 
 		label30:
 		}
@@ -106,5 +103,7 @@ func Dckglm(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, func() *int { y := 0; return &y }())
+	alasum(path, nfail, nrun, 0)
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -11,98 +13,107 @@ import (
 // A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
 // Here A and B are assumed to be Hermitian and B is also
 // positive definite.
-func Zhegv(itype *int, jobz, uplo byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, w *mat.Vector, work *mat.CVector, lwork *int, rwork *mat.Vector, info *int) {
+func Zhegv(itype int, jobz byte, uplo mat.MatUplo, n int, a, b *mat.CMatrix, w *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector) (info int, err error) {
 	var lquery, upper, wantz bool
-	var trans byte
+	var trans mat.MatTrans
 	var one complex128
 	var lwkopt, nb, neig int
-	var err error
-	_ = err
 
 	one = (1.0 + 0.0*1i)
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
-	upper = uplo == 'U'
-	lquery = ((*lwork) == -1)
+	upper = uplo == Upper
+	lquery = (lwork == -1)
 
-	(*info) = 0
-	if (*itype) < 1 || (*itype) > 3 {
-		(*info) = -1
+	if itype < 1 || itype > 3 {
+		err = fmt.Errorf("itype < 1 || itype > 3: itype=%v", itype)
 	} else if !(wantz || jobz == 'N') {
-		(*info) = -2
-	} else if !(upper || uplo == 'L') {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -8
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
+	} else if !(upper || uplo == Lower) {
+		err = fmt.Errorf("!(upper || uplo == Lower): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
 
-	if (*info) == 0 {
-		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = max(1, (nb+1)*(*n))
+	if err == nil {
+		nb = Ilaenv(1, "Zhetrd", []byte{uplo.Byte()}, n, -1, -1, -1)
+		lwkopt = max(1, (nb+1)*n)
 		work.SetRe(0, float64(lwkopt))
 
-		if (*lwork) < max(1, 2*(*n)-1) && !lquery {
-			(*info) = -11
+		if lwork < max(1, 2*n-1) && !lquery {
+			err = fmt.Errorf("lwork < max(1, 2*n-1) && !lquery: lwork=%v, n=%v, lquery=%v", lwork, n, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHEGV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhegv", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Form a Cholesky factorization of B.
-	Zpotrf(uplo, n, b, ldb, info)
-	if (*info) != 0 {
-		(*info) = (*n) + (*info)
+	if info, err = Zpotrf(uplo, n, b); err != nil {
+		panic(err)
+	}
+	if info != 0 {
+		info = n + info
 		return
 	}
 
 	//     Transform problem to standard eigenvalue problem and solve.
-	Zhegst(itype, uplo, n, a, lda, b, ldb, info)
-	Zheev(jobz, uplo, n, a, lda, w, work, lwork, rwork, info)
+	if err = Zhegst(itype, uplo, n, a, b); err != nil {
+		panic(err)
+	}
+	if info, err = Zheev(jobz, uplo, n, a, w, work, lwork, rwork); err != nil {
+		panic(err)
+	}
 
 	if wantz {
 		//        Backtransform eigenvectors to the original problem.
-		neig = (*n)
-		if (*info) > 0 {
-			neig = (*info) - 1
+		neig = n
+		if info > 0 {
+			neig = info - 1
 		}
-		if (*itype) == 1 || (*itype) == 2 {
+		if itype == 1 || itype == 2 {
 			//           For A*x=(lambda)*B*x and A*B*x=(lambda)*x;
 			//           backtransform eigenvectors: x = inv(L)**H *y or inv(U)*y
 			if upper {
-				trans = 'N'
+				trans = NoTrans
 			} else {
-				trans = 'C'
+				trans = ConjTrans
 			}
 
-			err = goblas.Ztrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, a)
+			if err = goblas.Ztrsm(Left, uplo, trans, NonUnit, n, neig, one, b, a); err != nil {
+				panic(err)
+			}
 
-		} else if (*itype) == 3 {
+		} else if itype == 3 {
 			//           For B*A*x=(lambda)*x;
 			//           backtransform eigenvectors: x = L*y or U**H *y
 			if upper {
-				trans = 'C'
+				trans = ConjTrans
 			} else {
-				trans = 'N'
+				trans = NoTrans
 			}
 
-			err = goblas.Ztrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, a)
+			if err = goblas.Ztrmm(Left, uplo, trans, NonUnit, n, neig, one, b, a); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	work.SetRe(0, float64(lwkopt))
+
+	return
 }

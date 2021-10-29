@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ztrt05 tests the error bounds from iterative refinement for the
+// ztrt05 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations A*X = B, where A is a
 // triangular n by n matrix.
 //
@@ -20,7 +20,7 @@ import (
 // RESLTS(2) = residual from the iterative refinement routine
 //           = the maximum of BERR / ( (n+1)*EPS + (*) ), where
 //             (*) = (n+1)*UNFL / (min_i (abs(A)*abs(X) +abs(b))_i )
-func Ztrt05(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, x *mat.CMatrix, ldx *int, xact *mat.CMatrix, ldxact *int, ferr, berr, reslts *mat.Vector) {
+func ztrt05(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int, a, b, x, xact *mat.CMatrix, ferr, berr, reslts *mat.Vector) {
 	var notran, unit, upper bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, ifu, imax, j, k int
@@ -28,10 +28,8 @@ func Ztrt05(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 	zero = 0.0
 	one = 1.0
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -40,20 +38,20 @@ func Ztrt05(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	upper = uplo == 'U'
-	notran = trans == 'N'
-	unit = diag == 'U'
+	upper = uplo == Upper
+	notran = trans == NoTrans
+	unit = diag == Unit
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
-	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Izamax(*n, x.CVector(0, j-1, 1))
-		xnorm = math.Max(Cabs1(x.Get(imax-1, j-1)), unfl)
+	for j = 1; j <= nrhs; j++ {
+		imax = goblas.Izamax(n, x.CVector(0, j-1, 1))
+		xnorm = math.Max(cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
-		for i = 1; i <= (*n); i++ {
-			diff = math.Max(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+		for i = 1; i <= n; i++ {
+			diff = math.Max(diff, cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -82,39 +80,39 @@ func Ztrt05(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 	if unit {
 		ifu = 1
 	}
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
-			tmp = Cabs1(b.Get(i-1, k-1))
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
+			tmp = cabs1(b.Get(i-1, k-1))
 			if upper {
 				if !notran {
 					for j = 1; j <= i-ifu; j++ {
-						tmp = tmp + Cabs1(a.Get(j-1, i-1))*Cabs1(x.Get(j-1, k-1))
+						tmp = tmp + cabs1(a.Get(j-1, i-1))*cabs1(x.Get(j-1, k-1))
 					}
 					if unit {
-						tmp = tmp + Cabs1(x.Get(i-1, k-1))
+						tmp = tmp + cabs1(x.Get(i-1, k-1))
 					}
 				} else {
 					if unit {
-						tmp = tmp + Cabs1(x.Get(i-1, k-1))
+						tmp = tmp + cabs1(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= (*n); j++ {
-						tmp = tmp + Cabs1(a.Get(i-1, j-1))*Cabs1(x.Get(j-1, k-1))
+					for j = i + ifu; j <= n; j++ {
+						tmp = tmp + cabs1(a.Get(i-1, j-1))*cabs1(x.Get(j-1, k-1))
 					}
 				}
 			} else {
 				if notran {
 					for j = 1; j <= i-ifu; j++ {
-						tmp = tmp + Cabs1(a.Get(i-1, j-1))*Cabs1(x.Get(j-1, k-1))
+						tmp = tmp + cabs1(a.Get(i-1, j-1))*cabs1(x.Get(j-1, k-1))
 					}
 					if unit {
-						tmp = tmp + Cabs1(x.Get(i-1, k-1))
+						tmp = tmp + cabs1(x.Get(i-1, k-1))
 					}
 				} else {
 					if unit {
-						tmp = tmp + Cabs1(x.Get(i-1, k-1))
+						tmp = tmp + cabs1(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= (*n); j++ {
-						tmp = tmp + Cabs1(a.Get(j-1, i-1))*Cabs1(x.Get(j-1, k-1))
+					for j = i + ifu; j <= n; j++ {
+						tmp = tmp + cabs1(a.Get(j-1, i-1))*cabs1(x.Get(j-1, k-1))
 					}
 				}
 			}
@@ -124,7 +122,7 @@ func Ztrt05(uplo, trans, diag byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *m
 				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / ((float64(*n)+1)*eps + (float64(*n)+1)*unfl/math.Max(axbi, (float64(*n)+1)*unfl))
+		tmp = berr.Get(k-1) / ((float64(n)+1)*eps + (float64(n)+1)*unfl/math.Max(axbi, (float64(n)+1)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {

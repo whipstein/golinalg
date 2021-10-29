@@ -9,7 +9,7 @@ import (
 // Dlantb returns the value of the one norm,  or the Frobenius norm, or
 // the  infinity norm,  or the element of  largest absolute value  of an
 // n by n triangular band matrix A,  with ( k + 1 ) diagonals.
-func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *mat.Vector) (dlantbReturn float64) {
+func Dlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.Matrix, work *mat.Vector) (dlantbReturn float64) {
 	var udiag bool
 	var one, sum, value, zero float64
 	var i, j, l int
@@ -20,15 +20,15 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 	one = 1.0
 	zero = 0.0
 
-	if (*n) == 0 {
+	if n == 0 {
 		value = zero
 	} else if norm == 'M' {
 		//        Find max(abs(A(i,j))).
-		if diag == 'U' {
+		if diag == Unit {
 			value = one
-			if uplo == 'U' {
-				for j = 1; j <= (*n); j++ {
-					for i = max((*k)+2-j, 1); i <= (*k); i++ {
+			if uplo == Upper {
+				for j = 1; j <= n; j++ {
+					for i = max(k+2-j, 1); i <= k; i++ {
 						sum = math.Abs(ab.Get(i-1, j-1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -36,8 +36,8 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 					}
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
-					for i = 2; i <= min((*n)+1-j, (*k)+1); i++ {
+				for j = 1; j <= n; j++ {
+					for i = 2; i <= min(n+1-j, k+1); i++ {
 						sum = math.Abs(ab.Get(i-1, j-1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -47,9 +47,9 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 			}
 		} else {
 			value = zero
-			if uplo == 'U' {
-				for j = 1; j <= (*n); j++ {
-					for i = max((*k)+2-j, 1); i <= (*k)+1; i++ {
+			if uplo == Upper {
+				for j = 1; j <= n; j++ {
+					for i = max(k+2-j, 1); i <= k+1; i++ {
 						sum = math.Abs(ab.Get(i-1, j-1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -57,8 +57,8 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 					}
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= min((*n)+1-j, (*k)+1); i++ {
+				for j = 1; j <= n; j++ {
+					for i = 1; i <= min(n+1-j, k+1); i++ {
 						sum = math.Abs(ab.Get(i-1, j-1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -70,17 +70,17 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 	} else if norm == 'O' || norm == '1' {
 		//        Find norm1(A).
 		value = zero
-		udiag = diag == 'U'
-		if uplo == 'U' {
-			for j = 1; j <= (*n); j++ {
+		udiag = diag == Unit
+		if uplo == Upper {
+			for j = 1; j <= n; j++ {
 				if udiag {
 					sum = one
-					for i = max((*k)+2-j, 1); i <= (*k); i++ {
+					for i = max(k+2-j, 1); i <= k; i++ {
 						sum += math.Abs(ab.Get(i-1, j-1))
 					}
 				} else {
 					sum = zero
-					for i = max((*k)+2-j, 1); i <= (*k)+1; i++ {
+					for i = max(k+2-j, 1); i <= k+1; i++ {
 						sum += math.Abs(ab.Get(i-1, j-1))
 					}
 				}
@@ -89,15 +89,15 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 				}
 			}
 		} else {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if udiag {
 					sum = one
-					for i = 2; i <= min((*n)+1-j, (*k)+1); i++ {
+					for i = 2; i <= min(n+1-j, k+1); i++ {
 						sum += math.Abs(ab.Get(i-1, j-1))
 					}
 				} else {
 					sum = zero
-					for i = 1; i <= min((*n)+1-j, (*k)+1); i++ {
+					for i = 1; i <= min(n+1-j, k+1); i++ {
 						sum += math.Abs(ab.Get(i-1, j-1))
 					}
 				}
@@ -109,52 +109,52 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 	} else if norm == 'I' {
 		//        Find normI(A).
 		value = zero
-		if uplo == 'U' {
-			if diag == 'U' {
-				for i = 1; i <= (*n); i++ {
+		if uplo == Upper {
+			if diag == Unit {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, one)
 				}
-				for j = 1; j <= (*n); j++ {
-					l = (*k) + 1 - j
-					for i = max(1, j-(*k)); i <= j-1; i++ {
+				for j = 1; j <= n; j++ {
+					l = k + 1 - j
+					for i = max(1, j-k); i <= j-1; i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(l+i-1, j-1)))
 					}
 				}
 			} else {
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
-					l = (*k) + 1 - j
-					for i = max(1, j-(*k)); i <= j; i++ {
+				for j = 1; j <= n; j++ {
+					l = k + 1 - j
+					for i = max(1, j-k); i <= j; i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(l+i-1, j-1)))
 					}
 				}
 			}
 		} else {
-			if diag == 'U' {
-				for i = 1; i <= (*n); i++ {
+			if diag == Unit {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, one)
 				}
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					l = 1 - j
-					for i = j + 1; i <= min(*n, j+(*k)); i++ {
+					for i = j + 1; i <= min(n, j+k); i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(l+i-1, j-1)))
 					}
 				}
 			} else {
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					l = 1 - j
-					for i = j; i <= min(*n, j+(*k)); i++ {
+					for i = j; i <= min(n, j+k); i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(l+i-1, j-1)))
 					}
 				}
 			}
 		}
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			sum = work.Get(i - 1)
 			if value < sum || Disnan(int(sum)) {
 				value = sum
@@ -165,47 +165,47 @@ func Dlantb(norm, uplo, diag byte, n, k *int, ab *mat.Matrix, ldab *int, work *m
 		//        SSQ(1) is scale
 		//        SSQ(2) is sum-of-squares
 		//        For better accuracy, sum each column separately.
-		if uplo == 'U' {
-			if diag == 'U' {
+		if uplo == Upper {
+			if diag == Unit {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(*n))
-				if (*k) > 0 {
-					for j = 2; j <= (*n); j++ {
+				ssq.Set(1, float64(n))
+				if k > 0 {
+					for j = 2; j <= n; j++ {
 						colssq.Set(0, zero)
 						colssq.Set(1, one)
-						Dlassq(toPtr(min(j-1, *k)), ab.Vector(max((*k)+2-j, 1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+						*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j-1, k), ab.Vector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
 						Dcombssq(ssq, colssq)
 					}
 				}
 			} else {
 				ssq.Set(0, zero)
 				ssq.Set(1, one)
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr(min(j, (*k)+1)), ab.Vector(max((*k)+2-j, 1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j, k+1), ab.Vector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}
 		} else {
-			if diag == 'U' {
+			if diag == Unit {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(*n))
-				if (*k) > 0 {
-					for j = 1; j <= (*n)-1; j++ {
+				ssq.Set(1, float64(n))
+				if k > 0 {
+					for j = 1; j <= n-1; j++ {
 						colssq.Set(0, zero)
 						colssq.Set(1, one)
-						Dlassq(toPtr(min((*n)-j, *k)), ab.Vector(1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+						*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j, k), ab.Vector(1, j-1, 1), colssq.Get(0), colssq.Get(1))
 						Dcombssq(ssq, colssq)
 					}
 				}
 			} else {
 				ssq.Set(0, zero)
 				ssq.Set(1, one)
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr(min((*n)-j+1, (*k)+1)), ab.Vector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j+1, k+1), ab.Vector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}

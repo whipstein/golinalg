@@ -1,11 +1,13 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zsysvrook computes the solution to a complex system of linear
+// ZsysvRook computes the solution to a complex system of linear
 // equations
 //    A * X = B,
 // where A is an N-by-N symmetric matrix and X and B are N-by-NRHS
@@ -24,53 +26,60 @@ import (
 //
 // The factored form of A is then used to solve the system
 // of equations A * X = B by calling ZSYTRS_ROOK.
-func Zsysvrook(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
+func ZsysvRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.CMatrix, work *mat.CVector, lwork int) (info int, err error) {
 	var lquery bool
 	var lwkopt int
 
 	//     Test the input parameters.
-	(*info) = 0
-	lquery = ((*lwork) == -1)
-	if uplo != 'U' && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -8
-	} else if (*lwork) < 1 && !lquery {
-		(*info) = -10
+	lquery = (lwork == -1)
+	if uplo != Upper && uplo != Lower {
+		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if lwork < 1 && !lquery {
+		err = fmt.Errorf("lwork < 1 && !lquery: lwork=%v, lquery=%v", lwork, lquery)
 	}
 
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			lwkopt = 1
 		} else {
-			Zsytrfrook(uplo, n, a, lda, ipiv, work, toPtr(-1), info)
+			if info, err = ZsytrfRook(uplo, n, a, ipiv, work, -1); err != nil {
+				panic(err)
+			}
 			lwkopt = int(work.GetRe(0))
 		}
 		work.SetRe(0, float64(lwkopt))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZSYSV_ROOK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZsysvRook", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Compute the factorization A = U*D*U**T or A = L*D*L**T.
-	Zsytrfrook(uplo, n, a, lda, ipiv, work, lwork, info)
-	if (*info) == 0 {
+	if info, err = ZsytrfRook(uplo, n, a, ipiv, work, lwork); err != nil {
+		panic(err)
+	}
+	if info == 0 {
 		//        Solve the system A*X = B, overwriting B with X.
 		//
 		//        Solve with TRS_ROOK ( Use Level 2 BLAS)
-		Zsytrsrook(uplo, n, nrhs, a, lda, ipiv, b, ldb, info)
+		if err = ZsytrsRook(uplo, n, nrhs, a, ipiv, b); err != nil {
+			panic(err)
+		}
 
 	}
 
 	work.SetRe(0, float64(lwkopt))
+
+	return
 }

@@ -3,7 +3,6 @@ package eig
 import (
 	"fmt"
 	"math"
-	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -11,12 +10,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkbb tests the reduction of a general complex rectangular band
+// zchkbb tests the reduction of a general complex rectangular band
 // matrix to real bidiagonal form.
 //
-// ZGBBRD factors a general band matrix A as  Q B P* , where * means
+// Zgbbrd factors a general band matrix A as  Q B P* , where * means
 // conjugate transpose, B is upper bidiagonal, and Q and P are unitary;
-// ZGBBRD can also overwrite a given matrix C with Q* C .
+// Zgbbrd can also overwrite a given matrix C with Q* C .
 //
 // For each pair of matrix dimensions (M,N) and each selected matrix
 // type, an M by N matrix A and an M by NRHS matrix C are generated.
@@ -75,16 +74,16 @@ import (
 // (13) Rectangular matrix with random entries chosen from (-1,1).
 // (14) Same as (13), but multiplied by SQRT( overflow threshold )
 // (15) Same as (13), but multiplied by SQRT( underflow threshold )
-func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntypes *int, dotype *[]bool, nrhs *int, iseed *[]int, thresh *float64, nounit *int, a *mat.CMatrix, lda *int, ab *mat.CMatrix, ldab *int, bd, be *mat.Vector, q *mat.CMatrix, ldq *int, p *mat.CMatrix, ldp *int, c *mat.CMatrix, ldc *int, cc *mat.CMatrix, work *mat.CVector, lwork *int, rwork, result *mat.Vector, info *int, t *testing.T) {
+func zchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a, ab *mat.CMatrix, bd, be *mat.Vector, q, p, c, cc *mat.CMatrix, work *mat.CVector, lwork int, rwork, result *mat.Vector) (err error) {
 	var badmm, badnn, badnnb bool
 	var cone, czero complex128
 	var amninv, anorm, cond, one, ovfl, rtovfl, rtunfl, ulp, ulpinv, unfl, zero float64
 	var i, iinfo, imode, itype, j, jcol, jr, jsize, jtype, jwidth, k, kl, kmax, ku, m, maxtyp, mmax, mnmax, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
-	kmagn := make([]int, 15)
-	kmode := make([]int, 15)
-	ktype := make([]int, 15)
+	kmagn := []int{1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0}
+	ktype := []int{1, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -92,13 +91,8 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 	one = 1.0
 	maxtyp = 15
 
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14] = 1, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14] = 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14] = 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0
-
 	//     Check for errors
 	ntestt = 0
-	(*info) = 0
 
 	//     Important constants
 	badmm = false
@@ -106,63 +100,63 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 	mmax = 1
 	nmax = 1
 	mnmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		mmax = max(mmax, (*mval)[j-1])
-		if (*mval)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		mmax = max(mmax, mval[j-1])
+		if mval[j-1] < 0 {
 			badmm = true
 		}
-		nmax = max(nmax, (*nval)[j-1])
-		if (*nval)[j-1] < 0 {
+		nmax = max(nmax, nval[j-1])
+		if nval[j-1] < 0 {
 			badnn = true
 		}
-		mnmax = max(mnmax, min((*mval)[j-1], (*nval)[j-1]))
+		mnmax = max(mnmax, min(mval[j-1], nval[j-1]))
 	}
 
 	badnnb = false
 	kmax = 0
-	for j = 1; j <= (*nwdths); j++ {
-		kmax = max(kmax, (*kk)[j-1])
-		if (*kk)[j-1] < 0 {
+	for j = 1; j <= nwdths; j++ {
+		kmax = max(kmax, kk[j-1])
+		if kk[j-1] < 0 {
 			badnnb = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badmm {
-		(*info) = -2
+		err = fmt.Errorf("badmm: mval=%v", mval)
 	} else if badnn {
-		(*info) = -3
-	} else if (*nwdths) < 0 {
-		(*info) = -4
+		err = fmt.Errorf("badnn: nval=%v", nval)
+	} else if nwdths < 0 {
+		err = fmt.Errorf("nwdths < 0: nwdths=%v", nwdths)
 	} else if badnnb {
-		(*info) = -5
-	} else if (*ntypes) < 0 {
-		(*info) = -6
-	} else if (*nrhs) < 0 {
-		(*info) = -8
-	} else if (*lda) < nmax {
-		(*info) = -13
-	} else if (*ldab) < 2*kmax+1 {
-		(*info) = -15
-	} else if (*ldq) < nmax {
-		(*info) = -19
-	} else if (*ldp) < nmax {
-		(*info) = -21
-	} else if (*ldc) < nmax {
-		(*info) = -23
-	} else if (max(*lda, nmax)+1)*nmax > (*lwork) {
-		(*info) = -26
+		err = fmt.Errorf("badnnb: kk=%v", kk)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if ab.Rows < 2*kmax+1 {
+		err = fmt.Errorf("ab.Rows < 2*kmax+1: ab.Rows=%v, kmax=%v", ab.Rows, kmax)
+	} else if q.Rows < nmax {
+		err = fmt.Errorf("q.Rows < nmax: q.Rows=%v, nmax=%v", q.Rows, nmax)
+	} else if p.Rows < nmax {
+		err = fmt.Errorf("p.Rows < nmax: p.Rows=%v, nmax=%v", p.Rows, nmax)
+	} else if c.Rows < nmax {
+		err = fmt.Errorf("c.Rows < nmax: c.Rows=%v, nmax=%v", c.Rows, nmax)
+	} else if (max(a.Rows, nmax)+1)*nmax > lwork {
+		err = fmt.Errorf("(max(a.Rows, nmax)+1)*nmax > lwork: a.Rows=%v, nmax=%v, lwork=%v", a.Rows, nmax, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZCHKBB"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zchkbb", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 || (*nwdths) == 0 {
+	if nsizes == 0 || ntypes == 0 || nwdths == 0 {
 		return
 	}
 
@@ -178,27 +172,27 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		m = (*mval)[jsize-1]
-		n = (*nval)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		m = mval[jsize-1]
+		n = nval[jsize-1]
 		amninv = one / float64(max(1, m, n))
 
-		for jwidth = 1; jwidth <= (*nwdths); jwidth++ {
-			k = (*kk)[jwidth-1]
+		for jwidth = 1; jwidth <= nwdths; jwidth++ {
+			k = kk[jwidth-1]
 			if k >= m && k >= n {
 				goto label150
 			}
 			kl = max(0, min(m-1, k))
 			ku = max(0, min(n-1, k))
 
-			if (*nsizes) != 1 {
-				mtypes = min(maxtyp, *ntypes)
+			if nsizes != 1 {
+				mtypes = min(maxtyp, ntypes)
 			} else {
-				mtypes = min(maxtyp+1, *ntypes)
+				mtypes = min(maxtyp+1, ntypes)
 			}
 
 			for jtype = 1; jtype <= mtypes; jtype++ {
-				if !(*dotype)[jtype-1] {
+				if !dotype[jtype-1] {
 					goto label140
 				}
 				nmats = nmats + 1
@@ -257,8 +251,8 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 			label70:
 				;
 
-				golapack.Zlaset('F', lda, &n, &czero, &czero, a, lda)
-				golapack.Zlaset('F', ldab, &n, &czero, &czero, ab, ldab)
+				golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
+				golapack.Zlaset(Full, ab.Rows, n, czero, czero, ab)
 				iinfo = 0
 				cond = ulpinv
 
@@ -276,15 +270,15 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 
 				} else if itype == 4 {
 					//                 Diagonal Matrix, singular values specified
-					matgen.Zlatms(&m, &n, 'S', iseed, 'N', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work, &iinfo)
+					err = matgen.Zlatms(m, n, 'S', iseed, 'N', rwork, imode, cond, anorm, 0, 0, 'N', a, work)
 
 				} else if itype == 6 {
 					//                 Nonhermitian, singular values specified
-					matgen.Zlatms(&m, &n, 'S', iseed, 'N', rwork, &imode, &cond, &anorm, &kl, &ku, 'N', a, lda, work, &iinfo)
+					err = matgen.Zlatms(m, n, 'S', iseed, 'N', rwork, imode, cond, anorm, kl, ku, 'N', a, work)
 
 				} else if itype == 9 {
 					//                 Nonhermitian, random entries
-					matgen.Zlatmr(&m, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &kl, &ku, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+					err = matgen.Zlatmr(m, n, 'S', iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, kl, ku, zero, anorm, 'N', a, &idumma)
 
 				} else {
 
@@ -292,12 +286,11 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 				}
 
 				//              Generate Right-Hand Side
-				matgen.Zlatmr(&m, nrhs, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(m), func() *int { y := 1; return &y }(), &one, work.Off(2*m), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &m, nrhs, &zero, &one, 'N', c, ldc, &idumma, &iinfo)
+				err = matgen.Zlatmr(m, nrhs, 'S', iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(m), 1, one, work.Off(2*m), 1, one, 'N', &idumma, m, nrhs, zero, one, 'N', c, &idumma)
 
 				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKBB: %s returned INFO=%5d.\n         M=%5d N=%5d K=%5d, JTYPE=%5d, ISEED=%5d\n", "Generator", iinfo, m, n, k, jtype, ioldsd)
-					(*info) = abs(iinfo)
+					fmt.Printf(" zchkbb: %s returned info=%5d.\n         m=%5d n=%5d k=%5d, jtype=%5d, iseed=%5d\n", "Generator", iinfo, m, n, k, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					return
 				}
 
@@ -312,15 +305,11 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 				}
 
 				//              Copy C
-				golapack.Zlacpy('F', &m, nrhs, c, ldc, cc, ldc)
+				golapack.Zlacpy(Full, m, nrhs, c, cc)
 
-				//              Call ZGBBRD to compute B, Q and P, and to update C.
-				golapack.Zgbbrd('B', &m, &n, nrhs, &kl, &ku, ab, ldab, bd, be, q, ldq, p, ldp, cc, ldc, work, rwork, &iinfo)
-
-				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKBB: %s returned INFO=%5d.\n         M=%5d N=%5d K=%5d, JTYPE=%5d, ISEED=%5d\n", "ZGBBRD", iinfo, m, n, k, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				//              Call Zgbbrd to compute B, Q and P, and to update C.
+				if err = golapack.Zgbbrd('B', m, n, nrhs, kl, ku, ab, bd, be, q, p, cc, work, rwork); err != nil {
+					fmt.Printf(" zchkbb: %s returned info=%5d.\n         m=%5d n=%5d k=%5d, jtype=%5d, iseed=%5d\n", "Zgbbrd", iinfo, m, n, k, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -333,10 +322,10 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 				//                   2:  Check the orthogonality of Q
 				//                   3:  Check the orthogonality of P
 				//                   4:  Check the computation of Q' * C
-				Zbdt01(&m, &n, toPtr(-1), a, lda, q, ldq, bd, be, p, ldp, work, rwork, result.GetPtr(0))
-				Zunt01('C', &m, &m, q, ldq, work, lwork, rwork, result.GetPtr(1))
-				Zunt01('R', &n, &n, p, ldp, work, lwork, rwork, result.GetPtr(2))
-				Zbdt02(&m, nrhs, c, ldc, cc, ldc, q, ldq, work, rwork, result.GetPtr(3))
+				result.Set(0, zbdt01(m, n, -1, a, q, bd, be, p, work, rwork))
+				result.Set(1, zunt01('C', m, m, q, work, lwork, rwork))
+				result.Set(2, zunt01('R', n, n, p, work, lwork, rwork))
+				result.Set(3, zbdt02(m, nrhs, c, cc, q, work, rwork))
 
 				//              End of Loop -- Check for RESULT(j) > THRESH
 				ntest = 4
@@ -346,13 +335,12 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 
 				//              Print out tests which fail.
 				for jr = 1; jr <= ntest; jr++ {
-					if result.Get(jr-1) >= (*thresh) {
-						t.Fail()
+					if result.Get(jr-1) >= thresh {
 						if nerrs == 0 {
-							Dlahd2([]byte("ZBB"))
+							dlahd2("Zbb")
 						}
 						nerrs = nerrs + 1
-						fmt.Printf(" M =%4d N=%4d, K=%3d, seed=%4d, type %2d, test(%2d)=%10.3f\n", m, n, k, ioldsd, jtype, jr, result.Get(jr-1))
+						fmt.Printf(" M =%4d n=%4d, k=%3d, seed=%4d, type %2d, test(%2d)=%10.3f\n", m, n, k, ioldsd, jtype, jr, result.Get(jr-1))
 					}
 				}
 
@@ -363,5 +351,7 @@ func Zchkbb(nsizes *int, mval *[]int, nval *[]int, nwdths *int, kk *[]int, ntype
 	}
 
 	//     Summary
-	Dlasum([]byte("ZBB"), &nerrs, &ntestt)
+	dlasum("Zbb", nerrs, ntestt)
+
+	return
 }

@@ -5,7 +5,7 @@ import "github.com/whipstein/golinalg/mat"
 // Dlaqgb equilibrates a general M by N band matrix A with KL
 // subdiagonals and KU superdiagonals using the row and scaling factors
 // in the vectors R and C.
-func Dlaqgb(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, r, c *mat.Vector, rowcnd *float64, colcnd *float64, amax *float64, equed *byte) {
+func Dlaqgb(m, n, kl, ku int, ab *mat.Matrix, r, c *mat.Vector, rowcnd, colcnd, amax float64) (equed byte) {
 	var cj, large, one, small, thresh float64
 	var i, j int
 
@@ -13,8 +13,8 @@ func Dlaqgb(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, r, c *mat.Vector, rowc
 	thresh = 0.1
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
-		(*equed) = 'N'
+	if m <= 0 || n <= 0 {
+		equed = 'N'
 		return
 	}
 
@@ -22,43 +22,45 @@ func Dlaqgb(m, n, kl, ku *int, ab *mat.Matrix, ldab *int, r, c *mat.Vector, rowc
 	small = Dlamch(SafeMinimum) / Dlamch(Precision)
 	large = one / small
 
-	if (*rowcnd) >= thresh && (*amax) >= small && (*amax) <= large {
+	if rowcnd >= thresh && amax >= small && amax <= large {
 		//
 		//        No row scaling
 		//
-		if (*colcnd) >= thresh {
+		if colcnd >= thresh {
 			//
 			//           No column scaling
 			//
-			(*equed) = 'N'
+			equed = 'N'
 		} else {
 			//
 			//           Column scaling
 			//
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				cj = c.Get(j - 1)
-				for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
-					ab.Set((*ku)+1+i-j-1, j-1, cj*ab.Get((*ku)+1+i-j-1, j-1))
+				for i = max(1, j-ku); i <= min(m, j+kl); i++ {
+					ab.Set(ku+1+i-j-1, j-1, cj*ab.Get(ku+1+i-j-1, j-1))
 				}
 			}
-			(*equed) = 'C'
+			equed = 'C'
 		}
-	} else if (*colcnd) >= thresh {
+	} else if colcnd >= thresh {
 		//        Row scaling, no column scaling
-		for j = 1; j <= (*n); j++ {
-			for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
-				ab.Set((*ku)+1+i-j-1, j-1, r.Get(i-1)*ab.Get((*ku)+1+i-j-1, j-1))
+		for j = 1; j <= n; j++ {
+			for i = max(1, j-ku); i <= min(m, j+kl); i++ {
+				ab.Set(ku+1+i-j-1, j-1, r.Get(i-1)*ab.Get(ku+1+i-j-1, j-1))
 			}
 		}
-		(*equed) = 'R'
+		equed = 'R'
 	} else {
 		//        Row and column scaling
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			cj = c.Get(j - 1)
-			for i = max(1, j-(*ku)); i <= min(*m, j+(*kl)); i++ {
-				ab.Set((*ku)+1+i-j-1, j-1, cj*r.Get(i-1)*ab.Get((*ku)+1+i-j-1, j-1))
+			for i = max(1, j-ku); i <= min(m, j+kl); i++ {
+				ab.Set(ku+1+i-j-1, j-1, cj*r.Get(i-1)*ab.Get(ku+1+i-j-1, j-1))
 			}
 		}
-		(*equed) = 'B'
+		equed = 'B'
 	}
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -12,31 +14,30 @@ import (
 // if UPLO = 'U', Q = H(n-1) . . . H(2) H(1),
 //
 // if UPLO = 'L', Q = H(1) H(2) . . . H(n-1).
-func Dopgtr(uplo byte, n *int, ap, tau *mat.Vector, q *mat.Matrix, ldq *int, work *mat.Vector, info *int) {
+func Dopgtr(uplo mat.MatUplo, n int, ap, tau *mat.Vector, q *mat.Matrix, work *mat.Vector) (err error) {
 	var upper bool
 	var one, zero float64
-	var i, iinfo, ij, j int
+	var i, ij, j int
 
 	zero = 0.0
 	one = 1.0
 
 	//     Test the input arguments
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*ldq) < max(1, *n) {
-		(*info) = -6
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if q.Rows < max(1, n) {
+		err = fmt.Errorf("q.Rows < max(1, n): q.Rows=%v, n=%v", q.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DOPGTR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dopgtr", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -47,21 +48,23 @@ func Dopgtr(uplo byte, n *int, ap, tau *mat.Vector, q *mat.Matrix, ldq *int, wor
 		//        set the last row and column of Q equal to those of the unit
 		//        matrix
 		ij = 2
-		for j = 1; j <= (*n)-1; j++ {
+		for j = 1; j <= n-1; j++ {
 			for i = 1; i <= j-1; i++ {
 				q.Set(i-1, j-1, ap.Get(ij-1))
 				ij = ij + 1
 			}
 			ij = ij + 2
-			q.Set((*n)-1, j-1, zero)
+			q.Set(n-1, j-1, zero)
 		}
-		for i = 1; i <= (*n)-1; i++ {
-			q.Set(i-1, (*n)-1, zero)
+		for i = 1; i <= n-1; i++ {
+			q.Set(i-1, n-1, zero)
 		}
-		q.Set((*n)-1, (*n)-1, one)
+		q.Set(n-1, n-1, one)
 
 		//        Generate Q(1:n-1,1:n-1)
-		Dorg2l(toPtr((*n)-1), toPtr((*n)-1), toPtr((*n)-1), q, ldq, tau, work, &iinfo)
+		if err = Dorg2l(n-1, n-1, n-1, q, tau, work); err != nil {
+			panic(err)
+		}
 
 	} else {
 		//        Q was determined by a call to DSPTRD with UPLO = 'L'.
@@ -70,21 +73,25 @@ func Dopgtr(uplo byte, n *int, ap, tau *mat.Vector, q *mat.Matrix, ldq *int, wor
 		//        set the first row and column of Q equal to those of the unit
 		//        matrix
 		q.Set(0, 0, one)
-		for i = 2; i <= (*n); i++ {
+		for i = 2; i <= n; i++ {
 			q.Set(i-1, 0, zero)
 		}
 		ij = 3
-		for j = 2; j <= (*n); j++ {
+		for j = 2; j <= n; j++ {
 			q.Set(0, j-1, zero)
-			for i = j + 1; i <= (*n); i++ {
+			for i = j + 1; i <= n; i++ {
 				q.Set(i-1, j-1, ap.Get(ij-1))
 				ij = ij + 1
 			}
 			ij = ij + 2
 		}
-		if (*n) > 1 {
+		if n > 1 {
 			//           Generate Q(2:n,2:n)
-			Dorg2r(toPtr((*n)-1), toPtr((*n)-1), toPtr((*n)-1), q.Off(1, 1), ldq, tau, work, &iinfo)
+			if err = Dorg2r(n-1, n-1, n-1, q.Off(1, 1), tau, work); err != nil {
+				panic(err)
+			}
 		}
 	}
+
+	return
 }

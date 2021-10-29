@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
@@ -12,12 +13,13 @@ import (
 // Ztrsna estimates reciprocal condition numbers for specified
 // eigenvalues and/or right eigenvectors of a complex upper triangular
 // matrix T (or of any matrix Q*T*Q**H with Q unitary).
-func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, vl *mat.CMatrix, ldvl *int, vr *mat.CMatrix, ldvr *int, s, sep *mat.Vector, mm, m *int, work *mat.CMatrix, ldwork *int, rwork *mat.Vector, info *int) {
+func Ztrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.CMatrix, s, sep *mat.Vector, mm int, work *mat.CMatrix, rwork *mat.Vector) (m int, err error) {
 	var somcon, wantbh, wants, wantsp bool
 	var normin byte
 	var prod complex128
 	var bignum, eps, est, lnrm, one, rnrm, scale, smlnum, xnorm, zero float64
-	var i, ierr, ix, j, k, kase, ks int
+	var i, ix, j, k, kase, ks int
+
 	dummy := cvf(1)
 	isave := make([]int, 3)
 
@@ -34,45 +36,44 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 	//     Set M to the number of eigenpairs for which condition numbers are
 	//     to be computed.
 	if somcon {
-		(*m) = 0
-		for j = 1; j <= (*n); j++ {
+		m = 0
+		for j = 1; j <= n; j++ {
 			if _select[j-1] {
-				(*m) = (*m) + 1
+				m = m + 1
 			}
 		}
 	} else {
-		(*m) = (*n)
+		m = n
 	}
 
-	(*info) = 0
 	if !wants && !wantsp {
-		(*info) = -1
+		err = fmt.Errorf("!wants && !wantsp: job='%c'", job)
 	} else if howmny != 'A' && !somcon {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*ldt) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldvl) < 1 || (wants && (*ldvl) < (*n)) {
-		(*info) = -8
-	} else if (*ldvr) < 1 || (wants && (*ldvr) < (*n)) {
-		(*info) = -10
-	} else if (*mm) < (*m) {
-		(*info) = -13
-	} else if (*ldwork) < 1 || (wantsp && (*ldwork) < (*n)) {
-		(*info) = -16
+		err = fmt.Errorf("howmny != 'A' && !somcon: howmny='%c'", howmny)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if t.Rows < max(1, n) {
+		err = fmt.Errorf("t.Rows < max(1, n): t.Rows=%v, n=%v", t.Rows, n)
+	} else if vl.Rows < 1 || (wants && vl.Rows < n) {
+		err = fmt.Errorf("vl.Rows < 1 || (wants && vl.Rows < n): job='%c', vl.Rows=%v, n=%v", job, vl.Rows, n)
+	} else if vr.Rows < 1 || (wants && vr.Rows < n) {
+		err = fmt.Errorf("vr.Rows < 1 || (wants && vr.Rows < n): job='%c', vr.Rows=%v, n=%v", job, vr.Rows, n)
+	} else if mm < m {
+		err = fmt.Errorf("mm < m: mm=%v, m=%v", mm, m)
+	} else if work.Rows < 1 || (wantsp && work.Rows < n) {
+		err = fmt.Errorf("work.Rows < 1 || (wantsp && work.Rows < n): job='%c', work.Rows=%v, n=%v", job, work.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTRSNA"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztrsna", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if somcon {
 			if !_select[0] {
 				return
@@ -91,10 +92,10 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 
 	ks = 1
-	for k = 1; k <= (*n); k++ {
+	for k = 1; k <= n; k++ {
 
 		if somcon {
 			if !_select[k-1] {
@@ -105,9 +106,9 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			prod = goblas.Zdotc(*n, vr.CVector(0, ks-1, 1), vl.CVector(0, ks-1, 1))
-			rnrm = goblas.Dznrm2(*n, vr.CVector(0, ks-1, 1))
-			lnrm = goblas.Dznrm2(*n, vl.CVector(0, ks-1, 1))
+			prod = goblas.Zdotc(n, vr.CVector(0, ks-1, 1), vl.CVector(0, ks-1, 1))
+			rnrm = goblas.Dznrm2(n, vr.CVector(0, ks-1, 1))
+			lnrm = goblas.Dznrm2(n, vl.CVector(0, ks-1, 1))
 			s.Set(ks-1, cmplx.Abs(prod)/(rnrm*lnrm))
 
 		}
@@ -118,11 +119,13 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 			//
 			//           Copy the matrix T to the array WORK and swap the k-th
 			//           diagonal element to the (1,1) position.
-			Zlacpy('F', n, n, t, ldt, work, ldwork)
-			Ztrexc('N', n, work, ldwork, dummy.CMatrix(1, opts), func() *int { y := 1; return &y }(), &k, func() *int { y := 1; return &y }(), &ierr)
+			Zlacpy(Full, n, n, t, work)
+			if err = Ztrexc('N', n, work, dummy.CMatrix(1, opts), k, 1); err != nil {
+				panic(err)
+			}
 
 			//           Form  C = T22 - lambda*I in WORK(2:N,2:N).
-			for i = 2; i <= (*n); i++ {
+			for i = 2; i <= n; i++ {
 				work.Set(i-1, i-1, work.Get(i-1, i-1)-work.Get(0, 0))
 			}
 
@@ -134,26 +137,30 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 			normin = 'N'
 		label30:
 			;
-			Zlacn2(toPtr((*n)-1), work.CVector(0, (*n)), work.CVector(0, 0), &est, &kase, &isave)
+			est, kase = Zlacn2(n-1, work.CVector(0, n), work.CVector(0, 0), est, kase, &isave)
 
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve C**H*x = scale*b
-					Zlatrs('U', 'C', 'N', normin, toPtr((*n)-1), work.Off(1, 1), ldwork, work.CVector(0, 0), &scale, rwork, &ierr)
+					if scale, err = Zlatrs(Upper, ConjTrans, NonUnit, normin, n-1, work.Off(1, 1), work.CVector(0, 0), rwork); err != nil {
+						panic(err)
+					}
 				} else {
 					//                 Solve C*x = scale*b
-					Zlatrs('U', 'N', 'N', normin, toPtr((*n)-1), work.Off(1, 1), ldwork, work.CVector(0, 0), &scale, rwork, &ierr)
+					if scale, err = Zlatrs(Upper, NoTrans, NonUnit, normin, n-1, work.Off(1, 1), work.CVector(0, 0), rwork); err != nil {
+						panic(err)
+					}
 				}
 				normin = 'Y'
 				if scale != one {
 					//                 Multiply by 1/SCALE if doing so will not cause
 					//                 overflow.
-					ix = goblas.Izamax((*n)-1, work.CVector(0, 0, 1))
+					ix = goblas.Izamax(n-1, work.CVector(0, 0, 1))
 					xnorm = cabs1(work.Get(ix-1, 0))
 					if scale < xnorm*smlnum || scale == zero {
 						goto label40
 					}
-					Zdrscl(n, &scale, work.CVector(0, 0), func() *int { y := 1; return &y }())
+					Zdrscl(n, scale, work.CVector(0, 0, 1))
 				}
 				goto label30
 			}
@@ -166,4 +173,6 @@ func Ztrsna(job, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, 
 		ks = ks + 1
 	label50:
 	}
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -12,12 +13,12 @@ import (
 // of a complex Hermitian matrix A in packed storage.
 // Eigenvalues/vectors can be selected by specifying either a _range of
 // values or a _range of indices for the desired eigenvalues.
-func Zhpevx(jobz, _range, uplo byte, n *int, ap *mat.CVector, vl, vu *float64, il, iu *int, abstol *float64, m *int, w *mat.Vector, z *mat.CMatrix, ldz *int, work *mat.CVector, rwork *mat.Vector, iwork, ifail *[]int, info *int) {
+func Zhpevx(jobz, _range byte, uplo mat.MatUplo, n int, ap *mat.CVector, vl, vu float64, il, iu int, abstol float64, w *mat.Vector, z *mat.CMatrix, work *mat.CVector, rwork *mat.Vector, iwork, ifail *[]int) (m, info int, err error) {
 	var alleig, indeig, test, valeig, wantz bool
 	var order byte
 	var cone complex128
 	var abstll, anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, tmp1, vll, vuu, zero float64
-	var i, iinfo, imax, indd, inde, indee, indibl, indisp, indiwk, indrwk, indtau, indwrk, iscale, itmp1, j, jj, nsplit int
+	var i, imax, indd, inde, indee, indibl, indisp, indiwk, indrwk, indtau, indwrk, iscale, itmp1, j, jj int
 
 	zero = 0.0
 	one = 1.0
@@ -29,52 +30,51 @@ func Zhpevx(jobz, _range, uplo byte, n *int, ap *mat.CVector, vl, vu *float64, i
 	valeig = _range == 'V'
 	indeig = _range == 'I'
 
-	(*info) = 0
 	if !(wantz || jobz == 'N') {
-		(*info) = -1
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
 	} else if !(alleig || valeig || indeig) {
-		(*info) = -2
-	} else if !(uplo == 'L' || uplo == 'U') {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
+		err = fmt.Errorf("!(alleig || valeig || indeig): _range='%c'", _range)
+	} else if !(uplo == Lower || uplo == Upper) {
+		err = fmt.Errorf("!(uplo == Lower || uplo == Upper): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	} else {
 		if valeig {
-			if (*n) > 0 && (*vu) <= (*vl) {
-				(*info) = -7
+			if n > 0 && vu <= vl {
+				err = fmt.Errorf("n > 0 && vu <= vl: n=%v, vl=%v, vu=%v", n, vl, vu)
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > max(1, *n) {
-				(*info) = -8
-			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
-				(*info) = -9
+			if il < 1 || il > max(1, n) {
+				err = fmt.Errorf("il < 1 || il > max(1, n): n=%v, il=%v", n, il)
+			} else if iu < min(n, il) || iu > n {
+				err = fmt.Errorf("iu < min(n, il) || iu > n: n=%v, il=%v, iu=%v", n, il, iu)
 			}
 		}
 	}
-	if (*info) == 0 {
-		if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-			(*info) = -14
+	if err == nil {
+		if z.Rows < 1 || (wantz && z.Rows < n) {
+			err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHPEVX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhpevx", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*m) = 0
-	if (*n) == 0 {
+	m = 0
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if alleig || indeig {
-			(*m) = 1
+			m = 1
 			w.Set(0, ap.GetRe(0))
 		} else {
-			if (*vl) < ap.GetRe(0) && (*vu) >= ap.GetRe(0) {
-				(*m) = 1
+			if vl < ap.GetRe(0) && vu >= ap.GetRe(0) {
+				m = 1
 				w.Set(0, ap.GetRe(0))
 			}
 		}
@@ -94,10 +94,10 @@ func Zhpevx(jobz, _range, uplo byte, n *int, ap *mat.CVector, vl, vu *float64, i
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
-	abstll = (*abstol)
+	abstll = abstol
 	if valeig {
-		vll = (*vl)
-		vuu = (*vu)
+		vll = vl
+		vuu = vu
 	} else {
 		vll = zero
 		vuu = zero
@@ -111,54 +111,62 @@ func Zhpevx(jobz, _range, uplo byte, n *int, ap *mat.CVector, vl, vu *float64, i
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Zdscal(((*n)*((*n)+1))/2, sigma, ap.Off(0, 1))
-		if (*abstol) > 0 {
-			abstll = (*abstol) * sigma
+		goblas.Zdscal((n*(n+1))/2, sigma, ap.Off(0, 1))
+		if abstol > 0 {
+			abstll = abstol * sigma
 		}
 		if valeig {
-			vll = (*vl) * sigma
-			vuu = (*vu) * sigma
+			vll = vl * sigma
+			vuu = vu * sigma
 		}
 	}
 
 	//     Call ZHPTRD to reduce Hermitian packed matrix to tridiagonal form.
 	indd = 1
-	inde = indd + (*n)
-	indrwk = inde + (*n)
+	inde = indd + n
+	indrwk = inde + n
 	indtau = 1
-	indwrk = indtau + (*n)
-	Zhptrd(uplo, n, ap, rwork.Off(indd-1), rwork.Off(inde-1), work.Off(indtau-1), &iinfo)
+	indwrk = indtau + n
+	if err = Zhptrd(uplo, n, ap, rwork.Off(indd-1), rwork.Off(inde-1), work.Off(indtau-1)); err != nil {
+		panic(err)
+	}
 
 	//     If all eigenvalues are desired and ABSTOL is less than or equal
 	//     to zero, then call DSTERF or ZUPGTR and ZSTEQR.  If this fails
 	//     for some eigenvalue, then try DSTEBZ.
 	test = false
 	if indeig {
-		if (*il) == 1 && (*iu) == (*n) {
+		if il == 1 && iu == n {
 			test = true
 		}
 	}
-	if (alleig || test) && ((*abstol) <= zero) {
-		goblas.Dcopy(*n, rwork.Off(indd-1, 1), w.Off(0, 1))
-		indee = indrwk + 2*(*n)
+	if (alleig || test) && (abstol <= zero) {
+		goblas.Dcopy(n, rwork.Off(indd-1, 1), w.Off(0, 1))
+		indee = indrwk + 2*n
 		if !wantz {
-			goblas.Dcopy((*n)-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
-			Dsterf(n, w, rwork.Off(indee-1), info)
+			goblas.Dcopy(n-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
+			if info, err = Dsterf(n, w, rwork.Off(indee-1)); err != nil {
+				panic(err)
+			}
 		} else {
-			Zupgtr(uplo, n, ap, work.Off(indtau-1), z, ldz, work.Off(indwrk-1), &iinfo)
-			goblas.Dcopy((*n)-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
-			Zsteqr(jobz, n, w, rwork.Off(indee-1), z, ldz, rwork.Off(indrwk-1), info)
-			if (*info) == 0 {
-				for i = 1; i <= (*n); i++ {
+			if err = Zupgtr(uplo, n, ap, work.Off(indtau-1), z, work.Off(indwrk-1)); err != nil {
+				panic(err)
+			}
+			goblas.Dcopy(n-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
+			if info, err = Zsteqr(jobz, n, w, rwork.Off(indee-1), z, rwork.Off(indrwk-1)); err != nil {
+				panic(err)
+			}
+			if info == 0 {
+				for i = 1; i <= n; i++ {
 					(*ifail)[i-1] = 0
 				}
 			}
 		}
-		if (*info) == 0 {
-			(*m) = (*n)
+		if info == 0 {
+			m = n
 			goto label20
 		}
-		(*info) = 0
+		info = 0
 	}
 
 	//     Otherwise, call DSTEBZ and, if eigenvectors are desired, ZSTEIN.
@@ -168,27 +176,33 @@ func Zhpevx(jobz, _range, uplo byte, n *int, ap *mat.CVector, vl, vu *float64, i
 		order = 'E'
 	}
 	indibl = 1
-	indisp = indibl + (*n)
-	indiwk = indisp + (*n)
-	Dstebz(_range, order, n, &vll, &vuu, il, iu, &abstll, rwork.Off(indd-1), rwork.Off(inde-1), m, &nsplit, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), rwork.Off(indrwk-1), toSlice(iwork, indiwk-1), info)
+	indisp = indibl + n
+	indiwk = indisp + n
+	if m, _, info, err = Dstebz(_range, order, n, vll, vuu, il, iu, abstll, rwork.Off(indd-1), rwork.Off(inde-1), w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), rwork.Off(indrwk-1), toSlice(iwork, indiwk-1)); err != nil {
+		panic(err)
+	}
 
 	if wantz {
-		Zstein(n, rwork.Off(indd-1), rwork.Off(inde-1), m, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), z, ldz, rwork.Off(indrwk-1), toSlice(iwork, indiwk-1), ifail, info)
+		if info, err = Zstein(n, rwork.Off(indd-1), rwork.Off(inde-1), m, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), z, rwork.Off(indrwk-1), toSlice(iwork, indiwk-1), ifail); err != nil {
+			panic(err)
+		}
 
 		//        Apply unitary matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by ZSTEIN.
-		indwrk = indtau + (*n)
-		Zupmtr('L', uplo, 'N', n, m, ap, work.Off(indtau-1), z, ldz, work.Off(indwrk-1), &iinfo)
+		indwrk = indtau + n
+		if err = Zupmtr(Left, uplo, NoTrans, n, m, ap, work.Off(indtau-1), z, work.Off(indwrk-1)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 label20:
 	;
 	if iscale == 1 {
-		if (*info) == 0 {
-			imax = (*m)
+		if info == 0 {
+			imax = m
 		} else {
-			imax = (*info) - 1
+			imax = info - 1
 		}
 		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
@@ -196,10 +210,10 @@ label20:
 	//     If eigenvalues are not in order, then sort them, along with
 	//     eigenvectors.
 	if wantz {
-		for j = 1; j <= (*m)-1; j++ {
+		for j = 1; j <= m-1; j++ {
 			i = 0
 			tmp1 = w.Get(j - 1)
-			for jj = j + 1; jj <= (*m); jj++ {
+			for jj = j + 1; jj <= m; jj++ {
 				if w.Get(jj-1) < tmp1 {
 					i = jj
 					tmp1 = w.Get(jj - 1)
@@ -212,8 +226,8 @@ label20:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
-				if (*info) != 0 {
+				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
+				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]
 					(*ifail)[j-1] = itmp1
@@ -221,4 +235,6 @@ label20:
 			}
 		}
 	}
+
+	return
 }

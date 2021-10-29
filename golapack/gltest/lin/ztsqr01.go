@@ -7,14 +7,13 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ztsqr01 tests ZGEQR , ZGELQ, ZGEMLQ and ZGEMQR.
-func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
+// ztsqr01 tests Zgeqr , Zgelq, Zgemlq and Zgemqr.
+func ztsqr01(tssw byte, m, n, mb, nb int, result *mat.Vector) {
 	var testzeros, ts bool
 	var czero, one complex128
 	var anorm, cnorm, dnorm, eps, resid, zero float64
-	var info, j, k, l, lwork, mnb, tsize int
+	var j, k, l, lwork, mnb, tsize int
 	var err error
-	_ = err
 
 	tquery := cvf(5)
 	workquery := cvf(1)
@@ -28,267 +27,337 @@ func Ztsqr01(tssw byte, m, n, mb, nb *int, result *mat.Vector) {
 	iseed[0], iseed[1], iseed[2], iseed[3] = 1988, 1989, 1990, 1991
 
 	//     TEST TALL SKINNY OR SHORT WIDE
-	ts = string(tssw) == "TS"
+	ts = tssw == 'T'
 
 	//     TEST MATRICES WITH HALF OF MATRIX BEING ZEROS
 	testzeros = false
 
 	eps = golapack.Dlamch(Epsilon)
-	k = min(*m, *n)
-	l = max(*m, *n, 1)
-	mnb = max(*mb, *nb)
+	k = min(m, n)
+	l = max(m, n, 1)
+	mnb = max(mb, nb)
 	lwork = max(3, l) * mnb
 
 	//     Dynamically allocate local arrays
-	a := cmf(*m, *n, opts)
-	af := cmf(*m, *n, opts)
+	a := cmf(m, n, opts)
+	af := cmf(m, n, opts)
 	q := cmf(l, l, opts)
-	r := cmf(*m, l, opts)
+	r := cmf(m, l, opts)
 	rwork := vf(l)
-	c := cmf(*m, *n, opts)
-	cf := cmf(*m, *n, opts)
-	d := cmf(*n, *m, opts)
-	df := cmf(*n, *m, opts)
-	lq := cmf(l, *n, opts)
+	c := cmf(m, n, opts)
+	cf := cmf(m, n, opts)
+	d := cmf(n, m, opts)
+	df := cmf(n, m, opts)
+	lq := cmf(l, n, opts)
 
 	//     Put random numbers into A and copy to af
-	for j = 1; j <= (*n); j++ {
-		golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, a.CVector(0, j-1))
+	for j = 1; j <= n; j++ {
+		golapack.Zlarnv(2, &iseed, m, a.CVector(0, j-1))
 	}
 	if testzeros {
-		if (*m) >= 4 {
-			for j = 1; j <= (*n); j++ {
-				golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)/2), a.CVector((*m)/4-1, j-1))
+		if m >= 4 {
+			for j = 1; j <= n; j++ {
+				golapack.Zlarnv(2, &iseed, m/2, a.CVector(m/4-1, j-1))
 			}
 		}
 	}
-	golapack.Zlacpy('F', m, n, a, m, af, m)
+	golapack.Zlacpy(Full, m, n, a, af)
 
 	if ts {
 		//     Factor the matrix A in the array af.
-		golapack.Zgeqr(m, n, af, m, tquery, toPtr(-1), workquery, toPtr(-1), &info)
+		if err = golapack.Zgeqr(m, n, af, tquery, -1, workquery, -1); err != nil {
+			panic(err)
+		}
 		tsize = int(tquery.GetRe(0))
 		lwork = int(workquery.GetRe(0))
-		golapack.Zgemqr('L', 'N', m, m, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemqr(Left, NoTrans, m, m, k, af, tquery, tsize, cf, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemqr('L', 'N', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemqr(Left, NoTrans, m, n, k, af, tquery, tsize, cf, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemqr('L', 'C', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemqr(Left, ConjTrans, m, n, k, af, tquery, tsize, cf, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemqr('R', 'N', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemqr(Right, NoTrans, n, m, k, af, tquery, tsize, df, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemqr('R', 'C', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemqr(Right, ConjTrans, n, m, k, af, tquery, tsize, df, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
 		t := cvf(tsize)
 		work := cvf(lwork)
-		*srnamt = "ZGEQR"
-		golapack.Zgeqr(m, n, af, m, t, &tsize, work, &lwork, &info)
+		*srnamt = "Zgeqr"
+		if err = golapack.Zgeqr(m, n, af, t, tsize, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Generate the m-by-m matrix Q
-		golapack.Zlaset('F', m, m, &czero, &one, q, m)
-		*srnamt = "ZGEMQR"
-		golapack.Zgemqr('L', 'N', m, m, &k, af, m, t, &tsize, q, m, work, &lwork, &info)
+		golapack.Zlaset(Full, m, m, czero, one, q)
+		*srnamt = "Zgemqr"
+		if err = golapack.Zgemqr(Left, NoTrans, m, m, k, af, t, tsize, q, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Copy R
-		golapack.Zlaset('F', m, n, &czero, &czero, r, m)
-		golapack.Zlacpy('U', m, n, af, m, r, m)
+		golapack.Zlaset(Full, m, n, czero, czero, r)
+		golapack.Zlacpy(Upper, m, n, af, r)
 
 		//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-		err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, a, one, r)
-		anorm = golapack.Zlange('1', m, n, a, m, rwork)
-		resid = golapack.Zlange('1', m, n, r, m, rwork)
+		if err = goblas.Zgemm(ConjTrans, NoTrans, m, n, m, -one, q, a, one, r); err != nil {
+			panic(err)
+		}
+		anorm = golapack.Zlange('1', m, n, a, rwork)
+		resid = golapack.Zlange('1', m, n, r, rwork)
 		if anorm > zero {
-			result.Set(0, resid/(eps*float64(max(1, *m))*anorm))
+			result.Set(0, resid/(eps*float64(max(1, m))*anorm))
 		} else {
 			result.Set(0, zero)
 		}
 
 		//     Compute |I - Q'*Q| and store in RESULT(2)
-		golapack.Zlaset('F', m, m, &czero, &one, r, m)
-		err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-one), q, real(one), r)
-		resid = golapack.Zlansy('1', 'U', m, r, m, rwork)
-		result.Set(1, resid/(eps*float64(max(1, *m))))
+		golapack.Zlaset(Full, m, m, czero, one, r)
+		if err = goblas.Zherk(Upper, ConjTrans, m, m, real(-one), q, real(one), r); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlansy('1', Upper, m, r, rwork)
+		result.Set(1, resid/(eps*float64(max(1, m))))
 
 		//     Generate random m-by-n matrix C and a copy CF
-		for j = 1; j <= (*n); j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, c.CVector(0, j-1))
+		for j = 1; j <= n; j++ {
+			golapack.Zlarnv(2, &iseed, m, c.CVector(0, j-1))
 		}
-		cnorm = golapack.Zlange('1', m, n, c, m, rwork)
-		golapack.Zlacpy('F', m, n, c, m, cf, m)
+		cnorm = golapack.Zlange('1', m, n, c, rwork)
+		golapack.Zlacpy(Full, m, n, c, cf)
 
 		//     Apply Q to C as Q*C
-		*srnamt = "ZGEMQR"
-		golapack.Zgemqr('L', 'N', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
+		*srnamt = "Zgemqr"
+		if err = golapack.Zgemqr(Left, NoTrans, m, n, k, af, t, tsize, cf, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |Q*C - Q*C| / |C|
-		err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
-		resid = golapack.Zlange('1', m, n, cf, m, rwork)
+		if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, -one, q, c, one, cf); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', m, n, cf, rwork)
 		if cnorm > zero {
-			result.Set(2, resid/(eps*float64(max(1, *m))*cnorm))
+			result.Set(2, resid/(eps*float64(max(1, m))*cnorm))
 		} else {
 			result.Set(2, zero)
 		}
 
 		//     Copy C into CF again
-		golapack.Zlacpy('F', m, n, c, m, cf, m)
+		golapack.Zlacpy(Full, m, n, c, cf)
 
 		//     Apply Q to C as QT*C
-		*srnamt = "ZGEMQR"
-		golapack.Zgemqr('L', 'C', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
+		*srnamt = "Zgemqr"
+		if err = golapack.Zgemqr(Left, ConjTrans, m, n, k, af, t, tsize, cf, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |QT*C - QT*C| / |C|
-		goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -one, q, c, one, cf)
-		resid = golapack.Zlange('1', m, n, cf, m, rwork)
+		goblas.Zgemm(ConjTrans, NoTrans, m, n, m, -one, q, c, one, cf)
+		resid = golapack.Zlange('1', m, n, cf, rwork)
 		if cnorm > zero {
-			result.Set(3, resid/(eps*float64(max(1, *m))*cnorm))
+			result.Set(3, resid/(eps*float64(max(1, m))*cnorm))
 		} else {
 			result.Set(3, zero)
 		}
 
 		//     Generate random n-by-m matrix D and a copy DF
-		for j = 1; j <= (*m); j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, n, d.CVector(0, j-1))
+		for j = 1; j <= m; j++ {
+			golapack.Zlarnv(2, &iseed, n, d.CVector(0, j-1))
 		}
-		dnorm = golapack.Zlange('1', n, m, d, n, rwork)
-		golapack.Zlacpy('F', n, m, d, n, df, n)
+		dnorm = golapack.Zlange('1', n, m, d, rwork)
+		golapack.Zlacpy(Full, n, m, d, df)
 
 		//     Apply Q to D as D*Q
-		*srnamt = "ZGEMQR"
-		golapack.Zgemqr('R', 'N', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
+		*srnamt = "Zgemqr"
+		if err = golapack.Zgemqr(Right, NoTrans, n, m, k, af, t, tsize, df, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |D*Q - D*Q| / |D|
-		err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -one, d, q, one, df)
-		resid = golapack.Zlange('1', n, m, df, n, rwork)
+		if err = goblas.Zgemm(NoTrans, NoTrans, n, m, m, -one, d, q, one, df); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', n, m, df, rwork)
 		if dnorm > zero {
-			result.Set(4, resid/(eps*float64(max(1, *m))*dnorm))
+			result.Set(4, resid/(eps*float64(max(1, m))*dnorm))
 		} else {
 			result.Set(4, zero)
 		}
 
 		//     Copy D into DF again
-		golapack.Zlacpy('F', n, m, d, n, df, n)
+		golapack.Zlacpy(Full, n, m, d, df)
 
 		//     Apply Q to D as D*QT
-		golapack.Zgemqr('R', 'C', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
+		if err = golapack.Zgemqr(Right, ConjTrans, n, m, k, af, t, tsize, df, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |D*QT - D*QT| / |D|
-		err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -one, d, q, one, df)
-		resid = golapack.Zlange('1', n, m, df, n, rwork)
+		if err = goblas.Zgemm(NoTrans, ConjTrans, n, m, m, -one, d, q, one, df); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', n, m, df, rwork)
 		if cnorm > zero {
-			result.Set(5, resid/(eps*float64(max(1, *m))*dnorm))
+			result.Set(5, resid/(eps*float64(max(1, m))*dnorm))
 		} else {
 			result.Set(5, zero)
 		}
 
 		//     Short and wide
 	} else {
-		golapack.Zgelq(m, n, af, m, tquery, toPtr(-1), workquery, toPtr(-1), &info)
+		if err = golapack.Zgelq(m, n, af, tquery, -1, workquery, -1); err != nil {
+			panic(err)
+		}
 		tsize = int(tquery.GetRe(0))
 		lwork = int(workquery.GetRe(0))
-		golapack.Zgemlq('R', 'N', n, n, &k, af, m, tquery, &tsize, q, n, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemlq(Right, NoTrans, n, n, k, af, tquery, tsize, q, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemlq('L', 'N', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemlq(Left, NoTrans, n, m, k, af, tquery, tsize, df, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemlq('L', 'C', n, m, &k, af, m, tquery, &tsize, df, n, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemlq(Left, ConjTrans, n, m, k, af, tquery, tsize, df, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemlq('R', 'N', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemlq(Right, NoTrans, m, n, k, af, tquery, tsize, cf, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
-		golapack.Zgemlq('R', 'C', m, n, &k, af, m, tquery, &tsize, cf, m, workquery, toPtr(-1), &info)
+		if err = golapack.Zgemlq(Right, ConjTrans, m, n, k, af, tquery, tsize, cf, workquery, -1); err != nil {
+			panic(err)
+		}
 		lwork = max(lwork, int(workquery.GetRe(0)))
 		t := cvf(tsize)
 		work := cvf(lwork)
-		*srnamt = "ZGELQ"
-		golapack.Zgelq(m, n, af, m, t, &tsize, work, &lwork, &info)
+		*srnamt = "Zgelq"
+		if err = golapack.Zgelq(m, n, af, t, tsize, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Generate the n-by-n matrix Q
-		golapack.Zlaset('F', n, n, &czero, &one, q, n)
-		*srnamt = "ZGEMLQ"
-		golapack.Zgemlq('R', 'N', n, n, &k, af, m, t, &tsize, q, n, work, &lwork, &info)
+		golapack.Zlaset(Full, n, n, czero, one, q)
+		*srnamt = "Zgemlq"
+		if err = golapack.Zgemlq(Right, NoTrans, n, n, k, af, t, tsize, q, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Copy R
-		golapack.Zlaset('F', m, n, &czero, &czero, lq, &l)
-		golapack.Zlacpy('L', m, n, af, m, lq, &l)
+		golapack.Zlaset(Full, m, n, czero, czero, lq)
+		golapack.Zlacpy(Lower, m, n, af, lq)
 
 		//     Compute |L - A*Q'| / |A| and store in RESULT(1)
-		err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -one, a, q, one, lq)
-		anorm = golapack.Zlange('1', m, n, a, m, rwork)
-		resid = golapack.Zlange('1', m, n, lq, &l, rwork)
+		if err = goblas.Zgemm(NoTrans, ConjTrans, m, n, n, -one, a, q, one, lq); err != nil {
+			panic(err)
+		}
+		anorm = golapack.Zlange('1', m, n, a, rwork)
+		resid = golapack.Zlange('1', m, n, lq, rwork)
 		if anorm > zero {
-			result.Set(0, resid/(eps*float64(max(1, *n))*anorm))
+			result.Set(0, resid/(eps*float64(max(1, n))*anorm))
 		} else {
 			result.Set(0, zero)
 		}
 
 		//     Compute |I - Q'*Q| and store in RESULT(2)
-		golapack.Zlaset('F', n, n, &czero, &one, lq, &l)
-		err = goblas.Zherk(Upper, ConjTrans, *n, *n, real(-one), q, real(one), lq)
-		resid = golapack.Zlansy('1', 'U', n, lq, &l, rwork)
-		result.Set(1, resid/(eps*float64(max(1, *n))))
+		golapack.Zlaset(Full, n, n, czero, one, lq)
+		if err = goblas.Zherk(Upper, ConjTrans, n, n, real(-one), q, real(one), lq); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlansy('1', Upper, n, lq, rwork)
+		result.Set(1, resid/(eps*float64(max(1, n))))
 
 		//     Generate random m-by-n matrix C and a copy CF
-		for j = 1; j <= (*m); j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, n, d.CVector(0, j-1))
+		for j = 1; j <= m; j++ {
+			golapack.Zlarnv(2, &iseed, n, d.CVector(0, j-1))
 		}
-		dnorm = golapack.Zlange('1', n, m, d, n, rwork)
-		golapack.Zlacpy('F', n, m, d, n, df, n)
+		dnorm = golapack.Zlange('1', n, m, d, rwork)
+		golapack.Zlacpy(Full, n, m, d, df)
 
 		//     Apply Q to C as Q*C
-		golapack.Zgemlq('L', 'N', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
+		if err = golapack.Zgemlq(Left, NoTrans, n, m, k, af, t, tsize, df, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |Q*D - Q*D| / |D|
-		err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *n, -one, q, d, one, df)
-		resid = golapack.Zlange('1', n, m, df, n, rwork)
+		if err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, -one, q, d, one, df); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', n, m, df, rwork)
 		if dnorm > zero {
-			result.Set(2, resid/(eps*float64(max(1, *n))*dnorm))
+			result.Set(2, resid/(eps*float64(max(1, n))*dnorm))
 		} else {
 			result.Set(2, zero)
 		}
 
 		//     Copy D into DF again
-		golapack.Zlacpy('F', n, m, d, n, df, n)
+		golapack.Zlacpy(Full, n, m, d, df)
 
 		//     Apply Q to D as QT*D
-		golapack.Zgemlq('L', 'C', n, m, &k, af, m, t, &tsize, df, n, work, &lwork, &info)
+		if err = golapack.Zgemlq(Left, ConjTrans, n, m, k, af, t, tsize, df, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |QT*D - QT*D| / |D|
-		err = goblas.Zgemm(ConjTrans, NoTrans, *n, *m, *n, -one, q, d, one, df)
-		resid = golapack.Zlange('1', n, m, df, n, rwork)
+		if err = goblas.Zgemm(ConjTrans, NoTrans, n, m, n, -one, q, d, one, df); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', n, m, df, rwork)
 		if dnorm > zero {
-			result.Set(3, resid/(eps*float64(max(1, *n))*dnorm))
+			result.Set(3, resid/(eps*float64(max(1, n))*dnorm))
 		} else {
 			result.Set(3, zero)
 		}
 
 		//     Generate random n-by-m matrix D and a copy DF
-		for j = 1; j <= (*n); j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, c.CVector(0, j-1))
+		for j = 1; j <= n; j++ {
+			golapack.Zlarnv(2, &iseed, m, c.CVector(0, j-1))
 		}
-		cnorm = golapack.Zlange('1', m, n, c, m, rwork)
-		golapack.Zlacpy('F', m, n, c, m, cf, m)
+		cnorm = golapack.Zlange('1', m, n, c, rwork)
+		golapack.Zlacpy(Full, m, n, c, cf)
 
 		//     Apply Q to C as C*Q
-		golapack.Zgemlq('R', 'N', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
+		if err = golapack.Zgemlq(Right, NoTrans, m, n, k, af, t, tsize, cf, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |C*Q - C*Q| / |C|
-		err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, c, q, one, cf)
-		resid = golapack.Zlange('1', n, m, df, n, rwork)
+		if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, -one, c, q, one, cf); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', n, m, df, rwork)
 		if cnorm > zero {
-			result.Set(4, resid/(eps*float64(max(1, *n))*cnorm))
+			result.Set(4, resid/(eps*float64(max(1, n))*cnorm))
 		} else {
 			result.Set(4, zero)
 		}
 
 		//     Copy C into CF again
-		golapack.Zlacpy('F', m, n, c, m, cf, m)
+		golapack.Zlacpy(Full, m, n, c, cf)
 
 		//     Apply Q to D as D*QT
-		golapack.Zgemlq('R', 'C', m, n, &k, af, m, t, &tsize, cf, m, work, &lwork, &info)
+		if err = golapack.Zgemlq(Right, ConjTrans, m, n, k, af, t, tsize, cf, work, lwork); err != nil {
+			panic(err)
+		}
 
 		//     Compute |C*QT - C*QT| / |C|
-		err = goblas.Zgemm(NoTrans, ConjTrans, *m, *n, *n, -one, c, q, one, cf)
-		resid = golapack.Zlange('1', m, n, cf, m, rwork)
+		if err = goblas.Zgemm(NoTrans, ConjTrans, m, n, n, -one, c, q, one, cf); err != nil {
+			panic(err)
+		}
+		resid = golapack.Zlange('1', m, n, cf, rwork)
 		if cnorm > zero {
-			result.Set(5, resid/(eps*float64(max(1, *n))*cnorm))
+			result.Set(5, resid/(eps*float64(max(1, n))*cnorm))
 		} else {
 			result.Set(5, zero)
 		}

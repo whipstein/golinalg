@@ -8,15 +8,16 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrst tests the error exits for ZHETRD, ZUNGTR, CUNMTR, ZHPTRD,
-// ZUNGTR, ZUPMTR, ZSTEQR, CSTEIN, ZPTEQR, ZHBTRD,
+// zerrst tests the error exits for Zhetrd, Zungtr, CUNMTR, Zhptrd,
+// Zungtr, Zupmtr, Zsteqr, CSTEIN, Zpteqr, Zhbtrd,
 // ZHEEV, CHEEVX, CHEEVD, ZHBEV, CHBEVX, CHBEVD,
-// ZHPEV, CHPEVX, CHPEVD, and ZSTEDC.
-// ZHEEVD_2STAGE, ZHEEVR_2STAGE, ZHEEVX_2STAGE,
-// ZHEEV_2STAGE, ZHBEV_2STAGE, ZHBEVD_2STAGE,
-// ZHBEVX_2STAGE, ZHETRD_2STAGE
-func Zerrst(path []byte, t *testing.T) {
-	var i, info, j, liw, lw, m, n, nmax, nt int
+// ZHPEV, CHPEVX, CHPEVD, and Zstedc.
+// Zheevd2stage, Zheevr2stage, Zheevx2stage,
+// Zheev2stage, Zhbev2stage, Zhbevd2stage,
+// Zhbevx2stage, Zhetrd2stage
+func zerrst(path string, t *testing.T) {
+	var i, j, liw, lw, n, nmax, nt int
+	var err error
 
 	nmax = 3
 	liw = 12 * nmax
@@ -36,9 +37,10 @@ func Zerrst(path []byte, t *testing.T) {
 	c := cmf(3, 3, opts)
 	q := cmf(3, 3, opts)
 	z := cmf(3, 3, opts)
+
+	errt := &gltest.Common.Infoc.Errt
 	infot := &gltest.Common.Infoc.Infot
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	c2 := path[1:3]
@@ -59,928 +61,914 @@ func Zerrst(path []byte, t *testing.T) {
 	(*ok) = true
 	nt = 0
 
-	//     Test error exits for the ST path.
-	if string(c2) == "ST" {
-		//        ZHETRD
-		*srnamt = "ZHETRD"
-		*infot = 1
-		golapack.Zhetrd('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrd('U', toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhetrd('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhetrd('U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHETRD", &info, lerr, ok, t)
+	//     Test error exits for the st path.
+	if c2 == "st" {
+		//        Zhetrd
+		*srnamt = "Zhetrd"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zhetrd('/', 0, a.Off(0, 0).UpdateRows(1), d, e, tau, w, 1)
+		chkxer2("Zhetrd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zhetrd(Upper, -1, a.Off(0, 0).UpdateRows(1), d, e, tau, w, 1)
+		chkxer2("Zhetrd", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Zhetrd(Upper, 2, a.Off(0, 0).UpdateRows(1), d, e, tau, w, 1)
+		chkxer2("Zhetrd", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		err = golapack.Zhetrd(Upper, 0, a.Off(0, 0).UpdateRows(1), d, e, tau, w, 0)
+		chkxer2("Zhetrd", err)
 		nt = nt + 4
 
-		//        ZHETRD_2STAGE
-		*srnamt = "ZHETRD_2STAGE"
-		*infot = 1
-		golapack.Zhetrd2stage('/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zhetrd2stage('H', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrd2stage('N', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhetrd2stage('N', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhetrd2stage('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhetrd2stage('N', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 0; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zhetrd2stage('N', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tau, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHETRD_2STAGE", &info, lerr, ok, t)
+		//        Zhetrd2stage
+		*srnamt = "Zhetrd2stage"
+		*errt = fmt.Errorf("vect != 'N': vect='/'")
+		err = golapack.Zhetrd2stage('/', Upper, 0, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 1, w, 1)
+		chkxer2("Zhetrd2stage", err)
+		*errt = fmt.Errorf("vect != 'N': vect='H'")
+		err = golapack.Zhetrd2stage('H', Upper, 0, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 1, w, 1)
+		chkxer2("Zhetrd2stage", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zhetrd2stage('N', '/', 0, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 1, w, 1)
+		chkxer2("Zhetrd2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zhetrd2stage('N', Upper, -1, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 1, w, 1)
+		chkxer2("Zhetrd2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Zhetrd2stage('N', Upper, 2, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 1, w, 1)
+		chkxer2("Zhetrd2stage", err)
+		*errt = fmt.Errorf("lhous2 < lhmin && !lquery: lhous2=0, lhmin=1, lquery=false")
+		err = golapack.Zhetrd2stage('N', Upper, 0, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 0, w, 1)
+		chkxer2("Zhetrd2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		err = golapack.Zhetrd2stage('N', Upper, 0, a.Off(0, 0).UpdateRows(1), d, e, tau, c.CVector(0, 0), 1, w, 0)
+		chkxer2("Zhetrd2stage", err)
 		nt = nt + 7
 
-		//        ZHETRD_HE2HB
-		*srnamt = "ZHETRD_HE2HB"
-		*infot = 1
-		golapack.Zhetrdhe2hb('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HE2HB", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrdhe2hb('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HE2HB", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhetrdhe2hb('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HE2HB", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhetrdhe2hb('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HE2HB", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhetrdhe2hb('U', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HE2HB", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhetrdhe2hb('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHETRD_HE2HB", &info, lerr, ok, t)
+		//        ZhetrdHe2hb
+		*srnamt = "ZhetrdHe2hb"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.ZhetrdHe2hb('/', 0, 0, a.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("ZhetrdHe2hb", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.ZhetrdHe2hb(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("ZhetrdHe2hb", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.ZhetrdHe2hb(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("ZhetrdHe2hb", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.ZhetrdHe2hb(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("ZhetrdHe2hb", err)
+		*errt = fmt.Errorf("ab.Rows < max(1, kd+1): ab.Rows=1, kd=2")
+		err = golapack.ZhetrdHe2hb(Upper, 0, 2, a.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("ZhetrdHe2hb", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		err = golapack.ZhetrdHe2hb(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), tau, w, 0)
+		chkxer2("ZhetrdHe2hb", err)
 		nt = nt + 6
 
-		//        ZHETRD_HB2ST
-		*srnamt = "ZHETRD_HB2ST"
-		*infot = 1
-		golapack.Zhetrdhb2st('/', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrdhb2st('Y', '/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrdhb2st('Y', 'H', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhetrdhb2st('Y', 'N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhetrdhb2st('Y', 'N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhetrdhb2st('Y', 'N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhetrdhb2st('Y', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhetrdhb2st('Y', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 0; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhetrdhb2st('Y', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
+		//        ZhetrdHb2st
+		*srnamt = "ZhetrdHb2st"
+		*errt = fmt.Errorf("!afters1 && stage1 != 'N': stage1='/'")
+		err = golapack.ZhetrdHb2st('/', 'N', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("vect != 'N': vect='/'")
+		err = golapack.ZhetrdHb2st('Y', '/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("vect != 'N': vect='H'")
+		err = golapack.ZhetrdHb2st('Y', 'H', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.ZhetrdHb2st('Y', 'N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.ZhetrdHb2st('Y', 'N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.ZhetrdHb2st('Y', 'N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("ab.Rows < (kd + 1): ab.Rows=1, kd=1")
+		err = golapack.ZhetrdHb2st('Y', 'N', Upper, 0, 1, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("lhous < lhmin && !lquery: lhous=0, lhmin=1, lquery=false")
+		err = golapack.ZhetrdHb2st('Y', 'N', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 0, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		err = golapack.ZhetrdHb2st('Y', 'N', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 0)
+		chkxer2("ZhetrdHb2st", err)
 		nt = nt + 9
 
-		//        ZUNGTR
-		*srnamt = "ZUNGTR"
-		*infot = 1
-		golapack.Zungtr('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGTR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zungtr('U', toPtr(-1), a, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGTR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zungtr('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGTR", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zungtr('U', func() *int { y := 3; return &y }(), a, func() *int { y := 3; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGTR", &info, lerr, ok, t)
+		//        Zungtr
+		*srnamt = "Zungtr"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zungtr('/', 0, a.Off(0, 0).UpdateRows(1), tau, w.Off(0, 1), 1)
+		chkxer2("Zungtr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zungtr(Upper, -1, a.Off(0, 0).UpdateRows(1), tau, w.Off(0, 1), 1)
+		chkxer2("Zungtr", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Zungtr(Upper, 2, a.Off(0, 0).UpdateRows(1), tau, w.Off(0, 1), 1)
+		chkxer2("Zungtr", err)
+		*errt = fmt.Errorf("lwork < max(1, n-1) && !lquery: lwork=1, n=3, lquery=false")
+		err = golapack.Zungtr(Upper, 3, a.Off(0, 0).UpdateRows(3), tau, w.Off(0, 1), 1)
+		chkxer2("Zungtr", err)
 		nt = nt + 4
 
-		//        ZUNMTR
-		*srnamt = "ZUNMTR"
-		*infot = 1
-		golapack.Zunmtr('/', 'U', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zunmtr('L', '/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zunmtr('L', 'U', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zunmtr('L', 'U', 'N', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zunmtr('L', 'U', 'N', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zunmtr('L', 'U', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zunmtr('R', 'U', 'N', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zunmtr('L', 'U', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zunmtr('L', 'U', 'N', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zunmtr('R', 'U', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, c, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMTR", &info, lerr, ok, t)
+		//        Zunmtr
+		*srnamt = "Zunmtr"
+		*errt = fmt.Errorf("!left && side != Right: side=Unrecognized: /")
+		err = golapack.Zunmtr('/', Upper, NoTrans, 0, 0, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zunmtr(Left, '/', NoTrans, 0, 0, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("trans != NoTrans && trans != ConjTrans: trans=Unrecognized: /")
+		err = golapack.Zunmtr(Left, Upper, '/', 0, 0, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Zunmtr(Left, Upper, NoTrans, -1, 0, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zunmtr(Left, Upper, NoTrans, 0, -1, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("a.Rows < max(1, nq): a.Rows=1, nq=2")
+		err = golapack.Zunmtr(Left, Upper, NoTrans, 2, 0, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(2), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("a.Rows < max(1, nq): a.Rows=1, nq=2")
+		err = golapack.Zunmtr(Right, Upper, NoTrans, 0, 2, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+		err = golapack.Zunmtr(Left, Upper, NoTrans, 2, 0, a.Off(0, 0).UpdateRows(2), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("lwork < max(1, nw) && !lquery: lwork=1, nw=2, lquery=false")
+		err = golapack.Zunmtr(Left, Upper, NoTrans, 0, 2, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
+		*errt = fmt.Errorf("lwork < max(1, nw) && !lquery: lwork=1, nw=2, lquery=false")
+		err = golapack.Zunmtr(Right, Upper, NoTrans, 2, 0, a.Off(0, 0).UpdateRows(1), tau, c.Off(0, 0).UpdateRows(2), w.Off(0, 1), 1)
+		chkxer2("Zunmtr", err)
 		nt = nt + 10
 
-		//        ZHPTRD
-		*srnamt = "ZHPTRD"
-		*infot = 1
-		golapack.Zhptrd('/', func() *int { y := 0; return &y }(), a.CVector(0, 0), d, e, tau, &info)
-		Chkxer("ZHPTRD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhptrd('U', toPtr(-1), a.CVector(0, 0), d, e, tau, &info)
-		Chkxer("ZHPTRD", &info, lerr, ok, t)
+		//        Zhptrd
+		*srnamt = "Zhptrd"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zhptrd('/', 0, a.CVector(0, 0), d, e, tau)
+		chkxer2("Zhptrd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zhptrd(Upper, -1, a.CVector(0, 0), d, e, tau)
+		chkxer2("Zhptrd", err)
 		nt = nt + 2
 
-		//        ZUPGTR
-		*srnamt = "ZUPGTR"
-		*infot = 1
-		golapack.Zupgtr('/', func() *int { y := 0; return &y }(), a.CVector(0, 0), tau, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPGTR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zupgtr('U', toPtr(-1), a.CVector(0, 0), tau, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPGTR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zupgtr('U', func() *int { y := 2; return &y }(), a.CVector(0, 0), tau, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPGTR", &info, lerr, ok, t)
+		//        Zupgtr
+		*srnamt = "Zupgtr"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zupgtr('/', 0, a.CVector(0, 0), tau, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupgtr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zupgtr(Upper, -1, a.CVector(0, 0), tau, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupgtr", err)
+		*errt = fmt.Errorf("q.Rows < max(1, n): q.Rows=1, n=2")
+		err = golapack.Zupgtr(Upper, 2, a.CVector(0, 0), tau, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupgtr", err)
 		nt = nt + 3
 
-		//        ZUPMTR
-		*srnamt = "ZUPMTR"
-		*infot = 1
-		golapack.Zupmtr('/', 'U', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), tau, c, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPMTR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zupmtr('L', '/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), tau, c, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPMTR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zupmtr('L', 'U', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), tau, c, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPMTR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zupmtr('L', 'U', 'N', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), tau, c, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPMTR", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zupmtr('L', 'U', 'N', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), tau, c, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPMTR", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zupmtr('L', 'U', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), tau, c, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZUPMTR", &info, lerr, ok, t)
+		//        Zupmtr
+		*srnamt = "Zupmtr"
+		*errt = fmt.Errorf("!left && side != Right: side=Unrecognized: /")
+		err = golapack.Zupmtr('/', Upper, NoTrans, 0, 0, a.CVector(0, 0), tau, c.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupmtr", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zupmtr(Left, '/', NoTrans, 0, 0, a.CVector(0, 0), tau, c.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupmtr", err)
+		*errt = fmt.Errorf("!notran && trans != ConjTrans: trans=Unrecognized: /")
+		err = golapack.Zupmtr(Left, Upper, '/', 0, 0, a.CVector(0, 0), tau, c.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupmtr", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Zupmtr(Left, Upper, NoTrans, -1, 0, a.CVector(0, 0), tau, c.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupmtr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zupmtr(Left, Upper, NoTrans, 0, -1, a.CVector(0, 0), tau, c.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupmtr", err)
+		*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+		err = golapack.Zupmtr(Left, Upper, NoTrans, 2, 0, a.CVector(0, 0), tau, c.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zupmtr", err)
 		nt = nt + 6
 
-		//        ZPTEQR
-		*srnamt = "ZPTEQR"
-		*infot = 1
-		golapack.Zpteqr('/', func() *int { y := 0; return &y }(), d, e, z, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZPTEQR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpteqr('N', toPtr(-1), d, e, z, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZPTEQR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zpteqr('V', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZPTEQR", &info, lerr, ok, t)
+		//        Zpteqr
+		*srnamt = "Zpteqr"
+		*errt = fmt.Errorf("icompz < 0: compz='/'")
+		_, err = golapack.Zpteqr('/', 0, d, e, z.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zpteqr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpteqr('N', -1, d, e, z.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zpteqr", err)
+		*errt = fmt.Errorf("(z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)): compz='V', z.Rows=1, n=2")
+		_, err = golapack.Zpteqr('V', 2, d, e, z.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zpteqr", err)
 		nt = nt + 3
 
-		//        ZSTEIN
-		*srnamt = "ZSTEIN"
-		*infot = 1
-		golapack.Zstein(toPtr(-1), d, e, func() *int { y := 0; return &y }(), x, &i1, &i2, z, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZSTEIN", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zstein(func() *int { y := 0; return &y }(), d, e, toPtr(-1), x, &i1, &i2, z, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZSTEIN", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zstein(func() *int { y := 0; return &y }(), d, e, func() *int { y := 1; return &y }(), x, &i1, &i2, z, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZSTEIN", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zstein(func() *int { y := 2; return &y }(), d, e, func() *int { y := 0; return &y }(), x, &i1, &i2, z, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZSTEIN", &info, lerr, ok, t)
+		//        Zstein
+		*srnamt = "Zstein"
+		// *errt = fmt.Errorf("(*iblock)[j-1] < (*iblock)[j]: iblock[j-1]=%v, iblock[j]=")
+		// *errt = fmt.Errorf("(*iblock)[j-1] == (*iblock)[j] && w[j-1] < w[j]: iblock[j-1]=%v, iblock[j]=%v, w[j-1]=%v, w[j]=")
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zstein(-1, d, e, 0, x, &i1, &i2, z.Off(0, 0).UpdateRows(1), rw, &iw, &i3)
+		chkxer2("Zstein", err)
+		*errt = fmt.Errorf("m < 0 || m > n: m=-1, n=0")
+		_, err = golapack.Zstein(0, d, e, -1, x, &i1, &i2, z.Off(0, 0).UpdateRows(1), rw, &iw, &i3)
+		chkxer2("Zstein", err)
+		*errt = fmt.Errorf("m < 0 || m > n: m=1, n=0")
+		_, err = golapack.Zstein(0, d, e, 1, x, &i1, &i2, z.Off(0, 0).UpdateRows(1), rw, &iw, &i3)
+		chkxer2("Zstein", err)
+		*errt = fmt.Errorf("z.Rows < max(1, n): z.Rows=1, n=2")
+		_, err = golapack.Zstein(2, d, e, 0, x, &i1, &i2, z.Off(0, 0).UpdateRows(1), rw, &iw, &i3)
+		chkxer2("Zstein", err)
 		nt = nt + 4
 
-		//        ZSTEQR
-		*srnamt = "ZSTEQR"
-		*infot = 1
-		golapack.Zsteqr('/', func() *int { y := 0; return &y }(), d, e, z, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSTEQR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zsteqr('N', toPtr(-1), d, e, z, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSTEQR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zsteqr('V', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSTEQR", &info, lerr, ok, t)
+		//        Zsteqr
+		*srnamt = "Zsteqr"
+		*errt = fmt.Errorf("icompz < 0: compz='/'")
+		_, err = golapack.Zsteqr('/', 0, d, e, z.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zsteqr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zsteqr('N', -1, d, e, z.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zsteqr", err)
+		*errt = fmt.Errorf("(z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)): compz='V', z.Rows=1, n=2")
+		_, err = golapack.Zsteqr('V', 2, d, e, z.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zsteqr", err)
 		nt = nt + 3
 
-		//        ZSTEDC
-		*srnamt = "ZSTEDC"
-		*infot = 1
-		golapack.Zstedc('/', func() *int { y := 0; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zstedc('N', toPtr(-1), d, e, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zstedc('V', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, func() *int { y := 4; return &y }(), rw, func() *int { y := 23; return &y }(), &iw, func() *int { y := 28; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zstedc('N', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zstedc('V', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 2; return &y }(), w, func() *int { y := 0; return &y }(), rw, func() *int { y := 23; return &y }(), &iw, func() *int { y := 28; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zstedc('N', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 0; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zstedc('I', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zstedc('V', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 2; return &y }(), w, func() *int { y := 4; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 28; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zstedc('N', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zstedc('I', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 23; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zstedc('V', func() *int { y := 2; return &y }(), d, e, z, func() *int { y := 2; return &y }(), w, func() *int { y := 4; return &y }(), rw, func() *int { y := 23; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZSTEDC", &info, lerr, ok, t)
+		//        Zstedc
+		*srnamt = "Zstedc"
+		*errt = fmt.Errorf("icompz < 0: compz='/'")
+		_, err = golapack.Zstedc('/', 0, d, e, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zstedc('N', -1, d, e, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("(z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)): compz='V', z.Rows=1, n=2")
+		_, err = golapack.Zstedc('V', 2, d, e, z.Off(0, 0).UpdateRows(1), w, 4, rw, 23, &iw, 28)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zstedc('N', 2, d, e, z.Off(0, 0).UpdateRows(1), w, 0, rw, 1, &iw, 1)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zstedc('V', 2, d, e, z.Off(0, 0).UpdateRows(2), w, 0, rw, 23, &iw, 28)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=0, lrwmin=1, lquery=false")
+		_, err = golapack.Zstedc('N', 2, d, e, z.Off(0, 0).UpdateRows(1), w, 1, rw, 0, &iw, 1)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		_, err = golapack.Zstedc('I', 2, d, e, z.Off(0, 0).UpdateRows(2), w, 1, rw, 1, &iw, 12)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		_, err = golapack.Zstedc('V', 2, d, e, z.Off(0, 0).UpdateRows(2), w, 4, rw, 1, &iw, 28)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zstedc('N', 2, d, e, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 0)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zstedc('I', 2, d, e, z.Off(0, 0).UpdateRows(2), w, 1, rw, 23, &iw, 0)
+		chkxer2("Zstedc", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zstedc('V', 2, d, e, z.Off(0, 0).UpdateRows(2), w, 4, rw, 23, &iw, 0)
+		chkxer2("Zstedc", err)
 		nt = nt + 11
 
-		//        ZHEEVD
-		*srnamt = "ZHEEVD"
-		*infot = 1
-		golapack.Zheevd('/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheevd('N', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheevd('N', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zheevd('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 3; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevd('N', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 0; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevd('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 2; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevd('V', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 3; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevd('N', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 0; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevd('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 3; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevd('V', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 8; return &y }(), rw, func() *int { y := 18; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zheevd('N', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zheevd('V', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 8; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 11; return &y }(), &info)
-		Chkxer("ZHEEVD", &info, lerr, ok, t)
+		//        Zheevd
+		*srnamt = "Zheevd"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, err = golapack.Zheevd('/', Upper, 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zheevd('N', '/', 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zheevd('N', Upper, -1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zheevd('N', Upper, 2, a.Off(0, 0).UpdateRows(1), x, w, 3, rw, 2, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zheevd('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 0, rw, 1, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=2, lwmin=3, lquery=false")
+		_, err = golapack.Zheevd('N', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 2, rw, 2, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=3, lwmin=8, lquery=false")
+		_, err = golapack.Zheevd('V', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 3, rw, 25, &iw, 12)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=0, lrwmin=1, lquery=false")
+		_, err = golapack.Zheevd('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 0, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		_, err = golapack.Zheevd('N', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 3, rw, 1, &iw, 1)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=18, lrwmin=19, lquery=false")
+		_, err = golapack.Zheevd('V', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 8, rw, 18, &iw, 12)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zheevd('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 0)
+		chkxer2("Zheevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=11, liwmin=13, lquery=false")
+		_, err = golapack.Zheevd('V', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 8, rw, 25, &iw, 11)
+		chkxer2("Zheevd", err)
 		nt = nt + 12
 
-		//        ZHEEVD_2STAGE
-		*srnamt = "ZHEEVD_2STAGE"
-		*infot = 1
-		golapack.Zheevd2stage('/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zheevd2stage('V', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheevd2stage('N', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheevd2stage('N', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zheevd2stage('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 3; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevd2stage('N', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 0; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevd2stage('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 2; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevd2stage('N', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 0; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 10
-
-		golapack.Zheevd2stage('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 700; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zheevd2stage('N', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHEEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 12
+		//        Zheevd2stage
+		*srnamt = "Zheevd2stage"
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, err = golapack.Zheevd2stage('/', Upper, 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, err = golapack.Zheevd2stage('V', Upper, 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zheevd2stage('N', '/', 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zheevd2stage('N', Upper, -1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zheevd2stage('N', Upper, 2, a.Off(0, 0).UpdateRows(1), x, w, 3, rw, 2, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zheevd2stage('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 0, rw, 1, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=2, lwmin=12, lquery=false")
+		_, err = golapack.Zheevd2stage('N', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 2, rw, 2, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=0, lrwmin=1, lquery=false")
+		_, err = golapack.Zheevd2stage('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 0, &iw, 1)
+		chkxer2("Zheevd2stage", err)
+		// *errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		// _, err = golapack.Zheevd2stage('N', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 700, rw, 1, &iw, 1)
+		// chkxer2("Zheevd2stage", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zheevd2stage('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 0)
+		chkxer2("Zheevd2stage", err)
+		// *errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=1, liwmin=2, lquery=false")
+		// _, err = golapack.Zheevd2stage('N', Upper, 1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw, 1, &iw, 1)
+		// chkxer2("Zheevd2stage", err)
 		nt = nt + 10
 
 		//        ZHEEV
-		*srnamt = "ZHEEV "
-		*infot = 1
-		golapack.Zheev('/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheev('N', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheev('N', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV ", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zheev('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 3; return &y }(), rw, &info)
-		Chkxer("ZHEEV ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheev('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 2; return &y }(), rw, &info)
-		Chkxer("ZHEEV ", &info, lerr, ok, t)
+		*srnamt = "Zheev"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, err = golapack.Zheev('/', Upper, 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zheev('N', '/', 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zheev('N', Upper, -1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zheev('N', Upper, 2, a.Off(0, 0).UpdateRows(1), x, w, 3, rw)
+		chkxer2("Zheev", err)
+		*errt = fmt.Errorf("lwork < max(1, 2*n-1) && !lquery: lwork=2, n=2, lquery=false")
+		_, err = golapack.Zheev('N', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 2, rw)
+		chkxer2("Zheev", err)
 		nt = nt + 5
 
-		//        ZHEEV_2STAGE
-		*srnamt = "ZHEEV_2STAGE "
-		*infot = 1
-		golapack.Zheev2stage('/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zheev2stage('V', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheev2stage('N', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheev2stage('N', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHEEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zheev2stage('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), x, w, func() *int { y := 3; return &y }(), rw, &info)
-		Chkxer("ZHEEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheev2stage('N', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), x, w, func() *int { y := 2; return &y }(), rw, &info)
-		Chkxer("ZHEEV_2STAGE ", &info, lerr, ok, t)
+		//        Zheev2stage
+		*srnamt = "Zheev2stage"
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, err = golapack.Zheev2stage('/', Upper, 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, err = golapack.Zheev2stage('V', Upper, 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zheev2stage('N', '/', 0, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zheev2stage('N', Upper, -1, a.Off(0, 0).UpdateRows(1), x, w, 1, rw)
+		chkxer2("Zheev2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zheev2stage('N', Upper, 2, a.Off(0, 0).UpdateRows(1), x, w, 3, rw)
+		chkxer2("Zheev2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=2, lwmin=11, lquery=false")
+		_, err = golapack.Zheev2stage('N', Upper, 2, a.Off(0, 0).UpdateRows(2), x, w, 2, rw)
+		chkxer2("Zheev2stage", err)
 		nt = nt + 6
 
-		//        ZHEEVX
-		*srnamt = "ZHEEVX"
-		*infot = 1
-		golapack.Zheevx('/', 'A', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheevx('V', '/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheevx('V', 'A', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		*infot = 4
-		golapack.Zheevx('V', 'A', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zheevx('V', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 3; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevx('V', 'V', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zheevx('V', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevx('V', 'I', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 3; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zheevx('V', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 3; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
-		*infot = 17
-		golapack.Zheevx('V', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, &iw, &i1, &info)
-		Chkxer("ZHEEVX", &info, lerr, ok, t)
+		//        Zheevx
+		*srnamt = "Zheevx"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, _, err = golapack.Zheevx('/', 'A', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zheevx('V', '/', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 1.0, 1, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zheevx('V', 'A', '/', 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zheevx('V', 'A', Upper, -1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Zheevx('V', 'A', Upper, 2, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 3, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zheevx('V', 'V', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): n=1, il=0")
+		_, _, err = golapack.Zheevx('V', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: n=2, il=2, iu=1")
+		_, _, err = golapack.Zheevx('V', 'I', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 2, 1, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 3, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, _, err = golapack.Zheevx('V', 'A', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 3, rw, &iw, &i3)
+		chkxer2("Zheevx", err)
+		*errt = fmt.Errorf("lwork < lwkmin && !lquery: lwork=2, lwkmin=4, lquery=false")
+		_, _, err = golapack.Zheevx('V', 'A', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 2, rw, &iw, &i1)
+		chkxer2("Zheevx", err)
 		nt = nt + 10
 
-		//        ZHEEVX_2STAGE
-		*srnamt = "ZHEEVX_2STAGE"
-		*infot = 1
-		golapack.Zheevx2stage('/', 'A', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zheevx2stage('V', 'A', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheevx2stage('N', '/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheevx2stage('N', 'A', '/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		*infot = 4
-		golapack.Zheevx2stage('N', 'A', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zheevx2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 3; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevx2stage('N', 'V', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zheevx2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevx2stage('N', 'I', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 3; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zheevx2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 0; return &y }(), w, func() *int { y := 3; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 17
-		golapack.Zheevx2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i1, &info)
-		Chkxer("ZHEEVX_2STAGE", &info, lerr, ok, t)
+		//        Zheevx2stage
+		*srnamt = "Zheevx2stage"
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, _, err = golapack.Zheevx2stage('/', 'A', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, _, err = golapack.Zheevx2stage('V', 'A', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zheevx2stage('N', '/', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 1.0, 1, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zheevx2stage('N', 'A', '/', 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zheevx2stage('N', 'A', Upper, -1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Zheevx2stage('N', 'A', Upper, 2, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 3, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zheevx2stage('N', 'V', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): n=1, il=0")
+		_, _, err = golapack.Zheevx2stage('N', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 1, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: n=2, il=2, iu=1")
+		_, _, err = golapack.Zheevx2stage('N', 'I', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 2, 1, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 3, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='N', z.Rows=-1, n=2")
+		_, _, err = golapack.Zheevx2stage('N', 'A', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(-1), w, 3, rw, &iw, &i3)
+		chkxer2("Zheevx2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=11, lquery=false")
+		_, _, err = golapack.Zheevx2stage('N', 'A', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 0, rw, &iw, &i1)
+		chkxer2("Zheevx2stage", err)
 		nt = nt + 11
 
-		//        ZHEEVR
-		*srnamt = "ZHEEVR"
+		//        Zheevr
+		*srnamt = "Zheevr"
 		n = 1
-		*infot = 1
-		golapack.Zheevr('/', 'A', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheevr('V', '/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheevr('V', 'A', '/', toPtr(-1), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zheevr('V', 'A', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zheevr('V', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevr('V', 'V', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zheevr('V', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 10
-
-		golapack.Zheevr('V', 'I', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zheevr('V', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 0; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zheevr('V', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n-1), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 20
-		golapack.Zheevr('V', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n-1), toSlice(&iw, 2*n-1-1), toPtr(10*n), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
-		*infot = 22
-		golapack.Zheevr('V', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), &iw, toPtr(10*n-1), &info)
-		Chkxer("ZHEEVR", &info, lerr, ok, t)
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, _, err = golapack.Zheevr('/', 'A', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zheevr('V', '/', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zheevr('V', 'A', '/', -1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zheevr('V', 'A', Upper, -1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Zheevr('V', 'A', Upper, 2, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zheevr('V', 'V', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): n=1, il=0")
+		_, _, err = golapack.Zheevr('V', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: n=2, il=2, iu=1")
+		_, _, err = golapack.Zheevr('V', 'I', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 2, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=-1, n=1")
+		_, _, err = golapack.Zheevr('V', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(-1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=1, lwmin=2, lquery=false")
+		_, _, err = golapack.Zheevr('V', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n-1, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=23, lrwmin=24, lquery=false")
+		_, _, err = golapack.Zheevr('V', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n-1, toSlice(&iw, 2*n-1-1), 10*n)
+		chkxer2("Zheevr", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=9, liwmin=10, lquery=false")
+		_, _, err = golapack.Zheevr('V', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, &iw, 10*n-1)
+		chkxer2("Zheevr", err)
 		nt = nt + 12
 
-		//        ZHEEVR_2STAGE
-		*srnamt = "ZHEEVR_2STAGE"
+		//        Zheevr2stage
+		*srnamt = "Zheevr2stage"
 		n = 1
-		*infot = 1
-		golapack.Zheevr2stage('/', 'A', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zheevr2stage('V', 'A', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zheevr2stage('N', '/', 'U', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zheevr2stage('N', 'A', '/', toPtr(-1), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zheevr2stage('N', 'A', 'U', toPtr(-1), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zheevr2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zheevr2stage('N', 'V', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zheevr2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zheevr2stage('N', 'I', 'U', func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zheevr2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 0; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zheevr2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(2*n-1), rw, toPtr(24*n), toSlice(&iw, 2*n), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 20
-		golapack.Zheevr2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(600*n), rw, toPtr(24*n-1), toSlice(&iw, 2*n-1-1), toPtr(10*n), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
-		*infot = 22
-		golapack.Zheevr2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, r, z, func() *int { y := 1; return &y }(), &iw, q.CVector(0, 0), toPtr(600*n), rw, toPtr(24*n), &iw, toPtr(10*n-1), &info)
-		Chkxer("ZHEEVR_2STAGE", &info, lerr, ok, t)
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, _, err = golapack.Zheevr2stage('/', 'A', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, _, err = golapack.Zheevr2stage('V', 'A', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zheevr2stage('N', '/', Upper, 0, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zheevr2stage('N', 'A', '/', -1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zheevr2stage('N', 'A', Upper, -1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Zheevr2stage('N', 'A', Upper, 2, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zheevr2stage('N', 'V', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): n=1, il=0")
+		_, _, err = golapack.Zheevr2stage('N', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: n=2, il=2, iu=1")
+		_, _, err = golapack.Zheevr2stage('N', 'I', Upper, 2, a.Off(0, 0).UpdateRows(2), 0.0, 0.0, 2, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='N', z.Rows=-1, n=1")
+		_, _, err = golapack.Zheevr2stage('N', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(-1), &iw, q.CVector(0, 0), 2*n, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=1, lwmin=6, lquery=false")
+		_, _, err = golapack.Zheevr2stage('N', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 2*n-1, rw, 24*n, toSlice(&iw, 2*n), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=23, lrwmin=24, lquery=false")
+		_, _, err = golapack.Zheevr2stage('N', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 600*n, rw, 24*n-1, toSlice(&iw, 2*n-1-1), 10*n)
+		chkxer2("Zheevr2stage", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=9, liwmin=10, lquery=false")
+		_, _, err = golapack.Zheevr2stage('N', 'I', Upper, 1, a.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 1, 0.0, r, z.Off(0, 0).UpdateRows(1), &iw, q.CVector(0, 0), 600*n, rw, 24*n, &iw, 10*n-1)
+		chkxer2("Zheevr2stage", err)
 		nt = nt + 13
 
-		//        ZHPEVD
-		*srnamt = "ZHPEVD"
-		*infot = 1
-		golapack.Zhpevd('/', 'U', func() *int { y := 0; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhpevd('N', '/', func() *int { y := 0; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhpevd('N', 'U', toPtr(-1), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhpevd('V', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 4; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhpevd('N', 'U', func() *int { y := 1; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhpevd('N', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhpevd('V', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhpevd('N', 'U', func() *int { y := 1; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 0; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhpevd('N', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhpevd('V', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 4; return &y }(), rw, func() *int { y := 18; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhpevd('N', 'U', func() *int { y := 1; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhpevd('N', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhpevd('V', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 4; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZHPEVD", &info, lerr, ok, t)
+		//        Zhpevd
+		*srnamt = "Zhpevd"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, err = golapack.Zhpevd('/', Upper, 0, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("!(uplo == Lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zhpevd('N', '/', 0, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhpevd('N', Upper, -1, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, err = golapack.Zhpevd('V', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 4, rw, 25, &iw, 12)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zhpevd('N', Upper, 1, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 0, rw, 1, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=1, lwmin=2, lquery=false")
+		_, err = golapack.Zhpevd('N', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(2), w, 1, rw, 2, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=2, lwmin=4, lquery=false")
+		_, err = golapack.Zhpevd('V', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(2), w, 2, rw, 25, &iw, 12)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=0, lrwmin=1, lquery=false")
+		_, err = golapack.Zhpevd('N', Upper, 1, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 0, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		_, err = golapack.Zhpevd('N', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(2), w, 2, rw, 1, &iw, 1)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=18, lrwmin=19, lquery=false")
+		_, err = golapack.Zhpevd('V', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(2), w, 4, rw, 18, &iw, 12)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zhpevd('N', Upper, 1, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 0)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zhpevd('N', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(2), w, 2, rw, 2, &iw, 0)
+		chkxer2("Zhpevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=2, liwmin=13, lquery=false")
+		_, err = golapack.Zhpevd('V', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(2), w, 4, rw, 25, &iw, 2)
+		chkxer2("Zhpevd", err)
 		nt = nt + 13
 
 		//        ZHPEV
-		*srnamt = "ZHPEV "
-		*infot = 1
-		golapack.Zhpev('/', 'U', func() *int { y := 0; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHPEV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhpev('N', '/', func() *int { y := 0; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHPEV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhpev('N', 'U', toPtr(-1), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHPEV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhpev('V', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHPEV ", &info, lerr, ok, t)
+		*srnamt = "Zhpev"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, err = golapack.Zhpev('/', Upper, 0, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhpev", err)
+		*errt = fmt.Errorf("!(uplo == Lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zhpev('N', '/', 0, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhpev", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhpev('N', Upper, -1, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhpev", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, err = golapack.Zhpev('V', Upper, 2, a.CVector(0, 0), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhpev", err)
 		nt = nt + 4
 
-		//        ZHPEVX
-		*srnamt = "ZHPEVX"
-		*infot = 1
-		golapack.Zhpevx('/', 'A', 'U', func() *int { y := 0; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhpevx('V', '/', 'U', func() *int { y := 0; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhpevx('V', 'A', '/', func() *int { y := 0; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhpevx('V', 'A', 'U', toPtr(-1), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhpevx('V', 'V', 'U', func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zhpevx('V', 'I', 'U', func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhpevx('V', 'I', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Zhpevx('V', 'A', 'U', func() *int { y := 2; return &y }(), a.CVector(0, 0), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHPEVX", &info, lerr, ok, t)
+		//        Zhpevx
+		*srnamt = "Zhpevx"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, _, err = golapack.Zhpevx('/', 'A', Upper, 0, a.CVector(0, 0), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zhpevx('V', '/', Upper, 0, a.CVector(0, 0), 0.0, 1.0, 1, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("!(uplo == Lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zhpevx('V', 'A', '/', 0, a.CVector(0, 0), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zhpevx('V', 'A', Upper, -1, a.CVector(0, 0), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zhpevx('V', 'V', Upper, 1, a.CVector(0, 0), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): n=1, il=0")
+		_, _, err = golapack.Zhpevx('V', 'I', Upper, 1, a.CVector(0, 0), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: n=2, il=2, iu=1")
+		_, _, err = golapack.Zhpevx('V', 'I', Upper, 2, a.CVector(0, 0), 0.0, 0.0, 2, 1, 0.0, x, z.Off(0, 0).UpdateRows(2), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, _, err = golapack.Zhpevx('V', 'A', Upper, 2, a.CVector(0, 0), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhpevx", err)
 		nt = nt + 8
 
-		//     Test error exits for the HB path.
-	} else if string(c2) == "HB" {
-		//        ZHBTRD
-		*srnamt = "ZHBTRD"
-		*infot = 1
-		golapack.Zhbtrd('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZHBTRD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbtrd('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZHBTRD", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbtrd('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZHBTRD", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhbtrd('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZHBTRD", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zhbtrd('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZHBTRD", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhbtrd('V', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, z, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("ZHBTRD", &info, lerr, ok, t)
+		//     Test error exits for the hb path.
+	} else if c2 == "hb" {
+		//        Zhbtrd
+		*srnamt = "Zhbtrd"
+		*errt = fmt.Errorf("!wantq && vect != 'N': vect='/'")
+		err = golapack.Zhbtrd('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zhbtrd", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zhbtrd('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), d, e, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zhbtrd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zhbtrd('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), d, e, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zhbtrd", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.Zhbtrd('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), d, e, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zhbtrd", err)
+		*errt = fmt.Errorf("ab.Rows < kd1: ab.Rows=1, kd1=2")
+		err = golapack.Zhbtrd('N', Upper, 1, 1, a.Off(0, 0).UpdateRows(1), d, e, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zhbtrd", err)
+		*errt = fmt.Errorf("q.Rows < max(1, n) && wantq: vect='V', q.Rows=1, n=2")
+		err = golapack.Zhbtrd('V', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), d, e, z.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Zhbtrd", err)
 		nt = nt + 6
 
-		//        ZHETRD_HB2ST
-		*srnamt = "ZHETRD_HB2ST"
-		*infot = 1
-		golapack.Zhetrdhb2st('/', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrdhb2st('N', '/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhetrdhb2st('N', 'H', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhetrdhb2st('N', 'N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhetrdhb2st('N', 'N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhetrdhb2st('N', 'N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhetrdhb2st('N', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhetrdhb2st('N', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 0; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhetrdhb2st('N', 'N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, c.CVector(0, 0), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHETRD_HB2ST", &info, lerr, ok, t)
+		//        ZhetrdHb2st
+		*srnamt = "ZhetrdHb2st"
+		*errt = fmt.Errorf("!afters1 && stage1 != 'N': stage1='/'")
+		err = golapack.ZhetrdHb2st('/', 'N', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("vect != 'N': vect='/'")
+		err = golapack.ZhetrdHb2st('N', '/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("vect != 'N': vect='H'")
+		err = golapack.ZhetrdHb2st('N', 'H', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.ZhetrdHb2st('N', 'N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.ZhetrdHb2st('N', 'N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.ZhetrdHb2st('N', 'N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("ab.Rows < (kd + 1): ab.Rows=1, kd=1")
+		err = golapack.ZhetrdHb2st('N', 'N', Upper, 0, 1, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("lhous < lhmin && !lquery: lhous=0, lhmin=1, lquery=false")
+		err = golapack.ZhetrdHb2st('N', 'N', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 0, w, 1)
+		chkxer2("ZhetrdHb2st", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		err = golapack.ZhetrdHb2st('N', 'N', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), d, e, c.CVector(0, 0), 1, w, 0)
+		chkxer2("ZhetrdHb2st", err)
 		nt = nt + 9
 
-		//        ZHBEVD
-		*srnamt = "ZHBEVD"
-		*infot = 1
-		golapack.Zhbevd('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbevd('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbevd('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhbevd('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zhbevd('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhbevd('V', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 8; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbevd('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbevd('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbevd('V', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhbevd('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 0; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhbevd('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhbevd('V', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 8; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zhbevd('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zhbevd('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zhbevd('V', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 8; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZHBEVD", &info, lerr, ok, t)
+		//        Zhbevd
+		*srnamt = "Zhbevd"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, err = golapack.Zhbevd('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zhbevd('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhbevd('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zhbevd('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zhbevd('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 2, rw, 2, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, err = golapack.Zhbevd('V', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(1), w, 8, rw, 25, &iw, 12)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zhbevd('N', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw, 1, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=1, lwmin=2, lquery=false")
+		_, err = golapack.Zhbevd('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 1, rw, 2, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=2, lwmin=8, lquery=false")
+		_, err = golapack.Zhbevd('V', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 2, rw, 25, &iw, 12)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=0, lrwmin=1, lquery=false")
+		_, err = golapack.Zhbevd('N', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 0, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		_, err = golapack.Zhbevd('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 2, rw, 1, &iw, 1)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=2, lrwmin=19, lquery=false")
+		_, err = golapack.Zhbevd('V', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 8, rw, 2, &iw, 12)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zhbevd('N', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 0)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zhbevd('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 2, rw, 2, &iw, 0)
+		chkxer2("Zhbevd", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=2, liwmin=13, lquery=false")
+		_, err = golapack.Zhbevd('V', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 8, rw, 25, &iw, 2)
+		chkxer2("Zhbevd", err)
 		nt = nt + 15
 
-		//        ZHBEVD_2STAGE
-		*srnamt = "ZHBEVD_2STAGE"
-		*infot = 1
-		golapack.Zhbevd2stage('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zhbevd2stage('V', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbevd2stage('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbevd2stage('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 2; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 0; return &y }(), w, func() *int { y := 8; return &y }(), rw, func() *int { y := 25; return &y }(), &iw, func() *int { y := 12; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		//         INFOT = 11
-		//         CALL golapack.ZHBEVD_2STAGE( 'V', 'U', 2, 1, A, 2, X, Z, 2,
-		//     $                         W, 2, RW, 25, IW, 12, INFO )
-		//         CALL CHKXER( 'ZHBEVD_2STAGE', INFOT, NOUT, LERR, OK )
-		*infot = 13
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 0; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 25; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		//         INFOT = 13
-		//         CALL golapack.ZHBEVD_2STAGE( 'V', 'U', 2, 1, A, 2, X, Z, 2,
-		//     $                          W, 25, RW, 2, IW, 12, INFO )
-		//         CALL CHKXER( 'ZHBEVD_2STAGE', INFOT, NOUT, LERR, OK )
-		*infot = 15
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), rw, func() *int { y := 1; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zhbevd2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 25; return &y }(), rw, func() *int { y := 2; return &y }(), &iw, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHBEVD_2STAGE", &info, lerr, ok, t)
-		//         INFOT = 15
-		//         CALL golapack.ZHBEVD_2STAGE( 'V', 'U', 2, 1, A, 2, X, Z, 2,
-		//     $                          W, 25, RW, 25, IW, 2, INFO )
-		//         CALL CHKXER( 'ZHBEVD_2STAGE', INFOT, NOUT, LERR, OK )
+		//        Zhbevd2stage
+		*srnamt = "Zhbevd2stage"
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, err = golapack.Zhbevd2stage('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, err = golapack.Zhbevd2stage('V', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zhbevd2stage('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhbevd2stage('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zhbevd2stage('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zhbevd2stage('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 2, rw, 2, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=1, lquery=false")
+		_, err = golapack.Zhbevd2stage('N', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=1, lwmin=15, lquery=false")
+		_, err = golapack.Zhbevd2stage('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 1, rw, 2, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=0, lrwmin=1, lquery=false")
+		_, err = golapack.Zhbevd2stage('N', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 0, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=1, lrwmin=2, lquery=false")
+		_, err = golapack.Zhbevd2stage('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 25, rw, 1, &iw, 1)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zhbevd2stage('N', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw, 0)
+		chkxer2("Zhbevd2stage", err)
+		*errt = fmt.Errorf("liwork < liwmin && !lquery: liwork=0, liwmin=1, lquery=false")
+		_, err = golapack.Zhbevd2stage('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(2), x, z.Off(0, 0).UpdateRows(2), w, 25, rw, 2, &iw, 0)
+		chkxer2("Zhbevd2stage", err)
 		nt = nt + 13
 
 		//        ZHBEV
-		*srnamt = "ZHBEV "
-		*infot = 1
-		golapack.Zhbev('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHBEV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbev('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHBEV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbev('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHBEV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhbev('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHBEV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zhbev('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHBEV ", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhbev('V', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, rw, &info)
-		Chkxer("ZHBEV ", &info, lerr, ok, t)
+		*srnamt = "Zhbev"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, err = golapack.Zhbev('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhbev", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zhbev('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhbev", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhbev('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhbev", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zhbev('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhbev", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zhbev('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhbev", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, err = golapack.Zhbev('V', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, rw)
+		chkxer2("Zhbev", err)
 		nt = nt + 6
 
-		//        ZHBEV_2STAGE
-		*srnamt = "ZHBEV_2STAGE "
-		*infot = 1
-		golapack.Zhbev2stage('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 1
-		golapack.Zhbev2stage('V', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbev2stage('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbev2stage('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhbev2stage('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zhbev2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhbev2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 0; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbev2stage('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &info)
-		Chkxer("ZHBEV_2STAGE ", &info, lerr, ok, t)
+		//        Zhbev2stage
+		*srnamt = "Zhbev2stage"
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, err = golapack.Zhbev2stage('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, err = golapack.Zhbev2stage('V', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, err = golapack.Zhbev2stage('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhbev2stage('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zhbev2stage('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zhbev2stage('N', Upper, 2, 1, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=10, lquery=false")
+		_, err = golapack.Zhbev2stage('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), x, z.Off(0, 0).UpdateRows(1), w, 0, rw)
+		chkxer2("Zhbev2stage", err)
 		nt = nt + 8
 
-		//        ZHBEVX
-		*srnamt = "ZHBEVX"
-		*infot = 1
-		golapack.Zhbevx('/', 'A', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbevx('V', '/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbevx('V', 'A', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		*infot = 4
-		golapack.Zhbevx('V', 'A', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhbevx('V', 'A', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhbevx('V', 'A', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhbevx('V', 'A', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhbevx('V', 'V', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zhbevx('V', 'I', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhbevx('V', 'I', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zhbevx('V', 'A', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX", &info, lerr, ok, t)
+		//        Zhbevx
+		*srnamt = "Zhbevx"
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='/'")
+		_, _, err = golapack.Zhbevx('/', 'A', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zhbevx('V', '/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 1.0, 1, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zhbevx('V', 'A', '/', 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zhbevx('V', 'A', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, _, err = golapack.Zhbevx('V', 'A', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, _, err = golapack.Zhbevx('V', 'A', Upper, 2, 1, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("wantz && q.Rows < max(1, n): jobz='V', q.Rows=1, n=2")
+		_, _, err = golapack.Zhbevx('V', 'A', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zhbevx('V', 'V', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n); n=1, il=0")
+		_, _, err = golapack.Zhbevx('V', 'I', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: n=1, il=1, iu=2")
+		_, _, err = golapack.Zhbevx('V', 'I', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 2, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='V', z.Rows=1, n=2")
+		_, _, err = golapack.Zhbevx('V', 'A', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, rw, &iw, &i3)
+		chkxer2("Zhbevx", err)
 		nt = nt + 11
 
-		//        ZHBEVX_2STAGE
-		*srnamt = "ZHBEVX_2STAGE"
-		*infot = 1
-		golapack.Zhbevx2stage('/', 'A', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		*infot = 1
-		golapack.Zhbevx2stage('V', 'A', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhbevx2stage('N', '/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhbevx2stage('N', 'A', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		*infot = 4
-		golapack.Zhbevx2stage('N', 'A', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhbevx2stage('N', 'A', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhbevx2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 2; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		//         INFOT = 9
-		//         CALL golapack.ZHBEVX_2STAGE( 'V', 'A', 'U', 2, 0, A, 1, Q, 1,
-		//     $                       0.0D0, 0.0D0, 0, 0, 0.0D0,
-		//     $                       M, X, Z, 2, W, 0, RW, IW, I3, INFO )
-		//         CALL CHKXER( 'ZHBEVX_2STAGE', INFOT, NOUT, LERR, OK )
-		*infot = 11
-		golapack.Zhbevx2stage('N', 'V', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zhbevx2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhbevx2stage('N', 'I', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zhbevx2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 0; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
-		*infot = 20
-		golapack.Zhbevx2stage('N', 'A', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), q, func() *int { y := 2; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), &m, x, z, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), rw, &iw, &i3, &info)
-		Chkxer("ZHBEVX_2STAGE", &info, lerr, ok, t)
+		//        Zhbevx2stage
+		*srnamt = "Zhbevx2stage"
+		*errt = fmt.Errorf("jobz != 'N': jobz='/'")
+		_, _, err = golapack.Zhbevx2stage('/', 'A', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("jobz != 'N': jobz='V'")
+		_, _, err = golapack.Zhbevx2stage('V', 'A', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("!(alleig || valeig || indeig): _range='/'")
+		_, _, err = golapack.Zhbevx2stage('N', '/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 1.0, 1, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("!(lower || uplo == Upper): uplo=Unrecognized: /")
+		_, _, err = golapack.Zhbevx2stage('N', 'A', '/', 0, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zhbevx2stage('N', 'A', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, _, err = golapack.Zhbevx2stage('N', 'A', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, _, err = golapack.Zhbevx2stage('N', 'A', Upper, 2, 1, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(2), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		// *errt = fmt.Errorf("wantz && q.Rows < max(1, n): jobz='N', q.Rows=1, n=1")
+		*errt = fmt.Errorf("n > 0 && vu <= vl: n=1, vl=0, vu=0")
+		_, _, err = golapack.Zhbevx2stage('N', 'V', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): il=0, n=1")
+		_, _, err = golapack.Zhbevx2stage('N', 'I', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: il=1, iu=2, n=1")
+		_, _, err = golapack.Zhbevx2stage('N', 'I', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(1), 0.0, 0.0, 1, 2, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
+		*errt = fmt.Errorf("lwork < lwmin && !lquery: lwork=0, lwmin=10, lquery=false")
+		_, _, err = golapack.Zhbevx2stage('N', 'A', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), q.Off(0, 0).UpdateRows(2), 0.0, 0.0, 0, 0, 0.0, x, z.Off(0, 0).UpdateRows(1), w, 0, rw, &iw, &i3)
+		chkxer2("Zhbevx2stage", err)
 		nt = nt + 12
 	}
 
 	//     Print a summary line.
 	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+		fmt.Printf(" error exits: Passed (%5d tests run)\n", nt)
 	} else {
 		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	}
+	*infot = 0
+	*srnamt = ""
+	if !(*ok) {
+		t.Fail()
 	}
 }

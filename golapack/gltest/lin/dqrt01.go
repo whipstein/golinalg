@@ -7,16 +7,15 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dqrt01 tests DGEQRF, which computes the QR factorization of an m-by-n
-// matrix A, and partially tests DORGQR which forms the m-by-m
+// dqrt01 tests Dgeqrf, which computes the QR factorization of an m-by-n
+// matrix A, and partially tests Dorgqr which forms the m-by-m
 // orthogonal matrix Q.
 //
 // DQRT01 compares R with Q'*A, and checks that Q is orthogonal.
-func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *int, rwork, result *mat.Vector) {
+func dqrt01(m, n int, a, af, q, r *mat.Matrix, tau, work *mat.Vector, lwork int, rwork, result *mat.Vector) {
 	var anorm, eps, one, resid, rogue, zero float64
-	var info, minmn int
+	var minmn int
 	var err error
-	_ = err
 
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
@@ -24,46 +23,52 @@ func Dqrt01(m *int, n *int, a, af, q, r *mat.Matrix, lda *int, tau, work *mat.Ve
 	one = 1.0
 	rogue = -1.0e+10
 
-	minmn = min(*m, *n)
+	minmn = min(m, n)
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the matrix A to the array AF.
-	golapack.Dlacpy('F', m, n, a, lda, af, lda)
+	golapack.Dlacpy(Full, m, n, a, af)
 
 	//     Factorize the matrix A in the array AF.
-	*srnamt = "DGEQRF"
-	golapack.Dgeqrf(m, n, af, lda, tau, work, lwork, &info)
+	*srnamt = "Dgeqrf"
+	if err = golapack.Dgeqrf(m, n, af, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy details of Q
-	golapack.Dlaset('F', m, m, &rogue, &rogue, q, lda)
-	golapack.Dlacpy('L', toPtr((*m)-1), n, af.Off(1, 0), lda, q.Off(1, 0), lda)
+	golapack.Dlaset(Full, m, m, rogue, rogue, q)
+	golapack.Dlacpy(Lower, m-1, n, af.Off(1, 0), q.Off(1, 0))
 
 	//     Generate the m-by-m matrix Q
-	*srnamt = "DORGQR"
-	golapack.Dorgqr(m, m, &minmn, q, lda, tau, work, lwork, &info)
+	*srnamt = "Dorgqr"
+	if err = golapack.Dorgqr(m, m, minmn, q, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy R
-	golapack.Dlaset('F', m, n, &zero, &zero, r, lda)
-	golapack.Dlacpy('U', m, n, af, lda, r, lda)
+	golapack.Dlaset(Full, m, n, zero, zero, r)
+	golapack.Dlacpy(Upper, m, n, af, r)
 
 	//     Compute R - Q'*A
-	err = goblas.Dgemm(mat.Trans, mat.NoTrans, *m, *n, *m, -one, q, a, one, r)
+	if err = goblas.Dgemm(Trans, NoTrans, m, n, m, -one, q, a, one, r); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( R - Q'*A ) / ( M * norm(A) * EPS ) .
-	anorm = golapack.Dlange('1', m, n, a, lda, rwork)
-	resid = golapack.Dlange('1', m, n, r, lda, rwork)
+	anorm = golapack.Dlange('1', m, n, a, rwork)
+	resid = golapack.Dlange('1', m, n, r, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(max(1, *m)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, m)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q'*Q
-	golapack.Dlaset('F', m, m, &zero, &one, r, lda)
-	err = goblas.Dsyrk(mat.Upper, mat.Trans, *m, *m, -one, q, one, r)
+	golapack.Dlaset(Full, m, m, zero, one, r)
+	err = goblas.Dsyrk(Upper, Trans, m, m, -one, q, one, r)
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
-	resid = golapack.Dlansy('1', 'U', m, r, lda, rwork)
+	resid = golapack.Dlansy('1', Upper, m, r, rwork)
 
-	result.Set(1, (resid/float64(max(1, *m)))/eps)
+	result.Set(1, (resid/float64(max(1, m)))/eps)
 }

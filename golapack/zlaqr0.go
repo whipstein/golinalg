@@ -15,11 +15,12 @@ import (
 //    matrix Q so that this routine can give the Schur factorization
 //    of a matrix A which has been reduced to the Hessenberg form H
 //    by the unitary matrix Q:  A = Q*H*Q**H = (QZ)*H*(QZ)**H.
-func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *mat.CVector, iloz, ihiz *int, z *mat.CMatrix, ldz *int, work *mat.CVector, lwork, info *int) {
+func Zlaqr0(wantt, wantz bool, n, ilo, ihi int, h *mat.CMatrix, w *mat.CVector, iloz, ihiz int, z *mat.CMatrix, work *mat.CVector, lwork int) (info int) {
 	var sorted bool
 	var aa, bb, cc, dd, det, one, rtdisc, swap, tr2, zero complex128
 	var s, two, wilk1 float64
 	var i, inf, it, itmax, k, kacc22, kbot, kdu, kexnw, kexsh, ks, kt, ktop, ku, kv, kwh, kwtop, kwv, ld, ls, lwkopt, ndec, ndfl, nh, nho, nibble, nmin, ns, nsmax, nsr, ntiny, nve, nw, nwmax, nwr, nwupbd int
+
 	jbcmpz := make([]byte, 2)
 	zdum := cmf(1, 1, opts)
 
@@ -45,26 +46,23 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 	one = (1.0 + 0.0*1i)
 	two = 2.0
 
-	(*info) = 0
-
 	//     ==== Quick return for N = 0: nothing to do. ====
-	if (*n) == 0 {
+	if n == 0 {
 		work.Set(0, one)
 		return
 	}
 
-	if (*n) <= ntiny {
+	if n <= ntiny {
 		//        ==== Tiny matrices must use ZLAHQR. ====
 		lwkopt = 1
-		if (*lwork) != -1 {
-			Zlahqr(wantt, wantz, n, ilo, ihi, h, ldh, w, iloz, ihiz, z, ldz, info)
+		if lwork != -1 {
+			info = Zlahqr(wantt, wantz, n, ilo, ihi, h, w, iloz, ihiz, z)
 		}
 	} else {
 		//        ==== Use small bulge multi-shift QR with aggressive early
 		//        .    deflation on larger-than-tiny matrices. ====
 		//
 		//        ==== Hope for the best. ====
-		(*info) = 0
 
 		//        ==== Set up job flags for ILAENV. ====
 		if wantt {
@@ -83,79 +81,79 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 		//        .    subdiagonal workspace for NWR.GE.2 as required.
 		//        .    (In fact, there is enough subdiagonal space for
 		//        .    NWR.GE.3.) ====
-		nwr = Ilaenv(func() *int { y := 13; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
+		nwr = Ilaenv(13, "Zlaqr0", jbcmpz, n, ilo, ihi, lwork)
 		nwr = max(2, nwr)
-		nwr = min((*ihi)-(*ilo)+1, ((*n)-1)/3, nwr)
+		nwr = min(ihi-ilo+1, (n-1)/3, nwr)
 
 		//        ==== NSR = recommended number of simultaneous shifts.
 		//        .    At this point N .GT. NTINY = 11, so there is at
 		//        .    enough subdiagonal workspace for NSR to be even
 		//        .    and greater than or equal to two as required. ====
-		nsr = Ilaenv(func() *int { y := 15; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
-		nsr = min(nsr, ((*n)+6)/9, (*ihi)-(*ilo))
+		nsr = Ilaenv(15, "Zlaqr0", jbcmpz, n, ilo, ihi, lwork)
+		nsr = min(nsr, (n+6)/9, ihi-ilo)
 		nsr = max(2, nsr-(nsr%2))
 
 		//        ==== Estimate optimal workspace ====
 		//
 		//        ==== Workspace query call to ZLAQR3 ====
-		Zlaqr3(wantt, wantz, n, ilo, ihi, toPtr(nwr+1), h, ldh, iloz, ihiz, z, ldz, &ls, &ld, w, h, ldh, n, h, ldh, n, h, ldh, work, toPtr(-1))
+		ls, ld = Zlaqr3(wantt, wantz, n, ilo, ihi, nwr+1, h, iloz, ihiz, z, w, h, n, h, n, h, work, -1)
 
 		//        ==== Optimal workspace = max(ZLAQR5, ZLAQR3) ====
 		lwkopt = max(3*nsr/2, int(work.GetRe(0)))
 
 		//        ==== Quick return in case of workspace query. ====
-		if (*lwork) == -1 {
+		if lwork == -1 {
 			work.Set(0, complex(float64(lwkopt), 0))
 			return
 		}
 
-		//        ==== ZLAHQR/ZLAQR0 crossover point ====
-		nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
+		//        ==== ZLAHQR/Zlaqr0 crossover point ====
+		nmin = Ilaenv(12, "Zlaqr0", jbcmpz, n, ilo, ihi, lwork)
 		nmin = max(ntiny, nmin)
 
 		//        ==== Nibble crossover point ====
-		nibble = Ilaenv(func() *int { y := 14; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
+		nibble = Ilaenv(14, "Zlaqr0", jbcmpz, n, ilo, ihi, lwork)
 		nibble = max(0, nibble)
 
 		//        ==== Accumulate reflections during ttswp?  Use block
 		//        .    2-by-2 structure during matrix-matrix multiply? ====
-		kacc22 = Ilaenv(func() *int { y := 16; return &y }(), []byte("ZLAQR0"), jbcmpz, n, ilo, ihi, lwork)
+		kacc22 = Ilaenv(16, "Zlaqr0", jbcmpz, n, ilo, ihi, lwork)
 		kacc22 = max(0, kacc22)
 		kacc22 = min(2, kacc22)
 
 		//        ==== NWMAX = the largest possible deflation window for
 		//        .    which there is sufficient workspace. ====
-		nwmax = min(((*n)-1)/3, (*lwork)/2)
+		nwmax = min((n-1)/3, lwork/2)
 		nw = nwmax
 
 		//        ==== NSMAX = the Largest number of simultaneous shifts
 		//        .    for which there is sufficient workspace. ====
-		nsmax = min(((*n)+6)/9, 2*(*lwork)/3)
+		nsmax = min((n+6)/9, 2*lwork/3)
 		nsmax = nsmax - (nsmax % 2)
 
 		//        ==== NDFL: an iteration count restarted at deflation. ====
 		ndfl = 1
 
 		//        ==== ITMAX = iteration limit ====
-		itmax = max(30, 2*kexsh) * max(10, (*ihi)-(*ilo)+1)
+		itmax = max(30, 2*kexsh) * max(10, ihi-ilo+1)
 
 		//        ==== Last row and column in the active block ====
-		kbot = (*ihi)
+		kbot = ihi
 
 		//        ==== Main Loop ====
 		for it = 1; it <= itmax; it++ {
 			//           ==== Done when KBOT falls below ILO ====
-			if kbot < (*ilo) {
+			if kbot < ilo {
 				goto label80
 			}
 
 			//           ==== Locate active block ====
-			for k = kbot; k >= (*ilo)+1; k-- {
+			for k = kbot; k >= ilo+1; k-- {
 				if h.Get(k-1, k-1-1) == zero {
 					goto label20
 				}
 			}
-			k = (*ilo)
+			k = ilo
 		label20:
 			;
 			ktop = k
@@ -212,14 +210,14 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			//           .      - an at-least-NW-but-more-is-better (NHV-by-NW)
 			//           .        vertical work array along the left-hand-edge.
 			//           .        ====
-			kv = (*n) - nw + 1
+			kv = n - nw + 1
 			kt = nw + 1
-			nho = ((*n) - nw - 1) - kt + 1
+			nho = (n - nw - 1) - kt + 1
 			kwv = nw + 2
-			nve = ((*n) - nw) - kwv + 1
+			nve = (n - nw) - kwv + 1
 
 			//           ==== Aggressive early deflation ====
-			Zlaqr3(wantt, wantz, n, &ktop, &kbot, &nw, h, ldh, iloz, ihiz, z, ldz, &ls, &ld, w, h.Off(kv-1, 0), ldh, &nho, h.Off(kv-1, kt-1), ldh, &nve, h.Off(kwv-1, 0), ldh, work, lwork)
+			ls, ld = Zlaqr3(wantt, wantz, n, ktop, kbot, nw, h, iloz, ihiz, z, w, h.Off(kv-1, 0), nho, h.Off(kv-1, kt-1), nve, h.Off(kwv-1, 0), work, lwork)
 
 			//           ==== Adjust KBOT accounting for new deflations. ====
 			kbot = kbot - ld
@@ -259,12 +257,12 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 					//                 .    to fit an NS-by-NS scratch array.) ====
 					if kbot-ks+1 <= ns/2 {
 						ks = kbot - ns + 1
-						kt = (*n) - ns + 1
-						Zlacpy('A', &ns, &ns, h.Off(ks-1, ks-1), ldh, h.Off(kt-1, 0), ldh)
+						kt = n - ns + 1
+						Zlacpy(Full, ns, ns, h.Off(ks-1, ks-1), h.Off(kt-1, 0))
 						if ns > nmin {
-							Zlaqr4(false, false, &ns, func() *int { y := 1; return &y }(), &ns, h.Off(kt-1, 0), ldh, w.Off(ks-1), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), zdum, func() *int { y := 1; return &y }(), work, lwork, &inf)
+							inf = Zlaqr4(false, false, ns, 1, ns, h.Off(kt-1, 0), w.Off(ks-1), 1, 1, zdum, work, lwork)
 						} else {
-							Zlahqr(false, false, &ns, func() *int { y := 1; return &y }(), &ns, h.Off(kt-1, 0), ldh, w.Off(ks-1), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), zdum, func() *int { y := 1; return &y }(), &inf)
+							inf = Zlahqr(false, false, ns, 1, ns, h.Off(kt-1, 0), w.Off(ks-1), 1, 1, zdum)
 						}
 						ks = ks + inf
 
@@ -340,14 +338,14 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 				//              .      (NVE-by-KDU) vertical work WV arrow along
 				//              .      the left-hand-edge. ====
 				kdu = 3*ns - 3
-				ku = (*n) - kdu + 1
+				ku = n - kdu + 1
 				kwh = kdu + 1
-				nho = ((*n) - kdu + 1 - 4) - (kdu + 1) + 1
+				nho = (n - kdu + 1 - 4) - (kdu + 1) + 1
 				kwv = kdu + 4
-				nve = (*n) - kdu - kwv + 1
+				nve = n - kdu - kwv + 1
 
 				//              ==== Small-bulge multi-shift QR sweep ====
-				Zlaqr5(wantt, wantz, &kacc22, n, &ktop, &kbot, &ns, w.Off(ks-1), h, ldh, iloz, ihiz, z, ldz, work.CMatrix(3, opts), func() *int { y := 3; return &y }(), h.Off(ku-1, 0), ldh, &nve, h.Off(kwv-1, 0), ldh, &nho, h.Off(ku-1, kwh-1), ldh)
+				Zlaqr5(wantt, wantz, kacc22, n, ktop, kbot, ns, w.Off(ks-1), h, iloz, ihiz, z, work.CMatrix(3, opts), h.Off(ku-1, 0), nve, h.Off(kwv-1, 0), nho, h.Off(ku-1, kwh-1))
 			}
 
 			//           ==== Note progress (or the lack of it). ====
@@ -362,10 +360,12 @@ func Zlaqr0(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 
 		//        ==== Iteration limit exceeded.  Set INFO to show where
 		//        .    the problem occurred and exit. ====
-		(*info) = kbot
+		info = kbot
 	label80:
 	}
 
 	//     ==== Return the optimal value of LWORK. ====
 	work.Set(0, complex(float64(lwkopt), 0))
+
+	return
 }

@@ -11,14 +11,13 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrvls tests the least squares driver routines DGELS, DGETSLS, DGELSS, DGELSY,
+// ddrvls tests the least squares driver routines DGELS, DGETSLS, DGELSS, DGELSY,
 // and DGELSD.
-func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int, nsval *[]int, nnb *int, nbval *[]int, nxval *[]int, thresh *float64, tsterr *bool, a, copya, b, copyb, c, s, copys *mat.Vector, nout *int, t *testing.T) {
-	var trans byte
-	var eps, norma, normb, one, rcond, zero float64
-	var crank, i, im, imb, in, inb, info, ins, irank, iscale, itran, itype, j, k, lda, ldb, ldwork, liwork, lwlsy, lwork, lworkDgels, lworkDgelsd, lworkDgelss, lworkDgelsy, lworkDgetsls, m, mb, mmax, mnmin, n, nb, ncols, nerrs, nfail, nmax, nrhs, nrows, nrun, nsmax, rank, smlsiz int
+func ddrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsval []int, nnb int, nbval []int, nxval []int, thresh float64, tsterr bool, a, copya, b, copyb, c, s, copys *mat.Vector, t *testing.T) {
+	var trans mat.MatTrans
+	var eps, one, rcond, zero float64
+	var crank, i, im, imb, in, inb, info, ins, irank, iscale, itype, j, k, lda, ldb, ldwork, liwork, lwlsy, lwork, lworkDgels, lworkDgelsd, lworkDgelss, lworkDgelsy, lworkDgetsls, m, mb, mmax, mnmin, n, nb, ncols, nerrs, nfail, nmax, nrhs, nrows, nrun, nsmax, rank, smlsiz int
 	var err error
-	_ = err
 
 	result := vf(16)
 	iseed := make([]int, 4)
@@ -35,7 +34,7 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
 
 	//     Initialize constants and the random number seed.
-	path := []byte("DLS")
+	path := "Dls"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -48,37 +47,37 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	rcond = math.Sqrt(eps) - (math.Sqrt(eps)-eps)/2
 
 	//     Test the error exits
-	Xlaenv(2, 2)
-	Xlaenv(9, smlsiz)
-	if *tsterr {
-		Derrls(path, t)
+	xlaenv(2, 2)
+	xlaenv(9, smlsiz)
+	if tsterr {
+		derrls(path, t)
 	}
 
 	//     Print the header if NM = 0 or NN = 0 and THRESH = 0.
-	if ((*nm) == 0 || (*nn) == 0) && (*thresh) == zero {
-		Alahd(path)
+	if (nm == 0 || nn == 0) && thresh == zero {
+		alahd(path)
 	}
 	(*infot) = 0
-	Xlaenv(2, 2)
-	Xlaenv(9, smlsiz)
+	xlaenv(2, 2)
+	xlaenv(9, smlsiz)
 
 	//     Compute maximal workspace needed for all routines
 	nmax = 0
 	mmax = 0
 	nsmax = 0
-	for i = 1; i <= (*nm); i++ {
-		if (*mval)[i-1] > mmax {
-			mmax = (*mval)[i-1]
+	for i = 1; i <= nm; i++ {
+		if mval[i-1] > mmax {
+			mmax = mval[i-1]
 		}
 	}
-	for i = 1; i <= (*nn); i++ {
-		if (*nval)[i-1] > nmax {
-			nmax = (*nval)[i-1]
+	for i = 1; i <= nn; i++ {
+		if nval[i-1] > nmax {
+			nmax = nval[i-1]
 		}
 	}
-	for i = 1; i <= (*nns); i++ {
-		if (*nsval)[i-1] > nsmax {
-			nsmax = (*nsval)[i-1]
+	for i = 1; i <= nns; i++ {
+		if nsval[i-1] > nsmax {
+			nsmax = nsval[i-1]
 		}
 	}
 	m = mmax
@@ -94,43 +93,48 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 	//     Iterate through all test cases and compute necessary workspace
 	//     sizes for ?GELS, ?GETSLS, ?GELSY, ?GELSS and ?GELSD routines.
-	for im = 1; im <= (*nm); im++ {
-		m = (*mval)[im-1]
+	for im = 1; im <= nm; im++ {
+		m = mval[im-1]
 		lda = max(1, m)
-		for in = 1; in <= (*nn); in++ {
-			n = (*nval)[in-1]
+		for in = 1; in <= nn; in++ {
+			n = nval[in-1]
 			mnmin = max(min(m, n), 1)
 			ldb = max(1, m, n)
-			for ins = 1; ins <= (*nns); ins++ {
-				nrhs = (*nsval)[ins-1]
+			for ins = 1; ins <= nns; ins++ {
+				nrhs = nsval[ins-1]
 				for irank = 1; irank <= 2; irank++ {
 					for iscale = 1; iscale <= 3; iscale++ {
 						itype = (irank-1)*3 + iscale
-						if (*dotype)[itype-1] {
+						if dotype[itype-1] {
 							if irank == 1 {
-								for itran = 1; itran <= 2; itran++ {
-									if itran == 1 {
-										trans = 'N'
-									} else {
-										trans = 'T'
-									}
+								for _, trans = range mat.IterMatTrans(false) {
 
 									//                             Compute workspace needed for DGELS
-									golapack.Dgels(trans, &m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, wq, toPtr(-1), &info)
+									if info, err = golapack.Dgels(trans, m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), wq, -1); err != nil {
+										panic(err)
+									}
 									lworkDgels = int(wq.Get(0))
 									//                             Compute workspace needed for DGETSLS
-									golapack.Dgetsls(trans, &m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, wq, toPtr(-1), &info)
+									if info, err = golapack.Dgetsls(trans, m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), wq, -1); err != nil {
+										panic(err)
+									}
 									lworkDgetsls = int(wq.Get(0))
 								}
 							}
 							//                       Compute workspace needed for DGELSY
-							golapack.Dgelsy(&m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, &iwq, &rcond, &crank, wq, toPtr(-1), &info)
+							if crank, err = golapack.Dgelsy(m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), &iwq, rcond, wq, -1); err != nil {
+								panic(err)
+							}
 							lworkDgelsy = int(wq.Get(0))
 							//                       Compute workspace needed for DGELSS
-							golapack.Dgelss(&m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, s, &rcond, &crank, wq, toPtr(-1), &info)
+							if crank, info, err = golapack.Dgelss(m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), s, rcond, wq, -1); err != nil {
+								panic(err)
+							}
 							lworkDgelss = int(wq.Get(0))
 							//                       Compute workspace needed for DGELSD
-							golapack.Dgelsd(&m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, s, &rcond, &crank, wq, toPtr(-1), &iwq, &info)
+							if crank, info, err = golapack.Dgelsd(m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), s, rcond, wq, -1, &iwq); err != nil {
+								panic(err)
+							}
 							lworkDgelsd = int(wq.Get(0))
 							//                       Compute LIWORK workspace needed for DGELSY and DGELSD
 							liwork = max(liwork, n, iwq[0])
@@ -148,23 +152,23 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	work := vf(lwork)
 	iwork := make([]int, liwork)
 
-	for im = 1; im <= (*nm); im++ {
-		m = (*mval)[im-1]
+	for im = 1; im <= nm; im++ {
+		m = mval[im-1]
 		lda = max(1, m)
 
-		for in = 1; in <= (*nn); in++ {
-			n = (*nval)[in-1]
+		for in = 1; in <= nn; in++ {
+			n = nval[in-1]
 			mnmin = max(min(m, n), 1)
 			ldb = max(1, m, n)
 			mb = (mnmin + 1)
 
-			for ins = 1; ins <= (*nns); ins++ {
-				nrhs = (*nsval)[ins-1]
+			for ins = 1; ins <= nns; ins++ {
+				nrhs = nsval[ins-1]
 
 				for irank = 1; irank <= 2; irank++ {
 					for iscale = 1; iscale <= 3; iscale++ {
 						itype = (irank-1)*3 + iscale
-						if !(*dotype)[itype-1] {
+						if !dotype[itype-1] {
 							goto label110
 						}
 
@@ -172,19 +176,17 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//                       Test DGELS
 							//
 							//                       Generate a matrix of scaling type ISCALE
-							Dqrt13(&iscale, &m, &n, copya.Matrix(lda, opts), &lda, &norma, &iseed)
-							for inb = 1; inb <= (*nnb); inb++ {
-								nb = (*nbval)[inb-1]
-								Xlaenv(1, nb)
-								Xlaenv(3, (*nxval)[inb-1])
+							_, iseed = dqrt13(iscale, m, n, copya.Matrix(lda, opts), iseed)
+							for inb = 1; inb <= nnb; inb++ {
+								nb = nbval[inb-1]
+								xlaenv(1, nb)
+								xlaenv(3, nxval[inb-1])
 
-								for itran = 1; itran <= 2; itran++ {
-									if itran == 1 {
-										trans = 'N'
+								for _, trans = range mat.IterMatTrans(false) {
+									if trans == NoTrans {
 										nrows = m
 										ncols = n
 									} else {
-										trans = 'T'
 										nrows = n
 										ncols = m
 									}
@@ -192,72 +194,71 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 									//                             Set up a consistent rhs
 									if ncols > 0 {
-										golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
+										golapack.Dlarnv(2, &iseed, ncols*nrhs, work)
 										goblas.Dscal(ncols*nrhs, one/float64(ncols), work.Off(0, 1))
 									}
-									err = goblas.Dgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, one, copya.Matrix(lda, opts), work.Matrix(ldwork, opts), zero, b.Matrix(ldb, opts))
-									golapack.Dlacpy('F', &nrows, &nrhs, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb)
+									if err = goblas.Dgemm(trans, NoTrans, nrows, nrhs, ncols, one, copya.Matrix(lda, opts), work.Matrix(ldwork, opts), zero, b.Matrix(ldb, opts)); err != nil {
+										panic(err)
+									}
+									golapack.Dlacpy(Full, nrows, nrhs, b.Matrix(ldb, opts), copyb.Matrix(ldb, opts))
 
 									//                             Solve LS or overdetermined system
 									if m > 0 && n > 0 {
-										golapack.Dlacpy('F', &m, &n, copya.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-										golapack.Dlacpy('F', &nrows, &nrhs, copyb.Matrix(ldb, opts), &ldb, b.Matrix(ldb, opts), &ldb)
+										golapack.Dlacpy(Full, m, n, copya.Matrix(lda, opts), a.Matrix(lda, opts))
+										golapack.Dlacpy(Full, nrows, nrhs, copyb.Matrix(ldb, opts), b.Matrix(ldb, opts))
 									}
-									*srnamt = "DGELS "
-									golapack.Dgels(trans, &m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork, &info)
-									if info != 0 {
-										Alaerh(path, []byte("DGELS "), &info, func() *int { y := 0; return &y }(), []byte{trans}, &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
+									*srnamt = "Dgels"
+									if info, err = golapack.Dgels(trans, m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork); info != 0 || err != nil {
+										nerrs = alaerh(path, "Dgels", info, 0, []byte{trans.Byte()}, m, n, nrhs, -1, nb, itype, nfail, nerrs)
 									}
 
 									//                             Check correctness of results
 									ldwork = max(1, nrows)
 									if nrows > 0 && nrhs > 0 {
-										golapack.Dlacpy('F', &nrows, &nrhs, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), &ldb)
+										golapack.Dlacpy(Full, nrows, nrhs, copyb.Matrix(ldb, opts), c.Matrix(ldb, opts))
 									}
-									Dqrt16(trans, &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), &ldb, work, result.GetPtr(0))
+									result.Set(0, dqrt16(trans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), c.Matrix(ldb, opts), work))
 
-									if (itran == 1 && m >= n) || (itran == 2 && m < n) {
+									if (trans == NoTrans && m >= n) || (trans == Trans && m < n) {
 										//                                Solving LS system
-										result.Set(1, Dqrt17(trans, func() *int { y := 1; return &y }(), &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), work, &lwork))
+										result.Set(1, dqrt17(trans, 1, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), copyb.Matrix(ldb, opts), c.Matrix(ldb, opts), work, lwork))
 									} else {
 										//                                Solving overdetermined system
-										result.Set(1, Dqrt14(trans, &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork))
+										result.Set(1, dqrt14(trans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork))
 									}
 
 									//                             Print information about the tests that
 									//                             did not pass the threshold.
 									for k = 1; k <= 2; k++ {
-										if result.Get(k-1) >= (*thresh) {
+										if result.Get(k-1) >= thresh {
 											if nfail == 0 && nerrs == 0 {
-												Alahd(path)
+												alahd(path)
 											}
 											t.Fail()
 											fmt.Printf(" TRANS='%c', M=%5d, N=%5d, NRHS=%4d, NB=%4d, type%2d, test(%2d)=%12.5f\n", trans, m, n, nrhs, nb, itype, k, result.Get(k-1))
-											nfail = nfail + 1
+											nfail++
 										}
 									}
-									nrun = nrun + 2
+									nrun += 2
 								}
 							}
 
 							//                       Test DGETSLS
 							//
 							//                       Generate a matrix of scaling type ISCALE
-							Dqrt13(&iscale, &m, &n, copya.Matrix(lda, opts), &lda, &norma, &iseed)
-							for inb = 1; inb <= (*nnb); inb++ {
-								mb = (*nbval)[inb-1]
-								Xlaenv(1, mb)
-								for imb = 1; imb <= (*nnb); imb++ {
-									nb = (*nbval)[imb-1]
-									Xlaenv(2, nb)
+							_, iseed = dqrt13(iscale, m, n, copya.Matrix(lda, opts), iseed)
+							for inb = 1; inb <= nnb; inb++ {
+								mb = nbval[inb-1]
+								xlaenv(1, mb)
+								for imb = 1; imb <= nnb; imb++ {
+									nb = nbval[imb-1]
+									xlaenv(2, nb)
 
-									for itran = 1; itran <= 2; itran++ {
-										if itran == 1 {
-											trans = 'N'
+									for _, trans = range mat.IterMatTrans(false) {
+										if trans == NoTrans {
 											nrows = m
 											ncols = n
 										} else {
-											trans = 'T'
 											nrows = n
 											ncols = m
 										}
@@ -265,51 +266,52 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 										//                             Set up a consistent rhs
 										if ncols > 0 {
-											golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(ncols*nrhs), work)
+											golapack.Dlarnv(2, &iseed, ncols*nrhs, work)
 											goblas.Dscal(ncols*nrhs, one/float64(ncols), work.Off(0, 1))
 										}
-										err = goblas.Dgemm(mat.TransByte(trans), NoTrans, nrows, nrhs, ncols, one, copya.Matrix(lda, opts), work.Matrix(ldwork, opts), zero, b.Matrix(ldb, opts))
-										golapack.Dlacpy('F', &nrows, &nrhs, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb)
+										if err = goblas.Dgemm(trans, NoTrans, nrows, nrhs, ncols, one, copya.Matrix(lda, opts), work.Matrix(ldwork, opts), zero, b.Matrix(ldb, opts)); err != nil {
+											panic(err)
+										}
+										golapack.Dlacpy(Full, nrows, nrhs, b.Matrix(ldb, opts), copyb.Matrix(ldb, opts))
 
 										//                             Solve LS or overdetermined system
 										if m > 0 && n > 0 {
-											golapack.Dlacpy('F', &m, &n, copya.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-											golapack.Dlacpy('F', &nrows, &nrhs, copyb.Matrix(ldb, opts), &ldb, b.Matrix(ldb, opts), &ldb)
+											golapack.Dlacpy(Full, m, n, copya.Matrix(lda, opts), a.Matrix(lda, opts))
+											golapack.Dlacpy(Full, nrows, nrhs, copyb.Matrix(ldb, opts), b.Matrix(ldb, opts))
 										}
-										*srnamt = "DGETSLS "
-										golapack.Dgetsls(trans, &m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork, &info)
-										if info != 0 {
-											Alaerh(path, []byte("DGETSLS "), &info, func() *int { y := 0; return &y }(), []byte{trans}, &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
+										*srnamt = "Dgetsls"
+										if info, err = golapack.Dgetsls(trans, m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork); info != 0 || err != nil {
+											nerrs = alaerh(path, "Dgetsls", info, 0, []byte{trans.Byte()}, m, n, nrhs, -1, nb, itype, nfail, nerrs)
 										}
 
 										//                             Check correctness of results
 										ldwork = max(1, nrows)
 										if nrows > 0 && nrhs > 0 {
-											golapack.Dlacpy('F', &nrows, &nrhs, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), &ldb)
+											golapack.Dlacpy(Full, nrows, nrhs, copyb.Matrix(ldb, opts), c.Matrix(ldb, opts))
 										}
-										Dqrt16(trans, &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), &ldb, work, result.GetPtr(14))
+										result.Set(14, dqrt16(trans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), c.Matrix(ldb, opts), work))
 
-										if (itran == 1 && m >= n) || (itran == 2 && m < n) {
+										if (trans == NoTrans && m >= n) || (trans == Trans && m < n) {
 											//                                Solving LS system
-											result.Set(15, Dqrt17(trans, func() *int { y := 1; return &y }(), &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), work, &lwork))
+											result.Set(15, dqrt17(trans, 1, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), copyb.Matrix(ldb, opts), c.Matrix(ldb, opts), work, lwork))
 										} else {
 											//                                Solving overdetermined system
-											result.Set(15, Dqrt14(trans, &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork))
+											result.Set(15, dqrt14(trans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork))
 										}
 
 										//                             Print information about the tests that
 										//                             did not pass the threshold.
 										for k = 15; k <= 16; k++ {
-											if result.Get(k-1) >= (*thresh) {
+											if result.Get(k-1) >= thresh {
 												if nfail == 0 && nerrs == 0 {
-													Alahd(path)
+													alahd(path)
 												}
 												t.Fail()
-												fmt.Printf(" TRANS='%c M=%5d, N=%5d, NRHS=%4d, MB=%4d, NB=%4d, type%2d, test(%2d)=%12.5f\n", trans, m, n, nrhs, mb, nb, itype, k, result.Get(k-1))
-												nfail = nfail + 1
+												fmt.Printf(" TRANS=%s M=%5d, N=%5d, NRHS=%4d, MB=%4d, NB=%4d, type%2d, test(%2d)=%12.5f\n", trans, m, n, nrhs, mb, nb, itype, k, result.Get(k-1))
+												nfail++
 											}
 										}
-										nrun = nrun + 2
+										nrun += 2
 									}
 								}
 							}
@@ -317,16 +319,16 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 
 						//                    Generate a matrix of scaling type ISCALE and rank
 						//                    type IRANK.
-						Dqrt15(&iscale, &irank, &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, copyb.Matrix(ldb, opts), &ldb, copys, &rank, &norma, &normb, &iseed, work, &lwork)
+						rank, _, _, iseed = dqrt15(iscale, irank, m, n, nrhs, copya.Matrix(lda, opts), copyb.Matrix(ldb, opts), copys, iseed, work, lwork)
 
 						//                    workspace used: MAX(M+MIN(M,N),NRHS*MIN(M,N),2*N+M)
 						ldwork = max(1, m)
 
 						//                    Loop for testing different block sizes.
-						for inb = 1; inb <= (*nnb); inb++ {
-							nb = (*nbval)[inb-1]
-							Xlaenv(1, nb)
-							Xlaenv(3, (*nxval)[inb-1])
+						for inb = 1; inb <= nnb; inb++ {
+							nb = nbval[inb-1]
+							xlaenv(1, nb)
+							xlaenv(3, nxval[inb-1])
 
 							//                       Test DGELSY
 							//
@@ -340,28 +342,27 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 								iwork[j-1] = 0
 							}
 
-							golapack.Dlacpy('F', &m, &n, copya.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-							golapack.Dlacpy('F', &m, &nrhs, copyb.Matrix(ldb, opts), &ldb, b.Matrix(ldb, opts), &ldb)
-							*srnamt = "DGELSY"
-							golapack.Dgelsy(&m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, &iwork, &rcond, &crank, work, &lwlsy, &info)
-							if info != 0 {
-								Alaerh(path, []byte("DGELSY"), &info, func() *int { y := 0; return &y }(), []byte(" "), &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
+							golapack.Dlacpy(Full, m, n, copya.Matrix(lda, opts), a.Matrix(lda, opts))
+							golapack.Dlacpy(Full, m, nrhs, copyb.Matrix(ldb, opts), b.Matrix(ldb, opts))
+							*srnamt = "Dgelsy"
+							if crank, err = golapack.Dgelsy(m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), &iwork, rcond, work, lwlsy); err != nil {
+								nerrs = alaerh(path, "Dgelsy", info, 0, []byte(" "), m, n, nrhs, -1, nb, itype, nfail, nerrs)
 							}
 
 							//                       Test 3:  Compute relative error in svd
 							//                                workspace: M*N + 4*MIN(M,N) + MAX(M,N)
-							result.Set(2, Dqrt12(&crank, &crank, a.Matrix(lda, opts), &lda, copys, work, &lwork))
+							result.Set(2, dqrt12(crank, crank, a.Matrix(lda, opts), copys, work, lwork))
 
 							//                       Test 4:  Compute error in solution
 							//                                workspace:  M*NRHS + M
-							golapack.Dlacpy('F', &m, &nrhs, copyb.Matrix(ldb, opts), &ldb, work.Matrix(ldwork, opts), &ldwork)
-							Dqrt16('N', &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work.Matrix(ldwork, opts), &ldwork, work.Off(m*nrhs), result.GetPtr(3))
+							golapack.Dlacpy(Full, m, nrhs, copyb.Matrix(ldb, opts), work.Matrix(ldwork, opts))
+							result.Set(3, dqrt16(NoTrans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work.Matrix(ldwork, opts), work.Off(m*nrhs)))
 
 							//                       Test 5:  Check norm of r'*A
 							//                                workspace: NRHS*(M+N)
 							result.Set(4, zero)
 							if m > crank {
-								result.Set(4, Dqrt17('N', func() *int { y := 1; return &y }(), &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), work, &lwork))
+								result.Set(4, dqrt17(NoTrans, 1, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), copyb.Matrix(ldb, opts), c.Matrix(ldb, opts), work, lwork))
 							}
 
 							//                       Test 6:  Check if x is in the rowspace of A
@@ -369,7 +370,7 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							result.Set(5, zero)
 
 							if n > crank {
-								result.Set(5, Dqrt14('N', &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork))
+								result.Set(5, dqrt14(NoTrans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork))
 							}
 
 							//                       Test DGELSS
@@ -377,12 +378,11 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							//                       DGELSS:  Compute the minimum-norm solution X
 							//                       to min( norm( A * X - B ) )
 							//                       using the SVD.
-							golapack.Dlacpy('F', &m, &n, copya.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-							golapack.Dlacpy('F', &m, &nrhs, copyb.Matrix(ldb, opts), &ldb, b.Matrix(ldb, opts), &ldb)
-							*srnamt = "DGELSS"
-							golapack.Dgelss(&m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, s, &rcond, &crank, work, &lwork, &info)
-							if info != 0 {
-								Alaerh(path, []byte("DGELSS"), &info, func() *int { y := 0; return &y }(), []byte(" "), &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
+							golapack.Dlacpy(Full, m, n, copya.Matrix(lda, opts), a.Matrix(lda, opts))
+							golapack.Dlacpy(Full, m, nrhs, copyb.Matrix(ldb, opts), b.Matrix(ldb, opts))
+							*srnamt = "Dgelss"
+							if crank, info, err = golapack.Dgelss(m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), s, rcond, work, lwork); info != 0 || err != nil {
+								nerrs = alaerh(path, "Dgelss", info, 0, []byte(" "), m, n, nrhs, -1, nb, itype, nfail, nerrs)
 							}
 
 							//                       workspace used: 3*min(m,n) +
@@ -397,19 +397,19 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							}
 
 							//                       Test 8:  Compute error in solution
-							golapack.Dlacpy('F', &m, &nrhs, copyb.Matrix(ldb, opts), &ldb, work.Matrix(ldwork, opts), &ldwork)
-							Dqrt16('N', &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work.Matrix(ldwork, opts), &ldwork, work.Off(m*nrhs), result.GetPtr(7))
+							golapack.Dlacpy(Full, m, nrhs, copyb.Matrix(ldb, opts), work.Matrix(ldwork, opts))
+							result.Set(7, dqrt16(NoTrans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work.Matrix(ldwork, opts), work.Off(m*nrhs)))
 
 							//                       Test 9:  Check norm of r'*A
 							result.Set(8, zero)
 							if m > crank {
-								result.Set(8, Dqrt17('N', func() *int { y := 1; return &y }(), &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), work, &lwork))
+								result.Set(8, dqrt17(NoTrans, 1, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), copyb.Matrix(ldb, opts), c.Matrix(ldb, opts), work, lwork))
 							}
 
 							//                       Test 10:  Check if x is in the rowspace of A
 							result.Set(9, zero)
 							if n > crank {
-								result.Set(9, Dqrt14('N', &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork))
+								result.Set(9, dqrt14(NoTrans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork))
 							}
 
 							//                       Test DGELSD
@@ -423,13 +423,12 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 								iwork[j-1] = 0
 							}
 
-							golapack.Dlacpy('F', &m, &n, copya.Matrix(lda, opts), &lda, a.Matrix(lda, opts), &lda)
-							golapack.Dlacpy('F', &m, &nrhs, copyb.Matrix(ldb, opts), &ldb, b.Matrix(ldb, opts), &ldb)
+							golapack.Dlacpy(Full, m, n, copya.Matrix(lda, opts), a.Matrix(lda, opts))
+							golapack.Dlacpy(Full, m, nrhs, copyb.Matrix(ldb, opts), b.Matrix(ldb, opts))
 
-							*srnamt = "DGELSD"
-							golapack.Dgelsd(&m, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, s, &rcond, &crank, work, &lwork, &iwork, &info)
-							if info != 0 {
-								Alaerh(path, []byte("DGELSD"), &info, func() *int { y := 0; return &y }(), []byte(" "), &m, &n, &nrhs, toPtr(-1), &nb, &itype, &nfail, &nerrs)
+							*srnamt = "Dgelsd"
+							if crank, info, err = golapack.Dgelsd(m, n, nrhs, a.Matrix(lda, opts), b.Matrix(ldb, opts), s, rcond, work, lwork, &iwork); info != 0 || err != nil {
+								nerrs = alaerh(path, "Dgelsd", info, 0, []byte(" "), m, n, nrhs, -1, nb, itype, nfail, nerrs)
 							}
 
 							//                       Test 11:  Compute relative error in svd
@@ -441,34 +440,34 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 							}
 
 							//                       Test 12:  Compute error in solution
-							golapack.Dlacpy('F', &m, &nrhs, copyb.Matrix(ldb, opts), &ldb, work.Matrix(ldwork, opts), &ldwork)
-							Dqrt16('N', &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work.Matrix(ldwork, opts), &ldwork, work.Off(m*nrhs), result.GetPtr(11))
+							golapack.Dlacpy(Full, m, nrhs, copyb.Matrix(ldb, opts), work.Matrix(ldwork, opts))
+							result.Set(11, dqrt16(NoTrans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work.Matrix(ldwork, opts), work.Off(m*nrhs)))
 
 							//                       Test 13:  Check norm of r'*A
 							result.Set(12, zero)
 							if m > crank {
-								result.Set(12, Dqrt17('N', func() *int { y := 1; return &y }(), &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, copyb.Matrix(ldb, opts), &ldb, c.Matrix(ldb, opts), work, &lwork))
+								result.Set(12, dqrt17(NoTrans, 1, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), copyb.Matrix(ldb, opts), c.Matrix(ldb, opts), work, lwork))
 							}
 
 							//                       Test 14:  Check if x is in the rowspace of A
 							result.Set(13, zero)
 							if n > crank {
-								result.Set(13, Dqrt14('N', &m, &n, &nrhs, copya.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), &ldb, work, &lwork))
+								result.Set(13, dqrt14(NoTrans, m, n, nrhs, copya.Matrix(lda, opts), b.Matrix(ldb, opts), work, lwork))
 							}
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.
 							for k = 3; k <= 14; k++ {
-								if result.Get(k-1) >= (*thresh) {
+								if result.Get(k-1) >= thresh {
 									if nfail == 0 && nerrs == 0 {
-										Alahd(path)
+										alahd(path)
 									}
 									t.Fail()
 									fmt.Printf(" M=%5d, N=%5d, NRHS=%4d, NB=%4d, type%2d, test(%2d)=%12.5f\n", m, n, nrhs, nb, itype, k, result.Get(k-1))
-									nfail = nfail + 1
+									nfail++
 								}
 							}
-							nrun = nrun + 12
+							nrun += 12
 
 						}
 					label110:
@@ -487,5 +486,5 @@ func Ddrvls(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nns *int
 	}
 
 	//     Print a summary of the results.
-	Alasvm(path, &nfail, &nrun, &nerrs)
+	alasvm(path, nfail, nrun, nerrs)
 }

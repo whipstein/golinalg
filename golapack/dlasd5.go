@@ -18,7 +18,7 @@ import (
 //
 // We also assume RHO > 0 and that the Euclidean norm of the vector
 // Z is one.
-func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vector) {
+func Dlasd5(i int, d, z, delta *mat.Vector, rho float64, work *mat.Vector) (dsigma float64) {
 	var b, c, del, delsq, four, one, tau, three, two, w, zero float64
 
 	zero = 0.0
@@ -29,11 +29,11 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 
 	del = d.Get(1) - d.Get(0)
 	delsq = del * (d.Get(1) + d.Get(0))
-	if (*i) == 1 {
-		w = one + four*(*rho)*(z.Get(1)*z.Get(1)/(d.Get(0)+three*d.Get(1))-z.Get(0)*z.Get(0)/(three*d.Get(0)+d.Get(1)))/del
+	if i == 1 {
+		w = one + four*rho*(z.Get(1)*z.Get(1)/(d.Get(0)+three*d.Get(1))-z.Get(0)*z.Get(0)/(three*d.Get(0)+d.Get(1)))/del
 		if w > zero {
-			b = delsq + (*rho)*(z.Get(0)*z.Get(0)+z.Get(1)*z.Get(1))
-			c = (*rho) * z.Get(0) * z.Get(0) * delsq
+			b = delsq + rho*(z.Get(0)*z.Get(0)+z.Get(1)*z.Get(1))
+			c = rho * z.Get(0) * z.Get(0) * delsq
 
 			//           B > ZERO, always
 			//
@@ -42,7 +42,7 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 
 			//           The following TAU is DSIGMA - D( 1 )
 			tau = tau / (d.Get(0) + math.Sqrt(d.Get(0)*d.Get(0)+tau))
-			(*dsigma) = d.Get(0) + tau
+			dsigma = d.Get(0) + tau
 			delta.Set(0, -tau)
 			delta.Set(1, del-tau)
 			work.Set(0, two*d.Get(0)+tau)
@@ -50,8 +50,8 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 			//           DELTA( 1 ) = -Z( 1 ) / TAU
 			//           DELTA( 2 ) = Z( 2 ) / ( DEL-TAU )
 		} else {
-			b = -delsq + (*rho)*(z.Get(0)*z.Get(0)+z.Get(1)*z.Get(1))
-			c = (*rho) * z.Get(1) * z.Get(1) * delsq
+			b = -delsq + rho*(z.Get(0)*z.Get(0)+z.Get(1)*z.Get(1))
+			c = rho * z.Get(1) * z.Get(1) * delsq
 
 			//           The following TAU is DSIGMA * DSIGMA - D( 2 ) * D( 2 )
 			if b > zero {
@@ -62,7 +62,7 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 
 			//           The following TAU is DSIGMA - D( 2 )
 			tau = tau / (d.Get(1) + math.Sqrt(math.Abs(d.Get(1)*d.Get(1)+tau)))
-			(*dsigma) = d.Get(1) + tau
+			dsigma = d.Get(1) + tau
 			delta.Set(0, -(del + tau))
 			delta.Set(1, -tau)
 			work.Set(0, d.Get(0)+tau+d.Get(1))
@@ -75,8 +75,8 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 		//        DELTA( 2 ) = DELTA( 2 ) / TEMP
 	} else {
 		//        Now I=2
-		b = -delsq + (*rho)*(z.Get(0)*z.Get(0)+z.Get(1)*z.Get(1))
-		c = (*rho) * z.Get(1) * z.Get(1) * delsq
+		b = -delsq + rho*(z.Get(0)*z.Get(0)+z.Get(1)*z.Get(1))
+		c = rho * z.Get(1) * z.Get(1) * delsq
 
 		//        The following TAU is DSIGMA * DSIGMA - D( 2 ) * D( 2 )
 		if b > zero {
@@ -87,7 +87,7 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 
 		//        The following TAU is DSIGMA - D( 2 )
 		tau = tau / (d.Get(1) + math.Sqrt(d.Get(1)*d.Get(1)+tau))
-		(*dsigma) = d.Get(1) + tau
+		dsigma = d.Get(1) + tau
 		delta.Set(0, -(del + tau))
 		delta.Set(1, -tau)
 		work.Set(0, d.Get(0)+tau+d.Get(1))
@@ -98,4 +98,6 @@ func Dlasd5(i *int, d, z, delta *mat.Vector, rho, dsigma *float64, work *mat.Vec
 		//        DELTA( 1 ) = DELTA( 1 ) / TEMP
 		//        DELTA( 2 ) = DELTA( 2 ) / TEMP
 	}
+
+	return
 }

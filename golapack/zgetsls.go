@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -31,11 +33,11 @@ import (
 // handled in a single call; they are stored as the columns of the
 // M-by-NRHS right hand side matrix B and the N-by-NRHS solution
 // matrix X.
-func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
+func Zgetsls(trans mat.MatTrans, m, n, nrhs int, a, b *mat.CMatrix, work *mat.CVector, lwork int) (info int, err error) {
 	var lquery, tran bool
 	var czero complex128
 	var anrm, bignum, bnrm, one, smlnum, zero float64
-	var brow, i, iascl, ibscl, info2, j, lw1, lw2, lwm, lwo, maxmn, scllen, tszm, tszo, wsizem, wsizeo int
+	var brow, i, iascl, ibscl, j, lw1, lw2, lwm, lwo, maxmn, scllen, tszm, tszo, wsizem, wsizeo int
 
 	tq := cvf(5)
 	workq := cvf(1)
@@ -46,78 +48,93 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 	czero = (0.0 + 0.0*1i)
 
 	//     Test the input arguments.
-	(*info) = 0
 	// minmn = min(*m, *n)
-	maxmn = max(*m, *n)
+	maxmn = max(m, n)
 	// mnk = max(minmn, *nrhs)
-	tran = trans == 'C'
+	tran = trans == ConjTrans
 
-	lquery = ((*lwork) == -1 || (*lwork) == -2)
-	if !(trans == 'N' || trans == 'C') {
-		(*info) = -1
-	} else if (*m) < 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*nrhs) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *m) {
-		(*info) = -6
-	} else if (*ldb) < max(1, *m, *n) {
-		(*info) = -8
+	lquery = (lwork == -1 || lwork == -2)
+	if !(trans == NoTrans || trans == ConjTrans) {
+		err = fmt.Errorf("!(trans == NoTrans || trans == ConjTrans): trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m,=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, m, n) {
+		err = fmt.Errorf("b.Rows < max(1, m, n): b.Rows=%v, m=%v, n=%v", b.Rows, m, n)
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		//     Determine the block size and minimum LWORK
-		if (*m) >= (*n) {
-			Zgeqr(m, n, a, lda, tq, toPtr(-1), workq, toPtr(-1), &info2)
+		if m >= n {
+			if err = Zgeqr(m, n, a, tq, -1, workq, -1); err != nil {
+				panic(err)
+			}
 			tszo = int(tq.GetRe(0))
 			lwo = int(workq.GetRe(0))
-			Zgemqr('L', trans, m, nrhs, n, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
+			if err = Zgemqr(Left, trans, m, nrhs, n, a, tq, tszo, b, workq, -1); err != nil {
+				panic(err)
+			}
 			lwo = max(lwo, int(workq.GetRe(0)))
-			Zgeqr(m, n, a, lda, tq, toPtr(-2), workq, toPtr(-2), &info2)
+			if err = Zgeqr(m, n, a, tq, -2, workq, -2); err != nil {
+				panic(err)
+			}
 			tszm = int(tq.GetRe(0))
 			lwm = int(workq.GetRe(0))
-			Zgemqr('L', trans, m, nrhs, n, a, lda, tq, &tszm, b, ldb, workq, toPtr(-1), &info2)
+			if err = Zgemqr(Left, trans, m, nrhs, n, a, tq, tszm, b, workq, -1); err != nil {
+				panic(err)
+			}
 			lwm = max(lwm, int(workq.GetRe(0)))
 			wsizeo = tszo + lwo
 			wsizem = tszm + lwm
 		} else {
-			Zgelq(m, n, a, lda, tq, toPtr(-1), workq, toPtr(-1), &info2)
+			if err = Zgelq(m, n, a, tq, -1, workq, -1); err != nil {
+				panic(err)
+			}
 			tszo = int(tq.GetRe(0))
 			lwo = int(workq.GetRe(0))
-			Zgemlq('L', trans, n, nrhs, m, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
+			if err = Zgemlq(Left, trans, n, nrhs, m, a, tq, tszo, b, workq, -1); err != nil {
+				panic(err)
+			}
 			lwo = max(lwo, int(workq.GetRe(0)))
-			Zgelq(m, n, a, lda, tq, toPtr(-2), workq, toPtr(-2), &info2)
+			if err = Zgelq(m, n, a, tq, -2, workq, -2); err != nil {
+				panic(err)
+			}
 			tszm = int(tq.GetRe(0))
 			lwm = int(workq.GetRe(0))
-			Zgemlq('L', trans, n, nrhs, m, a, lda, tq, &tszo, b, ldb, workq, toPtr(-1), &info2)
+			if err = Zgemlq(Left, trans, n, nrhs, m, a, tq, tszo, b, workq, -1); err != nil {
+				panic(err)
+			}
 			lwm = max(lwm, int(workq.GetRe(0)))
 			wsizeo = tszo + lwo
 			wsizem = tszm + lwm
 		}
 
-		if ((*lwork) < wsizem) && (!lquery) {
-			(*info) = -10
+		if (lwork < wsizem) && (!lquery) {
+			err = fmt.Errorf("(lwork < wsizem) && (!lquery): lwork=%v, wsizem=%v, lquery=%v", lwork, wsizem, lquery)
 		}
 
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGETSLS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgetsls", err)
 		work.SetRe(0, float64(wsizeo))
 		return
 	}
 	if lquery {
-		if (*lwork) == -1 {
+		if lwork == -1 {
 			work.SetRe(0, float64(wsizeo))
 		}
-		if (*lwork) == -2 {
+		if lwork == -2 {
 			work.SetRe(0, float64(wsizem))
 		}
 		return
 	}
-	if (*lwork) < wsizeo {
+	if lwork < wsizeo {
 		lw1 = tszm
 		lw2 = lwm
 	} else {
@@ -126,132 +143,160 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 	}
 
 	//     Quick return if possible
-	if min(*m, *n, *nrhs) == 0 {
-		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
+	if min(m, n, nrhs) == 0 {
+		Zlaset(Full, max(m, n), nrhs, czero, czero, b)
 		return
 	}
 
 	//     Get machine parameters
 	smlnum = Dlamch(SafeMinimum) / Dlamch(Precision)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 
 	//     Scale A, B if max element outside range [SMLNUM,BIGNUM]
-	anrm = Zlange('M', m, n, a, lda, dum)
+	anrm = Zlange('M', m, n, a, dum)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
 		//        Scale matrix norm up to SMLNUM
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, m, n, a, lda, info)
+		if err = Zlascl('G', 0, 0, anrm, smlnum, m, n, a); err != nil {
+			panic(err)
+		}
 		iascl = 1
 	} else if anrm > bignum {
 		//        Scale matrix norm down to BIGNUM
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, m, n, a, lda, info)
+		if err = Zlascl('G', 0, 0, anrm, bignum, m, n, a); err != nil {
+			panic(err)
+		}
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Zlaset('F', &maxmn, nrhs, &czero, &czero, b, ldb)
+		Zlaset(Full, maxmn, nrhs, czero, czero, b)
 		goto label50
 	}
 
-	brow = (*m)
+	brow = m
 	if tran {
-		brow = (*n)
+		brow = n
 	}
-	bnrm = Zlange('M', &brow, nrhs, b, ldb, dum)
+	bnrm = Zlange('M', brow, nrhs, b, dum)
 	ibscl = 0
 	if bnrm > zero && bnrm < smlnum {
 		//        Scale matrix norm up to SMLNUM
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &smlnum, &brow, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, bnrm, smlnum, brow, nrhs, b); err != nil {
+			panic(err)
+		}
 		ibscl = 1
 	} else if bnrm > bignum {
 		//        Scale matrix norm down to BIGNUM
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &bignum, &brow, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, bnrm, bignum, brow, nrhs, b); err != nil {
+			panic(err)
+		}
 		ibscl = 2
 	}
 
-	if (*m) >= (*n) {
+	if m >= n {
 		//        compute QR factorization of A
-		Zgeqr(m, n, a, lda, work.Off(lw2), &lw1, work, &lw2, info)
+		if err = Zgeqr(m, n, a, work.Off(lw2), lw1, work, lw2); err != nil {
+			panic(err)
+		}
 		if !tran {
 			//           Least-Squares Problem min || A * X - B ||
 			//
 			//           B(1:M,1:NRHS) := Q**T * B(1:M,1:NRHS)
-			Zgemqr('L', 'C', m, nrhs, n, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
+			if err = Zgemqr(Left, ConjTrans, m, nrhs, n, a, work.Off(lw2), lw1, b, work, lw2); err != nil {
+				panic(err)
+			}
 
 			//           B(1:N,1:NRHS) := inv(R) * B(1:N,1:NRHS)
-			Ztrtrs('U', 'N', 'N', n, nrhs, a, lda, b, ldb, info)
-			if (*info) > 0 {
+			if info, err = Ztrtrs(Upper, NoTrans, NonUnit, n, nrhs, a, b); err != nil {
+				panic(err)
+			}
+			if info > 0 {
 				return
 			}
-			scllen = (*n)
+			scllen = n
 		} else {
 			//           Overdetermined system of equations A**T * X = B
 			//
 			//           B(1:N,1:NRHS) := inv(R**T) * B(1:N,1:NRHS)
-			Ztrtrs('U', 'C', 'N', n, nrhs, a, lda, b, ldb, info)
+			if info, err = Ztrtrs(Upper, ConjTrans, NonUnit, n, nrhs, a, b); err != nil {
+				panic(err)
+			}
 
-			if (*info) > 0 {
+			if info > 0 {
 				return
 			}
 
 			//           B(N+1:M,1:NRHS) = CZERO
-			for j = 1; j <= (*nrhs); j++ {
-				for i = (*n) + 1; i <= (*m); i++ {
+			for j = 1; j <= nrhs; j++ {
+				for i = n + 1; i <= m; i++ {
 					b.Set(i-1, j-1, czero)
 				}
 			}
 
 			//           B(1:M,1:NRHS) := Q(1:N,:) * B(1:N,1:NRHS)
-			Zgemqr('L', 'N', m, nrhs, n, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
+			if err = Zgemqr(Left, NoTrans, m, nrhs, n, a, work.Off(lw2), lw1, b, work, lw2); err != nil {
+				panic(err)
+			}
 
-			scllen = (*m)
+			scllen = m
 
 		}
 
 	} else {
 		//        Compute LQ factorization of A
-		Zgelq(m, n, a, lda, work.Off(lw2), &lw1, work, &lw2, info)
+		if err = Zgelq(m, n, a, work.Off(lw2), lw1, work, lw2); err != nil {
+			panic(err)
+		}
 
 		//        workspace at least M, optimally M*NB.
 		if !tran {
 			//           underdetermined system of equations A * X = B
 			//
 			//           B(1:M,1:NRHS) := inv(L) * B(1:M,1:NRHS)
-			Ztrtrs('L', 'N', 'N', m, nrhs, a, lda, b, ldb, info)
+			if info, err = Ztrtrs(Lower, NoTrans, NonUnit, m, nrhs, a, b); err != nil {
+				panic(err)
+			}
 
-			if (*info) > 0 {
+			if info > 0 {
 				return
 			}
 
 			//           B(M+1:N,1:NRHS) = 0
-			for j = 1; j <= (*nrhs); j++ {
-				for i = (*m) + 1; i <= (*n); i++ {
+			for j = 1; j <= nrhs; j++ {
+				for i = m + 1; i <= n; i++ {
 					b.Set(i-1, j-1, czero)
 				}
 			}
 
 			//           B(1:N,1:NRHS) := Q(1:N,:)**T * B(1:M,1:NRHS)
-			Zgemlq('L', 'C', n, nrhs, m, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
+			if err = Zgemlq(Left, ConjTrans, n, nrhs, m, a, work.Off(lw2), lw1, b, work, lw2); err != nil {
+				panic(err)
+			}
 
 			//           workspace at least NRHS, optimally NRHS*NB
-			scllen = (*n)
+			scllen = n
 
 		} else {
 			//           overdetermined system min || A**T * X - B ||
 			//
 			//           B(1:N,1:NRHS) := Q * B(1:N,1:NRHS)
-			Zgemlq('L', 'N', n, nrhs, m, a, lda, work.Off(lw2), &lw1, b, ldb, work, &lw2, info)
+			if err = Zgemlq(Left, NoTrans, n, nrhs, m, a, work.Off(lw2), lw1, b, work, lw2); err != nil {
+				panic(err)
+			}
 
 			//           workspace at least NRHS, optimally NRHS*NB
 			//
 			//           B(1:M,1:NRHS) := inv(L**T) * B(1:M,1:NRHS)
-			Ztrtrs('L', 'C', 'N', m, nrhs, a, lda, b, ldb, info)
+			if info, err = Ztrtrs(Lower, ConjTrans, NonUnit, m, nrhs, a, b); err != nil {
+				panic(err)
+			}
 
-			if (*info) > 0 {
+			if info > 0 {
 				return
 			}
 
-			scllen = (*m)
+			scllen = m
 
 		}
 
@@ -259,17 +304,27 @@ func Zgetsls(trans byte, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatr
 
 	//     Undo scaling
 	if iascl == 1 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, &scllen, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, anrm, smlnum, scllen, nrhs, b); err != nil {
+			panic(err)
+		}
 	} else if iascl == 2 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, &scllen, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, anrm, bignum, scllen, nrhs, b); err != nil {
+			panic(err)
+		}
 	}
 	if ibscl == 1 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &bnrm, &scllen, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, smlnum, bnrm, scllen, nrhs, b); err != nil {
+			panic(err)
+		}
 	} else if ibscl == 2 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &bnrm, &scllen, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, bignum, bnrm, scllen, nrhs, b); err != nil {
+			panic(err)
+		}
 	}
 
 label50:
 	;
 	work.SetRe(0, float64(tszo+lwo))
+
+	return
 }

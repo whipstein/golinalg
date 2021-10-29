@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -17,46 +19,43 @@ import (
 // LU factorized with partial pivoting).
 //
 // This is the blocked version of the algorithm, calling Level 3 BLAS.
-func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, ltb *int, ipiv, ipiv2 *[]int, work *mat.Vector, lwork, info *int) {
+func DsytrfAa2stage(uplo mat.MatUplo, n int, a *mat.Matrix, tb *mat.Vector, ltb int, ipiv, ipiv2 *[]int, work *mat.Vector, lwork int) (info int, err error) {
 	var tquery, upper, wquery bool
 	var one, piv, zero float64
-	var i, i1, i2, iinfo, j, jb, k, kb, ldtb, nb, nt, td int
-	var err error
-	_ = err
+	var i, i1, i2, j, jb, k, kb, ldtb, nb, nt, td int
 
 	zero = 0.0
 	one = 1.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	wquery = ((*lwork) == -1)
-	tquery = ((*ltb) == -1)
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*ltb) < 4*(*n) && !tquery {
-		(*info) = -6
-	} else if (*lwork) < (*n) && !wquery {
-		(*info) = -10
+	upper = uplo == Upper
+	wquery = (lwork == -1)
+	tquery = (ltb == -1)
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if ltb < 4*n && !tquery {
+		err = fmt.Errorf("ltb < 4*n && !tquery: ltb=%v, n=%v, tquery=%v", ltb, n, tquery)
+	} else if lwork < n && !wquery {
+		err = fmt.Errorf("lwork < n && !wquery: lwork=%v, n=%v, wquery=%v", lwork, n, wquery)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRF_AA_2STAGE"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("DsytrfAa2stage", err)
 		return
 	}
 
 	//     Answer the query
-	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYTRF_AA_2STAGE"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-	if (*info) == 0 {
+	nb = Ilaenv(1, "DsytrfAa2stage", []byte{uplo.Byte()}, n, -1, -1, -1)
+	if info == 0 {
 		if tquery {
-			tb.Set(0, float64((3*nb+1)*(*n)))
+			tb.Set(0, float64((3*nb+1)*n))
 		}
 		if wquery {
-			work.Set(0, float64((*n)*nb))
+			work.Set(0, float64(n*nb))
 		}
 	}
 	if tquery || wquery {
@@ -64,23 +63,23 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 	}
 
 	//     Quick return
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Determine the number of the block size
-	ldtb = (*ltb) / (*n)
+	ldtb = ltb / n
 	if ldtb < 3*nb+1 {
 		nb = (ldtb - 1) / 3
 	}
-	if (*lwork) < nb*(*n) {
-		nb = (*lwork) / (*n)
+	if lwork < nb*n {
+		nb = lwork / n
 	}
 
 	//     Determine the number of the block columns
-	nt = ((*n) + nb - 1) / nb
+	nt = (n + nb - 1) / nb
 	td = 2 * nb
-	kb = min(nb, *n)
+	kb = min(nb, n)
 
 	//     Initialize vectors/matrices
 	for j = 1; j <= kb; j++ {
@@ -96,7 +95,7 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 		//        .....................................................
 		for j = 0; j <= nt-1; j++ {
 			//           Generate Jth column of W and H
-			kb = min(nb, (*n)-j*nb)
+			kb = min(nb, n-j*nb)
 			for i = 1; i <= j-1; i++ {
 				if i == 1 {
 					//                 H(I,J) = T(I,I)*U(I,J) + T(I,I+1)*U(I+1,J)
@@ -105,7 +104,9 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 					} else {
 						jb = 2 * nb
 					}
-					err = goblas.Dgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.MatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), a.Off((i-1)*nb, j*nb), zero, work.MatrixOff(i*nb, *n, opts))
+					if err = goblas.Dgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.MatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), a.Off((i-1)*nb, j*nb), zero, work.MatrixOff(i*nb, n, opts)); err != nil {
+						panic(err)
+					}
 				} else {
 					//                 H(I,J) = T(I,I-1)*U(I-1,J) + T(I,I)*U(I,J) + T(I,I+1)*U(I+1,J)
 					if i == j-1 {
@@ -113,21 +114,31 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 					} else {
 						jb = 3 * nb
 					}
-					err = goblas.Dgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.MatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), a.Off((i-2)*nb, j*nb), zero, work.MatrixOff(i*nb, *n, opts))
+					if err = goblas.Dgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.MatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), a.Off((i-2)*nb, j*nb), zero, work.MatrixOff(i*nb, n, opts)); err != nil {
+						panic(err)
+					}
 				}
 			}
 
 			//           Compute T(J,J)
-			Dlacpy('U', &kb, &kb, a.Off(j*nb, j*nb), lda, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+			Dlacpy(Upper, kb, kb, a.Off(j*nb, j*nb), tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
 			if j > 1 {
 				//              T(J,J) = U(1:J,J)'*H(1:J)
-				err = goblas.Dgemm(Trans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(0, j*nb), work.MatrixOff(nb, *n, opts), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				if err = goblas.Dgemm(Trans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(0, j*nb), work.MatrixOff(nb, n, opts), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+					panic(err)
+				}
 				//              T(J,J) += U(J,J)'*T(J,J-1)*U(J-1,J)
-				err = goblas.Dgemm(Trans, NoTrans, kb, nb, kb, one, a.Off((j-1)*nb, j*nb), tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), zero, work.Matrix(*n, opts))
-				err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, nb, -one, work.Matrix(*n, opts), a.Off((j-2)*nb, j*nb), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				if err = goblas.Dgemm(Trans, NoTrans, kb, nb, kb, one, a.Off((j-1)*nb, j*nb), tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), zero, work.Matrix(n, opts)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, nb, -one, work.Matrix(n, opts), a.Off((j-2)*nb, j*nb), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+					panic(err)
+				}
 			}
 			if j > 0 {
-				Dsygst(func() *int { y := 1; return &y }(), 'U', &kb, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off((j-1)*nb, j*nb), lda, &iinfo)
+				if err = Dsygst(1, Upper, kb, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off((j-1)*nb, j*nb)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Expand T(J,J) into full format
@@ -141,35 +152,43 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 				if j > 0 {
 					//                 Compute H(J,J)
 					if j == 1 {
-						err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, kb, one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off((j-1)*nb, j*nb), zero, work.MatrixOff(j*nb, *n, opts))
+						if err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, kb, one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off((j-1)*nb, j*nb), zero, work.MatrixOff(j*nb, n, opts)); err != nil {
+							panic(err)
+						}
 					} else {
-						err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, nb+kb, one, tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), a.Off((j-2)*nb, j*nb), zero, work.MatrixOff(j*nb, *n, opts))
+						if err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, nb+kb, one, tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), a.Off((j-2)*nb, j*nb), zero, work.MatrixOff(j*nb, n, opts)); err != nil {
+							panic(err)
+						}
 					}
 
 					//                 Update with the previous column
-					err = goblas.Dgemm(Trans, NoTrans, nb, (*n)-(j+1)*nb, j*nb, -one, work.MatrixOff(nb, *n, opts), a.Off(0, (j+1)*nb), one, a.Off(j*nb, (j+1)*nb))
+					if err = goblas.Dgemm(Trans, NoTrans, nb, n-(j+1)*nb, j*nb, -one, work.MatrixOff(nb, n, opts), a.Off(0, (j+1)*nb), one, a.Off(j*nb, (j+1)*nb)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              Copy panel to workspace to call DGETRF
 				for k = 1; k <= nb; k++ {
-					goblas.Dcopy((*n)-(j+1)*nb, a.Vector(j*nb+k-1, (j+1)*nb, *lda), work.Off(1+(k-1)*(*n)-1, 1))
+					goblas.Dcopy(n-(j+1)*nb, a.Vector(j*nb+k-1, (j+1)*nb), work.Off(1+(k-1)*n-1, 1))
 				}
 
 				//              Factorize panel
-				Dgetrf(toPtr((*n)-(j+1)*nb), &nb, work.Matrix(*n, opts), n, toSlice(ipiv, (j+1)*nb), &iinfo)
+				if _, err = Dgetrf(n-(j+1)*nb, nb, work.Matrix(n, opts), toSlice(ipiv, (j+1)*nb)); err != nil {
+					panic(err)
+				}
 				//c               IF (IINFO.NE.0 .AND. INFO.EQ.0) THEN
 				//c                  INFO = IINFO+(J+1)*NB
 				//c               END IF
 				//
 				//              Copy panel back
 				for k = 1; k <= nb; k++ {
-					goblas.Dcopy((*n)-(j+1)*nb, work.Off(1+(k-1)*(*n)-1, 1), a.Vector(j*nb+k-1, (j+1)*nb, *lda))
+					goblas.Dcopy(n-(j+1)*nb, work.Off(1+(k-1)*n-1, 1), a.Vector(j*nb+k-1, (j+1)*nb))
 				}
 
 				//              Compute T(J+1, J), zero out for GEMM update
-				kb = min(nb, (*n)-(j+1)*nb)
-				Dlaset('F', &kb, &nb, &zero, &zero, tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
-				Dlacpy('U', &kb, &nb, work.Matrix(*n, opts), n, tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+				kb = min(nb, n-(j+1)*nb)
+				Dlaset(Full, kb, nb, zero, zero, tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				Dlacpy(Upper, kb, nb, work.Matrix(n, opts), tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
 				if j > 0 {
 					err = goblas.Dtrsm(Right, Upper, NoTrans, Unit, kb, nb, one, a.Off((j-1)*nb, j*nb), tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
 				}
@@ -181,7 +200,7 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 						tb.Set(td-nb+k-i+1+(j*nb+nb+i-1)*ldtb-1, tb.Get(td+nb+i-k+1+(j*nb+k-1)*ldtb-1))
 					}
 				}
-				Dlaset('L', &kb, &nb, &zero, &one, a.Off(j*nb, (j+1)*nb), lda)
+				Dlaset(Lower, kb, nb, zero, one, a.Off(j*nb, (j+1)*nb))
 
 				//              Apply pivots to trailing submatrix of A
 				for k = 1; k <= kb; k++ {
@@ -195,11 +214,11 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 						goblas.Dswap(k-1, a.Vector((j+1)*nb, i1-1, 1), a.Vector((j+1)*nb, i2-1, 1))
 						//                    > Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 						if i2 > (i1 + 1) {
-							goblas.Dswap(i2-i1-1, a.Vector(i1-1, i1, *lda), a.Vector(i1, i2-1, 1))
+							goblas.Dswap(i2-i1-1, a.Vector(i1-1, i1), a.Vector(i1, i2-1, 1))
 						}
 						//                    > Swap A(I2+1:M, I1) with A(I2+1:M, I2)
-						if i2 < (*n) {
-							goblas.Dswap((*n)-i2, a.Vector(i1-1, i2, *lda), a.Vector(i2-1, i2, *lda))
+						if i2 < n {
+							goblas.Dswap(n-i2, a.Vector(i1-1, i2), a.Vector(i2-1, i2))
 						}
 						//                    > Swap A(I1, I1) with A(I2, I2)
 						piv = a.Get(i1-1, i1-1)
@@ -219,7 +238,7 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 		//        .....................................................
 		for j = 0; j <= nt-1; j++ {
 			//           Generate Jth column of W and H
-			kb = min(nb, (*n)-j*nb)
+			kb = min(nb, n-j*nb)
 			for i = 1; i <= j-1; i++ {
 				if i == 1 {
 					//                  H(I,J) = T(I,I)*L(J,I)' + T(I+1,I)'*L(J,I+1)'
@@ -228,7 +247,9 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 					} else {
 						jb = 2 * nb
 					}
-					err = goblas.Dgemm(NoTrans, Trans, nb, kb, jb, one, tb.MatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (i-1)*nb), zero, work.MatrixOff(i*nb, *n, opts))
+					if err = goblas.Dgemm(NoTrans, Trans, nb, kb, jb, one, tb.MatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (i-1)*nb), zero, work.MatrixOff(i*nb, n, opts)); err != nil {
+						panic(err)
+					}
 				} else {
 					//                 H(I,J) = T(I,I-1)*L(J,I-1)' + T(I,I)*L(J,I)' + T(I,I+1)*L(J,I+1)'
 					if i == j-1 {
@@ -236,21 +257,31 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 					} else {
 						jb = 3 * nb
 					}
-					err = goblas.Dgemm(NoTrans, Trans, nb, kb, jb, one, tb.MatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (i-2)*nb), zero, work.MatrixOff(i*nb, *n, opts))
+					if err = goblas.Dgemm(NoTrans, Trans, nb, kb, jb, one, tb.MatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (i-2)*nb), zero, work.MatrixOff(i*nb, n, opts)); err != nil {
+						panic(err)
+					}
 				}
 			}
 
 			//           Compute T(J,J)
-			Dlacpy('L', &kb, &kb, a.Off(j*nb, j*nb), lda, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+			Dlacpy(Lower, kb, kb, a.Off(j*nb, j*nb), tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
 			if j > 1 {
 				//              T(J,J) = L(J,1:J)*H(1:J)
-				err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(j*nb, 0), work.MatrixOff(nb, *n, opts), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				if err = goblas.Dgemm(NoTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(j*nb, 0), work.MatrixOff(nb, n, opts), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+					panic(err)
+				}
 				//              T(J,J) += L(J,J)*T(J,J-1)*L(J,J-1)'
-				err = goblas.Dgemm(NoTrans, NoTrans, kb, nb, kb, one, a.Off(j*nb, (j-1)*nb), tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), zero, work.Matrix(*n, opts))
-				err = goblas.Dgemm(NoTrans, Trans, kb, kb, nb, -one, work.Matrix(*n, opts), a.Off(j*nb, (j-2)*nb), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				if err = goblas.Dgemm(NoTrans, NoTrans, kb, nb, kb, one, a.Off(j*nb, (j-1)*nb), tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), zero, work.Matrix(n, opts)); err != nil {
+					panic(err)
+				}
+				if err = goblas.Dgemm(NoTrans, Trans, kb, kb, nb, -one, work.Matrix(n, opts), a.Off(j*nb, (j-2)*nb), one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+					panic(err)
+				}
 			}
 			if j > 0 {
-				Dsygst(func() *int { y := 1; return &y }(), 'L', &kb, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1), a.Off(j*nb, (j-1)*nb), lda, &iinfo)
+				if err = Dsygst(1, Lower, kb, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-1)*nb)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Expand T(J,J) into full format
@@ -264,25 +295,33 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 				if j > 0 {
 					//                 Compute H(J,J)
 					if j == 1 {
-						err = goblas.Dgemm(NoTrans, Trans, kb, kb, kb, one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-1)*nb), zero, work.MatrixOff(j*nb, *n, opts))
+						if err = goblas.Dgemm(NoTrans, Trans, kb, kb, kb, one, tb.MatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-1)*nb), zero, work.MatrixOff(j*nb, n, opts)); err != nil {
+							panic(err)
+						}
 					} else {
-						err = goblas.Dgemm(NoTrans, Trans, kb, kb, nb+kb, one, tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-2)*nb), zero, work.MatrixOff(j*nb, *n, opts))
+						if err = goblas.Dgemm(NoTrans, Trans, kb, kb, nb+kb, one, tb.MatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-2)*nb), zero, work.MatrixOff(j*nb, n, opts)); err != nil {
+							panic(err)
+						}
 					}
 
 					//                 Update with the previous column
-					err = goblas.Dgemm(NoTrans, NoTrans, (*n)-(j+1)*nb, nb, j*nb, -one, a.Off((j+1)*nb, 0), work.MatrixOff(nb, *n, opts), one, a.Off((j+1)*nb, j*nb))
+					if err = goblas.Dgemm(NoTrans, NoTrans, n-(j+1)*nb, nb, j*nb, -one, a.Off((j+1)*nb, 0), work.MatrixOff(nb, n, opts), one, a.Off((j+1)*nb, j*nb)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              Factorize panel
-				Dgetrf(toPtr((*n)-(j+1)*nb), &nb, a.Off((j+1)*nb, j*nb), lda, toSlice(ipiv, (j+1)*nb), &iinfo)
+				if _, err = Dgetrf(n-(j+1)*nb, nb, a.Off((j+1)*nb, j*nb), toSlice(ipiv, (j+1)*nb)); err != nil {
+					panic(err)
+				}
 				//c               IF (IINFO.NE.0 .AND. INFO.EQ.0) THEN
 				//c                  INFO = IINFO+(J+1)*NB
 				//c               END IF
 				//
 				//              Compute T(J+1, J), zero out for GEMM update
-				kb = min(nb, (*n)-(j+1)*nb)
-				Dlaset('F', &kb, &nb, &zero, &zero, tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
-				Dlacpy('U', &kb, &nb, a.Off((j+1)*nb, j*nb), lda, tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts), toPtr(ldtb-1))
+				kb = min(nb, n-(j+1)*nb)
+				Dlaset(Full, kb, nb, zero, zero, tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				Dlacpy(Upper, kb, nb, a.Off((j+1)*nb, j*nb), tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
 				if j > 0 {
 					err = goblas.Dtrsm(Right, Lower, Trans, Unit, kb, nb, one, a.Off(j*nb, (j-1)*nb), tb.MatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
 				}
@@ -294,7 +333,7 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 						tb.Set(td-nb+k-i+1+(j*nb+nb+i-1)*ldtb-1, tb.Get(td+nb+i-k+1+(j*nb+k-1)*ldtb-1))
 					}
 				}
-				Dlaset('U', &kb, &nb, &zero, &one, a.Off((j+1)*nb, j*nb), lda)
+				Dlaset(Upper, kb, nb, zero, one, a.Off((j+1)*nb, j*nb))
 
 				//              Apply pivots to trailing submatrix of A
 				for k = 1; k <= kb; k++ {
@@ -305,14 +344,14 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 					i2 = (*ipiv)[(j+1)*nb+k-1]
 					if i1 != i2 {
 						//                    > Apply pivots to previous columns of L
-						goblas.Dswap(k-1, a.Vector(i1-1, (j+1)*nb, *lda), a.Vector(i2-1, (j+1)*nb, *lda))
+						goblas.Dswap(k-1, a.Vector(i1-1, (j+1)*nb), a.Vector(i2-1, (j+1)*nb))
 						//                    > Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 						if i2 > (i1 + 1) {
-							goblas.Dswap(i2-i1-1, a.Vector(i1, i1-1, 1), a.Vector(i2-1, i1, *lda))
+							goblas.Dswap(i2-i1-1, a.Vector(i1, i1-1, 1), a.Vector(i2-1, i1))
 						}
 						//                    > Swap A(I2+1:M, I1) with A(I2+1:M, I2)
-						if i2 < (*n) {
-							goblas.Dswap((*n)-i2, a.Vector(i2, i1-1, 1), a.Vector(i2, i2-1, 1))
+						if i2 < n {
+							goblas.Dswap(n-i2, a.Vector(i2, i1-1, 1), a.Vector(i2, i2-1, 1))
 						}
 						//                    > Swap A(I1, I1) with A(I2, I2)
 						piv = a.Get(i1-1, i1-1)
@@ -320,7 +359,7 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 						a.Set(i2-1, i2-1, piv)
 						//                    > Apply pivots to previous columns of L
 						if j > 0 {
-							goblas.Dswap(j*nb, a.Vector(i1-1, 0, *lda), a.Vector(i2-1, 0, *lda))
+							goblas.Dswap(j*nb, a.Vector(i1-1, 0), a.Vector(i2-1, 0))
 						}
 					}
 				}
@@ -334,5 +373,9 @@ func DsytrfAa2stage(uplo byte, n *int, a *mat.Matrix, lda *int, tb *mat.Vector, 
 	}
 
 	//     Factor the band matrix
-	Dgbtrf(n, n, &nb, &nb, tb.Matrix(ldtb, opts), &ldtb, ipiv2, info)
+	if info, err = Dgbtrf(n, n, nb, nb, tb.Matrix(ldtb, opts), ipiv2); err != nil {
+		panic(err)
+	}
+
+	return
 }

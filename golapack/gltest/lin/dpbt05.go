@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dpbt05 tests the error bounds from iterative refinement for the
+// dpbt05 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations A*X = B, where A is a
 // symmetric band matrix.
 //
@@ -21,7 +21,7 @@ import (
 //           = the maximum of BERR / ( NZ*EPS + (*) ), where
 //             (*) = NZ*UNFL / (min_i (abs(A)*abs(X) +abs(b))_i )
 //             and NZ = math.Max. number of nonzeros in any row of A, plus 1
-func Dpbt05(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact *int, ferr, berr, reslts *mat.Vector) {
+func dpbt05(uplo mat.MatUplo, n, kd, nrhs int, ab, b, x, xact *mat.Matrix, ferr, berr, reslts *mat.Vector) {
 	var upper bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, imax, j, k, nz int
@@ -30,7 +30,7 @@ func Dpbt05(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matri
 	one = 1.0
 
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -39,18 +39,18 @@ func Dpbt05(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matri
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	upper = uplo == 'U'
-	nz = 2*max(*kd, (*n)-1) + 1
+	upper = uplo == Upper
+	nz = 2*max(kd, n-1) + 1
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
-	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+	for j = 1; j <= nrhs; j++ {
+		imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
 		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
@@ -76,21 +76,21 @@ func Dpbt05(uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matri
 
 	//     Test 2:  Compute the maximum of BERR / ( NZ*EPS + (*) ), where
 	//     (*) = NZ*UNFL / (min_i (abs(A)*abs(X) +abs(b))_i )
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if upper {
-				for j = max(i-(*kd), 1); j <= i; j++ {
-					tmp = tmp + math.Abs(ab.Get((*kd)+1-i+j-1, i-1))*math.Abs(x.Get(j-1, k-1))
+				for j = max(i-kd, 1); j <= i; j++ {
+					tmp = tmp + math.Abs(ab.Get(kd+1-i+j-1, i-1))*math.Abs(x.Get(j-1, k-1))
 				}
-				for j = i + 1; j <= min(i+(*kd), *n); j++ {
-					tmp = tmp + math.Abs(ab.Get((*kd)+1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
+				for j = i + 1; j <= min(i+kd, n); j++ {
+					tmp = tmp + math.Abs(ab.Get(kd+1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
 				}
 			} else {
-				for j = max(i-(*kd), 1); j <= i-1; j++ {
+				for j = max(i-kd, 1); j <= i-1; j++ {
 					tmp = tmp + math.Abs(ab.Get(1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
 				}
-				for j = i; j <= min(i+(*kd), *n); j++ {
+				for j = i; j <= min(i+kd, n); j++ {
 					tmp = tmp + math.Abs(ab.Get(1+j-i-1, i-1))*math.Abs(x.Get(j-1, k-1))
 				}
 			}

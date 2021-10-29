@@ -10,7 +10,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zget23 checks the nonsymmetric eigenvalue problem driver CGEEVX.
+// zget23 checks the nonsymmetric eigenvalue problem driver CGEEVX.
 //    If COMP = .FALSE., the first 8 of the following tests will be
 //    performed on the input matrix A, and also test 9 if LWORK is
 //    sufficiently large.
@@ -85,13 +85,13 @@ import (
 //      of RCONDE, and takes errors in computing RCONDE into account,
 //      so that the resulting quantity should be O(ULP). cond(RCONDE)
 //      is essentially given by norm(A)/RCONDV.
-func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, iseed *[]int, nounit, n *int, a *mat.CMatrix, lda *int, h *mat.CMatrix, w, w1 *mat.CVector, vl *mat.CMatrix, ldvl *int, vr *mat.CMatrix, ldvr *int, lre *mat.CMatrix, ldlre *int, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result *mat.Vector, work *mat.CVector, lwork *int, rwork *mat.Vector, info *int) {
+func zget23(comp bool, isrt int, balanc byte, jtype int, thresh float64, iseed []int, n int, a, h *mat.CMatrix, w, w1 *mat.CVector, vl, vr, lre *mat.CMatrix, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector) (err error) {
 	var balok, nobal bool
 	var sense byte
 	var ctmp complex128
 	var abnrm, abnrm1, eps, epsin, one, smlnum, tnrm, tol, tolin, two, ulp, ulpinv, v, vmax, vmx, vricmp, vrimin, vrmx, vtst, zero float64
 	var i, ihi, ihi1, iinfo, ilo, ilo1, isens, isensm, j, jj, kmin int
-	sens := make([]byte, 2)
+	sens := []byte{'N', 'V'}
 	cdum := cvf(1)
 	res := vf(2)
 
@@ -100,36 +100,31 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 	two = 2.0
 	epsin = 5.9605e-8
 
-	sens[0], sens[1] = 'N', 'V'
-
 	//     Check for errors
 	nobal = balanc == 'N'
 	balok = nobal || balanc == 'P' || balanc == 'S' || balanc == 'B'
-	(*info) = 0
-	if (*isrt) != 0 && (*isrt) != 1 {
-		(*info) = -2
+	if isrt != 0 && isrt != 1 {
+		err = fmt.Errorf("isrt != 0 && isrt != 1: isrt=%v", isrt)
 	} else if !balok {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -5
-	} else if (*nounit) <= 0 {
-		(*info) = -7
-	} else if (*n) < 0 {
-		(*info) = -8
-	} else if (*lda) < 1 || (*lda) < (*n) {
-		(*info) = -10
-	} else if (*ldvl) < 1 || (*ldvl) < (*n) {
-		(*info) = -15
-	} else if (*ldvr) < 1 || (*ldvr) < (*n) {
-		(*info) = -17
-	} else if (*ldlre) < 1 || (*ldlre) < (*n) {
-		(*info) = -19
-	} else if (*lwork) < 2*(*n) || (comp && (*lwork) < 2*(*n)+(*n)*(*n)) {
-		(*info) = -30
+		err = fmt.Errorf("!balok: balanc='%c'", balanc)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < 1 || a.Rows < n {
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < n: a.Rows=%v, n=%v", a.Rows, n)
+	} else if vl.Rows < 1 || vl.Rows < n {
+		err = fmt.Errorf("vl.Rows < 1 || vl.Rows < n: vl.Rows=%v, n=%v", vl.Rows, n)
+	} else if vr.Rows < 1 || vr.Rows < n {
+		err = fmt.Errorf("vr.Rows < 1 || vr.Rows < n: vr.Rows=%v, n=%v", vr.Rows, n)
+	} else if lre.Rows < 1 || lre.Rows < n {
+		err = fmt.Errorf("lre.Rows < 1 || lre.Rows < n: lre.Rows=%v, n=%v", lre.Rows, n)
+	} else if lwork < 2*n || (comp && lwork < 2*n+n*n) {
+		err = fmt.Errorf("lwork < 2*n || (comp && lwork < 2*n+n*n): lwork=%v, n=%v, comp=%v", lwork, n, comp)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGET23"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zget23", err)
 		return
 	}
 
@@ -138,7 +133,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		result.Set(i-1, -one)
 	}
 
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -148,41 +143,40 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 	ulpinv = one / ulp
 
 	//     Compute eigenvalues and eigenvectors, and test them
-	if (*lwork) >= 2*(*n)+(*n)*(*n) {
+	if lwork >= 2*n+n*n {
 		sense = 'B'
 		isensm = 2
 	} else {
 		sense = 'E'
 		isensm = 1
 	}
-	golapack.Zlacpy('F', n, n, a, lda, h, lda)
-	golapack.Zgeevx(balanc, 'V', 'V', sense, n, h, lda, w, vl, ldvl, vr, ldvr, &ilo, &ihi, scale, &abnrm, rconde, rcondv, work, lwork, rwork, &iinfo)
-	if iinfo != 0 {
+	golapack.Zlacpy(Full, n, n, a, h)
+	if ilo, ihi, abnrm, iinfo, err = golapack.Zgeevx(balanc, 'V', 'V', sense, n, h, w, vl, vr, scale, rconde, rcondv, work, lwork, rwork); err != nil || iinfo != 0 {
 		result.Set(0, ulpinv)
-		if (*jtype) != 22 {
-			fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "ZGEEVX1", iinfo, *n, *jtype, balanc, *iseed)
+		if jtype != 22 {
+			fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, jtype=%6d, balanc=%c, iseed=%5d\n", "Zgeevx1", iinfo, n, jtype, balanc, iseed)
 		} else {
-			fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX1", iinfo, *n, (*iseed)[0])
+			fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, input example number=%4d\n", "Zgeevx1", iinfo, n, iseed[0])
 		}
-		(*info) = abs(iinfo)
+		err = fmt.Errorf("iinfo=%v", abs(iinfo))
 		return
 	}
 
 	//     Do Test (1)
-	Zget22('N', 'N', 'N', n, a, lda, vr, ldvr, w, work, rwork, res)
+	zget22(NoTrans, NoTrans, NoTrans, n, a, vr, w, work, rwork, res)
 	result.Set(0, res.Get(0))
 
 	//     Do Test (2)
-	Zget22('C', 'N', 'C', n, a, lda, vl, ldvl, w, work, rwork, res)
+	zget22(ConjTrans, NoTrans, ConjTrans, n, a, vl, w, work, rwork, res)
 	result.Set(1, res.Get(0))
 
 	//     Do Test (3)
-	for j = 1; j <= (*n); j++ {
-		tnrm = goblas.Dznrm2(*n, vr.CVector(0, j-1, 1))
+	for j = 1; j <= n; j++ {
+		tnrm = goblas.Dznrm2(n, vr.CVector(0, j-1, 1))
 		result.Set(2, math.Max(result.Get(2), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		vmx = zero
 		vrmx = zero
-		for jj = 1; jj <= (*n); jj++ {
+		for jj = 1; jj <= n; jj++ {
 			vtst = vr.GetMag(jj-1, j-1)
 			if vtst > vmx {
 				vmx = vtst
@@ -197,12 +191,12 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 	}
 
 	//     Do Test (4)
-	for j = 1; j <= (*n); j++ {
-		tnrm = goblas.Dznrm2(*n, vl.CVector(0, j-1, 1))
+	for j = 1; j <= n; j++ {
+		tnrm = goblas.Dznrm2(n, vl.CVector(0, j-1, 1))
 		result.Set(3, math.Max(result.Get(3), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		vmx = zero
 		vrmx = zero
-		for jj = 1; jj <= (*n); jj++ {
+		for jj = 1; jj <= n; jj++ {
 			vtst = vl.GetMag(jj-1, j-1)
 			if vtst > vmx {
 				vmx = vtst
@@ -222,21 +216,20 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		sense = sens[isens-1]
 
 		//        Compute eigenvalues only, and test them
-		golapack.Zlacpy('F', n, n, a, lda, h, lda)
-		golapack.Zgeevx(balanc, 'N', 'N', sense, n, h, lda, w1, cdum.CMatrix(1, opts), func() *int { y := 1; return &y }(), cdum.CMatrix(1, opts), func() *int { y := 1; return &y }(), &ilo1, &ihi1, scale1, &abnrm1, rcnde1, rcndv1, work, lwork, rwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Zlacpy(Full, n, n, a, h)
+		if ilo1, ihi1, abnrm1, iinfo, err = golapack.Zgeevx(balanc, 'N', 'N', sense, n, h, w1, cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), scale1, rcnde1, rcndv1, work, lwork, rwork); err != nil || iinfo != 0 {
 			result.Set(0, ulpinv)
-			if (*jtype) != 22 {
-				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "ZGEEVX2", iinfo, *n, *jtype, balanc, *iseed)
+			if jtype != 22 {
+				fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, jtype=%6d, balanc=%c, iseed=%5d\n", "Zgeevx2", iinfo, n, jtype, balanc, iseed)
 			} else {
-				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX2", iinfo, *n, (*iseed)[0])
+				fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, input example number=%4d\n", "Zgeevx2", iinfo, n, iseed[0])
 			}
-			(*info) = abs(iinfo)
+			err = fmt.Errorf("iinfo=%v", abs(iinfo))
 			goto label190
 		}
 
 		//        Do Test (5)
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if w.Get(j-1) != w1.Get(j-1) {
 				result.Set(4, ulpinv)
 			}
@@ -244,7 +237,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 		//        Do Test (8)
 		if !nobal {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if scale.Get(j-1) != scale1.Get(j-1) {
 					result.Set(7, ulpinv)
 				}
@@ -261,8 +254,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		}
 
 		//        Do Test (9)
-		if isens == 2 && (*n) > 1 {
-			for j = 1; j <= (*n); j++ {
+		if isens == 2 && n > 1 {
+			for j = 1; j <= n; j++ {
 				if rcondv.Get(j-1) != rcndv1.Get(j-1) {
 					result.Set(8, ulpinv)
 				}
@@ -270,29 +263,28 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		}
 
 		//        Compute eigenvalues and right eigenvectors, and test them
-		golapack.Zlacpy('F', n, n, a, lda, h, lda)
-		golapack.Zgeevx(balanc, 'N', 'V', sense, n, h, lda, w1, cdum.CMatrix(1, opts), func() *int { y := 1; return &y }(), lre, ldlre, &ilo1, &ihi1, scale1, &abnrm1, rcnde1, rcndv1, work, lwork, rwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Zlacpy(Full, n, n, a, h)
+		if ilo1, ihi1, abnrm1, iinfo, err = golapack.Zgeevx(balanc, 'N', 'V', sense, n, h, w1, cdum.CMatrix(1, opts), lre, scale1, rcnde1, rcndv1, work, lwork, rwork); err != nil || iinfo != 0 {
 			result.Set(0, ulpinv)
-			if (*jtype) != 22 {
-				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "ZGEEVX3", iinfo, *n, *jtype, balanc, *iseed)
+			if jtype != 22 {
+				fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, jtype=%6d, balanc=%c, iseed=%5d\n", "Zgeevx3", iinfo, n, jtype, balanc, iseed)
 			} else {
-				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX3", iinfo, *n, (*iseed)[0])
+				fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, input example number=%4d\n", "Zgeevx3", iinfo, n, iseed[0])
 			}
-			(*info) = abs(iinfo)
+			err = fmt.Errorf("iinfo=%v", abs(iinfo))
 			goto label190
 		}
 
 		//        Do Test (5) again
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if w.Get(j-1) != w1.Get(j-1) {
 				result.Set(4, ulpinv)
 			}
 		}
 
 		//        Do Test (6)
-		for j = 1; j <= (*n); j++ {
-			for jj = 1; jj <= (*n); jj++ {
+		for j = 1; j <= n; j++ {
+			for jj = 1; jj <= n; jj++ {
 				if vr.Get(j-1, jj-1) != lre.Get(j-1, jj-1) {
 					result.Set(5, ulpinv)
 				}
@@ -301,7 +293,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 		//        Do Test (8) again
 		if !nobal {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if scale.Get(j-1) != scale1.Get(j-1) {
 					result.Set(7, ulpinv)
 				}
@@ -318,8 +310,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		}
 
 		//        Do Test (9) again
-		if isens == 2 && (*n) > 1 {
-			for j = 1; j <= (*n); j++ {
+		if isens == 2 && n > 1 {
+			for j = 1; j <= n; j++ {
 				if rcondv.Get(j-1) != rcndv1.Get(j-1) {
 					result.Set(8, ulpinv)
 				}
@@ -327,29 +319,28 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		}
 
 		//        Compute eigenvalues and left eigenvectors, and test them
-		golapack.Zlacpy('F', n, n, a, lda, h, lda)
-		golapack.Zgeevx(balanc, 'V', 'N', sense, n, h, lda, w1, lre, ldlre, cdum.CMatrix(1, opts), func() *int { y := 1; return &y }(), &ilo1, &ihi1, scale1, &abnrm1, rcnde1, rcndv1, work, lwork, rwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Zlacpy(Full, n, n, a, h)
+		if ilo1, ihi1, abnrm1, iinfo, err = golapack.Zgeevx(balanc, 'V', 'N', sense, n, h, w1, lre, cdum.CMatrix(1, opts), scale1, rcnde1, rcndv1, work, lwork, rwork); err != nil || iinfo != 0 {
 			result.Set(0, ulpinv)
-			if (*jtype) != 22 {
-				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "ZGEEVX4", iinfo, *n, *jtype, balanc, *iseed)
+			if jtype != 22 {
+				fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, jtype=%6d, balanc=%c, iseed=%5d\n", "Zgeevx4", iinfo, n, jtype, balanc, iseed)
 			} else {
-				fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX4", iinfo, *n, (*iseed)[0])
+				fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, input example number=%4d\n", "Zgeevx4", iinfo, n, iseed[0])
 			}
-			(*info) = abs(iinfo)
+			err = fmt.Errorf("iinfo=%v", abs(iinfo))
 			goto label190
 		}
 
 		//        Do Test (5) again
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if w.Get(j-1) != w1.Get(j-1) {
 				result.Set(4, ulpinv)
 			}
 		}
 
 		//        Do Test (7)
-		for j = 1; j <= (*n); j++ {
-			for jj = 1; jj <= (*n); jj++ {
+		for j = 1; j <= n; j++ {
+			for jj = 1; jj <= n; jj++ {
 				if vl.Get(j-1, jj-1) != lre.Get(j-1, jj-1) {
 					result.Set(6, ulpinv)
 				}
@@ -358,7 +349,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 		//        Do Test (8) again
 		if !nobal {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if scale.Get(j-1) != scale1.Get(j-1) {
 					result.Set(7, ulpinv)
 				}
@@ -375,8 +366,8 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		}
 
 		//        Do Test (9) again
-		if isens == 2 && (*n) > 1 {
-			for j = 1; j <= (*n); j++ {
+		if isens == 2 && n > 1 {
+			for j = 1; j <= n; j++ {
 				if rcondv.Get(j-1) != rcndv1.Get(j-1) {
 					result.Set(8, ulpinv)
 				}
@@ -388,26 +379,25 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 
 	//     If COMP, compare condition numbers to precomputed ones
 	if comp {
-		golapack.Zlacpy('F', n, n, a, lda, h, lda)
-		golapack.Zgeevx('N', 'V', 'V', 'B', n, h, lda, w, vl, ldvl, vr, ldvr, &ilo, &ihi, scale, &abnrm, rconde, rcondv, work, lwork, rwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Zlacpy(Full, n, n, a, h)
+		if ilo, ihi, abnrm, iinfo, err = golapack.Zgeevx('N', 'V', 'V', 'B', n, h, w, vl, vr, scale, rconde, rcondv, work, lwork, rwork); err != nil || iinfo != 0 {
 			result.Set(0, ulpinv)
-			fmt.Printf(" ZGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "ZGEEVX5", iinfo, *n, (*iseed)[0])
-			(*info) = abs(iinfo)
+			fmt.Printf(" zget23: %s returned info=%6d.\n         N=%6d, input example number=%4d\n", "Zgeevx5", iinfo, n, iseed[0])
+			err = fmt.Errorf("iinfo=%v", abs(iinfo))
 			goto label250
 		}
 
 		//        Sort eigenvalues and condition numbers lexicographically
 		//        to compare with inputs
-		for i = 1; i <= (*n)-1; i++ {
+		for i = 1; i <= n-1; i++ {
 			kmin = i
-			if (*isrt) == 0 {
+			if isrt == 0 {
 				vrimin = w.GetRe(i - 1)
 			} else {
 				vrimin = w.GetIm(i - 1)
 			}
-			for j = i + 1; j <= (*n); j++ {
-				if (*isrt) == 0 {
+			for j = i + 1; j <= n; j++ {
+				if isrt == 0 {
 					vricmp = w.GetRe(j - 1)
 				} else {
 					vricmp = w.GetIm(j - 1)
@@ -432,11 +422,11 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		//        taking their condition numbers into account
 		result.Set(9, zero)
 		eps = math.Max(epsin, ulp)
-		v = math.Max(float64(*n)*eps*abnrm, smlnum)
+		v = math.Max(float64(n)*eps*abnrm, smlnum)
 		if abnrm == zero {
 			v = one
 		}
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if v > rcondv.Get(i-1)*rconde.Get(i-1) {
 				tol = rcondv.Get(i - 1)
 			} else {
@@ -466,7 +456,7 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		//        Compare condition numbers for eigenvalues
 		//        taking their condition numbers into account
 		result.Set(10, zero)
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if v > rcondv.Get(i-1) {
 				tol = one
 			} else {
@@ -494,4 +484,6 @@ func Zget23(comp bool, isrt *int, balanc byte, jtype *int, thresh *float64, isee
 		}
 	label250:
 	}
+
+	return
 }

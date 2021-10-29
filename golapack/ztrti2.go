@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -10,36 +12,33 @@ import (
 // matrix.
 //
 // This is the Level 2 BLAS version of the algorithm.
-func Ztrti2(uplo, diag byte, n *int, a *mat.CMatrix, lda, info *int) {
+func Ztrti2(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.CMatrix) (err error) {
 	var nounit, upper bool
 	var ajj, one complex128
 	var j int
-	var err error
-	_ = err
 
 	one = (1.0 + 0.0*1i)
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	nounit = diag == 'N'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if !nounit && diag != 'U' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
+	upper = uplo == Upper
+	nounit = diag == NonUnit
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if !nounit && diag != Unit {
+		err = fmt.Errorf("!nounit && diag != Unit: diag=%s", diag)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTRTI2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztrti2", err)
 		return
 	}
 
 	if upper {
 		//        Compute inverse of upper triangular matrix.
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if nounit {
 				a.Set(j-1, j-1, one/a.Get(j-1, j-1))
 				ajj = -a.Get(j-1, j-1)
@@ -48,23 +47,29 @@ func Ztrti2(uplo, diag byte, n *int, a *mat.CMatrix, lda, info *int) {
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			err = goblas.Ztrmv(Upper, NoTrans, mat.DiagByte(diag), j-1, a, a.CVector(0, j-1, 1))
+			if err = goblas.Ztrmv(Upper, NoTrans, diag, j-1, a, a.CVector(0, j-1, 1)); err != nil {
+				panic(err)
+			}
 			goblas.Zscal(j-1, ajj, a.CVector(0, j-1, 1))
 		}
 	} else {
 		//        Compute inverse of lower triangular matrix.
-		for j = (*n); j >= 1; j-- {
+		for j = n; j >= 1; j-- {
 			if nounit {
 				a.Set(j-1, j-1, one/a.Get(j-1, j-1))
 				ajj = -a.Get(j-1, j-1)
 			} else {
 				ajj = -one
 			}
-			if j < (*n) {
+			if j < n {
 				//              Compute elements j+1:n of j-th column.
-				err = goblas.Ztrmv(Lower, NoTrans, mat.DiagByte(diag), (*n)-j, a.Off(j, j), a.CVector(j, j-1, 1))
-				goblas.Zscal((*n)-j, ajj, a.CVector(j, j-1, 1))
+				if err = goblas.Ztrmv(Lower, NoTrans, diag, n-j, a.Off(j, j), a.CVector(j, j-1, 1)); err != nil {
+					panic(err)
+				}
+				goblas.Zscal(n-j, ajj, a.CVector(j, j-1, 1))
 			}
 		}
 	}
+
+	return
 }

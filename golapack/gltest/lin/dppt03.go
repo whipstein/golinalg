@@ -6,23 +6,22 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dppt03 computes the residual for a symmetric packed matrix times its
+// dppt03 computes the residual for a symmetric packed matrix times its
 // inverse:
 //    norm( I - A*AINV ) / ( N * norm(A) * norm(AINV) * EPS ),
 // where EPS is the machine epsilon.
-func Dppt03(uplo byte, n *int, a, ainv *mat.Vector, work *mat.Matrix, ldwork *int, rwork *mat.Vector, rcond, resid *float64) {
+func dppt03(uplo mat.MatUplo, n int, a, ainv *mat.Vector, work *mat.Matrix, rwork *mat.Vector) (rcond, resid float64) {
 	var ainvnm, anorm, eps, one, zero float64
 	var i, j, jj int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 
 	//     Quick exit if N = 0.
-	if (*n) <= 0 {
-		(*rcond) = one
-		(*resid) = zero
+	if n <= 0 {
+		rcond = one
+		resid = zero
 		return
 	}
 
@@ -31,60 +30,70 @@ func Dppt03(uplo byte, n *int, a, ainv *mat.Vector, work *mat.Matrix, ldwork *in
 	anorm = golapack.Dlansp('1', uplo, n, a, rwork)
 	ainvnm = golapack.Dlansp('1', uplo, n, ainv, rwork)
 	if anorm <= zero || ainvnm == zero {
-		(*rcond) = zero
-		(*resid) = one / eps
+		rcond = zero
+		resid = one / eps
 		return
 	}
-	(*rcond) = (one / anorm) / ainvnm
+	rcond = (one / anorm) / ainvnm
 
 	//     UPLO = 'U':
 	//     Copy the leading N-1 x N-1 submatrix of AINV to WORK(1:N,2:N) and
 	//     expand it to a full matrix, then multiply by A one column at a
 	//     time, moving the result one column to the left.
-	if uplo == 'U' {
+	if uplo == Upper {
 		//        Copy AINV
 		jj = 1
-		for j = 1; j <= (*n)-1; j++ {
+		for j = 1; j <= n-1; j++ {
 			goblas.Dcopy(j, ainv.Off(jj-1, 1), work.Vector(0, j, 1))
-			goblas.Dcopy(j-1, ainv.Off(jj-1, 1), work.Vector(j-1, 1, *ldwork))
+			goblas.Dcopy(j-1, ainv.Off(jj-1, 1), work.Vector(j-1, 1))
 			jj = jj + j
 		}
-		jj = (((*n)-1)*(*n))/2 + 1
-		goblas.Dcopy((*n)-1, ainv.Off(jj-1, 1), work.Vector((*n)-1, 1, *ldwork))
+		jj = ((n-1)*n)/2 + 1
+		goblas.Dcopy(n-1, ainv.Off(jj-1, 1), work.Vector(n-1, 1))
 
 		//        Multiply by A
-		for j = 1; j <= (*n)-1; j++ {
-			err = goblas.Dspmv(mat.Upper, *n, -one, a, work.Vector(0, j, 1), zero, work.Vector(0, j-1, 1))
+		for j = 1; j <= n-1; j++ {
+			if err = goblas.Dspmv(Upper, n, -one, a, work.Vector(0, j, 1), zero, work.Vector(0, j-1, 1)); err != nil {
+				panic(err)
+			}
 		}
-		err = goblas.Dspmv(mat.Upper, *n, -one, a, ainv.Off(jj-1, 1), zero, work.Vector(0, (*n)-1, 1))
+		if err = goblas.Dspmv(Upper, n, -one, a, ainv.Off(jj-1, 1), zero, work.Vector(0, n-1, 1)); err != nil {
+			panic(err)
+		}
 
 		//     UPLO = 'L':
 		//     Copy the trailing N-1 x N-1 submatrix of AINV to WORK(1:N,1:N-1)
 		//     and multiply by A, moving each column to the right.
 	} else {
 		//        Copy AINV
-		goblas.Dcopy((*n)-1, ainv.Off(1, 1), work.Vector(0, 0, *ldwork))
-		jj = (*n) + 1
-		for j = 2; j <= (*n); j++ {
-			goblas.Dcopy((*n)-j+1, ainv.Off(jj-1, 1), work.Vector(j-1, j-1-1, 1))
-			goblas.Dcopy((*n)-j, ainv.Off(jj, 1), work.Vector(j-1, j-1, *ldwork))
-			jj = jj + (*n) - j + 1
+		goblas.Dcopy(n-1, ainv.Off(1, 1), work.Vector(0, 0))
+		jj = n + 1
+		for j = 2; j <= n; j++ {
+			goblas.Dcopy(n-j+1, ainv.Off(jj-1, 1), work.Vector(j-1, j-1-1, 1))
+			goblas.Dcopy(n-j, ainv.Off(jj, 1), work.Vector(j-1, j-1))
+			jj = jj + n - j + 1
 		}
 
 		//        Multiply by A
-		for j = (*n); j >= 2; j-- {
-			err = goblas.Dspmv(mat.Lower, *n, -one, a, work.Vector(0, j-1-1, 1), zero, work.Vector(0, j-1, 1))
+		for j = n; j >= 2; j-- {
+			if err = goblas.Dspmv(Lower, n, -one, a, work.Vector(0, j-1-1, 1), zero, work.Vector(0, j-1, 1)); err != nil {
+				panic(err)
+			}
 		}
-		err = goblas.Dspmv(mat.Lower, *n, -one, a, ainv.Off(0, 1), zero, work.Vector(0, 0, 1))
+		if err = goblas.Dspmv(Lower, n, -one, a, ainv.Off(0, 1), zero, work.Vector(0, 0, 1)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Add the identity matrix to WORK .
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		work.Set(i-1, i-1, work.Get(i-1, i-1)+one)
 	}
 
 	//     Compute norm(I - A*AINV) / (N * norm(A) * norm(AINV) * EPS)
-	(*resid) = golapack.Dlange('1', n, n, work, ldwork, rwork)
+	resid = golapack.Dlange('1', n, n, work, rwork)
 
-	(*resid) = (((*resid) * (*rcond)) / eps) / float64(*n)
+	resid = ((resid * rcond) / eps) / float64(n)
+
+	return
 }

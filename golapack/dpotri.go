@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -8,32 +10,37 @@ import (
 // Dpotri computes the inverse of a real symmetric positive definite
 // matrix A using the Cholesky factorization A = U**T*U or A = L*L**T
 // computed by DPOTRF.
-func Dpotri(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
+func Dpotri(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 	//     Test the input parameters.
-	(*info) = 0
-	if uplo != 'U' && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	if uplo != Upper && uplo != Lower {
+		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPOTRI"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dpotri", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Invert the triangular Cholesky factor U or L.
-	Dtrtri(uplo, 'N', n, a, lda, info)
-	if (*info) > 0 {
+	if info, err = Dtrtri(uplo, NonUnit, n, a); err != nil {
+		panic(err)
+	}
+	if info > 0 {
 		return
 	}
 
 	//     Form inv(U) * inv(U)**T or inv(L)**T * inv(L).
-	Dlauum(uplo, n, a, lda, info)
+	if err = Dlauum(uplo, n, a); err != nil {
+		panic(err)
+	}
+
+	return
 }

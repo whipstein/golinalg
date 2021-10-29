@@ -12,25 +12,25 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkhs checks the nonsymmetric eigenvalue problem routines.
+// dchkhs checks the nonsymmetric eigenvalue problem routines.
 //
 //            DGEHRD factors A as  U H U' , where ' means transpose,
 //            H is hessenberg, and U is an orthogonal matrix.
 //
 //            DORGHR generates the orthogonal matrix U.
 //
-//            DORMHR multiplies a matrix by the orthogonal matrix U.
+//            Dormhr multiplies a matrix by the orthogonal matrix U.
 //
-//            DHSEQR factors H as  Z T Z' , where Z is orthogonal and
+//            Dhseqr factors H as  Z T Z' , where Z is orthogonal and
 //            T is "quasi-triangular", and the eigenvalue vector W.
 //
-//            DTREVC computes the left and right eigenvector matrices
+//            Dtrevc computes the left and right eigenvector matrices
 //            L and R for T.
 //
-//            DHSEIN computes the left and right eigenvector matrices
+//            Dhsein computes the left and right eigenvector matrices
 //            Y and X for H, using inverse iteration.
 //
-//    When DCHKHS is called, a number of matrix "sizes" ("n's") and a
+//    When dchkhs is called, a number of matrix "sizes" ("n's") and a
 //    number of matrix "types" are specified.  For each size ("n")
 //    and each type of matrix, one matrix will be generated and used
 //    to test the nonsymmetric eigenroutines.  For each matrix, 14
@@ -87,43 +87,43 @@ import (
 //
 //    (9)  A matrix of the form  U' T U, where U is orthogonal and
 //         T has evenly spaced entries 1, ..., ULP with random signs
-//         on the diagonal and random O(1) entries in the upper
+//         on the diagonal and random O(1) entries _ the upper
 //         triangle.
 //
 //    (10) A matrix of the form  U' T U, where U is orthogonal and
 //         T has geometrically spaced entries 1, ..., ULP with random
-//         signs on the diagonal and random O(1) entries in the upper
+//         signs on the diagonal and random O(1) entries _ the upper
 //         triangle.
 //
 //    (11) A matrix of the form  U' T U, where U is orthogonal and
 //         T has "clustered" entries 1, ULP,..., ULP with random
-//         signs on the diagonal and random O(1) entries in the upper
+//         signs on the diagonal and random O(1) entries _ the upper
 //         triangle.
 //
 //    (12) A matrix of the form  U' T U, where U is orthogonal and
 //         T has real or complex conjugate paired eigenvalues randomly
-//         chosen from ( ULP, 1 ) and random O(1) entries in the upper
+//         chosen from ( ULP, 1 ) and random O(1) entries _ the upper
 //         triangle.
 //
 //    (13) A matrix of the form  X' T X, where X has condition
 //         SQRT( ULP ) and T has evenly spaced entries 1, ..., ULP
 //         with random signs on the diagonal and random O(1) entries
-//         in the upper triangle.
+//         _ the upper triangle.
 //
 //    (14) A matrix of the form  X' T X, where X has condition
 //         SQRT( ULP ) and T has geometrically spaced entries
 //         1, ..., ULP with random signs on the diagonal and random
-//         O(1) entries in the upper triangle.
+//         O(1) entries _ the upper triangle.
 //
 //    (15) A matrix of the form  X' T X, where X has condition
 //         SQRT( ULP ) and T has "clustered" entries 1, ULP,..., ULP
 //         with random signs on the diagonal and random O(1) entries
-//         in the upper triangle.
+//         _ the upper triangle.
 //
 //    (16) A matrix of the form  X' T X, where X has condition
 //         SQRT( ULP ) and T has real or complex conjugate paired
 //         eigenvalues randomly chosen from ( ULP, 1 ) and random
-//         O(1) entries in the upper triangle.
+//         O(1) entries _ the upper triangle.
 //
 //    (17) Same as (16), but multiplied by SQRT( overflow threshold )
 //    (18) Same as (16), but multiplied by SQRT( underflow threshold )
@@ -131,12 +131,10 @@ import (
 //    (19) Nonsymmetric matrix with random entries chosen from (-1,1).
 //    (20) Same as (19), but multiplied by SQRT( overflow threshold )
 //    (21) Same as (19), but multiplied by SQRT( underflow threshold )
-func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, h, t1, t2, u *mat.Matrix, ldu *int, z, uz *mat.Matrix, wr1, wi1, wr2, wi2, wr3, wi3 *mat.Vector, evectl, evectr, evecty, evectx, uu *mat.Matrix, tau, work *mat.Vector, nwork *int, iwork *[]int, _select *[]bool, result *mat.Vector, info *int, t *testing.T) {
+func dchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h, t1, t2, u, z, uz *mat.Matrix, wr1, wi1, wr2, wi2, wr3, wi3 *mat.Vector, evectl, evectr, evecty, evectx, uu *mat.Matrix, tau, work *mat.Vector, nwork int, iwork []int, _select []bool, result *mat.Vector, t *testing.T) (err error) {
 	var badnn, match bool
 	var aninv, anorm, cond, conds, one, ovfl, rtovfl, rtulp, rtulpi, rtunfl, temp1, temp2, ulp, ulpinv, unfl, zero float64
-	var i, ihi, iinfo, ilo, imode, in, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, nselc, nselr, ntest, ntestt int
-	var err error
-	_ = err
+	var i, ihi, iinfo, ilo, imode, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, nselc, nselr, ntest, ntestt int
 	adumma := make([]byte, 1)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
@@ -158,48 +156,47 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	//     Check for errors
 	ntestt = 0
-	(*info) = 0
 
 	badnn = false
 	nmax = 0
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*lda) <= 1 || (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldu) <= 1 || (*ldu) < nmax {
-		(*info) = -14
-	} else if 4*nmax*nmax+2 > (*nwork) {
-		(*info) = -28
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows <= 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows <= 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if u.Rows <= 1 || u.Rows < nmax {
+		err = fmt.Errorf("u.Rows <= 1 || u.Rows < nmax: u.Rows=%v, nmax=%v", u.Rows, nmax)
+	} else if 4*nmax*nmax+2 > nwork {
+		err = fmt.Errorf("4*nmax*nmax+2 > nwork: nmax=%v, nwork=%v", nmax, nwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DCHKHS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("dchkhs", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
 	//     More important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = golapack.Dlamch(Overflow)
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	ulpinv = one / ulp
 	rtunfl = math.Sqrt(unfl)
@@ -211,30 +208,30 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		if n == 0 {
 			goto label270
 		}
 		n1 = max(1, n)
 		aninv = one / float64(n1)
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label260
 			}
 			nmats = nmats + 1
 			ntest = 0
 
-			//           Save ISEED in case of an error.
+			//           Save iseed _ case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Initialize RESULT
@@ -293,7 +290,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label70:
 			;
 
-			golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
+			golapack.Dlaset(Full, a.Rows, n, zero, zero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -319,11 +316,11 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, 0, 0, 'N', a, work.Off(n))
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, n, n, 'N', a, work.Off(n))
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -336,23 +333,23 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				adumma[0] = ' '
-				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
+				iinfo, err = matgen.Dlatme(n, 'S', &iseed, work, imode, cond, one, adumma, 'T', 'T', 'T', work.Off(n), 4, conds, n, n, anorm, a, work.Off(2*n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, 0, zero, anorm, 'N', a, &iwork)
 
 			} else {
 
@@ -361,8 +358,8 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			if iinfo != 0 {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -370,20 +367,18 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			;
 
 			//           Call DGEHRD to compute H and U, do tests.
-			golapack.Dlacpy(' ', &n, &n, a, lda, h, lda)
+			golapack.Dlacpy(Full, n, n, a, h)
 
 			ntest = 1
 
 			ilo = 1
 			ihi = n
 
-			golapack.Dgehrd(&n, &ilo, &ihi, h, lda, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
-
-			if iinfo != 0 {
+			if err = golapack.Dgehrd(n, ilo, ihi, h, work, work.Off(n), nwork-n); err != nil {
 				t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEHRD", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "DGEHRD", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label250
 			}
 
@@ -396,49 +391,48 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 			}
 			goblas.Dcopy(n-1, work.Off(0, 1), tau.Off(0, 1))
-			golapack.Dorghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
+			if err = golapack.Dorghr(n, ilo, ihi, u, work, work.Off(n), nwork-n); err != nil {
+				panic(err)
+			}
 			ntest = 2
 
-			Dhst01(&n, &ilo, &ihi, a, lda, h, lda, u, ldu, work, nwork, result)
+			dhst01(n, ilo, ihi, a, h, u, work, nwork, result)
 
-			//           Call DHSEQR to compute T1, T2 and Z, do tests.
+			//           Call Dhseqr to compute T1, T2 and Z, do tests.
 			//
 			//           Eigenvalues only (WR3,WI3)
-			golapack.Dlacpy(' ', &n, &n, h, lda, t2, lda)
+			golapack.Dlacpy(Full, n, n, h, t2)
 			ntest = 3
 			result.Set(2, ulpinv)
 
-			golapack.Dhseqr('E', 'N', &n, &ilo, &ihi, t2, lda, wr3, wi3, uz, ldu, work, nwork, &iinfo)
-			if iinfo != 0 {
+			if iinfo, err = golapack.Dhseqr('E', 'N', n, ilo, ihi, t2, wr3, wi3, uz, work, nwork); iinfo != 0 || err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEQR(E)", iinfo, n, jtype, ioldsd)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhseqr(E)", iinfo, n, jtype, ioldsd)
 				if iinfo <= n+2 {
-					(*info) = abs(iinfo)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label250
 				}
 			}
 
 			//           Eigenvalues (WR2,WI2) and Full Schur Form (T2)
-			golapack.Dlacpy(' ', &n, &n, h, lda, t2, lda)
+			golapack.Dlacpy(Full, n, n, h, t2)
 
-			golapack.Dhseqr('S', 'N', &n, &ilo, &ihi, t2, lda, wr2, wi2, uz, ldu, work, nwork, &iinfo)
-			if iinfo != 0 && iinfo <= n+2 {
+			if iinfo, err = golapack.Dhseqr('S', 'N', n, ilo, ihi, t2, wr2, wi2, uz, work, nwork); iinfo != 0 && iinfo <= n+2 || err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEQR(S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhseqr(S)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label250
 			}
 
 			//           Eigenvalues (WR1,WI1), Schur Form (T1), and Schur vectors
 			//           (UZ)
-			golapack.Dlacpy(' ', &n, &n, h, lda, t1, lda)
-			golapack.Dlacpy(' ', &n, &n, u, ldu, uz, ldu)
+			golapack.Dlacpy(Full, n, n, h, t1)
+			golapack.Dlacpy(Full, n, n, u, uz)
 
-			golapack.Dhseqr('S', 'V', &n, &ilo, &ihi, t1, lda, wr1, wi1, uz, ldu, work, nwork, &iinfo)
-			if iinfo != 0 && iinfo <= n+2 {
+			if iinfo, err = golapack.Dhseqr('S', 'V', n, ilo, ihi, t1, wr1, wi1, uz, work, nwork); iinfo != 0 && iinfo <= n+2 || err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEQR(V)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhseqr(V)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label250
 			}
 
@@ -448,14 +442,14 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )
 			//                and 4: | I - Z Z' | / ( n ulp )
-			Dhst01(&n, &ilo, &ihi, h, lda, t1, lda, z, ldu, work, nwork, result.Off(2))
+			dhst01(n, ilo, ihi, h, t1, z, work, nwork, result.Off(2))
 
 			//           Do Tests 5: | A - UZ T (UZ)' | / ( |A| n ulp )
 			//                and 6: | I - UZ (UZ)' | / ( n ulp )
-			Dhst01(&n, &ilo, &ihi, a, lda, t1, lda, uz, ldu, work, nwork, result.Off(4))
+			dhst01(n, ilo, ihi, a, t1, uz, work, nwork, result.Off(4))
 
 			//           Do Test 7: | T2 - T1 | / ( |T| n ulp )
-			Dget10(&n, &n, t2, lda, t1, lda, work, result.GetPtr(6))
+			result.Set(6, dget10(n, n, t2, t1, work))
 
 			//           Do Test 8: | W2 - W1 | / ( math.Max(|W1|,|W2|) ulp )
 			temp1 = zero
@@ -482,19 +476,19 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if wi1.Get(j-1) == zero {
 				if nselr < max(n/4, 1) {
 					nselr = nselr + 1
-					(*_select)[j-1] = true
+					_select[j-1] = true
 				} else {
-					(*_select)[j-1] = false
+					_select[j-1] = false
 				}
 				j = j - 1
 			} else {
 				if nselc < max(n/4, 1) {
 					nselc = nselc + 1
-					(*_select)[j-1] = true
-					(*_select)[j-1-1] = false
+					_select[j-1] = true
+					_select[j-1-1] = false
 				} else {
-					(*_select)[j-1] = false
-					(*_select)[j-1-1] = false
+					_select[j-1] = false
+					_select[j-1-1] = false
 				}
 				j = j - 2
 			}
@@ -502,36 +496,32 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				goto label140
 			}
 
-			golapack.Dtrevc('R', 'A', _select, &n, t1, lda, dumma.Matrix(*ldu, opts), ldu, evectr, ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if _, err = golapack.Dtrevc(Right, 'A', &_select, n, t1, dumma.Matrix(u.Rows, opts), evectr, n, work); err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(R,A)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtrevc(R,A)", iinfo, n, jtype, ioldsd)
 				goto label250
 			}
 
 			//           Test 9:  | TR - RW | / ( |T| |R| ulp )
-			Dget22('N', 'N', 'N', &n, t1, lda, evectr, ldu, wr1, wi1, work, dumma)
+			dget22(NoTrans, NoTrans, NoTrans, n, t1, evectr, wr1, wi1, work, dumma)
 			result.Set(8, dumma.Get(0))
-			if dumma.Get(1) > (*thresh) {
+			if dumma.Get(1) > thresh {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "DTREVC", dumma.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" dchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Dtrevc", dumma.Get(1), n, jtype, ioldsd)
 			}
 
 			//           Compute selected right eigenvectors and confirm that
 			//           they agree with previous right eigenvectors
-			golapack.Dtrevc('R', 'S', _select, &n, t1, lda, dumma.Matrix(*ldu, opts), ldu, evectl, ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if _, err = golapack.Dtrevc(Right, 'S', &_select, n, t1, dumma.Matrix(u.Rows, opts), evectl, n, work); err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(R,S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtrevc(R,S)", iinfo, n, jtype, ioldsd)
 				goto label250
 			}
 
 			k = 1
 			match = true
 			for j = 1; j <= n; j++ {
-				if (*_select)[j-1] && wi1.Get(j-1) == zero {
+				if _select[j-1] && wi1.Get(j-1) == zero {
 					for jj = 1; jj <= n; jj++ {
 						if evectr.Get(jj-1, j-1) != evectl.Get(jj-1, k-1) {
 							match = false
@@ -539,7 +529,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						}
 					}
 					k = k + 1
-				} else if (*_select)[j-1] && wi1.Get(j-1) != zero {
+				} else if _select[j-1] && wi1.Get(j-1) != zero {
 					for jj = 1; jj <= n; jj++ {
 						if evectr.Get(jj-1, j-1) != evectl.Get(jj-1, k-1) || evectr.Get(jj-1, j) != evectl.Get(jj-1, k) {
 							match = false
@@ -553,42 +543,38 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			;
 			if !match {
 				t.Fail()
-				fmt.Printf(" DCHKHS: Selected %s Eigenvectors from %s do not match other eigenvectors          N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "DTREVC", n, jtype, ioldsd)
+				fmt.Printf(" dchkhs: Selected %s Eigenvectors from %s do not match other eigenvectors          n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Dtrevc", n, jtype, ioldsd)
 			}
 
 			//           Compute the Left eigenvector Matrix:
 			ntest = 10
 			result.Set(9, ulpinv)
-			golapack.Dtrevc('L', 'A', _select, &n, t1, lda, evectl, ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if _, err = golapack.Dtrevc(Left, 'A', &_select, n, t1, evectl, dumma.Matrix(u.Rows, opts), n, work); err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(L,A)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtrevc(L,A)", iinfo, n, jtype, ioldsd)
 				goto label250
 			}
 
 			//           Test 10:  | LT - WL | / ( |T| |L| ulp )
-			Dget22('T', 'N', 'C', &n, t1, lda, evectl, ldu, wr1, wi1, work, dumma.Off(2))
+			dget22(Trans, NoTrans, ConjTrans, n, t1, evectl, wr1, wi1, work, dumma.Off(2))
 			result.Set(9, dumma.Get(2))
-			if dumma.Get(3) > (*thresh) {
+			if dumma.Get(3) > thresh {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "DTREVC", dumma.Get(3), n, jtype, ioldsd)
+				fmt.Printf(" dchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Dtrevc", dumma.Get(3), n, jtype, ioldsd)
 			}
 
 			//           Compute selected left eigenvectors and confirm that
 			//           they agree with previous left eigenvectors
-			golapack.Dtrevc('L', 'S', _select, &n, t1, lda, evectr, ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if _, err = golapack.Dtrevc(Left, 'S', &_select, n, t1, evectr, dumma.Matrix(u.Rows, opts), n, work); err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTREVC(L,S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtrevc(L,S)", iinfo, n, jtype, ioldsd)
 				goto label250
 			}
 
 			k = 1
 			match = true
 			for j = 1; j <= n; j++ {
-				if (*_select)[j-1] && wi1.Get(j-1) == zero {
+				if _select[j-1] && wi1.Get(j-1) == zero {
 					for jj = 1; jj <= n; jj++ {
 						if evectl.Get(jj-1, j-1) != evectr.Get(jj-1, k-1) {
 							match = false
@@ -596,7 +582,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						}
 					}
 					k = k + 1
-				} else if (*_select)[j-1] && wi1.Get(j-1) != zero {
+				} else if _select[j-1] && wi1.Get(j-1) != zero {
 					for jj = 1; jj <= n; jj++ {
 						if evectl.Get(jj-1, j-1) != evectr.Get(jj-1, k-1) || evectl.Get(jj-1, j) != evectr.Get(jj-1, k) {
 							match = false
@@ -610,21 +596,20 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			;
 			if !match {
 				t.Fail()
-				fmt.Printf(" DCHKHS: Selected %s Eigenvectors from %s do not match other eigenvectors          N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "DTREVC", n, jtype, ioldsd)
+				fmt.Printf(" dchkhs: Selected %s Eigenvectors from %s do not match other eigenvectors          n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Dtrevc", n, jtype, ioldsd)
 			}
 
-			//           Call DHSEIN for Right eigenvectors of H, do test 11
+			//           Call Dhsein for Right eigenvectors of H, do test 11
 			ntest = 11
 			result.Set(10, ulpinv)
 			for j = 1; j <= n; j++ {
-				(*_select)[j-1] = true
+				_select[j-1] = true
 			}
 
-			golapack.Dhsein('R', 'Q', 'N', _select, &n, h, lda, wr3, wi3, dumma.Matrix(*ldu, opts), ldu, evectx, ldu, &n1, &in, work, iwork, iwork, &iinfo)
-			if iinfo != 0 {
+			if _, iinfo, err = golapack.Dhsein(Right, 'Q', 'N', &_select, n, h, wr3, wi3, dumma.Matrix(u.Rows, opts), evectx, n1, work, &iwork, &iwork); iinfo != 0 || err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEIN(R)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhsein(R)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					goto label250
 				}
@@ -632,28 +617,27 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 11:  | HX - XW | / ( |H| |X| ulp )
 				//
 				//                        (from inverse iteration)
-				Dget22('N', 'N', 'N', &n, h, lda, evectx, ldu, wr3, wi3, work, dumma)
+				dget22(NoTrans, NoTrans, NoTrans, n, h, evectx, wr3, wi3, work, dumma)
 				if dumma.Get(0) < ulpinv {
 					result.Set(10, dumma.Get(0)*aninv)
 				}
-				if dumma.Get(1) > (*thresh) {
+				if dumma.Get(1) > thresh {
 					t.Fail()
-					fmt.Printf(" DCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "DHSEIN", dumma.Get(1), n, jtype, ioldsd)
+					fmt.Printf(" dchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Dhsein", dumma.Get(1), n, jtype, ioldsd)
 				}
 			}
 
-			//           Call DHSEIN for Left eigenvectors of H, do test 12
+			//           Call Dhsein for Left eigenvectors of H, do test 12
 			ntest = 12
 			result.Set(11, ulpinv)
 			for j = 1; j <= n; j++ {
-				(*_select)[j-1] = true
+				_select[j-1] = true
 			}
 
-			golapack.Dhsein('L', 'Q', 'N', _select, &n, h, lda, wr3, wi3, evecty, ldu, dumma.Matrix(*ldu, opts), ldu, &n1, &in, work, iwork, iwork, &iinfo)
-			if iinfo != 0 {
+			if _, iinfo, err = golapack.Dhsein(Left, 'Q', 'N', &_select, n, h, wr3, wi3, evecty, dumma.Matrix(u.Rows, opts), n1, work, &iwork, &iwork); iinfo != 0 {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHSEIN(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhsein(L)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					goto label250
 				}
@@ -661,25 +645,24 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 12:  | YH - WY | / ( |H| |Y| ulp )
 				//
 				//                        (from inverse iteration)
-				Dget22('C', 'N', 'C', &n, h, lda, evecty, ldu, wr3, wi3, work, dumma.Off(2))
+				dget22(ConjTrans, NoTrans, ConjTrans, n, h, evecty, wr3, wi3, work, dumma.Off(2))
 				if dumma.Get(2) < ulpinv {
 					result.Set(11, dumma.Get(2)*aninv)
 				}
-				if dumma.Get(3) > (*thresh) {
+				if dumma.Get(3) > thresh {
 					t.Fail()
-					fmt.Printf(" DCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "DHSEIN", dumma.Get(3), n, jtype, ioldsd)
+					fmt.Printf(" dchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Dhsein", dumma.Get(3), n, jtype, ioldsd)
 				}
 			}
 
-			//           Call DORMHR for Right eigenvectors of A, do test 13
+			//           Call Dormhr for Right eigenvectors of A, do test 13
 			ntest = 13
 			result.Set(12, ulpinv)
 
-			golapack.Dormhr('L', 'N', &n, &n, &ilo, &ihi, uu, ldu, tau, evectx, ldu, work, nwork, &iinfo)
-			if iinfo != 0 {
+			if err = golapack.Dormhr(Left, NoTrans, n, n, ilo, ihi, uu, tau, evectx, work, nwork); err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORMHR(R)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dormhr(R)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					goto label250
 				}
@@ -687,21 +670,20 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 13:  | AX - XW | / ( |A| |X| ulp )
 				//
 				//                        (from inverse iteration)
-				Dget22('N', 'N', 'N', &n, a, lda, evectx, ldu, wr3, wi3, work, dumma)
+				dget22(NoTrans, NoTrans, NoTrans, n, a, evectx, wr3, wi3, work, dumma)
 				if dumma.Get(0) < ulpinv {
 					result.Set(12, dumma.Get(0)*aninv)
 				}
 			}
 
-			//           Call DORMHR for Left eigenvectors of A, do test 14
+			//           Call Dormhr for Left eigenvectors of A, do test 14
 			ntest = 14
 			result.Set(13, ulpinv)
 
-			golapack.Dormhr('L', 'N', &n, &n, &ilo, &ihi, uu, ldu, tau, evecty, ldu, work, nwork, &iinfo)
-			if iinfo != 0 {
+			if err = golapack.Dormhr(Left, NoTrans, n, n, ilo, ihi, uu, tau, evecty, work, nwork); err != nil {
 				t.Fail()
-				fmt.Printf(" DCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORMHR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dormhr(L)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					goto label250
 				}
@@ -709,7 +691,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 14:  | YA - WY | / ( |A| |Y| ulp )
 				//
 				//                        (from inverse iteration)
-				Dget22('C', 'N', 'C', &n, a, lda, evecty, ldu, wr3, wi3, work, dumma.Off(2))
+				dget22(ConjTrans, NoTrans, ConjTrans, n, a, evecty, wr3, wi3, work, dumma.Off(2))
 				if dumma.Get(2) < ulpinv {
 					result.Set(13, dumma.Get(2)*aninv)
 				}
@@ -720,7 +702,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			;
 
 			ntestt = ntestt + ntest
-			Dlafts([]byte("DHS"), &n, &n, &jtype, &ntest, result, &ioldsd, thresh, &nerrs, t)
+			err = dlafts("Dhs", n, n, jtype, ntest, result, ioldsd, thresh, nerrs)
 
 		label260:
 		}
@@ -728,5 +710,7 @@ func Dchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Dlasum([]byte("DHS"), &nerrs, &ntestt)
+	dlasum("Dhs", nerrs, ntestt)
+
+	return
 }

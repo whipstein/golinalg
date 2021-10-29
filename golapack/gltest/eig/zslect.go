@@ -6,7 +6,7 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zslect returns .TRUE. if the eigenvalue Z is to be selected,
+// zslect returns .TRUE. if the eigenvalue Z is to be selected,
 // otherwise it returns .FALSE.
 // It is used by ZCHK41 to test if ZGEES successfully sorts eigenvalues,
 // and by ZCHK43 to test if ZGEESX successfully sorts eigenvalues.
@@ -16,7 +16,7 @@ import (
 // zero, and .FALSE. otherwise.
 // If SELOPT is at least 1, ZSLECT returns SELVAL(SELOPT) and adds 1
 // to SELOPT, cycling back to 1 at SELMAX.
-func Zslect(z complex128) (zslectReturn bool) {
+func zslect(z complex128) (zslectReturn bool) {
 	var rmin, x, zero float64
 	var i int
 

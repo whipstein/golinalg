@@ -9,7 +9,7 @@ import (
 // Zlantr returns the value of the one norm,  or the Frobenius norm, or
 // the  infinity norm,  or the  element of  largest absolute value  of a
 // trapezoidal or triangular matrix A.
-func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *mat.Vector) (zlantrReturn float64) {
+func Zlantr(norm byte, uplo mat.MatUplo, diag mat.MatDiag, m, n int, a *mat.CMatrix, work *mat.Vector) (zlantrReturn float64) {
 	var udiag bool
 	var one, sum, value, zero float64
 	var i, j int
@@ -20,15 +20,15 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 	one = 1.0
 	zero = 0.0
 
-	if min(*m, *n) == 0 {
+	if min(m, n) == 0 {
 		value = zero
 	} else if norm == 'M' {
 		//        Find max(abs(A(i,j))).
-		if diag == 'U' {
+		if diag == Unit {
 			value = one
-			if uplo == 'U' {
-				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= min(*m, j-1); i++ {
+			if uplo == Upper {
+				for j = 1; j <= n; j++ {
+					for i = 1; i <= min(m, j-1); i++ {
 						sum = a.GetMag(i-1, j-1)
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -36,8 +36,8 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 					}
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
-					for i = j + 1; i <= (*m); i++ {
+				for j = 1; j <= n; j++ {
+					for i = j + 1; i <= m; i++ {
 						sum = a.GetMag(i-1, j-1)
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -47,9 +47,9 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 			}
 		} else {
 			value = zero
-			if uplo == 'U' {
-				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= min(*m, j); i++ {
+			if uplo == Upper {
+				for j = 1; j <= n; j++ {
+					for i = 1; i <= min(m, j); i++ {
 						sum = a.GetMag(i-1, j-1)
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -57,8 +57,8 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 					}
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
-					for i = j; i <= (*m); i++ {
+				for j = 1; j <= n; j++ {
+					for i = j; i <= m; i++ {
 						sum = a.GetMag(i-1, j-1)
 						if value < sum || Disnan(int(sum)) {
 							value = sum
@@ -70,17 +70,17 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 	} else if norm == 'O' || norm == '1' {
 		//        Find norm1(A).
 		value = zero
-		udiag = diag == 'U'
-		if uplo == 'U' {
-			for j = 1; j <= (*n); j++ {
-				if udiag && (j <= (*m)) {
+		udiag = diag == Unit
+		if uplo == Upper {
+			for j = 1; j <= n; j++ {
+				if udiag && (j <= m) {
 					sum = one
 					for i = 1; i <= j-1; i++ {
 						sum = sum + a.GetMag(i-1, j-1)
 					}
 				} else {
 					sum = zero
-					for i = 1; i <= min(*m, j); i++ {
+					for i = 1; i <= min(m, j); i++ {
 						sum = sum + a.GetMag(i-1, j-1)
 					}
 				}
@@ -89,15 +89,15 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 				}
 			}
 		} else {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if udiag {
 					sum = one
-					for i = j + 1; i <= (*m); i++ {
+					for i = j + 1; i <= m; i++ {
 						sum = sum + a.GetMag(i-1, j-1)
 					}
 				} else {
 					sum = zero
-					for i = j; i <= (*m); i++ {
+					for i = j; i <= m; i++ {
 						sum = sum + a.GetMag(i-1, j-1)
 					}
 				}
@@ -108,52 +108,52 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 		}
 	} else if norm == 'I' {
 		//        Find normI(A).
-		if uplo == 'U' {
-			if diag == 'U' {
-				for i = 1; i <= (*m); i++ {
+		if uplo == Upper {
+			if diag == Unit {
+				for i = 1; i <= m; i++ {
 					work.Set(i-1, one)
 				}
-				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= min(*m, j-1); i++ {
+				for j = 1; j <= n; j++ {
+					for i = 1; i <= min(m, j-1); i++ {
 						work.Set(i-1, work.Get(i-1)+a.GetMag(i-1, j-1))
 					}
 				}
 			} else {
-				for i = 1; i <= (*m); i++ {
+				for i = 1; i <= m; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
-					for i = 1; i <= min(*m, j); i++ {
+				for j = 1; j <= n; j++ {
+					for i = 1; i <= min(m, j); i++ {
 						work.Set(i-1, work.Get(i-1)+a.GetMag(i-1, j-1))
 					}
 				}
 			}
 		} else {
-			if diag == 'U' {
-				for i = 1; i <= (*n); i++ {
+			if diag == Unit {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, one)
 				}
-				for i = (*n) + 1; i <= (*m); i++ {
+				for i = n + 1; i <= m; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
-					for i = j + 1; i <= (*m); i++ {
+				for j = 1; j <= n; j++ {
+					for i = j + 1; i <= m; i++ {
 						work.Set(i-1, work.Get(i-1)+a.GetMag(i-1, j-1))
 					}
 				}
 			} else {
-				for i = 1; i <= (*m); i++ {
+				for i = 1; i <= m; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
-					for i = j; i <= (*m); i++ {
+				for j = 1; j <= n; j++ {
+					for i = j; i <= m; i++ {
 						work.Set(i-1, work.Get(i-1)+a.GetMag(i-1, j-1))
 					}
 				}
 			}
 		}
 		value = zero
-		for i = 1; i <= (*m); i++ {
+		for i = 1; i <= m; i++ {
 			sum = work.Get(i - 1)
 			if value < sum || Disnan(int(sum)) {
 				value = sum
@@ -164,43 +164,43 @@ func Zlantr(norm, uplo, diag byte, m, n *int, a *mat.CMatrix, lda *int, work *ma
 		//        SSQ(1) is scale
 		//        SSQ(2) is sum-of-squares
 		//        For better accuracy, sum each column separately.
-		if uplo == 'U' {
-			if diag == 'U' {
+		if uplo == Upper {
+			if diag == Unit {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(min(*m, *n)))
-				for j = 2; j <= (*n); j++ {
+				ssq.Set(1, float64(min(m, n)))
+				for j = 2; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Zlassq(toPtr(min(*m, j-1)), a.CVector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(m, j-1), a.CVector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			} else {
 				ssq.Set(0, zero)
 				ssq.Set(1, one)
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Zlassq(toPtr(min(*m, j)), a.CVector(0, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(m, j), a.CVector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}
 		} else {
-			if diag == 'U' {
+			if diag == Unit {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(min(*m, *n)))
-				for j = 1; j <= (*n); j++ {
+				ssq.Set(1, float64(min(m, n)))
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Zlassq(toPtr((*m)-j), a.CVector(min(*m, j+1)-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(m-j, a.CVector(min(m, j+1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			} else {
 				ssq.Set(0, zero)
 				ssq.Set(1, one)
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Zlassq(toPtr((*m)-j+1), a.CVector(j-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(m-j+1, a.CVector(j-1, j-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}

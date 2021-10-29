@@ -7,18 +7,18 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zlqt03 tests ZUNMLQ, which computes Q*C, Q'*C, C*Q or C*Q'.
+// zlqt03 tests Zunmlq, which computes Q*C, Q'*C, C*Q or C*Q'.
 //
-// ZLQT03 compares the results of a call to ZUNMLQ with the results of
-// forming Q explicitly by a call to ZUNGLQ and then performing matrix
+// ZLQT03 compares the results of a call to Zunmlq with the results of
+// forming Q explicitly by a call to Zunglq and then performing matrix
 // multiplication by a call to ZGEMM.
-func Zlqt03(m, n, k *int, af, c, cc, q *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *int, rwork, result *mat.Vector) {
-	var side, trans byte
+func zlqt03(m, n, k int, af, c, cc, q *mat.CMatrix, tau, work *mat.CVector, lwork int, rwork, result *mat.Vector) {
+	var side mat.MatSide
+	var trans mat.MatTrans
 	var rogue complex128
 	var cnorm, eps, one, resid, zero float64
-	var info, iside, itrans, j, mc, nc int
+	var iside, itrans, j, mc, nc int
 	var err error
-	_ = err
 
 	iseed := make([]int, 4)
 
@@ -32,57 +32,65 @@ func Zlqt03(m, n, k *int, af, c, cc, q *mat.CMatrix, lda *int, tau, work *mat.CV
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the first k rows of the factorization to the array Q
-	golapack.Zlaset('F', n, n, &rogue, &rogue, q, lda)
-	golapack.Zlacpy('U', k, toPtr((*n)-1), af.Off(0, 1), lda, q.Off(0, 1), lda)
+	golapack.Zlaset(Full, n, n, rogue, rogue, q)
+	golapack.Zlacpy(Upper, k, n-1, af.Off(0, 1), q.Off(0, 1))
 
 	//     Generate the n-by-n matrix Q
-	*srnamt = "ZUNGLQ"
-	golapack.Zunglq(n, n, k, q, lda, tau, work, lwork, &info)
+	*srnamt = "Zunglq"
+	if err = golapack.Zunglq(n, n, k, q, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	for iside = 1; iside <= 2; iside++ {
 		if iside == 1 {
-			side = 'L'
-			mc = (*n)
-			nc = (*m)
+			side = Left
+			mc = n
+			nc = m
 		} else {
-			side = 'R'
-			mc = (*m)
-			nc = (*n)
+			side = Right
+			mc = m
+			nc = n
 		}
 
 		//        Generate MC by NC matrix C
 		for j = 1; j <= nc; j++ {
-			golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, &mc, c.CVector(0, j-1))
+			golapack.Zlarnv(2, &iseed, mc, c.CVector(0, j-1))
 		}
-		cnorm = golapack.Zlange('1', &mc, &nc, c, lda, rwork)
+		cnorm = golapack.Zlange('1', mc, nc, c, rwork)
 		if cnorm == zero {
 			cnorm = one
 		}
 
 		for itrans = 1; itrans <= 2; itrans++ {
 			if itrans == 1 {
-				trans = 'N'
+				trans = NoTrans
 			} else {
-				trans = 'C'
+				trans = ConjTrans
 			}
 
 			//           Copy C
-			golapack.Zlacpy('F', &mc, &nc, c, lda, cc, lda)
+			golapack.Zlacpy(Full, mc, nc, c, cc)
 
 			//           Apply Q or Q' to C
-			*srnamt = "ZUNMLQ"
-			golapack.Zunmlq(side, trans, &mc, &nc, k, af, lda, tau, cc, lda, work, lwork, &info)
+			*srnamt = "Zunmlq"
+			if err = golapack.Zunmlq(side, trans, mc, nc, k, af, tau, cc, work, lwork); err != nil {
+				panic(err)
+			}
 
 			//           Form explicit product and subtract
-			if side == 'L' {
-				err = goblas.Zgemm(mat.TransByte(trans), NoTrans, mc, nc, mc, complex(-one, 0), q, c, complex(one, 0), cc)
+			if side == Left {
+				if err = goblas.Zgemm(trans, NoTrans, mc, nc, mc, complex(-one, 0), q, c, complex(one, 0), cc); err != nil {
+					panic(err)
+				}
 			} else {
-				err = goblas.Zgemm(NoTrans, mat.TransByte(trans), mc, nc, nc, complex(-one, 0), c, q, complex(one, 0), cc)
+				if err = goblas.Zgemm(NoTrans, trans, mc, nc, nc, complex(-one, 0), c, q, complex(one, 0), cc); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Compute error in the difference
-			resid = golapack.Zlange('1', &mc, &nc, cc, lda, rwork)
-			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, *n))*cnorm*eps))
+			resid = golapack.Zlange('1', mc, nc, cc, rwork)
+			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, n))*cnorm*eps))
 
 		}
 	}

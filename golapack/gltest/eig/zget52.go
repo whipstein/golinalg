@@ -9,7 +9,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zget52 does an eigenvector check for the generalized eigenvalue
+// zget52 does an eigenvector check for the generalized eigenvalue
 // problem.
 //
 // The basic test for right eigenvectors is:
@@ -35,13 +35,13 @@ import (
 //
 //         RESULT(2) =      max       | M(v(i)) - 1 | / ( n ulp )
 //                    eigenvectors v(i)
-func Zget52(left bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, e *mat.CMatrix, lde *int, alpha, beta, work *mat.CVector, rwork, result *mat.Vector) {
-	var normab, trans byte
+func zget52(left bool, n int, a, b, e *mat.CMatrix, alpha, beta, work *mat.CVector, rwork, result *mat.Vector) {
+	var normab byte
+	var trans mat.MatTrans
 	var acoeff, alphai, bcoeff, betai, cone, czero complex128
 	var abmax, alfmax, anorm, betmax, bnorm, enorm, enrmer, errnrm, one, safmax, safmin, scale, temp1, ulp, zero float64
 	var j, jvec int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -50,7 +50,7 @@ func Zget52(left bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 
 	result.Set(0, zero)
 	result.Set(1, zero)
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
@@ -59,23 +59,23 @@ func Zget52(left bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 
 	if left {
-		trans = 'C'
+		trans = ConjTrans
 		normab = 'I'
 	} else {
-		trans = 'N'
+		trans = NoTrans
 		normab = 'O'
 	}
 
 	//     Norm of A, B, and E:
-	anorm = math.Max(golapack.Zlange(normab, n, n, a, lda, rwork), safmin)
-	bnorm = math.Max(golapack.Zlange(normab, n, n, b, ldb, rwork), safmin)
-	enorm = math.Max(golapack.Zlange('O', n, n, e, lde, rwork), ulp)
+	anorm = math.Max(golapack.Zlange(normab, n, n, a, rwork), safmin)
+	bnorm = math.Max(golapack.Zlange(normab, n, n, b, rwork), safmin)
+	enorm = math.Max(golapack.Zlange('O', n, n, e, rwork), ulp)
 	alfmax = safmax / math.Max(one, bnorm)
 	betmax = safmax / math.Max(one, anorm)
 
 	//     Compute error matrix.
 	//     Column i = ( b(i) A - a(i) B ) E(i) / max( |a(i) B| |b(i) A| )
-	for jvec = 1; jvec <= (*n); jvec++ {
+	for jvec = 1; jvec <= n; jvec++ {
 		alphai = alpha.Get(jvec - 1)
 		betai = beta.Get(jvec - 1)
 		abmax = math.Max(abs1(alphai), abs1(betai))
@@ -91,25 +91,31 @@ func Zget52(left bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			acoeff = cmplx.Conj(acoeff)
 			bcoeff = cmplx.Conj(bcoeff)
 		}
-		err = goblas.Zgemv(mat.TransByte(trans), *n, *n, acoeff, a, e.CVector(0, jvec-1, 1), czero, work.Off((*n)*(jvec-1), 1))
-		err = goblas.Zgemv(mat.TransByte(trans), *n, *n, -bcoeff, b, e.CVector(0, jvec-1, 1), cone, work.Off((*n)*(jvec-1), 1))
+		if err = goblas.Zgemv(trans, n, n, acoeff, a, e.CVector(0, jvec-1, 1), czero, work.Off(n*(jvec-1), 1)); err != nil {
+			panic(err)
+		}
+		if err = goblas.Zgemv(trans, n, n, -bcoeff, b, e.CVector(0, jvec-1, 1), cone, work.Off(n*(jvec-1), 1)); err != nil {
+			panic(err)
+		}
 	}
 
-	errnrm = golapack.Zlange('O', n, n, work.CMatrix(*n, opts), n, rwork) / enorm
+	errnrm = golapack.Zlange('O', n, n, work.CMatrix(n, opts), rwork) / enorm
 
 	//     Compute RESULT(1)
 	result.Set(0, errnrm/ulp)
 
 	//     Normalization of E:
 	enrmer = zero
-	for jvec = 1; jvec <= (*n); jvec++ {
+	for jvec = 1; jvec <= n; jvec++ {
 		temp1 = zero
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			temp1 = math.Max(temp1, abs1(e.Get(j-1, jvec-1)))
 		}
 		enrmer = math.Max(enrmer, temp1-one)
 	}
 
 	//     Compute RESULT(2) : the normalization error in E.
-	result.Set(1, enrmer/(float64(*n)*ulp))
+	result.Set(1, enrmer/(float64(n)*ulp))
+
+	return
 }

@@ -22,7 +22,7 @@ import (
 //
 // The method consists of approximating the rational functions in the
 // secular equation by simpler interpolating rational functions.
-func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.Vector, info *int) {
+func Dlasd4(n, i int, d, z, delta *mat.Vector, rho float64, work *mat.Vector) (sigma float64, info int) {
 	var geomavg, orgati, swtch, swtch3 bool
 	var a, b, c, delsq, delsq2, dphi, dpsi, dtiim, dtiip, dtipsq, dtisq, dtnsq, dtnsq1, dw, eight, eps, erretm, eta, four, one, phi, prew, psi, rhoinv, sglb, sgub, sq2, tau, tau2, temp, temp1, temp2, ten, three, two, w, zero float64
 	var ii, iim1, iip1, ip1, iter, j, maxit, niter int
@@ -42,75 +42,74 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 	//     checking.
 	//
 	//     Quick return for N=1 and 2.
-	(*info) = 0
-	if (*n) == 1 {
+	if n == 1 {
 		//        Presumably, I=1 upon entry
-		(*sigma) = math.Sqrt(d.Get(0)*d.Get(0) + (*rho)*z.Get(0)*z.Get(0))
+		sigma = math.Sqrt(d.Get(0)*d.Get(0) + rho*z.Get(0)*z.Get(0))
 		delta.Set(0, one)
 		work.Set(0, one)
 		return
 	}
-	if (*n) == 2 {
-		Dlasd5(i, d, z, delta, rho, sigma, work)
+	if n == 2 {
+		sigma = Dlasd5(i, d, z, delta, rho, work)
 		return
 	}
 
 	//     Compute machine epsilon
 	eps = Dlamch(Epsilon)
-	rhoinv = one / (*rho)
+	rhoinv = one / rho
 	tau2 = zero
 
 	//     The case I = N
-	if (*i) == (*n) {
+	if i == n {
 		//        Initialize some basic variables
-		ii = (*n) - 1
+		ii = n - 1
 		niter = 1
 
 		//        Calculate initial guess
-		temp = (*rho) / two
+		temp = rho / two
 
 		//        If ||Z||_2 is not one, then TEMP should be set to
 		//        RHO * ||Z||_2^2 / TWO
-		temp1 = temp / (d.Get((*n)-1) + math.Sqrt(d.Get((*n)-1)*d.Get((*n)-1)+temp))
-		for j = 1; j <= (*n); j++ {
-			work.Set(j-1, d.Get(j-1)+d.Get((*n)-1)+temp1)
-			delta.Set(j-1, (d.Get(j-1)-d.Get((*n)-1))-temp1)
+		temp1 = temp / (d.Get(n-1) + math.Sqrt(d.Get(n-1)*d.Get(n-1)+temp))
+		for j = 1; j <= n; j++ {
+			work.Set(j-1, d.Get(j-1)+d.Get(n-1)+temp1)
+			delta.Set(j-1, (d.Get(j-1)-d.Get(n-1))-temp1)
 		}
 
 		psi = zero
-		for j = 1; j <= (*n)-2; j++ {
+		for j = 1; j <= n-2; j++ {
 			psi = psi + z.Get(j-1)*z.Get(j-1)/(delta.Get(j-1)*work.Get(j-1))
 		}
 
 		c = rhoinv + psi
-		w = c + z.Get(ii-1)*z.Get(ii-1)/(delta.Get(ii-1)*work.Get(ii-1)) + z.Get((*n)-1)*z.Get((*n)-1)/(delta.Get((*n)-1)*work.Get((*n)-1))
+		w = c + z.Get(ii-1)*z.Get(ii-1)/(delta.Get(ii-1)*work.Get(ii-1)) + z.Get(n-1)*z.Get(n-1)/(delta.Get(n-1)*work.Get(n-1))
 
 		if w <= zero {
-			temp1 = math.Sqrt(d.Get((*n)-1)*d.Get((*n)-1) + (*rho))
-			temp = z.Get((*n)-1-1)*z.Get((*n)-1-1)/((d.Get((*n)-1-1)+temp1)*(d.Get((*n)-1)-d.Get((*n)-1-1)+(*rho)/(d.Get((*n)-1)+temp1))) + z.Get((*n)-1)*z.Get((*n)-1)/(*rho)
+			temp1 = math.Sqrt(d.Get(n-1)*d.Get(n-1) + rho)
+			temp = z.Get(n-1-1)*z.Get(n-1-1)/((d.Get(n-1-1)+temp1)*(d.Get(n-1)-d.Get(n-1-1)+rho/(d.Get(n-1)+temp1))) + z.Get(n-1)*z.Get(n-1)/rho
 
 			//           The following TAU2 is to approximate
 			//           SIGMA_n^2 - D( N )*D( N )
 			if c <= temp {
-				tau = (*rho)
+				tau = rho
 			} else {
-				delsq = (d.Get((*n)-1) - d.Get((*n)-1-1)) * (d.Get((*n)-1) + d.Get((*n)-1-1))
-				a = -c*delsq + z.Get((*n)-1-1)*z.Get((*n)-1-1) + z.Get((*n)-1)*z.Get((*n)-1)
-				b = z.Get((*n)-1) * z.Get((*n)-1) * delsq
+				delsq = (d.Get(n-1) - d.Get(n-1-1)) * (d.Get(n-1) + d.Get(n-1-1))
+				a = -c*delsq + z.Get(n-1-1)*z.Get(n-1-1) + z.Get(n-1)*z.Get(n-1)
+				b = z.Get(n-1) * z.Get(n-1) * delsq
 				if a < zero {
 					tau2 = two * b / (math.Sqrt(a*a+four*b*c) - a)
 				} else {
 					tau2 = (a + math.Sqrt(a*a+four*b*c)) / (two * c)
 				}
-				tau = tau2 / (d.Get((*n)-1) + math.Sqrt(d.Get((*n)-1)*d.Get((*n)-1)+tau2))
+				tau = tau2 / (d.Get(n-1) + math.Sqrt(d.Get(n-1)*d.Get(n-1)+tau2))
 			}
 
 			//           It can be proved that
 			//               D(N)^2+RHO/2 <= SIGMA_n^2 < D(N)^2+TAU2 <= D(N)^2+RHO
 		} else {
-			delsq = (d.Get((*n)-1) - d.Get((*n)-1-1)) * (d.Get((*n)-1) + d.Get((*n)-1-1))
-			a = -c*delsq + z.Get((*n)-1-1)*z.Get((*n)-1-1) + z.Get((*n)-1)*z.Get((*n)-1)
-			b = z.Get((*n)-1) * z.Get((*n)-1) * delsq
+			delsq = (d.Get(n-1) - d.Get(n-1-1)) * (d.Get(n-1) + d.Get(n-1-1))
+			a = -c*delsq + z.Get(n-1-1)*z.Get(n-1-1) + z.Get(n-1)*z.Get(n-1)
+			b = z.Get(n-1) * z.Get(n-1) * delsq
 
 			//           The following TAU2 is to approximate
 			//           SIGMA_n^2 - D( N )*D( N )
@@ -119,7 +118,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			} else {
 				tau2 = (a + math.Sqrt(a*a+four*b*c)) / (two * c)
 			}
-			tau = tau2 / (d.Get((*n)-1) + math.Sqrt(d.Get((*n)-1)*d.Get((*n)-1)+tau2))
+			tau = tau2 / (d.Get(n-1) + math.Sqrt(d.Get(n-1)*d.Get(n-1)+tau2))
 
 			//           It can be proved that
 			//           D(N)^2 < D(N)^2+TAU2 < SIGMA(N)^2 < D(N)^2+RHO/2
@@ -128,10 +127,10 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		//        The following TAU is to approximate SIGMA_n - D( N )
 		//
 		//         TAU = TAU2 / ( D( N )+SQRT( D( N )*D( N )+TAU2 ) )
-		(*sigma) = d.Get((*n)-1) + tau
-		for j = 1; j <= (*n); j++ {
-			delta.Set(j-1, (d.Get(j-1)-d.Get((*n)-1))-tau)
-			work.Set(j-1, d.Get(j-1)+d.Get((*n)-1)+tau)
+		sigma = d.Get(n-1) + tau
+		for j = 1; j <= n; j++ {
+			delta.Set(j-1, (d.Get(j-1)-d.Get(n-1))-tau)
+			work.Set(j-1, d.Get(j-1)+d.Get(n-1)+tau)
 		}
 
 		//        Evaluate PSI and the derivative DPSI
@@ -147,8 +146,8 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		erretm = math.Abs(erretm)
 
 		//        Evaluate PHI and the derivative DPHI
-		temp = z.Get((*n)-1) / (delta.Get((*n)-1) * work.Get((*n)-1))
-		phi = z.Get((*n)-1) * temp
+		temp = z.Get(n-1) / (delta.Get(n-1) * work.Get(n-1))
+		phi = z.Get(n-1) * temp
 		dphi = temp * temp
 		erretm = eight*(-phi-psi) + erretm - phi + rhoinv
 		//    $          + ABS( TAU2 )*( DPSI+DPHI )
@@ -162,8 +161,8 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 
 		//        Calculate the new step
 		niter = niter + 1
-		dtnsq1 = work.Get((*n)-1-1) * delta.Get((*n)-1-1)
-		dtnsq = work.Get((*n)-1) * delta.Get((*n)-1)
+		dtnsq1 = work.Get(n-1-1) * delta.Get(n-1-1)
+		dtnsq = work.Get(n-1) * delta.Get(n-1)
 		c = w - dtnsq1*dpsi - dtnsq*dphi
 		a = (dtnsq+dtnsq1)*w - dtnsq*dtnsq1*(dpsi+dphi)
 		b = dtnsq * dtnsq1 * w
@@ -171,7 +170,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			c = math.Abs(c)
 		}
 		if c == zero {
-			eta = (*rho) - (*sigma)*(*sigma)
+			eta = rho - sigma*sigma
 		} else if a >= zero {
 			eta = (a + math.Sqrt(math.Abs(a*a-four*b*c))) / (two * c)
 		} else {
@@ -187,15 +186,15 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			eta = -w / (dpsi + dphi)
 		}
 		temp = eta - dtnsq
-		if temp > (*rho) {
-			eta = (*rho) + dtnsq
+		if temp > rho {
+			eta = rho + dtnsq
 		}
 
-		eta = eta / ((*sigma) + math.Sqrt(eta+(*sigma)*(*sigma)))
+		eta = eta / (sigma + math.Sqrt(eta+sigma*sigma))
 		tau = tau + eta
-		(*sigma) = (*sigma) + eta
+		sigma = sigma + eta
 
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			delta.Set(j-1, delta.Get(j-1)-eta)
 			work.Set(j-1, work.Get(j-1)+eta)
 		}
@@ -213,9 +212,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		erretm = math.Abs(erretm)
 
 		//        Evaluate PHI and the derivative DPHI
-		tau2 = work.Get((*n)-1) * delta.Get((*n)-1)
-		temp = z.Get((*n)-1) / tau2
-		phi = z.Get((*n)-1) * temp
+		tau2 = work.Get(n-1) * delta.Get(n-1)
+		temp = z.Get(n-1) / tau2
+		phi = z.Get(n-1) * temp
 		dphi = temp * temp
 		erretm = eight*(-phi-psi) + erretm - phi + rhoinv
 		//    $          + ABS( TAU2 )*( DPSI+DPHI )
@@ -232,8 +231,8 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			}
 
 			//           Calculate the new step
-			dtnsq1 = work.Get((*n)-1-1) * delta.Get((*n)-1-1)
-			dtnsq = work.Get((*n)-1) * delta.Get((*n)-1)
+			dtnsq1 = work.Get(n-1-1) * delta.Get(n-1-1)
+			dtnsq = work.Get(n-1) * delta.Get(n-1)
 			c = w - dtnsq1*dpsi - dtnsq*dphi
 			a = (dtnsq+dtnsq1)*w - dtnsq1*dtnsq*(dpsi+dphi)
 			b = dtnsq1 * dtnsq * w
@@ -256,11 +255,11 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 				eta = eta / two
 			}
 
-			eta = eta / ((*sigma) + math.Sqrt(eta+(*sigma)*(*sigma)))
+			eta = eta / (sigma + math.Sqrt(eta+sigma*sigma))
 			tau = tau + eta
-			(*sigma) = (*sigma) + eta
+			sigma = sigma + eta
 
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				delta.Set(j-1, delta.Get(j-1)-eta)
 				work.Set(j-1, work.Get(j-1)+eta)
 			}
@@ -278,9 +277,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			erretm = math.Abs(erretm)
 
 			//           Evaluate PHI and the derivative DPHI
-			tau2 = work.Get((*n)-1) * delta.Get((*n)-1)
-			temp = z.Get((*n)-1) / tau2
-			phi = z.Get((*n)-1) * temp
+			tau2 = work.Get(n-1) * delta.Get(n-1)
+			temp = z.Get(n-1) / tau2
+			phi = z.Get(n-1) * temp
 			dphi = temp * temp
 			erretm = eight*(-phi-psi) + erretm - phi + rhoinv
 			//    $             + ABS( TAU2 )*( DPSI+DPHI )
@@ -289,36 +288,36 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		}
 
 		//        Return with INFO = 1, NITER = MAXIT and not converged
-		(*info) = 1
+		info = 1
 		return
 
 		//        End for the case I = N
 	} else {
 		//        The case for I < N
 		niter = 1
-		ip1 = (*i) + 1
+		ip1 = i + 1
 
 		//        Calculate initial guess
-		delsq = (d.Get(ip1-1) - d.Get((*i)-1)) * (d.Get(ip1-1) + d.Get((*i)-1))
+		delsq = (d.Get(ip1-1) - d.Get(i-1)) * (d.Get(ip1-1) + d.Get(i-1))
 		delsq2 = delsq / two
-		sq2 = math.Sqrt((d.Get((*i)-1)*d.Get((*i)-1) + d.Get(ip1-1)*d.Get(ip1-1)) / two)
-		temp = delsq2 / (d.Get((*i)-1) + sq2)
-		for j = 1; j <= (*n); j++ {
-			work.Set(j-1, d.Get(j-1)+d.Get((*i)-1)+temp)
-			delta.Set(j-1, (d.Get(j-1)-d.Get((*i)-1))-temp)
+		sq2 = math.Sqrt((d.Get(i-1)*d.Get(i-1) + d.Get(ip1-1)*d.Get(ip1-1)) / two)
+		temp = delsq2 / (d.Get(i-1) + sq2)
+		for j = 1; j <= n; j++ {
+			work.Set(j-1, d.Get(j-1)+d.Get(i-1)+temp)
+			delta.Set(j-1, (d.Get(j-1)-d.Get(i-1))-temp)
 		}
 
 		psi = zero
-		for j = 1; j <= (*i)-1; j++ {
+		for j = 1; j <= i-1; j++ {
 			psi = psi + z.Get(j-1)*z.Get(j-1)/(work.Get(j-1)*delta.Get(j-1))
 		}
 
 		phi = zero
-		for j = (*n); j >= (*i)+2; j-- {
+		for j = n; j >= i+2; j-- {
 			phi = phi + z.Get(j-1)*z.Get(j-1)/(work.Get(j-1)*delta.Get(j-1))
 		}
 		c = rhoinv + psi + phi
-		w = c + z.Get((*i)-1)*z.Get((*i)-1)/(work.Get((*i)-1)*delta.Get((*i)-1)) + z.Get(ip1-1)*z.Get(ip1-1)/(work.Get(ip1-1)*delta.Get(ip1-1))
+		w = c + z.Get(i-1)*z.Get(i-1)/(work.Get(i-1)*delta.Get(i-1)) + z.Get(ip1-1)*z.Get(ip1-1)/(work.Get(ip1-1)*delta.Get(ip1-1))
 
 		geomavg = false
 		if w > zero {
@@ -326,11 +325,11 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			//
 			//           We choose d(i) as origin.
 			orgati = true
-			ii = (*i)
+			ii = i
 			sglb = zero
-			sgub = delsq2 / (d.Get((*i)-1) + sq2)
-			a = c*delsq + z.Get((*i)-1)*z.Get((*i)-1) + z.Get(ip1-1)*z.Get(ip1-1)
-			b = z.Get((*i)-1) * z.Get((*i)-1) * delsq
+			sgub = delsq2 / (d.Get(i-1) + sq2)
+			a = c*delsq + z.Get(i-1)*z.Get(i-1) + z.Get(ip1-1)*z.Get(ip1-1)
+			b = z.Get(i-1) * z.Get(i-1) * delsq
 			if a > zero {
 				tau2 = two * b / (a + math.Sqrt(math.Abs(a*a-four*b*c)))
 			} else {
@@ -340,10 +339,10 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			//           TAU2 now is an estimation of SIGMA^2 - D( I )^2. The
 			//           following, however, is the corresponding estimation of
 			//           SIGMA - D( I ).
-			tau = tau2 / (d.Get((*i)-1) + math.Sqrt(d.Get((*i)-1)*d.Get((*i)-1)+tau2))
+			tau = tau2 / (d.Get(i-1) + math.Sqrt(d.Get(i-1)*d.Get(i-1)+tau2))
 			temp = math.Sqrt(eps)
-			if (d.Get((*i)-1) <= temp*d.Get(ip1-1)) && (math.Abs(z.Get((*i)-1)) <= temp) && (d.Get((*i)-1) > zero) {
-				tau = math.Min(ten*d.Get((*i)-1), sgub)
+			if (d.Get(i-1) <= temp*d.Get(ip1-1)) && (math.Abs(z.Get(i-1)) <= temp) && (d.Get(i-1) > zero) {
+				tau = math.Min(ten*d.Get(i-1), sgub)
 				geomavg = true
 			}
 		} else {
@@ -354,7 +353,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			ii = ip1
 			sglb = -delsq2 / (d.Get(ii-1) + sq2)
 			sgub = zero
-			a = c*delsq - z.Get((*i)-1)*z.Get((*i)-1) - z.Get(ip1-1)*z.Get(ip1-1)
+			a = c*delsq - z.Get(i-1)*z.Get(i-1) - z.Get(ip1-1)*z.Get(ip1-1)
 			b = z.Get(ip1-1) * z.Get(ip1-1) * delsq
 			if a < zero {
 				tau2 = two * b / (a - math.Sqrt(math.Abs(a*a+four*b*c)))
@@ -368,8 +367,8 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			tau = tau2 / (d.Get(ip1-1) + math.Sqrt(math.Abs(d.Get(ip1-1)*d.Get(ip1-1)+tau2)))
 		}
 
-		(*sigma) = d.Get(ii-1) + tau
-		for j = 1; j <= (*n); j++ {
+		sigma = d.Get(ii-1) + tau
+		for j = 1; j <= n; j++ {
 			work.Set(j-1, d.Get(j-1)+d.Get(ii-1)+tau)
 			delta.Set(j-1, (d.Get(j-1)-d.Get(ii-1))-tau)
 		}
@@ -391,7 +390,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		//        Evaluate PHI and the derivative DPHI
 		dphi = zero
 		phi = zero
-		for j = (*n); j >= iip1; j-- {
+		for j = n; j >= iip1; j-- {
 			temp = z.Get(j-1) / (work.Get(j-1) * delta.Get(j-1))
 			phi = phi + z.Get(j-1)*temp
 			dphi = dphi + temp*temp
@@ -412,7 +411,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 				swtch3 = true
 			}
 		}
-		if ii == 1 || ii == (*n) {
+		if ii == 1 || ii == n {
 			swtch3 = false
 		}
 
@@ -438,9 +437,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		niter = niter + 1
 		if !swtch3 {
 			dtipsq = work.Get(ip1-1) * delta.Get(ip1-1)
-			dtisq = work.Get((*i)-1) * delta.Get((*i)-1)
+			dtisq = work.Get(i-1) * delta.Get(i-1)
 			if orgati {
-				c = w - dtipsq*dw + delsq*math.Pow(z.Get((*i)-1)/dtisq, 2)
+				c = w - dtipsq*dw + delsq*math.Pow(z.Get(i-1)/dtisq, 2)
 			} else {
 				c = w - dtisq*dw - delsq*math.Pow(z.Get(ip1-1)/dtipsq, 2)
 			}
@@ -449,7 +448,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			if c == zero {
 				if a == zero {
 					if orgati {
-						a = z.Get((*i)-1)*z.Get((*i)-1) + dtipsq*dtipsq*(dpsi+dphi)
+						a = z.Get(i-1)*z.Get(i-1) + dtipsq*dtipsq*(dpsi+dphi)
 					} else {
 						a = z.Get(ip1-1)*z.Get(ip1-1) + dtisq*dtisq*(dpsi+dphi)
 					}
@@ -490,17 +489,15 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			dd.Set(0, dtiim)
 			dd.Set(1, delta.Get(ii-1)*work.Get(ii-1))
 			dd.Set(2, dtiip)
-			Dlaed6(&niter, orgati, &c, dd, zz, &w, &eta, info)
-
-			if (*info) != 0 {
+			if eta, info = Dlaed6(niter, orgati, c, dd, zz, w); info != 0 {
 				//              If INFO is not 0, i.e., DLAED6 failed, switch back
 				//              to 2 pole interpolation.
 				swtch3 = false
-				(*info) = 0
+				info = 0
 				dtipsq = work.Get(ip1-1) * delta.Get(ip1-1)
-				dtisq = work.Get((*i)-1) * delta.Get((*i)-1)
+				dtisq = work.Get(i-1) * delta.Get(i-1)
 				if orgati {
-					c = w - dtipsq*dw + delsq*math.Pow(z.Get((*i)-1)/dtisq, 2)
+					c = w - dtipsq*dw + delsq*math.Pow(z.Get(i-1)/dtisq, 2)
 				} else {
 					c = w - dtisq*dw - delsq*math.Pow(z.Get(ip1-1)/dtipsq, 2)
 				}
@@ -509,7 +506,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 				if c == zero {
 					if a == zero {
 						if orgati {
-							a = z.Get((*i)-1)*z.Get((*i)-1) + dtipsq*dtipsq*(dpsi+dphi)
+							a = z.Get(i-1)*z.Get(i-1) + dtipsq*dtipsq*(dpsi+dphi)
 						} else {
 							a = z.Get(ip1-1)*z.Get(ip1-1) + dtisq*dtisq*(dpsi+dphi)
 						}
@@ -532,7 +529,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			eta = -w / dw
 		}
 
-		eta = eta / ((*sigma) + math.Sqrt((*sigma)*(*sigma)+eta))
+		eta = eta / (sigma + math.Sqrt(sigma*sigma+eta))
 		temp = tau + eta
 		if temp > sgub || temp < sglb {
 			if w < zero {
@@ -556,9 +553,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		prew = w
 
 		tau = tau + eta
-		(*sigma) = (*sigma) + eta
+		sigma = sigma + eta
 
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			work.Set(j-1, work.Get(j-1)+eta)
 			delta.Set(j-1, delta.Get(j-1)-eta)
 		}
@@ -578,7 +575,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		//        Evaluate PHI and the derivative DPHI
 		dphi = zero
 		phi = zero
-		for j = (*n); j >= iip1; j-- {
+		for j = n; j >= iip1; j-- {
 			temp = z.Get(j-1) / (work.Get(j-1) * delta.Get(j-1))
 			phi = phi + z.Get(j-1)*temp
 			dphi = dphi + temp*temp
@@ -623,10 +620,10 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			//           Calculate the new step
 			if !swtch3 {
 				dtipsq = work.Get(ip1-1) * delta.Get(ip1-1)
-				dtisq = work.Get((*i)-1) * delta.Get((*i)-1)
+				dtisq = work.Get(i-1) * delta.Get(i-1)
 				if !swtch {
 					if orgati {
-						c = w - dtipsq*dw + delsq*math.Pow(z.Get((*i)-1)/dtisq, 2)
+						c = w - dtipsq*dw + delsq*math.Pow(z.Get(i-1)/dtisq, 2)
 					} else {
 						c = w - dtisq*dw - delsq*math.Pow(z.Get(ip1-1)/dtipsq, 2)
 					}
@@ -645,7 +642,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 					if a == zero {
 						if !swtch {
 							if orgati {
-								a = z.Get((*i)-1)*z.Get((*i)-1) + dtipsq*dtipsq*(dpsi+dphi)
+								a = z.Get(i-1)*z.Get(i-1) + dtipsq*dtipsq*(dpsi+dphi)
 							} else {
 								a = z.Get(ip1-1)*z.Get(ip1-1) + dtisq*dtisq*(dpsi+dphi)
 							}
@@ -696,18 +693,16 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 				dd.Set(0, dtiim)
 				dd.Set(1, delta.Get(ii-1)*work.Get(ii-1))
 				dd.Set(2, dtiip)
-				Dlaed6(&niter, orgati, &c, dd, zz, &w, &eta, info)
-
-				if (*info) != 0 {
+				if eta, info = Dlaed6(niter, orgati, c, dd, zz, w); info != 0 {
 					//                 If INFO is not 0, i.e., DLAED6 failed, switch
 					//                 back to two pole interpolation
 					swtch3 = false
-					(*info) = 0
+					info = 0
 					dtipsq = work.Get(ip1-1) * delta.Get(ip1-1)
-					dtisq = work.Get((*i)-1) * delta.Get((*i)-1)
+					dtisq = work.Get(i-1) * delta.Get(i-1)
 					if !swtch {
 						if orgati {
-							c = w - dtipsq*dw + delsq*math.Pow(z.Get((*i)-1)/dtisq, 2)
+							c = w - dtipsq*dw + delsq*math.Pow(z.Get(i-1)/dtisq, 2)
 						} else {
 							c = w - dtisq*dw - delsq*math.Pow(z.Get(ip1-1)/dtipsq, 2)
 						}
@@ -726,7 +721,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 						if a == zero {
 							if !swtch {
 								if orgati {
-									a = z.Get((*i)-1)*z.Get((*i)-1) + dtipsq*dtipsq*(dpsi+dphi)
+									a = z.Get(i-1)*z.Get(i-1) + dtipsq*dtipsq*(dpsi+dphi)
 								} else {
 									a = z.Get(ip1-1)*z.Get(ip1-1) + dtisq*dtisq*(dpsi+dphi)
 								}
@@ -752,7 +747,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 				eta = -w / dw
 			}
 
-			eta = eta / ((*sigma) + math.Sqrt((*sigma)*(*sigma)+eta))
+			eta = eta / (sigma + math.Sqrt(sigma*sigma+eta))
 			temp = tau + eta
 			if temp > sgub || temp < sglb {
 				if w < zero {
@@ -776,9 +771,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			prew = w
 
 			tau = tau + eta
-			(*sigma) = (*sigma) + eta
+			sigma = sigma + eta
 
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				work.Set(j-1, work.Get(j-1)+eta)
 				delta.Set(j-1, delta.Get(j-1)-eta)
 			}
@@ -798,7 +793,7 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 			//           Evaluate PHI and the derivative DPHI
 			dphi = zero
 			phi = zero
-			for j = (*n); j >= iip1; j-- {
+			for j = n; j >= iip1; j-- {
 				temp = z.Get(j-1) / (work.Get(j-1) * delta.Get(j-1))
 				phi = phi + z.Get(j-1)*temp
 				dphi = dphi + temp*temp
@@ -820,7 +815,9 @@ func Dlasd4(n, i *int, d, z, delta *mat.Vector, rho, sigma *float64, work *mat.V
 		}
 
 		//        Return with INFO = 1, NITER = MAXIT and not converged
-		(*info) = 1
+		info = 1
 
 	}
+
+	return
 }

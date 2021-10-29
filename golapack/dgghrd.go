@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -32,9 +34,9 @@ import (
 //      Q1 * B * Z1**T = (Q1*Q) * T * (Z1*Z)**T
 //
 // If Q1 is the orthogonal matrix from the QR factorization of B in the
-// original equation A*x = lambda*B*x, then DGGHRD reduces the original
+// original equation A*x = lambda*B*x, then Dgghrd reduces the original
 // problem to generalized Hessenberg form.
-func Dgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, q *mat.Matrix, ldq *int, z *mat.Matrix, ldz, info *int) {
+func Dgghrd(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.Matrix) (err error) {
 	var ilq, ilz bool
 	var c, one, s, temp, zero float64
 	var icompq, icompz, jcol, jrow int
@@ -71,74 +73,75 @@ func Dgghrd(compq, compz byte, n, ilo, ihi *int, a *mat.Matrix, lda *int, b *mat
 	}
 
 	//     Test the input parameters.
-	(*info) = 0
 	if icompq <= 0 {
-		(*info) = -1
+		err = fmt.Errorf("icompq <= 0: compq='%c'", compq)
 	} else if icompz <= 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*ilo) < 1 {
-		(*info) = -4
-	} else if (*ihi) > (*n) || (*ihi) < (*ilo)-1 {
-		(*info) = -5
-	} else if (*lda) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -9
-	} else if (ilq && (*ldq) < (*n)) || (*ldq) < 1 {
-		(*info) = -11
-	} else if (ilz && (*ldz) < (*n)) || (*ldz) < 1 {
-		(*info) = -13
+		err = fmt.Errorf("icompz <= 0: compz='%c'", compz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if ilo < 1 {
+		err = fmt.Errorf("ilo < 1: ilo=%v", ilo)
+	} else if ihi > n || ihi < ilo-1 {
+		err = fmt.Errorf("ihi > n || ihi < ilo-1: ilo=%v, ihi=%v", ilo, ihi)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if (ilq && q.Rows < n) || q.Rows < 1 {
+		err = fmt.Errorf("(ilq && q.Rows < n) || q.Rows < 1: ilq=%v, q.Rows=%v, n=%v", ilq, q.Rows, n)
+	} else if (ilz && z.Rows < n) || z.Rows < 1 {
+		err = fmt.Errorf("(ilz && z.Rows < n) || z.Rows < 1: ilz=%v, z.Rows=%v, n=%v", ilz, z.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGGHRD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgghrd", err)
 		return
 	}
 
 	//     Initialize Q and Z if desired.
 	if icompq == 3 {
-		Dlaset('F', n, n, &zero, &one, q, ldq)
+		Dlaset(Full, n, n, zero, one, q)
 	}
 	if icompz == 3 {
-		Dlaset('F', n, n, &zero, &one, z, ldz)
+		Dlaset(Full, n, n, zero, one, z)
 	}
 
 	//     Quick return if possible
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
 
 	//     Zero out lower triangle of B
-	for jcol = 1; jcol <= (*n)-1; jcol++ {
-		for jrow = jcol + 1; jrow <= (*n); jrow++ {
+	for jcol = 1; jcol <= n-1; jcol++ {
+		for jrow = jcol + 1; jrow <= n; jrow++ {
 			b.Set(jrow-1, jcol-1, zero)
 		}
 	}
 
 	//     Reduce A and B
-	for jcol = (*ilo); jcol <= (*ihi)-2; jcol++ {
+	for jcol = ilo; jcol <= ihi-2; jcol++ {
 
-		for jrow = (*ihi); jrow >= jcol+2; jrow-- {
+		for jrow = ihi; jrow >= jcol+2; jrow-- {
 			//           Step 1: rotate rows JROW-1, JROW to kill A(JROW,JCOL)
 			temp = a.Get(jrow-1-1, jcol-1)
-			Dlartg(&temp, a.GetPtr(jrow-1, jcol-1), &c, &s, a.GetPtr(jrow-1-1, jcol-1))
+			c, s, *a.GetPtr(jrow-1-1, jcol-1) = Dlartg(temp, a.Get(jrow-1, jcol-1))
 			a.Set(jrow-1, jcol-1, zero)
-			goblas.Drot((*n)-jcol, a.Vector(jrow-1-1, jcol), a.Vector(jrow-1, jcol), c, s)
-			goblas.Drot((*n)+2-jrow, b.Vector(jrow-1-1, jrow-1-1), b.Vector(jrow-1, jrow-1-1), c, s)
+			goblas.Drot(n-jcol, a.Vector(jrow-1-1, jcol), a.Vector(jrow-1, jcol), c, s)
+			goblas.Drot(n+2-jrow, b.Vector(jrow-1-1, jrow-1-1), b.Vector(jrow-1, jrow-1-1), c, s)
 			if ilq {
-				goblas.Drot(*n, q.Vector(0, jrow-1-1, 1), q.Vector(0, jrow-1, 1), c, s)
+				goblas.Drot(n, q.Vector(0, jrow-1-1, 1), q.Vector(0, jrow-1, 1), c, s)
 			}
 
 			//           Step 2: rotate columns JROW, JROW-1 to kill B(JROW,JROW-1)
 			temp = b.Get(jrow-1, jrow-1)
-			Dlartg(&temp, b.GetPtr(jrow-1, jrow-1-1), &c, &s, b.GetPtr(jrow-1, jrow-1))
+			c, s, *b.GetPtr(jrow-1, jrow-1) = Dlartg(temp, b.Get(jrow-1, jrow-1-1))
 			b.Set(jrow-1, jrow-1-1, zero)
-			goblas.Drot(*ihi, a.Vector(0, jrow-1, 1), a.Vector(0, jrow-1-1, 1), c, s)
+			goblas.Drot(ihi, a.Vector(0, jrow-1, 1), a.Vector(0, jrow-1-1, 1), c, s)
 			goblas.Drot(jrow-1, b.Vector(0, jrow-1, 1), b.Vector(0, jrow-1-1, 1), c, s)
 			if ilz {
-				goblas.Drot(*n, z.Vector(0, jrow-1, 1), z.Vector(0, jrow-1-1, 1), c, s)
+				goblas.Drot(n, z.Vector(0, jrow-1, 1), z.Vector(0, jrow-1-1, 1), c, s)
 			}
 		}
 	}
+
+	return
 }

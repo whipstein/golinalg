@@ -13,84 +13,84 @@ import (
 // Dchkee tests the DOUBLE PRECISION LAPACK subroutines for the matrix
 // eigenvalue problem.  The test paths in this version are
 //
-// NEP (Nonsymmetric Eigenvalue Problem):
-//     Test DGEHRD, DORGHR, DHSEQR, DTREVC, DHSEIN, and DORMHR
+// Nep (Nonsymmetric Eigenvalue Problem):
+//     Test DGEHRD, DORGHR, Dhseqr, DTREVC, DHSEIN, and DORMHR
 //
-// SEP (Symmetric Eigenvalue Problem):
+// Sep (Symmetric Eigenvalue Problem):
 //     Test DSYTRD, DORGTR, DSTEQR, DSTERF, DSTEIN, DSTEDC,
 //     and drivers DSYEV(X), DSBEV(X), DSPEV(X), DSTEV(X),
 //                 DSYEVD,   DSBEVD,   DSPEVD,   DSTEVD
 //
-// SVD (Singular Value Decomposition):
+// Svd (Singular Value Decomposition):
 //     Test DGEBRD, DORGBR, DBDSQR, DBDSDC
 //     and the drivers DGESVD, DGESDD
 //
-// DEV (Nonsymmetric Eigenvalue/eigenvector Driver):
-//     Test DGEEV
+// Dev (Nonsymmetric Eigenvalue/eigenvector Driver):
+//     Test dgeev
 //
-// DES (Nonsymmetric Schur form Driver):
-//     Test DGEES
+// Des (Nonsymmetric Schur form Driver):
+//     Test dgees
 //
-// DVX (Nonsymmetric Eigenvalue/eigenvector Expert Driver):
-//     Test DGEEVX
+// Dvx (Nonsymmetric Eigenvalue/eigenvector Expert Driver):
+//     Test dgeevx
 //
-// DSX (Nonsymmetric Schur form Expert Driver):
-//     Test DGEESX
+// Dsx (Nonsymmetric Schur form Expert Driver):
+//     Test dgeesx
 //
-// DGG (Generalized Nonsymmetric Eigenvalue Problem):
+// Dgg (Generalized Nonsymmetric Eigenvalue Problem):
 //     Test DGGHD3, DGGBAL, DGGBAK, DHGEQZ, and DTGEVC
 //
-// DGS (Generalized Nonsymmetric Schur form Driver):
+// Dgs (Generalized Nonsymmetric Schur form Driver):
 //     Test DGGES
 //
-// DGV (Generalized Nonsymmetric Eigenvalue/eigenvector Driver):
+// Dgv (Generalized Nonsymmetric Eigenvalue/eigenvector Driver):
 //     Test DGGEV
 //
-// DGX (Generalized Nonsymmetric Schur form Expert Driver):
+// Dgx (Generalized Nonsymmetric Schur form Expert Driver):
 //     Test DGGESX
 //
-// DXV (Generalized Nonsymmetric Eigenvalue/eigenvector Expert Driver):
+// Dxv (Generalized Nonsymmetric Eigenvalue/eigenvector Expert Driver):
 //     Test DGGEVX
 //
-// DSG (Symmetric Generalized Eigenvalue Problem):
+// Dsg (Symmetric Generalized Eigenvalue Problem):
 //     Test DSYGST, DSYGV, DSYGVD, DSYGVX, DSPGST, DSPGV, DSPGVD,
 //     DSPGVX, DSBGST, DSBGV, DSBGVD, and DSBGVX
 //
-// DSB (Symmetric Band Eigenvalue Problem):
+// Dsb (Symmetric Band Eigenvalue Problem):
 //     Test DSBTRD
 //
-// DBB (Band Singular Value Decomposition):
+// Dbb (Band Singular Value Decomposition):
 //     Test DGBBRD
 //
-// DEC (Eigencondition estimation):
+// Dec (Eigencondition estimation):
 //     Test DLALN2, DLASY2, DLAEQU, DLAEXC, DTRSYL, DTREXC, DTRSNA,
 //     DTRSEN, and DLAQTR
 //
-// DBL (Balancing a general matrix)
+// Dbl (Balancing a general matrix)
 //     Test DGEBAL
 //
-// DBK (Back transformation on a balanced matrix)
+// Dbk (Back transformation on a balanced matrix)
 //     Test DGEBAK
 //
-// DGL (Balancing a matrix pair)
+// Dgl (Balancing a matrix pair)
 //     Test DGGBAL
 //
-// DGK (Back transformation on a matrix pair)
+// Dgk (Back transformation on a matrix pair)
 //     Test DGGBAK
 //
-// GLM (Generalized Linear Regression Model):
+// Glm (Generalized Linear Regression Model):
 //     Tests DGGGLM
 //
-// GQR (Generalized QR and RQ factorizations):
+// Gqr (Generalized QR and RQ factorizations):
 //     Tests DGGQRF and DGGRQF
 //
-// GSV (Generalized Singular Value Decomposition):
+// Gsv (Generalized Singular Value Decomposition):
 //     Tests DGGSVD, DGGSVP, DTGSJA, DLAGS2, DLAPLL, and DLAPMT
 //
-// CSD (CS decomposition):
+// Csd (CS decomposition):
 //     Tests DORCSD
 //
-// LSE (Constrained Linear Least Squares):
+// Lse (Constrained Linear Least Squares):
 //     Tests DGGLSE
 //
 // Each test path has a different set of inputs, but the data sets for
@@ -106,6 +106,7 @@ func TestDeig(t *testing.T) {
 	var tstchk, tstdif, tstdrv, tsterr bool
 	var eps, thresh, thrshn float64
 	var i, info, k, liwork, lwork, maxtyp, ncmax, newsd, nk, nmax, nn, nout, nparms, nrhs, ntypes, versMajor, versMinor, versPatch int
+	var err error
 	var nin *util.Reader
 	dotype := make([]bool, 30)
 	logwrk := make([]bool, 132)
@@ -175,15 +176,15 @@ func TestDeig(t *testing.T) {
 	intstr[0], intstr[1], intstr[2], intstr[3], intstr[4], intstr[5], intstr[6], intstr[7], intstr[8], intstr[9] = '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
 	ioldsd[0], ioldsd[1], ioldsd[2], ioldsd[3] = 0, 0, 0, 1
 
-	for _, path := range []string{"NEP", "SEP", "SE2", "SVD", "DEC", "DEV", "DES", "DVX", "DSX", "DGG", "DGS", "DGV", "DGX", "DXV", "DSB", "DSG", "DBL", "DBK", "DGL", "DGK", "DBB", "GLM", "GQR", "GSV", "CSD", "LSE"} {
-		c3 := []byte(path)
+	for _, path := range []string{"Nep", "Sep", "Se2", "Svd", "Dec", "Dev", "Des", "Dvx", "Dsx", "Dgg", "Dgs", "Dgv", "Dgx", "Dxv", "Dsb", "Dsg", "Dbl", "Dbk", "Dgl", "Dgk", "Dbb", "Glm", "Gqr", "Gsv", "Csd", "Lse"} {
+		c3 := path
 		tstchk = false
 		tstdrv = false
 		tsterr = false
-		dgx := string(path) == "DGX"
-		dxv := string(path) == "DXV"
+		dgx := path == "Dgx"
+		dxv := path == "Dxv"
 
-		golapack.Ilaver(&versMajor, &versMinor, &versPatch)
+		versMajor, versMinor, versPatch = golapack.Ilaver()
 		fmt.Printf("\n LAPACK VERSION %1d.%1d.%1d\n", versMajor, versMinor, versPatch)
 		fmt.Printf("\n The following parameter values will be used:\n")
 
@@ -200,9 +201,9 @@ func TestDeig(t *testing.T) {
 			iseed[i-1] = ioldsd[i-1]
 		}
 
-		if string(c3) == "DHS" || string(c3) == "NEP" {
+		if c3 == "Dhs" || c3 == "Nep" {
 			//        -------------------------------------
-			//        NEP:  Nonsymmetric Eigenvalue Problem
+			//        Nep:  Nonsymmetric Eigenvalue Problem
 			//        -------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -227,21 +228,21 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 21
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Derrhs([]byte("DHSEQR"), t)
+				derrhs("Dhseqr", t)
 			}
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
-				Xlaenv(12, max(11, inmin[i-1]))
-				Xlaenv(13, inwin[i-1])
-				Xlaenv(14, inibl[i-1])
-				Xlaenv(15, ishfts[i-1])
-				Xlaenv(16, iacc22[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
+				xlaenv(12, max(11, inmin[i-1]))
+				xlaenv(13, inwin[i-1])
+				xlaenv(14, inibl[i-1])
+				xlaenv(15, ishfts[i-1])
+				xlaenv(16, iacc22[i-1])
 				//
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
@@ -249,16 +250,15 @@ func TestDeig(t *testing.T) {
 					}
 				}
 				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
-				Dchkhs(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], &nmax, a[5], a[6], d[0], d[1], d[2], d[3], d[4], d[5], a[7], a[8], a[9], a[10], a[11], d[6], work, &lwork, &iwork, &logwrk, result, &info, t)
-				if info != 0 {
+				if err = dchkhs(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[4], a[5], a[6], d[0], d[1], d[2], d[3], d[4], d[5], a[7], a[8], a[9], a[10], a[11], d[6], work, lwork, iwork, logwrk, result, t); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "DCHKHS", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "dchkhs", info)
 				}
 			}
 
-		} else if string(c3) == "DST" || string(c3) == "SEP" || string(c3) == "SE2" {
+		} else if c3 == "Dst" || c3 == "Sep" || c3 == "Se2" {
 			//        ----------------------------------
-			//        SEP:  Symmetric Eigenvalue Problem
+			//        Sep:  Symmetric Eigenvalue Problem
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -277,19 +277,19 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 21
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			dotype[8] = false
 			ntypes = min(maxtyp, ntypes)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
-			Xlaenv(9, 25)
+			xlaenv(1, 1)
+			xlaenv(9, 25)
 			if tsterr {
-				Derrst([]byte("DST"), t)
+				derrst("Dst", t)
 			}
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
 
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
@@ -298,34 +298,34 @@ func TestDeig(t *testing.T) {
 				}
 				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
-					if string(c3) == "SE2" {
-						(*&dotype)[8] = false
-						Dchkst2stg(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], &nmax, a[3], a[4].VectorIdx(0), d[11], a[5], work, &lwork, &iwork, &liwork, result, &info)
+					if c3 == "Se2" {
+						dotype[8] = false
+						err = dchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result)
 					} else {
-						Dchkst(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], &nmax, a[3], a[4].VectorIdx(0), d[11], a[5], work, &lwork, &iwork, &liwork, result, &info, t)
+						err = dchkst(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result, t)
 					}
-					if info != 0 {
+					if err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "DCHKST", info)
+						fmt.Printf(" *** Error code from %s = %4d\n", "dchkst", info)
 					}
 				}
 				if tstdrv {
-					if string(c3) == "SE2" {
-						(*&dotype)[8] = false
-						Ddrvst2stg(&nn, &nval, func() *int { y := 18; return &y }(), &dotype, &iseed, &thresh, &nout, a[0], &nmax, d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], &nmax, a[2], d[11], a[3], work, &lwork, &iwork, &liwork, result, &info, t)
+					if c3 == "Se2" {
+						dotype[8] = false
+						err = ddrvst2stg(nn, nval, 18, dotype, iseed, thresh, nout, a[0], d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], a[2], d[11], a[3], work, lwork, iwork, liwork, result, t)
 					} else {
-						Ddrvst(&nn, &nval, func() *int { y := 18; return &y }(), &dotype, &iseed, &thresh, &nout, a[0], &nmax, d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], &nmax, a[2], d[11], a[3], work, &lwork, &iwork, &liwork, result, &info, t)
+						err = ddrvst(nn, nval, 18, dotype, iseed, thresh, nout, a[0], d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], a[2], d[11], a[3], work, lwork, iwork, liwork, result, t)
 					}
-					if info != 0 {
+					if err != nil || info != 0 {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "DDRVST", info)
+						fmt.Printf(" *** Error code from %s = %4d\n", "ddrvst", info)
 					}
 				}
 			}
 
-		} else if string(c3) == "DSG" {
+		} else if c3 == "Dsg" {
 			//        ----------------------------------------------
-			//        DSG:  Symmetric Generalized Eigenvalue Problem
+			//        Dsg:  Symmetric Generalized Eigenvalue Problem
 			//        ----------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -346,13 +346,13 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 21
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(9, 25)
+			xlaenv(9, 25)
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
 
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
@@ -361,21 +361,21 @@ func TestDeig(t *testing.T) {
 				}
 				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
-					//               CALL DDRVSG( NN, NVAL, MAXTYP, DOTYPE, ISEED, THRESH,
+					//               CALL ddrvsg( NN, NVAL, MAXTYP, DOTYPE, ISEED, THRESH,
 					//     $                      NOUT, A( 1, 1 ), NMAX, A( 1, 2 ), NMAX,
 					//     $                      D( 1, 3 ), A( 1, 3 ), NMAX, A( 1, 4 ),
 					//     $                      A( 1, 5 ), A( 1, 6 ), A( 1, 7 ), WORK,
 					//     $                      LWORK, IWORK, LIWORK, RESULT, INFO )
-					Ddrvsg2stg(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], &nmax, d[2], d[2], a[2], &nmax, a[3], a[4], a[5].VectorIdx(0), a[6].VectorIdx(0), work, &lwork, &iwork, &liwork, result, &info, t)
-					if info != 0 {
-						fmt.Printf(" *** Error code from %s = %4d\n", "DDRVSG", info)
+					if err = ddrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], d[2], d[2], a[2], a[3], a[4], a[5].VectorIdx(0), a[6].VectorIdx(0), work, lwork, iwork, liwork, result, t); err != nil {
+						t.Fail()
+						fmt.Printf(" *** Error code from %s = %4d\n", "ddrvsg", info)
 					}
 				}
 			}
 
-		} else if string(c3) == "DBD" || string(c3) == "SVD" {
+		} else if c3 == "Dbd" || c3 == "Svd" {
 			//        ----------------------------------
-			//        SVD:  Singular Value Decomposition
+			//        Svd:  Singular Value Decomposition
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -397,24 +397,24 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 16
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
-			Xlaenv(9, 25)
+			xlaenv(1, 1)
+			xlaenv(9, 25)
 
 			//        Test the error exits
 			if tsterr && tstchk {
-				Derrbd([]byte("DBD"), t)
+				derrbd("Dbd", t)
 			}
 			if tsterr && tstdrv {
-				Derred([]byte("DBD"), t)
+				derred("Dbd", t)
 			}
 
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
 						iseed[k-1] = ioldsd[k-1]
@@ -422,23 +422,24 @@ func TestDeig(t *testing.T) {
 				}
 				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NX =%4d, NRHS =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
 				if tstchk {
-					Dchkbd(&nn, &mval, &nval, &maxtyp, &dotype, &nrhs, &iseed, &thresh, a[0], &nmax, d[0], d[1], d[2], d[3], a[1], &nmax, a[2], a[3], a[4], &nmax, a[5], &nmax, a[6], a[7], work, &lwork, &iwork, &nout, &info, t)
-					if info != 0 {
+					if err = dchkbd(nn, mval, nval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], d[0], d[1], d[2], d[3], a[1], a[2], a[3], a[4], a[5], a[6], a[7], work, lwork, iwork, nout, t); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "DCHKBD", info)
+						fmt.Printf(" *** Error code from %s = %v\n", "dchkbd", err)
 					}
 				}
 				if tstdrv {
-					Ddrvbd(&nn, &mval, &nval, &maxtyp, &dotype, &iseed, &thresh, a[0], &nmax, a[1], &nmax, a[2], &nmax, a[3], a[4], a[5], d[0], d[1], d[2], work, &lwork, &iwork, &nout, &info, t)
+					if err = ddrvbd(nn, mval, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], work, lwork, iwork, nout, t); err != nil {
+						t.Fail()
+					}
 				}
 			}
 
-		} else if string(c3) == "DEV" {
+		} else if c3 == "Dev" {
 			//        --------------------------------------------
-			//        DEV:  Nonsymmetric Eigenvalue Problem Driver
-			//              DGEEV (eigenvalues and eigenvectors)
+			//        Dev:  Nonsymmetric Eigenvalue Problem Driver
+			//              dgeev (eigenvalues and eigenvectors)
 			//        --------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    DGEEV (eigenvalues and eigevectors)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    dgeev (eigenvalues and eigevectors)\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -455,36 +456,35 @@ func TestDeig(t *testing.T) {
 			newsd = 2
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(12, max(11, inmin[0]))
-			Xlaenv(13, inwin[0])
-			Xlaenv(14, inibl[0])
-			Xlaenv(15, ishfts[0])
-			Xlaenv(16, iacc22[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(12, max(11, inmin[0]))
+			xlaenv(13, inwin[0])
+			xlaenv(14, inibl[0])
+			xlaenv(15, ishfts[0])
+			xlaenv(16, iacc22[0])
 			if ntypes <= 0 {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derred(c3, t)
+					derred(c3, t)
 				}
-				Ddrvev(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], d[0], d[1], d[2], d[3], a[2], &nmax, a[3], &nmax, a[4], &nmax, result, work, &lwork, &iwork, &info, t)
-				if info != 0 {
+				if err = ddrvev(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], d[0], d[1], d[2], d[3], a[2], a[3], a[4], result, work, lwork, iwork, t); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "DGEEV", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "dgeev", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if string(c3) == "DES" {
+		} else if c3 == "Des" {
 			//        --------------------------------------------
-			//        DES:  Nonsymmetric Eigenvalue Problem Driver
-			//              DGEES (Schur form)
+			//        Des:  Nonsymmetric Eigenvalue Problem Driver
+			//              dgees (Schur form)
 			//        --------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    DGEES (Schur form)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    dgees (Schur form)\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -501,35 +501,35 @@ func TestDeig(t *testing.T) {
 			newsd = 2
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(12, max(11, inmin[0]))
-			Xlaenv(13, inwin[0])
-			Xlaenv(14, inibl[0])
-			Xlaenv(15, ishfts[0])
-			Xlaenv(16, iacc22[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(12, max(11, inmin[0]))
+			xlaenv(13, inwin[0])
+			xlaenv(14, inibl[0])
+			xlaenv(15, ishfts[0])
+			xlaenv(16, iacc22[0])
 			if ntypes <= 0 {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derred(c3, t)
+					derred(c3, t)
 				}
-				Ddrves(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], d[0], d[1], d[2], d[3], a[3], &nmax, result, work, &lwork, &iwork, &logwrk, &info, t)
-				if info != 0 {
-					fmt.Printf(" *** Error code from %s = %4d\n", "DGEES", info)
+				if err = ddrves(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], a[2], d[0], d[1], d[2], d[3], a[3], result, work, lwork, iwork, logwrk, t); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %4d\n", "dgees", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if string(c3) == "DVX" {
+		} else if c3 == "Dvx" {
 			//        --------------------------------------------------------------
-			//        DVX:  Nonsymmetric Eigenvalue Problem Expert Driver
-			//              DGEEVX (eigenvalues, eigenvectors and condition numbers)
+			//        Dvx:  Nonsymmetric Eigenvalue Problem Expert Driver
+			//              dgeevx (eigenvalues, eigenvectors and condition numbers)
 			//        --------------------------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    DGEEVX (eigenvalues, eigenvectors and condition numbers)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    dgeevx (eigenvalues, eigenvectors and condition numbers)\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -546,36 +546,35 @@ func TestDeig(t *testing.T) {
 			newsd = 2
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(12, max(11, inmin[0]))
-			Xlaenv(13, inwin[0])
-			Xlaenv(14, inibl[0])
-			Xlaenv(15, ishfts[0])
-			Xlaenv(16, iacc22[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(12, max(11, inmin[0]))
+			xlaenv(13, inwin[0])
+			xlaenv(14, inibl[0])
+			xlaenv(15, ishfts[0])
+			xlaenv(16, iacc22[0])
 			if ntypes < 0 {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derred(c3, t)
+					derred(c3, t)
 				}
-				Ddrvvx(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], d[0], d[1], d[2], d[3], a[2], &nmax, a[3], &nmax, a[4], &nmax, d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], result, work, &lwork, &iwork, &info, t)
-				if info != 0 {
+				if err = ddrvvx(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], d[0], d[1], d[2], d[3], a[2], a[3], a[4], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], result, work, lwork, iwork, t); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "DGEEVX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "dgeevx", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if string(c3) == "DSX" {
+		} else if c3 == "Dsx" {
 			//        ---------------------------------------------------
-			//        DSX:  Nonsymmetric Eigenvalue Problem Expert Driver
-			//              DGEESX (Schur form and condition numbers)
+			//        Dsx:  Nonsymmetric Eigenvalue Problem Expert Driver
+			//              dgeesx (Schur form and condition numbers)
 			//        ---------------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    DGEESX (Schur form and condition numbers)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    dgeesx (Schur form and condition numbers)\n")
 			nval = []int{0, 1, 2, 3, 5, 10}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -593,33 +592,32 @@ func TestDeig(t *testing.T) {
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(12, max(11, inmin[0]))
-			Xlaenv(13, inwin[0])
-			Xlaenv(14, inibl[0])
-			Xlaenv(15, ishfts[0])
-			Xlaenv(16, iacc22[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(12, max(11, inmin[0]))
+			xlaenv(13, inwin[0])
+			xlaenv(14, inibl[0])
+			xlaenv(15, ishfts[0])
+			xlaenv(16, iacc22[0])
 			if ntypes < 0 {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derred(c3, t)
+					derred(c3, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Ddrvsx(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], d[0], d[1], d[2], d[3], d[4], d[5], a[3], &nmax, a[4], result, work, &lwork, &iwork, &logwrk, &info, t)
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = ddrvsx(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], a[2], d[0], d[1], d[2], d[3], d[4], d[5], a[3], a[4], result, work, lwork, iwork, logwrk, t); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "DGEESX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "dgeesx", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if string(c3) == "DGG" {
+		} else if c3 == "Dgg" {
 			//
 			//        -------------------------------------------------
-			//        DGG:  Generalized Nonsymmetric Eigenvalue Problem
+			//        Dgg:  Generalized Nonsymmetric Eigenvalue Problem
 			//        -------------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -650,19 +648,19 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 26
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tstchk && tsterr {
-				Derrgg(c3, t)
+				derrgg(c3, t)
 			}
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(4, nsval[i-1])
-				Xlaenv(8, mxbval[i-1])
-				Xlaenv(16, iacc22[i-1])
-				Xlaenv(5, nbcol[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(4, nsval[i-1])
+				xlaenv(8, mxbval[i-1])
+				xlaenv(16, iacc22[i-1])
+				xlaenv(5, nbcol[i-1])
 				//
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
@@ -673,16 +671,16 @@ func TestDeig(t *testing.T) {
 				tstdif = false
 				thrshn = 10.
 				if tstchk {
-					Dchkgg(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &tstdif, &thrshn, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], &nmax, a[9], a[10], a[11], d[0], d[1], d[2], d[3], d[4], d[5], a[12], a[13], work, &lwork, &logwrk, result, &info, t)
-					if info != 0 {
-						fmt.Printf(" *** Error code from %s = %4d\n", "DCHKGG", info)
+					if err = dchkgg(nn, nval, maxtyp, dotype, iseed, thresh, tstdif, thrshn, nout, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], d[0], d[1], d[2], d[3], d[4], d[5], a[12], a[13], work, lwork, logwrk, result, t); err != nil {
+						t.Fail()
+						fmt.Printf(" *** Error code from %s = %4d\n", "dchkgg", info)
 					}
 				}
 			}
 
-		} else if string(c3) == "DGS" {
+		} else if c3 == "Dgs" {
 			//        -------------------------------------------------
-			//        DGS:  Generalized Nonsymmetric Eigenvalue Problem
+			//        Dgs:  Generalized Nonsymmetric Eigenvalue Problem
 			//              DGGES (Schur form)
 			//        -------------------------------------------------
 			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver DGGES\n")
@@ -698,36 +696,36 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 0
 			ntypes = 26
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(4, nsval[0])
-			Xlaenv(8, mxbval[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(4, nsval[0])
+			xlaenv(8, mxbval[0])
 			if ntypes <= 0 {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derrgg(c3, t)
+					derrgg(c3, t)
 				}
-				Ddrges(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], d[0], d[1], d[2], work, &lwork, result, &logwrk, &info, t)
-				if info != 0 {
-					fmt.Printf(" *** Error code from %s = %4d\n", "DDRGES", info)
+				if err = ddrges(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], d[0], d[1], d[2], work, lwork, result, logwrk, t); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %4d\n", "ddrges", info)
 				}
 
 				//     Blocked version
-				Xlaenv(16, 2)
-				Ddrges3(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], d[0], d[1], d[2], work, &lwork, result, &logwrk, &info, t)
-				if info != 0 {
-					fmt.Printf(" *** Error code from %s = %4d\n", "DDRGES3", info)
+				xlaenv(16, 2)
+				if err = ddrges3(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], d[0], d[1], d[2], work, lwork, result, logwrk, t); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %4d\n", "ddrges3", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
 		} else if dgx {
 			//        -------------------------------------------------
-			//        DGX:  Generalized Nonsymmetric Eigenvalue Problem
+			//        Dgx:  Generalized Nonsymmetric Eigenvalue Problem
 			//              DGGESX (Schur form and condition numbers)
 			//        -------------------------------------------------
 			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver DGGESX\n")
@@ -742,32 +740,31 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 0
 			ntypes = 5
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(4, nsval[0])
-			Xlaenv(8, mxbval[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(4, nsval[0])
+			xlaenv(8, mxbval[0])
 			if nn < 0 {
 				fmt.Printf(" %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derrgg(c3, t)
+					derrgg(c3, t)
 				}
 
-				Xlaenv(5, 2)
-				Ddrgsx(&nn, &ncmax, &thresh, nin, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], c, toPtr(ncmax*ncmax), a[11].VectorIdx(0), work, &lwork, &iwork, &liwork, &logwrk, &info, t)
-				if info != 0 {
+				xlaenv(5, 2)
+				if err = ddrgsx(nn, ncmax, thresh, nin, nout, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], c, a[11].VectorIdx(0), work, lwork, iwork, liwork, logwrk, t); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "DDRGSX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgsx", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if string(c3) == "DGV" {
+		} else if c3 == "Dgv" {
 			//        -------------------------------------------------
-			//        DGV:  Generalized Nonsymmetric Eigenvalue Problem
+			//        Dgv:  Generalized Nonsymmetric Eigenvalue Problem
 			//              DGGEV (Eigenvalue/vector form)
 			//        -------------------------------------------------
 			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver DGGEV\n")
@@ -783,35 +780,35 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 0
 			ntypes = 26
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(4, nsval[0])
-			Xlaenv(8, mxbval[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(4, nsval[0])
+			xlaenv(8, mxbval[0])
 			if ntypes <= 0 {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derrgg(c3, t)
+					derrgg(c3, t)
 				}
-				Ddrgev(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], a[8], &nmax, d[0], d[1], d[2], d[3], d[4], d[5], work, &lwork, result, &info, t)
-				if info != 0 {
-					fmt.Printf(" *** Error code from %s = %4d\n", "DDRGEV", info)
+				if err = ddrgev(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], a[8], d[0], d[1], d[2], d[3], d[4], d[5], work, lwork, result, t); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgev", info)
 				}
 
 				//     Blocked version
-				Ddrgev3(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], a[8], &nmax, d[0], d[1], d[2], d[3], d[4], d[5], work, &lwork, result, &info, t)
-				if info != 0 {
-					fmt.Printf(" *** Error code from %s = %4d\n", "DDRGEV3", info)
+				if err = ddrgev3(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], a[8], d[0], d[1], d[2], d[3], d[4], d[5], work, lwork, result, t); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgev3", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
 		} else if dxv {
 			//        -------------------------------------------------
-			//        DXV:  Generalized Nonsymmetric Eigenvalue Problem
+			//        Dxv:  Generalized Nonsymmetric Eigenvalue Problem
 			//              DGGEVX (eigenvalue/vector with condition numbers)
 			//        -------------------------------------------------
 			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver DGGEVX\n")
@@ -826,32 +823,30 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 0
 			ntypes = 2
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, nbval[0])
-			Xlaenv(2, nbmin[0])
-			Xlaenv(3, nxval[0])
-			Xlaenv(4, nsval[0])
-			Xlaenv(8, mxbval[0])
+			xlaenv(1, nbval[0])
+			xlaenv(2, nbmin[0])
+			xlaenv(3, nxval[0])
+			xlaenv(4, nsval[0])
+			xlaenv(8, mxbval[0])
 			if nn < 0 {
 				fmt.Printf(" %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					Derrgg(c3, t)
+					derrgg(c3, t)
 				}
 
-				Ddrgvx(&nn, &thresh, nin, &nout, a[0], &nmax, a[1], a[2], a[3], d[0], d[1], d[2], a[4], a[5], &(iwork[0]), &(iwork[1]), d[3], d[4], d[5], d[6], d[7], d[8], work, &lwork, toSlice(&iwork, 2), toPtr(liwork-2), result, &logwrk, &info, t)
-
-				if info != 0 {
+				if err = ddrgvx(nn, thresh, nin, nout, a[0], a[1], a[2], a[3], d[0], d[1], d[2], a[4], a[5], iwork[0], iwork[1], d[3], d[4], d[5], d[6], d[7], d[8], work, lwork, *toSlice(&iwork, 2), liwork-2, result, logwrk, t); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "DDRGVX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgvx", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if string(c3) == "DSB" {
+		} else if c3 == "Dsb" {
 			//        ------------------------------
-			//        DSB:  Symmetric Band Reduction
+			//        Dsb:  Symmetric Band Reduction
 			//        ------------------------------
 			fmt.Printf(" Tests of DSBTRD\n (reduction of a symmetric band matrix to tridiagonal form)\n")
 			nval = []int{5, 20}
@@ -863,23 +858,22 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 15
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if tsterr {
-				Derrst([]byte("DSB"), t)
+				derrst("Dsb", t)
 			}
-			//         CALL DCHKSB( NN, NVAL, NK, KVAL, MAXTYP, DOTYPE, ISEED, THRESH,
+			//         CALL dchksb( NN, NVAL, NK, KVAL, MAXTYP, DOTYPE, ISEED, THRESH,
 			//     $                NOUT, A( 1, 1 ), NMAX, D( 1, 1 ), D( 1, 2 ),
 			//     $                A( 1, 2 ), NMAX, WORK, LWORK, RESULT, INFO )
-			Dchksb2stg(&nn, &nval, &nk, &kval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, d[0], d[1], d[2], d[3], d[4], a[1], &nmax, work, &lwork, result, &info, t)
-			if info != 0 {
+			if err = dchksb2stg(nn, nval, nk, kval, maxtyp, dotype, iseed, thresh, nout, a[0], d[0], d[1], d[2], d[3], d[4], a[1], work, lwork, result, t); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "DCHKSB", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "dchksb", info)
 			}
 
-		} else if string(c3) == "DBB" {
+		} else if c3 == "Dbb" {
 			//        ------------------------------
-			//        DBB:  General Band Reduction
+			//        Dbb:  General Band Reduction
 			//        ------------------------------
 			fmt.Printf(" Tests of DGBBRD\n (reduction of a general band matrix to real bidiagonal form)\n")
 			mval = []int{0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 10, 10, 16, 16}
@@ -893,7 +887,7 @@ func TestDeig(t *testing.T) {
 			tsterr = false
 			newsd = 1
 			ntypes = 15
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
@@ -904,15 +898,15 @@ func TestDeig(t *testing.T) {
 					}
 				}
 				fmt.Printf("\n\n %3s:  NRHS =%4d\n", c3, nrhs)
-				Dchkbb(&nn, &mval, &nval, &nk, &kval, &maxtyp, &dotype, &nrhs, &iseed, &thresh, &nout, a[0], &nmax, a[1].Off(0, 0).UpdateRows(2*nmax), toPtr(2*nmax), d[0], d[1], a[3], &nmax, a[4], &nmax, a[5], &nmax, a[6], work, &lwork, result, &info, t)
-				if info != 0 {
-					fmt.Printf(" *** Error code from %s = %4d\n", "DCHKBB", info)
+				if err = dchkbb(nn, mval, nval, nk, kval, maxtyp, dotype, nrhs, &iseed, thresh, nout, a[0], a[1].Off(0, 0).UpdateRows(2*nmax), d[0], d[1], a[3], a[4], a[5], a[6], work, lwork, result, t); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %v\n", "dchkbb", err)
 				}
 			}
 
-		} else if string(c3) == "GLM" {
+		} else if c3 == "Glm" {
 			//        -----------------------------------------
-			//        GLM:  Generalized Linear Regression Model
+			//        Glm:  Generalized Linear Regression Model
 			//        -----------------------------------------
 			fmt.Printf("\n Tests of the Generalized Linear Regression Model routines\n")
 			mval = []int{0, 5, 8, 15, 20, 40}
@@ -923,21 +917,20 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 8
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Derrgg([]byte("GLM"), t)
+				derrgg("Glm", t)
 			}
-			Dckglm(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].Vector(0, 0), a[1].Vector(0, 0), b[0].Vector(0, 0), b[1].Vector(0, 0), x, work, d[0], &nout, &info, t)
-			if info != 0 {
+			if err = dckglm(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Vector(0, 0), a[1].Vector(0, 0), b[0].Vector(0, 0), b[1].Vector(0, 0), x, work, d[0], nout, t); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "DCKGLM", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "dckglm", info)
 			}
 
-		} else if string(c3) == "GQR" {
+		} else if c3 == "Gqr" {
 			//        ------------------------------------------
-			//        GQR:  Generalized QR and RQ factorizations
+			//        Gqr:  Generalized QR and RQ factorizations
 			//        ------------------------------------------
 			fmt.Printf("\n Tests of the Generalized QR and RQ routines\n")
 			mval = []int{0, 3, 10}
@@ -948,21 +941,20 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 8
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Derrgg([]byte("GQR"), t)
+				derrgg("Gqr", t)
 			}
-			Dckgqr(&nn, &mval, &nn, &pval, &nn, &nval, &ntypes, &iseed, &thresh, &nmax, a[0], a[1], a[2], a[3], taua, b[0], b[1], b[2], b[3], b[4], taub, work, d[0], &nout, &info, t)
-			if info != 0 {
+			if err = dckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0], a[1], a[2], a[3], taua, b[0], b[1], b[2], b[3], b[4], taub, work, d[0], nout, t); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "DCKGQR", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "dckgqr", info)
 			}
 
-		} else if string(c3) == "GSV" {
+		} else if c3 == "Gsv" {
 			//        ----------------------------------------------
-			//        GSV:  Generalized Singular Value Decomposition
+			//        Gsv:  Generalized Singular Value Decomposition
 			//        ----------------------------------------------
 			fmt.Printf("\n Tests of the Generalized Singular Value Decomposition routines\n")
 			mval = []int{0, 5, 9, 10, 20, 12, 12, 40}
@@ -973,21 +965,20 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 8
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Derrgg([]byte("GSV"), t)
+				derrgg("Gsv", t)
 			}
-			Dckgsv(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0], a[1], b[0], b[1], a[2], b[2], a[3], taua, taub, b[3], &iwork, work, d[0], &nout, &info, t)
-			if info != 0 {
+			if err = dckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0], a[1], b[0], b[1], a[2], b[2], a[3], taua, taub, b[3], iwork, work, d[0], nout, t); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "DCKGSV", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "dckgsv", info)
 			}
 
-		} else if string(c3) == "CSD" {
+		} else if c3 == "Csd" {
 			//        ----------------------------------------------
-			//        CSD:  CS Decomposition
+			//        Csd:  CS Decomposition
 			//        ----------------------------------------------
 			fmt.Printf("\n Tests of the CS Decomposition routines\n")
 			mval = []int{0, 10, 10, 10, 10, 21, 24, 30, 22, 32, 55}
@@ -998,21 +989,20 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 4
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Derrgg([]byte("CSD"), t)
+				derrgg("Csd", t)
 			}
-			Dckcsd(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), a[5].VectorIdx(0), a[6].VectorIdx(0), &iwork, work, d[0], &nout, &info, t)
-			if info != 0 {
+			if err = dckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), a[5].VectorIdx(0), a[6].VectorIdx(0), iwork, work, d[0], nout, t); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "DCKCSD", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "dckcsd", info)
 			}
 
-		} else if string(c3) == "LSE" {
+		} else if c3 == "Lse" {
 			//        --------------------------------------
-			//        LSE:  Constrained Linear Least Squares
+			//        Lse:  Constrained Linear Least Squares
 			//        --------------------------------------
 			//
 			fmt.Printf("\n Tests of the Linear Least Squares routines\n")
@@ -1024,42 +1014,41 @@ func TestDeig(t *testing.T) {
 			tsterr = true
 			newsd = 1
 			ntypes = 8
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Derrgg([]byte("LSE"), t)
+				derrgg("Lse", t)
 			}
-			Dcklse(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), x, work, d[0], &nout, &info, t)
-			if info != 0 {
+			if err = dcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), x, work, d[0], nout, t); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "DCKLSE", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "dcklse", info)
 			}
 
-		} else if string(c3) == "DBL" {
+		} else if c3 == "Dbl" {
 			//        DGEBAL:  Balancing
 			Dchkbl(t)
 
-		} else if string(c3) == "DBK" {
+		} else if c3 == "Dbk" {
 			//        DGEBAK:  Back transformation
-			Dchkbk(t)
+			dchkbk(t)
 
-		} else if string(c3) == "DGL" {
+		} else if c3 == "Dgl" {
 			//        DGGBAL:  Balancing
-			Dchkgl(t)
+			dchkgl(t)
 
-		} else if string(c3) == "DGK" {
+		} else if c3 == "Dgk" {
 			//        DGGBAK:  Back transformation
-			Dchkgk(t)
+			dchkgk(t)
 
-		} else if string(c3) == "DEC" {
-			//        DEC:  Eigencondition estimation
-			Xlaenv(1, 1)
-			Xlaenv(12, 11)
-			Xlaenv(13, 2)
-			Xlaenv(14, 0)
-			Xlaenv(15, 2)
-			Xlaenv(16, 2)
+		} else if c3 == "Dec" {
+			//        Dec:  Eigencondition estimation
+			xlaenv(1, 1)
+			xlaenv(12, 11)
+			xlaenv(13, 2)
+			xlaenv(14, 0)
+			xlaenv(15, 2)
+			xlaenv(16, 2)
 			thresh = 50.0
 			tsterr = true
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
@@ -1078,83 +1067,83 @@ func TestDeig(t *testing.T) {
 // Zchkee tests the COMPLEX*16 LAPACK subroutines for the matrix
 // eigenvalue problem.  The test paths in this version are
 //
-// NEP (Nonsymmetric Eigenvalue Problem):
-//     Test ZGEHRD, ZUNGHR, ZHSEQR, ZTREVC, ZHSEIN, and ZUNMHR
+// Nep (Nonsymmetric Eigenvalue Problem):
+//     Test ZGEHRD, ZUNGHR, Zhseqr, ZTREVC, ZHSEIN, and ZUNMHR
 //
-// SEP (Hermitian Eigenvalue Problem):
+// Sep (Hermitian Eigenvalue Problem):
 //     Test ZHETRD, ZUNGTR, ZSTEQR, ZSTERF, ZSTEIN, ZSTEDC,
 //     and drivers ZHEEV(X), ZHBEV(X), ZHPEV(X),
 //                 ZHEEVD,   ZHBEVD,   ZHPEVD
 //
-// SVD (Singular Value Decomposition):
+// Svd (Singular Value Decomposition):
 //     Test ZGEBRD, ZUNGBR, and ZBDSQR
 //     and the drivers ZGESVD, ZGESDD
 //
-// ZEV (Nonsymmetric Eigenvalue/eigenvector Driver):
-//     Test ZGEEV
+// Zev (Nonsymmetric Eigenvalue/eigenvector Driver):
+//     Test Zgeev
 //
-// ZES (Nonsymmetric Schur form Driver):
-//     Test ZGEES
+// Zes (Nonsymmetric Schur form Driver):
+//     Test Zgees
 //
-// ZVX (Nonsymmetric Eigenvalue/eigenvector Expert Driver):
-//     Test ZGEEVX
+// Zvx (Nonsymmetric Eigenvalue/eigenvector Expert Driver):
+//     Test Zgeevx
 //
-// ZSX (Nonsymmetric Schur form Expert Driver):
-//     Test ZGEESX
+// Zsx (Nonsymmetric Schur form Expert Driver):
+//     Test Zgeesx
 //
-// ZGG (Generalized Nonsymmetric Eigenvalue Problem):
+// Zgg (Generalized Nonsymmetric Eigenvalue Problem):
 //     Test ZGGHD3, ZGGBAL, ZGGBAK, ZHGEQZ, and ZTGEVC
 //
-// ZGS (Generalized Nonsymmetric Schur form Driver):
-//     Test ZGGES
+// Zgs (Generalized Nonsymmetric Schur form Driver):
+//     Test Zgges
 //
-// ZGV (Generalized Nonsymmetric Eigenvalue/eigenvector Driver):
-//     Test ZGGEV
+// Zgv (Generalized Nonsymmetric Eigenvalue/eigenvector Driver):
+//     Test Zggev
 //
-// ZGX (Generalized Nonsymmetric Schur form Expert Driver):
-//     Test ZGGESX
+// Zgx (Generalized Nonsymmetric Schur form Expert Driver):
+//     Test Zggesx
 //
-// ZXV (Generalized Nonsymmetric Eigenvalue/eigenvector Expert Driver):
-//     Test ZGGEVX
+// Zxv (Generalized Nonsymmetric Eigenvalue/eigenvector Expert Driver):
+//     Test Zggevx
 //
-// ZSG (Hermitian Generalized Eigenvalue Problem):
+// Zsg (Hermitian Generalized Eigenvalue Problem):
 //     Test ZHEGST, ZHEGV, ZHEGVD, ZHEGVX, ZHPGST, ZHPGV, ZHPGVD,
 //     ZHPGVX, ZHBGST, ZHBGV, ZHBGVD, and ZHBGVX
 //
-// ZHB (Hermitian Band Eigenvalue Problem):
-//     Test ZHBTRD
+// Zhb (Hermitian Band Eigenvalue Problem):
+//     Test Zhbtrd
 //
-// ZBB (Band Singular Value Decomposition):
-//     Test ZGBBRD
+// Zbb (Band Singular Value Decomposition):
+//     Test Zgbbrd
 //
-// ZEC (Eigencondition estimation):
+// Zec (Eigencondition estimation):
 //     Test ZTRSYL, ZTREXC, ZTRSNA, and ZTRSEN
 //
-// ZBL (Balancing a general matrix)
+// Zbl (Balancing a general matrix)
 //     Test ZGEBAL
 //
-// ZBK (Back transformation on a balanced matrix)
+// Zbk (Back transformation on a balanced matrix)
 //     Test ZGEBAK
 //
-// ZGL (Balancing a matrix pair)
+// Zgl (Balancing a matrix pair)
 //     Test ZGGBAL
 //
-// ZGK (Back transformation on a matrix pair)
+// Zgk (Back transformation on a matrix pair)
 //     Test ZGGBAK
 //
-// GLM (Generalized Linear Regression Model):
+// Glm (Generalized Linear Regression Model):
 //     Tests ZGGGLM
 //
-// GQR (Generalized QR and RQ factorizations):
+// Gqr (Generalized QR and RQ factorizations):
 //     Tests ZGGQRF and ZGGRQF
 //
-// GSV (Generalized Singular Value Decomposition):
+// Gsv (Generalized Singular Value Decomposition):
 //     Tests ZGGSVD, ZGGSVP, ZTGSJA, ZLAGS2, ZLAPLL, and ZLAPMT
 //
-// CSD (CS decomposition):
+// Csd (CS decomposition):
 //     Tests ZUNCSD
 //
-// LSE (Constrained Linear Least Squares):
+// Lse (Constrained Linear Least Squares):
 //     Tests ZGGLSE
 //
 // Each test path has a different set of inputs, but the data sets for
@@ -1169,37 +1158,37 @@ func TestDeig(t *testing.T) {
 //
 // Path name(s)  Types    Test routine
 //
-// ZHS or NEP      21     ZCHKHS
-// ZST or SEP      21     ZCHKST (routines)
-//                 18     ZDRVST (drivers)
-// ZBD or SVD      16     ZCHKBD (routines)
+// Zhs or Nep      21     Zchkhs
+// Zst or Sep      21     zchkst (routines)
+//                 18     zdrvst (drivers)
+// Zbd or Svd      16     Zchkbd (routines)
 //                  5     ZDRVBD (drivers)
-// ZEV             21     ZDRVEV
-// ZES             21     ZDRVES
-// ZVX             21     ZDRVVX
-// ZSX             21     ZDRVSX
-// ZGG             26     ZCHKGG (routines)
-// ZGS             26     ZDRGES
-// ZGX              5     ZDRGSX
-// ZGV             26     ZDRGEV
-// ZXV              2     ZDRGVX
-// ZSG             21     ZDRVSG
-// ZHB             15     ZCHKHB
-// ZBB             15     ZCHKBB
-// ZEC              -     ZCHKEC
-// ZBL              -     ZCHKBL
-// ZBK              -     ZCHKBK
-// ZGL              -     ZCHKGL
-// ZGK              -     ZCHKGK
-// GLM              8     ZCKGLM
-// GQR              8     ZCKGQR
-// GSV              8     ZCKGSV
-// CSD              3     ZCKCSD
-// LSE              8     ZCKLSE
+// Zev             21     ZDRVEV
+// Zes             21     ZDRVES
+// Zvx             21     ZDRVVX
+// Zsx             21     ZDRVSX
+// Zgg             26     zchkgg (routines)
+// Zgs             26     zdrges
+// Zgx              5     zdrgsx
+// Zgv             26     zdrgev
+// Zxv              2     ZDRGVX
+// Zsg             21     ZDRVSG
+// Zhb             15     ZCHKHB
+// Zbb             15     zchkbb
+// Zec              -     ZCHKEC
+// Zbl              -     ZCHKBL
+// Zbk              -     ZCHKBK
+// Zgl              -     ZCHKGL
+// Zgk              -     ZCHKGK
+// Glm              8     zckglm
+// Gqr              8     zckgqr
+// Gsv              8     zckgsv
+// Csd              3     zckcsd
+// Lse              8     zcklse
 //
 //-----------------------------------------------------------------------
 //
-// NEP input file:
+// Nep input file:
 //
 // line 2:  NN, INTEGER
 //          Number of values of N.
@@ -1261,19 +1250,19 @@ func TestDeig(t *testing.T) {
 //          less than the maximum number of possible types, a second
 //          line will be read to get the numbers of the matrix types to
 //          be used.  For example,
-// NEP 21
+// Nep 21
 //          requests all of the matrix types for the nonsymmetric
 //          eigenvalue problem, while
-// NEP  4
+// Nep  4
 // 9 10 11 12
 //          requests only matrices of _type 9, 10, 11, and 12.
 //
-//          The valid 3-character path names are 'NEP' or 'ZHS' for the
+//          The valid 3-character path names are 'Nep' or 'Zhs' for the
 //          nonsymmetric eigenvalue routines.
 //
 //-----------------------------------------------------------------------
 //
-// SEP or ZSG input file:
+// Sep or Zsg input file:
 //
 // line 2:  NN, INTEGER
 //          Number of values of N.
@@ -1320,15 +1309,15 @@ func TestDeig(t *testing.T) {
 // line 13: INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 13-EOF:  Lines specifying matrix types, as for NEP.
-//          The valid 3-character path names are 'SEP' or 'ZST' for the
+// lines 13-EOF:  Lines specifying matrix types, as for Nep.
+//          The valid 3-character path names are 'Sep' or 'Zst' for the
 //          Hermitian eigenvalue routines and driver routines, and
-//          'ZSG' for the routines for the Hermitian generalized
+//          'Zsg' for the routines for the Hermitian generalized
 //          eigenvalue problem.
 //
 //-----------------------------------------------------------------------
 //
-// SVD input file:
+// Svd input file:
 //
 // line 2:  NN, INTEGER
 //          Number of values of M and N.
@@ -1381,15 +1370,15 @@ func TestDeig(t *testing.T) {
 // line 15: INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 15-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path names are 'SVD' or 'ZBD' for both the
-//          SVD routines and the SVD driver routines.
+// lines 15-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path names are 'Svd' or 'Zbd' for both the
+//          Svd routines and the Svd driver routines.
 //
 //-----------------------------------------------------------------------
 //
-// ZEV and ZES data files:
+// Zev and Zes data files:
 //
-// line 1:  'ZEV' or 'ZES' in columns 1 to 3.
+// line 1:  'Zev' or 'Zes' in columns 1 to 3.
 //
 // line 2:  NSIZES, INTEGER
 //          Number of sizes of matrices to use. Should be at least 0
@@ -1425,17 +1414,17 @@ func TestDeig(t *testing.T) {
 // line 7:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 8 and following:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'ZEV' to test CGEEV, or
-//          'ZES' to test CGEES.
+// lines 8 and following:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Zev' to test CGEEV, or
+//          'Zes' to test CGEES.
 //
 //-----------------------------------------------------------------------
 //
-// The ZVX data has two parts. The first part is identical to ZEV,
+// The Zvx data has two parts. The first part is identical to Zev,
 // and the second part consists of test matrices with precomputed
 // solutions.
 //
-// line 1:  'ZVX' in columns 1-3.
+// line 1:  'Zvx' in columns 1-3.
 //
 // line 2:  NSIZES, INTEGER
 //          If NSIZES = 0, no testing of randomly generated examples
@@ -1453,7 +1442,7 @@ func TestDeig(t *testing.T) {
 //
 // line 7:  INTEGER array, dimension (4)
 //
-// lines 8 and following: The first line contains 'ZVX' in columns 1-3
+// lines 8 and following: The first line contains 'Zvx' in columns 1-3
 //          followed by the number of matrix types, possibly with
 //          a second line to specify certain matrix types.
 //          If the number of matrix types = 0, no testing of randomly
@@ -1477,10 +1466,10 @@ func TestDeig(t *testing.T) {
 //
 //-----------------------------------------------------------------------
 //
-// The ZSX data is like ZVX. The first part is identical to ZEV, and the
+// The Zsx data is like Zvx. The first part is identical to Zev, and the
 // second part consists of test matrices with precomputed solutions.
 //
-// line 1:  'ZSX' in columns 1-3.
+// line 1:  'Zsx' in columns 1-3.
 //
 // line 2:  NSIZES, INTEGER
 //          If NSIZES = 0, no testing of randomly generated examples
@@ -1498,7 +1487,7 @@ func TestDeig(t *testing.T) {
 //
 // line 7:  INTEGER array, dimension (4)
 //
-// lines 8 and following: The first line contains 'ZSX' in columns 1-3
+// lines 8 and following: The first line contains 'Zsx' in columns 1-3
 //          followed by the number of matrix types, possibly with
 //          a second line to specify certain matrix types.
 //          If the number of matrix types = 0, no testing of randomly
@@ -1522,7 +1511,7 @@ func TestDeig(t *testing.T) {
 //
 //-----------------------------------------------------------------------
 //
-// ZGG input file:
+// Zgg input file:
 //
 // line 2:  NN, INTEGER
 //          Number of values of N.
@@ -1580,15 +1569,15 @@ func TestDeig(t *testing.T) {
 // line 16: INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 17-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'ZGG' for the generalized
+// lines 17-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Zgg' for the generalized
 //          eigenvalue problem routines and driver routines.
 //
 //-----------------------------------------------------------------------
 //
-// ZGS and ZGV input files:
+// Zgs and Zgv input files:
 //
-// line 1:  'ZGS' or 'ZGV' in columns 1 to 3.
+// line 1:  'Zgs' or 'Zgv' in columns 1 to 3.
 //
 // line 2:  NN, INTEGER
 //          Number of values of N.
@@ -1625,14 +1614,14 @@ func TestDeig(t *testing.T) {
 // line 7:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 7-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'ZGS' for the generalized
+// lines 7-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Zgs' for the generalized
 //          eigenvalue problem routines and driver routines.
 //
 //-----------------------------------------------------------------------
 //
-// ZGX input file:
-// line 1:  'ZGX' in columns 1 to 3.
+// Zgx input file:
+// line 1:  'Zgx' in columns 1 to 3.
 //
 // line 2:  N, INTEGER
 //          Value of N.
@@ -1687,8 +1676,8 @@ func TestDeig(t *testing.T) {
 //
 //-----------------------------------------------------------------------
 //
-// ZXV input files:
-// line 1:  'ZXV' in columns 1 to 3.
+// Zxv input files:
+// line 1:  'Zxv' in columns 1 to 3.
 //
 // line 2:  N, INTEGER
 //          Value of N.
@@ -1740,7 +1729,7 @@ func TestDeig(t *testing.T) {
 //
 //-----------------------------------------------------------------------
 //
-// ZHB input file:
+// Zhb input file:
 //
 // line 2:  NN, INTEGER
 //          Number of values of N.
@@ -1771,12 +1760,12 @@ func TestDeig(t *testing.T) {
 // line 8:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 8-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'ZHB'.
+// lines 8-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Zhb'.
 //
 //-----------------------------------------------------------------------
 //
-// ZBB input file:
+// Zbb input file:
 //
 // line 2:  NN, INTEGER
 //          Number of values of M and N.
@@ -1816,12 +1805,12 @@ func TestDeig(t *testing.T) {
 // line 10: INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 10-EOF:  Lines specifying matrix types, as for SVD.
-//          The 3-character path name is 'ZBB'.
+// lines 10-EOF:  Lines specifying matrix types, as for Svd.
+//          The 3-character path name is 'Zbb'.
 //
 //-----------------------------------------------------------------------
 //
-// ZEC input file:
+// Zec input file:
 //
 // line  2: THRESH, REAL
 //          Threshold value for the test ratios.  Information will be
@@ -1836,27 +1825,27 @@ func TestDeig(t *testing.T) {
 //
 //-----------------------------------------------------------------------
 //
-// ZBL and ZBK input files:
+// Zbl and Zbk input files:
 //
-// line 1:  'ZBL' in columns 1-3 to test CGEBAL, or 'ZBK' in
+// line 1:  'Zbl' in columns 1-3 to test CGEBAL, or 'Zbk' in
 //          columns 1-3 to test CGEBAK.
 //
 // The remaining lines consist of specially constructed test cases.
 //
 //-----------------------------------------------------------------------
 //
-// ZGL and ZGK input files:
+// Zgl and Zgk input files:
 //
-// line 1:  'ZGL' in columns 1-3 to test ZGGBAL, or 'ZGK' in
+// line 1:  'Zgl' in columns 1-3 to test ZGGBAL, or 'Zgk' in
 //          columns 1-3 to test ZGGBAK.
 //
 // The remaining lines consist of specially constructed test cases.
 //
 //-----------------------------------------------------------------------
 //
-// GLM data file:
+// Glm data file:
 //
-// line 1:  'GLM' in columns 1 to 3.
+// line 1:  'Glm' in columns 1 to 3.
 //
 // line 2:  NN, INTEGER
 //          Number of values of M, P, and N.
@@ -1891,15 +1880,15 @@ func TestDeig(t *testing.T) {
 // line 9:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 9-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'GLM' for the generalized
+// lines 9-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Glm' for the generalized
 //          linear regression model routines.
 //
 //-----------------------------------------------------------------------
 //
-// GQR data file:
+// Gqr data file:
 //
-// line 1:  'GQR' in columns 1 to 3.
+// line 1:  'Gqr' in columns 1 to 3.
 //
 // line 2:  NN, INTEGER
 //          Number of values of M, P, and N.
@@ -1934,15 +1923,15 @@ func TestDeig(t *testing.T) {
 // line 9:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 9-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'GQR' for the generalized
+// lines 9-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Gqr' for the generalized
 //          QR and RQ routines.
 //
 //-----------------------------------------------------------------------
 //
-// GSV data file:
+// Gsv data file:
 //
-// line 1:  'GSV' in columns 1 to 3.
+// line 1:  'Gsv' in columns 1 to 3.
 //
 // line 2:  NN, INTEGER
 //          Number of values of M, P, and N.
@@ -1977,15 +1966,15 @@ func TestDeig(t *testing.T) {
 // line 9:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 9-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'GSV' for the generalized
-//          SVD routines.
+// lines 9-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Gsv' for the generalized
+//          Svd routines.
 //
 //-----------------------------------------------------------------------
 //
-// CSD data file:
+// Csd data file:
 //
-// line 1:  'CSD' in columns 1 to 3.
+// line 1:  'Csd' in columns 1 to 3.
 //
 // line 2:  NM, INTEGER
 //          Number of values of M, P, and N.
@@ -2020,14 +2009,14 @@ func TestDeig(t *testing.T) {
 // line 9:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 9-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'CSD' for the CSD routine.
+// lines 9-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Csd' for the Csd routine.
 //
 //-----------------------------------------------------------------------
 //
-// LSE data file:
+// Lse data file:
 //
-// line 1:  'LSE' in columns 1 to 3.
+// line 1:  'Lse' in columns 1 to 3.
 //
 // line 2:  NN, INTEGER
 //          Number of values of M, P, and N.
@@ -2062,27 +2051,27 @@ func TestDeig(t *testing.T) {
 // line 9:  INTEGER array, dimension (4)
 //          Four integer values for the random number seed.
 //
-// lines 9-EOF:  Lines specifying matrix types, as for NEP.
-//          The 3-character path name is 'GSV' for the generalized
-//          SVD routines.
+// lines 9-EOF:  Lines specifying matrix types, as for Nep.
+//          The 3-character path name is 'Gsv' for the generalized
+//          Svd routines.
 //
 //-----------------------------------------------------------------------
 //
 // NMAX is currently set to 132 and must be at least 12 for some of the
 // precomputed examples, and LWORK = NMAX*(5*NMAX+20) in the parameter
-// statements below.  For SVD, we assume NRHS may be as big as N.  The
-// parameter NEED is set to 14 to allow for 14 N-by-N matrices for ZGG.
+// statements below.  For Svd, we assume NRHS may be as big as N.  The
+// parameter NEED is set to 14 to allow for 14 N-by-N matrices for Zgg.
 func TestZeig(t *testing.T) {
-	var csd, fatal, glm, gqr, gsv, lse, nep, sep, svd, tstchk, tstdif, tstdrv, tsterr, zbb, zbk, zbl, zes, zev, zgg, zgk, zgl, zgs, zgv, zgx, zhb, zsx, zvx, zxv bool
+	var csd, fatal, glm, gqr, gsv, lse, nep, sep, svd, tstchk, tstdif, tstdrv, tsterr, zbb, zbk, zbl, zes, zev, zgg, zgk, zgl, zgs, zgv, zgx, Zhb, zsx, zvx, zxv bool
 	var eps, thresh, thrshn float64
-	var i, info, k, liwork, lwork, maxtyp, ncmax, need, newsd, nk, nmax, nn, nout, nparms, nrhs, ntypes, versMajor, versMinor, versPatch int
+	var i, info, k, liwork, lwork, maxtyp, ncmax, need, newsd, nk, nmax, nn, nparms, nrhs, ntypes, versMajor, versMinor, versPatch int
+	var err error
 
 	nmax = 132
 	ncmax = 20
 	need = 14
 	lwork = nmax * (5*nmax + 20)
 	liwork = nmax * (nmax + 20)
-	nout = 6
 	dotype := make([]bool, 30)
 	logwrk := make([]bool, 132)
 	iacc22 := make([]int, 20)
@@ -2152,8 +2141,9 @@ func TestZeig(t *testing.T) {
 	ioldsd := []int{0, 0, 0, 1}
 
 	fatal = false
+	gltest.Common.Infoc.Errt = fmt.Errorf("")
 
-	golapack.Ilaver(&versMajor, &versMinor, &versPatch)
+	versMajor, versMinor, versPatch = golapack.Ilaver()
 	fmt.Printf("\n LAPACK VERSION %1d.%1d.%1d\n", versMajor, versMinor, versPatch)
 	fmt.Printf("\n The following parameter values will be used:\n")
 
@@ -2167,30 +2157,30 @@ func TestZeig(t *testing.T) {
 	fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "precision", eps)
 
 	//     Read the first line and set the 3-character test path
-	for _, path := range []string{"NEP", "SEP", "SE2", "SVD", "ZEC", "ZES", "ZEV", "ZSX", "ZVX", "ZGG", "ZGV", "ZGS", "ZGX", "ZXV", "ZHB", "ZSG", "ZBL", "ZBK", "ZGL", "ZGK", "ZBB", "GLM", "GQR", "GSV", "CSD", "LSE"} {
-		nep = string(path) == "NEP" || string(path) == "ZHS"
-		sep = string(path) == "SEP" || string(path) == "ZST" || string(path) == "ZSG" || string(path) == "SE2"
-		svd = string(path) == "SVD" || string(path) == "ZBD"
-		zev = string(path) == "ZEV"
-		zes = string(path) == "ZES"
-		zvx = string(path) == "ZVX"
-		zsx = string(path) == "ZSX"
-		zgg = string(path) == "ZGG"
-		zgs = string(path) == "ZGS"
-		zgx = string(path) == "ZGX"
-		zgv = string(path) == "ZGV"
-		zxv = string(path) == "ZXV"
-		zhb = string(path) == "ZHB"
-		zbb = string(path) == "ZBB"
-		glm = string(path) == "GLM"
-		gqr = string(path) == "GQR" || string(path) == "GRQ"
-		gsv = string(path) == "GSV"
-		csd = string(path) == "CSD"
-		lse = string(path) == "LSE"
-		zbl = string(path) == "ZBL"
-		zbk = string(path) == "ZBK"
-		zgl = string(path) == "ZGL"
-		zgk = string(path) == "ZGK"
+	for _, path := range []string{"Nep", "Sep", "Se2", "Svd", "Zec", "Zes", "Zev", "Zsx", "Zvx", "Zgg", "Zgv", "Zgs", "Zgx", "Zxv", "Zhb", "Zsg", "Zbl", "Zbk", "Zgl", "Zgk", "Zbb", "Glm", "Gqr", "Gsv", "Csd", "Lse"} {
+		nep = path == "Nep" || path == "Zhs"
+		sep = path == "Sep" || path == "Zst" || path == "Zsg" || path == "Se2"
+		svd = path == "Svd" || path == "Zbd"
+		zev = path == "Zev"
+		zes = path == "Zes"
+		zvx = path == "Zvx"
+		zsx = path == "Zsx"
+		zgg = path == "Zgg"
+		zgs = path == "Zgs"
+		zgx = path == "Zgx"
+		zgv = path == "Zgv"
+		zxv = path == "Zxv"
+		Zhb = path == "Zhb"
+		zbb = path == "Zbb"
+		glm = path == "Glm"
+		gqr = path == "Gqr" || path == "Grq"
+		gsv = path == "Gsv"
+		csd = path == "Csd"
+		lse = path == "Lse"
+		zbl = path == "Zbl"
+		zbk = path == "Zbk"
+		zgl = path == "Zgl"
+		zgk = path == "Zgk"
 
 		//     Report values of parameters.
 		fmt.Printf("\n------------------------------------------------------\n")
@@ -2201,27 +2191,27 @@ func TestZeig(t *testing.T) {
 		} else if svd {
 			fmt.Printf(" Tests of the Singular Value Decomposition routines\n")
 		} else if zev {
-			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Driver\n    ZGEEV (eigenvalues and eigevectors)\n")
+			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Driver\n    Zgeev (eigenvalues and eigevectors)\n")
 		} else if zes {
-			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Driver\n    ZGEES (Schur form)\n")
+			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Driver\n    Zgees (Schur form)\n")
 		} else if zvx {
-			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    ZGEEVX (eigenvalues, eigenvectors and condition numbers)\n")
+			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    Zgeevx (eigenvalues, eigenvectors and condition numbers)\n")
 		} else if zsx {
-			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    ZGEESX (Schur form and condition numbers)\n")
+			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    Zgeesx (Schur form and condition numbers)\n")
 		} else if zgg {
 			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem routines\n")
 		} else if zgs {
-			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver ZGGES\n")
+			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver Zgges\n")
 		} else if zgx {
-			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver ZGGESX\n")
+			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver Zggesx\n")
 		} else if zgv {
-			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver ZGGEV\n")
+			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver Zggev\n")
 		} else if zxv {
-			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver ZGGEVX\n")
-		} else if zhb {
-			fmt.Printf(" Tests of ZHBTRD\n (reduction of a Hermitian band matrix to real tridiagonal form)\n")
+			fmt.Printf(" Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver Zggevx\n")
+		} else if Zhb {
+			fmt.Printf(" Tests of Zhbtrd\n (reduction of a Hermitian band matrix to real tridiagonal form)\n")
 		} else if zbb {
-			fmt.Printf(" Tests of ZGBBRD\n (reduction of a general band matrix to real bidiagonal form)\n")
+			fmt.Printf(" Tests of Zgbbrd\n (reduction of a general band matrix to real bidiagonal form)\n")
 		} else if glm {
 			fmt.Printf(" Tests of the Generalized Linear Regression Model routines\n")
 		} else if gqr {
@@ -2234,27 +2224,27 @@ func TestZeig(t *testing.T) {
 			fmt.Printf(" Tests of the Linear Least Squares routines\n")
 		} else if zbl {
 			//        ZGEBAL:  Balancing
-			Zchkbl(t)
+			zchkbl(t)
 			continue
 		} else if zbk {
 			//        ZGEBAK:  Back transformation
-			Zchkbk(t)
+			zchkbk(t)
 			continue
 		} else if zgl {
 			//        ZGGBAL:  Balancing
-			Zchkgl(t)
+			zchkgl(t)
 			continue
 		} else if zgk {
 			//        ZGGBAK:  Back transformation
-			Zchkgk(t)
+			zchkgk(t)
 			continue
-		} else if string(path) == "ZEC" {
-			//        ZEC:  Eigencondition estimation
+		} else if path == "Zec" {
+			//        Zec:  Eigencondition estimation
 			thresh = 20.0
-			Xlaenv(1, 1)
-			Xlaenv(12, 1)
+			xlaenv(1, 1)
+			xlaenv(12, 1)
 			tsterr = true
-			Zchkec(&thresh, &tsterr, t)
+			zchkec(thresh, tsterr, t)
 			continue
 		} else {
 			fmt.Printf(" %3s:  Unrecognized path name\n", path)
@@ -2270,9 +2260,9 @@ func TestZeig(t *testing.T) {
 			panic("")
 		}
 
-		if path == "ZHS" || path == "NEP" {
+		if path == "Zhs" || path == "Nep" {
 			//        -------------------------------------
-			//        NEP:  Nonsymmetric Eigenvalue Problem
+			//        Nep:  Nonsymmetric Eigenvalue Problem
 			//        -------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -2280,7 +2270,7 @@ func TestZeig(t *testing.T) {
 			//           NX    = crossover point
 			//           NS    = number of shifts
 			//           MAXB  = minimum submatrix size
-			// NEP
+			// Nep
 			nval = []int{0, 1, 2, 3, 5, 10, 16}
 			nbval = []int{1, 3, 3, 3, 20}
 			nbmin = []int{2, 2, 2, 2, 2}
@@ -2298,37 +2288,36 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nparms = len(nbval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Alareq(&ntypes, &dotype)
-			Xlaenv(1, 1)
+			alareq(ntypes, &dotype)
+			xlaenv(1, 1)
 			if tsterr {
-				Zerrhs([]byte("ZHSEQR"), t)
+				zerrhs("Zhseqr", t)
 			}
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
-				Xlaenv(12, max(11, inmin[i-1]))
-				Xlaenv(13, inwin[i-1])
-				Xlaenv(14, inibl[i-1])
-				Xlaenv(15, ishfts[i-1])
-				Xlaenv(16, iacc22[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
+				xlaenv(12, max(11, inmin[i-1]))
+				xlaenv(13, inwin[i-1])
+				xlaenv(14, inibl[i-1])
+				xlaenv(15, ishfts[i-1])
+				xlaenv(16, iacc22[i-1])
 
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
-				Zchkhs(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], &nmax, a[5], a[6], dc[0], dc[1], a[7], a[8], a[9], a[10], a[11], dc[2], work, &lwork, rwork, &iwork, &logwrk, result, &info, t)
-				if info != 0 {
+				fmt.Printf(" nb =%4d, nbmin =%4d, nx =%4d, inmin=%4d, inwin =%4d, inibl =%4d, ishfts =%4d, iacc22 =%4d:\n", nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
+				if err = zchkhs(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], a[6], dc[0], dc[1], a[7], a[8], a[9], a[10], a[11], dc[2], work, lwork, rwork, iwork, logwrk, result); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKHS", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "Zchkhs", info)
 				}
 			}
 
-		} else if path == "ZST" || path == "SEP" || path == "SE2" {
+		} else if path == "Zst" || path == "Sep" || path == "Se2" {
 			//        ----------------------------------
-			//        SEP:  Symmetric Eigenvalue Problem
+			//        Sep:  Symmetric Eigenvalue Problem
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -2349,52 +2338,52 @@ func TestZeig(t *testing.T) {
 			nparms = len(nbval)
 			maxtyp = 21
 			ntypes = min(maxtyp, ntypes)
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			dotype[8] = false
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
-			Xlaenv(9, 25)
+			xlaenv(1, 1)
+			xlaenv(9, 25)
 			if tsterr {
-				Zerrst([]byte("ZST"), t)
+				zerrst("Zst", t)
 			}
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
 
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1])
+				fmt.Printf("  nb =%4d, nbmin =%4d, nx =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
-					if path == "SE2" {
-						Zchkst2stg(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], &nmax, a[3], a[4].CVector(0, 0), dc[0], a[5], work, &lwork, rwork, &lwork, &iwork, &liwork, result, &info, t)
+					if path == "Se2" {
+						err = zchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
 					} else {
-						Zchkst(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], &nmax, a[3], a[4].CVector(0, 0), dc[0], a[5], work, &lwork, rwork, &lwork, &iwork, &liwork, result, &info, t)
+						err = zchkst(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
 					}
-					if info != 0 {
+					if err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKST", info)
+						fmt.Printf(" *** Error code from %s = %v\n", "zchkst", err)
 					}
 				}
 				if tstdrv {
-					if path == "SE2" {
-						Zdrvst2stg(&nn, &nval, func() *int { y := 18; return &y }(), &dotype, &iseed, &thresh, &nout, a[0], &nmax, dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], &nmax, a[2], dc[0], a[3], work, &lwork, rwork, &lwork, &iwork, &liwork, result, &info, t)
+					if path == "Se2" {
+						err = zdrvst2stg(nn, nval, 18, dotype, iseed, thresh, a[0], dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], a[2], dc[0], a[3], work, lwork, rwork, lwork, iwork, liwork, result)
 					} else {
-						Zdrvst(&nn, &nval, func() *int { y := 18; return &y }(), &dotype, &iseed, &thresh, &nout, a[0], &nmax, dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], &nmax, a[2], dc[0], a[3], work, &lwork, rwork, &lwork, &iwork, &liwork, result, &info, t)
+						err = zdrvst(nn, nval, 18, dotype, iseed, thresh, a[0], dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], a[2], dc[0], a[3], work, lwork, rwork, lwork, iwork, liwork, result)
 					}
-					if info != 0 {
+					if err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "ZDRVST", info)
+						fmt.Printf(" *** Error code from %s = %v\n", "zdrvst", err)
 					}
 				}
 			}
 
-		} else if path == "ZSG" {
+		} else if path == "Zsg" {
 			//        ----------------------------------------------
-			//        ZSG:  Hermitian Generalized Eigenvalue Problem
+			//        Zsg:  Hermitian Generalized Eigenvalue Problem
 			//        ----------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -2414,12 +2403,12 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nparms = len(nbval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Alareq(&ntypes, &dotype)
-			Xlaenv(9, 25)
+			alareq(ntypes, &dotype)
+			xlaenv(9, 25)
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
 
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
@@ -2428,17 +2417,16 @@ func TestZeig(t *testing.T) {
 				}
 				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
-					Zdrvsg2stg(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], &nmax, dr[2], dr[3], a[2], &nmax, a[3], a[4], a[5].CVector(0, 0), a[6].CVector(0, 0), work, &lwork, rwork, &lwork, &iwork, &liwork, result, &info, t)
-					if info != 0 {
+					if err = zdrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], dr[2], dr[3], a[2], a[3], a[4], a[5].CVector(0, 0), a[6].CVector(0, 0), work, lwork, rwork, lwork, iwork, liwork, result); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "ZDRVSG", info)
+						fmt.Printf(" *** Error code from %s = %v\n", "ZDRVSG", err)
 					}
 				}
 			}
 
-		} else if path == "ZBD" || path == "SVD" {
+		} else if path == "Zbd" || path == "Svd" {
 			//        ----------------------------------
-			//        SVD:  Singular Value Decomposition
+			//        Svd:  Singular Value Decomposition
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -2461,83 +2449,47 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nparms = len(nbval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Alareq(&ntypes, &dotype)
-			Xlaenv(9, 25)
+			alareq(ntypes, &dotype)
+			xlaenv(9, 25)
 
 			//        Test the error exits
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr && tstchk {
-				Zerrbd([]byte("ZBD"), t)
+				zerrbd("Zbd", t)
 			}
 			if tsterr && tstdrv {
-				Zerred([]byte("ZBD"), t)
+				zerred("Zbd", t)
 			}
 
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(3, nxval[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(3, nxval[i-1])
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, NRHS =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
+				fmt.Printf(" nb =%4d, nbmin =%4d, nx =%4d, nrhs =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
 				if tstchk {
-					Zchkbd(&nn, &mval, &nval, &maxtyp, &dotype, &nrhs, &iseed, &thresh, a[0], &nmax, dr[0], dr[1], dr[2], dr[3], a[1], &nmax, a[2], a[3], a[4], &nmax, a[5], &nmax, a[6], a[7], work, &lwork, rwork, &nout, &info, t)
-					if info != 0 {
+					if err = zchkbd(nn, mval, nval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], dr[0], dr[1], dr[2], dr[3], a[1], a[2], a[3], a[4], a[5], a[6], a[7], work, lwork, rwork); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKBD", info)
+						fmt.Printf(" *** Error code from %s = %v\n", "Zchkbd", err)
 					}
 				}
 				if tstdrv {
-					Zdrvbd(&nn, &mval, &nval, &maxtyp, &dotype, &iseed, &thresh, a[0], &nmax, a[1], &nmax, a[2], &nmax, a[3], a[4], a[5], dr[0], dr[1], dr[2], work, &lwork, rwork, &iwork, &nout, &info, t)
+					if err = zdrvbd(nn, mval, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dr[0], dr[1], dr[2], work, lwork, rwork, iwork); err != nil {
+						t.Fail()
+						fmt.Printf(" *** Error code from %s = %v\n", "Zdrvbd", err)
+					}
 				}
 			}
 
-		} else if path == "ZEV" {
+		} else if path == "Zev" {
 			//        --------------------------------------------
-			//        ZEV:  Nonsymmetric Eigenvalue Problem Driver
-			//              ZGEEV (eigenvalues and eigenvectors)
-			//        --------------------------------------------
-			nval = []int{0, 1, 2, 3, 5, 10, 20}
-			nbval = []int{3}
-			nbmin = []int{3}
-			nxval = []int{1}
-			inmin = []int{11}
-			inwin = []int{4}
-			inibl = []int{8}
-			ishfts = []int{2}
-			iacc22 = []int{0}
-			thresh = 20.0
-			tsterr = true
-			newsd = 2
-			iseed = []int{2518, 3899, 995, 397}
-			ntypes = 21
-			maxtyp = ntypes
-			nn = len(nval)
-			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			if ntypes <= 0 {
-				fmt.Printf(" %3s routines were not tested\n", path)
-			} else {
-				if tsterr {
-					Zerred([]byte(path), t)
-				}
-				Alareq(&ntypes, &dotype)
-				Zdrvev(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], dc[0], dc[1], a[2], &nmax, a[3], &nmax, a[4], &nmax, result, work, &lwork, rwork, &iwork, &info, t)
-				if info != 0 {
-					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZGEEV", info)
-				}
-			}
-			fmt.Printf("\n -\n")
-
-		} else if path == "ZES" {
-			//        --------------------------------------------
-			//        ZES:  Nonsymmetric Eigenvalue Problem Driver
-			//              ZGEES (Schur form)
+			//        Zev:  Nonsymmetric Eigenvalue Problem Driver
+			//              Zgeev (eigenvalues and eigenvectors)
 			//        --------------------------------------------
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
@@ -2561,21 +2513,57 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerred([]byte(path), t)
+					zerred(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Zdrves(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], dc[0], dc[1], a[3], &nmax, result, work, &lwork, rwork, &iwork, &logwrk, &info, t)
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = zdrvev(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], dc[0], dc[1], a[2], a[3], a[4], result, work, lwork, rwork, iwork); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZGEES", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "Zgeev", err)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if path == "ZVX" {
+		} else if path == "Zes" {
+			//        --------------------------------------------
+			//        Zes:  Nonsymmetric Eigenvalue Problem Driver
+			//              Zgees (Schur form)
+			//        --------------------------------------------
+			nval = []int{0, 1, 2, 3, 5, 10, 20}
+			nbval = []int{3}
+			nbmin = []int{3}
+			nxval = []int{1}
+			inmin = []int{11}
+			inwin = []int{4}
+			inibl = []int{8}
+			ishfts = []int{2}
+			iacc22 = []int{0}
+			thresh = 20.0
+			tsterr = true
+			newsd = 2
+			iseed = []int{2518, 3899, 995, 397}
+			ntypes = 21
+			maxtyp = ntypes
+			nn = len(nval)
+			nparms = len(nbval)
+			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			if ntypes <= 0 {
+				fmt.Printf(" %3s routines were not tested\n", path)
+			} else {
+				if tsterr {
+					zerred(path, t)
+				}
+				alareq(ntypes, &dotype)
+				if err = zdrves(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], a[2], dc[0], dc[1], a[3], result, work, lwork, rwork, iwork, logwrk); err != nil {
+					t.Fail()
+					fmt.Printf(" *** Error code from %s = %v\n", "Zgees", err)
+				}
+			}
+			fmt.Printf("\n -\n")
+
+		} else if path == "Zvx" {
 			//        --------------------------------------------------------------
-			//        ZVX:  Nonsymmetric Eigenvalue Problem Expert Driver
-			//              ZGEEVX (eigenvalues, eigenvectors and condition numbers)
+			//        Zvx:  Nonsymmetric Eigenvalue Problem Expert Driver
+			//              Zgeevx (eigenvalues, eigenvectors and condition numbers)
 			//        --------------------------------------------------------------
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
@@ -2599,21 +2587,20 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerred([]byte(path), t)
+					zerred(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Zdrvvx(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], dc[0], dc[1], a[2], &nmax, a[3], &nmax, a[4], &nmax, dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], result, work, &lwork, rwork, &info, t)
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = zdrvvx(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], dc[0], dc[1], a[2], a[3], a[4], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], result, work, lwork, rwork); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZGEEVX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "Zgeevx", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if path == "ZSX" {
+		} else if path == "Zsx" {
 			//        ---------------------------------------------------
-			//        ZSX:  Nonsymmetric Eigenvalue Problem Expert Driver
-			//              ZGEESX (Schur form and condition numbers)
+			//        Zsx:  Nonsymmetric Eigenvalue Problem Expert Driver
+			//              Zgeesx (Schur form and condition numbers)
 			//        ---------------------------------------------------
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
@@ -2637,20 +2624,19 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerred([]byte(path), t)
+					zerred(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Zdrvsx(&nn, &nval, &ntypes, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], dc[0], dc[1], dc[2], a[3], &nmax, a[4], result, work, &lwork, rwork, &logwrk, &info, t)
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = zdrvsx(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], a[2], dc[0], dc[1], dc[2], a[3], a[4], result, work, lwork, rwork, logwrk); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZGEESX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "Zgeesx", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if path == "ZGG" {
+		} else if path == "Zgg" {
 			//        -------------------------------------------------
-			//        ZGG:  Generalized Nonsymmetric Eigenvalue Problem
+			//        Zgg:  Generalized Nonsymmetric Eigenvalue Problem
 			//        -------------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
@@ -2676,40 +2662,39 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nparms = len(nbval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Alareq(&ntypes, &dotype)
-			Xlaenv(1, 1)
+			alareq(ntypes, &dotype)
+			xlaenv(1, 1)
 			if tstchk && tsterr {
-				Zerrgg([]byte(path), t)
+				zerrgg(path, t)
 			}
 			for i = 1; i <= nparms; i++ {
-				Xlaenv(1, nbval[i-1])
-				Xlaenv(2, nbmin[i-1])
-				Xlaenv(4, nsval[i-1])
-				Xlaenv(8, mxbval[i-1])
-				Xlaenv(16, iacc22[i-1])
-				Xlaenv(5, nbcol[i-1])
+				xlaenv(1, nbval[i-1])
+				xlaenv(2, nbmin[i-1])
+				xlaenv(4, nsval[i-1])
+				xlaenv(8, mxbval[i-1])
+				xlaenv(16, iacc22[i-1])
+				xlaenv(5, nbcol[i-1])
 
 				if newsd == 0 {
 					for k = 1; k <= 4; k++ {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NS =%4d, MAXB =%4d, IACC22 =%4d, NBCOL =%4d\n", path, nbval[i-1], nbmin[i-1], nsval[i-1], mxbval[i-1], iacc22[i-1], nbcol[i-1])
+				fmt.Printf(" nb =%4d, nbmin =%4d, ns =%4d, maxb =%4d, iacc22 =%4d, nbcol =%4d: ", nbval[i-1], nbmin[i-1], nsval[i-1], mxbval[i-1], iacc22[i-1], nbcol[i-1])
 				tstdif = false
 				thrshn = 10.
 				if tstchk {
-					Zchkgg(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &tstdif, &thrshn, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], &nmax, a[9], a[10], a[11], dc[0], dc[1], dc[2], dc[3], a[12], a[13], work, &lwork, rwork, &logwrk, result, &info, t)
-					if info != 0 {
+					if err = zchkgg(nn, nval, maxtyp, dotype, &iseed, thresh, tstdif, thrshn, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], dc[0], dc[1], dc[2], dc[3], a[12], a[13], work, lwork, rwork, logwrk, result); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKGG", info)
+						fmt.Printf(" *** Error code from %s = %v\n", "zchkgg", err)
 					}
 				}
 			}
 
-		} else if path == "ZGS" {
+		} else if path == "Zgs" {
 			//        -------------------------------------------------
-			//        ZGS:  Generalized Nonsymmetric Eigenvalue Problem
-			//              ZGGES (Schur form)
+			//        Zgs:  Generalized Nonsymmetric Eigenvalue Problem
+			//              Zgges (Schur form)
 			//        -------------------------------------------------
 			nval = []int{2, 6, 10, 12, 20, 30}
 			nbval = []int{1}
@@ -2734,30 +2719,26 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerrgg([]byte(path), t)
+					zerrgg(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Zdrges(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], dc[0], dc[1], work, &lwork, rwork, result, &logwrk, &info, t)
-
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = zdrges(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], dc[0], dc[1], work, lwork, rwork, result, logwrk); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGES", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zdrges", err)
 				}
 
 				// Blocked version
-				Zdrges3(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], dc[0], dc[1], work, &lwork, rwork, result, &logwrk, &info, t)
-
-				if info != 0 {
+				if err = zdrges3(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], dc[0], dc[1], work, lwork, rwork, result, logwrk); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGES3", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zdrges3", err)
 				}
 			}
 			fmt.Printf("\n -\n")
 
 		} else if zgx {
 			//        -------------------------------------------------
-			//        ZGX  Generalized Nonsymmetric Eigenvalue Problem
-			//              ZGGESX (Schur form and condition numbers)
+			//        Zgx  Generalized Nonsymmetric Eigenvalue Problem
+			//              Zggesx (Schur form and condition numbers)
 			//        -------------------------------------------------
 			nbval = []int{1}
 			nbmin = []int{1}
@@ -2781,29 +2762,27 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerrgg([]byte(path), t)
+					zerrgg(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Xlaenv(5, 2)
-				Zdrgsx(&nn, &ncmax, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, toPtr(ncmax*ncmax), s, work, &lwork, rwork, &iwork, &liwork, &logwrk, &info, t)
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				xlaenv(5, 2)
+				if err = zdrgsx(nn, ncmax, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, s, work, lwork, rwork, iwork, liwork, logwrk); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGSX", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zdrgsx", err)
 				}
 
 				nn = 0
-				Zdrgsx(&nn, &ncmax, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, toPtr(ncmax*ncmax), s, work, &lwork, rwork, &iwork, &liwork, &logwrk, &info, t)
-				if info != 0 {
+				if err = zdrgsx(nn, ncmax, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, s, work, lwork, rwork, iwork, liwork, logwrk); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGSX", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zdrgsx", err)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if path == "ZGV" {
+		} else if path == "Zgv" {
 			//        -------------------------------------------------
-			//        ZGV:  Generalized Nonsymmetric Eigenvalue Problem
-			//              ZGGEV (Eigenvalue/vector form)
+			//        Zgv:  Generalized Nonsymmetric Eigenvalue Problem
+			//              Zggev (Eigenvalue/vector form)
 			//        -------------------------------------------------
 			nval = []int{2, 6, 8, 10, 12, 20}
 			nbval = []int{1}
@@ -2823,29 +2802,27 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerrgg([]byte(path), t)
+					zerrgg(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Zdrgev(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], a[8], &nmax, dc[0], dc[1], dc[2], dc[3], work, &lwork, rwork, result, &info, t)
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = zdrgev(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], a[8], dc[0], dc[1], dc[2], dc[3], work, lwork, rwork, result); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGEV", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zdrgev", err)
 				}
 
 				// Blocked version
-				Xlaenv(16, 2)
-				Zdrgev3(&nn, &nval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], a[6], &nmax, a[7], a[8], &nmax, dc[0], dc[1], dc[2], dc[3], work, &lwork, rwork, result, &info, t)
-				if info != 0 {
+				xlaenv(16, 2)
+				if err = zdrgev3(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], a[8], dc[0], dc[1], dc[2], dc[3], work, lwork, rwork, result); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGEV3", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zdrgev3", err)
 				}
 			}
 			fmt.Printf("\n -\n")
 
 		} else if zxv {
 			//        -------------------------------------------------
-			//        ZXV:  Generalized Nonsymmetric Eigenvalue Problem
-			//              ZGGEVX (eigenvalue/vector with condition numbers)
+			//        Zxv:  Generalized Nonsymmetric Eigenvalue Problem
+			//              Zggevx (eigenvalue/vector with condition numbers)
 			//        -------------------------------------------------
 			nbval = []int{1}
 			nbmin = []int{1}
@@ -2869,21 +2846,19 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					Zerrgg([]byte(path), t)
+					zerrgg(path, t)
 				}
-				Alareq(&ntypes, &dotype)
-				Zdrgvx(&nn, &thresh, &nout, a[0], &nmax, a[1], a[2], a[3], dc[0], dc[1], a[4], a[5], &iwork[0], &iwork[1], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], work, &lwork, rwork, toSlice(&iwork, 2), toPtr(liwork-2), result, &logwrk, &info, t)
-
-				if info != 0 {
+				alareq(ntypes, &dotype)
+				if err = zdrgvx(nn, thresh, a[0], a[1], a[2], a[3], dc[0], dc[1], a[4], a[5], iwork[0], iwork[1], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], work, lwork, rwork, *toSlice(&iwork, 2), *toPtr(liwork - 2), result, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGVX", info)
 				}
 			}
 			fmt.Printf("\n -\n")
 
-		} else if path == "ZHB" {
+		} else if path == "Zhb" {
 			//        ------------------------------
-			//        ZHB:  Hermitian Band Reduction
+			//        Zhb:  Hermitian Band Reduction
 			//        ------------------------------
 			nval = []int{5, 20}
 			kval = []int{0, 1, 2, 5, 16}
@@ -2895,24 +2870,23 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			if newsd == 0 {
 				for k = 1; k <= 4; k++ {
 					iseed[k-1] = ioldsd[k-1]
 				}
 			}
 			if tsterr {
-				Zerrst([]byte("ZHB"), t)
+				zerrst("Zhb", t)
 			}
-			Zchkhb2stg(&nn, &nval, &nk, &kval, &maxtyp, &dotype, &iseed, &thresh, &nout, a[0], &nmax, dr[0], dr[1], dr[2], dr[3], dr[4], a[1], &nmax, work, &lwork, rwork, result, &info, t)
-			if info != 0 {
+			if err = zchkhb2stg(nn, nval, nk, kval, maxtyp, dotype, iseed, thresh, a[0], dr[0], dr[1], dr[2], dr[3], dr[4], a[1], work, lwork, rwork, result); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKHB", info)
 			}
 
-		} else if path == "ZBB" {
+		} else if path == "Zbb" {
 			//        ------------------------------
-			//        ZBB:  General Band Reduction
+			//        Zbb:  General Band Reduction
 			//        ------------------------------
 			mval = []int{0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 10, 10, 16, 16}
 			nval = []int{0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 10, 16, 10, 16}
@@ -2927,7 +2901,7 @@ func TestZeig(t *testing.T) {
 			nk = len(kval)
 			nparms = len(nsval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Alareq(&ntypes, &dotype)
+			alareq(ntypes, &dotype)
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
 
@@ -2937,16 +2911,15 @@ func TestZeig(t *testing.T) {
 					}
 				}
 				fmt.Printf(" %3s:  NRHS =%4d\n", path, nrhs)
-				Zchkbb(&nn, &mval, &nval, &nk, &kval, &maxtyp, &dotype, &nrhs, &iseed, &thresh, &nout, a[0], &nmax, a[1].Off(0, 0).UpdateRows(2*nmax), toPtr(2*nmax), dr[0], dr[1], a[3], &nmax, a[4], &nmax, a[5], &nmax, a[6], work, &lwork, rwork, result, &info, t)
-				if info != 0 {
+				if err = zchkbb(nn, mval, nval, nk, kval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], a[1].Off(0, 0).UpdateRows(2*nmax), dr[0], dr[1], a[3], a[4], a[5], a[6], work, lwork, rwork, result); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKBB", info)
+					fmt.Printf(" *** Error code from %s = %v\n", "zchkbb", err)
 				}
 			}
 
-		} else if path == "GLM" {
+		} else if path == "Glm" {
 			//        -----------------------------------------
-			//        GLM:  Generalized Linear Regression Model
+			//        Glm:  Generalized Linear Regression Model
 			//        -----------------------------------------
 			mval = []int{0, 5, 8, 15, 20, 40}
 			pval = []int{9, 0, 15, 12, 15, 30}
@@ -2961,19 +2934,18 @@ func TestZeig(t *testing.T) {
 			nk = len(kval)
 			nparms = len(nsval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Zerrgg([]byte("GLM"), t)
+				zerrgg("Glm", t)
 			}
-			Zckglm(&nn, &nval, &mval, &pval, &ntypes, &iseed, &thresh, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0], &nout, &info, t)
-			if info != 0 {
+			if err = zckglm(nn, nval, mval, pval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "ZCKGLM", info)
+				fmt.Printf(" *** Error code from %s = %v\n", "zckglm", err)
 			}
 
-		} else if path == "GQR" {
+		} else if path == "Gqr" {
 			//        ------------------------------------------
-			//        GQR:  Generalized QR and RQ factorizations
+			//        Gqr:  Generalized QR and RQ factorizations
 			//        ------------------------------------------
 			mval = []int{0, 3, 10}
 			pval = []int{0, 5, 20}
@@ -2986,19 +2958,18 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Zerrgg([]byte("GQR"), t)
+				zerrgg("Gqr", t)
 			}
-			Zckgqr(&nn, &mval, &nn, &pval, &nn, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), taua, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), b[4].CVector(0, 0), taub, work, dr[0], &nout, &info, t)
-			if info != 0 {
+			if err = zckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), taua, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), b[4].CVector(0, 0), taub, work, dr[0]); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "ZCKGQR", info)
+				fmt.Printf(" *** Error code from %s = %v\n", "zckgqr", err)
 			}
 
-		} else if path == "GSV" {
+		} else if path == "Gsv" {
 			//        ----------------------------------------------
-			//        GSV:  Generalized Singular Value Decomposition
+			//        Gsv:  Generalized Singular Value Decomposition
 			//        ----------------------------------------------
 			mval = []int{0, 5, 9, 10, 20, 12, 12, 40}
 			pval = []int{4, 0, 12, 14, 10, 10, 20, 15}
@@ -3011,19 +2982,18 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Zerrgg([]byte("GSV"), t)
+				zerrgg("Gsv", t)
 			}
-			Zckgsv(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), a[2].CVector(0, 0), b[2].CVector(0, 0), a[3].CVector(0, 0), alpha, beta, b[3].CVector(0, 0), &iwork, work, dr[0], &nout, &info, t)
-			if info != 0 {
+			if err = zckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), a[2].CVector(0, 0), b[2].CVector(0, 0), a[3].CVector(0, 0), alpha, beta, b[3].CVector(0, 0), iwork, work, dr[0]); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "ZCKGSV", info)
+				fmt.Printf(" *** Error code from %s = %v\n", "zckgsv", err)
 			}
 
-		} else if path == "CSD" {
+		} else if path == "Csd" {
 			//        ----------------------------------------------
-			//        CSD:  CS Decomposition
+			//        Csd:  CS Decomposition
 			//        ----------------------------------------------
 			mval = []int{0, 10, 10, 10, 10, 21, 24, 30, 22, 32, 55}
 			pval = []int{0, 4, 4, 0, 10, 9, 10, 20, 12, 12, 40}
@@ -3036,19 +3006,18 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Zerrgg([]byte("CSD"), t)
+				zerrgg("Csd", t)
 			}
-			Zckcsd(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), a[5].CVector(0, 0), rwork, &iwork, work, dr[0], &nout, &info, t)
-			if info != 0 {
+			if err = zckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), a[5].CVector(0, 0), rwork, iwork, work, dr[0]); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "ZCKCSD", info)
+				fmt.Printf(" *** Error code from %s = %v\n", "zckcsd", err)
 			}
 
-		} else if path == "LSE" {
+		} else if path == "Lse" {
 			//        --------------------------------------
-			//        LSE:  Constrained Linear Least Squares
+			//        Lse:  Constrained Linear Least Squares
 			//        --------------------------------------
 			mval = []int{6, 0, 5, 8, 10, 30}
 			pval = []int{0, 5, 5, 5, 8, 20}
@@ -3061,14 +3030,13 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Xlaenv(1, 1)
+			xlaenv(1, 1)
 			if tsterr {
-				Zerrgg([]byte("LSE"), t)
+				zerrgg("Lse", t)
 			}
-			Zcklse(&nn, &mval, &pval, &nval, &ntypes, &iseed, &thresh, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0], &nout, &info, t)
-			if info != 0 {
+			if err = zcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "ZCKLSE", info)
+				fmt.Printf(" *** Error code from %s = %v\n", "zcklse", err)
 			}
 
 		} else {

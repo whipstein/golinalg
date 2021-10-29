@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -10,7 +11,7 @@ import (
 
 // Dstev computes all eigenvalues and, optionally, eigenvectors of a
 // real symmetric tridiagonal matrix A.
-func Dstev(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, info *int) {
+func Dstev(jobz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector) (info int, err error) {
 	var wantz bool
 	var bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, tnrm, zero float64
 	var imax, iscale int
@@ -21,26 +22,25 @@ func Dstev(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *m
 	//     Test the input parameters.
 	wantz = jobz == 'V'
 
-	(*info) = 0
 	if !(wantz || jobz == 'N') {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-		(*info) = -6
+		err = fmt.Errorf("!(wantz || jobz == 'N'): joz='%c'", jobz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if z.Rows < 1 || (wantz && z.Rows < n) {
+		err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSTEV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dstev", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if wantz {
 			z.Set(0, 0, one)
 		}
@@ -66,25 +66,31 @@ func Dstev(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *m
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(*n, sigma, d.Off(0, 1))
-		goblas.Dscal((*n)-1, sigma, e.Off(0, 1))
+		goblas.Dscal(n, sigma, d.Off(0, 1))
+		goblas.Dscal(n-1, sigma, e.Off(0, 1))
 	}
 
 	//     For eigenvalues only, call DSTERF.  For eigenvalues and
 	//     eigenvectors, call DSTEQR.
 	if !wantz {
-		Dsterf(n, d, e, info)
+		if info, err = Dsterf(n, d, e); err != nil {
+			panic(err)
+		}
 	} else {
-		Dsteqr('I', n, d, e, z, ldz, work, info)
+		if info, err = Dsteqr('I', n, d, e, z, work); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		if (*info) == 0 {
-			imax = (*n)
+		if info == 0 {
+			imax = n
 		} else {
-			imax = (*info) - 1
+			imax = info - 1
 		}
 		goblas.Dscal(imax, one/sigma, d.Off(0, 1))
 	}
+
+	return
 }

@@ -9,16 +9,15 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zunhrcol01 tests ZUNHR_COL using ZLATSQR, ZGEMQRT and ZUNGTSQR.
-// Therefore, ZLATSQR (part of ZGEQR), ZGEMQRT (part ZGEMQR), ZUNGTSQR
+// zunhrZol01 tests ZunhrCol using Zlatsqr, Zgemqrt and Zungtsqr.
+// Therefore, Zlatsqr (part of ZGEQR), Zgemqrt (part ZGEMQR), Zungtsqr
 // have to be tested before this test.
-func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
+func zunhrCol01(m, n, mb1, nb1, nb2 int, result *mat.Vector) {
 	var testzeros bool
 	var cone, czero complex128
 	var anorm, cnorm, dnorm, eps, resid, zero float64
-	var i, info, j, k, l, lwork, nb1Ub, nb2Ub, nrb int
+	var i, j, k, l, lwork, nb1Ub, nb2Ub, nrb int
 	var err error
-	_ = err
 
 	workquery := cvf(1)
 	iseed := make([]int, 4)
@@ -26,6 +25,7 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	zero = 0.0
 	cone = (1.0 + 0.0*1i)
 	czero = (0.0 + 0.0*1i)
+
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	iseed[0], iseed[1], iseed[2], iseed[3] = 1988, 1989, 1990, 1991
@@ -34,56 +34,60 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	testzeros = false
 
 	eps = golapack.Dlamch(Epsilon)
-	k = min(*m, *n)
-	l = max(*m, *n, 1)
+	k = min(m, n)
+	l = max(m, n, 1)
 
 	//     Dynamically allocate local arrays
-	a := cmf(*m, *n, opts)
-	af := cmf(*m, *n, opts)
+	a := cmf(m, n, opts)
+	af := cmf(m, n, opts)
 	q := cmf(l, l, opts)
-	r := cmf(*m, l, opts)
+	r := cmf(m, l, opts)
 	rwork := vf(l)
-	c := cmf(*m, *n, opts)
-	cf := cmf(*m, *n, opts)
-	d := cmf(*n, *m, opts)
-	df := cmf(*n, *m, opts)
+	c := cmf(m, n, opts)
+	cf := cmf(m, n, opts)
+	d := cmf(n, m, opts)
+	df := cmf(n, m, opts)
 
 	//     Put random numbers into a and copy to AF
-	for j = 1; j <= (*n); j++ {
-		golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, a.CVector(0, j-1))
+	for j = 1; j <= n; j++ {
+		golapack.Zlarnv(2, &iseed, m, a.CVector(0, j-1))
 	}
 	if testzeros {
-		if (*m) >= 4 {
-			for j = 1; j <= (*n); j++ {
-				golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)/2), a.CVector((*m)/4-1, j-1))
+		if m >= 4 {
+			for j = 1; j <= n; j++ {
+				golapack.Zlarnv(2, &iseed, m/2, a.CVector(m/4-1, j-1))
 			}
 		}
 	}
-	golapack.Zlacpy('F', m, n, a, m, af, m)
+	golapack.Zlacpy(Full, m, n, a, af)
 
-	//     Number of row blocks in ZLATSQR
-	nrb = max(1, int(math.Ceil(float64((*m)-(*n))/float64((*mb1)-(*n)))))
+	//     Number of row blocks in Zlatsqr
+	nrb = max(1, int(math.Ceil(float64(m-n)/float64(mb1-n))))
 
-	t1 := cmf(*nb1, (*n)*nrb, opts)
-	t2 := cmf(*nb2, *n, opts)
-	diag := cvf(*n)
+	t1 := cmf(nb1, n*nrb, opts)
+	t2 := cmf(nb2, n, opts)
+	diag := cvf(n)
 
 	//     Begin determine LWORK for the array WORK and allocate memory.
 	//
-	//     ZLATSQR requires NB1 to be bounded by N.
-	nb1Ub = min(*nb1, *n)
+	//     Zlatsqr requires NB1 to be bounded by N.
+	nb1Ub = min(nb1, n)
 
-	//     ZGEMQRT requires NB2 to be bounded by N.
-	nb2Ub = min(*nb2, *n)
+	//     Zgemqrt requires NB2 to be bounded by N.
+	nb2Ub = min(nb2, n)
 
-	golapack.Zlatsqr(m, n, mb1, &nb1Ub, af, m, t1, nb1, workquery, toPtr(-1), &info)
+	if err = golapack.Zlatsqr(m, n, mb1, nb1Ub, af, t1, workquery, -1); err != nil {
+		panic(err)
+	}
 	lwork = int(workquery.GetRe(0))
-	golapack.Zungtsqr(m, n, mb1, nb1, af, m, t1, nb1, workquery, toPtr(-1), &info)
+	if err = golapack.Zungtsqr(m, n, mb1, nb1, af, t1, workquery, -1); err != nil {
+		panic(err)
+	}
 	lwork = max(lwork, int(workquery.GetRe(0)))
 
-	//     In ZGEMQRT, WORK is N*NB2_UB if SIDE = 'L',
+	//     In Zgemqrt, WORK is N*NB2_UB if SIDE = 'L',
 	//                or  M*NB2_UB if SIDE = 'R'.
-	lwork = max(lwork, nb2Ub*(*n), nb2Ub*(*m))
+	lwork = max(lwork, nb2Ub*n, nb2Ub*m)
 
 	work := cvf(lwork)
 
@@ -93,21 +97,27 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//     Begin Householder reconstruction routines
 	//
 	//     Factor the matrix a in the array AF.
-	*srnamt = "ZLATSQR"
-	golapack.Zlatsqr(m, n, mb1, &nb1Ub, af, m, t1, nb1, work, &lwork, &info)
+	*srnamt = "Zlatsqr"
+	if err = golapack.Zlatsqr(m, n, mb1, nb1Ub, af, t1, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy the factor R into the array R.
-	*srnamt = "ZLACPY"
-	golapack.Zlacpy('U', m, n, af, m, r, m)
+	*srnamt = "Zlacpy"
+	golapack.Zlacpy(Upper, m, n, af, r)
 
 	//     Reconstruct the orthogonal matrix Q.
-	*srnamt = "ZUNGTSQR"
-	golapack.Zungtsqr(m, n, mb1, nb1, af, m, t1, nb1, work, &lwork, &info)
+	*srnamt = "Zungtsqr"
+	if err = golapack.Zungtsqr(m, n, mb1, nb1, af, t1, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Perform the Householder reconstruction, the result is stored
 	//     the arrays AF and T2.
-	*srnamt = "ZUNHR_COL"
-	golapack.Zunhrcol(m, n, nb2, af, m, t2, nb2, diag, &info)
+	*srnamt = "ZunhrCol"
+	if err = golapack.ZunhrCol(m, n, nb2, af, t2, diag); err != nil {
+		panic(err)
+	}
 
 	//     Compute the factor R_hr corresponding to the Householder
 	//     reconstructed Q_hr and place it in the upper triangle of AF to
@@ -115,12 +125,12 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//     this means changing the sign of I-th row of the matrix R_tsqr
 	//     according to sign of of I-th diagonal element DIAG(I) of the
 	//     matrix S.
-	*srnamt = "ZLACPY"
-	golapack.Zlacpy('U', m, n, r, m, af, m)
+	*srnamt = "Zlacpy"
+	golapack.Zlacpy(Upper, m, n, r, af)
 
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		if diag.Get(i-1) == -cone {
-			goblas.Zscal((*n)+1-i, -cone, af.CVector(i-1, i-1, *m))
+			goblas.Zscal(n+1-i, -cone, af.CVector(i-1, i-1, m))
 		}
 	}
 
@@ -128,107 +138,129 @@ func Zunhrcol01(m, n, mb1, nb1, nb2 *int, result *mat.Vector) {
 	//
 	//
 	//     Generate the m-by-m matrix Q
-	golapack.Zlaset('F', m, m, &czero, &cone, q, m)
+	golapack.Zlaset(Full, m, m, czero, cone, q)
 
-	*srnamt = "ZGEMQRT"
-	golapack.Zgemqrt('L', 'N', m, m, &k, &nb2Ub, af, m, t2, nb2, q, m, work, &info)
+	*srnamt = "Zgemqrt"
+	if err = golapack.Zgemqrt(Left, NoTrans, m, m, k, nb2Ub, af, t2, q, work); err != nil {
+		panic(err)
+	}
 
 	//     Copy R
-	golapack.Zlaset('F', m, n, &czero, &czero, r, m)
+	golapack.Zlaset(Full, m, n, czero, czero, r)
 
-	golapack.Zlacpy('U', m, n, af, m, r, m)
+	golapack.Zlacpy(Upper, m, n, af, r)
 
 	//     TEST 1
 	//     Compute |R - (Q**H)*a| / ( eps * m * |a| ) and store in RESULT(1)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -cone, q, a, cone, r)
+	if err = goblas.Zgemm(ConjTrans, NoTrans, m, n, m, -cone, q, a, cone, r); err != nil {
+		panic(err)
+	}
 
-	anorm = golapack.Zlange('1', m, n, a, m, rwork)
-	resid = golapack.Zlange('1', m, n, r, m, rwork)
+	anorm = golapack.Zlange('1', m, n, a, rwork)
+	resid = golapack.Zlange('1', m, n, r, rwork)
 	if anorm > zero {
-		result.Set(0, resid/(eps*float64(max(1, *m))*anorm))
+		result.Set(0, resid/(eps*float64(max(1, m))*anorm))
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     TEST 2
 	//     Compute |I - (Q**H)*Q| / ( eps * m ) and store in RESULT(2)
-	golapack.Zlaset('F', m, m, &czero, &cone, r, m)
-	err = goblas.Zherk(Upper, ConjTrans, *m, *m, real(-cone), q, real(cone), r)
-	resid = golapack.Zlansy('1', 'U', m, r, m, rwork)
-	result.Set(1, resid/(eps*float64(max(1, *m))))
+	golapack.Zlaset(Full, m, m, czero, cone, r)
+	if err = goblas.Zherk(Upper, ConjTrans, m, m, real(-cone), q, real(cone), r); err != nil {
+		panic(err)
+	}
+	resid = golapack.Zlansy('1', Upper, m, r, rwork)
+	result.Set(1, resid/(eps*float64(max(1, m))))
 
 	//     Generate random m-by-n matrix C
-	for j = 1; j <= (*n); j++ {
-		golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, m, c.CVector(0, j-1))
+	for j = 1; j <= n; j++ {
+		golapack.Zlarnv(2, &iseed, m, c.CVector(0, j-1))
 	}
-	cnorm = golapack.Zlange('1', m, n, c, m, rwork)
-	golapack.Zlacpy('F', m, n, c, m, cf, m)
+	cnorm = golapack.Zlange('1', m, n, c, rwork)
+	golapack.Zlacpy(Full, m, n, c, cf)
 
 	//     Apply Q to C as Q*C = CF
-	*srnamt = "ZGEMQRT"
-	golapack.Zgemqrt('L', 'N', m, n, &k, &nb2Ub, af, m, t2, nb2, cf, m, work, &info)
+	*srnamt = "Zgemqrt"
+	if err = golapack.Zgemqrt(Left, NoTrans, m, n, k, nb2Ub, af, t2, cf, work); err != nil {
+		panic(err)
+	}
 
 	//     TEST 3
 	//     Compute |CF - Q*C| / ( eps *  m * |C| )
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, -cone, q, c, cone, cf)
-	resid = golapack.Zlange('1', m, n, cf, m, rwork)
+	if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, -cone, q, c, cone, cf); err != nil {
+		panic(err)
+	}
+	resid = golapack.Zlange('1', m, n, cf, rwork)
 	if cnorm > zero {
-		result.Set(2, resid/(eps*float64(max(1, *m))*cnorm))
+		result.Set(2, resid/(eps*float64(max(1, m))*cnorm))
 	} else {
 		result.Set(2, zero)
 	}
 
 	//     Copy C into CF again
-	golapack.Zlacpy('F', m, n, c, m, cf, m)
+	golapack.Zlacpy(Full, m, n, c, cf)
 
 	//     Apply Q to C as (Q**H)*C = CF
-	*srnamt = "ZGEMQRT"
-	golapack.Zgemqrt('L', 'C', m, n, &k, &nb2Ub, af, m, t2, nb2, cf, m, work, &info)
+	*srnamt = "Zgemqrt"
+	if err = golapack.Zgemqrt(Left, ConjTrans, m, n, k, nb2Ub, af, t2, cf, work); err != nil {
+		panic(err)
+	}
 
 	//     TEST 4
 	//     Compute |CF - (Q**H)*C| / ( eps * m * |C|)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, -cone, q, c, cone, cf)
-	resid = golapack.Zlange('1', m, n, cf, m, rwork)
+	if err = goblas.Zgemm(ConjTrans, NoTrans, m, n, m, -cone, q, c, cone, cf); err != nil {
+		panic(err)
+	}
+	resid = golapack.Zlange('1', m, n, cf, rwork)
 	if cnorm > zero {
-		result.Set(3, resid/(eps*float64(max(1, *m))*cnorm))
+		result.Set(3, resid/(eps*float64(max(1, m))*cnorm))
 	} else {
 		result.Set(3, zero)
 	}
 
 	//     Generate random n-by-m matrix D and a copy DF
-	for j = 1; j <= (*m); j++ {
-		golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, n, d.CVector(0, j-1))
+	for j = 1; j <= m; j++ {
+		golapack.Zlarnv(2, &iseed, n, d.CVector(0, j-1))
 	}
-	dnorm = golapack.Zlange('1', n, m, d, n, rwork)
-	golapack.Zlacpy('F', n, m, d, n, df, n)
+	dnorm = golapack.Zlange('1', n, m, d, rwork)
+	golapack.Zlacpy(Full, n, m, d, df)
 
 	//     Apply Q to D as D*Q = DF
-	*srnamt = "ZGEMQRT"
-	golapack.Zgemqrt('R', 'N', n, m, &k, &nb2Ub, af, m, t2, nb2, df, n, work, &info)
+	*srnamt = "Zgemqrt"
+	if err = golapack.Zgemqrt(Right, NoTrans, n, m, k, nb2Ub, af, t2, df, work); err != nil {
+		panic(err)
+	}
 
 	//     TEST 5
 	//     Compute |DF - D*Q| / ( eps * m * |D| )
-	err = goblas.Zgemm(NoTrans, NoTrans, *n, *m, *m, -cone, d, q, cone, df)
-	resid = golapack.Zlange('1', n, m, df, n, rwork)
+	if err = goblas.Zgemm(NoTrans, NoTrans, n, m, m, -cone, d, q, cone, df); err != nil {
+		panic(err)
+	}
+	resid = golapack.Zlange('1', n, m, df, rwork)
 	if dnorm > zero {
-		result.Set(4, resid/(eps*float64(max(1, *m))*dnorm))
+		result.Set(4, resid/(eps*float64(max(1, m))*dnorm))
 	} else {
 		result.Set(4, zero)
 	}
 
 	//     Copy D into DF again
-	golapack.Zlacpy('F', n, m, d, n, df, n)
+	golapack.Zlacpy(Full, n, m, d, df)
 
 	//     Apply Q to D as D*QT = DF
-	*srnamt = "ZGEMQRT"
-	golapack.Zgemqrt('R', 'C', n, m, &k, &nb2Ub, af, m, t2, nb2, df, n, work, &info)
+	*srnamt = "Zgemqrt"
+	if err = golapack.Zgemqrt(Right, ConjTrans, n, m, k, nb2Ub, af, t2, df, work); err != nil {
+		panic(err)
+	}
 
 	//     TEST 6
 	//     Compute |DF - D*(Q**H)| / ( eps * m * |D| )
-	err = goblas.Zgemm(NoTrans, ConjTrans, *n, *m, *m, -cone, d, q, cone, df)
-	resid = golapack.Zlange('1', n, m, df, n, rwork)
+	if err = goblas.Zgemm(NoTrans, ConjTrans, n, m, m, -cone, d, q, cone, df); err != nil {
+		panic(err)
+	}
+	resid = golapack.Zlange('1', n, m, df, rwork)
 	if dnorm > zero {
-		result.Set(5, resid/(eps*float64(max(1, *m))*dnorm))
+		result.Set(5, resid/(eps*float64(max(1, m))*dnorm))
 	} else {
 		result.Set(5, zero)
 	}

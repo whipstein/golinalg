@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -8,7 +9,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zlaunhrcolgetrfnp2 computes the modified LU factorization without
+// ZlaunhrColGetrfnp2 computes the modified LU factorization without
 // pivoting of a complex general M-by-N matrix A. The factorization has
 // the form:
 //
@@ -57,9 +58,9 @@ import (
 //
 // For more details on the recursive LU algorithm, see [2].
 //
-// ZLAUNHR_COL_GETRFNP2 is called to factorize a block by the blocked
+// ZlaunhrColGetrfnp2 is called to factorize a block by the blocked
 // routine ZLAUNHR_COL_GETRFNP, which uses blocked code calling
-//. Level 3 BLAS to update the submatrix. However, ZLAUNHR_COL_GETRFNP2
+//. Level 3 BLAS to update the submatrix. However, ZlaunhrColGetrfnp2
 // is self-sufficient and can be used without ZLAUNHR_COL_GETRFNP.
 //
 // [1] "Reconstructing Householder vectors from tall-skinny QR",
@@ -70,37 +71,32 @@ import (
 // [2] "Recursion leads to automatic variable blocking for dense linear
 //     algebra algorithms", F. Gustavson, IBM J. of Res. and Dev.,
 //     vol. 41, no. 6, pp. 737-755, 1997.
-func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, info *int) {
+func ZlaunhrColGetrfnp2(m, n int, a *mat.CMatrix, d *mat.CVector) (err error) {
 	var cone complex128
 	var one, sfmin float64
-	var i, iinfo, n1, n2 int
-	var err error
-	_ = err
+	var i, n1, n2 int
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
 
-	Cabs1 := func(z complex128) float64 { return math.Abs(real(z)) + math.Abs(imag(z)) }
-
 	//     Test the input parameters
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZLAUNHR_COL_GETRFNP2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZlaunhrColGetrfnp2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if min(*m, *n) == 0 {
+	if min(m, n) == 0 {
 		return
 	}
-	if (*m) == 1 {
+	if m == 1 {
 		//        One row case, (also recursion termination case),
 		//        use unblocked code
 		//
@@ -110,7 +106,7 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 		//        Construct the row of U
 		a.Set(0, 0, a.Get(0, 0)-d.Get(0))
 
-	} else if (*n) == 1 {
+	} else if n == 1 {
 		//        One column case, (also recursion termination case),
 		//        use unblocked code
 		//
@@ -126,34 +122,46 @@ func Zlaunhrcolgetrfnp2(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, inf
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Construct the subdiagonal elements of L
-		if Cabs1(a.Get(0, 0)) >= sfmin {
-			goblas.Zscal((*m)-1, cone/a.Get(0, 0), a.CVector(1, 0, 1))
+		if cabs1(a.Get(0, 0)) >= sfmin {
+			goblas.Zscal(m-1, cone/a.Get(0, 0), a.CVector(1, 0, 1))
 		} else {
-			for i = 2; i <= (*m); i++ {
+			for i = 2; i <= m; i++ {
 				a.Set(i-1, 0, a.Get(i-1, 0)/a.Get(0, 0))
 			}
 		}
 
 	} else {
 		//        Divide the matrix B into four submatrices
-		n1 = min(*m, *n) / 2
-		n2 = (*n) - n1
+		n1 = min(m, n) / 2
+		n2 = n - n1
 
 		//        Factor B11, recursive call
-		Zlaunhrcolgetrfnp2(&n1, &n1, a, lda, d, &iinfo)
+		if err = ZlaunhrColGetrfnp2(n1, n1, a, d); err != nil {
+			panic(err)
+		}
 
 		//        Solve for B21
-		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-n1, n1, cone, a, a.Off(n1, 0))
+		if err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, m-n1, n1, cone, a, a.Off(n1, 0)); err != nil {
+			panic(err)
+		}
 
 		//        Solve for B12
-		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, cone, a, a.Off(0, n1))
+		if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, cone, a, a.Off(0, n1)); err != nil {
+			panic(err)
+		}
 
 		//        Update B22, i.e. compute the Schur complement
 		//        B22 := B22 - B21*B12
-		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -cone, a.Off(n1, 0), a.Off(0, n1), cone, a.Off(n1, n1))
+		if err = goblas.Zgemm(NoTrans, NoTrans, m-n1, n2, n1, -cone, a.Off(n1, 0), a.Off(0, n1), cone, a.Off(n1, n1)); err != nil {
+			panic(err)
+		}
 
 		//        Factor B22, recursive call
-		Zlaunhrcolgetrfnp2(toPtr((*m)-n1), &n2, a.Off(n1, n1), lda, d.Off(n1), &iinfo)
+		if err = ZlaunhrColGetrfnp2(m-n1, n2, a.Off(n1, n1), d.Off(n1)); err != nil {
+			panic(err)
+		}
 
 	}
+
+	return
 }

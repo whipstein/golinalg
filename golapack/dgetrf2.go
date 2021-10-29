@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -32,41 +33,38 @@ import (
 //                 [ A22 ]
 //
 // then calls itself to factor A22 and do the swaps on A21.
-func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
+func Dgetrf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 	var one, sfmin, temp, zero float64
 	var i, iinfo, n1, n2 int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGETRF2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("DGETRF2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
-	if (*m) == 1 {
+	if m == 1 {
 		//        Use unblocked code for one row case
 		//        Just need to handle IPIV and INFO
 		(*ipiv)[0] = 1
 		if a.Get(0, 0) == zero {
-			(*info) = 1
+			info = 1
 		}
 
-	} else if (*n) == 1 {
+	} else if n == 1 {
 		//        Use unblocked code for one column case
 		//
 		//
@@ -74,7 +72,7 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Find pivot and test for singularity
-		i = goblas.Idamax(*m, a.Vector(0, 0, 1))
+		i = goblas.Idamax(m, a.Vector(0, 0, 1))
 		(*ipiv)[0] = i
 		if a.Get(i-1, 0) != zero {
 			//           Apply the interchange
@@ -86,55 +84,55 @@ func Dgetrf2(m *int, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
 
 			//           Compute elements 2:M of the column
 			if math.Abs(a.Get(0, 0)) >= sfmin {
-				goblas.Dscal((*m)-1, one/a.Get(0, 0), a.Vector(1, 0, 1))
+				goblas.Dscal(m-1, one/a.Get(0, 0), a.Vector(1, 0, 1))
 			} else {
-				for i = 1; i <= (*m)-1; i++ {
+				for i = 1; i <= m-1; i++ {
 					a.Set(1+i-1, 0, a.Get(1+i-1, 0)/a.Get(0, 0))
 				}
 			}
 
 		} else {
-			(*info) = 1
+			info = 1
 		}
 
 	} else {
 		//        Use recursive code
-		n1 = min(*m, *n) / 2
-		n2 = (*n) - n1
+		n1 = min(m, n) / 2
+		n2 = n - n1
 
 		//               [ A11 ]
 		//        Factor [ --- ]
 		//               [ A21 ]
-		Dgetrf2(m, &n1, a, lda, ipiv, &iinfo)
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo
+		if iinfo, err = Dgetrf2(m, n1, a, ipiv); info == 0 && iinfo > 0 {
+			info = iinfo
 		}
 
 		//                              [ A12 ]
 		//        Apply interchanges to [ --- ]
 		//                              [ A22 ]
-		Dlaswp(&n2, a.Off(0, n1), lda, func() *int { y := 1; return &y }(), &n1, ipiv, func() *int { y := 1; return &y }())
+		Dlaswp(n2, a.Off(0, n1), 1, n1, (*ipiv), 1)
 
 		//        Solve A12
 		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, n1, n2, one, a, a.Off(0, n1))
 
 		//        Update A22
-		err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1))
+		err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1))
 
 		//        Factor A22
-		_ipiv := (*ipiv)[n1:]
-		Dgetrf2(toPtr((*m)-n1), &n2, a.Off(n1, n1), lda, &_ipiv, &iinfo)
+		iinfo, err = Dgetrf2(m-n1, n2, a.Off(n1, n1), toSlice(ipiv, n1))
 
 		//        Adjust INFO and the pivot indices
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo + n1
+		if info == 0 && iinfo > 0 {
+			info = iinfo + n1
 		}
-		for i = n1 + 1; i <= min(*m, *n); i++ {
-			(*ipiv)[i-1] = (*ipiv)[i-1] + n1
+		for i = n1 + 1; i <= min(m, n); i++ {
+			(*ipiv)[i-1] += n1
 		}
 
 		//        Apply interchanges to A21
-		Dlaswp(&n1, a, lda, toPtr(n1+1), toPtr(min(*m, *n)), ipiv, func() *int { y := 1; return &y }())
+		Dlaswp(n1, a, n1+1, min(m, n), *ipiv, 1)
 
 	}
+
+	return
 }

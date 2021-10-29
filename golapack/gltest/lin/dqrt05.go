@@ -6,12 +6,11 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dqrt05 tests DTPQRT and DTPMQRT.
-func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
+// dqrt05 tests DTPQRT and DTPMQRT.
+func dqrt05(m, n, l, nb int, result *mat.Vector) {
 	var anorm, cnorm, dnorm, eps, one, resid, zero float64
-	var info, j, k, ldt, lwork, m2, np1 int
+	var j, k, lwork, m2, np1 int
 	var err error
-	_ = err
 
 	iseed := make([]int, 4)
 
@@ -21,64 +20,70 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	iseed[0], iseed[1], iseed[2], iseed[3] = 1988, 1989, 1990, 1991
 
 	eps = golapack.Dlamch(Epsilon)
-	k = (*n)
-	m2 = (*m) + (*n)
-	if (*m) > 0 {
-		np1 = (*n) + 1
+	k = n
+	m2 = m + n
+	if m > 0 {
+		np1 = n + 1
 	} else {
 		np1 = 1
 	}
-	lwork = m2 * m2 * (*nb)
+	lwork = m2 * m2 * nb
 
 	//     Dynamically allocate all arrays
-	a := mf(m2, *n, opts)
-	af := mf(m2, *n, opts)
+	a := mf(m2, n, opts)
+	af := mf(m2, n, opts)
 	q := mf(m2, m2, opts)
 	r := mf(m2, m2, opts)
 	rwork := vf(m2)
 	work := vf(lwork)
-	t := mf(*nb, *n, opts)
-	c := mf(m2, *n, opts)
-	cf := mf(m2, *n, opts)
-	d := mf(*n, m2, opts)
-	df := mf(*n, m2, opts)
+	t := mf(nb, n, opts)
+	c := mf(m2, n, opts)
+	cf := mf(m2, n, opts)
+	d := mf(n, m2, opts)
+	df := mf(n, m2, opts)
 
 	//     Put random stuff into A
-	ldt = (*nb)
-	golapack.Dlaset('F', &m2, n, &zero, &zero, a, &m2)
-	golapack.Dlaset('F', nb, n, &zero, &zero, t, nb)
-	for j = 1; j <= (*n); j++ {
-		golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, &j, a.Vector(0, j-1))
+	// ldt = nb
+	golapack.Dlaset('F', m2, n, zero, zero, a)
+	golapack.Dlaset('F', nb, n, zero, zero, t)
+	for j = 1; j <= n; j++ {
+		golapack.Dlarnv(2, &iseed, j, a.Vector(0, j-1))
 	}
-	if (*m) > 0 {
-		for j = 1; j <= (*n); j++ {
-			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr((*m)-(*l)), a.Vector(min((*n)+(*m), (*n)+1)-1, j-1))
+	if m > 0 {
+		for j = 1; j <= n; j++ {
+			golapack.Dlarnv(2, &iseed, m-l, a.Vector(min(n+m, n+1)-1, j-1))
 		}
 	}
-	if (*l) > 0 {
-		for j = 1; j <= (*n); j++ {
-			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(min(j, *l)), a.Vector(min((*n)+(*m), (*n)+(*m)-(*l)+1)-1, j-1))
+	if l > 0 {
+		for j = 1; j <= n; j++ {
+			golapack.Dlarnv(2, &iseed, min(j, l), a.Vector(min(n+m, n+m-l+1)-1, j-1))
 		}
 	}
 
 	//     Copy the matrix A to the array af.
-	golapack.Dlacpy('F', &m2, n, a, &m2, af, &m2)
+	golapack.Dlacpy(Full, m2, n, a, af)
 
 	//     Factor the matrix A in the array af.
-	golapack.Dtpqrt(m, n, l, nb, af, &m2, af.Off(np1-1, 0), &m2, t, &ldt, work, &info)
+	if err = golapack.Dtpqrt(m, n, l, nb, af, af.Off(np1-1, 0), t, work); err != nil {
+		panic(err)
+	}
 
 	//     Generate the (M+N)-by-(M+N) matrix Q by applying H to I
-	golapack.Dlaset('F', &m2, &m2, &zero, &one, q, &m2)
-	golapack.Dgemqrt('R', 'N', &m2, &m2, &k, nb, af, &m2, t, &ldt, q, &m2, work, &info)
+	golapack.Dlaset(Full, m2, m2, zero, one, q)
+	if err = golapack.Dgemqrt(Right, NoTrans, m2, m2, k, nb, af, t, q, work); err != nil {
+		panic(err)
+	}
 
 	//     Copy R
-	golapack.Dlaset('F', &m2, n, &zero, &zero, r, &m2)
-	golapack.Dlacpy('U', &m2, n, af, &m2, r, &m2)
+	golapack.Dlaset(Full, m2, n, zero, zero, r)
+	golapack.Dlacpy(Upper, m2, n, af, r)
 
 	//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-	err = goblas.Dgemm(Trans, NoTrans, m2, *n, m2, -one, q, a, one, r)
-	anorm = golapack.Dlange('1', &m2, n, a, &m2, rwork)
-	resid = golapack.Dlange('1', &m2, n, r, &m2, rwork)
+	if err = goblas.Dgemm(Trans, NoTrans, m2, n, m2, -one, q, a, one, r); err != nil {
+		panic(err)
+	}
+	anorm = golapack.Dlange('1', m2, n, a, rwork)
+	resid = golapack.Dlange('1', m2, n, r, rwork)
 	if anorm > zero {
 		result.Set(0, resid/(eps*anorm*float64(max(1, m2))))
 	} else {
@@ -86,24 +91,30 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	}
 
 	//     Compute |I - Q'*Q| and store in RESULT(2)
-	golapack.Dlaset('F', &m2, &m2, &zero, &one, r, &m2)
-	err = goblas.Dsyrk(Upper, ConjTrans, m2, m2, -one, q, one, r)
-	resid = golapack.Dlansy('1', 'U', &m2, r, &m2, rwork)
+	golapack.Dlaset(Full, m2, m2, zero, one, r)
+	if err = goblas.Dsyrk(Upper, ConjTrans, m2, m2, -one, q, one, r); err != nil {
+		panic(err)
+	}
+	resid = golapack.Dlansy('1', Upper, m2, r, rwork)
 	result.Set(1, resid/(eps*float64(max(1, m2))))
 
 	//     Generate random m-by-n matrix C and a copy CF
-	for j = 1; j <= (*n); j++ {
-		golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, &m2, c.Vector(0, j-1))
+	for j = 1; j <= n; j++ {
+		golapack.Dlarnv(2, &iseed, m2, c.Vector(0, j-1))
 	}
-	cnorm = golapack.Dlange('1', &m2, n, c, &m2, rwork)
-	golapack.Dlacpy('F', &m2, n, c, &m2, cf, &m2)
+	cnorm = golapack.Dlange('1', m2, n, c, rwork)
+	golapack.Dlacpy(Full, m2, n, c, cf)
 
 	//     Apply Q to C as Q*C
-	golapack.Dtpmqrt('L', 'N', m, n, &k, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, cf, &m2, cf.Off(np1-1, 0), &m2, work, &info)
+	if err = golapack.Dtpmqrt(Left, NoTrans, m, n, k, l, nb, af.Off(np1-1, 0), t, cf, cf.Off(np1-1, 0), work); err != nil {
+		panic(err)
+	}
 
 	//     Compute |Q*C - Q*C| / |C|
-	err = goblas.Dgemm(NoTrans, NoTrans, m2, *n, m2, -one, q, c, one, cf)
-	resid = golapack.Dlange('1', &m2, n, cf, &m2, rwork)
+	if err = goblas.Dgemm(NoTrans, NoTrans, m2, n, m2, -one, q, c, one, cf); err != nil {
+		panic(err)
+	}
+	resid = golapack.Dlange('1', m2, n, cf, rwork)
 	if cnorm > zero {
 		result.Set(2, resid/(eps*float64(max(1, m2))*cnorm))
 	} else {
@@ -111,14 +122,18 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	}
 
 	//     Copy C into CF again
-	golapack.Dlacpy('F', &m2, n, c, &m2, cf, &m2)
+	golapack.Dlacpy(Full, m2, n, c, cf)
 
 	//     Apply Q to C as QT*C
-	golapack.Dtpmqrt('L', 'T', m, n, &k, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, cf, &m2, cf.Off(np1-1, 0), &m2, work, &info)
+	if err = golapack.Dtpmqrt(Left, Trans, m, n, k, l, nb, af.Off(np1-1, 0), t, cf, cf.Off(np1-1, 0), work); err != nil {
+		panic(err)
+	}
 
 	//     Compute |QT*C - QT*C| / |C|
-	err = goblas.Dgemm(Trans, NoTrans, m2, *n, m2, -one, q, c, one, cf)
-	resid = golapack.Dlange('1', &m2, n, cf, &m2, rwork)
+	if err = goblas.Dgemm(Trans, NoTrans, m2, n, m2, -one, q, c, one, cf); err != nil {
+		panic(err)
+	}
+	resid = golapack.Dlange('1', m2, n, cf, rwork)
 	if cnorm > zero {
 		result.Set(3, resid/(eps*float64(max(1, m2))*cnorm))
 	} else {
@@ -127,17 +142,21 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 
 	//     Generate random n-by-m matrix D and a copy DF
 	for j = 1; j <= m2; j++ {
-		golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, n, d.Vector(0, j-1))
+		golapack.Dlarnv(2, &iseed, n, d.Vector(0, j-1))
 	}
-	dnorm = golapack.Dlange('1', n, &m2, d, n, rwork)
-	golapack.Dlacpy('F', n, &m2, d, n, df, n)
+	dnorm = golapack.Dlange('1', n, m2, d, rwork)
+	golapack.Dlacpy(Full, n, m2, d, df)
 
 	//     Apply Q to D as D*Q
-	golapack.Dtpmqrt('R', 'N', n, m, n, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, df, n, df.Off(0, np1-1), n, work, &info)
+	if err = golapack.Dtpmqrt(Right, NoTrans, n, m, n, l, nb, af.Off(np1-1, 0), t, df, df.Off(0, np1-1), work); err != nil {
+		panic(err)
+	}
 
 	//     Compute |D*Q - D*Q| / |D|
-	err = goblas.Dgemm(NoTrans, NoTrans, *n, m2, m2, -one, d, q, one, df)
-	resid = golapack.Dlange('1', n, &m2, df, n, rwork)
+	if err = goblas.Dgemm(NoTrans, NoTrans, n, m2, m2, -one, d, q, one, df); err != nil {
+		panic(err)
+	}
+	resid = golapack.Dlange('1', n, m2, df, rwork)
 	if cnorm > zero {
 		result.Set(4, resid/(eps*float64(max(1, m2))*dnorm))
 	} else {
@@ -145,14 +164,18 @@ func Dqrt05(m, n, l, nb *int, result *mat.Vector) {
 	}
 
 	//     Copy D into DF again
-	golapack.Dlacpy('F', n, &m2, d, n, df, n)
+	golapack.Dlacpy(Full, n, m2, d, df)
 
 	//     Apply Q to D as D*QT
-	golapack.Dtpmqrt('R', 'T', n, m, n, l, nb, af.Off(np1-1, 0), &m2, t, &ldt, df, n, df.Off(0, np1-1), n, work, &info)
+	if err = golapack.Dtpmqrt(Right, Trans, n, m, n, l, nb, af.Off(np1-1, 0), t, df, df.Off(0, np1-1), work); err != nil {
+		panic(err)
+	}
 
 	//     Compute |D*QT - D*QT| / |D|
-	err = goblas.Dgemm(NoTrans, Trans, *n, m2, m2, -one, d, q, one, df)
-	resid = golapack.Dlange('1', n, &m2, df, n, rwork)
+	if err = goblas.Dgemm(NoTrans, Trans, n, m2, m2, -one, d, q, one, df); err != nil {
+		panic(err)
+	}
+	resid = golapack.Dlange('1', n, m2, df, rwork)
 	if cnorm > zero {
 		result.Set(5, resid/(eps*float64(max(1, m2))*dnorm))
 	} else {

@@ -8,12 +8,12 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrvx tests the error exits for the COMPLEX*16 driver routines
+// zerrvx tests the error exits for the COMPLEX*16 driver routines
 // for solving linear systems of equations.
-func Zerrvx(path []byte, t *testing.T) {
+func zerrvx(path string, t *testing.T) {
 	var eq byte
-	var rcond float64
-	var i, info, j, nmax int
+	var i, j, nmax int
+	var err error
 
 	nmax = 4
 	b := cvf(4)
@@ -29,9 +29,9 @@ func Zerrvx(path []byte, t *testing.T) {
 	ip := make([]int, 4)
 	a := cmf(4, 4, opts)
 	af := cmf(4, 4, opts)
-	infot := &gltest.Common.Infoc.Infot
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 	c2 := path[1:3]
 
@@ -54,431 +54,432 @@ func Zerrvx(path []byte, t *testing.T) {
 	eq = ' '
 	(*ok) = true
 
-	if string(c2) == "GE" {
+	if c2 == "ge" {
 		//        ZGESV
-		*srnamt = "ZGESV "
-		*infot = 1
-		golapack.Zgesv(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGESV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgesv(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGESV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zgesv(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZGESV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zgesv(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGESV ", &info, lerr, ok, t)
+		*srnamt = "Zgesv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zgesv(-1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgesv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zgesv(0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgesv", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zgesv(2, 1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(2, opts))
+		chkxer2("Zgesv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zgesv(2, 1, a.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgesv", err)
 
-		//        ZGESVX
-		*srnamt = "ZGESVX"
-		*infot = 1
-		golapack.Zgesvx('/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgesvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zgesvx('N', 'N', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zgesvx('N', 'N', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zgesvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), &ip, &eq, r, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zgesvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 10
+		//        Zgesvx
+		*srnamt = "Zgesvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Zgesvx('/', NoTrans, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("!notran && trans != Trans && trans != ConjTrans: trans=Unrecognized: /")
+		_, _, _, err = golapack.Zgesvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zgesvx('N', NoTrans, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Zgesvx('N', NoTrans, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, _, err = golapack.Zgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), &ip, eq, r, c, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, _, err = golapack.Zgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rowequ || colequ || equed == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Zgesvx('F', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 11
+		_, _, _, err = golapack.Zgesvx('F', NoTrans, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: rcmin=0")
 		eq = 'R'
-		golapack.Zgesvx('F', 'N', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 12
+		_, _, _, err = golapack.Zgesvx('F', NoTrans, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: rcmin=0")
 		eq = 'C'
-		golapack.Zgesvx('F', 'N', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Zgesvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
-		*infot = 16
-		golapack.Zgesvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, &eq, r, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGESVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Zgesvx('F', NoTrans, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Zgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Zgesvx('N', NoTrans, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, eq, r, c, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgesvx", err)
 
-	} else if string(c2) == "GB" {
+	} else if c2 == "gb" {
 		//        ZGBSV
-		*srnamt = "ZGBSV "
-		*infot = 1
-		golapack.Zgbsv(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGBSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgbsv(func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGBSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zgbsv(func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGBSV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zgbsv(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGBSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zgbsv(func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 3; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGBSV ", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zgbsv(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGBSV ", &info, lerr, ok, t)
+		*srnamt = "Zgbsv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zgbsv(-1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgbsv", err)
+		*errt = fmt.Errorf("kl < 0: kl=-1")
+		_, err = golapack.Zgbsv(1, -1, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgbsv", err)
+		*errt = fmt.Errorf("ku < 0: ku=-1")
+		_, err = golapack.Zgbsv(1, 0, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgbsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zgbsv(0, 0, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgbsv", err)
+		*errt = fmt.Errorf("ab.Rows < 2*kl+ku+1: ab.Rows=3, kl=1, ku=1")
+		_, err = golapack.Zgbsv(1, 1, 1, 0, a.Off(0, 0).UpdateRows(3), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgbsv", err)
+		*errt = fmt.Errorf("b.Rows < max(n, 1): b.Rows=1, n=2")
+		_, err = golapack.Zgbsv(2, 0, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts))
+		chkxer2("Zgbsv", err)
 
-		//        ZGBSVX
-		*srnamt = "ZGBSVX"
-		*infot = 1
-		golapack.Zgbsvx('/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgbsvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zgbsvx('N', 'N', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zgbsvx('N', 'N', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zgbsvx('N', 'N', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zgbsvx('N', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zgbsvx('N', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 4; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zgbsvx('N', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 3; return &y }(), af, func() *int { y := 3; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 12
+		//        Zgbsvx
+		*srnamt = "Zgbsvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Zgbsvx('/', NoTrans, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("!notran && trans != Trans && trans != ConjTrans: trans=Unrecognized: /")
+		_, _, _, err = golapack.Zgbsvx('N', '/', 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, -1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("kl < 0: kl=-1")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 1, -1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("ku < 0: ku=-1")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 1, 0, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 0, 0, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("ab.Rows < kl+ku+1: ab.Rows=2, kl=1, ku=1")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 1, 1, 1, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(4), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("afb.Rows < 2*kl+ku+1: afb.Rows=3, kl=1, ku=1")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 1, 1, 1, 0, a.Off(0, 0).UpdateRows(3), af.Off(0, 0).UpdateRows(3), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rowequ || colequ || equed == 'N'): fact='F', equed='/'")
 		eq = '/'
-		golapack.Zgbsvx('F', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 13
+		_, _, _, err = golapack.Zgbsvx('F', NoTrans, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: rcmin=0")
 		eq = 'R'
-		golapack.Zgbsvx('F', 'N', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 14
+		_, _, _, err = golapack.Zgbsvx('F', NoTrans, 1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("rcmin <= zero: rcmin=0")
 		eq = 'C'
-		golapack.Zgbsvx('F', 'N', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 16
-		golapack.Zgbsvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zgbsvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, &eq, r, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGBSVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Zgbsvx('F', NoTrans, 1, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 2, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Zgbsvx('N', NoTrans, 2, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, eq, r, c, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgbsvx", err)
 
-	} else if string(c2) == "GT" {
+	} else if c2 == "gt" {
 		//        ZGTSV
-		*srnamt = "ZGTSV "
-		*infot = 1
-		golapack.Zgtsv(toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGTSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgtsv(func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGTSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zgtsv(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGTSV ", &info, lerr, ok, t)
+		*srnamt = "Zgtsv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zgtsv(-1, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), b.CMatrix(1, opts))
+		chkxer2("Zgtsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zgtsv(0, -1, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), b.CMatrix(1, opts))
+		chkxer2("Zgtsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zgtsv(2, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), b.CMatrix(1, opts))
+		chkxer2("Zgtsv", err)
 
-		//        ZGTSVX
-		*srnamt = "ZGTSVX"
-		*infot = 1
-		golapack.Zgtsvx('/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGTSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgtsvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGTSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zgtsvx('N', 'N', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGTSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zgtsvx('N', 'N', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGTSVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Zgtsvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGTSVX", &info, lerr, ok, t)
-		*infot = 16
-		golapack.Zgtsvx('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZGTSVX", &info, lerr, ok, t)
+		//        Zgtsvx
+		*srnamt = "Zgtsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Zgtsvx('/', NoTrans, 0, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgtsvx", err)
+		*errt = fmt.Errorf("!notran && trans != Trans && trans != ConjTrans: trans=Unrecognized: /")
+		_, _, err = golapack.Zgtsvx('N', '/', 0, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgtsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zgtsvx('N', NoTrans, -1, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgtsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Zgtsvx('N', NoTrans, 0, -1, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgtsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Zgtsvx('N', NoTrans, 2, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zgtsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Zgtsvx('N', NoTrans, 2, 0, a.CVector(0, 0), a.CVector(0, 1), a.CVector(0, 2), af.CVector(0, 0), af.CVector(0, 1), af.CVector(0, 2), af.CVector(0, 3), &ip, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zgtsvx", err)
 
-	} else if string(c2) == "PO" {
+	} else if c2 == "po" {
 		//        ZPOSV
-		*srnamt = "ZPOSV "
-		*infot = 1
-		golapack.Zposv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zposv('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zposv('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOSV ", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zposv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(2, opts), func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZPOSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zposv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOSV ", &info, lerr, ok, t)
+		*srnamt = "Zposv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zposv('/', 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zposv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zposv(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zposv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zposv(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zposv", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zposv(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(2, opts))
+		chkxer2("Zposv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zposv(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), b.CMatrix(1, opts))
+		chkxer2("Zposv", err)
 
-		//        ZPOSVX
-		*srnamt = "ZPOSVX"
-		*infot = 1
-		golapack.Zposvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zposvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zposvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zposvx('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zposvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), &eq, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zposvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 9
+		//        Zposvx
+		*srnamt = "Zposvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Zposvx('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Zposvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zposvx('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Zposvx('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, _, err = golapack.Zposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), eq, c, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, _, err = golapack.Zposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rcequ || equed == 'N'): fact='F', equed='/', rcequ=false")
 		eq = '/'
-		golapack.Zposvx('F', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 10
+		_, _, _, err = golapack.Zposvx('F', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("smin <= zero: smin=0")
 		eq = 'Y'
-		golapack.Zposvx('F', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zposvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(2, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Zposvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &eq, c, b.CMatrix(2, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPOSVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Zposvx('F', Upper, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Zposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), eq, c, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Zposvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), eq, c, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zposvx", err)
 
-	} else if string(c2) == "PP" {
+	} else if c2 == "pp" {
 		//        ZPPSV
-		*srnamt = "ZPPSV "
-		*infot = 1
-		golapack.Zppsv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zppsv('U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zppsv('U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zppsv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPSV ", &info, lerr, ok, t)
+		*srnamt = "Zppsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zppsv('/', 0, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zppsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zppsv(Upper, -1, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zppsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zppsv(Upper, 0, -1, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zppsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zppsv(Upper, 2, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zppsv", err)
 
-		//        ZPPSVX
-		*srnamt = "ZPPSVX"
-		*infot = 1
-		golapack.Zppsvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zppsvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zppsvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zppsvx('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 7
+		//        Zppsvx
+		*srnamt = "Zppsvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Zppsvx('/', Upper, 0, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Zppsvx('N', '/', 0, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zppsvx('N', Upper, -1, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Zppsvx('N', Upper, 0, -1, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rcequ || equed == 'N'): fact='F', equed='/', rcequ=false")
 		eq = '/'
-		golapack.Zppsvx('F', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 8
+		_, _, _, err = golapack.Zppsvx('F', Upper, 0, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("smin <= zero: smin=0")
 		eq = 'Y'
-		golapack.Zppsvx('F', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zppsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zppsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &eq, c, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPPSVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Zppsvx('F', Upper, 1, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Zppsvx('N', Upper, 2, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Zppsvx('N', Upper, 2, 0, a.CVector(0, 0), af.CVector(0, 0), eq, c, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zppsvx", err)
 
-	} else if string(c2) == "PB" {
+	} else if c2 == "pb" {
 		//        ZPBSV
-		*srnamt = "ZPBSV "
-		*infot = 1
-		golapack.Zpbsv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbsv('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbsv('U', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBSV ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpbsv('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zpbsv('U', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZPBSV ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zpbsv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBSV ", &info, lerr, ok, t)
+		*srnamt = "Zpbsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpbsv('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpbsv(Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbsv", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zpbsv(Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zpbsv(Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbsv", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zpbsv(Upper, 1, 1, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(2, opts))
+		chkxer2("Zpbsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zpbsv(Upper, 2, 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbsv", err)
 
-		//        ZPBSVX
-		*srnamt = "ZPBSVX"
-		*infot = 1
-		golapack.Zpbsvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbsvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbsvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpbsvx('N', 'U', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpbsvx('N', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zpbsvx('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zpbsvx('N', 'U', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 10
+		//        Zpbsvx
+		*srnamt = "Zpbsvx"
+		*errt = fmt.Errorf("!nofact && !equil && fact != 'F': fact='/'")
+		_, _, _, err = golapack.Zpbsvx('/', Upper, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Zpbsvx('N', '/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, 1, 1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), eq, c, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("afb.Rows < kd+1: afb.Rows=1, kd=1")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, 1, 1, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("fact == 'F' && !(rcequ || equed == 'N'): fact='F', equed='/', rcequ=false")
 		eq = '/'
-		golapack.Zpbsvx('F', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 11
+		_, _, _, err = golapack.Zpbsvx('F', Upper, 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("smin <= zero: smin=0")
 		eq = 'Y'
-		golapack.Zpbsvx('F', 'U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zpbsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
-		*infot = 15
-		golapack.Zpbsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &eq, c, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPBSVX", &info, lerr, ok, t)
+		_, _, _, err = golapack.Zpbsvx('F', Upper, 1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, 2, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, _, err = golapack.Zpbsvx('N', Upper, 2, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), eq, c, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zpbsvx", err)
 
-	} else if string(c2) == "PT" {
+	} else if c2 == "pt" {
 		//        ZPTSV
-		*srnamt = "ZPTSV "
-		*infot = 1
-		golapack.Zptsv(toPtr(-1), func() *int { y := 0; return &y }(), r, a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPTSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zptsv(func() *int { y := 0; return &y }(), toPtr(-1), r, a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPTSV ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zptsv(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), r, a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPTSV ", &info, lerr, ok, t)
+		*srnamt = "Zptsv"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zptsv(-1, 0, r, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zptsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zptsv(0, -1, r, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zptsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zptsv(2, 0, r, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zptsv", err)
 
-		//        ZPTSVX
-		*srnamt = "ZPTSVX"
-		*infot = 1
-		golapack.Zptsvx('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPTSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zptsvx('N', toPtr(-1), func() *int { y := 0; return &y }(), r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPTSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zptsvx('N', func() *int { y := 0; return &y }(), toPtr(-1), r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPTSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zptsvx('N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPTSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zptsvx('N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZPTSVX", &info, lerr, ok, t)
+		//        Zptsvx
+		*srnamt = "Zptsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Zptsvx('/', 0, 0, r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zptsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zptsvx('N', -1, 0, r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zptsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Zptsvx('N', 0, -1, r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zptsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Zptsvx('N', 2, 0, r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zptsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Zptsvx('N', 2, 0, r, a.CVector(0, 0), rf, af.CVector(0, 0), b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zptsvx", err)
 
-	} else if string(c2) == "HE" {
+	} else if c2 == "he" {
 		//        ZHESV
-		*srnamt = "ZHESV "
-		*infot = 1
-		golapack.Zhesv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhesv('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhesv('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhesv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zhesv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhesv('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhesv('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, toPtr(-2), &info)
-		Chkxer("ZHESV ", &info, lerr, ok, t)
+		*srnamt = "Zhesv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zhesv('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("Zhesv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhesv(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("Zhesv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zhesv(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("Zhesv", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zhesv(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(2, opts), w, 1)
+		chkxer2("Zhesv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zhesv(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("Zhesv", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.Zhesv(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 0)
+		chkxer2("Zhesv", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.Zhesv(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, -2)
+		chkxer2("Zhesv", err)
 
-		//        ZHESVX
-		*srnamt = "ZHESVX"
-		*infot = 1
-		golapack.Zhesvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhesvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhesvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhesvx('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zhesvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zhesvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhesvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zhesvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zhesvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 3; return &y }(), rw, &info)
-		Chkxer("ZHESVX", &info, lerr, ok, t)
+		//        Zhesvx
+		*srnamt = "Zhesvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Zhesvx('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, 1, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, err = golapack.Zhesvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, 1, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zhesvx('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, 1, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Zhesvx('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, 1, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Zhesvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, 4, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, err = golapack.Zhesvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, 4, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Zhesvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, 4, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Zhesvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, 4, rw)
+		chkxer2("Zhesvx", err)
+		*errt = fmt.Errorf("lwork < max(1, 2*n) && !lquery: lwork=3, n=2, lquery=false")
+		_, _, err = golapack.Zhesvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, 3, rw)
+		chkxer2("Zhesvx", err)
 
-	} else if string(c2) == "HR" {
-		//        ZHESV_ROOK
-		*srnamt = "ZHESV_ROOK"
-		*infot = 1
-		golapack.Zhesvrook('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_ROOK", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhesvrook('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_ROOK", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhesvrook('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_ROOK", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zhesvrook('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_ROOK", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhesvrook('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHESV_ROOK", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zhesvrook('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, toPtr(-2), &info)
-		Chkxer("ZHESV_ROOK", &info, lerr, ok, t)
+	} else if c2 == "hr" {
+		//        ZhesvRook
+		*srnamt = "ZhesvRook"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZhesvRook('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRook", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZhesvRook(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRook", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZhesvRook(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRook", err)
+		// *errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v")
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZhesvRook(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRook", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.ZhesvRook(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 0)
+		chkxer2("ZhesvRook", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.ZhesvRook(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, -2)
+		chkxer2("ZhesvRook", err)
 
-	} else if string(c2) == "HK" {
-		//        ZSYSV_RK
+	} else if c2 == "hk" {
+		//        ZsysvRk
 		//
 		//        Test error exits of the driver that uses factorization
 		//        of a Hermitian indefinite matrix with rook
@@ -487,201 +488,207 @@ func Zerrvx(path []byte, t *testing.T) {
 		//
 		//        L (or U) is stored in A, diagonal of D is stored on the
 		//        diagonal of A, subdiagonal of D is stored in a separate array E.
-		*srnamt = "ZHESV_RK"
-		*infot = 1
-		golapack.Zhesvrk('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhesvrk('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhesvrk('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhesvrk('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhesvrk('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhesvrk('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhesvrk('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, toPtr(-2), &info)
-		Chkxer("ZHESV_RK", &info, lerr, ok, t)
+		*srnamt = "ZhesvRk"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZhesvRk('/', 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRk", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZhesvRk(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRk", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZhesvRk(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRk", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.ZhesvRk(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(2, opts), w, 1)
+		chkxer2("ZhesvRk", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZhesvRk(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), e, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvRk", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.ZhesvRk(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w, 0)
+		chkxer2("ZhesvRk", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.ZhesvRk(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w, -2)
+		chkxer2("ZhesvRk", err)
 
-	} else if string(c2) == "HA" {
-		//        ZHESV_AA
-		*srnamt = "ZHESV_AA"
-		*infot = 1
-		golapack.Zhesvaa('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhesvaa('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhesvaa('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zhesvaa('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA", &info, lerr, ok, t)
+	} else if c2 == "ha" {
+		//        ZhesvAa
+		*srnamt = "ZhesvAa"
+		// *errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+		// *errt = fmt.Errorf("lwork < max(2*n, 3*n-2) && !lquery: lwork=%v, n=%v, lquery=%v", lwork, n, lquery)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZhesvAa('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZhesvAa(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZhesvAa(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZhesvAa(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa", err)
 
-	} else if string(c2) == "H2" {
-		//        ZHESV_AASEN_2STAGE
-		*srnamt = "ZHESV_AA_2STAGE"
-		*infot = 1
-		golapack.Zhesvaa2stage('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhesvaa2stage('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhesvaa2stage('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zhesvaa2stage('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhesvaa2stage('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), a.CVector(0, 0), func() *int { y := 8; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhesvaa2stage('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHESV_AA_2STAGE", &info, lerr, ok, t)
+	} else if c2 == "h2" {
+		//        ZhesvAaSEN_2STAGE
+		*srnamt = "ZhesvAa2stage"
+		// *errt = fmt.Errorf("lwork < n && !wquery: lwork=%v, n=%v, tquery=%v", lwork, n, tquery)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZhesvAa2stage('/', 0, 0, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0), 1, &ip, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZhesvAa2stage(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0), 1, &ip, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa2stage", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZhesvAa2stage(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0), 1, &ip, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.ZhesvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0), 1, &ip, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa2stage", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZhesvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), a.CVector(0, 0), 8, &ip, &ip, b.CMatrix(1, opts), w, 1)
+		chkxer2("ZhesvAa2stage", err)
+		*errt = fmt.Errorf("ltb < (4*n) && !tquery: ltb=1, n=2, tquery=false")
+		_, err = golapack.ZhesvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), a.CVector(0, 0), 1, &ip, &ip, b.CMatrix(2, opts), w, 1)
+		chkxer2("ZhesvAa2stage", err)
 
-	} else if string(c2) == "S2" {
+	} else if c2 == "s2" {
 		//        ZSYSV_AASEN_2STAGE
-		*srnamt = "ZSYSV_AA_2STAGE"
-		*infot = 1
-		golapack.Zsysvaa2stage('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zsysvaa2stage('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zsysvaa2stage('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zsysvaa2stage('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zsysvaa2stage('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), a.CVector(0, 0), func() *int { y := 8; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_AA_2STAGE", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zsysvaa2stage('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), a.CVector(0, 0), func() *int { y := 1; return &y }(), &ip, &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_AA_2STAGE", &info, lerr, ok, t)
+		*srnamt = "ZsysvAa2stage"
+		// *errt = fmt.Errorf("lwork < n && !wquery: lwork=%v, n=%v, wquery=%v", lwork, n, wquery)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZsysvAa2stage('/', 0, 0, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0, 1), 1, &ip, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvAa2stage", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZsysvAa2stage(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0, 1), 1, &ip, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvAa2stage", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZsysvAa2stage(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0, 1), 1, &ip, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvAa2stage", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.ZsysvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), a.CVector(0, 0, 1), 1, &ip, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvAa2stage", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZsysvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), a.CVector(0, 0, 8), 8, &ip, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvAa2stage", err)
+		*errt = fmt.Errorf("ltb < (4*n) && !tquery: ltb=1, n=2, tquery=false")
+		_, err = golapack.ZsysvAa2stage(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), a.CVector(0, 0, 1), 1, &ip, &ip, b.CMatrix(2, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvAa2stage", err)
 
-	} else if string(c2) == "HP" {
+	} else if c2 == "hp" {
 		//        ZHPSV
-		*srnamt = "ZHPSV "
-		*infot = 1
-		golapack.Zhpsv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhpsv('U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhpsv('U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zhpsv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZHPSV ", &info, lerr, ok, t)
+		*srnamt = "Zhpsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zhpsv('/', 0, 0, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zhpsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zhpsv(Upper, -1, 0, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zhpsv", err)
+		*errt = fmt.Errorf("nrhs < 0: brhs=-1")
+		_, err = golapack.Zhpsv(Upper, 0, -1, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zhpsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zhpsv(Upper, 2, 0, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zhpsv", err)
 
-		//        ZHPSVX
-		*srnamt = "ZHPSVX"
-		*infot = 1
-		golapack.Zhpsvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZHPSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zhpsvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZHPSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zhpsvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZHPSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zhpsvx('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZHPSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zhpsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZHPSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zhpsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZHPSVX", &info, lerr, ok, t)
+		//        Zhpsvx
+		*srnamt = "Zhpsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Zhpsvx('/', Upper, 0, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zhpsvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, err = golapack.Zhpsvx('N', '/', 0, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zhpsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zhpsvx('N', Upper, -1, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zhpsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Zhpsvx('N', Upper, 0, -1, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zhpsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Zhpsvx('N', Upper, 2, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zhpsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Zhpsvx('N', Upper, 2, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zhpsvx", err)
 
-	} else if string(c2) == "SY" {
+	} else if c2 == "sy" {
 		//        ZSYSV
-		*srnamt = "ZSYSV "
-		*infot = 1
-		golapack.Zsysv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zsysv('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zsysv('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zsysv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zsysv('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZSYSV ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zsysv('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, toPtr(-2), &info)
-		Chkxer("ZSYSV ", &info, lerr, ok, t)
+		*srnamt = "Zsysv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zsysv('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("Zsysv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zsysv(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("Zsysv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zsysv(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("Zsysv", err)
+		// *errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=2, n=2")
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zsysv(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("Zsysv", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.Zsysv(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 0), 0)
+		chkxer2("Zsysv", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.Zsysv(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, -2), -2)
+		chkxer2("Zsysv", err)
 
-		//        ZSYSVX
-		*srnamt = "ZSYSVX"
-		*infot = 1
-		golapack.Zsysvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zsysvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zsysvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zsysvx('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zsysvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zsysvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zsysvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zsysvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, func() *int { y := 4; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
-		*infot = 18
-		golapack.Zsysvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, func() *int { y := 3; return &y }(), rw, &info)
-		Chkxer("ZSYSVX", &info, lerr, ok, t)
+		//        Zsysvx
+		*srnamt = "Zsysvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Zsysvx('/', Upper, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w.Off(0, 1), 1, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, err = golapack.Zsysvx('N', '/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w.Off(0, 1), 1, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zsysvx('N', Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w.Off(0, 1), 1, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Zsysvx('N', Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w.Off(0, 1), 1, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, err = golapack.Zsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w.Off(0, 4), 4, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		_, _, err = golapack.Zsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w.Off(0, 4), 4, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Zsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w.Off(0, 4), 4, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Zsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w.Off(0, 4), 4, rw)
+		chkxer2("Zsysvx", err)
+		*errt = fmt.Errorf("lwork < max(1, 2*n) && !lquery: lwork=3, n=2, lquery=false")
+		_, _, err = golapack.Zsysvx('N', Upper, 2, 0, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w.Off(0, 3), 3, rw)
+		chkxer2("Zsysvx", err)
 
-	} else if string(c2) == "SR" {
-		//        ZSYSV_ROOK
-		*srnamt = "ZSYSV_ROOK"
-		*infot = 1
-		golapack.Zsysvrook('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zsysvrook('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zsysvrook('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zsysvrook('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zsysvrook('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZSYSV_ROOK", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zsysvrook('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, toPtr(-2), &info)
+	} else if c2 == "sr" {
+		//        ZsysvRook
+		*srnamt = "ZsysvRook"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZsysvRook('/', 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRook", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZsysvRook(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRook", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZsysvRook(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRook", err)
+		// *errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZsysvRook(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRook", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.ZsysvRook(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, 0), 0)
+		chkxer2("ZsysvRook", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.ZsysvRook(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), &ip, b.CMatrix(1, opts), w.Off(0, -2), -2)
 
-	} else if string(c2) == "SK" {
-		//        ZSYSV_RK
+	} else if c2 == "sk" {
+		//        ZsysvRk
 		//
 		//        Test error exits of the driver that uses factorization
 		//        of a symmetric indefinite matrix with rook
@@ -690,65 +697,65 @@ func Zerrvx(path []byte, t *testing.T) {
 		//
 		//        L (or U) is stored in A, diagonal of D is stored on the
 		//        diagonal of A, subdiagonal of D is stored in a separate array E.
-		*srnamt = "ZSYSV_RK"
-		*infot = 1
-		golapack.Zsysvrk('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zsysvrk('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zsysvrk('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zsysvrk('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zsysvrk('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zsysvrk('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zsysvrk('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), e, &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), w, toPtr(-2), &info)
-		Chkxer("ZSYSV_RK", &info, lerr, ok, t)
+		*srnamt = "ZsysvRk"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.ZsysvRk('/', 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRk", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.ZsysvRk(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRk", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.ZsysvRk(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRk", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.ZsysvRk(Upper, 2, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(2, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRk", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.ZsysvRk(Upper, 2, 0, a.Off(0, 0).UpdateRows(2), e, &ip, b.CMatrix(1, opts), w.Off(0, 1), 1)
+		chkxer2("ZsysvRk", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=0, lquery=false")
+		_, err = golapack.ZsysvRk(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w.Off(0, 0), 0)
+		chkxer2("ZsysvRk", err)
+		*errt = fmt.Errorf("lwork < 1 && !lquery: lwork=-2, lquery=false")
+		_, err = golapack.ZsysvRk(Upper, 0, 0, a.Off(0, 0).UpdateRows(1), e, &ip, b.CMatrix(1, opts), w.Off(0, -2), -2)
+		chkxer2("ZsysvRk", err)
 
-	} else if string(c2) == "SP" {
+	} else if c2 == "sp" {
 		//        ZSPSV
-		*srnamt = "ZSPSV "
-		*infot = 1
-		golapack.Zspsv('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSPSV ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zspsv('U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSPSV ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zspsv('U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSPSV ", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zspsv('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZSPSV ", &info, lerr, ok, t)
+		*srnamt = "Zspsv"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zspsv('/', 0, 0, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zspsv", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zspsv(Upper, -1, 0, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zspsv", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Zspsv(Upper, 0, -1, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zspsv", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, err = golapack.Zspsv(Upper, 2, 0, a.CVector(0, 0), &ip, b.CMatrix(1, opts))
+		chkxer2("Zspsv", err)
 
-		//        ZSPSVX
-		*srnamt = "ZSPSVX"
-		*infot = 1
-		golapack.Zspsvx('/', 'U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZSPSVX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zspsvx('N', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZSPSVX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zspsvx('N', 'U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZSPSVX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zspsvx('N', 'U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZSPSVX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zspsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZSPSVX", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zspsvx('N', 'U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), &rcond, r1, r2, w, rw, &info)
-		Chkxer("ZSPSVX", &info, lerr, ok, t)
+		//        Zspsvx
+		*srnamt = "Zspsvx"
+		*errt = fmt.Errorf("!nofact && fact != 'F': fact='/'")
+		_, _, err = golapack.Zspsvx('/', Upper, 0, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zspsvx", err)
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, err = golapack.Zspsvx('N', '/', 0, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zspsvx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Zspsvx('N', Upper, -1, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zspsvx", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Zspsvx('N', Upper, 0, -1, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zspsvx", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		_, _, err = golapack.Zspsvx('N', Upper, 2, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, rw)
+		chkxer2("Zspsvx", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		_, _, err = golapack.Zspsvx('N', Upper, 2, 0, a.CVector(0, 0), af.CVector(0, 0), &ip, b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, rw)
+		chkxer2("Zspsvx", err)
 	}
 
 	//     Print a summary line.
@@ -756,5 +763,9 @@ func Zerrvx(path []byte, t *testing.T) {
 		fmt.Printf(" %3s drivers passed the tests of the error exits\n", path)
 	} else {
 		fmt.Printf(" *** %3s drivers failed the tests of the error exits ***\n", path)
+	}
+
+	if !(*ok) {
+		t.Fail()
 	}
 }

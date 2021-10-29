@@ -1,19 +1,21 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derlqt tests the error exits for the DOUBLE PRECISION routines
+// derlqt tests the error exits for the DOUBLE PRECISION routines
 // that use the LQT decomposition of a general matrix.
-func Derrlqt(path []byte, _t *testing.T) {
-	var i, info, j, nmax int
-	lerr := &gltest.Common.Infoc.Lerr
+func derrlqt(path string, _t *testing.T) {
+	var i, j, nmax int
+	var err error
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 2
@@ -36,75 +38,79 @@ func Derrlqt(path []byte, _t *testing.T) {
 
 	//     Error exits for LQT factorization
 	//
-	//     DGELQT
-	*srnamt = "DGELQT"
-	*infot = 1
-	golapack.Dgelqt(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGELQT", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Dgelqt(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGELQT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Dgelqt(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGELQT", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Dgelqt(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGELQT", &info, lerr, ok, _t)
-	*infot = 7
-	golapack.Dgelqt(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGELQT", &info, lerr, ok, _t)
+	//     Dgelqt
+	*srnamt = "Dgelqt"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dgelqt(-1, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgelqt", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dgelqt(0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgelqt", err)
+	*errt = fmt.Errorf("mb < 1 || (mb > min(m, n) && min(m, n) > 0): m=0, n=0, mb=0")
+	err = golapack.Dgelqt(0, 0, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgelqt", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dgelqt(2, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgelqt", err)
+	*errt = fmt.Errorf("t.Rows < mb: t.Rows=1, mb=2")
+	err = golapack.Dgelqt(2, 2, 2, a.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgelqt", err)
 
-	//     DGELQT3
-	*srnamt = "DGELQT3"
-	*infot = 1
-	golapack.Dgelqt3(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGELQT3", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Dgelqt3(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGELQT3", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Dgelqt3(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGELQT3", &info, lerr, ok, _t)
-	*infot = 6
-	golapack.Dgelqt3(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("DGELQT3", &info, lerr, ok, _t)
+	//     Dgelqt3
+	*srnamt = "Dgelqt3"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dgelqt3(-1, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dgelqt3", err)
+	*errt = fmt.Errorf("n < m: m=0, n=-1")
+	err = golapack.Dgelqt3(0, -1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dgelqt3", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.Dgelqt3(2, 2, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dgelqt3", err)
+	*errt = fmt.Errorf("t.Rows < max(1, m): t.Rows=1, m=2")
+	err = golapack.Dgelqt3(2, 2, a.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Dgelqt3", err)
 
-	//     DGEMLQT
-	*srnamt = "DGEMLQT"
-	*infot = 1
-	golapack.Dgemlqt('/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Dgemlqt('L', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Dgemlqt('L', 'N', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Dgemlqt('L', 'N', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Dgemlqt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Dgemlqt('R', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 6
-	golapack.Dgemlqt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 8
-	golapack.Dgemlqt('R', 'N', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 8
-	golapack.Dgemlqt('L', 'N', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 10
-	golapack.Dgemlqt('R', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 0; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
-	*infot = 12
-	golapack.Dgemlqt('L', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), c, func() *int { y := 0; return &y }(), w, &info)
-	Chkxer("DGEMLQT", &info, lerr, ok, _t)
+	//     Dgemlqt
+	*srnamt = "Dgemlqt"
+	*errt = fmt.Errorf("!left && !right: side=Unrecognized: /")
+	err = golapack.Dgemlqt('/', NoTrans, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("!tran && !notran: trans=Unrecognized: /")
+	err = golapack.Dgemlqt(Left, '/', 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Dgemlqt(Left, NoTrans, -1, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Dgemlqt(Left, NoTrans, 0, -1, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("k < 0: k=-1")
+	err = golapack.Dgemlqt(Left, NoTrans, 0, 0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("k < 0: k=-1")
+	err = golapack.Dgemlqt(Right, NoTrans, 0, 0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("mb < 1 || (mb > k && k > 0): k=0, mb=0")
+	err = golapack.Dgemlqt(Left, NoTrans, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("v.Rows < max(1, k): v.Rows=1, k=2")
+	err = golapack.Dgemlqt(Right, NoTrans, 2, 2, 2, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("v.Rows < max(1, k): v.Rows=1, k=2")
+	err = golapack.Dgemlqt(Left, NoTrans, 2, 2, 2, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("t.Rows < mb: t.Rows=1, mb=2")
+	err = golapack.Dgemlqt(Right, NoTrans, 2, 2, 2, 2, a.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
+	*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+	err = golapack.Dgemlqt(Left, NoTrans, 2, 1, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Dgemlqt", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		_t.Fail()
+	}
 }

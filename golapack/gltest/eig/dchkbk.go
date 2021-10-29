@@ -8,19 +8,19 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dchkbk tests DGEBAK, a routine for backward transformation of
+// dchkbk tests DGEBAK, a routine for backward transformation of
 // the computed right or left eigenvectors if the original matrix
 // was preprocessed by balance subroutine DGEBAL.
-func Dchkbk(t *testing.T) {
+func dchkbk(t *testing.T) {
 	var eps, rmax, safmin, vmax, x, zero float64
-	var _i, i, ihi, ilo, info, j, knt, lde, n, ninfo int
+	var _i, i, ihi, ilo, j, knt, n, ninfo int
+	var err error
 
 	scale := vf(20)
 	lmax := make([]int, 2)
 	e := mf(20, 20, opts)
 	ein := mf(20, 20, opts)
 
-	lde = 20
 	zero = 0.0
 
 	nlist := []int{5, 5, 5, 6, 5, 6, 7}
@@ -174,9 +174,7 @@ func Dchkbk(t *testing.T) {
 		}
 
 		knt = knt + 1
-		golapack.Dgebak('B', 'R', &n, &ilo, &ihi, scale, &n, e, &lde, &info)
-
-		if info != 0 {
+		if err = golapack.Dgebak('B', Right, n, ilo, ihi, scale, n, e); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt

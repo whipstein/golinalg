@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dtbt05 tests the error bounds from iterative refinement for the
+// dtbt05 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations A*X = B, where A is a
 // triangular band matrix.
 //
@@ -21,7 +21,7 @@ import (
 //           = the maximum of BERR / ( NZ*EPS + (*) ), where
 //             (*) = NZ*UNFL / (min_i (abs(A)*abs(X) +abs(b))_i )
 //             and NZ = max. number of nonzeros in any row of A, plus 1
-func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact *int, ferr, berr, reslts *mat.Vector) {
+func dtbt05(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs int, ab, b, x, xact *mat.Matrix, ferr, berr, reslts *mat.Vector) {
 	var notran, unit, upper bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, ifu, imax, j, k, nz int
@@ -30,7 +30,7 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	one = 1.0
 
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -39,20 +39,20 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	upper = uplo == 'U'
-	notran = trans == 'N'
-	unit = diag == 'U'
-	nz = min(*kd, (*n)-1) + 1
+	upper = uplo == Upper
+	notran = trans == NoTrans
+	unit = diag == Unit
+	nz = min(kd, n-1) + 1
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
-	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+	for j = 1; j <= nrhs; j++ {
+		imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
 		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
@@ -82,39 +82,39 @@ func Dtbt05(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int,
 	if unit {
 		ifu = 1
 	}
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if upper {
 				if !notran {
-					for j = max(i-(*kd), 1); j <= i-ifu; j++ {
-						tmp = tmp + math.Abs(ab.Get((*kd)+1-i+j-1, i-1))*math.Abs(x.Get(j-1, k-1))
+					for j = max(i-kd, 1); j <= i-ifu; j++ {
+						tmp += math.Abs(ab.Get(kd+1-i+j-1, i-1)) * math.Abs(x.Get(j-1, k-1))
 					}
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
 				} else {
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= min(i+(*kd), *n); j++ {
-						tmp = tmp + math.Abs(ab.Get((*kd)+1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
+					for j = i + ifu; j <= min(i+kd, n); j++ {
+						tmp += math.Abs(ab.Get(kd+1+i-j-1, j-1)) * math.Abs(x.Get(j-1, k-1))
 					}
 				}
 			} else {
 				if notran {
-					for j = max(i-(*kd), 1); j <= i-ifu; j++ {
-						tmp = tmp + math.Abs(ab.Get(1+i-j-1, j-1))*math.Abs(x.Get(j-1, k-1))
+					for j = max(i-kd, 1); j <= i-ifu; j++ {
+						tmp += math.Abs(ab.Get(1+i-j-1, j-1)) * math.Abs(x.Get(j-1, k-1))
 					}
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
 				} else {
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= min(i+(*kd), *n); j++ {
-						tmp = tmp + math.Abs(ab.Get(1+j-i-1, i-1))*math.Abs(x.Get(j-1, k-1))
+					for j = i + ifu; j <= min(i+kd, n); j++ {
+						tmp += math.Abs(ab.Get(1+j-i-1, i-1)) * math.Abs(x.Get(j-1, k-1))
 					}
 				}
 			}

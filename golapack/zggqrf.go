@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -32,48 +34,55 @@ import (
 //
 // where inv(B) denotes the inverse of the matrix B, and Z**H denotes the
 // conjugate transpose of matrix Z.
-func Zggqrf(n, m, p *int, a *mat.CMatrix, lda *int, taua *mat.CVector, b *mat.CMatrix, ldb *int, taub, work *mat.CVector, lwork, info *int) {
+func Zggqrf(n, m, p int, a *mat.CMatrix, taua *mat.CVector, b *mat.CMatrix, taub, work *mat.CVector, lwork int) (err error) {
 	var lquery bool
 	var lopt, lwkopt, nb, nb1, nb2, nb3 int
 
 	//     Test the input parameters
-	(*info) = 0
-	nb1 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, m, toPtr(-1), toPtr(-1))
-	nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGERQF"), []byte{' '}, n, p, toPtr(-1), toPtr(-1))
-	nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, m, p, toPtr(-1))
+	nb1 = Ilaenv(1, "Zgeqrf", []byte{' '}, n, m, -1, -1)
+	nb2 = Ilaenv(1, "Zgerqf", []byte{' '}, n, p, -1, -1)
+	nb3 = Ilaenv(1, "Zunmqr", []byte{' '}, n, m, p, -1)
 	nb = max(nb1, nb2, nb3)
-	lwkopt = max(*n, *m, *p) * nb
+	lwkopt = max(n, m, p) * nb
 	work.SetRe(0, float64(lwkopt))
-	lquery = ((*lwork) == -1)
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*m) < 0 {
-		(*info) = -2
-	} else if (*p) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -8
-	} else if (*lwork) < max(1, *n, *m, *p) && !lquery {
-		(*info) = -11
+	lquery = (lwork == -1)
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 {
+		err = fmt.Errorf("p < 0: p=%v", p)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if lwork < max(1, n, m, p) && !lquery {
+		err = fmt.Errorf("lwork < max(1, n, m, p) && !lquery: lwork=%v, m=%v, n=%v, p=%v, lquery=%v", lwork, m, n, p, lquery)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGGQRF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zggqrf", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     QR factorization of N-by-M matrix A: A = Q*R
-	Zgeqrf(n, m, a, lda, taua, work, lwork, info)
+	if err = Zgeqrf(n, m, a, taua, work, lwork); err != nil {
+		panic(err)
+	}
 	lopt = int(work.GetRe(0))
 
 	//     Update B := Q**H*B.
-	Zunmqr('L', 'C', n, p, toPtr(min(*n, *m)), a, lda, taua, b, ldb, work, lwork, info)
+	if err = Zunmqr(Left, ConjTrans, n, p, min(n, m), a, taua, b, work, lwork); err != nil {
+		panic(err)
+	}
 	lopt = max(lopt, int(work.GetRe(0)))
 
 	//     RQ factorization of N-by-P matrix B: B = T*Z.
-	Zgerqf(n, p, b, ldb, taub, work, lwork, info)
+	if err = Zgerqf(n, p, b, taub, work, lwork); err != nil {
+		panic(err)
+	}
 	work.SetRe(0, float64(max(lopt, int(work.GetRe(0)))))
+
+	return
 }

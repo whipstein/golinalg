@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zqrt17 computes the ratio
+// zqrt17 computes the ratio
 //
 //    || R'*op(A) ||/(||A||*alpha*max(M,N,NRHS)*eps)
 //
@@ -15,11 +15,10 @@ import (
 //
 //    alpha = ||B|| if IRESID = 1 (zero-residual problem)
 //    alpha = ||R|| if IRESID = 2 (otherwise).
-func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *mat.CMatrix, ldx *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, work *mat.CVector, lwork *int) (zqrt17Return float64) {
+func zqrt17(trans mat.MatTrans, iresid, m, n, nrhs int, a, x, b, c *mat.CMatrix, work *mat.CVector, lwork int) (zqrt17Return float64) {
 	var err2, norma, normb, normrs, one, smlnum, zero float64
-	var info, iscl, ncols, nrows int
+	var iscl, ncols, nrows int
 	var err error
-	_ = err
 
 	rwork := vf(1)
 
@@ -28,45 +27,51 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 
 	zqrt17Return = zero
 
-	if trans == 'N' {
-		nrows = (*m)
-		ncols = (*n)
-	} else if trans == 'C' {
-		nrows = (*n)
-		ncols = (*m)
+	if trans == NoTrans {
+		nrows = m
+		ncols = n
+	} else if trans == ConjTrans {
+		nrows = n
+		ncols = m
 	} else {
-		gltest.Xerbla([]byte("ZQRT17"), 1)
+		gltest.Xerbla("zqrt17", 1)
 		return
 	}
 
-	if (*lwork) < ncols*(*nrhs) {
-		gltest.Xerbla([]byte("ZQRT17"), 13)
+	if lwork < ncols*nrhs {
+		gltest.Xerbla("zqrt17", 13)
 		return
 	}
 
-	if (*m) <= 0 || (*n) <= 0 || (*nrhs) <= 0 {
+	if m <= 0 || n <= 0 || nrhs <= 0 {
 		return
 	}
 
-	norma = golapack.Zlange('O', m, n, a, lda, rwork)
+	norma = golapack.Zlange('O', m, n, a, rwork)
 	smlnum = golapack.Dlamch(SafeMinimum) / golapack.Dlamch(Precision)
 	// bignum = one / smlnum
 	iscl = 0
 
 	//     compute residual and scale it
-	golapack.Zlacpy('A', &nrows, nrhs, b, ldb, c, ldb)
-	err = goblas.Zgemm(mat.TransByte(trans), NoTrans, nrows, *nrhs, ncols, complex(-one, 0), a, x, complex(one, 0), c)
-	normrs = golapack.Zlange('M', &nrows, nrhs, c, ldb, rwork)
+	golapack.Zlacpy(Full, nrows, nrhs, b, c)
+	if err = goblas.Zgemm(trans, NoTrans, nrows, nrhs, ncols, complex(-one, 0), a, x, complex(one, 0), c); err != nil {
+		panic(err)
+	}
+	normrs = golapack.Zlange('M', nrows, nrhs, c, rwork)
 	if normrs > smlnum {
 		iscl = 1
-		golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &normrs, &one, &nrows, nrhs, c, ldb, &info)
+		if err = golapack.Zlascl('G', 0, 0, normrs, one, nrows, nrhs, c); err != nil {
+			panic(err)
+		}
 	}
 
 	//     compute R'*A
-	err = goblas.Zgemm(ConjTrans, mat.TransByte(trans), *nrhs, ncols, nrows, complex(one, 0), c, a, complex(zero, 0), work.CMatrix(*nrhs, opts))
+	if err = goblas.Zgemm(ConjTrans, trans, nrhs, ncols, nrows, complex(one, 0), c, a, complex(zero, 0), work.CMatrix(nrhs, opts)); err != nil {
+		panic(err)
+	}
 
 	//     compute and properly scale error
-	err2 = golapack.Zlange('O', nrhs, &ncols, work.CMatrix(*nrhs, opts), nrhs, rwork)
+	err2 = golapack.Zlange('O', nrhs, ncols, work.CMatrix(nrhs, opts), rwork)
 	if norma != zero {
 		err2 = err2 / norma
 	}
@@ -75,8 +80,8 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 		err2 = err2 * normrs
 	}
 
-	if (*iresid) == 1 {
-		normb = golapack.Zlange('O', &nrows, nrhs, b, ldb, rwork)
+	if iresid == 1 {
+		normb = golapack.Zlange('O', nrows, nrhs, b, rwork)
 		if normb != zero {
 			err2 = err2 / normb
 		}
@@ -86,6 +91,6 @@ func Zqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.CMatrix, lda *int, x *ma
 		}
 	}
 
-	zqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(max(*m, *n, *nrhs)))
+	zqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(max(m, n, nrhs)))
 	return
 }

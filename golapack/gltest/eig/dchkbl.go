@@ -12,8 +12,8 @@ import (
 // matrix and isolating some of its eigenvalues.
 func Dchkbl(t *testing.T) {
 	var rmax, sfmin, temp, vmax, zero float64
-	var _i, i, ihi, ihiin, ilo, iloin, info, j, knt, lda, n, ninfo int
-	_ = _i
+	var _i, i, ihi, ihiin, ilo, iloin, info, j, knt, n, ninfo int
+	var err error
 
 	// dummy := vf(1)
 	scale := vf(20)
@@ -22,7 +22,6 @@ func Dchkbl(t *testing.T) {
 	a := mf(20, 20, opts)
 	ain := mf(20, 20, opts)
 
-	lda = 20
 	zero = 0.0
 
 	alenlist := []int{5, 5, 5, 4, 6, 5, 4, 4, 5, 6, 7, 5, 6}
@@ -265,7 +264,9 @@ func Dchkbl(t *testing.T) {
 		// anorm = Dlange('M', &n, &n, a, &lda, dummy)
 		knt = knt + 1
 
-		golapack.Dgebal('B', &n, a, &lda, &ilo, &ihi, scale, &info)
+		if ilo, ihi, err = golapack.Dgebal('B', n, a, scale); err != nil {
+			panic(err)
+		}
 
 		if info != 0 {
 			t.Fail()

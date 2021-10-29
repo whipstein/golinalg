@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget07 tests the error bounds from iterative refinement for the
+// dget07 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations op(A)*X = B, where A is a
 // general n by n matrix and op(A) = A or A**T, depending on TRANS.
 //
@@ -20,7 +20,7 @@ import (
 // RESLTS(2) = residual from the iterative refinement routine
 //           = the maximum of BERR / ( (n+1)*EPS + (*) ), where
 //             (*) = (n+1)*UNFL / (min_i (abs(op(A))*abs(X) +abs(b))_i )
-func Dget07(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact *int, ferr *mat.Vector, chkferr bool, berr, reslts *mat.Vector) {
+func dget07(trans mat.MatTrans, n, nrhs int, a *mat.Matrix, b *mat.Matrix, x *mat.Matrix, xact *mat.Matrix, ferr *mat.Vector, chkferr bool, berr, reslts *mat.Vector) {
 	var notran bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, imax, j, k int
@@ -29,7 +29,7 @@ func Dget07(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 	one = 1.0
 
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -38,18 +38,18 @@ func Dget07(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	notran = trans == 'N'
+	notran = trans == NoTrans
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	if chkferr {
-		for j = 1; j <= (*nrhs); j++ {
-			imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+		for j = 1; j <= nrhs; j++ {
+			imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
 			xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 			diff = zero
-			for i = 1; i <= (*n); i++ {
+			for i = 1; i <= n; i++ {
 				diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 			}
 
@@ -76,15 +76,15 @@ func Dget07(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 
 	//     Test 2:  Compute the maximum of BERR / ( (n+1)*EPS + (*) ), where
 	//     (*) = (n+1)*UNFL / (min_i (abs(op(A))*abs(X) +abs(b))_i )
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if notran {
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					tmp += math.Abs(a.Get(i-1, j-1)) * math.Abs(x.Get(j-1, k-1))
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					tmp += math.Abs(a.Get(j-1, i-1)) * math.Abs(x.Get(j-1, k-1))
 				}
 			}
@@ -94,7 +94,7 @@ func Dget07(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matri
 				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64((*n)+1)*eps + float64((*n)+1)*unfl/math.Max(axbi, float64((*n)+1)*unfl))
+		tmp = berr.Get(k-1) / (float64(n+1)*eps + float64(n+1)*unfl/math.Max(axbi, float64(n+1)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {

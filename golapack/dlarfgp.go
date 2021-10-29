@@ -24,40 +24,41 @@ import (
 //
 // If the elements of x are all zero, then tau = 0 and H is taken to be
 // the unit matrix.
-func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
+func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 	var beta, bignum, one, savealpha, smlnum, two, xnorm, zero float64
 	var j, knt int
 
 	two = 2.0
 	one = 1.0
 	zero = 0.0
+	alphaOut = alpha
 
-	if (*n) <= 0 {
-		(*tau) = zero
+	if n <= 0 {
+		tau = zero
 		return
 	}
 
-	xnorm = goblas.Dnrm2((*n)-1, x.Off(0, *incx))
+	xnorm = goblas.Dnrm2(n-1, x)
 
 	if xnorm == zero {
 		//        H  =  [+/-1, 0; I], sign chosen so ALPHA >= 0
-		if (*alpha) >= zero {
+		if alphaOut >= zero {
 			//           When TAU.eq.ZERO, the vector is special-cased to be
 			//           all zeros in the application routines.  We do not need
 			//           to clear it.
-			(*tau) = zero
+			tau = zero
 		} else {
 			//           However, the application routines rely on explicit
 			//           zero checks when TAU.ne.ZERO, and we must clear X.
-			(*tau) = two
-			for j = 1; j <= (*n)-1; j++ {
-				x.Set(1+(j-1)*(*incx)-1, 0)
+			tau = two
+			for j = 1; j <= n-1; j++ {
+				x.Set(1+(j-1)*x.Inc-1, 0)
 			}
-			(*alpha) = -(*alpha)
+			alphaOut = -alphaOut
 		}
 	} else {
 		//        general case
-		beta = math.Copysign(Dlapy2(alpha, &xnorm), *alpha)
+		beta = math.Copysign(Dlapy2(alphaOut, xnorm), alphaOut)
 		smlnum = Dlamch(SafeMinimum) / Dlamch(Epsilon)
 		knt = 0
 		if math.Abs(beta) < smlnum {
@@ -66,29 +67,29 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		label10:
 			;
 			knt = knt + 1
-			goblas.Dscal((*n)-1, bignum, x.Off(0, *incx))
+			goblas.Dscal(n-1, bignum, x)
 			beta = beta * bignum
-			(*alpha) = (*alpha) * bignum
+			alphaOut = alphaOut * bignum
 			if (math.Abs(beta) < smlnum) && (knt < 20) {
 				goto label10
 			}
 
 			//           New BETA is at most 1, at least SMLNUM
-			xnorm = goblas.Dnrm2((*n)-1, x.Off(0, *incx))
-			beta = math.Copysign(Dlapy2(alpha, &xnorm), *alpha)
+			xnorm = goblas.Dnrm2(n-1, x)
+			beta = math.Copysign(Dlapy2(alphaOut, xnorm), alphaOut)
 		}
-		savealpha = (*alpha)
-		(*alpha) = (*alpha) + beta
+		savealpha = alphaOut
+		alphaOut = alphaOut + beta
 		if beta < zero {
 			beta = -beta
-			(*tau) = -(*alpha) / beta
+			tau = -alphaOut / beta
 		} else {
-			(*alpha) = xnorm * (xnorm / (*alpha))
-			(*tau) = (*alpha) / beta
-			(*alpha) = -(*alpha)
+			alphaOut = xnorm * (xnorm / alphaOut)
+			tau = alphaOut / beta
+			alphaOut = -alphaOut
 		}
 
-		if math.Abs(*tau) <= smlnum {
+		if math.Abs(tau) <= smlnum {
 			//           In the case where the computed TAU ends up being a denormalized number,
 			//           it loses relative accuracy. This is a BIG problem. Solution: flush TAU
 			//           to ZERO. This explains the next IF statement.
@@ -96,18 +97,18 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 			//           (Bug report provided by Pat Quillen from MathWorks on Jul 29, 2009.)
 			//           (Thanks Pat. Thanks MathWorks.)
 			if savealpha >= zero {
-				(*tau) = zero
+				tau = zero
 			} else {
-				(*tau) = two
-				for j = 1; j <= (*n)-1; j++ {
-					x.Set(1+(j-1)*(*incx)-1, 0)
+				tau = two
+				for j = 1; j <= n-1; j++ {
+					x.Set(1+(j-1)*x.Inc-1, 0)
 				}
 				beta = -savealpha
 			}
 
 		} else {
 			//           This is the general case.
-			goblas.Dscal((*n)-1, one/(*alpha), x.Off(0, *incx))
+			goblas.Dscal(n-1, one/alphaOut, x)
 
 		}
 
@@ -115,6 +116,8 @@ func Dlarfgp(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		for j = 1; j <= knt; j++ {
 			beta = beta * smlnum
 		}
-		(*alpha) = beta
+		alphaOut = beta
 	}
+
+	return
 }

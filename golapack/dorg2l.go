@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -13,7 +15,7 @@ import (
 //       Q  =  H(k) . . . H(2) H(1)
 //
 // as returned by DGEQLF.
-func Dorg2l(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *int) {
+func Dorg2l(m, n, k int, a *mat.Matrix, tau, work *mat.Vector) (err error) {
 	var one, zero float64
 	var i, ii, j, l int
 
@@ -21,46 +23,47 @@ func Dorg2l(m, n, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, info *
 	zero = 0.0
 
 	//     Test the input arguments
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 || (*n) > (*m) {
-		(*info) = -2
-	} else if (*k) < 0 || (*k) > (*n) {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 || n > m {
+		err = fmt.Errorf("n < 0 || n > m: n=%v, m=%v", n, m)
+	} else if k < 0 || k > n {
+		err = fmt.Errorf("k < 0 || k > n: k=%v, n=%v", k, n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DORG2L"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dorg2l", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
 	//     Initialise columns 1:n-k to columns of the unit matrix
-	for j = 1; j <= (*n)-(*k); j++ {
-		for l = 1; l <= (*m); l++ {
+	for j = 1; j <= n-k; j++ {
+		for l = 1; l <= m; l++ {
 			a.Set(l-1, j-1, zero)
 		}
-		a.Set((*m)-(*n)+j-1, j-1, one)
+		a.Set(m-n+j-1, j-1, one)
 	}
 
-	for i = 1; i <= (*k); i++ {
-		ii = (*n) - (*k) + i
+	for i = 1; i <= k; i++ {
+		ii = n - k + i
 
 		//        Apply H(i) to A(1:m-k+i,1:n-k+i) from the left
-		a.Set((*m)-(*n)+ii-1, ii-1, one)
-		Dlarf('L', toPtr((*m)-(*n)+ii), toPtr(ii-1), a.Vector(0, ii-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), a, lda, work)
-		goblas.Dscal((*m)-(*n)+ii-1, -tau.Get(i-1), a.Vector(0, ii-1, 1))
-		a.Set((*m)-(*n)+ii-1, ii-1, one-tau.Get(i-1))
+		a.Set(m-n+ii-1, ii-1, one)
+		Dlarf(Left, m-n+ii, ii-1, a.Vector(0, ii-1, 1), tau.Get(i-1), a, work)
+		goblas.Dscal(m-n+ii-1, -tau.Get(i-1), a.Vector(0, ii-1, 1))
+		a.Set(m-n+ii-1, ii-1, one-tau.Get(i-1))
 
 		//        Set A(m-k+i+1:m,n-k+i) to zero
-		for l = (*m) - (*n) + ii + 1; l <= (*m); l++ {
+		for l = m - n + ii + 1; l <= m; l++ {
 			a.Set(l-1, ii-1, zero)
 		}
 	}
+
+	return
 }

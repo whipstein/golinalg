@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -13,7 +15,7 @@ import (
 //       Q  =  H(k)**H . . . H(2)**H H(1)**H
 //
 // as returned by ZGELQF.
-func Zungl2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *int) {
+func Zungl2(m, n, k int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 	var one, zero complex128
 	var i, j, l int
 
@@ -21,48 +23,47 @@ func Zungl2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 	zero = (0.0 + 0.0*1i)
 
 	//     Test the input arguments
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < (*m) {
-		(*info) = -2
-	} else if (*k) < 0 || (*k) > (*m) {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < m {
+		err = fmt.Errorf("n < m: m=%v, n=%v", m, n)
+	} else if k < 0 || k > m {
+		err = fmt.Errorf("k < 0 || k > m: m=%v, k=%v", m, k)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUNGL2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zungl2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) <= 0 {
+	if m <= 0 {
 		return
 	}
 
-	if (*k) < (*m) {
+	if k < m {
 		//        Initialise rows k+1:m to rows of the unit matrix
-		for j = 1; j <= (*n); j++ {
-			for l = (*k) + 1; l <= (*m); l++ {
+		for j = 1; j <= n; j++ {
+			for l = k + 1; l <= m; l++ {
 				a.Set(l-1, j-1, zero)
 			}
-			if j > (*k) && j <= (*m) {
+			if j > k && j <= m {
 				a.Set(j-1, j-1, one)
 			}
 		}
 	}
 
-	for i = (*k); i >= 1; i-- {
+	for i = k; i >= 1; i-- {
 		//        Apply H(i)**H to A(i:m,i:n) from the right
-		if i < (*n) {
-			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i), lda)
-			if i < (*m) {
+		if i < n {
+			Zlacgv(n-i, a.CVector(i-1, i))
+			if i < m {
 				a.Set(i-1, i-1, one)
-				Zlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.CVector(i-1, i-1), lda, toPtrc128(tau.GetConj(i-1)), a.Off(i, i-1), lda, work)
+				Zlarf(Right, m-i, n-i+1, a.CVector(i-1, i-1), tau.GetConj(i-1), a.Off(i, i-1), work)
 			}
-			goblas.Zscal((*n)-i, -tau.Get(i-1), a.CVector(i-1, i, *lda))
-			Zlacgv(toPtr((*n)-i), a.CVector(i-1, i), lda)
+			goblas.Zscal(n-i, -tau.Get(i-1), a.CVector(i-1, i))
+			Zlacgv(n-i, a.CVector(i-1, i))
 		}
 		a.Set(i-1, i-1, one-tau.GetConj(i-1))
 
@@ -71,4 +72,6 @@ func Zungl2(m, n, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info
 			a.Set(i-1, l-1, zero)
 		}
 	}
+
+	return
 }

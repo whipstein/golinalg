@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,38 +16,35 @@ import (
 //    A = U**T * U,  if UPLO = 'U', or
 //    A = L  * L**T,  if UPLO = 'L',
 // where U is an upper triangular matrix and L is lower triangular.
-func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
+func Dpptrf(uplo mat.MatUplo, n int, ap *mat.Vector) (info int, err error) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, jc, jj int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPPTRF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dpptrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	if upper {
 		//        Compute the Cholesky factorization A = U**T*U.
 		jj = 0
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			jc = jj + 1
 			jj = jj + j
 
@@ -66,7 +64,7 @@ func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
 	} else {
 		//        Compute the Cholesky factorization A = L*L**T.
 		jj = 1
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			//           Compute L(J,J) and test for non-positive-definiteness.
 			ajj = ap.Get(jj - 1)
 			if ajj <= zero {
@@ -78,10 +76,10 @@ func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
 
 			//           Compute elements J+1:N of column J and update the trailing
 			//           submatrix.
-			if j < (*n) {
-				goblas.Dscal((*n)-j, one/ajj, ap.Off(jj, 1))
-				err = goblas.Dspr(mat.Lower, (*n)-j, -one, ap.Off(jj, 1), ap.Off(jj+(*n)-j))
-				jj = jj + (*n) - j + 1
+			if j < n {
+				goblas.Dscal(n-j, one/ajj, ap.Off(jj, 1))
+				err = goblas.Dspr(mat.Lower, n-j, -one, ap.Off(jj, 1), ap.Off(jj+n-j))
+				jj = jj + n - j + 1
 			}
 		}
 	}
@@ -89,5 +87,7 @@ func Dpptrf(uplo byte, n *int, ap *mat.Vector, info *int) {
 
 label30:
 	;
-	(*info) = j
+	info = j
+
+	return
 }

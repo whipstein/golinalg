@@ -6,7 +6,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dqrt11 computes the test ratio
+// dqrt11 computes the test ratio
 //
 //       || Q'*Q - I || / (eps * m)
 //
@@ -18,9 +18,10 @@ import (
 // where tau(k) is stored in TAU(k) and v(k) is an m-vector of the form
 // [ 0 ... 0 1 x(k) ]', where x(k) is a vector of length m-k stored
 // in A(k+1:m,k).
-func Dqrt11(m, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *int) (dqrt11Return float64) {
+func dqrt11(m, k int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (dqrt11Return float64) {
 	var one, zero float64
-	var info, j int
+	var j int
+	var err error
 
 	rdummy := vf(1)
 
@@ -30,29 +31,33 @@ func Dqrt11(m, k *int, a *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *in
 	dqrt11Return = zero
 
 	//     Test for sufficient workspace
-	if (*lwork) < (*m)*(*m)+(*m) {
-		gltest.Xerbla([]byte("DQRT11"), 7)
+	if lwork < m*m+m {
+		gltest.Xerbla("dqrt11", 7)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) <= 0 {
+	if m <= 0 {
 		return
 	}
 
-	golapack.Dlaset('F', m, m, &zero, &one, work.Matrix(*m, opts), m)
+	golapack.Dlaset(Full, m, m, zero, one, work.Matrix(m, opts))
 
 	//     Form Q
-	golapack.Dorm2r('L', 'N', m, m, k, a, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*m)), &info)
-
-	//     Form Q'*Q
-	golapack.Dorm2r('L', 'T', m, m, k, a, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*m)), &info)
-
-	for j = 1; j <= (*m); j++ {
-		work.Set((j-1)*(*m)+j-1, work.Get((j-1)*(*m)+j-1)-one)
+	if err = golapack.Dorm2r(Left, NoTrans, m, m, k, a, tau, work.Matrix(m, opts), work.Off(m*m)); err != nil {
+		panic(err)
 	}
 
-	dqrt11Return = golapack.Dlange('O', m, m, work.Matrix(*m, opts), m, rdummy) / (float64(*m) * golapack.Dlamch(Epsilon))
+	//     Form Q'*Q
+	if err = golapack.Dorm2r(Left, Trans, m, m, k, a, tau, work.Matrix(m, opts), work.Off(m*m)); err != nil {
+		panic(err)
+	}
+
+	for j = 1; j <= m; j++ {
+		work.Set((j-1)*m+j-1, work.Get((j-1)*m+j-1)-one)
+	}
+
+	dqrt11Return = golapack.Dlange('O', m, m, work.Matrix(m, opts), rdummy) / (float64(m) * golapack.Dlamch(Epsilon))
 
 	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -25,41 +26,38 @@ import (
 //
 // The subroutine calls itself to factor A11. Update and scale A21
 // or A12, update A22 then calls itself to factor A22.
-func Dpotrf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
+func Dpotrf2(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 	var upper bool
 	var one, zero float64
 	var iinfo, n1, n2 int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPOTRF2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dpotrf2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     N=1 case
-	if (*n) == 1 {
+	if n == 1 {
 		//        Test for non-positive-definiteness
 		if a.Get(0, 0) <= zero || Disnan(int(a.Get(0, 0))) {
-			(*info) = 1
+			info = 1
 			return
 		}
 
@@ -68,41 +66,57 @@ func Dpotrf2(uplo byte, n *int, a *mat.Matrix, lda, info *int) {
 
 		//     Use recursive code
 	} else {
-		n1 = (*n) / 2
-		n2 = (*n) - n1
+		n1 = n / 2
+		n2 = n - n1
 
 		//        Factor A11
-		Dpotrf2(uplo, &n1, a, lda, &iinfo)
+		if iinfo, err = Dpotrf2(uplo, n1, a); err != nil {
+			panic(err)
+		}
 		if iinfo != 0 {
-			(*info) = iinfo
+			info = iinfo
 			return
 		}
 
 		//        Compute the Cholesky factorization A = U**T*U
 		if upper {
 			//           Update and scale A12
-			err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n1, n2, one, a, a.Off(0, n1))
+			if err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n1, n2, one, a, a.Off(0, n1)); err != nil {
+				panic(err)
+			}
 
 			//           Update and factor A22
-			err = goblas.Dsyrk(mat.UploByte(uplo), mat.Trans, n2, n1, -one, a.Off(0, n1), one, a.Off(n1, n1))
-			Dpotrf2(uplo, &n2, a.Off(n1, n1), lda, &iinfo)
+			if err = goblas.Dsyrk(uplo, Trans, n2, n1, -one, a.Off(0, n1), one, a.Off(n1, n1)); err != nil {
+				panic(err)
+			}
+			if iinfo, err = Dpotrf2(uplo, n2, a.Off(n1, n1)); err != nil {
+				panic(err)
+			}
 			if iinfo != 0 {
-				(*info) = iinfo + n1
+				info = iinfo + n1
 				return
 			}
 
 			//        Compute the Cholesky factorization A = L*L**T
 		} else {
 			//           Update and scale A21
-			err = goblas.Dtrsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, n2, n1, one, a, a.Off(n1, 0))
+			if err = goblas.Dtrsm(Right, Lower, Trans, NonUnit, n2, n1, one, a, a.Off(n1, 0)); err != nil {
+				panic(err)
+			}
 
 			//           Update and factor A22
-			err = goblas.Dsyrk(mat.UploByte(uplo), mat.NoTrans, n2, n1, -one, a.Off(n1, 0), one, a.Off(n1, n1))
-			Dpotrf2(uplo, &n2, a.Off(n1, n1), lda, &iinfo)
+			if err = goblas.Dsyrk(uplo, NoTrans, n2, n1, -one, a.Off(n1, 0), one, a.Off(n1, n1)); err != nil {
+				panic(err)
+			}
+			if iinfo, err = Dpotrf2(uplo, n2, a.Off(n1, n1)); err != nil {
+				panic(err)
+			}
 			if iinfo != 0 {
-				(*info) = iinfo + n1
+				info = iinfo + n1
 				return
 			}
 		}
 	}
+
+	return
 }

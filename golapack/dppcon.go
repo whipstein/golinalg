@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,37 +16,37 @@ import (
 //
 // An estimate is obtained for norm(inv(A)), and the reciprocal of the
 // condition number is computed as RCOND = 1 / (ANORM * norm(inv(A))).
-func Dppcon(uplo byte, n *int, ap *mat.Vector, anorm, rcond *float64, work *mat.Vector, iwork *[]int, info *int) {
+func Dppcon(uplo mat.MatUplo, n int, ap *mat.Vector, anorm float64, work *mat.Vector, iwork *[]int) (rcond float64, err error) {
 	var upper bool
 	var normin byte
 	var ainvnm, one, scale, scalel, scaleu, smlnum, zero float64
 	var ix, kase int
+
 	isave := make([]int, 3)
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*anorm) < zero {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if anorm < zero {
+		err = fmt.Errorf("anorm < zero: anorm=%v", anorm)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPPCON"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dppcon", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*rcond) = zero
-	if (*n) == 0 {
-		(*rcond) = one
+	rcond = zero
+	if n == 0 {
+		rcond = one
 		return
-	} else if (*anorm) == zero {
+	} else if anorm == zero {
 		return
 	}
 
@@ -56,39 +57,49 @@ func Dppcon(uplo byte, n *int, ap *mat.Vector, anorm, rcond *float64, work *mat.
 	normin = 'N'
 label10:
 	;
-	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
+	ainvnm, kase = Dlacn2(n, work.Off(n), work, iwork, ainvnm, kase, &isave)
 	if kase != 0 {
 		if upper {
 			//           Multiply by inv(U**T).
-			Dlatps('U', 'T', 'N', normin, n, ap, work, &scalel, work.Off(2*(*n)), info)
+			if scalel, err = Dlatps(Upper, Trans, NonUnit, normin, n, ap, work, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 			normin = 'Y'
 
 			//           Multiply by inv(U).
-			Dlatps('U', 'N', 'N', normin, n, ap, work, &scaleu, work.Off(2*(*n)), info)
+			if scaleu, err = Dlatps(Upper, NoTrans, NonUnit, normin, n, ap, work, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 		} else {
 
 			//           Multiply by inv(L).
-			Dlatps('L', 'N', 'N', normin, n, ap, work, &scalel, work.Off(2*(*n)), info)
+			if scalel, err = Dlatps(Lower, NoTrans, NonUnit, normin, n, ap, work, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 			normin = 'Y'
 
 			//           Multiply by inv(L**T).
-			Dlatps('L', 'T', 'N', normin, n, ap, work, &scaleu, work.Off(2*(*n)), info)
+			if scaleu, err = Dlatps(Lower, Trans, NonUnit, normin, n, ap, work, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Multiply by 1/SCALE if doing so will not cause overflow.
 		scale = scalel * scaleu
 		if scale != one {
-			ix = goblas.Idamax(*n, work.Off(0, 1))
+			ix = goblas.Idamax(n, work.Off(0, 1))
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}
-			Drscl(n, &scale, work, func() *int { y := 1; return &y }())
+			Drscl(n, scale, work.Off(0, 1))
 		}
 		goto label10
 	}
 
 	//     Compute the estimate of the reciprocal condition number.
 	if ainvnm != zero {
-		(*rcond) = (one / ainvnm) / (*anorm)
+		rcond = (one / ainvnm) / anorm
 	}
+
+	return
 }

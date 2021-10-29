@@ -10,11 +10,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkql tests ZGEQLF, ZUNGQL and CUNMQL.
-func Zchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int, nbval *[]int, nxval *[]int, nrhs *int, thresh *float64, tsterr *bool, nmax *int, a, af, aq, al, ac, b, x, xact, tau, work *mat.CVector, rwork *mat.Vector, nout *int, t *testing.T) {
+// zchkql tests ZGEQLF, ZUNGQL and CUNMQL.
+func zchkql(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbval []int, nxval []int, nrhs int, thresh float64, tsterr bool, nmax int, a, af, aq, al, ac, b, x, xact, tau, work *mat.CVector, rwork *mat.Vector, t *testing.T) {
 	var dist, _type byte
 	var anorm, cndnum, zero float64
 	var i, ik, im, imat, in, inb, info, k, kl, ku, lda, lwork, m, minmn, mode, n, nb, nerrs, nfail, nk, nrun, nt, ntests, ntypes, nx int
+	var err error
 
 	result := vf(7)
 	iseed := make([]int, 4)
@@ -30,7 +31,7 @@ func Zchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
 
 	//     Initialize constants and the random number seed.
-	path := []byte("ZQL")
+	path := "Zql"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -39,40 +40,37 @@ func Zchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Zerrql(path, t)
+	if tsterr {
+		zerrql(path, t)
 	}
 	(*infot) = 0
-	Xlaenv(2, 2)
+	xlaenv(2, 2)
 
-	lda = (*nmax)
-	lwork = (*nmax) * max(*nmax, *nrhs)
+	lda = nmax
+	lwork = nmax * max(nmax, nrhs)
 
 	//     Do for each value of M in MVAL.
-	for im = 1; im <= (*nm); im++ {
-		m = (*mval)[im-1]
+	for im = 1; im <= nm; im++ {
+		m = mval[im-1]
 
 		//        Do for each value of N in NVAL.
-		for in = 1; in <= (*nn); in++ {
-			n = (*nval)[in-1]
+		for in = 1; in <= nn; in++ {
+			n = nval[in-1]
 			minmn = min(m, n)
 			for imat = 1; imat <= ntypes; imat++ {
 				//              Do the tests only if DOTYPE( IMAT ) is true.
-				if !(*dotype)[imat-1] {
+				if !dotype[imat-1] {
 					goto label50
 				}
 
 				//              Set up parameters with ZLATB4 and generate a test matrix
-				//              with ZLATMS.
-				Zlatb4(path, &imat, &m, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				//              with Zlatms.
+				_type, kl, ku, anorm, mode, cndnum, dist = zlatb4(path, imat, m, n)
 
-				*srnamt = "ZLATMS"
-				matgen.Zlatms(&m, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, 'N', a.CMatrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from ZLATMS.
-				if info != 0 {
+				*srnamt = "Zlatms"
+				if err = matgen.Zlatms(m, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, 'N', a.CMatrix(lda, opts), work); err != nil {
 					t.Fail()
-					Alaerh(path, []byte("ZLATMS"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &m, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+					nerrs = alaerh(path, "Zlatms", info, 0, []byte{' '}, m, n, -1, -1, -1, imat, nfail, nerrs)
 					goto label50
 				}
 
@@ -97,50 +95,49 @@ func Zchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 				for ik = 1; ik <= nk; ik++ {
 					k = kval[ik-1]
 
-					//                 Do for each pair of values (NB,NX) in NBVAL and NXVAL.
-					for inb = 1; inb <= (*nnb); inb++ {
-						nb = (*nbval)[inb-1]
-						Xlaenv(1, nb)
-						nx = (*nxval)[inb-1]
-						Xlaenv(3, nx)
+					//                 Do for each pair of values (nb,nx) in NBVAL and NXVAL.
+					for inb = 1; inb <= nnb; inb++ {
+						nb = nbval[inb-1]
+						xlaenv(1, nb)
+						nx = nxval[inb-1]
+						xlaenv(3, nx)
 						for i = 1; i <= ntests; i++ {
 							result.Set(i-1, zero)
 						}
 						nt = 2
 						if ik == 1 {
 							//                       Test ZGEQLF
-							Zqlt01(&m, &n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), al.CMatrix(lda, opts), &lda, tau, work, &lwork, rwork, result.Off(0))
+							zqlt01(m, n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), al.CMatrix(lda, opts), tau, work, lwork, rwork, result.Off(0))
 						} else if m >= n {
 							//                       Test ZUNGQL, using factorization
 							//                       returned by ZQLT01
-							Zqlt02(&m, &n, &k, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), al.CMatrix(lda, opts), &lda, tau, work, &lwork, rwork, result.Off(0))
+							zqlt02(m, n, k, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), al.CMatrix(lda, opts), tau, work, lwork, rwork, result.Off(0))
 						}
 						if m >= k {
 							//                       Test ZUNMQL, using factorization returned
 							//                       by ZQLT01
-							Zqlt03(&m, &n, &k, af.CMatrix(lda, opts), ac.CMatrix(lda, opts), al.CMatrix(lda, opts), aq.CMatrix(lda, opts), &lda, tau, work, &lwork, rwork, result.Off(2))
+							zqlt03(m, n, k, af.CMatrix(lda, opts), ac.CMatrix(lda, opts), al.CMatrix(lda, opts), aq.CMatrix(lda, opts), tau, work, lwork, rwork, result.Off(2))
 							nt = nt + 4
 
-							//                       If M>=N and K=N, call ZGEQLS to solve a system
+							//                       If M>=N and k=N, call Zgeqls to solve a system
 							//                       with NRHS right hand sides and compute the
 							//                       residual.
 							if k == n && inb == 1 {
 								//                          Generate a solution and set the right
 								//                          hand side.
-								*srnamt = "ZLARHS"
-								Zlarhs(path, 'N', 'F', 'N', &m, &n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), nrhs, a.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, &iseed, &info)
-
-								golapack.Zlacpy('F', &m, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
-								*srnamt = "ZGEQLS"
-								Zgeqls(&m, &n, nrhs, af.CMatrix(lda, opts), &lda, tau, x.CMatrix(lda, opts), &lda, work, &lwork, &info)
-
-								//                          Check error code from ZGEQLS.
-								if info != 0 {
-									t.Fail()
-									Alaerh(path, []byte("ZGEQLS"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &m, &n, nrhs, toPtr(-1), &nb, &imat, &nfail, &nerrs)
+								*srnamt = "zlarhs"
+								if err = zlarhs(path, 'N', Full, NoTrans, m, n, 0, 0, nrhs, a.CMatrix(lda, opts), xact.CMatrix(lda, opts), b.CMatrix(lda, opts), &iseed); err != nil {
+									panic(err)
 								}
 
-								Zget02('N', &m, &n, nrhs, a.CMatrix(lda, opts), &lda, x.CMatrixOff(m-n, lda, opts), &lda, b.CMatrix(lda, opts), &lda, rwork, result.GetPtr(6))
+								golapack.Zlacpy(Full, m, nrhs, b.CMatrix(lda, opts), x.CMatrix(lda, opts))
+								*srnamt = "zgeqls"
+								if err = zgeqls(m, n, nrhs, af.CMatrix(lda, opts), tau, x.CMatrix(lda, opts), work, lwork); err != nil {
+									t.Fail()
+									nerrs = alaerh(path, "zgeqls", info, 0, []byte{' '}, m, n, nrhs, -1, nb, imat, nfail, nerrs)
+								}
+
+								*result.GetPtr(6) = zget02(NoTrans, m, n, nrhs, a.CMatrix(lda, opts), x.CMatrixOff(m-n, lda, opts), b.CMatrix(lda, opts), rwork)
 								nt = nt + 1
 							}
 						}
@@ -148,13 +145,13 @@ func Zchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						//                    Print information about the tests that did not
 						//                    pass the threshold.
 						for i = 1; i <= nt; i++ {
-							if result.Get(i-1) >= (*thresh) {
+							if result.Get(i-1) >= thresh {
 								t.Fail()
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
-								fmt.Printf(" M=%5d, N=%5d, K=%5d, NB=%4d, NX=%5d, _type %2d, test(%2d)=%12.5f\n", m, n, k, nb, nx, imat, i, result.Get(i-1))
-								nfail = nfail + 1
+								fmt.Printf(" m=%5d, n=%5d, k=%5d, nb=%4d, nx=%5d, _type %2d, test(%2d)=%12.5f\n", m, n, k, nb, nx, imat, i, result.Get(i-1))
+								nfail++
 							}
 						}
 						nrun = nrun + nt
@@ -166,5 +163,5 @@ func Zchkql(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

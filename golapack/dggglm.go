@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -32,62 +34,59 @@ import (
 //                  x
 //
 // where inv(B) denotes the inverse of B.
-func Dggglm(n, m, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, d, x, y, work *mat.Vector, lwork, info *int) {
+func Dggglm(n, m, p int, a, b *mat.Matrix, d, x, y, work *mat.Vector, lwork int) (info int, err error) {
 	var lquery bool
 	var one, zero float64
 	var i, lopt, lwkmin, lwkopt, nb, nb1, nb2, nb3, nb4, np int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 
 	//     Test the input parameters
-	(*info) = 0
-	np = min(*n, *p)
-	lquery = ((*lwork) == -1)
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*m) < 0 || (*m) > (*n) {
-		(*info) = -2
-	} else if (*p) < 0 || (*p) < (*n)-(*m) {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
+	np = min(n, p)
+	lquery = (lwork == -1)
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if m < 0 || m > n {
+		err = fmt.Errorf("m < 0 || m > n: m=%v, n=%v", m, n)
+	} else if p < 0 || p < n-m {
+		err = fmt.Errorf("p < 0 || p < n-m: m=%v, n=%v, p=%v", m, n, p)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
 
 	//     Calculate workspace
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			lwkmin = 1
 			lwkopt = 1
 		} else {
-			nb1 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, m, toPtr(-1), toPtr(-1))
-			nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGERQF"), []byte{' '}, n, m, toPtr(-1), toPtr(-1))
-			nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, m, p, toPtr(-1))
-			nb4 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMRQ"), []byte{' '}, n, m, p, toPtr(-1))
+			nb1 = Ilaenv(1, "DGEQRF", []byte{' '}, n, m, -1, -1)
+			nb2 = Ilaenv(1, "DGERQF", []byte{' '}, n, m, -1, -1)
+			nb3 = Ilaenv(1, "DORMQR", []byte{' '}, n, m, p, -1)
+			nb4 = Ilaenv(1, "DORMRQ", []byte{' '}, n, m, p, -1)
 			nb = max(nb1, nb2, nb3, nb4)
-			lwkmin = (*m) + (*n) + (*p)
-			lwkopt = (*m) + np + max(*n, *p)*nb
+			lwkmin = m + n + p
+			lwkopt = m + np + max(n, p)*nb
 		}
 		work.Set(0, float64(lwkopt))
 
-		if (*lwork) < lwkmin && !lquery {
-			(*info) = -12
+		if lwork < lwkmin && !lquery {
+			err = fmt.Errorf("lwork < lwkmin && !lquery: lwork=%v, lwkmin=%v, lquery=%v", lwork, lwkmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGGGLM"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dggglm", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -99,48 +98,60 @@ func Dggglm(n, m, p *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, d, x
 	//
 	//     where R11 and T22 are upper triangular, and Q and Z are
 	//     orthogonal.
-	Dggqrf(n, m, p, a, lda, work, b, ldb, work.Off((*m)), work.Off((*m)+np), toPtr((*lwork)-(*m)-np), info)
-	lopt = int(work.Get((*m) + np + 1 - 1))
+	if err = Dggqrf(n, m, p, a, work, b, work.Off(m), work.Off(m+np), lwork-m-np); err != nil {
+		panic(err)
+	}
+	lopt = int(work.Get(m + np + 1 - 1))
 
 	//     Update left-hand-side vector d = Q**T*d = ( d1 ) M
 	//                                               ( d2 ) N-M
-	Dormqr('L', 'T', n, func() *int { y := 1; return &y }(), m, a, lda, work, d.Matrix(max(1, *n), opts), toPtr(max(1, *n)), work.Off((*m)+np), toPtr((*lwork)-(*m)-np), info)
-	lopt = max(lopt, int(work.Get((*m)+np)))
+	if err = Dormqr(Left, Trans, n, 1, m, a, work, d.Matrix(max(1, n), opts), work.Off(m+np), lwork-m-np); err != nil {
+		panic(err)
+	}
+	lopt = max(lopt, int(work.Get(m+np)))
 
 	//     Solve T22*y2 = d2 for y2
-	if (*n) > (*m) {
-		Dtrtrs('U', 'N', 'N', toPtr((*n)-(*m)), func() *int { y := 1; return &y }(), b.Off((*m), (*m)+(*p)-(*n)), ldb, d.MatrixOff((*m), (*n)-(*m), opts), toPtr((*n)-(*m)), info)
+	if n > m {
+		if info, err = Dtrtrs(Upper, NoTrans, NonUnit, n-m, 1, b.Off(m, m+p-n), d.MatrixOff(m, n-m, opts)); err != nil {
+			panic(err)
+		}
 
-		if (*info) > 0 {
-			(*info) = 1
+		if info > 0 {
+			info = 1
 			return
 		}
 
-		goblas.Dcopy((*n)-(*m), d.Off((*m), 1), y.Off((*m)+(*p)-(*n), 1))
+		goblas.Dcopy(n-m, d.Off(m, 1), y.Off(m+p-n, 1))
 	}
 
 	//     Set y1 = 0
-	for i = 1; i <= (*m)+(*p)-(*n); i++ {
+	for i = 1; i <= m+p-n; i++ {
 		y.Set(i-1, zero)
 	}
 
 	//     Update d1 = d1 - T12*y2
-	err = goblas.Dgemv(NoTrans, *m, (*n)-(*m), -one, b.Off(0, (*m)+(*p)-(*n)), y.Off((*m)+(*p)-(*n), 1), one, d.Off(0, 1))
+	err = goblas.Dgemv(NoTrans, m, n-m, -one, b.Off(0, m+p-n), y.Off(m+p-n, 1), one, d.Off(0, 1))
 
 	//     Solve triangular system: R11*x = d1
-	if (*m) > 0 {
-		Dtrtrs('U', 'N', 'N', m, func() *int { y := 1; return &y }(), a, lda, d.Matrix(*m, opts), m, info)
+	if m > 0 {
+		if info, err = Dtrtrs(Upper, NoTrans, NonUnit, m, 1, a, d.Matrix(m, opts)); err != nil {
+			panic(err)
+		}
 
-		if (*info) > 0 {
-			(*info) = 2
+		if info > 0 {
+			info = 2
 			return
 		}
 
 		//        Copy D to X
-		goblas.Dcopy(*m, d.Off(0, 1), x.Off(0, 1))
+		goblas.Dcopy(m, d.Off(0, 1), x.Off(0, 1))
 	}
 
 	//     Backward transformation y = Z**T *y
-	Dormrq('L', 'T', p, func() *int { y := 1; return &y }(), &np, b.Off(max(1, (*n)-(*p)+1)-1, 0), ldb, work.Off((*m)), y.Matrix(max(1, *p), opts), toPtr(max(1, *p)), work.Off((*m)+np), toPtr((*lwork)-(*m)-np), info)
-	work.Set(0, float64((*m)+np+max(lopt, int(work.Get((*m)+np)))))
+	if err = Dormrq(Left, Trans, p, 1, np, b.Off(max(1, n-p+1)-1, 0), work.Off(m), y.Matrix(max(1, p), opts), work.Off(m+np), lwork-m-np); err != nil {
+		panic(err)
+	}
+	work.Set(0, float64(m+np+max(lopt, int(work.Get(m+np)))))
+
+	return
 }

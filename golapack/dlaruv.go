@@ -6,7 +6,7 @@ import "github.com/whipstein/golinalg/mat"
 // distribution (n <= 128).
 //
 // This is an auxiliary routine called by DLARNV and ZLARNV.
-func Dlaruv(iseed *[]int, n *int, x *mat.Vector) {
+func Dlaruv(iseed *[]int, n int, x *mat.Vector) {
 	var one, r float64
 	var i, i1, i2, i3, i4, ipw2, it1, it2, it3, it4, lv int
 	mm := func() [][]int {
@@ -156,7 +156,7 @@ func Dlaruv(iseed *[]int, n *int, x *mat.Vector) {
 	i3 = (*iseed)[2]
 	i4 = (*iseed)[3]
 
-	for i = 1; i <= min(*n, lv); i++ {
+	for i = 1; i <= min(n, lv); i++ {
 
 	label20:
 		;

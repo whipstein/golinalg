@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -27,116 +28,121 @@ import (
 //
 // B11 and B12 are (M-Q)-by-(M-Q) bidiagonal matrices represented
 // implicitly by angles THETA, PHI.
-func Zunbdb4(m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x21 *mat.CMatrix, ldx21 *int, theta, phi *mat.Vector, taup1, taup2, tauq1, phantom, work *mat.CVector, lwork, info *int) {
+func Zunbdb4(m, p, q int, x11, x21 *mat.CMatrix, theta, phi *mat.Vector, taup1, taup2, tauq1, phantom, work *mat.CVector, lwork int) (err error) {
 	var lquery bool
 	var negone, one, zero complex128
 	var c, s float64
-	var childinfo, i, ilarf, iorbdb5, j, llarf, lorbdb5, lworkmin, lworkopt int
+	var i, ilarf, iorbdb5, j, llarf, lorbdb5, lworkmin, lworkopt int
 
 	negone = (-1.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
 	//     Test input arguments
-	(*info) = 0
-	lquery = (*lwork) == -1
+	lquery = lwork == -1
 
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*p) < (*m)-(*q) || (*m)-(*p) < (*m)-(*q) {
-		(*info) = -2
-	} else if (*q) < (*m)-(*q) || (*q) > (*m) {
-		(*info) = -3
-	} else if (*ldx11) < max(1, *p) {
-		(*info) = -5
-	} else if (*ldx21) < max(1, (*m)-(*p)) {
-		(*info) = -7
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < m-q || m-p < m-q {
+		err = fmt.Errorf("p < m-q || m-p < m-q: p=%v, m=%v, q=%v", p, m, q)
+	} else if q < m-q || q > m {
+		err = fmt.Errorf("q < m-q || q > m: q=%v, m=%v", q, m)
+	} else if x11.Rows < max(1, p) {
+		err = fmt.Errorf("x11.Rows < max(1, p): x11.Rows=%v, p=%v", x11.Rows, p)
+	} else if x21.Rows < max(1, m-p) {
+		err = fmt.Errorf("x21.Rows < max(1, m-p): x21.Rows=%v, m=%v, p=%v", x21.Rows, m, p)
 	}
 
 	//     Compute workspace
-	if (*info) == 0 {
+	if err == nil {
 		ilarf = 2
-		llarf = max((*q)-1, (*p)-1, (*m)-(*p)-1)
+		llarf = max(q-1, p-1, m-p-1)
 		iorbdb5 = 2
-		lorbdb5 = (*q)
+		lorbdb5 = q
 		lworkopt = ilarf + llarf - 1
 		lworkopt = max(lworkopt, iorbdb5+lorbdb5-1)
 		lworkmin = lworkopt
 		work.SetRe(0, float64(lworkopt))
-		if (*lwork) < lworkmin && !lquery {
-			(*info) = -14
+		if lwork < lworkmin && !lquery {
+			err = fmt.Errorf("lwork < lworkmin && !lquery: lwork=%v, lworkmin=%v, lquery=%v", lwork, lworkmin, lquery)
 		}
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUNBDB4"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zunbdb4", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Reduce columns 1, ..., M-Q of X11 and X21
-	for i = 1; i <= (*m)-(*q); i++ {
+	for i = 1; i <= m-q; i++ {
 
 		if i == 1 {
-			for j = 1; j <= (*m); j++ {
+			for j = 1; j <= m; j++ {
 				phantom.Set(j-1, zero)
 			}
-			Zunbdb5(p, toPtr((*m)-(*p)), q, phantom.Off(0), func() *int { y := 1; return &y }(), phantom.Off((*p)), func() *int { y := 1; return &y }(), x11, ldx11, x21, ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
-			goblas.Zscal(*p, negone, phantom.Off(0, 1))
-			Zlarfgp(p, phantom.GetPtr(0), phantom.Off(1), func() *int { y := 1; return &y }(), taup1.GetPtr(0))
-			Zlarfgp(toPtr((*m)-(*p)), phantom.GetPtr((*p)), phantom.Off((*p)+2-1), func() *int { y := 1; return &y }(), taup2.GetPtr(0))
-			theta.Set(i-1, math.Atan2(phantom.GetRe(0), phantom.GetRe((*p))))
+			if err = Zunbdb5(p, m-p, q, phantom.Off(0, 1), phantom.Off(p, 1), x11, x21, work.Off(iorbdb5-1), lorbdb5); err != nil {
+				panic(err)
+			}
+			goblas.Zscal(p, negone, phantom.Off(0, 1))
+			*phantom.GetPtr(0), *taup1.GetPtr(0) = Zlarfgp(p, phantom.Get(0), phantom.Off(1, 1))
+			*phantom.GetPtr(p), *taup2.GetPtr(0) = Zlarfgp(m-p, phantom.Get(p), phantom.Off(p+2-1, 1))
+			theta.Set(i-1, math.Atan2(phantom.GetRe(0), phantom.GetRe(p)))
 			c = math.Cos(theta.Get(i - 1))
 			s = math.Sin(theta.Get(i - 1))
 			phantom.Set(0, one)
-			phantom.Set((*p), one)
-			Zlarf('L', p, q, phantom.Off(0), func() *int { y := 1; return &y }(), toPtrc128(taup1.GetConj(0)), x11, ldx11, work.Off(ilarf-1))
-			Zlarf('L', toPtr((*m)-(*p)), q, phantom.Off((*p)), func() *int { y := 1; return &y }(), toPtrc128(taup2.GetConj(0)), x21, ldx21, work.Off(ilarf-1))
+			phantom.Set(p, one)
+			Zlarf(Left, p, q, phantom.Off(0, 1), taup1.GetConj(0), x11, work.Off(ilarf-1))
+			Zlarf(Left, m-p, q, phantom.Off(p, 1), taup2.GetConj(0), x21, work.Off(ilarf-1))
 		} else {
-			Zunbdb5(toPtr((*p)-i+1), toPtr((*m)-(*p)-i+1), toPtr((*q)-i+1), x11.CVector(i-1, i-1-1), func() *int { y := 1; return &y }(), x21.CVector(i-1, i-1-1), func() *int { y := 1; return &y }(), x11.Off(i-1, i-1), ldx11, x21.Off(i-1, i-1), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
-			goblas.Zscal((*p)-i+1, negone, x11.CVector(i-1, i-1-1, 1))
-			Zlarfgp(toPtr((*p)-i+1), x11.GetPtr(i-1, i-1-1), x11.CVector(i, i-1-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
-			Zlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1-1), x21.CVector(i, i-1-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
+			if err = Zunbdb5(p-i+1, m-p-i+1, q-i+1, x11.CVector(i-1, i-1-1, 1), x21.CVector(i-1, i-1-1, 1), x11.Off(i-1, i-1), x21.Off(i-1, i-1), work.Off(iorbdb5-1), lorbdb5); err != nil {
+				panic(err)
+			}
+			goblas.Zscal(p-i+1, negone, x11.CVector(i-1, i-1-1, 1))
+			*x11.GetPtr(i-1, i-1-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1-1), x11.CVector(i, i-1-1, 1))
+			*x21.GetPtr(i-1, i-1-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1-1), x21.CVector(i, i-1-1, 1))
 			theta.Set(i-1, math.Atan2(x11.GetRe(i-1, i-1-1), x21.GetRe(i-1, i-1-1)))
 			c = math.Cos(theta.Get(i - 1))
 			s = math.Sin(theta.Get(i - 1))
 			x11.Set(i-1, i-1-1, one)
 			x21.Set(i-1, i-1-1, one)
-			Zlarf('L', toPtr((*p)-i+1), toPtr((*q)-i+1), x11.CVector(i-1, i-1-1), func() *int { y := 1; return &y }(), toPtrc128(taup1.GetConj(i-1)), x11.Off(i-1, i-1), ldx11, work.Off(ilarf-1))
-			Zlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i+1), x21.CVector(i-1, i-1-1), func() *int { y := 1; return &y }(), toPtrc128(taup2.GetConj(i-1)), x21.Off(i-1, i-1), ldx21, work.Off(ilarf-1))
+			Zlarf(Left, p-i+1, q-i+1, x11.CVector(i-1, i-1-1, 1), taup1.GetConj(i-1), x11.Off(i-1, i-1), work.Off(ilarf-1))
+			Zlarf(Left, m-p-i+1, q-i+1, x21.CVector(i-1, i-1-1, 1), taup2.GetConj(i-1), x21.Off(i-1, i-1), work.Off(ilarf-1))
 		}
 
-		goblas.Zdrot((*q)-i+1, x11.CVector(i-1, i-1, *ldx11), x21.CVector(i-1, i-1, *ldx21), s, -c)
-		Zlacgv(toPtr((*q)-i+1), x21.CVector(i-1, i-1), ldx21)
-		Zlarfgp(toPtr((*q)-i+1), x21.GetPtr(i-1, i-1), x21.CVector(i-1, i), ldx21, tauq1.GetPtr(i-1))
+		goblas.Zdrot(q-i+1, x11.CVector(i-1, i-1, *&x11.Rows), x21.CVector(i-1, i-1, *&x21.Rows), s, -c)
+		Zlacgv(q-i+1, x21.CVector(i-1, i-1))
+		*x21.GetPtr(i-1, i-1), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i+1, x21.Get(i-1, i-1), x21.CVector(i-1, i))
 		c = x21.GetRe(i-1, i-1)
 		x21.Set(i-1, i-1, one)
-		Zlarf('R', toPtr((*p)-i), toPtr((*q)-i+1), x21.CVector(i-1, i-1), ldx21, tauq1.GetPtr(i-1), x11.Off(i, i-1), ldx11, work.Off(ilarf-1))
-		Zlarf('R', toPtr((*m)-(*p)-i), toPtr((*q)-i+1), x21.CVector(i-1, i-1), ldx21, tauq1.GetPtr(i-1), x21.Off(i, i-1), ldx21, work.Off(ilarf-1))
-		Zlacgv(toPtr((*q)-i+1), x21.CVector(i-1, i-1), ldx21)
-		if i < (*m)-(*q) {
-			s = math.Sqrt(math.Pow(goblas.Dznrm2((*p)-i, x11.CVector(i, i-1, 1)), 2) + math.Pow(goblas.Dznrm2((*m)-(*p)-i, x21.CVector(i, i-1, 1)), 2))
+		Zlarf(Right, p-i, q-i+1, x21.CVector(i-1, i-1), tauq1.Get(i-1), x11.Off(i, i-1), work.Off(ilarf-1))
+		Zlarf(Right, m-p-i, q-i+1, x21.CVector(i-1, i-1), tauq1.Get(i-1), x21.Off(i, i-1), work.Off(ilarf-1))
+		Zlacgv(q-i+1, x21.CVector(i-1, i-1))
+		if i < m-q {
+			s = math.Sqrt(math.Pow(goblas.Dznrm2(p-i, x11.CVector(i, i-1, 1)), 2) + math.Pow(goblas.Dznrm2(m-p-i, x21.CVector(i, i-1, 1)), 2))
 			phi.Set(i-1, math.Atan2(s, c))
 		}
 
 	}
 
 	//     Reduce the bottom-right portion of X11 to [ I 0 ]
-	for i = (*m) - (*q) + 1; i <= (*p); i++ {
-		Zlacgv(toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11)
-		Zlarfgp(toPtr((*q)-i+1), x11.GetPtr(i-1, i-1), x11.CVector(i-1, i), ldx11, tauq1.GetPtr(i-1))
+	for i = m - q + 1; i <= p; i++ {
+		Zlacgv(q-i+1, x11.CVector(i-1, i-1))
+		*x11.GetPtr(i-1, i-1), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i+1, x11.Get(i-1, i-1), x11.CVector(i-1, i))
 		x11.Set(i-1, i-1, one)
-		Zlarf('R', toPtr((*p)-i), toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11, tauq1.GetPtr(i-1), x11.Off(i, i-1), ldx11, work.Off(ilarf-1))
-		Zlarf('R', toPtr((*q)-(*p)), toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11, tauq1.GetPtr(i-1), x21.Off((*m)-(*q), i-1), ldx21, work.Off(ilarf-1))
-		Zlacgv(toPtr((*q)-i+1), x11.CVector(i-1, i-1), ldx11)
+		Zlarf(Right, p-i, q-i+1, x11.CVector(i-1, i-1), tauq1.Get(i-1), x11.Off(i, i-1), work.Off(ilarf-1))
+		Zlarf(Right, q-p, q-i+1, x11.CVector(i-1, i-1), tauq1.Get(i-1), x21.Off(m-q, i-1), work.Off(ilarf-1))
+		Zlacgv(q-i+1, x11.CVector(i-1, i-1))
 	}
 
 	//     Reduce the bottom-right portion of X21 to [ 0 I ]
-	for i = (*p) + 1; i <= (*q); i++ {
-		Zlacgv(toPtr((*q)-i+1), x21.CVector((*m)-(*q)+i-(*p)-1, i-1), ldx21)
-		Zlarfgp(toPtr((*q)-i+1), x21.GetPtr((*m)-(*q)+i-(*p)-1, i-1), x21.CVector((*m)-(*q)+i-(*p)-1, i), ldx21, tauq1.GetPtr(i-1))
-		x21.Set((*m)-(*q)+i-(*p)-1, i-1, one)
-		Zlarf('R', toPtr((*q)-i), toPtr((*q)-i+1), x21.CVector((*m)-(*q)+i-(*p)-1, i-1), ldx21, tauq1.GetPtr(i-1), x21.Off((*m)-(*q)+i-(*p), i-1), ldx21, work.Off(ilarf-1))
-		Zlacgv(toPtr((*q)-i+1), x21.CVector((*m)-(*q)+i-(*p)-1, i-1), ldx21)
+	for i = p + 1; i <= q; i++ {
+		Zlacgv(q-i+1, x21.CVector(m-q+i-p-1, i-1))
+		*x21.GetPtr(m-q+i-p-1, i-1), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i+1, x21.Get(m-q+i-p-1, i-1), x21.CVector(m-q+i-p-1, i))
+		x21.Set(m-q+i-p-1, i-1, one)
+		Zlarf(Right, q-i, q-i+1, x21.CVector(m-q+i-p-1, i-1), tauq1.Get(i-1), x21.Off(m-q+i-p, i-1), work.Off(ilarf-1))
+		Zlacgv(q-i+1, x21.CVector(m-q+i-p-1, i-1))
 	}
+
+	return
 }

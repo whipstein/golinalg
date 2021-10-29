@@ -8,11 +8,12 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dchkeq tests DGEEQU, DGBEQU, DPOEQU, DPPEQU and DPBEQU
-func Dchkeq(thresh *float64, t *testing.T) {
+// dchkeq tests DGEEQU, DGBEQU, DPOEQU, DPPEQU and DPBEQU
+func dchkeq(thresh float64, t *testing.T) {
 	var ok bool
 	var ccond, eps, norm, one, ratio, rcmax, rcmin, rcond, ten, zero float64
 	var i, info, j, kl, ku, m, n, npow, nsz, nszb, nszp int
+	var err error
 
 	zero = 0.0
 	one = 1.0
@@ -30,7 +31,7 @@ func Dchkeq(thresh *float64, t *testing.T) {
 	a := mf(nsz, nsz, opts)
 	ab := mf(nszb, nszb, opts)
 
-	path := []byte("DEQ")
+	path := []byte("Deq")
 
 	eps = golapack.Dlamch(Precision)
 	for i = 1; i <= 5; i++ {
@@ -55,7 +56,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 				}
 			}
 
-			golapack.Dgeequ(&m, &n, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
+			if rcond, ccond, norm, info, err = golapack.Dgeequ(m, n, a, r, c); err != nil {
+				panic(err)
+			}
 
 			if info != 0 {
 				reslts[0] = one
@@ -80,7 +83,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 	for j = 1; j <= nsz; j++ {
 		a.Set(max(nsz-1, 1)-1, j-1, zero)
 	}
-	golapack.Dgeequ(&nsz, &nsz, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
+	if rcond, ccond, norm, info, err = golapack.Dgeequ(nsz, nsz, a, r, c); err != nil {
+		panic(err)
+	}
 	if info != max(nsz-1, 1) {
 		reslts[0] = one
 	}
@@ -91,7 +96,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 	for i = 1; i <= nsz; i++ {
 		a.Set(i-1, max(nsz-1, 1)-1, zero)
 	}
-	golapack.Dgeequ(&nsz, &nsz, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
+	if rcond, ccond, norm, info, err = golapack.Dgeequ(nsz, nsz, a, r, c); err != nil {
+		panic(err)
+	}
 	if info != nsz+max(nsz-1, 1) {
 		reslts[0] = one
 	}
@@ -116,7 +123,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 						}
 					}
 
-					golapack.Dgbequ(&m, &n, &kl, &ku, ab, &nszb, r, c, &rcond, &ccond, &norm, &info)
+					if rcond, ccond, norm, info, err = golapack.Dgbequ(m, n, kl, ku, ab, r, c); err != nil {
+						panic(err)
+					}
 
 					if info != 0 {
 						if !((n+kl < m && info == n+kl+1) || (m+ku < n && info == 2*m+ku+1)) {
@@ -187,7 +196,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 			}
 		}
 
-		golapack.Dpoequ(&n, a, &nsz, r, &rcond, &norm, &info)
+		if rcond, norm, info, err = golapack.Dpoequ(n, a, r); err != nil {
+			panic(err)
+		}
 
 		if info != 0 {
 			reslts[2] = one
@@ -202,7 +213,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 		}
 	}
 	a.Set(max(nsz-1, 1)-1, max(nsz-1, 1)-1, -one)
-	golapack.Dpoequ(&nsz, a, &nsz, r, &rcond, &norm, &info)
+	if rcond, norm, info, err = golapack.Dpoequ(nsz, a, r); err != nil {
+		panic(err)
+	}
 	if info != max(nsz-1, 1) {
 		reslts[2] = one
 	}
@@ -218,7 +231,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 			ap.Set((i*(i+1))/2-1, pow.Get(2*i))
 		}
 
-		golapack.Dppequ('U', &n, ap, r, &rcond, &norm, &info)
+		if rcond, norm, info, err = golapack.Dppequ(Upper, n, ap, r); err != nil {
+			panic(err)
+		}
 
 		if info != 0 {
 			reslts[3] = one
@@ -242,7 +257,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 			j = j + (n - i + 1)
 		}
 
-		golapack.Dppequ('L', &n, ap, r, &rcond, &norm, &info)
+		if rcond, norm, info, err = golapack.Dppequ(Lower, n, ap, r); err != nil {
+			panic(err)
+		}
 
 		if info != 0 {
 			reslts[3] = one
@@ -259,7 +276,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 	}
 	i = (nsz*(nsz+1))/2 - 2
 	ap.Set(i-1, -one)
-	golapack.Dppequ('L', &nsz, ap, r, &rcond, &norm, &info)
+	if rcond, norm, info, err = golapack.Dppequ(Lower, nsz, ap, r); err != nil {
+		panic(err)
+	}
 	if info != max(nsz-1, 1) {
 		reslts[3] = one
 	}
@@ -278,7 +297,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 				ab.Set(kl, j-1, pow.Get(2*j))
 			}
 
-			golapack.Dpbequ('U', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+			if rcond, norm, info, err = golapack.Dpbequ(Upper, n, kl, ab, r); err != nil {
+				panic(err)
+			}
 
 			if info != 0 {
 				reslts[4] = one
@@ -293,7 +314,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 			}
 			if n != 0 {
 				ab.Set(kl, max(n-1, 1)-1, -one)
-				golapack.Dpbequ('U', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+				if rcond, norm, info, err = golapack.Dpbequ(Upper, n, kl, ab, r); err != nil {
+					panic(err)
+				}
 				if info != max(n-1, 1) {
 					reslts[4] = one
 				}
@@ -309,7 +332,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 				ab.Set(0, j-1, pow.Get(2*j))
 			}
 
-			golapack.Dpbequ('L', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+			if rcond, norm, info, err = golapack.Dpbequ(Lower, n, kl, ab, r); err != nil {
+				panic(err)
+			}
 
 			if info != 0 {
 				reslts[4] = one
@@ -324,7 +349,9 @@ func Dchkeq(thresh *float64, t *testing.T) {
 			}
 			if n != 0 {
 				ab.Set(0, max(n-1, 1)-1, -one)
-				golapack.Dpbequ('L', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+				if rcond, norm, info, err = golapack.Dpbequ(Lower, n, kl, ab, r); err != nil {
+					panic(err)
+				}
 				if info != max(n-1, 1) {
 					reslts[4] = one
 				}
@@ -332,29 +359,29 @@ func Dchkeq(thresh *float64, t *testing.T) {
 		}
 	}
 	reslts[4] = reslts[4] / eps
-	ok = (reslts[0] <= (*thresh)) && (reslts[1] <= (*thresh)) && (reslts[2] <= (*thresh)) && (reslts[3] <= (*thresh)) && (reslts[4] <= (*thresh))
+	ok = (reslts[0] <= thresh) && (reslts[1] <= thresh) && (reslts[2] <= thresh) && (reslts[3] <= thresh) && (reslts[4] <= thresh)
 	if ok {
 		fmt.Printf(" All tests for %3s routines passed the threshold\n\n", path)
 	} else {
-		if reslts[0] > (*thresh) {
+		if reslts[0] > thresh {
 			t.Fail()
-			fmt.Printf(" DGEEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[0], *thresh)
+			fmt.Printf(" DGEEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[0], thresh)
 		}
-		if reslts[1] > (*thresh) {
+		if reslts[1] > thresh {
 			t.Fail()
-			fmt.Printf(" DGBEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[1], *thresh)
+			fmt.Printf(" DGBEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[1], thresh)
 		}
-		if reslts[2] > (*thresh) {
+		if reslts[2] > thresh {
 			t.Fail()
-			fmt.Printf(" DPOEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[2], *thresh)
+			fmt.Printf(" DPOEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[2], thresh)
 		}
-		if reslts[3] > (*thresh) {
+		if reslts[3] > thresh {
 			t.Fail()
-			fmt.Printf(" DPPEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[3], *thresh)
+			fmt.Printf(" DPPEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[3], thresh)
 		}
-		if reslts[4] > (*thresh) {
+		if reslts[4] > thresh {
 			t.Fail()
-			fmt.Printf(" DPBEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[4], *thresh)
+			fmt.Printf(" DPBEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[4], thresh)
 		}
 	}
 }

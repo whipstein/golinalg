@@ -2,13 +2,14 @@ package lin
 
 import (
 	"math"
+	"strings"
 
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zlatb5 sets parameters for the matrix generator based on the _type
+// zlatb5 sets parameters for the matrix generator based on the _type
 // of matrix to be generated.
-func Zlatb5(path []byte, imat, n *int, _type *byte, kl, ku *int, anorm *float64, mode *int, cndnum *float64, dist *byte) {
+func zlatb5(path string, imat, n int) (_type byte, kl, ku int, anorm float64, mode int, cndnum float64, dist byte) {
 	var first bool
 	var badc1, badc2, eps, large, one, shrink, small, tenth, two float64
 
@@ -30,7 +31,7 @@ func Zlatb5(path []byte, imat, n *int, _type *byte, kl, ku *int, anorm *float64,
 
 		//        If it looks like we're on a Cray, take the square root of
 		//        SMALL and LARGE to avoid overflow and underflow problems.
-		golapack.Dlabad(&small, &large)
+		small, large = golapack.Dlabad(small, large)
 		small = shrink * (small / eps)
 		large = one / small
 	}
@@ -38,47 +39,49 @@ func Zlatb5(path []byte, imat, n *int, _type *byte, kl, ku *int, anorm *float64,
 	c2 := path[1:3]
 
 	//     Set some parameters
-	(*dist) = 'S'
-	(*mode) = 3
+	dist = 'S'
+	mode = 3
 
 	//     Set TYPE, the _type of matrix to be generated.
-	(*_type) = c2[0]
+	_type = strings.ToUpper(c2)[0]
 
 	//     Set the lower and upper bandwidths.
-	if (*imat) == 1 {
-		(*kl) = 0
+	if imat == 1 {
+		kl = 0
 	} else {
-		(*kl) = max((*n)-1, 0)
+		kl = max(n-1, 0)
 	}
-	(*ku) = (*kl)
+	ku = kl
 
 	//     Set the condition number and norm.etc
-	if (*imat) == 3 {
-		(*cndnum) = 1.0e12
-		(*mode) = 2
-	} else if (*imat) == 4 {
-		(*cndnum) = 1.0e12
-		(*mode) = 1
-	} else if (*imat) == 5 {
-		(*cndnum) = 1.0e12
-		(*mode) = 3
-	} else if (*imat) == 6 {
-		(*cndnum) = badc1
-	} else if (*imat) == 7 {
-		(*cndnum) = badc2
+	if imat == 3 {
+		cndnum = 1.0e12
+		mode = 2
+	} else if imat == 4 {
+		cndnum = 1.0e12
+		mode = 1
+	} else if imat == 5 {
+		cndnum = 1.0e12
+		mode = 3
+	} else if imat == 6 {
+		cndnum = badc1
+	} else if imat == 7 {
+		cndnum = badc2
 	} else {
-		(*cndnum) = two
+		cndnum = two
 	}
 
-	if (*imat) == 8 {
-		(*anorm) = small
-	} else if (*imat) == 9 {
-		(*anorm) = large
+	if imat == 8 {
+		anorm = small
+	} else if imat == 9 {
+		anorm = large
 	} else {
-		(*anorm) = one
+		anorm = one
 	}
 
-	if (*n) <= 1 {
-		(*cndnum) = one
+	if n <= 1 {
+		cndnum = one
 	}
+
+	return
 }

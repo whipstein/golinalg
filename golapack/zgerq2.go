@@ -1,44 +1,47 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
 // Zgerq2 computes an RQ factorization of a complex m by n matrix A:
 // A = R * Q.
-func Zgerq2(m, n *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, info *int) {
+func Zgerq2(m, n int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 	var alpha, one complex128
 	var i, k int
 
 	one = (1.0 + 0.0*1i)
 
 	//     Test the input arguments
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGERQ2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgerq2", err)
 		return
 	}
 
-	k = min(*m, *n)
+	k = min(m, n)
 	for i = k; i >= 1; i-- {
 		//        Generate elementary reflector H(i) to annihilate
 		//        A(m-k+i,1:n-k+i-1)
-		Zlacgv(toPtr((*n)-k+i), a.CVector((*m)-k+i-1, 0), lda)
-		alpha = a.Get((*m)-k+i-1, (*n)-k+i-1)
-		Zlarfg(toPtr((*n)-k+i), &alpha, a.CVector((*m)-k+i-1, 0), lda, tau.GetPtr(i-1))
+		Zlacgv(n-k+i, a.CVector(m-k+i-1, 0))
+		alpha = a.Get(m-k+i-1, n-k+i-1)
+		alpha, *tau.GetPtr(i - 1) = Zlarfg(n-k+i, alpha, a.CVector(m-k+i-1, 0))
 
 		//        Apply H(i) to A(1:m-k+i-1,1:n-k+i) from the right
-		a.Set((*m)-k+i-1, (*n)-k+i-1, one)
-		Zlarf('R', toPtr((*m)-k+i-1), toPtr((*n)-k+i), a.CVector((*m)-k+i-1, 0), lda, tau.GetPtr(i-1), a, lda, work)
-		a.Set((*m)-k+i-1, (*n)-k+i-1, alpha)
-		Zlacgv(toPtr((*n)-k+i-1), a.CVector((*m)-k+i-1, 0), lda)
+		a.Set(m-k+i-1, n-k+i-1, one)
+		Zlarf(Right, m-k+i-1, n-k+i, a.CVector(m-k+i-1, 0), tau.Get(i-1), a, work)
+		a.Set(m-k+i-1, n-k+i-1, alpha)
+		Zlacgv(n-k+i-1, a.CVector(m-k+i-1, 0))
 	}
+
+	return
 }

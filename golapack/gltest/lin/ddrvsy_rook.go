@@ -10,15 +10,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// DdrvsyRook tests the driver routines DSYSV_ROOK.
-func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tsterr *bool, nmax *int, a, afac, ainv, b, x, xact, work, rwork *mat.Vector, iwork *[]int, nout *int, t *testing.T) {
+// ddrvsyRook tests the driver routines DSYSV_ROOK.
+func ddrvsyRook(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, nmax int, a, afac, ainv, b, x, xact, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var zerot bool
-	var dist, _type, uplo, xtype byte
+	var dist, _type, xtype byte
+	var uplo mat.MatUplo
 	var ainvnm, anorm, cndnum, one, rcondc, zero float64
-	var i, i1, i2, ifact, imat, in, info, ioff, iuplo, izero, j, k, kl, ku, lda, lwork, mode, n, nb, nbmin, nerrs, nfact, nfail, nimat, nrun, nt, ntypes int
+	var i, i1, i2, ifact, imat, in, info, ioff, izero, j, k, kl, ku, lda, lwork, mode, n, nb, nbmin, nerrs, nfact, nfail, nimat, nrun, nt, ntypes int
+	var err error
 
 	facts := make([]byte, 2)
-	uplos := make([]byte, 2)
 	result := vf(3)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
@@ -28,17 +29,16 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 	one = 1.0
 	zero = 0.0
 	ntypes = 10
-	// ntests = 3
 	nfact = 2
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1], facts[0], facts[1] = 'U', 'L', 'F', 'N'
+	facts[0], facts[1] = 'F', 'N'
 
 	//     Test path
-	path := []byte("DSR")
+	path := "Dsr"
 
 	//     Path to generate matrices
-	matpath := []byte("DSY")
+	matpath := "Dsy"
 
 	nrun = 0
 	nfail = 0
@@ -46,11 +46,11 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 	for i = 1; i <= 4; i++ {
 		iseed[i-1] = iseedy[i-1]
 	}
-	lwork = max(2*(*nmax), (*nmax)*(*nrhs))
+	lwork = max(2*nmax, nmax*nrhs)
 
 	//     Test the error exits
-	if *tsterr {
-		Derrvx(path, t)
+	if tsterr {
+		derrvx(path, t)
 	}
 	(*infot) = 0
 
@@ -58,12 +58,12 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 	//     routine should be used, which will be later returned by ILAENV.
 	nb = 1
 	nbmin = 2
-	Xlaenv(1, nb)
-	Xlaenv(2, nbmin)
+	xlaenv(1, nb)
+	xlaenv(2, nbmin)
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
@@ -73,7 +73,7 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label170
 			}
 
@@ -84,22 +84,18 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 			}
 
 			//           Do first for UPLO = 'U', then for UPLO = 'L'
-			for iuplo = 1; iuplo <= 2; iuplo++ {
-				uplo = uplos[iuplo-1]
+			for _, uplo = range mat.IterMatUplo(false) {
 
 				//              Begin generate the test matrix A.
 				//
 				//              Set up parameters with DLATB4 for the matrix generator
 				//              based on the _type of matrix to be generated.
-				Dlatb4(matpath, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				_type, kl, ku, anorm, mode, cndnum, dist = dlatb4(string(matpath), imat, n, n)
 
 				//              Generate a matrix with DLATMS.
-				*srnamt = "DLATMS"
-				matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, uplo, a.Matrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from DLATMS and handle error.
-				if info != 0 {
-					Alaerh(path, []byte("DLATMS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dlatms"
+				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, uplo.Byte(), a.Matrix(lda, opts), work); info != 0 {
+					nerrs = alaerh(path, "Dlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 
 					//                 Skip all tests for this generated matrix
 					goto label160
@@ -120,7 +116,7 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 						//
 						//                    Set row and column IZERO to zero.
 						//
-						if iuplo == 1 {
+						if uplo == Upper {
 							ioff = (izero - 1) * lda
 							for i = 1; i <= izero-1; i++ {
 								a.Set(ioff+i-1, zero)
@@ -143,7 +139,7 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 						}
 					} else {
 						ioff = 0
-						if iuplo == 1 {
+						if uplo == Upper {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
 								i2 = min(j, izero)
@@ -182,18 +178,22 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 
 					} else if ifact == 1 {
 						//                    Compute the 1-norm of A.
-						anorm = golapack.Dlansy('1', uplo, &n, a.Matrix(lda, opts), &lda, rwork)
+						anorm = golapack.Dlansy('1', uplo, n, a.Matrix(lda, opts), rwork)
 						//
 						//                    Factor the matrix A.
 						//
-						golapack.Dlacpy(uplo, &n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda)
-						golapack.DsytrfRook(uplo, &n, afac.Matrix(lda, opts), &lda, iwork, work.Matrix(lda, opts), &lwork, &info)
+						golapack.Dlacpy(uplo, n, n, a.Matrix(lda, opts), afac.Matrix(lda, opts))
+						if info, err = golapack.DsytrfRook(uplo, n, afac.Matrix(lda, opts), &iwork, work.Matrix(lda, opts), lwork); err != nil {
+							panic(err)
+						}
 
 						//                    Compute inv(A) and take its norm.
-						golapack.Dlacpy(uplo, &n, &n, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda)
+						golapack.Dlacpy(uplo, n, n, afac.Matrix(lda, opts), ainv.Matrix(lda, opts))
 						lwork = (n + nb + 1) * (nb + 3)
-						golapack.DsytriRook(uplo, &n, ainv.Matrix(lda, opts), &lda, iwork, work, &info)
-						ainvnm = golapack.Dlansy('1', uplo, &n, ainv.Matrix(lda, opts), &lda, rwork)
+						if info, err = golapack.DsytriRook(uplo, n, ainv.Matrix(lda, opts), &iwork, work); err != nil {
+							panic(err)
+						}
+						ainvnm = golapack.Dlansy('1', uplo, n, ainv.Matrix(lda, opts), rwork)
 
 						//                    Compute the 1-norm condition number of A.
 						if anorm <= zero || ainvnm <= zero {
@@ -204,19 +204,23 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 					}
 
 					//                 Form an exact solution and set the right hand side.
-					*srnamt = "DLARHS"
-					Dlarhs(matpath, &xtype, uplo, ' ', &n, &n, &kl, &ku, nrhs, a.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, &iseed, &info)
+					*srnamt = "Dlarhs"
+					if err = Dlarhs(matpath, xtype, uplo, NoTrans, n, n, kl, ku, nrhs, a.Matrix(lda, opts), xact.Matrix(lda, opts), b.Matrix(lda, opts), &iseed); err != nil {
+						panic(err)
+					}
 					xtype = 'C'
 
 					//                 --- Test DSYSV_ROOK  ---
 					if ifact == 2 {
-						golapack.Dlacpy(uplo, &n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda)
-						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
+						golapack.Dlacpy(uplo, n, n, a.Matrix(lda, opts), afac.Matrix(lda, opts))
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
 
 						//                    Factor the matrix and solve the system using
 						//                    DSYSV_ROOK.
-						*srnamt = "DSYSV_ROOK"
-						golapack.DsysvRook(uplo, &n, nrhs, afac.Matrix(lda, opts), &lda, iwork, x.Matrix(lda, opts), &lda, work, &lwork, &info)
+						*srnamt = "DsysvRook"
+						if info, err = golapack.DsysvRook(uplo, n, nrhs, afac.Matrix(lda, opts), &iwork, x.Matrix(lda, opts), work, lwork); err != nil {
+							panic(err)
+						}
 
 						//                    Adjust the expected value of INFO to account for
 						//                    pivoting.
@@ -224,20 +228,20 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 						if k > 0 {
 						label100:
 							;
-							if (*iwork)[k-1] < 0 {
-								if (*iwork)[k-1] != -k {
-									k = -(*iwork)[k-1]
+							if iwork[k-1] < 0 {
+								if iwork[k-1] != -k {
+									k = -iwork[k-1]
 									goto label100
 								}
-							} else if (*iwork)[k-1] != k {
-								k = (*iwork)[k-1]
+							} else if iwork[k-1] != k {
+								k = iwork[k-1]
 								goto label100
 							}
 						}
 
 						//                    Check error code from DSYSV_ROOK and handle error.
 						if info != k {
-							Alaerh(path, []byte("DSYSV_ROOK"), &info, &k, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), nrhs, &imat, &nfail, &nerrs)
+							nerrs = alaerh(path, "DsysvRook", info, k, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 							goto label120
 						} else if info != 0 {
 							goto label120
@@ -245,27 +249,27 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 
 						//+    TEST 1      Reconstruct matrix from factors and compute
 						//                 residual.
-						Dsyt01Rook(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, iwork, ainv.Matrix(lda, opts), &lda, rwork, result.GetPtr(0))
+						result.Set(0, Dsyt01Rook(uplo, n, a.Matrix(lda, opts), afac.Matrix(lda, opts), iwork, ainv.Matrix(lda, opts), rwork))
 
 						//+    TEST 2      Compute residual of the computed solution.
-						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-						Dpot02(uplo, &n, nrhs, a.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(1))
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
+						result.Set(1, dpot02(uplo, n, nrhs, a.Matrix(lda, opts), x.Matrix(lda, opts), work.Matrix(lda, opts), rwork))
 
 						//+    TEST 3
 						//                 Check solution from generated exact solution.
-						Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+						result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 						nt = 3
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
 						for k = 1; k <= nt; k++ {
-							if result.Get(k-1) >= (*thresh) {
+							if result.Get(k-1) >= thresh {
 								if nfail == 0 && nerrs == 0 {
-									Aladhd(path)
+									aladhd(path)
 								}
 								t.Fail()
-								fmt.Printf(" %s, UPLO='%c', N =%5d, _type %2d, test %2d, ratio =%12.5f\n", "DSYSV_ROOK", uplo, n, imat, k, result.Get(k-1))
-								nfail = nfail + 1
+								fmt.Printf(" %s, UPLO=%s, N =%5d, _type %2d, test %2d, ratio =%12.5f\n", "DSYSV_ROOK", uplo, n, imat, k, result.Get(k-1))
+								nfail++
 							}
 						}
 						nrun = nrun + nt
@@ -290,5 +294,5 @@ func DdrvsyRook(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64
 	}
 
 	//     Print a summary of the results.
-	Alasvm(path, &nfail, &nrun, &nerrs)
+	alasvm(path, nfail, nrun, nerrs)
 }

@@ -1,17 +1,19 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrpo tests the error exits for the COMPLEX*16 routines
+// zerrpo tests the error exits for the COMPLEX*16 routines
 // for Hermitian positive definite matrices.
-func Zerrpo(path []byte, t *testing.T) {
-	var anrm, rcond float64
-	var i, info, j, nmax int
+func zerrpo(path string, t *testing.T) {
+	var anrm float64
+	var i, j, nmax int
+	var err error
 
 	nmax = 4
 	b := cvf(4)
@@ -23,9 +25,8 @@ func Zerrpo(path []byte, t *testing.T) {
 	a := cmf(4, 4, opts)
 	af := cmf(4, 4, opts)
 
-	infot := &gltest.Common.Infoc.Infot
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 	c2 := path[1:3]
 
@@ -46,299 +47,303 @@ func Zerrpo(path []byte, t *testing.T) {
 
 	//     Test error exits of the routines that use the Cholesky
 	//     decomposition of a Hermitian positive definite matrix.
-	if string(c2) == "PO" {
-		//        ZPOTRF
-		*srnamt = "ZPOTRF"
-		*infot = 1
-		golapack.Zpotrf('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpotrf('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRF", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpotrf('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRF", &info, lerr, ok, t)
+	if c2 == "po" {
+		//        Zpotrf
+		*srnamt = "Zpotrf"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpotrf('/', 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotrf", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpotrf(Upper, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotrf", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zpotrf(Upper, 2, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotrf", err)
 
-		//        ZPOTF2
-		*srnamt = "ZPOTF2"
-		*infot = 1
-		golapack.Zpotf2('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTF2", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpotf2('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTF2", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpotf2('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTF2", &info, lerr, ok, t)
+		//        Zpotf2
+		*srnamt = "Zpotf2"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpotf2('/', 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotf2", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpotf2(Upper, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotf2", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zpotf2(Upper, 2, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotf2", err)
 
-		//        ZPOTRI
-		*srnamt = "ZPOTRI"
-		*infot = 1
-		golapack.Zpotri('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRI", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpotri('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRI", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpotri('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRI", &info, lerr, ok, t)
+		//        Zpotri
+		*srnamt = "Zpotri"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpotri('/', 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotri", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpotri(Upper, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotri", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zpotri(Upper, 2, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpotri", err)
 
-		//        ZPOTRS
-		*srnamt = "ZPOTRS"
-		*infot = 1
-		golapack.Zpotrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpotrs('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpotrs('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRS", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpotrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZPOTRS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zpotrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPOTRS", &info, lerr, ok, t)
+		//        Zpotrs
+		*srnamt = "Zpotrs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zpotrs('/', 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpotrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zpotrs(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpotrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Zpotrs(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpotrs", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Zpotrs(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), b.CMatrix(2, opts))
+		chkxer2("Zpotrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Zpotrs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), b.CMatrix(1, opts))
+		chkxer2("Zpotrs", err)
 
-		//        ZPORFS
-		*srnamt = "ZPORFS"
-		*infot = 1
-		golapack.Zporfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zporfs('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zporfs('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPORFS", &info, lerr, ok, t)
+		//        Zporfs
+		*srnamt = "Zporfs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zporfs('/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zporfs(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Zporfs(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Zporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		err = golapack.Zporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Zporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Zporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zporfs", err)
 
-		//        ZPOCON
-		*srnamt = "ZPOCON"
-		*infot = 1
-		golapack.Zpocon('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPOCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpocon('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPOCON", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpocon('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPOCON", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpocon('U', func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), toPtrf64(-anrm), &rcond, w, r, &info)
-		Chkxer("ZPOCON", &info, lerr, ok, t)
+		//        Zpocon
+		*srnamt = "Zpocon"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpocon('/', 0, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpocon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpocon(Upper, -1, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpocon", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Zpocon(Upper, 2, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpocon", err)
+		*errt = fmt.Errorf("anorm < zero: anorm=-1")
+		_, err = golapack.Zpocon(Upper, 1, a.Off(0, 0).UpdateRows(1), -anrm, w, r)
+		chkxer2("Zpocon", err)
 
-		//        ZPOEQU
-		*srnamt = "ZPOEQU"
-		*infot = 1
-		golapack.Zpoequ(toPtr(-1), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("ZPOEQU", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpoequ(func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("ZPOEQU", &info, lerr, ok, t)
+		//        Zpoequ
+		*srnamt = "Zpoequ"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zpoequ(-1, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Zpoequ", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, _, err = golapack.Zpoequ(2, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Zpoequ", err)
 
 		//     Test error exits of the routines that use the Cholesky
 		//     decomposition of a Hermitian positive definite packed matrix.
-	} else if string(c2) == "PP" {
-		//        ZPPTRF
-		*srnamt = "ZPPTRF"
-		*infot = 1
-		golapack.Zpptrf('/', func() *int { y := 0; return &y }(), a.CVector(0, 0), &info)
-		Chkxer("ZPPTRF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpptrf('U', toPtr(-1), a.CVector(0, 0), &info)
-		Chkxer("ZPPTRF", &info, lerr, ok, t)
+	} else if c2 == "pp" {
+		//        Zpptrf
+		*srnamt = "Zpptrf"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpptrf('/', 0, a.CVector(0, 0))
+		chkxer2("Zpptrf", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpptrf(Upper, -1, a.CVector(0, 0))
+		chkxer2("Zpptrf", err)
 
-		//        ZPPTRI
-		*srnamt = "ZPPTRI"
-		*infot = 1
-		golapack.Zpptri('/', func() *int { y := 0; return &y }(), a.CVector(0, 0), &info)
-		Chkxer("ZPPTRI", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpptri('U', toPtr(-1), a.CVector(0, 0), &info)
-		Chkxer("ZPPTRI", &info, lerr, ok, t)
+		//        Zpptri
+		*srnamt = "Zpptri"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpptri('/', 0, a.CVector(0, 0))
+		chkxer2("Zpptri", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpptri(Upper, -1, a.CVector(0, 0))
+		chkxer2("Zpptri", err)
 
-		//        ZPPTRS
-		*srnamt = "ZPPTRS"
-		*infot = 1
-		golapack.Zpptrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpptrs('U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpptrs('U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPTRS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zpptrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPPTRS", &info, lerr, ok, t)
+		//        Zpptrs
+		*srnamt = "Zpptrs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zpptrs('/', 0, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zpptrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zpptrs(Upper, -1, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zpptrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Zpptrs(Upper, 0, -1, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zpptrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Zpptrs(Upper, 2, 1, a.CVector(0, 0), b.CMatrix(1, opts))
+		chkxer2("Zpptrs", err)
 
-		//        ZPPRFS
-		*srnamt = "ZPPRFS"
-		*infot = 1
-		golapack.Zpprfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPPRFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpprfs('U', toPtr(-1), func() *int { y := 0; return &y }(), a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPPRFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpprfs('U', func() *int { y := 0; return &y }(), toPtr(-1), a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPPRFS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Zpprfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPPRFS", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zpprfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPPRFS", &info, lerr, ok, t)
+		//        Zpprfs
+		*srnamt = "Zpprfs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zpprfs('/', 0, 0, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpprfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zpprfs(Upper, -1, 0, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpprfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Zpprfs(Upper, 0, -1, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpprfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Zpprfs(Upper, 2, 1, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zpprfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Zpprfs(Upper, 2, 1, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpprfs", err)
 
-		//        ZPPCON
-		*srnamt = "ZPPCON"
-		*infot = 1
-		golapack.Zppcon('/', func() *int { y := 0; return &y }(), a.CVector(0, 0), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPPCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zppcon('U', toPtr(-1), a.CVector(0, 0), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPPCON", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zppcon('U', func() *int { y := 1; return &y }(), a.CVector(0, 0), toPtrf64(-anrm), &rcond, w, r, &info)
-		Chkxer("ZPPCON", &info, lerr, ok, t)
+		//        Zppcon
+		*srnamt = "Zppcon"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zppcon('/', 0, a.CVector(0, 0), anrm, w, r)
+		chkxer2("Zppcon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zppcon(Upper, -1, a.CVector(0, 0), anrm, w, r)
+		chkxer2("Zppcon", err)
+		*errt = fmt.Errorf("anorm < zero: anorm=-1")
+		_, err = golapack.Zppcon(Upper, 1, a.CVector(0, 0), -anrm, w, r)
+		chkxer2("Zppcon", err)
 
-		//        ZPPEQU
-		*srnamt = "ZPPEQU"
-		*infot = 1
-		golapack.Zppequ('/', func() *int { y := 0; return &y }(), a.CVector(0, 0), r1, &rcond, &anrm, &info)
-		Chkxer("ZPPEQU", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zppequ('U', toPtr(-1), a.CVector(0, 0), r1, &rcond, &anrm, &info)
-		Chkxer("ZPPEQU", &info, lerr, ok, t)
+		//        Zppequ
+		*srnamt = "Zppequ"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Zppequ('/', 0, a.CVector(0, 0), r1)
+		chkxer2("Zppequ", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zppequ(Upper, -1, a.CVector(0, 0), r1)
+		chkxer2("Zppequ", err)
 
 		//     Test error exits of the routines that use the Cholesky
 		//     decomposition of a Hermitian positive definite band matrix.
-	} else if string(c2) == "PB" {
-		//        ZPBTRF
-		*srnamt = "ZPBTRF"
-		*infot = 1
-		golapack.Zpbtrf('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbtrf('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRF", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbtrf('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRF", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpbtrf('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRF", &info, lerr, ok, t)
+	} else if c2 == "pb" {
+		//        Zpbtrf
+		*srnamt = "Zpbtrf"
+		*errt = fmt.Errorf("(uplo != Upper) && (uplo != Lower): uplo=Unrecognized: /")
+		_, err = golapack.Zpbtrf('/', 0, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtrf", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpbtrf(Upper, -1, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtrf", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zpbtrf(Upper, 1, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtrf", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zpbtrf(Upper, 2, 1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtrf", err)
 
-		//        ZPBTF2
-		*srnamt = "ZPBTF2"
-		*infot = 1
-		golapack.Zpbtf2('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTF2", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbtf2('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTF2", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbtf2('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTF2", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpbtf2('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTF2", &info, lerr, ok, t)
+		//        Zpbtf2
+		*srnamt = "Zpbtf2"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpbtf2('/', 0, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtf2", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpbtf2(Upper, -1, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtf2", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zpbtf2(Upper, 1, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtf2", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zpbtf2(Upper, 2, 1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Zpbtf2", err)
 
-		//        ZPBTRS
-		*srnamt = "ZPBTRS"
-		*infot = 1
-		golapack.Zpbtrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbtrs('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbtrs('U', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRS", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpbtrs('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zpbtrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRS", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zpbtrs('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZPBTRS", &info, lerr, ok, t)
+		//        Zpbtrs
+		*srnamt = "Zpbtrs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zpbtrs('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbtrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zpbtrs(Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbtrs", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.Zpbtrs(Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbtrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Zpbtrs(Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbtrs", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		err = golapack.Zpbtrs(Upper, 2, 1, 1, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbtrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Zpbtrs(Upper, 2, 0, 1, a.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts))
+		chkxer2("Zpbtrs", err)
 
-		//        ZPBRFS
-		*srnamt = "ZPBRFS"
-		*infot = 1
-		golapack.Zpbrfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbrfs('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbrfs('U', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zpbrfs('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 1; return &y }(), x.CMatrix(1, opts), func() *int { y := 2; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Zpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b.CMatrix(1, opts), func() *int { y := 2; return &y }(), x.CMatrix(1, opts), func() *int { y := 1; return &y }(), r1, r2, w, r, &info)
-		Chkxer("ZPBRFS", &info, lerr, ok, t)
+		//        Zpbrfs
+		*srnamt = "Zpbrfs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Zpbrfs('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zpbrfs(Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.Zpbrfs(Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Zpbrfs(Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		err = golapack.Zpbrfs(Upper, 2, 1, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("afb.Rows < kd+1: afb.Rows=1, kd=1")
+		err = golapack.Zpbrfs(Upper, 2, 1, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), b.CMatrix(2, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Zpbrfs(Upper, 2, 0, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Zpbrfs(Upper, 2, 0, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		chkxer2("Zpbrfs", err)
 
-		//        ZPBCON
-		*srnamt = "ZPBCON"
-		*infot = 1
-		golapack.Zpbcon('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPBCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbcon('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPBCON", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbcon('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPBCON", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpbcon('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, r, &info)
-		Chkxer("ZPBCON", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zpbcon('U', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), toPtrf64(-anrm), &rcond, w, r, &info)
-		Chkxer("ZPBCON", &info, lerr, ok, t)
+		//        Zpbcon
+		*srnamt = "Zpbcon"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Zpbcon('/', 0, 0, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpbcon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zpbcon(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpbcon", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Zpbcon(Upper, 1, -1, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpbcon", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Zpbcon(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), anrm, w, r)
+		chkxer2("Zpbcon", err)
+		*errt = fmt.Errorf("anorm < zero: anorm=-1")
+		_, err = golapack.Zpbcon(Upper, 1, 0, a.Off(0, 0).UpdateRows(1), -anrm, w, r)
+		chkxer2("Zpbcon", err)
 
-		//        ZPBEQU
-		*srnamt = "ZPBEQU"
-		*infot = 1
-		golapack.Zpbequ('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("ZPBEQU", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zpbequ('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("ZPBEQU", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zpbequ('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("ZPBEQU", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zpbequ('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("ZPBEQU", &info, lerr, ok, t)
+		//        Zpbequ
+		*srnamt = "Zpbequ"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Zpbequ('/', 0, 0, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Zpbequ", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Zpbequ(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Zpbequ", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, _, _, err = golapack.Zpbequ(Upper, 1, -1, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Zpbequ", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, _, _, err = golapack.Zpbequ(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Zpbequ", err)
 	}
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

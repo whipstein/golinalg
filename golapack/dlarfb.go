@@ -7,24 +7,23 @@ import (
 
 // Dlarfb applies a real block reflector H or its transpose H**T to a
 // real m by n matrix C, from either the left or the right.
-func Dlarfb(side, trans, direct, storev byte, m, n, k *int, v *mat.Matrix, ldv *int, t *mat.Matrix, ldt *int, c *mat.Matrix, ldc *int, work *mat.Matrix, ldwork *int) {
-	var transt byte
+func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k int, v, t, c, work *mat.Matrix) {
+	var transt mat.MatTrans
 	var one float64
 	var i, j int
 	var err error
-	_ = err
 
 	one = 1.0
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
+	if m <= 0 || n <= 0 {
 		return
 	}
 
-	if trans == 'N' {
-		transt = 'T'
+	if trans == NoTrans {
+		transt = Trans
 	} else {
-		transt = 'N'
+		transt = NoTrans
 	}
 
 	if storev == 'C' {
@@ -32,75 +31,95 @@ func Dlarfb(side, trans, direct, storev byte, m, n, k *int, v *mat.Matrix, ldv *
 			//           Let  V =  ( V1 )    (first K rows)
 			//                     ( V2 )
 			//           where  V1  is unit lower triangular.
-			if side == 'L' {
+			if side == Left {
 				//              Form  H * C  or  H**T * C  where  C = ( C1 )
 				//                                                    ( C2 )
 				//
 				//              W := C**T * V  =  (C1**T * V1 + C2**T * V2)  (stored in WORK)
 				//
 				//              W := C1**T
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V1
-				err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, *n, *k, one, v, work)
-				if (*m) > (*k) {
+				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, n, k, one, v, work); err != nil {
+					panic(err)
+				}
+				if m > k {
 					//                 W := W + C2**T * V2
-					err = goblas.Dgemm(Trans, NoTrans, *n, *k, (*m)-(*k), one, c.Off((*k), 0), v.Off((*k), 0), one, work)
+					if err = goblas.Dgemm(Trans, NoTrans, n, k, m-k, one, c.Off(k, 0), v.Off(k, 0), one, work); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * T**T  or  W * T
-				err = goblas.Dtrmm(Right, Upper, mat.TransByte(transt), NonUnit, *n, *k, one, t, work)
+				if err = goblas.Dtrmm(Right, Upper, transt, NonUnit, n, k, one, t, work); err != nil {
+					panic(err)
+				}
 
 				//              C := C - V * W**T
-				if (*m) > (*k) {
+				if m > k {
 					//                 C2 := C2 - V2 * W**T
-					err = goblas.Dgemm(NoTrans, Trans, (*m)-(*k), *n, *k, -one, v.Off((*k), 0), work, one, c.Off((*k), 0))
+					if err = goblas.Dgemm(NoTrans, Trans, m-k, n, k, -one, v.Off(k, 0), work, one, c.Off(k, 0)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * V1**T
-				err = goblas.Dtrmm(Right, Lower, Trans, Unit, *n, *k, one, v, work)
+				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, n, k, one, v, work); err != nil {
+					panic(err)
+				}
 
 				//              C1 := C1 - W**T
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*n); i++ {
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= n; i++ {
 						c.Set(j-1, i-1, c.Get(j-1, i-1)-work.Get(i-1, j-1))
 					}
 				}
 
-			} else if side == 'R' {
+			} else if side == Right {
 				//              Form  C * H  or  C * H**T  where  C = ( C1  C2 )
 				//
 				//              W := C * V  =  (C1*V1 + C2*V2)  (stored in WORK)
 				//
 				//              W := C1
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V1
-				err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, *m, *k, one, v, work)
-				if (*n) > (*k) {
+				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, m, k, one, v, work); err != nil {
+					panic(err)
+				}
+				if n > k {
 					//                 W := W + C2 * V2
-					err = goblas.Dgemm(NoTrans, NoTrans, *m, *k, (*n)-(*k), one, c.Off(0, (*k)), v.Off((*k), 0), one, work)
+					if err = goblas.Dgemm(NoTrans, NoTrans, m, k, n-k, one, c.Off(0, k), v.Off(k, 0), one, work); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * T  or  W * T**T
-				err = goblas.Dtrmm(Right, Upper, mat.TransByte(trans), NonUnit, *m, *k, one, t, work)
+				if err = goblas.Dtrmm(Right, Upper, trans, NonUnit, m, k, one, t, work); err != nil {
+					panic(err)
+				}
 
 				//              C := C - W * V**T
-				if (*n) > (*k) {
+				if n > k {
 					//                 C2 := C2 - W * V2**T
-					err = goblas.Dgemm(NoTrans, Trans, *m, (*n)-(*k), *k, -one, work, v.Off((*k), 0), one, c.Off(0, (*k)))
+					if err = goblas.Dgemm(NoTrans, Trans, m, n-k, k, -one, work, v.Off(k, 0), one, c.Off(0, k)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * V1**T
-				err = goblas.Dtrmm(Right, Lower, Trans, Unit, *m, *k, one, v, work)
+				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, m, k, one, v, work); err != nil {
+					panic(err)
+				}
 
 				//              C1 := C1 - W
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*m); i++ {
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= m; i++ {
 						c.Set(i-1, j-1, c.Get(i-1, j-1)-work.Get(i-1, j-1))
 					}
 				}
@@ -110,76 +129,96 @@ func Dlarfb(side, trans, direct, storev byte, m, n, k *int, v *mat.Matrix, ldv *
 			//           Let  V =  ( V1 )
 			//                     ( V2 )    (last K rows)
 			//           where  V2  is unit upper triangular.
-			if side == 'L' {
+			if side == Left {
 				//              Form  H * C  or  H**T * C  where  C = ( C1 )
 				//                                                    ( C2 )
 				//
 				//              W := C**T * V  =  (C1**T * V1 + C2**T * V2)  (stored in WORK)
 				//
 				//              W := C2**T
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*n, c.Vector((*m)-(*k)+j-1, 0), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(n, c.Vector(m-k+j-1, 0), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V2
-				err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, *n, *k, one, v.Off((*m)-(*k), 0), work)
-				if (*m) > (*k) {
+				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, n, k, one, v.Off(m-k, 0), work); err != nil {
+					panic(err)
+				}
+				if m > k {
 					//                 W := W + C1**T * V1
-					err = goblas.Dgemm(Trans, NoTrans, *n, *k, (*m)-(*k), one, c, v, one, work)
-				}
-
-				//              W := W * T**T  or  W * T
-				err = goblas.Dtrmm(Right, Lower, mat.TransByte(transt), NonUnit, *n, *k, one, t, work)
-
-				//              C := C - V * W**T
-				if (*m) > (*k) {
-					//                 C1 := C1 - V1 * W**T
-					err = goblas.Dgemm(NoTrans, Trans, (*m)-(*k), *n, *k, -one, v, work, one, c)
-				}
-
-				//              W := W * V2**T
-				err = goblas.Dtrmm(Right, Upper, Trans, Unit, *n, *k, one, v.Off((*m)-(*k), 0), work)
-
-				//              C2 := C2 - W**T
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*n); i++ {
-						c.Set((*m)-(*k)+j-1, i-1, c.Get((*m)-(*k)+j-1, i-1)-work.Get(i-1, j-1))
+					if err = goblas.Dgemm(Trans, NoTrans, n, k, m-k, one, c, v, one, work); err != nil {
+						panic(err)
 					}
 				}
 
-			} else if side == 'R' {
+				//              W := W * T**T  or  W * T
+				if err = goblas.Dtrmm(Right, Lower, transt, NonUnit, n, k, one, t, work); err != nil {
+					panic(err)
+				}
+
+				//              C := C - V * W**T
+				if m > k {
+					//                 C1 := C1 - V1 * W**T
+					if err = goblas.Dgemm(NoTrans, Trans, m-k, n, k, -one, v, work, one, c); err != nil {
+						panic(err)
+					}
+				}
+
+				//              W := W * V2**T
+				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, n, k, one, v.Off(m-k, 0), work); err != nil {
+					panic(err)
+				}
+
+				//              C2 := C2 - W**T
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= n; i++ {
+						c.Set(m-k+j-1, i-1, c.Get(m-k+j-1, i-1)-work.Get(i-1, j-1))
+					}
+				}
+
+			} else if side == Right {
 				//              Form  C * H  or  C * H**T  where  C = ( C1  C2 )
 				//
 				//              W := C * V  =  (C1*V1 + C2*V2)  (stored in WORK)
 				//
 				//              W := C2
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*m, c.Vector(0, (*n)-(*k)+j-1, 1), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(m, c.Vector(0, n-k+j-1, 1), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V2
-				err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, *m, *k, one, v.Off((*n)-(*k), 0), work)
-				if (*n) > (*k) {
+				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m, k, one, v.Off(n-k, 0), work); err != nil {
+					panic(err)
+				}
+				if n > k {
 					//                 W := W + C1 * V1
-					err = goblas.Dgemm(NoTrans, NoTrans, *m, *k, (*n)-(*k), one, c, v, one, work)
+					if err = goblas.Dgemm(NoTrans, NoTrans, m, k, n-k, one, c, v, one, work); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * T  or  W * T**T
-				err = goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, work)
+				if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+					panic(err)
+				}
 
 				//              C := C - W * V**T
-				if (*n) > (*k) {
+				if n > k {
 					//                 C1 := C1 - W * V1**T
-					err = goblas.Dgemm(NoTrans, Trans, *m, (*n)-(*k), *k, -one, work, v, one, c)
+					if err = goblas.Dgemm(NoTrans, Trans, m, n-k, k, -one, work, v, one, c); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * V2**T
-				err = goblas.Dtrmm(Right, Upper, Trans, Unit, *m, *k, one, v.Off((*n)-(*k), 0), work)
+				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m, k, one, v.Off(n-k, 0), work); err != nil {
+					panic(err)
+				}
 
 				//              C2 := C2 - W
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*m); i++ {
-						c.Set(i-1, (*n)-(*k)+j-1, c.Get(i-1, (*n)-(*k)+j-1)-work.Get(i-1, j-1))
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= m; i++ {
+						c.Set(i-1, n-k+j-1, c.Get(i-1, n-k+j-1)-work.Get(i-1, j-1))
 					}
 				}
 			}
@@ -190,75 +229,95 @@ func Dlarfb(side, trans, direct, storev byte, m, n, k *int, v *mat.Matrix, ldv *
 		if direct == 'F' {
 			//           Let  V =  ( V1  V2 )    (V1: first K columns)
 			//           where  V1  is unit upper triangular.
-			if side == 'L' {
+			if side == Left {
 				//              Form  H * C  or  H**T * C  where  C = ( C1 )
 				//                                                    ( C2 )
 				//
 				//              W := C**T * V**T  =  (C1**T * V1**T + C2**T * V2**T) (stored in WORK)
 				//
 				//              W := C1**T
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V1**T
-				err = goblas.Dtrmm(Right, Upper, Trans, Unit, *n, *k, one, v, work)
-				if (*m) > (*k) {
+				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, n, k, one, v, work); err != nil {
+					panic(err)
+				}
+				if m > k {
 					//                 W := W + C2**T * V2**T
-					err = goblas.Dgemm(Trans, Trans, *n, *k, (*m)-(*k), one, c.Off((*k), 0), v.Off(0, (*k)), one, work)
+					if err = goblas.Dgemm(Trans, Trans, n, k, m-k, one, c.Off(k, 0), v.Off(0, k), one, work); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * T**T  or  W * T
-				err = goblas.Dtrmm(Right, Upper, mat.TransByte(transt), NonUnit, *n, *k, one, t, work)
+				if err = goblas.Dtrmm(Right, Upper, transt, NonUnit, n, k, one, t, work); err != nil {
+					panic(err)
+				}
 
 				//              C := C - V**T * W**T
-				if (*m) > (*k) {
+				if m > k {
 					//                 C2 := C2 - V2**T * W**T
-					err = goblas.Dgemm(Trans, Trans, (*m)-(*k), *n, *k, -one, v.Off(0, (*k)), work, one, c.Off((*k), 0))
+					if err = goblas.Dgemm(Trans, Trans, m-k, n, k, -one, v.Off(0, k), work, one, c.Off(k, 0)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * V1
-				err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, *n, *k, one, v, work)
+				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, n, k, one, v, work); err != nil {
+					panic(err)
+				}
 
 				//              C1 := C1 - W**T
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*n); i++ {
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= n; i++ {
 						c.Set(j-1, i-1, c.Get(j-1, i-1)-work.Get(i-1, j-1))
 					}
 				}
 
-			} else if side == 'R' {
+			} else if side == Right {
 				//              Form  C * H  or  C * H**T  where  C = ( C1  C2 )
 				//
 				//              W := C * V**T  =  (C1*V1**T + C2*V2**T)  (stored in WORK)
 				//
 				//              W := C1
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V1**T
-				err = goblas.Dtrmm(Right, Upper, Trans, Unit, *m, *k, one, v, work)
-				if (*n) > (*k) {
+				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m, k, one, v, work); err != nil {
+					panic(err)
+				}
+				if n > k {
 					//                 W := W + C2 * V2**T
-					err = goblas.Dgemm(NoTrans, Trans, *m, *k, (*n)-(*k), one, c.Off(0, (*k)), v.Off(0, (*k)), one, work)
+					if err = goblas.Dgemm(NoTrans, Trans, m, k, n-k, one, c.Off(0, k), v.Off(0, k), one, work); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * T  or  W * T**T
-				err = goblas.Dtrmm(Right, Upper, mat.TransByte(trans), NonUnit, *m, *k, one, t, work)
+				if err = goblas.Dtrmm(Right, Upper, trans, NonUnit, m, k, one, t, work); err != nil {
+					panic(err)
+				}
 
 				//              C := C - W * V
-				if (*n) > (*k) {
+				if n > k {
 					//                 C2 := C2 - W * V2
-					err = goblas.Dgemm(NoTrans, NoTrans, *m, (*n)-(*k), *k, -one, work, v.Off(0, (*k)), one, c.Off(0, (*k)))
+					if err = goblas.Dgemm(NoTrans, NoTrans, m, n-k, k, -one, work, v.Off(0, k), one, c.Off(0, k)); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * V1
-				err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, *m, *k, one, v, work)
+				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m, k, one, v, work); err != nil {
+					panic(err)
+				}
 
 				//              C1 := C1 - W
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*m); i++ {
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= m; i++ {
 						c.Set(i-1, j-1, c.Get(i-1, j-1)-work.Get(i-1, j-1))
 					}
 				}
@@ -268,76 +327,96 @@ func Dlarfb(side, trans, direct, storev byte, m, n, k *int, v *mat.Matrix, ldv *
 		} else {
 			//           Let  V =  ( V1  V2 )    (V2: last K columns)
 			//           where  V2  is unit lower triangular.
-			if side == 'L' {
+			if side == Left {
 				//              Form  H * C  or  H**T * C  where  C = ( C1 )
 				//                                                    ( C2 )
 				//
 				//              W := C**T * V**T  =  (C1**T * V1**T + C2**T * V2**T) (stored in WORK)
 				//
 				//              W := C2**T
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*n, c.Vector((*m)-(*k)+j-1, 0), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(n, c.Vector(m-k+j-1, 0), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V2**T
-				err = goblas.Dtrmm(Right, Lower, Trans, Unit, *n, *k, one, v.Off(0, (*m)-(*k)), work)
-				if (*m) > (*k) {
+				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, n, k, one, v.Off(0, m-k), work); err != nil {
+					panic(err)
+				}
+				if m > k {
 					//                 W := W + C1**T * V1**T
-					err = goblas.Dgemm(Trans, Trans, *n, *k, (*m)-(*k), one, c, v, one, work)
-				}
-
-				//              W := W * T**T  or  W * T
-				err = goblas.Dtrmm(Right, Lower, mat.TransByte(transt), NonUnit, *n, *k, one, t, work)
-
-				//              C := C - V**T * W**T
-				if (*m) > (*k) {
-					//                 C1 := C1 - V1**T * W**T
-					err = goblas.Dgemm(Trans, Trans, (*m)-(*k), *n, *k, -one, v, work, one, c)
-				}
-
-				//              W := W * V2
-				err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, *n, *k, one, v.Off(0, (*m)-(*k)), work)
-
-				//              C2 := C2 - W**T
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*n); i++ {
-						c.Set((*m)-(*k)+j-1, i-1, c.Get((*m)-(*k)+j-1, i-1)-work.Get(i-1, j-1))
+					if err = goblas.Dgemm(Trans, Trans, n, k, m-k, one, c, v, one, work); err != nil {
+						panic(err)
 					}
 				}
 
-			} else if side == 'R' {
+				//              W := W * T**T  or  W * T
+				if err = goblas.Dtrmm(Right, Lower, transt, NonUnit, n, k, one, t, work); err != nil {
+					panic(err)
+				}
+
+				//              C := C - V**T * W**T
+				if m > k {
+					//                 C1 := C1 - V1**T * W**T
+					if err = goblas.Dgemm(Trans, Trans, m-k, n, k, -one, v, work, one, c); err != nil {
+						panic(err)
+					}
+				}
+
+				//              W := W * V2
+				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, n, k, one, v.Off(0, m-k), work); err != nil {
+					panic(err)
+				}
+
+				//              C2 := C2 - W**T
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= n; i++ {
+						c.Set(m-k+j-1, i-1, c.Get(m-k+j-1, i-1)-work.Get(i-1, j-1))
+					}
+				}
+
+			} else if side == Right {
 				//              Form  C * H  or  C * H'  where  C = ( C1  C2 )
 				//
 				//              W := C * V**T  =  (C1*V1**T + C2*V2**T)  (stored in WORK)
 				//
 				//              W := C2
-				for j = 1; j <= (*k); j++ {
-					goblas.Dcopy(*m, c.Vector(0, (*n)-(*k)+j-1, 1), work.Vector(0, j-1, 1))
+				for j = 1; j <= k; j++ {
+					goblas.Dcopy(m, c.Vector(0, n-k+j-1, 1), work.Vector(0, j-1, 1))
 				}
 
 				//              W := W * V2**T
-				err = goblas.Dtrmm(Right, Lower, Trans, Unit, *m, *k, one, v.Off(0, (*n)-(*k)), work)
-				if (*n) > (*k) {
+				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, m, k, one, v.Off(0, n-k), work); err != nil {
+					panic(err)
+				}
+				if n > k {
 					//                 W := W + C1 * V1**T
-					err = goblas.Dgemm(NoTrans, Trans, *m, *k, (*n)-(*k), one, c, v, one, work)
+					if err = goblas.Dgemm(NoTrans, Trans, m, k, n-k, one, c, v, one, work); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * T  or  W * T**T
-				err = goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, work)
+				if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+					panic(err)
+				}
 
 				//              C := C - W * V
-				if (*n) > (*k) {
+				if n > k {
 					//                 C1 := C1 - W * V1
-					err = goblas.Dgemm(NoTrans, NoTrans, *m, (*n)-(*k), *k, -one, work, v, one, c)
+					if err = goblas.Dgemm(NoTrans, NoTrans, m, n-k, k, -one, work, v, one, c); err != nil {
+						panic(err)
+					}
 				}
 
 				//              W := W * V2
-				err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, *m, *k, one, v.Off(0, (*n)-(*k)), work)
+				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, m, k, one, v.Off(0, n-k), work); err != nil {
+					panic(err)
+				}
 
 				//              C1 := C1 - W
-				for j = 1; j <= (*k); j++ {
-					for i = 1; i <= (*m); i++ {
-						c.Set(i-1, (*n)-(*k)+j-1, c.Get(i-1, (*n)-(*k)+j-1)-work.Get(i-1, j-1))
+				for j = 1; j <= k; j++ {
+					for i = 1; i <= m; i++ {
+						c.Set(i-1, n-k+j-1, c.Get(i-1, n-k+j-1)-work.Get(i-1, j-1))
 					}
 				}
 

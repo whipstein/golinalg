@@ -11,12 +11,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkbb tests the reduction of a general real rectangular band
+// dchkbb tests the reduction of a general real rectangular band
 // matrix to bidiagonal form.
 //
-// DGBBRD factors a general band matrix A as  Q B P* , where * means
+// Dgbbrd factors a general band matrix A as  Q B P* , where * means
 // transpose, B is upper bidiagonal, and Q and P are orthogonal;
-// DGBBRD can also overwrite a given matrix C with Q* C .
+// Dgbbrd can also overwrite a given matrix C with Q* C .
 //
 // For each pair of matrix dimensions (M,N) and each selected matrix
 // type, an M by N matrix A and an M by NRHS matrix C are generated.
@@ -75,7 +75,7 @@ import (
 // (13) Rectangular matrix with random entries chosen from (-1,1).
 // (14) Same as (13), but multiplied by SQRT( overflow threshold )
 // (15) Same as (13), but multiplied by SQRT( underflow threshold )
-func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int, dotype *[]bool, nrhs *int, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, ab *mat.Matrix, ldab *int, bd, be *mat.Vector, q *mat.Matrix, ldq *int, p *mat.Matrix, ldp *int, c *mat.Matrix, ldc *int, cc *mat.Matrix, work *mat.Vector, lwork *int, result *mat.Vector, info *int, t *testing.T) {
+func dchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, nounit int, a, ab *mat.Matrix, bd, be *mat.Vector, q, p, c, cc *mat.Matrix, work *mat.Vector, lwork int, result *mat.Vector, t *testing.T) (err error) {
 	var badmm, badnn, badnnb bool
 	var amninv, anorm, cond, one, ovfl, rtovfl, rtunfl, ulp, ulpinv, unfl, zero float64
 	var i, iinfo, imode, itype, j, jcol, jr, jsize, jtype, jwidth, k, kl, kmax, ku, m, maxtyp, mmax, mnmax, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
@@ -95,7 +95,6 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 
 	//     Check for errors
 	ntestt = 0
-	(*info) = 0
 
 	//     Important constants
 	badmm = false
@@ -103,63 +102,63 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 	mmax = 1
 	nmax = 1
 	mnmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		mmax = max(mmax, (*mval)[j-1])
-		if (*mval)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		mmax = max(mmax, mval[j-1])
+		if mval[j-1] < 0 {
 			badmm = true
 		}
-		nmax = max(nmax, (*nval)[j-1])
-		if (*nval)[j-1] < 0 {
+		nmax = max(nmax, nval[j-1])
+		if nval[j-1] < 0 {
 			badnn = true
 		}
-		mnmax = max(mnmax, min((*mval)[j-1], (*nval)[j-1]))
+		mnmax = max(mnmax, min(mval[j-1], nval[j-1]))
 	}
 
 	badnnb = false
 	kmax = 0
-	for j = 1; j <= (*nwdths); j++ {
-		kmax = max(kmax, (*kk)[j-1])
-		if (*kk)[j-1] < 0 {
+	for j = 1; j <= nwdths; j++ {
+		kmax = max(kmax, kk[j-1])
+		if kk[j-1] < 0 {
 			badnnb = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsize=%v", nsizes)
 	} else if badmm {
-		(*info) = -2
+		err = fmt.Errorf("badmm: mval=%v", mval)
 	} else if badnn {
-		(*info) = -3
-	} else if (*nwdths) < 0 {
-		(*info) = -4
+		err = fmt.Errorf("badnn: nn=%v", nval)
+	} else if nwdths < 0 {
+		err = fmt.Errorf("nwdths < 0: nwdths=%v", nwdths)
 	} else if badnnb {
-		(*info) = -5
-	} else if (*ntypes) < 0 {
-		(*info) = -6
-	} else if (*nrhs) < 0 {
-		(*info) = -8
-	} else if (*lda) < nmax {
-		(*info) = -13
-	} else if (*ldab) < 2*kmax+1 {
-		(*info) = -15
-	} else if (*ldq) < nmax {
-		(*info) = -19
-	} else if (*ldp) < nmax {
-		(*info) = -21
-	} else if (*ldc) < nmax {
-		(*info) = -23
-	} else if (max(*lda, nmax)+1)*nmax > (*lwork) {
-		(*info) = -26
+		err = fmt.Errorf("badnnb: kk=%v", kk)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if ab.Rows < 2*kmax+1 {
+		err = fmt.Errorf("ab.Rows < 2*kmax+1: ab.Rows=%v, kmax=%v", ab.Rows, kmax)
+	} else if q.Rows < nmax {
+		err = fmt.Errorf("q.Rows < nmax: q.Rows=%v, nmax=%v", q.Rows, nmax)
+	} else if p.Rows < nmax {
+		err = fmt.Errorf("p.Rows < nmax: p.Rows=%v, nmax=%v", p.Rows, nmax)
+	} else if c.Rows < nmax {
+		err = fmt.Errorf("c.Rows < nmax: c.Rows=%v, nmax=%v", c.Rows, nmax)
+	} else if (max(a.Rows, nmax)+1)*nmax > lwork {
+		err = fmt.Errorf("(max(a.Rows, nmax)+1)*nmax > lwork: a.Rows=%v, nmax=%v, lwork=%v", a.Rows, nmax, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DCHKBB"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("dchkbb", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 || (*nwdths) == 0 {
+	if nsizes == 0 || ntypes == 0 || nwdths == 0 {
 		return
 	}
 
@@ -175,27 +174,27 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		m = (*mval)[jsize-1]
-		n = (*nval)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		m = mval[jsize-1]
+		n = nval[jsize-1]
 		amninv = one / float64(max(1, m, n))
 
-		for jwidth = 1; jwidth <= (*nwdths); jwidth++ {
-			k = (*kk)[jwidth-1]
+		for jwidth = 1; jwidth <= nwdths; jwidth++ {
+			k = kk[jwidth-1]
 			if k >= m && k >= n {
 				goto label150
 			}
 			kl = max(0, min(m-1, k))
 			ku = max(0, min(n-1, k))
 
-			if (*nsizes) != 1 {
-				mtypes = min(maxtyp, *ntypes)
+			if nsizes != 1 {
+				mtypes = min(maxtyp, ntypes)
 			} else {
-				mtypes = min(maxtyp+1, *ntypes)
+				mtypes = min(maxtyp+1, ntypes)
 			}
 
 			for jtype = 1; jtype <= mtypes; jtype++ {
-				if !(*dotype)[jtype-1] {
+				if !dotype[jtype-1] {
 					goto label140
 				}
 				nmats = nmats + 1
@@ -254,8 +253,8 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 			label70:
 				;
 
-				golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
-				golapack.Dlaset('F', ldab, &n, &zero, &zero, ab, ldab)
+				golapack.Dlaset(Full, a.Rows, n, zero, zero, a)
+				golapack.Dlaset(Full, ab.Rows, n, zero, zero, ab)
 				iinfo = 0
 				cond = ulpinv
 
@@ -273,15 +272,15 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 
 				} else if itype == 4 {
 					//                 Diagonal Matrix, singular values specified
-					matgen.Dlatms(&m, &n, 'S', iseed, 'N', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(m), &iinfo)
+					iinfo, err = matgen.Dlatms(m, n, 'S', iseed, 'N', work, imode, cond, anorm, 0, 0, 'N', a, work.Off(m))
 
 				} else if itype == 6 {
 					//                 Nonhermitian, singular values specified
-					matgen.Dlatms(&m, &n, 'S', iseed, 'N', work, &imode, &cond, &anorm, &kl, &ku, 'N', a, lda, work.Off(m), &iinfo)
+					iinfo, err = matgen.Dlatms(m, n, 'S', iseed, 'N', work, imode, cond, anorm, kl, ku, 'N', a, work.Off(m))
 
 				} else if itype == 9 {
 					//                 Nonhermitian, random entries
-					matgen.Dlatmr(&m, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &kl, &ku, &zero, &anorm, 'N', a, lda, &idumma, &iinfo)
+					iinfo, err = matgen.Dlatmr(m, n, 'S', iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, kl, ku, zero, anorm, 'N', a, &idumma)
 
 				} else {
 
@@ -289,12 +288,12 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 				}
 
 				//              Generate Right-Hand Side
-				matgen.Dlatmr(&m, nrhs, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(m), func() *int { y := 1; return &y }(), &one, work.Off(2*m), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &m, nrhs, &zero, &one, 'N', c, ldc, &idumma, &iinfo)
+				iinfo, err = matgen.Dlatmr(m, nrhs, 'S', iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(m), 1, one, work.Off(2*m), 1, one, 'N', &idumma, m, nrhs, zero, one, 'N', c, &idumma)
 
-				if iinfo != 0 {
+				if err != nil {
 					t.Fail()
-					fmt.Printf(" DCHKBB: %s returned INFO=%5d.\n         M=%5d N=%5d K=%5d, JTYPE=%5d, ISEED=%5d\n", "Generator", iinfo, m, n, k, jtype, ioldsd)
-					(*info) = abs(iinfo)
+					fmt.Printf(" dchkbb: %s returned info=%5d.\n         m=%5d n=%5d k=%5d, jtype=%5d, iseed=%5d\n", "Generator", iinfo, m, n, k, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					return
 				}
 
@@ -309,15 +308,12 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 				}
 
 				//              Copy C
-				golapack.Dlacpy('F', &m, nrhs, c, ldc, cc, ldc)
+				golapack.Dlacpy(Full, m, nrhs, c, cc)
 
-				//              Call DGBBRD to compute B, Q and P, and to update C.
-				golapack.Dgbbrd('B', &m, &n, nrhs, &kl, &ku, ab, ldab, bd, be, q, ldq, p, ldp, cc, ldc, work, &iinfo)
-
-				if iinfo != 0 {
+				//              Call Dgbbrd to compute B, Q and P, and to update C.
+				if err = golapack.Dgbbrd('B', m, n, nrhs, kl, ku, ab, bd, be, q, p, cc, work); err != nil {
 					t.Fail()
-					fmt.Printf(" DCHKBB: %s returned INFO=%5d.\n         M=%5d N=%5d K=%5d, JTYPE=%5d, ISEED=%5d\n", "DGBBRD", iinfo, m, n, k, jtype, ioldsd)
-					(*info) = abs(iinfo)
+					fmt.Printf(" dchkbb: %s returned info=%5d.\n         m=%5d n=%5d k=%5d, jtype=%5d, iseed=%5d\n", "Dgbbrd", iinfo, m, n, k, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -330,10 +326,10 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 				//                   2:  Check the orthogonality of Q
 				//                   3:  Check the orthogonality of P
 				//                   4:  Check the computation of Q' * C
-				Dbdt01(&m, &n, toPtr(-1), a, lda, q, ldq, bd, be, p, ldp, work, result.GetPtr(0))
-				Dort01('C', &m, &m, q, ldq, work, lwork, result.GetPtr(1))
-				Dort01('R', &n, &n, p, ldp, work, lwork, result.GetPtr(2))
-				Dbdt02(&m, nrhs, c, ldc, cc, ldc, q, ldq, work, result.GetPtr(3))
+				result.Set(0, dbdt01(m, n, -1, a, q, bd, be, p, work))
+				result.Set(1, dort01('C', m, m, q, work, lwork))
+				result.Set(2, dort01('R', n, n, p, work, lwork))
+				result.Set(3, dbdt02(m, nrhs, c, cc, q, work))
 
 				//              End of Loop -- Check for RESULT(j) > THRESH
 				ntest = 4
@@ -343,13 +339,13 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 
 				//              Print out tests which fail.
 				for jr = 1; jr <= ntest; jr++ {
-					if result.Get(jr-1) >= (*thresh) {
+					if result.Get(jr-1) >= thresh {
 						t.Fail()
 						if nerrs == 0 {
-							Dlahd2([]byte("DBB"))
+							dlahd2("Dbb")
 						}
 						nerrs = nerrs + 1
-						fmt.Printf(" M =%4d N=%4d, K=%3d, seed=%4d, type %2d, test(%2d)=%10.3f\n", m, n, k, ioldsd, jtype, jr, result.Get(jr-1))
+						fmt.Printf(" M =%4d n=%4d, k=%3d, seed=%4d, type %2d, test(%2d)=%10.3f\n", m, n, k, ioldsd, jtype, jr, result.Get(jr-1))
 					}
 				}
 
@@ -360,5 +356,7 @@ func Dchkbb(nsizes *int, mval, nval *[]int, nwdths *int, kk *[]int, ntypes *int,
 	}
 
 	//     Summary
-	Dlasum([]byte("DBB"), &nerrs, &ntestt)
+	dlasum("Dbb", nerrs, ntestt)
+
+	return
 }

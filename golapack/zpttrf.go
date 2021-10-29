@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -8,30 +10,29 @@ import (
 // Zpttrf computes the L*D*L**H factorization of a complex Hermitian
 // positive definite tridiagonal matrix A.  The factorization may also
 // be regarded as having the form A = U**H *D*U.
-func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
+func Zpttrf(n int, d *mat.Vector, e *mat.CVector) (info int, err error) {
 	var eii, eir, f, g, zero float64
 	var i, i4 int
 
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("ZPTTRF"), -(*info))
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Zpttrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Compute the L*D*L**H (or U**H *D*U) factorization of A.
-	i4 = ((*n) - 1) % 4
+	i4 = (n - 1) % 4
 	for i = 1; i <= i4; i++ {
 		if d.Get(i-1) <= zero {
-			(*info) = i
+			info = i
 			return
 		}
 		eir = e.GetRe(i - 1)
@@ -42,11 +43,11 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		d.Set(i, d.Get(i)-f*eir-g*eii)
 	}
 
-	for i = i4 + 1; i <= (*n)-4; i += 4 {
+	for i = i4 + 1; i <= n-4; i += 4 {
 		//        Drop out of the loop if d(i) <= 0: the matrix is not positive
 		//        definite.
 		if d.Get(i-1) <= zero {
-			(*info) = i
+			info = i
 			return
 		}
 
@@ -59,7 +60,7 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		d.Set(i, d.Get(i)-f*eir-g*eii)
 
 		if d.Get(i) <= zero {
-			(*info) = i + 1
+			info = i + 1
 			return
 		}
 
@@ -72,7 +73,7 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		d.Set(i+2-1, d.Get(i+2-1)-f*eir-g*eii)
 		//
 		if d.Get(i+2-1) <= zero {
-			(*info) = i + 2
+			info = i + 2
 			return
 		}
 
@@ -85,7 +86,7 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 		d.Set(i+3-1, d.Get(i+3-1)-f*eir-g*eii)
 
 		if d.Get(i+3-1) <= zero {
-			(*info) = i + 3
+			info = i + 3
 			return
 		}
 
@@ -99,7 +100,9 @@ func Zpttrf(n *int, d *mat.Vector, e *mat.CVector, info *int) {
 	}
 
 	//     Check d(n) for positive definiteness.
-	if d.Get((*n)-1) <= zero {
-		(*info) = (*n)
+	if d.Get(n-1) <= zero {
+		info = n
 	}
+
+	return
 }

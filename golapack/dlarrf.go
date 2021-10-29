@@ -12,7 +12,7 @@ import (
 // W( CLEND ), DLARRF finds a new relatively robust representation
 // L D L^T - SIGMA I = L(+) D(+) L(+)^T such that at least one of the
 // eigenvalues of L(+) D(+) L(+)^T is relatively isolated.
-func Dlarrf(n *int, d, l, ld *mat.Vector, clstrt, clend *int, w, wgap, werr *mat.Vector, spdiam, clgapl, clgapr, pivmin, sigma *float64, dplus, lplus, work *mat.Vector, info *int) {
+func Dlarrf(n int, d, l, ld *mat.Vector, clstrt, clend int, w, wgap, werr *mat.Vector, spdiam, clgapl, clgapr, pivmin float64, dplus, lplus, work *mat.Vector) (sigma float64, info int) {
 	var dorrr1, forcer, nofail, sawnan1, sawnan2, tryrrr1 bool
 	var avgap, bestshift, clwdth, eps, fact, fail, fail2, four, growthbound, ldelta, ldmax, lsigma, max1, max2, maxgrowth1, maxgrowth2, mingap, oldp, one, prod, quart, rdelta, rdmax, rrr1, rrr2, rsigma, s, smlgrowth, tmp, two, znm2 float64
 	var i, indx, ktry, ktrymax, shift, sleft, sright int
@@ -28,10 +28,8 @@ func Dlarrf(n *int, d, l, ld *mat.Vector, clstrt, clend *int, w, wgap, werr *mat
 	sleft = 1
 	sright = 2
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
@@ -54,31 +52,31 @@ func Dlarrf(n *int, d, l, ld *mat.Vector, clstrt, clend *int, w, wgap, werr *mat
 	nofail = false
 
 	//     Compute the average gap length of the cluster
-	clwdth = math.Abs(w.Get((*clend)-1)-w.Get((*clstrt)-1)) + werr.Get((*clend)-1) + werr.Get((*clstrt)-1)
-	avgap = clwdth / float64((*clend)-(*clstrt))
-	mingap = math.Min(*clgapl, *clgapr)
+	clwdth = math.Abs(w.Get(clend-1)-w.Get(clstrt-1)) + werr.Get(clend-1) + werr.Get(clstrt-1)
+	avgap = clwdth / float64(clend-clstrt)
+	mingap = math.Min(clgapl, clgapr)
 	//     Initial values for shifts to both ends of cluster
-	lsigma = math.Min(w.Get((*clstrt)-1), w.Get((*clend)-1)) - werr.Get((*clstrt)-1)
-	rsigma = math.Max(w.Get((*clstrt)-1), w.Get((*clend)-1)) + werr.Get((*clend)-1)
+	lsigma = math.Min(w.Get(clstrt-1), w.Get(clend-1)) - werr.Get(clstrt-1)
+	rsigma = math.Max(w.Get(clstrt-1), w.Get(clend-1)) + werr.Get(clend-1)
 	//     Use a small fudge to make sure that we really shift to the outside
 	lsigma = lsigma - math.Abs(lsigma)*four*eps
 	rsigma = rsigma + math.Abs(rsigma)*four*eps
 	//     Compute upper bounds for how much to back off the initial shifts
-	ldmax = quart*mingap + two*(*pivmin)
-	rdmax = quart*mingap + two*(*pivmin)
-	ldelta = math.Max(avgap, wgap.Get((*clstrt)-1)) / fact
-	rdelta = math.Max(avgap, wgap.Get((*clend)-1-1)) / fact
+	ldmax = quart*mingap + two*pivmin
+	rdmax = quart*mingap + two*pivmin
+	ldelta = math.Max(avgap, wgap.Get(clstrt-1)) / fact
+	rdelta = math.Max(avgap, wgap.Get(clend-1-1)) / fact
 
 	//     Initialize the record of the best representation found
 	s = Dlamch(SafeMinimum)
 	smlgrowth = one / s
-	fail = float64((*n)-1) * mingap / ((*spdiam) * eps)
-	fail2 = float64((*n)-1) * mingap / ((*spdiam) * math.Sqrt(eps))
+	fail = float64(n-1) * mingap / (spdiam * eps)
+	fail2 = float64(n-1) * mingap / (spdiam * math.Sqrt(eps))
 	bestshift = lsigma
 
 	//     while (KTRY <= KTRYMAX)
 	ktry = 0
-	growthbound = maxgrowth1 * (*spdiam)
+	growthbound = maxgrowth1 * spdiam
 label5:
 	;
 	sawnan1 = false
@@ -91,19 +89,19 @@ label5:
 	//     Left end
 	s = -lsigma
 	dplus.Set(0, d.Get(0)+s)
-	if math.Abs(dplus.Get(0)) < (*pivmin) {
-		dplus.Set(0, -(*pivmin))
+	if math.Abs(dplus.Get(0)) < pivmin {
+		dplus.Set(0, -pivmin)
 		//        Need to set SAWNAN1 because refined RRR test should not be used
 		//        in this case
 		sawnan1 = true
 	}
 	max1 = math.Abs(dplus.Get(0))
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		lplus.Set(i-1, ld.Get(i-1)/dplus.Get(i-1))
 		s = s*lplus.Get(i-1)*l.Get(i-1) - lsigma
 		dplus.Set(i, d.Get(i)+s)
-		if math.Abs(dplus.Get(i)) < (*pivmin) {
-			dplus.Set(i, -(*pivmin))
+		if math.Abs(dplus.Get(i)) < pivmin {
+			dplus.Set(i, -pivmin)
 			//           Need to set SAWNAN1 because refined RRR test should not be used
 			//           in this case
 			sawnan1 = true
@@ -112,26 +110,26 @@ label5:
 	}
 	sawnan1 = sawnan1 || Disnan(int(max1))
 	if forcer || (max1 <= growthbound && !sawnan1) {
-		(*sigma) = lsigma
+		sigma = lsigma
 		shift = sleft
 		goto label100
 	}
 	//     Right end
 	s = -rsigma
 	work.Set(0, d.Get(0)+s)
-	if math.Abs(work.Get(0)) < (*pivmin) {
-		work.Set(0, -(*pivmin))
+	if math.Abs(work.Get(0)) < pivmin {
+		work.Set(0, -pivmin)
 		//        Need to set SAWNAN2 because refined RRR test should not be used
 		//        in this case
 		sawnan2 = true
 	}
 	max2 = math.Abs(work.Get(0))
-	for i = 1; i <= (*n)-1; i++ {
-		work.Set((*n)+i-1, ld.Get(i-1)/work.Get(i-1))
-		s = s*work.Get((*n)+i-1)*l.Get(i-1) - rsigma
+	for i = 1; i <= n-1; i++ {
+		work.Set(n+i-1, ld.Get(i-1)/work.Get(i-1))
+		s = s*work.Get(n+i-1)*l.Get(i-1) - rsigma
 		work.Set(i, d.Get(i)+s)
-		if math.Abs(work.Get(i)) < (*pivmin) {
-			work.Set(i, -(*pivmin))
+		if math.Abs(work.Get(i)) < pivmin {
+			work.Set(i, -pivmin)
 			//           Need to set SAWNAN2 because refined RRR test should not be used
 			//           in this case
 			sawnan2 = true
@@ -140,7 +138,7 @@ label5:
 	}
 	sawnan2 = sawnan2 || Disnan(int(max2))
 	if forcer || (max2 <= growthbound && !sawnan2) {
-		(*sigma) = rsigma
+		sigma = rsigma
 		shift = sright
 		goto label100
 	}
@@ -180,32 +178,32 @@ label5:
 	tryrrr1 = true
 	if tryrrr1 && dorrr1 {
 		if indx == 1 {
-			tmp = math.Abs(dplus.Get((*n) - 1))
+			tmp = math.Abs(dplus.Get(n - 1))
 			znm2 = one
 			prod = one
 			oldp = one
-			for i = (*n) - 1; i >= 1; i-- {
+			for i = n - 1; i >= 1; i-- {
 				if prod <= eps {
-					prod = ((dplus.Get(i) * work.Get((*n)+i)) / (dplus.Get(i-1) * work.Get((*n)+i-1))) * oldp
+					prod = ((dplus.Get(i) * work.Get(n+i)) / (dplus.Get(i-1) * work.Get(n+i-1))) * oldp
 				} else {
-					prod = prod * math.Abs(work.Get((*n)+i-1))
+					prod = prod * math.Abs(work.Get(n+i-1))
 				}
 				oldp = prod
 				znm2 = znm2 + math.Pow(prod, 2)
 				tmp = math.Max(tmp, math.Abs(dplus.Get(i-1)*prod))
 			}
-			rrr1 = tmp / ((*spdiam) * math.Sqrt(znm2))
+			rrr1 = tmp / (spdiam * math.Sqrt(znm2))
 			if rrr1 <= maxgrowth2 {
-				(*sigma) = lsigma
+				sigma = lsigma
 				shift = sleft
 				goto label100
 			}
 		} else if indx == 2 {
-			tmp = math.Abs(work.Get((*n) - 1))
+			tmp = math.Abs(work.Get(n - 1))
 			znm2 = one
 			prod = one
 			oldp = one
-			for i = (*n) - 1; i >= 1; i-- {
+			for i = n - 1; i >= 1; i-- {
 				if prod <= eps {
 					prod = ((work.Get(i) * lplus.Get(i)) / (work.Get(i-1) * lplus.Get(i-1))) * oldp
 				} else {
@@ -215,9 +213,9 @@ label5:
 				znm2 = znm2 + math.Pow(prod, 2)
 				tmp = math.Max(tmp, math.Abs(work.Get(i-1)*prod))
 			}
-			rrr2 = tmp / ((*spdiam) * math.Sqrt(znm2))
+			rrr2 = tmp / (spdiam * math.Sqrt(znm2))
 			if rrr2 <= maxgrowth2 {
-				(*sigma) = rsigma
+				sigma = rsigma
 				shift = sright
 				goto label100
 			}
@@ -243,7 +241,7 @@ label50:
 			forcer = true
 			goto label5
 		} else {
-			(*info) = 1
+			info = 1
 			return
 		}
 	}
@@ -252,7 +250,9 @@ label100:
 	if shift == sleft {
 	} else if shift == sright {
 		//        store new L and D back into DPLUS, LPLUS
-		goblas.Dcopy(*n, work.Off(0, 1), dplus.Off(0, 1))
-		goblas.Dcopy((*n)-1, work.Off((*n), 1), lplus.Off(0, 1))
+		goblas.Dcopy(n, work.Off(0, 1), dplus.Off(0, 1))
+		goblas.Dcopy(n-1, work.Off(n, 1), lplus.Off(0, 1))
 	}
+
+	return
 }

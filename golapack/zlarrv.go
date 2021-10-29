@@ -10,10 +10,10 @@ import (
 // Zlarrv computes the eigenvectors of the tridiagonal matrix
 // T = L D L**T given L, D and APPROXIMATIONS to the eigenvalues of L D L**T.
 // The input eigenvalues should have been computed by DLARRE.
-func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *[]int, m, dol, dou *int, minrgp, rtol1, rtol2 *float64, w, werr, wgap *mat.Vector, iblock, indexw *[]int, gers *mat.Vector, z *mat.CMatrix, ldz *int, isuppz *[]int, work *mat.Vector, iwork *[]int, info *int) {
+func Zlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]int, m, dol, dou int, minrgp, rtol1, rtol2 float64, w, werr, wgap *mat.Vector, iblock, indexw *[]int, gers *mat.Vector, z *mat.CMatrix, isuppz *[]int, work *mat.Vector, iwork *[]int) (info int) {
 	var eskip, needbs, stp2ii, tryrqc, usedbs, usedrq bool
 	var czero complex128
-	var bstres, bstw, eps, four, fudge, gap, gaptol, gl, gu, half, lambda, left, lgap, mingma, nrminv, one, resid, rgap, right, rqcorr, rqtol, savgap, sgndef, sigma, spdiam, ssigma, tau, three, tmp, tol, two, zero, ztz float64
+	var bstres, bstw, eps, four, fudge, gap, gaptol, gl, gu, half, lambda, left, lgap, nrminv, one, resid, rgap, right, rqcorr, rqtol, savgap, sgndef, sigma, spdiam, ssigma, tau, three, tmp, tol, two, zero float64
 	var done, i, ibegin, idone, iend, ii, iindc1, iindc2, iindr, iindwk, iinfo, im, in, indeig, indin1, indin2, indld, indlld, indwrk, isupmn, isupmx, iter, itmp1, j, jblk, k, maxitr, miniwsize, minwsize, nclus, ndepth, negcnt, newcls, newfst, newftt, newlst, newsiz, offset, oldcls, oldfst, oldien, oldlst, oldncl, p, parity, q, wbegin, wend, windex, windmn, windpl, zfrom, zto, zusedl, zusedu, zusedw int
 
 	maxitr = 10
@@ -25,20 +25,18 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 	four = 4.0
 	half = 0.5
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
 	//     The first N entries of WORK are reserved for the eigenvalues
-	indld = (*n) + 1
-	indlld = 2*(*n) + 1
-	indin1 = 3*(*n) + 1
-	indin2 = 4*(*n) + 1
-	indwrk = 5*(*n) + 1
-	minwsize = 12 * (*n)
+	indld = n + 1
+	indlld = 2*n + 1
+	indin1 = 3*n + 1
+	indin2 = 4*n + 1
+	indwrk = 5*n + 1
+	minwsize = 12 * n
 	for i = 1; i <= minwsize; i++ {
 		work.Set(i-1, zero)
 	}
@@ -47,38 +45,38 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 	iindr = 0
 	//     IWORK(IINDC1+1:IINC2+N) are used to store the clusters of the current
 	//     layer and the one above.
-	iindc1 = (*n)
-	iindc2 = 2 * (*n)
-	iindwk = 3*(*n) + 1
-	miniwsize = 7 * (*n)
+	iindc1 = n
+	iindc2 = 2 * n
+	iindwk = 3*n + 1
+	miniwsize = 7 * n
 	for i = 1; i <= miniwsize; i++ {
 		(*iwork)[i-1] = 0
 	}
 	zusedl = 1
-	if (*dol) > 1 {
+	if dol > 1 {
 		//        Set lower bound for use of Z
-		zusedl = (*dol) - 1
+		zusedl = dol - 1
 	}
-	zusedu = (*m)
-	if (*dou) < (*m) {
+	zusedu = m
+	if dou < m {
 		//        Set lower bound for use of Z
-		zusedu = (*dou) + 1
+		zusedu = dou + 1
 	}
 	//     The width of the part of Z that is used
 	zusedw = zusedu - zusedl + 1
-	Zlaset('F', n, &zusedw, &czero, &czero, z.Off(0, zusedl-1), ldz)
+	Zlaset(Full, n, zusedw, czero, czero, z.Off(0, zusedl-1))
 	eps = Dlamch(Precision)
 	rqtol = two * eps
 
 	//     Set expert flags for standard code.
 	tryrqc = true
-	if ((*dol) == 1) && ((*dou) == (*m)) {
+	if (dol == 1) && (dou == m) {
 	} else {
 		//        Only selected eigenpairs are computed. Since the other evalues
 		//        are not refined by RQ iteration, bisection has to compute to full
 		//        accuracy.
-		(*rtol1) = four * eps
-		(*rtol2) = four * eps
+		rtol1 = four * eps
+		rtol2 = four * eps
 	}
 	//     The entries WBEGIN:WEND in W, WERR, WGAP correspond to the
 	//     desired eigenvalues. The support of the nonzero eigenvector
@@ -89,7 +87,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 	done = 0
 	ibegin = 1
 	wbegin = 1
-	for jblk = 1; jblk <= (*iblock)[(*m)-1]; jblk++ {
+	for jblk = 1; jblk <= (*iblock)[m-1]; jblk++ {
 		iend = (*isplit)[jblk-1]
 		sigma = l.Get(iend - 1)
 		//        Find the eigenvectors of the submatrix indexed IBEGIN
@@ -97,7 +95,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		wend = wbegin - 1
 	label15:
 		;
-		if wend < (*m) {
+		if wend < m {
 			if (*iblock)[wend] == jblk {
 				wend = wend + 1
 				goto label15
@@ -106,7 +104,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		if wend < wbegin {
 			ibegin = iend + 1
 			goto label170
-		} else if (wend < (*dol)) || (wbegin > (*dou)) {
+		} else if (wend < dol) || (wbegin > dou) {
 			ibegin = iend + 1
 			wbegin = wend + 1
 			goto label170
@@ -168,8 +166,8 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		;
 		if idone < im {
 			//           This is a crude protection against infinitely deep trees
-			if ndepth > (*m) {
-				(*info) = -2
+			if ndepth > m {
+				info = -2
 				return
 			}
 			//           breadth first processing of the current level of the representation
@@ -199,17 +197,17 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 					//                 that has been computed at the previous level
 					//                 The RRR is stored in Z and overwritten once the eigenvectors
 					//                 have been computed or when the cluster is refined
-					if ((*dol) == 1) && ((*dou) == (*m)) {
+					if (dol == 1) && (dou == m) {
 						//                    Get representation from location of the leftmost evalue
 						//                    of the cluster
 						j = wbegin + oldfst - 1
 					} else {
-						if wbegin+oldfst-1 < (*dol) {
+						if wbegin+oldfst-1 < dol {
 							//                       Get representation from the left end of Z array
-							j = (*dol) - 1
-						} else if wbegin+oldfst-1 > (*dou) {
+							j = dol - 1
+						} else if wbegin+oldfst-1 > dou {
 							//                       Get representation from the right end of Z array
-							j = (*dou)
+							j = dou
 						} else {
 							j = wbegin + oldfst - 1
 						}
@@ -221,7 +219,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 					d.Set(iend-1, z.GetRe(iend-1, j-1))
 					sigma = z.GetRe(iend-1, j)
 					//                 Set the corresponding entries in Z to zero
-					Zlaset('F', &in, func() *int { y := 2; return &y }(), &czero, &czero, z.Off(ibegin-1, j-1), ldz)
+					Zlaset(Full, in, 2, czero, czero, z.Off(ibegin-1, j-1))
 				}
 				//              Compute DL and DLL of current RRR
 				for j = ibegin; j <= iend-1; j++ {
@@ -240,9 +238,9 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 					offset = (*indexw)[wbegin-1] - 1
 					//                 perform limited bisection (if necessary) to get approximate
 					//                 eigenvalues to the precision needed.
-					Dlarrb(&in, d.Off(ibegin-1), work.Off(indlld+ibegin-1-1), &p, &q, rtol1, rtol2, &offset, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(indwrk-1), toSlice(iwork, iindwk-1), pivmin, &spdiam, &in, &iinfo)
+					Dlarrb(in, d.Off(ibegin-1), work.Off(indlld+ibegin-1-1), p, q, rtol1, rtol2, offset, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(indwrk-1), toSlice(iwork, iindwk-1), pivmin, spdiam, in)
 					if iinfo != 0 {
-						(*info) = -1
+						info = -1
 						return
 					}
 					//                 We also recompute the extremal gaps. W holds all eigenvalues
@@ -271,7 +269,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						//                    we are at the right end of the cluster, this is also the
 						//                    boundary of the child cluster
 						newlst = j
-					} else if wgap.Get(wbegin+j-1-1) >= (*minrgp)*work.GetMag(wbegin+j-1-1) {
+					} else if wgap.Get(wbegin+j-1-1) >= minrgp*work.GetMag(wbegin+j-1-1) {
 						//                    the right relative gap is big enough, the child cluster
 						//                    (NEWFST,..,NEWLST) is well separated from the following
 						newlst = j
@@ -284,17 +282,17 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 					newsiz = newlst - newfst + 1
 					//                 NEWFTT is the place in Z where the new RRR or the computed
 					//                 eigenvector is to be stored
-					if ((*dol) == 1) && ((*dou) == (*m)) {
+					if (dol == 1) && (dou == m) {
 						//                    Store representation at location of the leftmost evalue
 						//                    of the cluster
 						newftt = wbegin + newfst - 1
 					} else {
-						if wbegin+newfst-1 < (*dol) {
+						if wbegin+newfst-1 < dol {
 							//                       Store representation at the left end of Z array
-							newftt = (*dol) - 1
-						} else if wbegin+newfst-1 > (*dou) {
+							newftt = dol - 1
+						} else if wbegin+newfst-1 > dou {
 							//                       Store representation at the right end of Z array
-							newftt = (*dou)
+							newftt = dou
 						} else {
 							newftt = wbegin + newfst - 1
 						}
@@ -314,7 +312,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						//                    in W might be of the same order so that gaps are not
 						//                    exhibited correctly for very close eigenvalues.
 						if newfst == 1 {
-							lgap = math.Max(zero, w.Get(wbegin-1)-werr.Get(wbegin-1)-(*vl))
+							lgap = math.Max(zero, w.Get(wbegin-1)-werr.Get(wbegin-1)-vl)
 						} else {
 							lgap = wgap.Get(wbegin + newfst - 2 - 1)
 						}
@@ -331,10 +329,10 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 								p = (*indexw)[wbegin-1+newlst-1]
 							}
 							offset = (*indexw)[wbegin-1] - 1
-							Dlarrb(&in, d.Off(ibegin-1), work.Off(indlld+ibegin-1-1), &p, &p, &rqtol, &rqtol, &offset, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(indwrk-1), toSlice(iwork, iindwk-1), pivmin, &spdiam, &in, &iinfo)
+							Dlarrb(in, d.Off(ibegin-1), work.Off(indlld+ibegin-1-1), p, p, rqtol, rqtol, offset, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(indwrk-1), toSlice(iwork, iindwk-1), pivmin, spdiam, in)
 						}
 
-						if (wbegin+newlst-1 < (*dol)) || (wbegin+newfst-1 > (*dou)) {
+						if (wbegin+newlst-1 < dol) || (wbegin+newfst-1 > dou) {
 							//                       if the cluster contains no desired eigenvalues
 							//                       skip the computation of that branch of the rep. tree
 							//
@@ -350,7 +348,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						//                    Note that the new RRR is stored in Z
 						//
 						//                    DLARRF needs LWORK = 2*N
-						Dlarrf(&in, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), &newfst, &newlst, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), &spdiam, &lgap, &rgap, pivmin, &tau, work.Off(indin1-1), work.Off(indin2-1), work.Off(indwrk-1), &iinfo)
+						tau, iinfo = Dlarrf(in, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), newfst, newlst, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), spdiam, lgap, rgap, pivmin, work.Off(indin1-1), work.Off(indin2-1), work.Off(indwrk-1))
 						//                    In the complex case, DLARRF cannot write
 						//                    the new RRR directly into Z and needs an intermediate
 						//                    workspace
@@ -385,7 +383,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							(*iwork)[k-1-1] = newfst
 							(*iwork)[k-1] = newlst
 						} else {
-							(*info) = -2
+							info = -2
 							return
 						}
 					} else {
@@ -397,11 +395,11 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 						k = newfst
 						windex = wbegin + k - 1
 						windmn = max(windex-1, 1)
-						windpl = min(windex+1, *m)
+						windpl = min(windex+1, m)
 						lambda = work.Get(windex - 1)
 						done = done + 1
 						//                    Check if eigenvector computation is to be skipped
-						if (windex < (*dol)) || (windex > (*dou)) {
+						if (windex < dol) || (windex > dou) {
 							eskip = true
 							goto label125
 						} else {
@@ -473,9 +471,9 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							usedbs = true
 							itmp1 = (*iwork)[iindr+windex-1]
 							offset = (*indexw)[wbegin-1] - 1
-							Dlarrb(&in, d.Off(ibegin-1), work.Off(indlld+ibegin-1-1), &indeig, &indeig, &zero, toPtrf64(two*eps), &offset, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(indwrk-1), toSlice(iwork, iindwk-1), pivmin, &spdiam, &itmp1, &iinfo)
+							Dlarrb(in, d.Off(ibegin-1), work.Off(indlld+ibegin-1-1), indeig, indeig, zero, two*eps, offset, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(indwrk-1), toSlice(iwork, iindwk-1), pivmin, spdiam, itmp1)
 							if iinfo != 0 {
-								(*info) = -3
+								info = -3
 								return
 							}
 							lambda = work.Get(windex - 1)
@@ -484,7 +482,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							(*iwork)[iindr+windex-1] = 0
 						}
 						//                    Given LAMBDA, compute the eigenvector.
-						Zlar1v(&in, func() *int { y := 1; return &y }(), &in, &lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, &gaptol, z.CVector(ibegin-1, windex-1), !usedbs, &negcnt, &ztz, &mingma, &(*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), &nrminv, &resid, &rqcorr, work.Off(indwrk-1))
+						negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Zlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.CVector(ibegin-1, windex-1), !usedbs, (*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), work.Off(indwrk-1))
 						if iter == 0 {
 							bstres = resid
 							bstw = lambda
@@ -556,7 +554,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 								needbs = true
 								goto label120
 							} else {
-								(*info) = 5
+								info = 5
 								return
 							}
 						} else {
@@ -567,7 +565,7 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 							}
 							if stp2ii {
 								//                          improve error angle by second step
-								Zlar1v(&in, func() *int { y := 1; return &y }(), &in, &lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, &gaptol, z.CVector(ibegin-1, windex-1), !usedbs, &negcnt, &ztz, &mingma, &(*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), &nrminv, &resid, &rqcorr, work.Off(indwrk-1))
+								negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Zlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.CVector(ibegin-1, windex-1), !usedbs, (*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), work.Off(indwrk-1))
 							}
 							work.Set(windex-1, lambda)
 						}
@@ -627,4 +625,6 @@ func Zlarrv(n *int, vl, vu *float64, d, l *mat.Vector, pivmin *float64, isplit *
 		wbegin = wend + 1
 	label170:
 	}
+
+	return
 }

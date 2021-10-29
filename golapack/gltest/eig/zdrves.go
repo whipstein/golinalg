@@ -3,7 +3,6 @@ package eig
 import (
 	"fmt"
 	"math"
-	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -11,10 +10,10 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zdrves checks the nonsymmetric eigenvalue (Schur form) problem
+// zdrves checks the nonsymmetric eigenvalue (Schur form) problem
 //    driver ZGEES.
 //
-//    When ZDRVES is called, a number of matrix "sizes" ("n's") and a
+//    When zdrves is called, a number of matrix "sizes" ("n's") and a
 //    number of matrix "types" are specified.  For each size ("n")
 //    and each _type of matrix, one matrix will be generated and used
 //    to test the nonsymmetric eigenroutines.  For each matrix, 13
@@ -142,7 +141,7 @@ import (
 //         near the overflow threshold
 //    (21) Same as (19), but multiplied by a constant
 //         near the underflow threshold
-func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.CMatrix, lda *int, h, ht *mat.CMatrix, w, wt *mat.CVector, vs *mat.CMatrix, ldvs *int, result *mat.Vector, work *mat.CVector, nwork *int, rwork *mat.Vector, iwork *[]int, bwork *[]bool, info *int, t *testing.T) {
+func zdrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, ht *mat.CMatrix, w, wt *mat.CVector, vs *mat.CMatrix, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int, bwork []bool) (err error) {
 	var badnn bool
 	var sort byte
 	var cone, czero complex128
@@ -151,10 +150,10 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	res := vf(2)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
-	kconds := make([]int, 21)
-	kmagn := make([]int, 21)
-	kmode := make([]int, 21)
-	ktype := make([]int, 21)
+	kconds := []int{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0}
+	kmagn := []int{1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1}
+	ktype := []int{1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
@@ -163,62 +162,54 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	maxtyp = 21
 	selopt := &gltest.Common.Sslct.Selopt
 
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15], ktype[16], ktype[17], ktype[18], ktype[19], ktype[20] = 1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15], kmagn[16], kmagn[17], kmagn[18], kmagn[19], kmagn[20] = 1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1
-	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
-
-	path := []byte("ZES")
+	path := "Zes"
 
 	//     Check for errors
 	ntestt = 0
 	ntestf = 0
-	(*info) = 0
-	(*selopt) = 0
+	*selopt = 0
 
 	//     Important constants
 	badnn = false
 	nmax = 0
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*nounit) <= 0 {
-		(*info) = -7
-	} else if (*lda) < 1 || (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldvs) < 1 || (*ldvs) < nmax {
-		(*info) = -15
-	} else if 5*nmax+2*pow(nmax, 2) > (*nwork) {
-		(*info) = -18
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows < 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if vs.Rows < 1 || vs.Rows < nmax {
+		err = fmt.Errorf("vs.Rows < 1 || vs.Rows < nmax: vs.Rows=%v, nmax=%v", vs.Rows, nmax)
+	} else if 5*nmax+2*pow(nmax, 2) > nwork {
+		err = fmt.Errorf("5*nmax+2*pow(nmax, 2) > nwork: nmax=%v, nwork=%v", nmax, nwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZDRVES"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zdrves", err)
 		return
 	}
 
 	//     Quick return if nothing to do
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
 	//     More Important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Precision)
 	ulpinv = one / ulp
 	rtulp = math.Sqrt(ulp)
@@ -227,22 +218,22 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     Loop over sizes, types
 	nerrs = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label230
 			}
 
-			//           Save ISEED in case of an error.
+			//           Save iseed in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Compute "A"
@@ -295,7 +286,7 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label60:
 			;
 
-			golapack.Zlaset('F', lda, &n, &czero, &czero, a, lda)
+			golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -321,11 +312,11 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'H', rwork, imode, cond, anorm, 0, 0, 'N', a, work.Off(n))
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'H', rwork, imode, cond, anorm, n, n, 'N', a, work.Off(n))
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -337,39 +328,38 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					conds = zero
 				}
 
-				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
+				err = matgen.Zlatme(n, 'D', &iseed, work, imode, cond, cone, 'T', 'T', 'T', rwork, 4, conds, n, n, anorm, a, work.Off(2*n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'H', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 				if n >= 4 {
-					golapack.Zlaset('F', func() *int { y := 2; return &y }(), &n, &czero, &czero, a, lda)
-					golapack.Zlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &czero, &czero, a.Off(2, 0), lda)
-					golapack.Zlaset('F', toPtr(n-3), func() *int { y := 2; return &y }(), &czero, &czero, a.Off(2, n-1-1), lda)
-					golapack.Zlaset('F', func() *int { y := 1; return &y }(), &n, &czero, &czero, a.Off(n-1, 0), lda)
+					golapack.Zlaset(Full, 2, n, czero, czero, a)
+					golapack.Zlaset(Full, n-3, 1, czero, czero, a.Off(2, 0))
+					golapack.Zlaset(Full, n-3, 2, czero, czero, a.Off(2, n-1-1))
+					golapack.Zlaset(Full, 1, n, czero, czero, a.Off(n-1, 0))
 				}
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, 0, zero, anorm, 'N', a, &iwork)
 
 			} else {
 
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo != 0 || err != nil {
+				fmt.Printf(" zdrves: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -401,13 +391,11 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 
 					//                 Compute Schur form and Schur vectors, and test them
-					golapack.Zlacpy('F', &n, &n, a, lda, h, lda)
-					golapack.Zgees('V', sort, Zslect, &n, h, lda, &sdim, w, vs, ldvs, work, &nnwork, rwork, bwork, &iinfo)
-					if iinfo != 0 {
-						t.Fail()
+					golapack.Zlacpy(Full, n, n, a, h)
+					if sdim, iinfo, err = golapack.Zgees('V', sort, zslect, n, h, w, vs, work, nnwork, rwork, &bwork); err != nil || iinfo != 0 {
 						result.Set(1+rsub-1, ulpinv)
-						fmt.Printf(" ZDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGEES1", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+						fmt.Printf(" zdrves: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zgees1", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						goto label190
 					}
 
@@ -423,7 +411,7 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 					//                 Do Tests (2) and (3) or Tests (8) and (9)
 					lwork = max(1, 2*n*n)
-					Zhst01(&n, func() *int { y := 1; return &y }(), &n, a, lda, h, lda, vs, ldvs, work, &lwork, rwork, res)
+					zhst01(n, 1, n, a, h, vs, work, lwork, rwork, res)
 					result.Set(2+rsub-1, res.Get(0))
 					result.Set(3+rsub-1, res.Get(1))
 
@@ -436,13 +424,11 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 
 					//                 Do Test (5) or Test (11)
-					golapack.Zlacpy('F', &n, &n, a, lda, ht, lda)
-					golapack.Zgees('N', sort, Zslect, &n, ht, lda, &sdim, wt, vs, ldvs, work, &nnwork, rwork, bwork, &iinfo)
-					if iinfo != 0 {
-						t.Fail()
+					golapack.Zlacpy(Full, n, n, a, ht)
+					if sdim, iinfo, err = golapack.Zgees('N', sort, zslect, n, ht, wt, vs, work, nnwork, rwork, &bwork); err != nil || iinfo != 0 {
 						result.Set(5+rsub-1, ulpinv)
-						fmt.Printf(" ZDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGEES2", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+						fmt.Printf(" zdrves: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zgees2", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						goto label190
 					}
 
@@ -468,11 +454,11 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						result.Set(12, zero)
 						knteig = 0
 						for i = 1; i <= n; i++ {
-							if Zslect(w.Get(i - 1)) {
+							if zslect(w.Get(i - 1)) {
 								knteig = knteig + 1
 							}
 							if i < n {
-								if Zslect(w.Get(i)) && (!Zslect(w.Get(i - 1))) {
+								if zslect(w.Get(i)) && (!zslect(w.Get(i - 1))) {
 									result.Set(12, ulpinv)
 								}
 							}
@@ -494,8 +480,8 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					if result.Get(j-1) >= zero {
 						ntest = ntest + 1
 					}
-					if result.Get(j-1) >= (*thresh) {
-						nfail = nfail + 1
+					if result.Get(j-1) >= thresh {
+						nfail++
 					}
 				}
 
@@ -503,19 +489,19 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					ntestf = ntestf + 1
 				}
 				if ntestf == 1 {
-					fmt.Printf("\n %3s -- Complex Schur Form Decomposition Driver\n Matrix types (see ZDRVES for details): \n", path)
+					fmt.Printf("\n %3s -- Complex Schur Form Decomposition Driver\n Matrix types (see zdrves for details): \n", path)
 					fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: geometr. spaced entries.\n  2=Identity matrix.                      6=Diagonal: clustered entries.\n  3=Transposed Jordan block.              7=Diagonal: large, evenly spaced.\n  4=Diagonal: evenly spaced entries.      8=Diagonal: small, evenly spaced.\n")
 					fmt.Printf(" Dense, Non-Symmetric Matrices:\n  9=Well-cond., evenly spaced eigenvals. 14=Ill-cond., geomet. spaced eigenals.\n 10=Well-cond., geom. spaced eigenvals.  15=Ill-conditioned, clustered e.vals.\n 11=Well-conditioned, clustered e.vals.  16=Ill-cond., random complex       \n 12=Well-cond., random complex           17=Ill-cond., large rand. complx     \n 13=Ill-conditioned, evenly spaced.      18=Ill-cond., small rand. complx     \n")
 					fmt.Printf(" 19=Matrix with random O(1) entries.     21=Matrix with small random entries.\n 20=Matrix with large random entries.   \n\n")
-					fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if W are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if W same no matter if VS computed (no sort),  1/ulp otherwise\n", *thresh)
+					fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if W are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if W same no matter if VS computed (no sort),  1/ulp otherwise\n", thresh)
 					fmt.Printf(" 7 = 0 if T in Schur form (sort),   1/ulp otherwise\n 8 = | A - VS T transpose(VS) | / ( n |A| ulp ) (sort)\n 9 = | I - VS transpose(VS) | / ( n ulp ) (sort) \n 10 = 0 if W are eigenvalues of T (sort),  1/ulp otherwise\n 11 = 0 if T same no matter if VS computed (sort),  1/ulp otherwise\n 12 = 0 if W same no matter if VS computed (sort),  1/ulp otherwise\n 13 = 0 if sorting successful, 1/ulp otherwise\n\n")
 					ntestf = 2
 				}
 
 				for j = 1; j <= 13; j++ {
-					if result.Get(j-1) >= (*thresh) {
-						t.Fail()
-						fmt.Printf(" N=%5d, IWK=%2d, seed=%4d, _type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
+					if result.Get(j-1) >= thresh {
+						fmt.Printf(" n=%5d, IWK=%2d, seed=%4d, _type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
+						err = fmt.Errorf(" n=%5d, IWK=%2d, seed=%4d, _type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
 					}
 				}
 
@@ -528,5 +514,7 @@ func Zdrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Dlasum(path, &nerrs, &ntestt)
+	dlasum(path, nerrs, ntestt)
+
+	return
 }

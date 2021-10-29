@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -8,7 +9,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// DPBSVX uses the Cholesky factorization A = U**T*U or A = L*L**T to
+// Dpbsvx uses the Cholesky factorization A = U**T*U or A = L*L**T to
 // compute the solution to a real system of linear equations
 //    A * X = B,
 // where A is an N-by-N symmetric positive definite band matrix and X
@@ -16,88 +17,90 @@ import (
 //
 // Error bounds on the solution and a condition estimate are also
 // provided.
-func Dpbsvx(fact, uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *mat.Matrix, ldafb *int, equed *byte, s *mat.Vector, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, rcond *float64, ferr, berr, work *mat.Vector, iwork *[]int, info *int) {
+func Dpbsvx(fact byte, uplo mat.MatUplo, n, kd, nrhs int, ab, afb *mat.Matrix, equed byte, s *mat.Vector, b, x *mat.Matrix, ferr, berr, work *mat.Vector, iwork *[]int) (equedOut byte, rcond float64, info int, err error) {
 	var equil, nofact, rcequ, upper bool
 	var amax, anorm, bignum, one, scond, smax, smin, smlnum, zero float64
 	var i, infequ, j, j1, j2 int
 
 	zero = 0.0
 	one = 1.0
+	equedOut = equed
 
-	(*info) = 0
 	nofact = fact == 'N'
 	equil = fact == 'E'
-	upper = uplo == 'U'
+	upper = uplo == Upper
 	if nofact || equil {
-		(*equed) = 'N'
+		equedOut = 'N'
 		rcequ = false
 	} else {
-		rcequ = *equed == 'Y'
+		rcequ = equedOut == 'Y'
 		smlnum = Dlamch(SafeMinimum)
 		bignum = one / smlnum
 	}
 
 	//     Test the input parameters.
 	if !nofact && !equil && fact != 'F' {
-		(*info) = -1
-	} else if !upper && uplo != 'L' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*kd) < 0 {
-		(*info) = -4
-	} else if (*nrhs) < 0 {
-		(*info) = -5
-	} else if (*ldab) < (*kd)+1 {
-		(*info) = -7
-	} else if (*ldafb) < (*kd)+1 {
-		(*info) = -9
-	} else if fact == 'F' && !(rcequ || *equed == 'N') {
-		(*info) = -10
+		err = fmt.Errorf("!nofact && !equil && fact != 'F': fact='%c'", fact)
+	} else if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if kd < 0 {
+		err = fmt.Errorf("kd < 0: kd=%v", kd)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if ab.Rows < kd+1 {
+		err = fmt.Errorf("ab.Rows < kd+1: ab.Rows=%v, kd=%v", ab.Rows, kd)
+	} else if afb.Rows < kd+1 {
+		err = fmt.Errorf("afb.Rows < kd+1: afb.Rows=%v, kd=%v", afb.Rows, kd)
+	} else if fact == 'F' && !(rcequ || equedOut == 'N') {
+		err = fmt.Errorf("fact == 'F' && !(rcequ || equedOut == 'N'): fact='%c', equed='%c'", fact, equedOut)
 	} else {
 		if rcequ {
 			smin = bignum
 			smax = zero
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				smin = math.Min(smin, s.Get(j-1))
 				smax = math.Max(smax, s.Get(j-1))
 			}
 			if smin <= zero {
-				(*info) = -11
-			} else if (*n) > 0 {
+				err = fmt.Errorf("smin <= zero: smin=%v", smin)
+			} else if n > 0 {
 				scond = math.Max(smin, smlnum) / math.Min(smax, bignum)
 			} else {
 				scond = one
 			}
 		}
-		if (*info) == 0 {
-			if (*ldb) < max(1, *n) {
-				(*info) = -13
-			} else if (*ldx) < max(1, *n) {
-				(*info) = -15
+		if err == nil {
+			if b.Rows < max(1, n) {
+				err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+			} else if x.Rows < max(1, n) {
+				err = fmt.Errorf("x.Rows < max(1, n): x.Rows=%v, n=%v", x.Rows, n)
 			}
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPBSVX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dpbsvx", err)
 		return
 	}
 
 	if equil {
 		//        Compute row and column scalings to equilibrate the matrix A.
-		Dpbequ(uplo, n, kd, ab, ldab, s, &scond, &amax, &infequ)
+		if scond, amax, infequ, err = Dpbequ(uplo, n, kd, ab, s); err != nil {
+			panic(err)
+		}
 		if infequ == 0 {
 			//           Equilibrate the matrix.
-			Dlaqsb(uplo, n, kd, ab, ldab, s, &scond, &amax, equed)
-			rcequ = *equed == 'Y'
+			equedOut = Dlaqsb(uplo, n, kd, ab, s, scond, amax)
+			rcequ = equedOut == 'Y'
 		}
 	}
 
 	//     Scale the right-hand side.
 	if rcequ {
-		for j = 1; j <= (*nrhs); j++ {
-			for i = 1; i <= (*n); i++ {
+		for j = 1; j <= nrhs; j++ {
+			for i = 1; i <= n; i++ {
 				b.Set(i-1, j-1, s.Get(i-1)*b.Get(i-1, j-1))
 			}
 		}
@@ -106,55 +109,65 @@ func Dpbsvx(fact, uplo byte, n, kd, nrhs *int, ab *mat.Matrix, ldab *int, afb *m
 	if nofact || equil {
 		//        Compute the Cholesky factorization A = U**T *U or A = L*L**T.
 		if upper {
-			for j = 1; j <= (*n); j++ {
-				j1 = max(j-(*kd), 1)
-				goblas.Dcopy(j-j1+1, ab.Vector((*kd)+1-j+j1-1, j-1, 1), afb.Vector((*kd)+1-j+j1-1, j-1, 1))
+			for j = 1; j <= n; j++ {
+				j1 = max(j-kd, 1)
+				goblas.Dcopy(j-j1+1, ab.Vector(kd+1-j+j1-1, j-1, 1), afb.Vector(kd+1-j+j1-1, j-1, 1))
 			}
 		} else {
-			for j = 1; j <= (*n); j++ {
-				j2 = min(j+(*kd), *n)
+			for j = 1; j <= n; j++ {
+				j2 = min(j+kd, n)
 				goblas.Dcopy(j2-j+1, ab.Vector(0, j-1, 1), afb.Vector(0, j-1, 1))
 			}
 		}
 
-		Dpbtrf(uplo, n, kd, afb, ldafb, info)
+		if info, err = Dpbtrf(uplo, n, kd, afb); err != nil {
+			panic(err)
+		}
 
 		//        Return if INFO is non-zero.
-		if (*info) > 0 {
-			(*rcond) = zero
+		if info > 0 {
+			rcond = zero
 			return
 		}
 	}
 
 	//     Compute the norm of the matrix A.
-	anorm = Dlansb('1', uplo, n, kd, ab, ldab, work)
+	anorm = Dlansb('1', uplo, n, kd, ab, work)
 
 	//     Compute the reciprocal of the condition number of A.
-	Dpbcon(uplo, n, kd, afb, ldafb, &anorm, rcond, work, iwork, info)
+	if rcond, err = Dpbcon(uplo, n, kd, afb, anorm, work, iwork); err != nil {
+		panic(err)
+	}
 
 	//     Compute the solution matrix X.
-	Dlacpy('F', n, nrhs, b, ldb, x, ldx)
-	Dpbtrs(uplo, n, kd, nrhs, afb, ldafb, x, ldx, info)
+	Dlacpy(Full, n, nrhs, b, x)
+	if err = Dpbtrs(uplo, n, kd, nrhs, afb, x); err != nil {
+		panic(err)
+	}
 
 	//     Use iterative refinement to improve the computed solution and
 	//     compute error bounds and backward error estimates for it.
-	Dpbrfs(uplo, n, kd, nrhs, ab, ldab, afb, ldafb, b, ldb, x, ldx, ferr, berr, work, iwork, info)
+	if err = Dpbrfs(uplo, n, kd, nrhs, ab, afb, b, x, ferr, berr, work, iwork); err != nil {
+		panic(err)
+	}
 
 	//     Transform the solution matrix X to a solution of the original
 	//     system.
 	if rcequ {
-		for j = 1; j <= (*nrhs); j++ {
-			for i = 1; i <= (*n); i++ {
+		for j = 1; j <= nrhs; j++ {
+			for i = 1; i <= n; i++ {
 				x.Set(i-1, j-1, s.Get(i-1)*x.Get(i-1, j-1))
 			}
 		}
-		for j = 1; j <= (*nrhs); j++ {
+		for j = 1; j <= nrhs; j++ {
 			ferr.Set(j-1, ferr.Get(j-1)/scond)
 		}
 	}
 
 	//     Set INFO = N+1 if the matrix is singular to working precision.
-	if (*rcond) < Dlamch(Epsilon) {
-		(*info) = (*n) + 1
+	if rcond < Dlamch(Epsilon) {
+		info = n + 1
 	}
+
+	return
 }

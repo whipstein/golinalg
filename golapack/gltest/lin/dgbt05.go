@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dgbt05 tests the error bounds from iterative refinement for the
+// dgbt05 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations op(A)*X = B, where A is a
 // general band matrix of order n with kl subdiagonals and ku
 // superdiagonals and op(A) = A or A**T, depending on TRANS.
@@ -22,7 +22,7 @@ import (
 //           = the maximum of BERR / ( NZ*EPS + (*) ), where
 //             (*) = NZ*UNFL / (min_i (abs(op(A))*abs(X) +abs(b))_i )
 //             and NZ = max. number of nonzeros in any row of A, plus 1
-func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact *int, ferr, berr, reslts *mat.Vector) {
+func dgbt05(trans mat.MatTrans, n, kl, ku, nrhs int, ab, b, x, xact *mat.Matrix, ferr, berr, reslts *mat.Vector) {
 	var notran bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, imax, j, k, nz int
@@ -31,7 +31,7 @@ func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.
 	one = 1.0
 
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -40,18 +40,18 @@ func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	notran = trans == 'N'
-	nz = min((*kl)+(*ku)+2, (*n)+1)
+	notran = trans == NoTrans
+	nz = min(kl+ku+2, n+1)
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
-	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+	for j = 1; j <= nrhs; j++ {
+		imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
 		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
@@ -77,16 +77,16 @@ func Dgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.Matrix, ldab *int, b *mat.
 
 	//     Test 2:  Compute the maximum of BERR / ( NZ*EPS + (*) ), where
 	//     (*) = NZ*UNFL / (min_i (abs(op(A))*abs(X) +abs(b))_i )
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if notran {
-				for j = max(i-(*kl), 1); j <= min(i+(*ku), *n); j++ {
-					tmp += math.Abs(ab.Get((*ku)+1+i-j-1, j-1)) * math.Abs(x.Get(j-1, k-1))
+				for j = max(i-kl, 1); j <= min(i+ku, n); j++ {
+					tmp += math.Abs(ab.Get(ku+1+i-j-1, j-1)) * math.Abs(x.Get(j-1, k-1))
 				}
 			} else {
-				for j = max(i-(*ku), 1); j <= min(i+(*kl), *n); j++ {
-					tmp += math.Abs(ab.Get((*ku)+1+j-i-1, i-1)) * math.Abs(x.Get(j-1, k-1))
+				for j = max(i-ku, 1); j <= min(i+kl, n); j++ {
+					tmp += math.Abs(ab.Get(ku+1+j-i-1, i-1)) * math.Abs(x.Get(j-1, k-1))
 				}
 			}
 			if i == 1 {

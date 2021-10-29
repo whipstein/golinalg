@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zqlt02 tests ZUNGQL, which generates an m-by-n matrix Q with
+// zqlt02 tests Zungql, which generates an m-by-n matrix Q with
 // orthonornmal columns that is defined as the product of k elementary
 // reflectors.
 //
@@ -16,12 +16,10 @@ import (
 // columns of A; it compares L(m-n+1:m,n-k+1:n) with
 // Q(1:m,m-n+1:m)'*A(1:m,n-k+1:n), and checks that the columns of Q are
 // orthonormal.
-func Zqlt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *int, rwork, result *mat.Vector) {
+func zqlt02(m, n, k int, a, af, q, l *mat.CMatrix, tau, work *mat.CVector, lwork int, rwork, result *mat.Vector) {
 	var rogue complex128
 	var anorm, eps, one, resid, zero float64
-	var info int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -29,7 +27,7 @@ func Zqlt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVe
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 || (*k) == 0 {
+	if m == 0 || n == 0 || k == 0 {
 		result.Set(0, zero)
 		result.Set(1, zero)
 		return
@@ -38,40 +36,46 @@ func Zqlt02(m, n, k *int, a, af, q, l *mat.CMatrix, lda *int, tau, work *mat.CVe
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the last k columns of the factorization to the array Q
-	golapack.Zlaset('F', m, n, &rogue, &rogue, q, lda)
-	if (*k) < (*m) {
-		golapack.Zlacpy('F', toPtr((*m)-(*k)), k, af.Off(0, (*n)-(*k)), lda, q.Off(0, (*n)-(*k)), lda)
+	golapack.Zlaset(Full, m, n, rogue, rogue, q)
+	if k < m {
+		golapack.Zlacpy(Full, m-k, k, af.Off(0, n-k), q.Off(0, n-k))
 	}
-	if (*k) > 1 {
-		golapack.Zlacpy('U', toPtr((*k)-1), toPtr((*k)-1), af.Off((*m)-(*k), (*n)-(*k)+2-1), lda, q.Off((*m)-(*k), (*n)-(*k)+2-1), lda)
+	if k > 1 {
+		golapack.Zlacpy(Upper, k-1, k-1, af.Off(m-k, n-k+2-1), q.Off(m-k, n-k+2-1))
 	}
 
 	//     Generate the last n columns of the matrix Q
-	*srnamt = "ZUNGQL"
-	golapack.Zungql(m, n, k, q, lda, tau.Off((*n)-(*k)), work, lwork, &info)
+	*srnamt = "Zungql"
+	if err = golapack.Zungql(m, n, k, q, tau.Off(n-k), work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy L(m-n+1:m,n-k+1:n)
-	golapack.Zlaset('F', n, k, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), l.Off((*m)-(*n), (*n)-(*k)), lda)
-	golapack.Zlacpy('L', k, k, af.Off((*m)-(*k), (*n)-(*k)), lda, l.Off((*m)-(*k), (*n)-(*k)), lda)
+	golapack.Zlaset(Full, n, k, complex(zero, 0), complex(zero, 0), l.Off(m-n, n-k))
+	golapack.Zlacpy(Lower, k, k, af.Off(m-k, n-k), l.Off(m-k, n-k))
 
 	//     Compute L(m-n+1:m,n-k+1:n) - Q(1:m,m-n+1:m)' * A(1:m,n-k+1:n)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *k, *m, complex(-one, 0), q, a.Off(0, (*n)-(*k)), complex(one, 0), l.Off((*m)-(*n), (*n)-(*k)))
+	if err = goblas.Zgemm(ConjTrans, NoTrans, n, k, m, complex(-one, 0), q, a.Off(0, n-k), complex(one, 0), l.Off(m-n, n-k)); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( L - Q'*A ) / ( M * norm(A) * EPS ) .
-	anorm = golapack.Zlange('1', m, k, a.Off(0, (*n)-(*k)), lda, rwork)
-	resid = golapack.Zlange('1', n, k, l.Off((*m)-(*n), (*n)-(*k)), lda, rwork)
+	anorm = golapack.Zlange('1', m, k, a.Off(0, n-k), rwork)
+	resid = golapack.Zlange('1', n, k, l.Off(m-n, n-k), rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(max(1, *m)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, m)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q'*Q
-	golapack.Zlaset('F', n, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), l, lda)
-	err = goblas.Zherk(Upper, ConjTrans, *n, *m, -one, q, one, l)
+	golapack.Zlaset(Full, n, n, complex(zero, 0), complex(one, 0), l)
+	if err = goblas.Zherk(Upper, ConjTrans, n, m, -one, q, one, l); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
-	resid = golapack.Zlansy('1', 'U', n, l, lda, rwork)
+	resid = golapack.Zlansy('1', Upper, n, l, rwork)
 
-	result.Set(1, (resid/float64(max(1, *m)))/eps)
+	result.Set(1, (resid/float64(max(1, m)))/eps)
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -18,11 +19,9 @@ import (
 //
 // If the projection is zero according to Kahan's "twice is enough"
 // criterion, then the zero vector is returned.
-func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *int, q1 *mat.Matrix, ldq1 *int, q2 *mat.Matrix, ldq2 *int, work *mat.Vector, lwork, info *int) {
+func Dorbdb6(m1, m2, n int, x1, x2 *mat.Vector, q1, q2 *mat.Matrix, work *mat.Vector, lwork int) (err error) {
 	var alphasq, negone, normsq1, normsq2, one, realone, realzero, scl1, scl2, ssq1, ssq2, zero float64
 	var i int
-	var err error
-	_ = err
 
 	alphasq = 0.01
 	realone = 1.0
@@ -32,27 +31,26 @@ func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 	zero = 0.0
 
 	//     Test input arguments
-	(*info) = 0
-	if (*m1) < 0 {
-		(*info) = -1
-	} else if (*m2) < 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*incx1) < 1 {
-		(*info) = -5
-	} else if (*incx2) < 1 {
-		(*info) = -7
-	} else if (*ldq1) < max(1, *m1) {
-		(*info) = -9
-	} else if (*ldq2) < max(1, *m2) {
-		(*info) = -11
-	} else if (*lwork) < (*n) {
-		(*info) = -13
+	if m1 < 0 {
+		err = fmt.Errorf("m1 < 0: m1=%v", m1)
+	} else if m2 < 0 {
+		err = fmt.Errorf("m2 < 0: m2=%v", m2)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if x1.Inc < 1 {
+		err = fmt.Errorf("x1.Inc < 1: x1.Inc=%v", x1.Inc)
+	} else if x2.Inc < 1 {
+		err = fmt.Errorf("x2.Inc < 1: x2.Inc=%v", x2.Inc)
+	} else if q1.Rows < max(1, m1) {
+		err = fmt.Errorf("q1.Rows < max(1, m1): q1.Rows=%v, m1=%v", q1.Rows, m1)
+	} else if q2.Rows < max(1, m2) {
+		err = fmt.Errorf("q2.Rows < max(1, m2): q2.Rows=%v, m2=%v", q2.Rows, m2)
+	} else if lwork < n {
+		err = fmt.Errorf("lwork < n: lwork=%v, n=%v", lwork, n)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DORBDB6"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dorbdb6", err)
 		return
 	}
 
@@ -60,31 +58,39 @@ func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 	//     space
 	scl1 = realzero
 	ssq1 = realone
-	Dlassq(m1, x1, incx1, &scl1, &ssq1)
+	scl1, ssq1 = Dlassq(m1, x1, scl1, ssq1)
 	scl2 = realzero
 	ssq2 = realone
-	Dlassq(m2, x2, incx2, &scl2, &ssq2)
+	scl2, ssq2 = Dlassq(m2, x2, scl2, ssq2)
 	normsq1 = math.Pow(scl1, 2)*ssq1 + math.Pow(scl2, 2)*ssq2
 
-	if (*m1) == 0 {
-		for i = 1; i <= (*n); i++ {
+	if m1 == 0 {
+		for i = 1; i <= n; i++ {
 			work.Set(i-1, zero)
 		}
 	} else {
-		err = goblas.Dgemv(ConjTrans, *m1, *n, one, q1, x1.Off(0, *incx1), zero, work.Off(0, 1))
+		if err = goblas.Dgemv(ConjTrans, m1, n, one, q1, x1, zero, work.Off(0, 1)); err != nil {
+			panic(err)
+		}
 	}
 
-	err = goblas.Dgemv(ConjTrans, *m2, *n, one, q2, x2.Off(0, *incx2), one, work.Off(0, 1))
+	if err = goblas.Dgemv(ConjTrans, m2, n, one, q2, x2, one, work.Off(0, 1)); err != nil {
+		panic(err)
+	}
 
-	err = goblas.Dgemv(NoTrans, *m1, *n, negone, q1, work.Off(0, 1), one, x1.Off(0, *incx1))
-	err = goblas.Dgemv(NoTrans, *m2, *n, negone, q2, work.Off(0, 1), one, x2.Off(0, *incx2))
+	if err = goblas.Dgemv(NoTrans, m1, n, negone, q1, work.Off(0, 1), one, x1); err != nil {
+		panic(err)
+	}
+	if err = goblas.Dgemv(NoTrans, m2, n, negone, q2, work.Off(0, 1), one, x2); err != nil {
+		panic(err)
+	}
 
 	scl1 = realzero
 	ssq1 = realone
-	Dlassq(m1, x1, incx1, &scl1, &ssq1)
+	scl1, ssq1 = Dlassq(m1, x1, scl1, ssq1)
 	scl2 = realzero
 	ssq2 = realone
-	Dlassq(m2, x2, incx2, &scl2, &ssq2)
+	scl2, ssq2 = Dlassq(m2, x2, scl2, ssq2)
 	normsq2 = math.Pow(scl1, 2)*ssq1 + math.Pow(scl2, 2)*ssq2
 
 	//     If projection is sufficiently large in norm, then stop.
@@ -100,40 +106,50 @@ func Dorbdb6(m1, m2, n *int, x1 *mat.Vector, incx1 *int, x2 *mat.Vector, incx2 *
 
 	normsq1 = normsq2
 
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		work.Set(i-1, zero)
 	}
 
-	if (*m1) == 0 {
-		for i = 1; i <= (*n); i++ {
+	if m1 == 0 {
+		for i = 1; i <= n; i++ {
 			work.Set(i-1, zero)
 		}
 	} else {
-		err = goblas.Dgemv(ConjTrans, *m1, *n, one, q1, x1.Off(0, *incx1), zero, work.Off(0, 1))
+		if err = goblas.Dgemv(ConjTrans, m1, n, one, q1, x1, zero, work.Off(0, 1)); err != nil {
+			panic(err)
+		}
 	}
 
-	err = goblas.Dgemv(ConjTrans, *m2, *n, one, q2, x2.Off(0, *incx2), one, work.Off(0, 1))
+	if err = goblas.Dgemv(ConjTrans, m2, n, one, q2, x2, one, work.Off(0, 1)); err != nil {
+		panic(err)
+	}
 
-	err = goblas.Dgemv(NoTrans, *m1, *n, negone, q1, work.Off(0, 1), one, x1.Off(0, *incx1))
-	err = goblas.Dgemv(NoTrans, *m2, *n, negone, q2, work.Off(0, 1), one, x2.Off(0, *incx2))
+	if err = goblas.Dgemv(NoTrans, m1, n, negone, q1, work.Off(0, 1), one, x1); err != nil {
+		panic(err)
+	}
+	if err = goblas.Dgemv(NoTrans, m2, n, negone, q2, work.Off(0, 1), one, x2); err != nil {
+		panic(err)
+	}
 
 	scl1 = realzero
 	ssq1 = realone
-	Dlassq(m1, x1, incx1, &scl1, &ssq1)
+	scl1, ssq1 = Dlassq(m1, x1, scl1, ssq1)
 	scl2 = realzero
 	ssq2 = realone
-	Dlassq(m1, x1, incx1, &scl1, &ssq1)
+	scl1, ssq1 = Dlassq(m1, x1, scl1, ssq1)
 	normsq2 = math.Pow(scl1, 2)*ssq1 + math.Pow(scl2, 2)*ssq2
 
 	//     If second projection is sufficiently large in norm, then do
 	//     nothing more. Alternatively, if it shrunk significantly, then
 	//     truncate it to zero.
 	if normsq2 < alphasq*normsq1 {
-		for i = 1; i <= (*m1); i++ {
+		for i = 1; i <= m1; i++ {
 			x1.Set(i-1, zero)
 		}
-		for i = 1; i <= (*m2); i++ {
+		for i = 1; i <= m2; i++ {
 			x2.Set(i-1, zero)
 		}
 	}
+
+	return
 }

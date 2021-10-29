@@ -10,11 +10,13 @@ import "math"
 // the values computed by DLAMCH.  This subroutine is needed because
 // DLAMCH does not compensate for poor arithmetic in the upper half of
 // the exponent range, as is found on a Cray.
-func Dlabad(small *float64, large *float64) {
+func Dlabad(small float64, large float64) (float64, float64) {
 	//     If it looks like we're on a Cray, take the square root of
 	//     SMALL and LARGE to avoid overflow and underflow problems.
-	if math.Log10(*large) > 2000. {
-		(*small) = math.Sqrt(*small)
-		(*large) = math.Sqrt(*large)
+	if math.Log10(large) > 2000. {
+		small = math.Sqrt(small)
+		large = math.Sqrt(large)
 	}
+
+	return small, large
 }

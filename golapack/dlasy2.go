@@ -13,7 +13,7 @@ import (
 //
 // where TL is N1 by N1, TR is N2 by N2, B is N1 by N2, and ISGN = 1 or
 // -1.  op(T) = T or T**T, where T**T denotes the transpose of T.
-func Dlasy2(ltranl, ltranr bool, isgn, n1, n2 *int, tl *mat.Matrix, ldtl *int, tr *mat.Matrix, ldtr *int, b *mat.Matrix, ldb *int, scale *float64, x *mat.Matrix, ldx *int, xnorm *float64, info *int) {
+func Dlasy2(ltranl, ltranr bool, isgn, n1, n2 int, tl, tr, b, x *mat.Matrix) (scale, xnorm float64, info int) {
 	var bswap, xswap bool
 	var bet, eight, eps, gam, half, l21, one, sgn, smin, smlnum, tau1, temp, two, u11, u12, u22, xmax, zero float64
 	var i, ip, ipiv, ipsv, j, jp, jpsv, k int
@@ -36,19 +36,18 @@ func Dlasy2(ltranl, ltranr bool, isgn, n1, n2 *int, tl *mat.Matrix, ldtl *int, t
 	eight = 8.0
 
 	//     Do not check the input parameters for errors
-	(*info) = 0
 
 	//     Quick return if possible
-	if (*n1) == 0 || (*n2) == 0 {
+	if n1 == 0 || n2 == 0 {
 		return
 	}
 
 	//     Set constants to control overflow
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum) / eps
-	sgn = float64(*isgn)
+	sgn = float64(isgn)
 
-	k = (*n1) + (*n1) + (*n2) - 2
+	k = n1 + n1 + n2 - 2
 	switch k {
 	case 1:
 		goto label10
@@ -68,17 +67,17 @@ label10:
 	if bet <= smlnum {
 		tau1 = smlnum
 		bet = smlnum
-		(*info) = 1
+		info = 1
 	}
 
-	(*scale) = one
+	scale = one
 	gam = math.Abs(b.Get(0, 0))
 	if smlnum*gam > bet {
-		(*scale) = one / gam
+		scale = one / gam
 	}
 
-	x.Set(0, 0, (b.Get(0, 0)*(*scale))/tau1)
-	(*xnorm) = math.Abs(x.Get(0, 0))
+	x.Set(0, 0, (b.Get(0, 0)*scale)/tau1)
+	xnorm = math.Abs(x.Get(0, 0))
 	return
 
 	//     1 by 2:
@@ -126,7 +125,7 @@ label40:
 	ipiv = goblas.Idamax(4, tmp.Off(0, 1))
 	u11 = tmp.Get(ipiv - 1)
 	if math.Abs(u11) <= smin {
-		(*info) = 1
+		info = 1
 		u11 = smin
 	}
 	u12 = tmp.Get(locu12[ipiv-1] - 1)
@@ -135,7 +134,7 @@ label40:
 	xswap = xswpiv[ipiv-1]
 	bswap = bswpiv[ipiv-1]
 	if math.Abs(u22) <= smin {
-		(*info) = 1
+		info = 1
 		u22 = smin
 	}
 	if bswap {
@@ -145,11 +144,11 @@ label40:
 	} else {
 		btmp.Set(1, btmp.Get(1)-l21*btmp.Get(0))
 	}
-	(*scale) = one
+	scale = one
 	if (two*smlnum)*math.Abs(btmp.Get(1)) > math.Abs(u22) || (two*smlnum)*math.Abs(btmp.Get(0)) > math.Abs(u11) {
-		(*scale) = half / math.Max(math.Abs(btmp.Get(0)), math.Abs(btmp.Get(1)))
-		btmp.Set(0, btmp.Get(0)*(*scale))
-		btmp.Set(1, btmp.Get(1)*(*scale))
+		scale = half / math.Max(math.Abs(btmp.Get(0)), math.Abs(btmp.Get(1)))
+		btmp.Set(0, btmp.Get(0)*scale)
+		btmp.Set(1, btmp.Get(1)*scale)
 	}
 	x2.Set(1, btmp.Get(1)/u22)
 	x2.Set(0, btmp.Get(0)/u11-(u12/u11)*x2.Get(1))
@@ -159,12 +158,12 @@ label40:
 		x2.Set(0, temp)
 	}
 	x.Set(0, 0, x2.Get(0))
-	if (*n1) == 1 {
+	if n1 == 1 {
 		x.Set(0, 1, x2.Get(1))
-		(*xnorm) = math.Abs(x.Get(0, 0)) + math.Abs(x.Get(0, 1))
+		xnorm = math.Abs(x.Get(0, 0)) + math.Abs(x.Get(0, 1))
 	} else {
 		x.Set(1, 0, x2.Get(1))
-		(*xnorm) = math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))
+		xnorm = math.Max(math.Abs(x.Get(0, 0)), math.Abs(x.Get(1, 0)))
 	}
 	return
 
@@ -235,7 +234,7 @@ label50:
 		}
 		jpiv[i-1] = jpsv
 		if math.Abs(t16.Get(i-1, i-1)) < smin {
-			(*info) = 1
+			info = 1
 			t16.Set(i-1, i-1, smin)
 		}
 		for j = i + 1; j <= 4; j++ {
@@ -247,16 +246,16 @@ label50:
 		}
 	}
 	if math.Abs(t16.Get(3, 3)) < smin {
-		(*info) = 1
+		info = 1
 		t16.Set(3, 3, smin)
 	}
-	(*scale) = one
+	scale = one
 	if (eight*smlnum)*math.Abs(btmp.Get(0)) > math.Abs(t16.Get(0, 0)) || (eight*smlnum)*math.Abs(btmp.Get(1)) > math.Abs(t16.Get(1, 1)) || (eight*smlnum)*math.Abs(btmp.Get(2)) > math.Abs(t16.Get(2, 2)) || (eight*smlnum)*math.Abs(btmp.Get(3)) > math.Abs(t16.Get(3, 3)) {
-		(*scale) = (one / eight) / math.Max(math.Abs(btmp.Get(0)), math.Max(math.Abs(btmp.Get(1)), math.Max(math.Abs(btmp.Get(2)), math.Abs(btmp.Get(3)))))
-		btmp.Set(0, btmp.Get(0)*(*scale))
-		btmp.Set(1, btmp.Get(1)*(*scale))
-		btmp.Set(2, btmp.Get(2)*(*scale))
-		btmp.Set(3, btmp.Get(3)*(*scale))
+		scale = (one / eight) / math.Max(math.Abs(btmp.Get(0)), math.Max(math.Abs(btmp.Get(1)), math.Max(math.Abs(btmp.Get(2)), math.Abs(btmp.Get(3)))))
+		btmp.Set(0, btmp.Get(0)*scale)
+		btmp.Set(1, btmp.Get(1)*scale)
+		btmp.Set(2, btmp.Get(2)*scale)
+		btmp.Set(3, btmp.Get(3)*scale)
 	}
 	for i = 1; i <= 4; i++ {
 		k = 5 - i
@@ -277,5 +276,7 @@ label50:
 	x.Set(1, 0, tmp.Get(1))
 	x.Set(0, 1, tmp.Get(2))
 	x.Set(1, 1, tmp.Get(3))
-	(*xnorm) = math.Max(math.Abs(tmp.Get(0))+math.Abs(tmp.Get(2)), math.Abs(tmp.Get(1))+math.Abs(tmp.Get(3)))
+	xnorm = math.Max(math.Abs(tmp.Get(0))+math.Abs(tmp.Get(2)), math.Abs(tmp.Get(1))+math.Abs(tmp.Get(3)))
+
+	return
 }

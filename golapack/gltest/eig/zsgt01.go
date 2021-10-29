@@ -6,7 +6,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zsgt01 checks a decomposition of the form
+// zsgt01 checks a decomposition of the form
 //
 //    A Z   =  B Z D or
 //    A B Z =  Z D or
@@ -22,12 +22,11 @@ import (
 // ITYPE = 2:  RESULT(1) = | A B Z - Z D | / ( |A| |Z| n ulp )
 //
 // ITYPE = 3:  RESULT(1) = | B A Z - Z D | / ( |A| |Z| n ulp )
-func Zsgt01(itype *int, uplo byte, n, m *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, z *mat.CMatrix, ldz *int, d *mat.Vector, work *mat.CVector, rwork, result *mat.Vector) {
+func zsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.CMatrix, d *mat.Vector, work *mat.CVector, rwork, result *mat.Vector) {
 	var cone, czero complex128
 	var anorm, one, ulp, zero float64
 	var i int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -35,46 +34,58 @@ func Zsgt01(itype *int, uplo byte, n, m *int, a *mat.CMatrix, lda *int, b *mat.C
 	cone = (1.0 + 0.0*1i)
 
 	result.Set(0, zero)
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
 	ulp = golapack.Dlamch(Epsilon)
 
 	//     Compute product of 1-norms of A and Z.
-	anorm = golapack.Zlanhe('1', uplo, n, a, lda, rwork) * golapack.Zlange('1', n, m, z, ldz, rwork)
+	anorm = golapack.Zlanhe('1', uplo, n, a, rwork) * golapack.Zlange('1', n, m, z, rwork)
 	if anorm == zero {
 		anorm = one
 	}
 
-	if (*itype) == 1 {
+	if itype == 1 {
 		//        Norm of AZ - BZD
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, z, czero, work.CMatrix(*n, opts))
-		for i = 1; i <= (*m); i++ {
-			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1, 1))
+		if err = goblas.Zhemm(Left, uplo, n, m, cone, a, z, czero, work.CMatrix(n, opts)); err != nil {
+			panic(err)
 		}
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, z, -cone, work.CMatrix(*n, opts))
+		for i = 1; i <= m; i++ {
+			goblas.Zdscal(n, d.Get(i-1), z.CVector(0, i-1, 1))
+		}
+		if err = goblas.Zhemm(Left, uplo, n, m, cone, b, z, -cone, work.CMatrix(n, opts)); err != nil {
+			panic(err)
+		}
 
-		result.Set(0, (golapack.Zlange('1', n, m, work.CMatrix(*n, opts), n, rwork)/anorm)/(float64(*n)*ulp))
+		result.Set(0, (golapack.Zlange('1', n, m, work.CMatrix(n, opts), rwork)/anorm)/(float64(n)*ulp))
 
-	} else if (*itype) == 2 {
+	} else if itype == 2 {
 		//        Norm of ABZ - ZD
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, z, czero, work.CMatrix(*n, opts))
-		for i = 1; i <= (*m); i++ {
-			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1, 1))
+		if err = goblas.Zhemm(Left, uplo, n, m, cone, b, z, czero, work.CMatrix(n, opts)); err != nil {
+			panic(err)
 		}
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, work.CMatrix(*n, opts), -cone, z)
+		for i = 1; i <= m; i++ {
+			goblas.Zdscal(n, d.Get(i-1), z.CVector(0, i-1, 1))
+		}
+		if err = goblas.Zhemm(Left, uplo, n, m, cone, a, work.CMatrix(n, opts), -cone, z); err != nil {
+			panic(err)
+		}
 
-		result.Set(0, (golapack.Zlange('1', n, m, z, ldz, rwork)/anorm)/(float64(*n)*ulp))
+		result.Set(0, (golapack.Zlange('1', n, m, z, rwork)/anorm)/(float64(n)*ulp))
 
-	} else if (*itype) == 3 {
+	} else if itype == 3 {
 		//        Norm of BAZ - ZD
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, a, z, czero, work.CMatrix(*n, opts))
-		for i = 1; i <= (*m); i++ {
-			goblas.Zdscal(*n, d.Get(i-1), z.CVector(0, i-1, 1))
+		if err = goblas.Zhemm(Left, uplo, n, m, cone, a, z, czero, work.CMatrix(n, opts)); err != nil {
+			panic(err)
 		}
-		err = goblas.Zhemm(Left, mat.UploByte(uplo), *n, *m, cone, b, work.CMatrix(*n, opts), -cone, z)
+		for i = 1; i <= m; i++ {
+			goblas.Zdscal(n, d.Get(i-1), z.CVector(0, i-1, 1))
+		}
+		if err = goblas.Zhemm(Left, uplo, n, m, cone, b, work.CMatrix(n, opts), -cone, z); err != nil {
+			panic(err)
+		}
 
-		result.Set(0, (golapack.Zlange('1', n, m, z, ldz, rwork)/anorm)/(float64(*n)*ulp))
+		result.Set(0, (golapack.Zlange('1', n, m, z, rwork)/anorm)/(float64(n)*ulp))
 	}
 }

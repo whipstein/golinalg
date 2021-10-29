@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -16,7 +17,7 @@ import (
 // A related subroutine, DLASD1, handles the case in which all singular
 // values and singular vectors of the bidiagonal matrix are desired.
 //
-// DLASD6 computes the SVD as follows:
+// Dlasd6 computes the SVD as follows:
 //
 //               ( D1(in)    0    0       0 )
 //   B = U(in) * (   Z1**T   a   Z2**T    b ) * VT(in)
@@ -32,7 +33,7 @@ import (
 // components of all the right singular vectors of the lower block, and
 // the last components of all the right singular vectors of the upper
 // block. These components are stored and updated in VF and VL,
-// respectively, in DLASD6. Hence U and VT are not explicitly
+// respectively, in Dlasd6. Hence U and VT are not explicitly
 // referenced.
 //
 // The singular values are stored in D. The algorithm consists of two
@@ -51,34 +52,35 @@ import (
 //       between the updated singular values and the old singular
 //       values.
 //
-// DLASD6 is called from DLASDA.
-func Dlasd6(icompq, nl, nr, sqre *int, d, vf, vl *mat.Vector, alpha, beta *float64, idxq, perm *[]int, givptr *int, givcol *[]int, ldgcol *int, givnum *mat.Matrix, ldgnum *int, poles *mat.Matrix, difl, difr, z *mat.Vector, k *int, c, s *float64, work *mat.Vector, iwork *[]int, info *int) {
+// Dlasd6 is called from DLASDA.
+func Dlasd6(icompq, nl, nr, sqre int, d, vf, vl *mat.Vector, alpha, beta float64, idxq, perm, givcol *[]int, ldgcol int, givnum, poles *mat.Matrix, difl, difr, z, work *mat.Vector, iwork *[]int) (alphaOut, betaOut float64, givptr, k int, c, s float64, info int, err error) {
 	var one, orgnrm, zero float64
 	var i, idx, idxc, idxp, isigma, ivfw, ivlw, iw, m, n, n1, n2 int
 
 	one = 1.0
 	zero = 0.0
+	alphaOut = alpha
+	betaOut = beta
 
 	//     Test the input parameters.
-	(*info) = 0
-	n = (*nl) + (*nr) + 1
-	m = n + (*sqre)
+	n = nl + nr + 1
+	m = n + sqre
 
-	if ((*icompq) < 0) || ((*icompq) > 1) {
-		(*info) = -1
-	} else if (*nl) < 1 {
-		(*info) = -2
-	} else if (*nr) < 1 {
-		(*info) = -3
-	} else if ((*sqre) < 0) || ((*sqre) > 1) {
-		(*info) = -4
-	} else if (*ldgcol) < n {
-		(*info) = -14
-	} else if (*ldgnum) < n {
-		(*info) = -16
+	if (icompq < 0) || (icompq > 1) {
+		err = fmt.Errorf("(icompq < 0) || (icompq > 1): icompq=%v", icompq)
+	} else if nl < 1 {
+		err = fmt.Errorf("nl < 1: nl=%v", nl)
+	} else if nr < 1 {
+		err = fmt.Errorf("nr < 1: nr=%v", nr)
+	} else if (sqre < 0) || (sqre > 1) {
+		err = fmt.Errorf("(sqre < 0) || (sqre > 1): sqre=%v", sqre)
+	} else if ldgcol < n {
+		err = fmt.Errorf("ldgcol < n: ldgcol=%v, n=%v", ldgcol, n)
+	} else if givnum.Rows < n {
+		err = fmt.Errorf("givnum.Rows < n: givnum.Rows=%v, n=%v", givnum.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLASD6"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlasd6", err)
 		return
 	}
 
@@ -95,39 +97,49 @@ func Dlasd6(icompq, nl, nr, sqre *int, d, vf, vl *mat.Vector, alpha, beta *float
 	idxp = idxc + n
 
 	//     Scale.
-	orgnrm = math.Max(math.Abs(*alpha), math.Abs(*beta))
-	d.Set((*nl), zero)
+	orgnrm = math.Max(math.Abs(alphaOut), math.Abs(betaOut))
+	d.Set(nl, zero)
 	for i = 1; i <= n; i++ {
 		if math.Abs(d.Get(i-1)) > orgnrm {
 			orgnrm = math.Abs(d.Get(i - 1))
 		}
 	}
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &orgnrm, &one, &n, func() *int { y := 1; return &y }(), d.Matrix(n, opts), &n, info)
-	(*alpha) = (*alpha) / orgnrm
-	(*beta) = (*beta) / orgnrm
+	if err = Dlascl('G', 0, 0, orgnrm, one, n, 1, d.Matrix(n, opts)); err != nil {
+		panic(err)
+	}
+	alphaOut = alphaOut / orgnrm
+	betaOut = betaOut / orgnrm
 
 	//     Sort and Deflate singular values.
-	Dlasd7(icompq, nl, nr, sqre, k, d, z, work.Off(iw-1), vf, work.Off(ivfw-1), vl, work.Off(ivlw-1), alpha, beta, work.Off(isigma-1), toSlice(iwork, idx-1), toSlice(iwork, idxp-1), idxq, perm, givptr, givcol, ldgcol, givnum, ldgnum, c, s, info)
+	if k, givptr, c, s, err = Dlasd7(icompq, nl, nr, sqre, d, z, work.Off(iw-1), vf, work.Off(ivfw-1), vl, work.Off(ivlw-1), alphaOut, betaOut, work.Off(isigma-1), toSlice(iwork, idx-1), toSlice(iwork, idxp-1), idxq, perm, givcol, ldgcol, givnum); err != nil {
+		panic(err)
+	}
 
 	//     Solve Secular Equation, compute DIFL, DIFR, and update VF, VL.
-	Dlasd8(icompq, k, d, z, vf, vl, difl, difr.Matrix(*ldgnum, opts), ldgnum, work.Off(isigma-1), work.Off(iw-1), info)
+	if info, err = Dlasd8(icompq, k, d, z, vf, vl, difl, difr.Matrix(givnum.Rows, opts), work.Off(isigma-1), work.Off(iw-1)); err != nil {
+		panic(err)
+	}
 
 	//     Report the possible convergence failure.
-	if (*info) != 0 {
+	if info != 0 {
 		return
 	}
 
 	//     Save the poles if ICOMPQ = 1.
-	if (*icompq) == 1 {
-		goblas.Dcopy(*k, d.Off(0, 1), poles.VectorIdx(0, 1))
-		goblas.Dcopy(*k, work.Off(isigma-1, 1), poles.Vector(0, 1, 1))
+	if icompq == 1 {
+		goblas.Dcopy(k, d.Off(0, 1), poles.VectorIdx(0, 1))
+		goblas.Dcopy(k, work.Off(isigma-1, 1), poles.Vector(0, 1, 1))
 	}
 
 	//     Unscale.
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &one, &orgnrm, &n, func() *int { y := 1; return &y }(), d.Matrix(n, opts), &n, info)
+	if err = Dlascl('G', 0, 0, one, orgnrm, n, 1, d.Matrix(n, opts)); err != nil {
+		panic(err)
+	}
 
 	//     Prepare the IDXQ sorting permutation.
-	n1 = (*k)
-	n2 = n - (*k)
-	Dlamrg(&n1, &n2, d, func() *int { y := 1; return &y }(), toPtr(-1), idxq)
+	n1 = k
+	n2 = n - k
+	Dlamrg(n1, n2, d, 1, -1, idxq)
+
+	return
 }

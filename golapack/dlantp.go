@@ -9,7 +9,7 @@ import (
 // Dlantp returns the value of the one norm,  or the Frobenius norm, or
 // the  infinity norm,  or the  element of  largest absolute value  of a
 // triangular matrix A, supplied in packed form.
-func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn float64) {
+func Dlantp(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n int, ap, work *mat.Vector) (dlantpReturn float64) {
 	var udiag bool
 	var one, sum, value, zero float64
 	var i, j, k int
@@ -20,15 +20,15 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 	one = 1.0
 	zero = 0.0
 
-	if (*n) == 0 {
+	if n == 0 {
 		value = zero
 	} else if norm == 'M' {
 		//        Find max(math.Abs(A(i,j))).
 		k = 1
-		if diag == 'U' {
+		if diag == Unit {
 			value = one
-			if uplo == 'U' {
-				for j = 1; j <= (*n); j++ {
+			if uplo == Upper {
+				for j = 1; j <= n; j++ {
 					for i = k; i <= k+j-2; i++ {
 						sum = math.Abs(ap.Get(i - 1))
 						if value < sum || Disnan(int(sum)) {
@@ -38,20 +38,20 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 					k = k + j
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
-					for i = k + 1; i <= k+(*n)-j; i++ {
+				for j = 1; j <= n; j++ {
+					for i = k + 1; i <= k+n-j; i++ {
 						sum = math.Abs(ap.Get(i - 1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
 						}
 					}
-					k = k + (*n) - j + 1
+					k = k + n - j + 1
 				}
 			}
 		} else {
 			value = zero
-			if uplo == 'U' {
-				for j = 1; j <= (*n); j++ {
+			if uplo == Upper {
+				for j = 1; j <= n; j++ {
 					for i = k; i <= k+j-1; i++ {
 						sum = math.Abs(ap.Get(i - 1))
 						if value < sum || Disnan(int(sum)) {
@@ -61,14 +61,14 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 					k = k + j
 				}
 			} else {
-				for j = 1; j <= (*n); j++ {
-					for i = k; i <= k+(*n)-j; i++ {
+				for j = 1; j <= n; j++ {
+					for i = k; i <= k+n-j; i++ {
 						sum = math.Abs(ap.Get(i - 1))
 						if value < sum || Disnan(int(sum)) {
 							value = sum
 						}
 					}
-					k = k + (*n) - j + 1
+					k = k + n - j + 1
 				}
 			}
 		}
@@ -76,9 +76,9 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 		//        Find norm1(A).
 		value = zero
 		k = 1
-		udiag = diag == 'U'
-		if uplo == 'U' {
-			for j = 1; j <= (*n); j++ {
+		udiag = diag == Unit
+		if uplo == Upper {
+			for j = 1; j <= n; j++ {
 				if udiag {
 					sum = one
 					for i = k; i <= k+j-2; i++ {
@@ -96,19 +96,19 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 				}
 			}
 		} else {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if udiag {
 					sum = one
-					for i = k + 1; i <= k+(*n)-j; i++ {
+					for i = k + 1; i <= k+n-j; i++ {
 						sum = sum + math.Abs(ap.Get(i-1))
 					}
 				} else {
 					sum = zero
-					for i = k; i <= k+(*n)-j; i++ {
+					for i = k; i <= k+n-j; i++ {
 						sum = sum + math.Abs(ap.Get(i-1))
 					}
 				}
-				k = k + (*n) - j + 1
+				k = k + n - j + 1
 				if value < sum || Disnan(int(sum)) {
 					value = sum
 				}
@@ -117,12 +117,12 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 	} else if norm == 'I' {
 		//        Find normI(A).
 		k = 1
-		if uplo == 'U' {
-			if diag == 'U' {
-				for i = 1; i <= (*n); i++ {
+		if uplo == Upper {
+			if diag == Unit {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, one)
 				}
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					for i = 1; i <= j-1; i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ap.Get(k-1)))
 						k = k + 1
@@ -130,10 +130,10 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 					k = k + 1
 				}
 			} else {
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					for i = 1; i <= j; i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ap.Get(k-1)))
 						k = k + 1
@@ -141,23 +141,23 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 				}
 			}
 		} else {
-			if diag == 'U' {
-				for i = 1; i <= (*n); i++ {
+			if diag == Unit {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, one)
 				}
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					k = k + 1
-					for i = j + 1; i <= (*n); i++ {
+					for i = j + 1; i <= n; i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ap.Get(k-1)))
 						k = k + 1
 					}
 				}
 			} else {
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, zero)
 				}
-				for j = 1; j <= (*n); j++ {
-					for i = j; i <= (*n); i++ {
+				for j = 1; j <= n; j++ {
+					for i = j; i <= n; i++ {
 						work.Set(i-1, work.Get(i-1)+math.Abs(ap.Get(k-1)))
 						k = k + 1
 					}
@@ -165,7 +165,7 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 			}
 		}
 		value = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			sum = work.Get(i - 1)
 			if value < sum || Disnan(int(sum)) {
 				value = sum
@@ -176,15 +176,15 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 		//        SSQ(1) is scale
 		//        SSQ(2) is sum-of-squares
 		//        For better accuracy, sum each column separately.
-		if uplo == 'U' {
-			if diag == 'U' {
+		if uplo == Upper {
+			if diag == Unit {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(*n))
+				ssq.Set(1, float64(n))
 				k = 2
-				for j = 2; j <= (*n); j++ {
+				for j = 2; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr(j-1), ap.Off(k-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(j-1, ap.Off(k-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 					k = k + j
 				}
@@ -192,36 +192,36 @@ func Dlantp(norm, uplo, diag byte, n *int, ap, work *mat.Vector) (dlantpReturn f
 				ssq.Set(0, zero)
 				ssq.Set(1, one)
 				k = 1
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(&j, ap.Off(k-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(j, ap.Off(k-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 					k = k + j
 				}
 			}
 		} else {
-			if diag == 'U' {
+			if diag == Unit {
 				ssq.Set(0, one)
-				ssq.Set(1, float64(*n))
+				ssq.Set(1, float64(n))
 				k = 2
-				for j = 1; j <= (*n)-1; j++ {
+				for j = 1; j <= n-1; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr((*n)-j), ap.Off(k-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(n-j, ap.Off(k-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
-					k = k + (*n) - j + 1
+					k = k + n - j + 1
 				}
 			} else {
 				ssq.Set(0, zero)
 				ssq.Set(1, one)
 				k = 1
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					Dlassq(toPtr((*n)-j+1), ap.Off(k-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(n-j+1, ap.Off(k-1, 1), colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
-					k = k + (*n) - j + 1
+					k = k + n - j + 1
 				}
 			}
 		}

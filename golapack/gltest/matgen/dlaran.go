@@ -3,7 +3,7 @@ package matgen
 // Dlaran returns a random real number from a uniform (0,1)
 // distribution.
 func Dlaran(iseed *[]int) (dlaranReturn float64) {
-	var one, r, rndout float64
+	var one, r float64
 	var ipw2, it1, it2, it3, it4, m1, m2, m3, m4 int
 
 	m1 = 494
@@ -37,9 +37,9 @@ label10:
 	(*iseed)[3] = it4
 
 	//     convert 48-bit integer to a real number in the interval (0,1)
-	rndout = r * (float64(it1) + r*(float64(it2)+r*(float64(it3)+r*float64(it4))))
+	dlaranReturn = r * (float64(it1) + r*(float64(it2)+r*(float64(it3)+r*float64(it4))))
 
-	if rndout == 1.0 {
+	if dlaranReturn == 1.0 {
 		//        If a real number has n bits of precision, and the first
 		//        n bits of the 48-bit integer above happen to be all 1 (which
 		//        will occur about once every 2**n calls), then DLARAN will
@@ -53,6 +53,5 @@ label10:
 		goto label10
 	}
 
-	dlaranReturn = rndout
 	return
 }

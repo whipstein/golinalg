@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -12,33 +13,31 @@ import (
 // values in D, Z, and RHO, between KSTART and KSTOP.  It makes the
 // appropriate calls to DLAED4 and then stores the new matrix of
 // eigenvectors for use in calculating the next level of Z vectors.
-func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64, dlamda, w *mat.Vector, s *mat.Matrix, lds *int, info *int) {
+func Dlaed9(k, kstart, kstop, n int, d *mat.Vector, q *mat.Matrix, rho float64, dlamda, w *mat.Vector, s *mat.Matrix) (info int, err error) {
 	var temp float64
 	var i, j int
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if (*k) < 0 {
-		(*info) = -1
-	} else if (*kstart) < 1 || (*kstart) > max(1, *k) {
-		(*info) = -2
-	} else if max(1, *kstop) < (*kstart) || (*kstop) > max(1, *k) {
-		(*info) = -3
-	} else if (*n) < (*k) {
-		(*info) = -4
-	} else if (*ldq) < max(1, *k) {
-		(*info) = -7
-	} else if (*lds) < max(1, *k) {
-		(*info) = -12
+	if k < 0 {
+		err = fmt.Errorf("k < 0: k=%v", k)
+	} else if kstart < 1 || kstart > max(1, k) {
+		err = fmt.Errorf("kstart < 1 || kstart > max(1, k): k=%v, kstart=%v", k, kstart)
+	} else if max(1, kstop) < kstart || kstop > max(1, k) {
+		err = fmt.Errorf("max(1, kstop) < kstart || kstop > max(1, k): k=%v, kstart=%v, kstop=%v", k, kstart, kstop)
+	} else if n < k {
+		err = fmt.Errorf("n < k: k=%v, n=%v", k, n)
+	} else if q.Rows < max(1, k) {
+		err = fmt.Errorf("q.Rows < max(1, k): q.Rows=%v, k=%v", q.Rows, k)
+	} else if s.Rows < max(1, k) {
+		err = fmt.Errorf("s.Rows < max(1, k): s.Rows=%v, k=%v", s.Rows, k)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLAED9"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlaed9", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*k) == 0 {
+	if k == 0 {
 		return
 	}
 
@@ -58,22 +57,20 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 	//     (we know of none). We use a subroutine call to compute
 	//     2*DLAMBDA(I) to prevent optimizing compilers from eliminating
 	//     this code.
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		dlamda.Set(i-1, Dlamc3(dlamda.GetPtr(i-1), dlamda.GetPtr(i-1))-dlamda.Get(i-1))
 	}
 
-	for j = (*kstart); j <= (*kstop); j++ {
-		Dlaed4(k, &j, dlamda, w, q.Vector(0, j-1), rho, d.GetPtr(j-1), info)
-
-		//        If the zero finder fails, the computation is terminated.
-		if (*info) != 0 {
+	for j = kstart; j <= kstop; j++ {
+		_d := d.GetPtr(j - 1)
+		if *_d, info = Dlaed4(k, j, dlamda, w, q.Vector(0, j-1), rho); info != 0 {
 			return
 		}
 	}
 
-	if (*k) == 1 || (*k) == 2 {
-		for i = 1; i <= (*k); i++ {
-			for j = 1; j <= (*k); j++ {
+	if k == 1 || k == 2 {
+		for i = 1; i <= k; i++ {
+			for j = 1; j <= k; j++ {
 				s.Set(j-1, i-1, q.Get(j-1, i-1))
 			}
 		}
@@ -81,30 +78,32 @@ func Dlaed9(k, kstart, kstop, n *int, d *mat.Vector, q *mat.Matrix, ldq *int, rh
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(*k, w, s.VectorIdx(0, 1))
+	goblas.Dcopy(k, w, s.VectorIdx(0, 1))
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(*k, q.VectorIdx(0, (*ldq)+1), w)
-	for j = 1; j <= (*k); j++ {
+	goblas.Dcopy(k, q.VectorIdx(0, q.Rows+1), w)
+	for j = 1; j <= k; j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
 		}
-		for i = j + 1; i <= (*k); i++ {
+		for i = j + 1; i <= k; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
 		}
 	}
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		w.Set(i-1, math.Copysign(math.Sqrt(-w.Get(i-1)), s.Get(i-1, 0)))
 	}
 
 	//     Compute eigenvectors of the modified rank-1 modification.
-	for j = 1; j <= (*k); j++ {
-		for i = 1; i <= (*k); i++ {
+	for j = 1; j <= k; j++ {
+		for i = 1; i <= k; i++ {
 			q.Set(i-1, j-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(*k, q.Vector(0, j-1, 1))
-		for i = 1; i <= (*k); i++ {
+		temp = goblas.Dnrm2(k, q.Vector(0, j-1, 1))
+		for i = 1; i <= k; i++ {
 			s.Set(i-1, j-1, q.Get(i-1, j-1)/temp)
 		}
 	}
+
+	return
 }

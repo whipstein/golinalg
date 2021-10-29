@@ -1,15 +1,18 @@
 package lin
 
 import (
+	"math"
+
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
 
 type Memory struct {
 	Infoc struct {
+		Errt  error
 		Infot int
 		nunit int
-		ok    bool
+		Ok    bool
 		lerr  bool
 	}
 	srnamc struct {
@@ -73,6 +76,10 @@ const (
 	MinExponent = golapack.MinExponent
 	MaxExponent = golapack.MaxExponent
 )
+
+func cabs1(cdum complex128) float64 {
+	return math.Abs(real(cdum)) + math.Abs(imag(cdum))
+}
 
 func abs(a int) int {
 	if a < 0 {

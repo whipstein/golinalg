@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -22,98 +24,99 @@ import (
 //
 //        Q(in) * A(in) * Z(in)**T = Q(out) * A(out) * Z(out)**T
 //        Q(in) * B(in) * Z(in)**T = Q(out) * B(out) * Z(out)**T
-func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, q *mat.Matrix, ldq *int, z *mat.Matrix, ldz, ifst, ilst *int, work *mat.Vector, lwork, info *int) {
+func Dtgexc(wantq, wantz bool, n int, a, b, q, z *mat.Matrix, ifst, ilst int, work *mat.Vector, lwork int) (ifstOut, ilstOut, info int, err error) {
 	var lquery bool
 	var zero float64
 	var here, lwmin, nbf, nbl, nbnext int
 
 	zero = 0.0
+	ifstOut = ifst
+	ilstOut = ilst
 
 	//     Decode and test input arguments.
-	(*info) = 0
-	lquery = ((*lwork) == -1)
-	if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldq) < 1 || wantq && ((*ldq) < max(1, *n)) {
-		(*info) = -9
-	} else if (*ldz) < 1 || wantz && ((*ldz) < max(1, *n)) {
-		(*info) = -11
-	} else if (*ifst) < 1 || (*ifst) > (*n) {
-		(*info) = -12
-	} else if (*ilst) < 1 || (*ilst) > (*n) {
-		(*info) = -13
+	lquery = (lwork == -1)
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if q.Rows < 1 || wantq && (q.Rows < max(1, n)) {
+		err = fmt.Errorf("q.Rows < 1 || wantq && (q.Rows < max(1, n)): wantq=%v, q.Rows=%v, n=%v", wantq, q.Rows, n)
+	} else if z.Rows < 1 || wantz && (z.Rows < max(1, n)) {
+		err = fmt.Errorf("z.Rows < 1 || wantz && (z.Rows < max(1, n)): wantz=%v, z.Rows=%v, n=%v", wantz, z.Rows, n)
+	} else if ifstOut < 1 || ifstOut > n {
+		err = fmt.Errorf("ifst < 1 || ifst > n: ifst=%v, n=%v", ifstOut, n)
+	} else if ilstOut < 1 || ilstOut > n {
+		err = fmt.Errorf("ilst < 1 || ilst > n: ilst=%v, n=%v", ilstOut, n)
 	}
 
-	if (*info) == 0 {
-		if (*n) <= 1 {
+	if err == nil {
+		if n <= 1 {
 			lwmin = 1
 		} else {
-			lwmin = 4*(*n) + 16
+			lwmin = 4*n + 16
 		}
 		work.Set(0, float64(lwmin))
 
-		if (*lwork) < lwmin && !lquery {
-			(*info) = -15
+		if lwork < lwmin && !lquery {
+			err = fmt.Errorf("lwork < lwmin && !lquery: lwork=%v, lwmin=%v, lquery=%v", lwork, lwmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTGEXC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtgexc", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
 
 	//     Determine the first row of the specified block and find out
 	//     if it is 1-by-1 or 2-by-2.
-	if (*ifst) > 1 {
-		if a.Get((*ifst)-1, (*ifst)-1-1) != zero {
-			(*ifst) = (*ifst) - 1
+	if ifstOut > 1 {
+		if a.Get(ifstOut-1, ifstOut-1-1) != zero {
+			ifstOut = ifstOut - 1
 		}
 	}
 	nbf = 1
-	if (*ifst) < (*n) {
-		if a.Get((*ifst), (*ifst)-1) != zero {
+	if ifstOut < n {
+		if a.Get(ifstOut, ifstOut-1) != zero {
 			nbf = 2
 		}
 	}
 
 	//     Determine the first row of the final block
 	//     and find out if it is 1-by-1 or 2-by-2.
-	if (*ilst) > 1 {
-		if a.Get((*ilst)-1, (*ilst)-1-1) != zero {
-			(*ilst) = (*ilst) - 1
+	if ilstOut > 1 {
+		if a.Get(ilstOut-1, ilstOut-1-1) != zero {
+			ilstOut = ilstOut - 1
 		}
 	}
 	nbl = 1
-	if (*ilst) < (*n) {
-		if a.Get((*ilst), (*ilst)-1) != zero {
+	if ilstOut < n {
+		if a.Get(ilstOut, ilstOut-1) != zero {
 			nbl = 2
 		}
 	}
-	if (*ifst) == (*ilst) {
+	if ifstOut == ilstOut {
 		return
 	}
 
-	if (*ifst) < (*ilst) {
+	if ifstOut < ilstOut {
 		//        Update ILST.
 		if nbf == 2 && nbl == 1 {
-			(*ilst) = (*ilst) - 1
+			ilstOut = ilstOut - 1
 		}
 		if nbf == 1 && nbl == 2 {
-			(*ilst) = (*ilst) + 1
+			ilstOut = ilstOut + 1
 		}
 
-		here = (*ifst)
+		here = ifstOut
 
 	label10:
 		;
@@ -122,14 +125,13 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 		if nbf == 1 || nbf == 2 {
 			//           Current block either 1-by-1 or 2-by-2.
 			nbnext = 1
-			if here+nbf+1 <= (*n) {
+			if here+nbf+1 <= n {
 				if a.Get(here+nbf, here+nbf-1) != zero {
 					nbnext = 2
 				}
 			}
-			Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, &nbf, &nbnext, work, lwork, info)
-			if (*info) != 0 {
-				(*ilst) = here
+			if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, nbf, nbnext, work, lwork); err != nil || info != 0 {
+				ilstOut = here
 				return
 			}
 			here = here + nbnext
@@ -145,21 +147,19 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 			//           Current block consists of two 1-by-1 blocks, each of which
 			//           must be swapped individually.
 			nbnext = 1
-			if here+3 <= (*n) {
+			if here+3 <= n {
 				if a.Get(here+3-1, here+2-1) != zero {
 					nbnext = 2
 				}
 			}
-			Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, toPtr(here+1), func() *int { y := 1; return &y }(), &nbnext, work, lwork, info)
-			if (*info) != 0 {
-				(*ilst) = here
+			if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here+1, 1, nbnext, work, lwork); err != nil || info != 0 {
+				ilstOut = here
 				return
 			}
 			if nbnext == 1 {
 				//              Swap two 1-by-1 blocks.
-				Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, lwork, info)
-				if (*info) != 0 {
-					(*ilst) = here
+				if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, 1, 1, work, lwork); err != nil || info != 0 {
+					ilstOut = here
 					return
 				}
 				here = here + 1
@@ -171,23 +171,20 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 				}
 				if nbnext == 2 {
 					//                 2-by-2 block did not split.
-					Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, func() *int { y := 1; return &y }(), &nbnext, work, lwork, info)
-					if (*info) != 0 {
-						(*ilst) = here
+					if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, 1, nbnext, work, lwork); err != nil || info != 0 {
+						ilstOut = here
 						return
 					}
 					here = here + 2
 				} else {
 					//                 2-by-2 block did split.
-					Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, lwork, info)
-					if (*info) != 0 {
-						(*ilst) = here
+					if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, 1, 1, work, lwork); err != nil || info != 0 {
+						ilstOut = here
 						return
 					}
 					here = here + 1
-					Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, lwork, info)
-					if (*info) != 0 {
-						(*ilst) = here
+					if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, 1, 1, work, lwork); err != nil || info != 0 {
+						ilstOut = here
 						return
 					}
 					here = here + 1
@@ -195,11 +192,11 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 
 			}
 		}
-		if here < (*ilst) {
+		if here < ilstOut {
 			goto label10
 		}
 	} else {
-		here = (*ifst)
+		here = ifstOut
 
 	label20:
 		;
@@ -213,9 +210,8 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 					nbnext = 2
 				}
 			}
-			Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, toPtr(here-nbnext), &nbnext, &nbf, work, lwork, info)
-			if (*info) != 0 {
-				(*ilst) = here
+			if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here-nbnext, nbnext, nbf, work, lwork); err != nil || info != 0 {
+				ilstOut = here
 				return
 			}
 			here = here - nbnext
@@ -236,16 +232,14 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 					nbnext = 2
 				}
 			}
-			Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, toPtr(here-nbnext), &nbnext, func() *int { y := 1; return &y }(), work, lwork, info)
-			if (*info) != 0 {
-				(*ilst) = here
+			if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here-nbnext, nbnext, 1, work, lwork); err != nil || info != 0 {
+				ilstOut = here
 				return
 			}
 			if nbnext == 1 {
 				//              Swap two 1-by-1 blocks.
-				Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, &nbnext, func() *int { y := 1; return &y }(), work, lwork, info)
-				if (*info) != 0 {
-					(*ilst) = here
+				if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, nbnext, 1, work, lwork); err != nil || info != 0 {
+					ilstOut = here
 					return
 				}
 				here = here - 1
@@ -256,33 +250,32 @@ func Dtgexc(wantq, wantz bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, l
 				}
 				if nbnext == 2 {
 					//                 2-by-2 block did not split.
-					Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, toPtr(here-1), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), work, lwork, info)
-					if (*info) != 0 {
-						(*ilst) = here
+					if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here-1, 2, 1, work, lwork); err != nil || info != 0 {
+						ilstOut = here
 						return
 					}
 					here = here - 2
 				} else {
 					//                 2-by-2 block did split.
-					Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, lwork, info)
-					if (*info) != 0 {
-						(*ilst) = here
+					if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, 1, 1, work, lwork); err != nil || info != 0 {
+						ilstOut = here
 						return
 					}
 					here = here - 1
-					Dtgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), work, lwork, info)
-					if (*info) != 0 {
-						(*ilst) = here
+					if info, err = Dtgex2(wantq, wantz, n, a, b, q, z, here, 1, 1, work, lwork); err != nil || info != 0 {
+						ilstOut = here
 						return
 					}
 					here = here - 1
 				}
 			}
 		}
-		if here > (*ilst) {
+		if here > ilstOut {
 			goto label20
 		}
 	}
-	(*ilst) = here
+	ilstOut = here
 	work.Set(0, float64(lwmin))
+
+	return
 }

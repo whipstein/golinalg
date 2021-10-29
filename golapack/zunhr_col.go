@@ -1,12 +1,14 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zunhrcol takes an M-by-N complex matrix Q_in with orthonormal columns
+// ZunhrCol takes an M-by-N complex matrix Q_in with orthonormal columns
 //  as input, stored in A, and performs Householder Reconstruction (HR),
 //  i.e. reconstructs Householder vectors V(i) implicitly representing
 //  another M-by-N matrix Q_out, with the property that Q_in = Q_out*S,
@@ -15,37 +17,34 @@ import (
 //  stored in A on output, and the diagonal entries of S are stored in D.
 //  Block reflectors are also returned in T
 //  (same output format as ZGEQRT).
-func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int, d *mat.CVector, info *int) {
+func ZunhrCol(m, n, nb int, a, t *mat.CMatrix, d *mat.CVector) (err error) {
 	var cone, czero complex128
-	var i, iinfo, j, jb, jbtemp1, jbtemp2, jnb, nplusone int
-	var err error
-	_ = err
+	var i, j, jb, jbtemp1, jbtemp2, jnb, nplusone int
 
 	cone = (1.0 + 0.0*1i)
 	czero = (0.0 + 0.0*1i)
 
 	//     Test the input parameters
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 || (*n) > (*m) {
-		(*info) = -2
-	} else if (*nb) < 1 {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
-	} else if (*ldt) < max(1, min(*nb, *n)) {
-		(*info) = -7
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 || n > m {
+		err = fmt.Errorf("n < 0 || n > m: m=%v, n=%v", m, n)
+	} else if nb < 1 {
+		err = fmt.Errorf("nb < 1: nb=%v", nb)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if t.Rows < max(1, min(nb, n)) {
+		err = fmt.Errorf("t.Rows < max(1, min(nb, n)): t.Rows=%v, n=%v, nb=%v", t.Rows, n, nb)
 	}
 
 	//     Handle error in the input parameters.
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUNHR_COL"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZunhrCol", err)
 		return
 	}
 
 	//     Quick return if possible
-	if min(*m, *n) == 0 {
+	if min(m, n) == 0 {
 		return
 	}
 
@@ -61,11 +60,15 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 	//     where 0 is an (M-N)-by-N zero matrix.
 	//
 	//     (1-1) Factor V1 and U.
-	Zlaunhrcolgetrfnp(n, n, a, lda, d, &iinfo)
+	if err = ZlaunhrColGetrfnp(n, n, a, d); err != nil {
+		panic(err)
+	}
 
 	//     (1-2) Solve for V2.
-	if (*m) > (*n) {
-		err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, (*m)-(*n), *n, cone, a, a.Off((*n), 0))
+	if m > n {
+		if err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, m-n, n, cone, a, a.Off(n, 0)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     (2) Reconstruct the block reflector T stored in T(1:NB, 1:N)
@@ -75,10 +78,10 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 	//     Loop over the column blocks of size NB of the array A(1:M,1:N)
 	//     and the array T(1:NB,1:N), JB is the column index of a column
 	//     block, JNB is the column block size at each step JB.
-	nplusone = (*n) + 1
-	for jb = 1; jb <= (*n); jb += (*nb) {
+	nplusone = n + 1
+	for jb = 1; jb <= n; jb += nb {
 		//        (2-0) Determine the column block size JNB.
-		jnb = min(nplusone-jb, *nb)
+		jnb = min(nplusone-jb, nb)
 
 		//        (2-1) Copy the upper-triangular part of the current JNB-by-JNB
 		//        diagonal block U(JB) (of the N-by-N matrix U) stored
@@ -143,13 +146,17 @@ func Zunhrcol(m, n, nb *int, a *mat.CMatrix, lda *int, t *mat.CMatrix, ldt *int,
 		//        (2-3a) Set the elements to zero.
 		jbtemp2 = jb - 2
 		for j = jb; j <= jb+jnb-2; j++ {
-			for i = j - jbtemp2; i <= (*nb); i++ {
+			for i = j - jbtemp2; i <= nb; i++ {
 				t.Set(i-1, j-1, czero)
 			}
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1), t.Off(0, jb-1))
+		if err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1), t.Off(0, jb-1)); err != nil {
+			panic(err)
+		}
 
 	}
+
+	return
 }

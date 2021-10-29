@@ -13,54 +13,54 @@ import (
 // where In is the identity matrix of size n and X' is the transpose
 // of X. kron(X, Y) is the Kronecker product between the matrices X
 // and Y.
-func Zlakf2(m, n *int, a *mat.CMatrix, lda *int, b, d, e, z *mat.CMatrix, ldz *int) {
+func Zlakf2(m, n int, a, b, d, e, z *mat.CMatrix) {
 	var zero complex128
 	var i, ik, j, jk, l, mn, mn2 int
 
 	zero = (0.0 + 0.0*1i)
 
 	//     Initialize Z
-	mn = (*m) * (*n)
+	mn = m * n
 	mn2 = 2 * mn
-	golapack.Zlaset('F', &mn2, &mn2, &zero, &zero, z, ldz)
+	golapack.Zlaset(Full, mn2, mn2, zero, zero, z)
 
 	ik = 1
-	for l = 1; l <= (*n); l++ {
+	for l = 1; l <= n; l++ {
 		//        form kron(In, A)
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*m); j++ {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= m; j++ {
 				z.Set(ik+i-1-1, ik+j-1-1, a.Get(i-1, j-1))
 			}
 		}
 
 		//        form kron(In, D)
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*m); j++ {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= m; j++ {
 				z.Set(ik+mn+i-1-1, ik+j-1-1, d.Get(i-1, j-1))
 			}
 		}
 
-		ik = ik + (*m)
+		ik = ik + m
 	}
 
 	ik = 1
-	for l = 1; l <= (*n); l++ {
+	for l = 1; l <= n; l++ {
 		jk = mn + 1
 
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			//           form -kron(B', Im)
-			for i = 1; i <= (*m); i++ {
+			for i = 1; i <= m; i++ {
 				z.Set(ik+i-1-1, jk+i-1-1, -b.Get(j-1, l-1))
 			}
 
 			//           form -kron(E', Im)
-			for i = 1; i <= (*m); i++ {
+			for i = 1; i <= m; i++ {
 				z.Set(ik+mn+i-1-1, jk+i-1-1, -e.Get(j-1, l-1))
 			}
 
-			jk = jk + (*m)
+			jk = jk + m
 		}
 
-		ik = ik + (*m)
+		ik = ik + m
 	}
 }

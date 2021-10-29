@@ -4,25 +4,25 @@ import "math"
 
 // Dlapy2 returns sqrt(x**2+y**2), taking care not to cause unnecessary
 // overflow.
-func Dlapy2(x, y *float64) (dlapy2Return float64) {
+func Dlapy2(x, y float64) (dlapy2Return float64) {
 	var xIsNan, yIsNan bool
 	var one, w, xabs, yabs, z, zero float64
 
 	zero = 0.0
 	one = 1.0
 
-	xIsNan = Disnan(int(*x))
-	yIsNan = Disnan(int(*y))
+	xIsNan = Disnan(int(x))
+	yIsNan = Disnan(int(y))
 	if xIsNan {
-		dlapy2Return = (*x)
+		dlapy2Return = x
 	}
 	if yIsNan {
-		dlapy2Return = (*y)
+		dlapy2Return = y
 	}
 	//
 	if !(xIsNan || yIsNan) {
-		xabs = math.Abs(*x)
-		yabs = math.Abs(*y)
+		xabs = math.Abs(x)
+		yabs = math.Abs(y)
 		w = math.Max(xabs, yabs)
 		z = math.Min(xabs, yabs)
 		if z == zero {

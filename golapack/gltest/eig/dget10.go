@@ -8,40 +8,42 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget10 compares two matrices A and B and computes the ratio
+// dget10 compares two matrices A and B and computes the ratio
 // RESULT = norm( A - B ) / ( norm(A) * M * EPS )
-func Dget10(m, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, work *mat.Vector, result *float64) {
-	var anorm, eps, one, unfl, wnorm, zero float64
+func dget10(m, n int, a, b *mat.Matrix, work *mat.Vector) float64 {
+	var anorm, eps, one, result, unfl, wnorm, zero float64
 	var j int
 
 	one = 1.0
 	zero = 0.0
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
-		(*result) = zero
-		return
+	if m <= 0 || n <= 0 {
+		result = zero
+		return result
 	}
 
 	unfl = golapack.Dlamch(SafeMinimum)
 	eps = golapack.Dlamch(Precision)
 
 	wnorm = zero
-	for j = 1; j <= (*n); j++ {
-		goblas.Dcopy(*m, a.Vector(0, j-1, 1), work.Off(0, 1))
-		goblas.Daxpy(*m, -one, b.Vector(0, j-1, 1), work.Off(0, 1))
-		wnorm = math.Max(wnorm, goblas.Dasum(*n, work.Off(0, 1)))
+	for j = 1; j <= n; j++ {
+		goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
+		goblas.Daxpy(m, -one, b.Vector(0, j-1, 1), work.Off(0, 1))
+		wnorm = math.Max(wnorm, goblas.Dasum(n, work.Off(0, 1)))
 	}
 
-	anorm = math.Max(golapack.Dlange('1', m, n, a, lda, work), unfl)
+	anorm = math.Max(golapack.Dlange('1', m, n, a, work), unfl)
 
 	if anorm > wnorm {
-		(*result) = (wnorm / anorm) / (float64(*m) * eps)
+		result = (wnorm / anorm) / (float64(m) * eps)
 	} else {
 		if anorm < one {
-			(*result) = (math.Min(wnorm, float64(*m)*anorm) / anorm) / (float64(*m) * eps)
+			result = (math.Min(wnorm, float64(m)*anorm) / anorm) / (float64(m) * eps)
 		} else {
-			(*result) = math.Min(wnorm/anorm, float64(*m)) / (float64(*m) * eps)
+			result = math.Min(wnorm/anorm, float64(m)) / (float64(m) * eps)
 		}
 	}
+
+	return result
 }

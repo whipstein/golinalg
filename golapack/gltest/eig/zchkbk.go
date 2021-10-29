@@ -8,18 +8,20 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zchkbk tests ZGEBAK, a routine for backward transformation of
+// zchkbk tests ZGEBAK, a routine for backward transformation of
 // the computed right or left eigenvectors if the original matrix
 // was preprocessed by balance subroutine ZGEBAL.
-func Zchkbk(t *testing.T) {
+func zchkbk(t *testing.T) {
 	var eps, rmax, safmin, vmax, x, zero float64
-	var _i, i, ihi, ilo, info, j, knt, lde, n, ninfo int
+	var _i, i, ihi, ilo, j, knt, n, ninfo int
+	var err error
+
 	scale := vf(20)
 	lmax := make([]int, 2)
 	e := cmf(20, 20, opts)
 	ein := cmf(20, 20, opts)
 
-	lde = 20
+	// lde = 20
 	zero = 0.0
 
 	lmax[0] = 0
@@ -166,9 +168,7 @@ func Zchkbk(t *testing.T) {
 		}
 
 		knt = knt + 1
-		golapack.Zgebak('B', 'R', &n, &ilo, &ihi, scale, &n, e, &lde, &info)
-
-		if info != 0 {
+		if err = golapack.Zgebak('B', Right, n, ilo, ihi, scale, n, e); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt

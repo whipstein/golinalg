@@ -17,11 +17,10 @@ import (
 //
 //  [ I -L ] ( [ A  -C ], [ D -F ] ) [ I  R ] = ( [ A    ], [ D    ] )
 //  [    I ] ( [     B ]  [    E ] ) [    I ]   ( [    B ]  [    E ] )
-func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, ldc *int, d *mat.CMatrix, ldd *int, e *mat.CMatrix, lde *int, f *mat.CMatrix, ldf *int, r *mat.CMatrix, ldr *int, l *mat.CMatrix, ldl *int, alpha *float64, qblcka, qblckb *int) {
+func Zlatm5(prtype, m, n int, a, b, c, d, e, f, r, l *mat.CMatrix, alpha float64, qblcka, qblckb int) {
 	var half, imeps, one, reeps, twenty, two, zero complex128
 	var i, j, k int
 	var err error
-	_ = err
 
 	one = (1.0 + 0.0*1i)
 	two = (2.0 + 0.0*1i)
@@ -29,9 +28,9 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 	half = (0.5 + 0.0*1i)
 	twenty = (2.0e+1 + 0.0*1i)
 
-	if (*prtype) == 1 {
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*m); j++ {
+	if prtype == 1 {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= m; j++ {
 				if i == j {
 					a.Set(i-1, j-1, one)
 					d.Set(i-1, j-1, one)
@@ -45,10 +44,10 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			}
 		}
 
-		for i = 1; i <= (*n); i++ {
-			for j = 1; j <= (*n); j++ {
+		for i = 1; i <= n; i++ {
+			for j = 1; j <= n; j++ {
 				if i == j {
-					b.Set(i-1, j-1, one-complex(*alpha, 0))
+					b.Set(i-1, j-1, one-complex(alpha, 0))
 					e.Set(i-1, j-1, one)
 				} else if i == j-1 {
 					b.Set(i-1, j-1, one)
@@ -60,16 +59,16 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			}
 		}
 
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*n); j++ {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= n; j++ {
 				r.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i/j), 0)))*twenty)
 				l.Set(i-1, j-1, r.Get(i-1, j-1))
 			}
 		}
 
-	} else if (*prtype) == 2 || (*prtype) == 3 {
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*m); j++ {
+	} else if prtype == 2 || prtype == 3 {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= m; j++ {
 				if i <= j {
 					a.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i), 0)))*two)
 					d.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*two)
@@ -80,8 +79,8 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			}
 		}
 
-		for i = 1; i <= (*n); i++ {
-			for j = 1; j <= (*n); j++ {
+		for i = 1; i <= n; i++ {
+			for j = 1; j <= n; j++ {
 				if i <= j {
 					b.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i+j), 0)))*two)
 					e.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(j), 0)))*two)
@@ -92,74 +91,74 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			}
 		}
 
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*n); j++ {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= n; j++ {
 				r.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*twenty)
 				l.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i+j), 0)))*twenty)
 			}
 		}
 
-		if (*prtype) == 3 {
-			if (*qblcka) <= 1 {
-				(*qblcka) = 2
+		if prtype == 3 {
+			if qblcka <= 1 {
+				qblcka = 2
 			}
-			for k = 1; k <= (*m)-1; k += (*qblcka) {
+			for k = 1; k <= m-1; k += qblcka {
 				a.Set(k, k, a.Get(k-1, k-1))
 				a.Set(k, k-1, -cmplx.Sin(a.Get(k-1, k)))
 			}
 
-			if (*qblckb) <= 1 {
-				(*qblckb) = 2
+			if qblckb <= 1 {
+				qblckb = 2
 			}
-			for k = 1; k <= (*n)-1; k += (*qblckb) {
+			for k = 1; k <= n-1; k += qblckb {
 				b.Set(k, k, b.Get(k-1, k-1))
 				b.Set(k, k-1, -cmplx.Sin(b.Get(k-1, k)))
 			}
 		}
 
-	} else if (*prtype) == 4 {
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*m); j++ {
+	} else if prtype == 4 {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= m; j++ {
 				a.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*twenty)
 				d.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i+j), 0)))*two)
 			}
 		}
 
-		for i = 1; i <= (*n); i++ {
-			for j = 1; j <= (*n); j++ {
+		for i = 1; i <= n; i++ {
+			for j = 1; j <= n; j++ {
 				b.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i+j), 0)))*twenty)
 				e.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*two)
 			}
 		}
 
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*n); j++ {
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= n; j++ {
 				r.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(j/i), 0)))*twenty)
 				l.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*two)
 			}
 		}
 
-	} else if (*prtype) >= 5 {
-		reeps = half * two * twenty / complex(*alpha, 0)
-		imeps = (half - two) / complex(*alpha, 0)
-		for i = 1; i <= (*m); i++ {
-			for j = 1; j <= (*n); j++ {
-				r.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*complex(*alpha, 0)/twenty)
-				l.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i+j), 0)))*complex(*alpha, 0)/twenty)
+	} else if prtype >= 5 {
+		reeps = half * two * twenty / complex(alpha, 0)
+		imeps = (half - two) / complex(alpha, 0)
+		for i = 1; i <= m; i++ {
+			for j = 1; j <= n; j++ {
+				r.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i*j), 0)))*complex(alpha, 0)/twenty)
+				l.Set(i-1, j-1, (half-cmplx.Sin(complex(float64(i+j), 0)))*complex(alpha, 0)/twenty)
 			}
 		}
 
-		for i = 1; i <= (*m); i++ {
+		for i = 1; i <= m; i++ {
 			d.Set(i-1, i-1, one)
 		}
 
-		for i = 1; i <= (*m); i++ {
+		for i = 1; i <= m; i++ {
 			if i <= 4 {
 				a.Set(i-1, i-1, one)
 				if i > 2 {
 					a.Set(i-1, i-1, one+reeps)
 				}
-				if (i%2) != 0 && i < (*m) {
+				if (i%2) != 0 && i < m {
 					a.Set(i-1, i, imeps)
 				} else if i > 1 {
 					a.Set(i-1, i-1-1, -imeps)
@@ -170,14 +169,14 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 				} else {
 					a.Set(i-1, i-1, -reeps)
 				}
-				if (i%2) != 0 && i < (*m) {
+				if (i%2) != 0 && i < m {
 					a.Set(i-1, i, one)
 				} else if i > 1 {
 					a.Set(i-1, i-1-1, -one)
 				}
 			} else {
 				a.Set(i-1, i-1, one)
-				if (i%2) != 0 && i < (*m) {
+				if (i%2) != 0 && i < m {
 					a.Set(i-1, i, imeps*2)
 				} else if i > 1 {
 					a.Set(i-1, i-1-1, -imeps*2)
@@ -185,14 +184,14 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 			}
 		}
 
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			e.Set(i-1, i-1, one)
 			if i <= 4 {
 				b.Set(i-1, i-1, -one)
 				if i > 2 {
 					b.Set(i-1, i-1, one-reeps)
 				}
-				if (i%2) != 0 && i < (*n) {
+				if (i%2) != 0 && i < n {
 					b.Set(i-1, i, imeps)
 				} else if i > 1 {
 					b.Set(i-1, i-1-1, -imeps)
@@ -203,14 +202,14 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 				} else {
 					b.Set(i-1, i-1, -reeps)
 				}
-				if (i%2) != 0 && i < (*n) {
+				if (i%2) != 0 && i < n {
 					b.Set(i-1, i, one+imeps)
 				} else if i > 1 {
 					b.Set(i-1, i-1-1, -one-imeps)
 				}
 			} else {
 				b.Set(i-1, i-1, one-reeps)
-				if (i%2) != 0 && i < (*n) {
+				if (i%2) != 0 && i < n {
 					b.Set(i-1, i, imeps*2)
 				} else if i > 1 {
 					b.Set(i-1, i-1-1, -imeps*2)
@@ -220,8 +219,16 @@ func Zlatm5(prtype, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *in
 	}
 
 	//     Compute rhs (C, F)
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, one, a, r, zero, c)
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, b, one, c)
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *m, one, d, r, zero, f)
-	err = goblas.Zgemm(NoTrans, NoTrans, *m, *n, *n, -one, l, e, one, f)
+	if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, one, a, r, zero, c); err != nil {
+		panic(err)
+	}
+	if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, -one, l, b, one, c); err != nil {
+		panic(err)
+	}
+	if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, one, d, r, zero, f); err != nil {
+		panic(err)
+	}
+	if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, -one, l, e, one, f); err != nil {
+		panic(err)
+	}
 }

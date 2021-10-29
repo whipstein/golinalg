@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -14,7 +15,7 @@ import (
 //
 // Error bounds on the solution and a condition estimate are also
 // provided.
-func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMatrix, ldaf *int, ipiv *[]int, equed *byte, r, c *mat.Vector, b *mat.CMatrix, ldb *int, x *mat.CMatrix, ldx *int, rcond *float64, ferr, berr *mat.Vector, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Zgesvx(fact byte, trans mat.MatTrans, n, nrhs int, a, af *mat.CMatrix, ipiv *[]int, equed byte, r, c *mat.Vector, b, x *mat.CMatrix, ferr, berr *mat.Vector, work *mat.CVector, rwork *mat.Vector) (equedOut byte, rcond float64, info int, err error) {
 	var colequ, equil, nofact, notran, rowequ bool
 	var norm byte
 	var amax, anorm, bignum, colcnd, one, rcmax, rcmin, rowcnd, rpvgrw, smlnum, zero float64
@@ -22,105 +23,107 @@ func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CM
 
 	zero = 0.0
 	one = 1.0
+	equedOut = equed
 
-	(*info) = 0
 	nofact = fact == 'N'
 	equil = fact == 'E'
-	notran = trans == 'N'
+	notran = trans == NoTrans
 	if nofact || equil {
-		(*equed) = 'N'
+		equedOut = 'N'
 		rowequ = false
 		colequ = false
 	} else {
-		rowequ = (*equed) == 'R' || (*equed) == 'B'
-		colequ = (*equed) == 'C' || (*equed) == 'B'
+		rowequ = equedOut == 'R' || equedOut == 'B'
+		colequ = equedOut == 'C' || equedOut == 'B'
 		smlnum = Dlamch(SafeMinimum)
 		bignum = one / smlnum
 	}
 
 	//     Test the input parameters.
 	if !nofact && !equil && fact != 'F' {
-		(*info) = -1
-	} else if !notran && trans != 'T' && trans != 'C' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*nrhs) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldaf) < max(1, *n) {
-		(*info) = -8
-	} else if fact == 'F' && !(rowequ || colequ || (*equed) == 'N') {
-		(*info) = -10
+		err = fmt.Errorf("!nofact && !equil && fact != 'F': fact='%c'", fact)
+	} else if !notran && trans != Trans && trans != ConjTrans {
+		err = fmt.Errorf("!notran && trans != Trans && trans != ConjTrans: trans=%s", trans)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if af.Rows < max(1, n) {
+		err = fmt.Errorf("af.Rows < max(1, n): af.Rows=%v, n=%v", af.Rows, n)
+	} else if fact == 'F' && !(rowequ || colequ || equedOut == 'N') {
+		err = fmt.Errorf("fact == 'F' && !(rowequ || colequ || equed == 'N'): fact='%c', equed='%c'", fact, equedOut)
 	} else {
 		if rowequ {
 			rcmin = bignum
 			rcmax = zero
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				rcmin = math.Min(rcmin, r.Get(j-1))
 				rcmax = math.Max(rcmax, r.Get(j-1))
 			}
 			if rcmin <= zero {
-				(*info) = -11
-			} else if (*n) > 0 {
+				err = fmt.Errorf("rcmin <= zero: rcmin=%v", rcmin)
+			} else if n > 0 {
 				rowcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				rowcnd = one
 			}
 		}
-		if colequ && (*info) == 0 {
+		if colequ && err == nil {
 			rcmin = bignum
 			rcmax = zero
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				rcmin = math.Min(rcmin, c.Get(j-1))
 				rcmax = math.Max(rcmax, c.Get(j-1))
 			}
 			if rcmin <= zero {
-				(*info) = -12
-			} else if (*n) > 0 {
+				err = fmt.Errorf("rcmin <= zero: rcmin=%v", rcmin)
+			} else if n > 0 {
 				colcnd = math.Max(rcmin, smlnum) / math.Min(rcmax, bignum)
 			} else {
 				colcnd = one
 			}
 		}
-		if (*info) == 0 {
-			if (*ldb) < max(1, *n) {
-				(*info) = -14
-			} else if (*ldx) < max(1, *n) {
-				(*info) = -16
+		if err == nil {
+			if b.Rows < max(1, n) {
+				err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+			} else if x.Rows < max(1, n) {
+				err = fmt.Errorf("x.Rows < max(1, n): x.Rows=%v, n=%v", x.Rows, n)
 			}
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGESVX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgesvx", err)
 		return
 	}
 
 	if equil {
 		//        Compute row and column scalings to equilibrate the matrix A.
-		Zgeequ(n, n, a, lda, r, c, &rowcnd, &colcnd, &amax, &infequ)
+		if rowcnd, colcnd, amax, infequ, err = Zgeequ(n, n, a, r, c); err != nil {
+			panic(err)
+		}
 		if infequ == 0 {
 			//           Equilibrate the matrix.
-			Zlaqge(n, n, a, lda, r, c, &rowcnd, &colcnd, &amax, equed)
-			rowequ = (*equed) == 'R' || (*equed) == 'B'
-			colequ = (*equed) == 'C' || (*equed) == 'B'
+			equedOut = Zlaqge(n, n, a, r, c, rowcnd, colcnd, amax)
+			rowequ = equedOut == 'R' || equedOut == 'B'
+			colequ = equedOut == 'C' || equedOut == 'B'
 		}
 	}
 
 	//     Scale the right hand side.
 	if notran {
 		if rowequ {
-			for j = 1; j <= (*nrhs); j++ {
-				for i = 1; i <= (*n); i++ {
+			for j = 1; j <= nrhs; j++ {
+				for i = 1; i <= n; i++ {
 					b.Set(i-1, j-1, complex(r.Get(i-1), 0)*b.Get(i-1, j-1))
 				}
 			}
 		}
 	} else if colequ {
-		for j = 1; j <= (*nrhs); j++ {
-			for i = 1; i <= (*n); i++ {
+		for j = 1; j <= nrhs; j++ {
+			for i = 1; i <= n; i++ {
 				b.Set(i-1, j-1, complex(c.Get(i-1), 0)*b.Get(i-1, j-1))
 			}
 		}
@@ -128,21 +131,23 @@ func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CM
 
 	if nofact || equil {
 		//        Compute the LU factorization of A.
-		Zlacpy('F', n, n, a, lda, af, ldaf)
-		Zgetrf(n, n, af, ldaf, ipiv, info)
+		Zlacpy(Full, n, n, a, af)
+		if info, err = Zgetrf(n, n, af, ipiv); err != nil {
+			panic(err)
+		}
 
 		//        Return if INFO is non-zero.
-		if (*info) > 0 {
+		if info > 0 {
 			//           Compute the reciprocal pivot growth factor of the
 			//           leading rank-deficient INFO columns of A.
-			rpvgrw = Zlantr('M', 'U', 'N', info, info, af, ldaf, rwork)
+			rpvgrw = Zlantr('M', Upper, NonUnit, info, info, af, rwork)
 			if rpvgrw == zero {
 				rpvgrw = one
 			} else {
-				rpvgrw = Zlange('M', n, info, a, lda, rwork) / rpvgrw
+				rpvgrw = Zlange('M', n, info, a, rwork) / rpvgrw
 			}
 			rwork.Set(0, rpvgrw)
-			(*rcond) = zero
+			rcond = zero
 			return
 		}
 	}
@@ -154,53 +159,61 @@ func Zgesvx(fact, trans byte, n, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CM
 	} else {
 		norm = 'I'
 	}
-	anorm = Zlange(norm, n, n, a, lda, rwork)
-	rpvgrw = Zlantr('M', 'U', 'N', n, n, af, ldaf, rwork)
+	anorm = Zlange(norm, n, n, a, rwork)
+	rpvgrw = Zlantr('M', Upper, NonUnit, n, n, af, rwork)
 	if rpvgrw == zero {
 		rpvgrw = one
 	} else {
-		rpvgrw = Zlange('M', n, n, a, lda, rwork) / rpvgrw
+		rpvgrw = Zlange('M', n, n, a, rwork) / rpvgrw
 	}
 
 	//     Compute the reciprocal of the condition number of A.
-	Zgecon(norm, n, af, ldaf, &anorm, rcond, work, rwork, info)
+	if rcond, err = Zgecon(norm, n, af, anorm, work, rwork); err != nil {
+		panic(err)
+	}
 
 	//     Compute the solution matrix X.
-	Zlacpy('F', n, nrhs, b, ldb, x, ldx)
-	Zgetrs(trans, n, nrhs, af, ldaf, ipiv, x, ldx, info)
+	Zlacpy(Full, n, nrhs, b, x)
+	if err = Zgetrs(trans, n, nrhs, af, ipiv, x); err != nil {
+		panic(err)
+	}
 
 	//     Use iterative refinement to improve the computed solution and
 	//     compute error bounds and backward error estimates for it.
-	Zgerfs(trans, n, nrhs, a, lda, af, ldaf, ipiv, b, ldb, x, ldx, ferr, berr, work, rwork, info)
+	if err = Zgerfs(trans, n, nrhs, a, af, ipiv, b, x, ferr, berr, work, rwork); err != nil {
+		panic(err)
+	}
 
 	//     Transform the solution matrix X to a solution of the original
 	//     system.
 	if notran {
 		if colequ {
-			for j = 1; j <= (*nrhs); j++ {
-				for i = 1; i <= (*n); i++ {
+			for j = 1; j <= nrhs; j++ {
+				for i = 1; i <= n; i++ {
 					x.Set(i-1, j-1, complex(c.Get(i-1), 0)*x.Get(i-1, j-1))
 				}
 			}
-			for j = 1; j <= (*nrhs); j++ {
+			for j = 1; j <= nrhs; j++ {
 				ferr.Set(j-1, ferr.Get(j-1)/colcnd)
 			}
 		}
 	} else if rowequ {
-		for j = 1; j <= (*nrhs); j++ {
-			for i = 1; i <= (*n); i++ {
+		for j = 1; j <= nrhs; j++ {
+			for i = 1; i <= n; i++ {
 				x.Set(i-1, j-1, complex(r.Get(i-1), 0)*x.Get(i-1, j-1))
 			}
 		}
-		for j = 1; j <= (*nrhs); j++ {
+		for j = 1; j <= nrhs; j++ {
 			ferr.Set(j-1, ferr.Get(j-1)/rowcnd)
 		}
 	}
 
 	//     Set INFO = N+1 if the matrix is singular to working precision.
-	if (*rcond) < Dlamch(Epsilon) {
-		(*info) = (*n) + 1
+	if rcond < Dlamch(Epsilon) {
+		info = n + 1
 	}
 
 	rwork.Set(0, rpvgrw)
+
+	return
 }

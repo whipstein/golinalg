@@ -16,7 +16,7 @@ import "math"
 //       there are zeros on the diagonal).
 //
 // If F exceeds G in magnitude, CS will be positive.
-func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
+func Dlartg(f, g float64) (cs, sn, r float64) {
 	var eps, f1, g1, one, safmin, safmn2, safmx2, scale, two, zero float64
 	var count, i int
 
@@ -29,17 +29,17 @@ func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
 	safmn2 = math.Pow(Dlamch(Base), float64(int(math.Log(safmin/eps)/math.Log(Dlamch(Base))/two)))
 	safmx2 = one / safmn2
 
-	if (*g) == zero {
-		(*cs) = one
-		(*sn) = zero
-		(*r) = (*f)
-	} else if (*f) == zero {
-		(*cs) = zero
-		(*sn) = one
-		(*r) = (*g)
+	if g == zero {
+		cs = one
+		sn = zero
+		r = f
+	} else if f == zero {
+		cs = zero
+		sn = one
+		r = g
 	} else {
-		f1 = (*f)
-		g1 = (*g)
+		f1 = f
+		g1 = g
 		scale = math.Max(math.Abs(f1), math.Abs(g1))
 		if scale >= safmx2 {
 			count = 0
@@ -52,11 +52,11 @@ func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
 			if scale >= safmx2 {
 				goto label10
 			}
-			(*r) = math.Sqrt(math.Pow(f1, 2) + math.Pow(g1, 2))
-			(*cs) = f1 / (*r)
-			(*sn) = g1 / (*r)
+			r = math.Sqrt(math.Pow(f1, 2) + math.Pow(g1, 2))
+			cs = f1 / r
+			sn = g1 / r
 			for i = 1; i <= count; i++ {
-				(*r) = (*r) * safmx2
+				r = r * safmx2
 			}
 		} else if scale <= safmn2 {
 			count = 0
@@ -69,21 +69,23 @@ func Dlartg(f *float64, g *float64, cs *float64, sn *float64, r *float64) {
 			if scale <= safmn2 {
 				goto label30
 			}
-			(*r) = math.Sqrt(math.Pow(f1, 2) + math.Pow(g1, 2))
-			(*cs) = f1 / (*r)
-			(*sn) = g1 / (*r)
+			r = math.Sqrt(math.Pow(f1, 2) + math.Pow(g1, 2))
+			cs = f1 / r
+			sn = g1 / r
 			for i = 1; i <= count; i++ {
-				(*r) = (*r) * safmn2
+				r = r * safmn2
 			}
 		} else {
-			(*r) = math.Sqrt(math.Pow(f1, 2) + math.Pow(g1, 2))
-			(*cs) = f1 / (*r)
-			(*sn) = g1 / (*r)
+			r = math.Sqrt(math.Pow(f1, 2) + math.Pow(g1, 2))
+			cs = f1 / r
+			sn = g1 / r
 		}
-		if math.Abs(*f) > math.Abs(*g) && (*cs) < zero {
-			(*cs) = -(*cs)
-			(*sn) = -(*sn)
-			(*r) = -(*r)
+		if math.Abs(f) > math.Abs(g) && cs < zero {
+			cs = -cs
+			sn = -sn
+			r = -r
 		}
 	}
+
+	return
 }

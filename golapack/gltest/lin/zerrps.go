@@ -1,24 +1,26 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrps tests the error exits for the COMPLEX routines
-// for ZPSTRF.
-func Zerrps(path []byte, t *testing.T) {
-	var i, info, j, nmax, rank int
+// zerrps tests the error exits for the COMPLEX routines
+// for Zpstrf.
+func zerrps(path string, t *testing.T) {
+	var i, j, nmax int
+	var err error
 
 	nmax = 4
 	rwork := vf(2 * nmax)
 	piv := make([]int, 4)
 	a := cmf(4, 4, opts)
-	infot := &gltest.Common.Infoc.Infot
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	//     Set the variables to innocuous values.
@@ -37,30 +39,34 @@ func Zerrps(path []byte, t *testing.T) {
 	//        Test error exits of the routines that use the Cholesky
 	//        decomposition of an Hermitian positive semidefinite matrix.
 	//
-	//        ZPSTRF
-	*srnamt = "ZPSTRF"
-	*infot = 1
-	golapack.Zpstrf('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, toPtrf64(-1.), rwork, &info)
-	Chkxer("ZPSTRF", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Zpstrf('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &piv, &rank, toPtrf64(-1.), rwork, &info)
-	Chkxer("ZPSTRF", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Zpstrf('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, toPtrf64(-1.), rwork, &info)
-	Chkxer("ZPSTRF", &info, lerr, ok, t)
+	//        Zpstrf
+	*srnamt = "Zpstrf"
+	*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+	_, _, err = golapack.Zpstrf('/', 0, a.Off(0, 0).UpdateRows(1), &piv, -1., rwork)
+	chkxer2("Zpstrf", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	_, _, err = golapack.Zpstrf(Upper, -1, a.Off(0, 0).UpdateRows(1), &piv, -1., rwork)
+	chkxer2("Zpstrf", err)
+	*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+	_, _, err = golapack.Zpstrf(Upper, 2, a.Off(0, 0).UpdateRows(1), &piv, -1., rwork)
+	chkxer2("Zpstrf", err)
 
-	//        ZPSTF2
-	*srnamt = "ZPSTF2"
-	*infot = 1
-	golapack.Zpstf2('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, toPtrf64(-1.), rwork, &info)
-	Chkxer("ZPSTF2", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Zpstf2('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &piv, &rank, toPtrf64(-1.), rwork, &info)
-	Chkxer("ZPSTF2", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Zpstf2('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, toPtrf64(-1.), rwork, &info)
-	Chkxer("ZPSTF2", &info, lerr, ok, t)
+	//        Zpstf2
+	*srnamt = "Zpstf2"
+	*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+	_, _, err = golapack.Zpstf2('/', 0, a.Off(0, 0).UpdateRows(1), &piv, -1., rwork)
+	chkxer2("Zpstf2", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	_, _, err = golapack.Zpstf2(Upper, -1, a.Off(0, 0).UpdateRows(1), &piv, -1., rwork)
+	chkxer2("Zpstf2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+	_, _, err = golapack.Zpstf2(Upper, 2, a.Off(0, 0).UpdateRows(1), &piv, -1., rwork)
+	chkxer2("Zpstf2", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

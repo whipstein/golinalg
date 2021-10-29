@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -24,7 +25,7 @@ import (
 // form, however, may preclude the possibility of obtaining high
 // relative accuracy in the small eigenvalues of the original matrix, if
 // these eigenvalues range over many orders of magnitude.)
-func Dpteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, info *int) {
+func Dpteqr(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector) (info int, err error) {
 	var one, zero float64
 	var i, icompz, nru int
 
@@ -35,8 +36,6 @@ func Dpteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 	one = 1.0
 
 	//     Test the input parameters.
-	(*info) = 0
-
 	if compz == 'N' {
 		icompz = 0
 	} else if compz == 'V' {
@@ -47,59 +46,65 @@ func Dpteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 		icompz = -1
 	}
 	if icompz < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < max(1, *n)) {
-		(*info) = -6
+		err = fmt.Errorf("icompz < 0: compz='%c'", compz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if (z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)) {
+		err = fmt.Errorf("(z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)): compz='%c', z.Rows=%v, n=%v", compz, z.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPTEQR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dpteqr", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if icompz > 0 {
 			z.Set(0, 0, one)
 		}
 		return
 	}
 	if icompz == 2 {
-		Dlaset('F', n, n, &zero, &one, z, ldz)
+		Dlaset(Full, n, n, zero, one, z)
 	}
 
 	//     Call DPTTRF to factor the matrix.
-	Dpttrf(n, d, e, info)
-	if (*info) != 0 {
+	if info, err = Dpttrf(n, d, e); err != nil {
+		panic(err)
+	}
+	if info != 0 {
 		return
 	}
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		d.Set(i-1, math.Sqrt(d.Get(i-1)))
 	}
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		e.Set(i-1, e.Get(i-1)*d.Get(i-1))
 	}
 
 	//     Call DBDSQR to compute the singular values/vectors of the
 	//     bidiagonal factor.
 	if icompz > 0 {
-		nru = (*n)
+		nru = n
 	} else {
 		nru = 0
 	}
-	Dbdsqr('L', n, func() *int { y := 0; return &y }(), &nru, func() *int { y := 0; return &y }(), d, e, vt, func() *int { y := 1; return &y }(), z, ldz, c, func() *int { y := 1; return &y }(), work, info)
+	if info, err = Dbdsqr(Lower, n, 0, nru, 0, d, e, vt, z, c, work); err != nil {
+		panic(err)
+	}
 
 	//     Square the singular values.
-	if (*info) == 0 {
-		for i = 1; i <= (*n); i++ {
+	if info == 0 {
+		for i = 1; i <= n; i++ {
 			d.Set(i-1, d.Get(i-1)*d.Get(i-1))
 		}
 	} else {
-		(*info) = (*n) + (*info)
+		info = n + info
 	}
+
+	return
 }

@@ -9,13 +9,12 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dchkgk tests DGGBAK, a routine for backward balancing  of
+// dchkgk tests DGGBAK, a routine for backward balancing  of
 // a matrix pair (A, B).
-func Dchkgk(t *testing.T) {
+func dchkgk(t *testing.T) {
 	var anorm, bnorm, eps, one, rmax, vmax, zero float64
-	var _i, i, ihi, ilo, info, j, knt, lda, ldb, ldvl, ldvr, m, n, ninfo int
+	var _i, i, ihi, ilo, j, knt, m, n, ninfo int
 	var err error
-	_ = err
 
 	lscale := vf(50)
 	rscale := vf(50)
@@ -32,13 +31,6 @@ func Dchkgk(t *testing.T) {
 	vrf := mf(50, 50, opts)
 	work := mf(50, 50, opts)
 
-	lda = 50
-	ldb = 50
-	ldvl = 50
-	ldvr = 50
-	// lde = 50
-	// ldf = 50
-	// ldwork = 50
 	zero = 0.0
 	one = 1.0
 
@@ -353,31 +345,28 @@ func Dchkgk(t *testing.T) {
 
 		knt = knt + 1
 
-		anorm = golapack.Dlange('M', &n, &n, a, &lda, work.VectorIdx(0))
-		bnorm = golapack.Dlange('M', &n, &n, b, &ldb, work.VectorIdx(0))
+		anorm = golapack.Dlange('M', n, n, a, work.VectorIdx(0))
+		bnorm = golapack.Dlange('M', n, n, b, work.VectorIdx(0))
 
-		golapack.Dlacpy('F', &n, &n, a, &lda, af, &lda)
-		golapack.Dlacpy('F', &n, &n, b, &ldb, bf, &ldb)
+		golapack.Dlacpy(Full, n, n, a, af)
+		golapack.Dlacpy(Full, n, n, b, bf)
 
-		golapack.Dggbal('B', &n, a, &lda, b, &ldb, &ilo, &ihi, lscale, rscale, work.VectorIdx(0), &info)
-		if info != 0 {
+		if ilo, ihi, err = golapack.Dggbal('B', n, a, b, lscale, rscale, work.VectorIdx(0)); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt
 		}
 
-		golapack.Dlacpy('F', &n, &m, vl, &ldvl, vlf, &ldvl)
-		golapack.Dlacpy('F', &n, &m, vr, &ldvr, vrf, &ldvr)
+		golapack.Dlacpy(Full, n, m, vl, vlf)
+		golapack.Dlacpy(Full, n, m, vr, vrf)
 
-		golapack.Dggbak('B', 'L', &n, &ilo, &ihi, lscale, rscale, &m, vl, &ldvl, &info)
-		if info != 0 {
+		if err = golapack.Dggbak('B', Left, n, ilo, ihi, lscale, rscale, m, vl); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[1] = knt
 		}
 
-		golapack.Dggbak('B', 'R', &n, &ilo, &ihi, lscale, rscale, &m, vr, &ldvr, &info)
-		if info != 0 {
+		if err = golapack.Dggbak('B', Right, n, ilo, ihi, lscale, rscale, m, vr); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[2] = knt
@@ -387,11 +376,19 @@ func Dchkgk(t *testing.T) {
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, af, vr, zero, work)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e)
+		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, af, vr, zero, work); err != nil {
+			panic(err)
+		}
+		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, a, vrf, zero, work)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f)
+		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, a, vrf, zero, work); err != nil {
+			panic(err)
+		}
+		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f); err != nil {
+			panic(err)
+		}
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
@@ -406,11 +403,19 @@ func Dchkgk(t *testing.T) {
 		}
 
 		//     Check tilde(VL)'*B*tilde(VR) - VL'*tilde(B)*VR
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, bf, vr, zero, work)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e)
+		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, bf, vr, zero, work); err != nil {
+			panic(err)
+		}
+		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, b, vrf, zero, work)
-		err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f)
+		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, b, vrf, zero, work); err != nil {
+			panic(err)
+		}
+		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f); err != nil {
+			panic(err)
+		}
 
 		vmax = zero
 		for j = 1; j <= m; j++ {

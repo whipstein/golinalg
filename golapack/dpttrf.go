@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -8,30 +10,29 @@ import (
 // Dpttrf computes the L*D*L**T factorization of a real symmetric
 // positive definite tridiagonal matrix A.  The factorization may also
 // be regarded as having the form A = U**T*D*U.
-func Dpttrf(n *int, d, e *mat.Vector, info *int) {
+func Dpttrf(n int, d, e *mat.Vector) (info int, err error) {
 	var ei, zero float64
 	var i, i4 int
 
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("DPTTRF"), -(*info))
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Dpttrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Compute the L*D*L**T (or U**T*D*U) factorization of A.
-	i4 = (*n) - 1%4
+	i4 = n - 1%4
 	for i = 1; i <= i4; i++ {
 		if d.Get(i-1) <= zero {
-			(*info) = i
+			info = i
 			return
 		}
 		ei = e.Get(i - 1)
@@ -39,11 +40,11 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 		d.Set(i, d.Get(i)-e.Get(i-1)*ei)
 	}
 
-	for i = i4 + 1; i <= (*n)-4; i += 4 {
+	for i = i4 + 1; i <= n-4; i += 4 {
 		//        Drop out of the loop if d(i) <= 0: the matrix is not positive
 		//        definite.
 		if d.Get(i-1) <= zero {
-			(*info) = i
+			info = i
 			return
 		}
 
@@ -53,7 +54,7 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 		d.Set(i, d.Get(i)-e.Get(i-1)*ei)
 
 		if d.Get(i) <= zero {
-			(*info) = i + 1
+			info = i + 1
 			return
 		}
 
@@ -63,7 +64,7 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 		d.Set(i+2-1, d.Get(i+2-1)-e.Get(i)*ei)
 
 		if d.Get(i+2-1) <= zero {
-			(*info) = i + 2
+			info = i + 2
 			return
 		}
 
@@ -73,7 +74,7 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 		d.Set(i+3-1, d.Get(i+3-1)-e.Get(i+2-1)*ei)
 
 		if d.Get(i+3-1) <= zero {
-			(*info) = i + 3
+			info = i + 3
 			return
 		}
 
@@ -84,7 +85,9 @@ func Dpttrf(n *int, d, e *mat.Vector, info *int) {
 	}
 
 	//     Check d(n) for positive definiteness.
-	if d.Get((*n)-1) <= zero {
-		(*info) = (*n)
+	if d.Get(n-1) <= zero {
+		info = n
 	}
+
+	return
 }

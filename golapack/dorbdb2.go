@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -27,84 +28,87 @@ import (
 //
 // B11 and B12 are P-by-P bidiagonal matrices represented implicitly by
 // angles THETA, PHI.
-func Dorbdb2(m, p, q *int, x11 *mat.Matrix, ldx11 *int, x21 *mat.Matrix, ldx21 *int, theta, phi, taup1, taup2, tauq1, work *mat.Vector, lwork, info *int) {
+func Dorbdb2(m, p, q int, x11, x21 *mat.Matrix, theta, phi, taup1, taup2, tauq1, work *mat.Vector, lwork int) (err error) {
 	var lquery bool
 	var c, negone, one, s float64
-	var childinfo, i, ilarf, iorbdb5, llarf, lorbdb5, lworkmin, lworkopt int
+	var i, ilarf, iorbdb5, llarf, lorbdb5, lworkmin, lworkopt int
 
 	negone = -1.0
 	one = 1.0
 
 	//     Test input arguments
-	(*info) = 0
-	lquery = (*lwork) == -1
+	lquery = lwork == -1
 
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*p) < 0 || (*p) > (*m)-(*p) {
-		(*info) = -2
-	} else if (*q) < 0 || (*q) < (*p) || (*m)-(*q) < (*p) {
-		(*info) = -3
-	} else if (*ldx11) < max(1, *p) {
-		(*info) = -5
-	} else if (*ldx21) < max(1, (*m)-(*p)) {
-		(*info) = -7
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 || p > m-p {
+		err = fmt.Errorf("p < 0 || p > m-p: p=%v, m=%v", p, m)
+	} else if q < 0 || q < p || m-q < p {
+		err = fmt.Errorf("q < 0 || q < p || m-q < p: q=%v, p=%v, m=%v", q, p, m)
+	} else if x11.Rows < max(1, p) {
+		err = fmt.Errorf("x11.Rows < max(1, p): x11.Rows=%v, p=%v", x11.Rows, p)
+	} else if x21.Rows < max(1, m-p) {
+		err = fmt.Errorf("x21.Rows < max(1, m-p): x21.Rows=%v, m=%v, p=%v", x21.Rows, m, p)
 	}
 
 	//     Compute workspace
-	if (*info) == 0 {
+	if err == nil {
 		ilarf = 2
-		llarf = max((*p)-1, (*m)-(*p), (*q)-1)
+		llarf = max(p-1, m-p, q-1)
 		iorbdb5 = 2
-		lorbdb5 = (*q) - 1
+		lorbdb5 = q - 1
 		lworkopt = max(ilarf+llarf-1, iorbdb5+lorbdb5-1)
 		lworkmin = lworkopt
 		work.Set(0, float64(lworkopt))
-		if (*lwork) < lworkmin && !lquery {
-			(*info) = -14
+		if lwork < lworkmin && !lquery {
+			err = fmt.Errorf("lwork < lworkmin && !lquery: lwork=%v, lworkmin=%v, lquery=%v", lwork, lworkmin, lquery)
 		}
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DORBDB2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dorbdb2", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Reduce rows 1, ..., P of X11 and X21
-	for i = 1; i <= (*p); i++ {
+	for i = 1; i <= p; i++ {
 
 		if i > 1 {
-			goblas.Drot((*q)-i+1, x11.Vector(i-1, i-1), x21.Vector(i-1-1, i-1), c, s)
+			goblas.Drot(q-i+1, x11.Vector(i-1, i-1), x21.Vector(i-1-1, i-1), c, s)
 		}
-		Dlarfgp(toPtr((*q)-i+1), x11.GetPtr(i-1, i-1), x11.Vector(i-1, i), ldx11, tauq1.GetPtr(i-1))
+		*x11.GetPtr(i-1, i-1), *tauq1.GetPtr(i - 1) = Dlarfgp(q-i+1, x11.Get(i-1, i-1), x11.Vector(i-1, i))
 		c = x11.Get(i-1, i-1)
 		x11.Set(i-1, i-1, one)
-		Dlarf('R', toPtr((*p)-i), toPtr((*q)-i+1), x11.Vector(i-1, i-1), ldx11, tauq1.GetPtr(i-1), x11.Off(i, i-1), ldx11, work.Off(ilarf-1))
-		Dlarf('R', toPtr((*m)-(*p)-i+1), toPtr((*q)-i+1), x11.Vector(i-1, i-1), ldx11, tauq1.GetPtr(i-1), x21.Off(i-1, i-1), ldx21, work.Off(ilarf-1))
-		s = math.Sqrt(math.Pow(goblas.Dnrm2((*p)-i, x11.Vector(i, i-1, 1)), 2) + math.Pow(goblas.Dnrm2((*m)-(*p)-i+1, x21.Vector(i-1, i-1, 1)), 2))
+		Dlarf(Right, p-i, q-i+1, x11.Vector(i-1, i-1), tauq1.Get(i-1), x11.Off(i, i-1), work.Off(ilarf-1))
+		Dlarf(Right, m-p-i+1, q-i+1, x11.Vector(i-1, i-1), tauq1.Get(i-1), x21.Off(i-1, i-1), work.Off(ilarf-1))
+		s = math.Sqrt(math.Pow(goblas.Dnrm2(p-i, x11.Vector(i, i-1, 1)), 2) + math.Pow(goblas.Dnrm2(m-p-i+1, x21.Vector(i-1, i-1, 1)), 2))
 		theta.Set(i-1, math.Atan2(s, c))
 
-		Dorbdb5(toPtr((*p)-i), toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x11.Vector(i, i-1), func() *int { y := 1; return &y }(), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }(), x11.Off(i, i), ldx11, x21.Off(i-1, i), ldx21, work.Off(iorbdb5-1), &lorbdb5, &childinfo)
-		goblas.Dscal((*p)-i, negone, x11.Vector(i, i-1, 1))
-		Dlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1), x21.Vector(i, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
-		if i < (*p) {
-			Dlarfgp(toPtr((*p)-i), x11.GetPtr(i, i-1), x11.Vector(i+2-1, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1))
+		if err = Dorbdb5(p-i, m-p-i+1, q-i, x11.Vector(i, i-1, 1), x21.Vector(i-1, i-1, 1), x11.Off(i, i), x21.Off(i-1, i), work.Off(iorbdb5-1), lorbdb5); err != nil {
+			panic(err)
+		}
+		goblas.Dscal(p-i, negone, x11.Vector(i, i-1, 1))
+		*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Dlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Vector(i, i-1, 1))
+		if i < p {
+			*x11.GetPtr(i, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i, x11.Get(i, i-1), x11.Vector(i+2-1, i-1, 1))
 			phi.Set(i-1, math.Atan2(x11.Get(i, i-1), x21.Get(i-1, i-1)))
 			c = math.Cos(phi.Get(i - 1))
 			s = math.Sin(phi.Get(i - 1))
 			x11.Set(i, i-1, one)
-			Dlarf('L', toPtr((*p)-i), toPtr((*q)-i), x11.Vector(i, i-1), func() *int { y := 1; return &y }(), taup1.GetPtr(i-1), x11.Off(i, i), ldx11, work.Off(ilarf-1))
+			Dlarf(Left, p-i, q-i, x11.Vector(i, i-1, 1), taup1.Get(i-1), x11.Off(i, i), work.Off(ilarf-1))
 		}
 		x21.Set(i-1, i-1, one)
-		Dlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1), x21.Off(i-1, i), ldx21, work.Off(ilarf-1))
+		Dlarf(Left, m-p-i+1, q-i, x21.Vector(i-1, i-1, 1), taup2.Get(i-1), x21.Off(i-1, i), work.Off(ilarf-1))
 
 	}
 
 	//     Reduce the bottom-right portion of X21 to the identity matrix
-	for i = (*p) + 1; i <= (*q); i++ {
-		Dlarfgp(toPtr((*m)-(*p)-i+1), x21.GetPtr(i-1, i-1), x21.Vector(i, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1))
+	for i = p + 1; i <= q; i++ {
+		*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Dlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Vector(i, i-1, 1))
 		x21.Set(i-1, i-1, one)
-		Dlarf('L', toPtr((*m)-(*p)-i+1), toPtr((*q)-i), x21.Vector(i-1, i-1), func() *int { y := 1; return &y }(), taup2.GetPtr(i-1), x21.Off(i-1, i), ldx21, work.Off(ilarf-1))
+		Dlarf(Left, m-p-i+1, q-i, x21.Vector(i-1, i-1, 1), taup2.Get(i-1), x21.Off(i-1, i), work.Off(ilarf-1))
 	}
+
+	return
 }

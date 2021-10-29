@@ -12,10 +12,11 @@ import (
 //    eigenvalues and Schur decomposition already computed by CHSEQR, by
 //    dealing with the Hessenberg submatrix in rows and columns ILO to
 //    IHI.
-func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *mat.CVector, iloz, ihiz *int, z *mat.CMatrix, ldz, info *int) {
+func Zlahqr(wantt, wantz bool, n, ilo, ihi int, h *mat.CMatrix, w *mat.CVector, iloz, ihiz int, z *mat.CMatrix) (info int) {
 	var h11, h11s, h22, one, sc, sum, t, t1, temp, u, v2, x, y, zero complex128
 	var aa, ab, ba, bb, dat1, h10, h21, half, rone, rtemp, rzero, s, safmax, safmin, smlnum, sx, t2, tst, ulp float64
 	var i, i1, i2, itmax, its, j, jhi, jlo, k, l, m, nh, nz int
+
 	v := cvf(2)
 
 	zero = (0.0 + 0.0*1i)
@@ -25,34 +26,32 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 	half = 0.5
 	dat1 = 3.0 / 4.0
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
-	if (*ilo) == (*ihi) {
-		w.Set((*ilo)-1, h.Get((*ilo)-1, (*ilo)-1))
+	if ilo == ihi {
+		w.Set(ilo-1, h.Get(ilo-1, ilo-1))
 		return
 	}
 
 	//     ==== clear out the trash ====
-	for j = (*ilo); j <= (*ihi)-3; j++ {
+	for j = ilo; j <= ihi-3; j++ {
 		h.Set(j+2-1, j-1, zero)
 		h.Set(j+3-1, j-1, zero)
 	}
-	if (*ilo) <= (*ihi)-2 {
-		h.Set((*ihi)-1, (*ihi)-2-1, zero)
+	if ilo <= ihi-2 {
+		h.Set(ihi-1, ihi-2-1, zero)
 	}
 	//     ==== ensure that subdiagonal entries are real ====
 	if wantt {
 		jlo = 1
-		jhi = (*n)
+		jhi = n
 	} else {
-		jlo = (*ilo)
-		jhi = (*ihi)
+		jlo = ilo
+		jhi = ihi
 	}
-	for i = (*ilo) + 1; i <= (*ihi); i++ {
+	for i = ilo + 1; i <= ihi; i++ {
 		if h.GetIm(i-1, i-1-1) != rzero {
 			//           ==== The following redundant normalization
 			//           .    avoids problems with both gradual and
@@ -60,21 +59,21 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 			sc = h.Get(i-1, i-1-1) / complex(cabs1(h.Get(i-1, i-1-1)), 0)
 			sc = cmplx.Conj(sc) / complex(cmplx.Abs(sc), 0)
 			h.SetRe(i-1, i-1-1, h.GetMag(i-1, i-1-1))
-			goblas.Zscal(jhi-i+1, sc, h.CVector(i-1, i-1, *ldh))
+			goblas.Zscal(jhi-i+1, sc, h.CVector(i-1, i-1))
 			goblas.Zscal(min(jhi, i+1)-jlo+1, cmplx.Conj(sc), h.CVector(jlo-1, i-1, 1))
 			if wantz {
-				goblas.Zscal((*ihiz)-(*iloz)+1, cmplx.Conj(sc), z.CVector((*iloz)-1, i-1, 1))
+				goblas.Zscal(ihiz-iloz+1, cmplx.Conj(sc), z.CVector(iloz-1, i-1, 1))
 			}
 		}
 	}
 
-	nh = (*ihi) - (*ilo) + 1
-	nz = (*ihiz) - (*iloz) + 1
+	nh = ihi - ilo + 1
+	nz = ihiz - iloz + 1
 
 	//     Set machine-dependent constants for the stopping criterion.
 	safmin = Dlamch(SafeMinimum)
 	safmax = rone / safmin
-	Dlabad(&safmin, &safmax)
+	safmin, safmax = Dlabad(safmin, safmax)
 	ulp = Dlamch(Precision)
 	smlnum = safmin * (float64(nh) / ulp)
 
@@ -83,7 +82,7 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 	//     being computed, I1 and I2 are set inside the main loop.
 	if wantt {
 		i1 = 1
-		i2 = (*n)
+		i2 = n
 	}
 
 	//     ITMAX is the total number of QR iterations allowed.
@@ -94,17 +93,17 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, w *ma
 	//     with the active submatrix in rows and columns L to I.
 	//     Eigenvalues I+1 to IHI have already converged. Either L = ILO, or
 	//     H(L,L-1) is negligible so that the matrix splits.
-	i = (*ihi)
+	i = ihi
 label30:
 	;
-	if i < (*ilo) {
+	if i < ilo {
 		return
 	}
 
 	//     Perform QR iterations on rows and columns ILO to I until a
 	//     submatrix of order 1 splits off at the bottom because a
 	//     subdiagonal element has become negligible.
-	l = (*ilo)
+	l = ilo
 	for its = 0; its <= itmax; its++ {
 		//        Look for a single small subdiagonal element.
 		for k = i; k >= l+1; k-- {
@@ -113,10 +112,10 @@ label30:
 			}
 			tst = cabs1(h.Get(k-1-1, k-1-1)) + cabs1(h.Get(k-1, k-1))
 			if complex(tst, 0) == zero {
-				if k-2 >= (*ilo) {
+				if k-2 >= ilo {
 					tst = tst + math.Abs(h.GetRe(k-1-1, k-2-1))
 				}
-				if k+1 <= (*ihi) {
+				if k+1 <= ihi {
 					tst = tst + math.Abs(h.GetRe(k, k-1))
 				}
 			}
@@ -138,7 +137,7 @@ label30:
 	label50:
 		;
 		l = k
-		if l > (*ilo) {
+		if l > ilo {
 			//           H(L,L-1) is negligible
 			h.Set(l-1, l-1-1, zero)
 		}
@@ -179,7 +178,7 @@ label30:
 						y = -y
 					}
 				}
-				t = t - u*Zladiv(&u, toPtrc128(x+y))
+				t = t - u*Zladiv(u, x+y)
 			}
 		}
 
@@ -230,7 +229,7 @@ label30:
 			if k > m {
 				goblas.Zcopy(2, h.CVector(k-1, k-1-1, 1), v.Off(0, 1))
 			}
-			Zlarfg(func() *int { y := 2; return &y }(), v.GetPtr(0), v.Off(1), func() *int { y := 1; return &y }(), &t1)
+			*v.GetPtr(0), t1 = Zlarfg(2, v.Get(0), v.Off(1, 1))
 			if k > m {
 				h.Set(k-1, k-1-1, v.Get(0))
 				h.Set(k, k-1-1, zero)
@@ -256,7 +255,7 @@ label30:
 
 			if wantz {
 				//              Accumulate transformations in the matrix Z
-				for j = (*iloz); j <= (*ihiz); j++ {
+				for j = iloz; j <= ihiz; j++ {
 					sum = t1*z.Get(j-1, k-1) + complex(t2, 0)*z.Get(j-1, k)
 					z.Set(j-1, k-1, z.Get(j-1, k-1)-sum)
 					z.Set(j-1, k, z.Get(j-1, k)-sum*cmplx.Conj(v2))
@@ -277,11 +276,11 @@ label30:
 				for j = m; j <= i; j++ {
 					if j != m+1 {
 						if i2 > j {
-							goblas.Zscal(i2-j, temp, h.CVector(j-1, j, *ldh))
+							goblas.Zscal(i2-j, temp, h.CVector(j-1, j))
 						}
 						goblas.Zscal(j-i1, cmplx.Conj(temp), h.CVector(i1-1, j-1, 1))
 						if wantz {
-							goblas.Zscal(nz, cmplx.Conj(temp), z.CVector((*iloz)-1, j-1, 1))
+							goblas.Zscal(nz, cmplx.Conj(temp), z.CVector(iloz-1, j-1, 1))
 						}
 					}
 				}
@@ -295,18 +294,18 @@ label30:
 			h.SetRe(i-1, i-1-1, rtemp)
 			temp = temp / complex(rtemp, 0)
 			if i2 > i {
-				goblas.Zscal(i2-i, cmplx.Conj(temp), h.CVector(i-1, i, *ldh))
+				goblas.Zscal(i2-i, cmplx.Conj(temp), h.CVector(i-1, i))
 			}
 			goblas.Zscal(i-i1, temp, h.CVector(i1-1, i-1, 1))
 			if wantz {
-				goblas.Zscal(nz, temp, z.CVector((*iloz)-1, i-1, 1))
+				goblas.Zscal(nz, temp, z.CVector(iloz-1, i-1, 1))
 			}
 		}
 
 	}
 
 	//     Failure to converge in remaining number of iterations
-	(*info) = i
+	info = i
 	return
 
 label140:

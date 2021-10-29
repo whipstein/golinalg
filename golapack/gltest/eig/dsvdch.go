@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dsvdch checks to see if SVD(1) ,..., SVD(N) are accurate singular
+// dsvdch checks to see if SVD(1) ,..., SVD(N) are accurate singular
 // values of the bidiagonal matrix B with diagonal entries
 // S(1) ,..., S(N) and superdiagonal entries E(1) ,..., E(N-1)).
 // It does this by expanding each SVD(I) into an interval
@@ -20,7 +20,7 @@ import (
 // contains the correct number of singular values, INFO = 0 is returned,
 // otherwise INFO is the index of the first singular value in the first
 // bad interval.
-func Dsvdch(n *int, s, e, svd *mat.Vector, tol *float64, info *int) {
+func dsvdch(n int, s, e, svd *mat.Vector, tol float64) (info int) {
 	var eps, lower, one, ovfl, tuppr, unfl, unflep, upper, zero float64
 	var bpnt, count, numl, numu, tpnt int
 
@@ -28,8 +28,8 @@ func Dsvdch(n *int, s, e, svd *mat.Vector, tol *float64, info *int) {
 	zero = 0.0
 
 	//     Get machine constants
-	(*info) = 0
-	if (*n) <= 0 {
+	info = 0
+	if n <= 0 {
 		return
 	}
 	unfl = golapack.Dlamch(SafeMinimum)
@@ -42,7 +42,7 @@ func Dsvdch(n *int, s, e, svd *mat.Vector, tol *float64, info *int) {
 	unflep = (math.Sqrt(math.Sqrt(unfl))/math.Sqrt(ovfl))*svd.Get(0) + unfl/eps
 
 	//     The value of EPS works best when TOL .GE. 10.
-	eps = (*tol) * float64(max((*n)/10, 1)) * eps
+	eps = tol * float64(max(n/10, 1)) * eps
 
 	//     TPNT points to singular value at right endpoint of interval
 	//     BPNT points to singular value at left  endpoint of interval
@@ -61,7 +61,7 @@ label10:
 	//     Begin loop merging overlapping intervals
 label20:
 	;
-	if bpnt == (*n) {
+	if bpnt == n {
 		goto label30
 	}
 	tuppr = (one+eps)*svd.Get(bpnt) + unflep
@@ -80,20 +80,22 @@ label30:
 	;
 
 	//     Count singular values in interval [ LOWER, UPPER ]
-	Dsvdct(n, s, e, &lower, &numl)
-	Dsvdct(n, s, e, &upper, &numu)
+	numl = dsvdct(n, s, e, lower)
+	numu = dsvdct(n, s, e, upper)
 	count = numu - numl
 	if lower < zero {
 		count = count / 2
 	}
 	if count != bpnt-tpnt+1 {
 		//        Wrong number of singular values in interval
-		(*info) = tpnt
+		info = tpnt
 		return
 	}
 	tpnt = bpnt + 1
 	bpnt = tpnt
-	if tpnt <= (*n) {
+	if tpnt <= n {
 		goto label10
 	}
+
+	return
 }

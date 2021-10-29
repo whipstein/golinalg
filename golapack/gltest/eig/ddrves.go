@@ -11,10 +11,10 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrves checks the nonsymmetric eigenvalue (Schur form) problem
+// ddrves checks the nonsymmetric eigenvalue (Schur form) problem
 //    driver DGEES.
 //
-//    When DDRVES is called, a number of matrix "sizes" ("n's") and a
+//    When ddrves is called, a number of matrix "sizes" ("n's") and a
 //    number of matrix "types" are specified.  For each size ("n")
 //    and each type of matrix, one matrix will be generated and used
 //    to test the nonsymmetric eigenroutines.  For each matrix, 13
@@ -142,7 +142,7 @@ import (
 //         near the overflow threshold
 //    (21) Same as (19), but multiplied by a constant
 //         near the underflow threshold
-func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, h, ht *mat.Matrix, wr, wi, wrt, wit *mat.Vector, vs *mat.Matrix, ldvs *int, result, work *mat.Vector, nwork *int, iwork *[]int, bwork *[]bool, info *int, t *testing.T) {
+func ddrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h, ht *mat.Matrix, wr, wi, wrt, wit *mat.Vector, vs *mat.Matrix, result, work *mat.Vector, nwork int, iwork []int, bwork []bool, t *testing.T) (err error) {
 	var badnn bool
 	var sort byte
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, tmp, ulp, ulpinv, unfl, zero float64
@@ -168,57 +168,56 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1
 	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
 
-	path := []byte("DES")
+	path := "Des"
 
 	//     Check for errors
 	ntestt = 0
 	ntestf = 0
-	(*info) = 0
 	(*selopt) = 0
 
 	//     Important constants
 	badnn = false
 	nmax = 0
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsize=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*nounit) <= 0 {
-		(*info) = -7
-	} else if (*lda) < 1 || (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldvs) < 1 || (*ldvs) < nmax {
-		(*info) = -17
-	} else if 5*nmax+2*int(math.Pow(float64(nmax), 2)) > (*nwork) {
-		(*info) = -20
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if nounit <= 0 {
+		err = fmt.Errorf("nounit <= 0: nounit=%v", nounit)
+	} else if a.Rows < 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if vs.Rows < 1 || vs.Rows < nmax {
+		err = fmt.Errorf("vs.Rows < 1 || vs.Rows < nmax: vs.Rows=%v, nmax=%v", vs.Rows, nmax)
+	} else if 5*nmax+2*pow(nmax, 2) > nwork {
+		err = fmt.Errorf("5*nmax+2*pow(nmax, 2) > nwork: nmax=%v, nwork=%v", nmax, nwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DDRVES"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ddrves", err)
 		return
 	}
 
 	//     Quick return if nothing to do
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
 	//     More Important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Precision)
 	ulpinv = one / ulp
 	rtulp = math.Sqrt(ulp)
@@ -227,21 +226,21 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     Loop over sizes, types
 	nerrs = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		mtypes = maxtyp
-		if (*nsizes) == 1 && (*ntypes) == maxtyp+1 {
+		if nsizes == 1 && ntypes == maxtyp+1 {
 			mtypes = mtypes + 1
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label260
 			}
 
 			//           Save ISEED in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Compute "A"
@@ -294,7 +293,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label60:
 			;
 
-			golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
+			golapack.Dlaset(Full, a.Rows, n, zero, zero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -321,11 +320,11 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, 0, 0, 'N', a, work.Off(n))
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, n, n, 'N', a, work.Off(n))
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -338,29 +337,29 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				adumma[0] = ' '
-				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
+				iinfo, err = matgen.Dlatme(n, 'S', &iseed, work, imode, cond, one, adumma, 'T', 'T', 'T', work.Off(n), 4, conds, n, n, anorm, a, work.Off(2*n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 				if n >= 4 {
-					golapack.Dlaset('F', func() *int { y := 2; return &y }(), &n, &zero, &zero, a, lda)
-					golapack.Dlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &zero, &zero, a.Off(2, 0), lda)
-					golapack.Dlaset('F', toPtr(n-3), func() *int { y := 2; return &y }(), &zero, &zero, a.Off(2, n-1-1), lda)
-					golapack.Dlaset('F', func() *int { y := 1; return &y }(), &n, &zero, &zero, a.Off(n-1, 0), lda)
+					golapack.Dlaset(Full, 2, n, zero, zero, a)
+					golapack.Dlaset(Full, n-3, 1, zero, zero, a.Off(2, 0))
+					golapack.Dlaset(Full, n-3, 2, zero, zero, a.Off(2, n-1-1))
+					golapack.Dlaset(Full, 1, n, zero, zero, a.Off(n-1, 0))
 				}
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, 0, zero, anorm, 'N', a, &iwork)
 
 			} else {
 
@@ -369,8 +368,8 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			if iinfo != 0 {
 				t.Fail()
-				fmt.Printf(" DDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" ddrves: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -382,7 +381,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if iwk == 1 {
 					nnwork = 3 * n
 				} else {
-					nnwork = 5*n + 2*int(math.Pow(float64(n), 2))
+					nnwork = 5*n + 2*pow(n, 2)
 				}
 				nnwork = max(nnwork, 1)
 
@@ -402,13 +401,12 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 
 					//                 Compute Schur form and Schur vectors, and test them
-					golapack.Dlacpy('F', &n, &n, a, lda, h, lda)
-					golapack.Dgees('V', sort, Dslect, &n, h, lda, &sdim, wr, wi, vs, ldvs, work, &nnwork, bwork, &iinfo)
-					if iinfo != 0 && iinfo != n+2 {
+					golapack.Dlacpy(Full, n, n, a, h)
+					if sdim, iinfo, err = golapack.Dgees('V', sort, dslect, n, h, wr, wi, vs, work, nnwork, &bwork); iinfo != 0 && iinfo != n+2 {
 						t.Fail()
 						result.Set(1+rsub-1, ulpinv)
-						fmt.Printf(" DDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEES1", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+						fmt.Printf(" ddrves: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEES1", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						goto label220
 					}
 
@@ -436,7 +434,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 					//                 Do Tests (2) and (3) or Tests (8) and (9)
 					lwork = max(1, 2*n*n)
-					Dhst01(&n, func() *int { y := 1; return &y }(), &n, a, lda, h, lda, vs, ldvs, work, &lwork, res)
+					dhst01(n, 1, n, a, h, vs, work, lwork, res)
 					result.Set(2+rsub-1, res.Get(0))
 					result.Set(3+rsub-1, res.Get(1))
 
@@ -468,13 +466,12 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 
 					//                 Do Test (5) or Test (11)
-					golapack.Dlacpy('F', &n, &n, a, lda, ht, lda)
-					golapack.Dgees('N', sort, Dslect, &n, ht, lda, &sdim, wrt, wit, vs, ldvs, work, &nnwork, bwork, &iinfo)
-					if iinfo != 0 && iinfo != n+2 {
+					golapack.Dlacpy(Full, n, n, a, ht)
+					if sdim, iinfo, err = golapack.Dgees('N', sort, dslect, n, ht, wrt, wit, vs, work, nnwork, &bwork); iinfo != 0 && iinfo != n+2 {
 						t.Fail()
 						result.Set(5+rsub-1, ulpinv)
-						fmt.Printf(" DDRVES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEES2", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+						fmt.Printf(" ddrves: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEES2", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						goto label220
 					}
 
@@ -500,11 +497,11 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						result.Set(12, zero)
 						knteig = 0
 						for i = 1; i <= n; i++ {
-							if Dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || Dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))) {
+							if dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))) {
 								knteig = knteig + 1
 							}
 							if i < n {
-								if (Dslect(wr.GetPtr(i), wi.GetPtr(i)) || Dslect(wr.GetPtr(i), toPtrf64(-wi.Get(i)))) && (!(Dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || Dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))))) && iinfo != n+2 {
+								if (dslect(wr.GetPtr(i), wi.GetPtr(i)) || dslect(wr.GetPtr(i), toPtrf64(-wi.Get(i)))) && (!(dslect(wr.GetPtr(i-1), wi.GetPtr(i-1)) || dslect(wr.GetPtr(i-1), toPtrf64(-wi.Get(i-1))))) && iinfo != n+2 {
 									result.Set(12, ulpinv)
 								}
 							}
@@ -526,8 +523,8 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					if result.Get(j-1) >= zero {
 						ntest = ntest + 1
 					}
-					if result.Get(j-1) >= (*thresh) {
-						nfail = nfail + 1
+					if result.Get(j-1) >= thresh {
+						nfail++
 					}
 				}
 
@@ -536,17 +533,17 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					ntestf = ntestf + 1
 				}
 				if ntestf == 1 {
-					fmt.Printf("\n %3s -- Real Schur Form Decomposition Driver\n Matrix types (see DDRVES for details): \n", path)
+					fmt.Printf("\n %3s -- Real Schur Form Decomposition Driver\n Matrix types (see ddrves for details): \n", path)
 					fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: geometr. spaced entries.\n  2=Identity matrix.                      6=Diagonal: clustered entries.\n  3=Transposed Jordan block.              7=Diagonal: large, evenly spaced.\n  4=Diagonal: evenly spaced entries.      8=Diagonal: small, evenly spaced.\n")
 					fmt.Printf(" Dense, Non-Symmetric Matrices:\n  9=Well-cond., evenly spaced eigenvals. 14=Ill-cond., geomet. spaced eigenals.\n 10=Well-cond., geom. spaced eigenvals.  15=Ill-conditioned, clustered e.vals.\n 11=Well-conditioned, clustered e.vals.  16=Ill-cond., random complex \n 12=Well-cond., random complex           17=Ill-cond., large rand. complx \n 13=Ill-conditioned, evenly spaced.      18=Ill-cond., small rand. complx \n")
 					fmt.Printf(" 19=Matrix with random O(1) entries.     21=Matrix with small random entries.\n 20=Matrix with large random entries.   \n\n")
-					fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if WR+math.Sqrt(-1)*WI are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if WR, WI same no matter if VS computed (no sort),  1/ulp otherwise\n", *thresh)
+					fmt.Printf(" Tests performed with test threshold =%8.2f\n ( A denotes A on input and T denotes A on output)\n\n 1 = 0 if T in Schur form (no sort),   1/ulp otherwise\n 2 = | A - VS T transpose(VS) | / ( n |A| ulp ) (no sort)\n 3 = | I - VS transpose(VS) | / ( n ulp ) (no sort) \n 4 = 0 if WR+math.Sqrt(-1)*WI are eigenvalues of T (no sort),  1/ulp otherwise\n 5 = 0 if T same no matter if VS computed (no sort),  1/ulp otherwise\n 6 = 0 if WR, WI same no matter if VS computed (no sort),  1/ulp otherwise\n", thresh)
 					fmt.Printf(" 7 = 0 if T in Schur form (sort),   1/ulp otherwise\n 8 = | A - VS T transpose(VS) | / ( n |A| ulp ) (sort)\n 9 = | I - VS transpose(VS) | / ( n ulp ) (sort) \n 10 = 0 if WR+math.Sqrt(-1)*WI are eigenvalues of T (sort),  1/ulp otherwise\n 11 = 0 if T same no matter if VS computed (sort),  1/ulp otherwise\n 12 = 0 if WR, WI same no matter if VS computed (sort),  1/ulp otherwise\n 13 = 0 if sorting successful, 1/ulp otherwise\n\n")
 					ntestf = 2
 				}
 
 				for j = 1; j <= 13; j++ {
-					if result.Get(j-1) >= (*thresh) {
+					if result.Get(j-1) >= thresh {
 						t.Fail()
 						fmt.Printf(" N=%5d, IWK=%2d, seed=%4d, type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
 					}
@@ -561,5 +558,7 @@ func Ddrves(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Dlasum(path, &nerrs, &ntestt)
+	dlasum(path, nerrs, ntestt)
+
+	return
 }

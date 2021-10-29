@@ -11,14 +11,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// DchksyRk tests DSYTRF_RK, -TRI_3, -TRS_3, and -CON_3.
-func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *int, nsval *[]int, thresh *float64, tsterr *bool, nmax *int, a, afac, e, ainv, b, x, xact, work, rwork *mat.Vector, iwork *[]int, nout *int, t *testing.T) {
+// dchksyRk tests DSYTRF_RK, -TRI_3, -TRS_3, and -CON_3.
+func dchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, nsval []int, thresh float64, tsterr bool, nmax int, a, afac, e, ainv, b, x, xact, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var trfcon, zerot bool
-	var dist, _type, uplo, xtype byte
+	var dist, _type, xtype byte
+	var uplo mat.MatUplo
 	var alpha, anorm, cndnum, _const, dtemp, eight, one, rcond, rcondc, sevten, singMax, singMin, zero float64
-	var i, i1, i2, imat, in, inb, info, ioff, irhs, iuplo, izero, j, k, kl, ku, lda, lwork, mode, n, nb, nerrs, nfail, nimat, nrhs, nrun, nt, ntypes int
+	var _result *float64
+	var i, i1, i2, imat, in, inb, info, ioff, irhs, izero, j, k, kl, ku, lda, lwork, mode, n, nb, nerrs, nfail, nimat, nrhs, nrun, nt, ntypes int
+	var err error
 
-	uplos := make([]byte, 2)
 	result := vf(7)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
@@ -34,16 +36,15 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 	ntypes = 10
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1] = 'U', 'L'
 
 	//     Initialize constants and the random number seed.
 	alpha = (one + math.Sqrt(sevten)) / eight
 
 	//     Test path
-	path := []byte("DSK")
+	path := "Dsk"
 
 	//     Path to generate matrices
-	matpath := []byte("DSY")
+	matpath := "Dsy"
 
 	nrun = 0
 	nfail = 0
@@ -53,18 +54,18 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrsy(path, t)
+	if tsterr {
+		derrsy(path, t)
 	}
 	(*infot) = 0
 
 	//     Set the minimum block size for which the block routine should
 	//     be used, which will be later returned by ILAENV
-	Xlaenv(2, 2)
+	xlaenv(2, 2)
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
@@ -77,7 +78,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 		//        Do for each value of matrix _type IMAT
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label260
 			}
 
@@ -87,23 +88,19 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 				goto label260
 			}
 
-			//           Do first for UPLO = 'U', then for UPLO = 'L'
-			for iuplo = 1; iuplo <= 2; iuplo++ {
-				uplo = uplos[iuplo-1]
+			//           Do first for uplo='U', then for uplo='L'
+			for _, uplo = range mat.IterMatUplo(false) {
 
 				//              Begin generate the test matrix A.
 				//
 				//              Set up parameters with DLATB4 for the matrix generator
 				//              based on the _type of matrix to be generated.
-				Dlatb4(matpath, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				_type, kl, ku, anorm, mode, cndnum, dist = dlatb4(matpath, imat, n, n)
 
 				//              Generate a matrix with DLATMS.
-				*srnamt = "DLATMS"
-				matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, uplo, a.Matrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from DLATMS and handle error.
-				if info != 0 {
-					Alaerh(path, []byte("DLATMS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dlatms"
+				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, uplo.Byte(), a.Matrix(lda, opts), work); info != 0 {
+					nerrs = alaerh(path, "Dlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 
 					//                 Skip all tests for this generated matrix
 					goto label250
@@ -123,7 +120,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 
 					if imat < 6 {
 						//                    Set row and column IZERO to zero.
-						if iuplo == 1 {
+						if uplo == Upper {
 							ioff = (izero - 1) * lda
 							for i = 1; i <= izero-1; i++ {
 								a.Set(ioff+i-1, zero)
@@ -145,7 +142,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							}
 						}
 					} else {
-						if iuplo == 1 {
+						if uplo == Upper {
 							//                       Set the first IZERO rows and columns to zero.
 							ioff = 0
 							for j = 1; j <= n; j++ {
@@ -175,24 +172,26 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 				//
 				//
 				//              Do for each value of NB in NBVAL
-				for inb = 1; inb <= (*nnb); inb++ {
+				for inb = 1; inb <= nnb; inb++ {
 					//                 Set the optimal blocksize, which will be later
 					//                 returned by ILAENV.
-					nb = (*nbval)[inb-1]
-					Xlaenv(1, nb)
+					nb = nbval[inb-1]
+					xlaenv(1, nb)
 
 					//                 Copy the test matrix A into matrix AFAC which
 					//                 will be factorized in place. This is needed to
 					//                 preserve the test matrix A for subsequent tests.
-					golapack.Dlacpy(uplo, &n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda)
+					golapack.Dlacpy(uplo, n, n, a.Matrix(lda, opts), afac.Matrix(lda, opts))
 
 					//                 Compute the L*D*L**T or U*D*U**T factorization of the
 					//                 matrix. IWORK stores details of the interchanges and
 					//                 the block structure of D. AINV is a work array for
 					//                 block factorization, LWORK is the length of AINV.
 					lwork = max(2, nb) * lda
-					*srnamt = "DSYTRF_RK"
-					golapack.DsytrfRk(uplo, &n, afac.Matrix(lda, opts), &lda, e, iwork, ainv, &lwork, &info)
+					*srnamt = "DsytrfRk"
+					if info, err = golapack.DsytrfRk(uplo, n, afac.Matrix(lda, opts), e, &iwork, ainv, lwork); err != nil {
+						panic(err)
+					}
 
 					//                 Adjust the expected value of INFO to account for
 					//                 pivoting.
@@ -200,20 +199,20 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					if k > 0 {
 					label100:
 						;
-						if (*iwork)[k-1] < 0 {
-							if (*iwork)[k-1] != -k {
-								k = -(*iwork)[k-1]
+						if iwork[k-1] < 0 {
+							if iwork[k-1] != -k {
+								k = -iwork[k-1]
 								goto label100
 							}
-						} else if (*iwork)[k-1] != k {
-							k = (*iwork)[k-1]
+						} else if iwork[k-1] != k {
+							k = iwork[k-1]
 							goto label100
 						}
 					}
 
 					//                 Check error code from DSYTRF_RK and handle error.
 					if info != k {
-						Alaerh(path, []byte("DSYTRF_RK"), &info, &k, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nb, &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "DsytrfRk", info, k, []byte{uplo.Byte()}, n, n, -1, -1, nb, imat, nfail, nerrs)
 					}
 
 					//                 Set the condition estimate flag if the INFO is not 0.
@@ -225,7 +224,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 
 					//+    TEST 1
 					//                 Reconstruct matrix from factors and compute residual.
-					Dsyt013(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, e, iwork, ainv.Matrix(lda, opts), &lda, rwork, result.GetPtr(0))
+					result.Set(0, dsyt013(uplo, n, a.Matrix(lda, opts), afac.Matrix(lda, opts), e, iwork, ainv.Matrix(lda, opts), rwork))
 					nt = 1
 
 					//+    TEST 2
@@ -234,36 +233,34 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					//                 (i.e. there is no zero rows and columns).
 					//                 Do it only for the first block size.
 					if inb == 1 && !trfcon {
-						golapack.Dlacpy(uplo, &n, &n, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda)
-						*srnamt = "DSYTRI_3"
+						golapack.Dlacpy(uplo, n, n, afac.Matrix(lda, opts), ainv.Matrix(lda, opts))
+						*srnamt = "Dsytri3"
 
 						//                    Another reason that we need to compute the invesrse
 						//                    is that DPOT03 produces RCONDC which is used later
 						//                    in TEST6 and TEST7.
 						lwork = (n + nb + 1) * (nb + 3)
-						golapack.Dsytri3(uplo, &n, ainv.Matrix(lda, opts), &lda, e, iwork, work, &lwork, &info)
-
-						//                    Check error code from DSYTRI_3 and handle error.
-						if info != 0 {
-							Alaerh(path, []byte("DSYTRI_3"), &info, toPtr(-1), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+						if info, err = golapack.Dsytri3(uplo, n, ainv.Matrix(lda, opts), e, &iwork, work, lwork); err != nil || info != 0 {
+							nerrs = alaerh(path, "Dsytri3", info, -1, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 						}
 
 						//                    Compute the residual for a symmetric matrix times
 						//                    its inverse.
-						Dpot03(uplo, &n, a.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork, &rcondc, result.GetPtr(1))
+						_result = result.GetPtr(1)
+						rcondc, *_result = dpot03(uplo, n, a.Matrix(lda, opts), ainv.Matrix(lda, opts), work.Matrix(lda, opts), rwork)
 						nt = 2
 					}
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 1; k <= nt; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
 							t.Fail()
-							fmt.Printf(" UPLO = '%c', N =%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" uplo=%s, n=%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
 					nrun = nrun + nt
@@ -275,7 +272,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 
 					_const = one / (one - alpha)
 
-					if iuplo == 1 {
+					if uplo == Upper {
 						//                 Compute largest element in U
 						k = n
 					label120:
@@ -284,22 +281,22 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							goto label130
 						}
 
-						if (*iwork)[k-1] > int(zero) {
+						if iwork[k-1] > int(zero) {
 							//                       Get max absolute value from elements
 							//                       in column k in in U
-							dtemp = golapack.Dlange('M', toPtr(k-1), func() *int { y := 1; return &y }(), afac.MatrixOff(0+(k-1)*lda, lda, opts), &lda, rwork)
+							dtemp = golapack.Dlange('M', k-1, 1, afac.MatrixOff(0+(k-1)*lda, lda, opts), rwork)
 						} else {
 							//
 							//                       Get max absolute value from elements
 							//                       in columns k and k-1 in U
 							//
-							dtemp = golapack.Dlange('M', toPtr(k-2), func() *int { y := 2; return &y }(), afac.MatrixOff(0+(k-2)*lda, lda, opts), &lda, rwork)
+							dtemp = golapack.Dlange('M', k-2, 2, afac.MatrixOff(0+(k-2)*lda, lda, opts), rwork)
 							k = k - 1
 
 						}
 
 						//                    DTEMP should be bounded by CONST
-						dtemp = dtemp - _const + (*thresh)
+						dtemp = dtemp - _const + thresh
 						if dtemp > result.Get(2) {
 							result.Set(2, dtemp)
 						}
@@ -317,20 +314,20 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							goto label150
 						}
 
-						if (*iwork)[k-1] > int(zero) {
+						if iwork[k-1] > int(zero) {
 							//                       Get max absolute value from elements
 							//                       in column k in in L
-							dtemp = golapack.Dlange('M', toPtr(n-k), func() *int { y := 1; return &y }(), afac.MatrixOff(k+(k-1)*lda, lda, opts), &lda, rwork)
+							dtemp = golapack.Dlange('M', n-k, 1, afac.MatrixOff(k+(k-1)*lda, lda, opts), rwork)
 						} else {
 							//                       Get max absolute value from elements
 							//                       in columns k and k+1 in L
-							dtemp = golapack.Dlange('M', toPtr(n-k-1), func() *int { y := 2; return &y }(), afac.MatrixOff(k+2-1+(k-1)*lda, lda, opts), &lda, rwork)
+							dtemp = golapack.Dlange('M', n-k-1, 2, afac.MatrixOff(k+2-1+(k-1)*lda, lda, opts), rwork)
 							k = k + 1
 
 						}
 
 						//                    DTEMP should be bounded by CONST
-						dtemp = dtemp - _const + (*thresh)
+						dtemp = dtemp - _const + thresh
 						if dtemp > result.Get(2) {
 							result.Set(2, dtemp)
 						}
@@ -348,10 +345,10 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					dtemp = zero
 
 					_const = (one + alpha) / (one - alpha)
-					golapack.Dlacpy(uplo, &n, &n, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda)
+					golapack.Dlacpy(uplo, n, n, afac.Matrix(lda, opts), ainv.Matrix(lda, opts))
 
-					if iuplo == 1 {
-						//                    Loop backward for UPLO = 'U'
+					if uplo == Upper {
+						//                    Loop backward for uplo='U'
 						k = n
 					label160:
 						;
@@ -359,7 +356,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							goto label170
 						}
 
-						if (*iwork)[k-1] < int(zero) {
+						if iwork[k-1] < int(zero) {
 							//                       Get the two singular values
 							//                       (real and non-negative) of a 2-by-2 block,
 							//                       store them in RWORK array
@@ -368,7 +365,9 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							block.Set(1, 0, block.Get(0, 1))
 							block.Set(1, 1, afac.Get(k-1+(k-1)*lda))
 
-							golapack.Dgesvd('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), block, func() *int { y := 2; return &y }(), rwork, ddummy, func() *int { y := 1; return &y }(), ddummy, func() *int { y := 1; return &y }(), work, func() *int { y := 10; return &y }(), &info)
+							if info, err = golapack.Dgesvd('N', 'N', 2, 2, block, rwork, ddummy, ddummy, work, 10); err != nil {
+								panic(err)
+							}
 
 							singMax = rwork.Get(0)
 							singMin = rwork.Get(1)
@@ -376,7 +375,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							dtemp = singMax / singMin
 
 							//                       DTEMP should be bounded by CONST
-							dtemp = dtemp - _const + (*thresh)
+							dtemp = dtemp - _const + thresh
 							if dtemp > result.Get(3) {
 								result.Set(3, dtemp)
 							}
@@ -389,7 +388,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 						goto label160
 					label170:
 					} else {
-						//                    Loop forward for UPLO = 'L'
+						//                    Loop forward for uplo='L'
 						k = 1
 					label180:
 						;
@@ -397,7 +396,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							goto label190
 						}
 
-						if (*iwork)[k-1] < int(zero) {
+						if iwork[k-1] < int(zero) {
 							//                       Get the two singular values
 							//                       (real and non-negative) of a 2-by-2 block,
 							//                       store them in RWORK array
@@ -406,7 +405,9 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							block.Set(0, 1, block.Get(1, 0))
 							block.Set(1, 1, afac.Get(k+(k)*lda))
 
-							golapack.Dgesvd('N', 'N', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), block, func() *int { y := 2; return &y }(), rwork, ddummy, func() *int { y := 1; return &y }(), ddummy, func() *int { y := 1; return &y }(), work, func() *int { y := 10; return &y }(), &info)
+							if info, err = golapack.Dgesvd('N', 'N', 2, 2, block, rwork, ddummy, ddummy, work, 10); err != nil {
+								panic(err)
+							}
 
 							singMax = rwork.Get(0)
 							singMin = rwork.Get(1)
@@ -414,7 +415,7 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 							dtemp = singMax / singMin
 
 							//                       DTEMP should be bounded by CONST
-							dtemp = dtemp - _const + (*thresh)
+							dtemp = dtemp - _const + thresh
 							if dtemp > result.Get(3) {
 								result.Set(3, dtemp)
 							}
@@ -431,16 +432,16 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 3; k <= 4; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
 							t.Fail()
-							fmt.Printf(" UPLO = '%c', N =%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" uplo=%s, n=%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
-					nrun = nrun + 2
+					nrun += 2
 
 					//                 Skip the other tests if this is not the first block
 					//                 size.
@@ -454,51 +455,50 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 						goto label230
 					}
 
-					//                 Do for each value of NRHS in NSVAL.
-					for irhs = 1; irhs <= (*nns); irhs++ {
-						nrhs = (*nsval)[irhs-1]
+					//                 Do for each value of nrhs in NSVAL.
+					for irhs = 1; irhs <= nns; irhs++ {
+						nrhs = nsval[irhs-1]
 
 						//+    TEST 5 ( Using TRS_3)
 						//                 Solve and compute residual for  A * X = B.
 						//
-						//                    Choose a set of NRHS random solution vectors
+						//                    Choose a set of nrhs random solution vectors
 						//                    stored in XACT and set up the right hand side B
-						*srnamt = "DLARHS"
-						Dlarhs(matpath, &xtype, uplo, ' ', &n, &n, &kl, &ku, &nrhs, a.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, &iseed, &info)
-						golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
+						*srnamt = "Dlarhs"
+						if err = Dlarhs(matpath, xtype, uplo, NoTrans, n, n, kl, ku, nrhs, a.Matrix(lda, opts), xact.Matrix(lda, opts), b.Matrix(lda, opts), &iseed); err != nil {
+							panic(err)
+						}
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
 
-						*srnamt = "DSYTRS_3"
-						golapack.Dsytrs3(uplo, &n, &nrhs, afac.Matrix(lda, opts), &lda, e, iwork, x.Matrix(lda, opts), &lda, &info)
-
-						//                    Check error code from DSYTRS_3 and handle error.
-						if info != 0 {
-							Alaerh(path, []byte("DSYTRS_3"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+						*srnamt = "Dsytrs3"
+						if info, err = golapack.Dsytrs3(uplo, n, nrhs, afac.Matrix(lda, opts), e, &iwork, x.Matrix(lda, opts)); err != nil || info != 0 {
+							nerrs = alaerh(path, "Dsytrs3", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 						}
 
-						golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
 
 						//                    Compute the residual for the solution
-						Dpot02(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(4))
+						result.Set(4, dpot02(uplo, n, nrhs, a.Matrix(lda, opts), x.Matrix(lda, opts), work.Matrix(lda, opts), rwork))
 
 						//+    TEST 6
 						//                    Check solution from generated exact solution.
-						Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(5))
+						result.Set(5, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
 						for k = 5; k <= 6; k++ {
-							if result.Get(k-1) >= (*thresh) {
+							if result.Get(k-1) >= thresh {
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
 								t.Fail()
-								fmt.Printf(" UPLO = '%c', N =%5d, NRHS=%3d, _type %2d, test(%2d) =%12.5f\n", uplo, n, nrhs, imat, k, result.Get(k-1))
-								nfail = nfail + 1
+								fmt.Printf(" uplo=%s, n=%5d, nrhs=%3d, _type %2d, test(%2d) =%12.5f\n", uplo, n, nrhs, imat, k, result.Get(k-1))
+								nfail++
 							}
 						}
-						nrun = nrun + 2
+						nrun += 2
 
-						//                 End do for each value of NRHS in NSVAL.
+						//                 End do for each value of nrhs in NSVAL.
 						//
 					}
 
@@ -506,29 +506,26 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 					//                 Get an estimate of RCOND = 1/CNDNUM.
 				label230:
 					;
-					anorm = golapack.Dlansy('1', uplo, &n, a.Matrix(lda, opts), &lda, rwork)
-					*srnamt = "DSYCON_3"
-					golapack.Dsycon3(uplo, &n, afac.Matrix(lda, opts), &lda, e, iwork, &anorm, &rcond, work, toSlice(iwork, n), &info)
-
-					//                 Check error code from DSYCON_3 and handle error.
-					if info != 0 {
-						Alaerh(path, []byte("DSYCON_3"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+					anorm = golapack.Dlansy('1', uplo, n, a.Matrix(lda, opts), rwork)
+					*srnamt = "Dsycon3"
+					if rcond, err = golapack.Dsycon3(uplo, n, afac.Matrix(lda, opts), e, &iwork, anorm, work, toSlice(&iwork, n)); err != nil {
+						nerrs = alaerh(path, "Dsycon3", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
 					//                 Compute the test ratio to compare to values of RCOND
-					result.Set(6, Dget06(&rcond, &rcondc))
+					result.Set(6, dget06(rcond, rcondc))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
-					if result.Get(6) >= (*thresh) {
+					if result.Get(6) >= thresh {
 						if nfail == 0 && nerrs == 0 {
-							Alahd(path)
+							alahd(path)
 						}
 						t.Fail()
-						fmt.Printf(" UPLO = '%c', N =%5d,           _type %2d, test(%2d) =%12.5f\n", uplo, n, imat, 7, result.Get(6))
-						nfail = nfail + 1
+						fmt.Printf(" uplo=%s, n=%5d,           _type %2d, test(%2d) =%12.5f\n", uplo, n, imat, 7, result.Get(6))
+						nfail++
 					}
-					nrun = nrun + 1
+					nrun++
 				label240:
 				}
 
@@ -547,5 +544,5 @@ func DchksyRk(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns 
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

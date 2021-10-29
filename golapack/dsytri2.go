@@ -1,54 +1,61 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
 // Dsytri2 computes the inverse of a DOUBLE PRECISION symmetric indefinite matrix
 // A using the factorization A = U*D*U**T or A = L*D*L**T computed by
-// DSYTRF. DSYTRI2 sets the LEADING DIMENSION of the workspace
-// before calling DSYTRI2X that actually computes the inverse.
-func Dsytri2(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Matrix, lwork *int, info *int) {
+// DSYTRF. Dsytri2 sets the LEADING DIMENSION of the workspace
+// before calling Dsytri2X that actually computes the inverse.
+func Dsytri2(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Matrix, lwork int) (info int, err error) {
 	var lquery, upper bool
 	var minsize, nbmax int
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	lquery = ((*lwork) == -1)
+	upper = uplo == Upper
+	lquery = (lwork == -1)
 	//     Get blocksize
-	nbmax = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYTRI2"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-	if nbmax >= (*n) {
-		minsize = (*n)
+	nbmax = Ilaenv(1, "Dsytri2", []byte{uplo.Byte()}, n, -1, -1, -1)
+	if nbmax >= n {
+		minsize = n
 	} else {
-		minsize = ((*n) + nbmax + 1) * (nbmax + 3)
+		minsize = (n + nbmax + 1) * (nbmax + 3)
 	}
-	//
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*lwork) < minsize && !lquery {
-		(*info) = -7
+
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if lwork < minsize && !lquery {
+		err = fmt.Errorf("lwork < minsize && !lquery: lwork=%v, minsize=%v, lquery=%v", lwork, minsize, lquery)
 	}
 
 	//     Quick return if possible
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRI2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsytri2", err)
 		return
 	} else if lquery {
 		work.SetIdx(0, float64(minsize))
 		return
 	}
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
-	if nbmax >= (*n) {
-		Dsytri(uplo, n, a, lda, ipiv, work.VectorIdx(0), info)
+	if nbmax >= n {
+		if info, err = Dsytri(uplo, n, a, ipiv, work.VectorIdx(0)); err != nil {
+			panic(err)
+		}
 	} else {
-		Dsytri2x(uplo, n, a, lda, ipiv, work.VectorIdx(0), &nbmax, info)
+		if info, err = Dsytri2x(uplo, n, a, ipiv, work.VectorIdx(0), nbmax); err != nil {
+			panic(err)
+		}
 	}
+
+	return
 }

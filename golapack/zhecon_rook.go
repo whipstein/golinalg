@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -11,52 +13,52 @@ import (
 //
 // An estimate is obtained for norm(inv(A)), and the reciprocal of the
 // condition number is computed as RCOND = 1 / (ANORM * norm(inv(A))).
-func Zheconrook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, anorm, rcond *float64, work *mat.CVector, info *int) {
+func ZheconRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, anorm float64, work *mat.CVector) (rcond float64, err error) {
 	var upper bool
 	var ainvnm, one, zero float64
 	var i, kase int
+
 	isave := make([]int, 3)
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*anorm) < zero {
-		(*info) = -6
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if anorm < zero {
+		err = fmt.Errorf("anorm < zero: anorm=%v", anorm)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHECON_ROOK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZheconRook", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*rcond) = zero
-	if (*n) == 0 {
-		(*rcond) = one
+	rcond = zero
+	if n == 0 {
+		rcond = one
 		return
-	} else if (*anorm) <= zero {
+	} else if anorm <= zero {
 		return
 	}
 
 	//     Check that the diagonal matrix D is nonsingular.
 	if upper {
 		//        Upper triangular storage: examine D from bottom to top
-		for i = (*n); i >= 1; i-- {
+		for i = n; i >= 1; i-- {
 			if (*ipiv)[i-1] > 0 && a.Get(i-1, i-1) == complex(zero, 0) {
 				return
 			}
 		}
 	} else {
 		//        Lower triangular storage: examine D from top to bottom.
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if (*ipiv)[i-1] > 0 && a.Get(i-1, i-1) == complex(zero, 0) {
 				return
 			}
@@ -67,15 +69,19 @@ func Zheconrook(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, anorm,
 	kase = 0
 label30:
 	;
-	Zlacn2(n, work.Off((*n)), work, &ainvnm, &kase, &isave)
+	ainvnm, kase = Zlacn2(n, work.Off(n), work, ainvnm, kase, &isave)
 	if kase != 0 {
 		//        Multiply by inv(L*D*L**H) or inv(U*D*U**H).
-		Zhetrsrook(uplo, n, func() *int { y := 1; return &y }(), a, lda, ipiv, work.CMatrix(*n, opts), n, info)
+		if err = ZhetrsRook(uplo, n, 1, a, ipiv, work.CMatrix(n, opts)); err != nil {
+			panic(err)
+		}
 		goto label30
 	}
 
 	//     Compute the estimate of the reciprocal condition number.
 	if ainvnm != zero {
-		(*rcond) = (one / ainvnm) / (*anorm)
+		rcond = (one / ainvnm) / anorm
 	}
+
+	return
 }

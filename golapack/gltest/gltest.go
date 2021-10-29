@@ -4,6 +4,7 @@ import "github.com/whipstein/golinalg/mat"
 
 type Memory struct {
 	Infoc struct {
+		Errt  error
 		Infot int
 		Ok    bool
 		Lerr  bool
@@ -37,3 +38,23 @@ type Memory struct {
 }
 
 var Common Memory
+
+func max(a ...int) int {
+	maxval := a[0]
+	for _, val := range a {
+		if val > maxval {
+			maxval = val
+		}
+	}
+	return maxval
+}
+
+func min(a ...int) int {
+	minval := a[0]
+	for _, val := range a {
+		if val < minval {
+			minval = val
+		}
+	}
+	return minval
+}

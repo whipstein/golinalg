@@ -2,13 +2,13 @@ package eig
 
 import "math"
 
-// Zlctes returns .TRUE. if the eigenvalue Z/D is to be selected
+// zlctes returns .TRUE. if the eigenvalue Z/D is to be selected
 // (specifically, in this subroutine, if the real part of the
 // eigenvalue is negative), and otherwise it returns .FALSE..
 //
 // It is used by the test routine ZDRGES to test whether the driver
 // routine ZGGES successfully sorts eigenvalues.
-func Zlctes(z, d complex128) (zlctesReturn bool) {
+func zlctes(z, d complex128) (zlctesReturn bool) {
 	var czero complex128
 	var one, zero, zmax float64
 

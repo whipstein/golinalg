@@ -2,28 +2,28 @@ package eig
 
 import "fmt"
 
-// Alahdg prints header information for the different test paths.
-func Alahdg(path []byte) {
+// alahdg prints header information for the different test paths.
+func alahdg(path string) {
 	var itype int
 	c2 := path[:3]
 
 	//     First line describing matrices in this path
-	if string(c2) == "GQR" {
+	if c2 == "Gqr" {
 		itype = 1
 		fmt.Printf("\n %3s: GQR factorization of general matrices\n", path)
-	} else if string(c2) == "GRQ" {
+	} else if c2 == "Grq" {
 		itype = 2
 		fmt.Printf("\n %3s: GRQ factorization of general matrices\n", path)
-	} else if string(c2) == "LSE" {
+	} else if c2 == "Lse" {
 		itype = 3
 		fmt.Printf("\n %3s: LSE Problem\n", path)
-	} else if string(c2) == "GLM" {
+	} else if c2 == "Glm" {
 		itype = 4
 		fmt.Printf("\n %3s: GLM Problem\n", path)
-	} else if string(c2) == "GSV" {
+	} else if c2 == "Gsv" {
 		itype = 5
 		fmt.Printf("\n %3s: Generalized Singular Value Decomposition\n", path)
-	} else if string(c2) == "CSD" {
+	} else if c2 == "Csd" {
 		itype = 6
 		fmt.Printf("\n %3s: CS Decomposition\n", path)
 	}

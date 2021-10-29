@@ -8,12 +8,13 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zchkeq tests ZGEEQU, ZGBEQU, ZPOEQU, ZPPEQU and ZPBEQU
-func Zchkeq(thresh *float64, nout *int, t *testing.T) {
+// zchkeq tests ZGEEQU, ZGBEQU, ZPOEQU, ZPPEQU and ZPBEQU
+func zchkeq(thresh float64, t *testing.T) {
 	var ok bool
 	var cone, czero complex128
 	var ccond, eps, norm, one, ratio, rcmax, rcmin, rcond, ten, zero float64
 	var i, info, j, kl, ku, m, n, npow, nsz, nszb, nszp int
+	var err error
 
 	zero = 0.0
 	one = 1.0
@@ -33,7 +34,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 	a := cmf(5, 5, opts)
 	ab := cmf(nszb, 5, opts)
 
-	path := []byte("ZEQ")
+	path := []byte("Zeq")
 
 	eps = golapack.Dlamch(Precision)
 	for i = 1; i <= 5; i++ {
@@ -58,9 +59,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				}
 			}
 
-			golapack.Zgeequ(&m, &n, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
-
-			if info != 0 {
+			if rcond, ccond, norm, info, err = golapack.Zgeequ(m, n, a.Off(0, 0).UpdateRows(nsz), r, c); err != nil || info != 0 {
 				reslts.Set(0, one)
 			} else {
 				if n != 0 && m != 0 {
@@ -83,8 +82,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 	for j = 1; j <= nsz; j++ {
 		a.Set(max(nsz-1, 1)-1, j-1, czero)
 	}
-	golapack.Zgeequ(&nsz, &nsz, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
-	if info != max(nsz-1, 1) {
+	if rcond, ccond, norm, info, err = golapack.Zgeequ(nsz, nsz, a.Off(0, 0).UpdateRows(nsz), r, c); err != nil || info != max(nsz-1, 1) {
 		reslts.Set(0, one)
 	}
 
@@ -94,8 +92,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 	for i = 1; i <= nsz; i++ {
 		a.Set(i-1, max(nsz-1, 1)-1, czero)
 	}
-	golapack.Zgeequ(&nsz, &nsz, a, &nsz, r, c, &rcond, &ccond, &norm, &info)
-	if info != nsz+max(nsz-1, 1) {
+	if rcond, ccond, norm, info, err = golapack.Zgeequ(nsz, nsz, a.Off(0, 0).UpdateRows(nsz), r, c); err != nil || info != nsz+max(nsz-1, 1) {
 		reslts.Set(0, one)
 	}
 	reslts.Set(0, reslts.Get(0)/eps)
@@ -119,7 +116,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 						}
 					}
 
-					golapack.Zgbequ(&m, &n, &kl, &ku, ab, &nszb, r, c, &rcond, &ccond, &norm, &info)
+					if rcond, ccond, norm, info, err = golapack.Zgbequ(m, n, kl, ku, ab, r, c); err != nil {
+						panic(err)
+					}
 
 					if info != 0 {
 						if !((n+kl < m && info == n+kl+1) || (m+ku < n && info == 2*m+ku+1)) {
@@ -190,7 +189,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			}
 		}
 
-		golapack.Zpoequ(&n, a, &nsz, r, &rcond, &norm, &info)
+		if rcond, norm, info, err = golapack.Zpoequ(n, a, r); err != nil {
+			panic(err)
+		}
 
 		if info != 0 {
 			reslts.Set(2, one)
@@ -205,7 +206,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 		}
 	}
 	a.Set(max(nsz-1, 1)-1, max(nsz-1, 1)-1, -cone)
-	golapack.Zpoequ(&nsz, a, &nsz, r, &rcond, &norm, &info)
+	if rcond, norm, info, err = golapack.Zpoequ(nsz, a, r); err != nil {
+		panic(err)
+	}
 	if info != max(nsz-1, 1) {
 		reslts.Set(2, one)
 	}
@@ -221,9 +224,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			ap.SetRe((i*(i+1))/2-1, pow.Get(2*i))
 		}
 
-		golapack.Zppequ('U', &n, ap, r, &rcond, &norm, &info)
-
-		if info != 0 {
+		if rcond, norm, info, err = golapack.Zppequ(Upper, n, ap, r); err != nil || info != 0 {
 			reslts.Set(3, one)
 		} else {
 			if n != 0 {
@@ -245,9 +246,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			j = j + (n - i + 1)
 		}
 
-		golapack.Zppequ('L', &n, ap, r, &rcond, &norm, &info)
-
-		if info != 0 {
+		if rcond, norm, info, err = golapack.Zppequ(Lower, n, ap, r); err != nil || info != 0 {
 			reslts.Set(3, one)
 		} else {
 			if n != 0 {
@@ -262,8 +261,7 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 	}
 	i = (nsz*(nsz+1))/2 - 2
 	ap.Set(i-1, -cone)
-	golapack.Zppequ('L', &nsz, ap, r, &rcond, &norm, &info)
-	if info != max(nsz-1, 1) {
+	if rcond, norm, info, err = golapack.Zppequ(Lower, nsz, ap, r); err != nil || info != max(nsz-1, 1) {
 		reslts.Set(3, one)
 	}
 	reslts.Set(3, reslts.Get(3)/eps)
@@ -281,7 +279,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				ab.SetRe(kl, j-1, pow.Get(2*j))
 			}
 
-			golapack.Zpbequ('U', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+			if rcond, norm, info, err = golapack.Zpbequ(Upper, n, kl, ab, r); err != nil {
+				panic(err)
+			}
 
 			if info != 0 {
 				reslts.Set(4, one)
@@ -296,7 +296,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			}
 			if n != 0 {
 				ab.Set(kl, max(n-1, 1)-1, -cone)
-				golapack.Zpbequ('U', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+				if rcond, norm, info, err = golapack.Zpbequ(Upper, n, kl, ab, r); err != nil {
+					panic(err)
+				}
 				if info != max(n-1, 1) {
 					reslts.Set(4, one)
 				}
@@ -312,7 +314,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 				ab.SetRe(0, j-1, pow.Get(2*j))
 			}
 
-			golapack.Zpbequ('L', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+			if rcond, norm, info, err = golapack.Zpbequ(Lower, n, kl, ab, r); err != nil {
+				panic(err)
+			}
 
 			if info != 0 {
 				reslts.Set(4, one)
@@ -327,7 +331,9 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 			}
 			if n != 0 {
 				ab.Set(0, max(n-1, 1)-1, -cone)
-				golapack.Zpbequ('L', &n, &kl, ab, &nszb, r, &rcond, &norm, &info)
+				if rcond, norm, info, err = golapack.Zpbequ(Lower, n, kl, ab, r); err != nil {
+					panic(err)
+				}
 				if info != max(n-1, 1) {
 					reslts.Set(4, one)
 				}
@@ -335,24 +341,24 @@ func Zchkeq(thresh *float64, nout *int, t *testing.T) {
 		}
 	}
 	reslts.Set(4, reslts.Get(4)/eps)
-	ok = (reslts.Get(0) <= (*thresh)) && (reslts.Get(1) <= (*thresh)) && (reslts.Get(2) <= (*thresh)) && (reslts.Get(3) <= (*thresh)) && (reslts.Get(4) <= (*thresh))
+	ok = (reslts.Get(0) <= thresh) && (reslts.Get(1) <= thresh) && (reslts.Get(2) <= thresh) && (reslts.Get(3) <= thresh) && (reslts.Get(4) <= thresh)
 	if ok {
 		fmt.Printf(" All tests for %3s routines passed the threshold\n\n", path)
 	} else {
-		if reslts.Get(0) > (*thresh) {
-			fmt.Printf(" ZGEEQU failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(0), *thresh)
+		if reslts.Get(0) > thresh {
+			fmt.Printf(" Zgeequ failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(0), thresh)
 		}
-		if reslts.Get(1) > (*thresh) {
-			fmt.Printf(" ZGBEQU failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(1), *thresh)
+		if reslts.Get(1) > thresh {
+			fmt.Printf(" Zgbequ failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(1), thresh)
 		}
-		if reslts.Get(2) > (*thresh) {
-			fmt.Printf(" ZPOEQU failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(2), *thresh)
+		if reslts.Get(2) > thresh {
+			fmt.Printf(" Zpoequ failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(2), thresh)
 		}
-		if reslts.Get(3) > (*thresh) {
-			fmt.Printf(" ZPPEQU failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(3), *thresh)
+		if reslts.Get(3) > thresh {
+			fmt.Printf(" Zppequ failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(3), thresh)
 		}
-		if reslts.Get(4) > (*thresh) {
-			fmt.Printf(" ZPBEQU failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(4), *thresh)
+		if reslts.Get(4) > thresh {
+			fmt.Printf(" Zpbequ failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(4), thresh)
 		}
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/cmplx"
-	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
@@ -13,35 +12,35 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkhs checks the nonsymmetric eigenvalue problem routines.
+// zchkhs checks the nonsymmetric eigenvalue problem routines.
 //
-//            ZGEHRD factors A as  U H U' , where ' means conjugate
+//            Zgehrd factors A as  U H U' , where ' means conjugate
 //            transpose, H is hessenberg, and U is unitary.
 //
 //            ZUNGHR generates the unitary matrix U.
 //
-//            ZUNMHR multiplies a matrix by the unitary matrix U.
+//            Zunmhr multiplies a matrix by the unitary matrix U.
 //
-//            ZHSEQR factors H as  Z T Z' , where Z is unitary and T
+//            Zhseqr factors H as  Z T Z' , where Z is unitary and T
 //            is upper triangular.  It also computes the eigenvalues,
 //            w(1), ..., w(n); we define a diagonal matrix W whose
 //            (diagonal) entries are the eigenvalues.
 //
-//            ZTREVC computes the left eigenvector matrix L and the
+//            Ztrevc computes the left eigenvector matrix L and the
 //            right eigenvector matrix R for the matrix T.  The
 //            columns of L are the complex conjugates of the left
 //            eigenvectors of T.  The columns of R are the right
 //            eigenvectors of T.  L is lower triangular, and R is
 //            upper triangular.
 //
-//            ZHSEIN computes the left eigenvector matrix Y and the
+//            Zhsein computes the left eigenvector matrix Y and the
 //            right eigenvector matrix X for the matrix H.  The
 //            columns of Y are the complex conjugates of the left
 //            eigenvectors of H.  The columns of X are the right
 //            eigenvectors of H.  Y is lower triangular, and X is
 //            upper triangular.
 //
-//    When ZCHKHS is called, a number of matrix "sizes" ("n's") and a
+//    When zchkhs is called, a number of matrix "sizes" ("n's") and a
 //    number of matrix "types" are specified.  For each size ("n")
 //    and each _type of matrix, one matrix will be generated and used
 //    to test the nonsymmetric eigenroutines.  For each matrix, 14
@@ -98,42 +97,42 @@ import (
 //
 //    (9)  A matrix of the form  U' T U, where U is unitary and
 //         T has evenly spaced entries 1, ..., ULP with random complex
-//         angles on the diagonal and random O(1) entries in the upper
+//         angles on the diagonal and random O(1) entries _ the upper
 //         triangle.
 //
 //    (10) A matrix of the form  U' T U, where U is unitary and
 //         T has geometrically spaced entries 1, ..., ULP with random
-//         complex angles on the diagonal and random O(1) entries in
+//         complex angles on the diagonal and random O(1) entries _
 //         the upper triangle.
 //
 //    (11) A matrix of the form  U' T U, where U is unitary and
 //         T has "clustered" entries 1, ULP,..., ULP with random
-//         complex angles on the diagonal and random O(1) entries in
+//         complex angles on the diagonal and random O(1) entries _
 //         the upper triangle.
 //
 //    (12) A matrix of the form  U' T U, where U is unitary and
 //         T has complex eigenvalues randomly chosen from
-//         ULP < |z| < 1   and random O(1) entries in the upper
+//         ULP < |z| < 1   and random O(1) entries _ the upper
 //         triangle.
 //
 //    (13) A matrix of the form  X' T X, where X has condition
 //         math.Sqrt( ULP ) and T has evenly spaced entries 1, ..., ULP
 //         with random complex angles on the diagonal and random O(1)
-//         entries in the upper triangle.
+//         entries _ the upper triangle.
 //
 //    (14) A matrix of the form  X' T X, where X has condition
 //         math.Sqrt( ULP ) and T has geometrically spaced entries
 //         1, ..., ULP with random complex angles on the diagonal
-//         and random O(1) entries in the upper triangle.
+//         and random O(1) entries _ the upper triangle.
 //
 //    (15) A matrix of the form  X' T X, where X has condition
 //         math.Sqrt( ULP ) and T has "clustered" entries 1, ULP,..., ULP
 //         with random complex angles on the diagonal and random O(1)
-//         entries in the upper triangle.
+//         entries _ the upper triangle.
 //
 //    (16) A matrix of the form  X' T X, where X has condition
 //         math.Sqrt( ULP ) and T has complex eigenvalues randomly chosen
-//         from   ULP < |z| < 1   and random O(1) entries in the upper
+//         from   ULP < |z| < 1   and random O(1) entries _ the upper
 //         triangle.
 //
 //    (17) Same as (16), but multiplied by math.Sqrt( overflow threshold )
@@ -142,21 +141,19 @@ import (
 //    (19) Nonsymmetric matrix with random entries chosen from |z| < 1
 //    (20) Same as (19), but multiplied by math.Sqrt( overflow threshold )
 //    (21) Same as (19), but multiplied by math.Sqrt( underflow threshold )
-func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.CMatrix, lda *int, h, t1, t2, u *mat.CMatrix, ldu *int, z, uz *mat.CMatrix, w1, w3 *mat.CVector, evectl, evectr, evecty, evectx, uu *mat.CMatrix, tau, work *mat.CVector, nwork *int, rwork *mat.Vector, iwork *[]int, _select *[]bool, result *mat.Vector, info *int, t *testing.T) {
+func zchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, t1, t2, u, z, uz *mat.CMatrix, w1, w3 *mat.CVector, evectl, evectr, evecty, evectx, uu *mat.CMatrix, tau, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int, _select []bool, result *mat.Vector) (err error) {
 	var badnn, match bool
 	var cone, czero complex128
 	var aninv, anorm, cond, conds, one, ovfl, rtovfl, rtulp, rtulpi, rtunfl, temp1, temp2, ulp, ulpinv, unfl, zero float64
-	var i, ihi, iinfo, ilo, imode, in, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, ntest, ntestt int
-	var err error
-	_ = err
+	var i, ihi, iinfo, ilo, imode, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, ntest, ntestt int
 	cdumma := cvf(4)
 	dumma := vf(4)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
-	kconds := make([]int, 21)
-	kmagn := make([]int, 21)
-	kmode := make([]int, 21)
-	ktype := make([]int, 21)
+	kconds := []int{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0}
+	kmagn := []int{1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1}
+	ktype := []int{1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	zero = 0.0
 	one = 1.0
@@ -164,55 +161,49 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	cone = (1.0 + 0.0*1i)
 	maxtyp = 21
 
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15], ktype[16], ktype[17], ktype[18], ktype[19], ktype[20] = 1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15], kmagn[16], kmagn[17], kmagn[18], kmagn[19], kmagn[20] = 1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1
-	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
-
 	//     Check for errors
 	ntestt = 0
-	(*info) = 0
 
 	badnn = false
 	nmax = 0
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*lda) <= 1 || (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldu) <= 1 || (*ldu) < nmax {
-		(*info) = -14
-	} else if 4*nmax*nmax+2 > (*nwork) {
-		(*info) = -26
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows <= 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows <= 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if u.Rows <= 1 || u.Rows < nmax {
+		err = fmt.Errorf("u.Rows <= 1 || u.Rows < nmax: u.Rows=%v, nmax=%v", u.Rows, nmax)
+	} else if 4*nmax*nmax+2 > nwork {
+		err = fmt.Errorf("4*nmax*nmax+2 > nwork: nmax=%v, nwork=%v", nmax, nwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZCHKHS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zchkhs", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
 	//     More important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = golapack.Dlamch(Overflow)
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	ulpinv = one / ulp
 	rtunfl = math.Sqrt(unfl)
@@ -224,30 +215,30 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		if n == 0 {
 			goto label260
 		}
 		n1 = max(1, n)
 		aninv = one / float64(n1)
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label250
 			}
 			nmats = nmats + 1
 			ntest = 0
 
-			//           Save ISEED in case of an error.
+			//           Save iseed _ case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Initialize RESULT
@@ -305,7 +296,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label70:
 			;
 
-			golapack.Zlaset('F', lda, &n, &czero, &czero, a, lda)
+			golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -330,11 +321,11 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, &imode, &cond, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, imode, cond, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 5 {
 				//              Hermitian, eigenvalues specified
-				matgen.Zlatms(&n, &n, 'D', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(n, n, 'D', &iseed, 'H', rwork, imode, cond, anorm, n, n, 'N', a, work)
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -346,53 +337,48 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					conds = zero
 				}
 
-				matgen.Zlatme(&n, 'D', iseed, work, &imode, &cond, &cone, 'T', 'T', 'T', rwork, func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(n), &iinfo)
+				err = matgen.Zlatme(n, 'D', &iseed, work, imode, cond, cone, 'T', 'T', 'T', rwork, 4, conds, n, n, anorm, a, work.Off(n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Hermitian, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'H', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'D', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'D', &iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, 0, zero, anorm, 'N', a, &iwork)
 
 			} else {
 
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo != 0 || err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
 		label100:
 			;
 
-			//           Call ZGEHRD to compute H and U, do tests.
-			golapack.Zlacpy(' ', &n, &n, a, lda, h, lda)
+			//           Call Zgehrd to compute H and U, do tests.
+			golapack.Zlacpy(Full, n, n, a, h)
 			ntest = 1
 
 			ilo = 1
 			ihi = n
 
-			golapack.Zgehrd(&n, &ilo, &ihi, h, lda, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
-
-			if iinfo != 0 {
-				t.Fail()
+			if err = golapack.Zgehrd(n, ilo, ihi, h, work, work.Off(n), nwork-n); err != nil {
 				result.Set(0, ulpinv)
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGEHRD", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zgehrd", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
@@ -405,65 +391,60 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 			}
 			goblas.Zcopy(n-1, work.Off(0, 1), tau.Off(0, 1))
-			golapack.Zunghr(&n, &ilo, &ihi, u, ldu, work, work.Off(n), toPtr((*nwork)-n), &iinfo)
+			if err = golapack.Zunghr(n, ilo, ihi, u, work, work.Off(n), nwork-n); err != nil {
+				panic(err)
+			}
 			ntest = 2
 
-			Zhst01(&n, &ilo, &ihi, a, lda, h, lda, u, ldu, work, nwork, rwork, result.Off(0))
+			zhst01(n, ilo, ihi, a, h, u, work, nwork, rwork, result)
 
-			//           Call ZHSEQR to compute T1, T2 and Z, do tests.
+			//           Call Zhseqr to compute T1, T2 and Z, do tests.
 			//
 			//           Eigenvalues only (W3)
-			golapack.Zlacpy(' ', &n, &n, h, lda, t2, lda)
+			golapack.Zlacpy(Full, n, n, h, t2)
 			ntest = 3
 			result.Set(2, ulpinv)
 
-			golapack.Zhseqr('E', 'N', &n, &ilo, &ihi, t2, lda, w3, uz, ldu, work, nwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEQR(E)", iinfo, n, jtype, ioldsd)
+			if iinfo, err = golapack.Zhseqr('E', 'N', n, ilo, ihi, t2, w3, uz, work, nwork); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhseqr(E)", iinfo, n, jtype, ioldsd)
 				if iinfo <= n+2 {
-					(*info) = abs(iinfo)
 					goto label240
 				}
 			}
 
 			//           Eigenvalues (W1) and Full Schur Form (T2)
-			golapack.Zlacpy(' ', &n, &n, h, lda, t2, lda)
+			golapack.Zlacpy(Full, n, n, h, t2)
 
-			golapack.Zhseqr('S', 'N', &n, &ilo, &ihi, t2, lda, w1, uz, ldu, work, nwork, &iinfo)
-			if iinfo != 0 && iinfo <= n+2 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEQR(S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zhseqr('S', 'N', n, ilo, ihi, t2, w1, uz, work, nwork); err != nil || iinfo != 0 && iinfo <= n+2 {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhseqr(S)", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
 			//           Eigenvalues (W1), Schur Form (T1), and Schur Vectors (UZ)
-			golapack.Zlacpy(' ', &n, &n, h, lda, t1, lda)
-			golapack.Zlacpy(' ', &n, &n, u, ldu, uz, ldu)
+			golapack.Zlacpy(Full, n, n, h, t1)
+			golapack.Zlacpy(Full, n, n, u, uz)
 
-			golapack.Zhseqr('S', 'V', &n, &ilo, &ihi, t1, lda, w1, uz, ldu, work, nwork, &iinfo)
-			if iinfo != 0 && iinfo <= n+2 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEQR(V)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zhseqr('S', 'V', n, ilo, ihi, t1, w1, uz, work, nwork); err != nil || iinfo != 0 && iinfo <= n+2 {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhseqr(V)", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
 			//           Compute Z = U' UZ
-			err = goblas.Zgemm(ConjTrans, NoTrans, n, n, n, cone, u, uz, czero, z)
+			if err = goblas.Zgemm(ConjTrans, NoTrans, n, n, n, cone, u, uz, czero, z); err != nil {
+				panic(err)
+			}
 			ntest = 8
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )
 			//                and 4: | I - Z Z' | / ( n ulp )
-			Zhst01(&n, &ilo, &ihi, h, lda, t1, lda, z, ldu, work, nwork, rwork, result.Off(2))
+			zhst01(n, ilo, ihi, h, t1, z, work, nwork, rwork, result.Off(2))
 
 			//           Do Tests 5: | A - UZ T (UZ)' | / ( |A| n ulp )
 			//                and 6: | I - UZ (UZ)' | / ( n ulp )
-			Zhst01(&n, &ilo, &ihi, a, lda, t1, lda, uz, ldu, work, nwork, rwork, result.Off(4))
+			zhst01(n, ilo, ihi, a, t1, uz, work, nwork, rwork, result.Off(4))
 
 			//           Do Test 7: | T2 - T1 | / ( |T| n ulp )
-			Zget10(&n, &n, t2, lda, t1, lda, work, rwork, result.GetPtr(6))
+			result.Set(6, zget10(n, n, t2, t1, work, rwork))
 
 			//           Do Test 8: | W3 - W1 | / ( max(|W1|,|W3|) ulp )
 			temp1 = zero
@@ -483,41 +464,35 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			//           _select every other eigenvector
 			for j = 1; j <= n; j++ {
-				(*_select)[j-1] = false
+				_select[j-1] = false
 			}
 			for j = 1; j <= n; j += 2 {
-				(*_select)[j-1] = true
+				_select[j-1] = true
 			}
-			golapack.Ztrevc('R', 'A', *_select, &n, t1, lda, cdumma.CMatrix(*ldu, opts), ldu, evectr, ldu, &n, &in, work, rwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(R,A)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if _, err = golapack.Ztrevc(Right, 'A', _select, n, t1, cdumma.CMatrix(u.Rows, opts), evectr, n, work, rwork); err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Ztrevc(R,A)", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
 			//           Test 9:  | TR - RW | / ( |T| |R| ulp )
-			Zget22('N', 'N', 'N', &n, t1, lda, evectr, ldu, w1, work, rwork, dumma.Off(0))
+			zget22(NoTrans, NoTrans, NoTrans, n, t1, evectr, w1, work, rwork, dumma.Off(0))
 			result.Set(8, dumma.Get(0))
-			if dumma.Get(1) > (*thresh) {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "ZTREVC", dumma.Get(1), n, jtype, ioldsd)
+			if dumma.Get(1) > thresh {
+				fmt.Printf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Ztrevc", dumma.Get(1), n, jtype, ioldsd)
+				err = fmt.Errorf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Ztrevc", dumma.Get(1), n, jtype, ioldsd)
 			}
 
 			//           Compute selected right eigenvectors and confirm that
 			//           they agree with previous right eigenvectors
-			golapack.Ztrevc('R', 'S', *_select, &n, t1, lda, cdumma.CMatrix(*ldu, opts), ldu, evectl, ldu, &n, &in, work, rwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(R,S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if _, err = golapack.Ztrevc(Right, 'S', _select, n, t1, cdumma.CMatrix(u.Rows, opts), evectl, n, work, rwork); err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Ztrevc(R,S)", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
 			k = 1
 			match = true
 			for j = 1; j <= n; j++ {
-				if (*_select)[j-1] {
+				if _select[j-1] {
 					for jj = 1; jj <= n; jj++ {
 						if evectr.Get(jj-1, j-1) != evectl.Get(jj-1, k-1) {
 							match = false
@@ -530,42 +505,36 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label180:
 			;
 			if !match {
-				fmt.Printf(" ZCHKHS: Selected %s Eigenvectors from %s do not match other eigenvectors          N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "ZTREVC", n, jtype, ioldsd)
+				fmt.Printf(" zchkhs: Selected %s Eigenvectors from %s do not match other eigenvectors          n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Ztrevc", n, jtype, ioldsd)
 			}
 
 			//           Compute the Left eigenvector Matrix:
 			ntest = 10
 			result.Set(9, ulpinv)
-			golapack.Ztrevc('L', 'A', *_select, &n, t1, lda, evectl, ldu, cdumma.CMatrix(*ldu, opts), ldu, &n, &in, work, rwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(L,A)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if _, err = golapack.Ztrevc(Left, 'A', _select, n, t1, evectl, cdumma.CMatrix(u.Rows, opts), n, work, rwork); err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Ztrevc(L,A)", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
 			//           Test 10:  | LT - WL | / ( |T| |L| ulp )
-			Zget22('C', 'N', 'C', &n, t1, lda, evectl, ldu, w1, work, rwork, dumma.Off(2))
+			zget22(ConjTrans, NoTrans, ConjTrans, n, t1, evectl, w1, work, rwork, dumma.Off(2))
 			result.Set(9, dumma.Get(2))
-			if dumma.Get(3) > (*thresh) {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "ZTREVC", dumma.Get(3), n, jtype, ioldsd)
+			if dumma.Get(3) > thresh {
+				fmt.Printf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Ztrevc", dumma.Get(3), n, jtype, ioldsd)
+				err = fmt.Errorf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Ztrevc", dumma.Get(3), n, jtype, ioldsd)
 			}
 
 			//           Compute selected left eigenvectors and confirm that
 			//           they agree with previous left eigenvectors
-			golapack.Ztrevc('L', 'S', *_select, &n, t1, lda, evectr, ldu, cdumma.CMatrix(*ldu, opts), ldu, &n, &in, work, rwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZTREVC(L,S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if _, err = golapack.Ztrevc(Left, 'S', _select, n, t1, evectr, cdumma.CMatrix(u.Rows, opts), n, work, rwork); err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Ztrevc(L,S)", iinfo, n, jtype, ioldsd)
 				goto label240
 			}
 
 			k = 1
 			match = true
 			for j = 1; j <= n; j++ {
-				if (*_select)[j-1] {
+				if _select[j-1] {
 					for jj = 1; jj <= n; jj++ {
 						if evectl.Get(jj-1, j-1) != evectr.Get(jj-1, k-1) {
 							match = false
@@ -578,21 +547,18 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label210:
 			;
 			if !match {
-				fmt.Printf(" ZCHKHS: Selected %s Eigenvectors from %s do not match other eigenvectors          N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "ZTREVC", n, jtype, ioldsd)
+				fmt.Printf(" zchkhs: Selected %s Eigenvectors from %s do not match other eigenvectors          n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Ztrevc", n, jtype, ioldsd)
 			}
 
-			//           Call ZHSEIN for Right eigenvectors of H, do test 11
+			//           Call Zhsein for Right eigenvectors of H, do test 11
 			ntest = 11
 			result.Set(10, ulpinv)
 			for j = 1; j <= n; j++ {
-				(*_select)[j-1] = true
+				_select[j-1] = true
 			}
 
-			golapack.Zhsein('R', 'Q', 'N', _select, &n, h, lda, w3, cdumma.CMatrix(*ldu, opts), ldu, evectx, ldu, &n1, &in, work, rwork, iwork, iwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEIN(R)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if _, iinfo, err = golapack.Zhsein(Right, 'Q', 'N', _select, n, h, w3, cdumma.CMatrix(u.Rows, opts), evectx, n1, work, rwork, &iwork, &iwork); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhsein(R)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -600,28 +566,25 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 11:  | HX - XW | / ( |H| |X| ulp )
 				//
 				//                        (from inverse iteration)
-				Zget22('N', 'N', 'N', &n, h, lda, evectx, ldu, w3, work, rwork, dumma.Off(0))
+				zget22(NoTrans, NoTrans, NoTrans, n, h, evectx, w3, work, rwork, dumma.Off(0))
 				if dumma.Get(0) < ulpinv {
 					result.Set(10, dumma.Get(0)*aninv)
 				}
-				if dumma.Get(1) > (*thresh) {
-					t.Fail()
-					fmt.Printf(" ZCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "ZHSEIN", dumma.Get(1), n, jtype, ioldsd)
+				if dumma.Get(1) > thresh {
+					fmt.Printf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Zhsein", dumma.Get(1), n, jtype, ioldsd)
+					err = fmt.Errorf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Zhsein", dumma.Get(1), n, jtype, ioldsd)
 				}
 			}
 
-			//           Call ZHSEIN for Left eigenvectors of H, do test 12
+			//           Call Zhsein for Left eigenvectors of H, do test 12
 			ntest = 12
 			result.Set(11, ulpinv)
 			for j = 1; j <= n; j++ {
-				(*_select)[j-1] = true
+				_select[j-1] = true
 			}
 
-			golapack.Zhsein('L', 'Q', 'N', _select, &n, h, lda, w3, evecty, ldu, cdumma.CMatrix(*ldu, opts), ldu, &n1, &in, work, rwork, iwork, iwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHSEIN(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if _, iinfo, err = golapack.Zhsein(Left, 'Q', 'N', _select, n, h, w3, evecty, cdumma.CMatrix(u.Rows, opts), n1, work, rwork, &iwork, &iwork); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhsein(L)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -629,25 +592,22 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 12:  | YH - WY | / ( |H| |Y| ulp )
 				//
 				//                        (from inverse iteration)
-				Zget22('C', 'N', 'C', &n, h, lda, evecty, ldu, w3, work, rwork, dumma.Off(2))
+				zget22(ConjTrans, NoTrans, ConjTrans, n, h, evecty, w3, work, rwork, dumma.Off(2))
 				if dumma.Get(2) < ulpinv {
 					result.Set(11, dumma.Get(2)*aninv)
 				}
-				if dumma.Get(3) > (*thresh) {
-					t.Fail()
-					fmt.Printf(" ZCHKHS: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "ZHSEIN", dumma.Get(3), n, jtype, ioldsd)
+				if dumma.Get(3) > thresh {
+					fmt.Printf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Zhsein", dumma.Get(3), n, jtype, ioldsd)
+					err = fmt.Errorf(" zchkhs: %s Eigenvectors from %s incorrectly normalized.\n Bits of error=%10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Zhsein", dumma.Get(3), n, jtype, ioldsd)
 				}
 			}
 
-			//           Call ZUNMHR for Right eigenvectors of A, do test 13
+			//           Call Zunmhr for Right eigenvectors of A, do test 13
 			ntest = 13
 			result.Set(12, ulpinv)
 
-			golapack.Zunmhr('L', 'N', &n, &n, &ilo, &ihi, uu, ldu, tau, evectx, ldu, work, nwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNMHR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if err = golapack.Zunmhr(Left, NoTrans, n, n, ilo, ihi, uu, tau, evectx, work, nwork); err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zunmhr(L)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -655,21 +615,18 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 13:  | AX - XW | / ( |A| |X| ulp )
 				//
 				//                        (from inverse iteration)
-				Zget22('N', 'N', 'N', &n, a, lda, evectx, ldu, w3, work, rwork, dumma.Off(0))
+				zget22(NoTrans, NoTrans, NoTrans, n, a, evectx, w3, work, rwork, dumma.Off(0))
 				if dumma.Get(0) < ulpinv {
 					result.Set(12, dumma.Get(0)*aninv)
 				}
 			}
 
-			//           Call ZUNMHR for Left eigenvectors of A, do test 14
+			//           Call Zunmhr for Left eigenvectors of A, do test 14
 			ntest = 14
 			result.Set(13, ulpinv)
 
-			golapack.Zunmhr('L', 'N', &n, &n, &ilo, &ihi, uu, ldu, tau, evecty, ldu, work, nwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKHS: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNMHR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if err = golapack.Zunmhr(Left, NoTrans, n, n, ilo, ihi, uu, tau, evecty, work, nwork); err != nil {
+				fmt.Printf(" zchkhs: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zunmhr(L)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					goto label240
 				}
@@ -677,7 +634,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Test 14:  | YA - WY | / ( |A| |Y| ulp )
 				//
 				//                        (from inverse iteration)
-				Zget22('C', 'N', 'C', &n, a, lda, evecty, ldu, w3, work, rwork, dumma.Off(2))
+				zget22(ConjTrans, NoTrans, ConjTrans, n, a, evecty, w3, work, rwork, dumma.Off(2))
 				if dumma.Get(2) < ulpinv {
 					result.Set(13, dumma.Get(2)*aninv)
 				}
@@ -688,7 +645,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			;
 
 			ntestt = ntestt + ntest
-			Dlafts([]byte("ZHS"), &n, &n, &jtype, &ntest, result, &ioldsd, thresh, &nerrs, t)
+			err = dlafts("Zhs", n, n, jtype, ntest, result, ioldsd, thresh, nerrs)
 
 		label250:
 		}
@@ -696,5 +653,7 @@ func Zchkhs(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Dlasum([]byte("ZHS"), &nerrs, &ntestt)
+	dlasum("Zhs", nerrs, ntestt)
+
+	return
 }

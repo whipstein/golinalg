@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -13,57 +14,52 @@ import (
 // coefficient matrix.
 //
 // The solution matrix X must be computed by ZTBTRS or some other
-// means before entering this routine.  ZTBRFS does not do iterative
+// means before entering this routine.  Ztbrfs does not do iterative
 // refinement because doing so cannot improve the backward error.
-func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMatrix, ldb *int, x *mat.CMatrix, ldx *int, ferr, berr *mat.Vector, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Ztbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs int, ab, b, x *mat.CMatrix, ferr, berr *mat.Vector, work *mat.CVector, rwork *mat.Vector) (err error) {
 	var notran, nounit, upper bool
-	var transn, transt byte
+	var transn, transt mat.MatTrans
 	var one complex128
 	var eps, lstres, s, safe1, safe2, safmin, xk, zero float64
 	var i, j, k, kase, nz int
-	var err error
-	_ = err
 
 	isave := make([]int, 3)
 
 	zero = 0.0
 	one = (1.0 + 0.0*1i)
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	notran = trans == 'N'
-	nounit = diag == 'N'
+	upper = uplo == Upper
+	notran = trans == NoTrans
+	nounit = diag == NonUnit
 
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if !notran && trans != 'T' && trans != 'C' {
-		(*info) = -2
-	} else if !nounit && diag != 'U' {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*kd) < 0 {
-		(*info) = -5
-	} else if (*nrhs) < 0 {
-		(*info) = -6
-	} else if (*ldab) < (*kd)+1 {
-		(*info) = -8
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -10
-	} else if (*ldx) < max(1, *n) {
-		(*info) = -12
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if !notran && trans != Trans && trans != ConjTrans {
+		err = fmt.Errorf("!notran && trans != Trans && trans != ConjTrans: trans=%s", trans)
+	} else if !nounit && diag != Unit {
+		err = fmt.Errorf("!nounit && diag != Unit: diag=%s", diag)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if kd < 0 {
+		err = fmt.Errorf("kd < 0: kd=%v", kd)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if ab.Rows < kd+1 {
+		err = fmt.Errorf("else if ab.Rows < kd+1: ab.Rows=%v, kd=%v", ab.Rows, kd)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if x.Rows < max(1, n) {
+		err = fmt.Errorf("x.Rows < max(1, n): x.Rows=%v, n=%v", x.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTBRFS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztbrfs", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*nrhs) == 0 {
-		for j = 1; j <= (*nrhs); j++ {
+	if n == 0 || nrhs == 0 {
+		for j = 1; j <= nrhs; j++ {
 			ferr.Set(j-1, zero)
 			berr.Set(j-1, zero)
 		}
@@ -71,27 +67,27 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 	}
 
 	if notran {
-		transn = 'N'
-		transt = 'C'
+		transn = NoTrans
+		transt = ConjTrans
 	} else {
-		transn = 'C'
-		transt = 'N'
+		transn = ConjTrans
+		transt = NoTrans
 	}
 
 	//     NZ = maximum number of nonzero elements in each row of A, plus 1
-	nz = (*kd) + 2
+	nz = kd + 2
 	eps = Dlamch(Epsilon)
 	safmin = Dlamch(SafeMinimum)
 	safe1 = float64(nz) * safmin
 	safe2 = safe1 / eps
 
 	//     Do for each right hand side
-	for j = 1; j <= (*nrhs); j++ {
+	for j = 1; j <= nrhs; j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(*n, x.CVector(0, j-1, 1), work.Off(0, 1))
-		err = goblas.Ztbmv(mat.UploByte(uplo), mat.TransByte(trans), mat.DiagByte(diag), *n, *kd, ab, work.Off(0, 1))
-		goblas.Zaxpy(*n, -one, b.CVector(0, j-1, 1), work.Off(0, 1))
+		goblas.Zcopy(n, x.CVector(0, j-1, 1), work.Off(0, 1))
+		err = goblas.Ztbmv(uplo, trans, diag, n, kd, ab, work.Off(0, 1))
+		goblas.Zaxpy(n, -one, b.CVector(0, j-1, 1), work.Off(0, 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -101,42 +97,42 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 		//        or vector Z.  If the i-th component of the denominator is less
 		//        than SAFE2, then SAFE1 is added to the i-th components of the
 		//        numerator and denominator before dividing.
-		for i = 1; i <= (*n); i++ {
-			rwork.Set(i-1, Cabs1(b.Get(i-1, j-1)))
+		for i = 1; i <= n; i++ {
+			rwork.Set(i-1, cabs1(b.Get(i-1, j-1)))
 		}
 
 		if notran {
 			//           Compute abs(A)*abs(X) + abs(B).
 			if upper {
 				if nounit {
-					for k = 1; k <= (*n); k++ {
-						xk = Cabs1(x.Get(k-1, j-1))
-						for i = max(1, k-(*kd)); i <= k; i++ {
-							rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get((*kd)+1+i-k-1, k-1))*xk)
+					for k = 1; k <= n; k++ {
+						xk = cabs1(x.Get(k-1, j-1))
+						for i = max(1, k-kd); i <= k; i++ {
+							rwork.Set(i-1, rwork.Get(i-1)+cabs1(ab.Get(kd+1+i-k-1, k-1))*xk)
 						}
 					}
 				} else {
-					for k = 1; k <= (*n); k++ {
-						xk = Cabs1(x.Get(k-1, j-1))
-						for i = max(1, k-(*kd)); i <= k-1; i++ {
-							rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get((*kd)+1+i-k-1, k-1))*xk)
+					for k = 1; k <= n; k++ {
+						xk = cabs1(x.Get(k-1, j-1))
+						for i = max(1, k-kd); i <= k-1; i++ {
+							rwork.Set(i-1, rwork.Get(i-1)+cabs1(ab.Get(kd+1+i-k-1, k-1))*xk)
 						}
 						rwork.Set(k-1, rwork.Get(k-1)+xk)
 					}
 				}
 			} else {
 				if nounit {
-					for k = 1; k <= (*n); k++ {
-						xk = Cabs1(x.Get(k-1, j-1))
-						for i = k; i <= min(*n, k+(*kd)); i++ {
-							rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get(1+i-k-1, k-1))*xk)
+					for k = 1; k <= n; k++ {
+						xk = cabs1(x.Get(k-1, j-1))
+						for i = k; i <= min(n, k+kd); i++ {
+							rwork.Set(i-1, rwork.Get(i-1)+cabs1(ab.Get(1+i-k-1, k-1))*xk)
 						}
 					}
 				} else {
-					for k = 1; k <= (*n); k++ {
-						xk = Cabs1(x.Get(k-1, j-1))
-						for i = k + 1; i <= min(*n, k+(*kd)); i++ {
-							rwork.Set(i-1, rwork.Get(i-1)+Cabs1(ab.Get(1+i-k-1, k-1))*xk)
+					for k = 1; k <= n; k++ {
+						xk = cabs1(x.Get(k-1, j-1))
+						for i = k + 1; i <= min(n, k+kd); i++ {
+							rwork.Set(i-1, rwork.Get(i-1)+cabs1(ab.Get(1+i-k-1, k-1))*xk)
 						}
 						rwork.Set(k-1, rwork.Get(k-1)+xk)
 					}
@@ -146,36 +142,36 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 			//           Compute abs(A**H)*abs(X) + abs(B).
 			if upper {
 				if nounit {
-					for k = 1; k <= (*n); k++ {
+					for k = 1; k <= n; k++ {
 						s = zero
-						for i = max(1, k-(*kd)); i <= k; i++ {
-							s = s + Cabs1(ab.Get((*kd)+1+i-k-1, k-1))*Cabs1(x.Get(i-1, j-1))
+						for i = max(1, k-kd); i <= k; i++ {
+							s = s + cabs1(ab.Get(kd+1+i-k-1, k-1))*cabs1(x.Get(i-1, j-1))
 						}
 						rwork.Set(k-1, rwork.Get(k-1)+s)
 					}
 				} else {
-					for k = 1; k <= (*n); k++ {
-						s = Cabs1(x.Get(k-1, j-1))
-						for i = max(1, k-(*kd)); i <= k-1; i++ {
-							s = s + Cabs1(ab.Get((*kd)+1+i-k-1, k-1))*Cabs1(x.Get(i-1, j-1))
+					for k = 1; k <= n; k++ {
+						s = cabs1(x.Get(k-1, j-1))
+						for i = max(1, k-kd); i <= k-1; i++ {
+							s = s + cabs1(ab.Get(kd+1+i-k-1, k-1))*cabs1(x.Get(i-1, j-1))
 						}
 						rwork.Set(k-1, rwork.Get(k-1)+s)
 					}
 				}
 			} else {
 				if nounit {
-					for k = 1; k <= (*n); k++ {
+					for k = 1; k <= n; k++ {
 						s = zero
-						for i = k; i <= min(*n, k+(*kd)); i++ {
-							s = s + Cabs1(ab.Get(1+i-k-1, k-1))*Cabs1(x.Get(i-1, j-1))
+						for i = k; i <= min(n, k+kd); i++ {
+							s = s + cabs1(ab.Get(1+i-k-1, k-1))*cabs1(x.Get(i-1, j-1))
 						}
 						rwork.Set(k-1, rwork.Get(k-1)+s)
 					}
 				} else {
-					for k = 1; k <= (*n); k++ {
-						s = Cabs1(x.Get(k-1, j-1))
-						for i = k + 1; i <= min(*n, k+(*kd)); i++ {
-							s = s + Cabs1(ab.Get(1+i-k-1, k-1))*Cabs1(x.Get(i-1, j-1))
+					for k = 1; k <= n; k++ {
+						s = cabs1(x.Get(k-1, j-1))
+						for i = k + 1; i <= min(n, k+kd); i++ {
+							s = s + cabs1(ab.Get(1+i-k-1, k-1))*cabs1(x.Get(i-1, j-1))
 						}
 						rwork.Set(k-1, rwork.Get(k-1)+s)
 					}
@@ -183,11 +179,11 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 			}
 		}
 		s = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -213,43 +209,45 @@ func Ztbrfs(uplo, trans, diag byte, n, kd, nrhs *int, ab *mat.CMatrix, ldab *int
 		//        Use ZLACN2 to estimate the infinity-norm of the matrix
 		//           inv(op(A)) * diag(W),
 		//        where W = abs(R) + NZ*EPS*( abs(op(A))*abs(X)+abs(B) )))
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if rwork.Get(i-1) > safe2 {
-				rwork.Set(i-1, Cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1))
+				rwork.Set(i-1, cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1))
 			} else {
-				rwork.Set(i-1, Cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
+				rwork.Set(i-1, cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
 			}
 		}
 
 		kase = 0
 	label210:
 		;
-		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
+		*ferr.GetPtr(j - 1), kase = Zlacn2(n, work.Off(n), work, ferr.Get(j-1), kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
-				err = goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(transt), mat.DiagByte(diag), *n, *kd, ab, work.Off(0, 1))
-				for i = 1; i <= (*n); i++ {
+				err = goblas.Ztbsv(uplo, transt, diag, n, kd, ab, work.Off(0, 1))
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
 			} else {
 				//              Multiply by inv(op(A))*diag(W).
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
-				err = goblas.Ztbsv(mat.UploByte(uplo), mat.TransByte(transn), mat.DiagByte(diag), *n, *kd, ab, work.Off(0, 1))
+				err = goblas.Ztbsv(uplo, transn, diag, n, kd, ab, work.Off(0, 1))
 			}
 			goto label210
 		}
 
 		//        Normalize error.
 		lstres = zero
-		for i = 1; i <= (*n); i++ {
-			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
+		for i = 1; i <= n; i++ {
+			lstres = math.Max(lstres, cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)
 		}
 
 	}
+
+	return
 }

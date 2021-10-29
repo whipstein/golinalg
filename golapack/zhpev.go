@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -10,10 +11,10 @@ import (
 
 // Zhpev computes all the eigenvalues and, optionally, eigenvectors of a
 // complex Hermitian matrix in packed storage.
-func Zhpev(jobz, uplo byte, n *int, ap *mat.CVector, w *mat.Vector, z *mat.CMatrix, ldz *int, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Zhpev(jobz byte, uplo mat.MatUplo, n int, ap *mat.CVector, w *mat.Vector, z *mat.CMatrix, work *mat.CVector, rwork *mat.Vector) (info int, err error) {
 	var wantz bool
 	var anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, zero float64
-	var iinfo, imax, inde, indrwk, indtau, indwrk, iscale int
+	var imax, inde, indrwk, indtau, indwrk, iscale int
 
 	zero = 0.0
 	one = 1.0
@@ -21,28 +22,27 @@ func Zhpev(jobz, uplo byte, n *int, ap *mat.CVector, w *mat.Vector, z *mat.CMatr
 	//     Test the input parameters.
 	wantz = jobz == 'V'
 
-	(*info) = 0
 	if !(wantz || jobz == 'N') {
-		(*info) = -1
-	} else if !(uplo == 'L' || uplo == 'U') {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-		(*info) = -7
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
+	} else if !(uplo == Lower || uplo == Upper) {
+		err = fmt.Errorf("!(uplo == Lower || uplo == Upper): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if z.Rows < 1 || (wantz && z.Rows < n) {
+		err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHPEV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhpev", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		w.Set(0, ap.GetRe(0))
 		rwork.Set(0, 1)
 		if wantz {
@@ -70,32 +70,42 @@ func Zhpev(jobz, uplo byte, n *int, ap *mat.CVector, w *mat.Vector, z *mat.CMatr
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Zdscal(((*n)*((*n)+1))/2, sigma, ap.Off(0, 1))
+		goblas.Zdscal((n*(n+1))/2, sigma, ap.Off(0, 1))
 	}
 
 	//     Call ZHPTRD to reduce Hermitian packed matrix to tridiagonal form.
 	inde = 1
 	indtau = 1
-	Zhptrd(uplo, n, ap, w, rwork.Off(inde-1), work.Off(indtau-1), &iinfo)
+	if err = Zhptrd(uplo, n, ap, w, rwork.Off(inde-1), work.Off(indtau-1)); err != nil {
+		panic(err)
+	}
 
 	//     For eigenvalues only, call DSTERF.  For eigenvectors, first call
 	//     ZUPGTR to generate the orthogonal matrix, then call ZSTEQR.
 	if !wantz {
-		Dsterf(n, w, rwork.Off(inde-1), info)
+		if info, err = Dsterf(n, w, rwork.Off(inde-1)); err != nil {
+			panic(err)
+		}
 	} else {
-		indwrk = indtau + (*n)
-		Zupgtr(uplo, n, ap, work.Off(indtau-1), z, ldz, work.Off(indwrk-1), &iinfo)
-		indrwk = inde + (*n)
-		Zsteqr(jobz, n, w, rwork.Off(inde-1), z, ldz, rwork.Off(indrwk-1), info)
+		indwrk = indtau + n
+		if err = Zupgtr(uplo, n, ap, work.Off(indtau-1), z, work.Off(indwrk-1)); err != nil {
+			panic(err)
+		}
+		indrwk = inde + n
+		if info, err = Zsteqr(jobz, n, w, rwork.Off(inde-1), z, rwork.Off(indrwk-1)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		if (*info) == 0 {
-			imax = (*n)
+		if info == 0 {
+			imax = n
 		} else {
-			imax = (*info) - 1
+			imax = info - 1
 		}
 		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
+
+	return
 }

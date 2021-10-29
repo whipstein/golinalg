@@ -7,12 +7,13 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Drzt01 returns
+// drzt01 returns
 //      || A - R*Q || / ( M * eps * ||A|| )
 // for an upper trapezoidal A that was factored with DTZRZF.
-func Drzt01(m, n *int, a, af *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *int) (drzt01Return float64) {
+func drzt01(m, n int, a, af *mat.Matrix, tau, work *mat.Vector, lwork int) (drzt01Return float64) {
 	var norma, one, zero float64
-	var i, info, j int
+	var i, j int
+	var err error
 
 	rwork := vf(1)
 
@@ -21,37 +22,39 @@ func Drzt01(m, n *int, a, af *mat.Matrix, lda *int, tau, work *mat.Vector, lwork
 
 	drzt01Return = zero
 
-	if (*lwork) < (*m)*(*n)+(*m) {
-		gltest.Xerbla([]byte("DRZT01"), 8)
+	if lwork < m*n+m {
+		gltest.Xerbla("drzt01", 8)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
+	if m <= 0 || n <= 0 {
 		return
 	}
 
-	norma = golapack.Dlange('O', m, n, a, lda, rwork)
+	norma = golapack.Dlange('O', m, n, a, rwork)
 
 	//     Copy upper triangle R
-	golapack.Dlaset('F', m, n, &zero, &zero, work.Matrix(*m, opts), m)
-	for j = 1; j <= (*m); j++ {
+	golapack.Dlaset(Full, m, n, zero, zero, work.Matrix(m, opts))
+	for j = 1; j <= m; j++ {
 		for i = 1; i <= j; i++ {
-			work.Set((j-1)*(*m)+i-1, af.Get(i-1, j-1))
+			work.Set((j-1)*m+i-1, af.Get(i-1, j-1))
 		}
 	}
 
 	//     R = R * P(1) * ... *P(m)
-	golapack.Dormrz('R', 'N', m, n, m, toPtr((*n)-(*m)), af, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*n)), toPtr((*lwork)-(*m)*(*n)), &info)
-
-	//     R = R - A
-	for i = 1; i <= (*n); i++ {
-		goblas.Daxpy(*m, -one, a.Vector(0, i-1, 1), work.Off((i-1)*(*m), 1))
+	if err = golapack.Dormrz(Right, NoTrans, m, n, m, n-m, af, tau, work.Matrix(m, opts), work.Off(m*n), lwork-m*n); err != nil {
+		panic(err)
 	}
 
-	drzt01Return = golapack.Dlange('O', m, n, work.Matrix(*m, opts), m, rwork)
+	//     R = R - A
+	for i = 1; i <= n; i++ {
+		goblas.Daxpy(m, -one, a.Vector(0, i-1, 1), work.Off((i-1)*m, 1))
+	}
 
-	drzt01Return = drzt01Return / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
+	drzt01Return = golapack.Dlange('O', m, n, work.Matrix(m, opts), rwork)
+
+	drzt01Return = drzt01Return / (golapack.Dlamch(Epsilon) * float64(max(m, n)))
 	if norma != zero {
 		drzt01Return = drzt01Return / norma
 	}

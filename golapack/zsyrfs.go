@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -11,11 +12,12 @@ import (
 // Zsyrfs improves the computed solution to a system of linear
 // equations when the coefficient matrix is symmetric indefinite, and
 // provides error bounds and backward error estimates for the solution.
-func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMatrix, ldaf *int, ipiv *[]int, b *mat.CMatrix, ldb *int, x *mat.CMatrix, ldx *int, ferr *mat.Vector, berr *mat.Vector, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Zsyrfs(uplo mat.MatUplo, n, nrhs int, a, af *mat.CMatrix, ipiv *[]int, b, x *mat.CMatrix, ferr, berr *mat.Vector, work *mat.CVector, rwork *mat.Vector) (err error) {
 	var upper bool
 	var one complex128
 	var eps, lstres, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, itmax, j, k, kase, nz int
+
 	isave := make([]int, 3)
 
 	itmax = 5
@@ -24,34 +26,31 @@ func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMat
 	two = 2.0
 	three = 3.0
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldaf) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -10
-	} else if (*ldx) < max(1, *n) {
-		(*info) = -12
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if af.Rows < max(1, n) {
+		err = fmt.Errorf("af.Rows < max(1, n): af.Rows=%v, n=%v", af.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if x.Rows < max(1, n) {
+		err = fmt.Errorf("x.Rows < max(1, n): x.Rows=%v, n=%v", x.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZSYRFS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zsyrfs", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*nrhs) == 0 {
-		for j = 1; j <= (*nrhs); j++ {
+	if n == 0 || nrhs == 0 {
+		for j = 1; j <= nrhs; j++ {
 			ferr.Set(j-1, zero)
 			berr.Set(j-1, zero)
 		}
@@ -59,14 +58,14 @@ func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMat
 	}
 
 	//     NZ = maximum number of nonzero elements in each row of A, plus 1
-	nz = (*n) + 1
+	nz = n + 1
 	eps = Dlamch(Epsilon)
 	safmin = Dlamch(SafeMinimum)
 	safe1 = float64(nz) * safmin
 	safe2 = safe1 / eps
 
 	//     Do for each right hand side
-	for j = 1; j <= (*nrhs); j++ {
+	for j = 1; j <= nrhs; j++ {
 
 		count = 1
 		lstres = three
@@ -76,8 +75,10 @@ func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMat
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Zcopy(*n, b.CVector(0, j-1, 1), work.Off(0, 1))
-		Zsymv(uplo, n, toPtrc128(-one), a, lda, x.CVector(0, j-1), func() *int { y := 1; return &y }(), &one, work, func() *int { y := 1; return &y }())
+		goblas.Zcopy(n, b.CVector(0, j-1, 1), work.Off(0, 1))
+		if err = Zsymv(uplo, n, -one, a, x.CVector(0, j-1, 1), one, work.Off(0, 1)); err != nil {
+			panic(err)
+		}
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -87,39 +88,39 @@ func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMat
 		//        or vector Z.  If the i-th component of the denominator is less
 		//        than SAFE2, then SAFE1 is added to the i-th components of the
 		//        numerator and denominator before dividing.
-		for i = 1; i <= (*n); i++ {
-			rwork.Set(i-1, Cabs1(b.Get(i-1, j-1)))
+		for i = 1; i <= n; i++ {
+			rwork.Set(i-1, cabs1(b.Get(i-1, j-1)))
 		}
 
 		//        Compute abs(A)*abs(X) + abs(B).
 		if upper {
-			for k = 1; k <= (*n); k++ {
+			for k = 1; k <= n; k++ {
 				s = zero
-				xk = Cabs1(x.Get(k-1, j-1))
+				xk = cabs1(x.Get(k-1, j-1))
 				for i = 1; i <= k-1; i++ {
-					rwork.Set(i-1, rwork.Get(i-1)+Cabs1(a.Get(i-1, k-1))*xk)
-					s = s + Cabs1(a.Get(i-1, k-1))*Cabs1(x.Get(i-1, j-1))
+					rwork.Set(i-1, rwork.Get(i-1)+cabs1(a.Get(i-1, k-1))*xk)
+					s = s + cabs1(a.Get(i-1, k-1))*cabs1(x.Get(i-1, j-1))
 				}
-				rwork.Set(k-1, rwork.Get(k-1)+Cabs1(a.Get(k-1, k-1))*xk+s)
+				rwork.Set(k-1, rwork.Get(k-1)+cabs1(a.Get(k-1, k-1))*xk+s)
 			}
 		} else {
-			for k = 1; k <= (*n); k++ {
+			for k = 1; k <= n; k++ {
 				s = zero
-				xk = Cabs1(x.Get(k-1, j-1))
-				rwork.Set(k-1, rwork.Get(k-1)+Cabs1(a.Get(k-1, k-1))*xk)
-				for i = k + 1; i <= (*n); i++ {
-					rwork.Set(i-1, rwork.Get(i-1)+Cabs1(a.Get(i-1, k-1))*xk)
-					s = s + Cabs1(a.Get(i-1, k-1))*Cabs1(x.Get(i-1, j-1))
+				xk = cabs1(x.Get(k-1, j-1))
+				rwork.Set(k-1, rwork.Get(k-1)+cabs1(a.Get(k-1, k-1))*xk)
+				for i = k + 1; i <= n; i++ {
+					rwork.Set(i-1, rwork.Get(i-1)+cabs1(a.Get(i-1, k-1))*xk)
+					s = s + cabs1(a.Get(i-1, k-1))*cabs1(x.Get(i-1, j-1))
 				}
 				rwork.Set(k-1, rwork.Get(k-1)+s)
 			}
 		}
 		s = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if rwork.Get(i-1) > safe2 {
-				s = math.Max(s, Cabs1(work.Get(i-1))/rwork.Get(i-1))
+				s = math.Max(s, cabs1(work.Get(i-1))/rwork.Get(i-1))
 			} else {
-				s = math.Max(s, (Cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
+				s = math.Max(s, (cabs1(work.Get(i-1))+safe1)/(rwork.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -131,8 +132,10 @@ func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMat
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			Zsytrs(uplo, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.CMatrix(*n, opts), n, info)
-			goblas.Zaxpy(*n, one, work.Off(0, 1), x.CVector(0, j-1, 1))
+			if err = Zsytrs(uplo, n, 1, af, ipiv, work.CMatrix(n, opts)); err != nil {
+				panic(err)
+			}
+			goblas.Zaxpy(n, one, work.Off(0, 1), x.CVector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -159,43 +162,49 @@ func Zsyrfs(uplo byte, n *int, nrhs *int, a *mat.CMatrix, lda *int, af *mat.CMat
 		//        Use ZLACN2 to estimate the infinity-norm of the matrix
 		//           inv(A) * diag(W),
 		//        where W = abs(R) + NZ*EPS*( abs(A)*abs(X)+abs(B) )))
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if rwork.Get(i-1) > safe2 {
-				rwork.Set(i-1, Cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1))
+				rwork.Set(i-1, cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1))
 			} else {
-				rwork.Set(i-1, Cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
+				rwork.Set(i-1, cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
 			}
 		}
 
 		kase = 0
 	label100:
 		;
-		Zlacn2(n, work.Off((*n)), work, ferr.GetPtr(j-1), &kase, &isave)
+		*ferr.GetPtr(j - 1), kase = Zlacn2(n, work.Off(n), work, ferr.Get(j-1), kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(A**T).
-				Zsytrs(uplo, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.CMatrix(*n, opts), n, info)
-				for i = 1; i <= (*n); i++ {
+				if err = Zsytrs(uplo, n, 1, af, ipiv, work.CMatrix(n, opts)); err != nil {
+					panic(err)
+				}
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, complex(rwork.Get(i-1), 0)*work.Get(i-1))
 				}
 			} else if kase == 2 {
 				//              Multiply by inv(A)*diag(W).
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, complex(rwork.Get(i-1), 0)*work.Get(i-1))
 				}
-				Zsytrs(uplo, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.CMatrix(*n, opts), n, info)
+				if err = Zsytrs(uplo, n, 1, af, ipiv, work.CMatrix(n, opts)); err != nil {
+					panic(err)
+				}
 			}
 			goto label100
 		}
 
 		//        Normalize error.
 		lstres = zero
-		for i = 1; i <= (*n); i++ {
-			lstres = math.Max(lstres, Cabs1(x.Get(i-1, j-1)))
+		for i = 1; i <= n; i++ {
+			lstres = math.Max(lstres, cabs1(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
 			ferr.Set(j-1, ferr.Get(j-1)/lstres)
 		}
 
 	}
+
+	return
 }

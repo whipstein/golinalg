@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -14,8 +15,8 @@ import (
 // be selected by specifying either a _range of values or a _range of
 // indices for the desired eigenvalues.
 //
-// ZHEEVR_2STAGE first reduces the matrix A to tridiagonal form T with a call
-// to ZHETRD.  Then, whenever possible, ZHEEVR_2STAGE calls ZSTEMR to compute
+// Zheevr2stage first reduces the matrix A to tridiagonal form T with a call
+// to ZHETRD.  Then, whenever possible, Zheevr2stage calls ZSTEMR to compute
 // eigenspectrum using Relatively Robust Representations.  ZSTEMR
 // computes eigenvalues by the dqds algorithm, while orthogonal
 // eigenvectors are computed from various "good" L D L^T representations
@@ -57,110 +58,109 @@ import (
 //   UC Berkeley, May 1997.
 //
 //
-// Note 1 : ZHEEVR_2STAGE calls ZSTEMR when the full spectrum is requested
+// Note 1 : Zheevr2stage calls ZSTEMR when the full spectrum is requested
 // on machines which conform to the ieee-754 floating point standard.
-// ZHEEVR_2STAGE calls DSTEBZ and ZSTEIN on non-ieee machines and
+// Zheevr2stage calls DSTEBZ and ZSTEIN on non-ieee machines and
 // when partial spectrum requests are made.
 //
 // Normal execution of ZSTEMR may create NaNs and infinities and
 // hence may abort due to a floating point exception in environments
 // which do not handle NaNs and infinities in the ieee standard default
 // manner.
-func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl, vu *float64, il, iu *int, abstol *float64, m *int, w *mat.Vector, z *mat.CMatrix, ldz *int, isuppz *[]int, work *mat.CVector, lwork *int, rwork *mat.Vector, lrwork *int, iwork *[]int, liwork, info *int) {
+func Zheevr2stage(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.CMatrix, vl, vu float64, il, iu int, abstol float64, w *mat.Vector, z *mat.CMatrix, isuppz *[]int, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork *[]int, liwork int) (m, info int, err error) {
 	var alleig, indeig, lower, lquery, test, tryrac, valeig, wantz bool
 	var order byte
 	var abstll, anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, tmp1, two, vll, vuu, zero float64
-	var i, ib, ieeeok, iinfo, imax, indhous, indibl, indifl, indisp, indiwo, indrd, indrdd, indre, indree, indrwk, indtau, indwk, indwkn, iscale, itmp1, j, jj, kd, lhtrd, liwmin, llrwork, llwork, llwrkn, lrwmin, lwmin, lwtrd, nsplit int
+	var i, ib, ieeeok, imax, indhous, indibl, indifl, indisp, indiwo, indrd, indrdd, indre, indree, indrwk, indtau, indwk, indwkn, iscale, itmp1, j, jj, kd, lhtrd, liwmin, llrwork, llwork, llwrkn, lrwmin, lwmin, lwtrd int
 
 	zero = 0.0
 	one = 1.0
 	two = 2.0
 
 	//     Test the input parameters.
-	ieeeok = Ilaenv(func() *int { y := 10; return &y }(), []byte("ZHEEVR"), []byte{'N'}, func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 3; return &y }(), func() *int { y := 4; return &y }())
+	ieeeok = Ilaenv(10, "Zheevr", []byte{'N'}, 1, 2, 3, 4)
 
-	lower = uplo == 'L'
+	lower = uplo == Lower
 	wantz = jobz == 'V'
 	alleig = _range == 'A'
 	valeig = _range == 'V'
 	indeig = _range == 'I'
 
-	lquery = (((*lwork) == -1) || ((*lrwork) == -1) || ((*liwork) == -1))
+	lquery = ((lwork == -1) || (lrwork == -1) || (liwork == -1))
 
-	kd = Ilaenv2stage(func() *int { y := 1; return &y }(), []byte("ZHETRD_2STAGE"), []byte{jobz}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-	ib = Ilaenv2stage(func() *int { y := 2; return &y }(), []byte("ZHETRD_2STAGE"), []byte{jobz}, n, &kd, toPtr(-1), toPtr(-1))
-	lhtrd = Ilaenv2stage(func() *int { y := 3; return &y }(), []byte("ZHETRD_2STAGE"), []byte{jobz}, n, &kd, &ib, toPtr(-1))
-	lwtrd = Ilaenv2stage(func() *int { y := 4; return &y }(), []byte("ZHETRD_2STAGE"), []byte{jobz}, n, &kd, &ib, toPtr(-1))
-	lwmin = (*n) + lhtrd + lwtrd
-	lrwmin = max(1, 24*(*n))
-	liwmin = max(1, 10*(*n))
+	kd = Ilaenv2stage(1, "Zhetrd2stage", []byte{jobz}, n, -1, -1, -1)
+	ib = Ilaenv2stage(2, "Zhetrd2stage", []byte{jobz}, n, kd, -1, -1)
+	lhtrd = Ilaenv2stage(3, "Zhetrd2stage", []byte{jobz}, n, kd, ib, -1)
+	lwtrd = Ilaenv2stage(4, "Zhetrd2stage", []byte{jobz}, n, kd, ib, -1)
+	lwmin = n + lhtrd + lwtrd
+	lrwmin = max(1, 24*n)
+	liwmin = max(1, 10*n)
 
-	(*info) = 0
 	if jobz != 'N' {
-		(*info) = -1
+		err = fmt.Errorf("jobz != 'N': jobz='%c'", jobz)
 	} else if !(alleig || valeig || indeig) {
-		(*info) = -2
-	} else if !(lower || uplo == 'U') {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
+		err = fmt.Errorf("!(alleig || valeig || indeig): _range='%c'", _range)
+	} else if !(lower || uplo == Upper) {
+		err = fmt.Errorf("!(lower || uplo == Upper): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	} else {
 		if valeig {
-			if (*n) > 0 && (*vu) <= (*vl) {
-				(*info) = -8
+			if n > 0 && vu <= vl {
+				err = fmt.Errorf("n > 0 && vu <= vl: n=%v, vl=%v, vu=%v", n, vl, vu)
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > max(1, *n) {
-				(*info) = -9
-			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
-				(*info) = -10
+			if il < 1 || il > max(1, n) {
+				err = fmt.Errorf("il < 1 || il > max(1, n): n=%v, il=%v", n, il)
+			} else if iu < min(n, il) || iu > n {
+				err = fmt.Errorf("iu < min(n, il) || iu > n: n=%v, il=%v, iu=%v", n, il, iu)
 			}
 		}
 	}
-	if (*info) == 0 {
-		if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-			(*info) = -15
+	if err == nil {
+		if z.Rows < 1 || (wantz && z.Rows < n) {
+			err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 		}
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		work.SetRe(0, float64(lwmin))
 		rwork.Set(0, float64(lrwmin))
 		(*iwork)[0] = liwmin
 
-		if (*lwork) < lwmin && !lquery {
-			(*info) = -18
-		} else if (*lrwork) < lrwmin && !lquery {
-			(*info) = -20
-		} else if (*liwork) < liwmin && !lquery {
-			(*info) = -22
+		if lwork < lwmin && !lquery {
+			err = fmt.Errorf("lwork < lwmin && !lquery: lwork=%v, lwmin=%v, lquery=%v", lwork, lwmin, lquery)
+		} else if lrwork < lrwmin && !lquery {
+			err = fmt.Errorf("lrwork < lrwmin && !lquery: lrwork=%v, lrwmin=%v, lquery=%v", lrwork, lrwmin, lquery)
+		} else if liwork < liwmin && !lquery {
+			err = fmt.Errorf("liwork < liwmin && !lquery: liwork=%v, liwmin=%v, lquery=%v", liwork, liwmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHEEVR_2STAGE"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zheevr2stage", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	(*m) = 0
-	if (*n) == 0 {
+	m = 0
+	if n == 0 {
 		work.Set(0, 1)
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		work.Set(0, 2)
 		if alleig || indeig {
-			(*m) = 1
+			m = 1
 			w.Set(0, a.GetRe(0, 0))
 		} else {
-			if (*vl) < a.GetRe(0, 0) && (*vu) >= a.GetRe(0, 0) {
-				(*m) = 1
+			if vl < a.GetRe(0, 0) && vu >= a.GetRe(0, 0) {
+				m = 1
 				w.Set(0, a.GetRe(0, 0))
 			}
 		}
@@ -182,12 +182,12 @@ func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl,
 
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
-	abstll = (*abstol)
+	abstll = abstol
 	if valeig {
-		vll = (*vl)
-		vuu = (*vu)
+		vll = vl
+		vuu = vu
 	}
-	anrm = Zlansy('M', uplo, n, a, lda, rwork)
+	anrm = Zlansy('M', uplo, n, a, rwork)
 	if anrm > zero && anrm < rmin {
 		iscale = 1
 		sigma = rmin / anrm
@@ -197,20 +197,20 @@ func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl,
 	}
 	if iscale == 1 {
 		if lower {
-			for j = 1; j <= (*n); j++ {
-				goblas.Zdscal((*n)-j+1, sigma, a.CVector(j-1, j-1, 1))
+			for j = 1; j <= n; j++ {
+				goblas.Zdscal(n-j+1, sigma, a.CVector(j-1, j-1, 1))
 			}
 		} else {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				goblas.Zdscal(j, sigma, a.CVector(0, j-1, 1))
 			}
 		}
-		if (*abstol) > 0 {
-			abstll = (*abstol) * sigma
+		if abstol > 0 {
+			abstll = abstol * sigma
 		}
 		if valeig {
-			vll = (*vl) * sigma
-			vuu = (*vu) * sigma
+			vll = vl * sigma
+			vuu = vu * sigma
 		}
 	}
 	//     Initialize indices into workspaces.  Note: The IWORK indices are
@@ -220,80 +220,88 @@ func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl,
 	indtau = 1
 	//     INDWK is the starting offset of the remaining complex workspace,
 	//     and LLWORK is the remaining complex workspace size.
-	indhous = indtau + (*n)
+	indhous = indtau + n
 	indwk = indhous + lhtrd
-	llwork = (*lwork) - indwk + 1
+	llwork = lwork - indwk + 1
 	//     RWORK(INDRD:INDRD+N-1) stores the real tridiagonal's diagonal
 	//     entries.
 	indrd = 1
 	//     RWORK(INDRE:INDRE+N-1) stores the off-diagonal entries of the
 	//     tridiagonal matrix from ZHETRD.
-	indre = indrd + (*n)
+	indre = indrd + n
 	//     RWORK(INDRDD:INDRDD+N-1) is a copy of the diagonal entries over
 	//     -written by ZSTEMR (the DSTERF path copies the diagonal to W).
-	indrdd = indre + (*n)
+	indrdd = indre + n
 	//     RWORK(INDREE:INDREE+N-1) is a copy of the off-diagonal entries over
 	//     -written while computing the eigenvalues in DSTERF and ZSTEMR.
-	indree = indrdd + (*n)
+	indree = indrdd + n
 	//     INDRWK is the starting offset of the left-over real workspace, and
 	//     LLRWORK is the remaining workspace size.
-	indrwk = indree + (*n)
-	llrwork = (*lrwork) - indrwk + 1
+	indrwk = indree + n
+	llrwork = lrwork - indrwk + 1
 	//     IWORK(INDIBL:INDIBL+M-1) corresponds to IBLOCK in DSTEBZ and
 	//     stores the block indices of each of the M<=N eigenvalues.
 	indibl = 1
 	//     IWORK(INDISP:INDISP+NSPLIT-1) corresponds to ISPLIT in DSTEBZ and
 	//     stores the starting and finishing indices of each block.
-	indisp = indibl + (*n)
+	indisp = indibl + n
 	//     IWORK(INDIFL:INDIFL+N-1) stores the indices of eigenvectors
 	//     that corresponding to eigenvectors that fail to converge in
 	//     ZSTEIN.  This information is discarded; if any fail, the driver
 	//     returns INFO > 0.
-	indifl = indisp + (*n)
+	indifl = indisp + n
 	//     INDIWO is the offset of the remaining integer workspace.
-	indiwo = indifl + (*n)
+	indiwo = indifl + n
 
 	//     Call ZHETRD_2STAGE to reduce Hermitian matrix to tridiagonal form.
-	Zhetrd2stage(jobz, uplo, n, a, lda, rwork.Off(indrd-1), rwork.Off(indre-1), work.Off(indtau-1), work.Off(indhous-1), &lhtrd, work.Off(indwk-1), &llwork, &iinfo)
+	if err = Zhetrd2stage(jobz, uplo, n, a, rwork.Off(indrd-1), rwork.Off(indre-1), work.Off(indtau-1), work.Off(indhous-1), lhtrd, work.Off(indwk-1), llwork); err != nil {
+		panic(err)
+	}
 
 	//     If all eigenvalues are desired
 	//     then call DSTERF or ZSTEMR and ZUNMTR.
 	test = false
 	if indeig {
-		if (*il) == 1 && (*iu) == (*n) {
+		if il == 1 && iu == n {
 			test = true
 		}
 	}
 	if (alleig || test) && (ieeeok == 1) {
 		if !wantz {
-			goblas.Dcopy(*n, rwork.Off(indrd-1, 1), w.Off(0, 1))
-			goblas.Dcopy((*n)-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
-			Dsterf(n, w, rwork.Off(indree-1), info)
+			goblas.Dcopy(n, rwork.Off(indrd-1, 1), w.Off(0, 1))
+			goblas.Dcopy(n-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
+			if info, err = Dsterf(n, w, rwork.Off(indree-1)); err != nil {
+				panic(err)
+			}
 		} else {
-			goblas.Dcopy((*n)-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
-			goblas.Dcopy(*n, rwork.Off(indrd-1, 1), rwork.Off(indrdd-1, 1))
+			goblas.Dcopy(n-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
+			goblas.Dcopy(n, rwork.Off(indrd-1, 1), rwork.Off(indrdd-1, 1))
 
-			if (*abstol) <= two*float64(*n)*eps {
+			if abstol <= two*float64(n)*eps {
 				tryrac = true
 			} else {
 				tryrac = false
 			}
-			Zstemr(jobz, 'A', n, rwork.Off(indrdd-1), rwork.Off(indree-1), vl, vu, il, iu, m, w, z, ldz, n, isuppz, &tryrac, rwork.Off(indrwk-1), &llrwork, iwork, liwork, info)
+			if m, tryrac, info, err = Zstemr(jobz, 'A', n, rwork.Off(indrdd-1), rwork.Off(indree-1), vl, vu, il, iu, w, z, n, isuppz, tryrac, rwork.Off(indrwk-1), llrwork, iwork, liwork); err != nil {
+				panic(err)
+			}
 
 			//           Apply unitary matrix used in reduction to tridiagonal
 			//           form to eigenvectors returned by ZSTEMR.
-			if wantz && (*info) == 0 {
+			if wantz && info == 0 {
 				indwkn = indwk
-				llwrkn = (*lwork) - indwkn + 1
-				Zunmtr('L', uplo, 'N', n, m, a, lda, work.Off(indtau-1), z, ldz, work.Off(indwkn-1), &llwrkn, &iinfo)
+				llwrkn = lwork - indwkn + 1
+				if err = Zunmtr(Left, uplo, NoTrans, n, m, a, work.Off(indtau-1), z, work.Off(indwkn-1), llwrkn); err != nil {
+					panic(err)
+				}
 			}
 		}
 
-		if (*info) == 0 {
-			(*m) = (*n)
+		if info == 0 {
+			m = n
 			goto label30
 		}
-		(*info) = 0
+		info = 0
 	}
 
 	//     Otherwise, call DSTEBZ and, if eigenvectors are desired, ZSTEIN.
@@ -303,26 +311,32 @@ func Zheevr2stage(jobz, _range, uplo byte, n *int, a *mat.CMatrix, lda *int, vl,
 	} else {
 		order = 'E'
 	}
-	Dstebz(_range, order, n, &vll, &vuu, il, iu, &abstll, rwork.Off(indrd-1), rwork.Off(indre-1), m, &nsplit, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), rwork.Off(indrwk-1), toSlice(iwork, indiwo-1), info)
+	if m, _, info, err = Dstebz(_range, order, n, vll, vuu, il, iu, abstll, rwork.Off(indrd-1), rwork.Off(indre-1), w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), rwork.Off(indrwk-1), toSlice(iwork, indiwo-1)); err != nil {
+		panic(err)
+	}
 
 	if wantz {
-		Zstein(n, rwork.Off(indrd-1), rwork.Off(indre-1), m, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), z, ldz, rwork.Off(indrwk-1), toSlice(iwork, indiwo-1), toSlice(iwork, indifl-1), info)
+		if info, err = Zstein(n, rwork.Off(indrd-1), rwork.Off(indre-1), m, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), z, rwork.Off(indrwk-1), toSlice(iwork, indiwo-1), toSlice(iwork, indifl-1)); err != nil {
+			panic(err)
+		}
 
 		//        Apply unitary matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by ZSTEIN.
 		indwkn = indwk
-		llwrkn = (*lwork) - indwkn + 1
-		Zunmtr('L', uplo, 'N', n, m, a, lda, work.Off(indtau-1), z, ldz, work.Off(indwkn-1), &llwrkn, &iinfo)
+		llwrkn = lwork - indwkn + 1
+		if err = Zunmtr(Left, uplo, NoTrans, n, m, a, work.Off(indtau-1), z, work.Off(indwkn-1), llwrkn); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 label30:
 	;
 	if iscale == 1 {
-		if (*info) == 0 {
-			imax = (*m)
+		if info == 0 {
+			imax = m
 		} else {
-			imax = (*info) - 1
+			imax = info - 1
 		}
 		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
@@ -330,10 +344,10 @@ label30:
 	//     If eigenvalues are not in order, then sort them, along with
 	//     eigenvectors.
 	if wantz {
-		for j = 1; j <= (*m)-1; j++ {
+		for j = 1; j <= m-1; j++ {
 			i = 0
 			tmp1 = w.Get(j - 1)
-			for jj = j + 1; jj <= (*m); jj++ {
+			for jj = j + 1; jj <= m; jj++ {
 				if w.Get(jj-1) < tmp1 {
 					i = jj
 					tmp1 = w.Get(jj - 1)
@@ -346,7 +360,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(*n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
+				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
 			}
 		}
 	}
@@ -355,4 +369,6 @@ label30:
 	work.SetRe(0, float64(lwmin))
 	rwork.Set(0, float64(lrwmin))
 	(*iwork)[0] = liwmin
+
+	return
 }

@@ -1,21 +1,24 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrpo tests the error exits for the DOUBLE PRECISION routines
+// derrpo tests the error exits for the DOUBLE PRECISION routines
 // for symmetric positive definite matrices.
-func Derrpo(path []byte, t *testing.T) {
-	var anrm, rcond float64
-	var i, info, j, nmax int
+func derrpo(path string, t *testing.T) {
+	var anrm float64
+	var i, j, nmax int
+	var err error
+
 	iw := make([]int, 4)
-	lerr := &gltest.Common.Infoc.Lerr
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 4
@@ -47,295 +50,301 @@ func Derrpo(path []byte, t *testing.T) {
 	}
 	(*ok) = true
 
-	if string(c2) == "PO" {
+	if c2 == "po" {
 		//        Test error exits of the routines that use the Cholesky
 		//        decomposition of a symmetric positive definite matrix.
 		//
-		//        DPOTRF
-		*srnamt = "DPOTRF"
-		*infot = 1
-		golapack.Dpotrf('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpotrf('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRF", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpotrf('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRF", &info, lerr, ok, t)
+		//        Dpotrf
+		*srnamt = "Dpotrf"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpotrf('/', 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrf", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpotrf(Upper, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrf", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dpotrf(Upper, 2, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrf", err)
 
-		//        DPOTF2
-		*srnamt = "DPOTF2"
-		*infot = 1
-		golapack.Dpotf2('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTF2", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpotf2('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTF2", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpotf2('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTF2", &info, lerr, ok, t)
+		//        Dpotf2
+		*srnamt = "Dpotf2"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpotf2('/', 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotf2", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpotf2(Upper, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotf2", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dpotf2(Upper, 2, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotf2", err)
 
-		//        DPOTRI
-		*srnamt = "DPOTRI"
-		*infot = 1
-		golapack.Dpotri('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRI", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpotri('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRI", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpotri('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRI", &info, lerr, ok, t)
+		//        Dpotri
+		*srnamt = "Dpotri"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpotri('/', 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotri", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpotri(Upper, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotri", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dpotri(Upper, 2, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotri", err)
 
-		//        DPOTRS
-		*srnamt = "DPOTRS"
-		*infot = 1
-		golapack.Dpotrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpotrs('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpotrs('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRS", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dpotrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), &info)
-		Chkxer("DPOTRS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dpotrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPOTRS", &info, lerr, ok, t)
+		//        Dpotrs
+		*srnamt = "Dpotrs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Dpotrs('/', 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dpotrs(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dpotrs(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrs", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Dpotrs(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2))
+		chkxer2("Dpotrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dpotrs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpotrs", err)
 
-		//        DPORFS
-		*srnamt = "DPORFS"
-		*infot = 1
-		golapack.Dporfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dporfs('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dporfs('U', func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Dporfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPORFS", &info, lerr, ok, t)
+		//        Dporfs
+		*srnamt = "Dporfs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Dporfs('/', 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dporfs(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dporfs(Upper, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		err = golapack.Dporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
+		*errt = fmt.Errorf("af.Rows < max(1, n): af.Rows=1, n=2")
+		err = golapack.Dporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Dporfs(Upper, 2, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dporfs", err)
 
-		//        DPOCON
-		*srnamt = "DPOCON"
-		*infot = 1
-		golapack.Dpocon('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPOCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpocon('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPOCON", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpocon('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPOCON", &info, lerr, ok, t)
+		//        Dpocon
+		*srnamt = "Dpocon"
+		// *errt = fmt.Errorf("anorm < zero: anorm=%v", anorm)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpocon('/', 0, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpocon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpocon(Upper, -1, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpocon", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, err = golapack.Dpocon(Upper, 2, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpocon", err)
 
-		//        DPOEQU
-		*srnamt = "DPOEQU"
-		*infot = 1
-		golapack.Dpoequ(toPtr(-1), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("DPOEQU", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpoequ(func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("DPOEQU", &info, lerr, ok, t)
+		//        Dpoequ
+		*srnamt = "Dpoequ"
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Dpoequ(-1, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Dpoequ", err)
+		*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+		_, _, _, err = golapack.Dpoequ(2, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Dpoequ", err)
 
-	} else if string(c2) == "PP" {
+	} else if c2 == "pp" {
 		//        Test error exits of the routines that use the Cholesky
 		//        decomposition of a symmetric positive definite packed matrix.
 		//
-		//        DPPTRF
-		*srnamt = "DPPTRF"
-		*infot = 1
-		golapack.Dpptrf('/', func() *int { y := 0; return &y }(), ap, &info)
-		Chkxer("DPPTRF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpptrf('U', toPtr(-1), ap, &info)
-		Chkxer("DPPTRF", &info, lerr, ok, t)
+		//        Dpptrf
+		*srnamt = "Dpptrf"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpptrf('/', 0, ap)
+		chkxer2("Dpptrf", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpptrf(Upper, -1, ap)
+		chkxer2("Dpptrf", err)
 
-		//        DPPTRI
-		*srnamt = "DPPTRI"
-		*infot = 1
-		golapack.Dpptri('/', func() *int { y := 0; return &y }(), ap, &info)
-		Chkxer("DPPTRI", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpptri('U', toPtr(-1), ap, &info)
-		Chkxer("DPPTRI", &info, lerr, ok, t)
+		//        Dpptri
+		*srnamt = "Dpptri"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpptri('/', 0, ap)
+		chkxer2("Dpptri", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpptri(Upper, -1, ap)
+		chkxer2("Dpptri", err)
 
-		//        DPPTRS
-		*srnamt = "DPPTRS"
-		*infot = 1
-		golapack.Dpptrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), ap, b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPPTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpptrs('U', toPtr(-1), func() *int { y := 0; return &y }(), ap, b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPPTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpptrs('U', func() *int { y := 0; return &y }(), toPtr(-1), ap, b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPPTRS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dpptrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), ap, b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPPTRS", &info, lerr, ok, t)
+		//        Dpptrs
+		*srnamt = "Dpptrs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Dpptrs('/', 0, 0, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpptrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dpptrs(Upper, -1, 0, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpptrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dpptrs(Upper, 0, -1, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpptrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dpptrs(Upper, 2, 1, ap, b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpptrs", err)
 
-		//        DPPRFS
-		*srnamt = "DPPRFS"
-		*infot = 1
-		golapack.Dpprfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), ap, afp, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPPRFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpprfs('U', toPtr(-1), func() *int { y := 0; return &y }(), ap, afp, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPPRFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpprfs('U', func() *int { y := 0; return &y }(), toPtr(-1), ap, afp, b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPPRFS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dpprfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), ap, afp, b, func() *int { y := 1; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPPRFS", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dpprfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), ap, afp, b, func() *int { y := 2; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPPRFS", &info, lerr, ok, t)
+		//        Dpprfs
+		*srnamt = "Dpprfs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Dpprfs('/', 0, 0, ap, afp, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpprfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dpprfs(Upper, -1, 0, ap, afp, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpprfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dpprfs(Upper, 0, -1, ap, afp, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpprfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dpprfs(Upper, 2, 1, ap, afp, b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpprfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Dpprfs(Upper, 2, 1, ap, afp, b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpprfs", err)
 
-		//        DPPCON
-		*srnamt = "DPPCON"
-		*infot = 1
-		golapack.Dppcon('/', func() *int { y := 0; return &y }(), ap, &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPPCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dppcon('U', toPtr(-1), ap, &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPPCON", &info, lerr, ok, t)
+		//        Dppcon
+		*srnamt = "Dppcon"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dppcon('/', 0, ap, anrm, w, &iw)
+		chkxer2("Dppcon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dppcon(Upper, -1, ap, anrm, w, &iw)
+		chkxer2("Dppcon", err)
 
-		//        DPPEQU
-		*srnamt = "DPPEQU"
-		*infot = 1
-		golapack.Dppequ('/', func() *int { y := 0; return &y }(), ap, r1, &rcond, &anrm, &info)
-		Chkxer("DPPEQU", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dppequ('U', toPtr(-1), ap, r1, &rcond, &anrm, &info)
-		Chkxer("DPPEQU", &info, lerr, ok, t)
+		//        Dppequ
+		*srnamt = "Dppequ"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Dppequ('/', 0, ap, r1)
+		chkxer2("Dppequ", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Dppequ(Upper, -1, ap, r1)
+		chkxer2("Dppequ", err)
 
-	} else if string(c2) == "PB" {
+	} else if c2 == "pb" {
 		//        Test error exits of the routines that use the Cholesky
 		//        decomposition of a symmetric positive definite band matrix.
 		//
-		//        DPBTRF
-		*srnamt = "DPBTRF"
-		*infot = 1
-		golapack.Dpbtrf('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbtrf('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRF", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbtrf('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRF", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dpbtrf('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRF", &info, lerr, ok, t)
+		//        Dpbtrf
+		*srnamt = "Dpbtrf"
+		*errt = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpbtrf('/', 0, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrf", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpbtrf(Upper, -1, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrf", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Dpbtrf(Upper, 1, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrf", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Dpbtrf(Upper, 2, 1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrf", err)
 
-		//        DPBTF2
-		*srnamt = "DPBTF2"
-		*infot = 1
-		golapack.Dpbtf2('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTF2", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbtf2('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTF2", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbtf2('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTF2", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dpbtf2('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTF2", &info, lerr, ok, t)
+		//        Dpbtf2
+		*srnamt = "Dpbtf2"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpbtf2('/', 0, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtf2", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpbtf2(Upper, -1, 0, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtf2", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Dpbtf2(Upper, 1, -1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtf2", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Dpbtf2(Upper, 2, 1, a.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtf2", err)
 
-		//        DPBTRS
-		*srnamt = "DPBTRS"
-		*infot = 1
-		golapack.Dpbtrs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbtrs('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbtrs('U', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRS", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpbtrs('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dpbtrs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRS", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dpbtrs('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DPBTRS", &info, lerr, ok, t)
+		//        Dpbtrs
+		*srnamt = "Dpbtrs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Dpbtrs('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dpbtrs(Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrs", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.Dpbtrs(Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dpbtrs(Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrs", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		err = golapack.Dpbtrs(Upper, 2, 1, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dpbtrs(Upper, 2, 0, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1))
+		chkxer2("Dpbtrs", err)
 
-		//        DPBRFS
-		*srnamt = "DPBRFS"
-		*infot = 1
-		golapack.Dpbrfs('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbrfs('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbrfs('U', func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dpbrfs('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), x, func() *int { y := 2; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Dpbrfs('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), af, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), x, func() *int { y := 1; return &y }(), r1, r2, w, &iw, &info)
-		Chkxer("DPBRFS", &info, lerr, ok, t)
+		//        Dpbrfs
+		*srnamt = "Dpbrfs"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		err = golapack.Dpbrfs('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dpbrfs(Upper, -1, 0, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		err = golapack.Dpbrfs(Upper, 1, -1, 0, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		err = golapack.Dpbrfs(Upper, 0, 0, -1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		err = golapack.Dpbrfs(Upper, 2, 1, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("afb.Rows < kd+1: afb.Rows=1, kd=1")
+		err = golapack.Dpbrfs(Upper, 2, 1, 1, a.Off(0, 0).UpdateRows(2), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
+		err = golapack.Dpbrfs(Upper, 2, 0, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), x.Off(0, 0).UpdateRows(2), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
+		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
+		err = golapack.Dpbrfs(Upper, 2, 0, 1, a.Off(0, 0).UpdateRows(1), af.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), x.Off(0, 0).UpdateRows(1), r1, r2, w, &iw)
+		chkxer2("Dpbrfs", err)
 
-		//        DPBCON
-		*srnamt = "DPBCON"
-		*infot = 1
-		golapack.Dpbcon('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPBCON", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbcon('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPBCON", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbcon('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPBCON", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dpbcon('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), &anrm, &rcond, w, &iw, &info)
-		Chkxer("DPBCON", &info, lerr, ok, t)
+		//        Dpbcon
+		*srnamt = "Dpbcon"
+		// *errt = fmt.Errorf("anorm < zero: anorm=%v", anorm)
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, err = golapack.Dpbcon('/', 0, 0, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpbcon", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dpbcon(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpbcon", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, err = golapack.Dpbcon(Upper, 1, -1, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpbcon", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, err = golapack.Dpbcon(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), anrm, w, &iw)
+		chkxer2("Dpbcon", err)
 
-		//        DPBEQU
-		*srnamt = "DPBEQU"
-		*infot = 1
-		golapack.Dpbequ('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("DPBEQU", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dpbequ('U', toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("DPBEQU", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dpbequ('U', func() *int { y := 1; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("DPBEQU", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dpbequ('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), r1, &rcond, &anrm, &info)
-		Chkxer("DPBEQU", &info, lerr, ok, t)
+		//        Dpbequ
+		*srnamt = "Dpbequ"
+		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+		_, _, _, err = golapack.Dpbequ('/', 0, 0, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Dpbequ", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, _, err = golapack.Dpbequ(Upper, -1, 0, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Dpbequ", err)
+		*errt = fmt.Errorf("kd < 0: kd=-1")
+		_, _, _, err = golapack.Dpbequ(Upper, 1, -1, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Dpbequ", err)
+		*errt = fmt.Errorf("ab.Rows < kd+1: ab.Rows=1, kd=1")
+		_, _, _, err = golapack.Dpbequ(Upper, 2, 1, a.Off(0, 0).UpdateRows(1), r1)
+		chkxer2("Dpbequ", err)
 	}
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

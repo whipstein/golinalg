@@ -8,9 +8,9 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zget10 compares two matrices A and B and computes the ratio
+// zget10 compares two matrices A and B and computes the ratio
 // RESULT = norm( A - B ) / ( norm(A) * M * EPS )
-func Zget10(m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, work *mat.CVector, rwork *mat.Vector, result *float64) {
+func zget10(m, n int, a, b *mat.CMatrix, work *mat.CVector, rwork *mat.Vector) (result float64) {
 	var anorm, eps, one, unfl, wnorm, zero float64
 	var j int
 
@@ -18,8 +18,8 @@ func Zget10(m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, work 
 	zero = 0.0
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
-		(*result) = zero
+	if m <= 0 || n <= 0 {
+		result = zero
 		return
 	}
 
@@ -27,21 +27,23 @@ func Zget10(m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, work 
 	eps = golapack.Dlamch(Precision)
 
 	wnorm = zero
-	for j = 1; j <= (*n); j++ {
-		goblas.Zcopy(*m, a.CVector(0, j-1, 1), work.Off(0, 1))
-		goblas.Zaxpy(*m, complex(-one, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
-		wnorm = math.Max(wnorm, goblas.Dzasum(*n, work.Off(0, 1)))
+	for j = 1; j <= n; j++ {
+		goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
+		goblas.Zaxpy(m, complex(-one, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
+		wnorm = math.Max(wnorm, goblas.Dzasum(n, work.Off(0, 1)))
 	}
 
-	anorm = math.Max(golapack.Zlange('1', m, n, a, lda, rwork), unfl)
+	anorm = math.Max(golapack.Zlange('1', m, n, a, rwork), unfl)
 
 	if anorm > wnorm {
-		(*result) = (wnorm / anorm) / (float64(*m) * eps)
+		result = (wnorm / anorm) / (float64(m) * eps)
 	} else {
 		if anorm < one {
-			(*result) = (math.Min(wnorm, float64(*m)*anorm) / anorm) / (float64(*m) * eps)
+			result = (math.Min(wnorm, float64(m)*anorm) / anorm) / (float64(m) * eps)
 		} else {
-			(*result) = math.Min(wnorm/anorm, float64(*m)) / (float64(*m) * eps)
+			result = math.Min(wnorm/anorm, float64(m)) / (float64(m) * eps)
 		}
 	}
+
+	return
 }

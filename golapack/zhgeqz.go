@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
@@ -51,9 +52,9 @@ import (
 // Ref: C.B. Moler & G.W. Stewart, "An Algorithm for Generalized Matrix
 //      Eigenvalue Problems", SIAM J. Numer. Anal., 10(1973),
 //      pp. 241--256.
-func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, t *mat.CMatrix, ldt *int, alpha, beta *mat.CVector, q *mat.CMatrix, ldq *int, z *mat.CMatrix, ldz *int, work *mat.CVector, lwork *int, rwork *mat.Vector, info *int) {
+func Zhgeqz(job, compq, compz byte, n, ilo, ihi int, h, t *mat.CMatrix, alpha, beta *mat.CVector, q, z *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector) (info int, err error) {
 	var ilazr2, ilazro, ilq, ilschr, ilz, lquery bool
-	var abi22, ad11, ad12, ad21, ad22, cone, ctemp, ctemp2, ctemp3, czero, eshift, rtdisc, s, shift, signbc, t1, u12 complex128
+	var abi22, ad11, ad12, ad21, ad22, cone, ctemp, ctemp2, czero, eshift, rtdisc, s, shift, signbc, t1, u12 complex128
 	var absb, anorm, ascale, atol, bnorm, bscale, btol, c, half, one, safmin, temp, temp2, tempr, ulp, zero float64
 	var icompq, icompz, ifirst, ifrstm, iiter, ilast, ilastm, in, ischur, istart, j, jc, jch, jiter, jr, maxit int
 
@@ -101,34 +102,33 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	}
 
 	//     Check Argument Values
-	(*info) = 0
-	work.SetRe(0, float64(max(1, *n)))
-	lquery = ((*lwork) == -1)
+	work.SetRe(0, float64(max(1, n)))
+	lquery = (lwork == -1)
 	if ischur == 0 {
-		(*info) = -1
+		err = fmt.Errorf("ischur == 0: job='%c'", job)
 	} else if icompq == 0 {
-		(*info) = -2
+		err = fmt.Errorf("icompq == 0: compq='%c'", compq)
 	} else if icompz == 0 {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*ilo) < 1 {
-		(*info) = -5
-	} else if (*ihi) > (*n) || (*ihi) < (*ilo)-1 {
-		(*info) = -6
-	} else if (*ldh) < (*n) {
-		(*info) = -8
-	} else if (*ldt) < (*n) {
-		(*info) = -10
-	} else if (*ldq) < 1 || (ilq && (*ldq) < (*n)) {
-		(*info) = -14
-	} else if (*ldz) < 1 || (ilz && (*ldz) < (*n)) {
-		(*info) = -16
-	} else if (*lwork) < max(1, *n) && !lquery {
-		(*info) = -18
+		err = fmt.Errorf("icompz == 0: compz='%c'", compz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if ilo < 1 {
+		err = fmt.Errorf("ilo < 1: ilo=%v", ilo)
+	} else if ihi > n || ihi < ilo-1 {
+		err = fmt.Errorf("ihi > n || ihi < ilo-1: n=%v, ilo=%v, ihi=%v", n, ilo, ihi)
+	} else if h.Rows < n {
+		err = fmt.Errorf("h.Rows < n: h.Rows=%v, n=%v", h.Rows, n)
+	} else if t.Rows < n {
+		err = fmt.Errorf("t.Rows < n: t.Rows=%v, n=%v", t.Rows, n)
+	} else if q.Rows < 1 || (ilq && q.Rows < n) {
+		err = fmt.Errorf("q.Rows < 1 || (ilq && q.Rows < n): q.Rows=%v, n=%v, ilq=%v", q.Rows, n, ilq)
+	} else if z.Rows < 1 || (ilz && z.Rows < n) {
+		err = fmt.Errorf("z.Rows < 1 || (ilz && z.Rows < n): z.Rows=%v, n=%v, ilz=%v", z.Rows, n, ilz)
+	} else if lwork < max(1, n) && !lquery {
+		err = fmt.Errorf("lwork < max(1, n) && !lquery: lwork=%v, n=%v, lquery=%v", lwork, n, lquery)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHGEQZ"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhgeqz", err)
 		return
 	} else if lquery {
 		return
@@ -137,32 +137,32 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	//     Quick return if possible
 	//
 	//     WORK( 1 ) = CMPLX( 1 )
-	if (*n) <= 0 {
+	if n <= 0 {
 		work.SetRe(0, 1)
 		return
 	}
 
 	//     Initialize Q and Z
 	if icompq == 3 {
-		Zlaset('F', n, n, &czero, &cone, q, ldq)
+		Zlaset(Full, n, n, czero, cone, q)
 	}
 	if icompz == 3 {
-		Zlaset('F', n, n, &czero, &cone, z, ldz)
+		Zlaset(Full, n, n, czero, cone, z)
 	}
 
 	//     Machine Constants
-	in = (*ihi) + 1 - (*ilo)
+	in = ihi + 1 - ilo
 	safmin = Dlamch(SafeMinimum)
 	ulp = Dlamch(Epsilon) * Dlamch(Base)
-	anorm = Zlanhs('F', &in, h.Off((*ilo)-1, (*ilo)-1), ldh, rwork)
-	bnorm = Zlanhs('F', &in, t.Off((*ilo)-1, (*ilo)-1), ldt, rwork)
+	anorm = Zlanhs('F', in, h.Off(ilo-1, ilo-1), rwork)
+	bnorm = Zlanhs('F', in, t.Off(ilo-1, ilo-1), rwork)
 	atol = math.Max(safmin, ulp*anorm)
 	btol = math.Max(safmin, ulp*bnorm)
 	ascale = one / math.Max(safmin, anorm)
 	bscale = one / math.Max(safmin, bnorm)
 
 	//     Set Eigenvalues IHI+1:N
-	for j = (*ihi) + 1; j <= (*n); j++ {
+	for j = ihi + 1; j <= n; j++ {
 		absb = t.GetMag(j-1, j-1)
 		if absb > safmin {
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
@@ -174,7 +174,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				goblas.Zscal(1, signbc, h.CVector(j-1, j-1, 1))
 			}
 			if ilz {
-				goblas.Zscal(*n, signbc, z.CVector(0, j-1, 1))
+				goblas.Zscal(n, signbc, z.CVector(0, j-1, 1))
 			}
 		} else {
 			t.Set(j-1, j-1, czero)
@@ -184,7 +184,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	}
 
 	//     If IHI < ILO, skip QZ steps
-	if (*ihi) < (*ilo) {
+	if ihi < ilo {
 		goto label190
 	}
 
@@ -202,17 +202,17 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	//     IITER counts iterations since the last eigenvalue was found,
 	//        to tell when to use an extraordinary shift.
 	//     MAXIT is the maximum number of QZ sweeps allowed.
-	ilast = (*ihi)
+	ilast = ihi
 	if ilschr {
 		ifrstm = 1
-		ilastm = (*n)
+		ilastm = n
 	} else {
-		ifrstm = (*ilo)
-		ilastm = (*ihi)
+		ifrstm = ilo
+		ilastm = ihi
 	}
 	iiter = 0
 	eshift = czero
-	maxit = 30 * ((*ihi) - (*ilo) + 1)
+	maxit = 30 * (ihi - ilo + 1)
 
 	for jiter = 1; jiter <= maxit; jiter++ {
 		//        Check for too many iterations.
@@ -227,7 +227,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		//           2: T(j,j)=0
 		//
 		//        Special case: j=ILAST
-		if ilast == (*ilo) {
+		if ilast == ilo {
 			goto label60
 		} else {
 			if abs1(h.Get(ilast-1, ilast-1-1)) <= atol {
@@ -242,9 +242,9 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		}
 
 		//        General case: j<ILAST
-		for j = ilast - 1; j >= (*ilo); j-- {
+		for j = ilast - 1; j >= ilo; j-- {
 			//           Test 1: for H(j,j-1)=0 or j=ILO
-			if j == (*ilo) {
+			if j == ilo {
 				ilazro = true
 			} else {
 				if abs1(h.Get(j-1, j-1-1)) <= atol {
@@ -275,12 +275,12 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				if ilazro || ilazr2 {
 					for jch = j; jch <= ilast-1; jch++ {
 						ctemp = h.Get(jch-1, jch-1)
-						Zlartg(&ctemp, h.GetPtr(jch, jch-1), &c, &s, h.GetPtr(jch-1, jch-1))
+						c, s, *h.GetPtr(jch-1, jch-1) = Zlartg(ctemp, h.Get(jch, jch-1))
 						h.Set(jch, jch-1, czero)
-						Zrot(toPtr(ilastm-jch), h.CVector(jch-1, jch), ldh, h.CVector(jch, jch), ldh, &c, &s)
-						Zrot(toPtr(ilastm-jch), t.CVector(jch-1, jch), ldt, t.CVector(jch, jch), ldt, &c, &s)
+						Zrot(ilastm-jch, h.CVector(jch-1, jch), h.CVector(jch, jch), c, s)
+						Zrot(ilastm-jch, t.CVector(jch-1, jch), t.CVector(jch, jch), c, s)
 						if ilq {
-							Zrot(n, q.CVector(0, jch-1), func() *int { y := 1; return &y }(), q.CVector(0, jch), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
+							Zrot(n, q.CVector(0, jch-1, 1), q.CVector(0, jch, 1), c, cmplx.Conj(s))
 						}
 						if ilazr2 {
 							h.Set(jch-1, jch-1-1, h.Get(jch-1, jch-1-1)*complex(c, 0))
@@ -302,22 +302,22 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 					//                 Then process as in the case T(ILAST,ILAST)=0
 					for jch = j; jch <= ilast-1; jch++ {
 						ctemp = t.Get(jch-1, jch)
-						Zlartg(&ctemp, t.GetPtr(jch, jch), &c, &s, t.GetPtr(jch-1, jch))
+						c, s, *t.GetPtr(jch-1, jch) = Zlartg(ctemp, t.Get(jch, jch))
 						t.Set(jch, jch, czero)
 						if jch < ilastm-1 {
-							Zrot(toPtr(ilastm-jch-1), t.CVector(jch-1, jch+2-1), ldt, t.CVector(jch, jch+2-1), ldt, &c, &s)
+							Zrot(ilastm-jch-1, t.CVector(jch-1, jch+2-1), t.CVector(jch, jch+2-1), c, s)
 						}
-						Zrot(toPtr(ilastm-jch+2), h.CVector(jch-1, jch-1-1), ldh, h.CVector(jch, jch-1-1), ldh, &c, &s)
+						Zrot(ilastm-jch+2, h.CVector(jch-1, jch-1-1), h.CVector(jch, jch-1-1), c, s)
 						if ilq {
-							Zrot(n, q.CVector(0, jch-1), func() *int { y := 1; return &y }(), q.CVector(0, jch), func() *int { y := 1; return &y }(), &c, toPtrc128(cmplx.Conj(s)))
+							Zrot(n, q.CVector(0, jch-1, 1), q.CVector(0, jch, 1), c, cmplx.Conj(s))
 						}
 						ctemp = h.Get(jch, jch-1)
-						Zlartg(&ctemp, h.GetPtr(jch, jch-1-1), &c, &s, h.GetPtr(jch, jch-1))
+						c, s, *h.GetPtr(jch, jch-1) = Zlartg(ctemp, h.Get(jch, jch-1-1))
 						h.Set(jch, jch-1-1, czero)
-						Zrot(toPtr(jch+1-ifrstm), h.CVector(ifrstm-1, jch-1), func() *int { y := 1; return &y }(), h.CVector(ifrstm-1, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
-						Zrot(toPtr(jch-ifrstm), t.CVector(ifrstm-1, jch-1), func() *int { y := 1; return &y }(), t.CVector(ifrstm-1, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
+						Zrot(jch+1-ifrstm, h.CVector(ifrstm-1, jch-1, 1), h.CVector(ifrstm-1, jch-1-1, 1), c, s)
+						Zrot(jch-ifrstm, t.CVector(ifrstm-1, jch-1, 1), t.CVector(ifrstm-1, jch-1-1, 1), c, s)
 						if ilz {
-							Zrot(n, z.CVector(0, jch-1), func() *int { y := 1; return &y }(), z.CVector(0, jch-1-1), func() *int { y := 1; return &y }(), &c, &s)
+							Zrot(n, z.CVector(0, jch-1, 1), z.CVector(0, jch-1-1, 1), c, s)
 						}
 					}
 					goto label50
@@ -332,7 +332,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		}
 
 		//        (Drop-through is "impossible")
-		(*info) = 2*(*n) + 1
+		info = 2*n + 1
 		goto label210
 
 		//        T(ILAST,ILAST)=0 -- clear H(ILAST,ILAST-1) to split off a
@@ -340,12 +340,12 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	label50:
 		;
 		ctemp = h.Get(ilast-1, ilast-1)
-		Zlartg(&ctemp, h.GetPtr(ilast-1, ilast-1-1), &c, &s, h.GetPtr(ilast-1, ilast-1))
+		c, s, *h.GetPtr(ilast-1, ilast-1) = Zlartg(ctemp, h.Get(ilast-1, ilast-1-1))
 		h.Set(ilast-1, ilast-1-1, czero)
-		Zrot(toPtr(ilast-ifrstm), h.CVector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }(), h.CVector(ifrstm-1, ilast-1-1), func() *int { y := 1; return &y }(), &c, &s)
-		Zrot(toPtr(ilast-ifrstm), t.CVector(ifrstm-1, ilast-1), func() *int { y := 1; return &y }(), t.CVector(ifrstm-1, ilast-1-1), func() *int { y := 1; return &y }(), &c, &s)
+		Zrot(ilast-ifrstm, h.CVector(ifrstm-1, ilast-1, 1), h.CVector(ifrstm-1, ilast-1-1, 1), c, s)
+		Zrot(ilast-ifrstm, t.CVector(ifrstm-1, ilast-1, 1), t.CVector(ifrstm-1, ilast-1-1, 1), c, s)
 		if ilz {
-			Zrot(n, z.CVector(0, ilast-1), func() *int { y := 1; return &y }(), z.CVector(0, ilast-1-1), func() *int { y := 1; return &y }(), &c, &s)
+			Zrot(n, z.CVector(0, ilast-1, 1), z.CVector(0, ilast-1-1, 1), c, s)
 		}
 
 		//        H(ILAST,ILAST-1)=0 -- Standardize B, set ALPHA and BETA
@@ -362,7 +362,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				goblas.Zscal(1, signbc, h.CVector(ilast-1, ilast-1, 1))
 			}
 			if ilz {
-				goblas.Zscal(*n, signbc, z.CVector(0, ilast-1, 1))
+				goblas.Zscal(n, signbc, z.CVector(0, ilast-1, 1))
 			}
 		} else {
 			t.Set(ilast-1, ilast-1, czero)
@@ -372,7 +372,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 
 		//        Go to next block -- exit if finished.
 		ilast = ilast - 1
-		if ilast < (*ilo) {
+		if ilast < ilo {
 			goto label190
 		}
 
@@ -382,7 +382,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		if !ilschr {
 			ilastm = ilast
 			if ifrstm > ilast {
-				ifrstm = (*ilo)
+				ifrstm = ilo
 			}
 		}
 		goto label160
@@ -456,13 +456,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 		//
 		//        Initial Q
 		ctemp2 = complex(ascale, 0) * h.Get(istart, istart-1)
-		Zlartg(&ctemp, &ctemp2, &c, &s, &ctemp3)
+		c, s, _ = Zlartg(ctemp, ctemp2)
 
 		//        Sweep
 		for j = istart; j <= ilast-1; j++ {
 			if j > istart {
 				ctemp = h.Get(j-1, j-1-1)
-				Zlartg(&ctemp, h.GetPtr(j, j-1-1), &c, &s, h.GetPtr(j-1, j-1-1))
+				c, s, *h.GetPtr(j-1, j-1-1) = Zlartg(ctemp, h.Get(j, j-1-1))
 				h.Set(j, j-1-1, czero)
 			}
 
@@ -475,7 +475,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				t.Set(j-1, jc-1, ctemp2)
 			}
 			if ilq {
-				for jr = 1; jr <= (*n); jr++ {
+				for jr = 1; jr <= n; jr++ {
 					ctemp = complex(c, 0)*q.Get(jr-1, j-1) + cmplx.Conj(s)*q.Get(jr-1, j)
 					q.Set(jr-1, j, -s*q.Get(jr-1, j-1)+complex(c, 0)*q.Get(jr-1, j))
 					q.Set(jr-1, j-1, ctemp)
@@ -483,7 +483,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 			}
 
 			ctemp = t.Get(j, j)
-			Zlartg(&ctemp, t.GetPtr(j, j-1), &c, &s, t.GetPtr(j, j))
+			c, s, *t.GetPtr(j, j) = Zlartg(ctemp, t.Get(j, j-1))
 			t.Set(j, j-1, czero)
 
 			for jr = ifrstm; jr <= min(j+2, ilast); jr++ {
@@ -497,7 +497,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 				t.Set(jr-1, j, ctemp)
 			}
 			if ilz {
-				for jr = 1; jr <= (*n); jr++ {
+				for jr = 1; jr <= n; jr++ {
 					ctemp = complex(c, 0)*z.Get(jr-1, j) + s*z.Get(jr-1, j-1)
 					z.Set(jr-1, j-1, -cmplx.Conj(s)*z.Get(jr-1, j)+complex(c, 0)*z.Get(jr-1, j-1))
 					z.Set(jr-1, j, ctemp)
@@ -511,7 +511,7 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi *int, h *mat.CMatrix, ldh *int, 
 	//     Drop-through = non-convergence
 label180:
 	;
-	(*info) = ilast
+	info = ilast
 	goto label210
 
 	//     Successful completion of all QZ steps
@@ -519,7 +519,7 @@ label190:
 	;
 
 	//     Set Eigenvalues 1:ILO-1
-	for j = 1; j <= (*ilo)-1; j++ {
+	for j = 1; j <= ilo-1; j++ {
 		absb = t.GetMag(j-1, j-1)
 		if absb > safmin {
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
@@ -531,7 +531,7 @@ label190:
 				goblas.Zscal(1, signbc, h.CVector(j-1, j-1, 1))
 			}
 			if ilz {
-				goblas.Zscal(*n, signbc, z.CVector(0, j-1, 1))
+				goblas.Zscal(n, signbc, z.CVector(0, j-1, 1))
 			}
 		} else {
 			t.Set(j-1, j-1, czero)
@@ -541,10 +541,12 @@ label190:
 	}
 
 	//     Normal Termination
-	(*info) = 0
+	info = 0
 
 	//     Exit (other than argument error) -- return optimal workspace size
 label210:
 	;
-	work.SetRe(0, float64(*n))
+	work.SetRe(0, float64(n))
+
+	return
 }

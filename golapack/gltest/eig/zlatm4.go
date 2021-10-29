@@ -9,7 +9,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zlatm4 generates basic square matrices, which may later be
+// zlatm4 generates basic square matrices, which may later be
 // multiplied by others in order to produce test matrices.  It is
 // intended mainly to be used to test the generalized eigenvalue
 // routines.
@@ -18,7 +18,7 @@ import (
 // according to the value of ITYPE, NZ1, NZ2, RSIGN, AMAGN, and RCOND.
 // It then fills in the upper triangle with random numbers, if TRIANG is
 // non-zero.
-func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, idist *int, iseed *[]int, a *mat.CMatrix, lda *int) {
+func zlatm4(itype, n, nz1, nz2 int, rsign bool, amagn, rcond, triang float64, idist int, iseed *[]int, a *mat.CMatrix) {
 	var cone, ctemp, czero complex128
 	var alpha, one, zero float64
 	var i, isdb, isde, jc, jd, jr, k, kbeg, kend, klen int
@@ -28,10 +28,10 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
 
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
-	golapack.Zlaset('F', n, n, &czero, &czero, a, lda)
+	golapack.Zlaset(Full, n, n, czero, czero, a)
 
 	//     Insure a correct ISEED
 	if ((*iseed)[3] % 2) != 1 {
@@ -40,19 +40,19 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 
 	//     Compute diagonal and subdiagonal according to ITYPE, NZ1, NZ2,
 	//     and RCOND
-	if (*itype) != 0 {
-		if abs(*itype) >= 4 {
-			kbeg = max(1, min(*n, (*nz1)+1))
-			kend = max(kbeg, min(*n, (*n)-(*nz2)))
+	if itype != 0 {
+		if abs(itype) >= 4 {
+			kbeg = max(1, min(n, nz1+1))
+			kend = max(kbeg, min(n, n-nz2))
 			klen = kend + 1 - kbeg
 		} else {
 			kbeg = 1
-			kend = (*n)
-			klen = (*n)
+			kend = n
+			klen = n
 		}
 		isdb = 1
 		isde = 0
-		switch abs(*itype) {
+		switch abs(itype) {
 		case 1:
 			goto label10
 		case 2:
@@ -78,7 +78,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		//        abs(ITYPE) = 1: Identity
 	label10:
 		;
-		for jd = 1; jd <= (*n); jd++ {
+		for jd = 1; jd <= n; jd++ {
 			a.Set(jd-1, jd-1, cone)
 		}
 		goto label220
@@ -86,18 +86,18 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		//        abs(ITYPE) = 2: Transposed Jordan block
 	label30:
 		;
-		for jd = 1; jd <= (*n)-1; jd++ {
+		for jd = 1; jd <= n-1; jd++ {
 			a.Set(jd, jd-1, cone)
 		}
 		isdb = 1
-		isde = (*n) - 1
+		isde = n - 1
 		goto label220
 
 		//        abs(ITYPE) = 3: Transposed Jordan block, followed by the
 		//                        identity.
 	label50:
 		;
-		k = ((*n) - 1) / 2
+		k = (n - 1) / 2
 		for jd = 1; jd <= k; jd++ {
 			a.Set(jd, jd-1, cone)
 		}
@@ -112,7 +112,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 	label80:
 		;
 		for jd = kbeg; jd <= kend; jd++ {
-			a.SetRe(jd-1, jd-1, float64(jd-(*nz1)))
+			a.SetRe(jd-1, jd-1, float64(jd-nz1))
 		}
 		goto label220
 
@@ -120,7 +120,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 	label100:
 		;
 		for jd = kbeg + 1; jd <= kend; jd++ {
-			a.SetRe(jd-1, jd-1, *rcond)
+			a.SetRe(jd-1, jd-1, rcond)
 		}
 		a.Set(kbeg-1, kbeg-1, cone)
 		goto label220
@@ -131,7 +131,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		for jd = kbeg; jd <= kend-1; jd++ {
 			a.Set(jd-1, jd-1, cone)
 		}
-		a.SetRe(kend-1, kend-1, *rcond)
+		a.SetRe(kend-1, kend-1, rcond)
 		goto label220
 
 		//        abs(ITYPE) = 7: Exponentially distributed D values:
@@ -139,9 +139,9 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		;
 		a.Set(kbeg-1, kbeg-1, cone)
 		if klen > 1 {
-			alpha = math.Pow(*rcond, one/float64(klen-1))
+			alpha = math.Pow(rcond, one/float64(klen-1))
 			for i = 2; i <= klen; i++ {
-				a.SetRe((*nz1)+i-1, (*nz1)+i-1, math.Pow(alpha, float64(i-1)))
+				a.SetRe(nz1+i-1, nz1+i-1, math.Pow(alpha, float64(i-1)))
 			}
 		}
 		goto label220
@@ -151,9 +151,9 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		;
 		a.Set(kbeg-1, kbeg-1, cone)
 		if klen > 1 {
-			alpha = (one - (*rcond)) / float64(klen-1)
+			alpha = (one - rcond) / float64(klen-1)
 			for i = 2; i <= klen; i++ {
-				a.SetRe((*nz1)+i-1, (*nz1)+i-1, float64(klen-i)*alpha+(*rcond))
+				a.SetRe(nz1+i-1, nz1+i-1, float64(klen-i)*alpha+rcond)
 			}
 		}
 		goto label220
@@ -161,7 +161,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		//        abs(ITYPE) = 9: Randomly distributed D values on ( RCOND, 1):
 	label180:
 		;
-		alpha = math.Log(*rcond)
+		alpha = math.Log(rcond)
 		for jd = kbeg; jd <= kend; jd++ {
 			a.SetRe(jd-1, jd-1, math.Exp(alpha*matgen.Dlaran(iseed)))
 		}
@@ -171,7 +171,7 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 	label200:
 		;
 		for jd = kbeg; jd <= kend; jd++ {
-			a.Set(jd-1, jd-1, matgen.Zlarnd(idist, iseed))
+			a.Set(jd-1, jd-1, matgen.Zlarnd(idist, *iseed))
 		}
 
 	label220:
@@ -179,10 +179,10 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 
 		//        Scale by AMAGN
 		for jd = kbeg; jd <= kend; jd++ {
-			a.SetRe(jd-1, jd-1, (*amagn)*a.GetRe(jd-1, jd-1))
+			a.SetRe(jd-1, jd-1, amagn*a.GetRe(jd-1, jd-1))
 		}
 		for jd = isdb; jd <= isde; jd++ {
-			a.SetRe(jd, jd-1, (*amagn)*a.GetRe(jd, jd-1))
+			a.SetRe(jd, jd-1, amagn*a.GetRe(jd, jd-1))
 		}
 
 		//        If RSIGN = .TRUE., assign random signs to diagonal and
@@ -190,14 +190,14 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		if rsign {
 			for jd = kbeg; jd <= kend; jd++ {
 				if a.GetRe(jd-1, jd-1) != zero {
-					ctemp = matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed)
+					ctemp = matgen.Zlarnd(3, *iseed)
 					ctemp = ctemp / complex(cmplx.Abs(ctemp), 0)
 					a.Set(jd-1, jd-1, ctemp*a.GetReCmplx(jd-1, jd-1))
 				}
 			}
 			for jd = isdb; jd <= isde; jd++ {
 				if a.GetRe(jd, jd-1) != zero {
-					ctemp = matgen.Zlarnd(func() *int { y := 3; return &y }(), iseed)
+					ctemp = matgen.Zlarnd(3, *iseed)
 					ctemp = ctemp / complex(cmplx.Abs(ctemp), 0)
 					a.Set(jd, jd-1, ctemp*a.GetReCmplx(jd, jd-1))
 				}
@@ -205,26 +205,26 @@ func Zlatm4(itype, n, nz1, nz2 *int, rsign bool, amagn, rcond, triang *float64, 
 		}
 
 		//        Reverse if ITYPE < 0
-		if (*itype) < 0 {
+		if itype < 0 {
 			for jd = kbeg; jd <= (kbeg+kend-1)/2; jd++ {
 				ctemp = a.Get(jd-1, jd-1)
 				a.Set(jd-1, jd-1, a.Get(kbeg+kend-jd-1, kbeg+kend-jd-1))
 				a.Set(kbeg+kend-jd-1, kbeg+kend-jd-1, ctemp)
 			}
-			for jd = 1; jd <= ((*n)-1)/2; jd++ {
+			for jd = 1; jd <= (n-1)/2; jd++ {
 				ctemp = a.Get(jd, jd-1)
-				a.Set(jd, jd-1, a.Get((*n)+1-jd-1, (*n)-jd-1))
-				a.Set((*n)+1-jd-1, (*n)-jd-1, ctemp)
+				a.Set(jd, jd-1, a.Get(n+1-jd-1, n-jd-1))
+				a.Set(n+1-jd-1, n-jd-1, ctemp)
 			}
 		}
 
 	}
 
 	//     Fill in upper triangle
-	if (*triang) != zero {
-		for jc = 2; jc <= (*n); jc++ {
+	if triang != zero {
+		for jc = 2; jc <= n; jc++ {
 			for jr = 1; jr <= jc-1; jr++ {
-				a.Set(jr-1, jc-1, complex(*triang, 0)*matgen.Zlarnd(idist, iseed))
+				a.Set(jr-1, jc-1, complex(triang, 0)*matgen.Zlarnd(idist, *iseed))
 			}
 		}
 	}

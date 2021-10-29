@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -16,12 +17,10 @@ import (
 // where U (or L) is a product of permutation and unit upper (lower)
 // triangular matrices, and D is symmetric and block diagonal with
 // 1-by-1 and 2-by-2 diagonal blocks.
-func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
+func Dsptrf(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int) (info int, err error) {
 	var upper bool
 	var absakk, alpha, colmax, d11, d12, d21, d22, eight, one, r1, rowmax, sevten, t, wk, wkm1, wkp1, zero float64
 	var i, imax, j, jmax, k, kc, kk, knc, kp, kpc, kstep, kx, npp int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -29,15 +28,14 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 	sevten = 17.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSPTRF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsptrf", err)
 		return
 	}
 
@@ -49,8 +47,8 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 		//
 		//        K is the main loop index, decreasing from N to 1 in steps of
 		//        1 or 2
-		k = (*n)
-		kc = ((*n)-1)*(*n)/2 + 1
+		k = n
+		kc = (n-1)*n/2 + 1
 	label10:
 		;
 		knc = kc
@@ -76,8 +74,8 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -154,7 +152,9 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				//
 				//              A := A - U(k)*D(k)*U(k)**T = A - W(k)*1/D(k)*W(k)**T
 				r1 = one / ap.Get(kc+k-1-1)
-				err = goblas.Dspr(mat.UploByte(uplo), k-1, -r1, ap.Off(kc-1, 1), ap)
+				if err = goblas.Dspr(uplo, k-1, -r1, ap.Off(kc-1, 1), ap); err != nil {
+					panic(err)
+				}
 
 				//              Store U(k) in column k
 				goblas.Dscal(k-1, r1, ap.Off(kc-1, 1))
@@ -213,13 +213,13 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 		//        1 or 2
 		k = 1
 		kc = 1
-		npp = (*n) * ((*n) + 1) / 2
+		npp = n * (n + 1) / 2
 	label60:
 		;
 		knc = kc
 
 		//        If K > N, exit from loop
-		if k > (*n) {
+		if k > n {
 			return
 		}
 		kstep = 1
@@ -230,8 +230,8 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
-		if k < (*n) {
-			imax = k + goblas.Idamax((*n)-k, ap.Off(kc, 1))
+		if k < n {
+			imax = k + goblas.Idamax(n-k, ap.Off(kc, 1))
 			colmax = math.Abs(ap.Get(kc + imax - k - 1))
 		} else {
 			colmax = zero
@@ -239,8 +239,8 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -257,11 +257,11 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 						rowmax = math.Abs(ap.Get(kx - 1))
 						jmax = j
 					}
-					kx = kx + (*n) - j
+					kx = kx + n - j
 				}
-				kpc = npp - ((*n)-imax+1)*((*n)-imax+2)/2 + 1
-				if imax < (*n) {
-					jmax = imax + goblas.Idamax((*n)-imax, ap.Off(kpc, 1))
+				kpc = npp - (n-imax+1)*(n-imax+2)/2 + 1
+				if imax < n {
+					jmax = imax + goblas.Idamax(n-imax, ap.Off(kpc, 1))
 					rowmax = math.Max(rowmax, math.Abs(ap.Get(kpc+jmax-imax-1)))
 				}
 
@@ -282,17 +282,17 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 
 			kk = k + kstep - 1
 			if kstep == 2 {
-				knc = knc + (*n) - k + 1
+				knc = knc + n - k + 1
 			}
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
-				if kp < (*n) {
-					goblas.Dswap((*n)-kp, ap.Off(knc+kp-kk, 1), ap.Off(kpc, 1))
+				if kp < n {
+					goblas.Dswap(n-kp, ap.Off(knc+kp-kk, 1), ap.Off(kpc, 1))
 				}
 				kx = knc + kp - kk
 				for j = kk + 1; j <= kp-1; j++ {
-					kx = kx + (*n) - j + 1
+					kx = kx + n - j + 1
 					t = ap.Get(knc + j - kk - 1)
 					ap.Set(knc+j-kk-1, ap.Get(kx-1))
 					ap.Set(kx-1, t)
@@ -314,15 +314,17 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				//              W(k) = L(k)*D(k)
 				//
 				//              where L(k) is the k-th column of L
-				if k < (*n) {
+				if k < n {
 					//                 Perform a rank-1 update of A(k+1:n,k+1:n) as
 					//
 					//                 A := A - L(k)*D(k)*L(k)**T = A - W(k)*(1/D(k))*W(k)**T
 					r1 = one / ap.Get(kc-1)
-					err = goblas.Dspr(mat.UploByte(uplo), (*n)-k, -r1, ap.Off(kc, 1), ap.Off(kc+(*n)-k))
+					if err = goblas.Dspr(uplo, n-k, -r1, ap.Off(kc, 1), ap.Off(kc+n-k)); err != nil {
+						panic(err)
+					}
 
 					//                 Store L(k) in column K
-					goblas.Dscal((*n)-k, r1, ap.Off(kc, 1))
+					goblas.Dscal(n-k, r1, ap.Off(kc, 1))
 				}
 			} else {
 				//              2-by-2 pivot block D(k): columns K and K+1 now hold
@@ -331,7 +333,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 				//
 				//              where L(k) and L(k+1) are the k-th and (k+1)-th columns
 				//              of L
-				if k < (*n)-1 {
+				if k < n-1 {
 					//                 Perform a rank-2 update of A(k+2:n,k+2:n) as
 					//
 					//                 A := A - ( L(k) L(k+1) )*D(k)*( L(k) L(k+1) )**T
@@ -339,22 +341,22 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 					//
 					//                 where L(k) and L(k+1) are the k-th and (k+1)-th
 					//                 columns of L
-					d21 = ap.Get(k + 1 + (k-1)*(2*(*n)-k)/2 - 1)
-					d11 = ap.Get(k+1+k*(2*(*n)-k-1)/2-1) / d21
-					d22 = ap.Get(k+(k-1)*(2*(*n)-k)/2-1) / d21
+					d21 = ap.Get(k + 1 + (k-1)*(2*n-k)/2 - 1)
+					d11 = ap.Get(k+1+k*(2*n-k-1)/2-1) / d21
+					d22 = ap.Get(k+(k-1)*(2*n-k)/2-1) / d21
 					t = one / (d11*d22 - one)
 					d21 = t / d21
 
-					for j = k + 2; j <= (*n); j++ {
-						wk = d21 * (d11*ap.Get(j+(k-1)*(2*(*n)-k)/2-1) - ap.Get(j+k*(2*(*n)-k-1)/2-1))
-						wkp1 = d21 * (d22*ap.Get(j+k*(2*(*n)-k-1)/2-1) - ap.Get(j+(k-1)*(2*(*n)-k)/2-1))
+					for j = k + 2; j <= n; j++ {
+						wk = d21 * (d11*ap.Get(j+(k-1)*(2*n-k)/2-1) - ap.Get(j+k*(2*n-k-1)/2-1))
+						wkp1 = d21 * (d22*ap.Get(j+k*(2*n-k-1)/2-1) - ap.Get(j+(k-1)*(2*n-k)/2-1))
 
-						for i = j; i <= (*n); i++ {
-							ap.Set(i+(j-1)*(2*(*n)-j)/2-1, ap.Get(i+(j-1)*(2*(*n)-j)/2-1)-ap.Get(i+(k-1)*(2*(*n)-k)/2-1)*wk-ap.Get(i+k*(2*(*n)-k-1)/2-1)*wkp1)
+						for i = j; i <= n; i++ {
+							ap.Set(i+(j-1)*(2*n-j)/2-1, ap.Get(i+(j-1)*(2*n-j)/2-1)-ap.Get(i+(k-1)*(2*n-k)/2-1)*wk-ap.Get(i+k*(2*n-k-1)/2-1)*wkp1)
 						}
 
-						ap.Set(j+(k-1)*(2*(*n)-k)/2-1, wk)
-						ap.Set(j+k*(2*(*n)-k-1)/2-1, wkp1)
+						ap.Set(j+(k-1)*(2*n-k)/2-1, wk)
+						ap.Set(j+k*(2*n-k-1)/2-1, wkp1)
 
 					}
 				}
@@ -371,7 +373,7 @@ func Dsptrf(uplo byte, n *int, ap *mat.Vector, ipiv *[]int, info *int) {
 
 		//        Increase K and return to the start of the main loop
 		k = k + kstep
-		kc = knc + (*n) - k + 2
+		kc = knc + n - k + 2
 		goto label60
 
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dsvdct counts the number NUM of eigenvalues of a 2*N by 2*N
+// dsvdct counts the number NUM of eigenvalues of a 2*N by 2*N
 // tridiagonal matrix T which are less than or equal to SHIFT.  T is
 // formed by putting zeros on the diagonal and making the off-diagonals
 // equal to S(1), E(1), S(2), E(2), ... , E(N-1), S(N).  If SHIFT is
@@ -20,7 +20,7 @@ import (
 // See W. Kahan "Accurate Eigenvalues of a Symmetric Tridiagonal
 // Matrix", Report CS41, Computer Science Dept., Stanford University,
 // July 21, 1966
-func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
+func dsvdct(n int, s, e *mat.Vector, shift float64) (num int) {
 	var m1, m2, mx, one, ovfl, sov, sshift, ssun, sun, tmp, tom, u, unfl, zero float64
 	var i int
 
@@ -33,15 +33,15 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 
 	//     Find largest entry
 	mx = s.GetMag(0)
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		mx = math.Max(mx, math.Max(s.GetMag(i), e.GetMag(i-1)))
 	}
 
 	if mx == zero {
-		if (*shift) < zero {
-			(*num) = 0
+		if shift < zero {
+			num = 0
 		} else {
-			(*num) = 2 * (*n)
+			num = 2 * n
 		}
 		return
 	}
@@ -61,12 +61,12 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 
 	//     Begin counting
 	u = one
-	(*num) = 0
-	sshift = ((*shift) * m1) * m2
+	num = 0
+	sshift = (shift * m1) * m2
 	u = -sshift
 	if u <= sun {
 		if u <= zero {
-			(*num) = (*num) + 1
+			num = num + 1
 			if u > -sun {
 				u = -sun
 			}
@@ -78,7 +78,7 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 	u = -tmp*(tmp/u) - sshift
 	if u <= sun {
 		if u <= zero {
-			(*num) = (*num) + 1
+			num = num + 1
 			if u > -sun {
 				u = -sun
 			}
@@ -86,12 +86,12 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 			u = sun
 		}
 	}
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		tmp = (e.Get(i-1) * m1) * m2
 		u = -tmp*(tmp/u) - sshift
 		if u <= sun {
 			if u <= zero {
-				(*num) = (*num) + 1
+				num = num + 1
 				if u > -sun {
 					u = -sun
 				}
@@ -103,7 +103,7 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 		u = -tmp*(tmp/u) - sshift
 		if u <= sun {
 			if u <= zero {
-				(*num) = (*num) + 1
+				num = num + 1
 				if u > -sun {
 					u = -sun
 				}
@@ -112,4 +112,6 @@ func Dsvdct(n *int, s, e *mat.Vector, shift *float64, num *int) {
 			}
 		}
 	}
+
+	return
 }

@@ -12,12 +12,13 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrvpt tests DPTSV and -SVX.
-func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tsterr *bool, a, d, e, b, x, xact, work, rwork *mat.Vector, nout *int, t *testing.T) {
+// ddrvpt tests DPTSV and -SVX.
+func ddrvpt(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, a, d, e, b, x, xact, work, rwork *mat.Vector, t *testing.T) {
 	var zerot bool
 	var dist, fact, _type byte
 	var ainvnm, anorm, cond, dmax, one, rcond, rcondc, zero float64
 	var i, ia, ifact, imat, in, info, ix, izero, j, k, k1, kl, ku, lda, mode, n, nerrs, nfail, nimat, nrun, nt, ntypes int
+	var err error
 
 	result := vf(6)
 	z := vf(3)
@@ -33,7 +34,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 0, 0, 0, 1
 
-	path := []byte("DPT")
+	path := "Dpt"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -42,14 +43,14 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrvx(path, t)
+	if tsterr {
+		derrvx(path, t)
 	}
 	(*infot) = 0
 
-	for in = 1; in <= (*nn); in++ {
+	for in = 1; in <= nn; in++ {
 		//        Do for each value of N in NVAL.
-		n = (*nval)[in-1]
+		n = nval[in-1]
 		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
@@ -58,23 +59,20 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if n > 0 && !(*dotype)[imat-1] {
+			if n > 0 && !dotype[imat-1] {
 				goto label110
 			}
 
 			//           Set up parameters with DLATB4.
-			Dlatb4(path, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cond, &dist)
+			_type, kl, ku, anorm, mode, cond, dist = dlatb4(path, imat, n, n)
 
 			zerot = imat >= 8 && imat <= 10
 			if imat <= 6 {
 				//              Type 1-6:  generate a symmetric tridiagonal matrix of
 				//              known condition number in lower triangular band storage.
-				*srnamt = "DLATMS"
-				matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cond, &anorm, &kl, &ku, 'B', a.Matrix(2, opts), func() *int { y := 2; return &y }(), work, &info)
-
-				//              Check the error code from DLATMS.
-				if info != 0 {
-					Alaerh(path, []byte("DLATMS"), &info, func() *int { y := 0; return &y }(), []byte(" "), &n, &n, &kl, &ku, toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dlatms"
+				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'B', a.Matrix(2, opts), work); info != 0 {
+					nerrs = alaerh(path, "Dlatms", info, 0, []byte(" "), n, n, kl, ku, -1, imat, nfail, nerrs)
 					goto label110
 				}
 				izero = 0
@@ -92,10 +90,10 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 			} else {
 				//              Type 7-12:  generate a diagonally dominant matrix with
 				//              unknown condition number in the vectors D and E.
-				if !zerot || !(*dotype)[6] {
+				if !zerot || !dotype[6] {
 					//                 Let D and E have values from [-1,1].
-					golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, &n, d)
-					golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(n-1), e)
+					golapack.Dlarnv(2, &iseed, n, d)
+					golapack.Dlarnv(2, &iseed, n-1, e)
 
 					//                 Make the tridiagonal matrix diagonally dominant.
 					if n == 1 {
@@ -168,13 +166,13 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 			//           Generate NRHS random solution vectors.
 			ix = 1
-			for j = 1; j <= (*nrhs); j++ {
-				golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, &n, xact.Off(ix-1))
+			for j = 1; j <= nrhs; j++ {
+				golapack.Dlarnv(2, &iseed, n, xact.Off(ix-1))
 				ix = ix + lda
 			}
 
 			//           Set the right hand side.
-			Dlaptm(&n, nrhs, &one, d, e, xact.Matrix(lda, opts), &lda, &zero, b.Matrix(lda, opts), &lda)
+			dlaptm(n, nrhs, one, d, e, xact.Matrix(lda, opts), zero, b.Matrix(lda, opts))
 
 			for ifact = 1; ifact <= 2; ifact++ {
 				if ifact == 1 {
@@ -184,7 +182,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				//              Compute the condition number for comparison with
-				//              the value returned by DPTSVX.
+				//              the value returned by Dptsvx.
 				if zerot {
 					if ifact == 1 {
 						goto label100
@@ -193,7 +191,7 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 				} else if ifact == 1 {
 					//                 Compute the 1-norm of A.
-					anorm = golapack.Dlanst('1', &n, d, e)
+					anorm = golapack.Dlanst('1', n, d, e)
 
 					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
@@ -201,7 +199,9 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Factor the matrix A.
-					golapack.Dpttrf(&n, d.Off(n), e.Off(n), &info)
+					if info, err = golapack.Dpttrf(n, d.Off(n), e.Off(n)); err != nil {
+						panic(err)
+					}
 
 					//                 Use DPTTRS to solve for one column at a time of
 					//                 inv(A), computing the maximum column sum as we go.
@@ -211,7 +211,9 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							x.Set(j-1, zero)
 						}
 						x.Set(i-1, one)
-						golapack.Dpttrs(&n, func() *int { y := 1; return &y }(), d.Off(n), e.Off(n), x.Matrix(lda, opts), &lda, &info)
+						if err = golapack.Dpttrs(n, 1, d.Off(n), e.Off(n), x.Matrix(lda, opts)); err != nil {
+							panic(err)
+						}
 						ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
 					}
 
@@ -229,47 +231,49 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					if n > 1 {
 						goblas.Dcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 					}
-					golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
+					golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
 
 					//                 Factor A as L*D*L' and solve the system A*X = B.
-					*srnamt = "DPTSV "
-					golapack.Dptsv(&n, nrhs, d.Off(n), e.Off(n), x.Matrix(lda, opts), &lda, &info)
+					*srnamt = "Dptsv"
+					if info, err = golapack.Dptsv(n, nrhs, d.Off(n), e.Off(n), x.Matrix(lda, opts)); err != nil {
+						panic(err)
+					}
 
 					//                 Check error code from DPTSV .
 					if info != izero {
-						Alaerh(path, []byte("DPTSV "), &info, &izero, []byte(" "), &n, &n, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), nrhs, &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Dptsv", info, 0, []byte(" "), n, n, 1, 1, nrhs, imat, nfail, nerrs)
 					}
 					nt = 0
 					if izero == 0 {
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
-						Dptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
+						result.Set(0, dptt01(n, d, e, d.Off(n), e.Off(n), work))
 
 						//                    Compute the residual in the solution.
-						golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-						Dptt02(&n, nrhs, d, e, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
+						result.Set(1, dptt02(n, nrhs, d, e, x.Matrix(lda, opts), work.Matrix(lda, opts)))
 
 						//                    Check solution from generated exact solution.
-						Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+						result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 						nt = 3
 					}
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 1; k <= nt; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							if nfail == 0 && nerrs == 0 {
-								Aladhd(path)
+								aladhd(path)
 							}
 							t.Fail()
-							fmt.Printf(" %s, N =%5d, _type %2d, test %2d, ratio = %12.5f\n", "DPTSV ", n, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" %s, n=%5d, _type %2d, test %2d, ratio = %12.5f\n", "DPTSV ", n, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
 					nrun = nrun + nt
 				}
 
-				//              --- Test DPTSVX ---
+				//              --- Test Dptsvx ---
 				if ifact > 1 {
 					//                 Initialize D( N+1:2*N ) and E( N+1:2*N ) to zero.
 					for i = 1; i <= n-1; i++ {
@@ -281,56 +285,58 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 				}
 
-				golapack.Dlaset('F', &n, nrhs, &zero, &zero, x.Matrix(lda, opts), &lda)
+				golapack.Dlaset(Full, n, nrhs, zero, zero, x.Matrix(lda, opts))
 
 				//              Solve the system and compute the condition number and
-				//              error bounds using DPTSVX.
-				*srnamt = "DPTSVX"
-				golapack.Dptsvx(fact, &n, nrhs, d, e, d.Off(n), e.Off(n), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, &info)
+				//              error bounds using Dptsvx.
+				*srnamt = "Dptsvx"
+				if rcond, info, err = golapack.Dptsvx(fact, n, nrhs, d, e, d.Off(n), e.Off(n), b.Matrix(lda, opts), x.Matrix(lda, opts), rwork, rwork.Off(nrhs), work); err != nil {
+					panic(err)
+				}
 
-				//              Check the error code from DPTSVX.
+				//              Check the error code from Dptsvx.
 				if info != izero {
-					Alaerh(path, []byte("DPTSVX"), &info, &izero, []byte{fact}, &n, &n, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), nrhs, &imat, &nfail, &nerrs)
+					nerrs = alaerh(path, "Dptsvx", info, 0, []byte{fact}, n, n, 1, 1, nrhs, imat, nfail, nerrs)
 				}
 				if izero == 0 {
 					if ifact == 2 {
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
 						k1 = 1
-						Dptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
+						result.Set(0, dptt01(n, d, e, d.Off(n), e.Off(n), work))
 					} else {
 						k1 = 2
 					}
 
 					//                 Compute the residual in the solution.
-					golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-					Dptt02(&n, nrhs, d, e, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
+					golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
+					result.Set(1, dptt02(n, nrhs, d, e, x.Matrix(lda, opts), work.Matrix(lda, opts)))
 
 					//                 Check solution from generated exact solution.
-					Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+					result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 
 					//                 Check error bounds from iterative refinement.
-					Dptt05(&n, nrhs, d, e, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
+					dptt05(n, nrhs, d, e, b.Matrix(lda, opts), x.Matrix(lda, opts), xact.Matrix(lda, opts), rwork, rwork.Off(nrhs), result.Off(3))
 				} else {
 					k1 = 6
 				}
 
 				//              Check the reciprocal of the condition number.
-				result.Set(5, Dget06(&rcond, &rcondc))
+				result.Set(5, dget06(rcond, rcondc))
 
 				//              Print information about the tests that did not pass
 				//              the threshold.
 				for k = k1; k <= 6; k++ {
-					if result.Get(k-1) >= (*thresh) {
+					if result.Get(k-1) >= thresh {
 						if nfail == 0 && nerrs == 0 {
-							Aladhd(path)
+							aladhd(path)
 						}
 						t.Fail()
-						fmt.Printf(" %s, FACT='%c', N =%5d, _type %2d, test %2d, ratio = %12.5f\n", "DPTSVX", fact, n, imat, k, result.Get(k-1))
-						nfail = nfail + 1
+						fmt.Printf(" %s, fact='%c', n=%5d, _type %2d, test %2d, ratio = %12.5f\n", "Dptsvx", fact, n, imat, k, result.Get(k-1))
+						nfail++
 					}
 				}
-				nrun = nrun + 7 - k1
+				nrun += 7 - k1
 			label100:
 			}
 		label110:
@@ -346,5 +352,5 @@ func Ddrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	}
 
 	//     Print a summary of the results.
-	Alasvm(path, &nfail, &nrun, &nerrs)
+	alasvm(path, nfail, nrun, nerrs)
 }

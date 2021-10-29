@@ -11,14 +11,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkgg checks the nonsymmetric generalized eigenvalue problem
+// dchkgg checks the nonsymmetric generalized eigenvalue problem
 // routines.
 //                                T          T        T
-// DGGHRD factors A and B as U H V  and U T V , where   means
+// Dgghrd factors A and B as U H V  and U T V , where   means
 // transpose, H is hessenberg, T is triangular and U and V are
 // orthogonal.
 //                                 T          T
-// DHGEQZ factors H and T as  Q S Z  and Q P Z , where P is upper
+// Dhgeqz factors H and T as  Q S Z  and Q P Z , where P is upper
 // triangular, S is in generalized Schur form (block upper triangular,
 // with 1x1 and 2x2 blocks on the diagonal, the 2x2 blocks
 // corresponding to complex conjugate pairs of generalized
@@ -35,12 +35,12 @@ import (
 //
 //     det( m(j) A - B ) = 0
 //
-// DTGEVC computes the matrix L of left eigenvectors and the matrix R
+// Dtgevc computes the matrix L of left eigenvectors and the matrix R
 // of right eigenvectors for the matrix pair ( S, P ).  In the
 // description below,  l and r are left and right eigenvectors
 // corresponding to the generalized eigenvalues (alpha,beta).
 //
-// When DCHKGG is called, a number of matrix "sizes" ("n's") and a
+// When dchkgg is called, a number of matrix "sizes" ("n's") and a
 // number of matrix "types" are specified.  For each size ("n")
 // and each type of matrix, one matrix will be generated and used
 // to test the nonsymmetric eigenroutines.  For each matrix, 15
@@ -80,7 +80,7 @@ import (
 //   | l'**H * (beta H - alpha T) | / ( ulp math.Max( |beta H|, |alpha T| ) )
 //
 //       where the eigenvectors l' are the result of passing Q to
-//       DTGEVC and back transforming (HOWMNY='B').
+//       Dtgevc and back transforming (howmny='B').
 //
 // (11)  math.Max over all right eigenvalue/-vector pairs (beta/alpha,r) of
 //
@@ -91,7 +91,7 @@ import (
 //       | (beta H - alpha T) r' | / ( ulp math.Max( |beta H|, |alpha T| ) )
 //
 //       where the eigenvectors r' are the result of passing Z to
-//       DTGEVC and back transforming (HOWMNY='B').
+//       Dtgevc and back transforming (howmny='B').
 //
 // The last three test ratios will usually be small, but there is no
 // mathematical requirement that they be so.  They are therefore
@@ -189,7 +189,7 @@ import (
 //
 // (26) U ( T1, T2 ) V     where T1 and T2 are random upper-triangular
 //                         matrices.
-func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, tstdif *bool, thrshn *float64, nounit *int, a *mat.Matrix, lda *int, b, h, t, s1, s2, p1, p2, u *mat.Matrix, ldu *int, v, q, z *mat.Matrix, alphr1, alphi1, beta1, alphr3, alphi3, beta3 *mat.Vector, evectl, evectr *mat.Matrix, work *mat.Vector, lwork *int, llwork *[]bool, result *mat.Vector, info *int, _t *testing.T) {
+func dchkgg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, tstdif bool, thrshn float64, nounit int, a, b, h, t, s1, s2, p1, p2, u, v, q, z *mat.Matrix, alphr1, alphi1, beta1, alphr3, alphi3, beta3 *mat.Vector, evectl, evectr *mat.Matrix, work *mat.Vector, lwork int, llwork []bool, result *mat.Vector, _t *testing.T) (err error) {
 	var badnn bool
 	var anorm, bnorm, one, safmax, safmin, temp1, temp2, ulp, ulpinv, zero float64
 	var i1, iadd, iinfo, in, j, jc, jr, jsize, jtype, lwkopt, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, ntest, ntestt int
@@ -230,13 +230,12 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	ibsign[0], ibsign[1], ibsign[2], ibsign[3], ibsign[4], ibsign[5], ibsign[6], ibsign[7], ibsign[8], ibsign[9], ibsign[10], ibsign[11], ibsign[12], ibsign[13], ibsign[14], ibsign[15], ibsign[16], ibsign[17], ibsign[18], ibsign[19], ibsign[20], ibsign[21], ibsign[22], ibsign[23], ibsign[24], ibsign[25] = 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 	//     Check for errors
-	(*info) = 0
 
 	badnn = false
 	nmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
@@ -246,29 +245,29 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	lwkopt = max(6*nmax, 2*nmax*nmax, 1)
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*lda) <= 1 || (*lda) < nmax {
-		(*info) = -10
-	} else if (*ldu) <= 1 || (*ldu) < nmax {
-		(*info) = -19
-	} else if lwkopt > (*lwork) {
-		(*info) = -30
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows <= 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows <= 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if u.Rows <= 1 || u.Rows < nmax {
+		err = fmt.Errorf("u.Rows <= 1 || u.Rows < nmax: u.Rows=%v, nmax=%v", u.Rows, nmax)
+	} else if lwkopt > lwork {
+		err = fmt.Errorf("lwkopt > lwork: lwkopt=%v, lwork=%v", lwkopt, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DCHKGG"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("dchkgg", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
@@ -276,7 +275,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	safmin = safmin / ulp
 	safmax = one / safmin
-	golapack.Dlabad(&safmin, &safmax)
+	safmin, safmax = golapack.Dlabad(safmin, safmax)
 	ulpinv = one / ulp
 
 	//     The values RMAGN(2:3) depend on N, see below.
@@ -288,28 +287,28 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label230
 			}
 			nmats = nmats + 1
 			ntest = 0
 
-			//           Save ISEED in case of an error.
+			//           Save iseed in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Initialize RESULT
@@ -348,12 +347,12 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
-						golapack.Dlaset('F', &n, &n, &zero, &zero, a, lda)
+						golapack.Dlaset(Full, n, n, zero, zero, a)
 					}
 				} else {
 					in = n
 				}
-				Dlatm4(&(katype[jtype-1]), &in, &(kz1[kazero[jtype-1]-1]), &(kz2[kazero[jtype-1]-1]), &(iasign[jtype-1]), rmagn.GetPtr(kamagn[jtype-1]-0), &ulp, rmagn.GetPtr(ktrian[jtype-1]*kamagn[jtype-1]-0), func() *int { y := 2; return &y }(), iseed, a, lda)
+				dlatm4(katype[jtype-1], in, kz1[kazero[jtype-1]-1], kz2[kazero[jtype-1]-1], iasign[jtype-1], rmagn.Get(kamagn[jtype-1]-0), ulp, rmagn.Get(ktrian[jtype-1]*kamagn[jtype-1]-0), 2, &iseed, a)
 				iadd = kadd[kazero[jtype-1]-1]
 				if iadd > 0 && iadd <= n {
 					a.Set(iadd-1, iadd-1, rmagn.Get(kamagn[jtype-1]-0))
@@ -363,12 +362,12 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
-						golapack.Dlaset('F', &n, &n, &zero, &zero, b, lda)
+						golapack.Dlaset(Full, n, n, zero, zero, b)
 					}
 				} else {
 					in = n
 				}
-				Dlatm4(&(kbtype[jtype-1]), &in, &(kz1[kbzero[jtype-1]-1]), &(kz2[kbzero[jtype-1]-1]), &(ibsign[jtype-1]), rmagn.GetPtr(kbmagn[jtype-1]-0), &one, rmagn.GetPtr(ktrian[jtype-1]*kbmagn[jtype-1]-0), func() *int { y := 2; return &y }(), iseed, b, lda)
+				dlatm4(kbtype[jtype-1], in, kz1[kbzero[jtype-1]-1], kz2[kbzero[jtype-1]-1], ibsign[jtype-1], rmagn.Get(kbmagn[jtype-1]-0), one, rmagn.Get(ktrian[jtype-1]*kbmagn[jtype-1]-0), 2, &iseed, b)
 				iadd = kadd[kbzero[jtype-1]-1]
 				if iadd != 0 && iadd <= n {
 					b.Set(iadd-1, iadd-1, rmagn.Get(kbmagn[jtype-1]-0))
@@ -381,22 +380,22 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					//                 a diagonal matrix.
 					for jc = 1; jc <= n-1; jc++ {
 						for jr = jc; jr <= n; jr++ {
-							u.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
-							v.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
+							u.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
+							v.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
 						}
-						golapack.Dlarfg(toPtr(n+1-jc), u.GetPtr(jc-1, jc-1), u.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						*u.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Dlarfg(n+1-jc, u.Get(jc-1, jc-1), u.Vector(jc, jc-1, 1))
 						work.Set(2*n+jc-1, math.Copysign(one, u.Get(jc-1, jc-1)))
 						u.Set(jc-1, jc-1, one)
-						golapack.Dlarfg(toPtr(n+1-jc), v.GetPtr(jc-1, jc-1), v.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						*v.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Dlarfg(n+1-jc, v.Get(jc-1, jc-1), v.Vector(jc, jc-1, 1))
 						work.Set(3*n+jc-1, math.Copysign(one, v.Get(jc-1, jc-1)))
 						v.Set(jc-1, jc-1, one)
 					}
 					u.Set(n-1, n-1, one)
 					work.Set(n-1, zero)
-					work.Set(3*n-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					work.Set(3*n-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 					v.Set(n-1, n-1, one)
 					work.Set(2*n-1, zero)
-					work.Set(4*n-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					work.Set(4*n-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 
 					//                 Apply the diagonal matrices
 					for jc = 1; jc <= n; jc++ {
@@ -405,20 +404,16 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.Get(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, a, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Left, NoTrans, n, n, n-1, u, work, a, work.Off(2*n)); err != nil {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), v, ldu, work.Off(n), a, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Right, Trans, n, n, n-1, v, work.Off(n), a, work.Off(2*n)); err != nil {
 						goto label100
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), u, ldu, work, b, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Left, NoTrans, n, n, n-1, u, work, b, work.Off(2*n)); err != nil {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), v, ldu, work.Off(n), b, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Right, Trans, n, n, n-1, v, work.Off(n), b, work.Off(2*n)); err != nil {
 						goto label100
 					}
 				}
@@ -426,123 +421,116 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Random matrices
 				for jc = 1; jc <= n; jc++ {
 					for jr = 1; jr <= n; jr++ {
-						a.Set(jr-1, jc-1, rmagn.Get(kamagn[jtype-1]-0)*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
-						b.Set(jr-1, jc-1, rmagn.Get(kbmagn[jtype-1]-0)*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
+						a.Set(jr-1, jc-1, rmagn.Get(kamagn[jtype-1]-0)*matgen.Dlarnd(2, &iseed))
+						b.Set(jr-1, jc-1, rmagn.Get(kbmagn[jtype-1]-0)*matgen.Dlarnd(2, &iseed))
 					}
 				}
 			}
 
-			anorm = golapack.Dlange('1', &n, &n, a, lda, work)
-			bnorm = golapack.Dlange('1', &n, &n, b, lda, work)
+			anorm = golapack.Dlange('1', n, n, a, work)
+			bnorm = golapack.Dlange('1', n, n, b, work)
 
 		label100:
 			;
 
 			if iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
 		label110:
 			;
 
-			//           Call DGEQR2, DORM2R, and DGGHRD to compute H, T, U, and V
-			golapack.Dlacpy(' ', &n, &n, a, lda, h, lda)
-			golapack.Dlacpy(' ', &n, &n, b, lda, t, lda)
+			//           Call Dgeqr2, Dorm2r, and Dgghrd to compute H, T, U, and V
+			golapack.Dlacpy(Full, n, n, a, h)
+			golapack.Dlacpy(Full, n, n, b, t)
 			ntest = 1
 			result.Set(0, ulpinv)
 
-			golapack.Dgeqr2(&n, &n, t, lda, work, work.Off(n), &iinfo)
-			if iinfo != 0 {
+			if err = golapack.Dgeqr2(n, n, t, work, work.Off(n)); err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGEQR2", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dgeqr2", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			golapack.Dorm2r('L', 'T', &n, &n, &n, t, lda, work, h, lda, work.Off(n), &iinfo)
-			if iinfo != 0 {
+			if err = golapack.Dorm2r(Left, Trans, n, n, n, t, work, h, work.Off(n)); err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORM2R", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dorm2r", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			golapack.Dlaset('F', &n, &n, &zero, &one, u, ldu)
-			golapack.Dorm2r('R', 'N', &n, &n, &n, t, lda, work, u, ldu, work.Off(n), &iinfo)
-			if iinfo != 0 {
+			golapack.Dlaset(Full, n, n, zero, one, u)
+			if err = golapack.Dorm2r(Right, NoTrans, n, n, n, t, work, u, work.Off(n)); err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DORM2R", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dorm2r", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			golapack.Dgghrd('V', 'I', &n, func() *int { y := 1; return &y }(), &n, h, lda, t, lda, u, ldu, v, ldu, &iinfo)
-			if iinfo != 0 {
+			if err = golapack.Dgghrd('V', 'I', n, 1, n, h, t, u, v); err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DGGHRD", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dgghrd", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 			ntest = 4
 
 			//           Do tests 1--4
-			Dget51(func() *int { y := 1; return &y }(), &n, a, lda, h, lda, u, ldu, v, ldu, work, result.GetPtr(0))
-			Dget51(func() *int { y := 1; return &y }(), &n, b, lda, t, lda, u, ldu, v, ldu, work, result.GetPtr(1))
-			Dget51(func() *int { y := 3; return &y }(), &n, b, lda, t, lda, u, ldu, u, ldu, work, result.GetPtr(2))
-			Dget51(func() *int { y := 3; return &y }(), &n, b, lda, t, lda, v, ldu, v, ldu, work, result.GetPtr(3))
+			result.Set(0, dget51(1, n, a, h, u, v, work))
+			result.Set(1, dget51(1, n, b, t, u, v, work))
+			result.Set(2, dget51(3, n, b, t, u, u, work))
+			result.Set(3, dget51(3, n, b, t, v, v, work))
 
-			//           Call DHGEQZ to compute S1, P1, S2, P2, Q, and Z, do tests.
+			//           Call Dhgeqz to compute S1, P1, S2, P2, Q, and Z, do tests.
 			//
 			//           Compute T1 and UZ
 			//
 			//           Eigenvalues only
-			golapack.Dlacpy(' ', &n, &n, h, lda, s2, lda)
-			golapack.Dlacpy(' ', &n, &n, t, lda, p2, lda)
+			golapack.Dlacpy(Full, n, n, h, s2)
+			golapack.Dlacpy(Full, n, n, t, p2)
 			ntest = 5
 			result.Set(4, ulpinv)
 
-			golapack.Dhgeqz('E', 'N', 'N', &n, func() *int { y := 1; return &y }(), &n, s2, lda, p2, lda, alphr3, alphi3, beta3, q, ldu, z, ldu, work, lwork, &iinfo)
-			if iinfo != 0 {
+			if iinfo, err = golapack.Dhgeqz('E', 'N', 'N', n, 1, n, s2, p2, alphr3, alphi3, beta3, q, z, work, lwork); iinfo != 0 || err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHGEQZ(E)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhgeqz(E)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
 			//           Eigenvalues and Full Schur Form
-			golapack.Dlacpy(' ', &n, &n, h, lda, s2, lda)
-			golapack.Dlacpy(' ', &n, &n, t, lda, p2, lda)
+			golapack.Dlacpy(Full, n, n, h, s2)
+			golapack.Dlacpy(Full, n, n, t, p2)
 			//
-			golapack.Dhgeqz('S', 'N', 'N', &n, func() *int { y := 1; return &y }(), &n, s2, lda, p2, lda, alphr1, alphi1, beta1, q, ldu, z, ldu, work, lwork, &iinfo)
-			if iinfo != 0 {
+			if iinfo, err = golapack.Dhgeqz('S', 'N', 'N', n, 1, n, s2, p2, alphr1, alphi1, beta1, q, z, work, lwork); iinfo != 0 || err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHGEQZ(S)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhgeqz(S)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
 			//           Eigenvalues, Schur Form, and Schur Vectors
-			golapack.Dlacpy(' ', &n, &n, h, lda, s1, lda)
-			golapack.Dlacpy(' ', &n, &n, t, lda, p1, lda)
+			golapack.Dlacpy(Full, n, n, h, s1)
+			golapack.Dlacpy(Full, n, n, t, p1)
 
-			golapack.Dhgeqz('S', 'I', 'I', &n, func() *int { y := 1; return &y }(), &n, s1, lda, p1, lda, alphr1, alphi1, beta1, q, ldu, z, ldu, work, lwork, &iinfo)
-			if iinfo != 0 {
+			if iinfo, err = golapack.Dhgeqz('S', 'I', 'I', n, 1, n, s1, p1, alphr1, alphi1, beta1, q, z, work, lwork); iinfo != 0 || err != nil {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DHGEQZ(V)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dhgeqz(V)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
 			ntest = 8
 
 			//           Do Tests 5--8
-			Dget51(func() *int { y := 1; return &y }(), &n, h, lda, s1, lda, q, ldu, z, ldu, work, result.GetPtr(4))
-			Dget51(func() *int { y := 1; return &y }(), &n, t, lda, p1, lda, q, ldu, z, ldu, work, result.GetPtr(5))
-			Dget51(func() *int { y := 3; return &y }(), &n, t, lda, p1, lda, q, ldu, q, ldu, work, result.GetPtr(6))
-			Dget51(func() *int { y := 3; return &y }(), &n, t, lda, p1, lda, z, ldu, z, ldu, work, result.GetPtr(7))
+			result.Set(4, dget51(1, n, h, s1, q, z, work))
+			result.Set(5, dget51(1, n, t, p1, q, z, work))
+			result.Set(6, dget51(3, n, t, p1, q, q, work))
+			result.Set(7, dget51(3, n, t, p1, z, z, work))
 
 			//           Compute the Left and Right Eigenvectors of (S1,P1)
 			//
@@ -555,61 +543,58 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           in one call, and half in another
 			i1 = n / 2
 			for j = 1; j <= i1; j++ {
-				(*llwork)[j-1] = true
+				llwork[j-1] = true
 			}
 			for j = i1 + 1; j <= n; j++ {
-				(*llwork)[j-1] = false
+				llwork[j-1] = false
 			}
 
-			golapack.Dtgevc('L', 'S', *llwork, &n, s1, lda, p1, lda, evectl, ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if in, iinfo, err = golapack.Dtgevc(Left, 'S', llwork, n, s1, p1, evectl, dumma.Matrix(u.Rows, opts), n, work); err != nil || iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(L,S1)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtgevc(L,S1)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
 			i1 = in
 			for j = 1; j <= i1; j++ {
-				(*llwork)[j-1] = false
+				llwork[j-1] = false
 			}
 			for j = i1 + 1; j <= n; j++ {
-				(*llwork)[j-1] = true
+				llwork[j-1] = true
 			}
 
-			golapack.Dtgevc('L', 'S', *llwork, &n, s1, lda, p1, lda, evectl.Off(0, i1), ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if in, iinfo, err = golapack.Dtgevc(Left, 'S', llwork, n, s1, p1, evectl.Off(0, i1), dumma.Matrix(u.Rows, opts), n, work); err != nil || iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(L,S2)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtgevc(L,S2)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			Dget52(true, &n, s1, lda, p1, lda, evectl, ldu, alphr1, alphi1, beta1, work, dumma.Off(0))
+			dget52(true, n, s1, p1, evectl, alphr1, alphi1, beta1, work, dumma)
 			result.Set(8, dumma.Get(0))
-			if dumma.Get(1) > (*thrshn) {
+			if dumma.Get(1) > thrshn {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "DTGEVC(HOWMNY=S)", dumma.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" dchkgg: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Dtgevc(howmny=S)", dumma.Get(1), n, jtype, ioldsd)
 			}
 
 			//           10: Compute the left eigenvector Matrix with
 			//               back transforming:
 			ntest = 10
 			result.Set(9, ulpinv)
-			golapack.Dlacpy('F', &n, &n, q, ldu, evectl, ldu)
-			golapack.Dtgevc('L', 'B', *llwork, &n, s1, lda, p1, lda, evectl, ldu, dumma.Matrix(*ldu, opts), ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			golapack.Dlacpy(Full, n, n, q, evectl)
+			if in, iinfo, err = golapack.Dtgevc(Left, 'B', llwork, n, s1, p1, evectl, dumma.Matrix(u.Rows, opts), n, work); err != nil || iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(L,B)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtgevc(L,B)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			Dget52(true, &n, h, lda, t, lda, evectl, ldu, alphr1, alphi1, beta1, work, dumma.Off(0))
+			dget52(true, n, h, t, evectl, alphr1, alphi1, beta1, work, dumma)
 			result.Set(9, dumma.Get(0))
-			if dumma.Get(1) > (*thrshn) {
+			if dumma.Get(1) > thrshn {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Left", "DTGEVC(HOWMNY=B)", dumma.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" dchkgg: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Left", "Dtgevc(howmny=B)", dumma.Get(1), n, jtype, ioldsd)
 			}
 
 			//           11: Compute the right eigenvector Matrix without
@@ -621,68 +606,65 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			//           in one call, and half in another
 			i1 = n / 2
 			for j = 1; j <= i1; j++ {
-				(*llwork)[j-1] = true
+				llwork[j-1] = true
 			}
 			for j = i1 + 1; j <= n; j++ {
-				(*llwork)[j-1] = false
+				llwork[j-1] = false
 			}
 
-			golapack.Dtgevc('R', 'S', *llwork, &n, s1, lda, p1, lda, dumma.Matrix(*ldu, opts), ldu, evectr, ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if in, iinfo, err = golapack.Dtgevc(Right, 'S', llwork, n, s1, p1, dumma.Matrix(u.Rows, opts), evectr, n, work); err != nil || iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(R,S1)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtgevc(R,S1)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
 			i1 = in
 			for j = 1; j <= i1; j++ {
-				(*llwork)[j-1] = false
+				llwork[j-1] = false
 			}
 			for j = i1 + 1; j <= n; j++ {
-				(*llwork)[j-1] = true
+				llwork[j-1] = true
 			}
 
-			golapack.Dtgevc('R', 'S', *llwork, &n, s1, lda, p1, lda, dumma.Matrix(*ldu, opts), ldu, evectr.Off(0, i1), ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			if in, iinfo, err = golapack.Dtgevc(Right, 'S', llwork, n, s1, p1, dumma.Matrix(u.Rows, opts), evectr.Off(0, i1), n, work); err != nil || iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(R,S2)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtgevc(R,S2)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			Dget52(false, &n, s1, lda, p1, lda, evectr, ldu, alphr1, alphi1, beta1, work, dumma.Off(0))
+			dget52(false, n, s1, p1, evectr, alphr1, alphi1, beta1, work, dumma)
 			result.Set(10, dumma.Get(0))
-			if dumma.Get(1) > (*thresh) {
+			if dumma.Get(1) > thresh {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "DTGEVC(HOWMNY=S)", dumma.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" dchkgg: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Dtgevc(howmny=S)", dumma.Get(1), n, jtype, ioldsd)
 			}
 
 			//           12: Compute the right eigenvector Matrix with
 			//               back transforming:
 			ntest = 12
 			result.Set(11, ulpinv)
-			golapack.Dlacpy('F', &n, &n, z, ldu, evectr, ldu)
-			golapack.Dtgevc('R', 'B', *llwork, &n, s1, lda, p1, lda, dumma.Matrix(*ldu, opts), ldu, evectr, ldu, &n, &in, work, &iinfo)
-			if iinfo != 0 {
+			golapack.Dlacpy(Full, n, n, z, evectr)
+			if in, iinfo, err = golapack.Dtgevc(Right, 'B', llwork, n, s1, p1, dumma.Matrix(u.Rows, opts), evectr, n, work); err != nil || iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DTGEVC(R,B)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" dchkgg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dtgevc(R,B)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label210
 			}
 
-			Dget52(false, &n, h, lda, t, lda, evectr, ldu, alphr1, alphi1, beta1, work, dumma.Off(0))
+			dget52(false, n, h, t, evectr, alphr1, alphi1, beta1, work, dumma)
 			result.Set(11, dumma.Get(0))
-			if dumma.Get(1) > (*thresh) {
+			if dumma.Get(1) > thresh {
 				_t.Fail()
-				fmt.Printf(" DCHKGG: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Right", "DTGEVC(HOWMNY=B)", dumma.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" dchkgg: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,         n=%6d, jtype=%6d, iseed=%5d\n", "Right", "Dtgevc(howmny=B)", dumma.Get(1), n, jtype, ioldsd)
 			}
 
 			//           Tests 13--15 are done only on request
-			if *tstdif {
+			if tstdif {
 				//              Do Tests 13--14
-				Dget51(func() *int { y := 2; return &y }(), &n, s1, lda, s2, lda, q, ldu, z, ldu, work, result.GetPtr(12))
-				Dget51(func() *int { y := 2; return &y }(), &n, p1, lda, p2, lda, q, ldu, z, ldu, work, result.GetPtr(13))
+				result.Set(12, dget51(2, n, s1, s2, q, z, work))
+				result.Set(13, dget51(2, n, p1, p2, q, z, work))
 
 				//              Do Test 15
 				temp1 = zero
@@ -711,7 +693,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			//           Print out tests which fail.
 			for jr = 1; jr <= ntest; jr++ {
-				if result.Get(jr-1) >= (*thresh) {
+				if result.Get(jr-1) >= thresh {
 					_t.Fail()
 					//                 If this is the first test to fail,
 					//                 print a header to the data file.
@@ -719,7 +701,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						fmt.Printf("\n %3s -- Real Generalized eigenvalue problem\n", "DGG")
 
 						//                    Matrix types
-						fmt.Printf(" Matrix types (see DCHKGG for details): \n")
+						fmt.Printf(" Matrix types (see dchkgg for details): \n")
 						fmt.Printf(" Special Matrices:                       (J'=transposed Jordan block)\n   1=(0,0)  2=(I,0)  3=(0,I)  4=(I,I)  5=(J',J')  6=(diag(J',I), diag(I,J'))\n Diagonal Matrices:  ( D=diag(0,1,2,...) )\n   7=(D,I)   9=(large*D, small*I)  11=(large*I, small*D)  13=(large*D, large*I)\n   8=(I,D)  10=(small*D, large*I)  12=(small*I, large*D)  14=(small*D, small*I)\n  15=(D, reversed D)\n")
 						fmt.Printf(" Matrices Rotated by Random %s Matrices U, V:\n  16=Transposed Jordan Blocks             19=geometric alpha, beta=0,1\n  17=arithm. alpha&beta                   20=arithmetic alpha, beta=0,1\n  18=clustered alpha, beta=0,1            21=random alpha, beta=0,1\n Large & Small Matrices:\n  22=(large, small)   23=(small,large)    24=(small,small)    25=(large,large)\n  26=random O(1) matrices.\n", "Orthogonal")
 
@@ -741,5 +723,7 @@ func Dchkgg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Dlasum([]byte("DGG"), &nerrs, &ntestt)
+	dlasum("Dgg", nerrs, ntestt)
+
+	return
 }

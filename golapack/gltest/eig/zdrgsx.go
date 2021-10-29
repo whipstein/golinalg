@@ -3,7 +3,6 @@ package eig
 import (
 	"fmt"
 	"math"
-	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -11,8 +10,8 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zdrgsx checks the nonsymmetric generalized eigenvalue (Schur form)
-// problem expert driver ZGGESX.
+// zdrgsx checks the nonsymmetric generalized eigenvalue (Schur form)
+// problem expert driver Zggesx.
 //
 // ZGGES factors A and B as Q*S*Z'  and Q*T*Z' , where ' means conjugate
 // transpose, S and T are  upper triangular (i.e., in generalized Schur
@@ -29,11 +28,11 @@ import (
 // number for the right and left deflating subspaces corresponding to
 // the selected eigenvalues.
 //
-// When ZDRGSX is called with NSIZE > 0, five (5) types of built-in
-// matrix pairs are used to test the routine ZGGESX.
+// When zdrgsx is called with NSIZE > 0, five (5) types of built-in
+// matrix pairs are used to test the routine Zggesx.
 //
-// When ZDRGSX is called with NSIZE = 0, it reads in test matrix data
-// to test ZGGESX.
+// When zdrgsx is called with NSIZE = 0, it reads in test matrix data
+// to test Zggesx.
 // (need more details on what kind of read-in data are needed).
 //
 // For each matrix pair, the following tests will be performed and
@@ -65,7 +64,7 @@ import (
 //       and Difl equal zero, the estimate DIF should be less than
 //       EPS*norm(A, B).
 //
-// (9)   If INFO = N+3 is returned by ZGGESX, the reordering "failed"
+// (9)   If INFO = N+3 is returned by Zggesx, the reordering "failed"
 //       and we check that DIF = PL = PR = 0 and that the true value of
 //       Difu and Difl is < EPS*norm(A, B). We count the events when
 //       INFO=N+3.
@@ -145,7 +144,7 @@ import (
 //                  |                      -1+b  -d    |
 //                  |                              1-d |
 //          and matrix B are chosen as identity matrices (see DLATM5).
-func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ai *mat.CMatrix, bi *mat.CMatrix, z *mat.CMatrix, q *mat.CMatrix, alpha *mat.CVector, beta *mat.CVector, c *mat.CMatrix, ldc *int, s *mat.Vector, work *mat.CVector, lwork *int, rwork *mat.Vector, iwork *[]int, liwork *int, bwork *[]bool, info *int, t *testing.T) {
+func zdrgsx(nsize, ncmax int, thresh float64, a, b, ai, bi, z, q *mat.CMatrix, alpha *mat.CVector, beta *mat.CVector, c *mat.CMatrix, s *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int, liwork int, bwork []bool) (err error) {
 	var ilabad bool
 	var sense byte
 	var czero complex128
@@ -169,19 +168,16 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 	fs := &gltest.Common.Mn.Fs
 
 	//     Check for errors
-	(*info) = 0
-	if (*nsize) < 0 {
-		(*info) = -1
-	} else if (*thresh) < zero {
-		(*info) = -2
-	} else if (*nout) <= 0 {
-		(*info) = -4
-	} else if (*lda) < 1 || (*lda) < (*nsize) {
-		(*info) = -6
-	} else if (*ldc) < 1 || (*ldc) < (*nsize)*(*nsize)/2 {
-		(*info) = -15
-	} else if (*liwork) < (*nsize)+2 {
-		(*info) = -21
+	if nsize < 0 {
+		err = fmt.Errorf("nsize < 0: nsize=%v", nsize)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows < 1 || a.Rows < nsize {
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < nsize: a.Rows=%v, nsize=%v", a.Rows, nsize)
+	} else if c.Rows < 1 || c.Rows < nsize*nsize/2 {
+		err = fmt.Errorf("c.Rows < 1 || c.Rows < nsize*nsize/2: c.Rows=%v, nsize=%v", c.Rows, nsize)
+	} else if liwork < nsize+2 {
+		err = fmt.Errorf("liwork < nsize+2L liwork=%v, nsize=%v", liwork, nsize)
 	}
 
 	//     Compute workspace
@@ -191,16 +187,16 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV.)
 	minwrk = 1
-	if (*info) == 0 && (*lwork) >= 1 {
-		minwrk = 3 * (*nsize) * (*nsize) / 2
+	if err == nil && lwork >= 1 {
+		minwrk = 3 * nsize * nsize / 2
 
 		//        workspace for cggesx
-		maxwrk = (*nsize) * (1 + Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, func() *int { y := 0; return &y }()))
-		maxwrk = max(maxwrk, (*nsize)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, nsize, func() *int { y := 1; return &y }(), nsize, toPtr(-1))))
+		maxwrk = nsize * (1 + ilaenv(1, "Zgeqrf", []byte{' '}, nsize, 1, nsize, 0))
+		maxwrk = max(maxwrk, nsize*(1+ilaenv(1, "Zungqr", []byte{' '}, nsize, 1, nsize, -1)))
 
 		//        workspace for zgesvd
-		bdspac = 3 * (*nsize) * (*nsize) / 2
-		maxwrk = max(maxwrk, (*nsize)*(*nsize)*(1+Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, toPtr((*nsize)*(*nsize)/2), toPtr((*nsize)*(*nsize)/2), toPtr(-1), toPtr(-1))))
+		bdspac = 3 * nsize * nsize / 2
+		maxwrk = max(maxwrk, nsize*nsize*(1+ilaenv(1, "Zgebrd", []byte{' '}, nsize*nsize/2, nsize*nsize/2, -1, -1)))
 		maxwrk = max(maxwrk, bdspac)
 
 		maxwrk = max(maxwrk, minwrk)
@@ -208,12 +204,12 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 		work.SetRe(0, float64(maxwrk))
 	}
 
-	if (*lwork) < minwrk {
-		(*info) = -18
+	if lwork < minwrk {
+		err = fmt.Errorf("lwork < minwrk: lwork=%v, minwrk=%v", lwork, minwrk)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZDRGSX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zdrgsx", err)
 		return
 	}
 
@@ -222,19 +218,19 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 	ulpinv = one / ulp
 	smlnum = golapack.Dlamch(SafeMinimum) / ulp
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
-	thrsh2 = ten * (*thresh)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
+	thrsh2 = ten * thresh
 	ntestt = 0
 	nerrs = 0
 
 	//     Go to the tests for read-in matrix pairs
 	ifunc = 0
-	if (*nsize) == 0 {
+	if nsize == 0 {
 		goto label70
 	}
 
 	//     Test the built-in matrix pairs.
-	//     Loop over different functions (IFUNC) of ZGGESX, types (PRTYPE)
+	//     Loop over different functions (IFUNC) of Zggesx, types (PRTYPE)
 	//     of test matrices, different size (M+N)
 	prtype = 0
 	qba = 3
@@ -243,8 +239,8 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 
 	for ifunc = 0; ifunc <= 3; ifunc++ {
 		for prtype = 1; prtype <= 5; prtype++ {
-			for (*m) = 1; (*m) <= (*nsize)-1; (*m)++ {
-				for (*n) = 1; (*n) <= (*nsize)-(*m); (*n)++ {
+			for (*m) = 1; (*m) <= nsize-1; (*m)++ {
+				for (*n) = 1; (*n) <= nsize-(*m); (*n)++ {
 
 					weight = one / weight
 					(*mplusn) = (*m) + (*n)
@@ -253,14 +249,14 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 					(*fs) = true
 					(*k) = 0
 
-					golapack.Zlaset('F', mplusn, mplusn, &czero, &czero, ai, lda)
-					golapack.Zlaset('F', mplusn, mplusn, &czero, &czero, bi, lda)
+					golapack.Zlaset(Full, *mplusn, *mplusn, czero, czero, ai)
+					golapack.Zlaset(Full, *mplusn, *mplusn, czero, czero, bi)
 
-					matgen.Zlatm5(&prtype, m, n, ai, lda, ai.Off((*m), (*m)), lda, ai.Off(0, (*m)), lda, bi, lda, bi.Off((*m), (*m)), lda, bi.Off(0, (*m)), lda, q, lda, z, lda, &weight, &qba, &qbb)
+					matgen.Zlatm5(prtype, *m, *n, ai, ai.Off(*m, *m), ai.Off(0, *m), bi, bi.Off(*m, *m), bi.Off(0, *m), q, z, weight, qba, qbb)
 
 					//                 Compute the Schur factorization and swapping the
 					//                 m-by-m (1,1)-blocks with n-by-n (2,2)-blocks.
-					//                 Swapping is accomplished via the function Zlctsx
+					//                 Swapping is accomplished via the function zlctsx
 					//                 which is supplied below.
 					if ifunc == 0 {
 						sense = 'N'
@@ -272,30 +268,26 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 						sense = 'B'
 					}
 
-					golapack.Zlacpy('F', mplusn, mplusn, ai, lda, a, lda)
-					golapack.Zlacpy('F', mplusn, mplusn, bi, lda, b, lda)
+					golapack.Zlacpy(Full, *mplusn, *mplusn, ai, a)
+					golapack.Zlacpy(Full, *mplusn, *mplusn, bi, b)
 
-					golapack.Zggesx('V', 'V', 'S', Zlctsx, sense, mplusn, ai, lda, bi, lda, &mm, alpha, beta, q, lda, z, lda, pl, difest, work, lwork, rwork, iwork, liwork, bwork, &linfo)
-
-					if linfo != 0 && linfo != (*mplusn)+2 {
-						t.Fail()
+					if mm, linfo, err = golapack.Zggesx('V', 'V', 'S', zlctsx, sense, *mplusn, ai, bi, alpha, beta, q, z, pl, difest, work, lwork, rwork, &iwork, liwork, &bwork); err != nil || (linfo != 0 && linfo != (*mplusn)+2) {
 						result.Set(0, ulpinv)
-						fmt.Printf(" ZDRGSX: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d)\n", "ZGGESX", linfo, *mplusn, prtype)
-						(*info) = linfo
+						fmt.Printf(" zdrgsx: %s returned info=%6d.\n         n=%6d, jtype=%6d)\n", "Zggesx", linfo, *mplusn, prtype)
 						goto label30
 					}
 
 					//                 Compute the norm(A, B)
-					golapack.Zlacpy('F', mplusn, mplusn, ai, lda, work.CMatrix(*mplusn, opts), mplusn)
-					golapack.Zlacpy('F', mplusn, mplusn, bi, lda, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts), mplusn)
-					abnrm = golapack.Zlange('F', mplusn, toPtr(2*(*mplusn)), work.CMatrix(*mplusn, opts), mplusn, rwork)
+					golapack.Zlacpy(Full, *mplusn, *mplusn, ai, work.CMatrix(*mplusn, opts))
+					golapack.Zlacpy(Full, *mplusn, *mplusn, bi, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts))
+					abnrm = golapack.Zlange('F', *mplusn, 2*(*mplusn), work.CMatrix(*mplusn, opts), rwork)
 
 					//                 Do tests (1) to (4)
 					result.Set(1, zero)
-					Zget51(func() *int { y := 1; return &y }(), mplusn, a, lda, ai, lda, q, lda, z, lda, work, rwork, result.GetPtr(0))
-					Zget51(func() *int { y := 1; return &y }(), mplusn, b, lda, bi, lda, q, lda, z, lda, work, rwork, result.GetPtr(1))
-					Zget51(func() *int { y := 3; return &y }(), mplusn, b, lda, bi, lda, q, lda, q, lda, work, rwork, result.GetPtr(2))
-					Zget51(func() *int { y := 3; return &y }(), mplusn, b, lda, bi, lda, z, lda, z, lda, work, rwork, result.GetPtr(3))
+					result.Set(0, zget51(1, *mplusn, a, ai, q, z, work, rwork))
+					result.Set(1, zget51(1, *mplusn, b, bi, q, z, work, rwork))
+					result.Set(2, zget51(3, *mplusn, b, bi, q, q, work, rwork))
+					result.Set(3, zget51(3, *mplusn, b, bi, z, z, work, rwork))
 					ntest = 4
 
 					//                 Do tests (5) and (6): check Schur form of A and
@@ -321,7 +313,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 						}
 						temp1 = math.Max(temp1, temp2)
 						if ilabad {
-							fmt.Printf(" ZDRGSX: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", j, *mplusn, prtype)
+							fmt.Printf(" zdrgsx: S not in Schur form at eigenvalue %6d.\n         n=%6d, jtype=%6d)\n", j, *mplusn, prtype)
 						}
 					}
 					result.Set(5, temp1)
@@ -340,12 +332,14 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 					//                 value. first, compute the exact DIF.
 					result.Set(7, zero)
 					mn2 = mm * ((*mplusn) - mm) * 2
-					if ifunc >= 2 && mn2 <= (*ncmax)*(*ncmax) {
+					if ifunc >= 2 && mn2 <= ncmax*ncmax {
 						//                    Note: for either following two cases, there are
 						//                    almost same number of test cases fail the test.
-						matgen.Zlakf2(&mm, toPtr((*mplusn)-mm), ai, lda, ai.Off(mm, mm), bi, bi.Off(mm, mm), c, ldc)
+						matgen.Zlakf2(mm, (*mplusn)-mm, ai, ai.Off(mm, mm), bi, bi.Off(mm, mm), c)
 
-						golapack.Zgesvd('N', 'N', &mn2, &mn2, c, ldc, s, work.CMatrix(1, opts), func() *int { y := 1; return &y }(), work.CMatrixOff(1, 1, opts), func() *int { y := 1; return &y }(), work.Off(2), toPtr((*lwork)-2), rwork, info)
+						if linfo, err = golapack.Zgesvd('N', 'N', mn2, mn2, c, s, work.CMatrix(1, opts), work.CMatrixOff(1, 1, opts), work.Off(2), lwork-2, rwork); err != nil {
+							panic(err)
+						}
 						diftru = s.Get(mn2 - 1)
 
 						if difest.Get(1) == zero {
@@ -381,8 +375,7 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 
 					//                 Print out tests which fail.
 					for j = 1; j <= 9; j++ {
-						if result.Get(j-1) >= (*thresh) {
-							t.Fail()
+						if result.Get(j-1) >= thresh {
 							//                       If this is the first test to fail,
 							//                       print a header to the data file.
 							if nerrs == 0 {
@@ -398,8 +391,10 @@ func Zdrgsx(nsize, ncmax *int, thresh *float64, nout *int, a *mat.CMatrix, lda *
 							nerrs = nerrs + 1
 							if result.Get(j-1) < 10000.0 {
 								fmt.Printf(" Matrix order=%2d, type=%2d, a=%10.3E, order(A_11)=%2d, result %2d is %8.2f\n", *mplusn, prtype, weight, *m, j, result.Get(j-1))
+								err = fmt.Errorf(" Matrix order=%2d, type=%2d, a=%10.3E, order(A_11)=%2d, result %2d is %8.2f\n", *mplusn, prtype, weight, *m, j, result.Get(j-1))
 							} else {
 								fmt.Printf(" Matrix order=%2d, type=%2d, a=%10.3E, order(A_11)=%2d, result %2d is %10.3E\n", *mplusn, prtype, weight, *m, j, result.Get(j-1))
+								err = fmt.Errorf(" Matrix order=%2d, type=%2d, a=%10.3E, order(A_11)=%2d, result %2d is %10.3E\n", *mplusn, prtype, weight, *m, j, result.Get(j-1))
 							}
 						}
 					}
@@ -467,31 +462,28 @@ label70:
 		(*k) = 0
 		(*m) = (*mplusn) - (*n)
 
-		golapack.Zlacpy('F', mplusn, mplusn, ai, lda, a, lda)
-		golapack.Zlacpy('F', mplusn, mplusn, bi, lda, b, lda)
+		golapack.Zlacpy(Full, *mplusn, *mplusn, ai, a)
+		golapack.Zlacpy(Full, *mplusn, *mplusn, bi, b)
 
 		//     Compute the Schur factorization while swapping the
 		//     m-by-m (1,1)-blocks with n-by-n (2,2)-blocks.
-		golapack.Zggesx('V', 'V', 'S', Zlctsx, 'B', mplusn, ai, lda, bi, lda, &mm, alpha, beta, q, lda, z, lda, pl, difest, work, lwork, rwork, iwork, liwork, bwork, &linfo)
-
-		if linfo != 0 && linfo != (*mplusn)+2 {
-			t.Fail()
+		if mm, linfo, err = golapack.Zggesx('V', 'V', 'S', zlctsx, 'B', *mplusn, ai, bi, alpha, beta, q, z, pl, difest, work, lwork, rwork, &iwork, liwork, &bwork); err != nil || (linfo != 0 && linfo != (*mplusn)+2) {
 			result.Set(0, ulpinv)
-			fmt.Printf(" ZDRGSX: %s returned INFO=%6d.\n         N=%6d, Input Example #%2d)\n", "ZGGESX", linfo, *mplusn, nptknt)
+			fmt.Printf(" zdrgsx: %s returned INFO=%6d.\n         n=%6d, Input Example #%2d)\n", "Zggesx", linfo, *mplusn, nptknt)
 			continue
 		}
 
 		//     Compute the norm(A, B)
 		//        (should this be norm of (A,B) or (AI,BI)?)
-		golapack.Zlacpy('F', mplusn, mplusn, ai, lda, work.CMatrix(*mplusn, opts), mplusn)
-		golapack.Zlacpy('F', mplusn, mplusn, bi, lda, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts), mplusn)
-		abnrm = golapack.Zlange('F', mplusn, toPtr(2*(*mplusn)), work.CMatrix(*mplusn, opts), mplusn, rwork)
+		golapack.Zlacpy(Full, *mplusn, *mplusn, ai, work.CMatrix(*mplusn, opts))
+		golapack.Zlacpy(Full, *mplusn, *mplusn, bi, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts))
+		abnrm = golapack.Zlange('F', *mplusn, 2*(*mplusn), work.CMatrix(*mplusn, opts), rwork)
 
 		//     Do tests (1) to (4)
-		Zget51(func() *int { y := 1; return &y }(), mplusn, a, lda, ai, lda, q, lda, z, lda, work, rwork, result.GetPtr(0))
-		Zget51(func() *int { y := 1; return &y }(), mplusn, b, lda, bi, lda, q, lda, z, lda, work, rwork, result.GetPtr(1))
-		Zget51(func() *int { y := 3; return &y }(), mplusn, b, lda, bi, lda, q, lda, q, lda, work, rwork, result.GetPtr(2))
-		Zget51(func() *int { y := 3; return &y }(), mplusn, b, lda, bi, lda, z, lda, z, lda, work, rwork, result.GetPtr(3))
+		result.Set(0, zget51(1, *mplusn, a, ai, q, z, work, rwork))
+		result.Set(1, zget51(1, *mplusn, b, bi, q, z, work, rwork))
+		result.Set(2, zget51(3, *mplusn, b, bi, q, q, work, rwork))
+		result.Set(3, zget51(3, *mplusn, b, bi, z, z, work, rwork))
 
 		//     Do tests (5) and (6): check Schur form of A and compare
 		//     eigenvalues with diagonals.
@@ -517,7 +509,7 @@ label70:
 			}
 			temp1 = math.Max(temp1, temp2)
 			if ilabad {
-				fmt.Printf(" ZDRGSX: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d)\n", j, *mplusn, nptknt)
+				fmt.Printf(" zdrgsx: S not in Schur form at eigenvalue %6d.\n         n=%6d, jtype=%6d)\n", j, *mplusn, nptknt)
 			}
 		}
 		result.Set(5, temp1)
@@ -570,7 +562,7 @@ label70:
 			if pl.Get(0) > abnrm*ulp {
 				result.Set(9, ulpinv)
 			}
-		} else if (pltru > (*thresh)*pl.Get(0)) || (pltru*(*thresh) < pl.Get(0)) {
+		} else if (pltru > thresh*pl.Get(0)) || (pltru*thresh < pl.Get(0)) {
 			result.Set(9, ulpinv)
 		}
 
@@ -578,8 +570,7 @@ label70:
 
 		//     Print out tests which fail.
 		for j = 1; j <= ntest; j++ {
-			if result.Get(j-1) >= (*thresh) {
-				t.Fail()
+			if result.Get(j-1) >= thresh {
 				//           If this is the first test to fail,
 				//           print a header to the data file.
 				if nerrs == 0 {
@@ -595,8 +586,10 @@ label70:
 				nerrs = nerrs + 1
 				if result.Get(j-1) < 10000.0 {
 					fmt.Printf(" Input example #%2d, matrix order=%4d, result %2d is %8.2f\n", nptknt, *mplusn, j, result.Get(j-1))
+					err = fmt.Errorf(" Input example #%2d, matrix order=%4d, result %2d is %8.2f\n", nptknt, *mplusn, j, result.Get(j-1))
 				} else {
 					fmt.Printf(" Input example #%2d, matrix order=%4d, result %2d is %10.3E\n", nptknt, *mplusn, j, result.Get(j-1))
+					err = fmt.Errorf(" Input example #%2d, matrix order=%4d, result %2d is %10.3E\n", nptknt, *mplusn, j, result.Get(j-1))
 				}
 			}
 
@@ -607,7 +600,9 @@ label150:
 	;
 
 	//     Summary
-	Alasvm([]byte("ZGX"), &nerrs, &ntestt, func() *int { y := 0; return &y }())
+	alasvm("Zgx", nerrs, ntestt, 0)
 
 	work.SetRe(0, float64(maxwrk))
+
+	return
 }

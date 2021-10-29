@@ -10,7 +10,7 @@ import (
 // Zlaqp2 computes a QR factorization with column pivoting of
 // the block A(OFFSET+1:M,1:N).
 // The block A(1:OFFSET,1:N) is accordingly pivoted, but not factorized.
-func Zlaqp2(m, n, offset *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau *mat.CVector, vn1, vn2 *mat.Vector, work *mat.CVector) {
+func Zlaqp2(m, n, offset int, a *mat.CMatrix, jpvt *[]int, tau *mat.CVector, vn1, vn2 *mat.Vector, work *mat.CVector) {
 	var aii, cone complex128
 	var one, temp, temp2, tol3z, zero float64
 	var i, itemp, j, mn, offpi, pvt int
@@ -19,19 +19,19 @@ func Zlaqp2(m, n, offset *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau *mat.C
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
 
-	mn = min((*m)-(*offset), *n)
+	mn = min(m-offset, n)
 	tol3z = math.Sqrt(Dlamch(Epsilon))
 
 	//     Compute factorization.
 	for i = 1; i <= mn; i++ {
 
-		offpi = (*offset) + i
+		offpi = offset + i
 
 		//        Determine ith pivot column and swap if necessary.
-		pvt = (i - 1) + goblas.Idamax((*n)-i+1, vn1.Off(i-1, 1))
+		pvt = (i - 1) + goblas.Idamax(n-i+1, vn1.Off(i-1, 1))
 
 		if pvt != i {
-			goblas.Zswap(*m, a.CVector(0, pvt-1, 1), a.CVector(0, i-1, 1))
+			goblas.Zswap(m, a.CVector(0, pvt-1, 1), a.CVector(0, i-1, 1))
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[i-1]
 			(*jpvt)[i-1] = itemp
@@ -40,22 +40,22 @@ func Zlaqp2(m, n, offset *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau *mat.C
 		}
 
 		//        Generate elementary reflector H(i).
-		if offpi < (*m) {
-			Zlarfg(toPtr((*m)-offpi+1), a.GetPtr(offpi-1, i-1), a.CVector(offpi, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1))
+		if offpi < m {
+			*a.GetPtr(offpi-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(m-offpi+1, a.Get(offpi-1, i-1), a.CVector(offpi, i-1, 1))
 		} else {
-			Zlarfg(func() *int { y := 1; return &y }(), a.GetPtr((*m)-1, i-1), a.CVector((*m)-1, i-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1))
+			*a.GetPtr(m-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(1, a.Get(m-1, i-1), a.CVector(m-1, i-1, 1))
 		}
 
-		if i < (*n) {
+		if i < n {
 			//           Apply H(i)**H to A(offset+i:m,i+1:n) from the left.
 			aii = a.Get(offpi-1, i-1)
 			a.Set(offpi-1, i-1, cone)
-			Zlarf('L', toPtr((*m)-offpi+1), toPtr((*n)-i), a.CVector(offpi-1, i-1), func() *int { y := 1; return &y }(), toPtrc128(tau.GetConj(i-1)), a.Off(offpi-1, i), lda, work)
+			Zlarf(Left, m-offpi+1, n-i, a.CVector(offpi-1, i-1, 1), tau.GetConj(i-1), a.Off(offpi-1, i), work)
 			a.Set(offpi-1, i-1, aii)
 		}
 
 		//        Update partial column norms.
-		for j = i + 1; j <= (*n); j++ {
+		for j = i + 1; j <= n; j++ {
 			if vn1.Get(j-1) != zero {
 				//              NOTE: The following 4 lines follow from the analysis in
 				//              Lapack Working Note 176.
@@ -63,8 +63,8 @@ func Zlaqp2(m, n, offset *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau *mat.C
 				temp = math.Max(temp, zero)
 				temp2 = temp * math.Pow(vn1.Get(j-1)/vn2.Get(j-1), 2)
 				if temp2 <= tol3z {
-					if offpi < (*m) {
-						vn1.Set(j-1, goblas.Dznrm2((*m)-offpi, a.CVector(offpi, j-1, 1)))
+					if offpi < m {
+						vn1.Set(j-1, goblas.Dznrm2(m-offpi, a.CVector(offpi, j-1, 1)))
 						vn2.Set(j-1, vn1.Get(j-1))
 					} else {
 						vn1.Set(j-1, zero)

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -22,7 +24,7 @@ import (
 //
 // as returned by ZGEQRF. Q is of order m if SIDE = 'L' and of order n
 // if SIDE = 'R'.
-func Zunm2r(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.CVector, c *mat.CMatrix, ldc *int, work *mat.CVector, info *int) {
+func Zunm2r(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, tau *mat.CVector, c *mat.CMatrix, work *mat.CVector) (err error) {
 	var left, notran bool
 	var aii, one, taui complex128
 	var i, i1, i2, i3, ic, jc, mi, ni, nq int
@@ -30,67 +32,66 @@ func Zunm2r(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 	one = (1.0 + 0.0*1i)
 
 	//     Test the input arguments
-	(*info) = 0
-	left = side == 'L'
-	notran = trans == 'N'
+	left = side == Left
+	notran = trans == NoTrans
 
 	//     NQ is the order of Q
 	if left {
-		nq = (*m)
+		nq = m
 	} else {
-		nq = (*n)
+		nq = n
 	}
-	if !left && side != 'R' {
-		(*info) = -1
-	} else if !notran && trans != 'C' {
-		(*info) = -2
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*k) < 0 || (*k) > nq {
-		(*info) = -5
-	} else if (*lda) < max(1, nq) {
-		(*info) = -7
-	} else if (*ldc) < max(1, *m) {
-		(*info) = -10
+	if !left && side != Right {
+		err = fmt.Errorf("!left && side != Right: side=%s", side)
+	} else if !notran && trans != ConjTrans {
+		err = fmt.Errorf("!notran && trans != ConjTrans: trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if k < 0 || k > nq {
+		err = fmt.Errorf("k < 0 || k > nq: k=%v, nq=%v", k, nq)
+	} else if a.Rows < max(1, nq) {
+		err = fmt.Errorf("a.Rows < max(1, nq): a.Rows=%v, nq=%v", a.Rows, nq)
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows < max(1, m): c.Rows=%v, m=%v", c.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUNM2R"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zunm2r", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 || (*k) == 0 {
+	if m == 0 || n == 0 || k == 0 {
 		return
 	}
 
 	if left && !notran || !left && notran {
 		i1 = 1
-		i2 = (*k)
+		i2 = k
 		i3 = 1
 	} else {
-		i1 = (*k)
+		i1 = k
 		i2 = 1
 		i3 = -1
 	}
 
 	if left {
-		ni = (*n)
+		ni = n
 		jc = 1
 	} else {
-		mi = (*m)
+		mi = m
 		ic = 1
 	}
 
 	for _, i = range genIter(i1, i2, i3) {
 		if left {
 			//           H(i) or H(i)**H is applied to C(i:m,1:n)
-			mi = (*m) - i + 1
+			mi = m - i + 1
 			ic = i
 		} else {
 			//           H(i) or H(i)**H is applied to C(1:m,i:n)
-			ni = (*n) - i + 1
+			ni = n - i + 1
 			jc = i
 		}
 
@@ -102,7 +103,9 @@ func Zunm2r(side, trans byte, m, n, k *int, a *mat.CMatrix, lda *int, tau *mat.C
 		}
 		aii = a.Get(i-1, i-1)
 		a.Set(i-1, i-1, one)
-		Zlarf(side, &mi, &ni, a.CVector(i-1, i-1), func() *int { y := 1; return &y }(), &taui, c.Off(ic-1, jc-1), ldc, work)
+		Zlarf(side, mi, ni, a.CVector(i-1, i-1, 1), taui, c.Off(ic-1, jc-1), work)
 		a.Set(i-1, i-1, aii)
 	}
+
+	return
 }

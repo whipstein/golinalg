@@ -11,7 +11,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrgev3 checks the nonsymmetric generalized eigenvalue problem driver
+// ddrgev3 checks the nonsymmetric generalized eigenvalue problem driver
 // routine DGGEV3.
 //
 // DGGEV3 computes for a pair of n-by-n nonsymmetric matrices (A,B) the
@@ -153,7 +153,7 @@ import (
 //
 // (26) Q ( T1, T2 ) Z     where T1 and T2 are random upper-triangular
 //                         matrices.
-func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, b, s, t, q *mat.Matrix, ldq *int, z, qe *mat.Matrix, ldqe *int, alphar, alphai, beta, alphr1, alphi1, beta1, work *mat.Vector, lwork *int, result *mat.Vector, info *int, _t *testing.T) {
+func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, b, s, t, q, z, qe *mat.Matrix, alphar, alphai, beta, alphr1, alphi1, beta1, work *mat.Vector, lwork int, result *mat.Vector, _t *testing.T) (err error) {
 	var badnn bool
 	var one, safmax, safmin, ulp, ulpinv, zero float64
 	var i, iadd, ierr, in, j, jc, jr, jsize, jtype, maxtyp, maxwrk, minwrk, mtypes, n, n1, nerrs, nmats, nmax, ntestt int
@@ -193,31 +193,30 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	ibsign[0], ibsign[1], ibsign[2], ibsign[3], ibsign[4], ibsign[5], ibsign[6], ibsign[7], ibsign[8], ibsign[9], ibsign[10], ibsign[11], ibsign[12], ibsign[13], ibsign[14], ibsign[15], ibsign[16], ibsign[17], ibsign[18], ibsign[19], ibsign[20], ibsign[21], ibsign[22], ibsign[23], ibsign[24], ibsign[25] = 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 	//     Check for errors
-	(*info) = 0
 
 	badnn = false
 	nmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*lda) <= 1 || (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldq) <= 1 || (*ldq) < nmax {
-		(*info) = -14
-	} else if (*ldqe) <= 1 || (*ldqe) < nmax {
-		(*info) = -17
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows <= 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows <= 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if q.Rows <= 1 || q.Rows < nmax {
+		err = fmt.Errorf("q.Rows <= 1 || q.Rows < nmax: q.Rows=%v, nmax=%v", q.Rows, nmax)
+	} else if qe.Rows <= 1 || qe.Rows < nmax {
+		err = fmt.Errorf("qe.Rows <= 1 || qe.Rows < nmax: qe.Rows=%v, nmax=%v", qe.Rows, nmax)
 	}
 
 	//     Compute workspace
@@ -227,24 +226,24 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV.
 	minwrk = 1
-	if (*info) == 0 && (*lwork) >= 1 {
+	if err == nil && lwork >= 1 {
 		minwrk = max(1, 8*nmax, nmax*(nmax+1))
-		maxwrk = 7*nmax + nmax*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, &nmax, func() *int { y := 1; return &y }(), &nmax, func() *int { y := 0; return &y }())
+		maxwrk = 7*nmax + nmax*ilaenv(1, "Dgeqrf", []byte{' '}, nmax, 1, nmax, 0)
 		maxwrk = max(maxwrk, nmax*(nmax+1))
 		work.Set(0, float64(maxwrk))
 	}
 
-	if (*lwork) < minwrk {
-		(*info) = -25
+	if lwork < minwrk {
+		err = fmt.Errorf("lwork < minwrk: lwork=%v, minwrk=%v", lwork, minwrk)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DDRGEV3"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("DDRGEV3", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
@@ -252,7 +251,7 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	safmin = safmin / ulp
 	safmax = one / safmin
-	golapack.Dlabad(&safmin, &safmax)
+	safmin, safmax = golapack.Dlabad(safmin, safmax)
 	ulpinv = one / ulp
 
 	//     The values RMAGN(2:3) depend on N, see below.
@@ -264,27 +263,27 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label210
 			}
 			nmats = nmats + 1
 
-			//           Save ISEED in case of an error.
+			//           Save oseed in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Generate test matrices A and B
@@ -318,12 +317,12 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
-						golapack.Dlaset('F', &n, &n, &zero, &zero, a, lda)
+						golapack.Dlaset(Full, n, n, zero, zero, a)
 					}
 				} else {
 					in = n
 				}
-				Dlatm4(&(katype[jtype-1]), &in, &(kz1[kazero[jtype-1]-1]), &(kz2[kazero[jtype-1]-1]), &(iasign[jtype-1]), rmagn.GetPtr(kamagn[jtype-1]-0), &ulp, rmagn.GetPtr(ktrian[jtype-1]*kamagn[jtype-1]-0), func() *int { y := 2; return &y }(), iseed, a, lda)
+				dlatm4(katype[jtype-1], in, kz1[kazero[jtype-1]-1], kz2[kazero[jtype-1]-1], iasign[jtype-1], rmagn.Get(kamagn[jtype-1]-0), ulp, rmagn.Get(ktrian[jtype-1]*kamagn[jtype-1]-0), 2, &iseed, a)
 				iadd = kadd[kazero[jtype-1]-1]
 				if iadd > 0 && iadd <= n {
 					a.Set(iadd-1, iadd-1, one)
@@ -333,12 +332,12 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
-						golapack.Dlaset('F', &n, &n, &zero, &zero, b, lda)
+						golapack.Dlaset(Full, n, n, zero, zero, b)
 					}
 				} else {
 					in = n
 				}
-				Dlatm4(&(kbtype[jtype-1]), &in, &(kz1[kbzero[jtype-1]-1]), &(kz2[kbzero[jtype-1]-1]), &(ibsign[jtype-1]), rmagn.GetPtr(kbmagn[jtype-1]-0), &one, rmagn.GetPtr(ktrian[jtype-1]*kbmagn[jtype-1]-0), func() *int { y := 2; return &y }(), iseed, b, lda)
+				dlatm4(kbtype[jtype-1], in, kz1[kbzero[jtype-1]-1], kz2[kbzero[jtype-1]-1], ibsign[jtype-1], rmagn.Get(kbmagn[jtype-1]-0), one, rmagn.Get(ktrian[jtype-1]*kbmagn[jtype-1]-0), 2, &iseed, b)
 				iadd = kadd[kbzero[jtype-1]-1]
 				if iadd != 0 && iadd <= n {
 					b.Set(iadd-1, iadd-1, one)
@@ -351,22 +350,22 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 					//                 a diagonal matrix.
 					for jc = 1; jc <= n-1; jc++ {
 						for jr = jc; jr <= n; jr++ {
-							q.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
-							z.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
+							q.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
+							z.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
 						}
-						golapack.Dlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						*q.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Dlarfg(n+1-jc, q.Get(jc-1, jc-1), q.Vector(jc, jc-1, 1))
 						work.Set(2*n+jc-1, math.Copysign(one, q.Get(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, one)
-						golapack.Dlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						*z.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Dlarfg(n+1-jc, z.Get(jc-1, jc-1), z.Vector(jc, jc-1, 1))
 						work.Set(3*n+jc-1, math.Copysign(one, z.Get(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, one)
 					}
 					q.Set(n-1, n-1, one)
 					work.Set(n-1, zero)
-					work.Set(3*n-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					work.Set(3*n-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 					z.Set(n-1, n-1, one)
 					work.Set(2*n-1, zero)
-					work.Set(4*n-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					work.Set(4*n-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 
 					//                 Apply the diagonal matrices
 					for jc = 1; jc <= n; jc++ {
@@ -375,20 +374,16 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.Get(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n), &ierr)
-					if ierr != 0 {
+					if err = golapack.Dorm2r(Left, NoTrans, n, n, n-1, q, work, a, work.Off(2*n)); err != nil {
 						goto label90
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), a, lda, work.Off(2*n), &ierr)
-					if ierr != 0 {
+					if err = golapack.Dorm2r(Right, Trans, n, n, n-1, z, work.Off(n), a, work.Off(2*n)); err != nil {
 						goto label90
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n), &ierr)
-					if ierr != 0 {
+					if err = golapack.Dorm2r(Left, NoTrans, n, n, n-1, q, work, b, work.Off(2*n)); err != nil {
 						goto label90
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), b, lda, work.Off(2*n), &ierr)
-					if ierr != 0 {
+					if err = golapack.Dorm2r(Right, Trans, n, n, n-1, z, work.Off(n), b, work.Off(2*n)); err != nil {
 						goto label90
 					}
 				}
@@ -396,8 +391,8 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 				//              Random matrices
 				for jc = 1; jc <= n; jc++ {
 					for jr = 1; jr <= n; jr++ {
-						a.Set(jr-1, jc-1, rmagn.Get(kamagn[jtype-1]-0)*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
-						b.Set(jr-1, jc-1, rmagn.Get(kbmagn[jtype-1]-0)*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
+						a.Set(jr-1, jc-1, rmagn.Get(kamagn[jtype-1]-0)*matgen.Dlarnd(2, &iseed))
+						b.Set(jr-1, jc-1, rmagn.Get(kbmagn[jtype-1]-0)*matgen.Dlarnd(2, &iseed))
 					}
 				}
 			}
@@ -407,8 +402,8 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 			if ierr != 0 {
 				_t.Fail()
-				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "Generator", ierr, n, jtype, ioldsd)
-				(*info) = abs(ierr)
+				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Generator", ierr, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				return
 			}
 
@@ -420,40 +415,38 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 			}
 
 			//           Call DGGEV3 to compute eigenvalues and eigenvectors.
-			golapack.Dlacpy(' ', &n, &n, a, lda, s, lda)
-			golapack.Dlacpy(' ', &n, &n, b, lda, t, lda)
-			golapack.Dggev3('V', 'V', &n, s, lda, t, lda, alphar, alphai, beta, q, ldq, z, ldq, work, lwork, &ierr)
-			if ierr != 0 && ierr != n+1 {
+			golapack.Dlacpy(Full, n, n, a, s)
+			golapack.Dlacpy(Full, n, n, b, t)
+			if ierr, err = golapack.Dggev3('V', 'V', n, s, t, alphar, alphai, beta, q, z, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV31", ierr, n, jtype, ioldsd)
-				(*info) = abs(ierr)
+				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev31", ierr, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
 
 			//           Do the tests (1) and (2)
-			Dget52(true, &n, a, lda, b, lda, q, ldq, alphar, alphai, beta, work, result)
-			if result.Get(1) > (*thresh) {
+			dget52(true, n, a, b, q, alphar, alphai, beta, work, result)
+			if result.Get(1) > thresh {
 				_t.Fail()
-				fmt.Printf(" DDRGEV3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   N=%4d, JTYPE=%3d, ISEED=%4d\n", "Left", "DGGEV31", result.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" DDRGEV3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   n=%4d, jtype=%3d, oseed=%4d\n", "Left", "Dggev31", result.Get(1), n, jtype, ioldsd)
 			}
 
 			//           Do the tests (3) and (4)
-			Dget52(false, &n, a, lda, b, lda, z, ldq, alphar, alphai, beta, work, result.Off(2))
-			if result.Get(3) > (*thresh) {
+			dget52(false, n, a, b, z, alphar, alphai, beta, work, result.Off(2))
+			if result.Get(3) > thresh {
 				_t.Fail()
-				fmt.Printf(" DDRGEV3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   N=%4d, JTYPE=%3d, ISEED=%4d\n", "Right", "DGGEV31", result.Get(3), n, jtype, ioldsd)
+				fmt.Printf(" DDRGEV3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   n=%4d, jtype=%3d, oseed=%4d\n", "Right", "Dggev31", result.Get(3), n, jtype, ioldsd)
 			}
 
 			//           Do the test (5)
-			golapack.Dlacpy(' ', &n, &n, a, lda, s, lda)
-			golapack.Dlacpy(' ', &n, &n, b, lda, t, lda)
-			golapack.Dggev3('N', 'N', &n, s, lda, t, lda, alphr1, alphi1, beta1, q, ldq, z, ldq, work, lwork, &ierr)
-			if ierr != 0 && ierr != n+1 {
+			golapack.Dlacpy(Full, n, n, a, s)
+			golapack.Dlacpy(Full, n, n, b, t)
+			if ierr, err = golapack.Dggev3('N', 'N', n, s, t, alphr1, alphi1, beta1, q, z, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV32", ierr, n, jtype, ioldsd)
-				(*info) = abs(ierr)
+				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev32", ierr, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
 
@@ -465,14 +458,13 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 			//           Do the test (6): Compute eigenvalues and left eigenvectors,
 			//           and test them
-			golapack.Dlacpy(' ', &n, &n, a, lda, s, lda)
-			golapack.Dlacpy(' ', &n, &n, b, lda, t, lda)
-			golapack.Dggev3('V', 'N', &n, s, lda, t, lda, alphr1, alphi1, beta1, qe, ldqe, z, ldq, work, lwork, &ierr)
-			if ierr != 0 && ierr != n+1 {
+			golapack.Dlacpy(Full, n, n, a, s)
+			golapack.Dlacpy(Full, n, n, b, t)
+			if ierr, err = golapack.Dggev3('V', 'N', n, s, t, alphr1, alphi1, beta1, qe, z, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV33", ierr, n, jtype, ioldsd)
-				(*info) = abs(ierr)
+				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev33", ierr, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
 
@@ -492,14 +484,13 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 			//           DO the test (7): Compute eigenvalues and right eigenvectors,
 			//           and test them
-			golapack.Dlacpy(' ', &n, &n, a, lda, s, lda)
-			golapack.Dlacpy(' ', &n, &n, b, lda, t, lda)
-			golapack.Dggev3('N', 'V', &n, s, lda, t, lda, alphr1, alphi1, beta1, q, ldq, qe, ldqe, work, lwork, &ierr)
-			if ierr != 0 && ierr != n+1 {
+			golapack.Dlacpy(Full, n, n, a, s)
+			golapack.Dlacpy(Full, n, n, b, t)
+			if ierr, err = golapack.Dggev3('N', 'V', n, s, t, alphr1, alphi1, beta1, q, qe, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned INFO=%6d.\n   N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGEV34", ierr, n, jtype, ioldsd)
-				(*info) = abs(ierr)
+				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev34", ierr, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
 
@@ -525,12 +516,12 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 
 			//           Print out tests which fail.
 			for jr = 1; jr <= 7; jr++ {
-				if result.Get(jr-1) >= (*thresh) {
+				if result.Get(jr-1) >= thresh {
 					_t.Fail()
 					//                 If this is the first test to fail,
 					//                 print a header to the data file.
 					if nerrs == 0 {
-						fmt.Printf("\n %3s -- Real Generalized eigenvalue problem driver\n", "DGV")
+						fmt.Printf("\n %3s -- Real Generalized eigenvalue problem driver\n", "Dgv")
 
 						//                    Matrix types
 						fmt.Printf(" Matrix types (see DDRGEV3 for details): \n")
@@ -555,7 +546,9 @@ func Ddrgev3(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, 
 	}
 
 	//     Summary
-	Alasvm([]byte("DGV"), &nerrs, &ntestt, func() *int { y := 0; return &y }())
+	alasvm("Dgv", nerrs, ntestt, 0)
 
 	work.Set(0, float64(maxwrk))
+
+	return
 }

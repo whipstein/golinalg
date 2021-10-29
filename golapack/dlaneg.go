@@ -20,7 +20,7 @@ import "github.com/whipstein/golinalg/mat"
 //   Modern Symmetric Tridiagonal Eigensolvers," SIAM Journal on
 //   Scientific Computing, v28, n5, 2006.  DOI 10.1137/050641624
 //   (Tech report version in LAWN 172 with the same title.)
-func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegReturn int) {
+func Dlaneg(n int, d, lld *mat.Vector, sigma, pivmin float64, r int) (dlanegReturn int) {
 	var sawnan bool
 	var bsav, dminus, dplus, gamma, one, p, t, tmp, zero float64
 	var bj, blklen, j, neg1, neg2, negcnt int
@@ -36,17 +36,17 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 
 	negcnt = 0
 	//     I) upper part: L D L^T - SIGMA I = L+ D+ L+^T
-	t = -(*sigma)
-	for bj = 1; bj <= (*r)-1; bj += blklen {
+	t = -sigma
+	for bj = 1; bj <= r-1; bj += blklen {
 		neg1 = 0
 		bsav = t
-		for j = bj; j <= min(bj+blklen-1, (*r)-1); j++ {
+		for j = bj; j <= min(bj+blklen-1, r-1); j++ {
 			dplus = d.Get(j-1) + t
 			if dplus < zero {
 				neg1 = neg1 + 1
 			}
 			tmp = t / dplus
-			t = tmp*lld.Get(j-1) - (*sigma)
+			t = tmp*lld.Get(j-1) - sigma
 		}
 		sawnan = Disnan(int(t))
 		//     Run a slower version of the above loop if a NaN is detected.
@@ -56,7 +56,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 		if sawnan {
 			neg1 = 0
 			t = bsav
-			for j = bj; j <= min(bj+blklen-1, (*r)-1); j++ {
+			for j = bj; j <= min(bj+blklen-1, r-1); j++ {
 				dplus = d.Get(j-1) + t
 				if dplus < zero {
 					neg1 = neg1 + 1
@@ -65,24 +65,24 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 				if Disnan(int(tmp)) {
 					tmp = one
 				}
-				t = tmp*lld.Get(j-1) - (*sigma)
+				t = tmp*lld.Get(j-1) - sigma
 			}
 		}
 		negcnt = negcnt + neg1
 	}
 
 	//     II) lower part: L D L^T - SIGMA I = U- D- U-^T
-	p = d.Get((*n)-1) - (*sigma)
-	for bj = (*n) - 1; bj >= (*r); bj -= blklen {
+	p = d.Get(n-1) - sigma
+	for bj = n - 1; bj >= r; bj -= blklen {
 		neg2 = 0
 		bsav = p
-		for j = bj; j >= max(bj-blklen+1, *r); j-- {
+		for j = bj; j >= max(bj-blklen+1, r); j-- {
 			dminus = lld.Get(j-1) + p
 			if dminus < zero {
 				neg2 = neg2 + 1
 			}
 			tmp = p / dminus
-			p = tmp*d.Get(j-1) - (*sigma)
+			p = tmp*d.Get(j-1) - sigma
 		}
 		sawnan = Disnan(int(p))
 		//     As above, run a slower version that substitutes 1 for Inf/Inf.
@@ -90,7 +90,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 		if sawnan {
 			neg2 = 0
 			p = bsav
-			for j = bj; j >= max(bj-blklen+1, *r); j-- {
+			for j = bj; j >= max(bj-blklen+1, r); j-- {
 				dminus = lld.Get(j-1) + p
 				if dminus < zero {
 					neg2 = neg2 + 1
@@ -99,7 +99,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 				if Disnan(int(tmp)) {
 					tmp = one
 				}
-				p = tmp*d.Get(j-1) - (*sigma)
+				p = tmp*d.Get(j-1) - sigma
 			}
 		}
 		negcnt = negcnt + neg2
@@ -107,7 +107,7 @@ func Dlaneg(n *int, d, lld *mat.Vector, sigma, pivmin *float64, r *int) (dlanegR
 
 	//     III) Twist index
 	//       T was shifted by SIGMA initially.
-	gamma = (t + (*sigma)) + p
+	gamma = (t + sigma) + p
 	if gamma < zero {
 		negcnt = negcnt + 1
 	}

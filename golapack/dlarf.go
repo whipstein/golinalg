@@ -13,29 +13,28 @@ import (
 // where tau is a real scalar and v is a real vector.
 //
 // If tau = 0, then H is taken to be the unit matrix.
-func Dlarf(side byte, m, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.Matrix, ldc *int, work *mat.Vector) {
+func Dlarf(side mat.MatSide, m, n int, v *mat.Vector, tau float64, c *mat.Matrix, work *mat.Vector) {
 	var applyleft bool
 	var one, zero float64
 	var i, lastc, lastv int
 	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
-	applyleft = side == 'L'
+	applyleft = side == Left
 	lastv = 0
 	lastc = 0
-	if (*tau) != zero {
+	if tau != zero {
 		//!     Set up variables for scanning V.  LASTV begins pointing to the end
 		//!     of V.
 		if applyleft {
-			lastv = (*m)
+			lastv = m
 		} else {
-			lastv = (*n)
+			lastv = n
 		}
-		if (*incv) > 0 {
-			i = 1 + (lastv-1)*(*incv)
+		if v.Inc > 0 {
+			i = 1 + (lastv-1)*v.Inc
 		} else {
 			i = 1
 		}
@@ -43,16 +42,16 @@ func Dlarf(side byte, m, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.
 
 		for lastv > 0 && v.Get(i-1) == zero {
 			lastv = lastv - 1
-			i = i - (*incv)
+			i = i - v.Inc
 		}
 		if applyleft {
 			//!     Scan for the last non-zero column in C(1:lastv,:).
 
-			lastc = Iladlc(&lastv, n, c, ldc)
+			lastc = Iladlc(lastv, n, c)
 		} else {
 			//!     Scan for the last non-zero row in C(:,1:lastv).
 
-			lastc = Iladlr(m, &lastv, c, ldc)
+			lastc = Iladlr(m, lastv, c)
 		}
 	}
 	//!     Note that lastc.eq.0 renders the BLAS operations null; no special
@@ -61,19 +60,27 @@ func Dlarf(side byte, m, n *int, v *mat.Vector, incv *int, tau *float64, c *mat.
 		//        Form  H * C
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastv,1:lastc)**T * v(1:lastv,1)
-			err = goblas.Dgemv(Trans, lastv, lastc, one, c, v.Off(0, *incv), zero, work.Off(0, 1))
+			if err = goblas.Dgemv(Trans, lastv, lastc, one, c, v, zero, work.Off(0, 1)); err != nil {
+				panic(err)
+			}
 
 			//           C(1:lastv,1:lastc) := C(...) - v(1:lastv,1) * w(1:lastc,1)**T
-			err = goblas.Dger(lastv, lastc, -(*tau), v.Off(0, *incv), work.Off(0, 1), c)
+			if err = goblas.Dger(lastv, lastc, -tau, v, work.Off(0, 1), c); err != nil {
+				panic(err)
+			}
 		}
 	} else {
 		//        Form  C * H
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastc,1:lastv) * v(1:lastv,1)
-			err = goblas.Dgemv(NoTrans, lastc, lastv, one, c, v.Off(0, *incv), zero, work.Off(0, 1))
+			if err = goblas.Dgemv(NoTrans, lastc, lastv, one, c, v, zero, work.Off(0, 1)); err != nil {
+				panic(err)
+			}
 
 			//           C(1:lastc,1:lastv) := C(...) - w(1:lastc,1) * v(1:lastv,1)**T
-			err = goblas.Dger(lastc, lastv, -(*tau), work.Off(0, 1), v.Off(0, *incv), c)
+			if err = goblas.Dger(lastc, lastv, -tau, work.Off(0, 1), v, c); err != nil {
+				panic(err)
+			}
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -16,30 +18,35 @@ import (
 // where U is an upper triangular matrix and  L is a lower triangular
 // matrix.  The factored form of A is then used to solve the system of
 // equations A * X = B.
-func Zposv(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb, info *int) {
+func Zposv(uplo mat.MatUplo, n, nrhs int, a, b *mat.CMatrix) (info int, err error) {
 	//     Test the input parameters.
-	(*info) = 0
-	if uplo != 'U' && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
+	if uplo != Upper && uplo != Lower {
+		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZPOSV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zposv", err)
 		return
 	}
 
 	//     Compute the Cholesky factorization A = U**H *U or A = L*L**H.
-	Zpotrf(uplo, n, a, lda, info)
-	if (*info) == 0 {
+	if info, err = Zpotrf(uplo, n, a); err != nil {
+		panic(err)
+	}
+	if info == 0 {
 		//        Solve the system A*X = B, overwriting B with X.
-		Zpotrs(uplo, n, nrhs, a, lda, b, ldb, info)
+		if err = Zpotrs(uplo, n, nrhs, a, b); err != nil {
+			panic(err)
+		}
 
 	}
+
+	return
 }

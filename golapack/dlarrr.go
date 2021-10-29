@@ -9,7 +9,7 @@ import (
 // Dlarrr Perform tests to decide whether the symmetric tridiagonal matrix T
 // warrants expensive computations which guarantee high relative accuracy
 // in the eigenvalues.
-func Dlarrr(n *int, d, e *mat.Vector, info *int) {
+func Dlarrr(n int, d, e *mat.Vector) (info int) {
 	var yesrel bool
 	var eps, offdig, offdig2, relcond, rmin, safmin, smlnum, tmp, tmp2, zero float64
 	var i int
@@ -18,13 +18,12 @@ func Dlarrr(n *int, d, e *mat.Vector, info *int) {
 	relcond = 0.999
 
 	//     Quick return if possible
-	if (*n) <= 0 {
-		(*info) = 0
+	if n <= 0 {
 		return
 	}
 
 	//     As a default, do NOT go for relative-accuracy preserving computations.
-	(*info) = 1
+	info = 1
 	safmin = Dlamch(SafeMinimum)
 	eps = Dlamch(Precision)
 	smlnum = safmin / eps
@@ -54,7 +53,7 @@ func Dlarrr(n *int, d, e *mat.Vector, info *int) {
 	if !yesrel {
 		goto label11
 	}
-	for i = 2; i <= (*n); i++ {
+	for i = 2; i <= n; i++ {
 		tmp2 = math.Sqrt(math.Abs(d.Get(i - 1)))
 		if tmp2 < rmin {
 			yesrel = false
@@ -75,7 +74,7 @@ func Dlarrr(n *int, d, e *mat.Vector, info *int) {
 label11:
 	;
 	if yesrel {
-		(*info) = 0
+		info = 0
 		return
 	} else {
 	}
@@ -92,4 +91,6 @@ label11:
 	//     In this case, the matrix needs to be flipped and, at the end
 	//     of the eigenvector computation, the flip needs to be applied
 	//     to the computed eigenvectors (and the support)
+
+	return
 }

@@ -21,7 +21,7 @@ import (
 //
 // The method consists of approximating the rational functions in the
 // secular equation by simpler interpolating rational functions.
-func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
+func Dlaed4(n, i int, d, z, delta *mat.Vector, rho float64) (dlam float64, info int) {
 	var orgati, swtch, swtch3 bool
 	var a, b, c, del, dltlb, dltub, dphi, dpsi, dw, eight, eps, erretm, eta, four, midpt, one, phi, prew, psi, rhoinv, tau, temp, temp1, ten, three, two, w, zero float64
 	var ii, iim1, iip1, ip1, iter, j, maxit, niter int
@@ -41,53 +41,52 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 	//     checking.
 	//
 	//     Quick return for N=1 and 2.
-	(*info) = 0
-	if (*n) == 1 {
+	if n == 1 {
 		//         Presumably, I=1 upon entry
-		(*dlam) = d.Get(0) + (*rho)*z.Get(0)*z.Get(0)
+		dlam = d.Get(0) + rho*z.Get(0)*z.Get(0)
 		delta.Set(0, one)
 		return
 	}
-	if (*n) == 2 {
-		Dlaed5(i, d, z, delta, rho, dlam)
+	if n == 2 {
+		dlam = Dlaed5(i, d, z, delta, rho)
 		return
 	}
 
 	//     Compute machine epsilon
 	eps = Dlamch(Epsilon)
-	rhoinv = one / (*rho)
+	rhoinv = one / rho
 
 	//     The case I = N
-	if (*i) == (*n) {
+	if i == n {
 		//        Initialize some basic variables
-		ii = (*n) - 1
+		ii = n - 1
 		niter = 1
 
 		//        Calculate initial guess
-		midpt = (*rho) / two
+		midpt = rho / two
 
 		//        If ||Z||_2 is not one, then TEMP should be set to
 		//        RHO * ||Z||_2^2 / TWO
-		for j = 1; j <= (*n); j++ {
-			delta.Set(j-1, (d.Get(j-1)-d.Get((*i)-1))-midpt)
+		for j = 1; j <= n; j++ {
+			delta.Set(j-1, (d.Get(j-1)-d.Get(i-1))-midpt)
 		}
 
 		psi = zero
-		for j = 1; j <= (*n)-2; j++ {
+		for j = 1; j <= n-2; j++ {
 			psi = psi + z.Get(j-1)*z.Get(j-1)/delta.Get(j-1)
 		}
 
 		c = rhoinv + psi
-		w = c + z.Get(ii-1)*z.Get(ii-1)/delta.Get(ii-1) + z.Get((*n)-1)*z.Get((*n)-1)/delta.Get((*n)-1)
+		w = c + z.Get(ii-1)*z.Get(ii-1)/delta.Get(ii-1) + z.Get(n-1)*z.Get(n-1)/delta.Get(n-1)
 
 		if w <= zero {
-			temp = z.Get((*n)-1-1)*z.Get((*n)-1-1)/(d.Get((*n)-1)-d.Get((*n)-1-1)+(*rho)) + z.Get((*n)-1)*z.Get((*n)-1)/(*rho)
+			temp = z.Get(n-1-1)*z.Get(n-1-1)/(d.Get(n-1)-d.Get(n-1-1)+rho) + z.Get(n-1)*z.Get(n-1)/rho
 			if c <= temp {
-				tau = (*rho)
+				tau = rho
 			} else {
-				del = d.Get((*n)-1) - d.Get((*n)-1-1)
-				a = -c*del + z.Get((*n)-1-1)*z.Get((*n)-1-1) + z.Get((*n)-1)*z.Get((*n)-1)
-				b = z.Get((*n)-1) * z.Get((*n)-1) * del
+				del = d.Get(n-1) - d.Get(n-1-1)
+				a = -c*del + z.Get(n-1-1)*z.Get(n-1-1) + z.Get(n-1)*z.Get(n-1)
+				b = z.Get(n-1) * z.Get(n-1) * del
 				if a < zero {
 					tau = two * b / (math.Sqrt(a*a+four*b*c) - a)
 				} else {
@@ -98,11 +97,11 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			//           It can be proved that
 			//               D(N)+RHO/2 <= LAMBDA(N) < D(N)+TAU <= D(N)+RHO
 			dltlb = midpt
-			dltub = (*rho)
+			dltub = rho
 		} else {
-			del = d.Get((*n)-1) - d.Get((*n)-1-1)
-			a = -c*del + z.Get((*n)-1-1)*z.Get((*n)-1-1) + z.Get((*n)-1)*z.Get((*n)-1)
-			b = z.Get((*n)-1) * z.Get((*n)-1) * del
+			del = d.Get(n-1) - d.Get(n-1-1)
+			a = -c*del + z.Get(n-1-1)*z.Get(n-1-1) + z.Get(n-1)*z.Get(n-1)
+			b = z.Get(n-1) * z.Get(n-1) * del
 			if a < zero {
 				tau = two * b / (math.Sqrt(a*a+four*b*c) - a)
 			} else {
@@ -115,8 +114,8 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			dltub = midpt
 		}
 
-		for j = 1; j <= (*n); j++ {
-			delta.Set(j-1, (d.Get(j-1)-d.Get((*i)-1))-tau)
+		for j = 1; j <= n; j++ {
+			delta.Set(j-1, (d.Get(j-1)-d.Get(i-1))-tau)
 		}
 
 		//        Evaluate PSI and the derivative DPSI
@@ -132,8 +131,8 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		erretm = math.Abs(erretm)
 
 		//        Evaluate PHI and the derivative DPHI
-		temp = z.Get((*n)-1) / delta.Get((*n)-1)
-		phi = z.Get((*n)-1) * temp
+		temp = z.Get(n-1) / delta.Get(n-1)
+		phi = z.Get(n-1) * temp
 		dphi = temp * temp
 		erretm = eight*(-phi-psi) + erretm - phi + rhoinv + math.Abs(tau)*(dpsi+dphi)
 
@@ -141,7 +140,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 
 		//        Test for convergence
 		if math.Abs(w) <= eps*erretm {
-			(*dlam) = d.Get((*i)-1) + tau
+			dlam = d.Get(i-1) + tau
 			return
 		}
 
@@ -153,9 +152,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 
 		//        Calculate the new step
 		niter = niter + 1
-		c = w - delta.Get((*n)-1-1)*dpsi - delta.Get((*n)-1)*dphi
-		a = (delta.Get((*n)-1-1)+delta.Get((*n)-1))*w - delta.Get((*n)-1-1)*delta.Get((*n)-1)*(dpsi+dphi)
-		b = delta.Get((*n)-1-1) * delta.Get((*n)-1) * w
+		c = w - delta.Get(n-1-1)*dpsi - delta.Get(n-1)*dphi
+		a = (delta.Get(n-1-1)+delta.Get(n-1))*w - delta.Get(n-1-1)*delta.Get(n-1)*(dpsi+dphi)
+		b = delta.Get(n-1-1) * delta.Get(n-1) * w
 		if c < zero {
 			c = math.Abs(c)
 		}
@@ -185,7 +184,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 				eta = (dltlb - tau) / two
 			}
 		}
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			delta.Set(j-1, delta.Get(j-1)-eta)
 		}
 
@@ -204,8 +203,8 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		erretm = math.Abs(erretm)
 
 		//        Evaluate PHI and the derivative DPHI
-		temp = z.Get((*n)-1) / delta.Get((*n)-1)
-		phi = z.Get((*n)-1) * temp
+		temp = z.Get(n-1) / delta.Get(n-1)
+		phi = z.Get(n-1) * temp
 		dphi = temp * temp
 		erretm = eight*(-phi-psi) + erretm - phi + rhoinv + math.Abs(tau)*(dpsi+dphi)
 
@@ -217,7 +216,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		for niter = iter; niter <= maxit; niter++ {
 			//           Test for convergence
 			if math.Abs(w) <= eps*erretm {
-				(*dlam) = d.Get((*i)-1) + tau
+				dlam = d.Get(i-1) + tau
 				return
 			}
 
@@ -228,9 +227,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			}
 
 			//           Calculate the new step
-			c = w - delta.Get((*n)-1-1)*dpsi - delta.Get((*n)-1)*dphi
-			a = (delta.Get((*n)-1-1)+delta.Get((*n)-1))*w - delta.Get((*n)-1-1)*delta.Get((*n)-1)*(dpsi+dphi)
-			b = delta.Get((*n)-1-1) * delta.Get((*n)-1) * w
+			c = w - delta.Get(n-1-1)*dpsi - delta.Get(n-1)*dphi
+			a = (delta.Get(n-1-1)+delta.Get(n-1))*w - delta.Get(n-1-1)*delta.Get(n-1)*(dpsi+dphi)
+			b = delta.Get(n-1-1) * delta.Get(n-1) * w
 			if a >= zero {
 				eta = (a + math.Sqrt(math.Abs(a*a-four*b*c))) / (two * c)
 			} else {
@@ -253,7 +252,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 					eta = (dltlb - tau) / two
 				}
 			}
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				delta.Set(j-1, delta.Get(j-1)-eta)
 			}
 
@@ -272,8 +271,8 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			erretm = math.Abs(erretm)
 
 			//           Evaluate PHI and the derivative DPHI
-			temp = z.Get((*n)-1) / delta.Get((*n)-1)
-			phi = z.Get((*n)-1) * temp
+			temp = z.Get(n-1) / delta.Get(n-1)
+			phi = z.Get(n-1) * temp
 			dphi = temp * temp
 			erretm = eight*(-phi-psi) + erretm - phi + rhoinv + math.Abs(tau)*(dpsi+dphi)
 
@@ -281,42 +280,42 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		}
 
 		//        Return with INFO = 1, NITER = MAXIT and not converged
-		(*info) = 1
-		(*dlam) = d.Get((*i)-1) + tau
+		info = 1
+		dlam = d.Get(i-1) + tau
 		return
 
 		//        End for the case I = N
 	} else {
 		//        The case for I < N
 		niter = 1
-		ip1 = (*i) + 1
+		ip1 = i + 1
 
 		//        Calculate initial guess
-		del = d.Get(ip1-1) - d.Get((*i)-1)
+		del = d.Get(ip1-1) - d.Get(i-1)
 		midpt = del / two
-		for j = 1; j <= (*n); j++ {
-			delta.Set(j-1, (d.Get(j-1)-d.Get((*i)-1))-midpt)
+		for j = 1; j <= n; j++ {
+			delta.Set(j-1, (d.Get(j-1)-d.Get(i-1))-midpt)
 		}
 
 		psi = zero
-		for j = 1; j <= (*i)-1; j++ {
+		for j = 1; j <= i-1; j++ {
 			psi = psi + z.Get(j-1)*z.Get(j-1)/delta.Get(j-1)
 		}
 
 		phi = zero
-		for j = (*n); j >= (*i)+2; j-- {
+		for j = n; j >= i+2; j-- {
 			phi = phi + z.Get(j-1)*z.Get(j-1)/delta.Get(j-1)
 		}
 		c = rhoinv + psi + phi
-		w = c + z.Get((*i)-1)*z.Get((*i)-1)/delta.Get((*i)-1) + z.Get(ip1-1)*z.Get(ip1-1)/delta.Get(ip1-1)
+		w = c + z.Get(i-1)*z.Get(i-1)/delta.Get(i-1) + z.Get(ip1-1)*z.Get(ip1-1)/delta.Get(ip1-1)
 
 		if w > zero {
 			//           d(i)< the ith eigenvalue < (d(i)+d(i+1))/2
 			//
 			//           We choose d(i) as origin.
 			orgati = true
-			a = c*del + z.Get((*i)-1)*z.Get((*i)-1) + z.Get(ip1-1)*z.Get(ip1-1)
-			b = z.Get((*i)-1) * z.Get((*i)-1) * del
+			a = c*del + z.Get(i-1)*z.Get(i-1) + z.Get(ip1-1)*z.Get(ip1-1)
+			b = z.Get(i-1) * z.Get(i-1) * del
 			if a > zero {
 				tau = two * b / (a + math.Sqrt(math.Abs(a*a-four*b*c)))
 			} else {
@@ -329,7 +328,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			//
 			//           We choose d(i+1) as origin.
 			orgati = false
-			a = c*del - z.Get((*i)-1)*z.Get((*i)-1) - z.Get(ip1-1)*z.Get(ip1-1)
+			a = c*del - z.Get(i-1)*z.Get(i-1) - z.Get(ip1-1)*z.Get(ip1-1)
 			b = z.Get(ip1-1) * z.Get(ip1-1) * del
 			if a < zero {
 				tau = two * b / (a - math.Sqrt(math.Abs(a*a+four*b*c)))
@@ -341,18 +340,18 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		}
 
 		if orgati {
-			for j = 1; j <= (*n); j++ {
-				delta.Set(j-1, (d.Get(j-1)-d.Get((*i)-1))-tau)
+			for j = 1; j <= n; j++ {
+				delta.Set(j-1, (d.Get(j-1)-d.Get(i-1))-tau)
 			}
 		} else {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				delta.Set(j-1, (d.Get(j-1)-d.Get(ip1-1))-tau)
 			}
 		}
 		if orgati {
-			ii = (*i)
+			ii = i
 		} else {
-			ii = (*i) + 1
+			ii = i + 1
 		}
 		iim1 = ii - 1
 		iip1 = ii + 1
@@ -372,7 +371,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		//        Evaluate PHI and the derivative DPHI
 		dphi = zero
 		phi = zero
-		for j = (*n); j >= iip1; j-- {
+		for j = n; j >= iip1; j-- {
 			temp = z.Get(j-1) / delta.Get(j-1)
 			phi = phi + z.Get(j-1)*temp
 			dphi = dphi + temp*temp
@@ -393,7 +392,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 				swtch3 = true
 			}
 		}
-		if ii == 1 || ii == (*n) {
+		if ii == 1 || ii == n {
 			swtch3 = false
 		}
 
@@ -406,9 +405,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		//        Test for convergence
 		if math.Abs(w) <= eps*erretm {
 			if orgati {
-				(*dlam) = d.Get((*i)-1) + tau
+				dlam = d.Get(i-1) + tau
 			} else {
-				(*dlam) = d.Get(ip1-1) + tau
+				dlam = d.Get(ip1-1) + tau
 			}
 			return
 		}
@@ -423,18 +422,18 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		niter = niter + 1
 		if !swtch3 {
 			if orgati {
-				c = w - delta.Get(ip1-1)*dw - (d.Get((*i)-1)-d.Get(ip1-1))*math.Pow(z.Get((*i)-1)/delta.Get((*i)-1), 2)
+				c = w - delta.Get(ip1-1)*dw - (d.Get(i-1)-d.Get(ip1-1))*math.Pow(z.Get(i-1)/delta.Get(i-1), 2)
 			} else {
-				c = w - delta.Get((*i)-1)*dw - (d.Get(ip1-1)-d.Get((*i)-1))*math.Pow(z.Get(ip1-1)/delta.Get(ip1-1), 2)
+				c = w - delta.Get(i-1)*dw - (d.Get(ip1-1)-d.Get(i-1))*math.Pow(z.Get(ip1-1)/delta.Get(ip1-1), 2)
 			}
-			a = (delta.Get((*i)-1)+delta.Get(ip1-1))*w - delta.Get((*i)-1)*delta.Get(ip1-1)*dw
-			b = delta.Get((*i)-1) * delta.Get(ip1-1) * w
+			a = (delta.Get(i-1)+delta.Get(ip1-1))*w - delta.Get(i-1)*delta.Get(ip1-1)*dw
+			b = delta.Get(i-1) * delta.Get(ip1-1) * w
 			if c == zero {
 				if a == zero {
 					if orgati {
-						a = z.Get((*i)-1)*z.Get((*i)-1) + delta.Get(ip1-1)*delta.Get(ip1-1)*(dpsi+dphi)
+						a = z.Get(i-1)*z.Get(i-1) + delta.Get(ip1-1)*delta.Get(ip1-1)*(dpsi+dphi)
 					} else {
-						a = z.Get(ip1-1)*z.Get(ip1-1) + delta.Get((*i)-1)*delta.Get((*i)-1)*(dpsi+dphi)
+						a = z.Get(ip1-1)*z.Get(ip1-1) + delta.Get(i-1)*delta.Get(i-1)*(dpsi+dphi)
 					}
 				}
 				eta = b / a
@@ -460,8 +459,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 				zz.Set(2, z.Get(iip1-1)*z.Get(iip1-1))
 			}
 			zz.Set(1, z.Get(ii-1)*z.Get(ii-1))
-			Dlaed6(&niter, orgati, &c, delta.Off(iim1-1), zz, &w, &eta, info)
-			if (*info) != 0 {
+			if eta, info = Dlaed6(niter, orgati, c, delta.Off(iim1-1), zz, w); info != 0 {
 				return
 			}
 		}
@@ -485,7 +483,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 
 		prew = w
 
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			delta.Set(j-1, delta.Get(j-1)-eta)
 		}
 
@@ -504,7 +502,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		//        Evaluate PHI and the derivative DPHI
 		dphi = zero
 		phi = zero
-		for j = (*n); j >= iip1; j-- {
+		for j = n; j >= iip1; j-- {
 			temp = z.Get(j-1) / delta.Get(j-1)
 			phi = phi + z.Get(j-1)*temp
 			dphi = dphi + temp*temp
@@ -537,9 +535,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			//           Test for convergence
 			if math.Abs(w) <= eps*erretm {
 				if orgati {
-					(*dlam) = d.Get((*i)-1) + tau
+					dlam = d.Get(i-1) + tau
 				} else {
-					(*dlam) = d.Get(ip1-1) + tau
+					dlam = d.Get(ip1-1) + tau
 				}
 				return
 			}
@@ -554,9 +552,9 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			if !swtch3 {
 				if !swtch {
 					if orgati {
-						c = w - delta.Get(ip1-1)*dw - (d.Get((*i)-1)-d.Get(ip1-1))*math.Pow(z.Get((*i)-1)/delta.Get((*i)-1), 2)
+						c = w - delta.Get(ip1-1)*dw - (d.Get(i-1)-d.Get(ip1-1))*math.Pow(z.Get(i-1)/delta.Get(i-1), 2)
 					} else {
-						c = w - delta.Get((*i)-1)*dw - (d.Get(ip1-1)-d.Get((*i)-1))*math.Pow(z.Get(ip1-1)/delta.Get(ip1-1), 2)
+						c = w - delta.Get(i-1)*dw - (d.Get(ip1-1)-d.Get(i-1))*math.Pow(z.Get(ip1-1)/delta.Get(ip1-1), 2)
 					}
 				} else {
 					temp = z.Get(ii-1) / delta.Get(ii-1)
@@ -565,20 +563,20 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 					} else {
 						dphi = dphi + temp*temp
 					}
-					c = w - delta.Get((*i)-1)*dpsi - delta.Get(ip1-1)*dphi
+					c = w - delta.Get(i-1)*dpsi - delta.Get(ip1-1)*dphi
 				}
-				a = (delta.Get((*i)-1)+delta.Get(ip1-1))*w - delta.Get((*i)-1)*delta.Get(ip1-1)*dw
-				b = delta.Get((*i)-1) * delta.Get(ip1-1) * w
+				a = (delta.Get(i-1)+delta.Get(ip1-1))*w - delta.Get(i-1)*delta.Get(ip1-1)*dw
+				b = delta.Get(i-1) * delta.Get(ip1-1) * w
 				if c == zero {
 					if a == zero {
 						if !swtch {
 							if orgati {
-								a = z.Get((*i)-1)*z.Get((*i)-1) + delta.Get(ip1-1)*delta.Get(ip1-1)*(dpsi+dphi)
+								a = z.Get(i-1)*z.Get(i-1) + delta.Get(ip1-1)*delta.Get(ip1-1)*(dpsi+dphi)
 							} else {
-								a = z.Get(ip1-1)*z.Get(ip1-1) + delta.Get((*i)-1)*delta.Get((*i)-1)*(dpsi+dphi)
+								a = z.Get(ip1-1)*z.Get(ip1-1) + delta.Get(i-1)*delta.Get(i-1)*(dpsi+dphi)
 							}
 						} else {
-							a = delta.Get((*i)-1)*delta.Get((*i)-1)*dpsi + delta.Get(ip1-1)*delta.Get(ip1-1)*dphi
+							a = delta.Get(i-1)*delta.Get(i-1)*dpsi + delta.Get(ip1-1)*delta.Get(ip1-1)*dphi
 						}
 					}
 					eta = b / a
@@ -609,8 +607,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 						zz.Set(2, z.Get(iip1-1)*z.Get(iip1-1))
 					}
 				}
-				Dlaed6(&niter, orgati, &c, delta.Off(iim1-1), zz, &w, &eta, info)
-				if (*info) != 0 {
+				if eta, info = Dlaed6(niter, orgati, c, delta.Off(iim1-1), zz, w); info != 0 {
 					return
 				}
 			}
@@ -632,7 +629,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 				}
 			}
 
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				delta.Set(j-1, delta.Get(j-1)-eta)
 			}
 
@@ -654,7 +651,7 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 			//           Evaluate PHI and the derivative DPHI
 			dphi = zero
 			phi = zero
-			for j = (*n); j >= iip1; j-- {
+			for j = n; j >= iip1; j-- {
 				temp = z.Get(j-1) / delta.Get(j-1)
 				phi = phi + z.Get(j-1)*temp
 				dphi = dphi + temp*temp
@@ -673,12 +670,14 @@ func Dlaed4(n, i *int, d, z, delta *mat.Vector, rho, dlam *float64, info *int) {
 		}
 
 		//        Return with INFO = 1, NITER = MAXIT and not converged
-		(*info) = 1
+		info = 1
 		if orgati {
-			(*dlam) = d.Get((*i)-1) + tau
+			dlam = d.Get(i-1) + tau
 		} else {
-			(*dlam) = d.Get(ip1-1) + tau
+			dlam = d.Get(ip1-1) + tau
 		}
 
 	}
+
+	return
 }

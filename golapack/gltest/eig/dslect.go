@@ -5,7 +5,7 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Dslect returns .TRUE. if the eigenvalue ZR+sqrt(-1)*ZI is to be
+// dslect returns .TRUE. if the eigenvalue ZR+sqrt(-1)*ZI is to be
 // selected, and otherwise it returns .FALSE.
 // It is used by DCHK41 to test if DGEES successfully sorts eigenvalues,
 // and by DCHK43 to test if DGEESX successfully sorts eigenvalues.
@@ -15,7 +15,7 @@ import (
 // and .FALSE. otherwise.
 // If SELOPT is at least 1, DSLECT returns SELVAL(SELOPT) and adds 1
 // to SELOPT, cycling back to 1 at SELMAX.
-func Dslect(zr, zi *float64) (dslectReturn bool) {
+func dslect(zr, zi *float64) (dslectReturn bool) {
 	var rmin, x, zero float64
 	var i int
 
@@ -30,10 +30,10 @@ func Dslect(zr, zi *float64) (dslectReturn bool) {
 	if (*selopt) == 0 {
 		dslectReturn = ((*zr) < zero)
 	} else {
-		rmin = golapack.Dlapy2(toPtrf64((*zr)-float64(selwr.Get(0))), toPtrf64((*zi)-float64(selwi.Get(0))))
+		rmin = golapack.Dlapy2((*zr)-float64(selwr.Get(0)), (*zi)-float64(selwi.Get(0)))
 		dslectReturn = (*selval)[0]
 		for i = 2; i <= (*seldim); i++ {
-			x = golapack.Dlapy2(toPtrf64((*zr)-float64(selwr.Get(i-1))), toPtrf64((*zi)-float64(selwi.Get(i-1))))
+			x = golapack.Dlapy2((*zr)-float64(selwr.Get(i-1)), (*zi)-float64(selwi.Get(i-1)))
 			if x <= rmin {
 				rmin = x
 				dslectReturn = (*selval)[i-1]

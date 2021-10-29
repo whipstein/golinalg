@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget51 generally checks a decomposition of the form
+// dget51 generally checks a decomposition of the form
 //
 //              A = U B V'
 //
@@ -25,18 +25,17 @@ import (
 //      If ITYPE=3, then:
 //
 //              RESULT = | I - UU' | / ( n ulp )
-func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *mat.Matrix, ldu *int, v *mat.Matrix, ldv *int, work *mat.Vector, result *float64) {
+func dget51(itype, n int, a, b, u, v *mat.Matrix, work *mat.Vector) (result float64) {
 	var anorm, one, ten, ulp, unfl, wnorm, zero float64
 	var jcol, jdiag, jrow int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 	ten = 10.0
 
-	(*result) = zero
-	if (*n) <= 0 {
+	result = zero
+	if n <= 0 {
 		return
 	}
 
@@ -45,43 +44,47 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 
 	//     Some Error Checks
-	if (*itype) < 1 || (*itype) > 3 {
-		(*result) = ten / ulp
+	if itype < 1 || itype > 3 {
+		result = ten / ulp
 		return
 	}
 
-	if (*itype) <= 2 {
+	if itype <= 2 {
 		//        Tests scaled by the norm(A)
-		anorm = math.Max(golapack.Dlange('1', n, n, a, lda, work), unfl)
+		anorm = math.Max(golapack.Dlange('1', n, n, a, work), unfl)
 
-		if (*itype) == 1 {
+		if itype == 1 {
 			//           ITYPE=1: Compute W = A - UBV'
-			golapack.Dlacpy(' ', n, n, a, lda, work.Matrix(*n, opts), n)
-			err = goblas.Dgemm(NoTrans, NoTrans, *n, *n, *n, one, u, b, zero, work.MatrixOff(int(math.Pow(float64(*n), 2)), *n, opts))
+			golapack.Dlacpy(Full, n, n, a, work.Matrix(n, opts))
+			if err = goblas.Dgemm(NoTrans, NoTrans, n, n, n, one, u, b, zero, work.MatrixOff(pow(n, 2), n, opts)); err != nil {
+				panic(err)
+			}
 
-			err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, -one, work.MatrixOff(int(math.Pow(float64(*n), 2)), *n, opts), v, one, work.Matrix(*n, opts))
+			if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, -one, work.MatrixOff(pow(n, 2), n, opts), v, one, work.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
 
 		} else {
 			//           ITYPE=2: Compute W = A - B
-			golapack.Dlacpy(' ', n, n, b, ldb, work.Matrix(*n, opts), n)
+			golapack.Dlacpy(Full, n, n, b, work.Matrix(n, opts))
 
-			for jcol = 1; jcol <= (*n); jcol++ {
-				for jrow = 1; jrow <= (*n); jrow++ {
-					work.Set(jrow+(*n)*(jcol-1)-1, work.Get(jrow+(*n)*(jcol-1)-1)-a.Get(jrow-1, jcol-1))
+			for jcol = 1; jcol <= n; jcol++ {
+				for jrow = 1; jrow <= n; jrow++ {
+					work.Set(jrow+n*(jcol-1)-1, work.Get(jrow+n*(jcol-1)-1)-a.Get(jrow-1, jcol-1))
 				}
 			}
 		}
 
 		//        Compute norm(W)/ ( ulp*norm(A) )
-		wnorm = golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2))))
+		wnorm = golapack.Dlange('1', n, n, work.Matrix(n, opts), work.Off(pow(n, 2)))
 
 		if anorm > wnorm {
-			(*result) = (wnorm / anorm) / (float64(*n) * ulp)
+			result = (wnorm / anorm) / (float64(n) * ulp)
 		} else {
 			if anorm < one {
-				(*result) = (math.Min(wnorm, float64(*n)*anorm) / anorm) / (float64(*n) * ulp)
+				result = (math.Min(wnorm, float64(n)*anorm) / anorm) / (float64(n) * ulp)
 			} else {
-				(*result) = math.Min(wnorm/anorm, float64(*n)) / (float64(*n) * ulp)
+				result = math.Min(wnorm/anorm, float64(n)) / (float64(n) * ulp)
 			}
 		}
 
@@ -89,12 +92,16 @@ func Dget51(itype, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, u *
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  UU' - I
-		err = goblas.Dgemm(NoTrans, ConjTrans, *n, *n, *n, one, u, u, zero, work.Matrix(*n, opts))
-
-		for jdiag = 1; jdiag <= (*n); jdiag++ {
-			work.Set(((*n)+1)*(jdiag-1), work.Get(((*n)+1)*(jdiag-1))-one)
+		if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero, work.Matrix(n, opts)); err != nil {
+			panic(err)
 		}
 
-		(*result) = math.Min(golapack.Dlange('1', n, n, work.Matrix(*n, opts), n, work.Off(int(math.Pow(float64(*n), 2)))), float64(*n)) / (float64(*n) * ulp)
+		for jdiag = 1; jdiag <= n; jdiag++ {
+			work.Set((n+1)*(jdiag-1), work.Get((n+1)*(jdiag-1))-one)
+		}
+
+		result = math.Min(golapack.Dlange('1', n, n, work.Matrix(n, opts), work.Off(pow(n, 2))), float64(n)) / (float64(n) * ulp)
 	}
+
+	return
 }

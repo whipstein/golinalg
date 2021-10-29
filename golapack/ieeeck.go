@@ -2,61 +2,61 @@ package golapack
 
 // Ieeeck is called from the ILAENV to verify that Infinity and
 // possibly NaN arithmetic is safe (i.e. will not trap).
-func Ieeeck(ispec *int, zero, one *float64) (ieeeckReturn int) {
+func Ieeeck(ispec int, zero, one float64) (ieeeckReturn int) {
 	var nan1, nan2, nan4, nan5, nan6, neginf, negzro, newzro, posinf float64
 
 	ieeeckReturn = 1
 
-	posinf = (*one) / (*zero)
-	if posinf <= (*one) {
+	posinf = one / zero
+	if posinf <= one {
 		ieeeckReturn = 0
 		return
 	}
 
-	neginf = -(*one) / (*zero)
-	if neginf >= (*zero) {
+	neginf = -one / zero
+	if neginf >= zero {
 		ieeeckReturn = 0
 		return
 	}
 
-	negzro = (*one) / (neginf + (*one))
-	if negzro != (*zero) {
+	negzro = one / (neginf + one)
+	if negzro != zero {
 		ieeeckReturn = 0
 		return
 	}
 
-	neginf = (*one) / negzro
-	if neginf >= (*zero) {
+	neginf = one / negzro
+	if neginf >= zero {
 		ieeeckReturn = 0
 		return
 	}
 
-	newzro = negzro + (*zero)
-	if newzro != (*zero) {
+	newzro = negzro + zero
+	if newzro != zero {
 		ieeeckReturn = 0
 		return
 	}
 
-	posinf = (*one) / newzro
-	if posinf <= (*one) {
+	posinf = one / newzro
+	if posinf <= one {
 		ieeeckReturn = 0
 		return
 	}
 
 	neginf = neginf * posinf
-	if neginf >= (*zero) {
+	if neginf >= zero {
 		ieeeckReturn = 0
 		return
 	}
 
 	posinf = posinf * posinf
-	if posinf <= (*one) {
+	if posinf <= one {
 		ieeeckReturn = 0
 		return
 	}
 
 	//     Return if we were only asked to check infinity arithmetic
-	if *ispec == 0 {
+	if ispec == 0 {
 		return
 	}
 
@@ -66,11 +66,11 @@ func Ieeeck(ispec *int, zero, one *float64) (ieeeckReturn int) {
 
 	// nan3 = posinf / posinf
 
-	nan4 = posinf * (*zero)
+	nan4 = posinf * zero
 
 	nan5 = neginf * negzro
 
-	nan6 = nan5 * (*zero)
+	nan6 = nan5 * zero
 
 	if nan1 == nan1 {
 		ieeeckReturn = 0

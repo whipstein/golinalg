@@ -8,14 +8,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zgqrts tests ZGGQRF, which computes the GQR factorization of an
+// zgqrts tests ZGGQRF, which computes the GQR factorization of an
 // N-by-M matrix A and a N-by-P matrix B: A = Q*R and B = Q*T*Z.
-func Zgqrts(n, m, p *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector, b, bf, z, t, bwk *mat.CMatrix, ldb *int, taub, work *mat.CVector, lwork *int, rwork, result *mat.Vector) {
+func zgqrts(n, m, p int, a, af, q, r *mat.CMatrix, taua *mat.CVector, b, bf, z, t, bwk *mat.CMatrix, taub, work *mat.CVector, lwork int, rwork, result *mat.Vector) {
 	var cone, crogue, czero complex128
 	var anorm, bnorm, one, resid, ulp, unfl, zero float64
-	var info int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -27,85 +25,101 @@ func Zgqrts(n, m, p *int, a, af, q, r *mat.CMatrix, lda *int, taua *mat.CVector,
 	unfl = golapack.Dlamch(SafeMinimum)
 
 	//     Copy the matrix A to the array AF.
-	golapack.Zlacpy('F', n, m, a, lda, af, lda)
-	golapack.Zlacpy('F', n, p, b, ldb, bf, ldb)
+	golapack.Zlacpy(Full, n, m, a, af)
+	golapack.Zlacpy(Full, n, p, b, bf)
 
-	anorm = math.Max(golapack.Zlange('1', n, m, a, lda, rwork), unfl)
-	bnorm = math.Max(golapack.Zlange('1', n, p, b, ldb, rwork), unfl)
+	anorm = math.Max(golapack.Zlange('1', n, m, a, rwork), unfl)
+	bnorm = math.Max(golapack.Zlange('1', n, p, b, rwork), unfl)
 
 	//     Factorize the matrices A and B in the arrays AF and BF.
-	golapack.Zggqrf(n, m, p, af, lda, taua, bf, ldb, taub, work, lwork, &info)
+	if err = golapack.Zggqrf(n, m, p, af, taua, bf, taub, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Generate the N-by-N matrix Q
-	golapack.Zlaset('F', n, n, &crogue, &crogue, q, lda)
-	golapack.Zlacpy('L', toPtr((*n)-1), m, af.Off(1, 0), lda, q.Off(1, 0), lda)
-	golapack.Zungqr(n, n, toPtr(min(*n, *m)), q, lda, taua, work, lwork, &info)
+	golapack.Zlaset(Full, n, n, crogue, crogue, q)
+	golapack.Zlacpy(Lower, n-1, m, af.Off(1, 0), q.Off(1, 0))
+	if err = golapack.Zungqr(n, n, min(n, m), q, taua, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Generate the P-by-P matrix Z
-	golapack.Zlaset('F', p, p, &crogue, &crogue, z, ldb)
-	if (*n) <= (*p) {
-		if (*n) > 0 && (*n) < (*p) {
-			golapack.Zlacpy('F', n, toPtr((*p)-(*n)), bf, ldb, z.Off((*p)-(*n), 0), ldb)
+	golapack.Zlaset(Full, p, p, crogue, crogue, z)
+	if n <= p {
+		if n > 0 && n < p {
+			golapack.Zlacpy(Full, n, p-n, bf, z.Off(p-n, 0))
 		}
-		if (*n) > 1 {
-			golapack.Zlacpy('L', toPtr((*n)-1), toPtr((*n)-1), bf.Off(1, (*p)-(*n)), ldb, z.Off((*p)-(*n)+2-1, (*p)-(*n)), ldb)
+		if n > 1 {
+			golapack.Zlacpy(Lower, n-1, n-1, bf.Off(1, p-n), z.Off(p-n+2-1, p-n))
 		}
 	} else {
-		if (*p) > 1 {
-			golapack.Zlacpy('L', toPtr((*p)-1), toPtr((*p)-1), bf.Off((*n)-(*p)+2-1, 0), ldb, z.Off(1, 0), ldb)
+		if p > 1 {
+			golapack.Zlacpy(Lower, p-1, p-1, bf.Off(n-p+2-1, 0), z.Off(1, 0))
 		}
 	}
-	golapack.Zungrq(p, p, toPtr(min(*n, *p)), z, ldb, taub, work, lwork, &info)
+	if err = golapack.Zungrq(p, p, min(n, p), z, taub, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy R
-	golapack.Zlaset('F', n, m, &czero, &czero, r, lda)
-	golapack.Zlacpy('U', n, m, af, lda, r, lda)
+	golapack.Zlaset(Full, n, m, czero, czero, r)
+	golapack.Zlacpy(Upper, n, m, af, r)
 
 	//     Copy T
-	golapack.Zlaset('F', n, p, &czero, &czero, t, ldb)
-	if (*n) <= (*p) {
-		golapack.Zlacpy('U', n, n, bf.Off(0, (*p)-(*n)), ldb, t.Off(0, (*p)-(*n)), ldb)
+	golapack.Zlaset(Full, n, p, czero, czero, t)
+	if n <= p {
+		golapack.Zlacpy(Upper, n, n, bf.Off(0, p-n), t.Off(0, p-n))
 	} else {
-		golapack.Zlacpy('F', toPtr((*n)-(*p)), p, bf, ldb, t, ldb)
-		golapack.Zlacpy('U', p, p, bf.Off((*n)-(*p), 0), ldb, t.Off((*n)-(*p), 0), ldb)
+		golapack.Zlacpy(Full, n-p, p, bf, t)
+		golapack.Zlacpy(Upper, p, p, bf.Off(n-p, 0), t.Off(n-p, 0))
 	}
 
 	//     Compute R - Q'*A
-	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *m, *n, -cone, q, a, cone, r)
+	if err = goblas.Zgemm(ConjTrans, NoTrans, n, m, n, -cone, q, a, cone, r); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( R - Q'*A ) / ( max(M,N)*norm(A)*ULP ) .
-	resid = golapack.Zlange('1', n, m, r, lda, rwork)
+	resid = golapack.Zlange('1', n, m, r, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(max(1, *m, *n)))/anorm)/ulp)
+		result.Set(0, ((resid/float64(max(1, m, n)))/anorm)/ulp)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute T*Z - Q'*B
-	err = goblas.Zgemm(NoTrans, NoTrans, *n, *p, *p, cone, t, z, czero, bwk)
-	err = goblas.Zgemm(ConjTrans, NoTrans, *n, *p, *n, -cone, q, b, cone, bwk)
+	if err = goblas.Zgemm(NoTrans, NoTrans, n, p, p, cone, t, z, czero, bwk); err != nil {
+		panic(err)
+	}
+	if err = goblas.Zgemm(ConjTrans, NoTrans, n, p, n, -cone, q, b, cone, bwk); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( T*Z - Q'*B ) / ( max(P,N)*norm(A)*ULP ) .
-	resid = golapack.Zlange('1', n, p, bwk, ldb, rwork)
+	resid = golapack.Zlange('1', n, p, bwk, rwork)
 	if bnorm > zero {
-		result.Set(1, ((resid/float64(max(1, *p, *n)))/bnorm)/ulp)
+		result.Set(1, ((resid/float64(max(1, p, n)))/bnorm)/ulp)
 	} else {
 		result.Set(1, zero)
 	}
 
 	//     Compute I - Q'*Q
-	golapack.Zlaset('F', n, n, &czero, &cone, r, lda)
-	err = goblas.Zherk(Upper, ConjTrans, *n, *n, -one, q, one, r)
+	golapack.Zlaset(Full, n, n, czero, cone, r)
+	if err = goblas.Zherk(Upper, ConjTrans, n, n, -one, q, one, r); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( I - Q'*Q ) / ( N * ULP ) .
-	resid = golapack.Zlanhe('1', 'U', n, r, lda, rwork)
-	result.Set(2, (resid/float64(max(1, *n)))/ulp)
+	resid = golapack.Zlanhe('1', Upper, n, r, rwork)
+	result.Set(2, (resid/float64(max(1, n)))/ulp)
 
 	//     Compute I - Z'*Z
-	golapack.Zlaset('F', p, p, &czero, &cone, t, ldb)
-	err = goblas.Zherk(Upper, ConjTrans, *p, *p, -one, z, one, t)
+	golapack.Zlaset(Full, p, p, czero, cone, t)
+	if err = goblas.Zherk(Upper, ConjTrans, p, p, -one, z, one, t); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( I - Z'*Z ) / ( P*ULP ) .
-	resid = golapack.Zlanhe('1', 'U', p, t, ldb, rwork)
-	result.Set(3, (resid/float64(max(1, *p)))/ulp)
+	resid = golapack.Zlanhe('1', Upper, p, t, rwork)
+	result.Set(3, (resid/float64(max(1, p)))/ulp)
 }

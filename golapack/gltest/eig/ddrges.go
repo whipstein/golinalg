@@ -11,10 +11,10 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrges checks the nonsymmetric generalized eigenvalue (Schur form)
-// problem driver DGGES.
+// ddrges checks the nonsymmetric generalized eigenvalue (Schur form)
+// problem driver Dgges.
 //
-// DGGES factors A and B as Q S Z'  and Q T Z' , where ' means
+// Dgges factors A and B as Q S Z'  and Q T Z' , where ' means
 // transpose, T is upper triangular, S is in generalized Schur form
 // (block upper triangular, with 1x1 and 2x2 blocks on the diagonal,
 // the 2x2 blocks corresponding to complex conjugate pairs of
@@ -27,7 +27,7 @@ import (
 // cluster of eigenvalues appears in the leading diagonal block of the
 // Schur forms.
 //
-// When DDRGES is called, a number of matrix "sizes" ("N's") and a
+// When ddrges is called, a number of matrix "sizes" ("N's") and a
 // number of matrix "TYPES" are specified.  For each size ("N")
 // and each TYPE of matrix, a pair of matrices (A, B) will be generated
 // and used for testing. For each matrix pair, the following 13 tests
@@ -178,7 +178,7 @@ import (
 //
 // (26) Q ( T1, T2 ) Z     where T1 and T2 are random upper-triangular
 //                         matrices.
-func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, b, s, t, q *mat.Matrix, ldq *int, z *mat.Matrix, alphar, alphai, beta, work *mat.Vector, lwork *int, result *mat.Vector, bwork *[]bool, info *int, _t *testing.T) {
+func ddrges(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, b, s, t, q, z *mat.Matrix, alphar, alphai, beta, work *mat.Vector, lwork int, result *mat.Vector, bwork []bool, _t *testing.T) (err error) {
 	var badnn, ilabad bool
 	var sort byte
 	var one, safmax, safmin, temp1, temp2, ulp, ulpinv, zero float64
@@ -219,29 +219,28 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	ibsign[0], ibsign[1], ibsign[2], ibsign[3], ibsign[4], ibsign[5], ibsign[6], ibsign[7], ibsign[8], ibsign[9], ibsign[10], ibsign[11], ibsign[12], ibsign[13], ibsign[14], ibsign[15], ibsign[16], ibsign[17], ibsign[18], ibsign[19], ibsign[20], ibsign[21], ibsign[22], ibsign[23], ibsign[24], ibsign[25] = 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 	//     Check for errors
-	(*info) = 0
 
 	badnn = false
 	nmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*lda) <= 1 || (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldq) <= 1 || (*ldq) < nmax {
-		(*info) = -14
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows <= 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows <= 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if q.Rows <= 1 || q.Rows < nmax {
+		err = fmt.Errorf("q.Rows <= 1 || q.Rows < nmax: q.Rows=%v, nmax=%v", q.Rows, nmax)
 	}
 
 	//     Compute workspace
@@ -251,24 +250,24 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV.
 	minwrk = 1
-	if (*info) == 0 && (*lwork) >= 1 {
+	if err == nil && lwork >= 1 {
 		minwrk = max(10*(nmax+1), 3*nmax*nmax)
-		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, &nmax, &nmax, toPtr(-1), toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte("LT"), &nmax, &nmax, &nmax, toPtr(-1)), Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, &nmax, &nmax, &nmax, toPtr(-1)))
+		nb = max(1, ilaenv(1, "Dgeqrf", []byte{' '}, nmax, nmax, -1, -1), ilaenv(1, "Dormqr", []byte("LT"), nmax, nmax, nmax, -1), ilaenv(1, "Dorgqr", []byte{' '}, nmax, nmax, nmax, -1))
 		maxwrk = max(10*(nmax+1), 2*nmax+nmax*nb, 3*nmax*nmax)
 		work.Set(0, float64(maxwrk))
 	}
 
-	if (*lwork) < minwrk {
-		(*info) = -20
+	if lwork < minwrk {
+		err = fmt.Errorf("lwork < minwrk: lwork=%v, minwrk=%v", lwork, minwrk)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DDRGES"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ddrges", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
@@ -276,7 +275,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	safmin = safmin / ulp
 	safmax = one / safmin
-	golapack.Dlabad(&safmin, &safmax)
+	safmin, safmax = golapack.Dlabad(safmin, safmax)
 	ulpinv = one / ulp
 
 	//     The values RMAGN(2:3) depend on N, see below.
@@ -288,29 +287,29 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		n1 = max(1, n)
 		rmagn.Set(2, safmax*ulp/float64(n1))
 		rmagn.Set(3, safmin*ulpinv*float64(n1))
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		//        Loop over matrix types
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label180
 			}
 			nmats = nmats + 1
 			ntest = 0
 
-			//           Save ISEED in case of an error.
+			//           Save iseed in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Initialize RESULT
@@ -349,12 +348,12 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if abs(katype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
-						golapack.Dlaset('F', &n, &n, &zero, &zero, a, lda)
+						golapack.Dlaset(Full, n, n, zero, zero, a)
 					}
 				} else {
 					in = n
 				}
-				Dlatm4(&(katype[jtype-1]), &in, &(kz1[kazero[jtype-1]-1]), &(kz2[kazero[jtype-1]-1]), &(iasign[jtype-1]), rmagn.GetPtr(kamagn[jtype-1]-0), &ulp, rmagn.GetPtr(ktrian[jtype-1]*kamagn[jtype-1]-0), func() *int { y := 2; return &y }(), iseed, a, lda)
+				dlatm4(katype[jtype-1], in, kz1[kazero[jtype-1]-1], kz2[kazero[jtype-1]-1], iasign[jtype-1], rmagn.Get(kamagn[jtype-1]-0), ulp, rmagn.Get(ktrian[jtype-1]*kamagn[jtype-1]-0), 2, &iseed, a)
 				iadd = kadd[kazero[jtype-1]-1]
 				if iadd > 0 && iadd <= n {
 					a.Set(iadd-1, iadd-1, one)
@@ -364,12 +363,12 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if abs(kbtype[jtype-1]) == 3 {
 					in = 2*((n-1)/2) + 1
 					if in != n {
-						golapack.Dlaset('F', &n, &n, &zero, &zero, b, lda)
+						golapack.Dlaset(Full, n, n, zero, zero, b)
 					}
 				} else {
 					in = n
 				}
-				Dlatm4(&(kbtype[jtype-1]), &in, &(kz1[kbzero[jtype-1]-1]), &(kz2[kbzero[jtype-1]-1]), &(ibsign[jtype-1]), rmagn.GetPtr(kbmagn[jtype-1]-0), &one, rmagn.GetPtr(ktrian[jtype-1]*kbmagn[jtype-1]-0), func() *int { y := 2; return &y }(), iseed, b, lda)
+				dlatm4(kbtype[jtype-1], in, kz1[kbzero[jtype-1]-1], kz2[kbzero[jtype-1]-1], ibsign[jtype-1], rmagn.Get(kbmagn[jtype-1]-0), one, rmagn.Get(ktrian[jtype-1]*kbmagn[jtype-1]-0), 2, &iseed, b)
 				iadd = kadd[kbzero[jtype-1]-1]
 				if iadd != 0 && iadd <= n {
 					b.Set(iadd-1, iadd-1, one)
@@ -382,22 +381,22 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					//                 a diagonal matrix.
 					for jc = 1; jc <= n-1; jc++ {
 						for jr = jc; jr <= n; jr++ {
-							q.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
-							z.Set(jr-1, jc-1, matgen.Dlarnd(func() *int { y := 3; return &y }(), iseed))
+							q.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
+							z.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
 						}
-						golapack.Dlarfg(toPtr(n+1-jc), q.GetPtr(jc-1, jc-1), q.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(jc-1))
+						*q.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Dlarfg(n+1-jc, q.Get(jc-1, jc-1), q.Vector(jc, jc-1, 1))
 						work.Set(2*n+jc-1, math.Copysign(one, q.Get(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, one)
-						golapack.Dlarfg(toPtr(n+1-jc), z.GetPtr(jc-1, jc-1), z.Vector(jc, jc-1), func() *int { y := 1; return &y }(), work.GetPtr(n+jc-1))
+						*z.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Dlarfg(n+1-jc, z.Get(jc-1, jc-1), z.Vector(jc, jc-1, 1))
 						work.Set(3*n+jc-1, math.Copysign(one, z.Get(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, one)
 					}
 					q.Set(n-1, n-1, one)
 					work.Set(n-1, zero)
-					work.Set(3*n-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					work.Set(3*n-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 					z.Set(n-1, n-1, one)
 					work.Set(2*n-1, zero)
-					work.Set(4*n-1, math.Copysign(one, matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					work.Set(4*n-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 
 					//                 Apply the diagonal matrices
 					for jc = 1; jc <= n; jc++ {
@@ -406,20 +405,16 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							b.Set(jr-1, jc-1, work.Get(2*n+jr-1)*work.Get(3*n+jc-1)*b.Get(jr-1, jc-1))
 						}
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, a, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Left, NoTrans, n, n, n-1, q, work, a, work.Off(2*n)); err != nil {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), a, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Right, Trans, n, n, n-1, z, work.Off(n), a, work.Off(2*n)); err != nil {
 						goto label100
 					}
-					golapack.Dorm2r('L', 'N', &n, &n, toPtr(n-1), q, ldq, work, b, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Left, NoTrans, n, n, n-1, q, work, b, work.Off(2*n)); err != nil {
 						goto label100
 					}
-					golapack.Dorm2r('R', 'T', &n, &n, toPtr(n-1), z, ldq, work.Off(n), b, lda, work.Off(2*n), &iinfo)
-					if iinfo != 0 {
+					if err = golapack.Dorm2r(Right, Trans, n, n, n-1, z, work.Off(n), b, work.Off(2*n)); err != nil {
 						goto label100
 					}
 				}
@@ -427,8 +422,8 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              Random matrices
 				for jc = 1; jc <= n; jc++ {
 					for jr = 1; jr <= n; jr++ {
-						a.Set(jr-1, jc-1, rmagn.Get(kamagn[jtype-1]-0)*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
-						b.Set(jr-1, jc-1, rmagn.Get(kbmagn[jtype-1]-0)*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed))
+						a.Set(jr-1, jc-1, rmagn.Get(kamagn[jtype-1]-0)*matgen.Dlarnd(2, &iseed))
+						b.Set(jr-1, jc-1, rmagn.Get(kbmagn[jtype-1]-0)*matgen.Dlarnd(2, &iseed))
 					}
 				}
 			}
@@ -438,8 +433,8 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			if iinfo != 0 {
 				_t.Fail()
-				fmt.Printf(" DDRGES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%4d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" ddrges: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%4d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -460,17 +455,16 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					rsub = 5
 				}
 
-				//              Call DGGES to compute H, T, Q, Z, alpha, and beta.
-				golapack.Dlacpy('F', &n, &n, a, lda, s, lda)
-				golapack.Dlacpy('F', &n, &n, b, lda, t, lda)
+				//              Call Dgges to compute H, T, Q, Z, alpha, and beta.
+				golapack.Dlacpy(Full, n, n, a, s)
+				golapack.Dlacpy(Full, n, n, b, t)
 				ntest = 1 + rsub + isort
 				result.Set(1+rsub+isort-1, ulpinv)
-				golapack.Dgges('V', 'V', sort, Dlctes, &n, s, lda, t, lda, &sdim, alphar, alphai, beta, q, ldq, z, ldq, work, lwork, bwork, &iinfo)
-				if iinfo != 0 && iinfo != n+2 {
+				if sdim, iinfo, err = golapack.Dgges('V', 'V', sort, dlctes, n, s, t, alphar, alphai, beta, q, z, work, lwork, &bwork); iinfo != 0 && iinfo != n+2 || err != nil {
 					_t.Fail()
 					result.Set(1+rsub+isort-1, ulpinv)
-					fmt.Printf(" DDRGES: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%4d\n", "DGGES", iinfo, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+					fmt.Printf(" ddrges: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%4d\n", "Dgges", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label160
 				}
 
@@ -478,13 +472,13 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 				//              Do tests 1--4 (or tests 7--9 when reordering )
 				if isort == 0 {
-					Dget51(func() *int { y := 1; return &y }(), &n, a, lda, s, lda, q, ldq, z, ldq, work, result.GetPtr(0))
-					Dget51(func() *int { y := 1; return &y }(), &n, b, lda, t, lda, q, ldq, z, ldq, work, result.GetPtr(1))
+					result.Set(0, dget51(1, n, a, s, q, z, work))
+					result.Set(1, dget51(1, n, b, t, q, z, work))
 				} else {
-					Dget54(&n, a, lda, b, lda, s, lda, t, lda, q, ldq, z, ldq, work, result.GetPtr(6))
+					result.Set(6, Dget54(n, a, b, s, t, q, z, work))
 				}
-				Dget51(func() *int { y := 3; return &y }(), &n, a, lda, t, lda, q, ldq, q, ldq, work, result.GetPtr(3+rsub-1))
-				Dget51(func() *int { y := 3; return &y }(), &n, b, lda, t, lda, z, ldq, z, ldq, work, result.GetPtr(4+rsub-1))
+				result.Set(3+rsub-1, dget51(3, n, a, t, q, q, work))
+				result.Set(4+rsub-1, dget51(3, n, b, t, z, z, work))
 
 				//              Do test 5 and 6 (or Tests 10 and 11 when reordering):
 				//              check Schur form of A and compare eigenvalues with
@@ -530,11 +524,11 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 							}
 						}
 						if !ilabad {
-							Dget53(s.Off(i1-1, i1-1), lda, t.Off(i1-1, i1-1), lda, beta.GetPtr(j-1), alphar.GetPtr(j-1), alphai.GetPtr(j-1), &temp2, &ierr)
+							temp2, ierr = dget53(s.Off(i1-1, i1-1), t.Off(i1-1, i1-1), beta.Get(j-1), alphar.Get(j-1), alphai.Get(j-1))
 							if ierr >= 3 {
 								_t.Fail()
-								fmt.Printf(" DDRGES: DGET53 returned INFO=%1d for eigenvalue %6d.\n         N=%6d, JTYPE=%6d, ISEED=%4d\n", ierr, j, n, jtype, ioldsd)
-								(*info) = abs(ierr)
+								fmt.Printf(" ddrges: DGET53 returned info=%1d for eigenvalue %6d.\n         n=%6d, jtype=%6d, iseed=%4d\n", ierr, j, n, jtype, ioldsd)
+								err = fmt.Errorf("iinfo=%v", abs(iinfo))
 							}
 						} else {
 							temp2 = ulpinv
@@ -544,7 +538,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					temp1 = math.Max(temp1, temp2)
 					if ilabad {
 						_t.Fail()
-						fmt.Printf(" DDRGES: S not in Schur form at eigenvalue %6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", j, n, jtype, ioldsd)
+						fmt.Printf(" ddrges: S not in Schur form at eigenvalue %6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", j, n, jtype, ioldsd)
 					}
 				}
 				result.Set(6+rsub-1, temp1)
@@ -555,11 +549,11 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					result.Set(11, zero)
 					knteig = 0
 					for i = 1; i <= n; i++ {
-						if Dlctes(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1)) || Dlctes(alphar.GetPtr(i-1), toPtrf64(-alphai.Get(i-1)), beta.GetPtr(i-1)) {
+						if dlctes(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1)) || dlctes(alphar.GetPtr(i-1), toPtrf64(-alphai.Get(i-1)), beta.GetPtr(i-1)) {
 							knteig = knteig + 1
 						}
 						if i < n {
-							if (Dlctes(alphar.GetPtr(i), alphai.GetPtr(i), beta.GetPtr(i)) || Dlctes(alphar.GetPtr(i), toPtrf64(-alphai.Get(i)), beta.GetPtr(i))) && (!(Dlctes(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1)) || Dlctes(alphar.GetPtr(i-1), toPtrf64(-alphai.Get(i-1)), beta.GetPtr(i-1)))) && iinfo != n+2 {
+							if (dlctes(alphar.GetPtr(i), alphai.GetPtr(i), beta.GetPtr(i)) || dlctes(alphar.GetPtr(i), toPtrf64(-alphai.Get(i)), beta.GetPtr(i))) && (!(dlctes(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1)) || dlctes(alphar.GetPtr(i-1), toPtrf64(-alphai.Get(i-1)), beta.GetPtr(i-1)))) && iinfo != n+2 {
 								result.Set(11, ulpinv)
 							}
 						}
@@ -579,7 +573,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			//           Print out tests which fail.
 			for jr = 1; jr <= ntest; jr++ {
-				if result.Get(jr-1) >= (*thresh) {
+				if result.Get(jr-1) >= thresh {
 					_t.Fail()
 					//                 If this is the first test to fail,
 					//                 print a header to the data file.
@@ -587,7 +581,7 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						fmt.Printf("\n %3s -- Real Generalized Schur form driver\n", "DGS")
 
 						//                    Matrix types
-						fmt.Printf(" Matrix types (see DDRGES for details): \n")
+						fmt.Printf(" Matrix types (see ddrges for details): \n")
 						fmt.Printf(" Special Matrices:                       (J'=transposed Jordan block)\n   1=(0,0)  2=(I,0)  3=(0,I)  4=(I,I)  5=(J',J')  6=(diag(J',I), diag(I,J'))\n Diagonal Matrices:  ( D=diag(0,1,2,...) )\n   7=(D,I)   9=(large*D, small*I)  11=(large*I, small*D)  13=(large*D, large*I)\n   8=(I,D)  10=(small*D, large*I)  12=(small*I, large*D)  14=(small*D, small*I)\n  15=(D, reversed D)\n")
 						fmt.Printf(" Matrices Rotated by Random %s Matrices U, V:\n  16=Transposed Jordan Blocks             19=geometric alpha, beta=0,1\n  17=arithm. alpha&beta                   20=arithmetic alpha, beta=0,1\n  18=clustered alpha, beta=0,1            21=random alpha, beta=0,1\n Large & Small Matrices:\n  22=(large, small)   23=(small,large)    24=(small,small)    25=(large,large)\n  26=random O(1) matrices.\n", "Orthogonal")
 
@@ -609,7 +603,9 @@ func Ddrges(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Alasvm([]byte("DGS"), &nerrs, &ntestt, func() *int { y := 0; return &y }())
+	alasvm("Dgs", nerrs, ntestt, 0)
 
 	work.Set(0, float64(maxwrk))
+
+	return
 }

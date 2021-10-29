@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,8 +16,8 @@ import (
 // Z vector.  For each such occurrence the order of the related secular
 // equation problem is reduced by one.
 //
-// DLASD2 is called from DLASD1.
-func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat.Matrix, ldu *int, vt *mat.Matrix, ldvt *int, dsigma *mat.Vector, u2 *mat.Matrix, ldu2 *int, vt2 *mat.Matrix, ldvt2 *int, idxp, idx, idxc, idxq, coltyp *[]int, info *int) {
+// Dlasd2 is called from DLASD1.
+func Dlasd2(nl, nr, sqre int, d, z *mat.Vector, alpha, beta float64, u, vt *mat.Matrix, dsigma *mat.Vector, u2, vt2 *mat.Matrix, idxp, idx, idxc, idxq, coltyp *[]int) (k int, err error) {
 	var c, eight, eps, hlftol, one, s, tau, tol, two, z1, zero float64
 	var ct, i, idxi, idxj, idxjp, j, jp, jprev, k2, m, n, nlp1, nlp2 int
 	ctot := make([]int, 4)
@@ -28,49 +29,47 @@ func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat
 	eight = 8.0
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if (*nl) < 1 {
-		(*info) = -1
-	} else if (*nr) < 1 {
-		(*info) = -2
-	} else if ((*sqre) != 1) && ((*sqre) != 0) {
-		(*info) = -3
+	if nl < 1 {
+		err = fmt.Errorf("nl < 1: nl=%v", nl)
+	} else if nr < 1 {
+		err = fmt.Errorf("nr < 1: nr=%v", nr)
+	} else if (sqre != 1) && (sqre != 0) {
+		err = fmt.Errorf("(sqre != 1) && (sqre != 0): sqre=%v", sqre)
 	}
 
-	n = (*nl) + (*nr) + 1
-	m = n + (*sqre)
+	n = nl + nr + 1
+	m = n + sqre
 
-	if (*ldu) < n {
-		(*info) = -10
-	} else if (*ldvt) < m {
-		(*info) = -12
-	} else if (*ldu2) < n {
-		(*info) = -15
-	} else if (*ldvt2) < m {
-		(*info) = -17
+	if u.Rows < n {
+		err = fmt.Errorf("u.Rows < n: u.Rows=%v, n=%v", u.Rows, n)
+	} else if vt.Rows < m {
+		err = fmt.Errorf("vt.Rows < m: vt.Rows=%v, m=%v", vt.Rows, m)
+	} else if u2.Rows < n {
+		err = fmt.Errorf("u2.Rows < n: u2.Rows=%v, n=%v", u2.Rows, n)
+	} else if vt2.Rows < m {
+		err = fmt.Errorf("vt2.Rows < m: vt2.Rows=%v, m=%v", vt2.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLASD2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlasd2", err)
 		return
 	}
 
-	nlp1 = (*nl) + 1
-	nlp2 = (*nl) + 2
+	nlp1 = nl + 1
+	nlp2 = nl + 2
 
 	//     Generate the first part of the vector Z; and move the singular
 	//     values in the first part of D one position backward.
-	z1 = (*alpha) * vt.Get(nlp1-1, nlp1-1)
+	z1 = alpha * vt.Get(nlp1-1, nlp1-1)
 	z.Set(0, z1)
-	for i = (*nl); i >= 1; i-- {
-		z.Set(i, (*alpha)*vt.Get(i-1, nlp1-1))
+	for i = nl; i >= 1; i-- {
+		z.Set(i, alpha*vt.Get(i-1, nlp1-1))
 		d.Set(i, d.Get(i-1))
 		(*idxq)[i] = (*idxq)[i-1] + 1
 	}
 
 	//     Generate the second part of the vector Z.
 	for i = nlp2; i <= m; i++ {
-		z.Set(i-1, (*beta)*vt.Get(i-1, nlp2-1))
+		z.Set(i-1, beta*vt.Get(i-1, nlp2-1))
 	}
 
 	//     Initialize some reference arrays.
@@ -94,7 +93,7 @@ func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat
 		(*idxc)[i-1] = (*coltyp)[(*idxq)[i-1]-1]
 	}
 
-	Dlamrg(nl, nr, dsigma.Off(1), toPtr(1), toPtr(1), toSlice(idx, 1))
+	Dlamrg(nl, nr, dsigma.Off(1), 1, 1, toSlice(idx, 1))
 
 	for i = 2; i <= n; i++ {
 		idxi = 1 + (*idx)[i-1]
@@ -105,7 +104,7 @@ func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat
 
 	//     Calculate the allowable deflation tolerance
 	eps = Dlamch(Epsilon)
-	tol = math.Max(math.Abs(*alpha), math.Abs(*beta))
+	tol = math.Max(math.Abs(alpha), math.Abs(beta))
 	tol = eight * eps * math.Max(math.Abs(d.Get(n-1)), tol)
 
 	//     There are 2 kinds of deflation -- first a value in the z-vector
@@ -126,7 +125,7 @@ func Dlasd2(nl, nr, sqre, k *int, d, z *mat.Vector, alpha, beta *float64, u *mat
 	//     singular value is found, an elementary reflector is computed to
 	//     rotate the corresponding singular subspace so that the
 	//     corresponding components of Z are zero in this new basis.
-	(*k) = 1
+	k = 1
 	k2 = n + 1
 	for j = 2; j <= n; j++ {
 		if math.Abs(z.Get(j-1)) <= tol {
@@ -165,7 +164,7 @@ label100:
 
 			//           Find sqrt(a**2+b**2) without overflow or
 			//           destructive underflow.
-			tau = Dlapy2(&c, &s)
+			tau = Dlapy2(c, s)
 			c = c / tau
 			s = -s / tau
 			z.Set(j-1, tau)
@@ -191,10 +190,10 @@ label100:
 			(*idxp)[k2-1] = jprev
 			jprev = j
 		} else {
-			(*k) = (*k) + 1
-			u2.Set((*k)-1, 0, z.Get(jprev-1))
-			dsigma.Set((*k)-1, d.Get(jprev-1))
-			(*idxp)[(*k)-1] = jprev
+			k = k + 1
+			u2.Set(k-1, 0, z.Get(jprev-1))
+			dsigma.Set(k-1, d.Get(jprev-1))
+			(*idxp)[k-1] = jprev
 			jprev = j
 		}
 	}
@@ -203,10 +202,10 @@ label110:
 	;
 
 	//     Record the last singular value.
-	(*k) = (*k) + 1
-	u2.Set((*k)-1, 0, z.Get(jprev-1))
-	dsigma.Set((*k)-1, d.Get(jprev-1))
-	(*idxp)[(*k)-1] = jprev
+	k = k + 1
+	u2.Set(k-1, 0, z.Get(jprev-1))
+	dsigma.Set(k-1, d.Get(jprev-1))
+	(*idxp)[k-1] = jprev
 
 label120:
 	;
@@ -264,7 +263,7 @@ label120:
 		dsigma.Set(1, hlftol)
 	}
 	if m > n {
-		z.Set(0, Dlapy2(&z1, z.GetPtr(m-1)))
+		z.Set(0, Dlapy2(z1, z.Get(m-1)))
 		if z.Get(0) <= tol {
 			c = one
 			s = zero
@@ -282,11 +281,11 @@ label120:
 	}
 
 	//     Move the rest of the updating row to Z.
-	goblas.Dcopy((*k)-1, u2.Vector(1, 0, 1), z.Off(1, 1))
+	goblas.Dcopy(k-1, u2.Vector(1, 0, 1), z.Off(1, 1))
 
 	//     Determine the first column of U2, the first row of VT2 and the
 	//     last row of VT.
-	Dlaset('A', &n, toPtr(1), &zero, &zero, u2, ldu2)
+	Dlaset(Full, n, 1, zero, zero, u2)
 	u2.Set(nlp1-1, 0, one)
 	if m > n {
 		for i = 1; i <= nlp1; i++ {
@@ -306,14 +305,16 @@ label120:
 
 	//     The deflated singular values and their corresponding vectors go
 	//     into the back of D, U, and V respectively.
-	if n > (*k) {
-		goblas.Dcopy(n-(*k), dsigma.Off((*k), 1), d.Off((*k), 1))
-		Dlacpy('A', &n, toPtr(n-(*k)), u2.Off(0, (*k)), ldu2, u.Off(0, (*k)), ldu)
-		Dlacpy('A', toPtr(n-(*k)), &m, vt2.Off((*k), 0), ldvt2, vt.Off((*k), 0), ldvt)
+	if n > k {
+		goblas.Dcopy(n-k, dsigma.Off(k, 1), d.Off(k, 1))
+		Dlacpy(Full, n, n-k, u2.Off(0, k), u.Off(0, k))
+		Dlacpy(Full, n-k, m, vt2.Off(k, 0), vt.Off(k, 0))
 	}
 
 	//     Copy CTOT into COLTYP for referencing in DLASD3.
 	for j = 1; j <= 4; j++ {
 		(*coltyp)[j-1] = ctot[j-1]
 	}
+
+	return
 }

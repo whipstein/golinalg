@@ -26,26 +26,27 @@ import (
 // the unit matrix.
 //
 // Otherwise  1 <= tau <= 2.
-func Dlarfg(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
+func Dlarfg(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 	var beta, one, rsafmn, safmin, xnorm, zero float64
 	var j, knt int
 
 	one = 1.0
 	zero = 0.0
+	alphaOut = alpha
 
-	if (*n) <= 1 {
-		(*tau) = zero
+	if n <= 1 {
+		tau = zero
 		return
 	}
 
-	xnorm = goblas.Dnrm2((*n)-1, x.Off(0, *incx))
+	xnorm = goblas.Dnrm2(n-1, x)
 
 	if xnorm == zero {
 		//        H  =  I
-		(*tau) = zero
+		tau = zero
 	} else {
 		//        general case
-		beta = -math.Copysign(Dlapy2(alpha, &xnorm), *alpha)
+		beta = -math.Copysign(Dlapy2(alphaOut, xnorm), alphaOut)
 		safmin = Dlamch(SafeMinimum) / Dlamch(Epsilon)
 		knt = 0
 		if math.Abs(beta) < safmin {
@@ -54,24 +55,26 @@ func Dlarfg(n *int, alpha *float64, x *mat.Vector, incx *int, tau *float64) {
 		label10:
 			;
 			knt = knt + 1
-			goblas.Dscal((*n)-1, rsafmn, x.Off(0, *incx))
+			goblas.Dscal(n-1, rsafmn, x)
 			beta = beta * rsafmn
-			(*alpha) = (*alpha) * rsafmn
+			alphaOut = alphaOut * rsafmn
 			if (math.Abs(beta) < safmin) && (knt < 20) {
 				goto label10
 			}
 
 			//           New BETA is at most 1, at least SAFMIN
-			xnorm = goblas.Dnrm2((*n)-1, x.Off(0, *incx))
-			beta = -math.Copysign(Dlapy2(alpha, &xnorm), *alpha)
+			xnorm = goblas.Dnrm2(n-1, x)
+			beta = -math.Copysign(Dlapy2(alphaOut, xnorm), alphaOut)
 		}
-		(*tau) = (beta - (*alpha)) / beta
-		goblas.Dscal((*n)-1, one/((*alpha)-beta), x.Off(0, *incx))
+		tau = (beta - alphaOut) / beta
+		goblas.Dscal(n-1, one/(alphaOut-beta), x)
 
 		//        If ALPHA is subnormal, it may lose relative accuracy
 		for j = 1; j <= knt; j++ {
 			beta = beta * safmin
 		}
-		(*alpha) = beta
+		alphaOut = beta
 	}
+
+	return
 }

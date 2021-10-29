@@ -6,28 +6,30 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dlsets tests DGGLSE - a subroutine for solving linear equality
+// dlsets tests DGGLSE - a subroutine for solving linear equality
 // constrained least square problem (LSE).
-func Dlsets(m, p, n *int, a, af *mat.Matrix, lda *int, b, bf *mat.Matrix, ldb *int, c, cf, d, df, x, work *mat.Vector, lwork *int, rwork, result *mat.Vector) {
-	var info int
+func dlsets(m, p, n int, a, af, b, bf *mat.Matrix, c, cf, d, df, x, work *mat.Vector, lwork int, rwork, result *mat.Vector) {
+	var err error
 
 	//     Copy the matrices A and B to the arrays AF and BF,
 	//     and the vectors C and D to the arrays CF and DF,
-	golapack.Dlacpy('F', m, n, a, lda, af, lda)
-	golapack.Dlacpy('F', p, n, b, ldb, bf, ldb)
-	goblas.Dcopy(*m, c.Off(0, 1), cf.Off(0, 1))
-	goblas.Dcopy(*p, d.Off(0, 1), df.Off(0, 1))
+	golapack.Dlacpy(Full, m, n, a, af)
+	golapack.Dlacpy(Full, p, n, b, bf)
+	goblas.Dcopy(m, c.Off(0, 1), cf.Off(0, 1))
+	goblas.Dcopy(p, d.Off(0, 1), df.Off(0, 1))
 
 	//     Solve LSE problem
-	golapack.Dgglse(m, n, p, af, lda, bf, ldb, cf, df, x, work, lwork, &info)
+	if _, err = golapack.Dgglse(m, n, p, af, bf, cf, df, x, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Test the residual for the solution of LSE
 	//
 	//     Compute RESULT(1) = norm( A*x - c ) / norm(A)*norm(X)*EPS
-	goblas.Dcopy(*m, c.Off(0, 1), cf.Off(0, 1))
-	goblas.Dcopy(*p, d.Off(0, 1), df.Off(0, 1))
-	Dget02('N', m, n, func() *int { y := 1; return &y }(), a, lda, x.Matrix(*n, opts), n, cf.Matrix(*m, opts), m, rwork, result.GetPtr(0))
+	goblas.Dcopy(m, c.Off(0, 1), cf.Off(0, 1))
+	goblas.Dcopy(p, d.Off(0, 1), df.Off(0, 1))
+	result.Set(0, dget02(NoTrans, m, n, 1, a, x.Matrix(n, opts), cf.Matrix(m, opts), rwork))
 
 	//     Compute result(2) = norm( B*x - d ) / norm(B)*norm(X)*EPS
-	Dget02('N', p, n, func() *int { y := 1; return &y }(), b, ldb, x.Matrix(*n, opts), n, df.Matrix(*p, opts), p, rwork, result.GetPtr(1))
+	result.Set(1, dget02(NoTrans, p, n, 1, b, x.Matrix(n, opts), df.Matrix(p, opts), rwork))
 }

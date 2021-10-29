@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -17,12 +18,10 @@ import (
 // (A, B) must be in generalized real Schur form (as returned by DGGES),
 // i.e. A is block upper triangular with 1-by-1 and 2-by-2 diagonal
 // blocks. B is upper triangular.
-func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, vl *mat.Matrix, ldvl *int, vr *mat.Matrix, ldvr *int, s, dif *mat.Vector, mm, m *int, work *mat.Vector, lwork *int, iwork *[]int, info *int) {
+func Dtgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.Matrix, s, dif *mat.Vector, mm int, work *mat.Vector, lwork int, iwork *[]int) (m int, err error) {
 	var lquery, pair, somcon, wantbh, wantdf, wants bool
-	var alphai, alphar, alprqt, beta, c1, c2, cond, eps, four, lnrm, one, rnrm, root1, root2, scale, smlnum, tmpii, tmpir, tmpri, tmprr, two, uhav, uhavi, uhbv, uhbvi, zero float64
+	var alphai, alphar, alprqt, beta, c1, c2, cond, eps, four, lnrm, one, rnrm, root1, root2, smlnum, tmpii, tmpir, tmpri, tmprr, two, uhav, uhavi, uhbv, uhbvi, zero float64
 	var difdri, i, ierr, ifst, ilst, iz, k, ks, lwmin, n1, n2 int
-	var err error
-	_ = err
 
 	dummy := vf(1)
 	dummy1 := vf(1)
@@ -40,80 +39,79 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 
 	somcon = howmny == 'S'
 
-	(*info) = 0
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 
 	if !wants && !wantdf {
-		(*info) = -1
+		err = fmt.Errorf("!wants && !wantdf: job='%c'", job)
 	} else if howmny != 'A' && !somcon {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -8
-	} else if wants && (*ldvl) < (*n) {
-		(*info) = -10
-	} else if wants && (*ldvr) < (*n) {
-		(*info) = -12
+		err = fmt.Errorf("howmny != 'A' && !somcon: howmny='%c'", howmny)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if wants && vl.Rows < n {
+		err = fmt.Errorf("wants && vl.Rows < n: job='%c', vl.Rows=%v, n=%v", job, vl.Rows, n)
+	} else if wants && vr.Rows < n {
+		err = fmt.Errorf("wants && vr.Rows < n: job='%c', vr.Rows=%v, n=%v", job, vr.Rows, n)
 	} else {
 		//        Set M to the number of eigenpairs for which condition numbers
 		//        are required, and test MM.
 		if somcon {
-			(*m) = 0
+			m = 0
 			pair = false
-			for k = 1; k <= (*n); k++ {
+			for k = 1; k <= n; k++ {
 				if pair {
 					pair = false
 				} else {
-					if k < (*n) {
+					if k < n {
 						if a.Get(k, k-1) == zero {
 							if _select[k-1] {
-								(*m) = (*m) + 1
+								m = m + 1
 							}
 						} else {
 							pair = true
 							if _select[k-1] || _select[k] {
-								(*m) = (*m) + 2
+								m = m + 2
 							}
 						}
 					} else {
-						if _select[(*n)-1] {
-							(*m) = (*m) + 1
+						if _select[n-1] {
+							m = m + 1
 						}
 					}
 				}
 			}
 		} else {
-			(*m) = (*n)
+			m = n
 		}
 
-		if (*n) == 0 {
+		if n == 0 {
 			lwmin = 1
 		} else if job == 'V' || job == 'B' {
-			lwmin = 2*(*n)*((*n)+2) + 16
+			lwmin = 2*n*(n+2) + 16
 		} else {
-			lwmin = (*n)
+			lwmin = n
 		}
 		work.Set(0, float64(lwmin))
 
-		if (*mm) < (*m) {
-			(*info) = -15
-		} else if (*lwork) < lwmin && !lquery {
-			(*info) = -18
+		if mm < m {
+			err = fmt.Errorf("mm < m: mm=%v, m=%v", mm, m)
+		} else if lwork < lwmin && !lquery {
+			err = fmt.Errorf("lwork < lwmin && !lquery: lwork=%v, lwmin=%v, lquery=%v", lwork, lwmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTGSNA"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtgsna", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -123,13 +121,13 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 	ks = 0
 	pair = false
 
-	for k = 1; k <= (*n); k++ {
+	for k = 1; k <= n; k++ {
 		//        Determine whether A(k,k) begins a 1-by-1 or 2-by-2 block.
 		if pair {
 			pair = false
 			goto label20
 		} else {
-			if k < (*n) {
+			if k < n {
 				pair = a.Get(k, k-1) != zero
 			}
 		}
@@ -155,39 +153,39 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 			//           eigenvalue.
 			if pair {
 				//              Complex eigenvalue pair.
-				rnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, ks, 1))))
-				lnrm = Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, ks, 1))))
-				err = goblas.Dgemv(NoTrans, *n, *n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				tmprr = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				tmpri = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				err = goblas.Dgemv(NoTrans, *n, *n, one, a, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
-				tmpii = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				tmpir = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				rnrm = Dlapy2(goblas.Dnrm2(n, vr.Vector(0, ks-1, 1)), goblas.Dnrm2(n, vr.Vector(0, ks, 1)))
+				lnrm = Dlapy2(goblas.Dnrm2(n, vl.Vector(0, ks-1, 1)), goblas.Dnrm2(n, vl.Vector(0, ks, 1)))
+				err = goblas.Dgemv(NoTrans, n, n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				tmprr = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				tmpri = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				err = goblas.Dgemv(NoTrans, n, n, one, a, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
+				tmpii = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				tmpir = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
 				uhav = tmprr + tmpii
 				uhavi = tmpir - tmpri
-				err = goblas.Dgemv(NoTrans, *n, *n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				tmprr = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				tmpri = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				err = goblas.Dgemv(NoTrans, *n, *n, one, b, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
-				tmpii = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				tmpir = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				err = goblas.Dgemv(NoTrans, n, n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				tmprr = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				tmpri = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				err = goblas.Dgemv(NoTrans, n, n, one, b, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
+				tmpii = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
+				tmpir = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
 				uhbv = tmprr + tmpii
 				uhbvi = tmpir - tmpri
-				uhav = Dlapy2(&uhav, &uhavi)
-				uhbv = Dlapy2(&uhbv, &uhbvi)
-				cond = Dlapy2(&uhav, &uhbv)
+				uhav = Dlapy2(uhav, uhavi)
+				uhbv = Dlapy2(uhbv, uhbvi)
+				cond = Dlapy2(uhav, uhbv)
 				s.Set(ks-1, cond/(rnrm*lnrm))
 				s.Set(ks, s.Get(ks-1))
 
 			} else {
 				//              Real eigenvalue.
-				rnrm = goblas.Dnrm2(*n, vr.Vector(0, ks-1, 1))
-				lnrm = goblas.Dnrm2(*n, vl.Vector(0, ks-1, 1))
-				err = goblas.Dgemv(NoTrans, *n, *n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				uhav = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				err = goblas.Dgemv(NoTrans, *n, *n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				uhbv = goblas.Ddot(*n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				cond = Dlapy2(&uhav, &uhbv)
+				rnrm = goblas.Dnrm2(n, vr.Vector(0, ks-1, 1))
+				lnrm = goblas.Dnrm2(n, vl.Vector(0, ks-1, 1))
+				err = goblas.Dgemv(NoTrans, n, n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				uhav = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				err = goblas.Dgemv(NoTrans, n, n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
+				uhbv = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				cond = Dlapy2(uhav, uhbv)
 				if cond == zero {
 					s.Set(ks-1, -one)
 				} else {
@@ -197,8 +195,8 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 		}
 
 		if wantdf {
-			if (*n) == 1 {
-				dif.Set(ks-1, Dlapy2(a.GetPtr(0, 0), b.GetPtr(0, 0)))
+			if n == 1 {
+				dif.Set(ks-1, Dlapy2(a.Get(0, 0), b.Get(0, 0)))
 				goto label20
 			}
 
@@ -215,7 +213,7 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 				work.Set(5, b.Get(k, k-1))
 				work.Set(6, b.Get(k-1, k))
 				work.Set(7, b.Get(k, k))
-				Dlag2(work.Matrix(2, opts), func() *int { y := 2; return &y }(), work.MatrixOff(4, 2, opts), func() *int { y := 2; return &y }(), toPtrf64(smlnum*eps), &beta, dummy1.GetPtr(0), &alphar, dummy.GetPtr(0), &alphai)
+				beta, *dummy1.GetPtr(0), alphar, *dummy.GetPtr(0), alphai = Dlag2(work.Matrix(2, opts), work.MatrixOff(4, 2, opts), smlnum*eps)
 				alprqt = one
 				c1 = two * (alphar*alphar + alphai*alphai + beta*beta)
 				c2 = four * beta * beta * alphai * alphai
@@ -227,12 +225,14 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 
 			//           Copy the matrix (A, B) to the array WORK and swap the
 			//           diagonal block beginning at A(k,k) to the (1,1) position.
-			Dlacpy('F', n, n, a, lda, work.Matrix(*n, opts), n)
-			Dlacpy('F', n, n, b, ldb, work.MatrixOff((*n)*(*n), *n, opts), n)
+			Dlacpy(Full, n, n, a, work.Matrix(n, opts))
+			Dlacpy(Full, n, n, b, work.MatrixOff(n*n, n, opts))
 			ifst = k
 			ilst = 1
 
-			Dtgexc(false, false, n, work.Matrix(*n, opts), n, work.MatrixOff((*n)*(*n), *n, opts), n, dummy.Matrix(1, opts), func() *int { y := 1; return &y }(), dummy1.Matrix(1, opts), func() *int { y := 1; return &y }(), &ifst, &ilst, work.Off((*n)*(*n)*2), toPtr((*lwork)-2*(*n)*(*n)), &ierr)
+			if ifst, ilst, _, err = Dtgexc(false, false, n, work.Matrix(n, opts), work.MatrixOff(n*n, n, opts), dummy.Matrix(1, opts), dummy1.Matrix(1, opts), ifst, ilst, work.Off(n*n*2), lwork-2*n*n); err != nil {
+				panic(err)
+			}
 
 			if ierr > 0 {
 				//              Ill-conditioned problem - swap rejected.
@@ -247,13 +247,15 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 				if work.Get(1) != zero {
 					n1 = 2
 				}
-				n2 = (*n) - n1
+				n2 = n - n1
 				if n2 == 0 {
 					dif.Set(ks-1, cond)
 				} else {
-					i = (*n)*(*n) + 1
-					iz = 2*(*n)*(*n) + 1
-					Dtgsyl('N', &difdri, &n2, &n1, work.MatrixOff((*n)*n1+n1, *n, opts), n, work.Matrix(*n, opts), n, work.MatrixOff(n1, *n, opts), n, work.MatrixOff((*n)*n1+n1+i-1, *n, opts), n, work.MatrixOff(i-1, *n, opts), n, work.MatrixOff(n1+i-1, *n, opts), n, &scale, dif.GetPtr(ks-1), work.Off(iz), toPtr((*lwork)-2*(*n)*(*n)), iwork, &ierr)
+					i = n*n + 1
+					iz = 2*n*n + 1
+					if _, *dif.GetPtr(ks - 1), ierr, err = Dtgsyl(NoTrans, difdri, n2, n1, work.MatrixOff(n*n1+n1, n, opts), work.Matrix(n, opts), work.MatrixOff(n1, n, opts), work.MatrixOff(n*n1+n1+i-1, n, opts), work.MatrixOff(i-1, n, opts), work.MatrixOff(n1+i-1, n, opts), work.Off(iz), lwork-2*n*n, iwork); err != nil {
+						panic(err)
+					}
 
 					if pair {
 						dif.Set(ks-1, math.Min(math.Max(one, alprqt)*dif.Get(ks-1), cond))
@@ -271,4 +273,6 @@ func Dtgsna(job, howmny byte, _select []bool, n *int, a *mat.Matrix, lda *int, b
 	label20:
 	}
 	work.Set(0, float64(lwmin))
+
+	return
 }

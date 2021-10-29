@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -15,27 +17,32 @@ import (
 // where P is a permutation matrix, L is unit lower triangular, and U is
 // upper triangular.  The factored form of A is then used to solve the
 // system of equations A * X = B.
-func Zgesv(n, nrhs *int, a *mat.CMatrix, lda *int, ipiv *[]int, b *mat.CMatrix, ldb, info *int) {
+func Zgesv(n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.CMatrix) (info int, err error) {
 	//     Test the input parameters.
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*nrhs) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGESV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgesv", err)
 		return
 	}
 
 	//     Compute the LU factorization of A.
-	Zgetrf(n, n, a, lda, ipiv, info)
-	if (*info) == 0 {
-		//        Solve the system A*X = B, overwriting B with X.
-		Zgetrs('N', n, nrhs, a, lda, ipiv, b, ldb, info)
+	if info, err = Zgetrf(n, n, a, ipiv); err != nil {
+		panic(err)
 	}
+	if info == 0 {
+		//        Solve the system A*X = B, overwriting B with X.
+		if err = Zgetrs(NoTrans, n, nrhs, a, ipiv, b); err != nil {
+			panic(err)
+		}
+	}
+
+	return
 }

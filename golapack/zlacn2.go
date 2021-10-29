@@ -7,7 +7,7 @@ import (
 
 // Zlacn2 estimates the 1-norm of a square, complex matrix A.
 // Reverse communication is used for evaluating matrix-vector products.
-func Zlacn2(n *int, v, x *mat.CVector, est *float64, kase *int, isave *[]int) {
+func Zlacn2(n int, v, x *mat.CVector, est float64, kase int, isave *[]int) (estOut float64, kaseOut int) {
 	var cone, czero complex128
 	var absxi, altsgn, estold, one, safmin, temp, two float64
 	var i, itmax, jlast int
@@ -17,13 +17,15 @@ func Zlacn2(n *int, v, x *mat.CVector, est *float64, kase *int, isave *[]int) {
 	two = 2.0
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
+	estOut = est
+	kaseOut = kase
 
 	safmin = Dlamch(SafeMinimum)
-	if (*kase) == 0 {
-		for i = 1; i <= (*n); i++ {
-			x.SetRe(i-1, one/float64(*n))
+	if kaseOut == 0 {
+		for i = 1; i <= n; i++ {
+			x.SetRe(i-1, one/float64(n))
 		}
-		(*kase) = 1
+		kaseOut = 1
 		(*isave)[0] = 1
 		return
 	}
@@ -45,15 +47,15 @@ func Zlacn2(n *int, v, x *mat.CVector, est *float64, kase *int, isave *[]int) {
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY A*X.
 label20:
 	;
-	if (*n) == 1 {
+	if n == 1 {
 		v.Set(0, x.Get(0))
-		(*est) = v.GetMag(0)
+		estOut = v.GetMag(0)
 		//        ... QUIT
 		goto label130
 	}
-	(*est) = Dzsum1(n, x, func() *int { y := 1; return &y }())
+	estOut = Dzsum1(n, x.Off(0, 1))
 
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		absxi = x.GetMag(i - 1)
 		if absxi > safmin {
 			x.Set(i-1, complex(real(x.Get(i-1))/absxi, imag(x.Get(i-1))/absxi))
@@ -61,7 +63,7 @@ label20:
 			x.Set(i-1, cone)
 		}
 	}
-	(*kase) = 2
+	kaseOut = 2
 	(*isave)[0] = 2
 	return
 
@@ -69,17 +71,17 @@ label20:
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY CTRANS(A)*X.
 label40:
 	;
-	(*isave)[1] = Izmax1(n, x, func() *int { y := 1; return &y }())
+	(*isave)[1] = Izmax1(n, x.Off(0, 1))
 	(*isave)[2] = 2
 
 	//     MAIN LOOP - ITERATIONS 2,3,...,ITMAX.
 label50:
 	;
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		x.Set(i-1, czero)
 	}
 	x.Set((*isave)[2-1]-1, cone)
-	(*kase) = 1
+	kaseOut = 1
 	(*isave)[0] = 3
 	return
 
@@ -87,16 +89,16 @@ label50:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label70:
 	;
-	goblas.Zcopy(*n, x.Off(0, 1), v.Off(0, 1))
-	estold = (*est)
-	(*est) = Dzsum1(n, v, func() *int { y := 1; return &y }())
+	goblas.Zcopy(n, x.Off(0, 1), v.Off(0, 1))
+	estold = estOut
+	estOut = Dzsum1(n, v.Off(0, 1))
 
 	//     TEST FOR CYCLING.
-	if (*est) <= estold {
+	if estOut <= estold {
 		goto label100
 	}
 
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		absxi = x.GetMag(i - 1)
 		if absxi > safmin {
 			x.Set(i-1, complex(real(x.Get(i-1))/absxi, imag(x.Get(i-1))/absxi))
@@ -104,7 +106,7 @@ label70:
 			x.Set(i-1, cone)
 		}
 	}
-	(*kase) = 2
+	kaseOut = 2
 	(*isave)[0] = 4
 	return
 
@@ -113,7 +115,7 @@ label70:
 label90:
 	;
 	jlast = (*isave)[1]
-	(*isave)[1] = Izmax1(n, x, func() *int { y := 1; return &y }())
+	(*isave)[1] = Izmax1(n, x.Off(0, 1))
 	if (x.GetMag(jlast-1) != x.GetMag((*isave)[2-1]-1)) && ((*isave)[2] < itmax) {
 		(*isave)[2] = (*isave)[2] + 1
 		goto label50
@@ -123,11 +125,11 @@ label90:
 label100:
 	;
 	altsgn = one
-	for i = 1; i <= (*n); i++ {
-		x.SetRe(i-1, altsgn*(one+float64(i-1)/float64((*n)-1)))
+	for i = 1; i <= n; i++ {
+		x.SetRe(i-1, altsgn*(one+float64(i-1)/float64(n-1)))
 		altsgn = -altsgn
 	}
-	(*kase) = 1
+	kaseOut = 1
 	(*isave)[0] = 5
 	return
 
@@ -135,13 +137,15 @@ label100:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label120:
 	;
-	temp = two * (Dzsum1(n, x, func() *int { y := 1; return &y }()) / float64(3*(*n)))
-	if temp > (*est) {
-		goblas.Zcopy(*n, x.Off(0, 1), v.Off(0, 1))
-		(*est) = temp
+	temp = two * (Dzsum1(n, x.Off(0, 1)) / float64(3*n))
+	if temp > estOut {
+		goblas.Zcopy(n, x.Off(0, 1), v.Off(0, 1))
+		estOut = temp
 	}
 
 label130:
 	;
-	(*kase) = 0
+	kaseOut = 0
+
+	return
 }

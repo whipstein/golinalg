@@ -11,55 +11,55 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrvst checks the symmetric eigenvalue problem drivers.
+// ddrvst checks the symmetric eigenvalue problem drivers.
 //
-//              DSTEV computes all eigenvalues and, optionally,
+//              Dstev computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric tridiagonal matrix.
 //
-//              DSTEVX computes selected eigenvalues and, optionally,
+//              Dstevx computes selected eigenvalues and, optionally,
 //              eigenvectors of a real symmetric tridiagonal matrix.
 //
-//              DSTEVR computes selected eigenvalues and, optionally,
+//              Dstevr computes selected eigenvalues and, optionally,
 //              eigenvectors of a real symmetric tridiagonal matrix
 //              using the Relatively Robust Representation where it can.
 //
-//              DSYEV computes all eigenvalues and, optionally,
+//              Dsyev computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix.
 //
-//              DSYEVX computes selected eigenvalues and, optionally,
+//              Dsyevx computes selected eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix.
 //
-//              DSYEVR computes selected eigenvalues and, optionally,
+//              Dsyevr computes selected eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix
 //              using the Relatively Robust Representation where it can.
 //
-//              DSPEV computes all eigenvalues and, optionally,
+//              Dspev computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix in packed
 //              storage.
 //
-//              DSPEVX computes selected eigenvalues and, optionally,
+//              Dspevx computes selected eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix in packed
 //              storage.
 //
-//              DSBEV computes all eigenvalues and, optionally,
+//              Dsbev computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric band matrix.
 //
-//              DSBEVX computes selected eigenvalues and, optionally,
+//              Dsbevx computes selected eigenvalues and, optionally,
 //              eigenvectors of a real symmetric band matrix.
 //
-//              DSYEVD computes all eigenvalues and, optionally,
+//              Dsyevd computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix using
 //              a divide and conquer algorithm.
 //
-//              DSPEVD computes all eigenvalues and, optionally,
+//              Dspevd computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric matrix in packed
 //              storage, using a divide and conquer algorithm.
 //
-//              DSBEVD computes all eigenvalues and, optionally,
+//              Dsbevd computes all eigenvalues and, optionally,
 //              eigenvectors of a real symmetric band matrix,
 //              using a divide and conquer algorithm.
 //
-//      When DDRVST is called, a number of matrix "sizes" ("n's") and a
+//      When ddrvst is called, a number of matrix "sizes" ("n's") and a
 //      number of matrix "types" are specified.  For each size ("n")
 //      and each type of matrix, one matrix will be generated and used
 //      to test the appropriate drivers.  For each matrix and each
@@ -118,11 +118,11 @@ import (
 //           with random signs.
 //      (17) Same as (16), but multiplied by SQRT( overflow threshold )
 //      (18) Same as (16), but multiplied by SQRT( underflow threshold )
-func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, d1, d2, d3, d4, eveigs, wa1, wa2, wa3 *mat.Vector, u *mat.Matrix, ldu *int, v *mat.Matrix, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork *int, iwork *[]int, liwork *int, result *mat.Vector, info *int, t *testing.T) {
+func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, d1, d2, d3, d4, eveigs, wa1, wa2, wa3 *mat.Vector, u, v *mat.Matrix, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, t *testing.T) (err error) {
 	var badnn bool
-	var uplo byte
+	var uplo mat.MatUplo
 	var abstol, aninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, idiag, ihbw, iinfo, il, imode, indx, irow, itemp, itype, iu, iuplo, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lwedc, m, m2, m3, maxtyp, mtypes, n, nerrs, nfails, nmats, nmax, ntest, ntestt int
+	var i, idiag, ihbw, iinfo, il, imode, indx, irow, itemp, itype, iu, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lwedc, m2, m3, maxtyp, mtypes, n, nerrs, nfails, nmats, nmax, ntest, ntestt int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
@@ -150,46 +150,45 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	//     1)      Check for errors
 	ntestt = 0
-	*info = 0
 
 	badnn = false
 	nmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		*info = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		*info = -2
-	} else if (*ntypes) < 0 {
-		*info = -3
-	} else if (*lda) < nmax {
-		*info = -9
-	} else if (*ldu) < nmax {
-		*info = -16
-	} else if 2*int(math.Pow(float64(max(2, nmax)), 2)) > (*lwork) {
-		*info = -21
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if u.Rows < nmax {
+		err = fmt.Errorf("u.Rows < nmax: u.Rows=%v, nmax=%v", u.Rows, nmax)
+	} else if 2*pow(max(2, nmax), 2) > lwork {
+		err = fmt.Errorf("2*pow(max(2, nmax), 2) > lwork: nmax=%v, lwork=%v", nmax, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DDRVST"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ddrvst", err)
 		return
 	}
 
 	//     Quick return if nothing to do
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
 	//     More Important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = golapack.Dlamch(Overflow)
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	ulpinv = one / ulp
 	rtunfl = math.Sqrt(unfl)
@@ -197,16 +196,16 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 	//     Loop over sizes, types
 	for i = 1; i <= 4; i++ {
-		iseed2[i-1] = (*iseed)[i-1]
-		iseed3[i-1] = (*iseed)[i-1]
+		iseed2[i-1] = iseed[i-1]
+		iseed3[i-1] = iseed[i-1]
 	}
 
 	nerrs = 0
 	nfails = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		if n > 0 {
 			lgn = int(math.Log(float64(n)) / math.Log(two))
 			if int(math.Pow(2, float64(lgn))) < n {
@@ -215,7 +214,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if int(math.Pow(2, float64(lgn))) < n {
 				lgn = lgn + 1
 			}
-			lwedc = 1 + 4*n + 2*n*lgn + 4*int(math.Pow(float64(n), 2))
+			lwedc = 1 + 4*n + 2*n*lgn + 4*pow(n, 2)
 			//c           LIWEDC = 6 + 6*N + 5*N*LGN
 			liwedc = 3 + 5*n
 		} else {
@@ -225,22 +224,22 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		}
 		aninv = one / float64(max(1, n))
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
 
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label1730
 			}
 			nmats = nmats + 1
 			ntest = 0
 
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           2)      Compute "A"
@@ -292,7 +291,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label70:
 			;
 
-			golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
+			golapack.Dlaset(Full, a.Rows, n, zero, zero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -310,29 +309,29 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, toPtr(0), toPtr(0), 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, 0, 0, 'N', a, work.Off(n))
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, n, n, 'N', a, work.Off(n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
 				idumma[0] = 1
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, toPtr(6), &one, &one, 'T', 'N', work.Off(n), toPtr(1), &one, work.Off(2*n), toPtr(1), &one, 'N', &idumma, toPtr(0), toPtr(0), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
 				idumma[0] = 1
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, toPtr(6), &one, &one, 'T', 'N', work.Off(n), toPtr(1), &one, work.Off(2*n), toPtr(1), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              Symmetric banded, eigenvalues specified
-				ihbw = int(float64(n-1) * matgen.Dlarnd(toPtr(1), &iseed3))
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &ihbw, &ihbw, 'Z', u, ldu, work.Off(n), &iinfo)
+				ihbw = int(float64(n-1) * matgen.Dlarnd(1, &iseed3))
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, ihbw, ihbw, 'Z', u, work.Off(n))
 
 				//              Store as dense matrix for most routines.
-				golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
+				golapack.Dlaset(Full, a.Rows, n, zero, zero, a)
 				for idiag = -ihbw; idiag <= ihbw; idiag++ {
 					irow = ihbw - idiag + 1
 					j1 = max(1, idiag+1)
@@ -349,8 +348,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if iinfo != 0 {
 				t.Fail()
 				nerrs++
-				fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				*info = abs(iinfo)
+				fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -362,8 +361,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				il = 1
 				iu = n
 			} else {
-				il = 1 + (n-1)*int(matgen.Dlarnd(toPtr(1), &iseed2))
-				iu = 1 + (n-1)*int(matgen.Dlarnd(toPtr(1), &iseed2))
+				il = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
+				iu = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
 				if il > iu {
 					itemp = il
 					il = iu
@@ -371,7 +370,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 			}
 
-			//           3)      If matrix is tridiagonal, call DSTEV and DSTEVX.
+			//           3)      If matrix is tridiagonal, call Dstev and Dstevx.
 			if jtype <= 7 {
 				ntest = 1
 				for i = 1; i <= n; i++ {
@@ -380,13 +379,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEV"
-				golapack.Dstev('V', &n, d1, d2, z, ldu, work, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstev"
+				if iinfo, err = golapack.Dstev('V', n, d1, d2, z, work); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEV(V)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstev(V)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -404,19 +401,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt21(&n, toPtr(0), d3, d4, d1, d2, z, ldu, work, result)
+				dstt21(n, 0, d3, d4, d1, d2, z, work, result)
 
 				ntest = 3
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEV"
-				golapack.Dstev('N', &n, d3, d4, z, ldu, work, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstev"
+				if iinfo, err = golapack.Dstev('N', n, d3, d4, z, work); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEV(N)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstev(N)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -445,13 +440,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVX"
-				golapack.Dstevx('V', 'A', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevx"
+				if _, iinfo, err = golapack.Dstevx('V', 'A', n, d1, d2, vl, vu, il, iu, abstol, wa1, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(V,A)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,A)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -474,19 +467,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt21(&n, toPtr(0), d3, d4, wa1, d2, z, ldu, work, result.Off(3))
+				dstt21(n, 0, d3, d4, wa1, d2, z, work, result.Off(3))
 
 				ntest = 6
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVX"
-				golapack.Dstevx('N', 'A', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevx"
+				if m2, iinfo, err = golapack.Dstevx('N', 'A', n, d3, d4, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(N,A)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,A)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -514,13 +505,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVR"
-				golapack.Dstevr('V', 'A', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevr"
+				if _, iinfo, err = golapack.Dstevr('V', 'A', n, d1, d2, vl, vu, il, iu, abstol, wa1, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(V,A)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,A)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -542,19 +531,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt21(&n, toPtr(0), d3, d4, wa1, d2, z, ldu, work, result.Off(6))
+				dstt21(n, 0, d3, d4, wa1, d2, z, work, result.Off(6))
 
 				ntest = 9
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVR"
-				golapack.Dstevr('N', 'A', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevr"
+				if m2, iinfo, err = golapack.Dstevr('N', 'A', n, d3, d4, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(N,A)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,A)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -582,13 +569,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVX"
-				golapack.Dstevx('V', 'I', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevx"
+				if m2, iinfo, err = golapack.Dstevx('V', 'I', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(V,I)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,I)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -606,19 +591,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(9))
+				dstt22(n, m2, 0, d3, d4, wa2, d2, z, work.Matrix(max(1, m2), opts), result.Off(9))
 
 				ntest = 12
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVX"
-				golapack.Dstevx('N', 'I', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevx"
+				if m3, iinfo, err = golapack.Dstevx('N', 'I', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(N,I)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,I)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -628,8 +611,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 12.
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				result.Set(11, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 
 			label380:
@@ -658,13 +641,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVX"
-				golapack.Dstevx('V', 'V', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevx"
+				if m2, iinfo, err = golapack.Dstevx('V', 'V', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(V,V)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,V)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -689,19 +670,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(12))
+				dstt22(n, m2, 0, d3, d4, wa2, d2, z, work.Matrix(max(1, m2), opts), result.Off(12))
 
 				ntest = 15
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVX"
-				golapack.Dstevx('N', 'V', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevx"
+				if m3, iinfo, err = golapack.Dstevx('N', 'V', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVX(N,V)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,V)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -711,8 +690,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 15.
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				result.Set(14, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label440:
@@ -725,13 +704,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVD"
-				golapack.Dstevd('V', &n, d1, d2, z, ldu, work, &lwedc, iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevd"
+				if iinfo, err = golapack.Dstevd('V', n, d1, d2, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVD(V)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevd(V)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -749,19 +726,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt21(&n, toPtr(0), d3, d4, d1, d2, z, ldu, work, result.Off(15))
+				dstt21(n, 0, d3, d4, d1, d2, z, work, result.Off(15))
 
 				ntest = 18
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVD"
-				golapack.Dstevd('N', &n, d3, d4, z, ldu, work, &lwedc, iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevd"
+				if iinfo, err = golapack.Dstevd('N', n, d3, d4, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVD(N)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevd(N)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -789,13 +764,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVR"
-				golapack.Dstevr('V', 'I', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevr"
+				if m2, iinfo, err = golapack.Dstevr('V', 'I', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(V,I)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,I)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -813,19 +786,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(18))
+				dstt22(n, m2, 0, d3, d4, wa2, d2, z, work.Matrix(max(1, m2), opts), result.Off(18))
 
 				ntest = 21
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVR"
-				golapack.Dstevr('N', 'I', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevr"
+				if m3, iinfo, err = golapack.Dstevr('N', 'I', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(N,I)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,I)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -835,8 +806,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 21.
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				result.Set(20, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 
 			label570:
@@ -865,13 +836,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d2.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVR"
-				golapack.Dstevr('V', 'V', &n, d1, d2, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevr"
+				if m2, iinfo, err = golapack.Dstevr('V', 'V', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(V,V)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,V)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -896,19 +865,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				Dstt22(&n, &m2, toPtr(0), d3, d4, wa2, d2, z, ldu, work.Matrix(max(1, m2), opts), toPtr(max(1, m2)), result.Off(21))
+				dstt22(n, m2, 0, d3, d4, wa2, d2, z, work.Matrix(max(1, m2), opts), result.Off(21))
 
 				ntest = 24
 				for i = 1; i <= n-1; i++ {
 					d4.Set(i-1, float64(a.Get(i, i-1)))
 				}
-				*srnamt = "DSTEVR"
-				golapack.Dstevr('N', 'V', &n, d3, d4, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dstevr"
+				if m3, iinfo, err = golapack.Dstevr('N', 'V', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEVR(N,V)", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,V)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -918,8 +885,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 24.
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				result.Set(23, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
 			label630:
@@ -933,24 +900,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			//           Perform remaining tests storing upper or lower triangular
 			//           part of matrix.
-			for iuplo = 0; iuplo <= 1; iuplo++ {
-				if iuplo == 0 {
-					uplo = 'L'
-				} else {
-					uplo = 'U'
-				}
+			for _, uplo = range mat.IterMatUplo(false) {
 
-				//              4)      Call DSYEV and DSYEVX.
-				golapack.Dlacpy(' ', &n, &n, a, lda, v, ldu)
+				//              4)      Call Dsyev and Dsyevx.
+				golapack.Dlacpy(Full, n, n, a, v)
 
 				ntest = ntest + 1
-				*srnamt = "DSYEV"
-				golapack.Dsyev('V', uplo, &n, a, ldu, d1, work, lwork, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyev"
+				if iinfo, err = golapack.Dsyev('V', uplo, n, a, d1, work, lwork); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEV(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -962,18 +922,16 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 25 and 26 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), v, ldu, d1, d2, a, ldu, z, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, v, d1, d2, a, z, tau, work, result.Off(ntest-1))
 
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
 				ntest = ntest + 2
-				*srnamt = "DSYEV"
-				golapack.Dsyev('N', uplo, &n, a, ldu, d3, work, lwork, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyev"
+				if iinfo, err = golapack.Dsyev('N', uplo, n, a, d3, work, lwork); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEV(N,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -993,7 +951,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			label660:
 				;
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
 				ntest = ntest + 1
 
@@ -1015,13 +973,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					vu = one
 				}
 
-				*srnamt = "DSYEVX"
-				golapack.Dsyevx('V', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyevx"
+				if _, iinfo, err = golapack.Dsyevx('V', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa1, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1033,18 +989,17 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 28 and 29 (or +54)
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, ldu, d1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, d1, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
-				*srnamt = "DSYEVX"
-				golapack.Dsyevx('N', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyevx"
+				if m2, iinfo, err = golapack.Dsyevx('N', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1066,14 +1021,12 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				;
 
 				ntest = ntest + 1
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVX"
-				golapack.Dsyevx('V', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevx"
+				if m2, iinfo, err = golapack.Dsyevx('V', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1085,19 +1038,18 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 31 and 32 (or +54)
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVX"
-				golapack.Dsyevx('N', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevx"
+				if m3, iinfo, err = golapack.Dsyevx('N', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1107,21 +1059,20 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 33 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 			label690:
 				;
 
 				ntest = ntest + 1
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVX"
-				golapack.Dsyevx('V', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevx"
+				if m2, iinfo, err = golapack.Dsyevx('V', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1133,19 +1084,18 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 34 and 35 (or +54)
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVX"
-				golapack.Dsyevx('N', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, lwork, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevx"
+				if m3, iinfo, err = golapack.Dsyevx('N', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVX(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1160,8 +1110,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 36 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				if n > 0 {
 					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
@@ -1172,12 +1122,12 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label700:
 				;
 
-				//              5)      Call DSPEV and DSPEVX.
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				//              5)      Call Dspev and Dspevx.
+				golapack.Dlacpy(Full, n, n, v, a)
 
 				//              Load array WORK with the upper or lower triangular
 				//              part of the matrix in packed form.
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1196,13 +1146,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 1
-				*srnamt = "DSPEV"
-				golapack.Dspev('V', uplo, &n, work, d1, z, ldu, v.VectorIdx(0), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspev"
+				if iinfo, err = golapack.Dspev('V', uplo, n, work, d1, z, v.VectorIdx(0)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEV(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1214,9 +1162,9 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 37 and 38 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, lda, d1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, d1, d2, z, v, tau, work, result.Off(ntest-1))
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1235,13 +1183,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 2
-				*srnamt = "DSPEV"
-				golapack.Dspev('N', uplo, &n, work, d3, z, ldu, v.VectorIdx(0), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspev"
+				if iinfo, err = golapack.Dspev('N', uplo, n, work, d3, z, v.VectorIdx(0)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEV(N,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1263,7 +1209,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              of the matrix in packed form.
 			label800:
 				;
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1301,13 +1247,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					vu = one
 				}
 
-				*srnamt = "DSPEVX"
-				golapack.Dspevx('V', 'A', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevx"
+				if _, iinfo, err = golapack.Dspevx('V', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa1, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1319,11 +1263,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 40 and 41 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, ldu, wa1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, wa1, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1341,13 +1285,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSPEVX"
-				golapack.Dspevx('N', 'A', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevx"
+				if m2, iinfo, err = golapack.Dspevx('N', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1367,7 +1309,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			label900:
 				;
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1387,13 +1329,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 				ntest = ntest + 1
 
-				*srnamt = "DSPEVX"
-				golapack.Dspevx('V', 'I', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevx"
+				if m2, iinfo, err = golapack.Dspevx('V', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1405,11 +1345,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 43 and 44 (or +54)
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1427,13 +1367,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSPEVX"
-				golapack.Dspevx('N', 'I', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevx"
+				if m3, iinfo, err = golapack.Dspevx('N', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1448,8 +1386,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 45 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				if n > 0 {
 					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
@@ -1459,7 +1397,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			label990:
 				;
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1479,13 +1417,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 				ntest = ntest + 1
 
-				*srnamt = "DSPEVX"
-				golapack.Dspevx('V', 'V', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevx"
+				if m2, iinfo, err = golapack.Dspevx('V', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1497,11 +1433,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 46 and 47 (or +54)
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1519,13 +1455,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSPEVX"
-				golapack.Dspevx('N', 'V', uplo, &n, work, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, v.VectorIdx(0), iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevx"
+				if m3, iinfo, err = golapack.Dspevx('N', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVX(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1540,8 +1474,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 48 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				if n > 0 {
 					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
@@ -1552,7 +1486,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1080:
 				;
 
-				//              6)      Call DSBEV and DSBEVX.
+				//              6)      Call Dsbev and Dsbevx.
 				if jtype <= 7 {
 					kd = 1
 				} else if jtype >= 8 && jtype <= 15 {
@@ -1563,7 +1497,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 				//              Load array V with the upper or lower triangular part
 				//              of the matrix in band form.
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1578,13 +1512,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 1
-				*srnamt = "DSBEV"
-				golapack.Dsbev('V', uplo, &n, &kd, v, ldu, d1, z, ldu, work, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbev"
+				if iinfo, err = golapack.Dsbev('V', uplo, n, kd, v, d1, z, work); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEV(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1596,9 +1528,9 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 49 and 50 (or ... )
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, lda, d1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, d1, d2, z, v, tau, work, result.Off(ntest-1))
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1613,13 +1545,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 2
-				*srnamt = "DSBEV"
-				golapack.Dsbev('N', uplo, &n, &kd, v, ldu, d3, z, ldu, work, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbev"
+				if iinfo, err = golapack.Dsbev('N', uplo, n, kd, v, d3, z, work); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEV(N,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1641,7 +1571,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				//              of the matrix in band form.
 			label1180:
 				;
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1656,13 +1586,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 1
-				*srnamt = "DSBEVX"
-				golapack.Dsbevx('V', 'A', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevx"
+				if _, iinfo, err = golapack.Dsbevx('V', 'A', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1674,11 +1602,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 52 and 53 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1692,13 +1620,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSBEVX"
-				golapack.Dsbevx('N', 'A', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevx"
+				if m3, iinfo, err = golapack.Dsbevx('N', 'A', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1719,7 +1645,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1280:
 				;
 				ntest = ntest + 1
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1733,13 +1659,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSBEVX"
-				golapack.Dsbevx('V', 'I', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevx"
+				if m2, iinfo, err = golapack.Dsbevx('V', 'I', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1751,11 +1675,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 55 and 56 (or +54)
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1769,13 +1693,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSBEVX"
-				golapack.Dsbevx('N', 'I', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevx"
+				if m3, iinfo, err = golapack.Dsbevx('N', 'I', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1785,8 +1707,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 57 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				if n > 0 {
 					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
@@ -1797,7 +1719,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1370:
 				;
 				ntest = ntest + 1
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1811,13 +1733,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSBEVX"
-				golapack.Dsbevx('V', 'V', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevx"
+				if m2, iinfo, err = golapack.Dsbevx('V', 'V', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1829,11 +1749,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 58 and 59 (or +54)
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -1847,13 +1767,12 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					}
 				}
 
-				*srnamt = "DSBEVX"
-				golapack.Dsbevx('N', 'V', uplo, &n, &kd, v, ldu, u, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, work, iwork, toSlice(iwork, 5*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevx"
+				if m3, iinfo, err = golapack.Dsbevx('N', 'V', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVX(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1868,8 +1787,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 60 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				if n > 0 {
 					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
@@ -1880,17 +1799,15 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1460:
 				;
 
-				//              7)      Call DSYEVD
-				golapack.Dlacpy(' ', &n, &n, a, lda, v, ldu)
+				//              7)      Call Dsyevd
+				golapack.Dlacpy(Full, n, n, a, v)
 
 				ntest = ntest + 1
-				*srnamt = "DSYEVD"
-				golapack.Dsyevd('V', uplo, &n, a, ldu, d1, work, &lwedc, iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyevd"
+				if iinfo, err = golapack.Dsyevd('V', uplo, n, a, d1, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVD(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1902,18 +1819,16 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 61 and 62 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), v, ldu, d1, d2, a, ldu, z, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, v, d1, d2, a, z, tau, work, result.Off(ntest-1))
 
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
 				ntest = ntest + 2
-				*srnamt = "DSYEVD"
-				golapack.Dsyevd('N', uplo, &n, a, ldu, d3, work, &lwedc, iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyevd"
+				if iinfo, err = golapack.Dsyevd('N', uplo, n, a, d3, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVD(N,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1934,12 +1849,12 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1480:
 				;
 
-				//              8)      Call DSPEVD.
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				//              8)      Call Dspevd.
+				golapack.Dlacpy(Full, n, n, v, a)
 
 				//              Load array WORK with the upper or lower triangular
 				//              part of the matrix in packed form.
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1958,13 +1873,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 1
-				*srnamt = "DSPEVD"
-				golapack.Dspevd('V', uplo, &n, work, d1, z, ldu, work.Off(indx-1), toPtr(lwedc-indx+1), iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevd"
+				if iinfo, err = golapack.Dspevd('V', uplo, n, work, d1, z, work.Off(indx-1), lwedc-indx+1, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVD(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -1976,9 +1889,9 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 64 and 65 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, lda, d1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, d1, d2, z, v, tau, work, result.Off(ntest-1))
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					indx = 1
 					for j = 1; j <= n; j++ {
 						for i = 1; i <= j; i++ {
@@ -1998,13 +1911,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 2
-				*srnamt = "DSPEVD"
-				golapack.Dspevd('N', uplo, &n, work, d3, z, ldu, work.Off(indx-1), toPtr(lwedc-indx+1), iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dspevd"
+				if iinfo, err = golapack.Dspevd('N', uplo, n, work, d3, z, work.Off(indx-1), lwedc-indx+1, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSPEVD(N,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2024,7 +1935,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1580:
 				;
 
-				//              9)      Call DSBEVD.
+				//              9)      Call Dsbevd.
 				if jtype <= 7 {
 					kd = 1
 				} else if jtype >= 8 && jtype <= 15 {
@@ -2035,7 +1946,7 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 				//              Load array V with the upper or lower triangular part
 				//              of the matrix in band form.
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -2050,13 +1961,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 1
-				*srnamt = "DSBEVD"
-				golapack.Dsbevd('V', uplo, &n, &kd, v, ldu, d1, z, ldu, work, &lwedc, iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevd"
+				if iinfo, err = golapack.Dsbevd('V', uplo, n, kd, v, d1, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVD(V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2068,9 +1977,9 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 67 and 68 (or +54)
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, lda, d1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, d1, d2, z, v, tau, work, result.Off(ntest-1))
 
-				if iuplo == 1 {
+				if uplo == Upper {
 					for j = 1; j <= n; j++ {
 						for i = max(1, j-kd); i <= j; i++ {
 							v.Set(kd+1+i-j-1, j-1, a.Get(i-1, j-1))
@@ -2085,13 +1994,11 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				ntest = ntest + 2
-				*srnamt = "DSBEVD"
-				golapack.Dsbevd('N', uplo, &n, &kd, v, ldu, d3, z, ldu, work, &lwedc, iwork, &liwedc, &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsbevd"
+				if iinfo, err = golapack.Dsbevd('N', uplo, n, kd, v, d3, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSBEVD(N,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2112,15 +2019,13 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			label1680:
 				;
 
-				golapack.Dlacpy(' ', &n, &n, a, lda, v, ldu)
+				golapack.Dlacpy(Full, n, n, a, v)
 				ntest = ntest + 1
-				*srnamt = "DSYEVR"
-				golapack.Dsyevr('V', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m, wa1, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyevr"
+				if _, iinfo, err = golapack.Dsyevr('V', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa1, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(V,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2132,18 +2037,16 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 70 and 71 (or ... )
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
-				Dsyt21(toPtr(1), uplo, &n, toPtr(0), a, ldu, wa1, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt21(1, uplo, n, 0, a, wa1, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
-				*srnamt = "DSYEVR"
-				golapack.Dsyevr('N', 'A', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				*srnamt = "Dsyevr"
+				if m2, iinfo, err = golapack.Dsyevr('N', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(N,A,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2165,14 +2068,12 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				;
 
 				ntest = ntest + 1
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVR"
-				golapack.Dsyevr('V', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevr"
+				if m2, iinfo, err = golapack.Dsyevr('V', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(V,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2184,19 +2085,18 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 73 and 74 (or +54)
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVR"
-				golapack.Dsyevr('N', 'I', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevr"
+				if m3, iinfo, err = golapack.Dsyevr('N', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(N,I,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -2206,21 +2106,19 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 75 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, ulp*temp3))
 			label1710:
 				;
 
 				ntest = ntest + 1
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVR"
-				golapack.Dsyevr('V', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m2, wa2, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevr"
+				if m2, iinfo, err = golapack.Dsyevr('V', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(V,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2232,20 +2130,18 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do tests 76 and 77 (or +54)
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
-				Dsyt22(toPtr(1), uplo, &n, &m2, toPtr(0), a, ldu, wa2, d2, z, ldu, v, ldu, tau, work, result.Off(ntest-1))
+				dsyt22(1, uplo, n, m2, 0, a, wa2, d2, z, v, tau, work, result.Off(ntest-1))
 
 				ntest = ntest + 2
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
-				*srnamt = "DSYEVR"
-				golapack.Dsyevr('N', 'V', uplo, &n, a, ldu, &vl, &vu, &il, &iu, &abstol, &m3, wa3, z, ldu, iwork, work, lwork, toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
+				golapack.Dlacpy(Full, n, n, v, a)
+				*srnamt = "Dsyevr"
+				if m3, iinfo, err = golapack.Dsyevr('N', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					t.Fail()
 					nerrs++
 					nerrs++
-					fmt.Printf(" DDRVST: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSYEVR(N,V,"+string(uplo)+")", iinfo, n, jtype, ioldsd)
-					*info = abs(iinfo)
+					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -2260,8 +2156,8 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				//              Do test 78 (or +54)
-				temp1 = Dsxt1(toPtr(1), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-				temp2 = Dsxt1(toPtr(1), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+				temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+				temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 				if n > 0 {
 					temp3 = math.Max(math.Abs(wa1.Get(0)), math.Abs(wa1.Get(n-1)))
 				} else {
@@ -2269,19 +2165,21 @@ func Ddrvst(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 				result.Set(ntest-1, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
-				golapack.Dlacpy(' ', &n, &n, v, ldu, a, lda)
+				golapack.Dlacpy(Full, n, n, v, a)
 
 			}
 
 			//           End of Loop -- Check for RESULT(j) > THRESH
 			ntestt = ntestt + ntest
 
-			Dlafts([]byte("DST"), &n, &n, &jtype, &ntest, result, &ioldsd, thresh, &nfails, t)
+			err = dlafts("Dst", n, n, jtype, ntest, result, ioldsd, thresh, nfails)
 
 		label1730:
 		}
 	}
 
 	//     Summary
-	Alasvm([]byte("DST"), &nfails, &ntestt, &nerrs)
+	alasvm("Dst", nfails, ntestt, nerrs)
+
+	return
 }

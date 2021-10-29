@@ -11,13 +11,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkps tests DPSTRF.
-func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank *int, rankval *[]int, thresh *float64, tsterr *bool, nmax *int, a, afac, perm *mat.Vector, piv *[]int, work, rwork *mat.Vector, nout *int, t *testing.T) {
-	var dist, _type, uplo byte
+// dchkps tests DPSTRF.
+func dchkps(dotype []bool, nn int, nval []int, nnb int, nbval []int, nrank int, rankval []int, thresh float64, tsterr bool, nmax int, a, afac, perm *mat.Vector, piv []int, work, rwork *mat.Vector, t *testing.T) {
+	var dist, _type byte
+	var uplo mat.MatUplo
 	var anorm, cndnum, one, result, tol float64
-	var comprank, i, imat, in, inb, info, irank, iuplo, izero, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrun, ntypes, rank, rankdiff int
+	var comprank, i, imat, in, inb, info, irank, izero, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrun, ntypes, rank, rankdiff int
+	var err error
 
-	uplos := make([]byte, 2)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
 	infot := &gltest.Common.Infoc.Infot
@@ -27,10 +28,9 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	ntypes = 9
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1] = 'U', 'L'
 
 	//     Initialize constants and the random number seed.
-	path := []byte("DPS")
+	path := "Dps"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -39,15 +39,15 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrps(path, t)
+	if tsterr {
+		derrps(path, t)
 	}
 	(*infot) = 0
-	Xlaenv(2, 2)
+	xlaenv(2, 2)
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		nimat = ntypes
 		if n <= 0 {
@@ -57,55 +57,53 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 		izero = 0
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label140
 			}
 
 			//              Do for each value of RANK in RANKVAL
-			for irank = 1; irank <= (*nrank); irank++ {
+			for irank = 1; irank <= nrank; irank++ {
 				//              Only repeat test 3 to 5 for different ranks
 				//              Other tests use full rank
 				if (imat < 3 || imat > 5) && irank > 1 {
 					goto label130
 				}
 
-				rank = int(math.Ceil((float64(n) * float64((*rankval)[irank-1])) / 100.))
+				rank = int(math.Ceil((float64(n) * float64(rankval[irank-1])) / 100.))
 
 				//
 				//           Do first for UPLO = 'U', then for UPLO = 'L'
-				for iuplo = 1; iuplo <= 2; iuplo++ {
-					uplo = uplos[iuplo-1]
+				for _, uplo = range mat.IterMatUplo(false) {
 
 					//              Set up parameters with DLATB5 and generate a test matrix
 					//              with DLATMT.
-					Dlatb5(path, &imat, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+					_type, kl, ku, anorm, mode, cndnum, dist = dlatb5(path, imat, n)
 
-					*srnamt = "DLATMT"
-					matgen.Dlatmt(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &rank, &kl, &ku, uplo, a.Matrix(lda, opts), &lda, work, &info)
-
-					//              Check error code from DLATMT.
-					if info != 0 {
-						Alaerh(path, []byte("DLATMT"), &info, toPtr(0), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+					*srnamt = "Dlatmt"
+					if info, _ = matgen.Dlatmt(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, rank, kl, ku, uplo.Byte(), a.Matrix(lda, opts), work); info != 0 {
+						nerrs = alaerh(path, "Dlatmt", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 						goto label120
 					}
 
 					//              Do for each value of NB in NBVAL
-					for inb = 1; inb <= (*nnb); inb++ {
-						nb = (*nbval)[inb-1]
-						Xlaenv(1, nb)
+					for inb = 1; inb <= nnb; inb++ {
+						nb = nbval[inb-1]
+						xlaenv(1, nb)
 
 						//                 Compute the pivoted L*L' or U'*U factorization
 						//                 of the matrix.
-						golapack.Dlacpy(uplo, &n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda)
-						*srnamt = "DPSTRF"
+						golapack.Dlacpy(uplo, n, n, a.Matrix(lda, opts), afac.Matrix(lda, opts))
+						*srnamt = "Dpstrf"
 
 						//                 Use default tolerance
 						tol = -one
-						golapack.Dpstrf(uplo, &n, afac.Matrix(lda, opts), &lda, piv, &comprank, &tol, work, &info)
+						if comprank, info, err = golapack.Dpstrf(uplo, n, afac.Matrix(lda, opts), &piv, tol, work); err != nil {
+							panic(err)
+						}
 
 						//                 Check error code from DPSTRF.
 						if (info < izero) || (info != izero && rank == n) || (info <= izero && rank < n) {
-							Alaerh(path, []byte("DPSTRF"), &info, &izero, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nb, &imat, &nfail, &nerrs)
+							nerrs = alaerh(path, "Dpstrf", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nb, imat, nfail, nerrs)
 							goto label110
 						}
 
@@ -117,7 +115,7 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 						//                 Reconstruct matrix from factors and compute residual.
 						//
 						//                 PERM holds permuted L*L^T or U^T*U
-						Dpst01(uplo, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, perm.Matrix(lda, opts), &lda, piv, rwork, &result, &comprank)
+						result = dpst01(uplo, n, a.Matrix(lda, opts), afac.Matrix(lda, opts), perm.Matrix(lda, opts), piv, rwork, comprank)
 
 						//                 Print information about the tests that did not pass
 						//                 the threshold or where computed rank was not RANK.
@@ -125,15 +123,15 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 							comprank = 0
 						}
 						rankdiff = rank - comprank
-						if result >= (*thresh) {
+						if result >= thresh {
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
 							t.Fail()
-							fmt.Printf(" UPLO = '%c', N =%5d, RANK =%3d, Diff =%5d, NB =%4d, _type %2d, Ratio =%12.5f\n", uplo, n, rank, rankdiff, nb, imat, result)
-							nfail = nfail + 1
+							fmt.Printf(" UPLO = %s, N =%5d, RANK =%3d, Diff =%5d, NB =%4d, _type %2d, Ratio =%12.5f\n", uplo, n, rank, rankdiff, nb, imat, result)
+							nfail++
 						}
-						nrun = nrun + 1
+						nrun++
 					label110:
 					}
 
@@ -154,5 +152,5 @@ func Dchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

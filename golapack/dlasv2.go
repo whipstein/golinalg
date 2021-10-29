@@ -12,7 +12,7 @@ import "math"
 //
 //    [ CSL  SNL ] [  F   G  ] [ CSR -SNR ]  =  [ SSMAX   0   ]
 //    [-SNL  CSL ] [  0   H  ] [ SNR  CSR ]     [  0    SSMIN ].
-func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
+func Dlasv2(f, g, h float64) (ssmin, ssmax, snr, csr, snl, csl float64) {
 	var gasmal, swap bool
 	var a, clt, crt, d, fa, four, ft, ga, gt, ha, half, ht, l, m, mm, one, r, s, slt, srt, t, temp, tsign, tt, two, zero float64
 	var pmax int
@@ -23,10 +23,10 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 	two = 2.0
 	four = 4.0
 
-	ft = (*f)
+	ft = f
 	fa = math.Abs(ft)
-	ht = (*h)
-	ha = math.Abs(*h)
+	ht = h
+	ha = math.Abs(h)
 
 	//     PMAX points to the maximum absolute element of matrix
 	//       PMAX = 1 if F largest in absolute values
@@ -46,14 +46,14 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 		//        Now FA .ge. HA
 		//
 	}
-	gt = (*g)
+	gt = g
 	ga = math.Abs(gt)
 	if ga == zero {
 		//
 		//        Diagonal matrix
 		//
-		(*ssmin) = ha
-		(*ssmax) = fa
+		ssmin = ha
+		ssmax = fa
 		clt = one
 		crt = one
 		slt = zero
@@ -65,11 +65,11 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 			if (fa / ga) < Dlamch(Epsilon) {
 				//              Case of very large GA
 				gasmal = false
-				(*ssmax) = ga
+				ssmax = ga
 				if ha > one {
-					(*ssmin) = fa / (ga / ha)
+					ssmin = fa / (ga / ha)
 				} else {
-					(*ssmin) = (fa / ga) * ha
+					ssmin = (fa / ga) * ha
 				}
 				clt = one
 				slt = ht / gt
@@ -109,8 +109,8 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 			a = half * (s + r)
 
 			//           Note that 1 .le. A .le. 1 + math.Abs(M)
-			(*ssmin) = ha / a
-			(*ssmax) = fa * a
+			ssmin = ha / a
+			ssmax = fa * a
 			if mm == zero {
 				//              Note that M is very tiny
 				if l == zero {
@@ -129,27 +129,29 @@ func Dlasv2(f, g, h, ssmin, ssmax, snr, csr, snl, csl *float64) {
 		}
 	}
 	if swap {
-		(*csl) = srt
-		(*snl) = crt
-		(*csr) = slt
-		(*snr) = clt
+		csl = srt
+		snl = crt
+		csr = slt
+		snr = clt
 	} else {
-		(*csl) = clt
-		(*snl) = slt
-		(*csr) = crt
-		(*snr) = srt
+		csl = clt
+		snl = slt
+		csr = crt
+		snr = srt
 	}
 
 	//     Correct signs of SSMAX and SSMIN
 	if pmax == 1 {
-		tsign = math.Copysign(one, *csr) * math.Copysign(one, *csl) * math.Copysign(one, *f)
+		tsign = math.Copysign(one, csr) * math.Copysign(one, csl) * math.Copysign(one, f)
 	}
 	if pmax == 2 {
-		tsign = math.Copysign(one, *snr) * math.Copysign(one, *csl) * math.Copysign(one, *g)
+		tsign = math.Copysign(one, snr) * math.Copysign(one, csl) * math.Copysign(one, g)
 	}
 	if pmax == 3 {
-		tsign = math.Copysign(one, *snr) * math.Copysign(one, *snl) * math.Copysign(one, *h)
+		tsign = math.Copysign(one, snr) * math.Copysign(one, snl) * math.Copysign(one, h)
 	}
-	(*ssmax) = math.Copysign(*ssmax, tsign)
-	(*ssmin) = math.Copysign(*ssmin, tsign*math.Copysign(one, *f)*math.Copysign(one, *h))
+	ssmax = math.Copysign(ssmax, tsign)
+	ssmin = math.Copysign(ssmin, tsign*math.Copysign(one, f)*math.Copysign(one, h))
+
+	return
 }

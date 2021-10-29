@@ -18,16 +18,14 @@ import "bytes"
 //
 // This routine will not function correctly if it is converted to all
 // lower case.  Converting it to all upper case is allowed.
-func Ilaenv(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenvReturn int) {
+func Ilaenv(ispec int, name string, opts []byte, n1, n2, n3, n4 int) (ilaenvReturn int) {
 	var cname, sname, twostage bool
 	var c1 byte
+	var c2, c3, c4 string
 	var i, ic, iz, nb, nbmin, nx int
-	c2 := make([]byte, 2)
-	c3 := make([]byte, 3)
-	c4 := make([]byte, 2)
 	subnam := make([]byte, 16)
 
-	switch *ispec {
+	switch ispec {
 	case 1:
 		goto label10
 	case 2:
@@ -71,7 +69,7 @@ label10:
 
 	//     Convert NAME to upper case if the first character is lower case.
 	ilaenvReturn = 1
-	subnam = name
+	subnam = []byte(name)
 	ic = int(subnam[0])
 	iz = int('Z')
 	if iz == 90 || iz == 122 {
@@ -111,18 +109,23 @@ label10:
 		}
 	}
 
-	c1 = subnam[0]
+	c1 = name[0]
 	sname = c1 == 'S' || c1 == 'D'
 	cname = c1 == 'C' || c1 == 'Z'
 	if !(cname || sname) {
 		return
 	}
-	c2 = subnam[1:3]
-	c3 = subnam[3:6]
-	c4 = c3[1:3]
+	c2 = name[1:3]
+	if len(name) > 6 {
+		c3 = name[3:6]
+		c4 = c3[1:3]
+	} else {
+		c3 = name[3:]
+		c4 = c3[1:]
+	}
 	twostage = len(subnam) >= 11 && subnam[10] == '2'
 
-	switch *ispec {
+	switch ispec {
 	case 1:
 		goto label50
 	case 2:
@@ -141,40 +144,40 @@ label50:
 	//     single or double precision.
 	nb = 1
 
-	if bytes.Equal(subnam[1:6], []byte("LAORH")) {
-		//        This is for *LAORHR_GETRFNP routine
+	if bytes.Equal(subnam[1:6], []byte("laorh")) {
+		//        This is for *laorhR_GETRFNP routine
 		if sname {
 			nb = 32
 		} else {
 			nb = 32
 		}
-	} else if bytes.Equal(c2, []byte("GE")) {
-		if bytes.Equal(c3, []byte("TRF")) {
+	} else if c2 == "ge" {
+		if c3 == "trf" {
 			if sname {
 				nb = 64
 			} else {
 				nb = 64
 			}
-		} else if bytes.Equal(c3, []byte("QRF")) || bytes.Equal(c3, []byte("RQF")) || bytes.Equal(c3, []byte("LQF")) || bytes.Equal(c3, []byte("QLF")) {
+		} else if c3 == "qrf" || c3 == "rqf" || c3 == "lqf" || c3 == "qlf" {
 			if sname {
 				nb = 32
 			} else {
 				nb = 32
 			}
-		} else if bytes.Equal(c3, []byte("QR ")) {
-			if (*n3) == 1 {
+		} else if c3 == "qr" {
+			if n3 == 1 {
 				if sname {
 					//     M*N
-					if ((*n1)*(*n2) <= 131072) || ((*n1) <= 8192) {
-						nb = (*n1)
+					if (n1*n2 <= 131072) || (n1 <= 8192) {
+						nb = n1
 					} else {
-						nb = 32768 / (*n2)
+						nb = 32768 / n2
 					}
 				} else {
-					if ((*n1)*(*n2) <= 131072) || ((*n1) <= 8192) {
-						nb = (*n1)
+					if (n1*n2 <= 131072) || (n1 <= 8192) {
+						nb = n1
 					} else {
-						nb = 32768 / (*n2)
+						nb = 32768 / n2
 					}
 				}
 			} else {
@@ -184,20 +187,20 @@ label50:
 					nb = 1
 				}
 			}
-		} else if bytes.Equal(c3, []byte("LQ ")) {
-			if (*n3) == 2 {
+		} else if c3 == "lq" {
+			if n3 == 2 {
 				if sname {
 					//     M*N
-					if ((*n1)*(*n2) <= 131072) || ((*n1) <= 8192) {
-						nb = (*n1)
+					if (n1*n2 <= 131072) || (n1 <= 8192) {
+						nb = n1
 					} else {
-						nb = 32768 / (*n2)
+						nb = 32768 / n2
 					}
 				} else {
-					if ((*n1)*(*n2) <= 131072) || ((*n1) <= 8192) {
-						nb = (*n1)
+					if (n1*n2 <= 131072) || (n1 <= 8192) {
+						nb = n1
 					} else {
-						nb = 32768 / (*n2)
+						nb = 32768 / n2
 					}
 				}
 			} else {
@@ -207,35 +210,35 @@ label50:
 					nb = 1
 				}
 			}
-		} else if bytes.Equal(c3, []byte("HRD")) {
+		} else if c3 == "hrd" {
 			if sname {
 				nb = 32
 			} else {
 				nb = 32
 			}
-		} else if bytes.Equal(c3, []byte("BRD")) {
+		} else if c3 == "brd" {
 			if sname {
 				nb = 32
 			} else {
 				nb = 32
 			}
-		} else if bytes.Equal(c3, []byte("TRI")) {
+		} else if c3 == "tri" {
 			if sname {
 				nb = 64
 			} else {
 				nb = 64
 			}
 		}
-	} else if bytes.Equal(c2, []byte("PO")) {
-		if bytes.Equal(c3, []byte("TRF")) {
+	} else if c2 == "po" {
+		if c3 == "trf" {
 			if sname {
 				nb = 64
 			} else {
 				nb = 64
 			}
 		}
-	} else if bytes.Equal(c2, []byte("SY")) {
-		if bytes.Equal(c3, []byte("TRF")) {
+	} else if c2 == "sy" {
+		if c3 == "trf" {
 			if sname {
 				if twostage {
 					nb = 192
@@ -249,104 +252,104 @@ label50:
 					nb = 64
 				}
 			}
-		} else if sname && bytes.Equal(c3, []byte("TRD")) {
+		} else if sname && c3 == "trd" {
 			nb = 32
-		} else if sname && bytes.Equal(c3, []byte("GST")) {
+		} else if sname && c3 == "gst" {
 			nb = 64
 		}
-	} else if cname && bytes.Equal(c2, []byte("HE")) {
-		if bytes.Equal(c3, []byte("TRF")) {
+	} else if cname && c2 == "he" {
+		if c3 == "trf" {
 			if twostage {
 				nb = 192
 			} else {
 				nb = 64
 			}
-		} else if bytes.Equal(c3, []byte("TRD")) {
+		} else if c3 == "trd" {
 			nb = 32
-		} else if bytes.Equal(c3, []byte("GST")) {
+		} else if c3 == "gst" {
 			nb = 64
 		}
-	} else if sname && bytes.Equal(c2, []byte("OR")) {
-		if c3[0] == 'G' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
+	} else if sname && c2 == "or" {
+		if c3[0] == 'g' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
 				nb = 32
 			}
-		} else if c3[0] == 'M' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
-				nb = 32
-			}
-		}
-	} else if cname && bytes.Equal(c2, []byte("UN")) {
-		if c3[0] == 'G' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
-				nb = 32
-			}
-		} else if c3[0] == 'M' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
+		} else if c3[0] == 'm' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
 				nb = 32
 			}
 		}
-	} else if bytes.Equal(c2, []byte("GB")) {
-		if bytes.Equal(c3, []byte("TRF")) {
+	} else if cname && c2 == "un" {
+		if c3[0] == 'g' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
+				nb = 32
+			}
+		} else if c3[0] == 'm' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
+				nb = 32
+			}
+		}
+	} else if c2 == "gb" {
+		if c3 == "trf" {
 			if sname {
-				if (*n4) <= 64 {
+				if n4 <= 64 {
 					nb = 1
 				} else {
 					nb = 32
 				}
 			} else {
-				if (*n4) <= 64 {
-					nb = 1
-				} else {
-					nb = 32
-				}
-			}
-		}
-	} else if bytes.Equal(c2, []byte("PB")) {
-		if bytes.Equal(c3, []byte("TRF")) {
-			if sname {
-				if (*n2) <= 64 {
-					nb = 1
-				} else {
-					nb = 32
-				}
-			} else {
-				if (*n2) <= 64 {
+				if n4 <= 64 {
 					nb = 1
 				} else {
 					nb = 32
 				}
 			}
 		}
-	} else if bytes.Equal(c2, []byte("TR")) {
-		if bytes.Equal(c3, []byte("TRI")) {
+	} else if c2 == "pb" {
+		if c3 == "trf" {
+			if sname {
+				if n2 <= 64 {
+					nb = 1
+				} else {
+					nb = 32
+				}
+			} else {
+				if n2 <= 64 {
+					nb = 1
+				} else {
+					nb = 32
+				}
+			}
+		}
+	} else if c2 == "tr" {
+		if c3 == "tri" {
 			if sname {
 				nb = 64
 			} else {
 				nb = 64
 			}
-		} else if bytes.Equal(c3, []byte("EVC")) {
+		} else if c3 == "evc" {
 			if sname {
 				nb = 64
 			} else {
 				nb = 64
 			}
 		}
-	} else if bytes.Equal(c2, []byte("LA")) {
-		if bytes.Equal(c3, []byte("UUM")) {
+	} else if c2 == "la" {
+		if c3 == "uum" {
 			if sname {
 				nb = 64
 			} else {
 				nb = 64
 			}
 		}
-	} else if sname && bytes.Equal(c2, []byte("ST")) {
-		if bytes.Equal(c3, []byte("EBZ")) {
+	} else if sname && c2 == "st" {
+		if c3 == "ebz" {
 			nb = 1
 		}
-	} else if bytes.Equal(c2, []byte("GG")) {
+	} else if c2 == "gg" {
 		nb = 32
-		if bytes.Equal(c3, []byte("HD3")) {
+		if c3 == "hd3" {
 			if sname {
 				nb = 32
 			} else {
@@ -362,69 +365,69 @@ label60:
 
 	//     ISPEC = 2:  minimum block size
 	nbmin = 2
-	if bytes.Equal(c2, []byte("GE")) {
-		if bytes.Equal(c3, []byte("QRF")) || bytes.Equal(c3, []byte("RQF")) || bytes.Equal(c3, []byte("LQF")) || bytes.Equal(c3, []byte("QLF")) {
+	if c2 == "ge" {
+		if c3 == "qrf" || c3 == "rqf" || c3 == "lqf" || c3 == "qlf" {
 			if sname {
 				nbmin = 2
 			} else {
 				nbmin = 2
 			}
-		} else if bytes.Equal(c3, []byte("HRD")) {
+		} else if c3 == "hrd" {
 			if sname {
 				nbmin = 2
 			} else {
 				nbmin = 2
 			}
-		} else if bytes.Equal(c3, []byte("BRD")) {
+		} else if c3 == "brd" {
 			if sname {
 				nbmin = 2
 			} else {
 				nbmin = 2
 			}
-		} else if bytes.Equal(c3, []byte("TRI")) {
+		} else if c3 == "tri" {
 			if sname {
 				nbmin = 2
 			} else {
 				nbmin = 2
 			}
 		}
-	} else if bytes.Equal(c2, []byte("SY")) {
-		if bytes.Equal(c3, []byte("TRF")) {
+	} else if c2 == "sy" {
+		if c3 == "trf" {
 			if sname {
 				nbmin = 8
 			} else {
 				nbmin = 8
 			}
-		} else if sname && bytes.Equal(c3, []byte("TRD")) {
+		} else if sname && c3 == "trd" {
 			nbmin = 2
 		}
-	} else if cname && bytes.Equal(c2, []byte("HE")) {
-		if bytes.Equal(c3, []byte("TRD")) {
+	} else if cname && c2 == "he" {
+		if c3 == "trd" {
 			nbmin = 2
 		}
-	} else if sname && bytes.Equal(c2, []byte("OR")) {
-		if c3[0] == 'G' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
+	} else if sname && c2 == "or" {
+		if c3[0] == 'g' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
 				nbmin = 2
 			}
-		} else if c3[0] == 'M' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
-				nbmin = 2
-			}
-		}
-	} else if cname && bytes.Equal(c2, []byte("UN")) {
-		if c3[0] == 'G' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
-				nbmin = 2
-			}
-		} else if c3[0] == 'M' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
+		} else if c3[0] == 'm' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
 				nbmin = 2
 			}
 		}
-	} else if bytes.Equal(c2, []byte("GG")) {
+	} else if cname && c2 == "un" {
+		if c3[0] == 'g' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
+				nbmin = 2
+			}
+		} else if c3[0] == 'm' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
+				nbmin = 2
+			}
+		}
+	} else if c2 == "gg" {
 		nbmin = 2
-		if bytes.Equal(c3, []byte("HD3")) {
+		if c3 == "hd3" {
 			nbmin = 2
 		}
 	}
@@ -436,49 +439,49 @@ label70:
 
 	//     ISPEC = 3:  crossover point
 	nx = 0
-	if bytes.Equal(c2, []byte("GE")) {
-		if bytes.Equal(c3, []byte("QRF")) || bytes.Equal(c3, []byte("RQF")) || bytes.Equal(c3, []byte("LQF")) || bytes.Equal(c3, []byte("QLF")) {
+	if c2 == "ge" {
+		if c3 == "qrf" || c3 == "rqf" || c3 == "lqf" || c3 == "qlf" {
 			if sname {
 				nx = 128
 			} else {
 				nx = 128
 			}
-		} else if bytes.Equal(c3, []byte("HRD")) {
+		} else if c3 == "hrd" {
 			if sname {
 				nx = 128
 			} else {
 				nx = 128
 			}
-		} else if bytes.Equal(c3, []byte("BRD")) {
+		} else if c3 == "brd" {
 			if sname {
 				nx = 128
 			} else {
 				nx = 128
 			}
 		}
-	} else if bytes.Equal(c2, []byte("SY")) {
-		if sname && bytes.Equal(c3, []byte("TRD")) {
+	} else if c2 == "sy" {
+		if sname && c3 == "trd" {
 			nx = 32
 		}
-	} else if cname && bytes.Equal(c2, []byte("HE")) {
-		if bytes.Equal(c3, []byte("TRD")) {
+	} else if cname && c2 == "he" {
+		if c3 == "trd" {
 			nx = 32
 		}
-	} else if sname && bytes.Equal(c2, []byte("OR")) {
-		if c3[0] == 'G' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
+	} else if sname && c2 == "or" {
+		if c3[0] == 'g' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
 				nx = 128
 			}
 		}
-	} else if cname && bytes.Equal(c2, []byte("UN")) {
-		if c3[0] == 'G' {
-			if bytes.Equal(c4, []byte("QR")) || bytes.Equal(c4, []byte("RQ")) || bytes.Equal(c4, []byte("LQ")) || bytes.Equal(c4, []byte("QL")) || bytes.Equal(c4, []byte("HR")) || bytes.Equal(c4, []byte("TR")) || bytes.Equal(c4, []byte("BR")) {
+	} else if cname && c2 == "un" {
+		if c3[0] == 'g' {
+			if c4 == "qr" || c4 == "rq" || c4 == "lq" || c4 == "ql" || c4 == "hr" || c4 == "tr" || c4 == "br" {
 				nx = 128
 			}
 		}
-	} else if bytes.Equal(c2, []byte("GG")) {
+	} else if c2 == "gg" {
 		nx = 128
-		if bytes.Equal(c3, []byte("HD3")) {
+		if c3 == "hd3" {
 			nx = 128
 		}
 	}
@@ -503,7 +506,7 @@ label100:
 	;
 
 	//     ISPEC = 6:  crossover point for SVD (used by xGELSS and xGESVD)
-	ilaenvReturn = int(float64(min(*n1, *n2)) * 1.6)
+	ilaenvReturn = int(float64(min(n1, n2)) * 1.6)
 	return
 
 label110:
@@ -537,7 +540,7 @@ label140:
 	//     ILAENV = 0
 	ilaenvReturn = 1
 	if ilaenvReturn == 1 {
-		ilaenvReturn = Ieeeck(func() *int { y := 1; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }())
+		ilaenvReturn = Ieeeck(1, 0.0, 1.0)
 	}
 	return
 
@@ -549,7 +552,7 @@ label150:
 	//     ILAENV = 0
 	ilaenvReturn = 1
 	if ilaenvReturn == 1 {
-		ilaenvReturn = Ieeeck(func() *int { y := 0; return &y }(), func() *float64 { y := 0.0; return &y }(), func() *float64 { y := 1.0; return &y }())
+		ilaenvReturn = Ieeeck(0, 0.0, 1.0)
 	}
 	return
 

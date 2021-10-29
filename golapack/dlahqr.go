@@ -11,7 +11,7 @@ import (
 //    eigenvalues and Schur decomposition already computed by DHSEQR, by
 //    dealing with the Hessenberg submatrix in rows and columns ILO to
 //    IHI.
-func Dlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *mat.Vector, iloz, ihiz *int, z *mat.Matrix, ldz, info *int) {
+func Dlahqr(wantt, wantz bool, n, ilo, ihi int, h *mat.Matrix, wr, wi *mat.Vector, iloz, ihiz int, z *mat.Matrix) (info int, err error) {
 	var aa, ab, ba, bb, cs, dat1, dat2, det, h11, h12, h21, h21s, h22, one, rt1i, rt1r, rt2i, rt2r, rtdisc, s, safmax, safmin, smlnum, sn, sum, t1, t2, t3, tr, tst, two, ulp, v2, v3, zero float64
 	var i, i1, i2, itmax, its, j, k, l, m, nh, nr, nz int
 
@@ -23,34 +23,32 @@ func Dlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 	dat1 = 3.0 / 4.0
 	dat2 = -0.4375
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
-	if (*ilo) == (*ihi) {
-		wr.Set((*ilo)-1, h.Get((*ilo)-1, (*ilo)-1))
-		wi.Set((*ilo)-1, zero)
+	if ilo == ihi {
+		wr.Set(ilo-1, h.Get(ilo-1, ilo-1))
+		wi.Set(ilo-1, zero)
 		return
 	}
 
 	//     ==== clear out the trash ====
-	for j = (*ilo); j <= (*ihi)-3; j++ {
+	for j = ilo; j <= ihi-3; j++ {
 		h.Set(j+2-1, j-1, zero)
 		h.Set(j+3-1, j-1, zero)
 	}
-	if (*ilo) <= (*ihi)-2 {
-		h.Set((*ihi)-1, (*ihi)-2-1, zero)
+	if ilo <= ihi-2 {
+		h.Set(ihi-1, ihi-2-1, zero)
 	}
 
-	nh = (*ihi) - (*ilo) + 1
-	nz = (*ihiz) - (*iloz) + 1
+	nh = ihi - ilo + 1
+	nz = ihiz - iloz + 1
 
 	//     Set machine-dependent constants for the stopping criterion.
 	safmin = Dlamch(SafeMinimum)
 	safmax = one / safmin
-	Dlabad(&safmin, &safmax)
+	safmin, safmax = Dlabad(safmin, safmax)
 	ulp = Dlamch(Precision)
 	smlnum = safmin * (float64(nh) / ulp)
 
@@ -59,7 +57,7 @@ func Dlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 	//     being computed, I1 and I2 are set inside the main loop.
 	if wantt {
 		i1 = 1
-		i2 = (*n)
+		i2 = n
 	}
 
 	//     ITMAX is the total number of QR iterations allowed.
@@ -70,11 +68,11 @@ func Dlahqr(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 	//     with the active submatrix in rows and columns L to I.
 	//     Eigenvalues I+1 to IHI have already converged. Either L = ILO or
 	//     H(L,L-1) is negligible so that the matrix splits.
-	i = (*ihi)
+	i = ihi
 label20:
 	;
-	l = (*ilo)
-	if i < (*ilo) {
+	l = ilo
+	if i < ilo {
 		return
 	}
 
@@ -89,10 +87,10 @@ label20:
 			}
 			tst = math.Abs(h.Get(k-1-1, k-1-1)) + math.Abs(h.Get(k-1, k-1))
 			if tst == zero {
-				if k-2 >= (*ilo) {
+				if k-2 >= ilo {
 					tst = tst + math.Abs(h.Get(k-1-1, k-2-1))
 				}
-				if k+1 <= (*ihi) {
+				if k+1 <= ihi {
 					tst = tst + math.Abs(h.Get(k, k-1))
 				}
 			}
@@ -114,7 +112,7 @@ label20:
 	label40:
 		;
 		l = k
-		if l > (*ilo) {
+		if l > ilo {
 			//           H(L,L-1) is negligible
 			h.Set(l-1, l-1-1, zero)
 		}
@@ -229,7 +227,7 @@ label20:
 			if k > m {
 				goblas.Dcopy(nr, h.Vector(k-1, k-1-1, 1), v)
 			}
-			Dlarfg(&nr, v.GetPtr(0), v.Off(1), func() *int { y := 1; return &y }(), &t1)
+			*v.GetPtr(0), t1 = Dlarfg(nr, v.Get(0), v.Off(1, 1))
 			if k > m {
 				h.Set(k-1, k-1-1, v.Get(0))
 				h.Set(k, k-1-1, zero)
@@ -269,7 +267,7 @@ label20:
 
 				if wantz {
 					//                 Accumulate transformations in the matrix Z
-					for j = (*iloz); j <= (*ihiz); j++ {
+					for j = iloz; j <= ihiz; j++ {
 						sum = z.Get(j-1, k-1) + v2*z.Get(j-1, k) + v3*z.Get(j-1, k+2-1)
 						z.Set(j-1, k-1, z.Get(j-1, k-1)-sum*t1)
 						z.Set(j-1, k, z.Get(j-1, k)-sum*t2)
@@ -296,7 +294,7 @@ label20:
 
 				if wantz {
 					//                 Accumulate transformations in the matrix Z
-					for j = (*iloz); j <= (*ihiz); j++ {
+					for j = iloz; j <= ihiz; j++ {
 						sum = z.Get(j-1, k-1) + v2*z.Get(j-1, k)
 						z.Set(j-1, k-1, z.Get(j-1, k-1)-sum*t1)
 						z.Set(j-1, k, z.Get(j-1, k)-sum*t2)
@@ -308,7 +306,7 @@ label20:
 	}
 
 	//     Failure to converge in remaining number of iterations
-	(*info) = i
+	info = i
 	return
 
 label150:
@@ -323,7 +321,7 @@ label150:
 		//
 		//        Transform the 2-by-2 submatrix to standard Schur form,
 		//        and compute and store the eigenvalues.
-		Dlanv2(h.GetPtr(i-1-1, i-1-1), h.GetPtr(i-1-1, i-1), h.GetPtr(i-1, i-1-1), h.GetPtr(i-1, i-1), wr.GetPtr(i-1-1), wi.GetPtr(i-1-1), wr.GetPtr(i-1), wi.GetPtr(i-1), &cs, &sn)
+		*h.GetPtr(i-1-1, i-1-1), *h.GetPtr(i-1-1, i-1), *h.GetPtr(i-1, i-1-1), *h.GetPtr(i-1, i-1), *wr.GetPtr(i - 1 - 1), *wi.GetPtr(i - 1 - 1), *wr.GetPtr(i - 1), *wi.GetPtr(i - 1), cs, sn = Dlanv2(h.Get(i-1-1, i-1-1), h.Get(i-1-1, i-1), h.Get(i-1, i-1-1), h.Get(i-1, i-1))
 
 		if wantt {
 			//           Apply the transformation to the rest of H.
@@ -334,7 +332,7 @@ label150:
 		}
 		if wantz {
 			//           Apply the transformation to Z.
-			goblas.Drot(nz, z.Vector((*iloz)-1, i-1-1, 1), z.Vector((*iloz)-1, i-1, 1), cs, sn)
+			goblas.Drot(nz, z.Vector(iloz-1, i-1-1, 1), z.Vector(iloz-1, i-1, 1), cs, sn)
 		}
 	}
 

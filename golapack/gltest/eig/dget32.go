@@ -6,7 +6,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dget32 tests DLASY2, a routine for solving
+// dget32 tests DLASY2, a routine for solving
 //
 //         op(TL)*X + ISGN*X*op(TR) = SCALE*B
 //
@@ -23,7 +23,7 @@ import (
 // should be on the order of 1. Here, ulp is the machine precision.
 // Also, it is verified that SCALE is less than or equal to 1, and
 // that XNORM = infinity-norm(X).
-func Dget32(rmax *float64, lmax, ninfo, knt *int) {
+func dget32() (rmax float64, lmax, ninfo, knt int) {
 	var ltranl, ltranr bool
 	var bignum, den, eight, eps, four, one, res, scale, sgn, smlnum, tmp, tnrm, two, xnorm, xnrm, zero float64
 	var ib, ib1, ib2, ib3, info, isgn, itl, itlscl, itr, itranl, itranr, itrscl, n1, n2 int
@@ -48,17 +48,17 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     Set up test case parameters
 	val.Set(0, math.Sqrt(smlnum))
 	val.Set(1, one)
 	val.Set(2, math.Sqrt(bignum))
 
-	(*knt) = 0
-	(*ninfo) = 0
-	(*lmax) = 0
-	(*rmax) = zero
+	knt = 0
+	ninfo = 0
+	lmax = 0
+	rmax = zero
 
 	//     Begin test loop
 	for itranl = 0; itranl <= 1; itranl++ {
@@ -76,10 +76,10 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 							tl.Set(0, 0, val.Get(itl-1))
 							tr.Set(0, 0, val.Get(itr-1))
 							b.Set(0, 0, val.Get(ib-1))
-							(*knt) = (*knt) + 1
-							golapack.Dlasy2(ltranl, ltranr, &isgn, &n1, &n2, tl, func() *int { y := 2; return &y }(), tr, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), &scale, x, func() *int { y := 2; return &y }(), &xnorm, &info)
+							knt = knt + 1
+							scale, xnorm, info = golapack.Dlasy2(ltranl, ltranr, isgn, n1, n2, tl, tr, b, x)
 							if info != 0 {
-								(*ninfo) = (*ninfo) + 1
+								ninfo = ninfo + 1
 							}
 							res = math.Abs((tl.Get(0, 0)+sgn*tr.Get(0, 0))*x.Get(0, 0) - scale*b.Get(0, 0))
 							if info == 0 {
@@ -95,9 +95,9 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 							if info != 0 && info != 1 {
 								res = res + one/eps
 							}
-							if res > (*rmax) {
-								(*lmax) = (*knt)
-								(*rmax) = res
+							if res > rmax {
+								lmax = knt
+								rmax = res
 							}
 						}
 					}
@@ -117,10 +117,10 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 									tl.Set(0, 1, float64(itval[0+(1+(itl-1)*2)*2])*val.Get(itlscl-1))
 									tl.Set(1, 1, float64(itval[1+(1+(itl-1)*2)*2])*val.Get(itlscl-1))
 									tr.Set(0, 0, val.Get(itr-1))
-									(*knt) = (*knt) + 1
-									golapack.Dlasy2(ltranl, ltranr, &isgn, &n1, &n2, tl, func() *int { y := 2; return &y }(), tr, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), &scale, x, func() *int { y := 2; return &y }(), &xnorm, &info)
+									knt = knt + 1
+									scale, xnorm, info = golapack.Dlasy2(ltranl, ltranr, isgn, n1, n2, tl, tr, b, x)
 									if info != 0 {
-										(*ninfo) = (*ninfo) + 1
+										ninfo = ninfo + 1
 									}
 									if ltranl {
 										tmp = tl.Get(0, 1)
@@ -137,9 +137,9 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 										res = res + one/eps
 									}
 									res = res + math.Abs(xnorm-xnrm)/math.Max(smlnum, xnorm)/eps
-									if res > (*rmax) {
-										(*lmax) = (*knt)
-										(*rmax) = res
+									if res > rmax {
+										lmax = knt
+										rmax = res
 									}
 								}
 							}
@@ -161,10 +161,10 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 									tr.Set(0, 1, float64(itval[0+(1+(itr-1)*2)*2])*val.Get(itrscl-1))
 									tr.Set(1, 1, float64(itval[1+(1+(itr-1)*2)*2])*val.Get(itrscl-1))
 									tl.Set(0, 0, val.Get(itl-1))
-									(*knt) = (*knt) + 1
-									golapack.Dlasy2(ltranl, ltranr, &isgn, &n1, &n2, tl, func() *int { y := 2; return &y }(), tr, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), &scale, x, func() *int { y := 2; return &y }(), &xnorm, &info)
+									knt = knt + 1
+									scale, xnorm, info = golapack.Dlasy2(ltranl, ltranr, isgn, n1, n2, tl, tr, b, x)
 									if info != 0 {
-										(*ninfo) = (*ninfo) + 1
+										ninfo = ninfo + 1
 									}
 									if ltranr {
 										tmp = tr.Get(0, 1)
@@ -181,9 +181,9 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 										res = res + one/eps
 									}
 									res = res + math.Abs(xnorm-xnrm)/math.Max(smlnum, xnorm)/eps
-									if res > (*rmax) {
-										(*lmax) = (*knt)
-										(*rmax) = res
+									if res > rmax {
+										lmax = knt
+										rmax = res
 									}
 								}
 							}
@@ -212,10 +212,10 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 											tl.Set(1, 0, float64(itval[1+(0+(itl-1)*2)*2])*val.Get(itlscl-1))
 											tl.Set(0, 1, float64(itval[0+(1+(itl-1)*2)*2])*val.Get(itlscl-1))
 											tl.Set(1, 1, float64(itval[1+(1+(itl-1)*2)*2])*val.Get(itlscl-1))
-											(*knt) = (*knt) + 1
-											golapack.Dlasy2(ltranl, ltranr, &isgn, &n1, &n2, tl, func() *int { y := 2; return &y }(), tr, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), &scale, x, func() *int { y := 2; return &y }(), &xnorm, &info)
+											knt = knt + 1
+											scale, xnorm, info = golapack.Dlasy2(ltranl, ltranr, isgn, n1, n2, tl, tr, b, x)
 											if info != 0 {
-												(*ninfo) = (*ninfo) + 1
+												ninfo = ninfo + 1
 											}
 											if ltranr {
 												tmp = tr.Get(0, 1)
@@ -239,9 +239,9 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 												res = res + one/eps
 											}
 											res = res + math.Abs(xnorm-xnrm)/math.Max(smlnum, xnorm)/eps
-											if res > (*rmax) {
-												(*lmax) = (*knt)
-												(*rmax) = res
+											if res > rmax {
+												lmax = knt
+												rmax = res
 											}
 										}
 									}
@@ -253,4 +253,6 @@ func Dget32(rmax *float64, lmax, ninfo, knt *int) {
 			}
 		}
 	}
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -38,26 +40,24 @@ import (
 //       directly using the updated eigenvalues.  The eigenvectors for
 //       the current problem are multiplied with the eigenvectors from
 //       the overall problem.
-func Dlaed1(n *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *float64, cutpnt *int, work *mat.Vector, iwork *[]int, info *int) {
+func Dlaed1(n int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho float64, cutpnt int, work *mat.Vector, iwork *[]int) (info int, err error) {
 	var coltyp, i, idlmda, indx, indxc, indxp, iq2, is, iw, iz, k, n1, n2, zpp1 int
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*ldq) < max(1, *n) {
-		(*info) = -4
-	} else if min(1, (*n)/2) > (*cutpnt) || ((*n)/2) < (*cutpnt) {
-		(*info) = -7
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if q.Rows < max(1, n) {
+		err = fmt.Errorf("q.Rows < max(1, n): q.Rows=%v, n=%v", q.Rows, n)
+	} else if min(1, n/2) > cutpnt || (n/2) < cutpnt {
+		err = fmt.Errorf("min(1, n/2) > cutpnt || (n/2) < cutpnt: n=%v, cutpnt=%v", n, cutpnt)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLAED1"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlaed1", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -65,43 +65,49 @@ func Dlaed1(n *int, d *mat.Vector, q *mat.Matrix, ldq *int, indxq *[]int, rho *f
 	//     the portion of the workspace
 	//     used by a particular array in DLAED2 and DLAED3.
 	iz = 1
-	idlmda = iz + (*n)
-	iw = idlmda + (*n)
-	iq2 = iw + (*n)
+	idlmda = iz + n
+	iw = idlmda + n
+	iq2 = iw + n
 
 	indx = 1
-	indxc = indx + (*n)
-	coltyp = indxc + (*n)
-	indxp = coltyp + (*n)
+	indxc = indx + n
+	coltyp = indxc + n
+	indxp = coltyp + n
 
 	//     Form the z-vector which consists of the last row of Q_1 and the
 	//     first row of Q_2.
-	goblas.Dcopy(*cutpnt, q.Vector((*cutpnt)-1, 0), work.Off(iz-1, 1))
-	zpp1 = (*cutpnt) + 1
-	goblas.Dcopy((*n)-(*cutpnt), q.Vector(zpp1-1, zpp1-1), work.Off(iz+(*cutpnt)-1, 1))
+	goblas.Dcopy(cutpnt, q.Vector(cutpnt-1, 0), work.Off(iz-1, 1))
+	zpp1 = cutpnt + 1
+	goblas.Dcopy(n-cutpnt, q.Vector(zpp1-1, zpp1-1), work.Off(iz+cutpnt-1, 1))
 
 	//     Deflate eigenvalues.
-	Dlaed2(&k, n, cutpnt, d, q, ldq, indxq, rho, work.Off(iz-1), work.Off(idlmda-1), work.Off(iw-1), work.Off(iq2-1), toSlice(iwork, indx-1), toSlice(iwork, indxc-1), toSlice(iwork, indxp-1), toSlice(iwork, coltyp-1), info)
+	if rho, err = Dlaed2(k, n, cutpnt, d, q, indxq, rho, work.Off(iz-1), work.Off(idlmda-1), work.Off(iw-1), work.Off(iq2-1), toSlice(iwork, indx-1), toSlice(iwork, indxc-1), toSlice(iwork, indxp-1), toSlice(iwork, coltyp-1)); err != nil {
+		panic(err)
+	}
 
-	if (*info) != 0 {
+	if info != 0 {
 		return
 	}
 
 	//     Solve Secular Equation.
 	if k != 0 {
-		is = ((*iwork)[coltyp-1]+(*iwork)[coltyp])*(*cutpnt) + ((*iwork)[coltyp]+(*iwork)[coltyp+2-1])*((*n)-(*cutpnt)) + iq2
-		Dlaed3(&k, n, cutpnt, d, q, ldq, rho, work.Off(idlmda-1), work.Off(iq2-1), toSlice(iwork, indxc-1), toSlice(iwork, indxc-1), work.Off(iw-1), work.Off(is-1), info)
-		if (*info) != 0 {
+		is = ((*iwork)[coltyp-1]+(*iwork)[coltyp])*cutpnt + ((*iwork)[coltyp]+(*iwork)[coltyp+2-1])*(n-cutpnt) + iq2
+		if info, err = Dlaed3(k, n, cutpnt, d, q, rho, work.Off(idlmda-1), work.Off(iq2-1), toSlice(iwork, indxc-1), toSlice(iwork, indxc-1), work.Off(iw-1), work.Off(is-1)); err != nil {
+			panic(err)
+		}
+		if info != 0 {
 			return
 		}
 
 		//     Prepare the INDXQ sorting permutation.
 		n1 = k
-		n2 = (*n) - k
-		Dlamrg(&n1, &n2, d, func() *int { y := 1; return &y }(), toPtr(-1), indxq)
+		n2 = n - k
+		Dlamrg(n1, n2, d, 1, -1, indxq)
 	} else {
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			(*indxq)[i-1] = i
 		}
 	}
+
+	return
 }

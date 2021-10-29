@@ -19,23 +19,27 @@ import (
 // scl and smsq are overwritten on SCALE and SUMSQ respectively.
 //
 // The routine makes only one pass through the vector x.
-func Dlassq(n *int, x *mat.Vector, incx *int, scale, sumsq *float64) {
+func Dlassq(n int, x *mat.Vector, scale, sumsq float64) (scaleOut, sumsqOut float64) {
 	var absxi, zero float64
 	var ix int
 
 	zero = 0.0
+	scaleOut = scale
+	sumsqOut = sumsq
 
-	if (*n) > 0 {
-		for ix = 1; ix <= 1+((*n)-1)*(*incx); ix += (*incx) {
+	if n > 0 {
+		for ix = 1; ix <= 1+(n-1)*x.Inc; ix += x.Inc {
 			absxi = math.Abs(x.Get(ix - 1))
 			if absxi > zero || Disnan(int(absxi)) {
-				if (*scale) < absxi {
-					(*sumsq) = 1 + (*sumsq)*math.Pow((*scale)/absxi, 2)
-					(*scale) = absxi
+				if scaleOut < absxi {
+					sumsqOut = 1 + sumsqOut*math.Pow(scaleOut/absxi, 2)
+					scaleOut = absxi
 				} else {
-					(*sumsq) = (*sumsq) + math.Pow(absxi/(*scale), 2)
+					sumsqOut = sumsqOut + math.Pow(absxi/scaleOut, 2)
 				}
 			}
 		}
 	}
+
+	return
 }

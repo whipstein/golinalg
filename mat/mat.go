@@ -163,8 +163,12 @@ func TransByte(b byte) MatTrans {
 		return -1
 	}
 }
-func IterMatTrans() []MatTrans {
-	return []MatTrans{NoTrans, Trans, ConjTrans}
+func IterMatTrans(conj ...bool) []MatTrans {
+	if conj == nil || conj[0] == true {
+		return []MatTrans{NoTrans, Trans, ConjTrans}
+	}
+
+	return []MatTrans{NoTrans, Trans}
 }
 
 type MatUplo int
@@ -215,8 +219,12 @@ func UploByte(b byte) MatUplo {
 		return Full
 	}
 }
-func IterMatUplo() []MatUplo {
-	return []MatUplo{Lower, Upper, Full}
+func IterMatUplo(full ...bool) []MatUplo {
+	if full == nil || full[0] == true {
+		return []MatUplo{Upper, Lower, Full}
+	}
+
+	return []MatUplo{Upper, Lower}
 }
 
 type MatDiag int
@@ -273,6 +281,7 @@ type MatSide int
 const (
 	Left MatSide = iota
 	Right
+	Both
 )
 
 func (s MatSide) Byte() byte {
@@ -281,6 +290,8 @@ func (s MatSide) Byte() byte {
 		return byte('L')
 	case Right:
 		return byte('R')
+	case Both:
+		return byte('B')
 	}
 	return byte(' ')
 }
@@ -290,11 +301,13 @@ func (s MatSide) String() string {
 		return "Left"
 	case Right:
 		return "Right"
+	case Both:
+		return "Both"
 	}
 	return fmt.Sprintf("Unrecognized: %c", byte(s))
 }
 func (s MatSide) IsValid() bool {
-	if s == Left || s == Right {
+	if s == Left || s == Right || s == Both {
 		return true
 	}
 	return false
@@ -309,6 +322,10 @@ func SideByte(b byte) MatSide {
 		return Right
 	case 'R':
 		return Right
+	case 'b':
+		return Both
+	case 'B':
+		return Both
 	default:
 		return -1
 	}

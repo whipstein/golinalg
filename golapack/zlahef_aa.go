@@ -5,7 +5,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zlahefaa factorizes a panel of a complex hermitian matrix A using
+// ZlahefAa factorizes a panel of a complex hermitian matrix A using
 // the Aasen's algorithm. The panel consists of a set of NB rows of A
 // when UPLO is U, or a set of NB columns when UPLO is L.
 //
@@ -17,11 +17,10 @@ import (
 // The resulting J-th row of U, or J-th column of L, is stored in the
 // (J-1)-th row, or column, of A (without the unit diagonals), while
 // the diagonal and subdiagonal of A are overwritten by those of T.
-func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, h *mat.CMatrix, ldh *int, work *mat.CVector) {
+func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *mat.CMatrix, work *mat.CVector) {
 	var alpha, one, piv, zero complex128
 	var i1, i2, j, k, k1, mj int
 	var err error
-	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -30,15 +29,15 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 
 	//     K1 is the first column of the panel to be factorized
 	//     i.e.,  K1 is 2 for the first block column, and 1 for the rest of the blocks
-	k1 = (2 - (*j1)) + 1
+	k1 = (2 - j1) + 1
 
-	if uplo == 'U' {
+	if uplo == Upper {
 		//        .....................................................
 		//        Factorize A as U**T*D*U using the upper triangle of A
 		//        .....................................................
 	label10:
 		;
-		if j > min(*m, *nb) {
+		if j > min(m, nb) {
 			goto label20
 		}
 
@@ -46,12 +45,12 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 		//         when being called from ZHETRF_AA,
 		//         > for the first block column, J1 is 1, hence J1+J-1 is J,
 		//         > for the rest of the columns, J1 is 2, and J1+J-1 is J+1,
-		k = (*j1) + j - 1
-		if j == (*m) {
+		k = j1 + j - 1
+		if j == m {
 			//            Only need to compute T(J, J)
 			mj = 1
 		} else {
-			mj = (*m) - j + 1
+			mj = m - j + 1
 		}
 
 		//        H(J:N, J) := A(J, J:N) - H(J:N, 1:(J-1)) * L(J1:(J-1), J),
@@ -62,9 +61,11 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 			//           columns
 			//         > for the rest of the columns, K is J+1, skipping only the
 			//           first column
-			Zlacgv(toPtr(j-k1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
-			err = goblas.Zgemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.CVector(0, j-1, 1), one, h.CVector(j-1, j-1, 1))
-			Zlacgv(toPtr(j-k1), a.CVector(0, j-1), func() *int { y := 1; return &y }())
+			Zlacgv(j-k1, a.CVector(0, j-1, 1))
+			if err = goblas.Zgemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.CVector(0, j-1, 1), one, h.CVector(j-1, j-1, 1)); err != nil {
+				panic(err)
+			}
+			Zlacgv(j-k1, a.CVector(0, j-1, 1))
 		}
 		//        Copy H(i:n, i) into WORK
 		goblas.Zcopy(mj, h.CVector(j-1, j-1, 1), work.Off(0, 1))
@@ -73,22 +74,22 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 			//           Compute WORK := WORK - L(J-1, J:N) * T(J-1,J),
 			//            where A(J-1, J) stores T(J-1, J) and A(J-2, J:N) stores U(J-1, J:N)
 			alpha = -a.GetConj(k-1-1, j-1)
-			goblas.Zaxpy(mj, alpha, a.CVector(k-2-1, j-1, *lda), work.Off(0, 1))
+			goblas.Zaxpy(mj, alpha, a.CVector(k-2-1, j-1), work.Off(0, 1))
 		}
 
 		//        Set A(J, J) = T(J, J)
 		a.Set(k-1, j-1, work.GetReCmplx(0))
 
-		if j < (*m) {
+		if j < m {
 			//           Compute WORK(2:N) = T(J, J) L(J, (J+1):N)
 			//            where A(J, J) stores T(J, J) and A(J-1, (J+1):N) stores U(J, (J+1):N)
 			if k > 1 {
 				alpha = -a.Get(k-1, j-1)
-				goblas.Zaxpy((*m)-j, alpha, a.CVector(k-1-1, j, *lda), work.Off(1, 1))
+				goblas.Zaxpy(m-j, alpha, a.CVector(k-1-1, j), work.Off(1, 1))
 			}
 
 			//           Find max(|WORK(2:n)|)
-			i2 = goblas.Izamax((*m)-j, work.Off(1, 1)) + 1
+			i2 = goblas.Izamax(m-j, work.Off(1, 1)) + 1
 			piv = work.Get(i2 - 1)
 
 			//           Apply hermitian pivot
@@ -101,22 +102,22 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 				//              Swap A(I1, I1+1:N) with A(I1+1:N, I2)
 				i1 = i1 + j - 1
 				i2 = i2 + j - 1
-				goblas.Zswap(i2-i1-1, a.CVector((*j1)+i1-1-1, i1, *lda), a.CVector((*j1)+i1-1, i2-1, 1))
-				Zlacgv(toPtr(i2-i1), a.CVector((*j1)+i1-1-1, i1), lda)
-				Zlacgv(toPtr(i2-i1-1), a.CVector((*j1)+i1-1, i2-1), func() *int { y := 1; return &y }())
+				goblas.Zswap(i2-i1-1, a.CVector(j1+i1-1-1, i1), a.CVector(j1+i1-1, i2-1, 1))
+				Zlacgv(i2-i1, a.CVector(j1+i1-1-1, i1))
+				Zlacgv(i2-i1-1, a.CVector(j1+i1-1, i2-1, 1))
 
 				//              Swap A(I1, I2+1:N) with A(I2, I2+1:N)
-				if i2 < (*m) {
-					goblas.Zswap((*m)-i2, a.CVector((*j1)+i1-1-1, i2, *lda), a.CVector((*j1)+i2-1-1, i2, *lda))
+				if i2 < m {
+					goblas.Zswap(m-i2, a.CVector(j1+i1-1-1, i2), a.CVector(j1+i2-1-1, i2))
 				}
 
 				//              Swap A(I1, I1) with A(I2,I2)
-				piv = a.Get(i1+(*j1)-1-1, i1-1)
-				a.Set((*j1)+i1-1-1, i1-1, a.Get((*j1)+i2-1-1, i2-1))
-				a.Set((*j1)+i2-1-1, i2-1, piv)
+				piv = a.Get(i1+j1-1-1, i1-1)
+				a.Set(j1+i1-1-1, i1-1, a.Get(j1+i2-1-1, i2-1))
+				a.Set(j1+i2-1-1, i2-1, piv)
 
 				//              Swap H(I1, 1:J1) with H(I2, 1:J1)
-				goblas.Zswap(i1-1, h.CVector(i1-1, 0, *ldh), h.CVector(i2-1, 0, *ldh))
+				goblas.Zswap(i1-1, h.CVector(i1-1, 0), h.CVector(i2-1, 0))
 				(*ipiv)[i1-1] = i2
 
 				if i1 > (k1 - 1) {
@@ -131,20 +132,20 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 			//           Set A(J, J+1) = T(J, J+1)
 			a.Set(k-1, j, work.Get(1))
 
-			if j < (*nb) {
+			if j < nb {
 				//              Copy A(J+1:N, J+1) into H(J:N, J),
-				goblas.Zcopy((*m)-j, a.CVector(k, j, *lda), h.CVector(j, j, 1))
+				goblas.Zcopy(m-j, a.CVector(k, j), h.CVector(j, j, 1))
 			}
 
 			//           Compute L(J+2, J+1) = WORK( 3:N ) / T(J, J+1),
 			//            where A(J, J+1) = T(J, J+1) and A(J+2:N, J) = L(J+2:N, J+1)
-			if j < ((*m) - 1) {
+			if j < (m - 1) {
 				if a.Get(k-1, j) != zero {
 					alpha = one / a.Get(k-1, j)
-					goblas.Zcopy((*m)-j-1, work.Off(2, 1), a.CVector(k-1, j+2-1, *lda))
-					goblas.Zscal((*m)-j-1, alpha, a.CVector(k-1, j+2-1, *lda))
+					goblas.Zcopy(m-j-1, work.Off(2, 1), a.CVector(k-1, j+2-1))
+					goblas.Zscal(m-j-1, alpha, a.CVector(k-1, j+2-1))
 				} else {
-					Zlaset('F', func() *int { y := 1; return &y }(), toPtr((*m)-j-1), &zero, &zero, a.Off(k-1, j+2-1), lda)
+					Zlaset(Full, 1, m-j-1, zero, zero, a.Off(k-1, j+2-1))
 				}
 			}
 		}
@@ -157,7 +158,7 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 		//        .....................................................
 	label30:
 		;
-		if j > min(*m, *nb) {
+		if j > min(m, nb) {
 			goto label40
 		}
 
@@ -165,12 +166,12 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 		//         when being called from ZHETRF_AA,
 		//         > for the first block column, J1 is 1, hence J1+J-1 is J,
 		//         > for the rest of the columns, J1 is 2, and J1+J-1 is J+1,
-		k = (*j1) + j - 1
-		if j == (*m) {
+		k = j1 + j - 1
+		if j == m {
 			//            Only need to compute T(J, J)
 			mj = 1
 		} else {
-			mj = (*m) - j + 1
+			mj = m - j + 1
 		}
 
 		//        H(J:N, J) := A(J:N, J) - H(J:N, 1:(J-1)) * L(J, J1:(J-1))^T,
@@ -181,9 +182,11 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 			//           columns
 			//         > for the rest of the columns, K is J+1, skipping only the
 			//           first column
-			Zlacgv(toPtr(j-k1), a.CVector(j-1, 0), lda)
-			err = goblas.Zgemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.CVector(j-1, 0, *lda), one, h.CVector(j-1, j-1, 1))
-			Zlacgv(toPtr(j-k1), a.CVector(j-1, 0), lda)
+			Zlacgv(j-k1, a.CVector(j-1, 0))
+			if err = goblas.Zgemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.CVector(j-1, 0), one, h.CVector(j-1, j-1, 1)); err != nil {
+				panic(err)
+			}
+			Zlacgv(j-k1, a.CVector(j-1, 0))
 		}
 
 		//        Copy H(J:N, J) into WORK
@@ -199,16 +202,16 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 		//        Set A(J, J) = T(J, J)
 		a.Set(j-1, k-1, work.GetReCmplx(0))
 
-		if j < (*m) {
+		if j < m {
 			//           Compute WORK(2:N) = T(J, J) L((J+1):N, J)
 			//            where A(J, J) = T(J, J) and A((J+1):N, J-1) = L((J+1):N, J)
 			if k > 1 {
 				alpha = -a.Get(j-1, k-1)
-				goblas.Zaxpy((*m)-j, alpha, a.CVector(j, k-1-1, 1), work.Off(1, 1))
+				goblas.Zaxpy(m-j, alpha, a.CVector(j, k-1-1, 1), work.Off(1, 1))
 			}
 
 			//           Find max(|WORK(2:n)|)
-			i2 = goblas.Izamax((*m)-j, work.Off(1, 1)) + 1
+			i2 = goblas.Izamax(m-j, work.Off(1, 1)) + 1
 			piv = work.Get(i2 - 1)
 
 			//           Apply hermitian pivot
@@ -221,28 +224,28 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 				//              Swap A(I1+1:N, I1) with A(I2, I1+1:N)
 				i1 = i1 + j - 1
 				i2 = i2 + j - 1
-				goblas.Zswap(i2-i1-1, a.CVector(i1, (*j1)+i1-1-1, 1), a.CVector(i2-1, (*j1)+i1-1, *lda))
-				Zlacgv(toPtr(i2-i1), a.CVector(i1, (*j1)+i1-1-1), func() *int { y := 1; return &y }())
-				Zlacgv(toPtr(i2-i1-1), a.CVector(i2-1, (*j1)+i1-1), lda)
+				goblas.Zswap(i2-i1-1, a.CVector(i1, j1+i1-1-1, 1), a.CVector(i2-1, j1+i1-1))
+				Zlacgv(i2-i1, a.CVector(i1, j1+i1-1-1, 1))
+				Zlacgv(i2-i1-1, a.CVector(i2-1, j1+i1-1))
 
 				//              Swap A(I2+1:N, I1) with A(I2+1:N, I2)
-				if i2 < (*m) {
-					goblas.Zswap((*m)-i2, a.CVector(i2, (*j1)+i1-1-1, 1), a.CVector(i2, (*j1)+i2-1-1, 1))
+				if i2 < m {
+					goblas.Zswap(m-i2, a.CVector(i2, j1+i1-1-1, 1), a.CVector(i2, j1+i2-1-1, 1))
 				}
 
 				//              Swap A(I1, I1) with A(I2, I2)
-				piv = a.Get(i1-1, (*j1)+i1-1-1)
-				a.Set(i1-1, (*j1)+i1-1-1, a.Get(i2-1, (*j1)+i2-1-1))
-				a.Set(i2-1, (*j1)+i2-1-1, piv)
+				piv = a.Get(i1-1, j1+i1-1-1)
+				a.Set(i1-1, j1+i1-1-1, a.Get(i2-1, j1+i2-1-1))
+				a.Set(i2-1, j1+i2-1-1, piv)
 
 				//              Swap H(I1, I1:J1) with H(I2, I2:J1)
-				goblas.Zswap(i1-1, h.CVector(i1-1, 0, *ldh), h.CVector(i2-1, 0, *ldh))
+				goblas.Zswap(i1-1, h.CVector(i1-1, 0), h.CVector(i2-1, 0))
 				(*ipiv)[i1-1] = i2
 
 				if i1 > (k1 - 1) {
 					//                 Swap L(1:I1-1, I1) with L(1:I1-1, I2),
 					//                  skipping the first column
-					goblas.Zswap(i1-k1+1, a.CVector(i1-1, 0, *lda), a.CVector(i2-1, 0, *lda))
+					goblas.Zswap(i1-k1+1, a.CVector(i1-1, 0), a.CVector(i2-1, 0))
 				}
 			} else {
 				(*ipiv)[j] = j + 1
@@ -251,20 +254,20 @@ func Zlahefaa(uplo byte, j1, m, nb *int, a *mat.CMatrix, lda *int, ipiv *[]int, 
 			//           Set A(J+1, J) = T(J+1, J)
 			a.Set(j, k-1, work.Get(1))
 
-			if j < (*nb) {
+			if j < nb {
 				//              Copy A(J+1:N, J+1) into H(J+1:N, J),
-				goblas.Zcopy((*m)-j, a.CVector(j, k, 1), h.CVector(j, j, 1))
+				goblas.Zcopy(m-j, a.CVector(j, k, 1), h.CVector(j, j, 1))
 			}
 
 			//           Compute L(J+2, J+1) = WORK( 3:N ) / T(J, J+1),
 			//            where A(J, J+1) = T(J, J+1) and A(J+2:N, J) = L(J+2:N, J+1)
-			if j < ((*m) - 1) {
+			if j < (m - 1) {
 				if a.Get(j, k-1) != zero {
 					alpha = one / a.Get(j, k-1)
-					goblas.Zcopy((*m)-j-1, work.Off(2, 1), a.CVector(j+2-1, k-1, 1))
-					goblas.Zscal((*m)-j-1, alpha, a.CVector(j+2-1, k-1, 1))
+					goblas.Zcopy(m-j-1, work.Off(2, 1), a.CVector(j+2-1, k-1, 1))
+					goblas.Zscal(m-j-1, alpha, a.CVector(j+2-1, k-1, 1))
 				} else {
-					Zlaset('F', toPtr((*m)-j-1), func() *int { y := 1; return &y }(), &zero, &zero, a.Off(j+2-1, k-1), lda)
+					Zlaset(Full, m-j-1, 1, zero, zero, a.Off(j+2-1, k-1))
 				}
 			}
 		}

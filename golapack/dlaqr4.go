@@ -13,7 +13,7 @@ import (
 //    subroutine is identical to DLAQR0 except that it calls DLAQR2
 //    instead of DLAQR3.
 //
-//    DLAQR4 computes the eigenvalues of a Hessenberg matrix H
+//    Dlaqr4 computes the eigenvalues of a Hessenberg matrix H
 //    and, optionally, the matrices T and Z from the Schur decomposition
 //    H = Z T Z**T, where T is an upper quasi-triangular matrix (the
 //    Schur form), and Z is the orthogonal matrix of Schur vectors.
@@ -22,10 +22,11 @@ import (
 //    matrix Q so that this routine can give the Schur factorization
 //    of a matrix A which has been reduced to the Hessenberg form H
 //    by the orthogonal matrix Q:  A = Q*H*Q**T = (QZ)*T*(QZ)**T.
-func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi *mat.Vector, iloz, ihiz *int, z *mat.Matrix, ldz *int, work *mat.Vector, lwork, info *int) {
+func Dlaqr4(wantt, wantz bool, n, ilo, ihi int, h *mat.Matrix, wr, wi *mat.Vector, iloz, ihiz int, z *mat.Matrix, work *mat.Vector, lwork int) (info int) {
 	var sorted bool
-	var aa, bb, cc, cs, dd, one, sn, ss, swap, wilk1, wilk2, zero float64
+	var aa, bb, cc, dd, one, ss, swap, wilk1, wilk2, zero float64
 	var i, inf, it, itmax, k, kacc22, kbot, kdu, kexnw, kexsh, ks, kt, ktop, ku, kv, kwh, kwtop, kwv, ld, ls, lwkopt, ndec, ndfl, nh, nho, nibble, nmin, ns, nsmax, nsr, ntiny, nve, nw, nwmax, nwr, nwupbd int
+	var err error
 
 	jbcmpz := make([]byte, 2)
 	zdum := mf(1, 1, opts)
@@ -52,26 +53,26 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 	zero = 0.0
 	one = 1.0
 
-	(*info) = 0
-
 	//     ==== Quick return for N = 0: nothing to do. ====
-	if (*n) == 0 {
+	if n == 0 {
 		work.Set(0, one)
 		return
 	}
 
-	if (*n) <= ntiny {
+	if n <= ntiny {
 		//        ==== Tiny matrices must use DLAHQR. ====
 		lwkopt = 1
-		if (*lwork) != -1 {
-			Dlahqr(wantt, wantz, n, ilo, ihi, h, ldh, wr, wi, iloz, ihiz, z, ldz, info)
+		if lwork != -1 {
+			if info, err = Dlahqr(wantt, wantz, n, ilo, ihi, h, wr, wi, iloz, ihiz, z); err != nil {
+				panic(err)
+			}
 		}
 	} else {
 		//        ==== Use small bulge multi-shift QR with aggressive early
 		//        .    deflation on larger-than-tiny matrices. ====
 		//
 		//        ==== Hope for the best. ====
-		(*info) = 0
+		info = 0
 
 		//        ==== Set up job flags for ILAENV. ====
 		if wantt {
@@ -90,79 +91,79 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 		//        .    subdiagonal workspace for NWR.GE.2 as required.
 		//        .    (In fact, there is enough subdiagonal space for
 		//        .    NWR.GE.3.) ====
-		nwr = Ilaenv(func() *int { y := 13; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
+		nwr = Ilaenv(13, "Dlaqr4", jbcmpz, n, ilo, ihi, lwork)
 		nwr = max(2, nwr)
-		nwr = min((*ihi)-(*ilo)+1, ((*n)-1)/3, nwr)
+		nwr = min(ihi-ilo+1, (n-1)/3, nwr)
 
 		//        ==== NSR = recommended number of simultaneous shifts.
 		//        .    At this point N .GT. NTINY = 11, so there is at
 		//        .    enough subdiagonal workspace for NSR to be even
 		//        .    and greater than or equal to two as required. ====
-		nsr = Ilaenv(func() *int { y := 15; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
-		nsr = min(nsr, ((*n)+6)/9, (*ihi)-(*ilo))
+		nsr = Ilaenv(15, "Dlaqr4", jbcmpz, n, ilo, ihi, lwork)
+		nsr = min(nsr, (n+6)/9, ihi-ilo)
 		nsr = max(2, nsr-(nsr%2))
 
 		//        ==== Estimate optimal workspace ====
 		//
 		//        ==== Workspace query call to DLAQR2 ====
-		Dlaqr2(wantt, wantz, n, ilo, ihi, toPtr(nwr+1), h, ldh, iloz, ihiz, z, ldz, &ls, &ld, wr, wi, h, ldh, n, h, ldh, n, h, ldh, work, toPtr(-1))
+		ls, ld = Dlaqr2(wantt, wantz, n, ilo, ihi, nwr+1, h, iloz, ihiz, z, wr, wi, h, n, h, n, h, work, -1)
 
 		//        ==== Optimal workspace = MAX(DLAQR5, DLAQR2) ====
 		lwkopt = max(3*nsr/2, int(work.Get(0)))
 
 		//        ==== Quick return in case of workspace query. ====
-		if (*lwork) == -1 {
+		if lwork == -1 {
 			work.Set(0, float64(lwkopt))
 			return
 		}
 
 		//        ==== DLAHQR/DLAQR0 crossover point ====
-		nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
+		nmin = Ilaenv(12, "Dlaqr4", jbcmpz, n, ilo, ihi, lwork)
 		nmin = max(ntiny, nmin)
 
 		//        ==== Nibble crossover point ====
-		nibble = Ilaenv(func() *int { y := 14; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
+		nibble = Ilaenv(14, "Dlaqr4", jbcmpz, n, ilo, ihi, lwork)
 		nibble = max(0, nibble)
 
 		//        ==== Accumulate reflections during ttswp?  Use block
 		//        .    2-by-2 structure during matrix-matrix multiply? ====
-		kacc22 = Ilaenv(func() *int { y := 16; return &y }(), []byte("DLAQR4"), jbcmpz, n, ilo, ihi, lwork)
+		kacc22 = Ilaenv(16, "Dlaqr4", jbcmpz, n, ilo, ihi, lwork)
 		kacc22 = max(0, kacc22)
 		kacc22 = min(2, kacc22)
 
 		//        ==== NWMAX = the largest possible deflation window for
 		//        .    which there is sufficient workspace. ====
-		nwmax = min(((*n)-1)/3, (*lwork)/2)
+		nwmax = min((n-1)/3, lwork/2)
 		nw = nwmax
 
 		//        ==== NSMAX = the Largest number of simultaneous shifts
 		//        .    for which there is sufficient workspace. ====
-		nsmax = min(((*n)+6)/9, 2*(*lwork)/3)
+		nsmax = min((n+6)/9, 2*lwork/3)
 		nsmax = nsmax - (nsmax % 2)
 
 		//        ==== NDFL: an iteration count restarted at deflation. ====
 		ndfl = 1
 
 		//        ==== ITMAX = iteration limit ====
-		itmax = max(30, 2*kexsh) * max(10, (*ihi)-(*ilo)+1)
+		itmax = max(30, 2*kexsh) * max(10, ihi-ilo+1)
 
 		//        ==== Last row and column in the active block ====
-		kbot = (*ihi)
+		kbot = ihi
 
 		//        ==== Main Loop ====
 		for it = 1; it <= itmax; it++ {
 			//           ==== Done when KBOT falls below ILO ====
-			if kbot < (*ilo) {
+			if kbot < ilo {
 				goto label90
 			}
 
 			//           ==== Locate active block ====
-			for k = kbot; k >= (*ilo)+1; k-- {
+			for k = kbot; k >= ilo+1; k-- {
 				if h.Get(k-1, k-1-1) == zero {
 					goto label20
 				}
 			}
-			k = (*ilo)
+			k = ilo
 		label20:
 			;
 			ktop = k
@@ -219,14 +220,14 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 			//           .      - an at-least-NW-but-more-is-better (NHV-by-NW)
 			//           .        vertical work array along the left-hand-edge.
 			//           .        ====
-			kv = (*n) - nw + 1
+			kv = n - nw + 1
 			kt = nw + 1
-			nho = ((*n) - nw - 1) - kt + 1
+			nho = (n - nw - 1) - kt + 1
 			kwv = nw + 2
-			nve = ((*n) - nw) - kwv + 1
+			nve = (n - nw) - kwv + 1
 
 			//           ==== Aggressive early deflation ====
-			Dlaqr2(wantt, wantz, n, &ktop, &kbot, &nw, h, ldh, iloz, ihiz, z, ldz, &ls, &ld, wr, wi, h.Off(kv-1, 0), ldh, &nho, h.Off(kv-1, kt-1), ldh, &nve, h.Off(kwv-1, 0), ldh, work, lwork)
+			ls, ld = Dlaqr2(wantt, wantz, n, ktop, kbot, nw, h, iloz, ihiz, z, wr, wi, h.Off(kv-1, 0), nho, h.Off(kv-1, kt-1), nve, h.Off(kwv-1, 0), work, lwork)
 
 			//           ==== Adjust KBOT accounting for new deflations. ====
 			kbot = kbot - ld
@@ -260,7 +261,7 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 						bb = ss
 						cc = wilk2 * ss
 						dd = aa
-						Dlanv2(&aa, &bb, &cc, &dd, wr.GetPtr(i-1-1), wi.GetPtr(i-1-1), wr.GetPtr(i-1), wi.GetPtr(i-1), &cs, &sn)
+						aa, bb, cc, dd, *wr.GetPtr(i - 1 - 1), *wi.GetPtr(i - 1 - 1), *wr.GetPtr(i - 1), *wi.GetPtr(i - 1), _, _ = Dlanv2(aa, bb, cc, dd)
 					}
 					if ks == ktop {
 						wr.Set(ks, h.Get(ks, ks))
@@ -276,9 +277,11 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 					//                 .    to fit an NS-by-NS scratch array.) ====
 					if kbot-ks+1 <= ns/2 {
 						ks = kbot - ns + 1
-						kt = (*n) - ns + 1
-						Dlacpy('A', &ns, &ns, h.Off(ks-1, ks-1), ldh, h.Off(kt-1, 0), ldh)
-						Dlahqr(false, false, &ns, func() *int { y := 1; return &y }(), &ns, h.Off(kt-1, 0), ldh, wr.Off(ks-1), wi.Off(ks-1), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), zdum, func() *int { y := 1; return &y }(), &inf)
+						kt = n - ns + 1
+						Dlacpy(Full, ns, ns, h.Off(ks-1, ks-1), h.Off(kt-1, 0))
+						if inf, err = Dlahqr(false, false, ns, 1, ns, h.Off(kt-1, 0), wr.Off(ks-1), wi.Off(ks-1), 1, 1, zdum); err != nil {
+							panic(err)
+						}
 						ks = ks + inf
 
 						//                    ==== In case of a rare QR failure use
@@ -289,7 +292,7 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 							cc = h.Get(kbot-1, kbot-1-1)
 							bb = h.Get(kbot-1-1, kbot-1)
 							dd = h.Get(kbot-1, kbot-1)
-							Dlanv2(&aa, &bb, &cc, &dd, wr.GetPtr(kbot-1-1), wi.GetPtr(kbot-1-1), wr.GetPtr(kbot-1), wi.GetPtr(kbot-1), &cs, &sn)
+							aa, bb, cc, dd, *wr.GetPtr(kbot - 1 - 1), *wi.GetPtr(kbot - 1 - 1), *wr.GetPtr(kbot - 1), *wi.GetPtr(kbot - 1), _, _ = Dlanv2(aa, bb, cc, dd)
 							ks = kbot - 1
 						}
 					}
@@ -373,14 +376,14 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 				//              .      (NVE-by-KDU) vertical work WV arrow along
 				//              .      the left-hand-edge. ====
 				kdu = 3*ns - 3
-				ku = (*n) - kdu + 1
+				ku = n - kdu + 1
 				kwh = kdu + 1
-				nho = ((*n) - kdu + 1 - 4) - (kdu + 1) + 1
+				nho = (n - kdu + 1 - 4) - (kdu + 1) + 1
 				kwv = kdu + 4
-				nve = (*n) - kdu - kwv + 1
+				nve = n - kdu - kwv + 1
 
 				//              ==== Small-bulge multi-shift QR sweep ====
-				Dlaqr5(wantt, wantz, &kacc22, n, &ktop, &kbot, &ns, wr.Off(ks-1), wi.Off(ks-1), h, ldh, iloz, ihiz, z, ldz, work.Matrix(3, opts), func() *int { y := 3; return &y }(), h.Off(ku-1, 0), ldh, &nve, h.Off(kwv-1, 0), ldh, &nho, h.Off(ku-1, kwh-1), ldh)
+				Dlaqr5(wantt, wantz, kacc22, n, ktop, kbot, ns, wr.Off(ks-1), wi.Off(ks-1), h, iloz, ihiz, z, work.Matrix(3, opts), h.Off(ku-1, 0), nve, h.Off(kwv-1, 0), nho, h.Off(ku-1, kwh-1))
 			}
 
 			//           ==== Note progress (or the lack of it). ====
@@ -395,10 +398,12 @@ func Dlaqr4(wantt, wantz bool, n, ilo, ihi *int, h *mat.Matrix, ldh *int, wr, wi
 
 		//        ==== Iteration limit exceeded.  Set INFO to show where
 		//        .    the problem occurred and exit. ====
-		(*info) = kbot
+		info = kbot
 	label90:
 	}
 
 	//     ==== Return the optimal value of LWORK. ====
 	work.Set(0, float64(lwkopt))
+
+	return
 }

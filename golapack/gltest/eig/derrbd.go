@@ -8,11 +8,12 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrbd tests the error exits for DGEBD2, DGEBRD, DORGBR, DORMBR,
-// DBDSQR, DBDSDC and DBDSVDX.
-func Derrbd(path []byte, t *testing.T) {
+// derrbd tests the error exits for Dgebd2, Dgebrd, Dorgbr, Dormbr,
+// Dbdsqr, Dbdsdc and Dbdsvdx.
+func derrbd(path string, t *testing.T) {
 	var one, zero float64
-	var i, info, j, lw, nmax, ns, nt int
+	var i, j, lw, nmax, ns, nt int
+	var err error
 
 	nmax = 4
 	lw = nmax
@@ -31,9 +32,8 @@ func Derrbd(path []byte, t *testing.T) {
 	v := mf(4, 4, opts)
 	iq := make([]int, 4*4)
 
-	infot := &gltest.Common.Infoc.Infot
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	c2 := path[1:3]
@@ -48,198 +48,198 @@ func Derrbd(path []byte, t *testing.T) {
 	nt = 0
 
 	//     Test error exits of the SVD routines.
-	if string(c2) == "BD" {
-		//        DGEBRD
-		*srnamt = "DGEBRD"
-		*infot = 1
-		golapack.Dgebrd(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGEBRD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgebrd(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGEBRD", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgebrd(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, func() *int { y := 2; return &y }(), &info)
-		Chkxer("DGEBRD", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dgebrd(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), d, e, tq, tp, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGEBRD", &info, lerr, ok, t)
+	if c2 == "bd" {
+		//        Dgebrd
+		*srnamt = "Dgebrd"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Dgebrd(-1, 0, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w, 1)
+		chkxer2("Dgebrd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dgebrd(0, -1, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w, 1)
+		chkxer2("Dgebrd", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		err = golapack.Dgebrd(2, 1, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w, 2)
+		chkxer2("Dgebrd", err)
+		*errt = fmt.Errorf("lwork < max(1, m, n) && !lquery: lwork=1, m=2, n=1, lquery=false")
+		err = golapack.Dgebrd(2, 1, a.Off(0, 0).UpdateRows(2), d, e, tq, tp, w, 1)
+		chkxer2("Dgebrd", err)
 		nt = nt + 4
 
-		//        DGEBD2
-		*srnamt = "DGEBD2"
-		*infot = 1
-		golapack.Dgebd2(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, &info)
-		Chkxer("DGEBD2", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgebd2(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, &info)
-		Chkxer("DGEBD2", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgebd2(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, &info)
-		Chkxer("DGEBD2", &info, lerr, ok, t)
+		//        Dgebd2
+		*srnamt = "Dgebd2"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Dgebd2(-1, 0, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w)
+		chkxer2("Dgebd2", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dgebd2(0, -1, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w)
+		chkxer2("Dgebd2", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		err = golapack.Dgebd2(2, 1, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w)
+		chkxer2("Dgebd2", err)
 		nt = nt + 3
 
-		//        DORGBR
-		*srnamt = "DORGBR"
-		*infot = 1
-		golapack.Dorgbr('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dorgbr('Q', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dorgbr('Q', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dorgbr('Q', func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dorgbr('Q', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dorgbr('P', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dorgbr('P', func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dorgbr('Q', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dorgbr('Q', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dorgbr('Q', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORGBR", &info, lerr, ok, t)
+		//        Dorgbr
+		*srnamt = "Dorgbr"
+		*errt = fmt.Errorf("!wantq && vect != 'P': vect='/'")
+		err = golapack.Dorgbr('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Dorgbr('Q', -1, 0, 0, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='Q', n=-1, k=0, m=0")
+		err = golapack.Dorgbr('Q', 0, -1, 0, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='Q', n=1, k=0, m=0")
+		err = golapack.Dorgbr('Q', 0, 1, 0, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='Q', n=0, k=1, m=1")
+		err = golapack.Dorgbr('Q', 1, 0, 1, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='P', n=0, k=0, m=1")
+		err = golapack.Dorgbr('P', 1, 0, 0, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='P', n=1, k=1, m=0")
+		err = golapack.Dorgbr('P', 0, 1, 1, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("k < 0: k=-1")
+		err = golapack.Dorgbr('Q', 0, 0, -1, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		err = golapack.Dorgbr('Q', 2, 1, 1, a.Off(0, 0).UpdateRows(1), tq, w, 1)
+		chkxer2("Dorgbr", err)
+		*errt = fmt.Errorf("lwork < max(1, mn) && !lquery: lwork=1, mn=2, lquery=false")
+		err = golapack.Dorgbr('Q', 2, 2, 1, a.Off(0, 0).UpdateRows(2), tq, w, 1)
+		chkxer2("Dorgbr", err)
 		nt = nt + 10
 
-		//        DORMBR
-		*srnamt = "DORMBR"
-		*infot = 1
-		golapack.Dormbr('/', 'L', 'T', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dormbr('Q', '/', 'T', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dormbr('Q', 'L', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dormbr('Q', 'L', 'T', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dormbr('Q', 'L', 'T', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dormbr('Q', 'L', 'T', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dormbr('Q', 'L', 'T', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dormbr('Q', 'R', 'T', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dormbr('P', 'L', 'T', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dormbr('P', 'R', 'T', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Dormbr('Q', 'R', 'T', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Dormbr('Q', 'L', 'T', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Dormbr('Q', 'R', 'T', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DORMBR", &info, lerr, ok, t)
+		//        Dormbr
+		*srnamt = "Dormbr"
+		*errt = fmt.Errorf("!applyq && vect != 'P': vect='/'")
+		err = golapack.Dormbr('/', Left, Trans, 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("!left && side != Right: side=Unrecognized: /")
+		err = golapack.Dormbr('Q', '/', Trans, 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("!notran && trans != Trans: trans=Unrecognized: /")
+		err = golapack.Dormbr('Q', Left, '/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Dormbr('Q', Left, Trans, -1, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dormbr('Q', Left, Trans, 0, -1, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("k < 0: k=-1")
+		err = golapack.Dormbr('Q', Left, Trans, 0, 0, -1, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='Q', a.Rows=1, nq=2, k=0")
+		err = golapack.Dormbr('Q', Left, Trans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='Q', a.Rows=1, nq=2, k=0")
+		err = golapack.Dormbr('Q', Right, Trans, 0, 2, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='P', a.Rows=1, nq=2, k=2")
+		err = golapack.Dormbr('P', Left, Trans, 2, 0, 2, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='P', a.Rows=1, nq=2, k=2")
+		err = golapack.Dormbr('P', Right, Trans, 0, 2, 2, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+		err = golapack.Dormbr('Q', Right, Trans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("lwork < max(1, nw) && !lquery: lwork=1, nw=2, lquery=false")
+		err = golapack.Dormbr('Q', Left, Trans, 0, 2, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dormbr", err)
+		*errt = fmt.Errorf("lwork < max(1, nw) && !lquery: lwork=1, nw=2, lquery=false")
+		err = golapack.Dormbr('Q', Right, Trans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(2), w, 1)
+		chkxer2("Dormbr", err)
 		nt = nt + 13
 
-		//        DBDSQR
-		*srnamt = "DBDSQR"
-		*infot = 1
-		golapack.Dbdsqr('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dbdsqr('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dbdsqr('U', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dbdsqr('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dbdsqr('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dbdsqr('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Dbdsqr('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Dbdsqr('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), w, &info)
-		Chkxer("DBDSQR", &info, lerr, ok, t)
+		//        Dbdsqr
+		*srnamt = "Dbdsqr"
+		*errt = fmt.Errorf("uplo != Upper && !lower: uplo=Unrecognized: /")
+		_, err = golapack.Dbdsqr('/', 0, 0, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dbdsqr(Upper, -1, 0, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("ncvt < 0: ncvt=-1")
+		_, err = golapack.Dbdsqr(Upper, 0, -1, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("nru < 0: nru=-1")
+		_, err = golapack.Dbdsqr(Upper, 0, 0, -1, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("ncc < 0: ncc=-1")
+		_, err = golapack.Dbdsqr(Upper, 0, 0, 0, -1, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("(ncvt == 0 && vt.Rows < 1) || (ncvt > 0 && vt.Rows < max(1, n)): vt.Rows=1, n=2, ncvt=1")
+		_, err = golapack.Dbdsqr(Upper, 2, 1, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("u.Rows < max(1, nru): u.Rows=1, nru=2")
+		_, err = golapack.Dbdsqr(Upper, 0, 0, 2, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
+		*errt = fmt.Errorf("(ncc == 0 && c.Rows < 1) || (ncc > 0 && c.Rows < max(1, n)): c.Rows=1, n=2, ncc=1")
+		_, err = golapack.Dbdsqr(Upper, 2, 0, 0, 1, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), w)
+		chkxer2("Dbdsqr", err)
 		nt = nt + 8
 
-		//        DBDSDC
-		*srnamt = "DBDSDC"
-		*infot = 1
-		golapack.Dbdsdc('/', 'N', func() *int { y := 0; return &y }(), d, e, u, func() *int { y := 1; return &y }(), v, func() *int { y := 1; return &y }(), q.VectorIdx(0), &iq, w, &iw, &info)
-		Chkxer("DBDSDC", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dbdsdc('U', '/', func() *int { y := 0; return &y }(), d, e, u, func() *int { y := 1; return &y }(), v, func() *int { y := 1; return &y }(), q.VectorIdx(0), &iq, w, &iw, &info)
-		Chkxer("DBDSDC", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dbdsdc('U', 'N', toPtr(-1), d, e, u, func() *int { y := 1; return &y }(), v, func() *int { y := 1; return &y }(), q.VectorIdx(0), &iq, w, &iw, &info)
-		Chkxer("DBDSDC", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dbdsdc('U', 'I', func() *int { y := 2; return &y }(), d, e, u, func() *int { y := 1; return &y }(), v, func() *int { y := 1; return &y }(), q.VectorIdx(0), &iq, w, &iw, &info)
-		Chkxer("DBDSDC", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dbdsdc('U', 'I', func() *int { y := 2; return &y }(), d, e, u, func() *int { y := 2; return &y }(), v, func() *int { y := 1; return &y }(), q.VectorIdx(0), &iq, w, &iw, &info)
-		Chkxer("DBDSDC", &info, lerr, ok, t)
+		//        Dbdsdc
+		*srnamt = "Dbdsdc"
+		*errt = fmt.Errorf("iuplo == 0: uplo=Unrecognized: /")
+		err = golapack.Dbdsdc('/', 'N', 0, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		chkxer2("Dbdsdc", err)
+		*errt = fmt.Errorf("icompq < 0: compq='/'")
+		err = golapack.Dbdsdc(Upper, '/', 0, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		chkxer2("Dbdsdc", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Dbdsdc(Upper, 'N', -1, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		chkxer2("Dbdsdc", err)
+		*errt = fmt.Errorf("(u.Rows < 1) || ((icompq == 2) && (u.Rows < n)): compq='I', u.Rows=1, n=2")
+		err = golapack.Dbdsdc(Upper, 'I', 2, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		chkxer2("Dbdsdc", err)
+		*errt = fmt.Errorf("(vt.Rows < 1) || ((icompq == 2) && (vt.Rows < n)): compq='I', vt.Rows=1, n=2")
+		err = golapack.Dbdsdc(Upper, 'I', 2, d, e, u.Off(0, 0).UpdateRows(2), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		chkxer2("Dbdsdc", err)
 		nt = nt + 5
 
-		//        DBDSVDX
-		*srnamt = "DBDSVDX"
-		*infot = 1
-		golapack.Dbdsvdx('X', 'N', 'A', func() *int { y := 1; return &y }(), d, e, &zero, &one, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dbdsvdx('U', 'X', 'A', func() *int { y := 1; return &y }(), d, e, &zero, &one, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dbdsvdx('U', 'V', 'X', func() *int { y := 1; return &y }(), d, e, &zero, &one, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dbdsvdx('U', 'V', 'A', toPtr(-1), d, e, &zero, &one, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dbdsvdx('U', 'V', 'V', func() *int { y := 2; return &y }(), d, e, toPtrf64(-one), &zero, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dbdsvdx('U', 'V', 'V', func() *int { y := 2; return &y }(), d, e, &one, &zero, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dbdsvdx('L', 'V', 'I', func() *int { y := 2; return &y }(), d, e, &zero, &zero, func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Dbdsvdx('L', 'V', 'I', func() *int { y := 4; return &y }(), d, e, &zero, &zero, func() *int { y := 5; return &y }(), func() *int { y := 2; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dbdsvdx('L', 'V', 'I', func() *int { y := 4; return &y }(), d, e, &zero, &zero, func() *int { y := 3; return &y }(), func() *int { y := 2; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dbdsvdx('L', 'V', 'I', func() *int { y := 4; return &y }(), d, e, &zero, &zero, func() *int { y := 3; return &y }(), func() *int { y := 5; return &y }(), &ns, s, q, func() *int { y := 1; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Dbdsvdx('L', 'V', 'A', func() *int { y := 4; return &y }(), d, e, &zero, &zero, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 0; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
-		*infot = 14
-		golapack.Dbdsvdx('L', 'V', 'A', func() *int { y := 4; return &y }(), d, e, &zero, &zero, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ns, s, q, func() *int { y := 2; return &y }(), w, &iw, &info)
-		Chkxer("DBDSVDX", &info, lerr, ok, t)
+		//        Dbdsvdx
+		*srnamt = "Dbdsvdx"
+		*errt = fmt.Errorf("uplo != Upper && !lower: uplo=Unrecognized: X")
+		_, err = golapack.Dbdsvdx('X', 'N', 'A', 1, d, e, zero, one, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("!(wantz || jobz == 'N'): jobz='X'")
+		_, err = golapack.Dbdsvdx(Upper, 'X', 'A', 1, d, e, zero, one, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("!(allsv || valsv || indsv): _range='X'")
+		_, err = golapack.Dbdsvdx(Upper, 'V', 'X', 1, d, e, zero, one, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dbdsvdx(Upper, 'V', 'A', -1, d, e, zero, one, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("vl < zero: _range='V', vl=-1")
+		_, err = golapack.Dbdsvdx(Upper, 'V', 'V', 2, d, e, -one, zero, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("vu <= vl: _range='V', vl=1, vu=0")
+		_, err = golapack.Dbdsvdx(Upper, 'V', 'V', 2, d, e, one, zero, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): _range='I', n=2, il=0")
+		_, err = golapack.Dbdsvdx(Lower, 'V', 'I', 2, d, e, zero, zero, 0, 2, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("il < 1 || il > max(1, n): _range='I', n=4, il=5")
+		_, err = golapack.Dbdsvdx(Lower, 'V', 'I', 4, d, e, zero, zero, 5, 2, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: _range='I', n=4, il=3, iu=2")
+		_, err = golapack.Dbdsvdx(Lower, 'V', 'I', 4, d, e, zero, zero, 3, 2, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("iu < min(n, il) || iu > n: _range='I', n=4, il=3, iu=5")
+		_, err = golapack.Dbdsvdx(Lower, 'V', 'I', 4, d, e, zero, zero, 3, 5, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n*2): jobz='V', z.Rows=1, n=4")
+		_, err = golapack.Dbdsvdx(Lower, 'V', 'A', 4, d, e, zero, zero, 0, 0, ns, s, q.Off(0, 0).UpdateRows(1), w, &iw)
+		chkxer2("Dbdsvdx", err)
+		*errt = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n*2): jobz='V', z.Rows=2, n=4")
+		_, err = golapack.Dbdsvdx(Lower, 'V', 'A', 4, d, e, zero, zero, 0, 0, ns, s, q.Off(0, 0).UpdateRows(2), w, &iw)
+		chkxer2("Dbdsvdx", err)
 		nt = nt + 12
 	}
 
@@ -248,5 +248,9 @@ func Derrbd(path []byte, t *testing.T) {
 		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
 	} else {
 		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	}
+
+	if !(*ok) {
+		t.Fail()
 	}
 }

@@ -12,14 +12,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkgt tests DGTTRF, -TRS, -RFS, and -CON
-func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh *float64, tsterr *bool, a, af, b, x, xact, work, rwork *mat.Vector, iwork *[]int, nout *int, t *testing.T) {
+// dchkgt tests DGTTRF, -TRS, -RFS, and -CON
+func dchkgt(dotype []bool, nval, nsval []int, thresh float64, tsterr bool, a, af, b, x, xact, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var trfcon, zerot bool
-	var dist, norm, trans, _type byte
+	var dist, norm, _type byte
+	var trans mat.MatTrans
 	var ainvnm, anorm, cond, one, rcond, rcondc, rcondi, rcondo, zero float64
-	var i, imat, in, info, irhs, itran, ix, izero, j, k, kl, koff, ku, lda, m, mode, n, nerrs, nfail, nimat, nrhs, nrun, ntypes int
+	var i, imat, info, ix, izero, j, k, kl, koff, ku, lda, m, mode, n, nerrs, nfail, nimat, nrhs, nrun, ntypes int
+	var err error
+	var _iwork []int
 
-	transs := make([]byte, 3)
 	result := vf(7)
 	z := vf(3)
 	iseed := make([]int, 4)
@@ -30,11 +32,10 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	one = 1.0
 	zero = 0.0
 	ntypes = 12
-	// ntests = 7
 
-	iseedy[0], iseedy[1], iseedy[2], iseedy[3], transs[0], transs[1], transs[2] = 0, 0, 0, 1, 'N', 'T', 'C'
+	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 0, 0, 0, 1
 
-	path := []byte("DGT")
+	path := "Dgt"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -43,46 +44,36 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrge(path, t)
+	if tsterr {
+		derrge(path, t)
 	}
 	(*infot) = 0
 
-	for in = 1; in <= (*nn); in++ {
+	for _, n = range nval {
 		//        Do for each value of N in NVAL.
-		n = (*nval)[in-1]
 		m = max(n-1, 0)
 		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
 			nimat = 1
 		}
-		// a := mf(lda, 4, opts)
-		// af := mf(lda, *nmax, opts)
-		// b := mf(lda, nsmax, opts)
-		// x := mf(lda, nsmax, opts)
-		// xact := mf(lda, nsmax, opts)
-		// work := mf(lda, max(3, nsmax, maxintslice(*nval)), opts)
 
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				continue
 			}
 
 			//           Set up parameters with DLATB4.
-			Dlatb4(path, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cond, &dist)
+			_type, kl, ku, anorm, mode, cond, dist = dlatb4(path, imat, n, n)
 
 			zerot = imat >= 8 && imat <= 10
 			if imat <= 6 {
 				//              Types 1-6:  generate matrices of known condition number.
 				koff = max(2-ku, 3-max(1, n))
-				*srnamt = "DLATMS"
-				matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cond, &anorm, &kl, &ku, 'Z', af.MatrixOff(koff-1, 3, opts), toPtr(3), work, &info)
-
-				//              Check the error code from DLATMS.
-				if info != 0 {
-					Alaerh(path, []byte("DLATMS"), &info, toPtr(0), []byte(" "), &n, &n, &kl, &ku, toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dlatms"
+				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'Z', af.MatrixOff(koff-1, 3, opts), work); info != 0 {
+					nerrs = alaerh(path, "Dlatms", info, 0, []byte(" "), n, n, kl, ku, -1, imat, nfail, nerrs)
 					continue
 				}
 				izero = 0
@@ -95,9 +86,9 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
-				if !zerot || !(*dotype)[6] {
+				if !zerot || !dotype[6] {
 					//                 Generate a matrix with elements from [-1,1].
-					golapack.Dlarnv(toPtr(2), &iseed, toPtr(n+2*m), a)
+					golapack.Dlarnv(2, &iseed, n+2*m, a)
 					if anorm != one {
 						goblas.Dscal(n+2*m, anorm, a.Off(0, 1))
 					}
@@ -152,36 +143,37 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 			//           Factor A as L*U and compute the ratio
 			//              norm(L*U - A) / (n * norm(A) * EPS )
 			goblas.Dcopy(n+2*m, a.Off(0, 1), af.Off(0, 1))
-			*srnamt = "DGTTRF"
-			golapack.Dgttrf(&n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, &info)
+			*srnamt = "Dgttrf"
+			if info, err = golapack.Dgttrf(n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), &iwork); err != nil {
+				panic(err)
+			}
 
 			//           Check error code from DGTTRF.
 			if info != izero {
-				Alaerh(path, []byte("DGTTRF"), &info, &izero, []byte(" "), &n, &n, toPtr(1), toPtr(1), toPtr(-1), &imat, &nfail, &nerrs)
+				nerrs = alaerh(path, "Dgttrf", info, 0, []byte(" "), n, n, 1, 1, -1, imat, nfail, nerrs)
 			}
 			trfcon = info != 0
 
-			Dgtt01(&n, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(0))
+			result.Set(0, dgtt01(n, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, work.Matrix(lda, opts), rwork))
 
 			//           Print the test ratio if it is .GE. THRESH.
-			if result.Get(0) >= (*thresh) {
+			if result.Get(0) >= thresh {
 				if nfail == 0 && nerrs == 0 {
-					Alahd(path)
+					alahd(path)
 				}
 				t.Fail()
 				fmt.Printf("            N =%5d,           _type %2d, test(%2d) = %12.5f\n", n, imat, 1, result.Get(0))
-				nfail = nfail + 1
+				nfail++
 			}
-			nrun = nrun + 1
+			nrun++
 
-			for itran = 1; itran <= 2; itran++ {
-				trans = transs[itran-1]
-				if itran == 1 {
+			for _, trans = range mat.IterMatTrans(false) {
+				if trans == NoTrans {
 					norm = 'O'
 				} else {
 					norm = 'I'
 				}
-				anorm = golapack.Dlangt(norm, &n, a, a.Off(m), a.Off(n+m))
+				anorm = golapack.Dlangt(norm, n, a, a.Off(m), a.Off(n+m))
 
 				if !trfcon {
 					//                 Use DGTTRS to solve for one column at a time of inv(A)
@@ -193,7 +185,9 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 							x.Set(j-1, zero)
 						}
 						x.Set(i-1, one)
-						golapack.Dgttrs(trans, &n, toPtr(1), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts), &lda, &info)
+						if err = golapack.Dgttrs(trans, n, 1, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts)); err != nil {
+							panic(err)
+						}
 						ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
 					}
 
@@ -203,7 +197,7 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 					} else {
 						rcondc = (one / anorm) / ainvnm
 					}
-					if itran == 1 {
+					if trans == NoTrans {
 						rcondo = rcondc
 					} else {
 						rcondi = rcondc
@@ -215,26 +209,26 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				//+    TEST 7
 				//              Estimate the reciprocal of the condition number of the
 				//              matrix.
-				*srnamt = "DGTCON"
-				golapack.Dgtcon(norm, &n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, &anorm, &rcond, work, toSlice(iwork, n), &info)
-
-				//              Check error code from DGTCON.
-				if info != 0 {
-					Alaerh(path, []byte("DGTCON"), &info, toPtr(0), []byte{norm}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dgtcon"
+				if rcond, err = golapack.Dgtcon(norm, n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, anorm, work, toSlice(&iwork, n)); err != nil {
+					nerrs = alaerh(path, "Dgtcon", info, 0, []byte{norm}, n, n, -1, -1, -1, imat, nfail, nerrs)
 				}
 
-				result.Set(6, Dget06(&rcond, &rcondc))
+				result.Set(6, dget06(rcond, rcondc))
 
 				//              Print the test ratio if it is .GE. THRESH.
-				if result.Get(6) >= (*thresh) {
+				if result.Get(6) >= thresh {
 					if nfail == 0 && nerrs == 0 {
-						Alahd(path)
+						alahd(path)
 					}
 					t.Fail()
 					fmt.Printf(" NORM ='%c', N =%5d,           _type %2d, test(%2d) = %12.5f\n", norm, n, imat, 7, result.Get(6))
-					nfail = nfail + 1
+					nfail++
 				}
-				nrun = nrun + 1
+				nrun++
+			}
+			for i, val := range _iwork {
+				iwork[n+i] = val
 			}
 
 			//           Skip the remaining tests if the matrix is singular.
@@ -242,71 +236,71 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 				goto label100
 			}
 
-			for irhs = 1; irhs <= (*nns); irhs++ {
-				nrhs = (*nsval)[irhs-1]
+			for _, nrhs = range nsval {
 
 				//              Generate NRHS random solution vectors.
 				ix = 1
 				for j = 1; j <= nrhs; j++ {
-					golapack.Dlarnv(toPtr(2), &iseed, &n, xact.Off(ix-1))
+					golapack.Dlarnv(2, &iseed, n, xact.Off(ix-1))
 					ix = ix + lda
 				}
 
-				for itran = 1; itran <= 3; itran++ {
-					trans = transs[itran-1]
-					if itran == 1 {
+				for _, trans = range mat.IterMatTrans() {
+					if trans == NoTrans {
 						rcondc = rcondo
 					} else {
 						rcondc = rcondi
 					}
 
 					//                 Set the right hand side.
-					golapack.Dlagtm(trans, &n, &nrhs, &one, a, a.Off(m), a.Off(n+m), xact.Matrix(lda, opts), &lda, &zero, b.Matrix(lda, opts), &lda)
+					golapack.Dlagtm(trans, n, nrhs, one, a, a.Off(m), a.Off(n+m), xact.Matrix(lda, opts), zero, b.Matrix(lda, opts))
 
 					//+    TEST 2
 					//                 Solve op(A) * X = B and compute the residual.
-					golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
-					*srnamt = "DGTTRS"
-					golapack.Dgttrs(trans, &n, &nrhs, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts), &lda, &info)
+					golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
+					*srnamt = "Dgttrs"
+					if err = golapack.Dgttrs(trans, n, nrhs, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts)); err != nil {
+						panic(err)
+					}
 
 					//                 Check error code from DGTTRS.
 					if info != 0 {
-						Alaerh(path, []byte("DGTTRS"), &info, toPtr(0), []byte{trans}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Dgttrs", info, 0, []byte{trans.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 					}
 
-					golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-					Dgtt02(trans, &n, &nrhs, a, a.Off(m), a.Off(n+m), x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, result.GetPtr(1))
+					golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
+					result.Set(1, dgtt02(trans, n, nrhs, a, a.Off(m), a.Off(n+m), x.Matrix(lda, opts), work.Matrix(lda, opts)))
 
 					//+    TEST 3
 					//                 Check solution from generated exact solution.
-					Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+					result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 
 					//+    TESTS 4, 5, and 6
 					//                 Use iterative refinement to improve the solution.
-					*srnamt = "DGTRFS"
-					golapack.Dgtrfs(trans, &n, &nrhs, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, toSlice(iwork, n), &info)
-
-					//                 Check error code from DGTRFS.
-					if info != 0 {
-						Alaerh(path, []byte("DGTRFS"), &info, toPtr(0), []byte{trans}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+					*srnamt = "Dgtrfs"
+					if err = golapack.Dgtrfs(trans, n, nrhs, a, a.Off(m), a.Off(n+m), af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, b.Matrix(lda, opts), x.Matrix(lda, opts), rwork, rwork.Off(nrhs), work, toSlice(&iwork, n)); err != nil {
+						nerrs = alaerh(path, "Dgtrfs", info, 0, []byte{trans.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
+					}
+					for i, val := range _iwork {
+						iwork[n+i] = val
 					}
 
-					Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
-					Dgtt05(trans, &n, &nrhs, a, a.Off(m), a.Off(n+m), b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(4))
+					result.Set(3, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
+					dgtt05(trans, n, nrhs, a, a.Off(m), a.Off(n+m), b.Matrix(lda, opts), x.Matrix(lda, opts), xact.Matrix(lda, opts), rwork, rwork.Off(nrhs), result.Off(4))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 2; k <= 6; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
 							t.Fail()
-							fmt.Printf(" TRANS='%c', N =%5d, NRHS=%3d, _type %2d, test(%2d) = %12.5f\n", trans, n, nrhs, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" TRANS=%s, N =%5d, NRHS=%3d, _type %2d, test(%2d) = %12.5f\n", trans, n, nrhs, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
-					nrun = nrun + 5
+					nrun += 5
 				}
 			}
 
@@ -323,5 +317,5 @@ func Dchkgt(dotype *[]bool, nn *int, nval *[]int, nns *int, nsval *[]int, thresh
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

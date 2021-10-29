@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -32,12 +33,10 @@ import (
 // If Q and Z are the orthogonal factors from the generalized Schur
 // factorization of a matrix pair (A,B), then Z*X and Q*Y
 // are the matrices of right and left eigenvectors of (A,B).
-func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, p *mat.Matrix, ldp *int, vl *mat.Matrix, ldvl *int, vr *mat.Matrix, ldvr, mm, m *int, work *mat.Vector, info *int) {
+func Dtgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *mat.Matrix, mm int, work *mat.Vector) (m, info int, err error) {
 	var compl, compr, il2by2, ilabad, ilall, ilback, ilbbad, ilcomp, ilcplx, lsa, lsb bool
 	var acoef, acoefa, anorm, ascale, bcoefa, bcoefi, bcoefr, big, bignum, bnorm, bscale, cim2a, cim2b, cimaga, cimagb, cre2a, cre2b, creala, crealb, dmin, one, safety, safmin, salfar, sbeta, scale, small, temp, temp2, temp2i, temp2r, ulp, xmax, xscale, zero float64
-	var i, ibeg, ieig, iend, ihwmny, iinfo, im, iside, j, ja, jc, je, jr, jw, na, nw int
-	var err error
-	_ = err
+	var i, ibeg, ieig, iend, ihwmny, im, iside, j, ja, jc, je, jr, jw, na, nw int
 
 	bdiag := vf(2)
 	sum := mf(2, 2, opts)
@@ -66,15 +65,15 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 		ilall = true
 	}
 
-	if side == 'R' {
+	if side == Right {
 		iside = 1
 		compl = false
 		compr = true
-	} else if side == 'L' {
+	} else if side == Left {
 		iside = 2
 		compl = true
 		compr = false
-	} else if side == 'B' {
+	} else if side == Both {
 		iside = 3
 		compl = true
 		compr = true
@@ -82,20 +81,19 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 		iside = -1
 	}
 
-	(*info) = 0
 	if iside < 0 {
-		(*info) = -1
+		err = fmt.Errorf("iside < 0: side=%s", side)
 	} else if ihwmny < 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lds) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldp) < max(1, *n) {
-		(*info) = -8
+		err = fmt.Errorf("ihwmny < 0: howmny='%c'", howmny)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if s.Rows < max(1, n) {
+		err = fmt.Errorf("s.Rows < max(1, n): s.Rows=%v, n=%v", s.Rows, n)
+	} else if p.Rows < max(1, n) {
+		err = fmt.Errorf("p.Rows < max(1, n): p.Rows=%v, n=%v", p.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTGEVC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtgevc", err)
 		return
 	}
 
@@ -103,12 +101,12 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 	if !ilall {
 		im = 0
 		ilcplx = false
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if ilcplx {
 				ilcplx = false
 				goto label10
 			}
-			if j < (*n) {
+			if j < n {
 				if s.Get(j, j-1) != zero {
 					ilcplx = true
 				}
@@ -125,18 +123,18 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 		label10:
 		}
 	} else {
-		im = (*n)
+		im = n
 	}
 
 	//     Check 2-by-2 diagonal blocks of A, B
 	ilabad = false
 	ilbbad = false
-	for j = 1; j <= (*n)-1; j++ {
+	for j = 1; j <= n-1; j++ {
 		if s.Get(j, j-1) != zero {
 			if p.Get(j-1, j-1) == zero || p.Get(j, j) == zero || p.Get(j-1, j) != zero {
 				ilbbad = true
 			}
-			if j < (*n)-1 {
+			if j < n-1 {
 				if s.Get(j+2-1, j) != zero {
 					ilabad = true
 				}
@@ -145,49 +143,49 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 	}
 
 	if ilabad {
-		(*info) = -5
+		err = fmt.Errorf("ilabad=%v", ilabad)
 	} else if ilbbad {
-		(*info) = -7
-	} else if compl && (*ldvl) < (*n) || (*ldvl) < 1 {
-		(*info) = -10
-	} else if compr && (*ldvr) < (*n) || (*ldvr) < 1 {
-		(*info) = -12
-	} else if (*mm) < im {
-		(*info) = -13
+		err = fmt.Errorf("ilbbad=%v", ilbbad)
+	} else if compl && vl.Rows < n || vl.Rows < 1 {
+		err = fmt.Errorf("compl && vl.Rows < n || vl.Rows < 1: compl=%v, vl.Rows=%v, n=%v", compl, vl.Rows, n)
+	} else if compr && vr.Rows < n || vr.Rows < 1 {
+		err = fmt.Errorf("compr && vr.Rows < n || vr.Rows < 1: compr=%v, vr.Rows=%v, n=%v", compr, vr.Rows, n)
+	} else if mm < im {
+		err = fmt.Errorf("mm < im: mm=%v, im=%v", mm, im)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTGEVC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtgevc", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*m) = im
-	if (*n) == 0 {
+	m = im
+	if n == 0 {
 		return
 	}
 
 	//     Machine Constants
 	safmin = Dlamch(SafeMinimum)
 	big = one / safmin
-	Dlabad(&safmin, &big)
+	safmin, big = Dlabad(safmin, big)
 	ulp = Dlamch(Epsilon) * Dlamch(Base)
-	small = safmin * float64(*n) / ulp
+	small = safmin * float64(n) / ulp
 	big = one / small
-	bignum = one / (safmin * float64(*n))
+	bignum = one / (safmin * float64(n))
 
 	//     Compute the 1-norm of each column of the strictly upper triangular
 	//     part (i.e., excluding all elements belonging to the diagonal
 	//     blocks) of A and B to check for possible overflow in the
 	//     triangular solver.
 	anorm = math.Abs(s.Get(0, 0))
-	if (*n) > 1 {
+	if n > 1 {
 		anorm = anorm + math.Abs(s.Get(1, 0))
 	}
 	bnorm = math.Abs(p.Get(0, 0))
 	work.Set(0, zero)
-	work.Set((*n), zero)
+	work.Set(n, zero)
 
-	for j = 2; j <= (*n); j++ {
+	for j = 2; j <= n; j++ {
 		temp = zero
 		temp2 = zero
 		if s.Get(j-1, j-1-1) == zero {
@@ -200,8 +198,8 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			temp2 = temp2 + math.Abs(p.Get(i-1, j-1))
 		}
 		work.Set(j-1, temp)
-		work.Set((*n)+j-1, temp2)
-		for i = iend + 1; i <= min(j+1, *n); i++ {
+		work.Set(n+j-1, temp2)
+		for i = iend + 1; i <= min(j+1, n); i++ {
 			temp = temp + math.Abs(s.Get(i-1, j-1))
 			temp2 = temp2 + math.Abs(p.Get(i-1, j-1))
 		}
@@ -218,7 +216,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 		//        Main loop over eigenvalues
 		ilcplx = false
-		for je = 1; je <= (*n); je++ {
+		for je = 1; je <= n; je++ {
 			//           Skip this iteration if (a) HOWMNY='S' and SELECT=.FALSE., or
 			//           (b) this would be the second of a complex pair.
 			//           Check for complex eigenvalue, so as to be sure of which
@@ -228,7 +226,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				goto label220
 			}
 			nw = 1
-			if je < (*n) {
+			if je < n {
 				if s.Get(je, je-1) != zero {
 					ilcplx = true
 					nw = 2
@@ -251,7 +249,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				if math.Abs(s.Get(je-1, je-1)) <= safmin && math.Abs(p.Get(je-1, je-1)) <= safmin {
 					//                 Singular matrix pencil -- return unit eigenvector
 					ieig = ieig + 1
-					for jr = 1; jr <= (*n); jr++ {
+					for jr = 1; jr <= n; jr++ {
 						vl.Set(jr-1, ieig-1, zero)
 					}
 					vl.Set(ieig-1, ieig-1, one)
@@ -260,8 +258,8 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			}
 
 			//           Clear vector
-			for jr = 1; jr <= nw*(*n); jr++ {
-				work.Set(2*(*n)+jr-1, zero)
+			for jr = 1; jr <= nw*n; jr++ {
+				work.Set(2*n+jr-1, zero)
 			}
 
 			//           Compute coefficients in  ( a A - b B )  y = 0
@@ -303,14 +301,14 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				bcoefa = math.Abs(bcoefr)
 
 				//              First component is 1
-				work.Set(2*(*n)+je-1, one)
+				work.Set(2*n+je-1, one)
 				xmax = one
 			} else {
 				//              Complex eigenvalue
-				Dlag2(s.Off(je-1, je-1), lds, p.Off(je-1, je-1), ldp, toPtrf64(safmin*safety), &acoef, &temp, &bcoefr, &temp2, &bcoefi)
+				acoef, temp, bcoefr, temp2, bcoefi = Dlag2(s.Off(je-1, je-1), p.Off(je-1, je-1), safmin*safety)
 				bcoefi = -bcoefi
 				if bcoefi == zero {
-					(*info) = je
+					info = je
 					return
 				}
 
@@ -343,18 +341,18 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				temp2r = acoef*s.Get(je-1, je-1) - bcoefr*p.Get(je-1, je-1)
 				temp2i = -bcoefi * p.Get(je-1, je-1)
 				if math.Abs(temp) > math.Abs(temp2r)+math.Abs(temp2i) {
-					work.Set(2*(*n)+je-1, one)
-					work.Set(3*(*n)+je-1, zero)
-					work.Set(2*(*n)+je, -temp2r/temp)
-					work.Set(3*(*n)+je, -temp2i/temp)
+					work.Set(2*n+je-1, one)
+					work.Set(3*n+je-1, zero)
+					work.Set(2*n+je, -temp2r/temp)
+					work.Set(3*n+je, -temp2i/temp)
 				} else {
-					work.Set(2*(*n)+je, one)
-					work.Set(3*(*n)+je, zero)
+					work.Set(2*n+je, one)
+					work.Set(3*n+je, zero)
 					temp = acoef * s.Get(je-1, je)
-					work.Set(2*(*n)+je-1, (bcoefr*p.Get(je, je)-acoef*s.Get(je, je))/temp)
-					work.Set(3*(*n)+je-1, bcoefi*p.Get(je, je)/temp)
+					work.Set(2*n+je-1, (bcoefr*p.Get(je, je)-acoef*s.Get(je, je))/temp)
+					work.Set(3*n+je-1, bcoefi*p.Get(je, je)/temp)
 				}
-				xmax = math.Max(math.Abs(work.Get(2*(*n)+je-1))+math.Abs(work.Get(3*(*n)+je-1)), math.Abs(work.Get(2*(*n)+je))+math.Abs(work.Get(3*(*n)+je)))
+				xmax = math.Max(math.Abs(work.Get(2*n+je-1))+math.Abs(work.Get(3*n+je-1)), math.Abs(work.Get(2*n+je))+math.Abs(work.Get(3*n+je)))
 			}
 
 			dmin = math.Max(ulp*acoefa*anorm, math.Max(ulp*bcoefa*bnorm, safmin))
@@ -366,7 +364,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			//           (rowwise in  (a A - b B) , or columnwise in (a A - b B) )
 			il2by2 = false
 
-			for j = je + nw; j <= (*n); j++ {
+			for j = je + nw; j <= n; j++ {
 				if il2by2 {
 					il2by2 = false
 					goto label160
@@ -374,7 +372,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 				na = 1
 				bdiag.Set(0, p.Get(j-1, j-1))
-				if j < (*n) {
+				if j < n {
 					if s.Get(j, j-1) != zero {
 						il2by2 = true
 						bdiag.Set(1, p.Get(j, j))
@@ -384,14 +382,14 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 				//              Check whether scaling is necessary for dot products
 				xscale = one / math.Max(one, xmax)
-				temp = math.Max(work.Get(j-1), math.Max(work.Get((*n)+j-1), acoefa*work.Get(j-1)+bcoefa*work.Get((*n)+j-1)))
+				temp = math.Max(work.Get(j-1), math.Max(work.Get(n+j-1), acoefa*work.Get(j-1)+bcoefa*work.Get(n+j-1)))
 				if il2by2 {
-					temp = math.Max(temp, math.Max(work.Get(j), math.Max(work.Get((*n)+j), acoefa*work.Get(j)+bcoefa*work.Get((*n)+j))))
+					temp = math.Max(temp, math.Max(work.Get(j), math.Max(work.Get(n+j), acoefa*work.Get(j)+bcoefa*work.Get(n+j))))
 				}
 				if temp > bignum*xscale {
 					for jw = 0; jw <= nw-1; jw++ {
 						for jr = je; jr <= j-1; jr++ {
-							work.Set((jw+2)*(*n)+jr-1, xscale*work.Get((jw+2)*(*n)+jr-1))
+							work.Set((jw+2)*n+jr-1, xscale*work.Get((jw+2)*n+jr-1))
 						}
 					}
 					xmax = xmax * xscale
@@ -417,8 +415,8 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 						sump.Set(ja-1, jw-1, zero)
 
 						for jr = je; jr <= j-1; jr++ {
-							sums.Set(ja-1, jw-1, sums.Get(ja-1, jw-1)+s.Get(jr-1, j+ja-1-1)*work.Get((jw+1)*(*n)+jr-1))
-							sump.Set(ja-1, jw-1, sump.Get(ja-1, jw-1)+p.Get(jr-1, j+ja-1-1)*work.Get((jw+1)*(*n)+jr-1))
+							sums.Set(ja-1, jw-1, sums.Get(ja-1, jw-1)+s.Get(jr-1, j+ja-1-1)*work.Get((jw+1)*n+jr-1))
+							sump.Set(ja-1, jw-1, sump.Get(ja-1, jw-1)+p.Get(jr-1, j+ja-1-1)*work.Get((jw+1)*n+jr-1))
 						}
 					}
 				}
@@ -435,11 +433,11 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				//                                  T
 				//              Solve  ( a A - b B )  y = SUM(,)
 				//              with scaling and perturbation of the denominator
-				Dlaln2(true, &na, &nw, &dmin, &acoef, s.Off(j-1, j-1), lds, bdiag.GetPtr(0), bdiag.GetPtr(1), sum, func() *int { y := 2; return &y }(), &bcoefr, &bcoefi, work.MatrixOff(2*(*n)+j-1, *n, opts), n, &scale, &temp, &iinfo)
+				scale, temp, _ = Dlaln2(true, na, nw, dmin, acoef, s.Off(j-1, j-1), bdiag.Get(0), bdiag.Get(1), sum, bcoefr, bcoefi, work.MatrixOff(2*n+j-1, n, opts))
 				if scale < one {
 					for jw = 0; jw <= nw-1; jw++ {
 						for jr = je; jr <= j-1; jr++ {
-							work.Set((jw+2)*(*n)+jr-1, scale*work.Get((jw+2)*(*n)+jr-1))
+							work.Set((jw+2)*n+jr-1, scale*work.Get((jw+2)*n+jr-1))
 						}
 					}
 					xmax = scale * xmax
@@ -453,23 +451,25 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			ieig = ieig + 1
 			if ilback {
 				for jw = 0; jw <= nw-1; jw++ {
-					err = goblas.Dgemv(NoTrans, *n, (*n)+1-je, one, vl.Off(0, je-1), work.Off((jw+2)*(*n)+je-1, 1), zero, work.Off((jw+4)*(*n), 1))
+					if err = goblas.Dgemv(NoTrans, n, n+1-je, one, vl.Off(0, je-1), work.Off((jw+2)*n+je-1, 1), zero, work.Off((jw+4)*n, 1)); err != nil {
+						panic(err)
+					}
 				}
-				Dlacpy(' ', n, &nw, work.MatrixOff(4*(*n), *n, opts), n, vl.Off(0, je-1), ldvl)
+				Dlacpy(Full, n, nw, work.MatrixOff(4*n, n, opts), vl.Off(0, je-1))
 				ibeg = 1
 			} else {
-				Dlacpy(' ', n, &nw, work.MatrixOff(2*(*n), *n, opts), n, vl.Off(0, ieig-1), ldvl)
+				Dlacpy(Full, n, nw, work.MatrixOff(2*n, n, opts), vl.Off(0, ieig-1))
 				ibeg = je
 			}
 
 			//           Scale eigenvector
 			xmax = zero
 			if ilcplx {
-				for j = ibeg; j <= (*n); j++ {
+				for j = ibeg; j <= n; j++ {
 					xmax = math.Max(xmax, math.Abs(vl.Get(j-1, ieig-1))+math.Abs(vl.Get(j-1, ieig)))
 				}
 			} else {
-				for j = ibeg; j <= (*n); j++ {
+				for j = ibeg; j <= n; j++ {
 					xmax = math.Max(xmax, math.Abs(vl.Get(j-1, ieig-1)))
 				}
 			}
@@ -478,7 +478,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				xscale = one / xmax
 
 				for jw = 0; jw <= nw-1; jw++ {
-					for jr = ibeg; jr <= (*n); jr++ {
+					for jr = ibeg; jr <= n; jr++ {
 						vl.Set(jr-1, ieig+jw-1, xscale*vl.Get(jr-1, ieig+jw-1))
 					}
 				}
@@ -495,7 +495,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 		//        Main loop over eigenvalues
 		ilcplx = false
-		for je = (*n); je >= 1; je-- {
+		for je = n; je >= 1; je-- {
 			//           Skip this iteration if (a) HOWMNY='S' and SELECT=.FALSE., or
 			//           (b) this would be the second of a complex pair.
 			//           Check for complex eigenvalue, so as to be sure of which
@@ -531,7 +531,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				if math.Abs(s.Get(je-1, je-1)) <= safmin && math.Abs(p.Get(je-1, je-1)) <= safmin {
 					//                 Singular matrix pencil -- unit eigenvector
 					ieig = ieig - 1
-					for jr = 1; jr <= (*n); jr++ {
+					for jr = 1; jr <= n; jr++ {
 						vr.Set(jr-1, ieig-1, zero)
 					}
 					vr.Set(ieig-1, ieig-1, one)
@@ -541,8 +541,8 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 			//           Clear vector
 			for jw = 0; jw <= nw-1; jw++ {
-				for jr = 1; jr <= (*n); jr++ {
-					work.Set((jw+2)*(*n)+jr-1, zero)
+				for jr = 1; jr <= n; jr++ {
+					work.Set((jw+2)*n+jr-1, zero)
 				}
 			}
 
@@ -585,19 +585,19 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				bcoefa = math.Abs(bcoefr)
 
 				//              First component is 1
-				work.Set(2*(*n)+je-1, one)
+				work.Set(2*n+je-1, one)
 				xmax = one
 
 				//              Compute contribution from column JE of A and B to sum
 				//              (See "Further Details", above.)
 				for jr = 1; jr <= je-1; jr++ {
-					work.Set(2*(*n)+jr-1, bcoefr*p.Get(jr-1, je-1)-acoef*s.Get(jr-1, je-1))
+					work.Set(2*n+jr-1, bcoefr*p.Get(jr-1, je-1)-acoef*s.Get(jr-1, je-1))
 				}
 			} else {
 				//              Complex eigenvalue
-				Dlag2(s.Off(je-1-1, je-1-1), lds, p.Off(je-1-1, je-1-1), ldp, toPtrf64(safmin*safety), &acoef, &temp, &bcoefr, &temp2, &bcoefi)
+				acoef, temp, bcoefr, temp2, bcoefi = Dlag2(s.Off(je-1-1, je-1-1), p.Off(je-1-1, je-1-1), safmin*safety)
 				if bcoefi == zero {
-					(*info) = je - 1
+					info = je - 1
 					return
 				}
 
@@ -631,33 +631,33 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				temp2r = acoef*s.Get(je-1, je-1) - bcoefr*p.Get(je-1, je-1)
 				temp2i = -bcoefi * p.Get(je-1, je-1)
 				if math.Abs(temp) >= math.Abs(temp2r)+math.Abs(temp2i) {
-					work.Set(2*(*n)+je-1, one)
-					work.Set(3*(*n)+je-1, zero)
-					work.Set(2*(*n)+je-1-1, -temp2r/temp)
-					work.Set(3*(*n)+je-1-1, -temp2i/temp)
+					work.Set(2*n+je-1, one)
+					work.Set(3*n+je-1, zero)
+					work.Set(2*n+je-1-1, -temp2r/temp)
+					work.Set(3*n+je-1-1, -temp2i/temp)
 				} else {
-					work.Set(2*(*n)+je-1-1, one)
-					work.Set(3*(*n)+je-1-1, zero)
+					work.Set(2*n+je-1-1, one)
+					work.Set(3*n+je-1-1, zero)
 					temp = acoef * s.Get(je-1-1, je-1)
-					work.Set(2*(*n)+je-1, (bcoefr*p.Get(je-1-1, je-1-1)-acoef*s.Get(je-1-1, je-1-1))/temp)
-					work.Set(3*(*n)+je-1, bcoefi*p.Get(je-1-1, je-1-1)/temp)
+					work.Set(2*n+je-1, (bcoefr*p.Get(je-1-1, je-1-1)-acoef*s.Get(je-1-1, je-1-1))/temp)
+					work.Set(3*n+je-1, bcoefi*p.Get(je-1-1, je-1-1)/temp)
 				}
 
-				xmax = math.Max(math.Abs(work.Get(2*(*n)+je-1))+math.Abs(work.Get(3*(*n)+je-1)), math.Abs(work.Get(2*(*n)+je-1-1))+math.Abs(work.Get(3*(*n)+je-1-1)))
+				xmax = math.Max(math.Abs(work.Get(2*n+je-1))+math.Abs(work.Get(3*n+je-1)), math.Abs(work.Get(2*n+je-1-1))+math.Abs(work.Get(3*n+je-1-1)))
 
 				//              Compute contribution from columns JE and JE-1
 				//              of A and B to the sums.
-				creala = acoef * work.Get(2*(*n)+je-1-1)
-				cimaga = acoef * work.Get(3*(*n)+je-1-1)
-				crealb = bcoefr*work.Get(2*(*n)+je-1-1) - bcoefi*work.Get(3*(*n)+je-1-1)
-				cimagb = bcoefi*work.Get(2*(*n)+je-1-1) + bcoefr*work.Get(3*(*n)+je-1-1)
-				cre2a = acoef * work.Get(2*(*n)+je-1)
-				cim2a = acoef * work.Get(3*(*n)+je-1)
-				cre2b = bcoefr*work.Get(2*(*n)+je-1) - bcoefi*work.Get(3*(*n)+je-1)
-				cim2b = bcoefi*work.Get(2*(*n)+je-1) + bcoefr*work.Get(3*(*n)+je-1)
+				creala = acoef * work.Get(2*n+je-1-1)
+				cimaga = acoef * work.Get(3*n+je-1-1)
+				crealb = bcoefr*work.Get(2*n+je-1-1) - bcoefi*work.Get(3*n+je-1-1)
+				cimagb = bcoefi*work.Get(2*n+je-1-1) + bcoefr*work.Get(3*n+je-1-1)
+				cre2a = acoef * work.Get(2*n+je-1)
+				cim2a = acoef * work.Get(3*n+je-1)
+				cre2b = bcoefr*work.Get(2*n+je-1) - bcoefi*work.Get(3*n+je-1)
+				cim2b = bcoefi*work.Get(2*n+je-1) + bcoefr*work.Get(3*n+je-1)
 				for jr = 1; jr <= je-2; jr++ {
-					work.Set(2*(*n)+jr-1, -creala*s.Get(jr-1, je-1-1)+crealb*p.Get(jr-1, je-1-1)-cre2a*s.Get(jr-1, je-1)+cre2b*p.Get(jr-1, je-1))
-					work.Set(3*(*n)+jr-1, -cimaga*s.Get(jr-1, je-1-1)+cimagb*p.Get(jr-1, je-1-1)-cim2a*s.Get(jr-1, je-1)+cim2b*p.Get(jr-1, je-1))
+					work.Set(2*n+jr-1, -creala*s.Get(jr-1, je-1-1)+crealb*p.Get(jr-1, je-1-1)-cre2a*s.Get(jr-1, je-1)+cre2b*p.Get(jr-1, je-1))
+					work.Set(3*n+jr-1, -cimaga*s.Get(jr-1, je-1-1)+cimagb*p.Get(jr-1, je-1-1)-cim2a*s.Get(jr-1, je-1)+cim2b*p.Get(jr-1, je-1))
 				}
 			}
 
@@ -683,12 +683,12 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				}
 
 				//              Compute x(j) (and x(j+1), if 2-by-2 block)
-				Dlaln2(false, &na, &nw, &dmin, &acoef, s.Off(j-1, j-1), lds, bdiag.GetPtr(0), bdiag.GetPtr(1), work.MatrixOff(2*(*n)+j-1, *n, opts), n, &bcoefr, &bcoefi, sum, func() *int { y := 2; return &y }(), &scale, &temp, &iinfo)
+				scale, temp, _ = Dlaln2(false, na, nw, dmin, acoef, s.Off(j-1, j-1), bdiag.Get(0), bdiag.Get(1), work.MatrixOff(2*n+j-1, n, opts), bcoefr, bcoefi, sum)
 				if scale < one {
 
 					for jw = 0; jw <= nw-1; jw++ {
 						for jr = 1; jr <= je; jr++ {
-							work.Set((jw+2)*(*n)+jr-1, scale*work.Get((jw+2)*(*n)+jr-1))
+							work.Set((jw+2)*n+jr-1, scale*work.Get((jw+2)*n+jr-1))
 						}
 					}
 				}
@@ -696,7 +696,7 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 
 				for jw = 1; jw <= nw; jw++ {
 					for ja = 1; ja <= na; ja++ {
-						work.Set((jw+1)*(*n)+j+ja-1-1, sum.Get(ja-1, jw-1))
+						work.Set((jw+1)*n+j+ja-1-1, sum.Get(ja-1, jw-1))
 					}
 				}
 
@@ -704,16 +704,16 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 				if j > 1 {
 					//                 Check whether scaling is necessary for sum.
 					xscale = one / math.Max(one, xmax)
-					temp = acoefa*work.Get(j-1) + bcoefa*work.Get((*n)+j-1)
+					temp = acoefa*work.Get(j-1) + bcoefa*work.Get(n+j-1)
 					if il2by2 {
-						temp = math.Max(temp, acoefa*work.Get(j)+bcoefa*work.Get((*n)+j))
+						temp = math.Max(temp, acoefa*work.Get(j)+bcoefa*work.Get(n+j))
 					}
 					temp = math.Max(temp, math.Max(acoefa, bcoefa))
 					if temp > bignum*xscale {
 
 						for jw = 0; jw <= nw-1; jw++ {
 							for jr = 1; jr <= je; jr++ {
-								work.Set((jw+2)*(*n)+jr-1, xscale*work.Get((jw+2)*(*n)+jr-1))
+								work.Set((jw+2)*n+jr-1, xscale*work.Get((jw+2)*n+jr-1))
 							}
 						}
 						xmax = xmax * xscale
@@ -724,19 +724,19 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 					//                 sums.
 					for ja = 1; ja <= na; ja++ {
 						if ilcplx {
-							creala = acoef * work.Get(2*(*n)+j+ja-1-1)
-							cimaga = acoef * work.Get(3*(*n)+j+ja-1-1)
-							crealb = bcoefr*work.Get(2*(*n)+j+ja-1-1) - bcoefi*work.Get(3*(*n)+j+ja-1-1)
-							cimagb = bcoefi*work.Get(2*(*n)+j+ja-1-1) + bcoefr*work.Get(3*(*n)+j+ja-1-1)
+							creala = acoef * work.Get(2*n+j+ja-1-1)
+							cimaga = acoef * work.Get(3*n+j+ja-1-1)
+							crealb = bcoefr*work.Get(2*n+j+ja-1-1) - bcoefi*work.Get(3*n+j+ja-1-1)
+							cimagb = bcoefi*work.Get(2*n+j+ja-1-1) + bcoefr*work.Get(3*n+j+ja-1-1)
 							for jr = 1; jr <= j-1; jr++ {
-								work.Set(2*(*n)+jr-1, work.Get(2*(*n)+jr-1)-creala*s.Get(jr-1, j+ja-1-1)+crealb*p.Get(jr-1, j+ja-1-1))
-								work.Set(3*(*n)+jr-1, work.Get(3*(*n)+jr-1)-cimaga*s.Get(jr-1, j+ja-1-1)+cimagb*p.Get(jr-1, j+ja-1-1))
+								work.Set(2*n+jr-1, work.Get(2*n+jr-1)-creala*s.Get(jr-1, j+ja-1-1)+crealb*p.Get(jr-1, j+ja-1-1))
+								work.Set(3*n+jr-1, work.Get(3*n+jr-1)-cimaga*s.Get(jr-1, j+ja-1-1)+cimagb*p.Get(jr-1, j+ja-1-1))
 							}
 						} else {
-							creala = acoef * work.Get(2*(*n)+j+ja-1-1)
-							crealb = bcoefr * work.Get(2*(*n)+j+ja-1-1)
+							creala = acoef * work.Get(2*n+j+ja-1-1)
+							crealb = bcoefr * work.Get(2*n+j+ja-1-1)
 							for jr = 1; jr <= j-1; jr++ {
-								work.Set(2*(*n)+jr-1, work.Get(2*(*n)+jr-1)-creala*s.Get(jr-1, j+ja-1-1)+crealb*p.Get(jr-1, j+ja-1-1))
+								work.Set(2*n+jr-1, work.Get(2*n+jr-1)-creala*s.Get(jr-1, j+ja-1-1)+crealb*p.Get(jr-1, j+ja-1-1))
 							}
 						}
 					}
@@ -752,30 +752,30 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 			if ilback {
 
 				for jw = 0; jw <= nw-1; jw++ {
-					for jr = 1; jr <= (*n); jr++ {
-						work.Set((jw+4)*(*n)+jr-1, work.Get((jw+2)*(*n))*vr.Get(jr-1, 0))
+					for jr = 1; jr <= n; jr++ {
+						work.Set((jw+4)*n+jr-1, work.Get((jw+2)*n)*vr.Get(jr-1, 0))
 					}
 
 					//                 A series of compiler directives to defeat
 					//                 vectorization for the next loop
 					for jc = 2; jc <= je; jc++ {
-						for jr = 1; jr <= (*n); jr++ {
-							work.Set((jw+4)*(*n)+jr-1, work.Get((jw+4)*(*n)+jr-1)+work.Get((jw+2)*(*n)+jc-1)*vr.Get(jr-1, jc-1))
+						for jr = 1; jr <= n; jr++ {
+							work.Set((jw+4)*n+jr-1, work.Get((jw+4)*n+jr-1)+work.Get((jw+2)*n+jc-1)*vr.Get(jr-1, jc-1))
 						}
 					}
 				}
 
 				for jw = 0; jw <= nw-1; jw++ {
-					for jr = 1; jr <= (*n); jr++ {
-						vr.Set(jr-1, ieig+jw-1, work.Get((jw+4)*(*n)+jr-1))
+					for jr = 1; jr <= n; jr++ {
+						vr.Set(jr-1, ieig+jw-1, work.Get((jw+4)*n+jr-1))
 					}
 				}
 
-				iend = (*n)
+				iend = n
 			} else {
 				for jw = 0; jw <= nw-1; jw++ {
-					for jr = 1; jr <= (*n); jr++ {
-						vr.Set(jr-1, ieig+jw-1, work.Get((jw+2)*(*n)+jr-1))
+					for jr = 1; jr <= n; jr++ {
+						vr.Set(jr-1, ieig+jw-1, work.Get((jw+2)*n+jr-1))
 					}
 				}
 
@@ -805,4 +805,6 @@ func Dtgevc(side, howmny byte, _select []bool, n *int, s *mat.Matrix, lds *int, 
 		label500:
 		}
 	}
+
+	return
 }

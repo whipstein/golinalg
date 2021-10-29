@@ -11,21 +11,21 @@ import "github.com/whipstein/golinalg/mat"
 // If FORWRD = .FALSE., backward permutation:
 //
 //      X(I,*) is moved to X(K(I),*) for I = 1,2,...,M.
-func Dlapmr(forwrd bool, m, n *int, x *mat.Matrix, ldx *int, k *[]int) {
+func Dlapmr(forwrd bool, m, n int, x *mat.Matrix, k *[]int) {
 	var temp float64
 	var i, in, j, jj int
 
-	if (*m) <= 1 {
+	if m <= 1 {
 		return
 	}
 
-	for i = 1; i <= (*m); i++ {
+	for i = 1; i <= m; i++ {
 		(*k)[i-1] = -(*k)[i-1]
 	}
 
 	if forwrd {
 		//        Forward permutation
-		for i = 1; i <= (*m); i++ {
+		for i = 1; i <= m; i++ {
 
 			if (*k)[i-1] > 0 {
 				goto label40
@@ -41,7 +41,7 @@ func Dlapmr(forwrd bool, m, n *int, x *mat.Matrix, ldx *int, k *[]int) {
 				goto label40
 			}
 
-			for jj = 1; jj <= (*n); jj++ {
+			for jj = 1; jj <= n; jj++ {
 				temp = x.Get(j-1, jj-1)
 				x.Set(j-1, jj-1, x.Get(in-1, jj-1))
 				x.Set(in-1, jj-1, temp)
@@ -57,7 +57,7 @@ func Dlapmr(forwrd bool, m, n *int, x *mat.Matrix, ldx *int, k *[]int) {
 
 	} else {
 		//        Backward permutation
-		for i = 1; i <= (*m); i++ {
+		for i = 1; i <= m; i++ {
 
 			if (*k)[i-1] > 0 {
 				goto label80
@@ -71,7 +71,7 @@ func Dlapmr(forwrd bool, m, n *int, x *mat.Matrix, ldx *int, k *[]int) {
 				goto label80
 			}
 
-			for jj = 1; jj <= (*n); jj++ {
+			for jj = 1; jj <= n; jj++ {
 				temp = x.Get(i-1, jj-1)
 				x.Set(i-1, jj-1, x.Get(j-1, jj-1))
 				x.Set(j-1, jj-1, temp)

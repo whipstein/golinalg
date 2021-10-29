@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -21,16 +22,16 @@ import (
 //  are returned in descending order.  The first min(m,n) columns of
 //  U and V are the left and right singular vectors of A.
 //
-//  DGESVDX uses an eigenvalue problem for obtaining the SVD, which
+//  Dgesvdx uses an eigenvalue problem for obtaining the SVD, which
 //  allows for the computation of a subset of singular values and
 //  vectors. See DBDSVDX for details.
 //
 //  Note that the routine returns V**T, not V.
-func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, vu *float64, il, iu, ns *int, s *mat.Vector, u *mat.Matrix, ldu *int, vt *mat.Matrix, ldvt *int, work *mat.Vector, lwork *int, iwork *[]int, info *int) {
+func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, il, iu int, s *mat.Vector, u, vt *mat.Matrix, work *mat.Vector, lwork int, iwork *[]int) (ns, info int, err error) {
 	var alls, inds, lquery, vals, wantu, wantvt bool
 	var jobz, rngtgk byte
 	var anrm, bignum, eps, one, smlnum, zero float64
-	var i, id, ie, ierr, ilqf, iltgk, iqrf, iscl, itau, itaup, itauq, itemp, itgkz, iutgk, j, maxwrk, minmn, minwrk, mnthr int
+	var i, id, ie, ilqf, iltgk, iqrf, iscl, itau, itaup, itauq, itemp, itgkz, iutgk, j, maxwrk, minmn, minwrk, mnthr int
 
 	dum := vf(1)
 
@@ -38,11 +39,9 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	one = 1.0
 
 	//     Test the input arguments.
-	(*ns) = 0
-	(*info) = 0
 	// abstol = 2 * Dlamch(SafeMinimum)
-	lquery = ((*lwork) == -1)
-	minmn = min(*m, *n)
+	lquery = (lwork == -1)
+	minmn = min(m, n)
 	wantu = jobu == 'V'
 	wantvt = jobvt == 'V'
 	if wantu || wantvt {
@@ -54,43 +53,42 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	vals = _range == 'V'
 	inds = _range == 'I'
 
-	(*info) = 0
 	if jobu != 'V' && jobu != 'N' {
-		(*info) = -1
+		err = fmt.Errorf("jobu != 'V' && jobu != 'N': jobu='%c'", jobu)
 	} else if jobvt != 'V' && jobvt != 'N' {
-		(*info) = -2
+		err = fmt.Errorf("jobvt != 'V' && jobvt != 'N': jobvt='%c'", jobvt)
 	} else if !(alls || vals || inds) {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*n) < 0 {
-		(*info) = -5
-	} else if (*m) > (*lda) {
-		(*info) = -7
+		err = fmt.Errorf("!(alls || vals || inds): _range='%c'", _range)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if m > a.Rows {
+		err = fmt.Errorf("m > a.Rows: a.Rows=%v, m=%v", a.Rows, m)
 	} else if minmn > 0 {
 		if vals {
-			if (*vl) < zero {
-				(*info) = -8
-			} else if (*vu) <= (*vl) {
-				(*info) = -9
+			if vl < zero {
+				err = fmt.Errorf("vl < zero: _range='%c', vl=%v", _range, vl)
+			} else if vu <= vl {
+				err = fmt.Errorf("vu <= vl: _range='%c', vl=%v, vu=%v", _range, vl, vu)
 			}
 		} else if inds {
-			if (*il) < 1 || (*il) > max(1, minmn) {
-				(*info) = -10
-			} else if (*iu) < min(minmn, *il) || (*iu) > minmn {
-				(*info) = -11
+			if il < 1 || il > max(1, minmn) {
+				err = fmt.Errorf("il < 1 || il > max(1, minmn): _range='%c', il=%v, m=%v, n=%v", _range, il, m, n)
+			} else if iu < min(minmn, il) || iu > minmn {
+				err = fmt.Errorf("iu < min(minmn, il) || iu > minmn: _range='%c', il=%v, iu=%v, m=%v, n=%v", _range, il, iu, m, n)
 			}
 		}
-		if (*info) == 0 {
-			if wantu && (*ldu) < (*m) {
-				(*info) = -15
+		if err == nil {
+			if wantu && u.Rows < m {
+				err = fmt.Errorf("wantu && u.Rows < m: jobu='%c', u.Rows=%v, m=%v", jobu, u.Rows, m)
 			} else if wantvt {
 				if inds {
-					if (*ldvt) < (*iu)-(*il)+1 {
-						(*info) = -17
+					if vt.Rows < iu-il+1 {
+						err = fmt.Errorf("vt.Rows < iu-il+1: jobvt='%c', _range='%c', vt.Rows=%v, il=%v, iu=%v", jobvt, _range, vt.Rows, il, iu)
 					}
-				} else if (*ldvt) < minmn {
-					(*info) = -17
+				} else if vt.Rows < minmn {
+					err = fmt.Errorf("vt.Rows < minmn: jobvt='%c', _range='%c', vt.Rows=%v, m=%v, n=%v", jobvt, _range, vt.Rows, m, n)
 				}
 			}
 		}
@@ -102,77 +100,77 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	//     as well as the preferred amount for good performance.
 	//     NB refers to the optimal block size for the immediately
 	//     following subroutine, as returned by ILAENV.)
-	if (*info) == 0 {
+	if err == nil {
 		minwrk = 1
 		maxwrk = 1
 		if minmn > 0 {
-			if (*m) >= (*n) {
-				mnthr = Ilaenv(toPtr(6), []byte("DGESVD"), []byte{jobu, jobvt}, m, n, toPtr(0), toPtr(0))
-				if (*m) >= mnthr {
+			if m >= n {
+				mnthr = Ilaenv(6, "Dgesvd", []byte{jobu, jobvt}, m, n, 0, 0)
+				if m >= mnthr {
 					//                 Path 1 (M much larger than N)
-					maxwrk = (*n) + (*n)*Ilaenv(toPtr(1), []byte("DGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = max(maxwrk, (*n)*((*n)+5)+2*(*n)*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+					maxwrk = n + n*Ilaenv(1, "Dgeqrf", []byte{' '}, m, n, -1, -1)
+					maxwrk = max(maxwrk, n*(n+5)+2*n*Ilaenv(1, "Dgebrd", []byte{' '}, n, n, -1, -1))
 					if wantu {
-						maxwrk = max(maxwrk, (*n)*((*n)*3+6)+(*n)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, n*(n*3+6)+n*Ilaenv(1, "Dormqr", []byte{' '}, n, n, -1, -1))
 					}
 					if wantvt {
-						maxwrk = max(maxwrk, (*n)*((*n)*3+6)+(*n)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, n*(n*3+6)+n*Ilaenv(1, "Dormlq", []byte{' '}, n, n, -1, -1))
 					}
-					minwrk = (*n) * ((*n)*3 + 20)
+					minwrk = n * (n*3 + 20)
 				} else {
 					//                 Path 2 (M at least N, but not much larger)
-					maxwrk = 4*(*n) + ((*m)+(*n))*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
+					maxwrk = 4*n + (m+n)*Ilaenv(1, "Dgebrd", []byte{' '}, m, n, -1, -1)
 					if wantu {
-						maxwrk = max(maxwrk, (*n)*((*n)*2+5)+(*n)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, n*(n*2+5)+n*Ilaenv(1, "Dormqr", []byte{' '}, n, n, -1, -1))
 					}
 					if wantvt {
-						maxwrk = max(maxwrk, (*n)*((*n)*2+5)+(*n)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, n, n, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, n*(n*2+5)+n*Ilaenv(1, "Dormlq", []byte{' '}, n, n, -1, -1))
 					}
-					minwrk = max((*n)*((*n)*2+19), 4*(*n)+(*m))
+					minwrk = max(n*(n*2+19), 4*n+m)
 				}
 			} else {
-				mnthr = Ilaenv(toPtr(6), []byte("DGESVD"), []byte{jobu, jobvt}, m, n, toPtr(0), toPtr(0))
-				if (*n) >= mnthr {
+				mnthr = Ilaenv(6, "Dgesvd", []byte{jobu, jobvt}, m, n, 0, 0)
+				if n >= mnthr {
 					//                 Path 1t (N much larger than M)
-					maxwrk = (*m) + (*m)*Ilaenv(toPtr(1), []byte("DGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = max(maxwrk, (*m)*((*m)+5)+2*(*m)*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+					maxwrk = m + m*Ilaenv(1, "Dgelqf", []byte{' '}, m, n, -1, -1)
+					maxwrk = max(maxwrk, m*(m+5)+2*m*Ilaenv(1, "Dgebrd", []byte{' '}, m, m, -1, -1))
 					if wantu {
-						maxwrk = max(maxwrk, (*m)*((*m)*3+6)+(*m)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, m*(m*3+6)+m*Ilaenv(1, "Dormqr", []byte{' '}, m, m, -1, -1))
 					}
 					if wantvt {
-						maxwrk = max(maxwrk, (*m)*((*m)*3+6)+(*m)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, m*(m*3+6)+m*Ilaenv(1, "Dormlq", []byte{' '}, m, m, -1, -1))
 					}
-					minwrk = (*m) * ((*m)*3 + 20)
+					minwrk = m * (m*3 + 20)
 				} else {
 					//                 Path 2t (N at least M, but not much larger)
-					maxwrk = 4*(*m) + ((*m)+(*n))*Ilaenv(toPtr(1), []byte("DGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
+					maxwrk = 4*m + (m+n)*Ilaenv(1, "Dgebrd", []byte{' '}, m, n, -1, -1)
 					if wantu {
-						maxwrk = max(maxwrk, (*m)*((*m)*2+5)+(*m)*Ilaenv(toPtr(1), []byte("DORMQR"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, m*(m*2+5)+m*Ilaenv(1, "Dormqr", []byte{' '}, m, m, -1, -1))
 					}
 					if wantvt {
-						maxwrk = max(maxwrk, (*m)*((*m)*2+5)+(*m)*Ilaenv(toPtr(1), []byte("DORMLQ"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
+						maxwrk = max(maxwrk, m*(m*2+5)+m*Ilaenv(1, "Dormlq", []byte{' '}, m, m, -1, -1))
 					}
-					minwrk = max((*m)*((*m)*2+19), 4*(*m)+(*n))
+					minwrk = max(m*(m*2+19), 4*m+n)
 				}
 			}
 		}
 		maxwrk = max(maxwrk, minwrk)
 		work.Set(0, float64(maxwrk))
 
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -19
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGESVDX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgesvdx", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
@@ -180,11 +178,11 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	if alls {
 		rngtgk = 'I'
 		iltgk = 1
-		iutgk = min(*m, *n)
+		iutgk = min(m, n)
 	} else if inds {
 		rngtgk = 'I'
-		iltgk = (*il)
-		iutgk = (*iu)
+		iltgk = il
+		iutgk = iu
 	} else {
 		rngtgk = 'V'
 		iltgk = 0
@@ -197,21 +195,25 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	bignum = one / smlnum
 
 	//     Scale A if max element outside _range [SMLNUM,BIGNUM]
-	anrm = Dlange('M', m, n, a, lda, dum)
+	anrm = Dlange('M', m, n, a, dum)
 	iscl = 0
 	if anrm > zero && anrm < smlnum {
 		iscl = 1
-		Dlascl('G', toPtr(0), toPtr(0), &anrm, &smlnum, m, n, a, lda, info)
+		if err = Dlascl('G', 0, 0, anrm, smlnum, m, n, a); err != nil {
+			panic(err)
+		}
 	} else if anrm > bignum {
 		iscl = 1
-		Dlascl('G', toPtr(0), toPtr(0), &anrm, &bignum, m, n, a, lda, info)
+		if err = Dlascl('G', 0, 0, anrm, bignum, m, n, a); err != nil {
+			panic(err)
+		}
 	}
 
-	if (*m) >= (*n) {
+	if m >= n {
 		//        A has at least as many rows as columns. If A has sufficiently
 		//        more rows than columns, first reduce A using the QR
 		//        decomposition.
-		if (*m) >= mnthr {
+		if m >= mnthr {
 			//           Path 1 (M much larger than N):
 			//           A = Q * R = Q * ( QB * B * PB**T )
 			//                     = Q * ( QB * ( UB * S * VB**T ) * PB**T )
@@ -220,56 +222,66 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			//           Compute A=Q*R
 			//           (Workspace: need 2*N, prefer N+N*NB)
 			itau = 1
-			itemp = itau + (*n)
-			Dgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+			itemp = itau + n
+			if err = Dgeqrf(m, n, a, work.Off(itau-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+				panic(err)
+			}
 
 			//           Copy R into WORK and bidiagonalize it:
 			//           (Workspace: need N*N+5*N, prefer N*N+4*N+2*N*NB)
 			iqrf = itemp
-			id = iqrf + (*n)*(*n)
-			ie = id + (*n)
-			itauq = ie + (*n)
-			itaup = itauq + (*n)
-			itemp = itaup + (*n)
-			Dlacpy('U', n, n, a, lda, work.MatrixOff(iqrf-1, *n, opts), n)
-			Dlaset('L', toPtr((*n)-1), toPtr((*n)-1), &zero, &zero, work.MatrixOff(iqrf, *n, opts), n)
-			Dgebrd(n, n, work.MatrixOff(iqrf-1, *n, opts), n, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+			id = iqrf + n*n
+			ie = id + n
+			itauq = ie + n
+			itaup = itauq + n
+			itemp = itaup + n
+			Dlacpy(Upper, n, n, a, work.MatrixOff(iqrf-1, n, opts))
+			Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iqrf, n, opts))
+			if err = Dgebrd(n, n, work.MatrixOff(iqrf-1, n, opts), work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+				panic(err)
+			}
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 14*N + 2*N*(N+1))
 			itgkz = itemp
-			itemp = itgkz + (*n)*((*n)*2+1)
-			Dbdsvdx('U', jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, &iltgk, &iutgk, ns, s, work.MatrixOff(itgkz-1, (*n)*2, opts), toPtr((*n)*2), work.Off(itemp-1), iwork, info)
+			itemp = itgkz + n*(n*2+1)
+			info, err = Dbdsvdx(Upper, jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, n*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), u.Vector(0, i-1, 1))
-					j = j + (*n)*2
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(n, work.Off(j-1), u.Vector(0, i-1, 1))
+					j = j + n*2
 				}
-				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n), 0), ldu)
+				Dlaset(Full, m-n, ns, zero, zero, u.Off(n, 0))
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				Dormbr('Q', 'L', 'N', n, ns, n, work.MatrixOff(iqrf-1, *n, opts), n, work.Off(itauq-1), u, ldu, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormbr('Q', Left, NoTrans, n, ns, n, work.MatrixOff(iqrf-1, n, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 
-				//              Call DORMQR to compute Q*(QB*UB).
+				//              Call Dormqr to compute Q*(QB*UB).
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				Dormqr('L', 'N', m, ns, n, a, lda, work.Off(itau-1), u, ldu, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormqr(Left, NoTrans, m, ns, n, a, work.Off(itau-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 
 			//           If needed, compute right singular vectors.
 			if wantvt {
-				j = itgkz + (*n)
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), vt.Vector(i-1, 0))
-					j = j + (*n)*2
+				j = itgkz + n
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(n, work.Off(j-1), vt.Vector(i-1, 0))
+					j = j + n*2
 				}
 
 				//              Call DORMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				Dormbr('P', 'R', 'T', ns, n, n, work.MatrixOff(iqrf-1, *n, opts), n, work.Off(itaup-1), vt, ldvt, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormbr('P', Right, Trans, ns, n, n, work.MatrixOff(iqrf-1, n, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 		} else {
 			//           Path 2 (M at least N, but not much larger)
@@ -280,49 +292,55 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			//           Bidiagonalize A
 			//           (Workspace: need 4*N+M, prefer 4*N+(M+N)*NB)
 			id = 1
-			ie = id + (*n)
-			itauq = ie + (*n)
-			itaup = itauq + (*n)
-			itemp = itaup + (*n)
-			Dgebrd(m, n, a, lda, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+			ie = id + n
+			itauq = ie + n
+			itaup = itauq + n
+			itemp = itaup + n
+			if err = Dgebrd(m, n, a, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+				panic(err)
+			}
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 14*N + 2*N*(N+1))
 			itgkz = itemp
-			itemp = itgkz + (*n)*((*n)*2+1)
-			Dbdsvdx('U', jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, &iltgk, &iutgk, ns, s, work.MatrixOff(itgkz-1, (*n)*2, opts), toPtr((*n)*2), work.Off(itemp-1), iwork, info)
+			itemp = itgkz + n*(n*2+1)
+			info, err = Dbdsvdx(Upper, jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, n*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), u.Vector(0, i-1, 1))
-					j = j + (*n)*2
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(n, work.Off(j-1), u.Vector(0, i-1, 1))
+					j = j + n*2
 				}
-				Dlaset('A', toPtr((*m)-(*n)), ns, &zero, &zero, u.Off((*n), 0), ldu)
+				Dlaset(Full, m-n, ns, zero, zero, u.Off(n, 0))
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				Dormbr('Q', 'L', 'N', m, ns, n, a, lda, work.Off(itauq-1), u, ldu, work.Off(itemp-1), toPtr((*lwork)-itemp+1), &ierr)
+				if err = Dormbr('Q', Left, NoTrans, m, ns, n, a, work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 
 			//           If needed, compute right singular vectors.
 			if wantvt {
-				j = itgkz + (*n)
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*n, work.Off(j-1), vt.Vector(i-1, 0))
-					j = j + (*n)*2
+				j = itgkz + n
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(n, work.Off(j-1), vt.Vector(i-1, 0))
+					j = j + n*2
 				}
 
 				//              Call DORMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				Dormbr('P', 'R', 'T', ns, n, n, a, lda, work.Off(itaup-1), vt, ldvt, work.Off(itemp-1), toPtr((*lwork)-itemp+1), &ierr)
+				if err = Dormbr('P', Right, Trans, ns, n, n, a, work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 		}
 	} else {
 		//        A has more columns than rows. If A has sufficiently more
 		//        columns than rows, first reduce A using the LQ decomposition.
-		if (*n) >= mnthr {
+		if n >= mnthr {
 			//           Path 1t (N much larger than M):
 			//           A = L * Q = ( QB * B * PB**T ) * Q
 			//                     = ( QB * ( UB * S * VB**T ) * PB**T ) * Q
@@ -331,57 +349,67 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			//           Compute A=L*Q
 			//           (Workspace: need 2*M, prefer M+M*NB)
 			itau = 1
-			itemp = itau + (*m)
-			Dgelqf(m, n, a, lda, work.Off(itau-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+			itemp = itau + m
+			if err = Dgelqf(m, n, a, work.Off(itau-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+				panic(err)
+			}
 			//           Copy L into WORK and bidiagonalize it:
 			//           (Workspace in WORK( ITEMP ): need M*M+5*N, prefer M*M+4*M+2*M*NB)
 
 			ilqf = itemp
-			id = ilqf + (*m)*(*m)
-			ie = id + (*m)
-			itauq = ie + (*m)
-			itaup = itauq + (*m)
-			itemp = itaup + (*m)
-			Dlacpy('L', m, m, a, lda, work.MatrixOff(ilqf-1, *m, opts), m)
-			Dlaset('U', toPtr((*m)-1), toPtr((*m)-1), &zero, &zero, work.MatrixOff(ilqf+(*m)-1, *m, opts), m)
-			Dgebrd(m, m, work.MatrixOff(ilqf-1, *m, opts), m, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+			id = ilqf + m*m
+			ie = id + m
+			itauq = ie + m
+			itaup = itauq + m
+			itemp = itaup + m
+			Dlacpy(Lower, m, m, a, work.MatrixOff(ilqf-1, m, opts))
+			Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ilqf+m-1, m, opts))
+			if err = Dgebrd(m, m, work.MatrixOff(ilqf-1, m, opts), work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+				panic(err)
+			}
 			//
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 2*M*M+14*M)
 
 			itgkz = itemp
-			itemp = itgkz + (*m)*((*m)*2+1)
-			Dbdsvdx('U', jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, &iltgk, &iutgk, ns, s, work.MatrixOff(itgkz-1, (*m)*2, opts), toPtr((*m)*2), work.Off(itemp-1), iwork, info)
+			itemp = itgkz + m*(m*2+1)
+			info, err = Dbdsvdx(Upper, jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, m*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), u.Vector(0, i-1, 1))
-					j = j + (*m)*2
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(m, work.Off(j-1), u.Vector(0, i-1, 1))
+					j = j + m*2
 				}
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				Dormbr('Q', 'L', 'N', m, ns, m, work.MatrixOff(ilqf-1, *m, opts), m, work.Off(itauq-1), u, ldu, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormbr('Q', Left, NoTrans, m, ns, m, work.MatrixOff(ilqf-1, m, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 
 			//           If needed, compute right singular vectors.
 			if wantvt {
-				j = itgkz + (*m)
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), vt.Vector(i-1, 0))
-					j = j + (*m)*2
+				j = itgkz + m
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(m, work.Off(j-1), vt.Vector(i-1, 0))
+					j = j + m*2
 				}
-				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)), ldvt)
+				Dlaset(Full, ns, n-m, zero, zero, vt.Off(0, m))
 
 				//              Call DORMBR to compute (VB**T)*(PB**T)
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				Dormbr('P', 'R', 'T', ns, m, m, work.MatrixOff(ilqf-1, *m, opts), m, work.Off(itaup-1), vt, ldvt, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormbr('P', Right, Trans, ns, m, m, work.MatrixOff(ilqf-1, m, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 
-				//              Call DORMLQ to compute ((VB**T)*(PB**T))*Q.
+				//              Call Dormlq to compute ((VB**T)*(PB**T))*Q.
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				Dormlq('R', 'N', ns, n, m, a, lda, work.Off(itau-1), vt, ldvt, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormlq(Right, NoTrans, ns, n, m, a, work.Off(itau-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 		} else {
 			//           Path 2t (N greater than M, but not much larger)
@@ -392,43 +420,49 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 			//           Bidiagonalize A
 			//           (Workspace: need 4*M+N, prefer 4*M+(M+N)*NB)
 			id = 1
-			ie = id + (*m)
-			itauq = ie + (*m)
-			itaup = itauq + (*m)
-			itemp = itaup + (*m)
-			Dgebrd(m, n, a, lda, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+			ie = id + m
+			itauq = ie + m
+			itaup = itauq + m
+			itemp = itaup + m
+			if err = Dgebrd(m, n, a, work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+				panic(err)
+			}
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 2*M*M+14*M)
 			itgkz = itemp
-			itemp = itgkz + (*m)*((*m)*2+1)
-			Dbdsvdx('L', jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, &iltgk, &iutgk, ns, s, work.MatrixOff(itgkz-1, (*m)*2, opts), toPtr((*m)*2), work.Off(itemp-1), iwork, info)
+			itemp = itgkz + m*(m*2+1)
+			info, err = Dbdsvdx(Lower, jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, m*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), u.Vector(0, i-1, 1))
-					j = j + (*m)*2
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(m, work.Off(j-1), u.Vector(0, i-1, 1))
+					j = j + m*2
 				}
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				Dormbr('Q', 'L', 'N', m, ns, n, a, lda, work.Off(itauq-1), u, ldu, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormbr('Q', Left, NoTrans, m, ns, n, a, work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 
 			//           If needed, compute right singular vectors.
 			if wantvt {
-				j = itgkz + (*m)
-				for i = 1; i <= (*ns); i++ {
-					goblas.Dcopy(*m, work.Off(j-1), vt.Vector(i-1, 0))
-					j = j + (*m)*2
+				j = itgkz + m
+				for i = 1; i <= ns; i++ {
+					goblas.Dcopy(m, work.Off(j-1), vt.Vector(i-1, 0))
+					j = j + m*2
 				}
-				Dlaset('A', ns, toPtr((*n)-(*m)), &zero, &zero, vt.Off(0, (*m)), ldvt)
+				Dlaset(Full, ns, n-m, zero, zero, vt.Off(0, m))
 
 				//              Call DORMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				Dormbr('P', 'R', 'T', ns, n, m, a, lda, work.Off(itaup-1), vt, ldvt, work.Off(itemp-1), toPtr((*lwork)-itemp+1), info)
+				if err = Dormbr('P', Right, Trans, ns, n, m, a, work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -436,13 +470,19 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n *int, a *mat.Matrix, lda *int, vl, v
 	//     Undo scaling if necessary
 	if iscl == 1 {
 		if anrm > bignum {
-			Dlascl('G', toPtr(0), toPtr(0), &bignum, &anrm, &minmn, toPtr(1), s.Matrix(minmn, opts), &minmn, info)
+			if err = Dlascl('G', 0, 0, bignum, anrm, minmn, 1, s.Matrix(minmn, opts)); err != nil {
+				panic(err)
+			}
 		}
 		if anrm < smlnum {
-			Dlascl('G', toPtr(0), toPtr(0), &smlnum, &anrm, &minmn, toPtr(1), s.Matrix(minmn, opts), &minmn, info)
+			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn, 1, s.Matrix(minmn, opts)); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	//     Return optimal workspace in WORK(1)
 	work.Set(0, float64(maxwrk))
+
+	return
 }

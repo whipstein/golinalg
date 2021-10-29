@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/mat"
@@ -43,7 +44,7 @@ import (
 //
 // Note: the arguments are, in general, *not* checked for unreasonable
 // values.
-func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *float64, d, e, e2 *mat.Vector, nval *[]int, ab *mat.Matrix, c *mat.Vector, mout *int, nab *[]int, work *mat.Vector, iwork *[]int, info *int) {
+func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin int, abstol, reltol, pivmin float64, d, e, e2 *mat.Vector, nval *[]int, ab *mat.Matrix, c *mat.Vector, nab *[]int, work *mat.Vector, iwork *[]int) (mout, info int, err error) {
 	var half, tmp1, tmp2, two, zero float64
 	var itmp1, itmp2, j, ji, jit, jp, kf, kfnew, kl, klnew int
 
@@ -52,38 +53,37 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 	half = 1.0 / two
 
 	//     Check for Errors
-	(*info) = 0
-	if (*ijob) < 1 || (*ijob) > 3 {
-		(*info) = -1
+	if ijob < 1 || ijob > 3 {
+		err = fmt.Errorf("ijob < 1 || ijob > 3: ijob=%v", ijob)
 		return
 	}
 
 	//     Initialize NAB
-	if (*ijob) == 1 {
+	if ijob == 1 {
 		//        Compute the number of eigenvalues in the initial intervals.
-		(*mout) = 0
-		for ji = 1; ji <= (*minp); ji++ {
+		mout = 0
+		for ji = 1; ji <= minp; ji++ {
 			for jp = 1; jp <= 2; jp++ {
 				tmp1 = d.Get(0) - ab.Get(ji-1, jp-1)
-				if math.Abs(tmp1) < (*pivmin) {
-					tmp1 = -(*pivmin)
+				if math.Abs(tmp1) < pivmin {
+					tmp1 = -pivmin
 				}
-				(*nab)[ji-1+(jp-1)*(*mmax)] = 0
+				(*nab)[ji-1+(jp-1)*mmax] = 0
 				if tmp1 <= zero {
-					(*nab)[ji-1+(jp-1)*(*mmax)] = 1
+					(*nab)[ji-1+(jp-1)*mmax] = 1
 				}
 
-				for j = 2; j <= (*n); j++ {
+				for j = 2; j <= n; j++ {
 					tmp1 = d.Get(j-1) - e2.Get(j-1-1)/tmp1 - ab.Get(ji-1, jp-1)
-					if math.Abs(tmp1) < (*pivmin) {
-						tmp1 = -(*pivmin)
+					if math.Abs(tmp1) < pivmin {
+						tmp1 = -pivmin
 					}
 					if tmp1 <= zero {
-						(*nab)[ji-1+(jp-1)*(*mmax)] = (*nab)[ji-1+(jp-1)*(*mmax)] + 1
+						(*nab)[ji-1+(jp-1)*mmax] = (*nab)[ji-1+(jp-1)*mmax] + 1
 					}
 				}
 			}
-			(*mout) = (*mout) + (*nab)[ji-1+(1)*(*mmax)] - (*nab)[ji-1+(0)*(*mmax)]
+			mout = mout + (*nab)[ji-1+(1)*mmax] - (*nab)[ji-1+(0)*mmax]
 		}
 		return
 	}
@@ -94,74 +94,74 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 	//        Intervals 1,...,KF-1 have converged.
 	//        Intervals KF,...,KL  still need to be refined.
 	kf = 1
-	kl = (*minp)
+	kl = minp
 
 	//     If IJOB=2, initialize C.
 	//     If IJOB=3, use the user-supplied starting point.
-	if (*ijob) == 2 {
-		for ji = 1; ji <= (*minp); ji++ {
+	if ijob == 2 {
+		for ji = 1; ji <= minp; ji++ {
 			c.Set(ji-1, half*(ab.Get(ji-1, 0)+ab.Get(ji-1, 1)))
 		}
 	}
 
 	//     Iteration loop
-	for jit = 1; jit <= (*nitmax); jit++ {
+	for jit = 1; jit <= nitmax; jit++ {
 		//        Loop over intervals
-		if kl-kf+1 >= (*nbmin) && (*nbmin) > 0 {
+		if kl-kf+1 >= nbmin && nbmin > 0 {
 			//           Begin of Parallel Version of the loop
 			for ji = kf; ji <= kl; ji++ {
 				//              Compute N(c), the number of eigenvalues less than c
 				work.Set(ji-1, d.Get(0)-c.Get(ji-1))
 				(*iwork)[ji-1] = 0
-				if work.Get(ji-1) <= (*pivmin) {
+				if work.Get(ji-1) <= pivmin {
 					(*iwork)[ji-1] = 1
-					work.Set(ji-1, math.Min(work.Get(ji-1), -(*pivmin)))
+					work.Set(ji-1, math.Min(work.Get(ji-1), -pivmin))
 				}
 
-				for j = 2; j <= (*n); j++ {
+				for j = 2; j <= n; j++ {
 					work.Set(ji-1, d.Get(j-1)-e2.Get(j-1-1)/work.Get(ji-1)-c.Get(ji-1))
-					if work.Get(ji-1) <= (*pivmin) {
+					if work.Get(ji-1) <= pivmin {
 						(*iwork)[ji-1] = (*iwork)[ji-1] + 1
-						work.Set(ji-1, math.Min(work.Get(ji-1), -(*pivmin)))
+						work.Set(ji-1, math.Min(work.Get(ji-1), -pivmin))
 					}
 				}
 			}
 
-			if (*ijob) <= 2 {
+			if ijob <= 2 {
 				//              IJOB=2: Choose all intervals containing eigenvalues.
 				klnew = kl
 				for ji = kf; ji <= kl; ji++ {
 					//                 Insure that N(w) is monotone
-					(*iwork)[ji-1] = min((*nab)[ji-1+(1)*(*mmax)], max((*nab)[ji-1+(0)*(*mmax)], (*iwork)[ji-1]))
+					(*iwork)[ji-1] = min((*nab)[ji-1+(1)*mmax], max((*nab)[ji-1+(0)*mmax], (*iwork)[ji-1]))
 
 					//                 Update the Queue -- add intervals if both halves
 					//                 contain eigenvalues.
-					if (*iwork)[ji-1] == (*nab)[ji-1+(1)*(*mmax)] {
+					if (*iwork)[ji-1] == (*nab)[ji-1+(1)*mmax] {
 						//                    No eigenvalue in the upper interval:
 						//                    just use the lower interval.
 						ab.Set(ji-1, 1, c.Get(ji-1))
 
-					} else if (*iwork)[ji-1] == (*nab)[ji-1+(0)*(*mmax)] {
+					} else if (*iwork)[ji-1] == (*nab)[ji-1+(0)*mmax] {
 						//                    No eigenvalue in the lower interval:
 						//                    just use the upper interval.
 						ab.Set(ji-1, 0, c.Get(ji-1))
 					} else {
 						klnew = klnew + 1
-						if klnew <= (*mmax) {
+						if klnew <= mmax {
 							//                       Eigenvalue in both intervals -- add upper to
 							//                       queue.
 							ab.Set(klnew-1, 1, ab.Get(ji-1, 1))
-							(*nab)[klnew-1+(1)*(*mmax)] = (*nab)[ji-1+(1)*(*mmax)]
+							(*nab)[klnew-1+(1)*mmax] = (*nab)[ji-1+(1)*mmax]
 							ab.Set(klnew-1, 0, c.Get(ji-1))
-							(*nab)[klnew-1+(0)*(*mmax)] = (*iwork)[ji-1]
+							(*nab)[klnew-1+(0)*mmax] = (*iwork)[ji-1]
 							ab.Set(ji-1, 1, c.Get(ji-1))
-							(*nab)[ji-1+(1)*(*mmax)] = (*iwork)[ji-1]
+							(*nab)[ji-1+(1)*mmax] = (*iwork)[ji-1]
 						} else {
-							(*info) = (*mmax) + 1
+							info = mmax + 1
 						}
 					}
 				}
-				if (*info) != 0 {
+				if info != 0 {
 					return
 				}
 				kl = klnew
@@ -171,11 +171,11 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 				for ji = kf; ji <= kl; ji++ {
 					if (*iwork)[ji-1] <= (*nval)[ji-1] {
 						ab.Set(ji-1, 0, c.Get(ji-1))
-						(*nab)[ji-1+(0)*(*mmax)] = (*iwork)[ji-1]
+						(*nab)[ji-1+(0)*mmax] = (*iwork)[ji-1]
 					}
 					if (*iwork)[ji-1] >= (*nval)[ji-1] {
 						ab.Set(ji-1, 1, c.Get(ji-1))
-						(*nab)[ji-1+(1)*(*mmax)] = (*iwork)[ji-1]
+						(*nab)[ji-1+(1)*mmax] = (*iwork)[ji-1]
 					}
 				}
 			}
@@ -190,47 +190,47 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 				tmp1 = c.Get(ji - 1)
 				tmp2 = d.Get(0) - tmp1
 				itmp1 = 0
-				if tmp2 <= (*pivmin) {
+				if tmp2 <= pivmin {
 					itmp1 = 1
-					tmp2 = math.Min(tmp2, -(*pivmin))
+					tmp2 = math.Min(tmp2, -pivmin)
 				}
 
-				for j = 2; j <= (*n); j++ {
+				for j = 2; j <= n; j++ {
 					tmp2 = d.Get(j-1) - e2.Get(j-1-1)/tmp2 - tmp1
-					if tmp2 <= (*pivmin) {
+					if tmp2 <= pivmin {
 						itmp1 = itmp1 + 1
-						tmp2 = math.Min(tmp2, -(*pivmin))
+						tmp2 = math.Min(tmp2, -pivmin)
 					}
 				}
 
-				if (*ijob) <= 2 {
+				if ijob <= 2 {
 					//                 IJOB=2: Choose all intervals containing eigenvalues.
 					//
 					//                 Insure that N(w) is monotone
-					itmp1 = min((*nab)[ji-1+(1)*(*mmax)], max((*nab)[ji-1+(0)*(*mmax)], itmp1))
+					itmp1 = min((*nab)[ji-1+(1)*mmax], max((*nab)[ji-1+(0)*mmax], itmp1))
 
 					//                 Update the Queue -- add intervals if both halves
 					//                 contain eigenvalues.
-					if itmp1 == (*nab)[ji-1+(1)*(*mmax)] {
+					if itmp1 == (*nab)[ji-1+(1)*mmax] {
 						//                    No eigenvalue in the upper interval:
 						//                    just use the lower interval.
 						ab.Set(ji-1, 1, tmp1)
 
-					} else if itmp1 == (*nab)[ji-1+(0)*(*mmax)] {
+					} else if itmp1 == (*nab)[ji-1+(0)*mmax] {
 						//                    No eigenvalue in the lower interval:
 						//                    just use the upper interval.
 						ab.Set(ji-1, 0, tmp1)
-					} else if klnew < (*mmax) {
+					} else if klnew < mmax {
 						//                    Eigenvalue in both intervals -- add upper to queue.
 						klnew = klnew + 1
 						ab.Set(klnew-1, 1, ab.Get(ji-1, 1))
-						(*nab)[klnew-1+(1)*(*mmax)] = (*nab)[ji-1+(1)*(*mmax)]
+						(*nab)[klnew-1+(1)*mmax] = (*nab)[ji-1+(1)*mmax]
 						ab.Set(klnew-1, 0, tmp1)
-						(*nab)[klnew-1+(0)*(*mmax)] = itmp1
+						(*nab)[klnew-1+(0)*mmax] = itmp1
 						ab.Set(ji-1, 1, tmp1)
-						(*nab)[ji-1+(1)*(*mmax)] = itmp1
+						(*nab)[ji-1+(1)*mmax] = itmp1
 					} else {
-						(*info) = (*mmax) + 1
+						info = mmax + 1
 						return
 					}
 				} else {
@@ -238,11 +238,11 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 					//                         containing  w  s.t. N(w) = NVAL
 					if itmp1 <= (*nval)[ji-1] {
 						ab.Set(ji-1, 0, tmp1)
-						(*nab)[ji-1+(0)*(*mmax)] = itmp1
+						(*nab)[ji-1+(0)*mmax] = itmp1
 					}
 					if itmp1 >= (*nval)[ji-1] {
 						ab.Set(ji-1, 1, tmp1)
-						(*nab)[ji-1+(1)*(*mmax)] = itmp1
+						(*nab)[ji-1+(1)*mmax] = itmp1
 					}
 				}
 			}
@@ -255,23 +255,23 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 		for ji = kf; ji <= kl; ji++ {
 			tmp1 = math.Abs(ab.Get(ji-1, 1) - ab.Get(ji-1, 0))
 			tmp2 = math.Max(math.Abs(ab.Get(ji-1, 1)), math.Abs(ab.Get(ji-1, 0)))
-			if tmp1 < math.Max(*abstol, math.Max(*pivmin, (*reltol)*tmp2)) || (*nab)[ji-1+(0)*(*mmax)] >= (*nab)[ji-1+(1)*(*mmax)] {
+			if tmp1 < math.Max(abstol, math.Max(pivmin, reltol*tmp2)) || (*nab)[ji-1+(0)*mmax] >= (*nab)[ji-1+(1)*mmax] {
 				//              Converged -- Swap with position KFNEW,
 				//                           then increment KFNEW
 				if ji > kfnew {
 					tmp1 = ab.Get(ji-1, 0)
 					tmp2 = ab.Get(ji-1, 1)
-					itmp1 = (*nab)[ji-1+(0)*(*mmax)]
-					itmp2 = (*nab)[ji-1+(1)*(*mmax)]
+					itmp1 = (*nab)[ji-1+(0)*mmax]
+					itmp2 = (*nab)[ji-1+(1)*mmax]
 					ab.Set(ji-1, 0, ab.Get(kfnew-1, 0))
 					ab.Set(ji-1, 1, ab.Get(kfnew-1, 1))
-					(*nab)[ji-1+(0)*(*mmax)] = (*nab)[kfnew-1+(0)*(*mmax)]
-					(*nab)[ji-1+(1)*(*mmax)] = (*nab)[kfnew-1+(1)*(*mmax)]
+					(*nab)[ji-1+(0)*mmax] = (*nab)[kfnew-1+(0)*mmax]
+					(*nab)[ji-1+(1)*mmax] = (*nab)[kfnew-1+(1)*mmax]
 					ab.Set(kfnew-1, 0, tmp1)
 					ab.Set(kfnew-1, 1, tmp2)
-					(*nab)[kfnew-1+(0)*(*mmax)] = itmp1
-					(*nab)[kfnew-1+(1)*(*mmax)] = itmp2
-					if (*ijob) == 3 {
+					(*nab)[kfnew-1+(0)*mmax] = itmp1
+					(*nab)[kfnew-1+(1)*mmax] = itmp2
+					if ijob == 3 {
 						itmp1 = (*nval)[ji-1]
 						(*nval)[ji-1] = (*nval)[kfnew-1]
 						(*nval)[kfnew-1] = itmp1
@@ -296,6 +296,8 @@ func Dlaebz(ijob, nitmax, n, mmax, minp, nbmin *int, abstol, reltol, pivmin *flo
 	//     Converged
 label140:
 	;
-	(*info) = max(kl+1-kf, 0)
-	(*mout) = kl
+	info = max(kl+1-kf, 0)
+	mout = kl
+
+	return
 }

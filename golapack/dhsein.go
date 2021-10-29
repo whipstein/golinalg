@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -16,7 +17,7 @@ import (
 //              H * x = w * x,     y**h * H = w * y**h
 //
 // where y**h denotes the conjugate transpose of the vector y.
-func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ldh *int, wr, wi *mat.Vector, vl *mat.Matrix, ldvl *int, vr *mat.Matrix, ldvr, mm, m *int, work *mat.Vector, ifaill, ifailr *[]int, info *int) {
+func Dhsein(side mat.MatSide, eigsrc, initv byte, _select *[]bool, n int, h *mat.Matrix, wr, wi *mat.Vector, vl, vr *mat.Matrix, mm int, work *mat.Vector, ifaill, ifailr *[]int) (m, info int, err error) {
 	var bothv, fromqr, leftv, noinit, pair, rightv bool
 	var bignum, eps3, hnorm, one, smlnum, ulp, unfl, wki, wkr, zero float64
 	var i, iinfo, k, kl, kln, kr, ksi, ksr, ldwork int
@@ -25,9 +26,9 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 	one = 1.0
 
 	//     Decode and test the input parameters.
-	bothv = side == 'B'
-	rightv = side == 'R' || bothv
-	leftv = side == 'L' || bothv
+	bothv = side == Both
+	rightv = side == Right || bothv
+	leftv = side == Left || bothv
 
 	fromqr = eigsrc == 'Q'
 
@@ -35,73 +36,72 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 
 	//     Set M to the number of columns required to store the selected
 	//     eigenvectors, and standardize the array SELECT.
-	(*m) = 0
+	m = 0
 	pair = false
-	for k = 1; k <= (*n); k++ {
+	for k = 1; k <= n; k++ {
 		if pair {
 			pair = false
 			(*_select)[k-1] = false
 		} else {
 			if wi.Get(k-1) == zero {
 				if (*_select)[k-1] {
-					(*m) = (*m) + 1
+					m = m + 1
 				}
 			} else {
 				pair = true
 				if (*_select)[k-1] || (*_select)[k] {
 					(*_select)[k-1] = true
-					(*m) = (*m) + 2
+					m = m + 2
 				}
 			}
 		}
 	}
 
-	(*info) = 0
 	if !rightv && !leftv {
-		(*info) = -1
+		err = fmt.Errorf("!rightv && !leftv: side=%s", side)
 	} else if !fromqr && eigsrc != 'N' {
-		(*info) = -2
+		err = fmt.Errorf("!fromqr && eigsrc != 'N': eigsrc='%c'", eigsrc)
 	} else if !noinit && initv != 'U' {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -5
-	} else if (*ldh) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldvl) < 1 || (leftv && (*ldvl) < (*n)) {
-		(*info) = -11
-	} else if (*ldvr) < 1 || (rightv && (*ldvr) < (*n)) {
-		(*info) = -13
-	} else if (*mm) < (*m) {
-		(*info) = -14
+		err = fmt.Errorf("!noinit && initv != 'U': initv='%c'", initv)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if h.Rows < max(1, n) {
+		err = fmt.Errorf("h.Rows < max(1, n): h.Rows=%v, n=%v", h.Rows, n)
+	} else if vl.Rows < 1 || (leftv && vl.Rows < n) {
+		err = fmt.Errorf("vl.Rows < 1 || (leftv && vl.Rows < n): side=%s, vl.Rows=%v, n=%v", side, vl.Rows, n)
+	} else if vr.Rows < 1 || (rightv && vr.Rows < n) {
+		err = fmt.Errorf("vr.Rows < 1 || (rightv && vr.Rows < n): side=%s, vr.Rows=%v, n=%v", side, vr.Rows, n)
+	} else if mm < m {
+		err = fmt.Errorf("mm < m: mm=%v, m=%v", mm, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DHSEIN"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dhsein", err)
 		return
 	}
 
 	//     Quick return if possible.
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Set machine-dependent constants.
 	unfl = Dlamch(SafeMinimum)
 	ulp = Dlamch(Precision)
-	smlnum = unfl * (float64(*n) / ulp)
+	smlnum = unfl * (float64(n) / ulp)
 	bignum = (one - ulp) / smlnum
 
-	ldwork = (*n) + 1
+	ldwork = n + 1
 
 	kl = 1
 	kln = 0
 	if fromqr {
 		kr = 0
 	} else {
-		kr = (*n)
+		kr = n
 	}
 	ksr = 1
 
-	for k = 1; k <= (*n); k++ {
+	for k = 1; k <= n; k++ {
 		if (*_select)[k-1] {
 			//           Compute eigenvector(s) corresponding to W(K).
 			if fromqr {
@@ -124,7 +124,7 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 				;
 				kl = i
 				if k > kr {
-					for i = k; i <= (*n)-1; i++ {
+					for i = k; i <= n-1; i++ {
 						if h.Get(i, i-1) == zero {
 							goto label50
 						}
@@ -140,9 +140,9 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 
 				//              Compute infinity-norm of submatrix H(KL:KR,KL:KR) if it
 				//              has not ben computed before.
-				hnorm = Dlanhs('I', toPtr(kr-kl+1), h.Off(kl-1, kl-1), ldh, work)
+				hnorm = Dlanhs('I', kr-kl+1, h.Off(kl-1, kl-1), work)
 				if Disnan(int(hnorm)) {
-					(*info) = -6
+					info = -6
 					return
 				} else if hnorm > zero {
 					eps3 = hnorm * ulp
@@ -174,12 +174,11 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 			}
 			if leftv {
 				//              Compute left eigenvector.
-				Dlaein(false, noinit, toPtr((*n)-kl+1), h.Off(kl-1, kl-1), ldh, &wkr, &wki, vl.Vector(kl-1, ksr-1), vl.Vector(kl-1, ksi-1), work.Matrix(ldwork, opts), &ldwork, work.Off((*n)*(*n)+(*n)), &eps3, &smlnum, &bignum, &iinfo)
-				if iinfo > 0 {
+				if iinfo = Dlaein(false, noinit, n-kl+1, h.Off(kl-1, kl-1), wkr, wki, vl.Vector(kl-1, ksr-1), vl.Vector(kl-1, ksi-1), work.Matrix(ldwork, opts), work.Off(n*n+n), eps3, smlnum, bignum); iinfo > 0 {
 					if pair {
-						(*info) = (*info) + 2
+						info = info + 2
 					} else {
-						(*info) = (*info) + 1
+						info = info + 1
 					}
 					(*ifaill)[ksr-1] = k
 					(*ifaill)[ksi-1] = k
@@ -198,12 +197,11 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 			}
 			if rightv {
 				//              Compute right eigenvector.
-				Dlaein(true, noinit, &kr, h, ldh, &wkr, &wki, vr.Vector(0, ksr-1), vr.Vector(0, ksi-1), work.Matrix(ldwork, opts), &ldwork, work.Off((*n)*(*n)+(*n)), &eps3, &smlnum, &bignum, &iinfo)
-				if iinfo > 0 {
+				if iinfo = Dlaein(true, noinit, kr, h, wkr, wki, vr.Vector(0, ksr-1), vr.Vector(0, ksi-1), work.Matrix(ldwork, opts), work.Off(n*n+n), eps3, smlnum, bignum); iinfo > 0 {
 					if pair {
-						(*info) = (*info) + 2
+						info = info + 2
 					} else {
-						(*info) = (*info) + 1
+						info = info + 1
 					}
 					(*ifailr)[ksr-1] = k
 					(*ifailr)[ksi-1] = k
@@ -211,11 +209,11 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 					(*ifailr)[ksr-1] = 0
 					(*ifailr)[ksi-1] = 0
 				}
-				for i = kr + 1; i <= (*n); i++ {
+				for i = kr + 1; i <= n; i++ {
 					vr.Set(i-1, ksr-1, zero)
 				}
 				if pair {
-					for i = kr + 1; i <= (*n); i++ {
+					for i = kr + 1; i <= n; i++ {
 						vr.Set(i-1, ksi-1, zero)
 					}
 				}
@@ -228,4 +226,6 @@ func Dhsein(side, eigsrc, initv byte, _select *[]bool, n *int, h *mat.Matrix, ld
 			}
 		}
 	}
+
+	return
 }

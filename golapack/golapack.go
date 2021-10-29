@@ -57,6 +57,10 @@ func cabs1(cdum complex128) float64 {
 	return math.Abs(real(cdum)) + math.Abs(imag(cdum))
 }
 
+func cabs2(zdum complex128) float64 {
+	return math.Abs(real(zdum)/2.) + math.Abs(imag(zdum)/2.)
+}
+
 func abs1(cdum complex128) float64 {
 	// return math.Max(math.Abs(real(cdum)) + math.Abs(imag(cdum)))
 	return math.Abs(real(cdum)) + math.Abs(imag(cdum))
@@ -106,6 +110,7 @@ const (
 	ConjTrans = mat.ConjTrans
 	Left      = mat.Left
 	Right     = mat.Right
+	Both      = mat.Both
 	NonUnit   = mat.NonUnit
 	Unit      = mat.Unit
 )

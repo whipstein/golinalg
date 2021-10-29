@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -9,7 +11,7 @@ import (
 // bidiagonal form B by an orthogonal transformation: Q**T * A * P = B.
 //
 // If m >= n, B is upper bidiagonal; if m < n, B is lower bidiagonal.
-func Dgebd2(m, n *int, a *mat.Matrix, lda *int, d, e, tauq, taup, work *mat.Vector, info *int) {
+func Dgebd2(m, n int, a *mat.Matrix, d, e, tauq, taup, work *mat.Vector) (err error) {
 	var one, zero float64
 	var i int
 
@@ -17,42 +19,41 @@ func Dgebd2(m, n *int, a *mat.Matrix, lda *int, d, e, tauq, taup, work *mat.Vect
 	one = 1.0
 
 	//     Test the input parameters
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) < 0 {
-		gltest.Xerbla([]byte("DGEBD2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgebd2", err)
 		return
 	}
 
-	if (*m) >= (*n) {
+	if m >= n {
 		//        Reduce to upper bidiagonal form
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			//           Generate elementary reflector H(i) to annihilate A(i+1:m,i)
-			Dlarfg(toPtr((*m)-i+1), a.GetPtr(i-1, i-1), a.Vector(min(i+1, *m)-1, i-1), func() *int { y := 1; return &y }(), tauq.GetPtr(i-1))
+			*a.GetPtr(i-1, i-1), *tauq.GetPtr(i - 1) = Dlarfg(m-i+1, a.Get(i-1, i-1), a.Vector(min(i+1, m)-1, i-1, 1))
 			d.Set(i-1, a.Get(i-1, i-1))
 			a.Set(i-1, i-1, one)
 
 			//           Apply H(i) to A(i:m,i+1:n) from the left
-			if i < (*n) {
-				Dlarf('L', toPtr((*m)-i+1), toPtr((*n)-i), a.Vector(i-1, i-1), func() *int { y := 1; return &y }(), tauq.GetPtr(i-1), a.Off(i-1, i), lda, work)
+			if i < n {
+				Dlarf(Left, m-i+1, n-i, a.Vector(i-1, i-1, 1), tauq.Get(i-1), a.Off(i-1, i), work)
 			}
 			a.Set(i-1, i-1, d.Get(i-1))
 
-			if i < (*n) {
+			if i < n {
 				//              Generate elementary reflector G(i) to annihilate
 				//              A(i,i+2:n)
-				Dlarfg(toPtr((*n)-i), a.GetPtr(i-1, i), a.Vector(i-1, min(i+2, *n)-1), lda, taup.GetPtr(i-1))
+				*a.GetPtr(i-1, i), *taup.GetPtr(i - 1) = Dlarfg(n-i, a.Get(i-1, i), a.Vector(i-1, min(i+2, n)-1))
 				e.Set(i-1, a.Get(i-1, i))
 				a.Set(i-1, i, one)
 
 				//              Apply G(i) to A(i+1:m,i+1:n) from the right
-				Dlarf('R', toPtr((*m)-i), toPtr((*n)-i), a.Vector(i-1, i), lda, taup.GetPtr(i-1), a.Off(i, i), lda, work)
+				Dlarf(Right, m-i, n-i, a.Vector(i-1, i), taup.Get(i-1), a.Off(i, i), work)
 				a.Set(i-1, i, e.Get(i-1))
 			} else {
 				taup.Set(i-1, zero)
@@ -60,31 +61,33 @@ func Dgebd2(m, n *int, a *mat.Matrix, lda *int, d, e, tauq, taup, work *mat.Vect
 		}
 	} else {
 		//        Reduce to lower bidiagonal form
-		for i = 1; i <= (*m); i++ {
+		for i = 1; i <= m; i++ {
 			//           Generate elementary reflector G(i) to annihilate A(i,i+1:n)
-			Dlarfg(toPtr((*n)-i+1), a.GetPtr(i-1, i-1), a.Vector(i-1, min(i+1, *n)-1), lda, taup.GetPtr(i-1))
+			*a.GetPtr(i-1, i-1), *taup.GetPtr(i - 1) = Dlarfg(n-i+1, a.Get(i-1, i-1), a.Vector(i-1, min(i+1, n)-1))
 			d.Set(i-1, a.Get(i-1, i-1))
 			a.Set(i-1, i-1, one)
 
 			//           Apply G(i) to A(i+1:m,i:n) from the right
-			if i < (*m) {
-				Dlarf('R', toPtr((*m)-i), toPtr((*n)-i+1), a.Vector(i-1, i-1), lda, taup.GetPtr(i-1), a.Off(i, i-1), lda, work)
+			if i < m {
+				Dlarf(Right, m-i, n-i+1, a.Vector(i-1, i-1), taup.Get(i-1), a.Off(i, i-1), work)
 			}
 			a.Set(i-1, i-1, d.Get(i-1))
 
-			if i < (*m) {
+			if i < m {
 				//              Generate elementary reflector H(i) to annihilate
 				//              A(i+2:m,i)
-				Dlarfg(toPtr((*m)-i), a.GetPtr(i, i-1), a.Vector(min(i+2, *m)-1, i-1), func() *int { y := 1; return &y }(), tauq.GetPtr(i-1))
+				*a.GetPtr(i, i-1), *tauq.GetPtr(i - 1) = Dlarfg(m-i, a.Get(i, i-1), a.Vector(min(i+2, m)-1, i-1, 1))
 				e.Set(i-1, a.Get(i, i-1))
 				a.Set(i, i-1, one)
 
 				//              Apply H(i) to A(i+1:m,i+1:n) from the left
-				Dlarf('L', toPtr((*m)-i), toPtr((*n)-i), a.Vector(i, i-1), func() *int { y := 1; return &y }(), tauq.GetPtr(i-1), a.Off(i, i), lda, work)
+				Dlarf(Left, m-i, n-i, a.Vector(i, i-1, 1), tauq.Get(i-1), a.Off(i, i), work)
 				a.Set(i, i-1, e.Get(i-1))
 			} else {
 				tauq.Set(i-1, zero)
 			}
 		}
 	}
+
+	return
 }

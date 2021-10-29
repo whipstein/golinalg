@@ -34,37 +34,37 @@ import (
 // T                      Put T to test the LAPACK routines
 // T                      Put T to test the driver routines
 // T                      Put T to test the error exits
-// DGE   11               List types on next line if 0 < NTYPES < 11
-// DGB    8               List types on next line if 0 < NTYPES <  8
-// DGT   12               List types on next line if 0 < NTYPES < 12
-// DPO    9               List types on next line if 0 < NTYPES <  9
-// DPS    9               List types on next line if 0 < NTYPES <  9
-// DPP    9               List types on next line if 0 < NTYPES <  9
-// DPB    8               List types on next line if 0 < NTYPES <  8
-// DPT   12               List types on next line if 0 < NTYPES < 12
-// DSY   10               List types on next line if 0 < NTYPES < 10
-// DSR   10               List types on next line if 0 < NTYPES < 10
-// DSK   10               List types on next line if 0 < NTYPES < 10
-// DSA   10               List types on next line if 0 < NTYPES < 10
-// DS2   10               List types on next line if 0 < NTYPES < 10
-// DSP   10               List types on next line if 0 < NTYPES < 10
-// DTR   18               List types on next line if 0 < NTYPES < 18
-// DTP   18               List types on next line if 0 < NTYPES < 18
-// DTB   17               List types on next line if 0 < NTYPES < 17
-// DQR    8               List types on next line if 0 < NTYPES <  8
-// DRQ    8               List types on next line if 0 < NTYPES <  8
-// DLQ    8               List types on next line if 0 < NTYPES <  8
-// DQL    8               List types on next line if 0 < NTYPES <  8
-// DQP    6               List types on next line if 0 < NTYPES <  6
-// DTZ    3               List types on next line if 0 < NTYPES <  3
-// DLS    6               List types on next line if 0 < NTYPES <  6
-// DEQ
-// DQT
-// DQX
-// DTQ
-// DXQ
-// DTS
-// DHH
+// Dge   11               List types on next line if 0 < NTYPES < 11
+// Dgb    8               List types on next line if 0 < NTYPES <  8
+// Dgt   12               List types on next line if 0 < NTYPES < 12
+// Dpo    9               List types on next line if 0 < NTYPES <  9
+// Dps    9               List types on next line if 0 < NTYPES <  9
+// Dpp    9               List types on next line if 0 < NTYPES <  9
+// Dpb    8               List types on next line if 0 < NTYPES <  8
+// Dpt   12               List types on next line if 0 < NTYPES < 12
+// Dsy   10               List types on next line if 0 < NTYPES < 10
+// Dsr   10               List types on next line if 0 < NTYPES < 10
+// Dsk   10               List types on next line if 0 < NTYPES < 10
+// Dsa   10               List types on next line if 0 < NTYPES < 10
+// Ds2   10               List types on next line if 0 < NTYPES < 10
+// Dsp   10               List types on next line if 0 < NTYPES < 10
+// Dtr   18               List types on next line if 0 < NTYPES < 18
+// Dtp   18               List types on next line if 0 < NTYPES < 18
+// Dtb   17               List types on next line if 0 < NTYPES < 17
+// Dqr    8               List types on next line if 0 < NTYPES <  8
+// Drq    8               List types on next line if 0 < NTYPES <  8
+// Dlq    8               List types on next line if 0 < NTYPES <  8
+// Dql    8               List types on next line if 0 < NTYPES <  8
+// Dqp    6               List types on next line if 0 < NTYPES <  6
+// Dt2    3               List types on next line if 0 < NTYPES <  3
+// Dls    6               List types on next line if 0 < NTYPES <  6
+// Deq
+// Dqt
+// Dqx
+// Dtq
+// Dxq
+// Dts
+// Dhh
 func TestDlin(t *testing.T) {
 	var c2 string
 	var eps, threq float64
@@ -72,7 +72,6 @@ func TestDlin(t *testing.T) {
 
 	nmax := 132
 	maxrhs := 16
-	nout := 6
 	kdmax = nmax + (nmax+1)/4
 	dotype := make([]bool, 30)
 	path := make([]byte, 3)
@@ -104,7 +103,7 @@ func TestDlin(t *testing.T) {
 	lda = nmax
 
 	//     Report values of parameters.
-	golapack.Ilaver(&versMajor, &versMinor, &versPatch)
+	versMajor, versMinor, versPatch = golapack.Ilaver()
 	fmt.Printf(" Tests of the DOUBLE PRECISION LAPACK routines \n LAPACK VERSION %1d.%1d.%1d\n\n The following parameter values will be used:\n", versMajor, versMinor, versPatch)
 
 	mval := []int{0, 1, 2, 3, 5, 10, 50}
@@ -186,413 +185,413 @@ func TestDlin(t *testing.T) {
 
 	nrhs := nsval[0]
 
-	for _, c2 = range []string{"DGE", "DGB", "DGT", "DPO", "DPS", "DPP", "DPB", "DPT", "DSY", "DSR", "DSK", "DSA", "DS2", "DSP", "DTR", "DTP", "DTB", "DQR", "DRQ", "DLQ", "DQL", "DQP", "DTZ", "DLS", "DEQ", "DQT", "DQX", "DXQ", "DTQ", "DTS", "DHH"} {
+	for _, c2 = range []string{"Dge", "Dgb", "Dgt", "Dpo", "Dps", "Dpp", "Dpb", "Dpt", "Dsy", "Dsr", "Dsk", "Dsa", "Ds2", "Dsp", "Dtr", "Dtp", "Dtb", "Dqr", "Drq", "Dlq", "Dql", "Dqp", "Dtz", "Dls", "Deq", "Dqt", "Dqx", "Dxq", "Dtq", "Dts", "Dhh"} {
 		switch c2 {
-		case "DGE":
+		case "Dge":
 			//        GE:  general matrices
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkge(dotype, &nm, &mval, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkge(dotype, mval, nval, nbval2, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvge(dotype, &nn, &nval, &nrhs, &thresh, tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvge(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DGB":
+		case "Dgb":
 			//        GB:  general banded matrices
 			la = (2*kdmax + 1) * nmax
 			lafac = (3*kdmax + 1) * nmax
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkgb(&dotype, &nm, &mval, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, a[0].VectorIdx(0), &la, a[2].VectorIdx(0), &lafac, b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkgb(dotype, mval, nval, nnb2, nbval2, nsval, thresh, tsterr, a[0].VectorIdx(0), la, a[2].VectorIdx(0), lafac, b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvgb(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, a[0].VectorIdx(0), &la, a[2].VectorIdx(0), &lafac, a[5].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvgb(dotype, nn, nval, nrhs, thresh, tsterr, a[0].VectorIdx(0), la, a[2].VectorIdx(0), lafac, a[5].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DGT":
+		case "Dgt":
 			//        GT:  general tridiagonal matrices
 			nmats = 12
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkgt(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkgt(dotype, nval, nsval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvgt(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvgt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DPO":
+		case "Dpo":
 			//        PO:  positive definite matrices
 			nmats = 9
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkpo(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkpo(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvpo(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvpo(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DPS":
+		case "Dps":
 			//        PS:  positive semi-definite matrices
 			nmats = 9
 
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkps(&dotype, &nn, &nval, &nnb2, &nbval2, &nrank, &rankval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), &piv, work.VectorIdx(0), rwork, &nout, t)
+				dchkps(dotype, nn, nval, nnb2, nbval2, nrank, rankval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), piv, work.VectorIdx(0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DPP":
+		case "Dpp":
 			//        PP:  positive definite packed matrices
 			nmats = 9
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkpp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkpp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvpp(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvpp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DPB":
+		case "Dpb":
 			//        PB:  positive definite banded matrices
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkpb(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkpb(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvpb(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvpb(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DPT":
+		case "Dpt":
 			//        PT:  positive definite tridiagonal matrices
 			nmats = 12
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkpt(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &nout, t)
+				dchkpt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvpt(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &nout, t)
+				ddrvpt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DSY":
+		case "Dsy":
 			//        SY:  symmetric indefinite matrices,
 			//             with partial (Bunch-Kaufman) pivoting algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchksy(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchksy(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvsy(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvsy(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DSR":
+		case "Dsr":
 			//        SR:  symmetric indefinite matrices,
 			//             with bounded Bunch-Kaufman (rook) pivoting algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				DchksyRook(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchksyRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				DdrvsyRook(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvsyRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DSK":
+		case "Dsk":
 			//        SK:  symmetric indefinite matrices,
 			//             with bounded Bunch-Kaufman (rook) pivoting algorithm,
 			//             differnet matrix storage format than SR path version.
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				DchksyRk(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), e, a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchksyRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), e, a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				DdrvsyRk(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), e, a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvsyRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), e, a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DSA":
+		case "Dsa":
 			//        SA:  symmetric indefinite matrices,
 			//             with partial (Aasen's) pivoting algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				DchksyAa(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchksyAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				DdrvsyAa(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvsyAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DS2":
+		case "Ds2":
 			//        SA:  symmetric indefinite matrices,
 			//             with partial (Aasen's) pivoting algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				DchksyAa2stage(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchksyAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				DdrvsyAa2stage(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvsyAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DSP":
+		case "Dsp":
 			//        SP:  symmetric indefinite packed matrices,
 			//             with partial (Bunch-Kaufman) pivoting algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchksp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchksp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Ddrvsp(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				ddrvsp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DTR":
+		case "Dtr":
 			//        TR:  triangular matrices
 			nmats = 18
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchktr(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchktr(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DTP":
+		case "Dtp":
 			//        TP:  triangular packed matrices
 			nmats = 18
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchktp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchktp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DTB":
+		case "Dtb":
 			//        TB:  triangular banded matrices
 			nmats = 17
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchktb(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchktb(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DQR":
+		case "Dqr":
 			//        QR:  QR factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkqr(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkqr(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DLQ":
+		case "Dlq":
 			//        LQ:  LQ factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchklq(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, &nout, t)
+				dchklq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DQL":
+		case "Dql":
 			//        QL:  QL factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkql(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, &nout, t)
+				dchkql(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DRQ":
+		case "Drq":
 			//        RQ:  RQ factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkrq(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, &iwork, &nout, t)
+				dchkrq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DQP":
+		case "Dqp":
 			//        QP:  QR factorization with pivoting
 			nmats = 6
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchkq3(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &thresh, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), &iwork, &nout, t)
+				dchkq3(dotype, nm, mval, nn, nval, nnb, nbval, nxval, thresh, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DTZ":
+		case "Dtz":
 			//        TZ:  Trapezoidal matrix
 			nmats = 3
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Dchktz(&dotype, &nm, &mval, &nn, &nval, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), &nout, t)
+				dchktz(dotype, nm, mval, nn, nval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DLS":
+		case "Dls":
 			//        LS:  Least squares drivers
 			nmats = 6
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstdrv {
-				Ddrvls(&dotype, &nm, &mval, &nn, &nval, &nns, &nsval, &nnb, &nbval, &nxval, &thresh, &tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), rwork, rwork.Off(nmax), &nout, t)
+				ddrvls(dotype, nm, mval, nn, nval, nns, nsval, nnb, nbval, nxval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), rwork, rwork.Off(nmax), t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "DEQ":
+		case "Deq":
 			//        EQ:  Equilibration routines for general and positive definite
 			//             matrices (THREQ should be between 2 and 10)
 			if tstchk {
-				Dchkeq(&threq, t)
+				dchkeq(threq, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DQT":
+		case "Dqt":
 			//        QT:  QRT routines for general matrices
 			if tstchk {
-				Dchkqrt(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				dchkqrt(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DQX":
+		case "Dqx":
 			//        QX:  QRT routines for triangular-pentagonal matrices
 			if tstchk {
-				Dchkqrtp(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				dchkqrtp(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DTQ":
+		case "Dtq":
 			//        TQ:  LQT routines for general matrices
 			if tstchk {
-				Dchklqt(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				dchklqt(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DXQ":
+		case "Dxq":
 			//        XQ:  LQT routines for triangular-pentagonal matrices
 			if tstchk {
-				Dchklqtp(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				dchklqtp(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DTS":
+		case "Dts":
 			//        TS:  QR routines for tall-skinny matrices
 			if tstchk {
-				Dchktsqr(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				dchktsqr(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "DHH":
+		case "Dhh":
 			//        HH:  Householder reconstruction for tall-skinny matrices
 			if tstchk {
-				DchkorhrCol(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				dchkorhrCol(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -632,50 +631,49 @@ func TestDlin(t *testing.T) {
 // T                      Put T to test the LAPACK routines
 // T                      Put T to test the driver routines
 // T                      Put T to test the error exits
-// ZGE   11               List types on next line if 0 < NTYPES < 11
-// ZGB    8               List types on next line if 0 < NTYPES <  8
-// ZGT   12               List types on next line if 0 < NTYPES < 12
-// ZPO    9               List types on next line if 0 < NTYPES <  9
-// ZPS    9               List types on next line if 0 < NTYPES <  9
-// ZPP    9               List types on next line if 0 < NTYPES <  9
-// ZPB    8               List types on next line if 0 < NTYPES <  8
-// ZPT   12               List types on next line if 0 < NTYPES < 12
-// ZHE   10               List types on next line if 0 < NTYPES < 10
-// ZHR   10               List types on next line if 0 < NTYPES < 10
-// ZHK   10               List types on next line if 0 < NTYPES < 10
-// ZHA   10               List types on next line if 0 < NTYPES < 10
-// ZH2   10               List types on next line if 0 < NTYPES < 10
-// ZSA   11               List types on next line if 0 < NTYPES < 10
-// ZS2   11               List types on next line if 0 < NTYPES < 10
-// ZHP   10               List types on next line if 0 < NTYPES < 10
-// ZSY   11               List types on next line if 0 < NTYPES < 11
-// ZSR   11               List types on next line if 0 < NTYPES < 11
-// ZSK   11               List types on next line if 0 < NTYPES < 11
-// ZSP   11               List types on next line if 0 < NTYPES < 11
-// ZTR   18               List types on next line if 0 < NTYPES < 18
-// ZTP   18               List types on next line if 0 < NTYPES < 18
-// ZTB   17               List types on next line if 0 < NTYPES < 17
-// ZQR    8               List types on next line if 0 < NTYPES <  8
-// ZRQ    8               List types on next line if 0 < NTYPES <  8
+// Zge   11               List types on next line if 0 < NTYPES < 11
+// Zgb    8               List types on next line if 0 < NTYPES <  8
+// Zgt   12               List types on next line if 0 < NTYPES < 12
+// Zpo    9               List types on next line if 0 < NTYPES <  9
+// Zps    9               List types on next line if 0 < NTYPES <  9
+// Zpp    9               List types on next line if 0 < NTYPES <  9
+// Zpb    8               List types on next line if 0 < NTYPES <  8
+// Zpt   12               List types on next line if 0 < NTYPES < 12
+// Zhe   10               List types on next line if 0 < NTYPES < 10
+// Zhr   10               List types on next line if 0 < NTYPES < 10
+// Zhk   10               List types on next line if 0 < NTYPES < 10
+// Zha   10               List types on next line if 0 < NTYPES < 10
+// Zh2   10               List types on next line if 0 < NTYPES < 10
+// Zsa   11               List types on next line if 0 < NTYPES < 10
+// Zs2   11               List types on next line if 0 < NTYPES < 10
+// Zhp   10               List types on next line if 0 < NTYPES < 10
+// Zsy   11               List types on next line if 0 < NTYPES < 11
+// Zsr   11               List types on next line if 0 < NTYPES < 11
+// Zsk   11               List types on next line if 0 < NTYPES < 11
+// Zsp   11               List types on next line if 0 < NTYPES < 11
+// Ztr   18               List types on next line if 0 < NTYPES < 18
+// Ztp   18               List types on next line if 0 < NTYPES < 18
+// Ztb   17               List types on next line if 0 < NTYPES < 17
+// Zqr    8               List types on next line if 0 < NTYPES <  8
+// Zrq    8               List types on next line if 0 < NTYPES <  8
 // ZLQ    8               List types on next line if 0 < NTYPES <  8
-// ZQL    8               List types on next line if 0 < NTYPES <  8
-// ZQP    6               List types on next line if 0 < NTYPES <  6
-// ZTZ    3               List types on next line if 0 < NTYPES <  3
-// ZLS    6               List types on next line if 0 < NTYPES <  6
+// Zql    8               List types on next line if 0 < NTYPES <  8
+// Zqp    6               List types on next line if 0 < NTYPES <  6
+// Ztz    3               List types on next line if 0 < NTYPES <  3
+// Zls    6               List types on next line if 0 < NTYPES <  6
 // ZEQ
-// ZQT
-// ZQX
-// ZTS
-// ZHH
+// Zqt
+// Zqx
+// Zts
+// Zhh
 func TestZlin(t *testing.T) {
 	var c2 string
 	var tstchk, tstdrv, tsterr bool
 	var eps, threq, thresh float64
-	var i, j, kdmax, la, lafac, lda, maxrhs, nb, nm, nmats, nmax, nn, nnb, nnb2, nns, nout, nrank, nrhs, versMajor, versMinor, versPatch int
+	var i, j, kdmax, la, lafac, lda, maxrhs, nb, nm, nmats, nmax, nn, nnb, nnb2, nns, nrank, nrhs, versMajor, versMinor, versPatch int
 
 	nmax = 132
 	maxrhs = 16
-	nout = 6
 	kdmax = nmax + (nmax+1)/4
 	dotype := make([]bool, 30)
 	path := make([]byte, 3)
@@ -715,7 +713,7 @@ func TestZlin(t *testing.T) {
 	lda = nmax
 
 	//     Report values of parameters.
-	golapack.Ilaver(&versMajor, &versMinor, &versPatch)
+	versMajor, versMinor, versPatch = golapack.Ilaver()
 	fmt.Printf(" Tests of the COMPLEX*16 LAPACK routines \n LAPACK VERSION %1d.%1d.%1d\n\n The following parameter values will be used:\n", versMajor, versMinor, versPatch)
 
 	mval = []int{0, 1, 2, 3, 5, 10, 50}
@@ -798,525 +796,525 @@ func TestZlin(t *testing.T) {
 	nrhs = nsval[0]
 
 	//     Check first character for correct precision.
-	for _, c2 = range []string{"ZGE", "ZGB", "ZGT", "ZPO", "ZPS", "ZPP", "ZPB", "ZPT", "ZHE", "ZHR", "ZHK", "ZHA", "ZH2", "ZSA", "ZS2", "ZHP", "ZSY", "ZSR", "ZSK", "ZSP", "ZTR", "ZTP", "ZTB", "ZQR", "ZRQ", "ZLQ", "ZQL", "ZQP", "ZTZ", "ZLS", "ZEQ", "ZQT", "ZQX", "ZXQ", "ZTQ", "ZTS", "ZHH"} {
+	for _, c2 = range []string{"Zge", "Zgb", "Zgt", "Zpo", "Zps", "Zpp", "Zpb", "Zpt", "Zhe", "Zhr", "Zhk", "Zha", "Zh2", "Zsa", "Zs2", "Zhp", "Zsy", "Zsr", "Zsk", "Zsp", "Ztr", "Ztp", "Ztb", "Zqr", "Zrq", "Zlq", "Zql", "Zqp", "Ztz", "Zls", "Zeq", "Zqt", "Zqx", "Zxq", "Ztq", "Zts", "Zhh"} {
 		switch c2 {
-		case "ZGE":
+		case "Zge":
 			//        GE:  general matrices
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkge(&dotype, &nm, &mval, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkge(dotype, nm, mval, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvge(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVectorIdx(0), rwork, &iwork, &nout, t)
+				zdrvge(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVectorIdx(0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZGB":
+		case "Zgb":
 			//        GB:  general banded matrices
 			la = (2*kdmax + 1) * nmax
 			lafac = (3*kdmax + 1) * nmax
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkgb(&dotype, &nm, &mval, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, a[0].CVector(0, 0), &la, a[2].CVector(0, 0), &lafac, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkgb(dotype, nm, mval, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, a[0].CVector(0, 0), la, a[2].CVector(0, 0), lafac, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvgb(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, a[0].CVector(0, 0), &la, a[2].CVector(0, 0), &lafac, a[5].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvgb(dotype, nn, nval, nrhs, thresh, tsterr, a[0].CVector(0, 0), la, a[2].CVector(0, 0), lafac, a[5].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZGT":
+		case "Zgt":
 			//        GT:  general tridiagonal matrices
 			nmats = 12
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkgt(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkgt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvgt(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvgt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZPO":
+		case "Zpo":
 			//        PO:  positive definite matrices
 			nmats = 9
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkpo(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchkpo(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvpo(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, &nout, t)
+				zdrvpo(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZPS":
+		case "Zps":
 			//        PS:  positive semi-definite matrices
 			nmats = 9
 
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkps(&dotype, &nn, &nval, &nnb2, &nbval2, &nrank, &rankval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), &piv, work.CVector(0, 0), rwork, &nout, t)
+				zchkps(dotype, nn, nval, nnb2, nbval2, nrank, rankval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), piv, work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZPP":
+		case "Zpp":
 			//        PP:  positive definite packed matrices
 			nmats = 9
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkpp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchkpp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvpp(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, &nout, t)
+				zdrvpp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZPB":
+		case "Zpb":
 			//        PB:  positive definite banded matrices
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkpb(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchkpb(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvpb(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, &nout, t)
+				zdrvpb(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZPT":
+		case "Zpt":
 			//        PT:  positive definite tridiagonal matrices
 			nmats = 12
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkpt(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, a[0].CVector(0, 0), s, a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchkpt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].CVector(0, 0), s, a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvpt(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, a[0].CVector(0, 0), s, a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zdrvpt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].CVector(0, 0), s, a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZHE":
+		case "Zhe":
 			//        HE:  Hermitian indefinite matrices
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkhe(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkhe(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvhe(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvhe(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZHR":
+		case "Zhr":
 			//        HR:  Hermitian indefinite matrices,
 			//             with bounded Bunch-Kaufman (rook) pivoting algorithm,
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkherook(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkheRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvherook(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvheRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZHK":
+		case "Zhk":
 			//        HK:  Hermitian indefinite matrices,
 			//             with bounded Bunch-Kaufman (rook) pivoting algorithm,
 			//             different matrix storage format than HR path version.
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkherk(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkheRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvherk(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvheRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZHA":
+		case "Zha":
 			//        HA:  Hermitian matrices,
 			//             Aasen Algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkheaa(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkheAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvheaa(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvheAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZH2":
+		case "Zh2":
 			//        H2:  Hermitian matrices,
 			//             with partial (Aasen's) pivoting algorithm
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkheaa2stage(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkheAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvheaa2stage(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvheAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZHP":
+		case "Zhp":
 			//        HP:  Hermitian indefinite packed matrices
 			nmats = 10
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkhp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkhp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvhp(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvhp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZSY":
+		case "Zsy":
 			//        SY:  symmetric indefinite matrices,
 			//             with partial (Bunch-Kaufman) pivoting algorithm
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchksy(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchksy(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvsy(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvsy(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZSR":
+		case "Zsr":
 			//        SR:  symmetric indefinite matrices,
 			//             with bounded Bunch-Kaufman (rook) pivoting algorithm
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchksyrook(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchksyRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvsyrook(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvsyRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZSK":
+		case "Zsk":
 			//        SK:  symmetric indefinite matrices,
 			//             with bounded Bunch-Kaufman (rook) pivoting algorithm,
 			//             different matrix storage format than SR path version.
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchksyrk(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchksyRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvsyrk(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvsyRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZSA":
+		case "Zsa":
 			//        SA:  symmetric indefinite matrices with Aasen's algorithm,
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchksyaa(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchksyAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvsyaa(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvsyAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZS2":
+		case "Zs2":
 			//        S2:  symmetric indefinite matrices with Aasen's algorithm
 			//             2 stage
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchksyaa2stage(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchksyAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvsyaa2stage(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvsyAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZSP":
+		case "Zsp":
 			//        SP:  symmetric indefinite packed matrices,
 			//             with partial (Bunch-Kaufman) pivoting algorithm
 			nmats = 11
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchksp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchksp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				Zdrvsp(&dotype, &nn, &nval, &nrhs, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zdrvsp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
 
-		case "ZTR":
+		case "Ztr":
 			//        TR:  triangular matrices
 			nmats = 18
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchktr(&dotype, &nn, &nval, &nnb2, &nbval2, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchktr(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZTP":
+		case "Ztp":
 			//        TP:  triangular packed matrices
 			nmats = 18
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchktp(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchktp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZTB":
+		case "Ztb":
 			//        TB:  triangular banded matrices
 			nmats = 17
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchktb(&dotype, &nn, &nval, &nns, &nsval, &thresh, &tsterr, &lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchktb(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZQR":
+		case "Zqr":
 			//        QR:  QR factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkqr(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkqr(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZLQ":
+		case "Zlq":
 			//        LQ:  LQ factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchklq(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchklq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZQL":
+		case "Zql":
 			//        QL:  QL factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkql(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchkql(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZRQ":
+		case "Zrq":
 			//        RQ:  RQ factorization
 			nmats = 8
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkrq(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &nrhs, &thresh, &tsterr, &nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkrq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZEQ":
+		case "Zeq":
 			//        EQ:  Equilibration routines for general and positive definite
 			//             matrices (THREQ should be between 2 and 10)
 			if tstchk {
-				Zchkeq(&threq, &nout, t)
+				zchkeq(threq, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZTZ":
+		case "Ztz":
 			//        TZ:  Trapezoidal matrix
 			nmats = 3
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchktz(&dotype, &nm, &mval, &nn, &nval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), s, b[0].CVector(0, 0), work.CVector(0, 0), rwork, &nout, t)
+				zchktz(dotype, nm, mval, nn, nval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), s, b[0].CVector(0, 0), work.CVector(0, 0), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZQP":
+		case "Zqp":
 			//        QP:  QR factorization with pivoting
 			nmats = 6
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstchk {
-				Zchkq3(&dotype, &nm, &mval, &nn, &nval, &nnb, &nbval, &nxval, &thresh, a[0].CVector(0, 0), a[1].CVector(0, 0), s, b[0].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, &nout, t)
+				zchkq3(dotype, nm, mval, nn, nval, nnb, nbval, nxval, thresh, a[0].CVector(0, 0), a[1].CVector(0, 0), s, b[0].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZLS":
+		case "Zls":
 			//        LS:  Least squares drivers
 			nmats = 6
-			Alareq(&nmats, &dotype)
+			alareq(nmats, &dotype)
 
 			if tstdrv {
-				Zdrvls(&dotype, &nm, &mval, &nn, &nval, &nns, &nsval, &nnb, &nbval, &nxval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), s, s.Off(nmax), &nout, t)
+				zdrvls(dotype, nm, mval, nn, nval, nns, nsval, nnb, nbval, nxval, thresh, tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), s, s.Off(nmax), t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZQT":
+		case "Zqt":
 			//        QT:  QRT routines for general matrices
 			if tstchk {
-				Zchkqrt(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				zchkqrt(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZQX":
+		case "Zqx":
 			//        QX:  QRT routines for triangular-pentagonal matrices
 			if tstchk {
-				Zchkqrtp(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				zchkqrtp(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZTQ":
+		case "Ztq":
 			//        TQ:  LQT routines for general matrices
 			if tstchk {
-				Zchklqt(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				zchklqt(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZXQ":
+		case "Zxq":
 			//        XQ:  LQT routines for triangular-pentagonal matrices
 			if tstchk {
-				Zchklqtp(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				zchklqtp(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZTS":
+		case "Zts":
 			//        TS:  QR routines for tall-skinny matrices
 			if tstchk {
-				Zchktsqr(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				zchktsqr(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
-		case "ZHH":
+		case "Zhh":
 			//        HH:  Householder reconstruction for tall-skinny matrices
 			if tstchk {
-				Zchkunhrcol(&thresh, &tsterr, &nm, &mval, &nn, &nval, &nnb, &nbval, &nout, t)
+				zchkunhrCol(thresh, tsterr, nm, mval, nn, nval, nnb, nbval, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 		default:
-
+			t.Fail()
 			fmt.Printf("\n %3s:  Unrecognized path name\n", path)
 		}
 	}
@@ -1326,79 +1324,75 @@ func TestZlin(t *testing.T) {
 	fmt.Printf("\n End of tests\n")
 }
 
-// func TestMatrixInverse(t *testing.T) {
-// 	var info int
+func TestMatrixInverse(t *testing.T) {
+	var info int
+	var err error
 
-// 	s := [][][]complex128{
-// 		{
-// 			{1 + 0i, 1 - 2i},
-// 			{8 - 2i, 4 + 2i},
-// 		},
-// 		{
-// 			{2 - 6i, 4 + 1i, 2 + 0i},
-// 			{10 + 6i, 2 - 8i, 1 + 0i},
-// 			{2 - 2i, 4 + 1i, 4 - 6i},
-// 		},
-// 	}
-// 	st := [][][]complex128{
-// 		{
-// 			{0.1 - 0.2i, 0.1 + 0.05i},
-// 			{0.1 + 0.4i, 0 - 0.05i},
-// 		},
-// 		{
-// 			{0.022688110281447446 + 0.08859850660539921i, 0.03360137851809305 - 0.01751866743251005i, 0.012349224583572665 - 0.0213957495692131i},
-// 			{0.11783288846842586 + 0.010963949048890092i, 0.017028752914146704 + 0.06351995134642026i, -0.00957867351420752 - 0.03572997263236139i},
-// 			{-0.01866743251005169 - 0.10137851809304999i, 0.016657093624353823 - 0.01723147616312464i, 0.05313038483630097 + 0.13469270534175762i},
-// 		},
-// 	}
+	s := [][][]complex128{
+		// {
+		// 	{1 + 0i, 1 - 2i},
+		// 	{8 - 2i, 4 + 2i},
+		// },
+		{
+			{2 - 6i, 4 + 1i, 2 + 0i},
+			{10 + 6i, 2 - 8i, 1 + 0i},
+			{2 - 2i, 4 + 1i, 4 - 6i},
+		},
+	}
+	st := [][][]complex128{
+		// {
+		// 	{0.1 - 0.2i, 0.1 + 0.05i},
+		// 	{0.1 + 0.4i, 0 - 0.05i},
+		// },
+		{
+			{0.022688110281447446 + 0.08859850660539921i, 0.03360137851809305 - 0.01751866743251005i, 0.012349224583572665 - 0.0213957495692131i},
+			{0.11783288846842586 + 0.010963949048890092i, 0.017028752914146704 + 0.06351995134642026i, -0.00957867351420752 - 0.03572997263236139i},
+			{-0.01866743251005169 - 0.10137851809304999i, 0.016657093624353823 - 0.01723147616312464i, 0.05313038483630097 + 0.13469270534175762i},
+		},
+	}
 
-// 	for k, val := range s {
-// 		a := cmf(len(val), len(val[0]), mat.NewMatOptsCol())
-// 		b := cmf(len(val), len(val[0]), mat.NewMatOpts())
-// 		b.Opts.Major = mat.Row
-// 		x := cmf(len(val), len(val[0]), mat.NewMatOptsCol())
-// 		for i, r := range val {
-// 			for j, c := range r {
-// 				a.Set(i, j, c)
-// 				b.Set(i, j, c)
-// 				x.Set(i, j, st[k][i][j])
-// 			}
-// 		}
+	for k, val := range s {
+		a := cmf(len(val), len(val[0]), mat.NewMatOptsCol())
+		b := cmf(len(val), len(val[0]), mat.NewMatOpts())
+		x := cmf(len(val), len(val[0]), mat.NewMatOptsCol())
+		for i, r := range val {
+			for j, c := range r {
+				a.Set(i, j, c)
+				b.Set(i, j, c)
+				x.Set(i, j, st[k][i][j])
+			}
+		}
 
-// 		lwork := a.Rows
-// 		work := cvf(lwork)
-// 		ipiv := make([]int, lwork)
+		lwork := a.Rows
+		work := cvf(lwork)
+		ipiv := make([]int, lwork)
 
-// 		golapack.Zgetrf(&a.Rows, &a.Cols, a, &a.Cols, &ipiv, &info)
-// 		if info != 0 {
-// 			panic(info)
-// 		}
-// 		golapack.Zgetri(&a.Cols, a, &a.Cols, &ipiv, work, &lwork, &info)
-// 		if info != 0 {
-// 			panic(info)
-// 		}
-// 		for i := 0; i < a.Rows; i++ {
-// 			for j := 0; j < a.Cols; j++ {
-// 				if a.Get(i, j) != x.Get(i, j) {
-// 					t.Errorf("Failed Col major inverse: got %v, want %v\n", a.Get(i, j), x.Get(i, j))
-// 				}
-// 			}
-// 		}
+		if info, err = golapack.Zgetrf(a.Rows, a.Cols, a, &ipiv); err != nil || info != 0 {
+			panic(info)
+		}
+		if info, err = golapack.Zgetri(a.Cols, a, &ipiv, work, lwork); err != nil || info != 0 {
+			panic(info)
+		}
+		for i := 0; i < a.Rows; i++ {
+			for j := 0; j < a.Cols; j++ {
+				if a.Get(i, j) != x.Get(i, j) {
+					t.Errorf("Failed Col major inverse: got %v, want %v\n", a.Get(i, j), x.Get(i, j))
+				}
+			}
+		}
 
-// 		golapack.Zgetrf(&b.Rows, &b.Cols, b, &b.Cols, &ipiv, &info)
-// 		if info != 0 {
-// 			panic(info)
-// 		}
-// 		golapack.Zgetri(&b.Cols, b, &b.Cols, &ipiv, work, &lwork, &info)
-// 		if info != 0 {
-// 			panic(info)
-// 		}
-// 		for i := 0; i < a.Rows; i++ {
-// 			for j := 0; j < a.Cols; j++ {
-// 				if b.Get(i, j) != x.Get(i, j) {
-// 					t.Errorf("Failed Row major inverse: got %v, want %v\n", b.Get(i, j), x.Get(i, j))
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+		if info, err = golapack.Zgetrf(b.Rows, b.Cols, b, &ipiv); err != nil || info != 0 {
+			panic(info)
+		}
+		if info, err = golapack.Zgetri(b.Cols, b, &ipiv, work, lwork); err != nil || info != 0 {
+			panic(info)
+		}
+		for i := 0; i < b.Rows; i++ {
+			for j := 0; j < b.Cols; j++ {
+				if b.Get(i, j) != x.Get(i, j) {
+					t.Errorf("Failed Row major inverse: got %v, want %v\n", b.Get(i, j), x.Get(i, j))
+				}
+			}
+		}
+	}
+}

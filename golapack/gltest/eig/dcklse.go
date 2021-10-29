@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/whipstein/golinalg/golapack/gltest/lin"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dcklse tests DGGLSE - a subroutine for solving linear equality
+// dcklse tests DGGLSE - a subroutine for solving linear equality
 // constrained least square problem (LSE).
-func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *float64, nmax *int, a, af, b, bf, x, work, rwork *mat.Vector, nout, info *int, t *testing.T) {
+func dcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work, rwork *mat.Vector, nout int, t *testing.T) (err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb float64
@@ -22,21 +23,20 @@ func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 	ntypes = 8
 
 	//     Initialize constants and the random number seed.
-	path := []byte("LSE")
-	(*info) = 0
+	path := "Lse"
 	nrun = 0
 	nfail = 0
 	firstt = true
-	Alareq(nmats, &dotype)
-	lda = (*nmax)
-	ldb = (*nmax)
-	lwork = (*nmax) * (*nmax)
+	alareq(nmats, &dotype)
+	lda = nmax
+	ldb = nmax
+	lwork = nmax * nmax
 
 	//     Check for valid input values.
-	for ik = 1; ik <= (*nn); ik++ {
-		m = (*mval)[ik-1]
-		p = (*pval)[ik-1]
-		n = (*nval)[ik-1]
+	for ik = 1; ik <= nn; ik++ {
+		m = mval[ik-1]
+		p = pval[ik-1]
+		n = nval[ik-1]
 		if p > n || n > m+p {
 			t.Fail()
 			if firstt {
@@ -49,10 +49,10 @@ func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 	firstt = true
 
 	//     Do for each value of M in MVAL.
-	for ik = 1; ik <= (*nn); ik++ {
-		m = (*mval)[ik-1]
-		p = (*pval)[ik-1]
-		n = (*nval)[ik-1]
+	for ik = 1; ik <= nn; ik++ {
+		m = mval[ik-1]
+		p = pval[ik-1]
+		n = nval[ik-1]
 		if p > n || n > m+p {
 			goto label40
 		}
@@ -65,44 +65,46 @@ func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 
 			//           Set up parameters with DLATB9 and generate test
 			//           matrices A and B with DLATMS.
-			Dlatb9(path, &imat, &m, &p, &n, &_type, &kla, &kua, &klb, &kub, &anorm, &bnorm, &modea, &modeb, &cndnma, &cndnmb, &dista, &distb)
+			_type, kla, kua, klb, kub, anorm, bnorm, modea, modeb, cndnma, cndnmb, dista, distb = dlatb9(path, imat, m, p, n)
 
-			matgen.Dlatms(&m, &n, dista, iseed, _type, rwork, &modea, &cndnma, &anorm, &kla, &kua, 'N', a.Matrix(lda, opts), &lda, work, &iinfo)
-			if iinfo != 0 {
+			if iinfo, _ = matgen.Dlatms(m, n, dista, &iseed, _type, rwork, modea, cndnma, anorm, kla, kua, 'N', a.Matrix(lda, opts), work); iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKLSE   INFO = %5d\n", iinfo)
-				(*info) = abs(iinfo)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label30
 			}
 
-			matgen.Dlatms(&p, &n, distb, iseed, _type, rwork, &modeb, &cndnmb, &bnorm, &klb, &kub, 'N', b.Matrix(ldb, opts), &ldb, work, &iinfo)
-			if iinfo != 0 {
+			if iinfo, _ = matgen.Dlatms(p, n, distb, &iseed, _type, rwork, modeb, cndnmb, bnorm, klb, kub, 'N', b.Matrix(ldb, opts), work); iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" DLATMS in DCKLSE   INFO = %5d\n", iinfo)
-				(*info) = abs(iinfo)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				goto label30
 			}
 
 			//           Generate the right-hand sides C and D for the LSE.
-			Dlarhs([]byte("DGE"), toPtrByte('N'), 'U', 'N', &m, &n, toPtr(max(m-1, 0)), toPtr(max(n-1, 0)), func() *int { y := 1; return &y }(), a.Matrix(lda, opts), &lda, x.MatrixOff(4*(*nmax), max(n, 1), opts), toPtr(max(n, 1)), x.Matrix(max(m, 1), opts), toPtr(max(m, 1)), iseed, &iinfo)
+			if err = lin.Dlarhs("Dge", 'N', Upper, NoTrans, m, n, max(m-1, 0), max(n-1, 0), 1, a.Matrix(lda, opts), x.MatrixOff(4*nmax, max(n, 1), opts), x.Matrix(max(m, 1), opts), &iseed); err != nil {
+				panic(err)
+			}
 
-			Dlarhs([]byte("DGE"), toPtrByte('C'), 'U', 'N', &p, &n, toPtr(max(p-1, 0)), toPtr(max(n-1, 0)), func() *int { y := 1; return &y }(), b.Matrix(ldb, opts), &ldb, x.MatrixOff(4*(*nmax), max(n, 1), opts), toPtr(max(n, 1)), x.MatrixOff(2*(*nmax), max(p, 1), opts), toPtr(max(p, 1)), iseed, &iinfo)
+			if err = lin.Dlarhs("Dge", 'C', Upper, NoTrans, p, n, max(p-1, 0), max(n-1, 0), 1, b.Matrix(ldb, opts), x.MatrixOff(4*nmax, max(n, 1), opts), x.MatrixOff(2*nmax, max(p, 1), opts), &iseed); err != nil {
+				panic(err)
+			}
 
 			nt = 2
 
-			Dlsets(&m, &p, &n, a.Matrix(lda, opts), af.Matrix(lda, opts), &lda, b.Matrix(ldb, opts), bf.Matrix(ldb, opts), &ldb, x, x.Off((*nmax)), x.Off(2*(*nmax)), x.Off(3*(*nmax)), x.Off(4*(*nmax)), work, &lwork, rwork, result)
+			dlsets(m, p, n, a.Matrix(lda, opts), af.Matrix(lda, opts), b.Matrix(ldb, opts), bf.Matrix(ldb, opts), x, x.Off(nmax), x.Off(2*nmax), x.Off(3*nmax), x.Off(4*nmax), work, lwork, rwork, result)
 
 			//           Print information about the tests that did not
 			//           pass the threshold.
 			for i = 1; i <= nt; i++ {
-				if result.Get(i-1) >= (*thresh) {
+				if result.Get(i-1) >= thresh {
 					t.Fail()
 					if nfail == 0 && firstt {
 						firstt = false
-						Alahdg(path)
+						alahdg(path)
 					}
 					fmt.Printf(" M=%4d P=%4d, N=%4d, _type %2d, test %2d, ratio=%13.6f\n", m, p, n, imat, i, result.Get(i-1))
-					nfail = nfail + 1
+					nfail++
 				}
 			}
 			nrun = nrun + nt
@@ -113,5 +115,7 @@ func Dcklse(nn *int, mval, pval, nval *[]int, nmats *int, iseed *[]int, thresh *
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, func() *int { y := 0; return &y }())
+	alasum(path, nfail, nrun, 0)
+
+	return
 }

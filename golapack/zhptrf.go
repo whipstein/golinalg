@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
@@ -17,31 +18,26 @@ import (
 // where U (or L) is a product of permutation and unit upper (lower)
 // triangular matrices, and D is Hermitian and block diagonal with
 // 1-by-1 and 2-by-2 diagonal blocks.
-func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
+func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, err error) {
 	var upper bool
 	var d12, d21, t, wk, wkm1, wkp1 complex128
 	var absakk, alpha, colmax, d, d11, d22, eight, one, r1, rowmax, sevten, tt, zero float64
 	var i, imax, j, jmax, k, kc, kk, knc, kp, kpc, kstep, kx, npp int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 	eight = 8.0
 	sevten = 17.0
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHPTRF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhptrf", err)
 		return
 	}
 
@@ -53,8 +49,8 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 		//
 		//        K is the main loop index, decreasing from N to 1 in steps of
 		//        1 or 2
-		k = (*n)
-		kc = ((*n)-1)*(*n)/2 + 1
+		k = n
+		kc = (n-1)*n/2 + 1
 	label10:
 		;
 		knc = kc
@@ -73,15 +69,15 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 		//        column K, and COLMAX is its absolute value
 		if k > 1 {
 			imax = goblas.Izamax(k-1, ap.Off(kc-1, 1))
-			colmax = Cabs1(ap.Get(kc + imax - 1 - 1))
+			colmax = cabs1(ap.Get(kc + imax - 1 - 1))
 		} else {
 			colmax = zero
 		}
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 			ap.Set(kc+k-1-1, ap.GetReCmplx(kc+k-1-1))
@@ -96,8 +92,8 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				jmax = imax
 				kx = imax*(imax+1)/2 + imax
 				for j = imax + 1; j <= k; j++ {
-					if Cabs1(ap.Get(kx-1)) > rowmax {
-						rowmax = Cabs1(ap.Get(kx - 1))
+					if cabs1(ap.Get(kx-1)) > rowmax {
+						rowmax = cabs1(ap.Get(kx - 1))
 						jmax = j
 					}
 					kx = kx + j
@@ -105,7 +101,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				kpc = (imax-1)*imax/2 + 1
 				if imax > 1 {
 					jmax = goblas.Izamax(imax-1, ap.Off(kpc-1, 1))
-					rowmax = math.Max(rowmax, Cabs1(ap.Get(kpc+jmax-1-1)))
+					rowmax = math.Max(rowmax, cabs1(ap.Get(kpc+jmax-1-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
@@ -167,7 +163,9 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				//
 				//              A := A - U(k)*D(k)*U(k)**H = A - W(k)*1/D(k)*W(k)**H
 				r1 = one / ap.GetRe(kc+k-1-1)
-				err = goblas.Zhpr(mat.UploByte(uplo), k-1, -r1, ap.Off(kc-1, 1), ap)
+				if err = goblas.Zhpr(uplo, k-1, -r1, ap.Off(kc-1, 1), ap); err != nil {
+					panic(err)
+				}
 
 				//              Store U(k) in column k
 				goblas.Zdscal(k-1, r1, ap.Off(kc-1, 1))
@@ -185,7 +183,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				//                 = A - ( W(k-1) W(k) )*inv(D(k))*( W(k-1) W(k) )**H
 				if k > 2 {
 
-					d = Dlapy2(toPtrf64(ap.GetRe(k-1+(k-1)*k/2-1)), toPtrf64(ap.GetIm(k-1+(k-1)*k/2-1)))
+					d = Dlapy2(ap.GetRe(k-1+(k-1)*k/2-1), ap.GetIm(k-1+(k-1)*k/2-1))
 					d22 = ap.GetRe(k-1+(k-2)*(k-1)/2-1) / d
 					d11 = ap.GetRe(k+(k-1)*k/2-1) / d
 					tt = one / (d11*d22 - one)
@@ -228,13 +226,13 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 		//        1 or 2
 		k = 1
 		kc = 1
-		npp = (*n) * ((*n) + 1) / 2
+		npp = n * (n + 1) / 2
 	label60:
 		;
 		knc = kc
 
 		//        If K > N, exit from loop
-		if k > (*n) {
+		if k > n {
 			return
 		}
 		kstep = 1
@@ -245,17 +243,17 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
-		if k < (*n) {
-			imax = k + goblas.Izamax((*n)-k, ap.Off(kc, 1))
-			colmax = Cabs1(ap.Get(kc + imax - k - 1))
+		if k < n {
+			imax = k + goblas.Izamax(n-k, ap.Off(kc, 1))
+			colmax = cabs1(ap.Get(kc + imax - k - 1))
 		} else {
 			colmax = zero
 		}
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 			ap.Set(kc-1, ap.GetReCmplx(kc-1))
@@ -269,16 +267,16 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				rowmax = zero
 				kx = kc + imax - k
 				for j = k; j <= imax-1; j++ {
-					if Cabs1(ap.Get(kx-1)) > rowmax {
-						rowmax = Cabs1(ap.Get(kx - 1))
+					if cabs1(ap.Get(kx-1)) > rowmax {
+						rowmax = cabs1(ap.Get(kx - 1))
 						jmax = j
 					}
-					kx = kx + (*n) - j
+					kx = kx + n - j
 				}
-				kpc = npp - ((*n)-imax+1)*((*n)-imax+2)/2 + 1
-				if imax < (*n) {
-					jmax = imax + goblas.Izamax((*n)-imax, ap.Off(kpc, 1))
-					rowmax = math.Max(rowmax, Cabs1(ap.Get(kpc+jmax-imax-1)))
+				kpc = npp - (n-imax+1)*(n-imax+2)/2 + 1
+				if imax < n {
+					jmax = imax + goblas.Izamax(n-imax, ap.Off(kpc, 1))
+					rowmax = math.Max(rowmax, cabs1(ap.Get(kpc+jmax-imax-1)))
 				}
 
 				if absakk >= alpha*colmax*(colmax/rowmax) {
@@ -298,17 +296,17 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 
 			kk = k + kstep - 1
 			if kstep == 2 {
-				knc = knc + (*n) - k + 1
+				knc = knc + n - k + 1
 			}
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
-				if kp < (*n) {
-					goblas.Zswap((*n)-kp, ap.Off(knc+kp-kk, 1), ap.Off(kpc, 1))
+				if kp < n {
+					goblas.Zswap(n-kp, ap.Off(knc+kp-kk, 1), ap.Off(kpc, 1))
 				}
 				kx = knc + kp - kk
 				for j = kk + 1; j <= kp-1; j++ {
-					kx = kx + (*n) - j + 1
+					kx = kx + n - j + 1
 					t = cmplx.Conj(ap.Get(knc + j - kk - 1))
 					ap.Set(knc+j-kk-1, cmplx.Conj(ap.Get(kx-1)))
 					ap.Set(kx-1, t)
@@ -337,15 +335,17 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				//              W(k) = L(k)*D(k)
 				//
 				//              where L(k) is the k-th column of L
-				if k < (*n) {
+				if k < n {
 					//                 Perform a rank-1 update of A(k+1:n,k+1:n) as
 					//
 					//                 A := A - L(k)*D(k)*L(k)**H = A - W(k)*(1/D(k))*W(k)**H
 					r1 = one / ap.GetRe(kc-1)
-					err = goblas.Zhpr(mat.UploByte(uplo), (*n)-k, -r1, ap.Off(kc, 1), ap.Off(kc+(*n)-k))
+					if err = goblas.Zhpr(uplo, n-k, -r1, ap.Off(kc, 1), ap.Off(kc+n-k)); err != nil {
+						panic(err)
+					}
 
 					//                 Store L(k) in column K
-					goblas.Zdscal((*n)-k, r1, ap.Off(kc, 1))
+					goblas.Zdscal(n-k, r1, ap.Off(kc, 1))
 				}
 			} else {
 				//              2-by-2 pivot block D(k): columns K and K+1 now hold
@@ -354,7 +354,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 				//
 				//              where L(k) and L(k+1) are the k-th and (k+1)-th columns
 				//              of L
-				if k < (*n)-1 {
+				if k < n-1 {
 					//                 Perform a rank-2 update of A(k+2:n,k+2:n) as
 					//
 					//                 A := A - ( L(k) L(k+1) )*D(k)*( L(k) L(k+1) )**H
@@ -362,22 +362,22 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 					//
 					//                 where L(k) and L(k+1) are the k-th and (k+1)-th
 					//                 columns of L
-					d = Dlapy2(toPtrf64(ap.GetRe(k+1+(k-1)*(2*(*n)-k)/2-1)), toPtrf64(ap.GetIm(k+1+(k-1)*(2*(*n)-k)/2-1)))
-					d11 = ap.GetRe(k+1+k*(2*(*n)-k-1)/2-1) / d
-					d22 = ap.GetRe(k+(k-1)*(2*(*n)-k)/2-1) / d
+					d = Dlapy2(ap.GetRe(k+1+(k-1)*(2*n-k)/2-1), ap.GetIm(k+1+(k-1)*(2*n-k)/2-1))
+					d11 = ap.GetRe(k+1+k*(2*n-k-1)/2-1) / d
+					d22 = ap.GetRe(k+(k-1)*(2*n-k)/2-1) / d
 					tt = one / (d11*d22 - one)
-					d21 = ap.Get(k+1+(k-1)*(2*(*n)-k)/2-1) / complex(d, 0)
+					d21 = ap.Get(k+1+(k-1)*(2*n-k)/2-1) / complex(d, 0)
 					d = tt / d
 
-					for j = k + 2; j <= (*n); j++ {
-						wk = complex(d, 0) * (complex(d11, 0)*ap.Get(j+(k-1)*(2*(*n)-k)/2-1) - d21*ap.Get(j+k*(2*(*n)-k-1)/2-1))
-						wkp1 = complex(d, 0) * (complex(d22, 0)*ap.Get(j+k*(2*(*n)-k-1)/2-1) - cmplx.Conj(d21)*ap.Get(j+(k-1)*(2*(*n)-k)/2-1))
-						for i = j; i <= (*n); i++ {
-							ap.Set(i+(j-1)*(2*(*n)-j)/2-1, ap.Get(i+(j-1)*(2*(*n)-j)/2-1)-ap.Get(i+(k-1)*(2*(*n)-k)/2-1)*cmplx.Conj(wk)-ap.Get(i+k*(2*(*n)-k-1)/2-1)*cmplx.Conj(wkp1))
+					for j = k + 2; j <= n; j++ {
+						wk = complex(d, 0) * (complex(d11, 0)*ap.Get(j+(k-1)*(2*n-k)/2-1) - d21*ap.Get(j+k*(2*n-k-1)/2-1))
+						wkp1 = complex(d, 0) * (complex(d22, 0)*ap.Get(j+k*(2*n-k-1)/2-1) - cmplx.Conj(d21)*ap.Get(j+(k-1)*(2*n-k)/2-1))
+						for i = j; i <= n; i++ {
+							ap.Set(i+(j-1)*(2*n-j)/2-1, ap.Get(i+(j-1)*(2*n-j)/2-1)-ap.Get(i+(k-1)*(2*n-k)/2-1)*cmplx.Conj(wk)-ap.Get(i+k*(2*n-k-1)/2-1)*cmplx.Conj(wkp1))
 						}
-						ap.Set(j+(k-1)*(2*(*n)-k)/2-1, wk)
-						ap.Set(j+k*(2*(*n)-k-1)/2-1, wkp1)
-						ap.Set(j+(j-1)*(2*(*n)-j)/2-1, ap.GetReCmplx(j+(j-1)*(2*(*n)-j)/2-1))
+						ap.Set(j+(k-1)*(2*n-k)/2-1, wk)
+						ap.Set(j+k*(2*n-k-1)/2-1, wkp1)
+						ap.Set(j+(j-1)*(2*n-j)/2-1, ap.GetReCmplx(j+(j-1)*(2*n-j)/2-1))
 					}
 				}
 			}
@@ -393,7 +393,7 @@ func Zhptrf(uplo byte, n *int, ap *mat.CVector, ipiv *[]int, info *int) {
 
 		//        Increase K and return to the start of the main loop
 		k = k + kstep
-		kc = knc + (*n) - k + 2
+		kc = knc + n - k + 2
 		goto label60
 
 	}

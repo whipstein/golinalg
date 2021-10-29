@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -8,111 +10,112 @@ import (
 // Dtpmqrt applies a real orthogonal matrix Q obtained from a
 // "triangular-pentagonal" real block reflector H to a general
 // real matrix C, which consists of two blocks A and B.
-func Dtpmqrt(side, trans byte, m, n, k, l, nb *int, v *mat.Matrix, ldv *int, t *mat.Matrix, ldt *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, work *mat.Vector, info *int) {
+func Dtpmqrt(side mat.MatSide, trans mat.MatTrans, m, n, k, l, nb int, v, t, a, b *mat.Matrix, work *mat.Vector) (err error) {
 	var left, notran, right, tran bool
 	var i, ib, kf, lb, ldaq, ldvq, mb int
 
 	//     .. Test the input arguments ..
-	(*info) = 0
-	left = side == 'L'
-	right = side == 'R'
-	tran = trans == 'T'
-	notran = trans == 'N'
+	left = side == Left
+	right = side == Right
+	tran = trans == Trans
+	notran = trans == NoTrans
 
 	if left {
-		ldvq = max(1, *m)
-		ldaq = max(1, *k)
+		ldvq = max(1, m)
+		ldaq = max(1, k)
 	} else if right {
-		ldvq = max(1, *n)
-		ldaq = max(1, *m)
+		ldvq = max(1, n)
+		ldaq = max(1, m)
 	}
 	if !left && !right {
-		(*info) = -1
+		err = fmt.Errorf("!left && !right: side=%s", side)
 	} else if !tran && !notran {
-		(*info) = -2
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*k) < 0 {
-		(*info) = -5
-	} else if (*l) < 0 || (*l) > (*k) {
-		(*info) = -6
-	} else if (*nb) < 1 || ((*nb) > (*k) && (*k) > 0) {
-		(*info) = -7
-	} else if (*ldv) < ldvq {
-		(*info) = -9
-	} else if (*ldt) < (*nb) {
-		(*info) = -11
-	} else if (*lda) < ldaq {
-		(*info) = -13
-	} else if (*ldb) < max(1, *m) {
-		(*info) = -15
+		err = fmt.Errorf("!tran && !notran: trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if k < 0 {
+		err = fmt.Errorf("k < 0: k=%v", k)
+	} else if l < 0 || l > k {
+		err = fmt.Errorf("l < 0 || l > k: l=%v, k=%v", l, k)
+	} else if nb < 1 || (nb > k && k > 0) {
+		err = fmt.Errorf("nb < 1 || (nb > k && k > 0): nb=%v, k=%v", nb, k)
+	} else if v.Rows < ldvq {
+		err = fmt.Errorf("v.Rows < ldvq: v.Rows=%v, ldvq=%v", v.Rows, ldvq)
+	} else if t.Rows < nb {
+		err = fmt.Errorf("t.Rows < nb: t.Rows=%v, nb=%v", t.Rows, nb)
+	} else if a.Rows < ldaq {
+		err = fmt.Errorf("a.Rows < ldaq: a.Rows=%v, ldaq=%v", a.Rows, ldaq)
+	} else if b.Rows < max(1, m) {
+		err = fmt.Errorf("b.Rows < max(1, m): b.Rows=%v, m=%v", b.Rows, m)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTPMQRT"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtpmqrt", err)
 		return
 	}
 
 	//     .. Quick return if possible ..
-	if (*m) == 0 || (*n) == 0 || (*k) == 0 {
+	if m == 0 || n == 0 || k == 0 {
 		return
 	}
 
 	if left && tran {
 
-		for i = 1; i <= (*k); i += (*nb) {
-			ib = min(*nb, (*k)-i+1)
-			mb = min((*m)-(*l)+i+ib-1, *m)
-			if i >= (*l) {
+		for i = 1; i <= k; i += nb {
+			ib = min(nb, k-i+1)
+			mb = min(m-l+i+ib-1, m)
+			if i >= l {
 				lb = 0
 			} else {
-				lb = mb - (*m) + (*l) - i + 1
+				lb = mb - m + l - i + 1
 			}
-			Dtprfb('L', 'T', 'F', 'C', &mb, n, &ib, &lb, v.Off(0, i-1), ldv, t.Off(0, i-1), ldt, a.Off(i-1, 0), lda, b, ldb, work.Matrix(ib, opts), &ib)
+			Dtprfb(Left, Trans, 'F', 'C', mb, n, ib, lb, v.Off(0, i-1), t.Off(0, i-1), a.Off(i-1, 0), b, work.Matrix(ib, opts))
 		}
 
 	} else if right && notran {
 
-		for i = 1; i <= (*k); i += (*nb) {
-			ib = min(*nb, (*k)-i+1)
-			mb = min((*n)-(*l)+i+ib-1, *n)
-			if i >= (*l) {
+		for i = 1; i <= k; i += nb {
+			ib = min(nb, k-i+1)
+			mb = min(n-l+i+ib-1, n)
+			if i >= l {
 				lb = 0
 			} else {
-				lb = mb - (*n) + (*l) - i + 1
+				lb = mb - n + l - i + 1
 			}
-			Dtprfb('R', 'N', 'F', 'C', m, &mb, &ib, &lb, v.Off(0, i-1), ldv, t.Off(0, i-1), ldt, a.Off(0, i-1), lda, b, ldb, work.Matrix(*m, opts), m)
+			Dtprfb(Right, NoTrans, 'F', 'C', m, mb, ib, lb, v.Off(0, i-1), t.Off(0, i-1), a.Off(0, i-1), b, work.Matrix(m, opts))
 		}
 
 	} else if left && notran {
 
-		kf = (((*k)-1)/(*nb))*(*nb) + 1
-		for i = kf; i >= 1; i -= (*nb) {
-			ib = min(*nb, (*k)-i+1)
-			mb = min((*m)-(*l)+i+ib-1, *m)
-			if i >= (*l) {
+		kf = ((k-1)/nb)*nb + 1
+		for i = kf; i >= 1; i -= nb {
+			ib = min(nb, k-i+1)
+			mb = min(m-l+i+ib-1, m)
+			if i >= l {
 				lb = 0
 			} else {
-				lb = mb - (*m) + (*l) - i + 1
+				lb = mb - m + l - i + 1
 			}
-			Dtprfb('L', 'N', 'F', 'C', &mb, n, &ib, &lb, v.Off(0, i-1), ldv, t.Off(0, i-1), ldt, a.Off(i-1, 0), lda, b, ldb, work.Matrix(ib, opts), &ib)
+			Dtprfb(Left, NoTrans, 'F', 'C', mb, n, ib, lb, v.Off(0, i-1), t.Off(0, i-1), a.Off(i-1, 0), b, work.Matrix(ib, opts))
 		}
 
 	} else if right && tran {
 
-		kf = (((*k)-1)/(*nb))*(*nb) + 1
-		for i = kf; i >= 1; i -= (*nb) {
-			ib = min(*nb, (*k)-i+1)
-			mb = min((*n)-(*l)+i+ib-1, *n)
-			if i >= (*l) {
+		kf = ((k-1)/nb)*nb + 1
+		for i = kf; i >= 1; i -= nb {
+			ib = min(nb, k-i+1)
+			mb = min(n-l+i+ib-1, n)
+			if i >= l {
 				lb = 0
 			} else {
-				lb = mb - (*n) + (*l) - i + 1
+				lb = mb - n + l - i + 1
 			}
-			Dtprfb('R', 'T', 'F', 'C', m, &mb, &ib, &lb, v.Off(0, i-1), ldv, t.Off(0, i-1), ldt, a.Off(0, i-1), lda, b, ldb, work.Matrix(*m, opts), m)
+			Dtprfb(Right, Trans, 'F', 'C', m, mb, ib, lb, v.Off(0, i-1), t.Off(0, i-1), a.Off(0, i-1), b, work.Matrix(m, opts))
 		}
 
 	}
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -11,53 +12,50 @@ import (
 // Dsytrirook computes the inverse of a real symmetric
 // matrix A using the factorization A = U*D*U**T or A = L*D*L**T
 // computed by DSYTRF_ROOK.
-func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Vector, info *int) {
+func DsytriRook(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vector) (info int, err error) {
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, temp, zero float64
 	var k, kp, kstep int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRI_ROOK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("DsytriRook", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Check that the diagonal matrix D is nonsingular.
 	if upper {
 		//        Upper triangular storage: examine D from bottom to top
-		for (*info) = (*n); (*info) >= 1; (*info)-- {
-			if (*ipiv)[(*info)-1] > 0 && a.Get((*info)-1, (*info)-1) == zero {
+		for info = n; info >= 1; info-- {
+			if (*ipiv)[info-1] > 0 && a.Get(info-1, info-1) == zero {
 				return
 			}
 		}
 	} else {
 		//        Lower triangular storage: examine D from top to bottom.
-		for (*info) = 1; (*info) <= (*n); (*info)++ {
-			if (*ipiv)[(*info)-1] > 0 && a.Get((*info)-1, (*info)-1) == zero {
+		for info = 1; info <= n; info++ {
+			if (*ipiv)[info-1] > 0 && a.Get(info-1, info-1) == zero {
 				return
 			}
 		}
 	}
-	(*info) = 0
+	info = 0
 
 	if upper {
 		//        Compute inv(A) from the factorization A = U*D*U**T.
@@ -69,7 +67,7 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 		;
 
 		//        If K > N, exit from loop.
-		if k > (*n) {
+		if k > n {
 			goto label40
 		}
 
@@ -82,7 +80,7 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			//           Compute column K of the inverse.
 			if k > 1 {
 				goblas.Dcopy(k-1, a.Vector(0, k-1, 1), work.Off(0, 1))
-				err = goblas.Dsymv(mat.UploByte(uplo), k-1, -one, a, work.Off(0, 1), zero, a.Vector(0, k-1, 1))
+				err = goblas.Dsymv(uplo, k-1, -one, a, work.Off(0, 1), zero, a.Vector(0, k-1, 1))
 				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(k-1, work.Off(0, 1), a.Vector(0, k-1, 1)))
 			}
 			kstep = 1
@@ -102,11 +100,11 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
 				goblas.Dcopy(k-1, a.Vector(0, k-1, 1), work.Off(0, 1))
-				err = goblas.Dsymv(mat.UploByte(uplo), k-1, -one, a, work.Off(0, 1), zero, a.Vector(0, k-1, 1))
+				err = goblas.Dsymv(uplo, k-1, -one, a, work.Off(0, 1), zero, a.Vector(0, k-1, 1))
 				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(k-1, work.Off(0, 1), a.Vector(0, k-1, 1)))
 				a.Set(k-1, k, a.Get(k-1, k)-goblas.Ddot(k-1, a.Vector(0, k-1, 1), a.Vector(0, k, 1)))
 				goblas.Dcopy(k-1, a.Vector(0, k, 1), work.Off(0, 1))
-				err = goblas.Dsymv(mat.UploByte(uplo), k-1, -one, a, work.Off(0, 1), zero, a.Vector(0, k, 1))
+				err = goblas.Dsymv(uplo, k-1, -one, a, work.Off(0, 1), zero, a.Vector(0, k, 1))
 				a.Set(k, k, a.Get(k, k)-goblas.Ddot(k-1, work.Off(0, 1), a.Vector(0, k, 1)))
 			}
 			kstep = 2
@@ -120,7 +118,7 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 				if kp > 1 {
 					goblas.Dswap(kp-1, a.Vector(0, k-1, 1), a.Vector(0, kp-1, 1))
 				}
-				goblas.Dswap(k-kp-1, a.Vector(kp, k-1, 1), a.Vector(kp-1, kp, *lda))
+				goblas.Dswap(k-kp-1, a.Vector(kp, k-1, 1), a.Vector(kp-1, kp))
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -133,7 +131,7 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 				if kp > 1 {
 					goblas.Dswap(kp-1, a.Vector(0, k-1, 1), a.Vector(0, kp-1, 1))
 				}
-				goblas.Dswap(k-kp-1, a.Vector(kp, k-1, 1), a.Vector(kp-1, kp, *lda))
+				goblas.Dswap(k-kp-1, a.Vector(kp, k-1, 1), a.Vector(kp-1, kp))
 				//
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
@@ -149,7 +147,7 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 				if kp > 1 {
 					goblas.Dswap(kp-1, a.Vector(0, k-1, 1), a.Vector(0, kp-1, 1))
 				}
-				goblas.Dswap(k-kp-1, a.Vector(kp, k-1, 1), a.Vector(kp-1, kp, *lda))
+				goblas.Dswap(k-kp-1, a.Vector(kp, k-1, 1), a.Vector(kp-1, kp))
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -164,7 +162,7 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 		//
 		//        K is the main loop index, increasing from 1 to N in steps of
 		//        1 or 2, depending on the size of the diagonal blocks.
-		k = (*n)
+		k = n
 	label50:
 		;
 
@@ -180,10 +178,10 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			a.Set(k-1, k-1, one/a.Get(k-1, k-1))
 
 			//           Compute column K of the inverse.
-			if k < (*n) {
-				goblas.Dcopy((*n)-k, a.Vector(k, k-1, 1), work.Off(0, 1))
-				err = goblas.Dsymv(mat.UploByte(uplo), (*n)-k, -one, a.Off(k, k), work.Off(0, 1), zero, a.Vector(k, k-1, 1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot((*n)-k, work.Off(0, 1), a.Vector(k, k-1, 1)))
+			if k < n {
+				goblas.Dcopy(n-k, a.Vector(k, k-1, 1), work.Off(0, 1))
+				err = goblas.Dsymv(uplo, n-k, -one, a.Off(k, k), work.Off(0, 1), zero, a.Vector(k, k-1, 1))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(n-k, work.Off(0, 1), a.Vector(k, k-1, 1)))
 			}
 			kstep = 1
 		} else {
@@ -200,14 +198,14 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			a.Set(k-1, k-1-1, -akkp1/d)
 
 			//           Compute columns K-1 and K of the inverse.
-			if k < (*n) {
-				goblas.Dcopy((*n)-k, a.Vector(k, k-1, 1), work.Off(0, 1))
-				err = goblas.Dsymv(mat.UploByte(uplo), (*n)-k, -one, a.Off(k, k), work.Off(0, 1), zero, a.Vector(k, k-1, 1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot((*n)-k, work.Off(0, 1), a.Vector(k, k-1, 1)))
-				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Ddot((*n)-k, a.Vector(k, k-1, 1), a.Vector(k, k-1-1, 1)))
-				goblas.Dcopy((*n)-k, a.Vector(k, k-1-1, 1), work.Off(0, 1))
-				err = goblas.Dsymv(mat.UploByte(uplo), (*n)-k, -one, a.Off(k, k), work.Off(0, 1), zero, a.Vector(k, k-1-1, 1))
-				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Ddot((*n)-k, work.Off(0, 1), a.Vector(k, k-1-1, 1)))
+			if k < n {
+				goblas.Dcopy(n-k, a.Vector(k, k-1, 1), work.Off(0, 1))
+				err = goblas.Dsymv(uplo, n-k, -one, a.Off(k, k), work.Off(0, 1), zero, a.Vector(k, k-1, 1))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Ddot(n-k, work.Off(0, 1), a.Vector(k, k-1, 1)))
+				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Ddot(n-k, a.Vector(k, k-1, 1), a.Vector(k, k-1-1, 1)))
+				goblas.Dcopy(n-k, a.Vector(k, k-1-1, 1), work.Off(0, 1))
+				err = goblas.Dsymv(uplo, n-k, -one, a.Off(k, k), work.Off(0, 1), zero, a.Vector(k, k-1-1, 1))
+				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Ddot(n-k, work.Off(0, 1), a.Vector(k, k-1-1, 1)))
 			}
 			kstep = 2
 		}
@@ -217,10 +215,10 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			//           submatrix A(k-1:n,k-1:n)
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				if kp < (*n) {
-					goblas.Dswap((*n)-kp, a.Vector(kp, k-1, 1), a.Vector(kp, kp-1, 1))
+				if kp < n {
+					goblas.Dswap(n-kp, a.Vector(kp, k-1, 1), a.Vector(kp, kp-1, 1))
 				}
-				goblas.Dswap(kp-k-1, a.Vector(k, k-1, 1), a.Vector(kp-1, k, *lda))
+				goblas.Dswap(kp-k-1, a.Vector(k, k-1, 1), a.Vector(kp-1, k))
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -230,10 +228,10 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			//           -IPIV(K-1) in the trailing submatrix A(k-1:n,k-1:n)
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				if kp < (*n) {
-					goblas.Dswap((*n)-kp, a.Vector(kp, k-1, 1), a.Vector(kp, kp-1, 1))
+				if kp < n {
+					goblas.Dswap(n-kp, a.Vector(kp, k-1, 1), a.Vector(kp, kp-1, 1))
 				}
-				goblas.Dswap(kp-k-1, a.Vector(k, k-1, 1), a.Vector(kp-1, k, *lda))
+				goblas.Dswap(kp-k-1, a.Vector(k, k-1, 1), a.Vector(kp-1, k))
 
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
@@ -246,10 +244,10 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 			k = k - 1
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				if kp < (*n) {
-					goblas.Dswap((*n)-kp, a.Vector(kp, k-1, 1), a.Vector(kp, kp-1, 1))
+				if kp < n {
+					goblas.Dswap(n-kp, a.Vector(kp, k-1, 1), a.Vector(kp, kp-1, 1))
 				}
-				goblas.Dswap(kp-k-1, a.Vector(k, k-1, 1), a.Vector(kp-1, k, *lda))
+				goblas.Dswap(kp-k-1, a.Vector(k, k-1, 1), a.Vector(kp-1, k))
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -260,4 +258,6 @@ func DsytriRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 		goto label50
 	label60:
 	}
+
+	return
 }

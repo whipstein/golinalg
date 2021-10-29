@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -40,7 +41,7 @@ import (
 //
 // and the pair of corresponding 2-by-2 blocks in S and T will have a
 // complex conjugate pair of generalized eigenvalues.
-func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb, sdim *int, alphar, alphai, beta *mat.Vector, vsl *mat.Matrix, ldvsl *int, vsr *mat.Matrix, ldvsr *int, rconde, rcondv, work *mat.Vector, lwork *int, iwork *[]int, liwork *int, bwork *[]bool, info *int) {
+func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n int, a, b *mat.Matrix, alphar, alphai, beta *mat.Vector, vsl, vsr *mat.Matrix, rconde, rcondv, work *mat.Vector, lwork int, iwork *[]int, liwork int, bwork *[]bool) (sdim, info int, err error) {
 	var cursl, ilascl, ilbscl, ilvsl, ilvsr, lastsl, lquery, lst2sl, wantsb, wantse, wantsn, wantst, wantsv bool
 	var anrm, anrmto, bignum, bnrm, bnrmto, eps, one, pl, pr, safmax, safmin, smlnum, zero float64
 	var i, icols, ierr, ihi, ijob, ijobvl, ijobvr, ileft, ilo, ip, iright, irows, itau, iwrk, liwmin, lwrk, maxwrk, minwrk int
@@ -78,7 +79,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	wantse = sense == 'E'
 	wantsv = sense == 'V'
 	wantsb = sense == 'B'
-	lquery = ((*lwork) == -1 || (*liwork) == -1)
+	lquery = (lwork == -1 || liwork == -1)
 	if wantsn {
 		ijob = 0
 	} else if wantse {
@@ -90,25 +91,24 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	}
 
 	//     Test the input arguments
-	(*info) = 0
 	if ijobvl <= 0 {
-		(*info) = -1
+		err = fmt.Errorf("ijobvl <= 0: jobvsl='%c'", jobvsl)
 	} else if ijobvr <= 0 {
-		(*info) = -2
+		err = fmt.Errorf("ijobvr <= 0: jobvsr='%c'", jobvsr)
 	} else if (!wantst) && (sort != 'N') {
-		(*info) = -3
+		err = fmt.Errorf("(!wantst) && (sort != 'N'): sort='%c'", sort)
 	} else if !(wantsn || wantse || wantsv || wantsb) || (!wantst && !wantsn) {
-		(*info) = -5
-	} else if (*n) < 0 {
-		(*info) = -6
-	} else if (*lda) < max(1, *n) {
-		(*info) = -8
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -10
-	} else if (*ldvsl) < 1 || (ilvsl && (*ldvsl) < (*n)) {
-		(*info) = -16
-	} else if (*ldvsr) < 1 || (ilvsr && (*ldvsr) < (*n)) {
-		(*info) = -18
+		err = fmt.Errorf("!(wantsn || wantse || wantsv || wantsb) || (!wantst && !wantsn): sort='%c', sense='%c'", sort, sense)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if vsl.Rows < 1 || (ilvsl && vsl.Rows < n) {
+		err = fmt.Errorf("vsl.Rows < 1 || (ilvsl && vsl.Rows < n): vsl.Rows=%v, ilvsl=%v, n=%v", vsl.Rows, ilvsl, n)
+	} else if vsr.Rows < 1 || (ilvsr && vsr.Rows < n) {
+		err = fmt.Errorf("vsr.Rows < 1 || (ilvsr && vsr.Rows < n): vsr.Rows=%v, ilvsr=%v, n=%v", vsr.Rows, ilvsr, n)
 	}
 
 	//     Compute workspace
@@ -117,17 +117,17 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	//       as well as the preferred amount for good performance.
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV.)
-	if (*info) == 0 {
-		if (*n) > 0 {
-			minwrk = max(8*(*n), 6*(*n)+16)
-			maxwrk = minwrk - (*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
-			maxwrk = max(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+	if err == nil {
+		if n > 0 {
+			minwrk = max(8*n, 6*n+16)
+			maxwrk = minwrk - n + n*Ilaenv(1, "Dgeqrf", []byte{' '}, n, 1, n, 0)
+			maxwrk = max(maxwrk, minwrk-n+n*Ilaenv(1, "Dormqr", []byte{' '}, n, 1, n, -1))
 			if ilvsl {
-				maxwrk = max(maxwrk, minwrk-(*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
+				maxwrk = max(maxwrk, minwrk-n+n*Ilaenv(1, "Dorgqr", []byte{' '}, n, 1, n, -1))
 			}
 			lwrk = maxwrk
 			if ijob >= 1 {
-				lwrk = max(lwrk, (*n)*(*n)/2)
+				lwrk = max(lwrk, n*n/2)
 			}
 		} else {
 			minwrk = 1
@@ -135,30 +135,30 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 			lwrk = 1
 		}
 		work.Set(0, float64(lwrk))
-		if wantsn || (*n) == 0 {
+		if wantsn || n == 0 {
 			liwmin = 1
 		} else {
-			liwmin = (*n) + 6
+			liwmin = n + 6
 		}
 		(*iwork)[0] = liwmin
 		//
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -22
-		} else if (*liwork) < liwmin && !lquery {
-			(*info) = -24
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
+		} else if liwork < liwmin && !lquery {
+			err = fmt.Errorf("liwork < liwmin && !lquery: liwork=%v, liwmin=%v, lquery=%v", liwork, liwmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGGESX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dggesx", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
-		(*sdim) = 0
+	if n == 0 {
+		sdim = 0
 		return
 	}
 
@@ -166,12 +166,12 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	eps = Dlamch(Precision)
 	safmin = Dlamch(SafeMinimum)
 	safmax = one / safmin
-	Dlabad(&safmin, &safmax)
+	safmin, safmax = Dlabad(safmin, safmax)
 	smlnum = math.Sqrt(safmin) / eps
 	bignum = one / smlnum
 
 	//     Scale A if max element outside range [SMLNUM,BIGNUM]
-	anrm = Dlange('M', n, n, a, lda, work)
+	anrm = Dlange('M', n, n, a, work)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
 		anrmto = smlnum
@@ -181,11 +181,13 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 		ilascl = true
 	}
 	if ilascl {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
+		if err = Dlascl('G', 0, 0, anrm, anrmto, n, n, a); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Scale B if max element outside range [SMLNUM,BIGNUM]
-	bnrm = Dlange('M', n, n, b, ldb, work)
+	bnrm = Dlange('M', n, n, b, work)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
 		bnrmto = smlnum
@@ -195,60 +197,74 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 		ilbscl = true
 	}
 	if ilbscl {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &bnrmto, n, n, b, ldb, &ierr)
+		if err = Dlascl('G', 0, 0, bnrm, bnrmto, n, n, b); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Permute the matrix to make it more nearly triangular
 	//     (Workspace: need 6*N + 2*N for permutation parameters)
 	ileft = 1
-	iright = (*n) + 1
-	iwrk = iright + (*n)
-	Dggbal('P', n, a, lda, b, ldb, &ilo, &ihi, work.Off(ileft-1), work.Off(iright-1), work.Off(iwrk-1), &ierr)
+	iright = n + 1
+	iwrk = iright + n
+	if ilo, ihi, err = Dggbal('P', n, a, b, work.Off(ileft-1), work.Off(iright-1), work.Off(iwrk-1)); err != nil {
+		panic(err)
+	}
 
 	//     Reduce B to triangular form (QR decomposition of B)
 	//     (Workspace: need N, prefer N*NB)
 	irows = ihi + 1 - ilo
-	icols = (*n) + 1 - ilo
+	icols = n + 1 - ilo
 	itau = iwrk
 	iwrk = itau + irows
-	Dgeqrf(&irows, &icols, b.Off(ilo-1, ilo-1), ldb, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+	if err = Dgeqrf(irows, icols, b.Off(ilo-1, ilo-1), work.Off(itau-1), work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+		panic(err)
+	}
 
 	//     Apply the orthogonal transformation to matrix A
 	//     (Workspace: need N, prefer N*NB)
-	Dormqr('L', 'T', &irows, &icols, &irows, b.Off(ilo-1, ilo-1), ldb, work.Off(itau-1), a.Off(ilo-1, ilo-1), lda, work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+	if err = Dormqr(Left, Trans, irows, icols, irows, b.Off(ilo-1, ilo-1), work.Off(itau-1), a.Off(ilo-1, ilo-1), work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+		panic(err)
+	}
 
 	//     Initialize VSL
 	//     (Workspace: need N, prefer N*NB)
 	if ilvsl {
-		Dlaset('F', n, n, &zero, &one, vsl, ldvsl)
+		Dlaset(Full, n, n, zero, one, vsl)
 		if irows > 1 {
-			Dlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off(ilo, ilo-1), ldb, vsl.Off(ilo, ilo-1), ldvsl)
+			Dlacpy(Lower, irows-1, irows-1, b.Off(ilo, ilo-1), vsl.Off(ilo, ilo-1))
 		}
-		Dorgqr(&irows, &irows, &irows, vsl.Off(ilo-1, ilo-1), ldvsl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+		if err = Dorgqr(irows, irows, irows, vsl.Off(ilo-1, ilo-1), work.Off(itau-1), work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Initialize VSR
 	if ilvsr {
-		Dlaset('F', n, n, &zero, &one, vsr, ldvsr)
+		Dlaset(Full, n, n, zero, one, vsr)
 	}
 
 	//     Reduce to generalized Hessenberg form
 	//     (Workspace: none needed)
-	Dgghrd(jobvsl, jobvsr, n, &ilo, &ihi, a, lda, b, ldb, vsl, ldvsl, vsr, ldvsr, &ierr)
+	if err = Dgghrd(jobvsl, jobvsr, n, ilo, ihi, a, b, vsl, vsr); err != nil {
+		panic(err)
+	}
 
-	(*sdim) = 0
+	sdim = 0
 
 	//     Perform QZ algorithm, computing Schur vectors if desired
 	//     (Workspace: need N)
 	iwrk = itau
-	Dhgeqz('S', jobvsl, jobvsr, n, &ilo, &ihi, a, lda, b, ldb, alphar, alphai, beta, vsl, ldvsl, vsr, ldvsr, work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+	if ierr, err = Dhgeqz('S', jobvsl, jobvsr, n, ilo, ihi, a, b, alphar, alphai, beta, vsl, vsr, work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+		panic(err)
+	}
 	if ierr != 0 {
-		if ierr > 0 && ierr <= (*n) {
-			(*info) = ierr
-		} else if ierr > (*n) && ierr <= 2*(*n) {
-			(*info) = ierr - (*n)
+		if ierr > 0 && ierr <= n {
+			info = ierr
+		} else if ierr > n && ierr <= 2*n {
+			info = ierr - n
 		} else {
-			(*info) = (*n) + 1
+			info = n + 1
 		}
 		goto label60
 	}
@@ -260,28 +276,36 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	if wantst {
 		//        Undo scaling on eigenvalues before SELCTGing
 		if ilascl {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, n, func() *int { y := 1; return &y }(), alphar.Matrix(*n, opts), n, &ierr)
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, n, func() *int { y := 1; return &y }(), alphai.Matrix(*n, opts), n, &ierr)
+			if err = Dlascl('G', 0, 0, anrmto, anrm, n, 1, alphar.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
+			if err = Dlascl('G', 0, 0, anrmto, anrm, n, 1, alphai.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
 		}
 		if ilbscl {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrmto, &bnrm, n, func() *int { y := 1; return &y }(), beta.Matrix(*n, opts), n, &ierr)
+			if err = Dlascl('G', 0, 0, bnrmto, bnrm, n, 1, beta.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Select eigenvalues
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			(*bwork)[i-1] = selctg(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1))
 		}
 
 		//        Reorder eigenvalues, transform Generalized Schur vectors, and
 		//        compute reciprocal condition numbers
-		Dtgsen(&ijob, ilvsl, ilvsr, *bwork, n, a, lda, b, ldb, alphar, alphai, beta, vsl, ldvsl, vsr, ldvsr, sdim, &pl, &pr, dif, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), iwork, liwork, &ierr)
+		if sdim, pl, pr, ierr, err = Dtgsen(ijob, ilvsl, ilvsr, *bwork, n, a, b, alphar, alphai, beta, vsl, vsr, dif, work.Off(iwrk-1), lwork-iwrk+1, iwork, liwork); err != nil {
+			panic(err)
+		}
 
 		if ijob >= 1 {
-			maxwrk = max(maxwrk, 2*(*sdim)*((*n)-(*sdim)))
+			maxwrk = max(maxwrk, 2*sdim*(n-sdim))
 		}
 		if ierr == -22 {
 			//            not enough real workspace
-			(*info) = -22
+			info = -22
 		} else {
 			if ijob == 1 || ijob == 4 {
 				rconde.Set(0, pl)
@@ -292,7 +316,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 				rcondv.Set(1, dif.Get(1))
 			}
 			if ierr == 1 {
-				(*info) = (*n) + 3
+				info = n + 3
 			}
 		}
 
@@ -301,18 +325,22 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	//     Apply permutation to VSL and VSR
 	//     (Workspace: none needed)
 	if ilvsl {
-		Dggbak('P', 'L', n, &ilo, &ihi, work.Off(ileft-1), work.Off(iright-1), n, vsl, ldvsl, &ierr)
+		if err = Dggbak('P', Left, n, ilo, ihi, work.Off(ileft-1), work.Off(iright-1), n, vsl); err != nil {
+			panic(err)
+		}
 	}
 
 	if ilvsr {
-		Dggbak('P', 'R', n, &ilo, &ihi, work.Off(ileft-1), work.Off(iright-1), n, vsr, ldvsr, &ierr)
+		if err = Dggbak('P', Right, n, ilo, ihi, work.Off(ileft-1), work.Off(iright-1), n, vsr); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Check if unscaling would cause over/underflow, if so, rescale
 	//     (ALPHAR(I),ALPHAI(I),BETA(I)) so BETA(I) is on the order of
 	//     B(I,I) and ALPHAR(I) and ALPHAI(I) are on the order of A(I,I)
 	if ilascl {
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if alphai.Get(i-1) != zero {
 				if (alphar.Get(i-1)/safmax) > (anrmto/anrm) || (safmin/alphar.Get(i-1)) > (anrm/anrmto) {
 					work.Set(0, math.Abs(a.Get(i-1, i-1)/alphar.Get(i-1)))
@@ -330,7 +358,7 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 	}
 
 	if ilbscl {
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if alphai.Get(i-1) != zero {
 				if (beta.Get(i-1)/safmax) > (bnrmto/bnrm) || (safmin/beta.Get(i-1)) > (bnrm/bnrmto) {
 					work.Set(0, math.Abs(b.Get(i-1, i-1)/beta.Get(i-1)))
@@ -344,31 +372,41 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 
 	//     Undo scaling
 	if ilascl {
-		Dlascl('H', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, n, n, a, lda, &ierr)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, n, func() *int { y := 1; return &y }(), alphar.Matrix(*n, opts), n, &ierr)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, n, func() *int { y := 1; return &y }(), alphai.Matrix(*n, opts), n, &ierr)
+		if err = Dlascl('H', 0, 0, anrmto, anrm, n, n, a); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, anrmto, anrm, n, 1, alphar.Matrix(n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, anrmto, anrm, n, 1, alphai.Matrix(n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	if ilbscl {
-		Dlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrmto, &bnrm, n, n, b, ldb, &ierr)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrmto, &bnrm, n, func() *int { y := 1; return &y }(), beta.Matrix(*n, opts), n, &ierr)
+		if err = Dlascl('U', 0, 0, bnrmto, bnrm, n, n, b); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, bnrmto, bnrm, n, 1, beta.Matrix(n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	if wantst {
 		//        Check if reordering is correct
 		lastsl = true
 		lst2sl = true
-		(*sdim) = 0
+		sdim = 0
 		ip = 0
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			cursl = selctg(alphar.GetPtr(i-1), alphai.GetPtr(i-1), beta.GetPtr(i-1))
 			if alphai.Get(i-1) == zero {
 				if cursl {
-					(*sdim) = (*sdim) + 1
+					sdim = sdim + 1
 				}
 				ip = 0
 				if cursl && !lastsl {
-					(*info) = (*n) + 2
+					info = n + 2
 				}
 			} else {
 				if ip == 1 {
@@ -376,11 +414,11 @@ func Dggesx(jobvsl, jobvsr, sort byte, selctg dlctesFunc, sense byte, n *int, a 
 					cursl = cursl || lastsl
 					lastsl = cursl
 					if cursl {
-						(*sdim) = (*sdim) + 2
+						sdim = sdim + 2
 					}
 					ip = -1
 					if cursl && !lst2sl {
-						(*info) = (*n) + 2
+						info = n + 2
 					}
 				} else {
 					//                 First eigenvalue of conjugate pair
@@ -398,4 +436,6 @@ label60:
 
 	work.Set(0, float64(maxwrk))
 	(*iwork)[0] = liwmin
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -13,7 +14,7 @@ import (
 // The eigenvectors of a full or band symmetric matrix can also be found
 // if DSYTRD or DSPTRD or DSBTRD has been used to reduce this matrix to
 // tridiagonal form.
-func Dsteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, info *int) {
+func Dsteqr(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector) (info int, err error) {
 	var anorm, b, c, eps, eps2, f, g, one, p, r, rt1, rt2, s, safmax, safmin, ssfmax, ssfmin, three, tst, two, zero float64
 	var i, icompz, ii, iscale, j, jtot, k, l, l1, lend, lendm1, lendp1, lendsv, lm1, lsv, m, maxit, mm, mm1, nm1, nmaxit int
 
@@ -24,8 +25,6 @@ func Dsteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 	maxit = 30
 
 	//     Test the input parameters.
-	(*info) = 0
-
 	if compz == 'N' {
 		icompz = 0
 	} else if compz == 'V' {
@@ -36,23 +35,23 @@ func Dsteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 		icompz = -1
 	}
 	if icompz < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if ((*ldz) < 1) || (icompz > 0 && (*ldz) < max(1, *n)) {
-		(*info) = -6
+		err = fmt.Errorf("icompz < 0: compz='%c'", compz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if (z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)) {
+		err = fmt.Errorf("(z.Rows < 1) || (icompz > 0 && z.Rows < max(1, n)): compz='%c', z.Rows=%v, n=%v", compz, z.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSTEQR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsteqr", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if icompz == 2 {
 			z.Set(0, 0, one)
 		}
@@ -70,21 +69,21 @@ func Dsteqr(compz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work 
 	//     Compute the eigenvalues and eigenvectors of the tridiagonal
 	//     matrix.
 	if icompz == 2 {
-		Dlaset('F', n, n, &zero, &one, z, ldz)
+		Dlaset(Full, n, n, zero, one, z)
 	}
 
-	nmaxit = (*n) * maxit
+	nmaxit = n * maxit
 	jtot = 0
 
 	//     Determine where the matrix splits and choose QL or QR iteration
 	//     for each block, according to whether top or bottom diagonal
 	//     element is smaller.
 	l1 = 1
-	nm1 = (*n) - 1
+	nm1 = n - 1
 
 label10:
 	;
-	if l1 > (*n) {
+	if l1 > n {
 		goto label160
 	}
 	if l1 > 1 {
@@ -102,7 +101,7 @@ label10:
 			}
 		}
 	}
-	m = (*n)
+	m = n
 
 label30:
 	;
@@ -116,19 +115,27 @@ label30:
 	}
 
 	//     Scale submatrix in rows and columns L to LEND
-	anorm = Dlanst('M', toPtr(lend-l+1), d.Off(l-1), e.Off(l-1))
+	anorm = Dlanst('M', lend-l+1, d.Off(l-1), e.Off(l-1))
 	iscale = 0
 	if anorm == zero {
 		goto label10
 	}
 	if anorm > ssfmax {
 		iscale = 1
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmax, toPtr(lend-l+1), func() *int { y := 1; return &y }(), d.MatrixOff(l-1, *n, opts), n, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmax, toPtr(lend-l), func() *int { y := 1; return &y }(), e.MatrixOff(l-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
 	} else if anorm < ssfmin {
 		iscale = 2
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmin, toPtr(lend-l+1), func() *int { y := 1; return &y }(), d.MatrixOff(l-1, *n, opts), n, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmin, toPtr(lend-l), func() *int { y := 1; return &y }(), e.MatrixOff(l-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Choose between QL and QR iteration
@@ -169,12 +176,14 @@ label30:
 		//        to compute its eigensystem.
 		if m == l+1 {
 			if icompz > 0 {
-				Dlaev2(d.GetPtr(l-1), e.GetPtr(l-1), d.GetPtr(l), &rt1, &rt2, &c, &s)
+				rt1, rt2, c, s = Dlaev2(d.Get(l-1), e.Get(l-1), d.Get(l))
 				work.Set(l-1, c)
-				work.Set((*n)-1+l-1, s)
-				Dlasr('R', 'V', 'B', n, func() *int { y := 2; return &y }(), work.Off(l-1), work.Off((*n)-1+l-1), z.Off(0, l-1), ldz)
+				work.Set(n-1+l-1, s)
+				if err = Dlasr(Right, 'V', 'B', n, 2, work.Off(l-1), work.Off(n-1+l-1), z.Off(0, l-1)); err != nil {
+					panic(err)
+				}
 			} else {
-				Dlae2(d.GetPtr(l-1), e.GetPtr(l-1), d.GetPtr(l), &rt1, &rt2)
+				rt1, rt2 = Dlae2(d.Get(l-1), e.Get(l-1), d.Get(l))
 			}
 			d.Set(l-1, rt1)
 			d.Set(l, rt2)
@@ -189,11 +198,11 @@ label30:
 		if jtot == nmaxit {
 			goto label140
 		}
-		jtot = jtot + 1
+		jtot++
 
 		//        Form shift.
 		g = (d.Get(l) - p) / (two * e.Get(l-1))
-		r = Dlapy2(&g, &one)
+		r = Dlapy2(g, one)
 		g = d.Get(m-1) - p + (e.Get(l-1) / (g + math.Copysign(r, g)))
 
 		s = one
@@ -205,7 +214,7 @@ label30:
 		for i = mm1; i >= l; i-- {
 			f = s * e.Get(i-1)
 			b = c * e.Get(i-1)
-			Dlartg(&g, &f, &c, &s, &r)
+			c, s, r = Dlartg(g, f)
 			if i != m-1 {
 				e.Set(i, r)
 			}
@@ -218,7 +227,7 @@ label30:
 			//           If eigenvectors are desired, then save rotations.
 			if icompz > 0 {
 				work.Set(i-1, c)
-				work.Set((*n)-1+i-1, -s)
+				work.Set(n-1+i-1, -s)
 			}
 
 		}
@@ -226,7 +235,9 @@ label30:
 		//        If eigenvectors are desired, then apply saved rotations.
 		if icompz > 0 {
 			mm = m - l + 1
-			Dlasr('R', 'V', 'B', n, &mm, work.Off(l-1), work.Off((*n)-1+l-1), z.Off(0, l-1), ldz)
+			if err = Dlasr(Right, 'V', 'B', n, mm, work.Off(l-1), work.Off(n-1+l-1), z.Off(0, l-1)); err != nil {
+				panic(err)
+			}
 		}
 
 		d.Set(l-1, d.Get(l-1)-p)
@@ -276,12 +287,14 @@ label30:
 		//        to compute its eigensystem.
 		if m == l-1 {
 			if icompz > 0 {
-				Dlaev2(d.GetPtr(l-1-1), e.GetPtr(l-1-1), d.GetPtr(l-1), &rt1, &rt2, &c, &s)
+				rt1, rt2, c, s = Dlaev2(d.Get(l-1-1), e.Get(l-1-1), d.Get(l-1))
 				work.Set(m-1, c)
-				work.Set((*n)-1+m-1, s)
-				Dlasr('R', 'V', 'F', n, func() *int { y := 2; return &y }(), work.Off(m-1), work.Off((*n)-1+m-1), z.Off(0, l-1-1), ldz)
+				work.Set(n-1+m-1, s)
+				if err = Dlasr(Right, 'V', 'F', n, 2, work.Off(m-1), work.Off(n-1+m-1), z.Off(0, l-1-1)); err != nil {
+					panic(err)
+				}
 			} else {
-				Dlae2(d.GetPtr(l-1-1), e.GetPtr(l-1-1), d.GetPtr(l-1), &rt1, &rt2)
+				rt1, rt2 = Dlae2(d.Get(l-1-1), e.Get(l-1-1), d.Get(l-1))
 			}
 			d.Set(l-1-1, rt1)
 			d.Set(l-1, rt2)
@@ -300,7 +313,7 @@ label30:
 
 		//        Form shift.
 		g = (d.Get(l-1-1) - p) / (two * e.Get(l-1-1))
-		r = Dlapy2(&g, &one)
+		r = Dlapy2(g, one)
 		g = d.Get(m-1) - p + (e.Get(l-1-1) / (g + math.Copysign(r, g)))
 
 		s = one
@@ -312,7 +325,7 @@ label30:
 		for i = m; i <= lm1; i++ {
 			f = s * e.Get(i-1)
 			b = c * e.Get(i-1)
-			Dlartg(&g, &f, &c, &s, &r)
+			c, s, r = Dlartg(g, f)
 			if i != m {
 				e.Set(i-1-1, r)
 			}
@@ -325,7 +338,7 @@ label30:
 			//           If eigenvectors are desired, then save rotations.
 			if icompz > 0 {
 				work.Set(i-1, c)
-				work.Set((*n)-1+i-1, s)
+				work.Set(n-1+i-1, s)
 			}
 
 		}
@@ -333,7 +346,9 @@ label30:
 		//        If eigenvectors are desired, then apply saved rotations.
 		if icompz > 0 {
 			mm = l - m + 1
-			Dlasr('R', 'V', 'F', n, &mm, work.Off(m-1), work.Off((*n)-1+m-1), z.Off(0, m-1), ldz)
+			if err = Dlasr(Right, 'V', 'F', n, mm, work.Off(m-1), work.Off(n-1+m-1), z.Off(0, m-1)); err != nil {
+				panic(err)
+			}
 		}
 
 		d.Set(l-1, d.Get(l-1)-p)
@@ -357,11 +372,19 @@ label30:
 label140:
 	;
 	if iscale == 1 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ssfmax, &anorm, toPtr(lendsv-lsv+1), func() *int { y := 1; return &y }(), d.MatrixOff(lsv-1, *n, opts), n, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ssfmax, &anorm, toPtr(lendsv-lsv), func() *int { y := 1; return &y }(), e.MatrixOff(lsv-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv, 1, e.MatrixOff(lsv-1, n, opts)); err != nil {
+			panic(err)
+		}
 	} else if iscale == 2 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ssfmin, &anorm, toPtr(lendsv-lsv+1), func() *int { y := 1; return &y }(), d.MatrixOff(lsv-1, *n, opts), n, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ssfmin, &anorm, toPtr(lendsv-lsv), func() *int { y := 1; return &y }(), e.MatrixOff(lsv-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv, 1, e.MatrixOff(lsv-1, n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Check for no convergence to an eigenvalue after a total
@@ -369,9 +392,9 @@ label140:
 	if jtot < nmaxit {
 		goto label10
 	}
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		if e.Get(i-1) != zero {
-			(*info) = (*info) + 1
+			info++
 		}
 	}
 	return
@@ -381,15 +404,17 @@ label160:
 	;
 	if icompz == 0 {
 		//        Use Quick Sort
-		Dlasrt('I', n, d, info)
+		if err = Dlasrt('I', n, d); err != nil {
+			panic(err)
+		}
 
 	} else {
 		//        Use Selection Sort to minimize swaps of eigenvectors
-		for ii = 2; ii <= (*n); ii++ {
+		for ii = 2; ii <= n; ii++ {
 			i = ii - 1
 			k = i
 			p = d.Get(i - 1)
-			for j = ii; j <= (*n); j++ {
+			for j = ii; j <= n; j++ {
 				if d.Get(j-1) < p {
 					k = j
 					p = d.Get(j - 1)
@@ -398,8 +423,10 @@ label160:
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, k-1, 1))
+				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, k-1, 1))
 			}
 		}
 	}
+
+	return
 }

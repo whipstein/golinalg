@@ -20,7 +20,7 @@ import (
 // but differ from the BLAS1 routine ZROTG):
 //    If y(i)=0, then c(i)=1 and s(i)=0.
 //    If x(i)=0, then c(i)=0 and s(i) is chosen so that r(i) is real.
-func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat.Vector, incc *int) {
+func Zlargv(n int, x, y *mat.CVector, c *mat.Vector) {
 	var czero, f, ff, fs, g, gs, r, sn complex128
 	var cs, d, di, dr, eps, f2, f2s, g2, g2s, one, safmin, safmn2, safmx2, scale, two, zero float64
 	var count, i, ic, ix, iy, j int
@@ -38,7 +38,7 @@ func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat
 	ix = 1
 	iy = 1
 	ic = 1
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		f = x.Get(ix - 1)
 		g = y.Get(iy - 1)
 
@@ -80,14 +80,14 @@ func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat
 			//           This is a rare case: F is very small.
 			if f == czero {
 				cs = zero
-				r = complex(Dlapy2(toPtrf64(real(g)), toPtrf64(imag(g))), 0)
+				r = complex(Dlapy2(real(g), imag(g)), 0)
 				//              Do complex/real division explicitly with two real
 				//              divisions
-				d = Dlapy2(toPtrf64(real(gs)), toPtrf64(imag(gs)))
+				d = Dlapy2(real(gs), imag(gs))
 				sn = complex(real(gs)/d, -imag(gs)/d)
 				goto label50
 			}
-			f2s = Dlapy2(toPtrf64(real(fs)), toPtrf64(imag(fs)))
+			f2s = Dlapy2(real(fs), imag(fs))
 			//           G2 and G2S are accurate
 			//           G2 is at least SAFMIN, and G2S is at least SAFMN2
 			g2s = math.Sqrt(g2)
@@ -102,12 +102,12 @@ func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat
 			//           Make sure abs(FF) = 1
 			//           Do complex/real division explicitly with 2 real divisions
 			if abs1(f) > one {
-				d = Dlapy2(toPtrf64(real(f)), toPtrf64(imag(f)))
+				d = Dlapy2(real(f), imag(f))
 				ff = complex(real(f)/d, imag(f)/d)
 			} else {
 				dr = safmx2 * real(f)
 				di = safmx2 * imag(f)
-				d = Dlapy2(&dr, &di)
+				d = Dlapy2(dr, di)
 				ff = complex(dr/d, di/d)
 			}
 			sn = ff * complex(real(gs)/g2s, -imag(gs)/g2s)
@@ -142,8 +142,8 @@ func Zlargv(n *int, x *mat.CVector, incx *int, y *mat.CVector, incy *int, c *mat
 		c.Set(ic-1, cs)
 		y.Set(iy-1, sn)
 		x.Set(ix-1, r)
-		ic = ic + (*incc)
-		iy = iy + (*incy)
-		ix = ix + (*incx)
+		ic = ic + c.Inc
+		iy = iy + y.Inc
+		ix = ix + x.Inc
 	}
 }

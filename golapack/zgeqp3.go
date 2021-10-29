@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -8,7 +10,7 @@ import (
 
 // Zgeqp3 computes a QR factorization with column pivoting of a
 // matrix A:  A*P = Q*R  using Level 3 BLAS.
-func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVector, lwork *int, rwork *mat.Vector, info *int) {
+func Zgeqp3(m, n int, a *mat.CMatrix, jpvt *[]int, tau, work *mat.CVector, lwork int, rwork *mat.Vector) (err error) {
 	var lquery bool
 	var fjb, inb, inbmin, iws, ixover, j, jb, lwkopt, minmn, minws, na, nb, nbmin, nfxd, nx, sm, sminmn, sn, topbmn int
 
@@ -18,35 +20,34 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 
 	//     Test input arguments
 	//  ====================
-	(*info) = 0
-	lquery = ((*lwork) == -1)
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	lquery = (lwork == -1)
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
 
-	if (*info) == 0 {
-		minmn = min(*m, *n)
+	if err == nil {
+		minmn = min(m, n)
 		if minmn == 0 {
 			iws = 1
 			lwkopt = 1
 		} else {
-			iws = (*n) + 1
-			nb = Ilaenv(&inb, []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-			lwkopt = ((*n) + 1) * nb
+			iws = n + 1
+			nb = Ilaenv(inb, "Zgeqrf", []byte{' '}, m, n, -1, -1)
+			lwkopt = (n + 1) * nb
 		}
 		work.SetRe(0, float64(lwkopt))
 
-		if ((*lwork) < iws) && !lquery {
-			(*info) = -8
+		if (lwork < iws) && !lquery {
+			err = fmt.Errorf("")
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGEQP3"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgeqp3", err)
 		return
 	} else if lquery {
 		return
@@ -54,10 +55,10 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 
 	//     Move initial columns up front.
 	nfxd = 1
-	for j = 1; j <= (*n); j++ {
+	for j = 1; j <= n; j++ {
 		if (*jpvt)[j-1] != 0 {
 			if j != nfxd {
-				goblas.Zswap(*m, a.CVector(0, j-1, 1), a.CVector(0, nfxd-1, 1))
+				goblas.Zswap(m, a.CVector(0, j-1, 1), a.CVector(0, nfxd-1, 1))
 				(*jpvt)[j-1] = (*jpvt)[nfxd-1]
 				(*jpvt)[nfxd-1] = j
 			} else {
@@ -76,15 +77,19 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 	//     Compute the QR factorization of fixed columns and update
 	//     remaining columns.
 	if nfxd > 0 {
-		na = min(*m, nfxd)
+		na = min(m, nfxd)
 		//CC      CALL ZGEQR2( M, NA, A, LDA, TAU, WORK, INFO )
-		Zgeqrf(m, &na, a, lda, tau, work, lwork, info)
+		if err = Zgeqrf(m, na, a, tau, work, lwork); err != nil {
+			panic(err)
+		}
 		iws = max(iws, int(work.GetRe(0)))
-		if na < (*n) {
+		if na < n {
 			//CC         CALL ZUNM2R( 'Left', 'Conjugate Transpose', M, N-NA,
 			//CC  $                   NA, A, LDA, TAU, A( 1, NA+1 ), LDA, WORK,
 			//CC  $                   INFO )
-			Zunmqr('L', 'C', m, toPtr((*n)-na), &na, a, lda, tau, a.Off(0, na), lda, work, lwork, info)
+			if err = Zunmqr(Left, ConjTrans, m, n-na, na, a, tau, a.Off(0, na), work, lwork); err != nil {
+				panic(err)
+			}
 			iws = max(iws, int(work.GetRe(0)))
 		}
 	}
@@ -93,28 +98,28 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 	//  ======================
 	if nfxd < minmn {
 
-		sm = (*m) - nfxd
-		sn = (*n) - nfxd
+		sm = m - nfxd
+		sn = n - nfxd
 		sminmn = minmn - nfxd
 
 		//        Determine the block size.
-		nb = Ilaenv(&inb, []byte("ZGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1))
+		nb = Ilaenv(inb, "Zgeqrf", []byte{' '}, sm, sn, -1, -1)
 		nbmin = 2
 		nx = 0
 
 		if (nb > 1) && (nb < sminmn) {
 			//           Determine when to cross over from blocked to unblocked code.
-			nx = max(0, Ilaenv(&ixover, []byte("ZGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1)))
+			nx = max(0, Ilaenv(ixover, "Zgeqrf", []byte{' '}, sm, sn, -1, -1))
 
 			if nx < sminmn {
 				//              Determine if workspace is large enough for blocked code.
 				minws = (sn + 1) * nb
 				iws = max(iws, minws)
-				if (*lwork) < minws {
+				if lwork < minws {
 					//                 Not enough workspace to use optimal NB: Reduce NB and
 					//                 determine the minimum value of NB.
-					nb = (*lwork) / (sn + 1)
-					nbmin = max(2, Ilaenv(&inbmin, []byte("ZGEQRF"), []byte{' '}, &sm, &sn, toPtr(-1), toPtr(-1)))
+					nb = lwork / (sn + 1)
+					nbmin = max(2, Ilaenv(inbmin, "Zgeqrf", []byte{' '}, sm, sn, -1, -1))
 
 				}
 			}
@@ -122,9 +127,9 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 
 		//        Initialize partial column norms. The first N elements of work
 		//        store the exact column norms.
-		for j = nfxd + 1; j <= (*n); j++ {
+		for j = nfxd + 1; j <= n; j++ {
 			rwork.Set(j-1, goblas.Dznrm2(sm, a.CVector(nfxd, j-1, 1)))
-			rwork.Set((*n)+j-1, rwork.Get(j-1))
+			rwork.Set(n+j-1, rwork.Get(j-1))
 		}
 
 		if (nb >= nbmin) && (nb < sminmn) && (nx < sminmn) {
@@ -140,7 +145,7 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 				jb = min(nb, topbmn-j+1)
 
 				//              Factorize JB columns among columns J:N.
-				Zlaqps(m, toPtr((*n)-j+1), toPtr(j-1), &jb, &fjb, a.Off(0, j-1), lda, toSlice(jpvt, j-1), tau.Off(j-1), rwork.Off(j-1), rwork.Off((*n)+j-1), work, work.CMatrixOff(jb, (*n)-j+1, opts), toPtr((*n)-j+1))
+				fjb = Zlaqps(m, n-j+1, j-1, jb, a.Off(0, j-1), toSlice(jpvt, j-1), tau.Off(j-1), rwork.Off(j-1), rwork.Off(n+j-1), work, work.CMatrixOff(jb, n-j+1, opts))
 
 				j = j + fjb
 				goto label30
@@ -151,10 +156,12 @@ func Zgeqp3(m, n *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau, work *mat.CVe
 
 		//        Use unblocked code to factor the last or only block.
 		if j <= minmn {
-			Zlaqp2(m, toPtr((*n)-j+1), toPtr(j-1), a.Off(0, j-1), lda, toSlice(jpvt, j-1), tau.Off(j-1), rwork.Off(j-1), rwork.Off((*n)+j-1), work.Off(0))
+			Zlaqp2(m, n-j+1, j-1, a.Off(0, j-1), toSlice(jpvt, j-1), tau.Off(j-1), rwork.Off(j-1), rwork.Off(n+j-1), work)
 		}
 
 	}
 
 	work.SetRe(0, float64(lwkopt))
+
+	return
 }

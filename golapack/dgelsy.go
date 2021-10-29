@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -44,109 +45,116 @@ import (
 //   o Matrix B (the right hand side) is updated with Blas-3.
 //   o The permutation of matrix B (the right hand side) is faster and
 //     more simple.
-func Dgelsy(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, jpvt *[]int, rcond *float64, rank *int, work *mat.Vector, lwork *int, info *int) {
+func Dgelsy(m, n, nrhs int, a, b *mat.Matrix, jpvt *[]int, rcond float64, work *mat.Vector, lwork int) (rank int, err error) {
 	var lquery bool
 	var anrm, bignum, bnrm, c1, c2, one, s1, s2, smax, smaxpr, smin, sminpr, smlnum, wsize, zero float64
 	var i, iascl, ibscl, imax, imin, ismax, ismin, j, lwkmin, lwkopt, mn, nb, nb1, nb2, nb3, nb4 int
-	var err error
-	_ = err
 
 	imax = 1
 	imin = 2
 	zero = 0.0
 	one = 1.0
 
-	mn = min(*m, *n)
+	mn = min(m, n)
 	ismin = mn + 1
 	ismax = 2*mn + 1
 
 	//     Test the input arguments.
-	(*info) = 0
-	lquery = ((*lwork) == -1)
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *m, *n) {
-		(*info) = -7
+	lquery = (lwork == -1)
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, m, n) {
+		err = fmt.Errorf("b.Rows < max(1, m, n): b.Rows=%v, m=%v, n=%v", b.Rows, m, n)
 	}
 
 	//     Figure out optimal block size
-	if (*info) == 0 {
-		if mn == 0 || (*nrhs) == 0 {
+	if err == nil {
+		if mn == 0 || nrhs == 0 {
 			lwkmin = 1
 			lwkopt = 1
 		} else {
-			nb1 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-			nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-			nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMQR"), []byte{' '}, m, n, nrhs, toPtr(-1))
-			nb4 = Ilaenv(func() *int { y := 1; return &y }(), []byte("DORMRQ"), []byte{' '}, m, n, nrhs, toPtr(-1))
+			nb1 = Ilaenv(1, "Dgeqrf", []byte{' '}, m, n, -1, -1)
+			nb2 = Ilaenv(1, "Dgerqf", []byte{' '}, m, n, -1, -1)
+			nb3 = Ilaenv(1, "Dormqr", []byte{' '}, m, n, nrhs, -1)
+			nb4 = Ilaenv(1, "Dormrq", []byte{' '}, m, n, nrhs, -1)
 			nb = max(nb1, nb2, nb3, nb4)
-			lwkmin = mn + max(2*mn, (*n)+1, mn+(*nrhs))
-			lwkopt = max(lwkmin, mn+2*(*n)+nb*((*n)+1), 2*mn+nb*(*nrhs))
+			lwkmin = mn + max(2*mn, n+1, mn+nrhs)
+			lwkopt = max(lwkmin, mn+2*n+nb*(n+1), 2*mn+nb*nrhs)
 		}
 		work.Set(0, float64(lwkopt))
 
-		if (*lwork) < lwkmin && !lquery {
-			(*info) = -12
+		if lwork < lwkmin && !lquery {
+			err = fmt.Errorf("lwork < lwkmin && !lquery: lwork=%v, lwkmin=%v, lquery=%v", lwork, lwkmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGELSY"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgelsy", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if mn == 0 || (*nrhs) == 0 {
-		(*rank) = 0
+	if mn == 0 || nrhs == 0 {
+		rank = 0
 		return
 	}
 
 	//     Get machine parameters
 	smlnum = Dlamch(SafeMinimum) / Dlamch(Precision)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 
 	//     Scale A, B if max entries outside range [SMLNUM,BIGNUM]
-	anrm = Dlange('M', m, n, a, lda, work)
+	anrm = Dlange('M', m, n, a, work)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
 		//        Scale matrix norm up to SMLNUM
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, m, n, a, lda, info)
+		if err = Dlascl('G', 0, 0, anrm, smlnum, m, n, a); err != nil {
+			panic(err)
+		}
 		iascl = 1
 	} else if anrm > bignum {
 		//        Scale matrix norm down to BIGNUM
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, m, n, a, lda, info)
+		if err = Dlascl('G', 0, 0, anrm, bignum, m, n, a); err != nil {
+			panic(err)
+		}
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Dlaset('F', toPtr(max(*m, *n)), nrhs, &zero, &zero, b, ldb)
-		(*rank) = 0
+		Dlaset(Full, max(m, n), nrhs, zero, zero, b)
+		rank = 0
 		goto label70
 	}
 
-	bnrm = Dlange('M', m, nrhs, b, ldb, work)
+	bnrm = Dlange('M', m, nrhs, b, work)
 	ibscl = 0
 	if bnrm > zero && bnrm < smlnum {
 		//        Scale matrix norm up to SMLNUM
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &smlnum, m, nrhs, b, ldb, info)
+		if err = Dlascl('G', 0, 0, bnrm, smlnum, m, nrhs, b); err != nil {
+			panic(err)
+		}
 		ibscl = 1
 	} else if bnrm > bignum {
 		//        Scale matrix norm down to BIGNUM
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &bignum, m, nrhs, b, ldb, info)
+		if err = Dlascl('G', 0, 0, bnrm, bignum, m, nrhs, b); err != nil {
+			panic(err)
+		}
 		ibscl = 2
 	}
 
 	//     Compute QR factorization with column pivoting of A:
 	//        A * P = Q * R
-	Dgeqp3(m, n, a, lda, jpvt, work, work.Off(mn), toPtr((*lwork)-mn), info)
+	if err = Dgeqp3(m, n, a, jpvt, work, work.Off(mn), lwork-mn); err != nil {
+		panic(err)
+	}
 	wsize = float64(mn) + work.Get(mn)
 
 	//     workspace: MN+2*N+NB*(N+1).
@@ -158,30 +166,30 @@ func Dgelsy(m, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, j
 	smax = math.Abs(a.Get(0, 0))
 	smin = smax
 	if math.Abs(a.Get(0, 0)) == zero {
-		(*rank) = 0
-		Dlaset('F', toPtr(max(*m, *n)), nrhs, &zero, &zero, b, ldb)
+		rank = 0
+		Dlaset(Full, max(m, n), nrhs, zero, zero, b)
 		goto label70
 	} else {
-		(*rank) = 1
+		rank = 1
 	}
 
 label10:
 	;
-	if (*rank) < mn {
-		i = (*rank) + 1
-		Dlaic1(&imin, rank, work.Off(ismin-1), &smin, a.Vector(0, i-1), a.GetPtr(i-1, i-1), &sminpr, &s1, &c1)
-		Dlaic1(&imax, rank, work.Off(ismax-1), &smax, a.Vector(0, i-1), a.GetPtr(i-1, i-1), &smaxpr, &s2, &c2)
+	if rank < mn {
+		i = rank + 1
+		sminpr, s1, c1 = Dlaic1(imin, rank, work.Off(ismin-1), smin, a.Vector(0, i-1), a.Get(i-1, i-1))
+		smaxpr, s2, c2 = Dlaic1(imax, rank, work.Off(ismax-1), smax, a.Vector(0, i-1), a.Get(i-1, i-1))
 
-		if smaxpr*(*rcond) <= sminpr {
-			for i = 1; i <= (*rank); i++ {
+		if smaxpr*rcond <= sminpr {
+			for i = 1; i <= rank; i++ {
 				work.Set(ismin+i-1-1, s1*work.Get(ismin+i-1-1))
 				work.Set(ismax+i-1-1, s2*work.Get(ismax+i-1-1))
 			}
-			work.Set(ismin+(*rank)-1, c1)
-			work.Set(ismax+(*rank)-1, c2)
+			work.Set(ismin+rank-1, c1)
+			work.Set(ismax+rank-1, c2)
 			smin = sminpr
 			smax = smaxpr
-			(*rank) = (*rank) + 1
+			rank = rank + 1
 			goto label10
 		}
 	}
@@ -193,60 +201,80 @@ label10:
 	//     where R11 = R(1:RANK,1:RANK)
 	//
 	//     [R11,R12] = [ T11, 0 ] * Y
-	if (*rank) < (*n) {
-		Dtzrzf(rank, n, a, lda, work.Off(mn), work.Off(2*mn), toPtr((*lwork)-2*mn), info)
+	if rank < n {
+		if err = Dtzrzf(rank, n, a, work.Off(mn), work.Off(2*mn), lwork-2*mn); err != nil {
+			panic(err)
+		}
 	}
 
 	//     workspace: 2*MN.
 	//     Details of Householder rotations stored in WORK(MN+1:2*MN)
 	//
 	//     B(1:M,1:NRHS) := Q**T * B(1:M,1:NRHS)
-	Dormqr('L', 'T', m, nrhs, &mn, a, lda, work, b, ldb, work.Off(2*mn), toPtr((*lwork)-2*mn), info)
+	if err = Dormqr(Left, Trans, m, nrhs, mn, a, work, b, work.Off(2*mn), lwork-2*mn); err != nil {
+		panic(err)
+	}
 	wsize = math.Max(wsize, float64(2*mn)+work.Get(2*mn))
 
 	//     workspace: 2*MN+NB*NRHS.
 	//
 	//     B(1:RANK,1:NRHS) := inv(T11) * B(1:RANK,1:NRHS)
-	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, *rank, *nrhs, one, a, b)
+	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, one, a, b)
 
-	for j = 1; j <= (*nrhs); j++ {
-		for i = (*rank) + 1; i <= (*n); i++ {
+	for j = 1; j <= nrhs; j++ {
+		for i = rank + 1; i <= n; i++ {
 			b.Set(i-1, j-1, zero)
 		}
 	}
 
 	//     B(1:N,1:NRHS) := Y**T * B(1:N,1:NRHS)
-	if (*rank) < (*n) {
-		Dormrz('L', 'T', n, nrhs, rank, toPtr((*n)-(*rank)), a, lda, work.Off(mn), b, ldb, work.Off(2*mn), toPtr((*lwork)-2*mn), info)
+	if rank < n {
+		if err = Dormrz(Left, Trans, n, nrhs, rank, n-rank, a, work.Off(mn), b, work.Off(2*mn), lwork-2*mn); err != nil {
+			panic(err)
+		}
 	}
 
 	//     workspace: 2*MN+NRHS.
 	//
 	//     B(1:N,1:NRHS) := P * B(1:N,1:NRHS)
-	for j = 1; j <= (*nrhs); j++ {
-		for i = 1; i <= (*n); i++ {
+	for j = 1; j <= nrhs; j++ {
+		for i = 1; i <= n; i++ {
 			work.Set((*jpvt)[i-1]-1, b.Get(i-1, j-1))
 		}
-		goblas.Dcopy(*n, work, b.Vector(0, j-1, 1))
+		goblas.Dcopy(n, work, b.Vector(0, j-1, 1))
 	}
 
 	//     workspace: N.
 	//
 	//     Undo scaling
 	if iascl == 1 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, n, nrhs, b, ldb, info)
-		Dlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &anrm, rank, rank, a, lda, info)
+		if err = Dlascl('G', 0, 0, anrm, smlnum, n, nrhs, b); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('U', 0, 0, smlnum, anrm, rank, rank, a); err != nil {
+			panic(err)
+		}
 	} else if iascl == 2 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, n, nrhs, b, ldb, info)
-		Dlascl('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &anrm, rank, rank, a, lda, info)
+		if err = Dlascl('G', 0, 0, anrm, bignum, n, nrhs, b); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('U', 0, 0, bignum, anrm, rank, rank, a); err != nil {
+			panic(err)
+		}
 	}
 	if ibscl == 1 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &bnrm, n, nrhs, b, ldb, info)
+		if err = Dlascl('G', 0, 0, smlnum, bnrm, n, nrhs, b); err != nil {
+			panic(err)
+		}
 	} else if ibscl == 2 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &bnrm, n, nrhs, b, ldb, info)
+		if err = Dlascl('G', 0, 0, bignum, bnrm, n, nrhs, b); err != nil {
+			panic(err)
+		}
 	}
 
 label70:
 	;
 	work.Set(0, float64(lwkopt))
+
+	return
 }

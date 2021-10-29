@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -13,55 +14,51 @@ import (
 // singular vectors are computed as products of simple orthorgonal
 // matrices.).
 //
-// If ICOMPQ = 0, DLALSA applies the inverse of the left singular vector
+// If ICOMPQ = 0, Dlalsa applies the inverse of the left singular vector
 // matrix of an upper bidiagonal matrix to the right hand side; and if
-// ICOMPQ = 1, DLALSA applies the right singular vector matrix to the
+// ICOMPQ = 1, Dlalsa applies the right singular vector matrix to the
 // right hand side. The singular vector matrices were generated in
-// compact form by DLALSA.
-func Dlalsa(icompq, smlsiz, n, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Matrix, ldbx *int, u *mat.Matrix, ldu *int, vt *mat.Matrix, k *[]int, difl, difr, z, poles *mat.Matrix, givptr *[]int, givcol *[]int, ldgcol *int, perm *[]int, givnum *mat.Matrix, c, s, work *mat.Vector, iwork *[]int, info *int) {
+// compact form by Dlalsa.
+func Dlalsa(icompq, smlsiz, n, nrhs int, b, bx, u, vt *mat.Matrix, k *[]int, difl, difr, z, poles *mat.Matrix, givptr, givcol *[]int, ldgcol int, perm *[]int, givnum *mat.Matrix, c, s, work *mat.Vector, iwork *[]int) (err error) {
 	var one, zero float64
 	var i, i1, ic, im1, inode, j, lf, ll, lvl, lvl2, nd, ndb1, ndiml, ndimr, nl, nlf, nlp1, nlvl, nr, nrf, nrp1, sqre int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if ((*icompq) < 0) || ((*icompq) > 1) {
-		(*info) = -1
-	} else if (*smlsiz) < 3 {
-		(*info) = -2
-	} else if (*n) < (*smlsiz) {
-		(*info) = -3
-	} else if (*nrhs) < 1 {
-		(*info) = -4
-	} else if (*ldb) < (*n) {
-		(*info) = -6
-	} else if (*ldbx) < (*n) {
-		(*info) = -8
-	} else if (*ldu) < (*n) {
-		(*info) = -10
-	} else if (*ldgcol) < (*n) {
-		(*info) = -19
+	if (icompq < 0) || (icompq > 1) {
+		err = fmt.Errorf("(icompq < 0) || (icompq > 1): icompq=%v", icompq)
+	} else if smlsiz < 3 {
+		err = fmt.Errorf("smlsiz < 3: smlsiz=%v", smlsiz)
+	} else if n < smlsiz {
+		err = fmt.Errorf("n < smlsiz: smlsiz=%v, n=%v", smlsiz, n)
+	} else if nrhs < 1 {
+		err = fmt.Errorf("nrhs < 1: nrhs=%v", nrhs)
+	} else if b.Rows < n {
+		err = fmt.Errorf("b.Rows < n: b.Rows=%v, n=%v", b.Rows, n)
+	} else if bx.Rows < n {
+		err = fmt.Errorf("bx.Rows < n: bx.Rows=%v, n=%v", bx.Rows, n)
+	} else if u.Rows < n {
+		err = fmt.Errorf("u.Rows < n: u.Rows=%v, n=%v", u.Rows, n)
+	} else if ldgcol < n {
+		err = fmt.Errorf("ldgcol < n: ldgcol=%v, n=%v", ldgcol, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLALSA"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlalsa", err)
 		return
 	}
 
 	//     Book-keeping and  setting up the computation tree.
 	inode = 1
-	ndiml = inode + (*n)
-	ndimr = ndiml + (*n)
+	ndiml = inode + n
+	ndimr = ndiml + n
 
-	Dlasdt(n, &nlvl, &nd, toSlice(iwork, inode-1), toSlice(iwork, ndiml-1), toSlice(iwork, ndimr-1), smlsiz)
+	nlvl, nd = Dlasdt(n, toSlice(iwork, inode-1), toSlice(iwork, ndiml-1), toSlice(iwork, ndimr-1), smlsiz)
 
 	//     The following code applies back the left singular vector factors.
 	//     For applying back the right singular vector factors, go to 50.
-	if (*icompq) == 1 {
+	if icompq == 1 {
 		goto label50
 	}
 
@@ -82,15 +79,15 @@ func Dlalsa(icompq, smlsiz, n, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Matri
 		nr = (*iwork)[ndimr+i1-1]
 		nlf = ic - nl
 		nrf = ic + 1
-		err = goblas.Dgemm(Trans, NoTrans, nl, *nrhs, nl, one, u.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0))
-		err = goblas.Dgemm(Trans, NoTrans, nr, *nrhs, nr, one, u.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0))
+		err = goblas.Dgemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0))
+		err = goblas.Dgemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0))
 	}
 
 	//     Next copy the rows of B that correspond to unchanged rows
 	//     in the bidiagonal matrix to BX.
 	for i = 1; i <= nd; i++ {
 		ic = (*iwork)[inode+i-1-1]
-		goblas.Dcopy(*nrhs, b.Vector(ic-1, 0), bx.Vector(ic-1, 0))
+		goblas.Dcopy(nrhs, b.Vector(ic-1, 0), bx.Vector(ic-1, 0))
 	}
 
 	//     Finally go through the left singular vector matrices of all
@@ -118,9 +115,9 @@ func Dlalsa(icompq, smlsiz, n, nrhs *int, b *mat.Matrix, ldb *int, bx *mat.Matri
 			nlf = ic - nl
 			nrf = ic + 1
 			j = j - 1
-			_permnlflvl := (*perm)[nlf-1+(lvl-1)*(*ldgcol):]
-			_givcolnlflvl2 := (*givcol)[nlf-1+(lvl2-1)*(*ldgcol):]
-			Dlals0(icompq, &nl, &nr, &sqre, nrhs, bx.Off(nlf-1, 0), ldbx, b.Off(nlf-1, 0), ldb, &_permnlflvl, &((*givptr)[j-1]), &_givcolnlflvl2, ldgcol, givnum.Off(nlf-1, lvl2-1), ldu, poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), &((*k)[j-1]), c.GetPtr(j-1), s.GetPtr(j-1), work, info)
+			if err = Dlals0(icompq, nl, nr, sqre, nrhs, bx.Off(nlf-1, 0), b.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), (*k)[j-1], c.Get(j-1), s.Get(j-1), work); err != nil {
+				panic(err)
+			}
 		}
 	}
 	return
@@ -157,9 +154,9 @@ label50:
 				sqre = 1
 			}
 			j = j + 1
-			_permnlflvl := (*perm)[nlf-1+(lvl-1)*(*ldgcol):]
-			_givcolnlflvl2 := (*givcol)[nlf-1+(lvl2-1)*(*ldgcol):]
-			Dlals0(icompq, &nl, &nr, &sqre, nrhs, b.Off(nlf-1, 0), ldb, bx.Off(nlf-1, 0), ldbx, &_permnlflvl, &((*givptr)[j-1]), &_givcolnlflvl2, ldgcol, givnum.Off(nlf-1, lvl2-1), ldu, poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), &((*k)[j-1]), c.GetPtr(j-1), s.GetPtr(j-1), work, info)
+			if err = Dlals0(icompq, nl, nr, sqre, nrhs, b.Off(nlf-1, 0), bx.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), (*k)[j-1], c.Get(j-1), s.Get(j-1), work); err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -180,7 +177,13 @@ label50:
 		}
 		nlf = ic - nl
 		nrf = ic + 1
-		err = goblas.Dgemm(Trans, NoTrans, nlp1, *nrhs, nlp1, one, vt.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0))
-		err = goblas.Dgemm(Trans, NoTrans, nrp1, *nrhs, nrp1, one, vt.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0))
+		if err = goblas.Dgemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0)); err != nil {
+			panic(err)
+		}
+		if err = goblas.Dgemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0)); err != nil {
+			panic(err)
+		}
 	}
+
+	return
 }

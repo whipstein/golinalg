@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -18,75 +20,82 @@ import (
 // criterion, then some other vector from the orthogonal complement
 // is returned. This vector is chosen in an arbitrary but deterministic
 // way.
-func Zunbdb5(m1, m2, n *int, x1 *mat.CVector, incx1 *int, x2 *mat.CVector, incx2 *int, q1 *mat.CMatrix, ldq1 *int, q2 *mat.CMatrix, ldq2 *int, work *mat.CVector, lwork, info *int) {
+func Zunbdb5(m1, m2, n int, x1, x2 *mat.CVector, q1, q2 *mat.CMatrix, work *mat.CVector, lwork int) (err error) {
 	var one, zero complex128
-	var childinfo, i, j int
+	var i, j int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
 	//     Test input arguments
-	(*info) = 0
-	if (*m1) < 0 {
-		(*info) = -1
-	} else if (*m2) < 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*incx1) < 1 {
-		(*info) = -5
-	} else if (*incx2) < 1 {
-		(*info) = -7
-	} else if (*ldq1) < max(1, *m1) {
-		(*info) = -9
-	} else if (*ldq2) < max(1, *m2) {
-		(*info) = -11
-	} else if (*lwork) < (*n) {
-		(*info) = -13
+	if m1 < 0 {
+		err = fmt.Errorf("m1 < 0: m1=%v", m1)
+	} else if m2 < 0 {
+		err = fmt.Errorf("m2 < 0: m2=%v", m2)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if x1.Inc < 1 {
+		err = fmt.Errorf("x1.Inc < 1: x1.Inc=%v", x1.Inc)
+	} else if x2.Inc < 1 {
+		err = fmt.Errorf("x2.Inc < 1: x2.Inc=%v", x2.Inc)
+	} else if q1.Rows < max(1, m1) {
+		err = fmt.Errorf("q1.Rows < max(1, m1): q1.Rows=%v, m1=%v", q1.Rows, m1)
+	} else if q2.Rows < max(1, m2) {
+		err = fmt.Errorf("q2.Rows < max(1, m2): q2.Rows=%v, m2=%v", q2.Rows, m2)
+	} else if lwork < n {
+		err = fmt.Errorf("lwork < n: lwork=%v", lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUNBDB5"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zunbdb5", err)
 		return
 	}
 
 	//     Project X onto the orthogonal complement of Q
-	Zunbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, ldq1, q2, ldq2, work, lwork, &childinfo)
+	if err = Zunbdb6(m1, m2, n, x1, x2, q1, q2, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     If the projection is nonzero, then return
-	if goblas.Dznrm2(*m1, x1.Off(0, *incx1)) != real(zero) || goblas.Dznrm2(*m2, x2.Off(0, *incx2)) != real(zero) {
+	if goblas.Dznrm2(m1, x1) != real(zero) || goblas.Dznrm2(m2, x2) != real(zero) {
 		return
 	}
 
 	//     Project each standard basis vector e_1,...,e_M1 in turn, stopping
 	//     when a nonzero projection is found
-	for i = 1; i <= (*m1); i++ {
-		for j = 1; j <= (*m1); j++ {
+	for i = 1; i <= m1; i++ {
+		for j = 1; j <= m1; j++ {
 			x1.Set(j-1, zero)
 		}
 		x1.Set(i-1, one)
-		for j = 1; j <= (*m2); j++ {
+		for j = 1; j <= m2; j++ {
 			x2.Set(j-1, zero)
 		}
-		Zunbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, ldq1, q2, ldq2, work, lwork, &childinfo)
-		if goblas.Dznrm2(*m1, x1.Off(0, *incx1)) != real(zero) || goblas.Dznrm2(*m2, x2.Off(0, *incx2)) != real(zero) {
+		if err = Zunbdb6(m1, m2, n, x1, x2, q1, q2, work, lwork); err != nil {
+			panic(err)
+		}
+		if goblas.Dznrm2(m1, x1) != real(zero) || goblas.Dznrm2(m2, x2) != real(zero) {
 			return
 		}
 	}
 
 	//     Project each standard basis vector e_(M1+1),...,e_(M1+M2) in turn,
 	//     stopping when a nonzero projection is found
-	for i = 1; i <= (*m2); i++ {
-		for j = 1; j <= (*m1); j++ {
+	for i = 1; i <= m2; i++ {
+		for j = 1; j <= m1; j++ {
 			x1.Set(j-1, zero)
 		}
-		for j = 1; j <= (*m2); j++ {
+		for j = 1; j <= m2; j++ {
 			x2.Set(j-1, zero)
 		}
 		x2.Set(i-1, one)
-		Zunbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, ldq1, q2, ldq2, work, lwork, &childinfo)
-		if goblas.Dznrm2(*m1, x1.Off(0, *incx1)) != real(zero) || goblas.Dznrm2(*m2, x2.Off(0, *incx2)) != real(zero) {
+		if err = Zunbdb6(m1, m2, n, x1, x2, q1, q2, work, lwork); err != nil {
+			panic(err)
+		}
+		if goblas.Dznrm2(m1, x1) != real(zero) || goblas.Dznrm2(m2, x2) != real(zero) {
 			return
 		}
 	}
+
+	return
 }

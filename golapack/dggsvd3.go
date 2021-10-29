@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -86,57 +87,58 @@ import (
 //
 //                      X = Q*( I   0    )
 //                            ( 0 inv(R) ).
-func Dggsvd3(jobu, jobv, jobq byte, m, n, p, k, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alpha, beta *mat.Vector, u *mat.Matrix, ldu *int, v *mat.Matrix, ldv *int, q *mat.Matrix, ldq *int, work *mat.Vector, lwork *int, iwork *[]int, info *int) {
+func Dggsvd3(jobu, jobv, jobq byte, m, n, p int, a, b *mat.Matrix, alpha, beta *mat.Vector, u, v, q *mat.Matrix, work *mat.Vector, lwork int, iwork *[]int) (k, l, info int, err error) {
 	var lquery, wantq, wantu, wantv bool
 	var anorm, bnorm, smax, temp, tola, tolb, ulp, unfl float64
-	var i, ibnd, isub, j, lwkopt, ncycle int
+	var i, ibnd, isub, j, lwkopt int
 
 	//     Decode and test the input parameters
 	wantu = jobu == 'U'
 	wantv = jobv == 'V'
 	wantq = jobq == 'Q'
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 	lwkopt = 1
 
 	//     Test the input arguments
-	(*info) = 0
 	if !(wantu || jobu == 'N') {
-		(*info) = -1
+		err = fmt.Errorf("!(wantu || jobu == 'N'): jobu='%c'", jobu)
 	} else if !(wantv || jobv == 'N') {
-		(*info) = -2
+		err = fmt.Errorf("!(wantv || jobv == 'N'): jobv='%c'", jobv)
 	} else if !(wantq || jobq == 'N') {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*n) < 0 {
-		(*info) = -5
-	} else if (*p) < 0 {
-		(*info) = -6
-	} else if (*lda) < max(1, *m) {
-		(*info) = -10
-	} else if (*ldb) < max(1, *p) {
-		(*info) = -12
-	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
-		(*info) = -16
-	} else if (*ldv) < 1 || (wantv && (*ldv) < (*p)) {
-		(*info) = -18
-	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
-		(*info) = -20
-	} else if (*lwork) < 1 && !lquery {
-		(*info) = -24
+		err = fmt.Errorf("!(wantq || jobq == 'N'): jobq='%c'", jobq)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if p < 0 {
+		err = fmt.Errorf("p < 0: p=%v", p)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, p) {
+		err = fmt.Errorf("b.Rows < max(1, p): b.Rows=%v, p=%v", b.Rows, p)
+	} else if u.Rows < 1 || (wantu && u.Rows < m) {
+		err = fmt.Errorf("u.Rows < 1 || (wantu && u.Rows < m): jobu='%c', u.Rows=%v, m=%v", jobu, u.Rows, m)
+	} else if v.Rows < 1 || (wantv && v.Rows < p) {
+		err = fmt.Errorf("v.Rows < 1 || (wantv && v.Rows < p): jobv='%c', v.Rows=%v, p=%v", jobv, v.Rows, p)
+	} else if q.Rows < 1 || (wantq && q.Rows < n) {
+		err = fmt.Errorf("q.Rows < 1 || (wantq && q.Rows < n): jobq='%c', q.Rows=%v, n=%v", jobq, q.Rows, n)
+	} else if lwork < 1 && !lquery {
+		err = fmt.Errorf("lwork < 1 && !lquery: lwork=%v, lquery=%v", lwork, lquery)
 	}
 
 	//     Compute workspace
-	if (*info) == 0 {
-		Dggsvp3(jobu, jobv, jobq, m, p, n, a, lda, b, ldb, &tola, &tolb, k, l, u, ldu, v, ldv, q, ldq, iwork, work, work, toPtr(-1), info)
-		lwkopt = (*n) + int(work.Get(0))
-		lwkopt = max(2*(*n), lwkopt)
+	if err == nil {
+		if k, l, err = Dggsvp3(jobu, jobv, jobq, m, p, n, a, b, tola, tolb, u, v, q, iwork, work, work, -1); err != nil {
+			panic(err)
+		}
+		lwkopt = n + int(work.Get(0))
+		lwkopt = max(2*n, lwkopt)
 		lwkopt = max(1, lwkopt)
 		work.Set(0, float64(lwkopt))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGGSVD3"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dggsvd3", err)
 		return
 	}
 	if lquery {
@@ -144,45 +146,51 @@ func Dggsvd3(jobu, jobv, jobq byte, m, n, p, k, l *int, a *mat.Matrix, lda *int,
 	}
 
 	//     Compute the Frobenius norm of matrices A and B
-	anorm = Dlange('1', m, n, a, lda, work)
-	bnorm = Dlange('1', p, n, b, ldb, work)
+	anorm = Dlange('1', m, n, a, work)
+	bnorm = Dlange('1', p, n, b, work)
 
 	//     Get machine precision and set up threshold for determining
 	//     the effective numerical rank of the matrices A and B.
 	ulp = Dlamch(Precision)
 	unfl = Dlamch(SafeMinimum)
-	tola = float64(max(*m, *n)) * math.Max(anorm, unfl) * ulp
-	tolb = float64(max(*p, *n)) * math.Max(bnorm, unfl) * ulp
+	tola = float64(max(m, n)) * math.Max(anorm, unfl) * ulp
+	tolb = float64(max(p, n)) * math.Max(bnorm, unfl) * ulp
 
 	//     Preprocessing
-	Dggsvp3(jobu, jobv, jobq, m, p, n, a, lda, b, ldb, &tola, &tolb, k, l, u, ldu, v, ldv, q, ldq, iwork, work, work.Off((*n)), toPtr((*lwork)-(*n)), info)
+	if k, l, err = Dggsvp3(jobu, jobv, jobq, m, p, n, a, b, tola, tolb, u, v, q, iwork, work, work.Off(n), lwork-n); err != nil {
+		panic(err)
+	}
 
 	//     Compute the GSVD of two upper "triangular" matrices
-	Dtgsja(jobu, jobv, jobq, m, p, n, k, l, a, lda, b, ldb, &tola, &tolb, alpha, beta, u, ldu, v, ldv, q, ldq, work, &ncycle, info)
+	if _, info, err = Dtgsja(jobu, jobv, jobq, m, p, n, k, l, a, b, tola, tolb, alpha, beta, u, v, q, work); err != nil {
+		panic(err)
+	}
 
 	//     Sort the singular values and store the pivot indices in IWORK
 	//     Copy ALPHA to WORK, then sort ALPHA in WORK
-	goblas.Dcopy(*n, alpha.Off(0, 1), work.Off(0, 1))
-	ibnd = min(*l, (*m)-(*k))
+	goblas.Dcopy(n, alpha.Off(0, 1), work.Off(0, 1))
+	ibnd = min(l, m-k)
 	for i = 1; i <= ibnd; i++ {
 		//        Scan for largest ALPHA(K+I)
 		isub = i
-		smax = work.Get((*k) + i - 1)
+		smax = work.Get(k + i - 1)
 		for j = i + 1; j <= ibnd; j++ {
-			temp = work.Get((*k) + j - 1)
+			temp = work.Get(k + j - 1)
 			if temp > smax {
 				isub = j
 				smax = temp
 			}
 		}
 		if isub != i {
-			work.Set((*k)+isub-1, work.Get((*k)+i-1))
-			work.Set((*k)+i-1, smax)
-			(*iwork)[(*k)+i-1] = (*k) + isub
+			work.Set(k+isub-1, work.Get(k+i-1))
+			work.Set(k+i-1, smax)
+			(*iwork)[k+i-1] = k + isub
 		} else {
-			(*iwork)[(*k)+i-1] = (*k) + i
+			(*iwork)[k+i-1] = k + i
 		}
 	}
 
 	work.Set(0, float64(lwkopt))
+
+	return
 }

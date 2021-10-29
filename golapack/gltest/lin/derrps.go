@@ -1,20 +1,23 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrps tests the error exits for the DOUBLE PRECISION routines
-// for DPSTRF.
-func Derrps(path []byte, t *testing.T) {
-	var i, info, j, nmax, rank int
+// derrps tests the error exits for the DOUBLE PRECISION routines
+// for Dpstrf.
+func derrps(path string, t *testing.T) {
+	var i, j, nmax int
+	var err error
+
 	piv := make([]int, 4)
-	lerr := &gltest.Common.Infoc.Lerr
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	nmax = 4
@@ -38,30 +41,34 @@ func Derrps(path []byte, t *testing.T) {
 	//        Test error exits of the routines that use the Cholesky
 	//        decomposition of a symmetric positive semidefinite matrix.
 	//
-	//        DPSTRF
-	*srnamt = "DPSTRF"
-	*infot = 1
-	golapack.Dpstrf('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, func() *float64 { y := -1.; return &y }(), work, &info)
-	Chkxer("DPSTRF", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dpstrf('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &piv, &rank, func() *float64 { y := -1.; return &y }(), work, &info)
-	Chkxer("DPSTRF", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Dpstrf('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, func() *float64 { y := -1.; return &y }(), work, &info)
-	Chkxer("DPSTRF", &info, lerr, ok, t)
+	//        Dpstrf
+	*srnamt = "Dpstrf"
+	*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+	_, _, err = golapack.Dpstrf('/', 0, a.Off(0, 0).UpdateRows(1), &piv, -1.0, work)
+	chkxer2("Dpstrf", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	_, _, err = golapack.Dpstrf(Upper, -1, a.Off(0, 0).UpdateRows(1), &piv, -1.0, work)
+	chkxer2("Dpstrf", err)
+	*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+	_, _, err = golapack.Dpstrf(Upper, 2, a.Off(0, 0).UpdateRows(1), &piv, -1.0, work)
+	chkxer2("Dpstrf", err)
 
-	//        DPSTF2
-	*srnamt = "DPSTF2"
-	*infot = 1
-	golapack.Dpstf2('/', func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, func() *float64 { y := -1.; return &y }(), work, &info)
-	Chkxer("DPSTF2", &info, lerr, ok, t)
-	*infot = 2
-	golapack.Dpstf2('U', toPtr(-1), a, func() *int { y := 1; return &y }(), &piv, &rank, func() *float64 { y := -1.; return &y }(), work, &info)
-	Chkxer("DPSTF2", &info, lerr, ok, t)
-	*infot = 4
-	golapack.Dpstf2('U', func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), &piv, &rank, func() *float64 { y := -1.; return &y }(), work, &info)
-	Chkxer("DPSTF2", &info, lerr, ok, t)
+	//        Dpstf2
+	*srnamt = "Dpstf2"
+	*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
+	_, _, err = golapack.Dpstf2('/', 0, a.Off(0, 0).UpdateRows(1), &piv, -1.0, work)
+	chkxer2("Dpstf2", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	_, _, err = golapack.Dpstf2(Upper, -1, a.Off(0, 0).UpdateRows(1), &piv, -1.0, work)
+	chkxer2("Dpstf2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+	_, _, err = golapack.Dpstf2(Upper, 2, a.Off(0, 0).UpdateRows(1), &piv, -1.0, work)
+	chkxer2("Dpstf2", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

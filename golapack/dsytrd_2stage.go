@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -8,74 +10,71 @@ import (
 // Dsytrd2stage reduces a real symmetric matrix A to real symmetric
 // tridiagonal form T by a orthogonal similarity transformation:
 // Q1**T Q2**T* A * Q2 * Q1 = T.
-func Dsytrd2stage(vect, uplo byte, n *int, a *mat.Matrix, lda *int, d, e, tau, hous2 *mat.Vector, lhous2 *int, work *mat.Vector, lwork, info *int) {
+func Dsytrd2stage(vect byte, uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau, hous2 *mat.Vector, lhous2 int, work *mat.Vector, lwork int) (err error) {
 	var lquery, upper bool
 	var abpos, ib, kd, ldab, lhmin, lwmin, lwrk, wpos int
 
 	//     Test the input parameters
-	(*info) = 0
 	// wantq = vect == 'V'
-	upper = uplo == 'U'
-	lquery = ((*lwork) == -1) || ((*lhous2) == -1)
+	upper = uplo == Upper
+	lquery = (lwork == -1) || (lhous2 == -1)
 
 	//     Determine the block size, the workspace size and the hous size.
-	kd = Ilaenv2stage(func() *int { y := 1; return &y }(), []byte("DSYTRD_2STAGE"), []byte{vect}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-	ib = Ilaenv2stage(func() *int { y := 2; return &y }(), []byte("DSYTRD_2STAGE"), []byte{vect}, n, &kd, toPtr(-1), toPtr(-1))
-	lhmin = Ilaenv2stage(func() *int { y := 3; return &y }(), []byte("DSYTRD_2STAGE"), []byte{vect}, n, &kd, &ib, toPtr(-1))
-	lwmin = Ilaenv2stage(func() *int { y := 4; return &y }(), []byte("DSYTRD_2STAGE"), []byte{vect}, n, &kd, &ib, toPtr(-1))
-	//      WRITE(*,*),'DSYTRD_2STAGE N KD UPLO LHMIN LWMIN ',N, KD, UPLO,
+	kd = Ilaenv2stage(1, "Dsytrd2stage", []byte{vect}, n, -1, -1, -1)
+	ib = Ilaenv2stage(2, "Dsytrd2stage", []byte{vect}, n, kd, -1, -1)
+	lhmin = Ilaenv2stage(3, "Dsytrd2stage", []byte{vect}, n, kd, ib, -1)
+	lwmin = Ilaenv2stage(4, "Dsytrd2stage", []byte{vect}, n, kd, ib, -1)
+	//      WRITE(*,*),'Dsytrd2stage N KD UPLO LHMIN LWMIN ',N, KD, UPLO,
 	//     $            LHMIN, LWMIN
 
 	if vect != 'N' {
-		(*info) = -1
-	} else if !upper && uplo != 'L' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*lhous2) < lhmin && !lquery {
-		(*info) = -10
-	} else if (*lwork) < lwmin && !lquery {
-		(*info) = -12
+		err = fmt.Errorf("vect != 'N': vect='%c'", vect)
+	} else if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if lhous2 < lhmin && !lquery {
+		err = fmt.Errorf("lhous2 < lhmin && !lquery: lhous2=%v, lhmin=%v, lquery=%v", lhous2, lhmin, lquery)
+	} else if lwork < lwmin && !lquery {
+		err = fmt.Errorf("lwork < lwmin && !lquery: lwork=%v, lwmin=%v, lquery=%v", lwork, lwmin, lquery)
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		hous2.Set(0, float64(lhmin))
 		work.Set(0, float64(lwmin))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRD_2STAGE"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsytrd2stage", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		work.Set(0, 1)
 		return
 	}
 
 	//     Determine pointer position
 	ldab = kd + 1
-	lwrk = (*lwork) - ldab*(*n)
+	lwrk = lwork - ldab*n
 	abpos = 1
-	wpos = abpos + ldab*(*n)
-	DsytrdSy2sb(uplo, n, &kd, a, lda, work.MatrixOff(abpos-1, ldab, opts), &ldab, tau, work.Off(wpos-1), &lwrk, info)
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRD_SY2SB"), -(*info))
+	wpos = abpos + ldab*n
+	if err = DsytrdSy2sb(uplo, n, kd, a, work.MatrixOff(abpos-1, ldab, opts), tau, work.Off(wpos-1), lwrk); err != nil {
+		gltest.Xerbla2("DsytrdSy2sb", err)
 		return
 	}
-	DsytrdSb2st('Y', vect, uplo, n, &kd, work.MatrixOff(abpos-1, ldab, opts), &ldab, d, e, hous2, lhous2, work.Off(wpos-1), &lwrk, info)
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRD_SB2ST"), -(*info))
+	if err = DsytrdSb2st('Y', vect, uplo, n, kd, work.MatrixOff(abpos-1, ldab, opts), d, e, hous2, lhous2, work.Off(wpos-1), lwrk); err != nil {
+		gltest.Xerbla2("DsytrdSb2st", err)
 		return
 	}
 
 	hous2.Set(0, float64(lhmin))
 	work.Set(0, float64(lwmin))
-}
 
-// 2
+	return
+}

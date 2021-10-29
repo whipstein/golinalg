@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -41,11 +43,12 @@ import (
 // of an upper bound on the separation between to matrix pairs. Then
 // the input (A, D), (B, E) are sub-pencils of two matrix pairs in
 // ZTGSYL.
-func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c *mat.CMatrix, ldc *int, d *mat.CMatrix, ldd *int, e *mat.CMatrix, lde *int, f *mat.CMatrix, ldf *int, scale, rdsum, rdscal *float64, info *int) {
+func Ztgsy2(trans mat.MatTrans, ijob, m, n int, a, b, c, d, e, f *mat.CMatrix, rdsum, rdscal float64) (scale, rdsumOut, rdscalOut float64, info int, err error) {
 	var notran bool
 	var alpha complex128
 	var one, scaloc, zero float64
 	var i, ierr, j, k, ldz int
+
 	rhs := cvf(2)
 	ipiv := make([]int, 2)
 	jpiv := make([]int, 2)
@@ -54,39 +57,40 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 	zero = 0.0
 	one = 1.0
 	ldz = 2
+	rdsumOut = rdsum
+	rdscalOut = rdscal
 
 	//     Decode and test input parameters
-	(*info) = 0
 	ierr = 0
-	notran = trans == 'N'
-	if !notran && trans != 'C' {
-		(*info) = -1
+	notran = trans == NoTrans
+	if !notran && trans != ConjTrans {
+		err = fmt.Errorf("!notran && trans != ConjTrans: trans=%s", trans)
 	} else if notran {
-		if ((*ijob) < 0) || ((*ijob) > 2) {
-			(*info) = -2
+		if (ijob < 0) || (ijob > 2) {
+			err = fmt.Errorf("(ijob < 0) || (ijob > 2): ijob=%v", ijob)
 		}
 	}
-	if (*info) == 0 {
-		if (*m) <= 0 {
-			(*info) = -3
-		} else if (*n) <= 0 {
-			(*info) = -4
-		} else if (*lda) < max(1, *m) {
-			(*info) = -6
-		} else if (*ldb) < max(1, *n) {
-			(*info) = -8
-		} else if (*ldc) < max(1, *m) {
-			(*info) = -10
-		} else if (*ldd) < max(1, *m) {
-			(*info) = -12
-		} else if (*lde) < max(1, *n) {
-			(*info) = -14
-		} else if (*ldf) < max(1, *m) {
-			(*info) = -16
+	if err == nil {
+		if m <= 0 {
+			err = fmt.Errorf("m <= 0: m=%v", m)
+		} else if n <= 0 {
+			err = fmt.Errorf("n <= 0: n=%v", n)
+		} else if a.Rows < max(1, m) {
+			err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+		} else if b.Rows < max(1, n) {
+			err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+		} else if c.Rows < max(1, m) {
+			err = fmt.Errorf("c.Rows < max(1, m): c.Rows=%v, m=%v", c.Rows, m)
+		} else if d.Rows < max(1, m) {
+			err = fmt.Errorf("d.Rows < max(1, m): d.Rows=%v, m=%v", d.Rows, m)
+		} else if e.Rows < max(1, n) {
+			err = fmt.Errorf("e.Rows < max(1, n): e.Rows=%v, n=%v", e.Rows, n)
+		} else if f.Rows < max(1, m) {
+			err = fmt.Errorf("f.Rows < max(1, m): f.Rows=%v, m=%v", f.Rows, m)
 		}
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTGSY2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztgsy2", err)
 		return
 	}
 
@@ -95,10 +99,10 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 		//           A(I, I) * R(I, J) - L(I, J) * B(J, J) = C(I, J)
 		//           D(I, I) * R(I, J) - L(I, J) * E(J, J) = F(I, J)
 		//        for I = M, M - 1, ..., 1; J = 1, 2, ..., N
-		(*scale) = one
+		scale = one
 		scaloc = one
-		for j = 1; j <= (*n); j++ {
-			for i = (*m); i >= 1; i-- {
+		for j = 1; j <= n; j++ {
+			for i = m; i >= 1; i-- {
 				//              Build 2 by 2 system
 				z.Set(0, 0, a.Get(i-1, i-1))
 				z.Set(1, 0, d.Get(i-1, i-1))
@@ -110,21 +114,20 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				rhs.Set(1, f.Get(i-1, j-1))
 
 				//              Solve Z * x = RHS
-				Zgetc2(&ldz, z, &ldz, &ipiv, &jpiv, &ierr)
-				if ierr > 0 {
-					(*info) = ierr
+				if ierr = Zgetc2(ldz, z, &ipiv, &jpiv); ierr > 0 {
+					info = ierr
 				}
-				if (*ijob) == 0 {
-					Zgesc2(&ldz, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
+				if ijob == 0 {
+					scaloc = Zgesc2(ldz, z, rhs, &ipiv, &jpiv)
 					if scaloc != one {
-						for k = 1; k <= (*n); k++ {
-							goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-							goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+						for k = 1; k <= n; k++ {
+							goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+							goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 						}
-						(*scale) = (*scale) * scaloc
+						scale = scale * scaloc
 					}
 				} else {
-					Zlatdf(ijob, &ldz, z, &ldz, rhs, rdsum, rdscal, &ipiv, &jpiv)
+					rdsumOut, rdscalOut = Zlatdf(ijob, ldz, z, rhs, rdsumOut, rdscalOut, &ipiv, &jpiv)
 				}
 
 				//              Unpack solution vector(s)
@@ -137,9 +140,9 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 					goblas.Zaxpy(i-1, alpha, a.CVector(0, i-1, 1), c.CVector(0, j-1, 1))
 					goblas.Zaxpy(i-1, alpha, d.CVector(0, i-1, 1), f.CVector(0, j-1, 1))
 				}
-				if j < (*n) {
-					goblas.Zaxpy((*n)-j, rhs.Get(1), b.CVector(j-1, j, *ldb), c.CVector(i-1, j, *ldc))
-					goblas.Zaxpy((*n)-j, rhs.Get(1), e.CVector(j-1, j, *lde), f.CVector(i-1, j, *ldf))
+				if j < n {
+					goblas.Zaxpy(n-j, rhs.Get(1), b.CVector(j-1, j), c.CVector(i-1, j))
+					goblas.Zaxpy(n-j, rhs.Get(1), e.CVector(j-1, j), f.CVector(i-1, j))
 				}
 
 			}
@@ -149,10 +152,10 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 		//           A(I, I)**H * R(I, J) + D(I, I)**H * L(J, J) = C(I, J)
 		//           R(I, I) * B(J, J) + L(I, J) * E(J, J)   = -F(I, J)
 		//        for I = 1, 2, ..., M, J = N, N - 1, ..., 1
-		(*scale) = one
+		scale = one
 		scaloc = one
-		for i = 1; i <= (*m); i++ {
-			for j = (*n); j >= 1; j-- {
+		for i = 1; i <= m; i++ {
+			for j = n; j >= 1; j-- {
 				//              Build 2 by 2 system Z**H
 				z.Set(0, 0, a.GetConj(i-1, i-1))
 				z.Set(1, 0, -b.GetConj(j-1, j-1))
@@ -164,17 +167,16 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				rhs.Set(1, f.Get(i-1, j-1))
 
 				//              Solve Z**H * x = RHS
-				Zgetc2(&ldz, z, &ldz, &ipiv, &jpiv, &ierr)
-				if ierr > 0 {
-					(*info) = ierr
+				if ierr = Zgetc2(ldz, z, &ipiv, &jpiv); ierr > 0 {
+					info = ierr
 				}
-				Zgesc2(&ldz, z, &ldz, rhs, &ipiv, &jpiv, &scaloc)
+				scaloc = Zgesc2(ldz, z, rhs, &ipiv, &jpiv)
 				if scaloc != one {
-					for k = 1; k <= (*n); k++ {
-						goblas.Zscal(*m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-						goblas.Zscal(*m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+					for k = 1; k <= n; k++ {
+						goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
+						goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
 					}
-					(*scale) = (*scale) * scaloc
+					scale = scale * scaloc
 				}
 
 				//              Unpack solution vector(s)
@@ -185,11 +187,13 @@ func Ztgsy2(trans byte, ijob, m, n *int, a *mat.CMatrix, lda *int, b *mat.CMatri
 				for k = 1; k <= j-1; k++ {
 					f.Set(i-1, k-1, f.Get(i-1, k-1)+rhs.Get(0)*b.GetConj(k-1, j-1)+rhs.Get(1)*e.GetConj(k-1, j-1))
 				}
-				for k = i + 1; k <= (*m); k++ {
+				for k = i + 1; k <= m; k++ {
 					c.Set(k-1, j-1, c.Get(k-1, j-1)-a.GetConj(i-1, k-1)*rhs.Get(0)-d.GetConj(i-1, k-1)*rhs.Get(1))
 				}
 
 			}
 		}
 	}
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -18,14 +19,14 @@ import (
 // Z(1,3,5,,..). The tridiagonal is L*U or, if you prefer, the
 // symmetric tridiagonal to which it is similar.
 //
-// Note : DLASQ2 defines a logical variable, IEEE, which is true
+// Note : Dlasq2 defines a logical variable, IEEE, which is true
 // on machines which follow ieee-754 floating-point standard in their
 // handling of infinities and NaNs, and false otherwise. This variable
 // is passed to DLASQ3.
-func Dlasq2(n *int, z *mat.Vector, info *int) {
+func Dlasq2(n int, z *mat.Vector) (info int, err error) {
 	var ieee bool
 	var cbias, d, dee, deemin, desig, dmin, dmin1, dmin2, dn, dn1, dn2, e, emax, emin, eps, four, g, half, hundrd, oldemn, one, qmax, qmin, s, safmin, sigma, t, tau, temp, tempe, tempq, tol, tol2, trace, two, zero, zmax float64
-	var i0, i1, i4, iinfo, ipn4, iter, iwhila, iwhilb, k, kmin, n0, n1, nbig, ndiv, nfail, pp, splt, ttype int
+	var i0, i1, i4, ipn4, iter, iwhila, iwhilb, k, kmin, n0, n1, nbig, ndiv, nfail, pp, splt, ttype int
 
 	cbias = 1.50
 	zero = 0.0
@@ -36,31 +37,30 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 	hundrd = 100.0
 
 	//     Test the input arguments.
-	//     (in case DLASQ2 is not called by DLASQ1)
-	(*info) = 0
+	//     (in case Dlasq2 is not called by DLASQ1)
 	eps = Dlamch(Precision)
 	safmin = Dlamch(SafeMinimum)
 	tol = eps * hundrd
 	tol2 = math.Pow(tol, 2)
 
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("DLASQ2"), 1)
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Dlasq2", err)
 		return
-	} else if (*n) == 0 {
+	} else if n == 0 {
 		return
-	} else if (*n) == 1 {
+	} else if n == 1 {
 		//        1-by-1 case.
 		if z.Get(0) < zero {
-			(*info) = -201
-			gltest.Xerbla([]byte("DLASQ2"), 2)
+			info = -201
+			gltest.Xerbla("Dlasq2", 2)
 		}
 		return
-	} else if (*n) == 2 {
+	} else if n == 2 {
 		//        2-by-2 case.
 		if z.Get(1) < zero || z.Get(2) < zero {
-			(*info) = -2
-			gltest.Xerbla([]byte("DLASQ2"), 2)
+			info = -2
+			gltest.Xerbla("Dlasq2", 2)
 			return
 		} else if z.Get(2) > z.Get(0) {
 			d = z.Get(2)
@@ -86,21 +86,21 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 	}
 
 	//     Check for negative data and compute sums of q's and e's.
-	z.Set(2*(*n)-1, zero)
+	z.Set(2*n-1, zero)
 	emin = z.Get(1)
 	qmax = zero
 	zmax = zero
 	d = zero
 	e = zero
 
-	for k = 1; k <= 2*((*n)-1); k += 2 {
+	for k = 1; k <= 2*(n-1); k += 2 {
 		if z.Get(k-1) < zero {
-			(*info) = -(200 + k)
-			gltest.Xerbla([]byte("DLASQ2"), 2)
+			info = -(200 + k)
+			gltest.Xerbla("Dlasq2", 2)
 			return
 		} else if z.Get(k) < zero {
-			(*info) = -(200 + k + 1)
-			gltest.Xerbla([]byte("DLASQ2"), 2)
+			info = -(200 + k + 1)
+			gltest.Xerbla("Dlasq2", 2)
 			return
 		}
 		d = d + z.Get(k-1)
@@ -110,22 +110,24 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 		zmax = math.Max(qmax, math.Max(zmax, z.Get(k)))
 		//Label10:
 	}
-	if z.Get(2*(*n)-1-1) < zero {
-		(*info) = -(200 + 2*(*n) - 1)
-		gltest.Xerbla([]byte("DLASQ2"), 2)
+	if z.Get(2*n-1-1) < zero {
+		info = -(200 + 2*n - 1)
+		gltest.Xerbla("Dlasq2", 2)
 		return
 	}
-	d = d + z.Get(2*(*n)-1-1)
-	qmax = math.Max(qmax, z.Get(2*(*n)-1-1))
+	d = d + z.Get(2*n-1-1)
+	qmax = math.Max(qmax, z.Get(2*n-1-1))
 	zmax = math.Max(qmax, zmax)
 
 	//     Check for diagonality.
 	if e == zero {
-		for k = 2; k <= (*n); k++ {
+		for k = 2; k <= n; k++ {
 			z.Set(k-1, z.Get(2*k-1-1))
 		}
-		Dlasrt('D', n, z, &iinfo)
-		z.Set(2*(*n)-1-1, d)
+		if err = Dlasrt('D', n, z); err != nil {
+			panic(err)
+		}
+		z.Set(2*n-1-1, d)
 		return
 	}
 
@@ -133,15 +135,15 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 
 	//     Check for zero data.
 	if trace == zero {
-		z.Set(2*(*n)-1-1, zero)
+		z.Set(2*n-1-1, zero)
 		return
 	}
 
 	//     Check whether the machine is IEEE conformable.
-	ieee = Ilaenv(func() *int { y := 10; return &y }(), []byte("DLASQ2"), []byte("N"), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 3; return &y }(), func() *int { y := 4; return &y }()) == 1 && Ilaenv(func() *int { y := 11; return &y }(), []byte("DLASQ2"), []byte("N"), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 3; return &y }(), func() *int { y := 4; return &y }()) == 1
+	ieee = Ilaenv(10, "Dlasq2", []byte("N"), 1, 2, 3, 4) == 1 && Ilaenv(11, "Dlasq2", []byte("N"), 1, 2, 3, 4) == 1
 
 	//     Rearrange data for locality: Z=(q1,qq1,e1,ee1,q2,qq2,e2,ee2,...).
-	for k = 2 * (*n); k >= 2; k -= 2 {
+	for k = 2 * n; k >= 2; k -= 2 {
 		z.Set(2*k-1, zero)
 		z.Set(2*k-1-1, z.Get(k-1))
 		z.Set(2*k-2-1, zero)
@@ -149,7 +151,7 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 	}
 
 	i0 = 1
-	n0 = (*n)
+	n0 = n
 
 	//     Reverse the qd-array, if warranted.
 	if cbias*z.Get(4*i0-3-1) < z.Get(4*n0-3-1) {
@@ -225,7 +227,7 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 	nfail = 0
 	ndiv = 2 * (n0 - i0)
 
-	for iwhila = 1; iwhila <= (*n)+1; iwhila++ {
+	for iwhila = 1; iwhila <= n+1; iwhila++ {
 		if n0 < 1 {
 			goto label170
 		}
@@ -235,13 +237,13 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 		//        E(N0) holds the value of SIGMA when submatrix in I0:N0
 		//        splits from the rest of the array, but is negated.
 		desig = zero
-		if n0 == (*n) {
+		if n0 == n {
 			sigma = zero
 		} else {
 			sigma = -z.Get(4*n0 - 1 - 1)
 		}
 		if sigma < zero {
-			(*info) = 1
+			info = 1
 			return
 		}
 
@@ -319,7 +321,7 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 			}
 
 			//           While submatrix unfinished take a good dqds step.
-			Dlasq3(&i0, &n0, z, &pp, &dmin, &sigma, &desig, &qmax, &nfail, &iter, &ndiv, &ieee, &ttype, &dmin1, &dmin2, &dn, &dn1, &dn2, &g, &tau)
+			n0, pp, dmin, sigma, desig, qmax, nfail, iter, ndiv, ttype, dmin1, dmin2, dn, dn1, dn2, g, tau = Dlasq3(i0, n0, z, pp, dmin, sigma, desig, qmax, nfail, iter, ndiv, ieee, ttype, dmin1, dmin2, dn, dn1, dn2, g, tau)
 
 			pp = 1 - pp
 
@@ -351,7 +353,7 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 
 		}
 
-		(*info) = 2
+		info = 2
 
 		//        Maximum number of iterations exceeded, restore the shift
 		//        SIGMA and place the new d's and e's in a qd array.
@@ -378,7 +380,7 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 			sigma = -z.Get(4*n1 - 1 - 1)
 			goto label145
 		}
-		for k = 1; k <= (*n); k++ {
+		for k = 1; k <= n; k++ {
 			z.Set(2*k-1-1, z.Get(4*k-3-1))
 
 			//        Only the block 1..N0 is unfinished.  The rest of the e's
@@ -395,29 +397,33 @@ func Dlasq2(n *int, z *mat.Vector, info *int) {
 	label150:
 	}
 
-	(*info) = 3
+	info = 3
 	return
 
 label170:
 	;
 
 	//     Move q's to the front.
-	for k = 2; k <= (*n); k++ {
+	for k = 2; k <= n; k++ {
 		z.Set(k-1, z.Get(4*k-3-1))
 	}
 
 	//     Sort and compute sum of eigenvalues.
-	Dlasrt('D', n, z, &iinfo)
+	if err = Dlasrt('D', n, z); err != nil {
+		panic(err)
+	}
 
 	e = zero
-	for k = (*n); k >= 1; k-- {
+	for k = n; k >= 1; k-- {
 		e = e + z.Get(k-1)
 	}
 
 	//     Store trace, sum(eigenvalues) and information on performance.
-	z.Set(2*(*n), trace)
-	z.Set(2*(*n)+2-1, e)
-	z.Set(2*(*n)+3-1, float64(iter))
-	z.Set(2*(*n)+4-1, float64(ndiv)/float64(math.Pow(float64(*n), 2)))
-	z.Set(2*(*n)+5-1, hundrd*float64(nfail)/float64(iter))
+	z.Set(2*n, trace)
+	z.Set(2*n+2-1, e)
+	z.Set(2*n+3-1, float64(iter))
+	z.Set(2*n+4-1, float64(ndiv)/float64(math.Pow(float64(n), 2)))
+	z.Set(2*n+5-1, hundrd*float64(nfail)/float64(iter))
+
+	return
 }

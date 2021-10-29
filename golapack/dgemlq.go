@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -13,79 +15,84 @@ import (
 //    where Q is a real orthogonal matrix defined as the product
 //    of blocked elementary reflectors computed by short wide LQ
 //    factorization (DGELQ)
-func Dgemlq(side, trans byte, m, n, k *int, a *mat.Matrix, lda *int, t *mat.Vector, tsize *int, c *mat.Matrix, ldc *int, work *mat.Vector, lwork, info *int) {
+func Dgemlq(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.Matrix, t *mat.Vector, tsize int, c *mat.Matrix, work *mat.Vector, lwork int) (err error) {
 	var left, lquery, notran, right, tran bool
 	var lw, mb, mn, nb int
 
 	//     Test the input arguments
-	lquery = (*lwork) == -1
-	notran = trans == 'N'
-	tran = trans == 'T'
-	left = side == 'L'
-	right = side == 'R'
+	lquery = lwork == -1
+	notran = trans == NoTrans
+	tran = trans == Trans
+	left = side == Left
+	right = side == Right
 
 	mb = int(t.Get(1))
 	nb = int(t.Get(2))
 	if left {
-		lw = (*n) * mb
-		mn = (*m)
+		lw = n * mb
+		mn = m
 	} else {
-		lw = (*m) * mb
-		mn = (*n)
+		lw = m * mb
+		mn = n
 	}
 
-	// if (nb > (*k)) && (mn > (*k)) {
-	// 	if (mn-(*k))%(nb-(*k)) == 0 {
-	// 		nblcks = (mn - (*k)) / (nb - (*k))
+	// if (nb > k) && (mn > k) {
+	// 	if (mn-k)%(nb-k) == 0 {
+	// 		nblcks = (mn - k) / (nb - k)
 	// 	} else {
-	// 		nblcks = (mn-(*k))/(nb-(*k)) + 1
+	// 		nblcks = (mn-k)/(nb-k) + 1
 	// 	}
 	// } else {
 	// 	nblcks = 1
 	// }
 
-	(*info) = 0
 	if !left && !right {
-		(*info) = -1
+		err = fmt.Errorf("!left && !right: side=%s", side)
 	} else if !tran && !notran {
-		(*info) = -2
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*k) < 0 || (*k) > mn {
-		(*info) = -5
-	} else if (*lda) < max(1, *k) {
-		(*info) = -7
-	} else if (*tsize) < 5 {
-		(*info) = -9
-	} else if (*ldc) < max(1, *m) {
-		(*info) = -11
-	} else if ((*lwork) < max(1, lw)) && (!lquery) {
-		(*info) = -13
+		err = fmt.Errorf("!tran && !notran: trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if k < 0 || k > mn {
+		err = fmt.Errorf("k < 0 || k > mn: k=%v, m=%v, n=%v", k, m, n)
+	} else if a.Rows < max(1, k) {
+		err = fmt.Errorf("a.Rows < max(1, k): a.Rows=%v, k=%v", a.Rows, k)
+	} else if tsize < 5 {
+		err = fmt.Errorf("tsize < 5: tsize=%v", tsize)
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows < max(1, m): c.Rows=%v, m=%v", c.Rows, m)
+	} else if (lwork < max(1, lw)) && (!lquery) {
+		err = fmt.Errorf("(lwork < max(1, lw)) && (!lquery): lwork=%v, lw=%v, lquery=%v", lwork, lw, lquery)
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		work.Set(0, float64(lw))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGEMLQ"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgemlq", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if min(*m, *n, *k) == 0 {
+	if min(m, n, k) == 0 {
 		return
 	}
 
-	if (left && (*m) <= (*k)) || (right && (*n) <= (*k)) || (nb <= (*k)) || (nb >= max(*m, *n, *k)) {
-		Dgemlqt(side, trans, m, n, k, &mb, a, lda, t.MatrixOff(5, mb, opts), &mb, c, ldc, work, info)
+	if (left && m <= k) || (right && n <= k) || (nb <= k) || (nb >= max(m, n, k)) {
+		if err = Dgemlqt(side, trans, m, n, k, mb, a, t.MatrixOff(5, mb, opts), c, work); err != nil {
+			panic(err)
+		}
 	} else {
-		Dlamswlq(side, trans, m, n, k, &mb, &nb, a, lda, t.MatrixOff(5, mb, opts), &mb, c, ldc, work, lwork, info)
+		if err = Dlamswlq(side, trans, m, n, k, mb, nb, a, t.MatrixOff(5, mb, opts), c, work, lwork); err != nil {
+			panic(err)
+		}
 	}
 
 	work.Set(0, float64(lw))
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -27,13 +28,11 @@ import (
 // input matrix.  If Q is the unitary factor that reduces a matrix A to
 // Schur form T, then Q*X and Q*Y are the matrices of right and left
 // eigenvectors of A.
-func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int, vl *mat.CMatrix, ldvl *int, vr *mat.CMatrix, ldvr, mm, m *int, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Ztrevc(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *mat.CMatrix, mm int, work *mat.CVector, rwork *mat.Vector) (m int, err error) {
 	var allv, bothv, leftv, over, rightv, somev bool
 	var cmone, cmzero complex128
 	var one, ovfl, remax, scale, smin, smlnum, ulp, unfl, zero float64
 	var i, ii, is, j, k, ki int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -41,9 +40,9 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 	cmone = (1.0 + 0.0*1i)
 
 	//     Decode and test the input parameters
-	bothv = side == 'B'
-	rightv = side == 'R' || bothv
-	leftv = side == 'L' || bothv
+	bothv = side == Both
+	rightv = side == Right || bothv
+	leftv = side == Left || bothv
 
 	allv = howmny == 'A'
 	over = howmny == 'B'
@@ -52,65 +51,64 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 	//     Set M to the number of columns required to store the selected
 	//     eigenvectors.
 	if somev {
-		(*m) = 0
-		for j = 1; j <= (*n); j++ {
+		m = 0
+		for j = 1; j <= n; j++ {
 			if _select[j-1] {
-				(*m) = (*m) + 1
+				m = m + 1
 			}
 		}
 	} else {
-		(*m) = (*n)
+		m = n
 	}
 
-	(*info) = 0
 	if !rightv && !leftv {
-		(*info) = -1
+		err = fmt.Errorf("!rightv && !leftv: side=%s", side)
 	} else if !allv && !over && !somev {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*ldt) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldvl) < 1 || (leftv && (*ldvl) < (*n)) {
-		(*info) = -8
-	} else if (*ldvr) < 1 || (rightv && (*ldvr) < (*n)) {
-		(*info) = -10
-	} else if (*mm) < (*m) {
-		(*info) = -11
+		err = fmt.Errorf("!allv && !over && !somev: howmny='%c'", howmny)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if t.Rows < max(1, n) {
+		err = fmt.Errorf("t.Rows < max(1, n): t.Rows=%v, n=%v", t.Rows, n)
+	} else if vl.Rows < 1 || (leftv && vl.Rows < n) {
+		err = fmt.Errorf("vl.Rows < 1 || (leftv && vl.Rows < n): side=%s, vl.Rows=%v, n=%v", side, vl.Rows, n)
+	} else if vr.Rows < 1 || (rightv && vr.Rows < n) {
+		err = fmt.Errorf("vr.Rows < 1 || (rightv && vr.Rows < n): side=%s, vr.Rows=%v, n=%v", side, vr.Rows, n)
+	} else if mm < m {
+		err = fmt.Errorf("mm < m: mm=%v, m=%v", mm, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTREVC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztrevc", err)
 		return
 	}
 
 	//     Quick return if possible.
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Set the constants to control overflow.
 	unfl = Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	Dlabad(&unfl, &ovfl)
+	unfl, ovfl = Dlabad(unfl, ovfl)
 	ulp = Dlamch(Precision)
-	smlnum = unfl * (float64(*n) / ulp)
+	smlnum = unfl * (float64(n) / ulp)
 
 	//     Store the diagonal elements of T in working array WORK.
-	for i = 1; i <= (*n); i++ {
-		work.Set(i+(*n)-1, t.Get(i-1, i-1))
+	for i = 1; i <= n; i++ {
+		work.Set(i+n-1, t.Get(i-1, i-1))
 	}
 
 	//     Compute 1-norm of each column of strictly upper triangular
 	//     part of T to control overflow in triangular solver.
 	rwork.Set(0, zero)
-	for j = 2; j <= (*n); j++ {
+	for j = 2; j <= n; j++ {
 		rwork.Set(j-1, goblas.Dzasum(j-1, t.CVector(0, j-1, 1)))
 	}
 
 	if rightv {
 		//        Compute right eigenvectors.
-		is = (*m)
-		for ki = (*n); ki >= 1; ki -= 1 {
+		is = m
+		for ki = n; ki >= 1; ki -= 1 {
 
 			if somev {
 				if !_select[ki-1] {
@@ -136,7 +134,9 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 			}
 
 			if ki > 1 {
-				Zlatrs('U', 'N', 'N', 'Y', toPtr(ki-1), t, ldt, work.Off(0), &scale, rwork, info)
+				if scale, err = Zlatrs(Upper, NoTrans, NonUnit, 'Y', ki-1, t, work, rwork); err != nil {
+					panic(err)
+				}
 				work.SetRe(ki-1, scale)
 			}
 
@@ -148,22 +148,24 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 				remax = one / cabs1(vr.Get(ii-1, is-1))
 				goblas.Zdscal(ki, remax, vr.CVector(0, is-1, 1))
 
-				for k = ki + 1; k <= (*n); k++ {
+				for k = ki + 1; k <= n; k++ {
 					vr.Set(k-1, is-1, cmzero)
 				}
 			} else {
 				if ki > 1 {
-					err = goblas.Zgemv(NoTrans, *n, ki-1, cmone, vr, work.Off(0, 1), complex(scale, 0), vr.CVector(0, ki-1, 1))
+					if err = goblas.Zgemv(NoTrans, n, ki-1, cmone, vr, work.Off(0, 1), complex(scale, 0), vr.CVector(0, ki-1, 1)); err != nil {
+						panic(err)
+					}
 				}
 
-				ii = goblas.Izamax(*n, vr.CVector(0, ki-1, 1))
+				ii = goblas.Izamax(n, vr.CVector(0, ki-1, 1))
 				remax = one / cabs1(vr.Get(ii-1, ki-1))
-				goblas.Zdscal(*n, remax, vr.CVector(0, ki-1, 1))
+				goblas.Zdscal(n, remax, vr.CVector(0, ki-1, 1))
 			}
 
 			//           Set back the original diagonal elements of T.
 			for k = 1; k <= ki-1; k++ {
-				t.Set(k-1, k-1, work.Get(k+(*n)-1))
+				t.Set(k-1, k-1, work.Get(k+n-1))
 			}
 
 			is = is - 1
@@ -174,7 +176,7 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 	if leftv {
 		//        Compute left eigenvectors.
 		is = 1
-		for ki = 1; ki <= (*n); ki++ {
+		for ki = 1; ki <= n; ki++ {
 
 			if somev {
 				if !_select[ki-1] {
@@ -183,55 +185,61 @@ func Ztrevc(side, howmny byte, _select []bool, n *int, t *mat.CMatrix, ldt *int,
 			}
 			smin = math.Max(ulp*cabs1(t.Get(ki-1, ki-1)), smlnum)
 
-			work.Set((*n)-1, cmone)
+			work.Set(n-1, cmone)
 
 			//           Form right-hand side.
-			for k = ki + 1; k <= (*n); k++ {
+			for k = ki + 1; k <= n; k++ {
 				work.Set(k-1, -t.GetConj(ki-1, k-1))
 			}
 
 			//           Solve the triangular system:
 			//              (T(KI+1:N,KI+1:N) - T(KI,KI))**H * X = SCALE*WORK.
-			for k = ki + 1; k <= (*n); k++ {
+			for k = ki + 1; k <= n; k++ {
 				t.Set(k-1, k-1, t.Get(k-1, k-1)-t.Get(ki-1, ki-1))
 				if cabs1(t.Get(k-1, k-1)) < smin {
 					t.SetRe(k-1, k-1, smin)
 				}
 			}
 
-			if ki < (*n) {
-				Zlatrs('U', 'C', 'N', 'Y', toPtr((*n)-ki), t.Off(ki, ki), ldt, work.Off(ki), &scale, rwork, info)
+			if ki < n {
+				if scale, err = Zlatrs(Upper, ConjTrans, NonUnit, 'Y', n-ki, t.Off(ki, ki), work.Off(ki), rwork); err != nil {
+					panic(err)
+				}
 				work.SetRe(ki-1, scale)
 			}
 
 			//           Copy the vector x or Q*x to VL and normalize.
 			if !over {
-				goblas.Zcopy((*n)-ki+1, work.Off(ki-1, 1), vl.CVector(ki-1, is-1, 1))
+				goblas.Zcopy(n-ki+1, work.Off(ki-1, 1), vl.CVector(ki-1, is-1, 1))
 
-				ii = goblas.Izamax((*n)-ki+1, vl.CVector(ki-1, is-1, 1)) + ki - 1
+				ii = goblas.Izamax(n-ki+1, vl.CVector(ki-1, is-1, 1)) + ki - 1
 				remax = one / cabs1(vl.Get(ii-1, is-1))
-				goblas.Zdscal((*n)-ki+1, remax, vl.CVector(ki-1, is-1, 1))
+				goblas.Zdscal(n-ki+1, remax, vl.CVector(ki-1, is-1, 1))
 
 				for k = 1; k <= ki-1; k++ {
 					vl.Set(k-1, is-1, cmzero)
 				}
 			} else {
-				if ki < (*n) {
-					err = goblas.Zgemv(NoTrans, *n, (*n)-ki, cmone, vl.Off(0, ki), work.Off(ki, 1), complex(scale, 0), vl.CVector(0, ki-1, 1))
+				if ki < n {
+					if err = goblas.Zgemv(NoTrans, n, n-ki, cmone, vl.Off(0, ki), work.Off(ki, 1), complex(scale, 0), vl.CVector(0, ki-1, 1)); err != nil {
+						panic(err)
+					}
 				}
 
-				ii = goblas.Izamax(*n, vl.CVector(0, ki-1, 1))
+				ii = goblas.Izamax(n, vl.CVector(0, ki-1, 1))
 				remax = one / cabs1(vl.Get(ii-1, ki-1))
-				goblas.Zdscal(*n, remax, vl.CVector(0, ki-1, 1))
+				goblas.Zdscal(n, remax, vl.CVector(0, ki-1, 1))
 			}
 
 			//           Set back the original diagonal elements of T.
-			for k = ki + 1; k <= (*n); k++ {
-				t.Set(k-1, k-1, work.Get(k+(*n)-1))
+			for k = ki + 1; k <= n; k++ {
+				t.Set(k-1, k-1, work.Get(k+n-1))
 			}
 
 			is = is + 1
 		label130:
 		}
 	}
+
+	return
 }

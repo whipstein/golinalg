@@ -9,7 +9,7 @@ import (
 // Dlangb returns the value of the one norm,  or the Frobenius norm, or
 // the  infinity norm,  or the element of  largest absolute value  of an
 // n by n band matrix  A,  with kl sub-diagonals and ku super-diagonals.
-func Dlangb(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, work *mat.Vector) (dlangbReturn float64) {
+func Dlangb(norm byte, n, kl, ku int, ab *mat.Matrix, work *mat.Vector) (dlangbReturn float64) {
 	var one, sum, temp, value, zero float64
 	var i, j, k, l int
 
@@ -19,13 +19,13 @@ func Dlangb(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, work *mat.Vect
 	one = 1.0
 	zero = 0.0
 
-	if (*n) == 0 {
+	if n == 0 {
 		value = zero
 	} else if norm == 'M' {
 		//        Find max(abs(A(i,j))).
 		value = zero
-		for j = 1; j <= (*n); j++ {
-			for i = max((*ku)+2-j, 1); i <= min((*n)+(*ku)+1-j, (*kl)+(*ku)+1); i++ {
+		for j = 1; j <= n; j++ {
+			for i = max(ku+2-j, 1); i <= min(n+ku+1-j, kl+ku+1); i++ {
 				temp = math.Abs(ab.Get(i-1, j-1))
 				if value < temp || Disnan(int(temp)) {
 					value = temp
@@ -35,9 +35,9 @@ func Dlangb(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, work *mat.Vect
 	} else if norm == 'O' || norm == '1' {
 		//        Find norm1(A).
 		value = zero
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			sum = zero
-			for i = max((*ku)+2-j, 1); i <= min((*n)+(*ku)+1-j, (*kl)+(*ku)+1); i++ {
+			for i = max(ku+2-j, 1); i <= min(n+ku+1-j, kl+ku+1); i++ {
 				sum = sum + math.Abs(ab.Get(i-1, j-1))
 			}
 			if value < sum || Disnan(int(sum)) {
@@ -46,17 +46,17 @@ func Dlangb(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, work *mat.Vect
 		}
 	} else if norm == 'I' {
 		//        Find normI(A).
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			work.Set(i-1, zero)
 		}
-		for j = 1; j <= (*n); j++ {
-			k = (*ku) + 1 - j
-			for i = max(1, j-(*ku)); i <= min(*n, j+(*kl)); i++ {
+		for j = 1; j <= n; j++ {
+			k = ku + 1 - j
+			for i = max(1, j-ku); i <= min(n, j+kl); i++ {
 				work.Set(i-1, work.Get(i-1)+math.Abs(ab.Get(k+i-1, j-1)))
 			}
 		}
 		value = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			temp = work.Get(i - 1)
 			if value < temp || Disnan(int(temp)) {
 				value = temp
@@ -69,12 +69,12 @@ func Dlangb(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, work *mat.Vect
 		//        For better accuracy, sum each column separately.
 		ssq.Set(0, zero)
 		ssq.Set(1, one)
-		for j = 1; j <= (*n); j++ {
-			l = max(1, j-(*ku))
-			k = (*ku) + 1 - j + l
+		for j = 1; j <= n; j++ {
+			l = max(1, j-ku)
+			k = ku + 1 - j + l
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			Dlassq(toPtr(min(*n, j+(*kl))-l+1), ab.Vector(k-1, j-1), func() *int { y := 1; return &y }(), colssq.GetPtr(0), colssq.GetPtr(1))
+			*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n, j+kl)-l+1, ab.Vector(k-1, j-1, 1), colssq.Get(0), colssq.Get(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

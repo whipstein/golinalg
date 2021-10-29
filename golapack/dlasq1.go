@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -20,24 +21,23 @@ import (
 //
 // and the present implementation is described in "An implementation of
 // the dqds Algorithm (Positive Case)", LAPACK Working Note.
-func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
+func Dlasq1(n int, d, e, work *mat.Vector) (info int, err error) {
 	var eps, safmin, scale, sigmn, sigmx, zero float64
-	var i, iinfo int
+	var i int
 
 	zero = 0.0
 
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("DLASQ1"), -(*info))
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Dlasq1", err)
 		return
-	} else if (*n) == 0 {
+	} else if n == 0 {
 		return
-	} else if (*n) == 1 {
+	} else if n == 1 {
 		d.Set(0, math.Abs(d.Get(0)))
 		return
-	} else if (*n) == 2 {
-		Dlas2(d.GetPtr(0), e.GetPtr(0), d.GetPtr(1), &sigmn, &sigmx)
+	} else if n == 2 {
+		sigmn, sigmx = Dlas2(d.Get(0), e.Get(0), d.Get(1))
 		d.Set(0, sigmx)
 		d.Set(1, sigmn)
 		return
@@ -45,19 +45,21 @@ func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
 
 	//     Estimate the largest singular value.
 	sigmx = zero
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		d.Set(i-1, math.Abs(d.Get(i-1)))
 		sigmx = math.Max(sigmx, math.Abs(e.Get(i-1)))
 	}
-	d.Set((*n)-1, math.Abs(d.Get((*n)-1)))
+	d.Set(n-1, math.Abs(d.Get(n-1)))
 
 	//     Early return if SIGMX is zero (matrix is already diagonal).
 	if sigmx == zero {
-		Dlasrt('D', n, d, &iinfo)
+		if err = Dlasrt('D', n, d); err != nil {
+			panic(err)
+		}
 		return
 	}
 
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		sigmx = math.Max(sigmx, d.Get(i-1))
 	}
 
@@ -66,31 +68,43 @@ func Dlasq1(n *int, d, e, work *mat.Vector, info *int) {
 	eps = Dlamch(Precision)
 	safmin = Dlamch(SafeMinimum)
 	scale = math.Sqrt(eps / safmin)
-	goblas.Dcopy(*n, d.Off(0, 1), work.Off(0, 2))
-	goblas.Dcopy((*n)-1, e.Off(0, 1), work.Off(1, 2))
-	Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &sigmx, &scale, toPtr(2*(*n)-1), func() *int { y := 1; return &y }(), work.Matrix(2*(*n)-1, opts), toPtr(2*(*n)-1), &iinfo)
+	goblas.Dcopy(n, d.Off(0, 1), work.Off(0, 2))
+	goblas.Dcopy(n-1, e.Off(0, 1), work.Off(1, 2))
+	if err = Dlascl('G', 0, 0, sigmx, scale, 2*n-1, 1, work.Matrix(2*n-1, opts)); err != nil {
+		panic(err)
+	}
 
 	//     Compute the q's and e's.
-	for i = 1; i <= 2*(*n)-1; i++ {
+	for i = 1; i <= 2*n-1; i++ {
 		work.Set(i-1, math.Pow(work.Get(i-1), 2))
 	}
-	work.Set(2*(*n)-1, zero)
+	work.Set(2*n-1, zero)
 
-	Dlasq2(n, work, info)
+	if info, err = Dlasq2(n, work); err != nil {
+		panic(err)
+	}
 
-	if (*info) == 0 {
-		for i = 1; i <= (*n); i++ {
+	if info == 0 {
+		for i = 1; i <= n; i++ {
 			d.Set(i-1, math.Sqrt(work.Get(i-1)))
 		}
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &scale, &sigmx, n, func() *int { y := 1; return &y }(), d.Matrix(*n, opts), n, &iinfo)
-	} else if (*info) == 2 {
+		if err = Dlascl('G', 0, 0, scale, sigmx, n, 1, d.Matrix(n, opts)); err != nil {
+			panic(err)
+		}
+	} else if info == 2 {
 		//     Maximum number of iterations exceeded.  Move data from WORK
 		//     into D and E so the calling subroutine can try to finish
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			d.Set(i-1, math.Sqrt(work.Get(2*i-1-1)))
 			e.Set(i-1, math.Sqrt(work.Get(2*i-1)))
 		}
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &scale, &sigmx, n, func() *int { y := 1; return &y }(), d.Matrix(*n, opts), n, &iinfo)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &scale, &sigmx, n, func() *int { y := 1; return &y }(), e.Matrix(*n, opts), n, &iinfo)
+		if err = Dlascl('G', 0, 0, scale, sigmx, n, 1, d.Matrix(n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, scale, sigmx, n, 1, e.Matrix(n, opts)); err != nil {
+			panic(err)
+		}
 	}
+
+	return
 }

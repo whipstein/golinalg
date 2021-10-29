@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -30,12 +31,13 @@ import (
 // of (A,B) satisfies
 //                  u(j)**H * A  = lambda(j) * u(j)**H * B.
 // where u(j)**H is the conjugate-transpose of u(j).
-func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, alpha, beta *mat.CVector, vl *mat.CMatrix, ldvl *int, vr *mat.CMatrix, ldvr, ilo, ihi *int, lscale, rscale *mat.Vector, abnrm, bbnrm *float64, rconde, rcondv *mat.Vector, work *mat.CVector, lwork *int, rwork *mat.Vector, iwork *[]int, bwork *[]bool, info *int) {
+func Zggevx(balanc, jobvl, jobvr, sense byte, n int, a, b *mat.CMatrix, alpha, beta *mat.CVector, vl, vr *mat.CMatrix, lscale, rscale, rconde, rcondv *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork *[]int, bwork *[]bool) (ilo, ihi int, abnrm, bbnrm float64, info int, err error) {
 	var ilascl, ilbscl, ilv, ilvl, ilvr, lquery, noscl, wantsb, wantse, wantsn, wantsv bool
 	var chtemp byte
 	var cone, czero complex128
 	var anrm, anrmto, bignum, bnrm, bnrmto, eps, one, smlnum, temp, zero float64
-	var i, icols, ierr, ijobvl, ijobvr, in, irows, itau, iwrk, iwrk1, j, jc, jr, m, maxwrk, minwrk int
+	var i, icols, ierr, ijobvl, ijobvr, irows, itau, iwrk, iwrk1, j, jc, jr, maxwrk, minwrk int
+
 	ldumma := make([]bool, 1)
 
 	zero = 0.0
@@ -74,26 +76,25 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 	wantsb = sense == 'B'
 
 	//     Test the input arguments
-	(*info) = 0
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 	if !(noscl || balanc == 'S' || balanc == 'B') {
-		(*info) = -1
+		err = fmt.Errorf("!(noscl || balanc == 'S' || balanc == 'B'): balanc='%c'", balanc)
 	} else if ijobvl <= 0 {
-		(*info) = -2
+		err = fmt.Errorf("ijobvl <= 0: jobvl='%c'", jobvl)
 	} else if ijobvr <= 0 {
-		(*info) = -3
+		err = fmt.Errorf("ijobvr <= 0: jobvr='%c'", jobvr)
 	} else if !(wantsn || wantse || wantsb || wantsv) {
-		(*info) = -4
-	} else if (*n) < 0 {
-		(*info) = -5
-	} else if (*lda) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -9
-	} else if (*ldvl) < 1 || (ilvl && (*ldvl) < (*n)) {
-		(*info) = -13
-	} else if (*ldvr) < 1 || (ilvr && (*ldvr) < (*n)) {
-		(*info) = -15
+		err = fmt.Errorf("!(wantsn || wantse || wantsb || wantsv): sense='%c'", sense)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if vl.Rows < 1 || (ilvl && vl.Rows < n) {
+		err = fmt.Errorf("vl.Rows < 1 || (ilvl && vl.Rows < n): vl.Rows=%v, n=%v, ilvl=%v", vl.Rows, n, ilvl)
+	} else if vr.Rows < 1 || (ilvr && vr.Rows < n) {
+		err = fmt.Errorf("vr.Rows < 1 || (ilvr && vr.Rows < n): vr.Rows=%v, n=%v, ilvr=%v", vr.Rows, n, ilvr)
 	}
 
 	//     Compute workspace
@@ -103,40 +104,40 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 	//       NB refers to the optimal block size for the immediately
 	//       following subroutine, as returned by ILAENV. The workspace is
 	//       computed assuming ILO = 1 and IHI = N, the worst case.)
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			minwrk = 1
 			maxwrk = 1
 		} else {
-			minwrk = 2 * (*n)
+			minwrk = 2 * n
 			if wantse {
-				minwrk = 4 * (*n)
+				minwrk = 4 * n
 			} else if wantsv || wantsb {
-				minwrk = 2 * (*n) * ((*n) + 1)
+				minwrk = 2 * n * (n + 1)
 			}
 			maxwrk = minwrk
-			maxwrk = max(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
-			maxwrk = max(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
+			maxwrk = max(maxwrk, n+n*Ilaenv(1, "Zgeqrf", []byte{' '}, n, 1, n, 0))
+			maxwrk = max(maxwrk, n+n*Ilaenv(1, "Zunmqr", []byte{' '}, n, 1, n, 0))
 			if ilvl {
-				maxwrk = max(maxwrk, (*n)+(*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGQR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }()))
+				maxwrk = max(maxwrk, n+n*Ilaenv(1, "Zungqr", []byte{' '}, n, 1, n, 0))
 			}
 		}
 		work.SetRe(0, float64(maxwrk))
 
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -25
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGGEVX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zggevx", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -144,12 +145,12 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
 	//     Scale A if max element outside range [SMLNUM,BIGNUM]
-	anrm = Zlange('M', n, n, a, lda, rwork)
+	anrm = Zlange('M', n, n, a, rwork)
 	ilascl = false
 	if anrm > zero && anrm < smlnum {
 		anrmto = smlnum
@@ -159,11 +160,13 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 		ilascl = true
 	}
 	if ilascl {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &anrmto, n, n, a, lda, &ierr)
+		if err = Zlascl('G', 0, 0, anrm, anrmto, n, n, a); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Scale B if max element outside range [SMLNUM,BIGNUM]
-	bnrm = Zlange('M', n, n, b, ldb, rwork)
+	bnrm = Zlange('M', n, n, b, rwork)
 	ilbscl = false
 	if bnrm > zero && bnrm < smlnum {
 		bnrmto = smlnum
@@ -173,65 +176,83 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 		ilbscl = true
 	}
 	if ilbscl {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &bnrmto, n, n, b, ldb, &ierr)
+		if err = Zlascl('G', 0, 0, bnrm, bnrmto, n, n, b); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Permute and/or balance the matrix pair (A,B)
 	//     (Real Workspace: need 6*N if BALANC = 'S' or 'B', 1 otherwise)
-	Zggbal(balanc, n, a, lda, b, ldb, ilo, ihi, lscale, rscale, rwork, &ierr)
-
-	//     Compute ABNRM and BBNRM
-	(*abnrm) = Zlange('1', n, n, a, lda, rwork.Off(0))
-	if ilascl {
-		rwork.Set(0, (*abnrm))
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), rwork.Matrix(1, opts), func() *int { y := 1; return &y }(), &ierr)
-		(*abnrm) = rwork.Get(0)
+	if ilo, ihi, err = Zggbal(balanc, n, a, b, lscale, rscale, rwork); err != nil {
+		panic(err)
 	}
 
-	(*bbnrm) = Zlange('1', n, n, b, ldb, rwork.Off(0))
+	//     Compute ABNRM and BBNRM
+	abnrm = Zlange('1', n, n, a, rwork.Off(0))
+	if ilascl {
+		rwork.Set(0, abnrm)
+		if err = Dlascl('G', 0, 0, anrmto, anrm, 1, 1, rwork.Matrix(1, opts)); err != nil {
+			panic(err)
+		}
+		abnrm = rwork.Get(0)
+	}
+
+	bbnrm = Zlange('1', n, n, b, rwork.Off(0))
 	if ilbscl {
-		rwork.Set(0, (*bbnrm))
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrmto, &bnrm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), rwork.Matrix(1, opts), func() *int { y := 1; return &y }(), &ierr)
-		(*bbnrm) = rwork.Get(0)
+		rwork.Set(0, bbnrm)
+		if err = Dlascl('G', 0, 0, bnrmto, bnrm, 1, 1, rwork.Matrix(1, opts)); err != nil {
+			panic(err)
+		}
+		bbnrm = rwork.Get(0)
 	}
 
 	//     Reduce B to triangular form (QR decomposition of B)
 	//     (Complex Workspace: need N, prefer N*NB )
-	irows = (*ihi) + 1 - (*ilo)
+	irows = ihi + 1 - ilo
 	if ilv || !wantsn {
-		icols = (*n) + 1 - (*ilo)
+		icols = n + 1 - ilo
 	} else {
 		icols = irows
 	}
 	itau = 1
 	iwrk = itau + irows
-	Zgeqrf(&irows, &icols, b.Off((*ilo)-1, (*ilo)-1), ldb, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+	if err = Zgeqrf(irows, icols, b.Off(ilo-1, ilo-1), work.Off(itau-1), work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+		panic(err)
+	}
 
 	//     Apply the unitary transformation to A
 	//     (Complex Workspace: need N, prefer N*NB)
-	Zunmqr('L', 'C', &irows, &icols, &irows, b.Off((*ilo)-1, (*ilo)-1), ldb, work.Off(itau-1), a.Off((*ilo)-1, (*ilo)-1), lda, work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+	if err = Zunmqr(Left, ConjTrans, irows, icols, irows, b.Off(ilo-1, ilo-1), work.Off(itau-1), a.Off(ilo-1, ilo-1), work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+		panic(err)
+	}
 
 	//     Initialize VL and/or VR
 	//     (Workspace: need N, prefer N*NB)
 	if ilvl {
-		Zlaset('F', n, n, &czero, &cone, vl, ldvl)
+		Zlaset(Full, n, n, czero, cone, vl)
 		if irows > 1 {
-			Zlacpy('L', toPtr(irows-1), toPtr(irows-1), b.Off((*ilo), (*ilo)-1), ldb, vl.Off((*ilo), (*ilo)-1), ldvl)
+			Zlacpy(Lower, irows-1, irows-1, b.Off(ilo, ilo-1), vl.Off(ilo, ilo-1))
 		}
-		Zungqr(&irows, &irows, &irows, vl.Off((*ilo)-1, (*ilo)-1), ldvl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), &ierr)
+		if err = Zungqr(irows, irows, irows, vl.Off(ilo-1, ilo-1), work.Off(itau-1), work.Off(iwrk-1), lwork+1-iwrk); err != nil {
+			panic(err)
+		}
 	}
 
 	if ilvr {
-		Zlaset('F', n, n, &czero, &cone, vr, ldvr)
+		Zlaset(Full, n, n, czero, cone, vr)
 	}
 
 	//     Reduce to generalized Hessenberg form
 	//     (Workspace: none needed)
 	if ilv || !wantsn {
 		//        Eigenvectors requested -- work on whole matrix.
-		Zgghrd(jobvl, jobvr, n, ilo, ihi, a, lda, b, ldb, vl, ldvl, vr, ldvr, &ierr)
+		if err = Zgghrd(jobvl, jobvr, n, ilo, ihi, a, b, vl, vr); err != nil {
+			panic(err)
+		}
 	} else {
-		Zgghrd('N', 'N', &irows, func() *int { y := 1; return &y }(), &irows, a.Off((*ilo)-1, (*ilo)-1), lda, b.Off((*ilo)-1, (*ilo)-1), ldb, vl, ldvl, vr, ldvr, &ierr)
+		if err = Zgghrd('N', 'N', irows, 1, irows, a.Off(ilo-1, ilo-1), b.Off(ilo-1, ilo-1), vl, vr); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Perform QZ algorithm (Compute eigenvalues, and optionally, the
@@ -245,14 +266,16 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 		chtemp = 'E'
 	}
 
-	Zhgeqz(chtemp, jobvl, jobvr, n, ilo, ihi, a, lda, b, ldb, alpha, beta, vl, ldvl, vr, ldvr, work.Off(iwrk-1), toPtr((*lwork)+1-iwrk), rwork, &ierr)
+	if ierr, err = Zhgeqz(chtemp, jobvl, jobvr, n, ilo, ihi, a, b, alpha, beta, vl, vr, work.Off(iwrk-1), lwork+1-iwrk, rwork); err != nil {
+		panic(err)
+	}
 	if ierr != 0 {
-		if ierr > 0 && ierr <= (*n) {
-			(*info) = ierr
-		} else if ierr > (*n) && ierr <= 2*(*n) {
-			(*info) = ierr - (*n)
+		if ierr > 0 && ierr <= n {
+			info = ierr
+		} else if ierr > n && ierr <= 2*n {
+			info = ierr - n
 		} else {
-			(*info) = (*n) + 1
+			info = n + 1
 		}
 		goto label90
 	}
@@ -274,9 +297,8 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 				chtemp = 'R'
 			}
 
-			Ztgevc(chtemp, 'B', ldumma, n, a, lda, b, ldb, vl, ldvl, vr, ldvr, n, &in, work.Off(iwrk-1), rwork, &ierr)
-			if ierr != 0 {
-				(*info) = (*n) + 2
+			if _, err = Ztgevc(mat.SideByte(chtemp), 'B', ldumma, n, a, b, vl, vr, n, work.Off(iwrk-1), rwork); err != nil {
+				info = n + 2
 				goto label90
 			}
 		}
@@ -290,25 +312,26 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 			//           to avoid using extra 2*N*N workspace, we have to
 			//           re-calculate eigenvectors and estimate the condition numbers
 			//           one at a time.
-			for i = 1; i <= (*n); i++ {
+			for i = 1; i <= n; i++ {
 
-				for j = 1; j <= (*n); j++ {
+				for j = 1; j <= n; j++ {
 					(*bwork)[j-1] = false
 				}
 				(*bwork)[i-1] = true
 
-				iwrk = (*n) + 1
-				iwrk1 = iwrk + (*n)
+				iwrk = n + 1
+				iwrk1 = iwrk + n
 
 				if wantse || wantsb {
-					Ztgevc('B', 'S', *bwork, n, a, lda, b, ldb, work.CMatrix(*n, opts), n, work.CMatrixOff(iwrk-1, *n, opts), n, func() *int { y := 1; return &y }(), &m, work.Off(iwrk1-1), rwork, &ierr)
-					if ierr != 0 {
-						(*info) = (*n) + 2
+					if _, err = Ztgevc(Both, 'S', *bwork, n, a, b, work.CMatrix(n, opts), work.CMatrixOff(iwrk-1, n, opts), 1, work.Off(iwrk1-1), rwork); err != nil {
+						info = n + 2
 						goto label90
 					}
 				}
 
-				Ztgsna(sense, 'S', *bwork, n, a, lda, b, ldb, work.CMatrix(*n, opts), n, work.CMatrixOff(iwrk-1, *n, opts), n, rconde.Off(i-1), rcondv.Off(i-1), func() *int { y := 1; return &y }(), &m, work.Off(iwrk1-1), toPtr((*lwork)-iwrk1+1), iwork, &ierr)
+				if _, err = Ztgsna(sense, 'S', *bwork, n, a, b, work.CMatrix(n, opts), work.CMatrixOff(iwrk-1, n, opts), rconde.Off(i-1), rcondv.Off(i-1), 1, work.Off(iwrk1-1), lwork-iwrk1+1, iwork); err != nil {
+					panic(err)
+				}
 
 			}
 		}
@@ -317,18 +340,20 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 	//     Undo balancing on VL and VR and normalization
 	//     (Workspace: none needed)
 	if ilvl {
-		Zggbak(balanc, 'L', n, ilo, ihi, lscale, rscale, n, vl, ldvl, &ierr)
+		if err = Zggbak(balanc, Left, n, ilo, ihi, lscale, rscale, n, vl); err != nil {
+			panic(err)
+		}
 
-		for jc = 1; jc <= (*n); jc++ {
+		for jc = 1; jc <= n; jc++ {
 			temp = zero
-			for jr = 1; jr <= (*n); jr++ {
+			for jr = 1; jr <= n; jr++ {
 				temp = math.Max(temp, abs1(vl.Get(jr-1, jc-1)))
 			}
 			if temp < smlnum {
 				goto label50
 			}
 			temp = one / temp
-			for jr = 1; jr <= (*n); jr++ {
+			for jr = 1; jr <= n; jr++ {
 				vl.Set(jr-1, jc-1, vl.Get(jr-1, jc-1)*toCmplx(temp))
 			}
 		label50:
@@ -336,17 +361,19 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n *int, a *mat.CMatrix, lda *int, 
 	}
 
 	if ilvr {
-		Zggbak(balanc, 'R', n, ilo, ihi, lscale, rscale, n, vr, ldvr, &ierr)
-		for jc = 1; jc <= (*n); jc++ {
+		if err = Zggbak(balanc, Right, n, ilo, ihi, lscale, rscale, n, vr); err != nil {
+			panic(err)
+		}
+		for jc = 1; jc <= n; jc++ {
 			temp = zero
-			for jr = 1; jr <= (*n); jr++ {
+			for jr = 1; jr <= n; jr++ {
 				temp = math.Max(temp, abs1(vr.Get(jr-1, jc-1)))
 			}
 			if temp < smlnum {
 				goto label80
 			}
 			temp = one / temp
-			for jr = 1; jr <= (*n); jr++ {
+			for jr = 1; jr <= n; jr++ {
 				vr.Set(jr-1, jc-1, vr.Get(jr-1, jc-1)*toCmplx(temp))
 			}
 		label80:
@@ -359,12 +386,18 @@ label90:
 	;
 
 	if ilascl {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrmto, &anrm, n, func() *int { y := 1; return &y }(), alpha.CMatrix(*n, opts), n, &ierr)
+		if err = Zlascl('G', 0, 0, anrmto, anrm, n, 1, alpha.CMatrix(n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	if ilbscl {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrmto, &bnrm, n, func() *int { y := 1; return &y }(), beta.CMatrix(*n, opts), n, &ierr)
+		if err = Zlascl('G', 0, 0, bnrmto, bnrm, n, 1, beta.CMatrix(n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	work.SetRe(0, float64(maxwrk))
+
+	return
 }

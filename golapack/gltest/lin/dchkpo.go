@@ -10,14 +10,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkpo tests DPOTRF, -TRI, -TRS, -RFS, and -CON
-func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *int, nsval *[]int, thresh *float64, tsterr *bool, nmax *int, a, afac, ainv, b, x, xact, work, rwork *mat.Vector, iwork *[]int, nout *int, t *testing.T) {
+// dchkpo tests DPOTRF, -TRI, -TRS, -RFS, and -CON
+func dchkpo(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, nsval []int, thresh float64, tsterr bool, nmax int, a, afac, ainv, b, x, xact, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var zerot bool
-	var dist, _type, uplo, xtype byte
+	var dist, _type, xtype byte
+	var uplo mat.MatUplo
 	var anorm, cndnum, rcond, rcondc, zero float64
-	var i, imat, in, inb, info, ioff, irhs, iuplo, izero, k, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrhs, nrun, ntypes int
+	var _result *float64
+	var i, imat, in, inb, info, ioff, irhs, izero, k, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrhs, nrun, ntypes int
+	var err error
 
-	uplos := make([]byte, 2)
 	result := vf(8)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
@@ -26,13 +28,11 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 	zero = 0.0
 	ntypes = 9
-	// ntests = 8
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1] = 'U', 'L'
 
 	//     Initialize constants and the random number seed.
-	path := []byte("DPO")
+	path := "Dpo"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -41,15 +41,15 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrpo(path, t)
+	if tsterr {
+		derrpo(path, t)
 	}
 	(*infot) = 0
-	Xlaenv(2, 2)
+	xlaenv(2, 2)
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		xtype = 'N'
 		nimat = ntypes
@@ -60,7 +60,7 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 		izero = 0
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label110
 			}
 
@@ -70,20 +70,16 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 				goto label110
 			}
 
-			//           Do first for UPLO = 'U', then for UPLO = 'L'
-			for iuplo = 1; iuplo <= 2; iuplo++ {
-				uplo = uplos[iuplo-1]
+			//           Do first for uplo='U', then for uplo='L'
+			for _, uplo = range mat.IterMatUplo(false) {
 
 				//              Set up parameters with DLATB4 and generate a test matrix
 				//              with DLATMS.
-				Dlatb4(path, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				_type, kl, ku, anorm, mode, cndnum, dist = dlatb4(path, imat, n, n)
 
-				*srnamt = "DLATMS"
-				matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, uplo, a.Matrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from DLATMS.
-				if info != 0 {
-					Alaerh(path, []byte("DLATMS"), &info, toPtr(0), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dlatms"
+				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, uplo.Byte(), a.Matrix(lda, opts), work); info != 0 {
+					nerrs = alaerh(path, "Dlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					goto label100
 				}
 
@@ -100,7 +96,7 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 					ioff = (izero - 1) * lda
 
 					//                 Set row and column IZERO of A to 0.
-					if iuplo == 1 {
+					if uplo == Upper {
 						for i = 1; i <= izero-1; i++ {
 							a.Set(ioff+i-1, zero)
 						}
@@ -125,18 +121,20 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 				}
 
 				//              Do for each value of NB in NBVAL
-				for inb = 1; inb <= (*nnb); inb++ {
-					nb = (*nbval)[inb-1]
-					Xlaenv(1, nb)
+				for inb = 1; inb <= nnb; inb++ {
+					nb = nbval[inb-1]
+					xlaenv(1, nb)
 
 					//                 Compute the L*L' or U'*U factorization of the matrix.
-					golapack.Dlacpy(uplo, &n, &n, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda)
-					*srnamt = "DPOTRF"
-					golapack.Dpotrf(uplo, &n, afac.Matrix(lda, opts), &lda, &info)
+					golapack.Dlacpy(uplo, n, n, a.Matrix(lda, opts), afac.Matrix(lda, opts))
+					*srnamt = "Dpotrf"
+					if info, err = golapack.Dpotrf(uplo, n, afac.Matrix(lda, opts)); err != nil {
+						panic(err)
+					}
 
 					//                 Check error code from DPOTRF.
 					if info != izero {
-						Alaerh(path, []byte("DPOTRF"), &info, &izero, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nb, &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Dpotrf", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nb, imat, nfail, nerrs)
 						goto label90
 					}
 
@@ -147,35 +145,38 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 
 					//+    TEST 1
 					//                 Reconstruct matrix from factors and compute residual.
-					golapack.Dlacpy(uplo, &n, &n, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda)
-					Dpot01(uplo, &n, a.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda, rwork, result.GetPtr(0))
+					golapack.Dlacpy(uplo, n, n, afac.Matrix(lda, opts), ainv.Matrix(lda, opts))
+					result.Set(0, dpot01(uplo, n, a.Matrix(lda, opts), ainv.Matrix(lda, opts), rwork))
 
 					//+    TEST 2
 					//                 Form the inverse and compute the residual.
-					golapack.Dlacpy(uplo, &n, &n, afac.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda)
-					*srnamt = "DPOTRI"
-					golapack.Dpotri(uplo, &n, ainv.Matrix(lda, opts), &lda, &info)
+					golapack.Dlacpy(uplo, n, n, afac.Matrix(lda, opts), ainv.Matrix(lda, opts))
+					*srnamt = "Dpotri"
+					if info, err = golapack.Dpotri(uplo, n, ainv.Matrix(lda, opts)); err != nil {
+						panic(err)
+					}
 
 					//                 Check error code from DPOTRI.
 					if info != 0 {
-						Alaerh(path, []byte("DPOTRI"), &info, toPtr(0), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Dpotri", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					Dpot03(uplo, &n, a.Matrix(lda, opts), &lda, ainv.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork, &rcondc, result.GetPtr(1))
+					_result = result.GetPtr(1)
+					rcondc, *_result = dpot03(uplo, n, a.Matrix(lda, opts), ainv.Matrix(lda, opts), work.Matrix(lda, opts), rwork)
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 1; k <= 2; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
 							t.Fail()
-							fmt.Printf(" UPLO = '%c', N =%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" uplo=%s, n=%5d, NB =%4d, _type %2d, test %2d, ratio =%12.5f\n", uplo, n, nb, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
-					nrun = nrun + 2
+					nrun += 2
 
 					//                 Skip the rest of the tests unless this is the first
 					//                 blocksize.
@@ -183,81 +184,74 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 						goto label90
 					}
 
-					for irhs = 1; irhs <= (*nns); irhs++ {
-						nrhs = (*nsval)[irhs-1]
+					for irhs = 1; irhs <= nns; irhs++ {
+						nrhs = nsval[irhs-1]
 
 						//+    TEST 3
 						//                 Solve and compute residual for A * X = B .
-						*srnamt = "DLARHS"
-						Dlarhs(path, &xtype, uplo, ' ', &n, &n, &kl, &ku, &nrhs, a.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, &iseed, &info)
-						golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
+						*srnamt = "Dlarhs"
+						if err = Dlarhs(path, xtype, uplo, NoTrans, n, n, kl, ku, nrhs, a.Matrix(lda, opts), xact.Matrix(lda, opts), b.Matrix(lda, opts), &iseed); err != nil {
+							panic(err)
+						}
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
 
-						*srnamt = "DPOTRS"
-						golapack.Dpotrs(uplo, &n, &nrhs, afac.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &info)
-
-						//                 Check error code from DPOTRS.
-						if info != 0 {
-							Alaerh(path, []byte("DPOTRS"), &info, toPtr(0), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+						*srnamt = "Dpotrs"
+						if err = golapack.Dpotrs(uplo, n, nrhs, afac.Matrix(lda, opts), x.Matrix(lda, opts)); err != nil {
+							nerrs = alaerh(path, "Dpotrs", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 						}
 
-						golapack.Dlacpy('F', &n, &nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-						Dpot02(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(2))
+						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
+						result.Set(2, dpot02(uplo, n, nrhs, a.Matrix(lda, opts), x.Matrix(lda, opts), work.Matrix(lda, opts), rwork))
 
 						//+    TEST 4
 						//                 Check solution from generated exact solution.
-						Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(3))
+						result.Set(3, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 
 						//+    TESTS 5, 6, and 7
 						//                 Use iterative refinement to improve the solution.
-						*srnamt = "DPORFS"
-						golapack.Dporfs(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, afac.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), work, iwork, &info)
-
-						//                 Check error code from DPORFS.
-						if info != 0 {
-							Alaerh(path, []byte("DPORFS"), &info, toPtr(0), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nrhs, &imat, &nfail, &nerrs)
+						*srnamt = "Dporfs"
+						if err = golapack.Dporfs(uplo, n, nrhs, a.Matrix(lda, opts), afac.Matrix(lda, opts), b.Matrix(lda, opts), x.Matrix(lda, opts), rwork, rwork.Off(nrhs), work, &iwork); err != nil {
+							nerrs = alaerh(path, "Dporfs", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 						}
 						//
-						Dget04(&n, &nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(4))
-						Dpot05(uplo, &n, &nrhs, a.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off(nrhs), result.Off(5))
+						result.Set(4, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
+						dpot05(uplo, n, nrhs, a.Matrix(lda, opts), b.Matrix(lda, opts), x.Matrix(lda, opts), xact.Matrix(lda, opts), rwork, rwork.Off(nrhs), result.Off(5))
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
 						for k = 3; k <= 7; k++ {
-							if result.Get(k-1) >= (*thresh) {
+							if result.Get(k-1) >= thresh {
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
 								t.Fail()
-								fmt.Printf(" UPLO = '%c', N =%5d, NRHS=%3d, _type %2d, test(%2d) =%12.5f\n", uplo, n, nrhs, imat, k, result.Get(k-1))
-								nfail = nfail + 1
+								fmt.Printf(" uplo=%s, n=%5d, nrhs=%3d, _type %2d, test(%2d) =%12.5f\n", uplo, n, nrhs, imat, k, result.Get(k-1))
+								nfail++
 							}
 						}
-						nrun = nrun + 5
+						nrun += 5
 					}
 
 					//+    TEST 8
 					//                 Get an estimate of RCOND = 1/CNDNUM.
-					anorm = golapack.Dlansy('1', uplo, &n, a.Matrix(lda, opts), &lda, rwork)
-					*srnamt = "DPOCON"
-					golapack.Dpocon(uplo, &n, afac.Matrix(lda, opts), &lda, &anorm, &rcond, work, iwork, &info)
-
-					//                 Check error code from DPOCON.
-					if info != 0 {
-						Alaerh(path, []byte("DPOCON"), &info, toPtr(0), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+					anorm = golapack.Dlansy('1', uplo, n, a.Matrix(lda, opts), rwork)
+					*srnamt = "Dpocon"
+					if rcond, err = golapack.Dpocon(uplo, n, afac.Matrix(lda, opts), anorm, work, &iwork); err != nil {
+						nerrs = alaerh(path, "Dpocon", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					result.Set(7, Dget06(&rcond, &rcondc))
+					result.Set(7, dget06(rcond, rcondc))
 
 					//                 Print the test ratio if it is .GE. THRESH.
-					if result.Get(7) >= (*thresh) {
+					if result.Get(7) >= thresh {
 						if nfail == 0 && nerrs == 0 {
-							Alahd(path)
+							alahd(path)
 						}
 						t.Fail()
-						fmt.Printf(" UPLO = '%c', N =%5d,           _type %2d, test(%2d) =%12.5f\n", uplo, n, imat, 8, result.Get(7))
-						nfail = nfail + 1
+						fmt.Printf(" uplo=%s, n=%5d,           _type %2d, test(%2d) =%12.5f\n", uplo, n, imat, 8, result.Get(7))
+						nfail++
 					}
-					nrun = nrun + 1
+					nrun++
 				label90:
 				}
 			label100:
@@ -275,5 +269,5 @@ func Dchkpo(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nns *i
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

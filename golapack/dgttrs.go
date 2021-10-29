@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -9,29 +11,29 @@ import (
 //    A*X = B  or  A**T*X = B,
 // with a tridiagonal matrix A using the LU factorization computed
 // by DGTTRF.
-func Dgttrs(trans byte, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b *mat.Matrix, ldb *int, info *int) {
+func Dgttrs(trans mat.MatTrans, n, nrhs int, dl, d, du, du2 *mat.Vector, ipiv []int, b *mat.Matrix) error {
 	var notran bool
 	var itrans, j, jb, nb int
+	var err error
 
-	(*info) = 0
-	notran = trans == 'N' || trans == 'n'
-	if !notran && !(trans == 'T' || trans == 't') && !(trans == 'C' || trans == 'c') {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*ldb) < max(*n, 1) {
-		(*info) = -10
+	notran = trans == NoTrans
+	if !trans.IsValid() {
+		err = fmt.Errorf("!trans.IsValid(): trans=%s", trans)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if b.Rows < max(n, 1) {
+		err = fmt.Errorf("b.Rows < max(n, 1): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGTTRS"), -(*info))
-		return
+	if err != nil {
+		gltest.Xerbla2("Dgttrs", err)
+		return err
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*nrhs) == 0 {
-		return
+	if n == 0 || nrhs == 0 {
+		return err
 	}
 
 	//     Decode TRANS
@@ -42,18 +44,20 @@ func Dgttrs(trans byte, n, nrhs *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, b
 	}
 
 	//     Determine the number of right-hand sides to solve at a time.
-	if (*nrhs) == 1 {
+	if nrhs == 1 {
 		nb = 1
 	} else {
-		nb = max(1, Ilaenv(func() *int { y := 1; return &y }(), []byte("DGTTRS"), []byte{trans}, n, nrhs, toPtr(-1), toPtr(-1)))
+		nb = max(1, Ilaenv(1, "Dgttrs", []byte{trans.Byte()}, n, nrhs, -1, -1))
 	}
 
-	if nb >= (*nrhs) {
-		Dgtts2(&itrans, n, nrhs, dl, d, du, du2, ipiv, b, ldb)
+	if nb >= nrhs {
+		Dgtts2(itrans, n, nrhs, dl, d, du, du2, ipiv, b)
 	} else {
-		for j = 1; j <= (*nrhs); j += nb {
-			jb = min((*nrhs)-j+1, nb)
-			Dgtts2(&itrans, n, &jb, dl, d, du, du2, ipiv, b.Off(0, j-1), ldb)
+		for j = 1; j <= nrhs; j += nb {
+			jb = min(nrhs-j+1, nb)
+			Dgtts2(itrans, n, jb, dl, d, du, du2, ipiv, b.Off(0, j-1))
 		}
 	}
+
+	return err
 }

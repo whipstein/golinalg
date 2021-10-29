@@ -7,14 +7,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dstect counts the number NUM of eigenvalues of a tridiagonal
+// dstect counts the number NUM of eigenvalues of a tridiagonal
 //    matrix T which are less than or equal to SHIFT. T has
 //    diagonal entries A(1), ... , A(N), and offdiagonal entries
 //    B(1), ..., B(N-1).
 //    See W. Kahan "Accurate Eigenvalues of a Symmetric Tridiagonal
 //    Matrix", Report CS41, Computer Science Dept., Stanford
 //    University, July 21, 1966
-func Dstect(n *int, a, b *mat.Vector, shift *float64, num *int) {
+func dstect(n int, a, b *mat.Vector, shift float64) (num int) {
 	var m1, m2, mx, one, ovfl, sov, sshift, ssun, sun, three, tmp, tom, u, unfl, zero float64
 	var i int
 
@@ -28,17 +28,17 @@ func Dstect(n *int, a, b *mat.Vector, shift *float64, num *int) {
 
 	//     Find largest entry
 	mx = math.Abs(a.Get(0))
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		mx = math.Max(mx, math.Max(math.Abs(a.Get(i)), math.Abs(b.Get(i-1))))
 	}
 
 	//     Handle easy cases, including zero matrix
-	if (*shift) >= three*mx {
-		(*num) = (*n)
+	if shift >= three*mx {
+		num = n
 		return
 	}
-	if (*shift) < -three*mx {
-		(*num) = 0
+	if shift < -three*mx {
+		num = 0
 		return
 	}
 
@@ -57,12 +57,12 @@ func Dstect(n *int, a, b *mat.Vector, shift *float64, num *int) {
 	}
 
 	//     Begin counting
-	(*num) = 0
-	sshift = ((*shift) * m1) * m2
+	num = 0
+	sshift = (shift * m1) * m2
 	u = (a.Get(0)*m1)*m2 - sshift
 	if u <= sun {
 		if u <= zero {
-			(*num) = (*num) + 1
+			num = num + 1
 			if u > -sun {
 				u = -sun
 			}
@@ -70,12 +70,12 @@ func Dstect(n *int, a, b *mat.Vector, shift *float64, num *int) {
 			u = sun
 		}
 	}
-	for i = 2; i <= (*n); i++ {
+	for i = 2; i <= n; i++ {
 		tmp = (b.Get(i-1-1) * m1) * m2
 		u = ((a.Get(i-1)*m1)*m2 - tmp*(tmp/u)) - sshift
 		if u <= sun {
 			if u <= zero {
-				(*num) = (*num) + 1
+				num = num + 1
 				if u > -sun {
 					u = -sun
 				}
@@ -84,4 +84,6 @@ func Dstect(n *int, a, b *mat.Vector, shift *float64, num *int) {
 			}
 		}
 	}
+
+	return
 }

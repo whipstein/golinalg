@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,7 +16,7 @@ import (
 // An estimate is obtained for norm(inv(A)), and the reciprocal of the
 // condition number is computed as
 //    RCOND = 1 / ( norm(A) * norm(inv(A)) ).
-func Dgbcon(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, anorm *float64, rcond *float64, work *mat.Vector, iwork *[]int, info *int) {
+func Dgbcon(norm byte, n, kl, ku int, ab *mat.Matrix, ipiv []int, anorm float64, work *mat.Vector, iwork *[]int) (rcond float64, err error) {
 	var lnoti, onenrm bool
 	var normin byte
 	var ainvnm, one, scale, smlnum, t, zero float64
@@ -26,32 +27,31 @@ func Dgbcon(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, a
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
 	onenrm = norm == '1' || norm == 'O'
 	if !onenrm && norm != 'I' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*kl) < 0 {
-		(*info) = -3
-	} else if (*ku) < 0 {
-		(*info) = -4
-	} else if (*ldab) < 2*(*kl)+(*ku)+1 {
-		(*info) = -6
-	} else if (*anorm) < zero {
-		(*info) = -8
+		err = fmt.Errorf("!onenrm && norm != 'I': norm='%c'", norm)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if kl < 0 {
+		err = fmt.Errorf("kl < 0: kl=%v", kl)
+	} else if ku < 0 {
+		err = fmt.Errorf("ku < 0: ku=%v", ku)
+	} else if ab.Rows < 2*kl+ku+1 {
+		err = fmt.Errorf("ab.Rows < 2*kl+ku+1: ab.Rows=%v, kl=%v, ku=%v", ab.Rows, kl, ku)
+	} else if anorm < zero {
+		err = fmt.Errorf("anorm < zero: anorm=%v", anorm)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGBCON"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgbcon", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*rcond) = zero
-	if (*n) == 0 {
-		(*rcond) = one
+	rcond = zero
+	if n == 0 {
+		rcond = one
 		return
-	} else if (*anorm) == zero {
+	} else if anorm == zero {
 		return
 	}
 
@@ -65,19 +65,19 @@ func Dgbcon(norm byte, n, kl, ku *int, ab *mat.Matrix, ldab *int, ipiv *[]int, a
 	} else {
 		kase1 = 2
 	}
-	kd = (*kl) + (*ku) + 1
-	lnoti = (*kl) > 0
+	kd = kl + ku + 1
+	lnoti = kl > 0
 	kase = 0
 label10:
 	;
-	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
+	ainvnm, kase = Dlacn2(n, work.Off(n), work, iwork, ainvnm, kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(L).
 			if lnoti {
-				for j = 1; j <= (*n)-1; j++ {
-					lm = min(*kl, (*n)-j)
-					jp = (*ipiv)[j-1]
+				for j = 1; j <= n-1; j++ {
+					lm = min(kl, n-j)
+					jp = ipiv[j-1]
 					t = work.Get(jp - 1)
 					if jp != j {
 						work.Set(jp-1, work.Get(j-1))
@@ -88,19 +88,23 @@ label10:
 			}
 
 			//           Multiply by inv(U).
-			klku := (*kl) + (*ku)
-			Dlatbs('U', 'N', 'N', normin, n, &klku, ab, ldab, work, &scale, work.Off(2*(*n)), info)
+			klku := kl + ku
+			if scale, err = Dlatbs(Upper, NoTrans, NonUnit, normin, n, klku, ab, work, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 		} else {
 			//           Multiply by inv(U**T).
-			klku := (*kl) + (*ku)
-			Dlatbs('U', 'T', 'N', normin, n, &klku, ab, ldab, work, &scale, work.Off(2*(*n)), info)
+			klku := kl + ku
+			if scale, err = Dlatbs(Upper, Trans, NonUnit, normin, n, klku, ab, work, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 
 			//           Multiply by inv(L**T).
 			if lnoti {
-				for j = (*n) - 1; j >= 1; j-- {
-					lm = min(*kl, (*n)-j)
+				for j = n - 1; j >= 1; j-- {
+					lm = min(kl, n-j)
 					work.Set(j-1, work.Get(j-1)-goblas.Ddot(lm, ab.Vector(kd, j-1, 1), work.Off(j, 1)))
-					jp = (*ipiv)[j-1]
+					jp = ipiv[j-1]
 					if jp != j {
 						t = work.Get(jp - 1)
 						work.Set(jp-1, work.Get(j-1))
@@ -113,19 +117,19 @@ label10:
 		//        Divide X by 1/SCALE if doing so will not cause overflow.
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(*n, work)
+			ix = goblas.Idamax(n, work)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
-				goto label40
+				return
 			}
-			Drscl(n, &scale, work, func() *int { y := 1; return &y }())
+			Drscl(n, scale, work.Off(0, 1))
 		}
 		goto label10
 	}
 
 	//     Compute the estimate of the reciprocal condition number.
 	if ainvnm != zero {
-		(*rcond) = (one / ainvnm) / (*anorm)
+		rcond = (one / ainvnm) / anorm
 	}
 
-label40:
+	return
 }

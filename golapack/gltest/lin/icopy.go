@@ -2,7 +2,7 @@ package lin
 
 // Icopy copies an integer vector x to an integer vector y.
 // Uses unrolled loops for increments equal to 1.
-func Icopy(n int, sx *[]int, incx int, sy *[]int, incy int) {
+func icopy(n int, sx *[]int, incx int, sy *[]int, incy int) {
 	var i, ix, iy, m, mp1 int
 
 	if n <= 0 {

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -20,25 +21,25 @@ import (
 // controlled by the argument JOB, and in each case there is an option
 // to perturb zero or very small diagonal elements of U, this option
 // being intended for use in applications such as inverse iteration.
-func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *float64, info *int) {
+func Dlagts(job, n int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol float64) (tolOut float64, info int, err error) {
 	var absak, ak, bignum, eps, one, pert, sfmin, temp, zero float64
 	var k int
 
 	one = 1.0
 	zero = 0.0
+	tolOut = tol
 
-	(*info) = 0
-	if (abs(*job) > 2) || ((*job) == 0) {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
+	if (abs(job) > 2) || (job == 0) {
+		err = fmt.Errorf("(abs(job) > 2) || (job == 0): job=%v", job)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLAGTS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlagts", err)
 		return
 	}
 
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -46,24 +47,24 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 	sfmin = Dlamch(SafeMinimum)
 	bignum = one / sfmin
 
-	if (*job) < 0 {
-		if (*tol) <= zero {
-			(*tol) = math.Abs(a.Get(0))
-			if (*n) > 1 {
-				(*tol) = math.Max(*tol, math.Max(math.Abs(a.Get(1)), math.Abs(b.Get(0))))
+	if job < 0 {
+		if tolOut <= zero {
+			tolOut = math.Abs(a.Get(0))
+			if n > 1 {
+				tolOut = math.Max(tolOut, math.Max(math.Abs(a.Get(1)), math.Abs(b.Get(0))))
 			}
-			for k = 3; k <= (*n); k++ {
-				(*tol) = math.Max(*tol, math.Max(math.Abs(a.Get(k-1)), math.Max(math.Abs(b.Get(k-1-1)), math.Abs(d.Get(k-2-1)))))
+			for k = 3; k <= n; k++ {
+				tolOut = math.Max(tolOut, math.Max(math.Abs(a.Get(k-1)), math.Max(math.Abs(b.Get(k-1-1)), math.Abs(d.Get(k-2-1)))))
 			}
-			(*tol) = (*tol) * eps
-			if (*tol) == zero {
-				(*tol) = eps
+			tolOut = tolOut * eps
+			if tolOut == zero {
+				tolOut = eps
 			}
 		}
 	}
 
-	if abs(*job) == 1 {
-		for k = 2; k <= (*n); k++ {
+	if abs(job) == 1 {
+		for k = 2; k <= n; k++ {
 			if (*in)[k-1-1] == 0 {
 				y.Set(k-1, y.Get(k-1)-c.Get(k-1-1)*y.Get(k-1-1))
 			} else {
@@ -72,11 +73,11 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 				y.Set(k-1, temp-c.Get(k-1-1)*y.Get(k-1))
 			}
 		}
-		if (*job) == 1 {
-			for k = (*n); k >= 1; k-- {
-				if k <= (*n)-2 {
+		if job == 1 {
+			for k = n; k >= 1; k-- {
+				if k <= n-2 {
 					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k) - d.Get(k-1)*y.Get(k+2-1)
-				} else if k == (*n)-1 {
+				} else if k == n-1 {
 					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k)
 				} else {
 					temp = y.Get(k - 1)
@@ -86,30 +87,30 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 				if absak < one {
 					if absak < sfmin {
 						if absak == zero || math.Abs(temp)*sfmin > absak {
-							(*info) = k
+							info = k
 							return
 						} else {
 							temp = temp * bignum
 							ak = ak * bignum
 						}
 					} else if math.Abs(temp) > absak*bignum {
-						(*info) = k
+						info = k
 						return
 					}
 				}
 				y.Set(k-1, temp/ak)
 			}
 		} else {
-			for k = (*n); k >= 1; k-- {
-				if k <= (*n)-2 {
+			for k = n; k >= 1; k-- {
+				if k <= n-2 {
 					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k) - d.Get(k-1)*y.Get(k+2-1)
-				} else if k == (*n)-1 {
+				} else if k == n-1 {
 					temp = y.Get(k-1) - b.Get(k-1)*y.Get(k)
 				} else {
 					temp = y.Get(k - 1)
 				}
 				ak = a.Get(k - 1)
-				pert = math.Copysign(*tol, ak)
+				pert = math.Copysign(tolOut, ak)
 			label40:
 				;
 				absak = math.Abs(ak)
@@ -134,8 +135,8 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 		}
 	} else {
 		//        Come to here if  JOB = 2 or -2
-		if (*job) == 2 {
-			for k = 1; k <= (*n); k++ {
+		if job == 2 {
+			for k = 1; k <= n; k++ {
 				if k >= 3 {
 					temp = y.Get(k-1) - b.Get(k-1-1)*y.Get(k-1-1) - d.Get(k-2-1)*y.Get(k-2-1)
 				} else if k == 2 {
@@ -148,21 +149,21 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 				if absak < one {
 					if absak < sfmin {
 						if absak == zero || math.Abs(temp)*sfmin > absak {
-							(*info) = k
+							info = k
 							return
 						} else {
 							temp = temp * bignum
 							ak = ak * bignum
 						}
 					} else if math.Abs(temp) > absak*bignum {
-						(*info) = k
+						info = k
 						return
 					}
 				}
 				y.Set(k-1, temp/ak)
 			}
 		} else {
-			for k = 1; k <= (*n); k++ {
+			for k = 1; k <= n; k++ {
 				if k >= 3 {
 					temp = y.Get(k-1) - b.Get(k-1-1)*y.Get(k-1-1) - d.Get(k-2-1)*y.Get(k-2-1)
 				} else if k == 2 {
@@ -171,7 +172,7 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 					temp = y.Get(k - 1)
 				}
 				ak = a.Get(k - 1)
-				pert = math.Copysign(*tol, ak)
+				pert = math.Copysign(tolOut, ak)
 			label70:
 				;
 				absak = math.Abs(ak)
@@ -195,7 +196,7 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 			}
 		}
 
-		for k = (*n); k >= 2; k-- {
+		for k = n; k >= 2; k-- {
 			if (*in)[k-1-1] == 0 {
 				y.Set(k-1-1, y.Get(k-1-1)-c.Get(k-1-1)*y.Get(k-1))
 			} else {
@@ -205,4 +206,6 @@ func Dlagts(job, n *int, a, b, c, d *mat.Vector, in *[]int, y *mat.Vector, tol *
 			}
 		}
 	}
+
+	return
 }

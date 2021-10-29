@@ -3,14 +3,13 @@ package eig
 import (
 	"math"
 	"math/cmplx"
-	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zget35 tests ZTRSYL, a routine for solving the Sylvester matrix
+// zget35 tests ZTRSYL, a routine for solving the Sylvester matrix
 // equation
 //
 //    op(A)*X + ISGN*X*op(B) = scale*C,
@@ -23,13 +22,12 @@ import (
 //
 //    norm(op(A)*X + ISGN*X*op(B) - scale*C) /
 //        (EPS*max(norm(A),norm(B))*norm(X))
-func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
-	var trana, tranb byte
+func zget35() (rmax float64, lmax, ninfo, knt int) {
+	var trana, tranb mat.MatTrans
 	var cone, rmul complex128
 	var bignum, eps, large, one, res, res1, scale, smlnum, tnrm, two, xnrm, zero float64
-	var _i, i, imla, imlad, imlb, imlc, info, isgn, itrana, itranb, j, ldt, m, n int
+	var _i, i, imla, imlad, imlb, imlc, info, isgn, itrana, itranb, j, m, n int
 	var err error
-	_ = err
 
 	dum := vf(1)
 	vm1 := vf(3)
@@ -42,7 +40,6 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 	csav := cmf(10, 10, opts)
 	ctmp := cmf(10, 10, opts)
 
-	ldt = 10
 	zero = 0.0
 	one = 1.0
 	two = 2.0
@@ -53,7 +50,7 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     Set up test case parameters
 	vm1.Set(0, math.Sqrt(smlnum))
@@ -62,11 +59,6 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 	vm2.Set(0, one)
 	vm2.Set(1, one+two*eps)
 	vm2.Set(2, two)
-
-	(*knt) = 0
-	(*ninfo) = 0
-	(*lmax) = 0
-	(*rmax) = zero
 
 	mlist := []int{1, 1, 4, 4, 4, 4, 4, 4, 6}
 	nlist := []int{1, 3, 4, 4, 4, 4, 4, 3, 5}
@@ -252,16 +244,16 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 							for itranb = 1; itranb <= 2; itranb++ {
 								for isgn = -1; isgn <= 1; isgn += 2 {
 									if itrana == 1 {
-										trana = 'N'
+										trana = NoTrans
 									}
 									if itrana == 2 {
-										trana = 'C'
+										trana = ConjTrans
 									}
 									if itranb == 1 {
-										tranb = 'N'
+										tranb = NoTrans
 									}
 									if itranb == 2 {
-										tranb = 'C'
+										tranb = ConjTrans
 									}
 									tnrm = zero
 									for i = 1; i <= m; i++ {
@@ -287,12 +279,11 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 											csav.Set(i-1, j-1, c.Get(i-1, j-1))
 										}
 									}
-									(*knt) = (*knt) + 1
-									golapack.Ztrsyl(trana, tranb, &isgn, &m, &n, a, &ldt, b, &ldt, c, &ldt, &scale, &info)
-									if info != 0 {
-										(*ninfo) = (*ninfo) + 1
+									knt = knt + 1
+									if scale, info, err = golapack.Ztrsyl(trana, tranb, isgn, m, n, a, b, c); err != nil || info != 0 {
+										ninfo = ninfo + 1
 									}
-									xnrm = golapack.Zlange('M', &m, &n, c, &ldt, dum)
+									xnrm = golapack.Zlange('M', m, n, c, dum)
 									rmul = cone
 									if xnrm > one && tnrm > one {
 										if xnrm > bignum/tnrm {
@@ -300,13 +291,17 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 											rmul = cone / rmul
 										}
 									}
-									err = goblas.Zgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, complex(-scale, 0)*rmul, csav)
-									err = goblas.Zgemm(NoTrans, mat.TransByte(tranb), m, n, n, complex(float64(isgn), 0)*rmul, c, b, cone, csav)
-									res1 = golapack.Zlange('M', &m, &n, csav, &ldt, dum)
+									if err = goblas.Zgemm(trana, NoTrans, m, n, m, rmul, a, c, complex(-scale, 0)*rmul, csav); err != nil {
+										panic(err)
+									}
+									if err = goblas.Zgemm(NoTrans, tranb, m, n, n, complex(float64(isgn), 0)*rmul, c, b, cone, csav); err != nil {
+										panic(err)
+									}
+									res1 = golapack.Zlange('M', m, n, csav, dum)
 									res = res1 / math.Max(smlnum, math.Max(smlnum*xnrm, ((cmplx.Abs(rmul)*tnrm)*eps)*xnrm))
-									if res > (*rmax) {
-										(*lmax) = (*knt)
-										(*rmax) = res
+									if res > rmax {
+										lmax = knt
+										rmax = res
 									}
 								}
 							}
@@ -316,4 +311,6 @@ func Zget35(rmax *float64, lmax, ninfo, knt *int, t *testing.T) {
 			}
 		}
 	}
+
+	return
 }

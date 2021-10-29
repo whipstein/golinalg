@@ -2,8 +2,8 @@ package lin
 
 import "fmt"
 
-// Aladhd prints header information for the driver routines test paths.
-func Aladhd(path []byte) {
+// ladhd prints header information for the driver routines test paths.
+func aladhd(path string) {
 	var corz, sord bool
 	var c1, c3, p2, sym string
 
@@ -16,7 +16,7 @@ func Aladhd(path []byte) {
 		return
 	}
 
-	if p2 == "GE" {
+	if p2 == "ge" {
 		//        GE: General dense
 		fmt.Printf("\n %3s drivers:  General dense matrices\n", path)
 		fmt.Printf(" Matrix types:\n")
@@ -31,7 +31,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: abs( WORK(1) - RPVGRW ) / ( max( WORK(1), RPVGRW ) * EPS )\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "GB" {
+	} else if p2 == "gb" {
 		//        GB: General band
 		fmt.Printf("\n %3s drivers:  General band matrices\n", path)
 		fmt.Printf(" Matrix types:\n")
@@ -46,7 +46,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: abs( WORK(1) - RPVGRW ) / ( max( WORK(1), RPVGRW ) * EPS )\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "GT" {
+	} else if p2 == "gt" {
 		//        GT: General tridiagonal
 		fmt.Printf("\n %3s drivers:  General tridiagonal\n", path)
 		fmt.Printf(" Matrix types (1-6 have specified condition numbers):\n    1. Diagonal                        7. Random, unspecified CNDNUM\n    2. Random, CNDNUM = 2              8. First column zero\n    3. Random, CNDNUM = sqrt(0.1/EPS)  9. Last column zero\n    4. Random, CNDNUM = 0.1/EPS       10. Last n/2 columns zero\n    5. Scaled near underflow          11. Scaled near underflow\n    6. Scaled near overflow           12. Scaled near overflow\n")
@@ -59,7 +59,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PO" || p2 == "PP" || p2 == "PS" {
+	} else if p2 == "po" || p2 == "pp" || p2 == "ps" {
 		//        PO: Positive definite full
 		//        PS: Positive definite full
 		//        PP: Positive definite packed
@@ -68,7 +68,7 @@ func Aladhd(path []byte) {
 		} else {
 			sym = "Hermitian"
 		}
-		if c3 == "O" {
+		if c3 == "o" {
 			fmt.Printf("\n %3s drivers:  %9s positive definite matrices\n", path, sym)
 		} else {
 			fmt.Printf("\n %3s drivers:  %9s positive definite packed matrices\n", path, sym)
@@ -84,7 +84,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PB" {
+	} else if p2 == "pb" {
 		//        PB: Positive definite band
 		if sord {
 			fmt.Printf("\n %3s drivers:  %9s positive definite band matrices\n", path, "Symmetric")
@@ -102,7 +102,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PT" {
+	} else if p2 == "pt" {
 		//        PT: Positive definite tridiagonal
 		if sord {
 			fmt.Printf("\n %3s drivers:  %9s positive definite tridiagonal\n", path, "Symmetric")
@@ -119,12 +119,12 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "SY" || p2 == "SP" {
+	} else if p2 == "sy" || p2 == "sp" {
 		//        SY: Symmetric indefinite full
 		//            with partial (Bunch-Kaufman) pivoting algorithm
 		//        SP: Symmetric indefinite packed
 		//            with partial (Bunch-Kaufman) pivoting algorithm
-		if c3 == "Y" {
+		if c3 == "y" {
 			fmt.Printf("\n %3s drivers:  %9s indefinite matrices, 'rook' (bounded Bunch-Kaufman) pivoting\n", path, "Symmetric")
 		} else {
 			fmt.Printf("\n %3s drivers:  %9s indefinite packed matrices, partial (Bunch-Kaufman) pivoting\n", path, "Symmetric")
@@ -144,7 +144,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "SR" || p2 == "SK" {
+	} else if p2 == "sr" || p2 == "sk" {
 		//        SR: Symmetric indefinite full,
 		//            with rook (bounded Bunch-Kaufman) pivoting algorithm
 		//
@@ -168,7 +168,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: norm( X - XACT )   / ( norm(XACT) * CNDNUM * EPS )\n", 3)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HA" {
+	} else if p2 == "ha" {
 		//        HA: Hermitian
 		//            Aasen algorithm
 		fmt.Printf("\n %3s drivers:  %9s indefinite matrices, 'Aasen' Algorithm\n", path, "Hermitian")
@@ -185,12 +185,12 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HE" || p2 == "HP" {
+	} else if p2 == "he" || p2 == "hp" {
 		//        HE: Hermitian indefinite full
 		//            with partial (Bunch-Kaufman) pivoting algorithm
 		//        HP: Hermitian indefinite packed
 		//            with partial (Bunch-Kaufman) pivoting algorithm
-		if c3 == "E" {
+		if c3 == "e" {
 			fmt.Printf("\n %3s drivers:  %9s indefinite matrices, 'rook' (bounded Bunch-Kaufman) pivoting\n", path, "Hermitian")
 		} else {
 			fmt.Printf("\n %3s drivers:  %9s indefinite packed matrices, partial (Bunch-Kaufman) pivoting\n", path, "Hermitian")
@@ -208,7 +208,7 @@ func Aladhd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 6)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HR" || p2 == "HK" {
+	} else if p2 == "hr" || p2 == "hk" {
 		//        HR: Hermitian indefinite full,
 		//            with rook (bounded Bunch-Kaufman) pivoting algorithm
 		//

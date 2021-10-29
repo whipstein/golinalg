@@ -10,7 +10,7 @@ import (
 
 // Zlaqr3 Aggressive early deflation:
 //
-//    ZLAQR3 accepts as input an upper Hessenberg matrix
+//    Zlaqr3 accepts as input an upper Hessenberg matrix
 //    H and performs an unitary similarity transformation
 //    designed to detect and deflate fully converged eigenvalues from
 //    a trailing principal submatrix.  On output H has been over-
@@ -18,12 +18,11 @@ import (
 //    an unitary similarity transformation of H.  It is to be
 //    hoped that the final version of H has many zero subdiagonal
 //    entries.
-func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz, ihiz *int, z *mat.CMatrix, ldz, ns, nd *int, sh *mat.CVector, v *mat.CMatrix, ldv, nh *int, t *mat.CMatrix, ldt, nv *int, wv *mat.CMatrix, ldwv *int, work *mat.CVector, lwork *int) {
+func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz int, z *mat.CMatrix, sh *mat.CVector, v *mat.CMatrix, nh int, t *mat.CMatrix, nv int, wv *mat.CMatrix, work *mat.CVector, lwork int) (ns, nd int) {
 	var beta, one, s, tau, zero complex128
 	var foo, rone, rzero, safmax, safmin, smlnum, ulp float64
-	var i, ifst, ilst, info, infqr, j, jw, kcol, kln, knt, krow, kwtop, ltop, lwk1, lwk2, lwk3, lwkopt, nmin int
+	var i, ifst, ilst, infqr, j, jw, kcol, kln, knt, krow, kwtop, ltop, lwk1, lwk2, lwk3, lwkopt, nmin int
 	var err error
-	_ = err
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
@@ -31,20 +30,24 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 	rone = 1.0
 
 	//     ==== Estimate optimal workspace. ====
-	jw = min(*nw, (*kbot)-(*ktop)+1)
+	jw = min(nw, kbot-ktop+1)
 	if jw <= 2 {
 		lwkopt = 1
 	} else {
 		//        ==== Workspace query call to ZGEHRD ====
-		Zgehrd(&jw, func() *int { y := 1; return &y }(), toPtr(jw-1), t, ldt, work, work, toPtr(-1), &info)
+		if err = Zgehrd(jw, 1, jw-1, t, work, work, -1); err != nil {
+			panic(err)
+		}
 		lwk1 = int(work.GetRe(0))
 
 		//        ==== Workspace query call to ZUNMHR ====
-		Zunmhr('R', 'N', &jw, &jw, func() *int { y := 1; return &y }(), toPtr(jw-1), t, ldt, work, v, ldv, work, toPtr(-1), &info)
+		if err = Zunmhr(Right, NoTrans, jw, jw, 1, jw-1, t, work, v, work, -1); err != nil {
+			panic(err)
+		}
 		lwk2 = int(work.GetRe(0))
 
 		//        ==== Workspace query call to ZLAQR4 ====
-		Zlaqr4(true, true, &jw, func() *int { y := 1; return &y }(), &jw, t, ldt, sh, func() *int { y := 1; return &y }(), &jw, v, ldv, work, toPtr(-1), &infqr)
+		infqr = Zlaqr4(true, true, jw, 1, jw, t, sh, 1, jw, v, work, -1)
 		lwk3 = int(work.GetRe(0))
 
 		//        ==== Optimal workspace ====
@@ -52,49 +55,49 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 	}
 
 	//     ==== Quick return in case of workspace query. ====
-	if (*lwork) == -1 {
+	if lwork == -1 {
 		work.Set(0, complex(float64(lwkopt), 0))
 		return
 	}
 
 	//     ==== Nothing to do ...
 	//     ... for an empty active block ... ====
-	(*ns) = 0
-	(*nd) = 0
+	ns = 0
+	nd = 0
 	work.Set(0, one)
-	if (*ktop) > (*kbot) {
+	if ktop > kbot {
 		return
 	}
 	//     ... nor for an empty deflation window. ====
-	if (*nw) < 1 {
+	if nw < 1 {
 		return
 	}
 
 	//     ==== Machine constants ====
 	safmin = Dlamch(SafeMinimum)
 	safmax = rone / safmin
-	Dlabad(&safmin, &safmax)
+	safmin, safmax = Dlabad(safmin, safmax)
 	ulp = Dlamch(Precision)
-	smlnum = safmin * (float64(*n) / ulp)
+	smlnum = safmin * (float64(n) / ulp)
 
 	//     ==== Setup deflation window ====
-	jw = min(*nw, (*kbot)-(*ktop)+1)
-	kwtop = (*kbot) - jw + 1
-	if kwtop == (*ktop) {
+	jw = min(nw, kbot-ktop+1)
+	kwtop = kbot - jw + 1
+	if kwtop == ktop {
 		s = zero
 	} else {
 		s = h.Get(kwtop-1, kwtop-1-1)
 	}
 
-	if (*kbot) == kwtop {
+	if kbot == kwtop {
 		//        ==== 1-by-1 deflation window: not much to do ====
 		sh.Set(kwtop-1, h.Get(kwtop-1, kwtop-1))
-		(*ns) = 1
-		(*nd) = 0
+		ns = 1
+		nd = 0
 		if cabs1(s) <= math.Max(smlnum, ulp*cabs1(h.Get(kwtop-1, kwtop-1))) {
-			(*ns) = 0
-			(*nd) = 1
-			if kwtop > (*ktop) {
+			ns = 0
+			nd = 1
+			if kwtop > ktop {
 				h.Set(kwtop-1, kwtop-1-1, zero)
 			}
 		}
@@ -107,56 +110,60 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 	//     .    aggressive early deflation using that part of
 	//     .    the deflation window that converged using INFQR
 	//     .    here and there to keep track.) ====
-	Zlacpy('U', &jw, &jw, h.Off(kwtop-1, kwtop-1), ldh, t, ldt)
-	goblas.Zcopy(jw-1, h.CVector(kwtop, kwtop-1, (*ldh)+1), t.CVector(1, 0, (*ldt)+1))
+	Zlacpy(Upper, jw, jw, h.Off(kwtop-1, kwtop-1), t)
+	goblas.Zcopy(jw-1, h.CVector(kwtop, kwtop-1, h.Rows+1), t.CVector(1, 0, (*&t.Rows)+1))
 
-	Zlaset('A', &jw, &jw, &zero, &one, v, ldv)
-	nmin = Ilaenv(func() *int { y := 12; return &y }(), []byte("ZLAQR3"), []byte("SV"), &jw, func() *int { y := 1; return &y }(), &jw, lwork)
+	Zlaset(Full, jw, jw, zero, one, v)
+	nmin = Ilaenv(12, "Zlaqr3", []byte("SV"), jw, 1, jw, lwork)
 	if jw > nmin {
-		Zlaqr4(true, true, &jw, func() *int { y := 1; return &y }(), &jw, t, ldt, sh.Off(kwtop-1), func() *int { y := 1; return &y }(), &jw, v, ldv, work, lwork, &infqr)
+		infqr = Zlaqr4(true, true, jw, 1, jw, t, sh.Off(kwtop-1), 1, jw, v, work, lwork)
 	} else {
-		Zlahqr(true, true, &jw, func() *int { y := 1; return &y }(), &jw, t, ldt, sh.Off(kwtop-1), func() *int { y := 1; return &y }(), &jw, v, ldv, &infqr)
+		infqr = Zlahqr(true, true, jw, 1, jw, t, sh.Off(kwtop-1), 1, jw, v)
 	}
 
 	//     ==== Deflation detection loop ====
-	(*ns) = jw
+	ns = jw
 	ilst = infqr + 1
 	for knt = infqr + 1; knt <= jw; knt++ {
 		//        ==== Small spike tip deflation test ====
-		foo = cabs1(t.Get((*ns)-1, (*ns)-1))
+		foo = cabs1(t.Get(ns-1, ns-1))
 		if foo == rzero {
 			foo = cabs1(s)
 		}
-		if cabs1(s)*cabs1(v.Get(0, (*ns)-1)) <= math.Max(smlnum, ulp*foo) {
+		if cabs1(s)*cabs1(v.Get(0, ns-1)) <= math.Max(smlnum, ulp*foo) {
 			//           ==== One more converged eigenvalue ====
-			(*ns) = (*ns) - 1
+			ns = ns - 1
 		} else {
 			//           ==== One undeflatable eigenvalue.  Move it up out of the
 			//           .    way.   (ZTREXC can not fail in this case.) ====
-			ifst = (*ns)
-			Ztrexc('V', &jw, t, ldt, v, ldv, &ifst, &ilst, &info)
+			ifst = ns
+			if err = Ztrexc('V', jw, t, v, ifst, ilst); err != nil {
+				panic(err)
+			}
 			ilst = ilst + 1
 		}
 	}
 
 	//        ==== Return to Hessenberg form ====
-	if (*ns) == 0 {
+	if ns == 0 {
 		s = zero
 	}
 
-	if (*ns) < jw {
+	if ns < jw {
 		//        ==== sorting the diagonal of T improves accuracy for
 		//        .    graded matrices.  ====
-		for i = infqr + 1; i <= (*ns); i++ {
+		for i = infqr + 1; i <= ns; i++ {
 			ifst = i
-			for j = i + 1; j <= (*ns); j++ {
+			for j = i + 1; j <= ns; j++ {
 				if cabs1(t.Get(j-1, j-1)) > cabs1(t.Get(ifst-1, ifst-1)) {
 					ifst = j
 				}
 			}
 			ilst = i
 			if ifst != ilst {
-				Ztrexc('V', &jw, t, ldt, v, ldv, &ifst, &ilst, &info)
+				if err = Ztrexc('V', jw, t, v, ifst, ilst); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -166,80 +173,86 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.CMatrix, ldh, iloz
 		sh.Set(kwtop+i-1-1, t.Get(i-1, i-1))
 	}
 
-	if (*ns) < jw || s == zero {
-		if (*ns) > 1 && s != zero {
+	if ns < jw || s == zero {
+		if ns > 1 && s != zero {
 			//           ==== Reflect spike back into lower triangle ====
-			goblas.Zcopy(*ns, v.CVector(0, 0, *ldv), work.Off(0, 1))
-			for i = 1; i <= (*ns); i++ {
+			goblas.Zcopy(ns, v.CVector(0, 0, *&v.Rows), work.Off(0, 1))
+			for i = 1; i <= ns; i++ {
 				work.Set(i-1, work.GetConj(i-1))
 			}
 			beta = work.Get(0)
-			Zlarfg(ns, &beta, work.Off(1), func() *int { y := 1; return &y }(), &tau)
+			beta, tau = Zlarfg(ns, beta, work.Off(1, 1))
 			work.Set(0, one)
 
-			Zlaset('L', toPtr(jw-2), toPtr(jw-2), &zero, &zero, t.Off(2, 0), ldt)
+			Zlaset(Lower, jw-2, jw-2, zero, zero, t.Off(2, 0))
 
-			Zlarf('L', ns, &jw, work, func() *int { y := 1; return &y }(), toPtrc128(cmplx.Conj(tau)), t, ldt, work.Off(jw))
-			Zlarf('R', ns, ns, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw))
-			Zlarf('R', &jw, ns, work, func() *int { y := 1; return &y }(), &tau, v, ldv, work.Off(jw))
+			Zlarf(Left, ns, jw, work.Off(0, 1), cmplx.Conj(tau), t, work.Off(jw))
+			Zlarf(Right, ns, ns, work.Off(0, 1), tau, t, work.Off(jw))
+			Zlarf(Right, jw, ns, work.Off(0, 1), tau, v, work.Off(jw))
 
-			Zgehrd(&jw, func() *int { y := 1; return &y }(), ns, t, ldt, work, work.Off(jw), toPtr((*lwork)-jw), &info)
+			if err = Zgehrd(jw, 1, ns, t, work, work.Off(jw), lwork-jw); err != nil {
+				panic(err)
+			}
 		}
 
 		//        ==== Copy updated reduced window into place ====
 		if kwtop > 1 {
 			h.Set(kwtop-1, kwtop-1-1, s*v.GetConj(0, 0))
 		}
-		Zlacpy('U', &jw, &jw, t, ldt, h.Off(kwtop-1, kwtop-1), ldh)
-		goblas.Zcopy(jw-1, t.CVector(1, 0, (*ldt)+1), h.CVector(kwtop, kwtop-1, (*ldh)+1))
+		Zlacpy(Upper, jw, jw, t, h.Off(kwtop-1, kwtop-1))
+		goblas.Zcopy(jw-1, t.CVector(1, 0, (*&t.Rows)+1), h.CVector(kwtop, kwtop-1, h.Rows+1))
 
 		//        ==== Accumulate orthogonal matrix in order update
 		//        .    H and Z, if requested.  ====
-		if (*ns) > 1 && s != zero {
-			Zunmhr('R', 'N', &jw, ns, func() *int { y := 1; return &y }(), ns, t, ldt, work, v, ldv, work.Off(jw), toPtr((*lwork)-jw), &info)
+		if ns > 1 && s != zero {
+			if err = Zunmhr(Right, NoTrans, jw, ns, 1, ns, t, work, v, work.Off(jw), lwork-jw); err != nil {
+				panic(err)
+			}
 		}
 
 		//        ==== Update vertical slab in H ====
 		if wantt {
 			ltop = 1
 		} else {
-			ltop = (*ktop)
+			ltop = ktop
 		}
-		for krow = ltop; krow <= kwtop-1; krow += (*nv) {
-			kln = min(*nv, kwtop-krow)
+		for krow = ltop; krow <= kwtop-1; krow += nv {
+			kln = min(nv, kwtop-krow)
 			err = goblas.Zgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), v, zero, wv)
-			Zlacpy('A', &kln, &jw, wv, ldwv, h.Off(krow-1, kwtop-1), ldh)
+			Zlacpy(Full, kln, jw, wv, h.Off(krow-1, kwtop-1))
 		}
 
 		//        ==== Update horizontal slab in H ====
 		if wantt {
-			for kcol = (*kbot) + 1; kcol <= (*n); kcol += (*nh) {
-				kln = min(*nh, (*n)-kcol+1)
+			for kcol = kbot + 1; kcol <= n; kcol += nh {
+				kln = min(nh, n-kcol+1)
 				err = goblas.Zgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, h.Off(kwtop-1, kcol-1), zero, t)
-				Zlacpy('A', &jw, &kln, t, ldt, h.Off(kwtop-1, kcol-1), ldh)
+				Zlacpy(Full, jw, kln, t, h.Off(kwtop-1, kcol-1))
 			}
 		}
 
 		//        ==== Update vertical slab in Z ====
 		if wantz {
-			for krow = (*iloz); krow <= (*ihiz); krow += (*nv) {
-				kln = min(*nv, (*ihiz)-krow+1)
+			for krow = iloz; krow <= ihiz; krow += nv {
+				kln = min(nv, ihiz-krow+1)
 				err = goblas.Zgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), v, zero, wv)
-				Zlacpy('A', &kln, &jw, wv, ldwv, z.Off(krow-1, kwtop-1), ldz)
+				Zlacpy(Full, kln, jw, wv, z.Off(krow-1, kwtop-1))
 			}
 		}
 	}
 
 	//     ==== Return the number of deflations ... ====
-	(*nd) = jw - (*ns)
+	nd = jw - ns
 
 	//     ==== ... and the number of shifts. (Subtracting
 	//     .    INFQR from the spike length takes care
 	//     .    of the case of a rare QR failure while
 	//     .    calculating eigenvalues of the deflation
 	//     .    window.)  ====
-	(*ns) = (*ns) - infqr
+	ns = ns - infqr
 
 	//      ==== Return optimal workspace. ====
 	work.Set(0, complex(float64(lwkopt), 0))
+
+	return
 }

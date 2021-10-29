@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -10,7 +12,7 @@ import (
 //
 // Use Quick Sort, reverting to Insertion sort on arrays of
 // size <= 20. Dimension of STACK limits N to about 2**32.
-func Dlasrt(id byte, n *int, d *mat.Vector, info *int) {
+func Dlasrt(id byte, n int, d *mat.Vector) (err error) {
 	var d1, d2, d3, dmnmx, tmp float64
 	var dir, endd, i, j, _select, start, stkpnt int
 	stack := make([]int, 2*32)
@@ -18,7 +20,6 @@ func Dlasrt(id byte, n *int, d *mat.Vector, info *int) {
 	_select = 20
 
 	//     Test the input parameters.
-	(*info) = 0
 	dir = -1
 	if id == 'D' {
 		dir = 0
@@ -26,23 +27,23 @@ func Dlasrt(id byte, n *int, d *mat.Vector, info *int) {
 		dir = 1
 	}
 	if dir == -1 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
+		err = fmt.Errorf("dir == -1: id='%c'", id)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLASRT"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlasrt", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
 
 	stkpnt = 1
 	stack[0+(0)*2] = 1
-	stack[1+(0)*2] = (*n)
+	stack[1+(0)*2] = n
 label10:
 	;
 	start = stack[0+(stkpnt-1)*2]
@@ -191,4 +192,6 @@ label10:
 	if stkpnt > 0 {
 		goto label10
 	}
+
+	return
 }

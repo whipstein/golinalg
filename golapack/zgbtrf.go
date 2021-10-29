@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -10,11 +12,9 @@ import (
 // using partial pivoting with row interchanges.
 //
 // This is the blocked version of the algorithm, calling Level 3 BLAS.
-func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *int) {
+func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error) {
 	var one, temp, zero complex128
 	var i, i2, i3, ii, ip, j, j2, j3, jb, jj, jm, jp, ju, k2, km, kv, ldwork, nb, nbmax, nw int
-	var err error
-	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
@@ -25,41 +25,42 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 
 	//     KV is the number of superdiagonals in the factor U, allowing for
 	//     fill-in
-	kv = (*ku) + (*kl)
+	kv = ku + kl
 
 	//     Test the input parameters.
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*kl) < 0 {
-		(*info) = -3
-	} else if (*ku) < 0 {
-		(*info) = -4
-	} else if (*ldab) < (*kl)+kv+1 {
-		(*info) = -6
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if kl < 0 {
+		err = fmt.Errorf("kl < 0: kl=%v", kl)
+	} else if ku < 0 {
+		err = fmt.Errorf("ku < 0: ku=%v", ku)
+	} else if ab.Rows < kl+kv+1 {
+		err = fmt.Errorf("ab.Rows < kl+kv+1: ab.Rows=%v, kl=%v, kv=%v", ab.Rows, kl, kv)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGBTRF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgbtrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
 	//     Determine the block size for this environment
-	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGBTRF"), []byte{' '}, m, n, kl, ku)
+	nb = Ilaenv(1, "Zgbtrf", []byte{' '}, m, n, kl, ku)
 
 	//     The block size must not exceed the limit set by the size of the
 	//     local arrays WORK13 and WORK31.
 	nb = min(nb, nbmax)
 
-	if nb <= 1 || nb > (*kl) {
+	if nb <= 1 || nb > kl {
 		//        Use unblocked code
-		Zgbtf2(m, n, kl, ku, ab, ldab, ipiv, info)
+		if info, err = Zgbtf2(m, n, kl, ku, ab, ipiv); err != nil {
+			panic(err)
+		}
 	} else {
 		//        Use blocked code
 		//
@@ -80,8 +81,8 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 		//        Gaussian elimination with partial pivoting
 		//
 		//        Set fill-in elements in columns KU+2 to KV to zero
-		for j = (*ku) + 2; j <= min(kv, *n); j++ {
-			for i = kv - j + 2; i <= (*kl); i++ {
+		for j = ku + 2; j <= min(kv, n); j++ {
+			for i = kv - j + 2; i <= kl; i++ {
 				ab.Set(i-1, j-1, zero)
 			}
 		}
@@ -90,8 +91,8 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 		//        stage of the factorization
 		ju = 1
 
-		for j = 1; j <= min(*m, *n); j += nb {
-			jb = min(nb, min(*m, *n)-j+1)
+		for j = 1; j <= min(m, n); j += nb {
+			jb = min(nb, min(m, n)-j+1)
 
 			//           The active part of the matrix is partitioned
 			//
@@ -104,37 +105,37 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 			//           partitioning are JB, I2, I3 respectively, and the numbers
 			//           of columns are JB, J2, J3. The superdiagonal elements of A13
 			//           and the subdiagonal elements of A31 lie outside the band.
-			i2 = min((*kl)-jb, (*m)-j-jb+1)
-			i3 = min(jb, (*m)-j-(*kl)+1)
+			i2 = min(kl-jb, m-j-jb+1)
+			i3 = min(jb, m-j-kl+1)
 
 			//           J2 and J3 are computed after JU has been updated.
 			//
 			//           Factorize the current block of JB columns
 			for jj = j; jj <= j+jb-1; jj++ {
 				//              Set fill-in elements in column JJ+KV to zero
-				if jj+kv <= (*n) {
-					for i = 1; i <= (*kl); i++ {
+				if jj+kv <= n {
+					for i = 1; i <= kl; i++ {
 						ab.Set(i-1, jj+kv-1, zero)
 					}
 				}
 
 				//              Find pivot and test for singularity. KM is the number of
 				//              subdiagonal elements in the current column.
-				km = min(*kl, (*m)-jj)
+				km = min(kl, m-jj)
 				jp = goblas.Izamax(km+1, ab.CVector(kv, jj-1, 1))
 				(*ipiv)[jj-1] = jp + jj - j
 				if ab.Get(kv+jp-1, jj-1) != zero {
-					ju = max(ju, min(jj+(*ku)+jp-1, *n))
+					ju = max(ju, min(jj+ku+jp-1, n))
 					if jp != 1 {
 						//                    Apply interchange to columns J to J+JB-1
-						if jp+jj-1 < j+(*kl) {
+						if jp+jj-1 < j+kl {
 
-							goblas.Zswap(jb, ab.CVector(kv+1+jj-j-1, j-1, (*ldab)-1), ab.CVector(kv+jp+jj-j-1, j-1, (*ldab)-1))
+							goblas.Zswap(jb, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), ab.CVector(kv+jp+jj-j-1, j-1, ab.Rows-1))
 						} else {
 							//                       The interchange affects columns J to JJ-1 of A31
 							//                       which are stored in the work array WORK31
-							goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, (*ldab)-1), work31.CVector(jp+jj-j-(*kl)-1, 0, ldwork))
-							goblas.Zswap(j+jb-jj, ab.CVector(kv, jj-1, (*ldab)-1), ab.CVector(kv+jp-1, jj-1, (*ldab)-1))
+							goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), work31.CVector(jp+jj-j-kl-1, 0, ldwork))
+							goblas.Zswap(j+jb-jj, ab.CVector(kv, jj-1, ab.Rows-1), ab.CVector(kv+jp-1, jj-1, ab.Rows-1))
 						}
 					}
 
@@ -146,30 +147,32 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 					//                 which needs to be updated.
 					jm = min(ju, j+jb-1)
 					if jm > jj {
-						err = goblas.Zgeru(km, jm-jj, -one, ab.CVector(kv+2-1, jj-1, 1), ab.CVector(kv-1, jj, (*ldab)-1), ab.Off(kv, jj).UpdateRows((*ldab)-1))
+						if err = goblas.Zgeru(km, jm-jj, -one, ab.CVector(kv+2-1, jj-1, 1), ab.CVector(kv-1, jj, ab.Rows-1), ab.Off(kv, jj).UpdateRows(ab.Rows-1)); err != nil {
+							panic(err)
+						}
 					}
 				} else {
 					//                 If pivot is zero, set INFO to the index of the pivot
 					//                 unless a zero pivot has already been found.
-					if (*info) == 0 {
-						(*info) = jj
+					if info == 0 {
+						info = jj
 					}
 				}
 
 				//              Copy current column of A31 into the work array WORK31
 				nw = min(jj-j+1, i3)
 				if nw > 0 {
-					goblas.Zcopy(nw, ab.CVector(kv+(*kl)+1-jj+j-1, jj-1, 1), work31.CVector(0, jj-j, 1))
+					goblas.Zcopy(nw, ab.CVector(kv+kl+1-jj+j-1, jj-1, 1), work31.CVector(0, jj-j, 1))
 				}
 			}
-			if j+jb <= (*n) {
+			if j+jb <= n {
 				//              Apply the row interchanges to the other blocks.
 				j2 = min(ju-j+1, kv) - jb
 				j3 = max(0, ju-j-kv+1)
 
 				//              Use ZLASWP to apply the row interchanges to A12, A22, and
 				//              A32.
-				Zlaswp(&j2, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), toPtr((*ldab)-1), func() *int { y := 1; return &y }(), &jb, toSlice(ipiv, j-1), func() *int { y := 1; return &y }())
+				Zlaswp(j2, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), 1, jb, toSlice(ipiv, j-1), 1)
 
 				//              Adjust the pivot indices.
 				for i = j; i <= j+jb-1; i++ {
@@ -194,16 +197,22 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 				//              Update the relevant part of the trailing submatrix
 				if j2 > 0 {
 					//                 Update A12
-					err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j2, one, ab.Off(kv, j-1).UpdateRows((*ldab)-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1))
+					if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j2, one, ab.Off(kv, j-1).UpdateRows(ab.Rows-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1)); err != nil {
+						panic(err)
+					}
 
 					if i2 > 0 {
 						//                    Update A22
-						err = goblas.Zgemm(NoTrans, NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows((*ldab)-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), one, ab.Off(kv, j+jb-1).UpdateRows((*ldab)-1))
+						if err = goblas.Zgemm(NoTrans, NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows(ab.Rows-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), one, ab.Off(kv, j+jb-1).UpdateRows(ab.Rows-1)); err != nil {
+							panic(err)
+						}
 					}
 
 					if i3 > 0 {
 						//                    Update A32
-						err = goblas.Zgemm(NoTrans, NoTrans, i3, j2, jb, -one, work31, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows((*ldab)-1), one, ab.Off(kv+(*kl)+1-jb-1, j+jb-1).UpdateRows((*ldab)-1))
+						if err = goblas.Zgemm(NoTrans, NoTrans, i3, j2, jb, -one, work31, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), one, ab.Off(kv+kl+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1)); err != nil {
+							panic(err)
+						}
 					}
 				}
 
@@ -217,16 +226,22 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 					}
 
 					//                 Update A13 in the work array
-					err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j3, one, ab.Off(kv, j-1).UpdateRows((*ldab)-1), work13)
+					if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j3, one, ab.Off(kv, j-1).UpdateRows(ab.Rows-1), work13); err != nil {
+						panic(err)
+					}
 
 					if i2 > 0 {
 						//                    Update A23
-						err = goblas.Zgemm(NoTrans, NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows((*ldab)-1), work13, one, ab.Off(1+jb-1, j+kv-1).UpdateRows((*ldab)-1))
+						if err = goblas.Zgemm(NoTrans, NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows(ab.Rows-1), work13, one, ab.Off(1+jb-1, j+kv-1).UpdateRows(ab.Rows-1)); err != nil {
+							panic(err)
+						}
 					}
 
 					if i3 > 0 {
 						//                    Update A33
-						err = goblas.Zgemm(NoTrans, NoTrans, i3, j3, jb, -one, work31, work13, one, ab.Off(1+(*kl)-1, j+kv-1).UpdateRows((*ldab)-1))
+						if err = goblas.Zgemm(NoTrans, NoTrans, i3, j3, jb, -one, work31, work13, one, ab.Off(1+kl-1, j+kv-1).UpdateRows(ab.Rows-1)); err != nil {
+							panic(err)
+						}
 					}
 
 					//                 Copy the lower triangle of A13 back into place
@@ -250,21 +265,23 @@ func Zgbtrf(m, n, kl, ku *int, ab *mat.CMatrix, ldab *int, ipiv *[]int, info *in
 				jp = (*ipiv)[jj-1] - jj + 1
 				if jp != 1 {
 					//                 Apply interchange to columns J to JJ-1
-					if jp+jj-1 < j+(*kl) {
+					if jp+jj-1 < j+kl {
 						//                    The interchange does not affect A31
-						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, (*ldab)-1), ab.CVector(kv+jp+jj-j-1, j-1, (*ldab)-1))
+						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), ab.CVector(kv+jp+jj-j-1, j-1, ab.Rows-1))
 					} else {
 						//                    The interchange does affect A31
-						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, (*ldab)-1), work31.CVector(jp+jj-j-(*kl)-1, 0, ldwork))
+						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), work31.CVector(jp+jj-j-kl-1, 0, ldwork))
 					}
 				}
 
 				//              Copy the current column of A31 back into place
 				nw = min(i3, jj-j+1)
 				if nw > 0 {
-					goblas.Zcopy(nw, work31.CVector(0, jj-j, 1), ab.CVector(kv+(*kl)+1-jj+j-1, jj-1, 1))
+					goblas.Zcopy(nw, work31.CVector(0, jj-j, 1), ab.CVector(kv+kl+1-jj+j-1, jj-1, 1))
 				}
 			}
 		}
 	}
+
+	return
 }

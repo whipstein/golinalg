@@ -2,11 +2,11 @@ package eig
 
 import "github.com/whipstein/golinalg/golapack/gltest"
 
-// Zlctsx function is used to determine what eigenvalues will be
+// zlctsx function is used to determine what eigenvalues will be
 // selected.  If this is part of the test driver ZDRGSX, do not
 // change the code UNLESS you are testing input examples and not
 // using the built-in examples.
-func Zlctsx(alpha, beta complex128) (zlctsxReturn bool) {
+func zlctsx(alpha, beta complex128) (zlctsxReturn bool) {
 	m := &gltest.Common.Mn.M
 	n := &gltest.Common.Mn.N
 	mplusn := &gltest.Common.Mn.Mplusn

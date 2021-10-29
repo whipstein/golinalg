@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -21,86 +22,87 @@ import (
 //
 // where U is upper triangular of order m = (n+kd)/2, and L is lower
 // triangular of order n-m.
-func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
+func Zpbstf(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) {
 	var upper bool
 	var ajj, one, zero float64
 	var j, kld, km, m int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*kd) < 0 {
-		(*info) = -3
-	} else if (*ldab) < (*kd)+1 {
-		(*info) = -5
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if kd < 0 {
+		err = fmt.Errorf("kd < 0: kd=%v", kd)
+	} else if ab.Rows < kd+1 {
+		err = fmt.Errorf("ab.Rows < kd+1: ab.Rows=%v, kd=%v", ab.Rows, kd)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZPBSTF"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zpbstf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	kld = max(1, (*ldab)-1)
+	kld = max(1, ab.Rows-1)
 
 	//     Set the splitting point m.
-	m = ((*n) + (*kd)) / 2
+	m = (n + kd) / 2
 
 	if upper {
 		//        Factorize A(m+1:n,m+1:n) as L**H*L, and update A(1:m,1:m).
-		for j = (*n); j >= m+1; j-- {
+		for j = n; j >= m+1; j-- {
 			//           Compute s(j,j) and test for non-positive-definiteness.
-			ajj = ab.GetRe((*kd), j-1)
+			ajj = ab.GetRe(kd, j-1)
 			if ajj <= zero {
-				ab.SetRe((*kd), j-1, ajj)
+				ab.SetRe(kd, j-1, ajj)
 				goto label50
 			}
 			ajj = math.Sqrt(ajj)
-			ab.SetRe((*kd), j-1, ajj)
-			km = min(j-1, *kd)
+			ab.SetRe(kd, j-1, ajj)
+			km = min(j-1, kd)
 
 			//           Compute elements j-km:j-1 of the j-th column and update the
 			//           the leading submatrix within the band.
-			goblas.Zdscal(km, one/ajj, ab.CVector((*kd)+1-km-1, j-1, 1))
-			err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)+1-km-1, j-1, 1), ab.Off((*kd), j-km-1).UpdateRows(kld))
+			goblas.Zdscal(km, one/ajj, ab.CVector(kd+1-km-1, j-1, 1))
+			if err = goblas.Zher(Upper, km, -one, ab.CVector(kd+1-km-1, j-1, 1), ab.Off(kd, j-km-1).UpdateRows(kld)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**H*U.
 		for j = 1; j <= m; j++ {
 			//           Compute s(j,j) and test for non-positive-definiteness.
-			ajj = ab.GetRe((*kd), j-1)
+			ajj = ab.GetRe(kd, j-1)
 			if ajj <= zero {
-				ab.SetRe((*kd), j-1, ajj)
+				ab.SetRe(kd, j-1, ajj)
 				goto label50
 			}
 			ajj = math.Sqrt(ajj)
-			ab.SetRe((*kd), j-1, ajj)
-			km = min(*kd, m-j)
+			ab.SetRe(kd, j-1, ajj)
+			km = min(kd, m-j)
 
 			//           Compute elements j+1:j+km of the j-th row and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Zdscal(km, one/ajj, ab.CVector((*kd)-1, j, kld))
-				Zlacgv(&km, ab.CVector((*kd)-1, j), &kld)
-				err = goblas.Zher(Upper, km, -one, ab.CVector((*kd)-1, j, kld), ab.Off((*kd), j).UpdateRows(kld))
-				Zlacgv(&km, ab.CVector((*kd)-1, j), &kld)
+				goblas.Zdscal(km, one/ajj, ab.CVector(kd-1, j, kld))
+				Zlacgv(km, ab.CVector(kd-1, j, kld))
+				if err = goblas.Zher(Upper, km, -one, ab.CVector(kd-1, j, kld), ab.Off(kd, j).UpdateRows(kld)); err != nil {
+					panic(err)
+				}
+				Zlacgv(km, ab.CVector(kd-1, j, kld))
 			}
 		}
 	} else {
 		//        Factorize A(m+1:n,m+1:n) as L**H*L, and update A(1:m,1:m).
-		for j = (*n); j >= m+1; j-- {
+		for j = n; j >= m+1; j-- {
 			//           Compute s(j,j) and test for non-positive-definiteness.
 			ajj = ab.GetRe(0, j-1)
 			if ajj <= zero {
@@ -109,14 +111,16 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			}
 			ajj = math.Sqrt(ajj)
 			ab.SetRe(0, j-1, ajj)
-			km = min(j-1, *kd)
+			km = min(j-1, kd)
 
 			//           Compute elements j-km:j-1 of the j-th row and update the
 			//           trailing submatrix within the band.
 			goblas.Zdscal(km, one/ajj, ab.CVector(km, j-km-1, kld))
-			Zlacgv(&km, ab.CVector(km, j-km-1), &kld)
-			err = goblas.Zher(Lower, km, -one, ab.CVector(km, j-km-1, kld), ab.Off(0, j-km-1).UpdateRows(kld))
-			Zlacgv(&km, ab.CVector(km, j-km-1), &kld)
+			Zlacgv(km, ab.CVector(km, j-km-1, kld))
+			if err = goblas.Zher(Lower, km, -one, ab.CVector(km, j-km-1, kld), ab.Off(0, j-km-1).UpdateRows(kld)); err != nil {
+				panic(err)
+			}
+			Zlacgv(km, ab.CVector(km, j-km-1, kld))
 		}
 
 		//        Factorize the updated submatrix A(1:m,1:m) as U**H*U.
@@ -129,13 +133,15 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 			}
 			ajj = math.Sqrt(ajj)
 			ab.SetRe(0, j-1, ajj)
-			km = min(*kd, m-j)
+			km = min(kd, m-j)
 
 			//           Compute elements j+1:j+km of the j-th column and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
 				goblas.Zdscal(km, one/ajj, ab.CVector(1, j-1, 1))
-				err = goblas.Zher(Lower, km, -one, ab.CVector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld))
+				if err = goblas.Zher(Lower, km, -one, ab.CVector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld)); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -143,5 +149,7 @@ func Zpbstf(uplo byte, n, kd *int, ab *mat.CMatrix, ldab, info *int) {
 
 label50:
 	;
-	(*info) = j
+	info = j
+
+	return
 }

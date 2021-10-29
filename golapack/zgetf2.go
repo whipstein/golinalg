@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -16,67 +18,66 @@ import (
 // triangular (upper trapezoidal if m < n).
 //
 // This is the right-looking Level 2 BLAS version of the algorithm.
-func Zgetf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
+func Zgetf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 	var one, zero complex128
 	var sfmin float64
 	var i, j, jp int
-	var err error
-	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
 	//     Test the input parameters.
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGETF2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgetf2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
 	//     Compute machine safe minimum
 	sfmin = Dlamch(SafeMinimum)
 
-	for j = 1; j <= min(*m, *n); j++ {
+	for j = 1; j <= min(m, n); j++ {
 		//        Find pivot and test for singularity.
-		jp = j - 1 + goblas.Izamax((*m)-j+1, a.CVector(j-1, j-1, 1))
+		jp = j - 1 + goblas.Izamax(m-j+1, a.CVector(j-1, j-1, 1))
 		(*ipiv)[j-1] = jp
 		if a.Get(jp-1, j-1) != zero {
 			//           Apply the interchange to columns 1:N.
 			if jp != j {
-				goblas.Zswap(*n, a.CVector(j-1, 0, *lda), a.CVector(jp-1, 0, *lda))
+				goblas.Zswap(n, a.CVector(j-1, 0), a.CVector(jp-1, 0))
 			}
 
 			//           Compute elements J+1:M of J-th column.
-			if j < (*m) {
+			if j < m {
 				if a.GetMag(j-1, j-1) >= sfmin {
-					goblas.Zscal((*m)-j, one/a.Get(j-1, j-1), a.CVector(j, j-1, 1))
+					goblas.Zscal(m-j, one/a.Get(j-1, j-1), a.CVector(j, j-1, 1))
 				} else {
-					for i = 1; i <= (*m)-j; i++ {
+					for i = 1; i <= m-j; i++ {
 						a.Set(j+i-1, j-1, a.Get(j+i-1, j-1)/a.Get(j-1, j-1))
 					}
 				}
 			}
 
-		} else if (*info) == 0 {
+		} else if info == 0 {
 
-			(*info) = j
+			info = j
 		}
 
-		if j < min(*m, *n) {
+		if j < min(m, n) {
 			//           Update trailing submatrix.
-			err = goblas.Zgeru((*m)-j, (*n)-j, -one, a.CVector(j, j-1, 1), a.CVector(j-1, j, *lda), a.Off(j, j))
+			err = goblas.Zgeru(m-j, n-j, -one, a.CVector(j, j-1, 1), a.CVector(j-1, j), a.Off(j, j))
 		}
 	}
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -11,46 +13,45 @@ import (
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n symmetric matrix.
-func Zsymv(uplo byte, n *int, alpha *complex128, a *mat.CMatrix, lda *int, x *mat.CVector, incx *int, beta *complex128, y *mat.CVector, incy *int) {
+func Zsymv(uplo mat.MatUplo, n int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
 	var one, temp1, temp2, zero complex128
-	var i, info, ix, iy, j, jx, jy, kx, ky int
+	var i, ix, iy, j, jx, jy, kx, ky int
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
-	//     Test the input parameters.
-	info = 0
-	if uplo != 'U' && uplo != 'L' {
-		info = 1
-	} else if (*n) < 0 {
-		info = 2
-	} else if (*lda) < max(1, *n) {
-		info = 5
-	} else if (*incx) == 0 {
-		info = 7
-	} else if (*incy) == 0 {
-		info = 10
+	// Test the input parameters.
+	if uplo != Upper && uplo != Lower {
+		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if x.Inc == 0 {
+		err = fmt.Errorf("x.Inc == 0: x.Inc=%v", x.Inc)
+	} else if y.Inc == 0 {
+		err = fmt.Errorf("y.Inc == 0: y.Inc=%v", y.Inc)
 	}
-	if info != 0 {
-		gltest.Xerbla([]byte("ZSYMV "), info)
+	if err != nil {
+		gltest.Xerbla2("Zsymv", err)
 		return
 	}
 
 	//     Quick return if possible.
-	if ((*n) == 0) || (((*alpha) == zero) && ((*beta) == one)) {
+	if (n == 0) || ((alpha == zero) && (beta == one)) {
 		return
 	}
 
 	//     Set up the start points in  X  and  Y.
-	if (*incx) > 0 {
+	if x.Inc > 0 {
 		kx = 1
 	} else {
-		kx = 1 - ((*n)-1)*(*incx)
+		kx = 1 - (n-1)*x.Inc
 	}
-	if (*incy) > 0 {
+	if y.Inc > 0 {
 		ky = 1
 	} else {
-		ky = 1 - ((*n)-1)*(*incy)
+		ky = 1 - (n-1)*y.Inc
 	}
 
 	//     Start the operations. In this version the elements of A are
@@ -58,98 +59,100 @@ func Zsymv(uplo byte, n *int, alpha *complex128, a *mat.CMatrix, lda *int, x *ma
 	//     of A.
 	//
 	//     First form  y := beta*y.
-	if (*beta) != one {
-		if (*incy) == 1 {
-			if (*beta) == zero {
-				for i = 1; i <= (*n); i++ {
+	if beta != one {
+		if y.Inc == 1 {
+			if beta == zero {
+				for i = 1; i <= n; i++ {
 					y.Set(i-1, zero)
 				}
 			} else {
-				for i = 1; i <= (*n); i++ {
-					y.Set(i-1, (*beta)*y.Get(i-1))
+				for i = 1; i <= n; i++ {
+					y.Set(i-1, beta*y.Get(i-1))
 				}
 			}
 		} else {
 			iy = ky
-			if (*beta) == zero {
-				for i = 1; i <= (*n); i++ {
+			if beta == zero {
+				for i = 1; i <= n; i++ {
 					y.Set(iy-1, zero)
-					iy = iy + (*incy)
+					iy = iy + y.Inc
 				}
 			} else {
-				for i = 1; i <= (*n); i++ {
-					y.Set(iy-1, (*beta)*y.Get(iy-1))
-					iy = iy + (*incy)
+				for i = 1; i <= n; i++ {
+					y.Set(iy-1, beta*y.Get(iy-1))
+					iy = iy + y.Inc
 				}
 			}
 		}
 	}
-	if (*alpha) == zero {
+	if alpha == zero {
 		return
 	}
-	if uplo == 'U' {
+	if uplo == Upper {
 		//        Form  y  when A is stored in upper triangle.
-		if ((*incx) == 1) && ((*incy) == 1) {
-			for j = 1; j <= (*n); j++ {
-				temp1 = (*alpha) * x.Get(j-1)
+		if (x.Inc == 1) && (y.Inc == 1) {
+			for j = 1; j <= n; j++ {
+				temp1 = alpha * x.Get(j-1)
 				temp2 = zero
 				for i = 1; i <= j-1; i++ {
 					y.Set(i-1, y.Get(i-1)+temp1*a.Get(i-1, j-1))
 					temp2 = temp2 + a.Get(i-1, j-1)*x.Get(i-1)
 				}
-				y.Set(j-1, y.Get(j-1)+temp1*a.Get(j-1, j-1)+(*alpha)*temp2)
+				y.Set(j-1, y.Get(j-1)+temp1*a.Get(j-1, j-1)+alpha*temp2)
 			}
 		} else {
 			jx = kx
 			jy = ky
-			for j = 1; j <= (*n); j++ {
-				temp1 = (*alpha) * x.Get(jx-1)
+			for j = 1; j <= n; j++ {
+				temp1 = alpha * x.Get(jx-1)
 				temp2 = zero
 				ix = kx
 				iy = ky
 				for i = 1; i <= j-1; i++ {
 					y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(i-1, j-1))
 					temp2 = temp2 + a.Get(i-1, j-1)*x.Get(ix-1)
-					ix = ix + (*incx)
-					iy = iy + (*incy)
+					ix = ix + x.Inc
+					iy = iy + y.Inc
 				}
-				y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(j-1, j-1)+(*alpha)*temp2)
-				jx = jx + (*incx)
-				jy = jy + (*incy)
+				y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(j-1, j-1)+alpha*temp2)
+				jx = jx + x.Inc
+				jy = jy + y.Inc
 			}
 		}
 	} else {
 		//        Form  y  when A is stored in lower triangle.
-		if ((*incx) == 1) && ((*incy) == 1) {
-			for j = 1; j <= (*n); j++ {
-				temp1 = (*alpha) * x.Get(j-1)
+		if (x.Inc == 1) && (y.Inc == 1) {
+			for j = 1; j <= n; j++ {
+				temp1 = alpha * x.Get(j-1)
 				temp2 = zero
 				y.Set(j-1, y.Get(j-1)+temp1*a.Get(j-1, j-1))
-				for i = j + 1; i <= (*n); i++ {
+				for i = j + 1; i <= n; i++ {
 					y.Set(i-1, y.Get(i-1)+temp1*a.Get(i-1, j-1))
 					temp2 = temp2 + a.Get(i-1, j-1)*x.Get(i-1)
 				}
-				y.Set(j-1, y.Get(j-1)+(*alpha)*temp2)
+				y.Set(j-1, y.Get(j-1)+alpha*temp2)
 			}
 		} else {
 			jx = kx
 			jy = ky
-			for j = 1; j <= (*n); j++ {
-				temp1 = (*alpha) * x.Get(jx-1)
+			for j = 1; j <= n; j++ {
+				temp1 = alpha * x.Get(jx-1)
 				temp2 = zero
 				y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(j-1, j-1))
 				ix = jx
 				iy = jy
-				for i = j + 1; i <= (*n); i++ {
-					ix = ix + (*incx)
-					iy = iy + (*incy)
+				for i = j + 1; i <= n; i++ {
+					ix = ix + x.Inc
+					iy = iy + y.Inc
 					y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(i-1, j-1))
 					temp2 = temp2 + a.Get(i-1, j-1)*x.Get(ix-1)
 				}
-				y.Set(jy-1, y.Get(jy-1)+(*alpha)*temp2)
-				jx = jx + (*incx)
-				jy = jy + (*incy)
+				y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
+				jx = jx + x.Inc
+				jy = jy + y.Inc
 			}
 		}
 	}
+
+	return
 }

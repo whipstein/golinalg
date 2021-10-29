@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dqpt01 tests the QR-factorization with pivoting of a matrix A.  The
+// dqpt01 tests the QR-factorization with pivoting of a matrix A.  The
 // array AF contains the (possibly partial) QR-factorization of A, where
 // the upper triangle of AF(1:k,1:k) is a partial triangular factor,
 // the entries below the diagonal in the first k columns are the
@@ -15,9 +15,10 @@ import (
 // matrix.
 //
 // This function returns ||A*P - Q*R||/(||norm(A)||*eps*M)
-func Dqpt01(m, n, k *int, a, af *mat.Matrix, lda *int, tau *mat.Vector, jpvt *[]int, work *mat.Vector, lwork *int) (dqpt01Return float64) {
+func dqpt01(m, n, k int, a, af *mat.Matrix, tau *mat.Vector, jpvt []int, work *mat.Vector, lwork int) (dqpt01Return float64) {
 	var norma, one, zero float64
-	var i, info, j int
+	var i, j int
+	var err error
 
 	rwork := vf(1)
 
@@ -27,38 +28,40 @@ func Dqpt01(m, n, k *int, a, af *mat.Matrix, lda *int, tau *mat.Vector, jpvt *[]
 	dqpt01Return = zero
 
 	//     Test if there is enough workspace
-	if (*lwork) < (*m)*(*n)+(*n) {
-		gltest.Xerbla([]byte("DQPT01"), 10)
+	if lwork < m*n+n {
+		gltest.Xerbla("dqpt01", 10)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
+	if m <= 0 || n <= 0 {
 		return
 	}
 
-	norma = golapack.Dlange('O', m, n, a, lda, rwork)
+	norma = golapack.Dlange('O', m, n, a, rwork)
 
-	for j = 1; j <= (*k); j++ {
-		for i = 1; i <= min(j, *m); i++ {
-			work.Set((j-1)*(*m)+i-1, af.Get(i-1, j-1))
+	for j = 1; j <= k; j++ {
+		for i = 1; i <= min(j, m); i++ {
+			work.Set((j-1)*m+i-1, af.Get(i-1, j-1))
 		}
-		for i = j + 1; i <= (*m); i++ {
-			work.Set((j-1)*(*m)+i-1, zero)
+		for i = j + 1; i <= m; i++ {
+			work.Set((j-1)*m+i-1, zero)
 		}
 	}
-	for j = (*k) + 1; j <= (*n); j++ {
-		goblas.Dcopy(*m, af.Vector(0, j-1, 1), work.Off((j-1)*(*m), 1))
+	for j = k + 1; j <= n; j++ {
+		goblas.Dcopy(m, af.Vector(0, j-1, 1), work.Off((j-1)*m, 1))
 	}
 
-	golapack.Dormqr('L', 'N', m, n, k, af, lda, tau, work.Matrix(*m, opts), m, work.Off((*m)*(*n)), toPtr((*lwork)-(*m)*(*n)), &info)
+	if err = golapack.Dormqr(Left, NoTrans, m, n, k, af, tau, work.Matrix(m, opts), work.Off(m*n), lwork-m*n); err != nil {
+		panic(err)
+	}
 
-	for j = 1; j <= (*n); j++ {
+	for j = 1; j <= n; j++ {
 		//        Compare i-th column of QR and jpvt(i)-th column of A
-		goblas.Daxpy(*m, -one, a.Vector(0, (*jpvt)[j-1]-1, 1), work.Off((j-1)*(*m), 1))
+		goblas.Daxpy(m, -one, a.Vector(0, jpvt[j-1]-1, 1), work.Off((j-1)*m, 1))
 	}
 
-	dqpt01Return = golapack.Dlange('O', m, n, work.Matrix(*m, opts), m, rwork) / (float64(max(*m, *n)) * golapack.Dlamch(Epsilon))
+	dqpt01Return = golapack.Dlange('O', m, n, work.Matrix(m, opts), rwork) / (float64(max(m, n)) * golapack.Dlamch(Epsilon))
 	if norma != zero {
 		dqpt01Return = dqpt01Return / norma
 	}

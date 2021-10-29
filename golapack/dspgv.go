@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -11,81 +13,90 @@ import (
 // A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
 // Here A and B are assumed to be symmetric, stored in packed format,
 // and B is also positive definite.
-func Dspgv(itype *int, jobz, uplo byte, n *int, ap, bp, w *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, info *int) {
+func Dspgv(itype int, jobz byte, uplo mat.MatUplo, n int, ap, bp, w *mat.Vector, z *mat.Matrix, work *mat.Vector) (info int, err error) {
 	var upper, wantz bool
-	var trans byte
+	var trans mat.MatTrans
 	var j, neig int
-	var err error
-	_ = err
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
-	upper = uplo == 'U'
+	upper = uplo == Upper
 
-	(*info) = 0
-	if (*itype) < 1 || (*itype) > 3 {
-		(*info) = -1
+	if itype < 1 || itype > 3 {
+		err = fmt.Errorf("itype < 1 || itype > 3: itype=%v", itype)
 	} else if !(wantz || jobz == 'N') {
-		(*info) = -2
-	} else if !(upper || uplo == 'L') {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-		(*info) = -9
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
+	} else if !(upper || uplo == Lower) {
+		err = fmt.Errorf("!(upper || uplo == Lower): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if z.Rows < 1 || (wantz && z.Rows < n) {
+		err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSPGV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dspgv", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Form a Cholesky factorization of B.
-	Dpptrf(uplo, n, bp, info)
-	if (*info) != 0 {
-		(*info) = (*n) + (*info)
+	if info, err = Dpptrf(uplo, n, bp); err != nil {
+		panic(err)
+	}
+	if info != 0 {
+		info = n + info
 		return
 	}
 
 	//     Transform problem to standard eigenvalue problem and solve.
-	Dspgst(itype, uplo, n, ap, bp, info)
-	Dspev(jobz, uplo, n, ap, w, z, ldz, work, info)
+	if err = Dspgst(itype, uplo, n, ap, bp); err != nil {
+		panic(err)
+	}
+	if info, err = Dspev(jobz, uplo, n, ap, w, z, work); err != nil {
+		panic(err)
+	}
 
 	if wantz {
 		//        Backtransform eigenvectors to the original problem.
-		neig = (*n)
-		if (*info) > 0 {
-			neig = (*info) - 1
+		neig = n
+		if info > 0 {
+			neig = info - 1
 		}
-		if (*itype) == 1 || (*itype) == 2 {
+		if itype == 1 || itype == 2 {
 			//           For A*x=(lambda)*B*x and A*B*x=(lambda)*x;
 			//           backtransform eigenvectors: x = inv(L)**T*y or inv(U)*y
 			if upper {
-				trans = 'N'
+				trans = NoTrans
 			} else {
-				trans = 'T'
+				trans = Trans
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Dtpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
+				if err = goblas.Dtpsv(uplo, trans, NonUnit, n, bp, z.Vector(0, j-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 
-		} else if (*itype) == 3 {
+		} else if itype == 3 {
 			//           For B*A*x=(lambda)*x;
 			//           backtransform eigenvectors: x = L*y or U**T*y
 			if upper {
-				trans = 'T'
+				trans = Trans
 			} else {
-				trans = 'N'
+				trans = NoTrans
 			}
 
 			for j = 1; j <= neig; j++ {
-				err = goblas.Dtpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.Vector(0, j-1, 1))
+				if err = goblas.Dtpmv(uplo, trans, NonUnit, n, bp, z.Vector(0, j-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
+
+	return
 }

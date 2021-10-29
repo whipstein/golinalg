@@ -12,12 +12,13 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zdrvpt tests ZPTSV and -SVX.
-func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tsterr *bool, a *mat.CVector, d *mat.Vector, e, b, x, xact, work *mat.CVector, rwork *mat.Vector, nout *int, t *testing.T) {
+// zdrvpt tests Zptsvand -SVX.
+func zdrvpt(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, a *mat.CVector, d *mat.Vector, e, b, x, xact, work *mat.CVector, rwork *mat.Vector, t *testing.T) {
 	var zerot bool
 	var dist, fact, _type byte
 	var ainvnm, anorm, cond, dmax, one, rcond, rcondc, zero float64
 	var i, ia, ifact, imat, in, info, ix, izero, j, k, k1, kl, ku, lda, mode, n, nerrs, nfail, nimat, nrun, nt, ntypes int
+	var err error
 
 	result := vf(6)
 	z := vf(3)
@@ -32,7 +33,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 0, 0, 0, 1
 
-	path := []byte("ZPT")
+	path := "Zpt"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -41,14 +42,14 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Zerrvx(path, t)
+	if tsterr {
+		zerrvx(path, t)
 	}
 	(*infot) = 0
 
-	for in = 1; in <= (*nn); in++ {
+	for in = 1; in <= nn; in++ {
 		//        Do for each value of N in NVAL.
-		n = (*nval)[in-1]
+		n = nval[in-1]
 		lda = max(1, n)
 		nimat = ntypes
 		if n <= 0 {
@@ -57,24 +58,21 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if n > 0 && !(*dotype)[imat-1] {
+			if n > 0 && !dotype[imat-1] {
 				goto label110
 			}
 
 			//           Set up parameters with ZLATB4.
-			Zlatb4(path, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cond, &dist)
+			_type, kl, ku, anorm, mode, cond, dist = zlatb4(path, imat, n, n)
 
 			zerot = imat >= 8 && imat <= 10
 			if imat <= 6 {
 				//              Type 1-6:  generate a symmetric tridiagonal matrix of
 				//              known condition number in lower triangular band storage.
-				*srnamt = "ZLATMS"
-				matgen.Zlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cond, &anorm, &kl, &ku, 'B', a.CMatrix(2, opts), func() *int { y := 2; return &y }(), work, &info)
-
-				//              Check the error code from ZLATMS.
-				if info != 0 {
+				*srnamt = "Zlatms"
+				if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'B', a.CMatrix(2, opts), work); err != nil {
 					t.Fail()
-					Alaerh(path, []byte("ZLATMS"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &n, &n, &kl, &ku, toPtr(-1), &imat, &nfail, &nerrs)
+					nerrs = alaerh(path, "Zlatms", info, 0, []byte{' '}, n, n, kl, ku, -1, imat, nfail, nerrs)
 					goto label110
 				}
 				izero = 0
@@ -92,10 +90,10 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 			} else {
 				//              Type 7-12:  generate a diagonally dominant matrix with
 				//              unknown condition number in the vectors D and E.
-				if !zerot || !(*dotype)[6] {
+				if !zerot || !dotype[6] {
 					//                 Let D and E have values from [-1,1].
-					golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, &n, d)
-					golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(n-1), e)
+					golapack.Dlarnv(2, &iseed, n, d)
+					golapack.Zlarnv(2, &iseed, n-1, e)
 
 					//                 Make the tridiagonal matrix diagonally dominant.
 					if n == 1 {
@@ -166,15 +164,15 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 			}
 
-			//           Generate NRHS random solution vectors.
+			//           Generate nrhs random solution vectors.
 			ix = 1
-			for j = 1; j <= (*nrhs); j++ {
-				golapack.Zlarnv(func() *int { y := 2; return &y }(), &iseed, &n, xact.Off(ix-1))
+			for j = 1; j <= nrhs; j++ {
+				golapack.Zlarnv(2, &iseed, n, xact.Off(ix-1))
 				ix = ix + lda
 			}
 
 			//           Set the right hand side.
-			Zlaptm('L', &n, nrhs, &one, d, e, xact.CMatrix(lda, opts), &lda, &zero, b.CMatrix(lda, opts), &lda)
+			zlaptm(Lower, n, nrhs, one, d, e, xact.CMatrix(lda, opts), zero, b.CMatrix(lda, opts))
 
 			for ifact = 1; ifact <= 2; ifact++ {
 				if ifact == 1 {
@@ -184,7 +182,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				//              Compute the condition number for comparison with
-				//              the value returned by ZPTSVX.
+				//              the value returned by Zptsvx.
 				if zerot {
 					if ifact == 1 {
 						goto label100
@@ -193,7 +191,7 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 				} else if ifact == 1 {
 					//                 Compute the 1-norm of A.
-					anorm = golapack.Zlanht('1', &n, d, e)
+					anorm = golapack.Zlanht('1', n, d, e)
 
 					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
@@ -201,7 +199,9 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Factor the matrix A.
-					golapack.Zpttrf(&n, d.Off(n), e.Off(n), &info)
+					if info, err = golapack.Zpttrf(n, d.Off(n), e.Off(n)); err != nil {
+						panic(err)
+					}
 
 					//                 Use ZPTTRS to solve for one column at a time of
 					//                 inv(A), computing the maximum column sum as we go.
@@ -211,7 +211,9 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							x.SetRe(j-1, zero)
 						}
 						x.SetRe(i-1, one)
-						golapack.Zpttrs('L', &n, func() *int { y := 1; return &y }(), d.Off(n), e.Off(n), x.CMatrix(lda, opts), &lda, &info)
+						if err = golapack.Zpttrs(Lower, n, 1, d.Off(n), e.Off(n), x.CMatrix(lda, opts)); err != nil {
+							panic(err)
+						}
 						ainvnm = math.Max(ainvnm, goblas.Dzasum(n, x.Off(0, 1)))
 					}
 
@@ -224,53 +226,50 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 				}
 
 				if ifact == 2 {
-					//                 --- Test ZPTSV --
+					//                 --- Test Zptsv--
 					goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
 					if n > 1 {
 						goblas.Zcopy(n-1, e.Off(0, 1), e.Off(n, 1))
 					}
-					golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
+					golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), x.CMatrix(lda, opts))
 
 					//                 Factor A as L*D*L' and solve the system A*X = B.
-					*srnamt = "ZPTSV "
-					golapack.Zptsv(&n, nrhs, d.Off(n), e.Off(n), x.CMatrix(lda, opts), &lda, &info)
-
-					//                 Check error code from ZPTSV .
-					if info != izero {
+					*srnamt = "Zptsv"
+					if info, err = golapack.Zptsv(n, nrhs, d.Off(n), e.Off(n), x.CMatrix(lda, opts)); err != nil || info != izero {
 						t.Fail()
-						Alaerh(path, []byte("ZPTSV "), &info, &izero, []byte{' '}, &n, &n, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), nrhs, &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Zptsv", info, 0, []byte{' '}, n, n, 1, 1, nrhs, imat, nfail, nerrs)
 					}
 					nt = 0
 					if izero == 0 {
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
-						Zptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
+						*result.GetPtr(0) = zptt01(n, d, e, d.Off(n), e.Off(n), work)
 
 						//                    Compute the residual in the solution.
-						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-						Zptt02('L', &n, nrhs, d, e, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, result.GetPtr(1))
+						golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), work.CMatrix(lda, opts))
+						*result.GetPtr(1) = zptt02(Lower, n, nrhs, d, e, x.CMatrix(lda, opts), work.CMatrix(lda, opts))
 
 						//                    Check solution from generated exact solution.
-						Zget04(&n, nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+						*result.GetPtr(2) = zget04(n, nrhs, x.CMatrix(lda, opts), xact.CMatrix(lda, opts), rcondc)
 						nt = 3
 					}
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.
 					for k = 1; k <= nt; k++ {
-						if result.Get(k-1) >= (*thresh) {
+						if result.Get(k-1) >= thresh {
 							t.Fail()
 							if nfail == 0 && nerrs == 0 {
-								Aladhd(path)
+								aladhd(path)
 							}
-							fmt.Printf(" %s, N =%5d, _type %2d, test %2d, ratio = %12.5f\n", "ZPTSV ", n, imat, k, result.Get(k-1))
-							nfail = nfail + 1
+							fmt.Printf(" %s, n=%5d, _type %2d, test %2d, ratio = %12.5f\n", "Zptsv", n, imat, k, result.Get(k-1))
+							nfail++
 						}
 					}
 					nrun = nrun + nt
 				}
 
-				//              --- Test ZPTSVX ---
+				//              --- Test Zptsvx ---
 				if ifact > 1 {
 					//                 Initialize D( N+1:2*N ) and E( N+1:2*N ) to zero.
 					for i = 1; i <= n-1; i++ {
@@ -282,56 +281,53 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 				}
 
-				golapack.Zlaset('F', &n, nrhs, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), x.CMatrix(lda, opts), &lda)
+				golapack.Zlaset(Full, n, nrhs, complex(zero, 0), complex(zero, 0), x.CMatrix(lda, opts))
 
 				//              Solve the system and compute the condition number and
-				//              error bounds using ZPTSVX.
-				*srnamt = "ZPTSVX"
-				golapack.Zptsvx(fact, &n, nrhs, d, e, d.Off(n), e.Off(n), b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, rwork.Off(2*(*nrhs)), &info)
-
-				//              Check the error code from ZPTSVX.
-				if info != izero {
-					Alaerh(path, []byte("ZPTSVX"), &info, &izero, []byte{fact}, &n, &n, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), nrhs, &imat, &nfail, &nerrs)
+				//              error bounds using Zptsvx.
+				*srnamt = "Zptsvx"
+				if rcond, info, err = golapack.Zptsvx(fact, n, nrhs, d, e, d.Off(n), e.Off(n), b.CMatrix(lda, opts), x.CMatrix(lda, opts), rwork, rwork.Off(nrhs), work, rwork.Off(2*nrhs)); err != nil || info != izero {
+					nerrs = alaerh(path, "Zptsvx", info, 0, []byte{fact}, n, n, 1, 1, nrhs, imat, nfail, nerrs)
 				}
 				if izero == 0 {
 					if ifact == 2 {
 						//                    Check the factorization by computing the ratio
 						//                       norm(L*D*L' - A) / (n * norm(A) * EPS )
 						k1 = 1
-						Zptt01(&n, d, e, d.Off(n), e.Off(n), work, result.GetPtr(0))
+						*result.GetPtr(0) = zptt01(n, d, e, d.Off(n), e.Off(n), work)
 					} else {
 						k1 = 2
 					}
 
 					//                 Compute the residual in the solution.
-					golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-					Zptt02('L', &n, nrhs, d, e, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, result.GetPtr(1))
+					golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), work.CMatrix(lda, opts))
+					*result.GetPtr(1) = zptt02(Lower, n, nrhs, d, e, x.CMatrix(lda, opts), work.CMatrix(lda, opts))
 
 					//                 Check solution from generated exact solution.
-					Zget04(&n, nrhs, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+					*result.GetPtr(2) = zget04(n, nrhs, x.CMatrix(lda, opts), xact.CMatrix(lda, opts), rcondc)
 
 					//                 Check error bounds from iterative refinement.
-					Zptt05(&n, nrhs, d, e, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
+					zptt05(n, nrhs, d, e, b.CMatrix(lda, opts), x.CMatrix(lda, opts), xact.CMatrix(lda, opts), rwork, rwork.Off(nrhs), result.Off(3))
 				} else {
 					k1 = 6
 				}
 
 				//              Check the reciprocal of the condition number.
-				result.Set(5, Dget06(&rcond, &rcondc))
+				result.Set(5, dget06(rcond, rcondc))
 
 				//              Print information about the tests that did not pass
 				//              the threshold.
 				for k = k1; k <= 6; k++ {
-					if result.Get(k-1) >= (*thresh) {
+					if result.Get(k-1) >= thresh {
 						t.Fail()
 						if nfail == 0 && nerrs == 0 {
-							Aladhd(path)
+							aladhd(path)
 						}
-						fmt.Printf(" %s, FACT='%c', N =%5d, _type %2d, test %2d, ratio = %12.5f\n", "ZPTSVX", fact, n, imat, k, result.Get(k-1))
-						nfail = nfail + 1
+						fmt.Printf(" %s, fact='%c', n=%5d, _type %2d, test %2d, ratio = %12.5f\n", "Zptsvx", fact, n, imat, k, result.Get(k-1))
+						nfail++
 					}
 				}
-				nrun = nrun + 7 - k1
+				nrun += 7 - k1
 			label100:
 			}
 		label110:
@@ -339,5 +335,5 @@ func Zdrvpt(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	}
 
 	//     Print a summary of the results.
-	Alasvm(path, &nfail, &nrun, &nerrs)
+	alasvm(path, nfail, nrun, nerrs)
 }

@@ -8,9 +8,10 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrbd tests the error exits for ZGEBRD, ZUNGBR, ZUNMBR, and ZBDSQR.
-func Zerrbd(path []byte, t *testing.T) {
-	var i, info, j, lw, nmax, nt int
+// zerrbd tests the error exits for Zgebrd, Zungbr, Zunmbr, and Zbdsqr.
+func zerrbd(path string, t *testing.T) {
+	var i, j, lw, nmax, nt int
+	var err error
 
 	nmax = 4
 	lw = nmax
@@ -23,9 +24,10 @@ func Zerrbd(path []byte, t *testing.T) {
 	a := cmf(4, 4, opts)
 	u := cmf(4, 4, opts)
 	v := cmf(4, 4, opts)
+
+	errt := &gltest.Common.Infoc.Errt
 	infot := &gltest.Common.Infoc.Infot
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 	c2 := path[1:3]
 
@@ -39,126 +41,126 @@ func Zerrbd(path []byte, t *testing.T) {
 	nt = 0
 
 	//     Test error exits of the SVD routines.
-	if string(c2) == "BD" {
-		//        ZGEBRD
-		*srnamt = "ZGEBRD"
-		*infot = 1
-		golapack.Zgebrd(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGEBRD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zgebrd(func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGEBRD", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zgebrd(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), d, e, tq, tp, w, func() *int { y := 2; return &y }(), &info)
-		Chkxer("ZGEBRD", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Zgebrd(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), d, e, tq, tp, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZGEBRD", &info, lerr, ok, t)
+	if c2 == "bd" {
+		//        Zgebrd
+		*srnamt = "Zgebrd"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Zgebrd(-1, 0, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w, 1)
+		chkxer2("Zgebrd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zgebrd(0, -1, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w, 1)
+		chkxer2("Zgebrd", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		err = golapack.Zgebrd(2, 1, a.Off(0, 0).UpdateRows(1), d, e, tq, tp, w, 2)
+		chkxer2("Zgebrd", err)
+		*errt = fmt.Errorf("lwork < max(1, m, n) && !lquery: lwork=1, m=2, n=1")
+		err = golapack.Zgebrd(2, 1, a.Off(0, 0).UpdateRows(2), d, e, tq, tp, w, 1)
+		chkxer2("Zgebrd", err)
 		nt = nt + 4
 
-		//        ZUNGBR
-		*srnamt = "ZUNGBR"
-		*infot = 1
-		golapack.Zungbr('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zungbr('Q', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zungbr('Q', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zungbr('Q', func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zungbr('Q', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zungbr('P', func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zungbr('P', func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zungbr('Q', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zungbr('Q', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zungbr('Q', func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), tq, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNGBR", &info, lerr, ok, t)
+		//        Zungbr
+		*srnamt = "Zungbr"
+		*errt = fmt.Errorf("!wantq && vect != 'P': vect='/'")
+		err = golapack.Zungbr('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Zungbr('Q', -1, 0, 0, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='Q', m=0, n=-1, k=0")
+		err = golapack.Zungbr('Q', 0, -1, 0, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='Q', m=0, n=1, k=0")
+		err = golapack.Zungbr('Q', 0, 1, 0, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='Q', m=1, n=0, k=1")
+		err = golapack.Zungbr('Q', 1, 0, 1, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='P', m=1, n=0, k=0")
+		err = golapack.Zungbr('P', 1, 0, 0, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("n < 0 || (wantq && (n > m || n < min(m, k))) || (!wantq && (m > n || m < min(n, k))): vect='P', m=0, n=1, k=1")
+		err = golapack.Zungbr('P', 0, 1, 1, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("k < 0: k=-1")
+		err = golapack.Zungbr('Q', 0, 0, -1, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		err = golapack.Zungbr('Q', 2, 1, 1, a.Off(0, 0).UpdateRows(1), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
+		*errt = fmt.Errorf("lwork < max(1, mn) && !lquery: lwork=1, mn=2, lquery=false")
+		err = golapack.Zungbr('Q', 2, 2, 1, a.Off(0, 0).UpdateRows(2), tq, w.Off(0, 1), 1)
+		chkxer2("Zungbr", err)
 		nt = nt + 10
 
-		//        ZUNMBR
-		*srnamt = "ZUNMBR"
-		*infot = 1
-		golapack.Zunmbr('/', 'L', 'T', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zunmbr('Q', '/', 'T', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zunmbr('Q', 'L', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zunmbr('Q', 'L', 'C', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zunmbr('Q', 'L', 'C', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Zunmbr('Q', 'L', 'C', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zunmbr('Q', 'L', 'C', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zunmbr('Q', 'R', 'C', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zunmbr('P', 'L', 'C', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 2; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Zunmbr('P', 'R', 'C', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zunmbr('Q', 'R', 'C', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zunmbr('Q', 'L', 'C', func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 1; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zunmbr('Q', 'R', 'C', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tq, u, func() *int { y := 2; return &y }(), w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("ZUNMBR", &info, lerr, ok, t)
+		//        Zunmbr
+		*srnamt = "Zunmbr"
+		*errt = fmt.Errorf("!applyq && vect != 'P': vect='/'")
+		err = golapack.Zunmbr('/', Left, Trans, 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("!left && side != Right: side=Unrecognized: /")
+		err = golapack.Zunmbr('Q', '/', Trans, 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("!notran && trans != ConjTrans: trans=Unrecognized: /")
+		err = golapack.Zunmbr('Q', Left, '/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Zunmbr('Q', Left, ConjTrans, -1, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		err = golapack.Zunmbr('Q', Left, ConjTrans, 0, -1, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("k < 0: k=-1")
+		err = golapack.Zunmbr('Q', Left, ConjTrans, 0, 0, -1, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='Q', a.Rows=1, nq=2, k=0")
+		err = golapack.Zunmbr('Q', Left, ConjTrans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(2), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='Q', a.Rows=1, nq=2, k=0")
+		err = golapack.Zunmbr('Q', Right, ConjTrans, 0, 2, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='P', a.Rows=1, nq=2, k=2")
+		err = golapack.Zunmbr('P', Left, ConjTrans, 2, 0, 2, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(2), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("(applyq && a.Rows < max(1, nq)) || (!applyq && a.Rows < max(1, min(nq, k))): vect='P', a.Rows=1, nq=2, k=2")
+		err = golapack.Zunmbr('P', Right, ConjTrans, 0, 2, 2, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("c.Rows < max(1, m): c.Rows=1, m=2")
+		err = golapack.Zunmbr('Q', Right, ConjTrans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 1), 1)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("lwork < max(1, nw) && !lquery: lwork=0, nw=0, lquery=false")
+		err = golapack.Zunmbr('Q', Left, ConjTrans, 0, 2, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(1), w.Off(0, 0), 0)
+		chkxer2("Zunmbr", err)
+		*errt = fmt.Errorf("lwork < max(1, nw) && !lquery: lwork=0, nw=0, lquery=false")
+		err = golapack.Zunmbr('Q', Right, ConjTrans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), tq, u.Off(0, 0).UpdateRows(2), w.Off(0, 0), 0)
+		chkxer2("Zunmbr", err)
 		nt = nt + 13
 
-		//        ZBDSQR
-		*srnamt = "ZBDSQR"
-		*infot = 1
-		golapack.Zbdsqr('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Zbdsqr('U', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Zbdsqr('U', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Zbdsqr('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Zbdsqr('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 9
-		golapack.Zbdsqr('U', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 11
-		golapack.Zbdsqr('U', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
-		*infot = 13
-		golapack.Zbdsqr('U', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), d, e, v, func() *int { y := 1; return &y }(), u, func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), rw, &info)
-		Chkxer("ZBDSQR", &info, lerr, ok, t)
+		//        Zbdsqr
+		*srnamt = "Zbdsqr"
+		*errt = fmt.Errorf("uplo != Upper && !lower: uplo=Unrecognized: /")
+		_, err = golapack.Zbdsqr('/', 0, 0, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Zbdsqr(Upper, -1, 0, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("ncvt < 0: ncvt=-1")
+		_, err = golapack.Zbdsqr(Upper, 0, -1, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("nru < 0: nru=-1")
+		_, err = golapack.Zbdsqr(Upper, 0, 0, -1, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("ncc < 0: ncc=-1")
+		_, err = golapack.Zbdsqr(Upper, 0, 0, 0, -1, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("(ncvt == 0 && vt.Rows < 1) || (ncvt > 0 && vt.Rows < max(1, n)): ncvt=1, vt.Rows=1, n=2")
+		_, err = golapack.Zbdsqr(Upper, 2, 1, 0, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("u.Rows < max(1, nru): u.Rows=1, nru=2")
+		_, err = golapack.Zbdsqr(Upper, 0, 0, 2, 0, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
+		*errt = fmt.Errorf("(ncc == 0 && c.Rows < 1) || (ncc > 0 && c.Rows < max(1, n)): ncc=1, c.Rows=1, n=2")
+		_, err = golapack.Zbdsqr(Upper, 2, 0, 0, 1, d, e, v.Off(0, 0).UpdateRows(1), u.Off(0, 0).UpdateRows(1), a.Off(0, 0).UpdateRows(1), rw)
+		chkxer2("Zbdsqr", err)
 		nt = nt + 8
 	}
 
@@ -167,5 +169,10 @@ func Zerrbd(path []byte, t *testing.T) {
 		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
 	} else {
 		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	}
+	*infot = 0
+	*srnamt = ""
+	if !(*ok) {
+		t.Fail()
 	}
 }

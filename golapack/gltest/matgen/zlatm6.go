@@ -44,10 +44,12 @@ import (
 //         0    0    0    0    1,        0   0   0   0   1 , where
 //
 // a, b, x and y will have all values independently of each other.
-func Zlatm6(_type, n *int, a *mat.CMatrix, lda *int, b, x *mat.CMatrix, ldx *int, y *mat.CMatrix, ldy *int, alpha, beta, wx, wy *complex128, s, dif *mat.Vector) {
+func Zlatm6(_type, n int, a, b, x, y *mat.CMatrix, alpha, beta, wx, wy complex128, s, dif *mat.Vector) {
 	var one, zero complex128
 	var rone, three, two float64
-	var i, info, j int
+	var i, j int
+	var err error
+
 	work := cvf(26)
 	rwork := vf(50)
 	z := cmf(8, 8, opts)
@@ -60,11 +62,11 @@ func Zlatm6(_type, n *int, a *mat.CMatrix, lda *int, b, x *mat.CMatrix, ldx *int
 
 	//     Generate test problem ...
 	//     (Da, Db) ...
-	for i = 1; i <= (*n); i++ {
-		for j = 1; j <= (*n); j++ {
+	for i = 1; i <= n; i++ {
+		for j = 1; j <= n; j++ {
 
 			if i == j {
-				a.Set(i-1, i-1, toCmplx(float64(i))+(*alpha))
+				a.Set(i-1, i-1, toCmplx(float64(i))+alpha)
 				b.Set(i-1, i-1, one)
 			} else {
 				a.Set(i-1, j-1, zero)
@@ -73,57 +75,61 @@ func Zlatm6(_type, n *int, a *mat.CMatrix, lda *int, b, x *mat.CMatrix, ldx *int
 
 		}
 	}
-	if (*_type) == 2 {
+	if _type == 2 {
 		a.Set(0, 0, complex(rone, rone))
 		a.Set(1, 1, a.GetConj(0, 0))
 		a.Set(2, 2, one)
-		a.Set(3, 3, complex(real(one+(*alpha)), real(one+(*beta))))
+		a.Set(3, 3, complex(real(one+alpha), real(one+beta)))
 		a.Set(4, 4, a.GetConj(3, 3))
 	}
 
 	//     Form X and Y
-	golapack.Zlacpy('F', n, n, b, lda, y, ldy)
-	y.Set(2, 0, -cmplx.Conj(*wy))
-	y.Set(3, 0, cmplx.Conj(*wy))
-	y.Set(4, 0, -cmplx.Conj(*wy))
-	y.Set(2, 1, -cmplx.Conj(*wy))
-	y.Set(3, 1, cmplx.Conj(*wy))
-	y.Set(4, 1, -cmplx.Conj(*wy))
+	golapack.Zlacpy(Full, n, n, b, y)
+	y.Set(2, 0, -cmplx.Conj(wy))
+	y.Set(3, 0, cmplx.Conj(wy))
+	y.Set(4, 0, -cmplx.Conj(wy))
+	y.Set(2, 1, -cmplx.Conj(wy))
+	y.Set(3, 1, cmplx.Conj(wy))
+	y.Set(4, 1, -cmplx.Conj(wy))
 
-	golapack.Zlacpy('F', n, n, b, lda, x, ldx)
-	x.Set(0, 2, -(*wx))
-	x.Set(0, 3, -(*wx))
-	x.Set(0, 4, (*wx))
-	x.Set(1, 2, (*wx))
-	x.Set(1, 3, -(*wx))
-	x.Set(1, 4, -(*wx))
+	golapack.Zlacpy(Full, n, n, b, x)
+	x.Set(0, 2, -wx)
+	x.Set(0, 3, -wx)
+	x.Set(0, 4, wx)
+	x.Set(1, 2, wx)
+	x.Set(1, 3, -wx)
+	x.Set(1, 4, -wx)
 
 	//     Form (A, B)
-	b.Set(0, 2, (*wx)+(*wy))
-	b.Set(1, 2, -(*wx)+(*wy))
-	b.Set(0, 3, (*wx)-(*wy))
-	b.Set(1, 3, (*wx)-(*wy))
-	b.Set(0, 4, -(*wx)+(*wy))
-	b.Set(1, 4, (*wx)+(*wy))
-	a.Set(0, 2, (*wx)*a.Get(0, 0)+(*wy)*a.Get(2, 2))
-	a.Set(1, 2, -(*wx)*a.Get(1, 1)+(*wy)*a.Get(2, 2))
-	a.Set(0, 3, (*wx)*a.Get(0, 0)-(*wy)*a.Get(3, 3))
-	a.Set(1, 3, (*wx)*a.Get(1, 1)-(*wy)*a.Get(3, 3))
-	a.Set(0, 4, -(*wx)*a.Get(0, 0)+(*wy)*a.Get(4, 4))
-	a.Set(1, 4, (*wx)*a.Get(1, 1)+(*wy)*a.Get(4, 4))
+	b.Set(0, 2, wx+wy)
+	b.Set(1, 2, -wx+wy)
+	b.Set(0, 3, wx-wy)
+	b.Set(1, 3, wx-wy)
+	b.Set(0, 4, -wx+wy)
+	b.Set(1, 4, wx+wy)
+	a.Set(0, 2, wx*a.Get(0, 0)+wy*a.Get(2, 2))
+	a.Set(1, 2, -wx*a.Get(1, 1)+wy*a.Get(2, 2))
+	a.Set(0, 3, wx*a.Get(0, 0)-wy*a.Get(3, 3))
+	a.Set(1, 3, wx*a.Get(1, 1)-wy*a.Get(3, 3))
+	a.Set(0, 4, -wx*a.Get(0, 0)+wy*a.Get(4, 4))
+	a.Set(1, 4, wx*a.Get(1, 1)+wy*a.Get(4, 4))
 
 	//     Compute condition numbers
-	s.Set(0, rone/math.Sqrt((rone+three*cmplx.Abs(*wy)*cmplx.Abs(*wy))/(rone+a.GetMag(0, 0)*a.GetMag(0, 0))))
-	s.Set(1, rone/math.Sqrt((rone+three*cmplx.Abs(*wy)*cmplx.Abs(*wy))/(rone+a.GetMag(1, 1)*a.GetMag(1, 1))))
-	s.Set(2, rone/math.Sqrt((rone+two*cmplx.Abs(*wx)*cmplx.Abs(*wx))/(rone+a.GetMag(2, 2)*a.GetMag(2, 2))))
-	s.Set(3, rone/math.Sqrt((rone+two*cmplx.Abs(*wx)*cmplx.Abs(*wx))/(rone+a.GetMag(3, 3)*a.GetMag(3, 3))))
-	s.Set(4, rone/math.Sqrt((rone+two*cmplx.Abs(*wx)*cmplx.Abs(*wx))/(rone+a.GetMag(4, 4)*a.GetMag(4, 4))))
+	s.Set(0, rone/math.Sqrt((rone+three*cmplx.Abs(wy)*cmplx.Abs(wy))/(rone+a.GetMag(0, 0)*a.GetMag(0, 0))))
+	s.Set(1, rone/math.Sqrt((rone+three*cmplx.Abs(wy)*cmplx.Abs(wy))/(rone+a.GetMag(1, 1)*a.GetMag(1, 1))))
+	s.Set(2, rone/math.Sqrt((rone+two*cmplx.Abs(wx)*cmplx.Abs(wx))/(rone+a.GetMag(2, 2)*a.GetMag(2, 2))))
+	s.Set(3, rone/math.Sqrt((rone+two*cmplx.Abs(wx)*cmplx.Abs(wx))/(rone+a.GetMag(3, 3)*a.GetMag(3, 3))))
+	s.Set(4, rone/math.Sqrt((rone+two*cmplx.Abs(wx)*cmplx.Abs(wx))/(rone+a.GetMag(4, 4)*a.GetMag(4, 4))))
 
-	Zlakf2(func() *int { y := 1; return &y }(), func() *int { y := 4; return &y }(), a, lda, a.Off(1, 1), b, b.Off(1, 1), z, func() *int { y := 8; return &y }())
-	golapack.Zgesvd('N', 'N', func() *int { y := 8; return &y }(), func() *int { y := 8; return &y }(), z, func() *int { y := 8; return &y }(), rwork, work.CMatrix(1, opts), func() *int { y := 1; return &y }(), work.CMatrixOff(1, 1, opts), func() *int { y := 1; return &y }(), work.Off(2), func() *int { y := 24; return &y }(), rwork.Off(8), &info)
+	Zlakf2(1, 4, a, a.Off(1, 1), b, b.Off(1, 1), z)
+	if _, err = golapack.Zgesvd('N', 'N', 8, 8, z, rwork, work.CMatrix(1, opts), work.CMatrixOff(1, 1, opts), work.Off(2), 24, rwork.Off(8)); err != nil {
+		panic(err)
+	}
 	dif.Set(0, rwork.Get(7))
 
-	Zlakf2(func() *int { y := 4; return &y }(), func() *int { y := 1; return &y }(), a, lda, a.Off(4, 4), b, b.Off(4, 4), z, func() *int { y := 8; return &y }())
-	golapack.Zgesvd('N', 'N', func() *int { y := 8; return &y }(), func() *int { y := 8; return &y }(), z, func() *int { y := 8; return &y }(), rwork, work.CMatrix(1, opts), func() *int { y := 1; return &y }(), work.CMatrixOff(1, 1, opts), func() *int { y := 1; return &y }(), work.Off(2), func() *int { y := 24; return &y }(), rwork.Off(8), &info)
+	Zlakf2(4, 1, a, a.Off(4, 4), b, b.Off(4, 4), z)
+	if _, err = golapack.Zgesvd('N', 'N', 8, 8, z, rwork, work.CMatrix(1, opts), work.CMatrixOff(1, 1, opts), work.Off(2), 24, rwork.Off(8)); err != nil {
+		panic(err)
+	}
 	dif.Set(4, rwork.Get(7))
 }

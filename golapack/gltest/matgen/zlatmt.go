@@ -1,6 +1,7 @@
 package matgen
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
@@ -14,7 +15,7 @@ import (
 //    (or hermitian with specified eigenvalues)
 //    for testing LAPACK programs.
 //
-//    ZLATMT operates by applying the following sequence of
+//    Zlatmt operates by applying the following sequence of
 //    operations:
 //
 //      Set the diagonal to D, where D may be input or
@@ -64,7 +65,7 @@ import (
 //      If Method B is chosen, and band format is specified, then the
 //         matrix will be generated in the band format, so no repacking
 //         will be necessary.
-func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *int, cond *float64, dmax *float64, rank *int, kl *int, ku *int, pack byte, a *mat.CMatrix, lda *int, work *mat.CVector, info *int) {
+func Zlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int, cond, dmax float64, rank, kl, ku int, pack byte, a *mat.CMatrix, work *mat.CVector) (err error) {
 	var csym, givens, ilextr, iltemp, topdwn bool
 	var c, ct, czero, dummy, extra, s, st, ztemp complex128
 	var alpha, angle, one, realc, temp, twopi, zero float64
@@ -77,10 +78,8 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 
 	//     1)      Decode and Test the input parameters.
 	//             Initialize flags & seed.
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
@@ -145,18 +144,18 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	}
 
 	//     Set certain internal parameters
-	mnmin = min(*m, *n)
-	llb = min(*kl, (*m)-1)
-	uub = min(*ku, (*n)-1)
-	mr = min(*m, (*n)+llb)
-	nc = min(*n, (*m)+uub)
+	mnmin = min(m, n)
+	llb = min(kl, m-1)
+	uub = min(ku, n-1)
+	mr = min(m, n+llb)
+	nc = min(n, m+uub)
 
 	if ipack == 5 || ipack == 6 {
 		minlda = uub + 1
 	} else if ipack == 7 {
 		minlda = llb + uub + 1
 	} else {
-		minlda = (*m)
+		minlda = m
 	}
 
 	//     Use Givens rotation method if bandwidth small enough,
@@ -167,41 +166,41 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			givens = true
 		}
 	} else {
-		if 2*llb < (*m) {
+		if 2*llb < m {
 			givens = true
 		}
 	}
-	if (*lda) < (*m) && (*lda) >= minlda {
+	if a.Rows < m && a.Rows >= minlda {
 		givens = true
 	}
 
 	//     Set INFO if an error
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*m) != (*n) && isym != 1 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if m != n && isym != 1 {
+		err = fmt.Errorf("m != n && isym != 1: sym='%c', m=%v, n=%v", sym, m, n)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	} else if idist == -1 {
-		(*info) = -3
+		err = fmt.Errorf("idist == -1: dist='%c'", dist)
 	} else if isym == -1 {
-		(*info) = -5
-	} else if int(math.Abs(float64(*mode))) > 6 {
-		(*info) = -7
-	} else if ((*mode) != 0 && int(math.Abs(float64(*mode))) != 6) && (*cond) < one {
-		(*info) = -8
-	} else if (*kl) < 0 {
-		(*info) = -10
-	} else if (*ku) < 0 || (isym != 1 && (*kl) != (*ku)) {
-		(*info) = -11
-	} else if ipack == -1 || (isympk == 1 && isym == 1) || (isympk == 2 && isym == 1 && (*kl) > 0) || (isympk == 3 && isym == 1 && (*ku) > 0) || (isympk != 0 && (*m) != (*n)) {
-		(*info) = -12
-	} else if (*lda) < max(1, minlda) {
-		(*info) = -14
+		err = fmt.Errorf("isym == -1: sym='%c'", sym)
+	} else if abs(mode) > 6 {
+		err = fmt.Errorf("abs(mode) > 6: mode=%v", mode)
+	} else if (mode != 0 && abs(mode) != 6) && cond < one {
+		err = fmt.Errorf("(mode != 0 && abs(mode) != 6) && cond < one: mode=%v, cond=%v", mode, cond)
+	} else if kl < 0 {
+		err = fmt.Errorf("kl < 0: kl=%v", kl)
+	} else if ku < 0 || (isym != 1 && kl != ku) {
+		err = fmt.Errorf("ku < 0 || (isym != 1 && kl != ku): sym='%c', kl=%v, ku=%v", sym, kl, ku)
+	} else if ipack == -1 || (isympk == 1 && isym == 1) || (isympk == 2 && isym == 1 && kl > 0) || (isympk == 3 && isym == 1 && ku > 0) || (isympk != 0 && m != n) {
+		err = fmt.Errorf("ipack == -1 || (isympk == 1 && isym == 1) || (isympk == 2 && isym == 1 && kl > 0) || (isympk == 3 && isym == 1 && ku > 0) || (isympk != 0 && m != n): pack='%c', sym='%c', kl=%v, ku='%c', m=%v, n=%v", pack, sym, kl, ku, m, n)
+	} else if a.Rows < max(1, minlda) {
+		err = fmt.Errorf("a.Rows < max(1, minlda): a.Rows=%v, minlda=%v", a.Rows, minlda)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZLATMT"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zlatmt", err)
 		return
 	}
 
@@ -217,39 +216,38 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	//     2)      Set up D  if indicated.
 	//
 	//             Compute D according to COND and MODE
-	Dlatm7(mode, cond, &irsign, &idist, iseed, d, &mnmin, rank, &iinfo)
-	if iinfo != 0 {
-		(*info) = 1
+	if err = Dlatm7(mode, cond, irsign, idist, iseed, d, mnmin, rank); err != nil {
+		err = fmt.Errorf("Error return from Dlatm1")
 		return
 	}
 
 	//     Choose Top-Down if D is (apparently) increasing,
 	//     Bottom-Up if D is (apparently) decreasing.
-	if math.Abs(d.Get(0)) <= math.Abs(d.Get((*rank)-1)) {
+	if math.Abs(d.Get(0)) <= math.Abs(d.Get(rank-1)) {
 		topdwn = true
 	} else {
 		topdwn = false
 	}
 
-	if (*mode) != 0 && int(math.Abs(float64(*mode))) != 6 {
+	if mode != 0 && abs(mode) != 6 {
 		//        Scale by DMAX
 		temp = math.Abs(d.Get(0))
-		for i = 2; i <= (*rank); i++ {
+		for i = 2; i <= rank; i++ {
 			temp = math.Max(temp, math.Abs(d.Get(i-1)))
 		}
 
 		if temp > zero {
-			alpha = (*dmax) / temp
+			alpha = dmax / temp
 		} else {
-			(*info) = 2
+			err = fmt.Errorf("Cannot scale to dmax (max. sing. value is 0)")
 			return
 		}
 
-		goblas.Dscal(*rank, alpha, d.Off(0, 1))
+		goblas.Dscal(rank, alpha, d.Off(0, 1))
 
 	}
 
-	golapack.Zlaset('F', lda, n, &czero, &czero, a, lda)
+	golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
 
 	//     3)      Generate Banded Matrix using Givens rotations.
 	//             Also the special case of UUB=LLB=0
@@ -260,7 +258,7 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	//               the (i,j)-th element is in
 	//               A( i - ISKEW*j + IOFFST, j )
 	if ipack > 4 {
-		ilda = (*lda) - 1
+		ilda = a.Rows - 1
 		iskew = 1
 		if ipack > 5 {
 			ioffst = uub + 1
@@ -268,7 +266,7 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			ioffst = 1
 		}
 	} else {
-		ilda = (*lda)
+		ilda = a.Rows
 		iskew = 0
 		ioffst = 0
 	}
@@ -311,24 +309,24 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					//
 					//                 Last row actually rotated is M
 					//                 Last column actually rotated is MIN( M+JKU, N )
-					for jr = 1; jr <= min((*m)+jku, *n)+jkl-1; jr++ {
+					for jr = 1; jr <= min(m+jku, n)+jkl-1; jr++ {
 						extra = czero
-						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
-						c = complex(math.Cos(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
-						s = complex(math.Sin(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						angle = twopi * Dlarnd(1, iseed)
+						c = complex(math.Cos(angle), 0) * Zlarnd(5, *iseed)
+						s = complex(math.Sin(angle), 0) * Zlarnd(5, *iseed)
 						icol = max(1, jr-jkl)
-						if jr < (*m) {
-							il = min(*n, jr+jku) + 1 - icol
-							Zlarot(true, jr > jkl, false, &il, &c, &s, a.CVector(jr-iskew*icol+ioffst-1, icol-1), &ilda, &extra, &dummy)
+						if jr < m {
+							il = min(n, jr+jku) + 1 - icol
+							extra, dummy = Zlarot(true, jr > jkl, false, il, c, s, a.CVector(jr-iskew*icol+ioffst-1, icol-1), ilda, extra, dummy)
 						}
 
 						//                    Chase "EXTRA" back up
 						ir = jr
 						ic = icol
 						for jch = jr - jkl; jch >= 1; jch -= jkl - jku {
-							if ir < (*m) {
-								golapack.Zlartg(a.GetPtr(ir+1-iskew*(ic+1)+ioffst-1, ic), &extra, &realc, &s, &dummy)
-								dummy = complex(Dlarnd(func() *int { y := 5; return &y }(), iseed), 0)
+							if ir < m {
+								realc, s, dummy = golapack.Zlartg(a.Get(ir+1-iskew*(ic+1)+ioffst-1, ic), extra)
+								dummy = complex(Dlarnd(5, iseed), 0)
 								c = cmplx.Conj(complex(realc, 0) * dummy)
 								s = cmplx.Conj(-s * dummy)
 							}
@@ -336,17 +334,17 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							il = ir + 2 - irow
 							ztemp = czero
 							iltemp = jch > jku
-							Zlarot(false, iltemp, true, &il, &c, &s, a.CVector(irow-iskew*ic+ioffst-1, ic-1), &ilda, &ztemp, &extra)
+							ztemp, extra = Zlarot(false, iltemp, true, il, c, s, a.CVector(irow-iskew*ic+ioffst-1, ic-1), ilda, ztemp, extra)
 							if iltemp {
-								golapack.Zlartg(a.GetPtr(irow+1-iskew*(ic+1)+ioffst-1, ic), &ztemp, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+								realc, s, dummy = golapack.Zlartg(a.Get(irow+1-iskew*(ic+1)+ioffst-1, ic), ztemp)
+								dummy = Zlarnd(5, *iseed)
 								c = cmplx.Conj(complex(realc, 0) * dummy)
 								s = cmplx.Conj(-s * dummy)
 								//
 								icol = max(1, jch-jku-jkl)
 								il = ic + 2 - icol
 								extra = czero
-								Zlarot(true, jch > jku+jkl, true, &il, &c, &s, a.CVector(irow-iskew*icol+ioffst-1, icol-1), &ilda, &extra, &ztemp)
+								extra, ztemp = Zlarot(true, jch > jku+jkl, true, il, c, s, a.CVector(irow-iskew*icol+ioffst-1, icol-1), ilda, extra, ztemp)
 								ic = icol
 								ir = irow
 							}
@@ -357,24 +355,24 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				jku = uub
 				for jkl = 1; jkl <= llb; jkl++ {
 					//                 Transform from bandwidth JKL-1, JKU to JKL, JKU
-					for jc = 1; jc <= min((*n)+jkl, *m)+jku-1; jc++ {
+					for jc = 1; jc <= min(n+jkl, m)+jku-1; jc++ {
 						extra = czero
-						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
-						c = complex(math.Cos(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
-						s = complex(math.Sin(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						angle = twopi * Dlarnd(1, iseed)
+						c = complex(math.Cos(angle), 0) * Zlarnd(5, *iseed)
+						s = complex(math.Sin(angle), 0) * Zlarnd(5, *iseed)
 						irow = max(1, jc-jku)
-						if jc < (*n) {
-							il = min(*m, jc+jkl) + 1 - irow
-							Zlarot(false, jc > jku, false, &il, &c, &s, a.CVector(irow-iskew*jc+ioffst-1, jc-1), &ilda, &extra, &dummy)
+						if jc < n {
+							il = min(m, jc+jkl) + 1 - irow
+							extra, dummy = Zlarot(false, jc > jku, false, il, c, s, a.CVector(irow-iskew*jc+ioffst-1, jc-1), ilda, extra, dummy)
 						}
 
 						//                    Chase "EXTRA" back up
 						ic = jc
 						ir = irow
 						for jch = jc - jku; jch >= 1; jch -= jkl - jku {
-							if ic < (*n) {
-								golapack.Zlartg(a.GetPtr(ir+1-iskew*(ic+1)+ioffst-1, ic), &extra, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+							if ic < n {
+								realc, s, dummy = golapack.Zlartg(a.Get(ir+1-iskew*(ic+1)+ioffst-1, ic), extra)
+								dummy = Zlarnd(5, *iseed)
 								c = cmplx.Conj(complex(realc, 0) * dummy)
 								s = cmplx.Conj(-s * dummy)
 							}
@@ -382,16 +380,16 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							il = ic + 2 - icol
 							ztemp = czero
 							iltemp = jch > jkl
-							Zlarot(true, iltemp, true, &il, &c, &s, a.CVector(ir-iskew*icol+ioffst-1, icol-1), &ilda, &ztemp, &extra)
+							ztemp, extra = Zlarot(true, iltemp, true, il, c, s, a.CVector(ir-iskew*icol+ioffst-1, icol-1), ilda, ztemp, extra)
 							if iltemp {
-								golapack.Zlartg(a.GetPtr(ir+1-iskew*(icol+1)+ioffst-1, icol), &ztemp, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+								realc, s, dummy = golapack.Zlartg(a.Get(ir+1-iskew*(icol+1)+ioffst-1, icol), ztemp)
+								dummy = Zlarnd(5, *iseed)
 								c = cmplx.Conj(complex(realc, 0) * dummy)
 								s = cmplx.Conj(-s * dummy)
 								irow = max(1, jch-jkl-jku)
 								il = ir + 2 - irow
 								extra = czero
-								Zlarot(false, jch > jkl+jku, true, &il, &c, &s, a.CVector(irow-iskew*icol+ioffst-1, icol-1), &ilda, &extra, &ztemp)
+								extra, ztemp = Zlarot(false, jch > jkl+jku, true, il, c, s, a.CVector(irow-iskew*icol+ioffst-1, icol-1), ilda, extra, ztemp)
 								ic = icol
 								ir = irow
 							}
@@ -407,16 +405,16 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					//
 					//                 First row actually rotated is M
 					//                 First column actually rotated is MIN( M+JKU, N )
-					iendch = min(*m, (*n)+jkl) - 1
-					for jc = min((*m)+jku, *n) - 1; jc >= 1-jkl; jc-- {
+					iendch = min(m, n+jkl) - 1
+					for jc = min(m+jku, n) - 1; jc >= 1-jkl; jc-- {
 						extra = czero
-						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
-						c = complex(math.Cos(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
-						s = complex(math.Sin(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						angle = twopi * Dlarnd(1, iseed)
+						c = complex(math.Cos(angle), 0) * Zlarnd(5, *iseed)
+						s = complex(math.Sin(angle), 0) * Zlarnd(5, *iseed)
 						irow = max(1, jc-jku+1)
 						if jc > 0 {
-							il = min(*m, jc+jkl+1) + 1 - irow
-							Zlarot(false, false, jc+jkl < (*m), &il, &c, &s, a.CVector(irow-iskew*jc+ioffst-1, jc-1), &ilda, &dummy, &extra)
+							il = min(m, jc+jkl+1) + 1 - irow
+							dummy, extra = Zlarot(false, false, jc+jkl < m, il, c, s, a.CVector(irow-iskew*jc+ioffst-1, jc-1), ilda, dummy, extra)
 						}
 
 						//                    Chase "EXTRA" back down
@@ -424,24 +422,24 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 						for jch = jc + jkl; jch <= iendch; jch += jkl + jku {
 							ilextr = ic > 0
 							if ilextr {
-								golapack.Zlartg(a.GetPtr(jch-iskew*ic+ioffst-1, ic-1), &extra, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+								realc, s, dummy = golapack.Zlartg(a.Get(jch-iskew*ic+ioffst-1, ic-1), extra)
+								dummy = Zlarnd(5, *iseed)
 								c = complex(realc, 0) * dummy
 								s = s * dummy
 							}
 							ic = max(1, ic)
-							icol = min((*n)-1, jch+jku)
-							iltemp = jch+jku < (*n)
+							icol = min(n-1, jch+jku)
+							iltemp = jch+jku < n
 							ztemp = czero
-							Zlarot(true, ilextr, iltemp, toPtr(icol+2-ic), &c, &s, a.CVector(jch-iskew*ic+ioffst-1, ic-1), &ilda, &extra, &ztemp)
+							Zlarot(true, ilextr, iltemp, icol+2-ic, c, s, a.CVector(jch-iskew*ic+ioffst-1, ic-1), ilda, extra, ztemp)
 							if iltemp {
-								golapack.Zlartg(a.GetPtr(jch-iskew*icol+ioffst-1, icol-1), &ztemp, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+								realc, s, dummy = golapack.Zlartg(a.Get(jch-iskew*icol+ioffst-1, icol-1), ztemp)
+								dummy = Zlarnd(5, *iseed)
 								c = complex(realc, 0) * dummy
 								s = s * dummy
 								il = min(iendch, jch+jkl+jku) + 2 - jch
 								extra = czero
-								Zlarot(false, true, jch+jkl+jku <= iendch, &il, &c, &s, a.CVector(jch-iskew*icol+ioffst-1, icol-1), &ilda, &ztemp, &extra)
+								ztemp, extra = Zlarot(false, true, jch+jkl+jku <= iendch, il, c, s, a.CVector(jch-iskew*icol+ioffst-1, icol-1), ilda, ztemp, extra)
 								ic = icol
 							}
 						}
@@ -454,16 +452,16 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 					//
 					//                 First row actually rotated is MIN( N+JKL, M )
 					//                 First column actually rotated is N
-					iendch = min(*n, (*m)+jku) - 1
-					for jr = min((*n)+jkl, *m) - 1; jr >= 1-jku; jr-- {
+					iendch = min(n, m+jku) - 1
+					for jr = min(n+jkl, m) - 1; jr >= 1-jku; jr-- {
 						extra = czero
-						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
-						c = complex(math.Cos(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
-						s = complex(math.Sin(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						angle = twopi * Dlarnd(1, iseed)
+						c = complex(math.Cos(angle), 0) * Zlarnd(5, *iseed)
+						s = complex(math.Sin(angle), 0) * Zlarnd(5, *iseed)
 						icol = max(1, jr-jkl+1)
 						if jr > 0 {
-							il = min(*n, jr+jku+1) + 1 - icol
-							Zlarot(true, false, jr+jku < (*n), &il, &c, &s, a.CVector(jr-iskew*icol+ioffst-1, icol-1), &ilda, &dummy, &extra)
+							il = min(n, jr+jku+1) + 1 - icol
+							dummy, extra = Zlarot(true, false, jr+jku < n, il, c, s, a.CVector(jr-iskew*icol+ioffst-1, icol-1), ilda, dummy, extra)
 						}
 
 						//                    Chase "EXTRA" back down
@@ -471,24 +469,24 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 						for jch = jr + jku; jch <= iendch; jch += jkl + jku {
 							ilextr = ir > 0
 							if ilextr {
-								golapack.Zlartg(a.GetPtr(ir-iskew*jch+ioffst-1, jch-1), &extra, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+								realc, s, dummy = golapack.Zlartg(a.Get(ir-iskew*jch+ioffst-1, jch-1), extra)
+								dummy = Zlarnd(5, *iseed)
 								c = complex(realc, 0) * dummy
 								s = s * dummy
 							}
 							ir = max(1, ir)
-							irow = min((*m)-1, jch+jkl)
-							iltemp = jch+jkl < (*m)
+							irow = min(m-1, jch+jkl)
+							iltemp = jch+jkl < m
 							ztemp = czero
-							Zlarot(false, ilextr, iltemp, toPtr(irow+2-ir), &c, &s, a.CVector(ir-iskew*jch+ioffst-1, jch-1), &ilda, &extra, &ztemp)
+							extra, ztemp = Zlarot(false, ilextr, iltemp, irow+2-ir, c, s, a.CVector(ir-iskew*jch+ioffst-1, jch-1), ilda, extra, ztemp)
 							if iltemp {
-								golapack.Zlartg(a.GetPtr(irow-iskew*jch+ioffst-1, jch-1), &ztemp, &realc, &s, &dummy)
-								dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+								realc, s, dummy = golapack.Zlartg(a.Get(irow-iskew*jch+ioffst-1, jch-1), ztemp)
+								dummy = Zlarnd(5, *iseed)
 								c = complex(realc, 0) * dummy
 								s = s * dummy
 								il = min(iendch, jch+jkl+jku) + 2 - jch
 								extra = czero
-								Zlarot(true, true, jch+jkl+jku <= iendch, &il, &c, &s, a.CVector(irow-iskew*jch+ioffst-1, jch-1), &ilda, &ztemp, &extra)
+								ztemp, extra = Zlarot(true, true, jch+jkl+jku <= iendch, il, c, s, a.CVector(irow-iskew*jch+ioffst-1, jch-1), ilda, ztemp, extra)
 								ir = irow
 							}
 						}
@@ -517,14 +515,14 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				}
 
 				for k = 1; k <= uub; k++ {
-					for jc = 1; jc <= (*n)-1; jc++ {
+					for jc = 1; jc <= n-1; jc++ {
 						irow = max(1, jc-k)
 						il = min(jc+1, k+2)
 						extra = czero
 						ztemp = a.Get(jc-iskew*(jc+1)+ioffg-1, jc)
-						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
-						c = complex(math.Cos(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
-						s = complex(math.Sin(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						angle = twopi * Dlarnd(1, iseed)
+						c = complex(math.Cos(angle), 0) * Zlarnd(5, *iseed)
+						s = complex(math.Sin(angle), 0) * Zlarnd(5, *iseed)
 						if csym {
 							ct = c
 							st = s
@@ -533,14 +531,14 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							ct = cmplx.Conj(c)
 							st = cmplx.Conj(s)
 						}
-						Zlarot(false, jc > k, true, &il, &c, &s, a.CVector(irow-iskew*jc+ioffg-1, jc-1), &ilda, &extra, &ztemp)
-						Zlarot(true, true, false, toPtr(min(k, (*n)-jc)+1), &ct, &st, a.CVector((1-iskew)*jc+ioffg-1, jc-1), &ilda, &ztemp, &dummy)
+						extra, ztemp = Zlarot(false, jc > k, true, il, c, s, a.CVector(irow-iskew*jc+ioffg-1, jc-1), ilda, extra, ztemp)
+						ztemp, dummy = Zlarot(true, true, false, min(k, n-jc)+1, ct, st, a.CVector((1-iskew)*jc+ioffg-1, jc-1), ilda, ztemp, dummy)
 
 						//                    Chase EXTRA back up the matrix
 						icol = jc
 						for jch = jc - k; jch >= 1; jch -= k {
-							golapack.Zlartg(a.GetPtr(jch+1-iskew*(icol+1)+ioffg-1, icol), &extra, &realc, &s, &dummy)
-							dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+							realc, s, dummy = golapack.Zlartg(a.Get(jch+1-iskew*(icol+1)+ioffg-1, icol), extra)
+							dummy = Zlarnd(5, *iseed)
 							c = cmplx.Conj(complex(realc, 0) * dummy)
 							s = cmplx.Conj(-s * dummy)
 							ztemp = a.Get(jch-iskew*(jch+1)+ioffg-1, jch)
@@ -552,11 +550,11 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 								ct = cmplx.Conj(c)
 								st = cmplx.Conj(s)
 							}
-							Zlarot(true, true, true, toPtr(k+2), &c, &s, a.CVector((1-iskew)*jch+ioffg-1, jch-1), &ilda, &ztemp, &extra)
+							ztemp, extra = Zlarot(true, true, true, k+2, c, s, a.CVector((1-iskew)*jch+ioffg-1, jch-1), ilda, ztemp, extra)
 							irow = max(1, jch-k)
 							il = min(jch+1, k+2)
 							extra = czero
-							Zlarot(false, jch > k, true, &il, &ct, &st, a.CVector(irow-iskew*jch+ioffg-1, jch-1), &ilda, &extra, &ztemp)
+							extra, ztemp = Zlarot(false, jch > k, true, il, ct, st, a.CVector(irow-iskew*jch+ioffg-1, jch-1), ilda, extra, ztemp)
 							icol = jch
 						}
 					}
@@ -565,21 +563,21 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				//              If we need lower triangle, copy from upper. Note that
 				//              the order of copying is chosen to work for 'q' -> 'b'
 				if ipack != ipackg && ipack != 3 {
-					for jc = 1; jc <= (*n); jc++ {
+					for jc = 1; jc <= n; jc++ {
 						irow = ioffst - iskew*jc
 						if csym {
-							for jr = jc; jr <= min(*n, jc+uub); jr++ {
+							for jr = jc; jr <= min(n, jc+uub); jr++ {
 								a.Set(jr+irow-1, jc-1, a.Get(jc-iskew*jr+ioffg-1, jr-1))
 							}
 						} else {
-							for jr = jc; jr <= min(*n, jc+uub); jr++ {
+							for jr = jc; jr <= min(n, jc+uub); jr++ {
 								a.Set(jr+irow-1, jc-1, cmplx.Conj(a.Get(jc-iskew*jr+ioffg-1, jr-1)))
 							}
 						}
 					}
 					if ipack == 5 {
-						for jc = (*n) - uub + 1; jc <= (*n); jc++ {
-							for jr = (*n) + 2 - jc; jr <= uub+1; jr++ {
+						for jc = n - uub + 1; jc <= n; jc++ {
+							for jr = n + 2 - jc; jr <= uub+1; jr++ {
 								a.Set(jr-1, jc-1, czero)
 							}
 						}
@@ -606,13 +604,13 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				}
 
 				for k = 1; k <= uub; k++ {
-					for jc = (*n) - 1; jc >= 1; jc-- {
-						il = min((*n)+1-jc, k+2)
+					for jc = n - 1; jc >= 1; jc-- {
+						il = min(n+1-jc, k+2)
 						extra = czero
 						ztemp = a.Get(1+(1-iskew)*jc+ioffg-1, jc-1)
-						angle = twopi * Dlarnd(func() *int { y := 1; return &y }(), iseed)
-						c = complex(math.Cos(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
-						s = complex(math.Sin(angle), 0) * Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						angle = twopi * Dlarnd(1, iseed)
+						c = complex(math.Cos(angle), 0) * Zlarnd(5, *iseed)
+						s = complex(math.Sin(angle), 0) * Zlarnd(5, *iseed)
 						if csym {
 							ct = c
 							st = s
@@ -621,15 +619,15 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 							ct = cmplx.Conj(c)
 							st = cmplx.Conj(s)
 						}
-						Zlarot(false, true, (*n)-jc > k, &il, &c, &s, a.CVector((1-iskew)*jc+ioffg-1, jc-1), &ilda, &ztemp, &extra)
+						ztemp, extra = Zlarot(false, true, n-jc > k, il, c, s, a.CVector((1-iskew)*jc+ioffg-1, jc-1), ilda, ztemp, extra)
 						icol = max(1, jc-k+1)
-						Zlarot(true, false, true, toPtr(jc+2-icol), &ct, &st, a.CVector(jc-iskew*icol+ioffg-1, icol-1), &ilda, &dummy, &ztemp)
+						dummy, ztemp = Zlarot(true, false, true, jc+2-icol, ct, st, a.CVector(jc-iskew*icol+ioffg-1, icol-1), ilda, dummy, ztemp)
 
 						//                    Chase EXTRA back down the matrix
 						icol = jc
-						for jch = jc + k; jch <= (*n)-1; jch += k {
-							golapack.Zlartg(a.GetPtr(jch-iskew*icol+ioffg-1, icol-1), &extra, &realc, &s, &dummy)
-							dummy = Zlarnd(func() *int { y := 5; return &y }(), iseed)
+						for jch = jc + k; jch <= n-1; jch += k {
+							realc, s, dummy = golapack.Zlartg(a.Get(jch-iskew*icol+ioffg-1, icol-1), extra)
+							dummy = Zlarnd(5, *iseed)
 							c = complex(realc, 0) * dummy
 							s = s * dummy
 							ztemp = a.Get(1+(1-iskew)*jch+ioffg-1, jch-1)
@@ -641,10 +639,10 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 								ct = cmplx.Conj(c)
 								st = cmplx.Conj(s)
 							}
-							Zlarot(true, true, true, toPtr(k+2), &c, &s, a.CVector(jch-iskew*icol+ioffg-1, icol-1), &ilda, &extra, &ztemp)
-							il = min((*n)+1-jch, k+2)
+							extra, ztemp = Zlarot(true, true, true, k+2, c, s, a.CVector(jch-iskew*icol+ioffg-1, icol-1), ilda, extra, ztemp)
+							il = min(n+1-jch, k+2)
 							extra = czero
-							Zlarot(false, true, (*n)-jch > k, &il, &ct, &st, a.CVector((1-iskew)*jch+ioffg-1, jch-1), &ilda, &ztemp, &extra)
+							ztemp, extra = Zlarot(false, true, n-jch > k, il, ct, st, a.CVector((1-iskew)*jch+ioffg-1, jch-1), ilda, ztemp, extra)
 							icol = jch
 						}
 					}
@@ -653,7 +651,7 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 				//              If we need upper triangle, copy from lower. Note that
 				//              the order of copying is chosen to work for 'b' -> 'q'
 				if ipack != ipackg && ipack != 4 {
-					for jc = (*n); jc >= 1; jc-- {
+					for jc = n; jc >= 1; jc-- {
 						irow = ioffst - iskew*jc
 						if csym {
 							for jr = jc; jr >= max(1, jc-uub); jr-- {
@@ -682,7 +680,7 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 
 			//           Ensure that the diagonal is real if Hermitian
 			if !csym {
-				for jc = 1; jc <= (*n); jc++ {
+				for jc = 1; jc <= n; jc++ {
 					irow = ioffst + (1-iskew)*jc
 					a.Set(irow-1, jc-1, complex(real(a.Get(irow-1, jc-1)), 0))
 				}
@@ -699,19 +697,19 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		//                Note: we should get here only if LDA .ge. N
 		if isym == 1 {
 			//           Non-symmetric -- A = U D V
-			Zlagge(&mr, &nc, &llb, &uub, d, a, lda, iseed, work, &iinfo)
+			err = Zlagge(mr, nc, llb, uub, d, a, iseed, work)
 		} else {
 			//           Symmetric -- A = U D U' or
 			//           Hermitian -- A = U D U*
 			if csym {
-				Zlagsy(m, &llb, d, a, lda, iseed, work, &iinfo)
+				err = Zlagsy(m, llb, d, a, iseed, work)
 			} else {
-				Zlaghe(m, &llb, d, a, lda, iseed, work, &iinfo)
+				err = Zlaghe(m, llb, d, a, iseed, work)
 			}
 		}
 
 		if iinfo != 0 {
-			(*info) = 3
+			err = fmt.Errorf("Error return from Zlagge, Zlaghe or Zlagsy")
 			return
 		}
 	}
@@ -720,15 +718,15 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 	if ipack != ipackg {
 		if ipack == 1 {
 			//           'U' -- Upper triangular, not packed
-			for j = 1; j <= (*m); j++ {
-				for i = j + 1; i <= (*m); i++ {
+			for j = 1; j <= m; j++ {
+				for i = j + 1; i <= m; i++ {
 					a.Set(i-1, j-1, czero)
 				}
 			}
 
 		} else if ipack == 2 {
 			//           'L' -- Lower triangular, not packed
-			for j = 2; j <= (*m); j++ {
+			for j = 2; j <= m; j++ {
 				for i = 1; i <= j-1; i++ {
 					a.Set(i-1, j-1, czero)
 				}
@@ -738,10 +736,10 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//           'C' -- Upper triangle packed Columnwise.
 			icol = 1
 			irow = 0
-			for j = 1; j <= (*m); j++ {
+			for j = 1; j <= m; j++ {
 				for i = 1; i <= j; i++ {
 					irow = irow + 1
-					if irow > (*lda) {
+					if irow > a.Rows {
 						irow = 1
 						icol = icol + 1
 					}
@@ -753,10 +751,10 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//           'R' -- Lower triangle packed Columnwise.
 			icol = 1
 			irow = 0
-			for j = 1; j <= (*m); j++ {
-				for i = j; i <= (*m); i++ {
+			for j = 1; j <= m; j++ {
+				for i = j; i <= m; i++ {
 					irow = irow + 1
-					if irow > (*lda) {
+					if irow > a.Rows {
 						irow = 1
 						icol = icol + 1
 					}
@@ -776,13 +774,13 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			}
 
 			for j = 1; j <= uub; j++ {
-				for i = min(j+llb, *m); i >= 1; i-- {
+				for i = min(j+llb, m); i >= 1; i-- {
 					a.Set(i-j+uub, j-1, a.Get(i-1, j-1))
 				}
 			}
 
-			for j = uub + 2; j <= (*n); j++ {
-				for i = j - uub; i <= min(j+llb, *m); i++ {
+			for j = uub + 2; j <= n; j++ {
+				for i = j - uub; i <= min(j+llb, m); i++ {
 					a.Set(i-j+uub, j-1, a.Get(i-1, j-1))
 				}
 			}
@@ -793,8 +791,8 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 		//        Symmetric/Triangular Packed --
 		//        zero out everything after A(IROW,ICOL)
 		if ipack == 3 || ipack == 4 {
-			for jc = icol; jc <= (*m); jc++ {
-				for jr = irow + 1; jr <= (*lda); jr++ {
+			for jc = icol; jc <= m; jc++ {
+				for jr = irow + 1; jr <= a.Rows; jr++ {
 					a.Set(jr-1, jc-1, czero)
 				}
 				irow = 0
@@ -807,15 +805,17 @@ func Zlatmt(m, n *int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode *i
 			//              last non-zero diagonal is now in A( UUB+LLB+1,j ),
 			//                 zero below it, too.
 			ir1 = uub + llb + 2
-			ir2 = uub + (*m) + 2
-			for jc = 1; jc <= (*n); jc++ {
+			ir2 = uub + m + 2
+			for jc = 1; jc <= n; jc++ {
 				for jr = 1; jr <= uub+1-jc; jr++ {
 					a.Set(jr-1, jc-1, czero)
 				}
-				for jr = max(1, min(ir1, ir2-jc)); jr <= (*lda); jr++ {
+				for jr = max(1, min(ir1, ir2-jc)); jr <= a.Rows; jr++ {
 					a.Set(jr-1, jc-1, czero)
 				}
 			}
 		}
 	}
+
+	return
 }

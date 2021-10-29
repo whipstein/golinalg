@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -19,7 +21,7 @@ import (
 // if UPLO = 'U', Q = H(nq-1) . . . H(2) H(1);
 //
 // if UPLO = 'L', Q = H(1) H(2) . . . H(nq-1).
-func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matrix, ldc *int, work *mat.Vector, info *int) {
+func Dopmtr(side mat.MatSide, uplo mat.MatUplo, trans mat.MatTrans, m, n int, ap, tau *mat.Vector, c *mat.Matrix, work *mat.Vector) (err error) {
 	var forwrd, left, notran, upper bool
 	var aii, one float64
 	var i, i1, i2, i3, ic, ii, jc, mi, ni, nq int
@@ -27,37 +29,36 @@ func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matri
 	one = 1.0
 
 	//     Test the input arguments
-	(*info) = 0
-	left = side == 'L'
-	notran = trans == 'N'
-	upper = uplo == 'U'
+	left = side == Left
+	notran = trans == NoTrans
+	upper = uplo == Upper
 
 	//     NQ is the order of Q
 	if left {
-		nq = (*m)
+		nq = m
 	} else {
-		nq = (*n)
+		nq = n
 	}
-	if !left && side != 'R' {
-		(*info) = -1
-	} else if !upper && uplo != 'L' {
-		(*info) = -2
-	} else if !notran && trans != 'T' {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*n) < 0 {
-		(*info) = -5
-	} else if (*ldc) < max(1, *m) {
-		(*info) = -9
+	if !left && side != Right {
+		err = fmt.Errorf("!left && side != Right: side=%s", side)
+	} else if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if !notran && trans != Trans {
+		err = fmt.Errorf("!notran && trans != Trans: trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows < max(1, m): c.Rows=%v, m=%v", c.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DOPMTR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dopmtr", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
@@ -78,9 +79,9 @@ func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matri
 		}
 
 		if left {
-			ni = (*n)
+			ni = n
 		} else {
-			mi = (*m)
+			mi = m
 		}
 
 		for _, i = range genIter(i1, i2, i3) {
@@ -95,7 +96,7 @@ func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matri
 			//           Apply H(i)
 			aii = ap.Get(ii - 1)
 			ap.Set(ii-1, one)
-			Dlarf(side, &mi, &ni, ap.Off(ii-i), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), c, ldc, work)
+			Dlarf(side, mi, ni, ap.Off(ii-i, 1), tau.Get(i-1), c, work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {
@@ -121,10 +122,10 @@ func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matri
 		}
 
 		if left {
-			ni = (*n)
+			ni = n
 			jc = 1
 		} else {
-			mi = (*m)
+			mi = m
 			ic = 1
 		}
 
@@ -133,16 +134,16 @@ func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matri
 			ap.Set(ii-1, one)
 			if left {
 				//              H(i) is applied to C(i+1:m,1:n)
-				mi = (*m) - i
+				mi = m - i
 				ic = i + 1
 			} else {
 				//              H(i) is applied to C(1:m,i+1:n)
-				ni = (*n) - i
+				ni = n - i
 				jc = i + 1
 			}
 
 			//           Apply H(i)
-			Dlarf(side, &mi, &ni, ap.Off(ii-1), func() *int { y := 1; return &y }(), tau.GetPtr(i-1), c.Off(ic-1, jc-1), ldc, work)
+			Dlarf(side, mi, ni, ap.Off(ii-1, 1), tau.Get(i-1), c.Off(ic-1, jc-1), work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {
@@ -152,4 +153,6 @@ func Dopmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.Vector, c *mat.Matri
 			}
 		}
 	}
+
+	return
 }

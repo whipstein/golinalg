@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -18,12 +19,10 @@ import (
 // block diagonal with 1-by-1 and 2-by-2 diagonal blocks.
 //
 // This is the unblocked version of the algorithm, calling Level 2 BLAS.
-func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
+func Dsytf2Rook(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 	var done, upper bool
 	var absakk, alpha, colmax, d11, d12, d21, d22, dtemp, eight, one, rowmax, sevten, sfmin, t, wk, wkm1, wkp1, zero float64
 	var i, ii, imax, itemp, j, jmax, k, kk, kp, kstep, p int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -31,17 +30,16 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 	sevten = 17.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTF2_ROOK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsytf2Rook", err)
 		return
 	}
 
@@ -56,7 +54,7 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 		//
 		//        K is the main loop index, decreasing from N to 1 in steps of
 		//        1 or 2
-		k = (*n)
+		k = n
 	label10:
 		;
 
@@ -83,8 +81,8 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -111,7 +109,7 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = imax + goblas.Idamax(k-imax, a.Vector(imax-1, imax, *lda))
+					jmax = imax + goblas.Idamax(k-imax, a.Vector(imax-1, imax))
 					rowmax = math.Abs(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
@@ -166,7 +164,7 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 					goblas.Dswap(p-1, a.Vector(0, k-1, 1), a.Vector(0, p-1, 1))
 				}
 				if p < (k - 1) {
-					goblas.Dswap(k-p-1, a.Vector(p, k-1, 1), a.Vector(p-1, p, *lda))
+					goblas.Dswap(k-p-1, a.Vector(p, k-1, 1), a.Vector(p-1, p))
 				}
 				t = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(p-1, p-1))
@@ -182,7 +180,7 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 					goblas.Dswap(kp-1, a.Vector(0, kk-1, 1), a.Vector(0, kp-1, 1))
 				}
 				if (kk > 1) && (kp < (kk - 1)) {
-					goblas.Dswap(kk-kp-1, a.Vector(kp, kk-1, 1), a.Vector(kp-1, kp, *lda))
+					goblas.Dswap(kk-kp-1, a.Vector(kp, kk-1, 1), a.Vector(kp-1, kp))
 				}
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
@@ -209,7 +207,9 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*1/D(k)*W(k)**T
 						d11 = one / a.Get(k-1, k-1)
-						err = goblas.Dsyr(mat.UploByte(uplo), k-1, -d11, a.Vector(0, k-1, 1), a)
+						if err = goblas.Dsyr(uplo, k-1, -d11, a.Vector(0, k-1, 1), a); err != nil {
+							panic(err)
+						}
 
 						//                    Store U(k) in column k
 						goblas.Dscal(k-1, d11, a.Vector(0, k-1, 1))
@@ -224,7 +224,9 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						err = goblas.Dsyr(mat.UploByte(uplo), k-1, -d11, a.Vector(0, k-1, 1), a)
+						if err = goblas.Dsyr(uplo, k-1, -d11, a.Vector(0, k-1, 1), a); err != nil {
+							panic(err)
+						}
 					}
 				}
 
@@ -291,7 +293,7 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 		;
 
 		//        If K > N, exit from loop
-		if k > (*n) {
+		if k > n {
 			return
 		}
 		kstep = 1
@@ -304,8 +306,8 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
-		if k < (*n) {
-			imax = k + goblas.Idamax((*n)-k, a.Vector(k, k-1, 1))
+		if k < n {
+			imax = k + goblas.Idamax(n-k, a.Vector(k, k-1, 1))
 			colmax = math.Abs(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -313,8 +315,8 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 
 		if math.Max(absakk, colmax) == zero {
 			//           Column K is zero or underflow: set INFO and continue
-			if (*info) == 0 {
-				(*info) = k
+			if info == 0 {
+				info = k
 			}
 			kp = k
 		} else {
@@ -338,14 +340,14 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = k - 1 + goblas.Idamax(imax-k, a.Vector(imax-1, k-1, *lda))
+					jmax = k - 1 + goblas.Idamax(imax-k, a.Vector(imax-1, k-1))
 					rowmax = math.Abs(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
-				if imax < (*n) {
-					itemp = imax + goblas.Idamax((*n)-imax, a.Vector(imax, imax-1, 1))
+				if imax < n {
+					itemp = imax + goblas.Idamax(n-imax, a.Vector(imax, imax-1, 1))
 					dtemp = math.Abs(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -389,11 +391,11 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 			if (kstep == 2) && (p != k) {
 				//              Interchange rows and column K and P in the trailing
 				//              submatrix A(k:n,k:n) if we have a 2-by-2 pivot
-				if p < (*n) {
-					goblas.Dswap((*n)-p, a.Vector(p, k-1, 1), a.Vector(p, p-1, 1))
+				if p < n {
+					goblas.Dswap(n-p, a.Vector(p, k-1, 1), a.Vector(p, p-1, 1))
 				}
 				if p > (k + 1) {
-					goblas.Dswap(p-k-1, a.Vector(k, k-1, 1), a.Vector(p-1, k, *lda))
+					goblas.Dswap(p-k-1, a.Vector(k, k-1, 1), a.Vector(p-1, k))
 				}
 				t = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(p-1, p-1))
@@ -405,11 +407,11 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
-				if kp < (*n) {
-					goblas.Dswap((*n)-kp, a.Vector(kp, kk-1, 1), a.Vector(kp, kp-1, 1))
+				if kp < n {
+					goblas.Dswap(n-kp, a.Vector(kp, kk-1, 1), a.Vector(kp, kp-1, 1))
 				}
-				if (kk < (*n)) && (kp > (kk + 1)) {
-					goblas.Dswap(kp-kk-1, a.Vector(kk, kk-1, 1), a.Vector(kp-1, kk, *lda))
+				if (kk < n) && (kp > (kk + 1)) {
+					goblas.Dswap(kp-kk-1, a.Vector(kk, kk-1, 1), a.Vector(kp-1, kk))
 				}
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
@@ -428,7 +430,7 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 				//              W(k) = L(k)*D(k)
 				//
 				//              where L(k) is the k-th column of L
-				if k < (*n) {
+				if k < n {
 					//              Perform a rank-1 update of A(k+1:n,k+1:n) and
 					//              store L(k) in column k
 					if math.Abs(a.Get(k-1, k-1)) >= sfmin {
@@ -436,14 +438,16 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						d11 = one / a.Get(k-1, k-1)
-						err = goblas.Dsyr(mat.UploByte(uplo), (*n)-k, -d11, a.Vector(k, k-1, 1), a.Off(k, k))
+						if err = goblas.Dsyr(uplo, n-k, -d11, a.Vector(k, k-1, 1), a.Off(k, k)); err != nil {
+							panic(err)
+						}
 
 						//                    Store L(k) in column k
-						goblas.Dscal((*n)-k, d11, a.Vector(k, k-1, 1))
+						goblas.Dscal(n-k, d11, a.Vector(k, k-1, 1))
 					} else {
 						//                    Store L(k) in column k
 						d11 = a.Get(k-1, k-1)
-						for ii = k + 1; ii <= (*n); ii++ {
+						for ii = k + 1; ii <= n; ii++ {
 							a.Set(ii-1, k-1, a.Get(ii-1, k-1)/d11)
 						}
 
@@ -451,7 +455,9 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						err = goblas.Dsyr(mat.UploByte(uplo), (*n)-k, -d11, a.Vector(k, k-1, 1), a.Off(k, k))
+						if err = goblas.Dsyr(uplo, n-k, -d11, a.Vector(k, k-1, 1), a.Off(k, k)); err != nil {
+							panic(err)
+						}
 					}
 				}
 
@@ -470,20 +476,20 @@ func Dsytf2Rook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *i
 				//                 = A - ( ( A(k)A(k+1) )*inv(D(k) ) * ( A(k)A(k+1) )**T
 				//
 				//              and store L(k) and L(k+1) in columns k and k+1
-				if k < (*n)-1 {
+				if k < n-1 {
 
 					d21 = a.Get(k, k-1)
 					d11 = a.Get(k, k) / d21
 					d22 = a.Get(k-1, k-1) / d21
 					t = one / (d11*d22 - one)
 
-					for j = k + 2; j <= (*n); j++ {
+					for j = k + 2; j <= n; j++ {
 						//                    Compute  D21 * ( W(k)W(k+1) ) * inv(D(k)) for row J
 						wk = t * (d11*a.Get(j-1, k-1) - a.Get(j-1, k))
 						wkp1 = t * (d22*a.Get(j-1, k) - a.Get(j-1, k-1))
 
 						//                    Perform a rank-2 update of A(k+2:n,k+2:n)
-						for i = j; i <= (*n); i++ {
+						for i = j; i <= n; i++ {
 							a.Set(i-1, j-1, a.Get(i-1, j-1)-(a.Get(i-1, k-1)/d21)*wk-(a.Get(i-1, k)/d21)*wkp1)
 						}
 

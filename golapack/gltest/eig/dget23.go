@@ -10,7 +10,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget23 checks the nonsymmetric eigenvalue problem driver SGEEVX.
+// dget23 checks the nonsymmetric eigenvalue problem driver SGEEVX.
 //    If COMP = .FALSE., the first 8 of the following tests will be
 //    performed on the input matrix A, and also test 9 if LWORK is
 //    sufficiently large.
@@ -95,7 +95,7 @@ import (
 //      of RCONDE, and takes errors in computing RCONDE into account,
 //      so that the resulting quantity should be O(ULP). cond(RCONDE)
 //      is essentially given by norm(A)/RCONDV.
-func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, nounit, n *int, a *mat.Matrix, lda *int, h *mat.Matrix, wr, wi, wr1, wi1 *mat.Vector, vl *mat.Matrix, ldvl *int, vr *mat.Matrix, ldvr *int, lre *mat.Matrix, ldlre *int, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work *mat.Vector, lwork *int, iwork *[]int, info *int) {
+func dget23(comp bool, balanc byte, jtype int, thresh float64, iseed []int, nounit, n int, a, h *mat.Matrix, wr, wi, wr1, wi1 *mat.Vector, vl, vr, lre *mat.Matrix, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work *mat.Vector, lwork int, iwork *[]int) (info int, err error) {
 	var balok, nobal bool
 	var sense byte
 	var abnrm, abnrm1, eps, epsin, one, smlnum, tnrm, tol, tolin, two, ulp, ulpinv, v, vimin, vmax, vmx, vrmin, vrmx, vtst, zero float64
@@ -115,29 +115,37 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	//     Check for errors
 	nobal = balanc == 'N'
 	balok = nobal || balanc == 'P' || balanc == 'S' || balanc == 'B'
-	(*info) = 0
 	if !balok {
-		(*info) = -2
-	} else if (*thresh) < zero {
-		(*info) = -4
-	} else if (*nounit) <= 0 {
-		(*info) = -6
-	} else if (*n) < 0 {
-		(*info) = -7
-	} else if (*lda) < 1 || (*lda) < (*n) {
-		(*info) = -9
-	} else if (*ldvl) < 1 || (*ldvl) < (*n) {
-		(*info) = -16
-	} else if (*ldvr) < 1 || (*ldvr) < (*n) {
-		(*info) = -18
-	} else if (*ldlre) < 1 || (*ldlre) < (*n) {
-		(*info) = -20
-	} else if (*lwork) < 3*(*n) || (comp && (*lwork) < 6*(*n)+(*n)*(*n)) {
-		(*info) = -31
+		info = -2
+		err = fmt.Errorf("!balok: balanc='%c'", balanc)
+	} else if thresh < zero {
+		info = -4
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if nounit <= 0 {
+		info = -6
+		err = fmt.Errorf("nounit <= 0: nounit=%v", nounit)
+	} else if n < 0 {
+		info = -7
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < 1 || a.Rows < n {
+		info = -9
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < n: a.Rows=%v, n=%v", a.Rows, n)
+	} else if vl.Rows < 1 || vl.Rows < n {
+		info = -16
+		err = fmt.Errorf("vl.Rows < 1 || vl.Rows < n: vl.Rows=%v, n=%v", vl.Rows, n)
+	} else if vr.Rows < 1 || vr.Rows < n {
+		info = -18
+		err = fmt.Errorf("vr.Rows < 1 || vr.Rows < n: vr.Rows=%v, n=%v", vr.Rows, n)
+	} else if lre.Rows < 1 || lre.Rows < n {
+		info = -20
+		err = fmt.Errorf("lre.Rows < 1 || lre.Rows < n: lre.Rows=%v, n=%v", lre.Rows, n)
+	} else if lwork < 3*n || (comp && lwork < 6*n+n*n) {
+		info = -31
+		err = fmt.Errorf("lwork < 3*n || (comp && lwork < 6*n+n*n): lwork=%v, n=%v, comp=%v", lwork, n, comp)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGET23"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("dget23", err)
 		return
 	}
 
@@ -146,7 +154,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		result.Set(i-1, -one)
 	}
 
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -156,48 +164,47 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	ulpinv = one / ulp
 
 	//     Compute eigenvalues and eigenvectors, and test them
-	if (*lwork) >= 6*(*n)+(*n)*(*n) {
+	if lwork >= 6*n+n*n {
 		sense = 'B'
 		isensm = 2
 	} else {
 		sense = 'E'
 		isensm = 1
 	}
-	golapack.Dlacpy('F', n, n, a, lda, h, lda)
-	golapack.Dgeevx(balanc, 'V', 'V', sense, n, h, lda, wr, wi, vl, ldvl, vr, ldvr, &ilo, &ihi, scale, &abnrm, rconde, rcondv, work, lwork, iwork, &iinfo)
-	if iinfo != 0 {
+	golapack.Dlacpy(Full, n, n, a, h)
+	if ilo, ihi, abnrm, iinfo, err = golapack.Dgeevx(balanc, 'V', 'V', sense, n, h, wr, wi, vl, vr, scale, rconde, rcondv, work, lwork, iwork); iinfo != 0 {
 		result.Set(0, ulpinv)
-		if (*jtype) != 22 {
-			fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "DGEEVX1", iinfo, *n, *jtype, balanc, *iseed)
+		if jtype != 22 {
+			fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, jtype=%6d, balanc = %c, iseed=%5d\n", "Dgeevx1", iinfo, n, jtype, balanc, iseed)
 		} else {
-			fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX1", iinfo, *n, (*iseed)[0])
+			fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, input example number = %4d\n", "Dgeevx1", iinfo, n, iseed[0])
 		}
-		(*info) = abs(iinfo)
+		info = abs(iinfo)
 		return
 	}
 
 	//     Do Test (1)
-	Dget22('N', 'N', 'N', n, a, lda, vr, ldvr, wr, wi, work, res)
+	dget22(NoTrans, NoTrans, NoTrans, n, a, vr, wr, wi, work, res)
 	result.Set(0, res.Get(0))
 
 	//     Do Test (2)
-	Dget22('T', 'N', 'T', n, a, lda, vl, ldvl, wr, wi, work, res)
+	dget22(Trans, NoTrans, Trans, n, a, vl, wr, wi, work, res)
 	result.Set(1, res.Get(0))
 
 	//     Do Test (3)
-	for j = 1; j <= (*n); j++ {
+	for j = 1; j <= n; j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(*n, vr.Vector(0, j-1, 1))
+			tnrm = goblas.Dnrm2(n, vr.Vector(0, j-1, 1))
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, j, 1))))
+			tnrm = golapack.Dlapy2(goblas.Dnrm2(n, vr.Vector(0, j-1, 1)), goblas.Dnrm2(n, vr.Vector(0, j, 1)))
 		}
 		result.Set(2, math.Max(result.Get(2), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {
 			vmx = zero
 			vrmx = zero
-			for jj = 1; jj <= (*n); jj++ {
-				vtst = golapack.Dlapy2(vr.GetPtr(jj-1, j-1), vr.GetPtr(jj-1, j))
+			for jj = 1; jj <= n; jj++ {
+				vtst = golapack.Dlapy2(vr.Get(jj-1, j-1), vr.Get(jj-1, j))
 				if vtst > vmx {
 					vmx = vtst
 				}
@@ -212,19 +219,19 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 	}
 
 	//     Do Test (4)
-	for j = 1; j <= (*n); j++ {
+	for j = 1; j <= n; j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(*n, vl.Vector(0, j-1, 1))
+			tnrm = goblas.Dnrm2(n, vl.Vector(0, j-1, 1))
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, j, 1))))
+			tnrm = golapack.Dlapy2(goblas.Dnrm2(n, vl.Vector(0, j-1, 1)), goblas.Dnrm2(n, vl.Vector(0, j, 1)))
 		}
 		result.Set(3, math.Max(result.Get(3), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {
 			vmx = zero
 			vrmx = zero
-			for jj = 1; jj <= (*n); jj++ {
-				vtst = golapack.Dlapy2(vl.GetPtr(jj-1, j-1), vl.GetPtr(jj-1, j))
+			for jj = 1; jj <= n; jj++ {
+				vtst = golapack.Dlapy2(vl.Get(jj-1, j-1), vl.Get(jj-1, j))
 				if vtst > vmx {
 					vmx = vtst
 				}
@@ -244,21 +251,20 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		sense = sens[isens-1]
 
 		//        Compute eigenvalues only, and test them
-		golapack.Dlacpy('F', n, n, a, lda, h, lda)
-		golapack.Dgeevx(balanc, 'N', 'N', sense, n, h, lda, wr1, wi1, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), dum.Matrix(1, opts), func() *int { y := 1; return &y }(), &ilo1, &ihi1, scale1, &abnrm1, rcnde1, rcndv1, work, lwork, iwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Dlacpy(Full, n, n, a, h)
+		if ilo1, ihi1, abnrm1, iinfo, err = golapack.Dgeevx(balanc, 'N', 'N', sense, n, h, wr1, wi1, dum.Matrix(1, opts), dum.Matrix(1, opts), scale1, rcnde1, rcndv1, work, lwork, iwork); iinfo != 0 {
 			result.Set(0, ulpinv)
-			if (*jtype) != 22 {
-				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "DGEEVX2", iinfo, *n, *jtype, balanc, *iseed)
+			if jtype != 22 {
+				fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, jtype=%6d, balanc = %c, iseed=%5d\n", "Dgeevx2", iinfo, n, jtype, balanc, iseed)
 			} else {
-				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX2", iinfo, *n, (*iseed)[0])
+				fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, input example number = %4d\n", "Dgeevx2", iinfo, n, iseed[0])
 			}
-			(*info) = abs(iinfo)
+			info = abs(iinfo)
 			goto label190
 		}
 
 		//        Do Test (5)
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if wr.Get(j-1) != wr1.Get(j-1) || wi.Get(j-1) != wi1.Get(j-1) {
 				result.Set(4, ulpinv)
 			}
@@ -266,7 +272,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 
 		//        Do Test (8)
 		if !nobal {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if scale.Get(j-1) != scale1.Get(j-1) {
 					result.Set(7, ulpinv)
 				}
@@ -283,8 +289,8 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		}
 
 		//        Do Test (9)
-		if isens == 2 && (*n) > 1 {
-			for j = 1; j <= (*n); j++ {
+		if isens == 2 && n > 1 {
+			for j = 1; j <= n; j++ {
 				if rcondv.Get(j-1) != rcndv1.Get(j-1) {
 					result.Set(8, ulpinv)
 				}
@@ -292,29 +298,28 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		}
 
 		//        Compute eigenvalues and right eigenvectors, and test them
-		golapack.Dlacpy('F', n, n, a, lda, h, lda)
-		golapack.Dgeevx(balanc, 'N', 'V', sense, n, h, lda, wr1, wi1, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), lre, ldlre, &ilo1, &ihi1, scale1, &abnrm1, rcnde1, rcndv1, work, lwork, iwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Dlacpy(Full, n, n, a, h)
+		if ilo1, ihi1, abnrm1, iinfo, err = golapack.Dgeevx(balanc, 'N', 'V', sense, n, h, wr1, wi1, dum.Matrix(1, opts), lre, scale1, rcnde1, rcndv1, work, lwork, iwork); iinfo != 0 {
 			result.Set(0, ulpinv)
-			if (*jtype) != 22 {
-				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "DGEEVX3", iinfo, *n, *jtype, balanc, *iseed)
+			if jtype != 22 {
+				fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, jtype=%6d, balanc = %c, iseed=%5d\n", "Dgeevx3", iinfo, n, jtype, balanc, iseed)
 			} else {
-				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX3", iinfo, *n, (*iseed)[0])
+				fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, input example number = %4d\n", "Dgeevx3", iinfo, n, iseed[0])
 			}
-			(*info) = abs(iinfo)
+			info = abs(iinfo)
 			goto label190
 		}
 
 		//        Do Test (5) again
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if wr.Get(j-1) != wr1.Get(j-1) || wi.Get(j-1) != wi1.Get(j-1) {
 				result.Set(4, ulpinv)
 			}
 		}
 
 		//        Do Test (6)
-		for j = 1; j <= (*n); j++ {
-			for jj = 1; jj <= (*n); jj++ {
+		for j = 1; j <= n; j++ {
+			for jj = 1; jj <= n; jj++ {
 				if vr.Get(j-1, jj-1) != lre.Get(j-1, jj-1) {
 					result.Set(5, ulpinv)
 				}
@@ -323,7 +328,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 
 		//        Do Test (8) again
 		if !nobal {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if scale.Get(j-1) != scale1.Get(j-1) {
 					result.Set(7, ulpinv)
 				}
@@ -340,8 +345,8 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		}
 
 		//        Do Test (9) again
-		if isens == 2 && (*n) > 1 {
-			for j = 1; j <= (*n); j++ {
+		if isens == 2 && n > 1 {
+			for j = 1; j <= n; j++ {
 				if rcondv.Get(j-1) != rcndv1.Get(j-1) {
 					result.Set(8, ulpinv)
 				}
@@ -349,29 +354,28 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		}
 
 		//        Compute eigenvalues and left eigenvectors, and test them
-		golapack.Dlacpy('F', n, n, a, lda, h, lda)
-		golapack.Dgeevx(balanc, 'V', 'N', sense, n, h, lda, wr1, wi1, lre, ldlre, dum.Matrix(1, opts), func() *int { y := 1; return &y }(), &ilo1, &ihi1, scale1, &abnrm1, rcnde1, rcndv1, work, lwork, iwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Dlacpy(Full, n, n, a, h)
+		if ilo1, ihi1, abnrm1, iinfo, err = golapack.Dgeevx(balanc, 'V', 'N', sense, n, h, wr1, wi1, lre, dum.Matrix(1, opts), scale1, rcnde1, rcndv1, work, lwork, iwork); iinfo != 0 {
 			result.Set(0, ulpinv)
-			if (*jtype) != 22 {
-				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, BALANC = %c, ISEED=%5d\n", "DGEEVX4", iinfo, *n, *jtype, balanc, *iseed)
+			if jtype != 22 {
+				fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, jtype=%6d, balanc = %c, iseed=%5d\n", "Dgeevx4", iinfo, n, jtype, balanc, iseed)
 			} else {
-				fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX4", iinfo, *n, (*iseed)[0])
+				fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, input example number = %4d\n", "Dgeevx4", iinfo, n, iseed[0])
 			}
-			(*info) = abs(iinfo)
+			info = abs(iinfo)
 			goto label190
 		}
 
 		//        Do Test (5) again
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if wr.Get(j-1) != wr1.Get(j-1) || wi.Get(j-1) != wi1.Get(j-1) {
 				result.Set(4, ulpinv)
 			}
 		}
 
 		//        Do Test (7)
-		for j = 1; j <= (*n); j++ {
-			for jj = 1; jj <= (*n); jj++ {
+		for j = 1; j <= n; j++ {
+			for jj = 1; jj <= n; jj++ {
 				if vl.Get(j-1, jj-1) != lre.Get(j-1, jj-1) {
 					result.Set(6, ulpinv)
 				}
@@ -380,7 +384,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 
 		//        Do Test (8) again
 		if !nobal {
-			for j = 1; j <= (*n); j++ {
+			for j = 1; j <= n; j++ {
 				if scale.Get(j-1) != scale1.Get(j-1) {
 					result.Set(7, ulpinv)
 				}
@@ -397,8 +401,8 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		}
 
 		//        Do Test (9) again
-		if isens == 2 && (*n) > 1 {
-			for j = 1; j <= (*n); j++ {
+		if isens == 2 && n > 1 {
+			for j = 1; j <= n; j++ {
 				if rcondv.Get(j-1) != rcndv1.Get(j-1) {
 					result.Set(8, ulpinv)
 				}
@@ -410,22 +414,21 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 
 	//     If COMP, compare condition numbers to precomputed ones
 	if comp {
-		golapack.Dlacpy('F', n, n, a, lda, h, lda)
-		golapack.Dgeevx('N', 'V', 'V', 'B', n, h, lda, wr, wi, vl, ldvl, vr, ldvr, &ilo, &ihi, scale, &abnrm, rconde, rcondv, work, lwork, iwork, &iinfo)
-		if iinfo != 0 {
+		golapack.Dlacpy(Full, n, n, a, h)
+		if ilo, ihi, abnrm, iinfo, err = golapack.Dgeevx('N', 'V', 'V', 'B', n, h, wr, wi, vl, vr, scale, rconde, rcondv, work, lwork, iwork); iinfo != 0 {
 			result.Set(0, ulpinv)
-			fmt.Printf(" DGET23: %s returned INFO=%6d.\n         N=%6d, INPUT EXAMPLE NUMBER = %4d\n", "DGEEVX5", iinfo, *n, (*iseed)[0])
-			(*info) = abs(iinfo)
+			fmt.Printf(" dget23: %s returned info=%6d.\n         n=%6d, input example number = %4d\n", "Dgeevx5", iinfo, n, iseed[0])
+			info = abs(iinfo)
 			goto label250
 		}
 
 		//        Sort eigenvalues and condition numbers lexicographically
 		//        to compare with inputs
-		for i = 1; i <= (*n)-1; i++ {
+		for i = 1; i <= n-1; i++ {
 			kmin = i
 			vrmin = wr.Get(i - 1)
 			vimin = wi.Get(i - 1)
-			for j = i + 1; j <= (*n); j++ {
+			for j = i + 1; j <= n; j++ {
 				if wr.Get(j-1) < vrmin {
 					kmin = j
 					vrmin = wr.Get(j - 1)
@@ -448,11 +451,11 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		//        taking their condition numbers into account
 		result.Set(9, zero)
 		eps = math.Max(epsin, ulp)
-		v = math.Max(float64(*n)*eps*abnrm, smlnum)
+		v = math.Max(float64(n)*eps*abnrm, smlnum)
 		if abnrm == zero {
 			v = one
 		}
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if v > rcondv.Get(i-1)*rconde.Get(i-1) {
 				tol = rcondv.Get(i - 1)
 			} else {
@@ -482,7 +485,7 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		//        Compare condition numbers for eigenvalues
 		//        taking their condition numbers into account
 		result.Set(10, zero)
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if v > rcondv.Get(i-1) {
 				tol = one
 			} else {
@@ -510,4 +513,6 @@ func Dget23(comp bool, balanc byte, jtype *int, thresh *float64, iseed *[]int, n
 		}
 	label250:
 	}
+
+	return
 }

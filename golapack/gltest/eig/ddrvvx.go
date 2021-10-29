@@ -11,15 +11,15 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrvvx checks the nonsymmetric eigenvalue problem expert driver
+// ddrvvx checks the nonsymmetric eigenvalue problem expert driver
 //    DGEEVX.
 //
-//    DDRVVX uses both test matrices generated randomly depending on
+//    ddrvvx uses both test matrices generated randomly depending on
 //    data supplied in the calling sequence, as well as on data
 //    read from an input file and including precomputed condition
 //    numbers to which it compares the ones it computes.
 //
-//    When DDRVVX is called, a number of matrix "sizes" ("n's") and a
+//    When ddrvvx is called, a number of matrix "sizes" ("n's") and a
 //    number of matrix "types" are specified in the calling sequence.
 //    For each size ("n") and each type of matrix, one matrix will be
 //    generated and used to test the nonsymmetric eigenroutines.  For
@@ -186,7 +186,7 @@ import (
 //      of RCONDE, and takes errors in computing RCONDE into account,
 //      so that the resulting quantity should be O(ULP). cond(RCONDE)
 //      is essentially given by norm(A)/RCONDV.
-func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.Matrix, lda *int, h *mat.Matrix, wr, wi, wr1, wi1 *mat.Vector, vl *mat.Matrix, ldvl *int, vr *mat.Matrix, ldvr *int, lre *mat.Matrix, ldlre *int, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work *mat.Vector, nwork *int, iwork *[]int, info *int, t *testing.T) {
+func ddrvvx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h *mat.Matrix, wr, wi, wr1, wi1 *mat.Vector, vl, vr, lre *mat.Matrix, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work *mat.Vector, nwork int, iwork []int, t *testing.T) (err error) {
 	var badnn bool
 	var balanc byte
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, ulp, ulpinv, unfl, zero float64
@@ -210,12 +210,11 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
 	bal[0], bal[1], bal[2], bal[3] = 'N', 'P', 'S', 'B'
 
-	path := []byte("DVX")
+	path := "Dvx"
 
 	//     Check for errors
 	ntestt = 0
 	ntestf = 0
-	(*info) = 0
 
 	//     Important constants
 	badnn = false
@@ -223,43 +222,43 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     12 is the largest dimension in the input file of precomputed
 	//     problems
 	nmax = 12
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*thresh) < zero {
-		(*info) = -6
-	} else if (*lda) < 1 || (*lda) < nmax {
-		(*info) = -10
-	} else if (*ldvl) < 1 || (*ldvl) < nmax {
-		(*info) = -17
-	} else if (*ldvr) < 1 || (*ldvr) < nmax {
-		(*info) = -19
-	} else if (*ldlre) < 1 || (*ldlre) < nmax {
-		(*info) = -21
-	} else if 6*nmax+2*int(math.Pow(float64(nmax), 2)) > (*nwork) {
-		(*info) = -32
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if thresh < zero {
+		err = fmt.Errorf("thresh < zero: thresh=%v", thresh)
+	} else if a.Rows < 1 || a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < 1 || a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if vl.Rows < 1 || vl.Rows < nmax {
+		err = fmt.Errorf("vl.Rows < 1 || vl.Rows < nmax: vl.Rows=%v, nmax=%v", vl.Rows, nmax)
+	} else if vr.Rows < 1 || vr.Rows < nmax {
+		err = fmt.Errorf("vr.Rows < 1 || vr.Rows < nmax: vr.Rows=%v, nmax=%v", vr.Rows, nmax)
+	} else if lre.Rows < 1 || lre.Rows < nmax {
+		err = fmt.Errorf("lre.Rows < 1 || lre.Rows < nmax: lre.Rows=%v, nmax=%v", lre.Rows, nmax)
+	} else if 6*nmax+2*pow(nmax, 2) > nwork {
+		err = fmt.Errorf("6*nmax+2*pow(nmax, 2) > nwork: nmax=%v, nwork=%v", nmax, nwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DDRVVX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ddrvvx", err)
 		return
 	}
 
 	//     More Important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Precision)
 	ulpinv = one / ulp
 	rtulp = math.Sqrt(ulp)
@@ -268,22 +267,22 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	//     Loop over sizes, types
 	nerrs = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label140
 			}
 
 			//           Save ISEED in case of an error.
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Compute "A"
@@ -336,7 +335,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 		label60:
 			;
 
-			golapack.Dlaset('F', lda, &n, &zero, &zero, a, lda)
+			golapack.Dlaset(Full, a.Rows, n, zero, zero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -363,11 +362,11 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, 0, 0, 'N', a, work.Off(n))
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Dlatms(&n, &n, 'S', iseed, 'S', work, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work.Off(n), &iinfo)
+				iinfo, err = matgen.Dlatms(n, n, 'S', &iseed, 'S', work, imode, cond, anorm, n, n, 'N', a, work.Off(n))
 
 			} else if itype == 6 {
 				//              General, eigenvalues specified
@@ -380,29 +379,29 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				}
 
 				adumma[0] = ' '
-				matgen.Dlatme(&n, 'S', iseed, work, &imode, &cond, &one, adumma, 'T', 'T', 'T', work.Off(n), func() *int { y := 4; return &y }(), &conds, &n, &n, &anorm, a, lda, work.Off(2*n), &iinfo)
+				iinfo, err = matgen.Dlatme(n, 'S', &iseed, work, imode, cond, one, adumma, 'T', 'T', 'T', work.Off(n), 4, conds, n, n, anorm, a, work.Off(2*n))
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Symmetric, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'S', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              General, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 				if n >= 4 {
-					golapack.Dlaset('F', func() *int { y := 2; return &y }(), &n, &zero, &zero, a, lda)
-					golapack.Dlaset('F', toPtr(n-3), func() *int { y := 1; return &y }(), &zero, &zero, a.Off(2, 0), lda)
-					golapack.Dlaset('F', toPtr(n-3), func() *int { y := 2; return &y }(), &zero, &zero, a.Off(2, n-1-1), lda)
-					golapack.Dlaset('F', func() *int { y := 1; return &y }(), &n, &zero, &zero, a.Off(n-1, 0), lda)
+					golapack.Dlaset(Full, 2, n, zero, zero, a)
+					golapack.Dlaset(Full, n-3, 1, zero, zero, a.Off(2, 0))
+					golapack.Dlaset(Full, n-3, 2, zero, zero, a.Off(2, n-1-1))
+					golapack.Dlaset(Full, 1, n, zero, zero, a.Off(n-1, 0))
 				}
 
 			} else if itype == 10 {
 				//              Triangular, random eigenvalues
-				matgen.Dlatmr(&n, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &one, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				iinfo, err = matgen.Dlatmr(n, n, 'S', &iseed, 'N', work, 6, one, one, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, 0, zero, anorm, 'N', a, &iwork)
 
 			} else {
 
@@ -411,8 +410,8 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 
 			if iinfo != 0 {
 				t.Fail()
-				fmt.Printf(" DDRVVX: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+				fmt.Printf(" ddrvvx: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -424,9 +423,9 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 				if iwk == 1 {
 					nnwork = 3 * n
 				} else if iwk == 2 {
-					nnwork = 6*n + int(math.Pow(float64(n), 2))
+					nnwork = 6*n + pow(n, 2)
 				} else {
-					nnwork = 6*n + 2*int(math.Pow(float64(n), 2))
+					nnwork = 6*n + 2*pow(n, 2)
 				}
 				nnwork = max(nnwork, 1)
 
@@ -435,7 +434,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 					balanc = bal[ibal-1]
 
 					//                 Perform tests
-					Dget23(false, balanc, &jtype, thresh, &ioldsd, nounit, &n, a, lda, h, wr, wi, wr1, wi1, vl, ldvl, vr, ldvr, lre, ldlre, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work, &nnwork, iwork, info)
+					iinfo, err = dget23(false, balanc, jtype, thresh, ioldsd, nounit, n, a, h, wr, wi, wr1, wi1, vl, vr, lre, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work, nnwork, &iwork)
 
 					//                 Check for RESULT(j) > THRESH
 					ntest = 0
@@ -444,8 +443,8 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						if result.Get(j-1) >= zero {
 							ntest = ntest + 1
 						}
-						if result.Get(j-1) >= (*thresh) {
-							nfail = nfail + 1
+						if result.Get(j-1) >= thresh {
+							nfail++
 						}
 					}
 
@@ -454,16 +453,16 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 						ntestf = ntestf + 1
 					}
 					if ntestf == 1 {
-						fmt.Printf("\n %3s -- Real Eigenvalue-Eigenvector Decomposition Expert Driver\n Matrix types (see DDRVVX for details): \n", path)
+						fmt.Printf("\n %3s -- Real Eigenvalue-Eigenvector Decomposition Expert Driver\n Matrix types (see ddrvvx for details): \n", path)
 						fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: geometr. spaced entries.\n  2=Identity matrix.                      6=Diagonal: clustered entries.\n  3=Transposed Jordan block.              7=Diagonal: large, evenly spaced.\n  4=Diagonal: evenly spaced entries.      8=Diagonal: small, evenly spaced.\n")
 						fmt.Printf(" Dense, Non-Symmetric Matrices:\n  9=Well-cond., evenly spaced eigenvals. 14=Ill-cond., geomet. spaced eigenals.\n 10=Well-cond., geom. spaced eigenvals.  15=Ill-conditioned, clustered e.vals.\n 11=Well-conditioned, clustered e.vals.  16=Ill-cond., random complex \n 12=Well-cond., random complex           17=Ill-cond., large rand. complx \n 13=Ill-conditioned, evenly spaced.      18=Ill-cond., small rand. complx \n")
 						fmt.Printf(" 19=Matrix with random O(1) entries.     21=Matrix with small random entries.\n 20=Matrix with large random entries.    22=Matrix read from input file\n\n")
-						fmt.Printf(" Tests performed with test threshold =%8.2f\n\n 1 = | A VR - VR W | / ( n |A| ulp ) \n 2 = | transpose(A) VL - VL W | / ( n |A| ulp ) \n 3 = | |VR(i)| - 1 | / ulp \n 4 = | |VL(i)| - 1 | / ulp \n 5 = 0 if W same no matter if VR or VL computed, 1/ulp otherwise\n 6 = 0 if VR same no matter what else computed,  1/ulp otherwise\n 7 = 0 if VL same no matter what else computed,  1/ulp otherwise\n 8 = 0 if RCONDV same no matter what else computed,  1/ulp otherwise\n 9 = 0 if SCALE, ILO, IHI, ABNRM same no matter what else computed,  1/ulp otherwise\n 10 = | RCONDV - RCONDV(precomputed) | / cond(RCONDV),\n 11 = | RCONDE - RCONDE(precomputed) | / cond(RCONDE),\n", *thresh)
+						fmt.Printf(" Tests performed with test threshold =%8.2f\n\n 1 = | A VR - VR W | / ( n |A| ulp ) \n 2 = | transpose(A) VL - VL W | / ( n |A| ulp ) \n 3 = | |VR(i)| - 1 | / ulp \n 4 = | |VL(i)| - 1 | / ulp \n 5 = 0 if W same no matter if VR or VL computed, 1/ulp otherwise\n 6 = 0 if VR same no matter what else computed,  1/ulp otherwise\n 7 = 0 if VL same no matter what else computed,  1/ulp otherwise\n 8 = 0 if RCONDV same no matter what else computed,  1/ulp otherwise\n 9 = 0 if SCALE, ILO, IHI, ABNRM same no matter what else computed,  1/ulp otherwise\n 10 = | RCONDV - RCONDV(precomputed) | / cond(RCONDV),\n 11 = | RCONDE - RCONDE(precomputed) | / cond(RCONDE),\n", thresh)
 						ntestf = 2
 					}
 
 					for j = 1; j <= 9; j++ {
-						if result.Get(j-1) >= (*thresh) {
+						if result.Get(j-1) >= thresh {
 							t.Fail()
 							fmt.Printf(" BALANC='%c',N=%4d,IWK=%1d, seed=%4d, type %2d, test(%2d)=%10.3f\n", balanc, n, iwk, ioldsd, jtype, j, result.Get(j-1))
 						}
@@ -943,7 +942,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	jtype = 0
 	for _i, n = range nlist {
 		jtype = jtype + 1
-		(*iseed)[0] = jtype
+		iseed[0] = jtype
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
 				a.Set(i-1, j-1, alist[_i][(i-1)*(n)+j-1])
@@ -955,7 +954,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			rcdein.Set(i-1, rcdeinlist[_i][i-1])
 			rcdvin.Set(i-1, rcdvinlist[_i][i-1])
 		}
-		Dget23(true, 'N', func() *int { y := 22; return &y }(), thresh, iseed, nounit, &n, a, lda, h, wr, wi, wr1, wi1, vl, ldvl, vr, ldvr, lre, ldlre, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work, toPtr(6*n+2*int(math.Pow(float64(n), 2))), iwork, info)
+		iinfo, err = dget23(true, 'N', 22, thresh, iseed, nounit, n, a, h, wr, wi, wr1, wi1, vl, vr, lre, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result, work, 6*n+2*pow(n, 2), &iwork)
 
 		//     Check for RESULT(j) > THRESH
 		ntest = 0
@@ -964,8 +963,8 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			if result.Get(j-1) >= zero {
 				ntest = ntest + 1
 			}
-			if result.Get(j-1) >= (*thresh) {
-				nfail = nfail + 1
+			if result.Get(j-1) >= thresh {
+				nfail++
 			}
 		}
 
@@ -974,16 +973,16 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 			ntestf = ntestf + 1
 		}
 		if ntestf == 1 {
-			fmt.Printf("\n %3s -- Real Eigenvalue-Eigenvector Decomposition Expert Driver\n Matrix types (see DDRVVX for details): \n", path)
+			fmt.Printf("\n %3s -- Real Eigenvalue-Eigenvector Decomposition Expert Driver\n Matrix types (see ddrvvx for details): \n", path)
 			fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: geometr. spaced entries.\n  2=Identity matrix.                      6=Diagonal: clustered entries.\n  3=Transposed Jordan block.              7=Diagonal: large, evenly spaced.\n  4=Diagonal: evenly spaced entries.      8=Diagonal: small, evenly spaced.\n")
 			fmt.Printf(" Dense, Non-Symmetric Matrices:\n  9=Well-cond., evenly spaced eigenvals. 14=Ill-cond., geomet. spaced eigenals.\n 10=Well-cond., geom. spaced eigenvals.  15=Ill-conditioned, clustered e.vals.\n 11=Well-conditioned, clustered e.vals.  16=Ill-cond., random complex \n 12=Well-cond., random complex           17=Ill-cond., large rand. complx \n 13=Ill-conditioned, evenly spaced.      18=Ill-cond., small rand. complx \n")
 			fmt.Printf(" 19=Matrix with random O(1) entries.     21=Matrix with small random entries.\n 20=Matrix with large random entries.    22=Matrix read from input file\n\n")
-			fmt.Printf(" Tests performed with test threshold =%8.2f\n\n 1 = | A VR - VR W | / ( n |A| ulp ) \n 2 = | transpose(A) VL - VL W | / ( n |A| ulp ) \n 3 = | |VR(i)| - 1 | / ulp \n 4 = | |VL(i)| - 1 | / ulp \n 5 = 0 if W same no matter if VR or VL computed, 1/ulp otherwise\n 6 = 0 if VR same no matter what else computed,  1/ulp otherwise\n 7 = 0 if VL same no matter what else computed,  1/ulp otherwise\n 8 = 0 if RCONDV same no matter what else computed,  1/ulp otherwise\n 9 = 0 if SCALE, ILO, IHI, ABNRM same no matter what else computed,  1/ulp otherwise\n 10 = | RCONDV - RCONDV(precomputed) | / cond(RCONDV),\n 11 = | RCONDE - RCONDE(precomputed) | / cond(RCONDE),\n", *thresh)
+			fmt.Printf(" Tests performed with test threshold =%8.2f\n\n 1 = | A VR - VR W | / ( n |A| ulp ) \n 2 = | transpose(A) VL - VL W | / ( n |A| ulp ) \n 3 = | |VR(i)| - 1 | / ulp \n 4 = | |VL(i)| - 1 | / ulp \n 5 = 0 if W same no matter if VR or VL computed, 1/ulp otherwise\n 6 = 0 if VR same no matter what else computed,  1/ulp otherwise\n 7 = 0 if VL same no matter what else computed,  1/ulp otherwise\n 8 = 0 if RCONDV same no matter what else computed,  1/ulp otherwise\n 9 = 0 if SCALE, ILO, IHI, ABNRM same no matter what else computed,  1/ulp otherwise\n 10 = | RCONDV - RCONDV(precomputed) | / cond(RCONDV),\n 11 = | RCONDE - RCONDE(precomputed) | / cond(RCONDE),\n", thresh)
 			ntestf = 2
 		}
 
 		for j = 1; j <= 11; j++ {
-			if result.Get(j-1) >= (*thresh) {
+			if result.Get(j-1) >= thresh {
 				t.Fail()
 				fmt.Printf(" N=%5d, input example =%3d,  test(%2d)=%10.3f\n", n, jtype, j, result.Get(j-1))
 			}
@@ -994,5 +993,7 @@ func Ddrvvx(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, t
 	}
 
 	//     Summary
-	Dlasum(path, &nerrs, &ntestt)
+	dlasum(path, nerrs, ntestt)
+
+	return
 }

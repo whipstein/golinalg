@@ -3,7 +3,6 @@ package eig
 import (
 	"fmt"
 	"math"
-	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
@@ -12,17 +11,17 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkbd checks the singular value decomposition (SVD) routines.
+// zchkbd checks the singular value decomposition (SVD) routines.
 //
-// ZGEBRD reduces a complex general m by n matrix A to real upper or
+// Zgebrd reduces a complex general m by n matrix A to real upper or
 // lower bidiagonal form by an orthogonal transformation: Q' * A * P = B
 // (or A = Q * B * P').  The matrix B is upper bidiagonal if m >= n
 // and lower bidiagonal if m < n.
 //
-// ZUNGBR generates the orthogonal matrices Q and P' from ZGEBRD.
+// Zungbr generates the orthogonal matrices Q and P' from Zgebrd.
 // Note that Q and P are not necessarily square.
 //
-// ZBDSQR computes the singular value decomposition of the bidiagonal
+// Zbdsqr computes the singular value decomposition of the bidiagonal
 // matrix B as B = U S V'.  It is called three times to compute
 //    1)  B = U S1 V', where S1 is the diagonal matrix of singular
 //        values and the columns of the matrices U and V are the left
@@ -30,7 +29,7 @@ import (
 //    2)  Same as 1), but the singular values are stored in S2 and the
 //        singular vectors are not computed.
 //    3)  A = (UQ) S (P'V'), the SVD of the original matrix A.
-// In addition, ZBDSQR has an option to apply the left orthogonal matrix
+// In addition, Zbdsqr has an option to apply the left orthogonal matrix
 // U to a matrix X, useful in least squares applications.
 //
 // For each pair of matrix dimensions (M,N) and each selected matrix
@@ -46,7 +45,7 @@ import (
 //
 // For each generated matrix, 14 tests are performed:
 //
-// Test ZGEBRD and ZUNGBR
+// Test Zgebrd and Zungbr
 //
 // (1)   | A - Q B PT | / ( |A| max(M,N) ulp ), PT = P'
 //
@@ -54,7 +53,7 @@ import (
 //
 // (3)   | I - PT PT' | / ( N ulp )
 //
-// Test ZBDSQR on bidiagonal matrix B
+// Test Zbdsqr on bidiagonal matrix B
 //
 // (4)   | B - U S1 VT | / ( |B| min(M,N) ulp ), VT = V'
 //
@@ -74,7 +73,7 @@ import (
 // (10)  | S1 - S2 | / ( |S1| ulp ), where S2 is computed without
 //                                   computing U and V.
 //
-// Test ZBDSQR on matrix A
+// Test Zbdsqr on matrix A
 //
 // (11)  | A - (QU) S (VT PT) | / ( |A| max(M,N) ulp )
 //
@@ -124,28 +123,27 @@ import (
 //      logarithmic distribution on [ulp^2,ulp^(-2)]  (I.e., each
 //      entry is  e^x, where x is chosen uniformly on
 //      [ 2 log(ulp), -2 log(ulp) ] .)  For *this* _type:
-//      (a) ZGEBRD is not called to reduce it to bidiagonal form.
+//      (a) Zgebrd is not called to reduce it to bidiagonal form.
 //      (b) the bidiagonal is  min(M,N) x min(M,N); if M<N, the
 //          matrix will be lower bidiagonal, otherwise upper.
 //      (c) only tests 5--8 and 14 are performed.
 //
 // A subset of the full set of matrix types may be selected through
 // the logical array DOTYPE.
-func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, nrhs *int, iseed *[]int, thresh *float64, a *mat.CMatrix, lda *int, bd, be, s1, s2 *mat.Vector, x *mat.CMatrix, ldx *int, y, z, q *mat.CMatrix, ldq *int, pt *mat.CMatrix, ldpt *int, u, vt *mat.CMatrix, work *mat.CVector, lwork *int, rwork *mat.Vector, nout, info *int, t *testing.T) {
+func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a *mat.CMatrix, bd, be, s1, s2 *mat.Vector, x, y, z, q, pt, u, vt *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector) (err error) {
 	var badmm, badnn, bidiag bool
-	var uplo byte
+	var uplo mat.MatUplo
 	var cone, czero complex128
 	var amninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, two, ulp, ulpinv, unfl, zero float64
 	var i, iinfo, imode, itype, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mq, mtypes, n, nfail, nmax, ntest int
-	var err error
-	_ = err
+
 	dumma := vf(1)
 	result := vf(14)
 	ioldsd := make([]int, 4)
 	iwork := make([]int, 1)
-	kmagn := make([]int, 16)
-	kmode := make([]int, 16)
-	ktype := make([]int, 16)
+	kmagn := []int{1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3, 0}
+	kmode := []int{0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0, 0}
+	ktype := []int{1, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 9, 9, 9, 10}
 
 	zero = 0.0
 	one = 1.0
@@ -156,67 +154,60 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 	maxtyp = 16
 	infot := &gltest.Common.Infoc.Infot
 
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15] = 1, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 9, 9, 9, 10
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15] = 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3, 0
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15] = 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0, 0
-
-	//     Check for errors
-	(*info) = 0
-
 	badmm = false
 	badnn = false
 	mmax = 1
 	nmax = 1
 	mnmax = 1
 	minwrk = 1
-	for j = 1; j <= (*nsizes); j++ {
-		mmax = max(mmax, (*mval)[j-1])
-		if (*mval)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		mmax = max(mmax, mval[j-1])
+		if mval[j-1] < 0 {
 			badmm = true
 		}
-		nmax = max(nmax, (*nval)[j-1])
-		if (*nval)[j-1] < 0 {
+		nmax = max(nmax, nval[j-1])
+		if nval[j-1] < 0 {
 			badnn = true
 		}
-		mnmax = max(mnmax, min((*mval)[j-1], (*nval)[j-1]))
-		minwrk = max(minwrk, 3*((*mval)[j-1]+(*nval)[j-1]), (*mval)[j-1]*((*mval)[j-1]+max((*mval)[j-1], (*nval)[j-1], *nrhs)+1)+(*nval)[j-1]*min((*nval)[j-1], (*mval)[j-1]))
+		mnmax = max(mnmax, min(mval[j-1], nval[j-1]))
+		minwrk = max(minwrk, 3*(mval[j-1]+nval[j-1]), mval[j-1]*(mval[j-1]+max(mval[j-1], nval[j-1], nrhs)+1)+nval[j-1]*min(nval[j-1], mval[j-1]))
 	}
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badmm {
-		(*info) = -2
+		err = fmt.Errorf("badmm: mval=%v", mval)
 	} else if badnn {
-		(*info) = -3
-	} else if (*ntypes) < 0 {
-		(*info) = -4
-	} else if (*nrhs) < 0 {
-		(*info) = -6
-	} else if (*lda) < mmax {
-		(*info) = -11
-	} else if (*ldx) < mmax {
-		(*info) = -17
-	} else if (*ldq) < mmax {
-		(*info) = -21
-	} else if (*ldpt) < mnmax {
-		(*info) = -23
-	} else if minwrk > (*lwork) {
-		(*info) = -27
+		err = fmt.Errorf("badnn: nval=%v", nval)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < mmax {
+		err = fmt.Errorf("a.Rows < mmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if x.Rows < mmax {
+		err = fmt.Errorf("x.Rows < mmax: x.Rows=%v, nmax=%v", x.Rows, nmax)
+	} else if q.Rows < mmax {
+		err = fmt.Errorf("q.Rows < mmax: q.Rows=%v, nmax=%v", q.Rows, nmax)
+	} else if pt.Rows < mnmax {
+		err = fmt.Errorf("pt.Rows < mmax: pt.Rows=%v, nmax=%v", pt.Rows, nmax)
+	} else if minwrk > lwork {
+		err = fmt.Errorf("minwrk > lwork: minwrk=%v, lwork=%v", minwrk, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZCHKBD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zchkbd", err)
 		return
 	}
 
 	//     Initialize constants
-	path := []byte("ZBD")
+	path := "Zbd"
 	nfail = 0
 	ntest = 0
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = golapack.Dlamch(Overflow)
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Precision)
 	ulpinv = one / ulp
 	log2ui = int(math.Log(ulpinv) / math.Log(two))
@@ -225,20 +216,20 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 	(*infot) = 0
 
 	//     Loop over sizes, types
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		m = (*mval)[jsize-1]
-		n = (*nval)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		m = mval[jsize-1]
+		n = nval[jsize-1]
 		mnmin = min(m, n)
 		amninv = one / float64(max(m, n, 1))
 
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label170
 			}
 
@@ -250,7 +241,7 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				result.Set(j-1, -one)
 			}
 
-			uplo = ' '
+			uplo = Full
 
 			//           Compute "A"
 			//
@@ -302,7 +293,7 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 		label70:
 			;
 
-			golapack.Zlaset('F', lda, &n, &czero, &czero, a, lda)
+			golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
 			iinfo = 0
 			cond = ulpinv
 
@@ -319,140 +310,127 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatms(&mnmin, &mnmin, 'S', iseed, 'N', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(mnmin, mnmin, 'S', iseed, 'N', rwork, imode, cond, anorm, 0, 0, 'N', a, work)
 
 			} else if itype == 5 {
 				//              Symmetric, eigenvalues specified
-				matgen.Zlatms(&mnmin, &mnmin, 'S', iseed, 'S', rwork, &imode, &cond, &anorm, &m, &n, 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(mnmin, mnmin, 'S', iseed, 'S', rwork, imode, cond, anorm, m, n, 'N', a, work)
 
 			} else if itype == 6 {
 				//              Nonsymmetric, singular values specified
-				matgen.Zlatms(&m, &n, 'S', iseed, 'N', rwork, &imode, &cond, &anorm, &m, &n, 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(m, n, 'S', iseed, 'N', rwork, imode, cond, anorm, m, n, 'N', a, work)
 
 			} else if itype == 7 {
 				//              Diagonal, random entries
-				matgen.Zlatmr(&mnmin, &mnmin, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(mnmin), func() *int { y := 1; return &y }(), &one, work.Off(2*mnmin), func() *int { y := 1; return &y }(), &one, 'N', &iwork, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, &iwork, &iinfo)
+				err = matgen.Zlatmr(mnmin, mnmin, 'S', iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(mnmin), 1, one, work.Off(2*mnmin), 1, one, 'N', &iwork, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Symmetric, random entries
-				matgen.Zlatmr(&mnmin, &mnmin, 'S', iseed, 'S', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(mnmin), func() *int { y := 1; return &y }(), &one, work.Off(m+mnmin), func() *int { y := 1; return &y }(), &one, 'N', &iwork, &m, &n, &zero, &anorm, 'N', a, lda, &iwork, &iinfo)
+				err = matgen.Zlatmr(mnmin, mnmin, 'S', iseed, 'S', work, 6, one, cone, 'T', 'N', work.Off(mnmin), 1, one, work.Off(m+mnmin), 1, one, 'N', &iwork, m, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              Nonsymmetric, random entries
-				matgen.Zlatmr(&m, &n, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(mnmin), func() *int { y := 1; return &y }(), &one, work.Off(m+mnmin), func() *int { y := 1; return &y }(), &one, 'N', &iwork, &m, &n, &zero, &anorm, 'N', a, lda, &iwork, &iinfo)
+				err = matgen.Zlatmr(m, n, 'S', iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(mnmin), 1, one, work.Off(m+mnmin), 1, one, 'N', &iwork, m, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 10 {
 				//              Bidiagonal, random entries
 				temp1 = -two * math.Log(ulp)
 				for j = 1; j <= mnmin; j++ {
-					bd.Set(j-1, math.Exp(temp1*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+					bd.Set(j-1, math.Exp(temp1*matgen.Dlarnd(2, iseed)))
 					if j < mnmin {
-						be.Set(j-1, math.Exp(temp1*matgen.Dlarnd(func() *int { y := 2; return &y }(), iseed)))
+						be.Set(j-1, math.Exp(temp1*matgen.Dlarnd(2, iseed)))
 					}
 				}
 
 				iinfo = 0
 				bidiag = true
 				if m >= n {
-					uplo = 'U'
+					uplo = Upper
 				} else {
-					uplo = 'L'
+					uplo = Lower
 				}
 			} else {
 				iinfo = 1
 			}
 
-			if iinfo == 0 {
+			if iinfo == 0 || err != nil {
 				//              Generate Right-Hand Side
 				if bidiag {
-					matgen.Zlatmr(&mnmin, nrhs, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(mnmin), func() *int { y := 1; return &y }(), &one, work.Off(2*mnmin), func() *int { y := 1; return &y }(), &one, 'N', &iwork, &mnmin, nrhs, &zero, &one, 'N', y, ldx, &iwork, &iinfo)
+					err = matgen.Zlatmr(mnmin, nrhs, 'S', iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(mnmin), 1, one, work.Off(2*mnmin), 1, one, 'N', &iwork, mnmin, nrhs, zero, one, 'N', y, &iwork)
 				} else {
-					matgen.Zlatmr(&m, nrhs, 'S', iseed, 'N', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(m), func() *int { y := 1; return &y }(), &one, work.Off(2*m), func() *int { y := 1; return &y }(), &one, 'N', &iwork, &m, nrhs, &zero, &one, 'N', x, ldx, &iwork, &iinfo)
+					err = matgen.Zlatmr(m, nrhs, 'S', iseed, 'N', work, 6, one, cone, 'T', 'N', work.Off(m), 1, one, work.Off(2*m), 1, one, 'N', &iwork, m, nrhs, zero, one, 'N', x, &iwork)
 				}
 			}
 
 			//           Error Exit
-			if iinfo != 0 {
-				fmt.Printf(" ZCHKBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, m, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo != 0 || err != nil {
+				fmt.Printf(" zchkbd: %s returned info=%6d.\n         m=%6d, n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, m, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
 		label100:
 			;
 
-			//           Call ZGEBRD and ZUNGBR to compute B, Q, and P, do tests.
+			//           Call Zgebrd and Zungbr to compute B, Q, and P, do tests.
 			if !bidiag {
 				//              Compute transformations to reduce A to bidiagonal form:
 				//              B := Q' * A * P.
-				golapack.Zlacpy(' ', &m, &n, a, lda, q, ldq)
-				golapack.Zgebrd(&m, &n, q, ldq, bd, be, work, work.Off(mnmin), work.Off(2*mnmin), toPtr((*lwork)-2*mnmin), &iinfo)
-
-				//              Check error code from ZGEBRD.
-				if iinfo != 0 {
-					fmt.Printf(" ZCHKBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZGEBRD", iinfo, m, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				golapack.Zlacpy(Full, m, n, a, q)
+				if err = golapack.Zgebrd(m, n, q, bd, be, work, work.Off(mnmin), work.Off(2*mnmin), lwork-2*mnmin); err != nil {
+					fmt.Printf(" zchkbd: %s returned info=%6d.\n         m=%6d, n=%6d, jtype=%6d, iseed=%5d\n", "Zgebrd", iinfo, m, n, jtype, ioldsd)
 					return
 				}
 
-				golapack.Zlacpy(' ', &m, &n, q, ldq, pt, ldpt)
+				golapack.Zlacpy(Full, m, n, q, pt)
 				if m >= n {
-					uplo = 'U'
+					uplo = Upper
 				} else {
-					uplo = 'L'
+					uplo = Lower
 				}
 
 				//              Generate Q
 				mq = m
-				if (*nrhs) <= 0 {
+				if nrhs <= 0 {
 					mq = mnmin
 				}
-				golapack.Zungbr('Q', &m, &mq, &n, q, ldq, work, work.Off(2*mnmin), toPtr((*lwork)-2*mnmin), &iinfo)
-
-				//              Check error code from ZUNGBR.
-				if iinfo != 0 {
-					fmt.Printf(" ZCHKBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNGBR(Q)", iinfo, m, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if err = golapack.Zungbr('Q', m, mq, n, q, work, work.Off(2*mnmin), lwork-2*mnmin); err != nil {
+					fmt.Printf(" zchkbd: %s returned info=%6d.\n         m=%6d, n=%6d, jtype=%6d, iseed=%5d\n", "Zungbr(Q)", iinfo, m, n, jtype, ioldsd)
 					return
 				}
 
 				//              Generate P'
-				golapack.Zungbr('P', &mnmin, &n, &m, pt, ldpt, work.Off(mnmin), work.Off(2*mnmin), toPtr((*lwork)-2*mnmin), &iinfo)
-
-				//              Check error code from ZUNGBR.
-				if iinfo != 0 {
-					fmt.Printf(" ZCHKBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNGBR(P)", iinfo, m, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if err = golapack.Zungbr('P', mnmin, n, m, pt, work.Off(mnmin), work.Off(2*mnmin), lwork-2*mnmin); err != nil {
+					fmt.Printf(" zchkbd: %s returned info=%6d.\n         m=%6d, n=%6d, jtype=%6d, iseed=%5d\n", "Zungbr(P)", iinfo, m, n, jtype, ioldsd)
 					return
 				}
 
 				//              Apply Q' to an M by NRHS matrix X:  Y := Q' * X.
-				err = goblas.Zgemm(ConjTrans, NoTrans, m, *nrhs, m, cone, q, x, czero, y)
+				if err = goblas.Zgemm(ConjTrans, NoTrans, m, nrhs, m, cone, q, x, czero, y); err != nil {
+					panic(err)
+				}
 
 				//              Test 1:  Check the decomposition A := Q * B * PT
 				//                   2:  Check the orthogonality of Q
 				//                   3:  Check the orthogonality of PT
-				Zbdt01(&m, &n, func() *int { y := 1; return &y }(), a, lda, q, ldq, bd, be, pt, ldpt, work, rwork, result.GetPtr(0))
-				Zunt01('C', &m, &mq, q, ldq, work, lwork, rwork, result.GetPtr(1))
-				Zunt01('R', &mnmin, &n, pt, ldpt, work, lwork, rwork, result.GetPtr(2))
+				result.Set(0, zbdt01(m, n, 1, a, q, bd, be, pt, work, rwork))
+				result.Set(1, zunt01('C', m, mq, q, work, lwork, rwork))
+				result.Set(2, zunt01('R', mnmin, n, pt, work, lwork, rwork))
 			}
 
-			//           Use ZBDSQR to form the SVD of the bidiagonal matrix B:
+			//           Use Zbdsqr to form the SVD of the bidiagonal matrix B:
 			//           B := U * S1 * VT, and compute Z = U' * Y.
 			goblas.Dcopy(mnmin, bd.Off(0, 1), s1.Off(0, 1))
 			if mnmin > 0 {
 				goblas.Dcopy(mnmin-1, be.Off(0, 1), rwork.Off(0, 1))
 			}
-			golapack.Zlacpy(' ', &m, nrhs, y, ldx, z, ldx)
-			golapack.Zlaset('F', &mnmin, &mnmin, &czero, &cone, u, ldpt)
-			golapack.Zlaset('F', &mnmin, &mnmin, &czero, &cone, vt, ldpt)
+			golapack.Zlacpy(Full, m, nrhs, y, z)
+			golapack.Zlaset(Full, mnmin, mnmin, czero, cone, u)
+			golapack.Zlaset(Full, mnmin, mnmin, czero, cone, vt)
 
-			golapack.Zbdsqr(uplo, &mnmin, &mnmin, &mnmin, nrhs, s1, rwork, vt, ldpt, u, ldpt, z, ldx, rwork.Off(mnmin), &iinfo)
-
-			//           Check error code from ZBDSQR.
-			if iinfo != 0 {
-				fmt.Printf(" ZCHKBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZBDSQR(vects)", iinfo, m, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zbdsqr(uplo, mnmin, mnmin, mnmin, nrhs, s1, rwork, vt, u, z, rwork.Off(mnmin)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkbd: %s returned info=%6d.\n         m=%6d, n=%6d, jtype=%6d, iseed=%5d\n", "Zbdsqr(vects)", iinfo, m, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -461,19 +439,16 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				}
 			}
 
-			//           Use ZBDSQR to compute only the singular values of the
+			//           Use Zbdsqr to compute only the singular values of the
 			//           bidiagonal matrix B;  U, VT, and Z should not be modified.
 			goblas.Dcopy(mnmin, bd.Off(0, 1), s2.Off(0, 1))
 			if mnmin > 0 {
 				goblas.Dcopy(mnmin-1, be.Off(0, 1), rwork.Off(0, 1))
 			}
 
-			golapack.Zbdsqr(uplo, &mnmin, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), s2, rwork, vt, ldpt, u, ldpt, z, ldx, rwork.Off(mnmin), &iinfo)
-
-			//           Check error code from ZBDSQR.
-			if iinfo != 0 {
-				fmt.Printf(" ZCHKBD: %s returned INFO=%6d.\n         M=%6d, N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZBDSQR(values)", iinfo, m, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zbdsqr(uplo, mnmin, 0, 0, 0, s2, rwork, vt, u, z, rwork.Off(mnmin)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkbd: %s returned info=%6d.\n         m=%6d, n=%6d, jtype=%6d, iseed=%5d\n", "Zbdsqr(values)", iinfo, m, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -486,10 +461,10 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			//                5:  Check the computation Z := U' * Y
 			//                6:  Check the orthogonality of U
 			//                7:  Check the orthogonality of VT
-			Zbdt03(uplo, &mnmin, func() *int { y := 1; return &y }(), bd, be, u, ldpt, s1, vt, ldpt, work, result.GetPtr(3))
-			Zbdt02(&mnmin, nrhs, y, ldx, z, ldx, u, ldpt, work, rwork, result.GetPtr(4))
-			Zunt01('C', &mnmin, &mnmin, u, ldpt, work, lwork, rwork, result.GetPtr(5))
-			Zunt01('R', &mnmin, &mnmin, vt, ldpt, work, lwork, rwork, result.GetPtr(6))
+			result.Set(3, zbdt03(uplo, mnmin, 1, bd, be, u, s1, vt, work))
+			result.Set(4, zbdt02(mnmin, nrhs, y, z, u, work, rwork))
+			result.Set(5, zunt01('C', mnmin, mnmin, u, work, lwork, rwork))
+			result.Set(6, zunt01('R', mnmin, mnmin, vt, work, lwork, rwork))
 
 			//           Test 8:  Check that the singular values are sorted in
 			//                    non-increasing order and are non-negative
@@ -508,7 +483,7 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 				}
 			}
 
-			//           Test 9:  Compare ZBDSQR with and without singular vectors
+			//           Test 9:  Compare Zbdsqr with and without singular vectors
 			temp2 = zero
 
 			for j = 1; j <= mnmin; j++ {
@@ -520,10 +495,10 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 
 			//           Test 10:  Sturm sequence test of singular values
 			//                     Go up by factors of two until it succeeds
-			temp1 = (*thresh) * (half - ulp)
+			temp1 = thresh * (half - ulp)
 
 			for j = 0; j <= log2ui; j++ {
-				Dsvdch(&mnmin, bd, be, s1, &temp1, &iinfo)
+				iinfo = dsvdch(mnmin, bd, be, s1, temp1)
 				if iinfo == 0 {
 					goto label140
 				}
@@ -534,7 +509,7 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 			;
 			result.Set(9, temp1)
 
-			//           Use ZBDSQR to form the decomposition A := (QU) S (VT PT)
+			//           Use Zbdsqr to form the decomposition A := (QU) S (VT PT)
 			//           from the bidiagonal form A := Q B PT.
 			if !bidiag {
 				goblas.Dcopy(mnmin, bd.Off(0, 1), s2.Off(0, 1))
@@ -542,28 +517,30 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 					goblas.Dcopy(mnmin-1, be.Off(0, 1), rwork.Off(0, 1))
 				}
 
-				golapack.Zbdsqr(uplo, &mnmin, &n, &m, nrhs, s2, rwork, pt, ldpt, q, ldq, y, ldx, rwork.Off(mnmin), &iinfo)
+				if iinfo, err = golapack.Zbdsqr(uplo, mnmin, n, m, nrhs, s2, rwork, pt, q, y, rwork.Off(mnmin)); err != nil {
+					panic(err)
+				}
 
 				//              Test 11:  Check the decomposition A := Q*U * S2 * VT*PT
 				//                   12:  Check the computation Z := U' * Q' * X
 				//                   13:  Check the orthogonality of Q*U
 				//                   14:  Check the orthogonality of VT*PT
-				Zbdt01(&m, &n, func() *int { y := 0; return &y }(), a, lda, q, ldq, s2, dumma, pt, ldpt, work, rwork, result.GetPtr(10))
-				Zbdt02(&m, nrhs, x, ldx, y, ldx, q, ldq, work, rwork, result.GetPtr(11))
-				Zunt01('C', &m, &mq, q, ldq, work, lwork, rwork, result.GetPtr(12))
-				Zunt01('R', &mnmin, &n, pt, ldpt, work, lwork, rwork, result.GetPtr(13))
+				result.Set(10, zbdt01(m, n, 0, a, q, s2, dumma, pt, work, rwork))
+				result.Set(11, zbdt02(m, nrhs, x, y, q, work, rwork))
+				result.Set(12, zunt01('C', m, mq, q, work, lwork, rwork))
+				result.Set(13, zunt01('R', mnmin, n, pt, work, lwork, rwork))
 			}
 
 			//           End of Loop -- Check for RESULT(j) > THRESH
 		label150:
 			;
 			for j = 1; j <= 14; j++ {
-				if result.Get(j-1) >= (*thresh) {
+				if result.Get(j-1) >= thresh {
 					if nfail == 0 {
-						Dlahd2(path)
+						dlahd2(path)
 					}
-					fmt.Printf(" M=%5d, N=%5d, _type %2d, seed=%4d, test(%2d)=%11.4f\n", m, n, jtype, ioldsd, j, result.Get(j-1))
-					nfail = nfail + 1
+					fmt.Printf(" m=%5d, n=%5d, _type %2d, seed=%4d, test(%2d)=%11.4f\n", m, n, jtype, ioldsd, j, result.Get(j-1))
+					nfail++
 				}
 			}
 			if !bidiag {
@@ -577,5 +554,7 @@ func Zchkbd(nsizes *int, mval *[]int, nval *[]int, ntypes *int, dotype *[]bool, 
 	}
 
 	//     Summary
-	Alasum(path, &nfail, &ntest, func() *int { y := 0; return &y }())
+	alasum(path, nfail, ntest, 0)
+
+	return
 }

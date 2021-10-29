@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dtpt05 tests the error bounds from iterative refinement for the
+// dtpt05 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations A*X = B, where A is a
 // triangular matrix in packed storage format.
 //
@@ -20,7 +20,7 @@ import (
 // RESLTS(2) = residual from the iterative refinement routine
 //           = the maximum of BERR / ( (n+1)*EPS + (*) ), where
 //             (*) = (n+1)*UNFL / (min_i (math.Abs(A)*math.Abs(X) +math.Abs(b))_i )
-func Dtpt05(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, xact *mat.Matrix, ldxact *int, ferr, berr, reslts *mat.Vector) {
+func dtpt05(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int, ap *mat.Vector, b, x, xact *mat.Matrix, ferr, berr, reslts *mat.Vector) {
 	var notran, unit, upper bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, ifu, imax, j, jc, k int
@@ -29,7 +29,7 @@ func Dtpt05(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	one = 1.0
 
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -38,20 +38,20 @@ func Dtpt05(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	upper = uplo == 'U'
-	notran = trans == 'N'
-	unit = diag == 'U'
+	upper = uplo == Upper
+	notran = trans == NoTrans
+	unit = diag == Unit
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 
 	errbnd = zero
-	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Idamax(*n, x.Vector(0, j-1, 1))
+	for j = 1; j <= nrhs; j++ {
+		imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
 		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			diff = math.Max(diff, math.Abs(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
@@ -81,27 +81,27 @@ func Dtpt05(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 	if unit {
 		ifu = 1
 	}
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
 			tmp = math.Abs(b.Get(i-1, k-1))
 			if upper {
 				jc = ((i - 1) * i) / 2
 				if !notran {
 					for j = 1; j <= i-ifu; j++ {
-						tmp = tmp + math.Abs(ap.Get(jc+j-1))*math.Abs(x.Get(j-1, k-1))
+						tmp += math.Abs(ap.Get(jc+j-1)) * math.Abs(x.Get(j-1, k-1))
 					}
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
 				} else {
 					jc = jc + i
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
-						jc = jc + i
+						tmp += math.Abs(x.Get(i-1, k-1))
+						jc++
 					}
-					for j = i + ifu; j <= (*n); j++ {
-						tmp = tmp + math.Abs(ap.Get(jc-1))*math.Abs(x.Get(j-1, k-1))
-						jc = jc + j
+					for j = i + ifu; j <= n; j++ {
+						tmp += math.Abs(ap.Get(jc-1)) * math.Abs(x.Get(j-1, k-1))
+						jc += j
 					}
 				}
 			} else {
@@ -109,18 +109,18 @@ func Dtpt05(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 					jc = i
 					for j = 1; j <= i-ifu; j++ {
 						tmp = tmp + math.Abs(ap.Get(jc-1))*math.Abs(x.Get(j-1, k-1))
-						jc = jc + (*n) - j
+						jc += n - j
 					}
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
 				} else {
-					jc = (i-1)*((*n)-i) + (i*(i+1))/2
+					jc = (i-1)*(n-i) + (i*(i+1))/2
 					if unit {
-						tmp = tmp + math.Abs(x.Get(i-1, k-1))
+						tmp += math.Abs(x.Get(i-1, k-1))
 					}
-					for j = i + ifu; j <= (*n); j++ {
-						tmp = tmp + math.Abs(ap.Get(jc+j-i-1))*math.Abs(x.Get(j-1, k-1))
+					for j = i + ifu; j <= n; j++ {
+						tmp += math.Abs(ap.Get(jc+j-i-1)) * math.Abs(x.Get(j-1, k-1))
 					}
 				}
 			}
@@ -130,7 +130,7 @@ func Dtpt05(uplo, trans, diag byte, n, nrhs *int, ap *mat.Vector, b *mat.Matrix,
 				axbi = math.Min(axbi, tmp)
 			}
 		}
-		tmp = berr.Get(k-1) / (float64((*n)+1)*eps + float64((*n)+1)*unfl/math.Max(axbi, float64((*n)+1)*unfl))
+		tmp = berr.Get(k-1) / (float64(n+1)*eps + float64(n+1)*unfl/math.Max(axbi, float64(n+1)*unfl))
 		if k == 1 {
 			reslts.Set(1, tmp)
 		} else {

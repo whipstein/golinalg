@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -9,7 +10,7 @@ import (
 
 // Dsterf computes all eigenvalues of a symmetric tridiagonal matrix
 // using the Pal-Walker-Kahan variant of the QL or QR algorithm.
-func Dsterf(n *int, d, e *mat.Vector, info *int) {
+func Dsterf(n int, d, e *mat.Vector) (info int, err error) {
 	var alpha, anorm, bb, c, eps, eps2, gamma, oldc, oldgam, one, p, r, rt1, rt2, rte, s, safmax, safmin, sigma, ssfmax, ssfmin, three, two, zero float64
 	var i, iscale, jtot, l, l1, lend, lendsv, lsv, m, maxit, nmaxit int
 
@@ -19,16 +20,13 @@ func Dsterf(n *int, d, e *mat.Vector, info *int) {
 	three = 3.0
 	maxit = 30
 
-	//     Test the input parameters.
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("DSTERF"), -(*info))
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Dsterf", err)
 		return
 	}
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
 
@@ -42,7 +40,7 @@ func Dsterf(n *int, d, e *mat.Vector, info *int) {
 	// rmax = Dlamch(Overflow)
 
 	//     Compute the eigenvalues of the tridiagonal matrix.
-	nmaxit = (*n) * maxit
+	nmaxit = n * maxit
 	sigma = zero
 	jtot = 0
 
@@ -53,19 +51,19 @@ func Dsterf(n *int, d, e *mat.Vector, info *int) {
 
 label10:
 	;
-	if l1 > (*n) {
+	if l1 > n {
 		goto label170
 	}
 	if l1 > 1 {
 		e.Set(l1-1-1, zero)
 	}
-	for m = l1; m <= (*n)-1; m++ {
+	for m = l1; m <= n-1; m++ {
 		if math.Abs(e.Get(m-1)) <= (math.Sqrt(math.Abs(d.Get(m-1)))*math.Sqrt(math.Abs(d.Get(m))))*eps {
 			e.Set(m-1, zero)
 			goto label30
 		}
 	}
-	m = (*n)
+	m = n
 
 label30:
 	;
@@ -79,19 +77,27 @@ label30:
 	}
 
 	//     Scale submatrix in rows and columns L to LEND
-	anorm = Dlanst('M', toPtr(lend-l+1), d.Off(l-1), e.Off(l-1))
+	anorm = Dlanst('M', lend-l+1, d.Off(l-1), e.Off(l-1))
 	iscale = 0
 	if anorm == zero {
 		goto label10
 	}
 	if anorm > ssfmax {
 		iscale = 1
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmax, toPtr(lend-l+1), func() *int { y := 1; return &y }(), d.MatrixOff(l-1, *n, opts), n, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmax, toPtr(lend-l), func() *int { y := 1; return &y }(), e.MatrixOff(l-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
 	} else if anorm < ssfmin {
 		iscale = 2
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmin, toPtr(lend-l+1), func() *int { y := 1; return &y }(), d.MatrixOff(l-1, *n, opts), n, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anorm, &ssfmin, toPtr(lend-l), func() *int { y := 1; return &y }(), e.MatrixOff(l-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	for i = l; i <= lend-1; i++ {
@@ -133,7 +139,7 @@ label30:
 		//        eigenvalues.
 		if m == l+1 {
 			rte = math.Sqrt(e.Get(l - 1))
-			Dlae2(d.GetPtr(l-1), &rte, d.GetPtr(l), &rt1, &rt2)
+			rt1, rt2 = Dlae2(d.Get(l-1), rte, d.Get(l))
 			d.Set(l-1, rt1)
 			d.Set(l, rt2)
 			e.Set(l-1, zero)
@@ -152,7 +158,7 @@ label30:
 		//        Form shift.
 		rte = math.Sqrt(e.Get(l - 1))
 		sigma = (d.Get(l) - p) / (two * rte)
-		r = Dlapy2(&sigma, &one)
+		r = Dlapy2(sigma, one)
 		sigma = p - (rte / (sigma + math.Copysign(r, sigma)))
 
 		c = one
@@ -223,7 +229,7 @@ label30:
 		//        eigenvalues.
 		if m == l-1 {
 			rte = math.Sqrt(e.Get(l - 1 - 1))
-			Dlae2(d.GetPtr(l-1), &rte, d.GetPtr(l-1-1), &rt1, &rt2)
+			rt1, rt2 = Dlae2(d.Get(l-1), rte, d.Get(l-1-1))
 			d.Set(l-1, rt1)
 			d.Set(l-1-1, rt2)
 			e.Set(l-1-1, zero)
@@ -242,7 +248,7 @@ label30:
 		//        Form shift.
 		rte = math.Sqrt(e.Get(l - 1 - 1))
 		sigma = (d.Get(l-1-1) - p) / (two * rte)
-		r = Dlapy2(&sigma, &one)
+		r = Dlapy2(sigma, one)
 		sigma = p - (rte / (sigma + math.Copysign(r, sigma)))
 
 		c = one
@@ -292,10 +298,14 @@ label30:
 label150:
 	;
 	if iscale == 1 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ssfmax, &anorm, toPtr(lendsv-lsv+1), func() *int { y := 1; return &y }(), d.MatrixOff(lsv-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+			panic(err)
+		}
 	}
 	if iscale == 2 {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &ssfmin, &anorm, toPtr(lendsv-lsv+1), func() *int { y := 1; return &y }(), d.MatrixOff(lsv-1, *n, opts), n, info)
+		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Check for no convergence to an eigenvalue after a total
@@ -303,17 +313,19 @@ label150:
 	if jtot < nmaxit {
 		goto label10
 	}
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		if e.Get(i-1) != zero {
-			(*info) = (*info) + 1
+			info = info + 1
 		}
 	}
-	goto label180
+	return
 
 	//     Sort eigenvalues in increasing order.
 label170:
 	;
-	Dlasrt('I', n, d, info)
+	if err = Dlasrt('I', n, d); err != nil {
+		panic(err)
+	}
 
-label180:
+	return
 }

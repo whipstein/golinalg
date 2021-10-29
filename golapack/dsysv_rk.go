@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -21,39 +23,40 @@ import (
 // DSYTRF_RK is called to compute the factorization of a real
 // symmetric matrix.  The factored form of A is then used to solve
 // the system of equations A * X = B by calling BLAS3 routine DSYTRS_3.
-func DsysvRk(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ipiv *[]int, b *mat.Matrix, ldb *int, work *mat.Vector, lwork *int, info *int) {
+func DsysvRk(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, e *mat.Vector, ipiv *[]int, b *mat.Matrix, work *mat.Vector, lwork int) (info int, err error) {
 	var lquery bool
 	var lwkopt int
 
 	//     Test the input parameters.
-	(*info) = 0
-	lquery = ((*lwork) == -1)
-	if uplo != 'U' && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -9
-	} else if (*lwork) < 1 && !lquery {
-		(*info) = -11
+	lquery = (lwork == -1)
+	if uplo != Upper && uplo != Lower {
+		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if lwork < 1 && !lquery {
+		err = fmt.Errorf("lwork < 1 && !lquery: lwork=%v, lquery=%v", lwork, lquery)
 	}
-	//
-	if (*info) == 0 {
-		if (*n) == 0 {
+
+	if err == nil {
+		if n == 0 {
 			lwkopt = 1
 		} else {
-			DsytrfRk(uplo, n, a, lda, e, ipiv, work, toPtr(-1), info)
+			if info, err = DsytrfRk(uplo, n, a, e, ipiv, work, -1); err != nil {
+				panic(err)
+			}
 			lwkopt = int(work.Get(0))
 		}
 		work.Set(0, float64(lwkopt))
 	}
-	//
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYSV_RK"), -(*info))
+
+	if err != nil || info != 0 {
+		gltest.Xerbla2("DsysvRk", err)
 		return
 	} else if lquery {
 		return
@@ -61,13 +64,19 @@ func DsysvRk(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, e *mat.Vector, ip
 
 	//     Compute the factorization A = P*U*D*(U**T)*(P**T) or
 	//     A = P*U*D*(U**T)*(P**T).
-	DsytrfRk(uplo, n, a, lda, e, ipiv, work, lwork, info)
+	if info, err = DsytrfRk(uplo, n, a, e, ipiv, work, lwork); err != nil {
+		panic(err)
+	}
 
-	if (*info) == 0 {
+	if info == 0 {
 		//        Solve the system A*X = B with BLAS3 solver, overwriting B with X.
-		Dsytrs3(uplo, n, nrhs, a, lda, e, ipiv, b, ldb, info)
+		if info, err = Dsytrs3(uplo, n, nrhs, a, e, ipiv, b); err != nil {
+			panic(err)
+		}
 
 	}
 
 	work.Set(0, float64(lwkopt))
+
+	return
 }

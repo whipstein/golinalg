@@ -7,8 +7,8 @@ import (
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Dchkqrt tests ZGEQR and ZGEMQR.
-func Zchktsqr(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int, nbval *[]int, nout *int, _t *testing.T) {
+// zchktsqr tests ZGEQR and ZGEMQR.
+func zchktsqr(thresh float64, tsterr bool, nm int, mval []int, nn int, nval []int, nnb int, nbval []int, _t *testing.T) {
 	var i, imb, inb, j, m, mb, n, nb, nerrs, nfail, nrun, ntests, t int
 
 	result := vf(6)
@@ -17,45 +17,45 @@ func Zchktsqr(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval
 	infot := &gltest.Common.Infoc.Infot
 
 	//     Initialize constants
-	path := []byte("ZTS")
+	path := "Zts"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
 
 	//     Test the error exits
-	if *tsterr {
-		Zerrtsqr(path, _t)
+	if tsterr {
+		zerrtsqr(path, _t)
 	}
 	(*infot) = 0
 
 	//     Do for each value of M in MVAL.
-	for i = 1; i <= (*nm); i++ {
-		m = (*mval)[i-1]
+	for i = 1; i <= nm; i++ {
+		m = mval[i-1]
 
 		//        Do for each value of N in NVAL.
-		for j = 1; j <= (*nn); j++ {
-			n = (*nval)[j-1]
+		for j = 1; j <= nn; j++ {
+			n = nval[j-1]
 			if min(m, n) != 0 {
-				for inb = 1; inb <= (*nnb); inb++ {
-					mb = (*nbval)[inb-1]
-					Xlaenv(1, mb)
-					for imb = 1; imb <= (*nnb); imb++ {
-						nb = (*nbval)[imb-1]
-						Xlaenv(2, nb)
+				for inb = 1; inb <= nnb; inb++ {
+					mb = nbval[inb-1]
+					xlaenv(1, mb)
+					for imb = 1; imb <= nnb; imb++ {
+						nb = nbval[imb-1]
+						xlaenv(2, nb)
 
 						//                 Test ZGEQR and ZGEMQR
-						Ztsqr01('T', &m, &n, &mb, &nb, result)
+						ztsqr01('T', m, n, mb, nb, result)
 
 						//                 Print information about the tests that did not
 						//                 pass the threshold.
 						for t = 1; t <= ntests; t++ {
-							if result.Get(t-1) >= (*thresh) {
+							if result.Get(t-1) >= thresh {
 								_t.Fail()
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
-								fmt.Printf("TS: M=%5d, N=%5d, MB=%5d, NB=%5d test(%2d)=%12.5f\n", m, n, mb, nb, t, result.Get(t-1))
-								nfail = nfail + 1
+								fmt.Printf("TS: m=%5d, n=%5d, mb=%5d, nb=%5d test(%2d)=%12.5f\n", m, n, mb, nb, t, result.Get(t-1))
+								nfail++
 							}
 						}
 						nrun = nrun + ntests
@@ -66,33 +66,33 @@ func Zchktsqr(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval
 	}
 
 	//     Do for each value of M in MVAL.
-	for i = 1; i <= (*nm); i++ {
-		m = (*mval)[i-1]
+	for i = 1; i <= nm; i++ {
+		m = mval[i-1]
 
 		//        Do for each value of N in NVAL.
-		for j = 1; j <= (*nn); j++ {
-			n = (*nval)[j-1]
+		for j = 1; j <= nn; j++ {
+			n = nval[j-1]
 			if min(m, n) != 0 {
-				for inb = 1; inb <= (*nnb); inb++ {
-					mb = (*nbval)[inb-1]
-					Xlaenv(1, mb)
-					for imb = 1; imb <= (*nnb); imb++ {
-						nb = (*nbval)[imb-1]
-						Xlaenv(2, nb)
+				for inb = 1; inb <= nnb; inb++ {
+					mb = nbval[inb-1]
+					xlaenv(1, mb)
+					for imb = 1; imb <= nnb; imb++ {
+						nb = nbval[imb-1]
+						xlaenv(2, nb)
 
 						//                 Test ZGELQ and ZGEMLQ
-						Ztsqr01('S', &m, &n, &mb, &nb, result)
+						ztsqr01('S', m, n, mb, nb, result)
 
 						//                 Print information about the tests that did not
 						//                 pass the threshold.
 						for t = 1; t <= ntests; t++ {
-							if result.Get(t-1) >= (*thresh) {
+							if result.Get(t-1) >= thresh {
 								_t.Fail()
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
-								fmt.Printf("SW: M=%5d, N=%5d, MB=%5d, NB=%5d test(%2d)=%12.5f\n", m, n, mb, nb, t, result.Get(t-1))
-								nfail = nfail + 1
+								fmt.Printf("SW: m=%5d, n=%5d, mb=%5d, nb=%5d test(%2d)=%12.5f\n", m, n, mb, nb, t, result.Get(t-1))
+								nfail++
 							}
 						}
 						nrun = nrun + ntests
@@ -103,5 +103,5 @@ func Zchktsqr(thresh *float64, tsterr *bool, nm *int, mval *[]int, nn *int, nval
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

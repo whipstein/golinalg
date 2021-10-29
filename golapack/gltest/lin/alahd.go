@@ -2,8 +2,8 @@ package lin
 
 import "fmt"
 
-// Alahd prints header information for the different test paths.
-func Alahd(path []byte) {
+// alahd prints header information for the different test paths.
+func alahd(path string) {
 	var corz, sord bool
 	var c1, c3, eigcnm, p2, subnam, sym string
 
@@ -16,7 +16,7 @@ func Alahd(path []byte) {
 		return
 	}
 	//
-	if p2 == "GE" {
+	if p2 == "ge" {
 		//        GE: General dense
 		fmt.Printf("\n %3s:  General dense matrices\n", path)
 		fmt.Printf(" Matrix types:\n")
@@ -32,7 +32,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 8)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "GB" {
+	} else if p2 == "gb" {
 		//        GB: General band
 		fmt.Printf("\n %3s:  General band matrices\n", path)
 		fmt.Printf(" Matrix types:\n")
@@ -47,7 +47,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "GT" {
+	} else if p2 == "gt" {
 		//        GT: General tridiagonal
 		fmt.Printf("\n %3s:  General tridiagonal\n", path)
 		fmt.Printf(" Matrix types (1-6 have specified condition numbers):\n    1. Diagonal                        7. Random, unspecified CNDNUM\n    2. Random, CNDNUM = 2              8. First column zero\n    3. Random, CNDNUM = sqrt(0.1/EPS)  9. Last column zero\n    4. Random, CNDNUM = 0.1/EPS       10. Last n/2 columns zero\n    5. Scaled near underflow          11. Scaled near underflow\n    6. Scaled near overflow           12. Scaled near overflow\n")
@@ -61,7 +61,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PO" || p2 == "PP" {
+	} else if p2 == "po" || p2 == "pp" {
 		//        PO: Positive definite full
 		//        PP: Positive definite packed
 		if sord {
@@ -69,7 +69,7 @@ func Alahd(path []byte) {
 		} else {
 			sym = "Hermitian"
 		}
-		if c3 == "O" {
+		if c3 == "o" {
 			fmt.Printf("\n %3s:  %9s positive definite matrices\n", path, sym)
 		} else {
 			fmt.Printf("\n %3s:  %9s positive definite packed matrices\n", path, sym)
@@ -87,7 +87,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 8)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PS" {
+	} else if p2 == "ps" {
 		//        PS: Positive semi-definite full
 		if sord {
 			sym = "Symmetric"
@@ -108,7 +108,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   norm( P * U' * U * P' - A ) / ( N * norm(A) * EPS ), or\n   norm( P * L * L' * P' - A ) / ( N * norm(A) * EPS )\n")
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PB" {
+	} else if p2 == "pb" {
 		//        PB: Positive definite band
 		if sord {
 			fmt.Printf("\n %3s:  %9s positive definite band matrices\n", path, "Symmetric")
@@ -127,7 +127,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "PT" {
+	} else if p2 == "pt" {
 		//        PT: Positive definite tridiagonal
 		if sord {
 			fmt.Printf("\n %3s:  %9s positive definite tridiagonal\n", path, "Symmetric")
@@ -145,10 +145,10 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "SY" {
+	} else if p2 == "sy" {
 		//        SY: Symmetric indefinite full,
 		//            with partial (Bunch-Kaufman) pivoting algorithm
-		if c3 == "Y" {
+		if c3 == "y" {
 			fmt.Printf("\n %3s:  %9s indefinite matrices, partial (Bunch-Kaufman) pivoting\n", path, "Symmetric")
 		} else {
 			fmt.Printf("\n %3s:  %9s indefinite packed matrices, partial (Bunch-Kaufman) pivoting\n", path, "Symmetric")
@@ -171,7 +171,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 9)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "SR" || p2 == "SK" {
+	} else if p2 == "sr" || p2 == "sk" {
 		//        SR: Symmetric indefinite full,
 		//            with rook (bounded Bunch-Kaufman) pivoting algorithm
 		//
@@ -201,10 +201,10 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "SP" {
+	} else if p2 == "sp" {
 		//        SP: Symmetric indefinite packed,
 		//            with partial (Bunch-Kaufman) pivoting algorithm
-		if c3 == "Y" {
+		if c3 == "y" {
 			fmt.Printf("\n %3s:  %9s indefinite matrices, partial (Bunch-Kaufman) pivoting\n", path, "Symmetric")
 		} else {
 			fmt.Printf("\n %3s:  %9s indefinite packed matrices, partial (Bunch-Kaufman) pivoting\n", path, "Symmetric")
@@ -226,7 +226,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 8)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HA" {
+	} else if p2 == "ha" {
 		//        HA: Hermitian,
 		//            with Assen Algorithm
 		fmt.Printf("\n %3s:  %9s indefinite matrices, partial (Bunch-Kaufman) pivoting\n", path, "Hermitian")
@@ -246,7 +246,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 9)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HE" {
+	} else if p2 == "he" {
 		//        HE: Hermitian indefinite full,
 		//            with partial (Bunch-Kaufman) pivoting algorithm
 		fmt.Printf("\n %3s:  %9s indefinite matrices, partial (Bunch-Kaufman) pivoting\n", path, "Hermitian")
@@ -266,7 +266,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 9)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HR" || p2 == "HK" {
+	} else if p2 == "hr" || p2 == "hk" {
 		//        HR: Hermitian indefinite full,
 		//            with rook (bounded Bunch-Kaufman) pivoting algorithm
 		//
@@ -292,10 +292,10 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "HP" {
+	} else if p2 == "hp" {
 		//        HP: Hermitian indefinite packed,
 		//            with partial (Bunch-Kaufman) pivoting algorithm
-		if c3 == "E" {
+		if c3 == "e" {
 			fmt.Printf("\n %3s:  %9s indefinite matrices, partial (Bunch-Kaufman) pivoting\n", path, "Hermitian")
 		} else {
 			fmt.Printf("\n %3s:  %9s indefinite packed matrices, partial (Bunch-Kaufman) pivoting\n", path, "Hermitian")
@@ -313,10 +313,10 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: RCOND * CNDNUM - 1.0\n", 8)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "TR" || p2 == "TP" {
+	} else if p2 == "tr" || p2 == "tp" {
 		//        TR: Triangular full
 		//        TP: Triangular packed
-		if c3 == "R" {
+		if c3 == "r" {
 			fmt.Printf("\n %3s:  Triangular matrices\n", path)
 			subnam = string(path[:1]) + "LATRS"
 		} else {
@@ -336,7 +336,7 @@ func Alahd(path []byte) {
 		fmt.Printf(" Test ratio for %s:\n   %2d: norm( s*b - A*x )  / ( norm(A) * norm(x) * EPS )\n", subnam[1:], 8)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "TB" {
+	} else if p2 == "tb" {
 		//        TB: Triangular band
 		fmt.Printf("\n %3s:  Triangular band matrices\n", path)
 		subnam = string(path[:1]) + "LATBS"
@@ -352,7 +352,7 @@ func Alahd(path []byte) {
 		fmt.Printf(" Test ratio for %s:\n   %2d: norm( s*b - A*x )  / ( norm(A) * norm(x) * EPS )\n", subnam[1:], 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "QR" {
+	} else if p2 == "qr" {
 		//        QR decomposition of rectangular matrices
 		fmt.Printf("\n %3s:  %2s factorization of general matrices\n", path, "QR")
 		fmt.Printf(" Matrix types:\n")
@@ -369,7 +369,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: diagonal is not non-negative\n", 9)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "LQ" {
+	} else if p2 == "lq" {
 		//        LQ decomposition of rectangular matrices
 		fmt.Printf("\n %3s:  %2s factorization of general matrices\n", path, "LQ")
 		fmt.Printf(" Matrix types:\n")
@@ -384,7 +384,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( B - A * X )  / ( norm(A) * norm(X) * EPS )\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "QL" {
+	} else if p2 == "ql" {
 		//        QL decomposition of rectangular matrices
 		fmt.Printf("\n %3s:  %2s factorization of general matrices\n", path, "QL")
 		fmt.Printf(" Matrix types:\n")
@@ -399,7 +399,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( B - A * X )  / ( norm(A) * norm(X) * EPS )\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "RQ" {
+	} else if p2 == "rq" {
 		//        RQ decomposition of rectangular matrices
 		fmt.Printf("\n %3s:  %2s factorization of general matrices\n", path, "RQ")
 		fmt.Printf(" Matrix types:\n")
@@ -414,7 +414,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( B - A * X )  / ( norm(A) * norm(X) * EPS )\n", 7)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "QP" {
+	} else if p2 == "qp" {
 		//        QR decomposition with column pivoting
 		fmt.Printf("\n %3s:  QR factorization with column pivoting\n", path)
 		fmt.Printf(" Matrix types (2-6 have condition 1/EPS):\n    1. Zero matrix                     4. First n/2 columns fixed\n    2. One small eigenvalue            5. Last n/2 columns fixed\n    3. Geometric distribution          6. Every second column fixed\n")
@@ -424,7 +424,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( I - Q'*Q )      / ( M * EPS )\n", 3)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "TZ" {
+	} else if p2 == "tz" {
 		//        TZ:  Trapezoidal
 		fmt.Printf("\n %3s:  RQ factorization of trapezoidal matrix\n", path)
 		fmt.Printf(" Matrix types (2-3 have condition 1/EPS):\n    1. Zero matrix\n    2. One small eigenvalue\n    3. Geometric distribution\n")
@@ -435,7 +435,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( I - Q'*Q )      / ( M * EPS )\n", 3)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "LS" {
+	} else if p2 == "ls" {
 		//        LS:  Least Squares driver routines for
 		//             LS, LSD, LSS, LSX and LSY.
 		fmt.Printf("\n %3s:  Least squares driver routines\n", path)
@@ -450,7 +450,7 @@ func Alahd(path []byte) {
 		fmt.Printf("    7-10: same as 3-6    11-14: same as 3-6\n")
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "LU" {
+	} else if p2 == "lu" {
 		//        LU factorization variants
 		fmt.Printf("\n %3s:  LU factorization variants\n", path)
 		fmt.Printf(" Matrix types:\n")
@@ -459,7 +459,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( L * U - A )  / ( N * norm(A) * EPS )\n", 1)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "CH" {
+	} else if p2 == "ch" {
 		//        Cholesky factorization variants
 		fmt.Printf("\n %3s:  Cholesky factorization variants\n", path)
 		fmt.Printf(" Matrix types:\n")
@@ -468,14 +468,14 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( U' * U - A ) / ( N * norm(A) * EPS ), or\n       norm( L * L' - A ) / ( N * norm(A) * EPS )\n", 1)
 		fmt.Printf(" Messages:\n")
 
-	} else if p2 == "QS" {
+	} else if p2 == "qs" {
 		//        QR factorization variants
 		fmt.Printf("\n %3s:  QR factorization variants\n", path)
 		fmt.Printf(" Matrix types:\n")
 		fmt.Printf("    1. Diagonal                        5. Random, CNDNUM = sqrt(0.1/EPS)\n    2. Upper triangular                6. Random, CNDNUM = 0.1/EPS\n    3. Lower triangular                7. Scaled near underflow\n    4. Random, CNDNUM = 2              8. Scaled near overflow\n")
 		fmt.Printf(" Test ratios:\n")
 
-	} else if p2 == "QT" {
+	} else if p2 == "qt" {
 		//        QRT (general matrices)
 		fmt.Printf("\n %3s:  QRT factorization for general matrices\n", path)
 		fmt.Printf(" Test ratios:\n")
@@ -497,7 +497,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( C*Q - C*Q ) / ( (M+N) * norm(C) * EPS )\n", 5)
 		fmt.Printf("   %2d: norm( C*Q' - C*Q' ) / ( (M+N) * norm(C) * EPS )\n", 6)
 
-	} else if p2 == "TQ" {
+	} else if p2 == "tq" {
 		//        QRT (triangular-pentagonal)
 		fmt.Printf("\n %3s:  LQT factorization for general matrices\n", path)
 		fmt.Printf(" Test ratios:\n")
@@ -508,7 +508,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( C*Q - C*Q ) / ( (M+N) * norm(C) * EPS )\n", 5)
 		fmt.Printf("   %2d: norm( C*Q' - C*Q' ) / ( (M+N) * norm(C) * EPS )\n", 6)
 
-	} else if p2 == "XQ" {
+	} else if p2 == "xq" {
 		//        QRT (triangular-pentagonal)
 		fmt.Printf("\n %3s:  LQT factorization for triangular-pentagonal matrices\n", path)
 		fmt.Printf(" Test ratios:\n")
@@ -519,7 +519,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( C*Q - C*Q ) / ( (M+N) * norm(C) * EPS )\n", 5)
 		fmt.Printf("   %2d: norm( C*Q' - C*Q' ) / ( (M+N) * norm(C) * EPS )\n", 6)
 
-	} else if p2 == "TS" {
+	} else if p2 == "ts" {
 		//        TS:  QR routines for tall-skinny and short-wide matrices
 		fmt.Printf("\n %3s:  TS factorization for tall-skinny or short-wide matrices\n", path)
 		fmt.Printf(" Test ratios:\n")
@@ -530,7 +530,7 @@ func Alahd(path []byte) {
 		fmt.Printf("   %2d: norm( C*Q - C*Q ) / ( (M+N) * norm(C) * EPS )\n", 5)
 		fmt.Printf("   %2d: norm( C*Q' - C*Q' ) / ( (M+N) * norm(C) * EPS )\n", 6)
 
-	} else if p2 == "HH" {
+	} else if p2 == "hh" {
 		//        HH:  Householder reconstruction for tall-skinny matrices
 		fmt.Printf("\n %3s:  Householder recostruction from TSQR factorization output \n for tall-skinny matrices.\n", path)
 		fmt.Printf(" Test ratios:\n")

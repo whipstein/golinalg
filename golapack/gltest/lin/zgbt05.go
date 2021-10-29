@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zgbt05 tests the error bounds from iterative refinement for the
+// zgbt05 tests the error bounds from iterative refinement for the
 // computed solution to a system of equations op(A)*X = B, where A is a
 // general band matrix of order n with kl subdiagonals and ku
 // superdiagonals and op(A) = A or A**T, depending on TRANS.
@@ -22,7 +22,7 @@ import (
 //           = the maximum of BERR / ( NZ*EPS + (*) ), where
 //             (*) = NZ*UNFL / (min_i (abs(op(A))*abs(X) +abs(b))_i )
 //             and NZ = max. number of nonzeros in any row of A, plus 1
-func Zgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat.CMatrix, ldb *int, x *mat.CMatrix, ldx *int, xact *mat.CMatrix, ldxact *int, ferr, berr, reslts *mat.Vector) {
+func zgbt05(trans mat.MatTrans, n, kl, ku, nrhs int, ab, b, x, xact *mat.CMatrix, ferr, berr, reslts *mat.Vector) {
 	var notran bool
 	var axbi, diff, eps, errbnd, one, ovfl, tmp, unfl, xnorm, zero float64
 	var i, imax, j, k, nz int
@@ -30,10 +30,8 @@ func Zgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat
 	zero = 0.0
 	one = 1.0
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
 	//     Quick exit if N = 0 or NRHS = 0.
-	if (*n) <= 0 || (*nrhs) <= 0 {
+	if n <= 0 || nrhs <= 0 {
 		reslts.Set(0, zero)
 		reslts.Set(1, zero)
 		return
@@ -42,19 +40,19 @@ func Zgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat
 	eps = golapack.Dlamch(Epsilon)
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	notran = trans == 'N'
-	nz = min((*kl)+(*ku)+2, (*n)+1)
+	notran = trans == NoTrans
+	nz = min(kl+ku+2, n+1)
 
 	//     Test 1:  Compute the maximum of
 	//        norm(X - XACT) / ( norm(X) * FERR )
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
-	for j = 1; j <= (*nrhs); j++ {
-		imax = goblas.Izamax(*n, x.CVector(0, j-1, 1))
-		xnorm = math.Max(Cabs1(x.Get(imax-1, j-1)), unfl)
+	for j = 1; j <= nrhs; j++ {
+		imax = goblas.Izamax(n, x.CVector(0, j-1, 1))
+		xnorm = math.Max(cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
-		for i = 1; i <= (*n); i++ {
-			diff = math.Max(diff, Cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
+		for i = 1; i <= n; i++ {
+			diff = math.Max(diff, cabs1(x.Get(i-1, j-1)-xact.Get(i-1, j-1)))
 		}
 
 		if xnorm > one {
@@ -79,16 +77,16 @@ func Zgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat
 
 	//     Test 2:  Compute the maximum of BERR / ( NZ*EPS + (*) ), where
 	//     (*) = NZ*UNFL / (min_i (abs(op(A))*abs(X) +abs(b))_i )
-	for k = 1; k <= (*nrhs); k++ {
-		for i = 1; i <= (*n); i++ {
-			tmp = Cabs1(b.Get(i-1, k-1))
+	for k = 1; k <= nrhs; k++ {
+		for i = 1; i <= n; i++ {
+			tmp = cabs1(b.Get(i-1, k-1))
 			if notran {
-				for j = max(i-(*kl), 1); j <= min(i+(*ku), *n); j++ {
-					tmp = tmp + Cabs1(ab.Get((*ku)+1+i-j-1, j-1))*Cabs1(x.Get(j-1, k-1))
+				for j = max(i-kl, 1); j <= min(i+ku, n); j++ {
+					tmp = tmp + cabs1(ab.Get(ku+1+i-j-1, j-1))*cabs1(x.Get(j-1, k-1))
 				}
 			} else {
-				for j = max(i-(*ku), 1); j <= min(i+(*kl), *n); j++ {
-					tmp = tmp + Cabs1(ab.Get((*ku)+1+j-i-1, i-1))*Cabs1(x.Get(j-1, k-1))
+				for j = max(i-ku, 1); j <= min(i+kl, n); j++ {
+					tmp = tmp + cabs1(ab.Get(ku+1+j-i-1, i-1))*cabs1(x.Get(j-1, k-1))
 				}
 			}
 			if i == 1 {
@@ -104,4 +102,6 @@ func Zgbt05(trans byte, n, kl, ku, nrhs *int, ab *mat.CMatrix, ldab *int, b *mat
 			reslts.Set(1, math.Max(reslts.Get(1), tmp))
 		}
 	}
+
+	return
 }

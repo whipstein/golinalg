@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -11,25 +13,30 @@ import (
 //
 // A is factored as A = L*D*L**H, and the factored form of A is then
 // used to solve the system of equations.
-func Zptsv(n, nrhs *int, d *mat.Vector, e *mat.CVector, b *mat.CMatrix, ldb, info *int) {
+func Zptsv(n, nrhs int, d *mat.Vector, e *mat.CVector, b *mat.CMatrix) (info int, err error) {
 	//     Test the input parameters.
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*nrhs) < 0 {
-		(*info) = -2
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -6
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZPTSV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zptsv", err)
 		return
 	}
 
 	//     Compute the L*D*L**H (or U**H*D*U) factorization of A.
-	Zpttrf(n, d, e, info)
-	if (*info) == 0 {
-		//        Solve the system A*X = B, overwriting B with X.
-		Zpttrs('L', n, nrhs, d, e, b, ldb, info)
+	if info, err = Zpttrf(n, d, e); err != nil {
+		panic(err)
 	}
+	if info == 0 {
+		//        Solve the system A*X = B, overwriting B with X.
+		if err = Zpttrs(Lower, n, nrhs, d, e, b); err != nil {
+			panic(err)
+		}
+	}
+
+	return
 }

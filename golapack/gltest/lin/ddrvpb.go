@@ -11,12 +11,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Ddrvpb tests the driver routines DPBSV and -SVX.
-func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tsterr *bool, nmax *int, a, afac, asav, b, bsav, x, xact, s, work, rwork *mat.Vector, iwork *[]int, nout *int, t *testing.T) {
+// ddrvpb tests the driver routines DPBSVand -SVX.
+func ddrvpb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, nmax int, a, afac, asav, b, bsav, x, xact, s, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var equil, nofact, prefac, zerot bool
-	var dist, equed, fact, packit, _type, uplo, xtype byte
+	var dist, equed, fact, packit, _type, xtype byte
+	var uplo mat.MatUplo
 	var ainvnm, amax, anorm, cndnum, one, rcond, rcondc, roldc, scond, zero float64
-	var i, i1, i2, iequed, ifact, ikd, imat, in, info, ioff, iuplo, iw, izero, k, k1, kd, kl, koff, ku, lda, ldab, mode, n, nb, nbmin, nerrs, nfact, nfail, nimat, nkd, nrun, nt, ntypes int
+	var i, i1, i2, iequed, ifact, ikd, imat, in, info, ioff, iw, izero, k, k1, kd, koff, lda, ldab, mode, n, nb, nbmin, nerrs, nfact, nfail, nimat, nkd, nrun, nt, ntypes int
+	var err error
 
 	equeds := make([]byte, 2)
 	facts := make([]byte, 3)
@@ -30,15 +32,13 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	one = 1.0
 	zero = 0.0
 	ntypes = 8
-	// ntests = 6
-	// nbw = 4
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
 	facts[0], facts[1], facts[2] = 'F', 'N', 'E'
 	equeds[0], equeds[1] = 'N', 'Y'
 
 	//     Initialize constants and the random number seed.
-	path := []byte("DPB")
+	path := "Dpb"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -47,8 +47,8 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrvx(path, t)
+	if tsterr {
+		derrvx(path, t)
 	}
 	(*infot) = 0
 	kdval[0] = 0
@@ -56,12 +56,12 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	//     Set the block size and minimum block size for testing.
 	nb = 1
 	nbmin = 2
-	Xlaenv(1, nb)
-	Xlaenv(2, nbmin)
+	xlaenv(1, nb)
+	xlaenv(2, nbmin)
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		xtype = 'N'
 
@@ -85,20 +85,18 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 			ldab = kd + 1
 
 			//           Do first for UPLO = 'U', then for UPLO = 'L'
-			for iuplo = 1; iuplo <= 2; iuplo++ {
+			for _, uplo = range mat.IterMatUplo(false) {
 				koff = 1
-				if iuplo == 1 {
-					uplo = 'U'
+				if uplo == Upper {
 					packit = 'Q'
 					koff = max(1, kd+2-n)
 				} else {
-					uplo = 'L'
 					packit = 'B'
 				}
 
 				for imat = 1; imat <= nimat; imat++ {
 					//                 Do the tests only if DOTYPE( IMAT ) is true.
-					if !(*dotype)[imat-1] {
+					if !dotype[imat-1] {
 						goto label80
 					}
 
@@ -108,24 +106,21 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						goto label80
 					}
 
-					if !zerot || !(*dotype)[0] {
+					if !zerot || !dotype[0] {
 						//                    Set up parameters with DLATB4 and generate a test
 						//                    matrix with DLATMS.
-						Dlatb4(path, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+						_type, _, _, anorm, mode, cndnum, dist = dlatb4(path, imat, n, n)
 
-						*srnamt = "DLATMS"
-						matgen.Dlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kd, &kd, packit, a.MatrixOff(koff-1, ldab, opts), &ldab, work, &info)
-
-						//                    Check error code from DLATMS.
-						if info != 0 {
-							Alaerh(path, []byte("DLATMS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+						*srnamt = "Dlatms"
+						if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kd, kd, packit, a.MatrixOff(koff-1, ldab, opts), work); info != 0 {
+							nerrs = alaerh(path, "Dlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 							goto label80
 						}
 					} else if izero > 0 {
 						//                    Use the same matrix for types 3 and 4 as for _type
 						//                    2 by copying back the zeroed out column,
 						iw = 2*lda + 1
-						if iuplo == 1 {
+						if uplo == Upper {
 							ioff = (izero-1)*ldab + kd + 1
 							goblas.Dcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff-izero+i1-1, 1))
 							iw = iw + izero - i1
@@ -160,7 +155,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 						i1 = max(izero-kd, 1)
 						i2 = min(izero+kd, n)
 						//
-						if iuplo == 1 {
+						if uplo == Upper {
 							ioff = (izero-1)*ldab + kd + 1
 							goblas.Dswap(izero-i1, a.Off(ioff-izero+i1-1, 1), work.Off(iw-1, 1))
 							iw = iw + izero - i1
@@ -175,7 +170,7 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 					}
 
 					//                 Save a copy of the matrix A in ASAV.
-					golapack.Dlacpy('F', toPtr(kd+1), &n, a.Matrix(ldab, opts), &ldab, asav.Matrix(ldab, opts), &ldab)
+					golapack.Dlacpy(Full, kd+1, n, a.Matrix(ldab, opts), asav.Matrix(ldab, opts))
 
 					for iequed = 1; iequed <= 2; iequed++ {
 						equed = equeds[iequed-1]
@@ -199,21 +194,23 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 							} else if fact != 'N' {
 								//                          Compute the condition number for comparison
-								//                          with the value returned by DPBSVX (FACT =
+								//                          with the value returned by Dpbsvx (FACT =
 								//                          'N' reuses the condition number from the
 								//                          previous iteration with FACT = 'F').
-								golapack.Dlacpy('F', toPtr(kd+1), &n, asav.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab)
+								golapack.Dlacpy(Full, kd+1, n, asav.Matrix(ldab, opts), afac.Matrix(ldab, opts))
 								if equil || iequed > 1 {
 									//                             Compute row and column scale factors to
 									//                             equilibrate the matrix A.
-									golapack.Dpbequ(uplo, &n, &kd, afac.Matrix(ldab, opts), &ldab, s, &scond, &amax, &info)
+									if scond, amax, info, err = golapack.Dpbequ(uplo, n, kd, afac.Matrix(ldab, opts), s); err != nil {
+										panic(err)
+									}
 									if info == 0 && n > 0 {
 										if iequed > 1 {
 											scond = zero
 										}
 
 										//                                Equilibrate the matrix.
-										golapack.Dlaqsb(uplo, &n, &kd, afac.Matrix(ldab, opts), &ldab, s, &scond, &amax, &equed)
+										equed = golapack.Dlaqsb(uplo, n, kd, afac.Matrix(ldab, opts), s, scond, amax)
 									}
 								}
 
@@ -224,18 +221,22 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								}
 
 								//                          Compute the 1-norm of A.
-								anorm = golapack.Dlansb('1', uplo, &n, &kd, afac.Matrix(ldab, opts), &ldab, rwork)
+								anorm = golapack.Dlansb('1', uplo, n, kd, afac.Matrix(ldab, opts), rwork)
 
 								//                          Factor the matrix A.
-								golapack.Dpbtrf(uplo, &n, &kd, afac.Matrix(ldab, opts), &ldab, &info)
+								if info, err = golapack.Dpbtrf(uplo, n, kd, afac.Matrix(ldab, opts)); err != nil {
+									panic(err)
+								}
 
 								//                          Form the inverse of A.
-								golapack.Dlaset('F', &n, &n, &zero, &one, a.Matrix(lda, opts), &lda)
-								*srnamt = "DPBTRS"
-								golapack.Dpbtrs(uplo, &n, &kd, &n, afac.Matrix(ldab, opts), &ldab, a.Matrix(lda, opts), &lda, &info)
+								golapack.Dlaset(Full, n, n, zero, one, a.Matrix(lda, opts))
+								*srnamt = "Dpbtrs"
+								if err = golapack.Dpbtrs(uplo, n, kd, n, afac.Matrix(ldab, opts), a.Matrix(lda, opts)); err != nil {
+									panic(err)
+								}
 
 								//                          Compute the 1-norm condition number of A.
-								ainvnm = golapack.Dlange('1', &n, &n, a.Matrix(lda, opts), &lda, rwork)
+								ainvnm = golapack.Dlange('1', n, n, a.Matrix(lda, opts), rwork)
 								if anorm <= zero || ainvnm <= zero {
 									rcondc = one
 								} else {
@@ -244,29 +245,33 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 							}
 
 							//                       Restore the matrix A.
-							golapack.Dlacpy('F', toPtr(kd+1), &n, asav.Matrix(ldab, opts), &ldab, a.Matrix(ldab, opts), &ldab)
+							golapack.Dlacpy(Full, kd+1, n, asav.Matrix(ldab, opts), a.Matrix(ldab, opts))
 
 							//                       Form an exact solution and set the right hand
 							//                       side.
-							*srnamt = "DLARHS"
-							Dlarhs(path, &xtype, uplo, ' ', &n, &n, &kd, &kd, nrhs, a.Matrix(ldab, opts), &ldab, xact.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, &iseed, &info)
+							*srnamt = "Dlarhs"
+							if err = Dlarhs(path, xtype, uplo, NoTrans, n, n, kd, kd, nrhs, a.Matrix(ldab, opts), xact.Matrix(lda, opts), b.Matrix(lda, opts), &iseed); err != nil {
+								panic(err)
+							}
 							xtype = 'C'
-							golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, bsav.Matrix(lda, opts), &lda)
+							golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), bsav.Matrix(lda, opts))
 
 							if nofact {
-								//                          --- Test DPBSV  ---
+								//                          --- Test Dpbsv ---
 								//
 								//                          Compute the L*L' or U'*U factorization of the
 								//                          matrix and solve the system.
-								golapack.Dlacpy('F', toPtr(kd+1), &n, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab)
-								golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
+								golapack.Dlacpy(Full, kd+1, n, a.Matrix(ldab, opts), afac.Matrix(ldab, opts))
+								golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
 
-								*srnamt = "DPBSV "
-								golapack.Dpbsv(uplo, &n, &kd, nrhs, afac.Matrix(ldab, opts), &ldab, x.Matrix(lda, opts), &lda, &info)
+								*srnamt = "Dpbsv"
+								if info, err = golapack.Dpbsv(uplo, n, kd, nrhs, afac.Matrix(ldab, opts), x.Matrix(lda, opts)); err != nil {
+									panic(err)
+								}
 
-								//                          Check error code from DPBSV .
+								//                          Check error code from Dpbsv.
 								if info != izero {
-									Alaerh(path, []byte("DPBSV "), &info, &izero, []byte{uplo}, &n, &n, &kd, &kd, nrhs, &imat, &nfail, &nerrs)
+									nerrs = alaerh(path, "Dpbsv", info, 0, []byte{uplo.Byte()}, n, n, kd, kd, nrhs, imat, nfail, nerrs)
 									goto label40
 								} else if info != 0 {
 									goto label40
@@ -274,51 +279,53 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 
 								//                          Reconstruct matrix from factors and compute
 								//                          residual.
-								Dpbt01(uplo, &n, &kd, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, rwork, result.GetPtr(0))
+								result.Set(0, dpbt01(uplo, n, kd, a.Matrix(ldab, opts), afac.Matrix(ldab, opts), rwork))
 
 								//                          Compute residual of the computed solution.
-								golapack.Dlacpy('F', &n, nrhs, b.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-								Dpbt02(uplo, &n, &kd, nrhs, a.Matrix(ldab, opts), &ldab, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork, result.GetPtr(1))
+								golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), work.Matrix(lda, opts))
+								result.Set(1, dpbt02(uplo, n, kd, nrhs, a.Matrix(ldab, opts), x.Matrix(lda, opts), work.Matrix(lda, opts), rwork))
 
 								//                          Check solution from generated exact solution.
-								Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+								result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 								nt = 3
 
 								//                          Print information about the tests that did
 								//                          not pass the threshold.
 								for k = 1; k <= nt; k++ {
-									if result.Get(k-1) >= (*thresh) {
+									if result.Get(k-1) >= thresh {
 										if nfail == 0 && nerrs == 0 {
-											Aladhd(path)
+											aladhd(path)
 										}
 										t.Fail()
-										fmt.Printf(" %s, UPLO='%c', N =%5d, KD =%5d, _type %1d, test(%1d)=%12.5f\n", "DPBSV ", uplo, n, kd, imat, k, result.Get(k-1))
-										nfail = nfail + 1
+										fmt.Printf(" %s, UPLO='%c', N =%5d, KD =%5d, _type %1d, test(%1d)=%12.5f\n", "Dpbsv", uplo, n, kd, imat, k, result.Get(k-1))
+										nfail++
 									}
 								}
 								nrun = nrun + nt
 							label40:
 							}
 
-							//                       --- Test DPBSVX ---
+							//                       --- Test Dpbsvx ---
 							if !prefac {
-								golapack.Dlaset('F', toPtr(kd+1), &n, &zero, &zero, afac.Matrix(ldab, opts), &ldab)
+								golapack.Dlaset(Full, kd+1, n, zero, zero, afac.Matrix(ldab, opts))
 							}
-							golapack.Dlaset('F', &n, nrhs, &zero, &zero, x.Matrix(lda, opts), &lda)
+							golapack.Dlaset(Full, n, nrhs, zero, zero, x.Matrix(lda, opts))
 							if iequed > 1 && n > 0 {
 								//                          Equilibrate the matrix if FACT='F' and
 								//                          EQUED='Y'
-								golapack.Dlaqsb(uplo, &n, &kd, a.Matrix(ldab, opts), &ldab, s, &scond, &amax, &equed)
+								equed = golapack.Dlaqsb(uplo, n, kd, a.Matrix(ldab, opts), s, scond, amax)
 							}
 
 							//                       Solve the system and compute the condition
-							//                       number and error bounds using DPBSVX.
-							*srnamt = "DPBSVX"
-							golapack.Dpbsvx(fact, uplo, &n, &kd, nrhs, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, &equed, s, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, &rcond, rwork, rwork.Off((*nrhs)), work, iwork, &info)
+							//                       number and error bounds using Dpbsvx.
+							*srnamt = "Dpbsvx"
+							if equed, rcond, info, err = golapack.Dpbsvx(fact, uplo, n, kd, nrhs, a.Matrix(ldab, opts), afac.Matrix(ldab, opts), equed, s, b.Matrix(lda, opts), x.Matrix(lda, opts), rwork, rwork.Off(nrhs), work, &iwork); err != nil {
+								panic(err)
+							}
 
-							//                       Check the error code from DPBSVX.
+							//                       Check the error code from Dpbsvx.
 							if info != izero {
-								Alaerh(path, []byte("DPBSVX"), &info, &izero, []byte{fact, uplo}, &n, &n, &kd, &kd, nrhs, &imat, &nfail, &nerrs)
+								nerrs = alaerh(path, "Dpbsvx", info, 0, []byte{fact, uplo.Byte()}, n, n, kd, kd, nrhs, imat, nfail, nerrs)
 								goto label60
 							}
 
@@ -326,51 +333,51 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 								if !prefac {
 									//                             Reconstruct matrix from factors and
 									//                             compute residual.
-									Dpbt01(uplo, &n, &kd, a.Matrix(ldab, opts), &ldab, afac.Matrix(ldab, opts), &ldab, rwork.Off(2*(*nrhs)), result.GetPtr(0))
+									result.Set(0, dpbt01(uplo, n, kd, a.Matrix(ldab, opts), afac.Matrix(ldab, opts), rwork.Off(2*nrhs)))
 									k1 = 1
 								} else {
 									k1 = 2
 								}
 
 								//                          Compute residual of the computed solution.
-								golapack.Dlacpy('F', &n, nrhs, bsav.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda)
-								Dpbt02(uplo, &n, &kd, nrhs, asav.Matrix(ldab, opts), &ldab, x.Matrix(lda, opts), &lda, work.Matrix(lda, opts), &lda, rwork.Off(2*(*nrhs)), result.GetPtr(1))
+								golapack.Dlacpy(Full, n, nrhs, bsav.Matrix(lda, opts), work.Matrix(lda, opts))
+								result.Set(1, dpbt02(uplo, n, kd, nrhs, asav.Matrix(ldab, opts), x.Matrix(lda, opts), work.Matrix(lda, opts), rwork.Off(2*nrhs)))
 
 								//                          Check solution from generated exact solution.
 								if nofact || (prefac && equed == 'N') {
-									Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &rcondc, result.GetPtr(2))
+									result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), rcondc))
 								} else {
-									Dget04(&n, nrhs, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, &roldc, result.GetPtr(2))
+									result.Set(2, dget04(n, nrhs, x.Matrix(lda, opts), xact.Matrix(lda, opts), roldc))
 								}
 
 								//                          Check the error bounds from iterative
 								//                          refinement.
-								Dpbt05(uplo, &n, &kd, nrhs, asav.Matrix(ldab, opts), &ldab, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, rwork, rwork.Off((*nrhs)), result.Off(3))
+								dpbt05(uplo, n, kd, nrhs, asav.Matrix(ldab, opts), b.Matrix(lda, opts), x.Matrix(lda, opts), xact.Matrix(lda, opts), rwork, rwork.Off(nrhs), result.Off(3))
 							} else {
 								k1 = 6
 							}
 
-							//                       Compare RCOND from DPBSVX with the computed
+							//                       Compare RCOND from Dpbsvx with the computed
 							//                       value in RCONDC.
-							result.Set(5, Dget06(&rcond, &rcondc))
+							result.Set(5, dget06(rcond, rcondc))
 
 							//                       Print information about the tests that did not
 							//                       pass the threshold.
 							for k = k1; k <= 6; k++ {
-								if result.Get(k-1) >= (*thresh) {
+								if result.Get(k-1) >= thresh {
 									if nfail == 0 && nerrs == 0 {
-										Aladhd(path)
+										aladhd(path)
 									}
 									t.Fail()
 									if prefac {
-										fmt.Printf(" %s( '%c', '%c', %5d, %5d, ... ), EQUED='%c', _type %1d, test(%1d)=%12.5f\n", "DPBSVX", fact, uplo, n, kd, equed, imat, k, result.Get(k-1))
+										fmt.Printf(" %s( '%c', %s, %5d, %5d, ... ), EQUED='%c', _type %1d, test(%1d)=%12.5f\n", "Dpbsvx", fact, uplo, n, kd, equed, imat, k, result.Get(k-1))
 									} else {
-										fmt.Printf(" %s( '%c', '%c', %5d, %5d, ... ), _type %1d, test(%1d)=%12.5f\n", "DPBSVX", fact, uplo, n, kd, imat, k, result.Get(k-1))
+										fmt.Printf(" %s( '%c', %s, %5d, %5d, ... ), _type %1d, test(%1d)=%12.5f\n", "Dpbsvx", fact, uplo, n, kd, imat, k, result.Get(k-1))
 									}
-									nfail = nfail + 1
+									nfail++
 								}
 							}
-							nrun = nrun + 7 - k1
+							nrun += 7 - k1
 						label60:
 						}
 					}
@@ -389,5 +396,5 @@ func Ddrvpb(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, ts
 	}
 
 	//     Print a summary of the results.
-	Alasvm(path, &nfail, &nrun, &nerrs)
+	alasvm(path, nfail, nrun, nerrs)
 }

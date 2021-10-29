@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,49 +16,49 @@ import (
 // norm(inv(A)), then the reciprocal of the condition number is
 // computed as
 //    RCOND = 1 / ( norm(A) * norm(inv(A)) ).
-func Dtrcon(norm, uplo, diag byte, n *int, a *mat.Matrix, lda *int, rcond *float64, work *mat.Vector, iwork *[]int, info *int) {
+func Dtrcon(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.Matrix, work *mat.Vector, iwork *[]int) (rcond float64, err error) {
 	var nounit, onenrm, upper bool
 	var normin byte
 	var ainvnm, anorm, one, scale, smlnum, xnorm, zero float64
 	var ix, kase, kase1 int
+
 	isave := make([]int, 3)
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
+	upper = uplo == Upper
 	onenrm = norm == '1' || norm == 'O'
-	nounit = diag == 'N'
+	nounit = diag == NonUnit
 
 	if !onenrm && norm != 'I' {
-		(*info) = -1
-	} else if !upper && uplo != 'L' {
-		(*info) = -2
-	} else if !nounit && diag != 'U' {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
+		err = fmt.Errorf("!onenrm && norm != 'I': norm='%c'", norm)
+	} else if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if !nounit && diag != Unit {
+		err = fmt.Errorf("!nounit && diag != Unit: diag=%s", diag)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTRCON"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtrcon", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
-		(*rcond) = one
+	if n == 0 {
+		rcond = one
 		return
 	}
 
-	(*rcond) = zero
-	smlnum = Dlamch(SafeMinimum) * float64(max(1, *n))
+	rcond = zero
+	smlnum = Dlamch(SafeMinimum) * float64(max(1, n))
 
 	//     Compute the norm of the triangular matrix A.
-	anorm = Dlantr(norm, uplo, diag, n, n, a, lda, work)
+	anorm = Dlantr(norm, uplo, diag, n, n, a, work)
 
 	//     Continue only if ANORM > 0.
 	if anorm > zero {
@@ -72,32 +73,38 @@ func Dtrcon(norm, uplo, diag byte, n *int, a *mat.Matrix, lda *int, rcond *float
 		kase = 0
 	label10:
 		;
-		Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
+		ainvnm, kase = Dlacn2(n, work.Off(n), work, iwork, ainvnm, kase, &isave)
 		if kase != 0 {
 			if kase == kase1 {
 				//              Multiply by inv(A).
-				Dlatrs(uplo, 'N', diag, normin, n, a, lda, work, &scale, work.Off(2*(*n)), info)
+				if scale, err = Dlatrs(uplo, NoTrans, diag, normin, n, a, work, scale, work.Off(2*n)); err != nil {
+					panic(err)
+				}
 			} else {
 				//              Multiply by inv(A**T).
-				Dlatrs(uplo, 'T', diag, normin, n, a, lda, work, &scale, work.Off(2*(*n)), info)
+				if scale, err = Dlatrs(uplo, Trans, diag, normin, n, a, work, scale, work.Off(2*n)); err != nil {
+					panic(err)
+				}
 			}
 			normin = 'Y'
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Idamax(*n, work.Off(0, 1))
+				ix = goblas.Idamax(n, work.Off(0, 1))
 				xnorm = math.Abs(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return
 				}
-				Drscl(n, &scale, work, func() *int { y := 1; return &y }())
+				Drscl(n, scale, work.Off(0, 1))
 			}
 			goto label10
 		}
 
 		//        Compute the estimate of the reciprocal condition number.
 		if ainvnm != zero {
-			(*rcond) = (one / anorm) / ainvnm
+			rcond = (one / anorm) / ainvnm
 		}
 	}
+
+	return
 }

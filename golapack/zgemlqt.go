@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -19,81 +21,82 @@ import (
 // generated using the compact WY representation as returned by ZGELQT.
 //
 // Q is of order M if SIDE = 'L' and of order N  if SIDE = 'R'.
-func Zgemlqt(side, trans byte, m, n, k, mb *int, v *mat.CMatrix, ldv *int, t *mat.CMatrix, ldt *int, c *mat.CMatrix, ldc *int, work *mat.CVector, info *int) {
+func Zgemlqt(side mat.MatSide, trans mat.MatTrans, m, n, k, mb int, v, t, c *mat.CMatrix, work *mat.CVector) (err error) {
 	var left, notran, right, tran bool
 	var i, ib, kf, ldwork int
 
 	//     .. Test the input arguments ..
-	(*info) = 0
-	left = side == 'L'
-	right = side == 'R'
-	tran = trans == 'C'
-	notran = trans == 'N'
+	left = side == Left
+	right = side == Right
+	tran = trans == ConjTrans
+	notran = trans == NoTrans
 
 	if left {
-		ldwork = max(1, *n)
+		ldwork = max(1, n)
 	} else if right {
-		ldwork = max(1, *m)
+		ldwork = max(1, m)
 	}
 	if !left && !right {
-		(*info) = -1
+		err = fmt.Errorf("!left && !right: side=%s", side)
 	} else if !tran && !notran {
-		(*info) = -2
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*k) < 0 {
-		(*info) = -5
-	} else if (*mb) < 1 || ((*mb) > (*k) && (*k) > 0) {
-		(*info) = -6
-	} else if (*ldv) < max(1, *k) {
-		(*info) = -8
-	} else if (*ldt) < (*mb) {
-		(*info) = -10
-	} else if (*ldc) < max(1, *m) {
-		(*info) = -12
+		err = fmt.Errorf("!tran && !notran: trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if k < 0 {
+		err = fmt.Errorf("k < 0: k=%v", k)
+	} else if mb < 1 || (mb > k && k > 0) {
+		err = fmt.Errorf("mb < 1 || (mb > k && k > 0): mb=%v, k=%v", mb, k)
+	} else if v.Rows < max(1, k) {
+		err = fmt.Errorf("v.Rows < max(1, k): v.Rows=%v, k=%v", v.Rows, k)
+	} else if t.Rows < mb {
+		err = fmt.Errorf("t.Rows < mb: t.Rows=%v, mb=%v", t.Rows, mb)
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows < max(1, m): c.Rows=%v, m=%v", c.Rows, m)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGEMLQT"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgemlqt", err)
 		return
 	}
 
 	//     .. Quick return if possible ..
-	if (*m) == 0 || (*n) == 0 || (*k) == 0 {
+	if m == 0 || n == 0 || k == 0 {
 		return
 	}
 
 	if left && notran {
 
-		for i = 1; i <= (*k); i += (*mb) {
-			ib = min(*mb, (*k)-i+1)
-			Zlarfb('L', 'C', 'F', 'R', toPtr((*m)-i+1), n, &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(i-1, 0), ldc, work.CMatrix(ldwork, opts), &ldwork)
+		for i = 1; i <= k; i += mb {
+			ib = min(mb, k-i+1)
+			Zlarfb(Left, ConjTrans, 'F', 'R', m-i+1, n, ib, v.Off(i-1, i-1), t.Off(0, i-1), c.Off(i-1, 0), work.CMatrix(ldwork, opts))
 		}
 
 	} else if right && tran {
 
-		for i = 1; i <= (*k); i += (*mb) {
-			ib = min(*mb, (*k)-i+1)
-			Zlarfb('R', 'N', 'F', 'R', m, toPtr((*n)-i+1), &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(0, i-1), ldc, work.CMatrix(ldwork, opts), &ldwork)
+		for i = 1; i <= k; i += mb {
+			ib = min(mb, k-i+1)
+			Zlarfb(Right, NoTrans, 'F', 'R', m, n-i+1, ib, v.Off(i-1, i-1), t.Off(0, i-1), c.Off(0, i-1), work.CMatrix(ldwork, opts))
 		}
 
 	} else if left && tran {
 
-		kf = (((*k)-1)/(*mb))*(*mb) + 1
-		for i = kf; i >= 1; i -= (*mb) {
-			ib = min(*mb, (*k)-i+1)
-			Zlarfb('L', 'N', 'F', 'R', toPtr((*m)-i+1), n, &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(i-1, 0), ldc, work.CMatrix(ldwork, opts), &ldwork)
+		kf = ((k-1)/mb)*mb + 1
+		for i = kf; i >= 1; i -= mb {
+			ib = min(mb, k-i+1)
+			Zlarfb(Left, NoTrans, 'F', 'R', m-i+1, n, ib, v.Off(i-1, i-1), t.Off(0, i-1), c.Off(i-1, 0), work.CMatrix(ldwork, opts))
 		}
 
 	} else if right && notran {
 
-		kf = (((*k)-1)/(*mb))*(*mb) + 1
-		for i = kf; i >= 1; i -= (*mb) {
-			ib = min(*mb, (*k)-i+1)
-			Zlarfb('R', 'C', 'F', 'R', m, toPtr((*n)-i+1), &ib, v.Off(i-1, i-1), ldv, t.Off(0, i-1), ldt, c.Off(0, i-1), ldc, work.CMatrix(ldwork, opts), &ldwork)
+		kf = ((k-1)/mb)*mb + 1
+		for i = kf; i >= 1; i -= mb {
+			ib = min(mb, k-i+1)
+			Zlarfb(Right, ConjTrans, 'F', 'R', m, n-i+1, ib, v.Off(i-1, i-1), t.Off(0, i-1), c.Off(0, i-1), work.CMatrix(ldwork, opts))
 		}
 
 	}
+
+	return
 }

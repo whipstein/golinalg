@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -20,36 +21,34 @@ import (
 //
 // The computed eigenvectors are normalized to have Euclidean norm
 // equal to 1 and largest component real.
-func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vector, vl *mat.Matrix, ldvl *int, vr *mat.Matrix, ldvr *int, work *mat.Vector, lwork, info *int) {
+func Dgeev(jobvl, jobvr byte, n int, a *mat.Matrix, wr, wi *mat.Vector, vl, vr *mat.Matrix, work *mat.Vector, lwork int) (info int, err error) {
 	var lquery, scalea, wantvl, wantvr bool
 	var side byte
-	var anrm, bignum, cs, cscale, eps, one, r, scl, smlnum, sn, zero float64
-	var hswork, i, ibal, ierr, ihi, ilo, itau, iwrk, k, lworkTrevc, maxwrk, minwrk, nout int
+	var anrm, bignum, cs, cscale, eps, one, scl, smlnum, sn, zero float64
+	var hswork, i, ibal, ihi, ilo, itau, iwrk, k, lworkTrevc, maxwrk, minwrk int
 
 	_select := make([]bool, 1)
 	dum := vf(1)
 
 	zero = 0.0
 	one = 1.0
-	nout = 6
 
 	//     Test the input arguments
-	(*info) = 0
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 	wantvl = jobvl == 'V'
 	wantvr = jobvr == 'V'
 	if (!wantvl) && jobvl != 'N' {
-		(*info) = -1
+		err = fmt.Errorf("(!wantvl) && jobvl != 'N': jobvl='%c'", jobvl)
 	} else if (!wantvr) && jobvr != 'N' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldvl) < 1 || (wantvl && (*ldvl) < (*n)) {
-		(*info) = -9
-	} else if (*ldvr) < 1 || (wantvr && (*ldvr) < (*n)) {
-		(*info) = -11
+		err = fmt.Errorf("(!wantvr) && jobvr != 'N': jobvr='%c'", jobvr)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if vl.Rows < 1 || (wantvl && vl.Rows < n) {
+		err = fmt.Errorf("vl.Rows < 1 || (wantvl && vl.Rows < n): jobvl='%c', vl.Rows=%v, n=%v", jobvl, vl.Rows, n)
+	} else if vr.Rows < 1 || (wantvr && vr.Rows < n) {
+		err = fmt.Errorf("vr.Rows < 1 || (wantvr && vr.Rows < n): jobvr='%c', vr.Rows=%v, n=%v", jobvr, vr.Rows, n)
 	}
 
 	//     Compute workspace
@@ -61,56 +60,66 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 	//       HSWORK refers to the workspace preferred by DHSEQR, as
 	//       calculated below. HSWORK is computed assuming ILO=1 and IHI=N,
 	//       the worst case.)
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			minwrk = 1
 			maxwrk = 1
 		} else {
-			maxwrk = 2*(*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEHRD"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
+			maxwrk = 2*n + n*Ilaenv(1, "Dgehrd", []byte{' '}, n, 1, n, 0)
 			if wantvl {
-				minwrk = 4 * (*n)
-				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				Dhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vl, ldvl, work, toPtr(-1), info)
+				minwrk = 4 * n
+				maxwrk = max(maxwrk, 2*n+(n-1)*Ilaenv(1, "Dorghr", []byte{' '}, n, 1, n, -1))
+				if info, err = Dhseqr('S', 'V', n, 1, n, a, wr, wi, vl, work, -1); err != nil {
+					panic(err)
+				}
 				hswork = int(work.Get(0))
-				maxwrk = max(maxwrk, (*n)+1, (*n)+hswork)
-				Dtrevc3('L', 'B', &_select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), &ierr)
+				maxwrk = max(maxwrk, n+1, n+hswork)
+				if _, err = Dtrevc3(Left, 'B', &_select, n, a, vl, vr, n, work, -1); err != nil {
+					panic(err)
+				}
 				lworkTrevc = int(work.Get(0))
-				maxwrk = max(maxwrk, (*n)+lworkTrevc)
-				maxwrk = max(maxwrk, 4*(*n))
+				maxwrk = max(maxwrk, n+lworkTrevc)
+				maxwrk = max(maxwrk, 4*n)
 			} else if wantvr {
-				minwrk = 4 * (*n)
-				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				Dhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vr, ldvr, work, toPtr(-1), info)
+				minwrk = 4 * n
+				maxwrk = max(maxwrk, 2*n+(n-1)*Ilaenv(1, "Dorghr", []byte{' '}, n, 1, n, -1))
+				if info, err = Dhseqr('S', 'V', n, 1, n, a, wr, wi, vr, work, -1); err != nil {
+					panic(err)
+				}
 				hswork = int(work.Get(0))
-				maxwrk = max(maxwrk, (*n)+1, (*n)+hswork)
-				Dtrevc3('R', 'B', &_select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), &ierr)
+				maxwrk = max(maxwrk, n+1, n+hswork)
+				if _, err = Dtrevc3(Right, 'B', &_select, n, a, vl, vr, n, work, -1); err != nil {
+					panic(err)
+				}
 				lworkTrevc = int(work.Get(0))
-				maxwrk = max(maxwrk, (*n)+lworkTrevc)
-				maxwrk = max(maxwrk, 4*(*n))
+				maxwrk = max(maxwrk, n+lworkTrevc)
+				maxwrk = max(maxwrk, 4*n)
 			} else {
-				minwrk = 3 * (*n)
-				Dhseqr('E', 'N', n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vr, ldvr, work, toPtr(-1), info)
+				minwrk = 3 * n
+				if info, err = Dhseqr('E', 'N', n, 1, n, a, wr, wi, vr, work, -1); err != nil {
+					panic(err)
+				}
 				hswork = int(work.Get(0))
-				maxwrk = max(maxwrk, (*n)+1, (*n)+hswork)
+				maxwrk = max(maxwrk, n+1, n+hswork)
 			}
 			maxwrk = max(maxwrk, minwrk)
 		}
 		work.Set(0, float64(maxwrk))
 
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -13
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGEEV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgeev", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -118,12 +127,12 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
 	//     Scale A if max element outside range [SMLNUM,BIGNUM]
-	anrm = Dlange('M', n, n, a, lda, dum)
+	anrm = Dlange('M', n, n, a, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
 		scalea = true
@@ -133,95 +142,115 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 		cscale = bignum
 	}
 	if scalea {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &cscale, n, n, a, lda, &ierr)
+		if err = Dlascl('G', 0, 0, anrm, cscale, n, n, a); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Balance the matrix
 	//     (Workspace: need N)
 	ibal = 1
-	Dgebal('B', n, a, lda, &ilo, &ihi, work.Off(ibal-1), &ierr)
+	if ilo, ihi, err = Dgebal('B', n, a, work.Off(ibal-1)); err != nil {
+		panic(err)
+	}
 
 	//     Reduce to upper Hessenberg form
 	//     (Workspace: need 3*N, prefer 2*N+N*NB)
-	itau = ibal + (*n)
-	iwrk = itau + (*n)
-	Dgehrd(n, &ilo, &ihi, a, lda, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+	itau = ibal + n
+	iwrk = itau + n
+	if err = Dgehrd(n, ilo, ihi, a, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+		panic(err)
+	}
 
 	if wantvl {
 		//        Want left eigenvectors
 		//        Copy Householder vectors to VL
 		side = 'L'
-		Dlacpy('L', n, n, a, lda, vl, ldvl)
+		Dlacpy(Lower, n, n, a, vl)
 
 		//        Generate orthogonal matrix in VL
 		//        (Workspace: need 3*N-1, prefer 2*N+(N-1)*NB)
-		Dorghr(n, &ilo, &ihi, vl, ldvl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+		if err = Dorghr(n, ilo, ihi, vl, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 		//        Perform QR iteration, accumulating Schur vectors in VL
 		//        (Workspace: need N+1, prefer N+HSWORK (see comments) )
 		iwrk = itau
-		Dhseqr('S', 'V', n, &ilo, &ihi, a, lda, wr, wi, vl, ldvl, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), info)
+		if info, err = Dhseqr('S', 'V', n, ilo, ihi, a, wr, wi, vl, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 		if wantvr {
 			//           Want left and right eigenvectors
 			//           Copy Schur vectors to VR
 			side = 'B'
-			Dlacpy('F', n, n, vl, ldvl, vr, ldvr)
+			Dlacpy(Full, n, n, vl, vr)
 		}
 
 	} else if wantvr {
 		//        Want right eigenvectors
 		//        Copy Householder vectors to VR
 		side = 'R'
-		Dlacpy('L', n, n, a, lda, vr, ldvr)
+		Dlacpy(Lower, n, n, a, vr)
 
 		//        Generate orthogonal matrix in VR
 		//        (Workspace: need 3*N-1, prefer 2*N+(N-1)*NB)
-		Dorghr(n, &ilo, &ihi, vr, ldvr, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+		if err = Dorghr(n, ilo, ihi, vr, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 		//        Perform QR iteration, accumulating Schur vectors in VR
 		//        (Workspace: need N+1, prefer N+HSWORK (see comments) )
 		iwrk = itau
-		Dhseqr('S', 'V', n, &ilo, &ihi, a, lda, wr, wi, vr, ldvr, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), info)
+		if info, err = Dhseqr('S', 'V', n, ilo, ihi, a, wr, wi, vr, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 	} else {
 		//        Compute eigenvalues only
 		//        (Workspace: need N+1, prefer N+HSWORK (see comments) )
 		iwrk = itau
-		Dhseqr('E', 'N', n, &ilo, &ihi, a, lda, wr, wi, vr, ldvr, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), info)
+		if info, err = Dhseqr('E', 'N', n, ilo, ihi, a, wr, wi, vr, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If INFO .NE. 0 from DHSEQR, then quit
-	if (*info) != 0 {
+	if info != 0 {
 		goto label50
 	}
 
 	if wantvl || wantvr {
 		//        Compute left and/or right eigenvectors
 		//        (Workspace: need 4*N, prefer N + N + 2*N*NB)
-		Dtrevc3(side, 'B', &_select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+		if _, err = Dtrevc3(mat.SideByte(side), 'B', &_select, n, a, vl, vr, n, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 	}
 
 	if wantvl {
 		//        Undo balancing of left eigenvectors
 		//        (Workspace: need N)
-		Dgebak('B', 'L', n, &ilo, &ihi, work.Off(ibal-1), n, vl, ldvl, &ierr)
+		if err = Dgebak('B', Left, n, ilo, ihi, work.Off(ibal-1), n, vl); err != nil {
+			panic(err)
+		}
 
 		//        Normalize left eigenvectors and make largest component real
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(*n, vl.Vector(0, i-1, 1))
-				goblas.Dscal(*n, scl, vl.Vector(0, i-1, 1))
+				scl = one / goblas.Dnrm2(n, vl.Vector(0, i-1, 1))
+				goblas.Dscal(n, scl, vl.Vector(0, i-1, 1))
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i-1, 1))), toPtrf64(goblas.Dnrm2(*n, vl.Vector(0, i, 1))))
-				goblas.Dscal(*n, scl, vl.Vector(0, i-1, 1))
-				goblas.Dscal(*n, scl, vl.Vector(0, i, 1))
-				for k = 1; k <= (*n); k++ {
+				scl = one / Dlapy2(goblas.Dnrm2(n, vl.Vector(0, i-1, 1)), goblas.Dnrm2(n, vl.Vector(0, i, 1)))
+				goblas.Dscal(n, scl, vl.Vector(0, i-1, 1))
+				goblas.Dscal(n, scl, vl.Vector(0, i, 1))
+				for k = 1; k <= n; k++ {
 					work.Set(iwrk+k-1-1, math.Pow(vl.Get(k-1, i-1), 2)+math.Pow(vl.Get(k-1, i), 2))
 				}
-				k = goblas.Idamax(*n, work.Off(iwrk-1))
-				Dlartg(vl.GetPtr(k-1, i-1), vl.GetPtr(k-1, i), &cs, &sn, &r)
-				goblas.Drot(*n, vl.Vector(0, i-1, 1), vl.Vector(0, i, 1), cs, sn)
+				k = goblas.Idamax(n, work.Off(iwrk-1))
+				cs, sn, _ = Dlartg(vl.Get(k-1, i-1), vl.Get(k-1, i))
+				goblas.Drot(n, vl.Vector(0, i-1, 1), vl.Vector(0, i, 1), cs, sn)
 				vl.Set(k-1, i, zero)
 			}
 		}
@@ -230,23 +259,25 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 	if wantvr {
 		//        Undo balancing of right eigenvectors
 		//        (Workspace: need N)
-		Dgebak('B', 'R', n, &ilo, &ihi, work.Off(ibal-1), n, vr, ldvr, &ierr)
+		if err = Dgebak('B', Right, n, ilo, ihi, work.Off(ibal-1), n, vr); err != nil {
+			panic(err)
+		}
 
 		//        Normalize right eigenvectors and make largest component real
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(*n, vr.Vector(0, i-1, 1))
-				goblas.Dscal(*n, scl, vr.Vector(0, i-1, 1))
+				scl = one / goblas.Dnrm2(n, vr.Vector(0, i-1, 1))
+				goblas.Dscal(n, scl, vr.Vector(0, i-1, 1))
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i-1, 1))), toPtrf64(goblas.Dnrm2(*n, vr.Vector(0, i, 1))))
-				goblas.Dscal(*n, scl, vr.Vector(0, i-1, 1))
-				goblas.Dscal(*n, scl, vr.Vector(0, i, 1))
-				for k = 1; k <= (*n); k++ {
+				scl = one / Dlapy2(goblas.Dnrm2(n, vr.Vector(0, i-1, 1)), goblas.Dnrm2(n, vr.Vector(0, i, 1)))
+				goblas.Dscal(n, scl, vr.Vector(0, i-1, 1))
+				goblas.Dscal(n, scl, vr.Vector(0, i, 1))
+				for k = 1; k <= n; k++ {
 					work.Set(iwrk+k-1-1, math.Pow(vr.Get(k-1, i-1), 2)+math.Pow(vr.Get(k-1, i), 2))
 				}
-				k = goblas.Idamax(*n, work.Off(iwrk-1))
-				Dlartg(vr.GetPtr(k-1, i-1), vr.GetPtr(k-1, i), &cs, &sn, &r)
-				goblas.Drot(*n, vr.Vector(0, i-1, 1), vr.Vector(0, i, 1), cs, sn)
+				k = goblas.Idamax(n, work.Off(iwrk-1))
+				cs, sn, _ = Dlartg(vr.Get(k-1, i-1), vr.Get(k-1, i))
+				goblas.Drot(n, vr.Vector(0, i-1, 1), vr.Vector(0, i, 1), cs, sn)
 				vr.Set(k-1, i, zero)
 			}
 		}
@@ -256,13 +287,23 @@ func Dgeev(jobvl, jobvr byte, n *int, a *mat.Matrix, lda *int, wr, wi *mat.Vecto
 label50:
 	;
 	if scalea {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), wr.MatrixOff((*info), max((*n)-(*info), 1), opts), toPtr(max((*n)-(*info), 1)), &ierr)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), wi.MatrixOff((*info), max((*n)-(*info), 1), opts), toPtr(max((*n)-(*info), 1)), &ierr)
-		if (*info) > 0 {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wr.Matrix(*n, opts), n, &ierr)
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wi.Matrix(*n, opts), n, &ierr)
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-info, 1, wr.MatrixOff(info, max(n-info, 1), opts)); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-info, 1, wi.MatrixOff(info, max(n-info, 1), opts)); err != nil {
+			panic(err)
+		}
+		if info > 0 {
+			if err = Dlascl('G', 0, 0, cscale, anrm, ilo-1, 1, wr.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
+			if err = Dlascl('G', 0, 0, cscale, anrm, ilo-1, 1, wi.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	work.Set(0, float64(maxwrk))
+
+	return
 }

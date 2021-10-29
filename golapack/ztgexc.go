@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -18,74 +20,75 @@ import (
 //
 //        Q(in) * A(in) * Z(in)**H = Q(out) * A(out) * Z(out)**H
 //        Q(in) * B(in) * Z(in)**H = Q(out) * B(out) * Z(out)**H
-func Ztgexc(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, q *mat.CMatrix, ldq *int, z *mat.CMatrix, ldz, ifst, ilst, info *int) {
+func Ztgexc(wantq, wantz bool, n int, a, b, q, z *mat.CMatrix, ifst, ilst int) (ilstOut, info int, err error) {
 	var here int
 
+	ilstOut = ilst
+
 	//     Decode and test input arguments.
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldq) < 1 || wantq && ((*ldq) < max(1, *n)) {
-		(*info) = -9
-	} else if (*ldz) < 1 || wantz && ((*ldz) < max(1, *n)) {
-		(*info) = -11
-	} else if (*ifst) < 1 || (*ifst) > (*n) {
-		(*info) = -12
-	} else if (*ilst) < 1 || (*ilst) > (*n) {
-		(*info) = -13
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if q.Rows < 1 || wantq && (q.Rows < max(1, n)) {
+		err = fmt.Errorf("q.Rows < 1 || wantq && (q.Rows < max(1, n)): wantq=%v, q.Rows=%v, n=%v", wantq, q.Rows, n)
+	} else if z.Rows < 1 || wantz && (z.Rows < max(1, n)) {
+		err = fmt.Errorf("z.Rows < 1 || wantz && (z.Rows < max(1, n)): wantz=%v, z.Rows=%v, n=%v", wantz, z.Rows, n)
+	} else if ifst < 1 || ifst > n {
+		err = fmt.Errorf("ifst < 1 || ifst > n: ifst=%v, n=%v", ifst, n)
+	} else if ilstOut < 1 || ilstOut > n {
+		err = fmt.Errorf("ilst < 1 || ilst > n: ilst=%v, n=%v", ilstOut, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTGEXC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztgexc", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
-	if (*ifst) == (*ilst) {
+	if ifst == ilstOut {
 		return
 	}
 
-	if (*ifst) < (*ilst) {
+	if ifst < ilstOut {
 
-		here = (*ifst)
+		here = ifst
 
 	label10:
 		;
 
 		//        Swap with next one below
-		Ztgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, info)
-		if (*info) != 0 {
-			(*ilst) = here
+		if info = Ztgex2(wantq, wantz, n, a, b, q, z, here); info != 0 {
+			ilstOut = here
 			return
 		}
 		here = here + 1
-		if here < (*ilst) {
+		if here < ilstOut {
 			goto label10
 		}
 		here = here - 1
 	} else {
-		here = (*ifst) - 1
+		here = ifst - 1
 
 	label20:
 		;
 
 		//        Swap with next one above
-		Ztgex2(wantq, wantz, n, a, lda, b, ldb, q, ldq, z, ldz, &here, info)
-		if (*info) != 0 {
-			(*ilst) = here
+		if info = Ztgex2(wantq, wantz, n, a, b, q, z, here); info != 0 {
+			ilstOut = here
 			return
 		}
 		here = here - 1
-		if here >= (*ilst) {
+		if here >= ilstOut {
 			goto label20
 		}
 		here = here + 1
 	}
-	(*ilst) = here
+	ilstOut = here
+
+	return
 }

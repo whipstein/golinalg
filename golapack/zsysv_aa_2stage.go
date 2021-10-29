@@ -1,11 +1,13 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zsysvaa2stage computes the solution to a complex system of
+// ZsysvAa2stage computes the solution to a complex system of
 // linear equations
 //    A * X = B,
 // where A is an N-by-N symmetric matrix and X and B are N-by-NRHS
@@ -20,50 +22,57 @@ import (
 // is then used to solve the system of equations A * X = B.
 //
 // This is the blocked version of the algorithm, calling Level 3 BLAS.
-func Zsysvaa2stage(uplo byte, n, nrhs *int, a *mat.CMatrix, lda *int, tb *mat.CVector, ltb *int, ipiv, ipiv2 *[]int, b *mat.CMatrix, ldb *int, work *mat.CVector, lwork, info *int) {
+func ZsysvAa2stage(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, tb *mat.CVector, ltb int, ipiv, ipiv2 *[]int, b *mat.CMatrix, work *mat.CVector, lwork int) (info int, err error) {
 	var tquery, upper, wquery bool
 	var lwkopt int
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	wquery = ((*lwork) == -1)
-	tquery = ((*ltb) == -1)
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ltb) < (4*(*n)) && !tquery {
-		(*info) = -7
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -11
-	} else if (*lwork) < (*n) && !wquery {
-		(*info) = -13
+	upper = uplo == Upper
+	wquery = (lwork == -1)
+	tquery = (ltb == -1)
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if ltb < (4*n) && !tquery {
+		err = fmt.Errorf("ltb < (4*n) && !tquery: ltb=%v, n=%v, tquery=%v", ltb, n, tquery)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if lwork < n && !wquery {
+		err = fmt.Errorf("lwork < n && !wquery: lwork=%v, n=%v, wquery=%v", lwork, n, wquery)
 	}
-	//
-	if (*info) == 0 {
-		Zsytrfaa2stage(uplo, n, a, lda, tb, toPtr(-1), ipiv, ipiv2, work, toPtr(-1), info)
+
+	if err == nil {
+		if info, err = ZsytrfAa2stage(uplo, n, a, tb, -1, ipiv, ipiv2, work, -1); err != nil {
+			panic(err)
+		}
 		lwkopt = int(work.GetRe(0))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZSYSV_AA_2STAGE"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZsysvAa2stage", err)
 		return
 	} else if wquery || tquery {
 		return
 	}
 
 	//     Compute the factorization A = U**T*T*U or A = L*T*L**T.
-	Zsytrfaa2stage(uplo, n, a, lda, tb, ltb, ipiv, ipiv2, work, lwork, info)
-	if (*info) == 0 {
+	if info, err = ZsytrfAa2stage(uplo, n, a, tb, ltb, ipiv, ipiv2, work, lwork); err != nil {
+		panic(err)
+	}
+	if info == 0 {
 		//        Solve the system A*X = B, overwriting B with X.
-		Zsytrsaa2stage(uplo, n, nrhs, a, lda, tb, ltb, ipiv, ipiv2, b, ldb, info)
+		if err = ZsytrsAa2stage(uplo, n, nrhs, a, tb, ltb, ipiv, ipiv2, b); err != nil {
+			panic(err)
+		}
 
 	}
 
 	work.SetRe(0, float64(lwkopt))
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -11,13 +12,11 @@ import (
 // Dgerfs improves the computed solution to a system of linear
 // equations and provides error bounds and backward error estimates for
 // the solution.
-func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matrix, ldaf *int, ipiv *[]int, b *mat.Matrix, ldb *int, x *mat.Matrix, ldx *int, ferr, berr, work *mat.Vector, iwork *[]int, info *int) {
+func Dgerfs(trans mat.MatTrans, n, nrhs int, a *mat.Matrix, af *mat.Matrix, ipiv []int, b *mat.Matrix, x *mat.Matrix, ferr, berr, work *mat.Vector, iwork *[]int) (err error) {
 	var notran bool
-	var transt byte
+	var transt mat.MatTrans
 	var eps, lstres, one, s, safe1, safe2, safmin, three, two, xk, zero float64
 	var count, i, itmax, j, k, kase, nz int
-	var err error
-	_ = err
 	isave := make([]int, 3)
 
 	itmax = 5
@@ -27,31 +26,30 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 	three = 3.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	notran = trans == 'N'
-	if !notran && trans != 'T' && trans != 'C' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldaf) < max(1, *n) {
-		(*info) = -7
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -10
-	} else if (*ldx) < max(1, *n) {
-		(*info) = -12
+	notran = trans == NoTrans
+	if !trans.IsValid() {
+		err = fmt.Errorf("!trans.IsValid(): trans=%s", trans)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if af.Rows < max(1, n) {
+		err = fmt.Errorf("af.Rows < max(1, n): af.Rows=%v, n=%v", af.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
+	} else if x.Rows < max(1, n) {
+		err = fmt.Errorf("x.Rows < max(1, n): x.Rows=%v, n=%v", x.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGERFS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgerfs", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*nrhs) == 0 {
-		for j = 1; j <= (*nrhs); j++ {
+	if n == 0 || nrhs == 0 {
+		for j = 1; j <= nrhs; j++ {
 			ferr.Set(j-1, zero)
 			berr.Set(j-1, zero)
 		}
@@ -59,20 +57,20 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 	}
 
 	if notran {
-		transt = 'T'
+		transt = Trans
 	} else {
-		transt = 'N'
+		transt = NoTrans
 	}
 
 	//     NZ = maximum number of nonzero elements in each row of A, plus 1
-	nz = (*n) + 1
+	nz = n + 1
 	eps = Dlamch(Epsilon)
 	safmin = Dlamch(SafeMinimum)
 	safe1 = float64(nz) * safmin
 	safe2 = safe1 / eps
 
 	//     Do for each right hand side
-	for j = 1; j <= (*nrhs); j++ {
+	for j = 1; j <= nrhs; j++ {
 
 		count = 1
 		lstres = three
@@ -83,8 +81,8 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Dcopy(*n, b.Vector(0, j-1, 1), work.Off((*n), 1))
-		err = goblas.Dgemv(mat.TransByte(trans), *n, *n, -one, a, x.Vector(0, j-1, 1), one, work.Off((*n), 1))
+		goblas.Dcopy(n, b.Vector(0, j-1, 1), work.Off(n, 1))
+		err = goblas.Dgemv(trans, n, n, -one, a, x.Vector(0, j-1, 1), one, work.Off(n, 1))
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -94,33 +92,33 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//        or vector Z.  If the i-th component of the denominator is less
 		//        than SAFE2, then SAFE1 is added to the i-th components of the
 		//        numerator and denominator before dividing.
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			work.Set(i-1, math.Abs(b.Get(i-1, j-1)))
 		}
 
 		//        Compute abs(op(A))*abs(X) + abs(B).
 		if notran {
-			for k = 1; k <= (*n); k++ {
+			for k = 1; k <= n; k++ {
 				xk = math.Abs(x.Get(k-1, j-1))
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					work.Set(i-1, work.Get(i-1)+math.Abs(a.Get(i-1, k-1))*xk)
 				}
 			}
 		} else {
-			for k = 1; k <= (*n); k++ {
+			for k = 1; k <= n; k++ {
 				s = zero
-				for i = 1; i <= (*n); i++ {
+				for i = 1; i <= n; i++ {
 					s += math.Abs(a.Get(i-1, k-1)) * math.Abs(x.Get(i-1, j-1))
 				}
 				work.Set(k-1, work.Get(k-1)+s)
 			}
 		}
 		s = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if work.Get(i-1) > safe2 {
-				s = math.Max(s, math.Abs(work.Get((*n)+i-1))/work.Get(i-1))
+				s = math.Max(s, math.Abs(work.Get(n+i-1))/work.Get(i-1))
 			} else {
-				s = math.Max(s, (math.Abs(work.Get((*n)+i-1))+safe1)/(work.Get(i-1)+safe1))
+				s = math.Max(s, (math.Abs(work.Get(n+i-1))+safe1)/(work.Get(i-1)+safe1))
 			}
 		}
 		berr.Set(j-1, s)
@@ -132,8 +130,10 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			Dgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n), *n, opts), n, info)
-			goblas.Daxpy(*n, one, work.Off((*n), 1), x.Vector(0, j-1, 1))
+			if err = Dgetrs(trans, n, 1, af, ipiv, work.MatrixOff(n, n, opts)); err != nil {
+				panic(err)
+			}
+			goblas.Daxpy(n, one, work.Off(n, 1), x.Vector(0, j-1, 1))
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -160,39 +160,44 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		//        Use DLACN2 to estimate the infinity-norm of the matrix
 		//           inv(op(A)) * diag(W),
 		//        where W = abs(R) + NZ*EPS*( abs(op(A))*abs(X)+abs(B) )))
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			if work.Get(i-1) > safe2 {
-				work.Set(i-1, math.Abs(work.Get((*n)+i-1))+float64(nz)*eps*work.Get(i-1))
+				work.Set(i-1, math.Abs(work.Get(n+i-1))+float64(nz)*eps*work.Get(i-1))
 			} else {
-				work.Set(i-1, math.Abs(work.Get((*n)+i-1))+float64(nz)*eps*work.Get(i-1)+safe1)
+				work.Set(i-1, math.Abs(work.Get(n+i-1))+float64(nz)*eps*work.Get(i-1)+safe1)
 			}
 		}
 
 		kase = 0
 	label100:
 		;
-		Dlacn2(n, work.Off(2*(*n)), work.Off((*n)), iwork, ferr.GetPtr(j-1), &kase, &isave)
+		_ferr := ferr.GetPtr(j - 1)
+		*_ferr, kase = Dlacn2(n, work.Off(2*n), work.Off(n), iwork, ferr.Get(j-1), kase, &isave)
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				Dgetrs(transt, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n), *n, opts), n, info)
-				for i = 1; i <= (*n); i++ {
-					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
+				if err = Dgetrs(transt, n, 1, af, ipiv, work.MatrixOff(n, n, opts)); err != nil {
+					panic(err)
+				}
+				for i = 1; i <= n; i++ {
+					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
 			} else {
 				//              Multiply by inv(op(A))*diag(W).
 
-				for i = 1; i <= (*n); i++ {
-					work.Set((*n)+i-1, work.Get(i-1)*work.Get((*n)+i-1))
+				for i = 1; i <= n; i++ {
+					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
-				Dgetrs(trans, n, func() *int { y := 1; return &y }(), af, ldaf, ipiv, work.MatrixOff((*n), *n, opts), n, info)
+				if err = Dgetrs(trans, n, 1, af, ipiv, work.MatrixOff(n, n, opts)); err != nil {
+					panic(err)
+				}
 			}
 			goto label100
 		}
 
 		//        Normalize error.
 		lstres = zero
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			lstres = math.Max(lstres, math.Abs(x.Get(i-1, j-1)))
 		}
 		if lstres != zero {
@@ -200,4 +205,6 @@ func Dgerfs(trans byte, n *int, nrhs *int, a *mat.Matrix, lda *int, af *mat.Matr
 		}
 
 	}
+
+	return
 }

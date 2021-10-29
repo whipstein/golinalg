@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -20,12 +21,13 @@ import (
 //
 // The computed eigenvectors are normalized to have Euclidean norm
 // equal to 1 and largest component real.
-func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, vl *mat.CMatrix, ldvl *int, vr *mat.CMatrix, ldvr *int, work *mat.CVector, lwork *int, rwork *mat.Vector, info *int) {
+func Zgeev(jobvl, jobvr byte, n int, a *mat.CMatrix, w *mat.CVector, vl, vr *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector) (info int, err error) {
 	var lquery, scalea, wantvl, wantvr bool
-	var side byte
+	var side mat.MatSide
 	var tmp complex128
 	var anrm, bignum, cscale, eps, one, scl, smlnum, zero float64
-	var hswork, i, ibal, ierr, ihi, ilo, irwork, itau, iwrk, k, lworkTrevc, maxwrk, minwrk, nout int
+	var hswork, i, ibal, ihi, ilo, irwork, itau, iwrk, k, lworkTrevc, maxwrk, minwrk int
+
 	_select := make([]bool, 1)
 	dum := vf(1)
 
@@ -33,22 +35,21 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 	one = 1.0
 
 	//     Test the input arguments
-	(*info) = 0
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 	wantvl = jobvl == 'V'
 	wantvr = jobvr == 'V'
 	if (!wantvl) && (jobvl != 'N') {
-		(*info) = -1
+		err = fmt.Errorf("(!wantvl) && (jobvl != 'N'): jobvl='%c'", jobvl)
 	} else if (!wantvr) && (jobvr != 'N') {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldvl) < 1 || (wantvl && (*ldvl) < (*n)) {
-		(*info) = -8
-	} else if (*ldvr) < 1 || (wantvr && (*ldvr) < (*n)) {
-		(*info) = -10
+		err = fmt.Errorf("(!wantvr) && (jobvr != 'N'): jobvr='%c'", jobvr)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if vl.Rows < 1 || (wantvl && vl.Rows < n) {
+		err = fmt.Errorf("vl.Rows < 1 || (wantvl && vl.Rows < n): jobvl='%c', vl.Rows=%v, n=%v", jobvl, vl.Rows, n)
+	} else if vr.Rows < 1 || (wantvr && vr.Rows < n) {
+		err = fmt.Errorf("vr.Rows < 1 || (wantvr && vr.Rows < n): jobvr='%c', vr.Rows=%v, n=%v", jobvr, vr.Rows, n)
 	}
 
 	//     Compute workspace
@@ -61,47 +62,57 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 	//       HSWORK refers to the workspace preferred by ZHSEQR, as
 	//       calculated below. HSWORK is computed assuming ILO=1 and IHI=N,
 	//       the worst case.)
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			minwrk = 1
 			maxwrk = 1
 		} else {
-			maxwrk = (*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEHRD"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
-			minwrk = 2 * (*n)
+			maxwrk = n + n*Ilaenv(1, "Zgehrd", []byte{' '}, n, 1, n, 0)
+			minwrk = 2 * n
 			if wantvl {
-				maxwrk = max(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				Ztrevc3('L', 'B', _select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), rwork, toPtr(-1), &ierr)
+				maxwrk = max(maxwrk, n+(n-1)*Ilaenv(1, "Zunghr", []byte{' '}, n, 1, n, -1))
+				if _, err = Ztrevc3(Left, 'B', _select, n, a, vl, vr, n, work, -1, rwork, -1); err != nil {
+					panic(err)
+				}
 				lworkTrevc = int(work.GetRe(0))
-				maxwrk = max(maxwrk, (*n)+lworkTrevc)
-				Zhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, w, vl, ldvl, work, toPtr(-1), info)
+				maxwrk = max(maxwrk, n+lworkTrevc)
+				if info, err = Zhseqr('S', 'V', n, 1, n, a, w, vl, work, -1); err != nil {
+					panic(err)
+				}
 			} else if wantvr {
-				maxwrk = max(maxwrk, (*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				Ztrevc3('R', 'B', _select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work, toPtr(-1), rwork, toPtr(-1), &ierr)
+				maxwrk = max(maxwrk, n+(n-1)*Ilaenv(1, "Zunghr", []byte{' '}, n, 1, n, -1))
+				if _, err = Ztrevc3(Right, 'B', _select, n, a, vl, vr, n, work, -1, rwork, -1); err != nil {
+					panic(err)
+				}
 				lworkTrevc = int(work.GetRe(0))
-				maxwrk = max(maxwrk, (*n)+lworkTrevc)
-				Zhseqr('S', 'V', n, func() *int { y := 1; return &y }(), n, a, lda, w, vr, ldvr, work, toPtr(-1), info)
+				maxwrk = max(maxwrk, n+lworkTrevc)
+				if info, err = Zhseqr('S', 'V', n, 1, n, a, w, vr, work, -1); err != nil {
+					panic(err)
+				}
 			} else {
-				Zhseqr('E', 'N', n, func() *int { y := 1; return &y }(), n, a, lda, w, vr, ldvr, work, toPtr(-1), info)
+				if info, err = Zhseqr('E', 'N', n, 1, n, a, w, vr, work, -1); err != nil {
+					panic(err)
+				}
 			}
 			hswork = int(work.GetRe(0))
 			maxwrk = max(maxwrk, hswork, minwrk)
 		}
 		work.SetRe(0, float64(maxwrk))
 		//
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -12
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGEEV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgeev", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -109,12 +120,12 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
 	//     Scale A if max element outside range [SMLNUM,BIGNUM]
-	anrm = Zlange('M', n, n, a, lda, dum)
+	anrm = Zlange('M', n, n, a, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
 		scalea = true
@@ -124,73 +135,89 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 		cscale = bignum
 	}
 	if scalea {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &cscale, n, n, a, lda, &ierr)
+		if err = Zlascl('G', 0, 0, anrm, cscale, n, n, a); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Balance the matrix
 	//     (CWorkspace: none)
 	//     (RWorkspace: need N)
 	ibal = 1
-	Zgebal('B', n, a, lda, &ilo, &ihi, rwork.Off(ibal-1), &ierr)
+	if ilo, ihi, err = Zgebal('B', n, a, rwork.Off(ibal-1)); err != nil {
+		panic(err)
+	}
 
 	//     Reduce to upper Hessenberg form
 	//     (CWorkspace: need 2*N, prefer N+N*NB)
 	//     (RWorkspace: none)
 	itau = 1
-	iwrk = itau + (*n)
-	Zgehrd(n, &ilo, &ihi, a, lda, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+	iwrk = itau + n
+	if err = Zgehrd(n, ilo, ihi, a, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+		panic(err)
+	}
 
 	if wantvl {
 		//        Want left eigenvectors
 		//        Copy Householder vectors to VL
-		side = 'L'
-		Zlacpy('L', n, n, a, lda, vl, ldvl)
+		side = Left
+		Zlacpy(Lower, n, n, a, vl)
 
 		//        Generate unitary matrix in VL
 		//        (CWorkspace: need 2*N-1, prefer N+(N-1)*NB)
 		//        (RWorkspace: none)
-		Zunghr(n, &ilo, &ihi, vl, ldvl, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+		if err = Zunghr(n, ilo, ihi, vl, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 		//        Perform QR iteration, accumulating Schur vectors in VL
 		//        (CWorkspace: need 1, prefer HSWORK (see comments) )
 		//        (RWorkspace: none)
 		iwrk = itau
-		Zhseqr('S', 'V', n, &ilo, &ihi, a, lda, w, vl, ldvl, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), info)
+		if info, err = Zhseqr('S', 'V', n, ilo, ihi, a, w, vl, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 		if wantvr {
 			//           Want left and right eigenvectors
 			//           Copy Schur vectors to VR
-			side = 'B'
-			Zlacpy('F', n, n, vl, ldvl, vr, ldvr)
+			side = Both
+			Zlacpy(Full, n, n, vl, vr)
 		}
 
 	} else if wantvr {
 		//        Want right eigenvectors
 		//        Copy Householder vectors to VR
-		side = 'R'
-		Zlacpy('L', n, n, a, lda, vr, ldvr)
+		side = Right
+		Zlacpy(Lower, n, n, a, vr)
 
 		//        Generate unitary matrix in VR
 		//        (CWorkspace: need 2*N-1, prefer N+(N-1)*NB)
 		//        (RWorkspace: none)
-		Zunghr(n, &ilo, &ihi, vr, ldvr, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+		if err = Zunghr(n, ilo, ihi, vr, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 		//        Perform QR iteration, accumulating Schur vectors in VR
 		//        (CWorkspace: need 1, prefer HSWORK (see comments) )
 		//        (RWorkspace: none)
 		iwrk = itau
-		Zhseqr('S', 'V', n, &ilo, &ihi, a, lda, w, vr, ldvr, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), info)
+		if info, err = Zhseqr('S', 'V', n, ilo, ihi, a, w, vr, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 
 	} else {
 		//        Compute eigenvalues only
 		//        (CWorkspace: need 1, prefer HSWORK (see comments) )
 		//        (RWorkspace: none)
 		iwrk = itau
-		Zhseqr('E', 'N', n, &ilo, &ihi, a, lda, w, vr, ldvr, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), info)
+		if info, err = Zhseqr('E', 'N', n, ilo, ihi, a, w, vr, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If INFO .NE. 0 from ZHSEQR, then quit
-	if (*info) != 0 {
+	if info != 0 {
 		goto label50
 	}
 
@@ -198,26 +225,30 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 		//        Compute left and/or right eigenvectors
 		//        (CWorkspace: need 2*N, prefer N + 2*N*NB)
 		//        (RWorkspace: need 2*N)
-		irwork = ibal + (*n)
-		Ztrevc3(side, 'B', _select, n, a, lda, vl, ldvl, vr, ldvr, n, &nout, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), rwork.Off(irwork-1), n, &ierr)
+		irwork = ibal + n
+		if _, err = Ztrevc3(side, 'B', _select, n, a, vl, vr, n, work.Off(iwrk-1), lwork-iwrk+1, rwork.Off(irwork-1), n); err != nil {
+			panic(err)
+		}
 	}
 
 	if wantvl {
 		//        Undo balancing of left eigenvectors
 		//        (CWorkspace: none)
 		//        (RWorkspace: need N)
-		Zgebak('B', 'L', n, &ilo, &ihi, rwork.Off(ibal-1), n, vl, ldvl, &ierr)
+		if err = Zgebak('B', Left, n, ilo, ihi, rwork.Off(ibal-1), n, vl); err != nil {
+			panic(err)
+		}
 
 		//        Normalize left eigenvectors and make largest component real
-		for i = 1; i <= (*n); i++ {
-			scl = one / goblas.Dznrm2(*n, vl.CVector(0, i-1, 1))
-			goblas.Zdscal(*n, scl, vl.CVector(0, i-1, 1))
-			for k = 1; k <= (*n); k++ {
+		for i = 1; i <= n; i++ {
+			scl = one / goblas.Dznrm2(n, vl.CVector(0, i-1, 1))
+			goblas.Zdscal(n, scl, vl.CVector(0, i-1, 1))
+			for k = 1; k <= n; k++ {
 				rwork.Set(irwork+k-1-1, math.Pow(vl.GetRe(k-1, i-1), 2)+math.Pow(vl.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(*n, rwork.Off(irwork-1, 1))
+			k = goblas.Idamax(n, rwork.Off(irwork-1, 1))
 			tmp = vl.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(irwork+k-1-1)), 0)
-			goblas.Zscal(*n, tmp, vl.CVector(0, i-1, 1))
+			goblas.Zscal(n, tmp, vl.CVector(0, i-1, 1))
 			vl.Set(k-1, i-1, vl.GetReCmplx(k-1, i-1))
 		}
 	}
@@ -226,18 +257,20 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 		//        Undo balancing of right eigenvectors
 		//        (CWorkspace: none)
 		//        (RWorkspace: need N)
-		Zgebak('B', 'R', n, &ilo, &ihi, rwork.Off(ibal-1), n, vr, ldvr, &ierr)
+		if err = Zgebak('B', Right, n, ilo, ihi, rwork.Off(ibal-1), n, vr); err != nil {
+			panic(err)
+		}
 
 		//        Normalize right eigenvectors and make largest component real
-		for i = 1; i <= (*n); i++ {
-			scl = one / goblas.Dznrm2(*n, vr.CVector(0, i-1, 1))
-			goblas.Zdscal(*n, scl, vr.CVector(0, i-1, 1))
-			for k = 1; k <= (*n); k++ {
+		for i = 1; i <= n; i++ {
+			scl = one / goblas.Dznrm2(n, vr.CVector(0, i-1, 1))
+			goblas.Zdscal(n, scl, vr.CVector(0, i-1, 1))
+			for k = 1; k <= n; k++ {
 				rwork.Set(irwork+k-1-1, math.Pow(vr.GetRe(k-1, i-1), 2)+math.Pow(vr.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(*n, rwork.Off(irwork-1, 1))
+			k = goblas.Idamax(n, rwork.Off(irwork-1, 1))
 			tmp = vr.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(irwork+k-1-1)), 0)
-			goblas.Zscal(*n, tmp, vr.CVector(0, i-1, 1))
+			goblas.Zscal(n, tmp, vr.CVector(0, i-1, 1))
 			vr.Set(k-1, i-1, vr.GetReCmplx(k-1, i-1))
 		}
 	}
@@ -246,11 +279,17 @@ func Zgeev(jobvl, jobvr byte, n *int, a *mat.CMatrix, lda *int, w *mat.CVector, 
 label50:
 	;
 	if scalea {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-(*info)), func() *int { y := 1; return &y }(), w.CMatrixOff((*info), max((*n)-(*info), 1), opts), toPtr(max((*n)-(*info), 1)), &ierr)
-		if (*info) > 0 {
-			Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), w.CMatrix(*n, opts), n, &ierr)
+		if err = Zlascl('G', 0, 0, cscale, anrm, n-info, 1, w.CMatrixOff(info, max(n-info, 1), opts)); err != nil {
+			panic(err)
+		}
+		if info > 0 {
+			if err = Zlascl('G', 0, 0, cscale, anrm, ilo-1, 1, w.CMatrix(n, opts)); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	work.SetRe(0, float64(maxwrk))
+
+	return
 }

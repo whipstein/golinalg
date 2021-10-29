@@ -1,6 +1,7 @@
 package matgen
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -13,22 +14,18 @@ import (
 // orthogonal matrix U, overwriting A.  A may optionally be initialized
 // to the identity matrix before multiplying by U.  U is generated using
 // the method of G.W. Stewart (SIAM J. Numer. Anal. 17, 1980, 403-409).
-func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x *mat.Vector, info *int) {
+func Dlaror(side, init byte, m, n int, a *mat.Matrix, iseed *[]int, x *mat.Vector) (err error) {
 	var factor, one, toosml, xnorm, xnorms, zero float64
 	var irow, itype, ixfrm, j, jcol, kbeg, nxfrm int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 	toosml = 1.0e-20
 
-	(*info) = 0
-	if (*n) == 0 || (*m) == 0 {
+	if n == 0 || m == 0 {
 		return
 	}
 
-	itype = 0
 	if side == 'L' {
 		itype = 1
 	} else if side == 'R' {
@@ -39,28 +36,28 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 
 	//     Check for argument errors.
 	if itype == 0 {
-		(*info) = -1
-	} else if (*m) < 0 {
-		(*info) = -3
-	} else if (*n) < 0 || (itype == 3 && (*n) != (*m)) {
-		(*info) = -4
-	} else if (*lda) < (*m) {
-		(*info) = -6
+		err = fmt.Errorf("itype == 0: side='%c'", side)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 || (itype == 3 && n != m) {
+		err = fmt.Errorf("n < 0 || (itype == 3 && n != m): side='%c', m=%v, n=%v", side, m, n)
+	} else if a.Rows < m {
+		err = fmt.Errorf("a.Rows < m: a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLAROR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("DLAROR", err)
 		return
 	}
 
 	if itype == 1 {
-		nxfrm = (*m)
+		nxfrm = m
 	} else {
-		nxfrm = (*n)
+		nxfrm = n
 	}
 
 	//     Initialize A to the identity matrix if desired
 	if init == 'I' {
-		golapack.Dlaset('F', m, n, &zero, &one, a, lda)
+		golapack.Dlaset(Full, m, n, zero, one, a)
 	}
 
 	//     If no rotation possible, multiply by random +/-1
@@ -76,7 +73,7 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 
 		//        Generate independent normal( 0, 1 ) random numbers
 		for j = kbeg; j <= nxfrm; j++ {
-			x.Set(j-1, Dlarnd(func() *int { y := 3; return &y }(), iseed))
+			x.Set(j-1, Dlarnd(3, iseed))
 		}
 
 		//        Generate a Householder transformation from the random vector X
@@ -85,8 +82,8 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 		x.Set(kbeg+nxfrm-1, math.Copysign(one, -x.Get(kbeg-1)))
 		factor = xnorms * (xnorms + x.Get(kbeg-1))
 		if math.Abs(factor) < toosml {
-			(*info) = 1
-			gltest.Xerbla([]byte("DLAROR"), *info)
+			err = fmt.Errorf("Random numbers are bad!")
+			gltest.Xerbla2("DLAROR", err)
 			return
 		} else {
 			factor = one / factor
@@ -96,31 +93,40 @@ func Dlaror(side, init byte, m, n *int, a *mat.Matrix, lda *int, iseed *[]int, x
 		//        Apply Householder transformation to A
 		if itype == 1 || itype == 3 {
 			//           Apply H(k) from the left.
-			err = goblas.Dgemv(Trans, ixfrm, *n, one, a.Off(kbeg-1, 0), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1))
-			err = goblas.Dger(ixfrm, *n, -factor, x.Off(kbeg-1, 1), x.Off(2*nxfrm, 1), a.Off(kbeg-1, 0))
+			if err = goblas.Dgemv(Trans, ixfrm, n, one, a.Off(kbeg-1, 0), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1)); err != nil {
+				panic(err)
+			}
+			if err = goblas.Dger(ixfrm, n, -factor, x.Off(kbeg-1, 1), x.Off(2*nxfrm, 1), a.Off(kbeg-1, 0)); err != nil {
+				panic(err)
+			}
 
 		}
 
 		if itype == 2 || itype == 3 {
 			//           Apply H(k) from the right.
-			err = goblas.Dgemv(NoTrans, *m, ixfrm, one, a.Off(0, kbeg-1), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1))
-			err = goblas.Dger(*m, ixfrm, -factor, x.Off(2*nxfrm, 1), x.Off(kbeg-1, 1), a.Off(0, kbeg-1))
+			if err = goblas.Dgemv(NoTrans, m, ixfrm, one, a.Off(0, kbeg-1), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1)); err != nil {
+				panic(err)
+			}
+			if err = goblas.Dger(m, ixfrm, -factor, x.Off(2*nxfrm, 1), x.Off(kbeg-1, 1), a.Off(0, kbeg-1)); err != nil {
+				panic(err)
+			}
 
 		}
 	}
-
-	x.Set(2*nxfrm-1, math.Copysign(one, Dlarnd(func() *int { y := 3; return &y }(), iseed)))
+	x.Set(2*nxfrm-1, math.Copysign(one, Dlarnd(3, iseed)))
 
 	//     Scale the matrix A by D.
 	if itype == 1 || itype == 3 {
-		for irow = 1; irow <= (*m); irow++ {
-			goblas.Dscal(*n, x.Get(nxfrm+irow-1), a.Vector(irow-1, 0, *lda))
+		for irow = 1; irow <= m; irow++ {
+			goblas.Dscal(n, x.Get(nxfrm+irow-1), a.Vector(irow-1, 0))
 		}
 	}
 
 	if itype == 2 || itype == 3 {
-		for jcol = 1; jcol <= (*n); jcol++ {
-			goblas.Dscal(*m, x.Get(nxfrm+jcol-1), a.Vector(0, jcol-1, 1))
+		for jcol = 1; jcol <= n; jcol++ {
+			goblas.Dscal(m, x.Get(nxfrm+jcol-1), a.Vector(0, jcol-1, 1))
 		}
 	}
+
+	return
 }

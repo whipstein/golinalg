@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -23,10 +25,11 @@ import (
 // nonnegative diagonal matrices satisfying C^2 + S^2 = I, in which
 // R = min(P,M-P,Q,M-Q). I1 is a K1-by-K1 identity matrix and I2 is a
 // K2-by-K2 identity matrix, where K1 = max(Q+P-M,0), K2 = max(Q-P,0).
-func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11 *int, x21 *mat.CMatrix, ldx21 *int, theta *mat.Vector, u1 *mat.CMatrix, ldu1 *int, u2 *mat.CMatrix, ldu2 *int, v1t *mat.CMatrix, ldv1t *int, work *mat.CVector, lwork *int, rwork *mat.Vector, lrwork *int, iwork *[]int, info *int) {
+func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, theta *mat.Vector, u1, u2, v1t *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork *[]int) (info int, err error) {
 	var lquery, wantu1, wantu2, wantv1t bool
 	var one, zero complex128
-	var childinfo, i, ib11d, ib11e, ib12d, ib12e, ib21d, ib21e, ib22d, ib22e, ibbcsd, iorbdb, iorglq, iorgqr, iphi, itaup1, itaup2, itauq1, j, lbbcsd, lorbdb, lorglq, lorglqmin, lorglqopt, lorgqr, lorgqrmin, lorgqropt, lrworkmin, lrworkopt, lworkmin, lworkopt, r int
+	var i, ib11d, ib11e, ib12d, ib12e, ib21d, ib21e, ib22d, ib22e, ibbcsd, iorbdb, iorglq, iorgqr, iphi, itaup1, itaup2, itauq1, j, lbbcsd, lorbdb, lorglq, lorglqmin, lorglqopt, lorgqr, lorgqrmin, lorgqropt, lrworkmin, lrworkopt, lworkmin, lworkopt, r int
+
 	dum := vf(1)
 	cdum := cmf(1, 1, opts)
 
@@ -34,31 +37,30 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11
 	zero = (0.0 + 0.0*1i)
 
 	//     Test input arguments
-	(*info) = 0
 	wantu1 = jobu1 == 'Y'
 	wantu2 = jobu2 == 'Y'
 	wantv1t = jobv1t == 'Y'
-	lquery = (*lwork) == -1
+	lquery = lwork == -1
 
-	if (*m) < 0 {
-		(*info) = -4
-	} else if (*p) < 0 || (*p) > (*m) {
-		(*info) = -5
-	} else if (*q) < 0 || (*q) > (*m) {
-		(*info) = -6
-	} else if (*ldx11) < max(1, *p) {
-		(*info) = -8
-	} else if (*ldx21) < max(1, (*m)-(*p)) {
-		(*info) = -10
-	} else if wantu1 && (*ldu1) < max(1, *p) {
-		(*info) = -13
-	} else if wantu2 && (*ldu2) < max(1, (*m)-(*p)) {
-		(*info) = -15
-	} else if wantv1t && (*ldv1t) < max(1, *q) {
-		(*info) = -17
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 || p > m {
+		err = fmt.Errorf("p < 0 || p > m: p=%v, m=%v", p, m)
+	} else if q < 0 || q > m {
+		err = fmt.Errorf("q < 0 || q > m: q=%v, m=%v", q, m)
+	} else if x11.Rows < max(1, p) {
+		err = fmt.Errorf("x11.Rows < max(1, p): x11.Rows=%v, p=%v", x11.Rows, p)
+	} else if x21.Rows < max(1, m-p) {
+		err = fmt.Errorf("x21.Rows < max(1, m-p): x21.Rows=%v, m=%v, p=%v", x21.Rows, m, p)
+	} else if wantu1 && u1.Rows < max(1, p) {
+		err = fmt.Errorf("wantu1 && u1.Rows < max(1, p): jobu1='%c', u1.Rows=%v, p=%v", jobu1, u1.Rows, p)
+	} else if wantu2 && u2.Rows < max(1, m-p) {
+		err = fmt.Errorf("wantu2 && u2.Rows < max(1, m-p): jobu2='%c', u2.Rows=%v, m=%v, p=%v", jobu2, u2.Rows, m, p)
+	} else if wantv1t && v1t.Rows < max(1, q) {
+		err = fmt.Errorf("wantv1t && v1t.Rows < max(1, q): jobv1t='%c', v1t.Rows=%v, q=%v", jobv1t, v1t.Rows, q)
 	}
 
-	r = min(*p, (*m)-(*p), *q, (*m)-(*q))
+	r = min(p, m-p, q, m-q)
 
 	//     Compute workspace
 	//
@@ -92,7 +94,7 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11
 	//     | B22E (R-1)       |
 	//     | ZBBCSD RWORK     |
 	//     |------------------|
-	if (*info) == 0 {
+	if err == nil {
 		iphi = 2
 		ib11d = iphi + max(1, r-1)
 		ib11e = ib11d + max(1, r)
@@ -104,94 +106,134 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11
 		ib22e = ib22d + max(1, r)
 		ibbcsd = ib22e + max(1, r-1)
 		itaup1 = 2
-		itaup2 = itaup1 + max(1, *p)
-		itauq1 = itaup2 + max(1, (*m)-(*p))
-		iorbdb = itauq1 + max(1, *q)
-		iorgqr = itauq1 + max(1, *q)
-		iorglq = itauq1 + max(1, *q)
+		itaup2 = itaup1 + max(1, p)
+		itauq1 = itaup2 + max(1, m-p)
+		iorbdb = itauq1 + max(1, q)
+		iorgqr = itauq1 + max(1, q)
+		iorglq = itauq1 + max(1, q)
 		lorgqrmin = 1
 		lorgqropt = 1
 		lorglqmin = 1
 		lorglqopt = 1
-		if r == (*q) {
-			Zunbdb1(m, p, q, x11, ldx11, x21, ldx21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, toPtr(-1), &childinfo)
+		if r == q {
+			if err = Zunbdb1(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+				panic(err)
+			}
 			lorbdb = int(work.GetRe(0))
-			if wantu1 && (*p) > 0 {
-				Zungqr(p, p, q, u1, ldu1, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, *p)
+			if wantu1 && p > 0 {
+				if err = Zungqr(p, p, q, u1, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantu2 && (*m)-(*p) > 0 {
-				Zungqr(toPtr((*m)-(*p)), toPtr((*m)-(*p)), q, u2, ldu2, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, (*m)-(*p))
+			if wantu2 && m-p > 0 {
+				if err = Zungqr(m-p, m-p, q, u2, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, m-p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantv1t && (*q) > 0 {
-				Zunglq(toPtr((*q)-1), toPtr((*q)-1), toPtr((*q)-1), v1t, ldv1t, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorglqmin = max(lorglqmin, (*q)-1)
+			if wantv1t && q > 0 {
+				if err = Zunglq(q-1, q-1, q-1, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorglqmin = max(lorglqmin, q-1)
 				lorglqopt = max(lorglqopt, int(work.GetRe(0)))
 			}
-			Zbbcsd(jobu1, jobu2, jobv1t, 'N', 'N', m, p, q, theta, dum, u1, ldu1, u2, ldu2, v1t, ldv1t, cdum, func() *int { y := 1; return &y }(), dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), toPtr(-1), &childinfo)
+			if _, err = Zbbcsd(jobu1, jobu2, jobv1t, 'N', NoTrans, m, p, q, theta, dum, u1, u2, v1t, cdum, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), -1); err != nil {
+				panic(err)
+			}
 			lbbcsd = int(rwork.Get(0))
-		} else if r == (*p) {
-			Zunbdb2(m, p, q, x11, ldx11, x21, ldx21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
+		} else if r == p {
+			if err = Zunbdb2(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+				panic(err)
+			}
 			lorbdb = int(work.GetRe(0))
-			if wantu1 && (*p) > 0 {
-				Zungqr(toPtr((*p)-1), toPtr((*p)-1), toPtr((*p)-1), u1.Off(1, 1), ldu1, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, (*p)-1)
+			if wantu1 && p > 0 {
+				if err = Zungqr(p-1, p-1, p-1, u1.Off(1, 1), cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, p-1)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantu2 && (*m)-(*p) > 0 {
-				Zungqr(toPtr((*m)-(*p)), toPtr((*m)-(*p)), q, u2, ldu2, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, (*m)-(*p))
+			if wantu2 && m-p > 0 {
+				if err = Zungqr(m-p, m-p, q, u2, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, m-p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantv1t && (*q) > 0 {
-				Zunglq(q, q, &r, v1t, ldv1t, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorglqmin = max(lorglqmin, *q)
+			if wantv1t && q > 0 {
+				if err = Zunglq(q, q, r, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorglqmin = max(lorglqmin, q)
 				lorglqopt = max(lorglqopt, int(work.GetRe(0)))
 			}
-			Zbbcsd(jobv1t, 'N', jobu1, jobu2, 'T', m, q, p, theta, dum, v1t, ldv1t, cdum, func() *int { y := 1; return &y }(), u1, ldu1, u2, ldu2, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), toPtr(-1), &childinfo)
+			if _, err = Zbbcsd(jobv1t, 'N', jobu1, jobu2, Trans, m, q, p, theta, dum, v1t, cdum, u1, u2, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), -1); err != nil {
+				panic(err)
+			}
 			lbbcsd = int(rwork.Get(0))
-		} else if r == (*m)-(*p) {
-			Zunbdb3(m, p, q, x11, ldx11, x21, ldx21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
+		} else if r == m-p {
+			if err = Zunbdb3(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+				panic(err)
+			}
 			lorbdb = int(work.GetRe(0))
-			if wantu1 && (*p) > 0 {
-				Zungqr(p, p, q, u1, ldu1, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, *p)
+			if wantu1 && p > 0 {
+				if err = Zungqr(p, p, q, u1, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantu2 && (*m)-(*p) > 0 {
-				Zungqr(toPtr((*m)-(*p)-1), toPtr((*m)-(*p)-1), toPtr((*m)-(*p)-1), u2.Off(1, 1), ldu2, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, (*m)-(*p)-1)
+			if wantu2 && m-p > 0 {
+				if err = Zungqr(m-p-1, m-p-1, m-p-1, u2.Off(1, 1), cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, m-p-1)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantv1t && (*q) > 0 {
-				Zunglq(q, q, &r, v1t, ldv1t, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorglqmin = max(lorglqmin, *q)
+			if wantv1t && q > 0 {
+				if err = Zunglq(q, q, r, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorglqmin = max(lorglqmin, q)
 				lorglqopt = max(lorglqopt, int(work.GetRe(0)))
 			}
-			Zbbcsd('N', jobv1t, jobu2, jobu1, 'T', m, toPtr((*m)-(*q)), toPtr((*m)-(*p)), theta, dum, cdum, func() *int { y := 1; return &y }(), v1t, ldv1t, u2, ldu2, u1, ldu1, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), toPtr(-1), &childinfo)
+			if _, err = Zbbcsd('N', jobv1t, jobu2, jobu1, Trans, m, m-q, m-p, theta, dum, cdum, v1t, u2, u1, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), -1); err != nil {
+				panic(err)
+			}
 			lbbcsd = int(rwork.Get(0))
 		} else {
-			Zunbdb4(m, p, q, x11, ldx11, x21, ldx21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-			lorbdb = (*m) + int(work.GetRe(0))
-			if wantu1 && (*p) > 0 {
-				Zungqr(p, p, toPtr((*m)-(*q)), u1, ldu1, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, *p)
+			if err = Zunbdb4(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+				panic(err)
+			}
+			lorbdb = m + int(work.GetRe(0))
+			if wantu1 && p > 0 {
+				if err = Zungqr(p, p, m-q, u1, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantu2 && (*m)-(*p) > 0 {
-				Zungqr(toPtr((*m)-(*p)), toPtr((*m)-(*p)), toPtr((*m)-(*q)), u2, ldu2, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorgqrmin = max(lorgqrmin, (*m)-(*p))
+			if wantu2 && m-p > 0 {
+				if err = Zungqr(m-p, m-p, m-q, u2, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorgqrmin = max(lorgqrmin, m-p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
-			if wantv1t && (*q) > 0 {
-				Zunglq(q, q, q, v1t, ldv1t, cdum.CVector(0, 0), work.Off(0), toPtr(-1), &childinfo)
-				lorglqmin = max(lorglqmin, *q)
+			if wantv1t && q > 0 {
+				if err = Zunglq(q, q, q, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+					panic(err)
+				}
+				lorglqmin = max(lorglqmin, q)
 				lorglqopt = max(lorglqopt, int(work.GetRe(0)))
 			}
-			Zbbcsd(jobu2, jobu1, 'N', jobv1t, 'N', m, toPtr((*m)-(*p)), toPtr((*m)-(*q)), theta, dum, u2, ldu2, u1, ldu1, cdum, func() *int { y := 1; return &y }(), v1t, ldv1t, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), toPtr(-1), &childinfo)
+			if _, err = Zbbcsd(jobu2, jobu1, 'N', jobv1t, NoTrans, m, m-p, m-q, theta, dum, u2, u1, cdum, v1t, dum, dum, dum, dum, dum, dum, dum, dum, rwork.Off(0), -1); err != nil {
+				panic(err)
+			}
 			lbbcsd = int(rwork.Get(0))
 		}
 		lrworkmin = ibbcsd + lbbcsd - 1
@@ -200,191 +242,233 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q *int, x11 *mat.CMatrix, ldx11
 		lworkmin = max(iorbdb+lorbdb-1, iorgqr+lorgqrmin-1, iorglq+lorglqmin-1)
 		lworkopt = max(iorbdb+lorbdb-1, iorgqr+lorgqropt-1, iorglq+lorglqopt-1)
 		work.SetRe(0, float64(lworkopt))
-		if (*lwork) < lworkmin && !lquery {
-			(*info) = -19
+		if lwork < lworkmin && !lquery {
+			err = fmt.Errorf("lwork < lworkmin && !lquery: lwork=%v, lworkmin=%v, lquery=%v", lwork, lworkmin, lquery)
 		}
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUNCSD2BY1"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zuncsd2by1", err)
 		return
 	} else if lquery {
 		return
 	}
-	lorgqr = (*lwork) - iorgqr + 1
-	lorglq = (*lwork) - iorglq + 1
+	lorgqr = lwork - iorgqr + 1
+	lorglq = lwork - iorglq + 1
 
 	//     Handle four cases separately: R = Q, R = P, R = M-P, and R = M-Q,
 	//     in which R = min(P,M-P,Q,M-Q)
-	if r == (*q) {
+	if r == q {
 		//        Case 1: R = Q
 		//
 		//        Simultaneously bidiagonalize X11 and X21
-		Zunbdb1(m, p, q, x11, ldx11, x21, ldx21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), &lorbdb, &childinfo)
+		if err = Zunbdb1(m, p, q, x11, x21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), lorbdb); err != nil {
+			panic(err)
+		}
 
 		//        Accumulate Householder reflectors
-		if wantu1 && (*p) > 0 {
-			Zlacpy('L', p, q, x11, ldx11, u1, ldu1)
-			Zungqr(p, p, q, u1, ldu1, work.Off(itaup1-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+		if wantu1 && p > 0 {
+			Zlacpy(Lower, p, q, x11, u1)
+			if err = Zungqr(p, p, q, u1, work.Off(itaup1-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantu2 && (*m)-(*p) > 0 {
-			Zlacpy('L', toPtr((*m)-(*p)), q, x21, ldx21, u2, ldu2)
-			Zungqr(toPtr((*m)-(*p)), toPtr((*m)-(*p)), q, u2, ldu2, work.Off(itaup2-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+		if wantu2 && m-p > 0 {
+			Zlacpy(Lower, m-p, q, x21, u2)
+			if err = Zungqr(m-p, m-p, q, u2, work.Off(itaup2-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantv1t && (*q) > 0 {
+		if wantv1t && q > 0 {
 			v1t.Set(0, 0, one)
-			for j = 2; j <= (*q); j++ {
+			for j = 2; j <= q; j++ {
 				v1t.Set(0, j-1, zero)
 				v1t.Set(j-1, 0, zero)
 			}
-			Zlacpy('U', toPtr((*q)-1), toPtr((*q)-1), x21.Off(0, 1), ldx21, v1t.Off(1, 1), ldv1t)
-			Zunglq(toPtr((*q)-1), toPtr((*q)-1), toPtr((*q)-1), v1t.Off(1, 1), ldv1t, work.Off(itauq1-1), work.Off(iorglq-1), &lorglq, &childinfo)
+			Zlacpy(Upper, q-1, q-1, x21.Off(0, 1), v1t.Off(1, 1))
+			if err = Zunglq(q-1, q-1, q-1, v1t.Off(1, 1), work.Off(itauq1-1), work.Off(iorglq-1), lorglq); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Simultaneously diagonalize X11 and X21.
-		Zbbcsd(jobu1, jobu2, jobv1t, 'N', 'N', m, p, q, theta, rwork.Off(iphi-1), u1, ldu1, u2, ldu2, v1t, ldv1t, cdum, func() *int { y := 1; return &y }(), rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), &lbbcsd, &childinfo)
+		if _, err = Zbbcsd(jobu1, jobu2, jobv1t, 'N', NoTrans, m, p, q, theta, rwork.Off(iphi-1), u1, u2, v1t, cdum, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), lbbcsd); err != nil {
+			panic(err)
+		}
 
 		//        Permute rows and columns to place zero submatrices in
 		//        preferred positions
-		if (*q) > 0 && wantu2 {
-			for i = 1; i <= (*q); i++ {
-				(*iwork)[i-1] = (*m) - (*p) - (*q) + i
+		if q > 0 && wantu2 {
+			for i = 1; i <= q; i++ {
+				(*iwork)[i-1] = m - p - q + i
 			}
-			for i = (*q) + 1; i <= (*m)-(*p); i++ {
-				(*iwork)[i-1] = i - (*q)
+			for i = q + 1; i <= m-p; i++ {
+				(*iwork)[i-1] = i - q
 			}
-			Zlapmt(false, toPtr((*m)-(*p)), toPtr((*m)-(*p)), u2, ldu2, iwork)
+			Zlapmt(false, m-p, m-p, u2, iwork)
 		}
-	} else if r == (*p) {
+	} else if r == p {
 		//        Case 2: R = P
 		//
 		//        Simultaneously bidiagonalize X11 and X21
-		Zunbdb2(m, p, q, x11, ldx11, x21, ldx21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), &lorbdb, &childinfo)
+		if err = Zunbdb2(m, p, q, x11, x21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), lorbdb); err != nil {
+			panic(err)
+		}
 
 		//        Accumulate Householder reflectors
-		if wantu1 && (*p) > 0 {
+		if wantu1 && p > 0 {
 			u1.Set(0, 0, one)
-			for j = 2; j <= (*p); j++ {
+			for j = 2; j <= p; j++ {
 				u1.Set(0, j-1, zero)
 				u1.Set(j-1, 0, zero)
 			}
-			Zlacpy('L', toPtr((*p)-1), toPtr((*p)-1), x11.Off(1, 0), ldx11, u1.Off(1, 1), ldu1)
-			Zungqr(toPtr((*p)-1), toPtr((*p)-1), toPtr((*p)-1), u1.Off(1, 1), ldu1, work.Off(itaup1-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+			Zlacpy(Lower, p-1, p-1, x11.Off(1, 0), u1.Off(1, 1))
+			if err = Zungqr(p-1, p-1, p-1, u1.Off(1, 1), work.Off(itaup1-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantu2 && (*m)-(*p) > 0 {
-			Zlacpy('L', toPtr((*m)-(*p)), q, x21, ldx21, u2, ldu2)
-			Zungqr(toPtr((*m)-(*p)), toPtr((*m)-(*p)), q, u2, ldu2, work.Off(itaup2-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+		if wantu2 && m-p > 0 {
+			Zlacpy(Lower, m-p, q, x21, u2)
+			if err = Zungqr(m-p, m-p, q, u2, work.Off(itaup2-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantv1t && (*q) > 0 {
-			Zlacpy('U', p, q, x11, ldx11, v1t, ldv1t)
-			Zunglq(q, q, &r, v1t, ldv1t, work.Off(itauq1-1), work.Off(iorglq-1), &lorglq, &childinfo)
+		if wantv1t && q > 0 {
+			Zlacpy(Upper, p, q, x11, v1t)
+			if err = Zunglq(q, q, r, v1t, work.Off(itauq1-1), work.Off(iorglq-1), lorglq); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Simultaneously diagonalize X11 and X21.
-		Zbbcsd(jobv1t, 'N', jobu1, jobu2, 'T', m, q, p, theta, rwork.Off(iphi-1), v1t, ldv1t, cdum, func() *int { y := 1; return &y }(), u1, ldu1, u2, ldu2, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), &lbbcsd, &childinfo)
+		if _, err = Zbbcsd(jobv1t, 'N', jobu1, jobu2, Trans, m, q, p, theta, rwork.Off(iphi-1), v1t, cdum, u1, u2, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), lbbcsd); err != nil {
+			panic(err)
+		}
 
 		//        Permute rows and columns to place identity submatrices in
 		//        preferred positions
-		if (*q) > 0 && wantu2 {
-			for i = 1; i <= (*q); i++ {
-				(*iwork)[i-1] = (*m) - (*p) - (*q) + i
+		if q > 0 && wantu2 {
+			for i = 1; i <= q; i++ {
+				(*iwork)[i-1] = m - p - q + i
 			}
-			for i = (*q) + 1; i <= (*m)-(*p); i++ {
-				(*iwork)[i-1] = i - (*q)
+			for i = q + 1; i <= m-p; i++ {
+				(*iwork)[i-1] = i - q
 			}
-			Zlapmt(false, toPtr((*m)-(*p)), toPtr((*m)-(*p)), u2, ldu2, iwork)
+			Zlapmt(false, m-p, m-p, u2, iwork)
 		}
-	} else if r == (*m)-(*p) {
+	} else if r == m-p {
 		//        Case 3: R = M-P
 		//
 		//        Simultaneously bidiagonalize X11 and X21
-		Zunbdb3(m, p, q, x11, ldx11, x21, ldx21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), &lorbdb, &childinfo)
+		if err = Zunbdb3(m, p, q, x11, x21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), lorbdb); err != nil {
+			panic(err)
+		}
 
 		//        Accumulate Householder reflectors
-		if wantu1 && (*p) > 0 {
-			Zlacpy('L', p, q, x11, ldx11, u1, ldu1)
-			Zungqr(p, p, q, u1, ldu1, work.Off(itaup1-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+		if wantu1 && p > 0 {
+			Zlacpy(Lower, p, q, x11, u1)
+			if err = Zungqr(p, p, q, u1, work.Off(itaup1-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantu2 && (*m)-(*p) > 0 {
+		if wantu2 && m-p > 0 {
 			u2.Set(0, 0, one)
-			for j = 2; j <= (*m)-(*p); j++ {
+			for j = 2; j <= m-p; j++ {
 				u2.Set(0, j-1, zero)
 				u2.Set(j-1, 0, zero)
 			}
-			Zlacpy('L', toPtr((*m)-(*p)-1), toPtr((*m)-(*p)-1), x21.Off(1, 0), ldx21, u2.Off(1, 1), ldu2)
-			Zungqr(toPtr((*m)-(*p)-1), toPtr((*m)-(*p)-1), toPtr((*m)-(*p)-1), u2.Off(1, 1), ldu2, work.Off(itaup2-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+			Zlacpy(Lower, m-p-1, m-p-1, x21.Off(1, 0), u2.Off(1, 1))
+			if err = Zungqr(m-p-1, m-p-1, m-p-1, u2.Off(1, 1), work.Off(itaup2-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantv1t && (*q) > 0 {
-			Zlacpy('U', toPtr((*m)-(*p)), q, x21, ldx21, v1t, ldv1t)
-			Zunglq(q, q, &r, v1t, ldv1t, work.Off(itauq1-1), work.Off(iorglq-1), &lorglq, &childinfo)
+		if wantv1t && q > 0 {
+			Zlacpy(Upper, m-p, q, x21, v1t)
+			if err = Zunglq(q, q, r, v1t, work.Off(itauq1-1), work.Off(iorglq-1), lorglq); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Simultaneously diagonalize X11 and X21.
-		Zbbcsd('N', jobv1t, jobu2, jobu1, 'T', m, toPtr((*m)-(*q)), toPtr((*m)-(*p)), theta, rwork.Off(iphi-1), cdum, func() *int { y := 1; return &y }(), v1t, ldv1t, u2, ldu2, u1, ldu1, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), &lbbcsd, &childinfo)
+		if _, err = Zbbcsd('N', jobv1t, jobu2, jobu1, Trans, m, m-q, m-p, theta, rwork.Off(iphi-1), cdum, v1t, u2, u1, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), lbbcsd); err != nil {
+			panic(err)
+		}
 
 		//        Permute rows and columns to place identity submatrices in
 		//        preferred positions
-		if (*q) > r {
+		if q > r {
 			for i = 1; i <= r; i++ {
-				(*iwork)[i-1] = (*q) - r + i
+				(*iwork)[i-1] = q - r + i
 			}
-			for i = r + 1; i <= (*q); i++ {
+			for i = r + 1; i <= q; i++ {
 				(*iwork)[i-1] = i - r
 			}
 			if wantu1 {
-				Zlapmt(false, p, q, u1, ldu1, iwork)
+				Zlapmt(false, p, q, u1, iwork)
 			}
 			if wantv1t {
-				Zlapmr(false, q, q, v1t, ldv1t, iwork)
+				Zlapmr(false, q, q, v1t, iwork)
 			}
 		}
 	} else {
 		//        Case 4: R = M-Q
 		//
 		//        Simultaneously bidiagonalize X11 and X21
-		Zunbdb4(m, p, q, x11, ldx11, x21, ldx21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), work.Off(iorbdb+(*m)-1), toPtr(lorbdb-(*m)), &childinfo)
+		if err = Zunbdb4(m, p, q, x11, x21, theta, rwork.Off(iphi-1), work.Off(itaup1-1), work.Off(itaup2-1), work.Off(itauq1-1), work.Off(iorbdb-1), work.Off(iorbdb+m-1), lorbdb-m); err != nil {
+			panic(err)
+		}
 
 		//        Accumulate Householder reflectors
-		if wantu1 && (*p) > 0 {
-			goblas.Zcopy(*p, work.Off(iorbdb-1, 1), u1.CVector(0, 0, 1))
-			for j = 2; j <= (*p); j++ {
+		if wantu1 && p > 0 {
+			goblas.Zcopy(p, work.Off(iorbdb-1, 1), u1.CVector(0, 0, 1))
+			for j = 2; j <= p; j++ {
 				u1.Set(0, j-1, zero)
 			}
-			Zlacpy('L', toPtr((*p)-1), toPtr((*m)-(*q)-1), x11.Off(1, 0), ldx11, u1.Off(1, 1), ldu1)
-			Zungqr(p, p, toPtr((*m)-(*q)), u1, ldu1, work.Off(itaup1-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+			Zlacpy(Lower, p-1, m-q-1, x11.Off(1, 0), u1.Off(1, 1))
+			if err = Zungqr(p, p, m-q, u1, work.Off(itaup1-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantu2 && (*m)-(*p) > 0 {
-			goblas.Zcopy((*m)-(*p), work.Off(iorbdb+(*p)-1, 1), u2.CVector(0, 0, 1))
-			for j = 2; j <= (*m)-(*p); j++ {
+		if wantu2 && m-p > 0 {
+			goblas.Zcopy(m-p, work.Off(iorbdb+p-1, 1), u2.CVector(0, 0, 1))
+			for j = 2; j <= m-p; j++ {
 				u2.Set(0, j-1, zero)
 			}
-			Zlacpy('L', toPtr((*m)-(*p)-1), toPtr((*m)-(*q)-1), x21.Off(1, 0), ldx21, u2.Off(1, 1), ldu2)
-			Zungqr(toPtr((*m)-(*p)), toPtr((*m)-(*p)), toPtr((*m)-(*q)), u2, ldu2, work.Off(itaup2-1), work.Off(iorgqr-1), &lorgqr, &childinfo)
+			Zlacpy(Lower, m-p-1, m-q-1, x21.Off(1, 0), u2.Off(1, 1))
+			if err = Zungqr(m-p, m-p, m-q, u2, work.Off(itaup2-1), work.Off(iorgqr-1), lorgqr); err != nil {
+				panic(err)
+			}
 		}
-		if wantv1t && (*q) > 0 {
-			Zlacpy('U', toPtr((*m)-(*q)), q, x21, ldx21, v1t, ldv1t)
-			Zlacpy('U', toPtr((*p)-((*m)-(*q))), toPtr((*q)-((*m)-(*q))), x11.Off((*m)-(*q), (*m)-(*q)), ldx11, v1t.Off((*m)-(*q), (*m)-(*q)), ldv1t)
-			Zlacpy('U', toPtr(-(*p)+(*q)), toPtr((*q)-(*p)), x21.Off((*m)-(*q), (*p)), ldx21, v1t.Off((*p), (*p)), ldv1t)
-			Zunglq(q, q, q, v1t, ldv1t, work.Off(itauq1-1), work.Off(iorglq-1), &lorglq, &childinfo)
+		if wantv1t && q > 0 {
+			Zlacpy(Upper, m-q, q, x21, v1t)
+			Zlacpy(Upper, p-(m-q), q-(m-q), x11.Off(m-q, m-q), v1t.Off(m-q, m-q))
+			Zlacpy(Upper, -p+q, q-p, x21.Off(m-q, p), v1t.Off(p, p))
+			if err = Zunglq(q, q, q, v1t, work.Off(itauq1-1), work.Off(iorglq-1), lorglq); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Simultaneously diagonalize X11 and X21.
-		Zbbcsd(jobu2, jobu1, 'N', jobv1t, 'N', m, toPtr((*m)-(*p)), toPtr((*m)-(*q)), theta, rwork.Off(iphi-1), u2, ldu2, u1, ldu1, cdum, func() *int { y := 1; return &y }(), v1t, ldv1t, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), &lbbcsd, &childinfo)
+		if _, err = Zbbcsd(jobu2, jobu1, 'N', jobv1t, NoTrans, m, m-p, m-q, theta, rwork.Off(iphi-1), u2, u1, cdum, v1t, rwork.Off(ib11d-1), rwork.Off(ib11e-1), rwork.Off(ib12d-1), rwork.Off(ib12e-1), rwork.Off(ib21d-1), rwork.Off(ib21e-1), rwork.Off(ib22d-1), rwork.Off(ib22e-1), rwork.Off(ibbcsd-1), lbbcsd); err != nil {
+			panic(err)
+		}
 
 		//        Permute rows and columns to place identity submatrices in
 		//        preferred positions
-		if (*p) > r {
+		if p > r {
 			for i = 1; i <= r; i++ {
-				(*iwork)[i-1] = (*p) - r + i
+				(*iwork)[i-1] = p - r + i
 			}
-			for i = r + 1; i <= (*p); i++ {
+			for i = r + 1; i <= p; i++ {
 				(*iwork)[i-1] = i - r
 			}
 			if wantu1 {
-				Zlapmt(false, p, p, u1, ldu1, iwork)
+				Zlapmt(false, p, p, u1, iwork)
 			}
 			if wantv1t {
-				Zlapmr(false, p, q, v1t, ldv1t, iwork)
+				Zlapmr(false, p, q, v1t, iwork)
 			}
 		}
 	}
+
+	return
 }

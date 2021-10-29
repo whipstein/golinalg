@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -91,9 +92,9 @@ import (
 // The computation of the orthogonal transformation matrices U, V or Q
 // is optional.  These matrices may either be formed explicitly, or they
 // may be postmultiplied into input matrices U1, V1, or Q1.
-func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, tola, tolb *float64, alpha, beta *mat.Vector, u *mat.Matrix, ldu *int, v *mat.Matrix, ldv *int, q *mat.Matrix, ldq *int, work *mat.Vector, ncycle, info *int) {
+func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.Matrix, tola, tolb float64, alpha, beta *mat.Vector, u, v, q *mat.Matrix, work *mat.Vector) (ncycle, info int, err error) {
 	var initq, initu, initv, upper, wantq, wantu, wantv bool
-	var a1, a2, a3, b1, b2, b3, csq, csu, csv, error, gamma, one, rwk, snq, snu, snv, ssmin, zero float64
+	var a1, a2, a3, b1, b2, b3, csq, csu, csv, error, gamma, one, snq, snu, snv, ssmin, zero float64
 	var i, j, kcycle, maxit int
 
 	maxit = 40
@@ -110,44 +111,43 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 	initq = jobq == 'I'
 	wantq = initq || jobq == 'Q'
 
-	(*info) = 0
 	if !(initu || wantu || jobu == 'N') {
-		(*info) = -1
+		err = fmt.Errorf("!(initu || wantu || jobu == 'N'): jobu='%c'", jobu)
 	} else if !(initv || wantv || jobv == 'N') {
-		(*info) = -2
+		err = fmt.Errorf("!(initv || wantv || jobv == 'N'): jobv='%c'", jobv)
 	} else if !(initq || wantq || jobq == 'N') {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*p) < 0 {
-		(*info) = -5
-	} else if (*n) < 0 {
-		(*info) = -6
-	} else if (*lda) < max(1, *m) {
-		(*info) = -10
-	} else if (*ldb) < max(1, *p) {
-		(*info) = -12
-	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
-		(*info) = -18
-	} else if (*ldv) < 1 || (wantv && (*ldv) < (*p)) {
-		(*info) = -20
-	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
-		(*info) = -22
+		err = fmt.Errorf("!(initq || wantq || jobq == 'N'): jobq='%c'", jobq)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 {
+		err = fmt.Errorf("p < 0: p=%v", p)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, p) {
+		err = fmt.Errorf("b.Rows < max(1, p): b.Rows=%v, p=%v", b.Rows, p)
+	} else if u.Rows < 1 || (wantu && u.Rows < m) {
+		err = fmt.Errorf("u.Rows < 1 || (wantu && u.Rows < m): jobu='%c', u.Rows=%v, m=%v", jobu, u.Rows, m)
+	} else if v.Rows < 1 || (wantv && v.Rows < p) {
+		err = fmt.Errorf("v.Rows < 1 || (wantv && v.Rows < p): jobv='%c', v.Rows=%v, p=%v", jobv, v.Rows, p)
+	} else if q.Rows < 1 || (wantq && q.Rows < n) {
+		err = fmt.Errorf("q.Rows < 1 || (wantq && q.Rows < n): jobq='%c', q.Rows=%v, n=%v", jobq, q.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DTGSJA"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dtgsja", err)
 		return
 	}
 
 	//     Initialize U, V and Q, if necessary
 	if initu {
-		Dlaset('F', m, m, &zero, &one, u, ldu)
+		Dlaset(Full, m, m, zero, one, u)
 	}
 	if initv {
-		Dlaset('F', p, p, &zero, &one, v, ldv)
+		Dlaset(Full, p, p, zero, one, v)
 	}
 	if initq {
-		Dlaset('F', n, n, &zero, &one, q, ldq)
+		Dlaset(Full, n, n, zero, one, q)
 	}
 
 	//     Loop until convergence
@@ -156,73 +156,73 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 
 		upper = !upper
 
-		for i = 1; i <= (*l)-1; i++ {
-			for j = i + 1; j <= (*l); j++ {
+		for i = 1; i <= l-1; i++ {
+			for j = i + 1; j <= l; j++ {
 
 				a1 = zero
 				a2 = zero
 				a3 = zero
-				if (*k)+i <= (*m) {
-					a1 = a.Get((*k)+i-1, (*n)-(*l)+i-1)
+				if k+i <= m {
+					a1 = a.Get(k+i-1, n-l+i-1)
 				}
-				if (*k)+j <= (*m) {
-					a3 = a.Get((*k)+j-1, (*n)-(*l)+j-1)
+				if k+j <= m {
+					a3 = a.Get(k+j-1, n-l+j-1)
 				}
 
-				b1 = b.Get(i-1, (*n)-(*l)+i-1)
-				b3 = b.Get(j-1, (*n)-(*l)+j-1)
+				b1 = b.Get(i-1, n-l+i-1)
+				b3 = b.Get(j-1, n-l+j-1)
 
 				if upper {
-					if (*k)+i <= (*m) {
-						a2 = a.Get((*k)+i-1, (*n)-(*l)+j-1)
+					if k+i <= m {
+						a2 = a.Get(k+i-1, n-l+j-1)
 					}
-					b2 = b.Get(i-1, (*n)-(*l)+j-1)
+					b2 = b.Get(i-1, n-l+j-1)
 				} else {
-					if (*k)+j <= (*m) {
-						a2 = a.Get((*k)+j-1, (*n)-(*l)+i-1)
+					if k+j <= m {
+						a2 = a.Get(k+j-1, n-l+i-1)
 					}
-					b2 = b.Get(j-1, (*n)-(*l)+i-1)
+					b2 = b.Get(j-1, n-l+i-1)
 				}
 
-				Dlags2(upper, &a1, &a2, &a3, &b1, &b2, &b3, &csu, &snu, &csv, &snv, &csq, &snq)
+				csu, snu, csv, snv, csq, snq = Dlags2(upper, a1, a2, a3, b1, b2, b3)
 
 				//              Update (K+I)-th and (K+J)-th rows of matrix A: U**T *A
-				if (*k)+j <= (*m) {
-					goblas.Drot(*l, a.Vector((*k)+j-1, (*n)-(*l), *lda), a.Vector((*k)+i-1, (*n)-(*l), *lda), csu, snu)
+				if k+j <= m {
+					goblas.Drot(l, a.Vector(k+j-1, n-l), a.Vector(k+i-1, n-l), csu, snu)
 				}
 
 				//              Update I-th and J-th rows of matrix B: V**T *B
-				goblas.Drot(*l, b.Vector(j-1, (*n)-(*l), *ldb), b.Vector(i-1, (*n)-(*l), *ldb), csv, snv)
+				goblas.Drot(l, b.Vector(j-1, n-l), b.Vector(i-1, n-l), csv, snv)
 
 				//              Update (N-L+I)-th and (N-L+J)-th columns of matrices
 				//              A and B: A*Q and B*Q
-				goblas.Drot(min((*k)+(*l), *m), a.Vector(0, (*n)-(*l)+j-1, 1), a.Vector(0, (*n)-(*l)+i-1, 1), csq, snq)
+				goblas.Drot(min(k+l, m), a.Vector(0, n-l+j-1, 1), a.Vector(0, n-l+i-1, 1), csq, snq)
 
-				goblas.Drot(*l, b.Vector(0, (*n)-(*l)+j-1, 1), b.Vector(0, (*n)-(*l)+i-1, 1), csq, snq)
+				goblas.Drot(l, b.Vector(0, n-l+j-1, 1), b.Vector(0, n-l+i-1, 1), csq, snq)
 
 				if upper {
-					if (*k)+i <= (*m) {
-						a.Set((*k)+i-1, (*n)-(*l)+j-1, zero)
+					if k+i <= m {
+						a.Set(k+i-1, n-l+j-1, zero)
 					}
-					b.Set(i-1, (*n)-(*l)+j-1, zero)
+					b.Set(i-1, n-l+j-1, zero)
 				} else {
-					if (*k)+j <= (*m) {
-						a.Set((*k)+j-1, (*n)-(*l)+i-1, zero)
+					if k+j <= m {
+						a.Set(k+j-1, n-l+i-1, zero)
 					}
-					b.Set(j-1, (*n)-(*l)+i-1, zero)
+					b.Set(j-1, n-l+i-1, zero)
 				}
 
 				//              Update orthogonal matrices U, V, Q, if desired.
-				if wantu && (*k)+j <= (*m) {
-					goblas.Drot(*m, u.Vector(0, (*k)+j-1, 1), u.Vector(0, (*k)+i-1, 1), csu, snu)
+				if wantu && k+j <= m {
+					goblas.Drot(m, u.Vector(0, k+j-1, 1), u.Vector(0, k+i-1, 1), csu, snu)
 				}
 
 				if wantv {
-					goblas.Drot(*p, v.Vector(0, j-1, 1), v.Vector(0, i-1, 1), csv, snv)
+					goblas.Drot(p, v.Vector(0, j-1, 1), v.Vector(0, i-1, 1), csv, snv)
 				}
 
 				if wantq {
-					goblas.Drot(*n, q.Vector(0, (*n)-(*l)+j-1, 1), q.Vector(0, (*n)-(*l)+i-1, 1), csq, snq)
+					goblas.Drot(n, q.Vector(0, n-l+j-1, 1), q.Vector(0, n-l+i-1, 1), csq, snq)
 				}
 
 			}
@@ -235,14 +235,14 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 			//           Convergence test: test the parallelism of the corresponding
 			//           rows of A and B.
 			error = zero
-			for i = 1; i <= min(*l, (*m)-(*k)); i++ {
-				goblas.Dcopy((*l)-i+1, a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda), work.Off(0, 1))
-				goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1, *ldb), work.Off((*l), 1))
-				Dlapll(toPtr((*l)-i+1), work, toPtr(1), work.Off((*l)), toPtr(1), &ssmin)
+			for i = 1; i <= min(l, m-k); i++ {
+				goblas.Dcopy(l-i+1, a.Vector(k+i-1, n-l+i-1), work.Off(0, 1))
+				goblas.Dcopy(l-i+1, b.Vector(i-1, n-l+i-1), work.Off(l, 1))
+				ssmin = Dlapll(l-i+1, work.Off(0, 1), work.Off(l, 1))
 				error = math.Max(error, ssmin)
 			}
 
-			if math.Abs(error) <= math.Min(*tola, *tolb) {
+			if math.Abs(error) <= math.Min(tola, tolb) {
 				goto label50
 			}
 		}
@@ -251,7 +251,7 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.Matrix, lda *int, 
 	}
 
 	//     The algorithm has not converged after MAXIT cycles.
-	(*info) = 1
+	info = 1
 	goto label100
 
 label50:
@@ -260,54 +260,54 @@ label50:
 	//     If ERROR <= MIN(TOLA,TOLB), then the algorithm has converged.
 	//     Compute the generalized singular value pairs (ALPHA, BETA), and
 	//     set the triangular matrix R to array A.
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		alpha.Set(i-1, one)
 		beta.Set(i-1, zero)
 	}
 
-	for i = 1; i <= min(*l, (*m)-(*k)); i++ {
+	for i = 1; i <= min(l, m-k); i++ {
 
-		a1 = a.Get((*k)+i-1, (*n)-(*l)+i-1)
-		b1 = b.Get(i-1, (*n)-(*l)+i-1)
+		a1 = a.Get(k+i-1, n-l+i-1)
+		b1 = b.Get(i-1, n-l+i-1)
 
 		if a1 != zero {
 			gamma = b1 / a1
 
 			//           change sign if necessary
 			if gamma < zero {
-				goblas.Dscal((*l)-i+1, -one, b.Vector(i-1, (*n)-(*l)+i-1, *ldb))
+				goblas.Dscal(l-i+1, -one, b.Vector(i-1, n-l+i-1))
 				if wantv {
-					goblas.Dscal(*p, -one, v.Vector(0, i-1, 1))
+					goblas.Dscal(p, -one, v.Vector(0, i-1, 1))
 				}
 			}
 
-			Dlartg(toPtrf64(math.Abs(gamma)), &one, beta.GetPtr((*k)+i-1), alpha.GetPtr((*k)+i-1), &rwk)
+			*beta.GetPtr(k + i - 1), *alpha.GetPtr(k + i - 1), _ = Dlartg(math.Abs(gamma), one)
 
-			if alpha.Get((*k)+i-1) >= beta.Get((*k)+i-1) {
-				goblas.Dscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda))
+			if alpha.Get(k+i-1) >= beta.Get(k+i-1) {
+				goblas.Dscal(l-i+1, one/alpha.Get(k+i-1), a.Vector(k+i-1, n-l+i-1))
 			} else {
-				goblas.Dscal((*l)-i+1, one/beta.Get((*k)+i-1), b.Vector(i-1, (*n)-(*l)+i-1, *ldb))
-				goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1, *ldb), a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda))
+				goblas.Dscal(l-i+1, one/beta.Get(k+i-1), b.Vector(i-1, n-l+i-1))
+				goblas.Dcopy(l-i+1, b.Vector(i-1, n-l+i-1), a.Vector(k+i-1, n-l+i-1))
 			}
 
 		} else {
 
-			alpha.Set((*k)+i-1, zero)
-			beta.Set((*k)+i-1, one)
-			goblas.Dcopy((*l)-i+1, b.Vector(i-1, (*n)-(*l)+i-1, *ldb), a.Vector((*k)+i-1, (*n)-(*l)+i-1, *lda))
+			alpha.Set(k+i-1, zero)
+			beta.Set(k+i-1, one)
+			goblas.Dcopy(l-i+1, b.Vector(i-1, n-l+i-1), a.Vector(k+i-1, n-l+i-1))
 
 		}
 
 	}
 
 	//     Post-assignment
-	for i = (*m) + 1; i <= (*k)+(*l); i++ {
+	for i = m + 1; i <= k+l; i++ {
 		alpha.Set(i-1, zero)
 		beta.Set(i-1, one)
 	}
 
-	if (*k)+(*l) < (*n) {
-		for i = (*k) + (*l) + 1; i <= (*n); i++ {
+	if k+l < n {
+		for i = k + l + 1; i <= n; i++ {
 			alpha.Set(i-1, zero)
 			beta.Set(i-1, zero)
 		}
@@ -315,5 +315,7 @@ label50:
 
 label100:
 	;
-	(*ncycle) = kcycle
+	ncycle = kcycle
+
+	return
 }

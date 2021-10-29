@@ -1,6 +1,7 @@
 package lin
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -10,14 +11,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zqrt15 generates a matrix with full or deficient rank and of various
+// zqrt15 generates a matrix with full or deficient rank and of various
 // norms.
-func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, s *mat.Vector, rank *int, norma, normb *float64, iseed *[]int, work *mat.CVector, lwork *int) {
+func zqrt15(scale, rksel, m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, iseed *[]int, work *mat.CVector, lwork int) (rank int, norma, normb float64, err error) {
 	var cone, czero complex128
 	var bignum, eps, one, smlnum, svmin, temp, two, zero float64
-	var info, j, mn int
-	var err error
-	_ = err
+	var j, mn int
 
 	dummy := vf(1)
 
@@ -28,68 +27,74 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
 
-	mn = min(*m, *n)
-	if (*lwork) < max((*m)+mn, mn*(*nrhs), 2*(*n)+(*m)) {
-		gltest.Xerbla([]byte("ZQRT15"), 16)
+	mn = min(m, n)
+	if lwork < max(m+mn, mn*nrhs, 2*n+m) {
+		err = fmt.Errorf("lwork < max(m+mn, mn*nrhs, 2*n+m); lwork=%v, m=%v, n=%v, nrhs=%v", lwork, m, n, nrhs)
+		gltest.Xerbla2("zqrt15", err)
 		return
 	}
 
 	smlnum = golapack.Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 	eps = golapack.Dlamch(Epsilon)
 	smlnum = (smlnum / eps) / eps
 	bignum = one / smlnum
 
 	//     Determine rank and (unscaled) singular values
-	if (*rksel) == 1 {
-		(*rank) = mn
-	} else if (*rksel) == 2 {
-		(*rank) = (3 * mn) / 4
-		for j = (*rank) + 1; j <= mn; j++ {
+	if rksel == 1 {
+		rank = mn
+	} else if rksel == 2 {
+		rank = (3 * mn) / 4
+		for j = rank + 1; j <= mn; j++ {
 			s.Set(j-1, zero)
 		}
 	} else {
-		gltest.Xerbla([]byte("ZQRT15"), 2)
+		err = fmt.Errorf("rksel=%v", rksel)
+		gltest.Xerbla2("zqrt15", err)
 	}
 
-	if (*rank) > 0 {
+	if rank > 0 {
 		//        Nontrivial case
 		s.Set(0, one)
-		for j = 2; j <= (*rank); j++ {
+		for j = 2; j <= rank; j++ {
 		label20:
 			;
-			temp = matgen.Dlarnd(func() *int { y := 1; return &y }(), iseed)
+			temp = matgen.Dlarnd(1, iseed)
 			if temp > svmin {
 				s.Set(j-1, math.Abs(temp))
 			} else {
 				goto label20
 			}
 		}
-		Dlaord('D', rank, s, func() *int { y := 1; return &y }())
+		dlaord('D', rank, s.Off(0, 1))
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
-		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, m, work)
-		goblas.Zdscal(*m, one/goblas.Dznrm2(*m, work.Off(0, 1)), work.Off(0, 1))
-		golapack.Zlaset('F', m, rank, &czero, &cone, a, lda)
-		golapack.Zlarf('L', m, rank, work, func() *int { y := 1; return &y }(), toPtrc128(complex(two, 0)), a, lda, work.Off((*m)))
+		golapack.Zlarnv(2, iseed, m, work)
+		goblas.Zdscal(m, one/goblas.Dznrm2(m, work.Off(0, 1)), work.Off(0, 1))
+		golapack.Zlaset(Full, m, rank, czero, cone, a)
+		golapack.Zlarf(Left, m, rank, work.Off(0, 1), complex(two, 0), a, work.Off(m))
 
 		//        workspace used: m+mn
 		//
 		//        Generate consistent rhs in the range space of A
-		golapack.Zlarnv(func() *int { y := 2; return &y }(), iseed, toPtr((*rank)*(*nrhs)), work)
-		err = goblas.Zgemm(NoTrans, NoTrans, *m, *nrhs, *rank, cone, a, work.CMatrix(*rank, opts), czero, b)
+		golapack.Zlarnv(2, iseed, rank*nrhs, work)
+		if err = goblas.Zgemm(NoTrans, NoTrans, m, nrhs, rank, cone, a, work.CMatrix(rank, opts), czero, b); err != nil {
+			panic(err)
+		}
 
 		//        work space used: <= mn *nrhs
 		//
 		//        generate (unscaled) matrix A
-		for j = 1; j <= (*rank); j++ {
-			goblas.Zdscal(*m, s.Get(j-1), a.CVector(0, j-1, 1))
+		for j = 1; j <= rank; j++ {
+			goblas.Zdscal(m, s.Get(j-1), a.CVector(0, j-1, 1))
 		}
-		if (*rank) < (*n) {
-			golapack.Zlaset('F', m, toPtr((*n)-(*rank)), &czero, &czero, a.Off(0, (*rank)), lda)
+		if rank < n {
+			golapack.Zlaset(Full, m, n-rank, czero, czero, a.Off(0, rank))
 		}
-		matgen.Zlaror('R', 'N', m, n, a, lda, iseed, work, &info)
+		if err = matgen.Zlaror('R', 'N', m, n, a, iseed, work); err != nil {
+			panic(err)
+		}
 
 	} else {
 		//        work space used 2*n+m
@@ -98,32 +103,47 @@ func Zqrt15(scale, rksel, m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMat
 		for j = 1; j <= mn; j++ {
 			s.Set(j-1, zero)
 		}
-		golapack.Zlaset('F', m, n, &czero, &czero, a, lda)
-		golapack.Zlaset('F', m, nrhs, &czero, &czero, b, ldb)
+		golapack.Zlaset(Full, m, n, czero, czero, a)
+		golapack.Zlaset(Full, m, nrhs, czero, czero, b)
 
 	}
 
 	//     Scale the matrix
-	if (*scale) != 1 {
-		(*norma) = golapack.Zlange('M', m, n, a, lda, dummy)
-		if (*norma) != zero {
-			if (*scale) == 2 {
+	if scale != 1 {
+		norma = golapack.Zlange('M', m, n, a, dummy)
+		if norma != zero {
+			if scale == 2 {
 				//              matrix scaled up
-				golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), norma, &bignum, m, n, a, lda, &info)
-				golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), norma, &bignum, &mn, func() *int { y := 1; return &y }(), s.Matrix(mn, opts), &mn, &info)
-				golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), norma, &bignum, m, nrhs, b, ldb, &info)
-			} else if (*scale) == 3 {
+				if err = golapack.Zlascl('G', 0, 0, norma, bignum, m, n, a); err != nil {
+					panic(err)
+				}
+				if err = golapack.Dlascl('G', 0, 0, norma, bignum, mn, 1, s.Matrix(mn, opts)); err != nil {
+					panic(err)
+				}
+				if err = golapack.Zlascl('G', 0, 0, norma, bignum, m, nrhs, b); err != nil {
+					panic(err)
+				}
+			} else if scale == 3 {
 				//              matrix scaled down
-				golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), norma, &smlnum, m, n, a, lda, &info)
-				golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), norma, &smlnum, &mn, func() *int { y := 1; return &y }(), s.Matrix(mn, opts), &mn, &info)
-				golapack.Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), norma, &smlnum, m, nrhs, b, ldb, &info)
+				if err = golapack.Zlascl('G', 0, 0, norma, smlnum, m, n, a); err != nil {
+					panic(err)
+				}
+				if err = golapack.Dlascl('G', 0, 0, norma, smlnum, mn, 1, s.Matrix(mn, opts)); err != nil {
+					panic(err)
+				}
+				if err = golapack.Zlascl('G', 0, 0, norma, smlnum, m, nrhs, b); err != nil {
+					panic(err)
+				}
 			} else {
-				gltest.Xerbla([]byte("ZQRT15"), 1)
+				err = fmt.Errorf("scale=%v", scale)
+				gltest.Xerbla2("zqrt15", err)
 				return
 			}
 		}
 	}
 
-	(*norma) = goblas.Dasum(mn, s.Off(0, 1))
-	(*normb) = golapack.Zlange('O', m, nrhs, b, ldb, dummy)
+	norma = goblas.Dasum(mn, s.Off(0, 1))
+	normb = golapack.Zlange('O', m, nrhs, b, dummy)
+
+	return
 }

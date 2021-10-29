@@ -17,19 +17,19 @@ import (
 // If tau = 0, then H is taken to be the unit matrix
 //
 // This version uses inline code if H has order < 11.
-func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatrix, ldc *int, work *mat.CVector) {
+func Zlarfx(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.CMatrix, work *mat.CVector) {
 	var one, sum, t1, t10, t2, t3, t4, t5, t6, t7, t8, t9, v1, v10, v2, v3, v4, v5, v6, v7, v8, v9, zero complex128
 	var j int
 
 	zero = (0.0 + 0.0*1i)
 	one = (1.0 + 0.0*1i)
 
-	if (*tau) == zero {
+	if tau == zero {
 		return
 	}
-	if side == 'L' {
+	if side == Left {
 		//        Form  H * C, where H has order m.
-		switch *m {
+		switch m {
 		case 1:
 			goto label10
 		case 2:
@@ -53,14 +53,14 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 		}
 
 		//        Code for general M
-		Zlarf(side, m, n, v, func() *int { y := 1; return &y }(), tau, c, ldc, work)
+		Zlarf(side, m, n, v.Off(0, 1), tau, c, work)
 		return
 	label10:
 		;
 
 		//        Special code for 1 x 1 Householder
-		t1 = one - (*tau)*v.Get(0)*v.GetConj(0)
-		for j = 1; j <= (*n); j++ {
+		t1 = one - tau*v.Get(0)*v.GetConj(0)
+		for j = 1; j <= n; j++ {
 			c.Set(0, j-1, t1*c.Get(0, j-1))
 		}
 		return
@@ -69,10 +69,10 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 2 x 2 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
-		for j = 1; j <= (*n); j++ {
+		t2 = tau * cmplx.Conj(v2)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -83,12 +83,12 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 3 x 3 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
-		for j = 1; j <= (*n); j++ {
+		t3 = tau * cmplx.Conj(v3)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -100,14 +100,14 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 4 x 4 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
-		for j = 1; j <= (*n); j++ {
+		t4 = tau * cmplx.Conj(v4)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -120,16 +120,16 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 5 x 5 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.GetConj(4)
-		t5 = (*tau) * cmplx.Conj(v5)
-		for j = 1; j <= (*n); j++ {
+		t5 = tau * cmplx.Conj(v5)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1) + v5*c.Get(4, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -143,18 +143,18 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 6 x 6 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.GetConj(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.GetConj(5)
-		t6 = (*tau) * cmplx.Conj(v6)
-		for j = 1; j <= (*n); j++ {
+		t6 = tau * cmplx.Conj(v6)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1) + v5*c.Get(4, j-1) + v6*c.Get(5, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -169,20 +169,20 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 7 x 7 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.GetConj(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.GetConj(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.GetConj(6)
-		t7 = (*tau) * cmplx.Conj(v7)
-		for j = 1; j <= (*n); j++ {
+		t7 = tau * cmplx.Conj(v7)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1) + v5*c.Get(4, j-1) + v6*c.Get(5, j-1) + v7*c.Get(6, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -198,22 +198,22 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 8 x 8 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.GetConj(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.GetConj(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.GetConj(6)
-		t7 = (*tau) * cmplx.Conj(v7)
+		t7 = tau * cmplx.Conj(v7)
 		v8 = v.GetConj(7)
-		t8 = (*tau) * cmplx.Conj(v8)
-		for j = 1; j <= (*n); j++ {
+		t8 = tau * cmplx.Conj(v8)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1) + v5*c.Get(4, j-1) + v6*c.Get(5, j-1) + v7*c.Get(6, j-1) + v8*c.Get(7, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -230,24 +230,24 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 9 x 9 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.GetConj(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.GetConj(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.GetConj(6)
-		t7 = (*tau) * cmplx.Conj(v7)
+		t7 = tau * cmplx.Conj(v7)
 		v8 = v.GetConj(7)
-		t8 = (*tau) * cmplx.Conj(v8)
+		t8 = tau * cmplx.Conj(v8)
 		v9 = v.GetConj(8)
-		t9 = (*tau) * cmplx.Conj(v9)
-		for j = 1; j <= (*n); j++ {
+		t9 = tau * cmplx.Conj(v9)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1) + v5*c.Get(4, j-1) + v6*c.Get(5, j-1) + v7*c.Get(6, j-1) + v8*c.Get(7, j-1) + v9*c.Get(8, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -265,26 +265,26 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 10 x 10 Householder
 		v1 = v.GetConj(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.GetConj(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.GetConj(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.GetConj(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.GetConj(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.GetConj(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.GetConj(6)
-		t7 = (*tau) * cmplx.Conj(v7)
+		t7 = tau * cmplx.Conj(v7)
 		v8 = v.GetConj(7)
-		t8 = (*tau) * cmplx.Conj(v8)
+		t8 = tau * cmplx.Conj(v8)
 		v9 = v.GetConj(8)
-		t9 = (*tau) * cmplx.Conj(v9)
+		t9 = tau * cmplx.Conj(v9)
 		v10 = v.GetConj(9)
-		t10 = (*tau) * cmplx.Conj(v10)
-		for j = 1; j <= (*n); j++ {
+		t10 = tau * cmplx.Conj(v10)
+		for j = 1; j <= n; j++ {
 			sum = v1*c.Get(0, j-1) + v2*c.Get(1, j-1) + v3*c.Get(2, j-1) + v4*c.Get(3, j-1) + v5*c.Get(4, j-1) + v6*c.Get(5, j-1) + v7*c.Get(6, j-1) + v8*c.Get(7, j-1) + v9*c.Get(8, j-1) + v10*c.Get(9, j-1)
 			c.Set(0, j-1, c.Get(0, j-1)-sum*t1)
 			c.Set(1, j-1, c.Get(1, j-1)-sum*t2)
@@ -300,7 +300,7 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 		return
 	} else {
 		//        Form  C * H, where H has order n.
-		switch *n {
+		switch n {
 		case 1:
 			goto label210
 		case 2:
@@ -324,14 +324,14 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 		}
 
 		//        Code for general N
-		Zlarf(side, m, n, v, func() *int { y := 1; return &y }(), tau, c, ldc, work)
+		Zlarf(side, m, n, v.Off(0, 1), tau, c, work)
 		return
 	label210:
 		;
 
 		//        Special code for 1 x 1 Householder
-		t1 = one - (*tau)*v.Get(0)*v.GetConj(0)
-		for j = 1; j <= (*m); j++ {
+		t1 = one - tau*v.Get(0)*v.GetConj(0)
+		for j = 1; j <= m; j++ {
 			c.Set(j-1, 0, t1*c.Get(j-1, 0))
 		}
 		return
@@ -340,10 +340,10 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 2 x 2 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
-		for j = 1; j <= (*m); j++ {
+		t2 = tau * cmplx.Conj(v2)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -354,12 +354,12 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 3 x 3 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
-		for j = 1; j <= (*m); j++ {
+		t3 = tau * cmplx.Conj(v3)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -371,14 +371,14 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 4 x 4 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
-		for j = 1; j <= (*m); j++ {
+		t4 = tau * cmplx.Conj(v4)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -391,16 +391,16 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 5 x 5 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.Get(4)
-		t5 = (*tau) * cmplx.Conj(v5)
-		for j = 1; j <= (*m); j++ {
+		t5 = tau * cmplx.Conj(v5)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3) + v5*c.Get(j-1, 4)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -414,18 +414,18 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 6 x 6 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.Get(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.Get(5)
-		t6 = (*tau) * cmplx.Conj(v6)
-		for j = 1; j <= (*m); j++ {
+		t6 = tau * cmplx.Conj(v6)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3) + v5*c.Get(j-1, 4) + v6*c.Get(j-1, 5)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -440,20 +440,20 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 7 x 7 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.Get(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.Get(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.Get(6)
-		t7 = (*tau) * cmplx.Conj(v7)
-		for j = 1; j <= (*m); j++ {
+		t7 = tau * cmplx.Conj(v7)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3) + v5*c.Get(j-1, 4) + v6*c.Get(j-1, 5) + v7*c.Get(j-1, 6)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -469,22 +469,22 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 8 x 8 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.Get(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.Get(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.Get(6)
-		t7 = (*tau) * cmplx.Conj(v7)
+		t7 = tau * cmplx.Conj(v7)
 		v8 = v.Get(7)
-		t8 = (*tau) * cmplx.Conj(v8)
-		for j = 1; j <= (*m); j++ {
+		t8 = tau * cmplx.Conj(v8)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3) + v5*c.Get(j-1, 4) + v6*c.Get(j-1, 5) + v7*c.Get(j-1, 6) + v8*c.Get(j-1, 7)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -501,24 +501,24 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 9 x 9 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.Get(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.Get(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.Get(6)
-		t7 = (*tau) * cmplx.Conj(v7)
+		t7 = tau * cmplx.Conj(v7)
 		v8 = v.Get(7)
-		t8 = (*tau) * cmplx.Conj(v8)
+		t8 = tau * cmplx.Conj(v8)
 		v9 = v.Get(8)
-		t9 = (*tau) * cmplx.Conj(v9)
-		for j = 1; j <= (*m); j++ {
+		t9 = tau * cmplx.Conj(v9)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3) + v5*c.Get(j-1, 4) + v6*c.Get(j-1, 5) + v7*c.Get(j-1, 6) + v8*c.Get(j-1, 7) + v9*c.Get(j-1, 8)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)
@@ -536,26 +536,26 @@ func Zlarfx(side byte, m, n *int, v *mat.CVector, tau *complex128, c *mat.CMatri
 
 		//        Special code for 10 x 10 Householder
 		v1 = v.Get(0)
-		t1 = (*tau) * cmplx.Conj(v1)
+		t1 = tau * cmplx.Conj(v1)
 		v2 = v.Get(1)
-		t2 = (*tau) * cmplx.Conj(v2)
+		t2 = tau * cmplx.Conj(v2)
 		v3 = v.Get(2)
-		t3 = (*tau) * cmplx.Conj(v3)
+		t3 = tau * cmplx.Conj(v3)
 		v4 = v.Get(3)
-		t4 = (*tau) * cmplx.Conj(v4)
+		t4 = tau * cmplx.Conj(v4)
 		v5 = v.Get(4)
-		t5 = (*tau) * cmplx.Conj(v5)
+		t5 = tau * cmplx.Conj(v5)
 		v6 = v.Get(5)
-		t6 = (*tau) * cmplx.Conj(v6)
+		t6 = tau * cmplx.Conj(v6)
 		v7 = v.Get(6)
-		t7 = (*tau) * cmplx.Conj(v7)
+		t7 = tau * cmplx.Conj(v7)
 		v8 = v.Get(7)
-		t8 = (*tau) * cmplx.Conj(v8)
+		t8 = tau * cmplx.Conj(v8)
 		v9 = v.Get(8)
-		t9 = (*tau) * cmplx.Conj(v9)
+		t9 = tau * cmplx.Conj(v9)
 		v10 = v.Get(9)
-		t10 = (*tau) * cmplx.Conj(v10)
-		for j = 1; j <= (*m); j++ {
+		t10 = tau * cmplx.Conj(v10)
+		for j = 1; j <= m; j++ {
 			sum = v1*c.Get(j-1, 0) + v2*c.Get(j-1, 1) + v3*c.Get(j-1, 2) + v4*c.Get(j-1, 3) + v5*c.Get(j-1, 4) + v6*c.Get(j-1, 5) + v7*c.Get(j-1, 6) + v8*c.Get(j-1, 7) + v9*c.Get(j-1, 8) + v10*c.Get(j-1, 9)
 			c.Set(j-1, 0, c.Get(j-1, 0)-sum*t1)
 			c.Set(j-1, 1, c.Get(j-1, 1)-sum*t2)

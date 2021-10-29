@@ -6,7 +6,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dget36 tests DTREXC, a routine for moving blocks (either 1 by 1 or
+// dget36 tests DTREXC, a routine for moving blocks (either 1 by 1 or
 // 2 by 2) on the diagonal of a matrix in real Schur form.  Thus, DLAEXC
 // computes an orthogonal matrix Q such that
 //
@@ -20,9 +20,10 @@ import (
 // ILST (within +-1).
 //
 // The test matrices are read from a file with logical unit number NIN.
-func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
+func dget36(ninfo *[]int) (rmax float64, lmax, knt int) {
 	var eps, one, res, zero float64
 	var _i, i, ifst, ifst1, ifst2, ifstsv, ilst, ilst1, ilst2, ilstsv, info1, info2, j, ldt, loc, lwork, n int
+	var err error
 
 	zero = 0.0
 	one = 1.0
@@ -36,9 +37,9 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 	tmp := mf(10, 10, opts)
 
 	eps = golapack.Dlamch(Precision)
-	(*rmax) = zero
-	(*lmax) = 0
-	(*knt) = 0
+	rmax = zero
+	lmax = 0
+	knt = 0
 	(*ninfo)[0] = 0
 	(*ninfo)[1] = 0
 	(*ninfo)[2] = 0
@@ -184,14 +185,14 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 	for _i, n = range nlist {
 		ifst = ifstlist[_i]
 		ilst = ilstlist[_i]
-		(*knt) = (*knt) + 1
+		knt = knt + 1
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
 				tmp.Set(i-1, j-1, tmplist[_i][(i-1)*(n)+j-1])
 			}
 		}
-		golapack.Dlacpy('F', &n, &n, tmp, &ldt, t1, &ldt)
-		golapack.Dlacpy('F', &n, &n, tmp, &ldt, t2, &ldt)
+		golapack.Dlacpy(Full, n, n, tmp, t1)
+		golapack.Dlacpy(Full, n, n, tmp, t2)
 		ifstsv = ifst
 		ilstsv = ilst
 		ifst1 = ifst
@@ -201,8 +202,10 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 		res = zero
 
 		//     Test without accumulating Q
-		golapack.Dlaset('F', &n, &n, &zero, &one, q, &ldt)
-		golapack.Dtrexc('N', &n, t1, &ldt, q, &ldt, &ifst1, &ilst1, work, &info1)
+		golapack.Dlaset(Full, n, n, zero, one, q)
+		if ifst1, ilst1, info1, err = golapack.Dtrexc('N', n, t1, q, ifst1, ilst1, work); err != nil {
+			panic(err)
+		}
 		for i = 1; i <= n; i++ {
 			for j = 1; j <= n; j++ {
 				if i == j && q.Get(i-1, j-1) != one {
@@ -215,8 +218,10 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 		}
 
 		//     Test with accumulating Q
-		golapack.Dlaset('F', &n, &n, &zero, &one, q, &ldt)
-		golapack.Dtrexc('V', &n, t2, &ldt, q, &ldt, &ifst2, &ilst2, work, &info2)
+		golapack.Dlaset(Full, n, n, zero, one, q)
+		if ifst2, ilst2, info2, err = golapack.Dtrexc('V', n, t2, q, ifst2, ilst2, work); err != nil {
+			panic(err)
+		}
 
 		//     Compare T1 with T2
 		for i = 1; i <= n; i++ {
@@ -249,7 +254,7 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 		}
 
 		//     Test for small residual, and orthogonality of Q
-		Dhst01(&n, func() *int { y := 1; return &y }(), &n, tmp, &ldt, t2, &ldt, q, &ldt, work, &lwork, result)
+		dhst01(n, 1, n, tmp, t2, q, work, lwork, result)
 		res = res + result.Get(0) + result.Get(1)
 
 		//     Test for T2 being in Schur form
@@ -282,9 +287,11 @@ func Dget36(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 		if loc < n {
 			goto label70
 		}
-		if res > (*rmax) {
-			(*rmax) = res
-			(*lmax) = (*knt)
+		if res > rmax {
+			rmax = res
+			lmax = knt
 		}
 	}
+
+	return
 }

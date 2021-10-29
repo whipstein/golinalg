@@ -10,11 +10,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchklq tests DGELQF, DORGLQ and DORMLQ.
-func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int, nbval, nxval *[]int, nrhs *int, thresh *float64, tsterr *bool, nmax *int, a, af, aq, al, ac, b, x, xact, tau, work, rwork *mat.Vector, nout *int, t *testing.T) {
+// dchklq tests DGELQF, DORGLQ and DORMLQ.
+func dchklq(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbval, nxval []int, nrhs int, thresh float64, tsterr bool, nmax int, a, af, aq, al, ac, b, x, xact, tau, work, rwork *mat.Vector, t *testing.T) {
 	var dist, _type byte
 	var anorm, cndnum, zero float64
 	var i, ik, im, imat, in, inb, info, k, kl, ku, lda, lwork, m, minmn, mode, n, nb, nerrs, nfail, nk, nrun, nt, ntests, ntypes, nx int
+	var err error
 
 	result := vf(7)
 	iseed := make([]int, 4)
@@ -31,7 +32,7 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
 
 	//     Initialize constants and the random number seed.
-	path := []byte("DLQ")
+	path := "Dlq"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -40,39 +41,36 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Derrlq(path, t)
+	if tsterr {
+		derrlq(path, t)
 	}
 	(*infot) = 0
-	Xlaenv(2, 2)
+	xlaenv(2, 2)
 
-	lda = (*nmax)
-	lwork = (*nmax) * max(*nmax, *nrhs)
+	lda = nmax
+	lwork = nmax * max(nmax, nrhs)
 
 	//     Do for each value of M in MVAL.
-	for im = 1; im <= (*nm); im++ {
-		m = (*mval)[im-1]
+	for im = 1; im <= nm; im++ {
+		m = mval[im-1]
 
 		//        Do for each value of N in NVAL.
-		for in = 1; in <= (*nn); in++ {
-			n = (*nval)[in-1]
+		for in = 1; in <= nn; in++ {
+			n = nval[in-1]
 			minmn = min(m, n)
 			for imat = 1; imat <= ntypes; imat++ {
 				//              Do the tests only if DOTYPE( IMAT ) is true.
-				if !(*dotype)[imat-1] {
+				if !dotype[imat-1] {
 					goto label50
 				}
 
 				//              Set up parameters with DLATB4 and generate a test matrix
 				//              with DLATMS.
-				Dlatb4(path, &imat, &m, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				_type, kl, ku, anorm, mode, cndnum, dist = dlatb4(path, imat, m, n)
 
-				*srnamt = "DLATMS"
-				matgen.Dlatms(&m, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, 'N', a.Matrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from DLATMS.
-				if info != 0 {
-					Alaerh(path, []byte("DLATMS"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &m, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+				*srnamt = "Dlatms"
+				if info, _ = matgen.Dlatms(m, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, 'N', a.Matrix(lda, opts), work); info != 0 {
+					nerrs = alaerh(path, "Dlatms", info, 0, []byte{' '}, m, n, -1, -1, -1, imat, nfail, nerrs)
 					goto label50
 				}
 
@@ -98,22 +96,22 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 					k = kval[ik-1]
 
 					//                 Do for each pair of values (NB,NX) in NBVAL and NXVAL.
-					for inb = 1; inb <= (*nnb); inb++ {
-						nb = (*nbval)[inb-1]
-						Xlaenv(1, nb)
-						nx = (*nxval)[inb-1]
-						Xlaenv(3, nx)
+					for inb = 1; inb <= nnb; inb++ {
+						nb = nbval[inb-1]
+						xlaenv(1, nb)
+						nx = nxval[inb-1]
+						xlaenv(3, nx)
 						for i = 1; i <= ntests; i++ {
 							result.Set(i-1, zero)
 						}
 						nt = 2
 						if ik == 1 {
 							//                       Test DGELQF
-							Dlqt01(&m, &n, a.Matrix(lda, opts), af.Matrix(lda, opts), aq.Matrix(lda, opts), al.Matrix(lda, opts), &lda, tau, work, &lwork, rwork, result)
+							dlqt01(m, n, a.Matrix(lda, opts), af.Matrix(lda, opts), aq.Matrix(lda, opts), al.Matrix(lda, opts), tau, work, lwork, rwork, result)
 						} else if m <= n {
 							//                       Test DORGLQ, using factorization
 							//                       returned by DLQT01
-							Dlqt02(&m, &n, &k, a.Matrix(lda, opts), af.Matrix(lda, opts), aq.Matrix(lda, opts), al.Matrix(lda, opts), &lda, tau, work, &lwork, rwork, result)
+							dlqt02(m, n, k, a.Matrix(lda, opts), af.Matrix(lda, opts), aq.Matrix(lda, opts), al.Matrix(lda, opts), tau, work, lwork, rwork, result)
 						} else {
 							result.Set(0, zero)
 							result.Set(1, zero)
@@ -121,7 +119,7 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						if m >= k {
 							//                       Test DORMLQ, using factorization returned
 							//                       by DLQT01
-							Dlqt03(&m, &n, &k, af.Matrix(lda, opts), ac.Matrix(lda, opts), al.Matrix(lda, opts), aq.Matrix(lda, opts), &lda, tau, work, &lwork, rwork, result.Off(2))
+							dlqt03(m, n, k, af.Matrix(lda, opts), ac.Matrix(lda, opts), al.Matrix(lda, opts), aq.Matrix(lda, opts), tau, work, lwork, rwork, result.Off(2))
 							nt = nt + 4
 
 							//                       If M>=N and K=N, call DGELQS to solve a system
@@ -130,20 +128,19 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 							if k == m && inb == 1 {
 								//                          Generate a solution and set the right
 								//                          hand side.
-								*srnamt = "DLARHS"
-								Dlarhs(path, toPtrByte('N'), 'F', 'N', &m, &n, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), nrhs, a.Matrix(lda, opts), &lda, xact.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, &iseed, &info)
-
-								golapack.Dlacpy('F', &m, nrhs, b.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda)
-								*srnamt = "DGELQS"
-								Dgelqs(&m, &n, nrhs, af.Matrix(lda, opts), &lda, tau, x.Matrix(lda, opts), &lda, work, &lwork, &info)
-
-								//                          Check error code from DGELQS.
-								if info != 0 {
-									Alaerh(path, []byte("DGELQS"), &info, func() *int { y := 0; return &y }(), []byte{' '}, &m, &n, nrhs, toPtr(-1), &nb, &imat, &nfail, &nerrs)
+								*srnamt = "Dlarhs"
+								if err = Dlarhs(path, 'N', Full, NoTrans, m, n, 0, 0, nrhs, a.Matrix(lda, opts), xact.Matrix(lda, opts), b.Matrix(lda, opts), &iseed); err != nil {
+									panic(err)
 								}
 
-								Dget02('N', &m, &n, nrhs, a.Matrix(lda, opts), &lda, x.Matrix(lda, opts), &lda, b.Matrix(lda, opts), &lda, rwork, result.GetPtr(6))
-								nt = nt + 1
+								golapack.Dlacpy(Full, m, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
+								*srnamt = "Dgelqs"
+								if err = dgelqs(m, n, nrhs, af.Matrix(lda, opts), tau, x.Matrix(lda, opts), work, lwork); err != nil {
+									nerrs = alaerh(path, "Dgelqs", info, 0, []byte{' '}, m, n, nrhs, -1, nb, imat, nfail, nerrs)
+								}
+
+								result.Set(6, dget02(NoTrans, m, n, nrhs, a.Matrix(lda, opts), x.Matrix(lda, opts), b.Matrix(lda, opts), rwork))
+								nt++
 							} else {
 								result.Set(6, zero)
 							}
@@ -157,16 +154,16 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 						//                    Print information about the tests that did not
 						//                    pass the threshold.
 						for i = 1; i <= nt; i++ {
-							if result.Get(i-1) >= (*thresh) {
+							if result.Get(i-1) >= thresh {
 								t.Fail()
 								if nfail == 0 && nerrs == 0 {
-									Alahd(path)
+									alahd(path)
 								}
 								fmt.Printf(" M=%5d, N=%5d, K=%5d, NB=%4d, NX=%5d, _type %2d, test(%2d)=%12.5f\n", m, n, k, nb, nx, imat, i, result.Get(i-1))
-								nfail = nfail + 1
+								nfail++
 							}
 						}
-						nrun = nrun + nt
+						nrun += nt
 					}
 				}
 			label50:
@@ -183,5 +180,5 @@ func Dchklq(dotype *[]bool, nm *int, mval *[]int, nn *int, nval *[]int, nnb *int
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

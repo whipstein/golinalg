@@ -19,11 +19,12 @@ import (
 //
 //        Q(in) * A(in) * Z(in)**H = Q(out) * A(out) * Z(out)**H
 //        Q(in) * B(in) * Z(in)**H = Q(out) * B(out) * Z(out)**H
-func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, q *mat.CMatrix, ldq *int, z *mat.CMatrix, ldz, j1, info *int) {
+func Ztgex2(wantq, wantz bool, n int, a, b, q, z *mat.CMatrix, j1 int) (info int) {
 	var dtrong, wands, weak bool
-	var cdum, cone, czero, f, g, sq, sz complex128
+	var cone, czero, f, g, sq, sz complex128
 	var cq, cz, eps, sa, sb, scale, smlnum, ss, sum, thresh, twenty, ws float64
 	var i, ldst, m int
+
 	work := cvf(8)
 	s := cmf(2, 2, opts)
 	t := cmf(2, 2, opts)
@@ -34,10 +35,8 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	ldst = 2
 	wands = true
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) <= 1 {
+	if n <= 1 {
 		return
 	}
 
@@ -46,17 +45,17 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	dtrong = false
 
 	//     Make a local copy of selected block in (A, B)
-	Zlacpy('F', &m, &m, a.Off((*j1)-1, (*j1)-1), lda, s, &ldst)
-	Zlacpy('F', &m, &m, b.Off((*j1)-1, (*j1)-1), ldb, t, &ldst)
+	Zlacpy(Full, m, m, a.Off(j1-1, j1-1), s)
+	Zlacpy(Full, m, m, b.Off(j1-1, j1-1), t)
 
 	//     Compute the threshold for testing the acceptance of swapping.
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum) / eps
 	scale = real(czero)
 	sum = real(cone)
-	Zlacpy('F', &m, &m, s, &ldst, work.CMatrix(m, opts), &m)
-	Zlacpy('F', &m, &m, t, &ldst, work.CMatrixOff(m*m, m, opts), &m)
-	Zlassq(toPtr(2*m*m), work, func() *int { y := 1; return &y }(), &scale, &sum)
+	Zlacpy(Full, m, m, s, work.CMatrix(m, opts))
+	Zlacpy(Full, m, m, t, work.CMatrixOff(m*m, m, opts))
+	scale, sum = Zlassq(2*m*m, work.Off(0, 1), scale, sum)
 	sa = scale * math.Sqrt(sum)
 
 	//     THRES has been changed from
@@ -74,17 +73,17 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	g = s.Get(1, 1)*t.Get(0, 1) - t.Get(1, 1)*s.Get(0, 1)
 	sa = s.GetMag(1, 1)
 	sb = t.GetMag(1, 1)
-	Zlartg(&g, &f, &cz, &sz, &cdum)
+	cz, sz, _ = Zlartg(g, f)
 	sz = -sz
-	Zrot(func() *int { y := 2; return &y }(), s.CVector(0, 0), func() *int { y := 1; return &y }(), s.CVector(0, 1), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
-	Zrot(func() *int { y := 2; return &y }(), t.CVector(0, 0), func() *int { y := 1; return &y }(), t.CVector(0, 1), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
+	Zrot(2, s.CVector(0, 0, 1), s.CVector(0, 1, 1), cz, cmplx.Conj(sz))
+	Zrot(2, t.CVector(0, 0, 1), t.CVector(0, 1, 1), cz, cmplx.Conj(sz))
 	if sa >= sb {
-		Zlartg(s.GetPtr(0, 0), s.GetPtr(1, 0), &cq, &sq, &cdum)
+		cq, sq, _ = Zlartg(s.Get(0, 0), s.Get(1, 0))
 	} else {
-		Zlartg(t.GetPtr(0, 0), t.GetPtr(1, 0), &cq, &sq, &cdum)
+		cq, sq, _ = Zlartg(t.Get(0, 0), t.Get(1, 0))
 	}
-	Zrot(func() *int { y := 2; return &y }(), s.CVector(0, 0), &ldst, s.CVector(1, 0), &ldst, &cq, &sq)
-	Zrot(func() *int { y := 2; return &y }(), t.CVector(0, 0), &ldst, t.CVector(1, 0), &ldst, &cq, &sq)
+	Zrot(2, s.CVector(0, 0), s.CVector(1, 0), cq, sq)
+	Zrot(2, t.CVector(0, 0), t.CVector(1, 0), cq, sq)
 
 	//     Weak stability test: |S21| + |T21| <= O(EPS F-norm((S, T)))
 	ws = s.GetMag(1, 0) + t.GetMag(1, 0)
@@ -96,21 +95,21 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	if wands {
 		//        Strong stability test:
 		//           F-norm((A-QL**H*S*QR, B-QL**H*T*QR)) <= O(EPS*F-norm((A, B)))
-		Zlacpy('F', &m, &m, s, &ldst, work.CMatrix(m, opts), &m)
-		Zlacpy('F', &m, &m, t, &ldst, work.CMatrixOff(m*m, m, opts), &m)
-		Zrot(func() *int { y := 2; return &y }(), work, func() *int { y := 1; return &y }(), work.Off(2), func() *int { y := 1; return &y }(), &cz, toPtrc128(-cmplx.Conj(sz)))
-		Zrot(func() *int { y := 2; return &y }(), work.Off(4), func() *int { y := 1; return &y }(), work.Off(6), func() *int { y := 1; return &y }(), &cz, toPtrc128(-cmplx.Conj(sz)))
-		Zrot(func() *int { y := 2; return &y }(), work, func() *int { y := 2; return &y }(), work.Off(1), func() *int { y := 2; return &y }(), &cq, toPtrc128(-sq))
-		Zrot(func() *int { y := 2; return &y }(), work.Off(4), func() *int { y := 2; return &y }(), work.Off(5), func() *int { y := 2; return &y }(), &cq, toPtrc128(-sq))
+		Zlacpy(Full, m, m, s, work.CMatrix(m, opts))
+		Zlacpy(Full, m, m, t, work.CMatrixOff(m*m, m, opts))
+		Zrot(2, work.Off(0, 1), work.Off(2, 1), cz, -cmplx.Conj(sz))
+		Zrot(2, work.Off(4, 1), work.Off(6, 1), cz, -cmplx.Conj(sz))
+		Zrot(2, work.Off(0, 2), work.Off(1, 2), cq, -sq)
+		Zrot(2, work.Off(4, 2), work.Off(5, 2), cq, -sq)
 		for i = 1; i <= 2; i++ {
-			work.Set(i-1, work.Get(i-1)-a.Get((*j1)+i-1-1, (*j1)-1))
-			work.Set(i+2-1, work.Get(i+2-1)-a.Get((*j1)+i-1-1, (*j1)))
-			work.Set(i+4-1, work.Get(i+4-1)-b.Get((*j1)+i-1-1, (*j1)-1))
-			work.Set(i+6-1, work.Get(i+6-1)-b.Get((*j1)+i-1-1, (*j1)))
+			work.Set(i-1, work.Get(i-1)-a.Get(j1+i-1-1, j1-1))
+			work.Set(i+2-1, work.Get(i+2-1)-a.Get(j1+i-1-1, j1))
+			work.Set(i+4-1, work.Get(i+4-1)-b.Get(j1+i-1-1, j1-1))
+			work.Set(i+6-1, work.Get(i+6-1)-b.Get(j1+i-1-1, j1))
 		}
 		scale = real(czero)
 		sum = real(cone)
-		Zlassq(toPtr(2*m*m), work, func() *int { y := 1; return &y }(), &scale, &sum)
+		scale, sum = Zlassq(2*m*m, work.Off(0, 1), scale, sum)
 		ss = scale * math.Sqrt(sum)
 		dtrong = ss <= thresh
 		if !dtrong {
@@ -120,21 +119,21 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 
 	//     If the swap is accepted ("weakly" and "strongly"), apply the
 	//     equivalence transformations to the original matrix pair (A,B)
-	Zrot(toPtr((*j1)+1), a.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), a.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
-	Zrot(toPtr((*j1)+1), b.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), b.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
-	Zrot(toPtr((*n)-(*j1)+1), a.CVector((*j1)-1, (*j1)-1), lda, a.CVector((*j1), (*j1)-1), lda, &cq, &sq)
-	Zrot(toPtr((*n)-(*j1)+1), b.CVector((*j1)-1, (*j1)-1), ldb, b.CVector((*j1), (*j1)-1), ldb, &cq, &sq)
+	Zrot(j1+1, a.CVector(0, j1-1, 1), a.CVector(0, j1, 1), cz, cmplx.Conj(sz))
+	Zrot(j1+1, b.CVector(0, j1-1, 1), b.CVector(0, j1, 1), cz, cmplx.Conj(sz))
+	Zrot(n-j1+1, a.CVector(j1-1, j1-1), a.CVector(j1, j1-1), cq, sq)
+	Zrot(n-j1+1, b.CVector(j1-1, j1-1), b.CVector(j1, j1-1), cq, sq)
 
 	//     Set  N1 by N2 (2,1) blocks to 0
-	a.Set((*j1), (*j1)-1, czero)
-	b.Set((*j1), (*j1)-1, czero)
+	a.Set(j1, j1-1, czero)
+	b.Set(j1, j1-1, czero)
 
 	//     Accumulate transformations into Q and Z if requested.
 	if wantz {
-		Zrot(n, z.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), z.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cz, toPtrc128(cmplx.Conj(sz)))
+		Zrot(n, z.CVector(0, j1-1, 1), z.CVector(0, j1, 1), cz, cmplx.Conj(sz))
 	}
 	if wantq {
-		Zrot(n, q.CVector(0, (*j1)-1), func() *int { y := 1; return &y }(), q.CVector(0, (*j1)), func() *int { y := 1; return &y }(), &cq, toPtrc128(cmplx.Conj(sq)))
+		Zrot(n, q.CVector(0, j1-1, 1), q.CVector(0, j1, 1), cq, cmplx.Conj(sq))
 	}
 
 	//     Exit with INFO = 0 if swap was successfully performed.
@@ -143,5 +142,7 @@ func Ztgex2(wantq, wantz bool, n *int, a *mat.CMatrix, lda *int, b *mat.CMatrix,
 	//     Exit with INFO = 1 if swap was rejected.
 label20:
 	;
-	(*info) = 1
+	info = 1
+
+	return
 }

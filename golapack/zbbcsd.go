@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -35,10 +36,10 @@ import (
 // The unitary matrices U1, U2, V1T, and V2T are input/output.
 // The input matrices are pre- or post-multiplied by the appropriate
 // singular vector matrices.
-func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *mat.Vector, u1 *mat.CMatrix, ldu1 *int, u2 *mat.CMatrix, ldu2 *int, v1t *mat.CMatrix, ldv1t *int, v2t *mat.CMatrix, ldv2t *int, b11d, b11e, b12d, b12e, b21d, b21e, b22d, b22e, rwork *mat.Vector, lrwork, info *int) {
+func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, theta, phi *mat.Vector, u1, u2, v1t, v2t *mat.CMatrix, b11d, b11e, b12d, b12e, b21d, b21e, b22d, b22e, rwork *mat.Vector, lrwork int) (info int, err error) {
 	var colmajor, lquery, restart11, restart12, restart21, restart22, wantu1, wantu2, wantv1t, wantv2t bool
 	var negonecomplex complex128
-	var b11bulge, b12bulge, b21bulge, b22bulge, dummy, eps, hundred, meighth, mu, nu, one, piover2, r, sigma11, sigma21, temp, ten, thetamax, thetamin, thresh, tol, tolmul, unfl, x1, x2, y1, y2, zero float64
+	var b11bulge, b12bulge, b21bulge, b22bulge, eps, hundred, meighth, mu, nu, one, piover2, sigma11, sigma21, temp, ten, thetamax, thetamin, thresh, tol, tolmul, unfl, x1, x2, y1, y2, zero float64
 	var i, imax, imin, iter, iu1cs, iu1sn, iu2cs, iu2sn, iv1tcs, iv1tsn, iv2tcs, iv2tsn, j, lrworkmin, lrworkopt, maxit, maxitr, mini int
 
 	maxitr = 6
@@ -51,59 +52,58 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 	negonecomplex = (-1.0 + 0.0*1i)
 
 	//     Test input arguments
-	(*info) = 0
-	lquery = (*lrwork) == -1
+	lquery = lrwork == -1
 	wantu1 = jobu1 == 'Y'
 	wantu2 = jobu2 == 'Y'
 	wantv1t = jobv1t == 'Y'
 	wantv2t = jobv2t == 'Y'
-	colmajor = trans != 'T'
+	colmajor = trans != Trans
 
-	if (*m) < 0 {
-		(*info) = -6
-	} else if (*p) < 0 || (*p) > (*m) {
-		(*info) = -7
-	} else if (*q) < 0 || (*q) > (*m) {
-		(*info) = -8
-	} else if (*q) > (*p) || (*q) > (*m)-(*p) || (*q) > (*m)-(*q) {
-		(*info) = -8
-	} else if wantu1 && (*ldu1) < (*p) {
-		(*info) = -12
-	} else if wantu2 && (*ldu2) < (*m)-(*p) {
-		(*info) = -14
-	} else if wantv1t && (*ldv1t) < (*q) {
-		(*info) = -16
-	} else if wantv2t && (*ldv2t) < (*m)-(*q) {
-		(*info) = -18
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 || p > m {
+		err = fmt.Errorf("p < 0 || p > m: p=%v, m=%v", p, m)
+	} else if q < 0 || q > m {
+		err = fmt.Errorf("q < 0 || q > m: q=%v, m=%v", q, m)
+	} else if q > p || q > m-p || q > m-q {
+		err = fmt.Errorf("q > p || q > m-p || q > m-q: q=%v, p=%v, m=%v", q, p, m)
+	} else if wantu1 && u1.Rows < p {
+		err = fmt.Errorf("wantu1 && u1.Rows < p: jobu1='%c', u1.Rows=%v, p=%v", jobu1, u1.Rows, p)
+	} else if wantu2 && u2.Rows < m-p {
+		err = fmt.Errorf("wantu2 && u2.Rows < m-p: jobu2='%c', u2.Rows=%v, m=%v, p=%v", jobu2, u2.Rows, m, p)
+	} else if wantv1t && v1t.Rows < q {
+		err = fmt.Errorf("wantv1t && v1t.Rows < q: jobv1t='%c', v1t.Rows=%v, q=%v", jobv1t, v1t.Rows, q)
+	} else if wantv2t && v2t.Rows < m-q {
+		err = fmt.Errorf("wantv2t && v2t.Rows < m-q: jobv2t='%c', v2t.Rows=%v, m=%v, q=%v", jobv2t, v2t.Rows, m, q)
 	}
 
 	//     Quick return if Q = 0
-	if (*info) == 0 && (*q) == 0 {
+	if err == nil && q == 0 {
 		lrworkmin = 1
 		rwork.Set(0, float64(lrworkmin))
 		return
 	}
 
 	//     Compute workspace
-	if (*info) == 0 {
+	if err == nil {
 		iu1cs = 1
-		iu1sn = iu1cs + (*q)
-		iu2cs = iu1sn + (*q)
-		iu2sn = iu2cs + (*q)
-		iv1tcs = iu2sn + (*q)
-		iv1tsn = iv1tcs + (*q)
-		iv2tcs = iv1tsn + (*q)
-		iv2tsn = iv2tcs + (*q)
-		lrworkopt = iv2tsn + (*q) - 1
+		iu1sn = iu1cs + q
+		iu2cs = iu1sn + q
+		iu2sn = iu2cs + q
+		iv1tcs = iu2sn + q
+		iv1tsn = iv1tcs + q
+		iv2tcs = iv1tsn + q
+		iv2tsn = iv2tcs + q
+		lrworkopt = iv2tsn + q - 1
 		lrworkmin = lrworkopt
 		rwork.Set(0, float64(lrworkopt))
-		if (*lrwork) < lrworkmin && !lquery {
-			(*info) = -28
+		if lrwork < lrworkmin && !lquery {
+			err = fmt.Errorf("lrwork < lrworkmin && !lquery: lrwork=%v, lrworkmin=%v, lquery=%v", lrwork, lrworkmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZBBCSD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zbbcsd", err)
 		return
 	} else if lquery {
 		return
@@ -114,17 +114,17 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 	unfl = Dlamch(SafeMinimum)
 	tolmul = math.Max(ten, math.Min(hundred, math.Pow(eps, meighth)))
 	tol = tolmul * eps
-	thresh = math.Max(tol, float64(maxitr*(*q)*(*q))*unfl)
+	thresh = math.Max(tol, float64(maxitr*q*q)*unfl)
 
 	//     Test for negligible sines or cosines
-	for i = 1; i <= (*q); i++ {
+	for i = 1; i <= q; i++ {
 		if theta.Get(i-1) < thresh {
 			theta.Set(i-1, zero)
 		} else if theta.Get(i-1) > piover2-thresh {
 			theta.Set(i-1, piover2)
 		}
 	}
-	for i = 1; i <= (*q)-1; i++ {
+	for i = 1; i <= q-1; i++ {
 		if phi.Get(i-1) < thresh {
 			phi.Set(i-1, zero)
 		} else if phi.Get(i-1) > piover2-thresh {
@@ -133,7 +133,7 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 	}
 
 	//     Initial deflation
-	imax = (*q)
+	imax = q
 	for imax > 1 {
 		if phi.Get(imax-1-1) != zero {
 			break
@@ -151,7 +151,7 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 	}
 
 	//     Initialize iteration counter
-	maxit = maxitr * (*q) * (*q)
+	maxit = maxitr * q * q
 	iter = 0
 
 	//     Begin main iteration loop
@@ -174,10 +174,10 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 
 		//        Abort if not converging; otherwise, increment ITER
 		if iter > maxit {
-			(*info) = 0
-			for i = 1; i <= (*q); i++ {
+			info = 0
+			for i = 1; i <= q; i++ {
 				if phi.Get(i-1) != zero {
-					(*info) = (*info) + 1
+					info = info + 1
 				}
 			}
 			return
@@ -211,8 +211,8 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 
 		} else {
 			//           Compute shifts for B11 and B21 and use the lesser
-			Dlas2(b11d.GetPtr(imax-1-1), b11e.GetPtr(imax-1-1), b11d.GetPtr(imax-1), &sigma11, &dummy)
-			Dlas2(b21d.GetPtr(imax-1-1), b21e.GetPtr(imax-1-1), b21d.GetPtr(imax-1), &sigma21, &dummy)
+			sigma11, _ = Dlas2(b11d.Get(imax-1-1), b11e.Get(imax-1-1), b11d.Get(imax-1))
+			sigma21, _ = Dlas2(b21d.Get(imax-1-1), b21e.Get(imax-1-1), b21d.Get(imax-1))
 
 			if sigma11 <= sigma21 {
 				mu = sigma11
@@ -233,9 +233,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 
 		//        Rotate to produce bulges in B11 and B21
 		if mu <= nu {
-			Dlartgs(b11d.GetPtr(imin-1), b11e.GetPtr(imin-1), &mu, rwork.GetPtr(iv1tcs+imin-1-1), rwork.GetPtr(iv1tsn+imin-1-1))
+			*rwork.GetPtr(iv1tcs + imin - 1 - 1), *rwork.GetPtr(iv1tsn + imin - 1 - 1) = Dlartgs(b11d.Get(imin-1), b11e.Get(imin-1), mu)
 		} else {
-			Dlartgs(b21d.GetPtr(imin-1), b21e.GetPtr(imin-1), &nu, rwork.GetPtr(iv1tcs+imin-1-1), rwork.GetPtr(iv1tsn+imin-1-1))
+			*rwork.GetPtr(iv1tcs + imin - 1 - 1), *rwork.GetPtr(iv1tsn + imin - 1 - 1) = Dlartgs(b21d.Get(imin-1), b21e.Get(imin-1), nu)
 		}
 
 		temp = rwork.Get(iv1tcs+imin-1-1)*b11d.Get(imin-1) + rwork.Get(iv1tsn+imin-1-1)*b11e.Get(imin-1)
@@ -254,18 +254,18 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 
 		//        Chase the bulges in B11(IMIN+1,IMIN) and B21(IMIN+1,IMIN)
 		if math.Pow(b11d.Get(imin-1), 2)+math.Pow(b11bulge, 2) > math.Pow(thresh, 2) {
-			Dlartgp(&b11bulge, b11d.GetPtr(imin-1), rwork.GetPtr(iu1sn+imin-1-1), rwork.GetPtr(iu1cs+imin-1-1), &r)
+			*rwork.GetPtr(iu1sn + imin - 1 - 1), *rwork.GetPtr(iu1cs + imin - 1 - 1), _ = Dlartgp(b11bulge, b11d.Get(imin-1))
 		} else if mu <= nu {
-			Dlartgs(b11e.GetPtr(imin-1), b11d.GetPtr(imin), &mu, rwork.GetPtr(iu1cs+imin-1-1), rwork.GetPtr(iu1sn+imin-1-1))
+			*rwork.GetPtr(iu1cs + imin - 1 - 1), *rwork.GetPtr(iu1sn + imin - 1 - 1) = Dlartgs(b11e.Get(imin-1), b11d.Get(imin), mu)
 		} else {
-			Dlartgs(b12d.GetPtr(imin-1), b12e.GetPtr(imin-1), &nu, rwork.GetPtr(iu1cs+imin-1-1), rwork.GetPtr(iu1sn+imin-1-1))
+			*rwork.GetPtr(iu1cs + imin - 1 - 1), *rwork.GetPtr(iu1sn + imin - 1 - 1) = Dlartgs(b12d.Get(imin-1), b12e.Get(imin-1), nu)
 		}
 		if math.Pow(b21d.Get(imin-1), 2)+math.Pow(b21bulge, 2) > math.Pow(thresh, 2) {
-			Dlartgp(&b21bulge, b21d.GetPtr(imin-1), rwork.GetPtr(iu2sn+imin-1-1), rwork.GetPtr(iu2cs+imin-1-1), &r)
+			*rwork.GetPtr(iu2sn + imin - 1 - 1), *rwork.GetPtr(iu2cs + imin - 1 - 1), _ = Dlartgp(b21bulge, b21d.Get(imin-1))
 		} else if nu < mu {
-			Dlartgs(b21e.GetPtr(imin-1), b21d.GetPtr(imin), &nu, rwork.GetPtr(iu2cs+imin-1-1), rwork.GetPtr(iu2sn+imin-1-1))
+			*rwork.GetPtr(iu2cs + imin - 1 - 1), *rwork.GetPtr(iu2sn + imin - 1 - 1) = Dlartgs(b21e.Get(imin-1), b21d.Get(imin), nu)
 		} else {
-			Dlartgs(b22d.GetPtr(imin-1), b22e.GetPtr(imin-1), &mu, rwork.GetPtr(iu2cs+imin-1-1), rwork.GetPtr(iu2sn+imin-1-1))
+			*rwork.GetPtr(iu2cs + imin - 1 - 1), *rwork.GetPtr(iu2sn + imin - 1 - 1) = Dlartgs(b22d.Get(imin-1), b22e.Get(imin-1), mu)
 		}
 		rwork.Set(iu2cs+imin-1-1, -rwork.Get(iu2cs+imin-1-1))
 		rwork.Set(iu2sn+imin-1-1, -rwork.Get(iu2sn+imin-1-1))
@@ -318,28 +318,28 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			//           B21(I-1,I+1), and B22(I-1,I). If necessary, restart bulge-
 			//           chasing by applying the original shift again.
 			if !restart11 && !restart21 {
-				Dlartgp(&x2, &x1, rwork.GetPtr(iv1tsn+i-1-1), rwork.GetPtr(iv1tcs+i-1-1), &r)
+				*rwork.GetPtr(iv1tsn + i - 1 - 1), *rwork.GetPtr(iv1tcs + i - 1 - 1), _ = Dlartgp(x2, x1)
 			} else if !restart11 && restart21 {
-				Dlartgp(&b11bulge, b11e.GetPtr(i-1-1), rwork.GetPtr(iv1tsn+i-1-1), rwork.GetPtr(iv1tcs+i-1-1), &r)
+				*rwork.GetPtr(iv1tsn + i - 1 - 1), *rwork.GetPtr(iv1tcs + i - 1 - 1), _ = Dlartgp(b11bulge, b11e.Get(i-1-1))
 			} else if restart11 && !restart21 {
-				Dlartgp(&b21bulge, b21e.GetPtr(i-1-1), rwork.GetPtr(iv1tsn+i-1-1), rwork.GetPtr(iv1tcs+i-1-1), &r)
+				*rwork.GetPtr(iv1tsn + i - 1 - 1), *rwork.GetPtr(iv1tcs + i - 1 - 1), _ = Dlartgp(b21bulge, b21e.Get(i-1-1))
 			} else if mu <= nu {
-				Dlartgs(b11d.GetPtr(i-1), b11e.GetPtr(i-1), &mu, rwork.GetPtr(iv1tcs+i-1-1), rwork.GetPtr(iv1tsn+i-1-1))
+				*rwork.GetPtr(iv1tcs + i - 1 - 1), *rwork.GetPtr(iv1tsn + i - 1 - 1) = Dlartgs(b11d.Get(i-1), b11e.Get(i-1), mu)
 			} else {
-				Dlartgs(b21d.GetPtr(i-1), b21e.GetPtr(i-1), &nu, rwork.GetPtr(iv1tcs+i-1-1), rwork.GetPtr(iv1tsn+i-1-1))
+				*rwork.GetPtr(iv1tcs + i - 1 - 1), *rwork.GetPtr(iv1tsn + i - 1 - 1) = Dlartgs(b21d.Get(i-1), b21e.Get(i-1), nu)
 			}
 			rwork.Set(iv1tcs+i-1-1, -rwork.Get(iv1tcs+i-1-1))
 			rwork.Set(iv1tsn+i-1-1, -rwork.Get(iv1tsn+i-1-1))
 			if !restart12 && !restart22 {
-				Dlartgp(&y2, &y1, rwork.GetPtr(iv2tsn+i-1-1-1), rwork.GetPtr(iv2tcs+i-1-1-1), &r)
+				*rwork.GetPtr(iv2tsn + i - 1 - 1 - 1), *rwork.GetPtr(iv2tcs + i - 1 - 1 - 1), _ = Dlartgp(y2, y1)
 			} else if !restart12 && restart22 {
-				Dlartgp(&b12bulge, b12d.GetPtr(i-1-1), rwork.GetPtr(iv2tsn+i-1-1-1), rwork.GetPtr(iv2tcs+i-1-1-1), &r)
+				*rwork.GetPtr(iv2tsn + i - 1 - 1 - 1), *rwork.GetPtr(iv2tcs + i - 1 - 1 - 1), _ = Dlartgp(b12bulge, b12d.Get(i-1-1))
 			} else if restart12 && !restart22 {
-				Dlartgp(&b22bulge, b22d.GetPtr(i-1-1), rwork.GetPtr(iv2tsn+i-1-1-1), rwork.GetPtr(iv2tcs+i-1-1-1), &r)
+				*rwork.GetPtr(iv2tsn + i - 1 - 1 - 1), *rwork.GetPtr(iv2tcs + i - 1 - 1 - 1), _ = Dlartgp(b22bulge, b22d.Get(i-1-1))
 			} else if nu < mu {
-				Dlartgs(b12e.GetPtr(i-1-1), b12d.GetPtr(i-1), &nu, rwork.GetPtr(iv2tcs+i-1-1-1), rwork.GetPtr(iv2tsn+i-1-1-1))
+				*rwork.GetPtr(iv2tcs + i - 1 - 1 - 1), *rwork.GetPtr(iv2tsn + i - 1 - 1 - 1) = Dlartgs(b12e.Get(i-1-1), b12d.Get(i-1), nu)
 			} else {
-				Dlartgs(b22e.GetPtr(i-1-1), b22d.GetPtr(i-1), &mu, rwork.GetPtr(iv2tcs+i-1-1-1), rwork.GetPtr(iv2tsn+i-1-1-1))
+				*rwork.GetPtr(iv2tcs + i - 1 - 1 - 1), *rwork.GetPtr(iv2tsn + i - 1 - 1 - 1) = Dlartgs(b22e.Get(i-1-1), b22d.Get(i-1), mu)
 			}
 
 			temp = rwork.Get(iv1tcs+i-1-1)*b11d.Get(i-1) + rwork.Get(iv1tsn+i-1-1)*b11e.Get(i-1)
@@ -382,26 +382,26 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			//           B21(I+1,I), and B22(I+1,I-1). If necessary, restart bulge-
 			//           chasing by applying the original shift again.
 			if !restart11 && !restart12 {
-				Dlartgp(&x2, &x1, rwork.GetPtr(iu1sn+i-1-1), rwork.GetPtr(iu1cs+i-1-1), &r)
+				*rwork.GetPtr(iu1sn + i - 1 - 1), *rwork.GetPtr(iu1cs + i - 1 - 1), _ = Dlartgp(x2, x1)
 			} else if !restart11 && restart12 {
-				Dlartgp(&b11bulge, b11d.GetPtr(i-1), rwork.GetPtr(iu1sn+i-1-1), rwork.GetPtr(iu1cs+i-1-1), &r)
+				*rwork.GetPtr(iu1sn + i - 1 - 1), *rwork.GetPtr(iu1cs + i - 1 - 1), _ = Dlartgp(b11bulge, b11d.Get(i-1))
 			} else if restart11 && !restart12 {
-				Dlartgp(&b12bulge, b12e.GetPtr(i-1-1), rwork.GetPtr(iu1sn+i-1-1), rwork.GetPtr(iu1cs+i-1-1), &r)
+				*rwork.GetPtr(iu1sn + i - 1 - 1), *rwork.GetPtr(iu1cs + i - 1 - 1), _ = Dlartgp(b12bulge, b12e.Get(i-1-1))
 			} else if mu <= nu {
-				Dlartgs(b11e.GetPtr(i-1), b11d.GetPtr(i), &mu, rwork.GetPtr(iu1cs+i-1-1), rwork.GetPtr(iu1sn+i-1-1))
+				*rwork.GetPtr(iu1cs + i - 1 - 1), *rwork.GetPtr(iu1sn + i - 1 - 1) = Dlartgs(b11e.Get(i-1), b11d.Get(i), mu)
 			} else {
-				Dlartgs(b12d.GetPtr(i-1), b12e.GetPtr(i-1), &nu, rwork.GetPtr(iu1cs+i-1-1), rwork.GetPtr(iu1sn+i-1-1))
+				*rwork.GetPtr(iu1cs + i - 1 - 1), *rwork.GetPtr(iu1sn + i - 1 - 1) = Dlartgs(b12d.Get(i-1), b12e.Get(i-1), nu)
 			}
 			if !restart21 && !restart22 {
-				Dlartgp(&y2, &y1, rwork.GetPtr(iu2sn+i-1-1), rwork.GetPtr(iu2cs+i-1-1), &r)
+				*rwork.GetPtr(iu2sn + i - 1 - 1), *rwork.GetPtr(iu2cs + i - 1 - 1), _ = Dlartgp(y2, y1)
 			} else if !restart21 && restart22 {
-				Dlartgp(&b21bulge, b21d.GetPtr(i-1), rwork.GetPtr(iu2sn+i-1-1), rwork.GetPtr(iu2cs+i-1-1), &r)
+				*rwork.GetPtr(iu2sn + i - 1 - 1), *rwork.GetPtr(iu2cs + i - 1 - 1), _ = Dlartgp(b21bulge, b21d.Get(i-1))
 			} else if restart21 && !restart22 {
-				Dlartgp(&b22bulge, b22e.GetPtr(i-1-1), rwork.GetPtr(iu2sn+i-1-1), rwork.GetPtr(iu2cs+i-1-1), &r)
+				*rwork.GetPtr(iu2sn + i - 1 - 1), *rwork.GetPtr(iu2cs + i - 1 - 1), _ = Dlartgp(b22bulge, b22e.Get(i-1-1))
 			} else if nu < mu {
-				Dlartgs(b21e.GetPtr(i-1), b21e.GetPtr(i), &nu, rwork.GetPtr(iu2cs+i-1-1), rwork.GetPtr(iu2sn+i-1-1))
+				*rwork.GetPtr(iu2cs + i - 1 - 1), *rwork.GetPtr(iu2sn + i - 1 - 1) = Dlartgs(b21e.Get(i-1), b21e.Get(i), nu)
 			} else {
-				Dlartgs(b22d.GetPtr(i-1), b22e.GetPtr(i-1), &mu, rwork.GetPtr(iu2cs+i-1-1), rwork.GetPtr(iu2sn+i-1-1))
+				*rwork.GetPtr(iu2cs + i - 1 - 1), *rwork.GetPtr(iu2sn + i - 1 - 1) = Dlartgs(b22d.Get(i-1), b22e.Get(i-1), mu)
 			}
 			rwork.Set(iu2cs+i-1-1, -rwork.Get(iu2cs+i-1-1))
 			rwork.Set(iu2sn+i-1-1, -rwork.Get(iu2sn+i-1-1))
@@ -445,15 +445,15 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		restart22 = math.Pow(b22d.Get(imax-1-1), 2)+math.Pow(b22bulge, 2) <= math.Pow(thresh, 2)
 
 		if !restart12 && !restart22 {
-			Dlartgp(&y2, &y1, rwork.GetPtr(iv2tsn+imax-1-1-1), rwork.GetPtr(iv2tcs+imax-1-1-1), &r)
+			*rwork.GetPtr(iv2tsn + imax - 1 - 1 - 1), *rwork.GetPtr(iv2tcs + imax - 1 - 1 - 1), _ = Dlartgp(y2, y1)
 		} else if !restart12 && restart22 {
-			Dlartgp(&b12bulge, b12d.GetPtr(imax-1-1), rwork.GetPtr(iv2tsn+imax-1-1-1), rwork.GetPtr(iv2tcs+imax-1-1-1), &r)
+			*rwork.GetPtr(iv2tsn + imax - 1 - 1 - 1), *rwork.GetPtr(iv2tcs + imax - 1 - 1 - 1), _ = Dlartgp(b12bulge, b12d.Get(imax-1-1))
 		} else if restart12 && !restart22 {
-			Dlartgp(&b22bulge, b22d.GetPtr(imax-1-1), rwork.GetPtr(iv2tsn+imax-1-1-1), rwork.GetPtr(iv2tcs+imax-1-1-1), &r)
+			*rwork.GetPtr(iv2tsn + imax - 1 - 1 - 1), *rwork.GetPtr(iv2tcs + imax - 1 - 1 - 1), _ = Dlartgp(b22bulge, b22d.Get(imax-1-1))
 		} else if nu < mu {
-			Dlartgs(b12e.GetPtr(imax-1-1), b12d.GetPtr(imax-1), &nu, rwork.GetPtr(iv2tcs+imax-1-1-1), rwork.GetPtr(iv2tsn+imax-1-1-1))
+			*rwork.GetPtr(iv2tcs + imax - 1 - 1 - 1), *rwork.GetPtr(iv2tsn + imax - 1 - 1 - 1) = Dlartgs(b12e.Get(imax-1-1), b12d.Get(imax-1), nu)
 		} else {
-			Dlartgs(b22e.GetPtr(imax-1-1), b22d.GetPtr(imax-1), &mu, rwork.GetPtr(iv2tcs+imax-1-1-1), rwork.GetPtr(iv2tsn+imax-1-1-1))
+			*rwork.GetPtr(iv2tcs + imax - 1 - 1 - 1), *rwork.GetPtr(iv2tsn + imax - 1 - 1 - 1) = Dlartgs(b22e.Get(imax-1-1), b22d.Get(imax-1), mu)
 		}
 
 		temp = rwork.Get(iv2tcs+imax-1-1-1)*b12e.Get(imax-1-1) + rwork.Get(iv2tsn+imax-1-1-1)*b12d.Get(imax-1)
@@ -466,30 +466,46 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		//        Update singular vectors
 		if wantu1 {
 			if colmajor {
-				Zlasr('R', 'V', 'F', p, toPtr(imax-imin+1), rwork.Off(iu1cs+imin-1-1), rwork.Off(iu1sn+imin-1-1), u1.Off(0, imin-1), ldu1)
+				if err = Zlasr(Right, 'V', 'F', p, imax-imin+1, rwork.Off(iu1cs+imin-1-1), rwork.Off(iu1sn+imin-1-1), u1.Off(0, imin-1)); err != nil {
+					panic(err)
+				}
 			} else {
-				Zlasr('L', 'V', 'F', toPtr(imax-imin+1), p, rwork.Off(iu1cs+imin-1-1), rwork.Off(iu1sn+imin-1-1), u1.Off(imin-1, 0), ldu1)
+				if err = Zlasr(Left, 'V', 'F', imax-imin+1, p, rwork.Off(iu1cs+imin-1-1), rwork.Off(iu1sn+imin-1-1), u1.Off(imin-1, 0)); err != nil {
+					panic(err)
+				}
 			}
 		}
 		if wantu2 {
 			if colmajor {
-				Zlasr('R', 'V', 'F', toPtr((*m)-(*p)), toPtr(imax-imin+1), rwork.Off(iu2cs+imin-1-1), rwork.Off(iu2sn+imin-1-1), u2.Off(0, imin-1), ldu2)
+				if err = Zlasr(Right, 'V', 'F', m-p, imax-imin+1, rwork.Off(iu2cs+imin-1-1), rwork.Off(iu2sn+imin-1-1), u2.Off(0, imin-1)); err != nil {
+					panic(err)
+				}
 			} else {
-				Zlasr('L', 'V', 'F', toPtr(imax-imin+1), toPtr((*m)-(*p)), rwork.Off(iu2cs+imin-1-1), rwork.Off(iu2sn+imin-1-1), u2.Off(imin-1, 0), ldu2)
+				if err = Zlasr(Left, 'V', 'F', imax-imin+1, m-p, rwork.Off(iu2cs+imin-1-1), rwork.Off(iu2sn+imin-1-1), u2.Off(imin-1, 0)); err != nil {
+					panic(err)
+				}
 			}
 		}
 		if wantv1t {
 			if colmajor {
-				Zlasr('L', 'V', 'F', toPtr(imax-imin+1), q, rwork.Off(iv1tcs+imin-1-1), rwork.Off(iv1tsn+imin-1-1), v1t.Off(imin-1, 0), ldv1t)
+				if err = Zlasr(Left, 'V', 'F', imax-imin+1, q, rwork.Off(iv1tcs+imin-1-1), rwork.Off(iv1tsn+imin-1-1), v1t.Off(imin-1, 0)); err != nil {
+					panic(err)
+				}
 			} else {
-				Zlasr('R', 'V', 'F', q, toPtr(imax-imin+1), rwork.Off(iv1tcs+imin-1-1), rwork.Off(iv1tsn+imin-1-1), v1t.Off(0, imin-1), ldv1t)
+				if err = Zlasr(Right, 'V', 'F', q, imax-imin+1, rwork.Off(iv1tcs+imin-1-1), rwork.Off(iv1tsn+imin-1-1), v1t.Off(0, imin-1)); err != nil {
+					panic(err)
+				}
 			}
 		}
 		if wantv2t {
 			if colmajor {
-				Zlasr('L', 'V', 'F', toPtr(imax-imin+1), toPtr((*m)-(*q)), rwork.Off(iv2tcs+imin-1-1), rwork.Off(iv2tsn+imin-1-1), v2t.Off(imin-1, 0), ldv2t)
+				if err = Zlasr(Left, 'V', 'F', imax-imin+1, m-q, rwork.Off(iv2tcs+imin-1-1), rwork.Off(iv2tsn+imin-1-1), v2t.Off(imin-1, 0)); err != nil {
+					panic(err)
+				}
 			} else {
-				Zlasr('R', 'V', 'F', toPtr((*m)-(*q)), toPtr(imax-imin+1), rwork.Off(iv2tcs+imin-1-1), rwork.Off(iv2tsn+imin-1-1), v2t.Off(0, imin-1), ldv2t)
+				if err = Zlasr(Right, 'V', 'F', m-q, imax-imin+1, rwork.Off(iv2tcs+imin-1-1), rwork.Off(iv2tsn+imin-1-1), v2t.Off(0, imin-1)); err != nil {
+					panic(err)
+				}
 			}
 		}
 
@@ -499,9 +515,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b21d.Set(imax-1, -b21d.Get(imax-1))
 			if wantv1t {
 				if colmajor {
-					goblas.Zscal(*q, negonecomplex, v1t.CVector(imax-1, 0, *ldv1t))
+					goblas.Zscal(q, negonecomplex, v1t.CVector(imax-1, 0))
 				} else {
-					goblas.Zscal(*q, negonecomplex, v1t.CVector(0, imax-1, 1))
+					goblas.Zscal(q, negonecomplex, v1t.CVector(0, imax-1, 1))
 				}
 			}
 		}
@@ -518,9 +534,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b12d.Set(imax-1, -b12d.Get(imax-1))
 			if wantu1 {
 				if colmajor {
-					goblas.Zscal(*p, negonecomplex, u1.CVector(0, imax-1, 1))
+					goblas.Zscal(p, negonecomplex, u1.CVector(0, imax-1, 1))
 				} else {
-					goblas.Zscal(*p, negonecomplex, u1.CVector(imax-1, 0, *ldu1))
+					goblas.Zscal(p, negonecomplex, u1.CVector(imax-1, 0))
 				}
 			}
 		}
@@ -528,9 +544,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			b22d.Set(imax-1, -b22d.Get(imax-1))
 			if wantu2 {
 				if colmajor {
-					goblas.Zscal((*m)-(*p), negonecomplex, u2.CVector(0, imax-1, 1))
+					goblas.Zscal(m-p, negonecomplex, u2.CVector(0, imax-1, 1))
 				} else {
-					goblas.Zscal((*m)-(*p), negonecomplex, u2.CVector(imax-1, 0, *ldu2))
+					goblas.Zscal(m-p, negonecomplex, u2.CVector(imax-1, 0))
 				}
 			}
 		}
@@ -539,9 +555,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 		if b12d.Get(imax-1)+b22d.Get(imax-1) < 0 {
 			if wantv2t {
 				if colmajor {
-					goblas.Zscal((*m)-(*q), negonecomplex, v2t.CVector(imax-1, 0, *ldv2t))
+					goblas.Zscal(m-q, negonecomplex, v2t.CVector(imax-1, 0))
 				} else {
-					goblas.Zscal((*m)-(*q), negonecomplex, v2t.CVector(0, imax-1, 1))
+					goblas.Zscal(m-q, negonecomplex, v2t.CVector(0, imax-1, 1))
 				}
 			}
 		}
@@ -587,11 +603,11 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 	}
 
 	//     Postprocessing: order THETA from least to greatest
-	for i = 1; i <= (*q); i++ {
+	for i = 1; i <= q; i++ {
 
 		mini = i
 		thetamin = theta.Get(i - 1)
-		for j = i + 1; j <= (*q); j++ {
+		for j = i + 1; j <= q; j++ {
 			if theta.Get(j-1) < thetamin {
 				mini = j
 				thetamin = theta.Get(j - 1)
@@ -603,32 +619,34 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans byte, m, p, q *int, theta, phi *
 			theta.Set(i-1, thetamin)
 			if colmajor {
 				if wantu1 {
-					goblas.Zswap(*p, u1.CVector(0, i-1, 1), u1.CVector(0, mini-1, 1))
+					goblas.Zswap(p, u1.CVector(0, i-1, 1), u1.CVector(0, mini-1, 1))
 				}
 				if wantu2 {
-					goblas.Zswap((*m)-(*p), u2.CVector(0, i-1, 1), u2.CVector(0, mini-1, 1))
+					goblas.Zswap(m-p, u2.CVector(0, i-1, 1), u2.CVector(0, mini-1, 1))
 				}
 				if wantv1t {
-					goblas.Zswap(*q, v1t.CVector(i-1, 0, *ldv1t), v1t.CVector(mini-1, 0, *ldv1t))
+					goblas.Zswap(q, v1t.CVector(i-1, 0), v1t.CVector(mini-1, 0))
 				}
 				if wantv2t {
-					goblas.Zswap((*m)-(*q), v2t.CVector(i-1, 0, *ldv2t), v2t.CVector(mini-1, 0, *ldv2t))
+					goblas.Zswap(m-q, v2t.CVector(i-1, 0), v2t.CVector(mini-1, 0))
 				}
 			} else {
 				if wantu1 {
-					goblas.Zswap(*p, u1.CVector(i-1, 0, *ldu1), u1.CVector(mini-1, 0, *ldu1))
+					goblas.Zswap(p, u1.CVector(i-1, 0), u1.CVector(mini-1, 0))
 				}
 				if wantu2 {
-					goblas.Zswap((*m)-(*p), u2.CVector(i-1, 0, *ldu2), u2.CVector(mini-1, 0, *ldu2))
+					goblas.Zswap(m-p, u2.CVector(i-1, 0), u2.CVector(mini-1, 0))
 				}
 				if wantv1t {
-					goblas.Zswap(*q, v1t.CVector(0, i-1, 1), v1t.CVector(0, mini-1, 1))
+					goblas.Zswap(q, v1t.CVector(0, i-1, 1), v1t.CVector(0, mini-1, 1))
 				}
 				if wantv2t {
-					goblas.Zswap((*m)-(*q), v2t.CVector(0, i-1, 1), v2t.CVector(0, mini-1, 1))
+					goblas.Zswap(m-q, v2t.CVector(0, i-1, 1), v2t.CVector(0, mini-1, 1))
 				}
 			}
 		}
 
 	}
+
+	return
 }

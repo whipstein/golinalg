@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -9,7 +11,7 @@ import (
 // Dgebak forms the right or left eigenvectors of a real general matrix
 // by backward transformation on the computed eigenvectors of the
 // balanced matrix output by DGEBAL.
-func Dgebak(job, side byte, n, ilo, ihi *int, scale *mat.Vector, m *int, v *mat.Matrix, ldv, info *int) {
+func Dgebak(job byte, side mat.MatSide, n, ilo, ihi int, scale *mat.Vector, m int, v *mat.Matrix) (err error) {
 	var leftv, rightv bool
 	var one, s float64
 	var i, ii, k int
@@ -17,42 +19,41 @@ func Dgebak(job, side byte, n, ilo, ihi *int, scale *mat.Vector, m *int, v *mat.
 	one = 1.0
 
 	//     Decode and Test the input parameters
-	rightv = side == 'R'
-	leftv = side == 'L'
+	rightv = side == Right
+	leftv = side == Left
 
-	(*info) = 0
 	if job != 'N' && job != 'P' && job != 'S' && job != 'B' {
-		(*info) = -1
+		err = fmt.Errorf("job != 'N' && job != 'P' && job != 'S' && job != 'B': job='%c'", job)
 	} else if !rightv && !leftv {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*ilo) < 1 || (*ilo) > max(1, *n) {
-		(*info) = -4
-	} else if (*ihi) < min(*ilo, *n) || (*ihi) > (*n) {
-		(*info) = -5
-	} else if (*m) < 0 {
-		(*info) = -7
-	} else if (*ldv) < max(1, *n) {
-		(*info) = -9
+		err = fmt.Errorf("!rightv && !leftv: side=%s", side)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if ilo < 1 || ilo > max(1, n) {
+		err = fmt.Errorf("ilo < 1 || ilo > max(1, n): ilo=%v, n=%v", ilo, n)
+	} else if ihi < min(ilo, n) || ihi > n {
+		err = fmt.Errorf("ihi < min(ilo, n) || ihi > n: ilo=%v, ihi=%v, n=%v", ilo, ihi, n)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if v.Rows < max(1, n) {
+		err = fmt.Errorf("v.Rows < max(1, n): v.Rows=%v, n=%v", v.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGEBAK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgebak", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
-	if (*m) == 0 {
+	if m == 0 {
 		return
 	}
 	if job == 'N' {
 		return
 	}
 
-	if (*ilo) == (*ihi) {
+	if ilo == ihi {
 		goto label30
 	}
 
@@ -60,16 +61,16 @@ func Dgebak(job, side byte, n, ilo, ihi *int, scale *mat.Vector, m *int, v *mat.
 	if job == 'S' || job == 'B' {
 
 		if rightv {
-			for i = (*ilo); i <= (*ihi); i++ {
+			for i = ilo; i <= ihi; i++ {
 				s = scale.Get(i - 1)
-				goblas.Dscal(*m, s, v.Vector(i-1, 0))
+				goblas.Dscal(m, s, v.Vector(i-1, 0))
 			}
 		}
 
 		if leftv {
-			for i = (*ilo); i <= (*ihi); i++ {
+			for i = ilo; i <= ihi; i++ {
 				s = one / scale.Get(i-1)
-				goblas.Dscal(*m, s, v.Vector(i-1, 0))
+				goblas.Dscal(m, s, v.Vector(i-1, 0))
 			}
 		}
 
@@ -83,39 +84,41 @@ label30:
 	;
 	if job == 'P' || job == 'B' {
 		if rightv {
-			for ii = 1; ii <= (*n); ii++ {
+			for ii = 1; ii <= n; ii++ {
 				i = ii
-				if i >= (*ilo) && i <= (*ihi) {
+				if i >= ilo && i <= ihi {
 					goto label40
 				}
-				if i < (*ilo) {
-					i = (*ilo) - ii
+				if i < ilo {
+					i = ilo - ii
 				}
 				k = int(scale.Get(i - 1))
 				if k == i {
 					goto label40
 				}
-				goblas.Dswap(*m, v.Vector(i-1, 0), v.Vector(k-1, 0))
+				goblas.Dswap(m, v.Vector(i-1, 0), v.Vector(k-1, 0))
 			label40:
 			}
 		}
 
 		if leftv {
-			for ii = 1; ii <= (*n); ii++ {
+			for ii = 1; ii <= n; ii++ {
 				i = ii
-				if i >= (*ilo) && i <= (*ihi) {
+				if i >= ilo && i <= ihi {
 					goto label50
 				}
-				if i < (*ilo) {
-					i = (*ilo) - ii
+				if i < ilo {
+					i = ilo - ii
 				}
 				k = int(scale.Get(i - 1))
 				if k == i {
 					goto label50
 				}
-				goblas.Dswap(*m, v.Vector(i-1, 0), v.Vector(k-1, 0))
+				goblas.Dswap(m, v.Vector(i-1, 0), v.Vector(k-1, 0))
 			label50:
 			}
 		}
 	}
+
+	return
 }

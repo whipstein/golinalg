@@ -10,7 +10,7 @@ import (
 // Drscl multiplies an n-element real vector x by the real scalar 1/a.
 // This is done without overflow or underflow as long as
 // the final result x/a does not overflow or underflow.
-func Drscl(n *int, sa *float64, sx *mat.Vector, incx *int) {
+func Drscl(n int, sa float64, sx *mat.Vector) {
 	var done bool
 	var bignum, cden, cden1, cnum, cnum1, mul, one, smlnum, zero float64
 
@@ -18,17 +18,17 @@ func Drscl(n *int, sa *float64, sx *mat.Vector, incx *int) {
 	zero = 0.0
 
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
 	//     Get machine parameters
 	smlnum = Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 
 	//     Initialize the denominator to SA and the numerator to 1.
-	cden = (*sa)
+	cden = sa
 	cnum = one
 
 label10:
@@ -52,7 +52,7 @@ label10:
 	}
 
 	//     Scale the vector X by MUL
-	goblas.Dscal(*n, mul, sx.Off(0, *incx))
+	goblas.Dscal(n, mul, sx)
 
 	if !done {
 		goto label10

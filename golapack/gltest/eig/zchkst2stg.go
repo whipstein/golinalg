@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/cmplx"
-	"testing"
 
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
@@ -13,12 +12,12 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkst2stg checks the Hermitian eigenvalue problem routines
+// zchkst2stg checks the Hermitian eigenvalue problem routines
 // using the 2-stage reduction techniques. Since the generation
 // of Q or the vectors is not available in this release, we only
 // compare the eigenvalue resulting when using the 2-stage to the
 // one considered as reference using the standard 1-stage reduction
-// ZHETRD. For that, we call the standard ZHETRD and compute D1 using
+// Zhetrd. For that, we call the standard Zhetrd and compute D1 using
 // DSTEQR, then we call the 2-stage ZHETRD_2STAGE with Upper and Lower
 // and we compute D2 and D3 using DSTEQR and then we replaced tests
 // 3 and 4 by tests 11 and 12. test 1 and 2 remain to verify that
@@ -26,88 +25,88 @@ import (
 // This testing routine will converge to the ZCHKST in the next
 // release when vectors and generation of Q will be implemented.
 //
-//    ZHETRD factors A as  U S U* , where * means conjugate transpose,
+//    Zhetrd factors A as  U S U* , where * means conjugate transpose,
 //    S is real symmetric tridiagonal, and U is unitary.
-//    ZHETRD can use either just the lower or just the upper triangle
-//    of A; ZCHKST2STG checks both cases.
+//    Zhetrd can use either just the lower or just the upper triangle
+//    of A; zchkst2stg checks both cases.
 //    U is represented as a product of Householder
 //    transformations, whose vectors are stored in the first
 //    n-1 columns of V, and whose scale factors are in TAU.
 //
-//    ZHPTRD does the same as ZHETRD, except that A and V are stored
+//    Zhptrd does the same as Zhetrd, except that A and V are stored
 //    in "packed" format.
 //
-//    ZUNGTR constructs the matrix U from the contents of V and TAU.
+//    Zungtr constructs the matrix U from the contents of V and TAU.
 //
-//    ZUPGTR constructs the matrix U from the contents of VP and TAU.
+//    Zupgtr constructs the matrix U from the contents of VP and TAU.
 //
-//    ZSTEQR factors S as  Z D1 Z* , where Z is the unitary
+//    Zsteqr factors S as  Z D1 Z* , where Z is the unitary
 //    matrix of eigenvectors and D1 is a diagonal matrix with
 //    the eigenvalues on the diagonal.  D2 is the matrix of
 //    eigenvalues computed when Z is not computed.
 //
-//    DSTERF computes D3, the matrix of eigenvalues, by the
+//    Dsterf computes D3, the matrix of eigenvalues, by the
 //    PWK method, which does not yield eigenvectors.
 //
-//    ZPTEQR factors S as  Z4 D4 Z4* , for a
+//    Zpteqr factors S as  Z4 D4 Z4* , for a
 //    Hermitian positive definite tridiagonal matrix.
 //    D5 is the matrix of eigenvalues computed when Z is not
 //    computed.
 //
-//    DSTEBZ computes selected eigenvalues.  WA1, WA2, and
+//    Dstebz computes selected eigenvalues.  WA1, WA2, and
 //    WA3 will denote eigenvalues computed to high
 //    absolute accuracy, with different range options.
 //    WR will denote eigenvalues computed to high relative
 //    accuracy.
 //
-//    ZSTEIN computes Y, the eigenvectors of S, given the
+//    Zstein computes Y, the eigenvectors of S, given the
 //    eigenvalues.
 //
-//    ZSTEDC factors S as Z D1 Z* , where Z is the unitary
+//    Zstedc factors S as Z D1 Z* , where Z is the unitary
 //    matrix of eigenvectors and D1 is a diagonal matrix with
 //    the eigenvalues on the diagonal ('I' option). It may also
 //    update an input unitary matrix, usually the output
-//    from ZHETRD/ZUNGTR or ZHPTRD/ZUPGTR ('V' option). It may
+//    from Zhetrd/Zungtr or Zhptrd/Zupgtr ('V' option). It may
 //    also just compute eigenvalues ('N' option).
 //
-//    ZSTEMR factors S as Z D1 Z* , where Z is the unitary
+//    Zstemr factors S as Z D1 Z* , where Z is the unitary
 //    matrix of eigenvectors and D1 is a diagonal matrix with
-//    the eigenvalues on the diagonal ('I' option).  ZSTEMR
+//    the eigenvalues on the diagonal ('I' option).  Zstemr
 //    uses the Relatively Robust Representation whenever possible.
 //
-// When ZCHKST2STG is called, a number of matrix "sizes" ("n's") and a
+// When zchkst2stg is called, a number of matrix "sizes" ("n's") and a
 // number of matrix "types" are specified.  For each size ("n")
 // and each _type of matrix, one matrix will be generated and used
 // to test the Hermitian eigenroutines.  For each matrix, a number
 // of tests will be performed:
 //
-// (1)     | A - V S V* | / ( |A| n ulp ) ZHETRD( UPLO='U', ... )
+// (1)     | A - V S V* | / ( |A| n ulp ) Zhetrd( UPLO='U', ... )
 //
-// (2)     | I - UV* | / ( n ulp )        ZUNGTR( UPLO='U', ... )
+// (2)     | I - UV* | / ( n ulp )        Zungtr( UPLO='U', ... )
 //
-// (3)     | A - V S V* | / ( |A| n ulp ) ZHETRD( UPLO='L', ... )
+// (3)     | A - V S V* | / ( |A| n ulp ) Zhetrd( UPLO='L', ... )
 //         replaced by | D1 - D2 | / ( |D1| ulp ) where D1 is the
 //         eigenvalue matrix computed using S and D2 is the
 //         eigenvalue matrix computed using S_2stage the output of
 //         ZHETRD_2STAGE("N", "U",....). D1 and D2 are computed
 //         via DSTEQR('N',...)
 //
-// (4)     | I - UV* | / ( n ulp )        ZUNGTR( UPLO='L', ... )
+// (4)     | I - UV* | / ( n ulp )        Zungtr( UPLO='L', ... )
 //         replaced by | D1 - D3 | / ( |D1| ulp ) where D1 is the
 //         eigenvalue matrix computed using S and D3 is the
 //         eigenvalue matrix computed using S_2stage the output of
 //         ZHETRD_2STAGE("N", "L",....). D1 and D3 are computed
 //         via DSTEQR('N',...)
 //
-// (5-8)   Same as 1-4, but for ZHPTRD and ZUPGTR.
+// (5-8)   Same as 1-4, but for Zhptrd and Zupgtr.
 //
-// (9)     | S - Z D Z* | / ( |S| n ulp ) ZSTEQR('V',...)
+// (9)     | S - Z D Z* | / ( |S| n ulp ) Zsteqr('V',...)
 //
-// (10)    | I - ZZ* | / ( n ulp )        ZSTEQR('V',...)
+// (10)    | I - ZZ* | / ( n ulp )        Zsteqr('V',...)
 //
-// (11)    | D1 - D2 | / ( |D1| ulp )        ZSTEQR('N',...)
+// (11)    | D1 - D2 | / ( |D1| ulp )        Zsteqr('N',...)
 //
-// (12)    | D1 - D3 | / ( |D1| ulp )        DSTERF
+// (12)    | D1 - D3 | / ( |D1| ulp )        Dsterf
 //
 // (13)    0 if the true eigenvalues (computed by sturm count)
 //         of S are within THRESH of
@@ -116,87 +115,87 @@ import (
 //
 // For S positive definite,
 //
-// (14)    | S - Z4 D4 Z4* | / ( |S| n ulp ) ZPTEQR('V',...)
+// (14)    | S - Z4 D4 Z4* | / ( |S| n ulp ) Zpteqr('V',...)
 //
-// (15)    | I - Z4 Z4* | / ( n ulp )        ZPTEQR('V',...)
+// (15)    | I - Z4 Z4* | / ( n ulp )        Zpteqr('V',...)
 //
-// (16)    | D4 - D5 | / ( 100 |D4| ulp )       ZPTEQR('N',...)
+// (16)    | D4 - D5 | / ( 100 |D4| ulp )       Zpteqr('N',...)
 //
 // When S is also diagonally dominant by the factor gamma < 1,
 //
 // (17)    max | D4(i) - WR(i) | / ( |D4(i)| omega ) ,
 //          i
 //         omega = 2 (2n-1) ULP (1 + 8 gamma**2) / (1 - gamma)**4
-//                                              DSTEBZ( 'A', 'E', ...)
+//                                              Dstebz( 'A', 'E', ...)
 //
-// (18)    | WA1 - D3 | / ( |D3| ulp )          DSTEBZ( 'A', 'E', ...)
+// (18)    | WA1 - D3 | / ( |D3| ulp )          Dstebz( 'A', 'E', ...)
 //
 // (19)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
 //           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
-//                                              DSTEBZ( 'I', 'E', ...)
+//                                              Dstebz( 'I', 'E', ...)
 //
-// (20)    | S - Y WA1 Y* | / ( |S| n ulp )  DSTEBZ, ZSTEIN
+// (20)    | S - Y WA1 Y* | / ( |S| n ulp )  Dstebz, Zstein
 //
-// (21)    | I - Y Y* | / ( n ulp )          DSTEBZ, ZSTEIN
+// (21)    | I - Y Y* | / ( n ulp )          Dstebz, Zstein
 //
-// (22)    | S - Z D Z* | / ( |S| n ulp )    ZSTEDC('I')
+// (22)    | S - Z D Z* | / ( |S| n ulp )    Zstedc('I')
 //
-// (23)    | I - ZZ* | / ( n ulp )           ZSTEDC('I')
+// (23)    | I - ZZ* | / ( n ulp )           Zstedc('I')
 //
-// (24)    | S - Z D Z* | / ( |S| n ulp )    ZSTEDC('V')
+// (24)    | S - Z D Z* | / ( |S| n ulp )    Zstedc('V')
 //
-// (25)    | I - ZZ* | / ( n ulp )           ZSTEDC('V')
+// (25)    | I - ZZ* | / ( n ulp )           Zstedc('V')
 //
-// (26)    | D1 - D2 | / ( |D1| ulp )           ZSTEDC('V') and
-//                                              ZSTEDC('N')
+// (26)    | D1 - D2 | / ( |D1| ulp )           Zstedc('V') and
+//                                              Zstedc('N')
 //
-// Test 27 is disabled at the moment because ZSTEMR does not
+// Test 27 is disabled at the moment because Zstemr does not
 // guarantee high relatvie accuracy.
 //
 // (27)    max | D6(i) - WR(i) | / ( |D6(i)| omega ) ,
 //          i
 //         omega = 2 (2n-1) ULP (1 + 8 gamma**2) / (1 - gamma)**4
-//                                              ZSTEMR('V', 'A')
+//                                              Zstemr('V', 'A')
 //
 // (28)    max | D6(i) - WR(i) | / ( |D6(i)| omega ) ,
 //          i
 //         omega = 2 (2n-1) ULP (1 + 8 gamma**2) / (1 - gamma)**4
-//                                              ZSTEMR('V', 'I')
+//                                              Zstemr('V', 'I')
 //
-// Tests 29 through 34 are disable at present because ZSTEMR
+// Tests 29 through 34 are disable at present because Zstemr
 // does not handle partial spectrum requests.
 //
-// (29)    | S - Z D Z* | / ( |S| n ulp )    ZSTEMR('V', 'I')
+// (29)    | S - Z D Z* | / ( |S| n ulp )    Zstemr('V', 'I')
 //
-// (30)    | I - ZZ* | / ( n ulp )           ZSTEMR('V', 'I')
+// (30)    | I - ZZ* | / ( n ulp )           Zstemr('V', 'I')
 //
 // (31)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
 //           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
-//         ZSTEMR('N', 'I') vs. CSTEMR('V', 'I')
+//         Zstemr('N', 'I') vs. CSTEMR('V', 'I')
 //
-// (32)    | S - Z D Z* | / ( |S| n ulp )    ZSTEMR('V', 'V')
+// (32)    | S - Z D Z* | / ( |S| n ulp )    Zstemr('V', 'V')
 //
-// (33)    | I - ZZ* | / ( n ulp )           ZSTEMR('V', 'V')
+// (33)    | I - ZZ* | / ( n ulp )           Zstemr('V', 'V')
 //
 // (34)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
 //           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
-//         ZSTEMR('N', 'V') vs. CSTEMR('V', 'V')
+//         Zstemr('N', 'V') vs. CSTEMR('V', 'V')
 //
-// (35)    | S - Z D Z* | / ( |S| n ulp )    ZSTEMR('V', 'A')
+// (35)    | S - Z D Z* | / ( |S| n ulp )    Zstemr('V', 'A')
 //
-// (36)    | I - ZZ* | / ( n ulp )           ZSTEMR('V', 'A')
+// (36)    | I - ZZ* | / ( n ulp )           Zstemr('V', 'A')
 //
 // (37)    ( max { min | WA2(i)-WA3(j) | } +
 //            i     j
 //           max { min | WA3(i)-WA2(j) | } ) / ( |D3| ulp )
 //            i     j
-//         ZSTEMR('N', 'A') vs. CSTEMR('V', 'A')
+//         Zstemr('N', 'A') vs. CSTEMR('V', 'A')
 //
 // The "sizes" are specified by an array NN(1:NSIZES); the value of
 // each element NN(j) specifies one size.
@@ -243,18 +242,18 @@ import (
 // (20) Same as (16), but multiplied by SQRT( underflow threshold )
 // (21) A diagonally dominant tridiagonal matrix with geometrically
 //      spaced diagonal entries 1, ..., ULP.
-func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]int, thresh *float64, nounit *int, a *mat.CMatrix, lda *int, ap *mat.CVector, sd, se, d1, d2, d3, d4, d5, wa1, wa2, wa3, wr *mat.Vector, u *mat.CMatrix, ldu *int, v *mat.CMatrix, vp, tau *mat.CVector, z *mat.CMatrix, work *mat.CVector, lwork *int, rwork *mat.Vector, lrwork *int, iwork *[]int, liwork *int, result *mat.Vector, info *int, t *testing.T) {
+func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, ap *mat.CVector, sd, se, d1, d2, d3, d4, d5, wa1, wa2, wa3, wr *mat.Vector, u, v *mat.CMatrix, vp, tau *mat.CVector, z *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (err error) {
 	var badnn, crange, crel, tryrac bool
 	var cone, czero complex128
 	var abstol, aninv, anorm, cond, eight, half, hun, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, temp4, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, iinfo, il, imode, inde, indrwk, itemp, itype, iu, j, jc, jr, jsize, jtype, lgn, lh, liwedc, log2ui, lrwedc, lw, lwedc, m, m2, m3, maxtyp, mtypes, n, nap, nblock, nerrs, nmats, nmax, nsplit, ntest, ntestt int
+	var i, iinfo, il, imode, inde, indrwk, itemp, itype, iu, j, jc, jr, jsize, jtype, lgn, lh, liwedc, log2ui, lrwedc, lw, lwedc, m, m2, m3, maxtyp, mtypes, n, nap, nblock, nerrs, nmats, nmax, ntest, ntestt int
 	dumma := vf(1)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
-	kmagn := make([]int, 21)
-	kmode := make([]int, 21)
-	ktype := make([]int, 21)
+	kmagn := []int{1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3, 1, 1, 1, 2, 3, 1}
+	kmode := []int{0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0, 4, 3, 1, 4, 4, 3}
+	ktype := []int{1, 2, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 8, 8, 8, 9, 9, 9, 9, 9, 10}
 
 	zero = 0.0
 	one = 1.0
@@ -269,60 +268,55 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	crange = false
 	crel = false
 
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15], ktype[16], ktype[17], ktype[18], ktype[19], ktype[20] = 1, 2, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 8, 8, 8, 9, 9, 9, 9, 9, 10
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15], kmagn[16], kmagn[17], kmagn[18], kmagn[19], kmagn[20] = 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3, 1, 1, 1, 2, 3, 1
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0, 4, 3, 1, 4, 4, 3
-
 	//     Keep ftnchek happy
 	idumma[0] = 1
 
 	//     Check for errors
 	ntestt = 0
-	(*info) = 0
 
 	//     Important constants
 	badnn = false
 	tryrac = true
 	nmax = 1
-	for j = 1; j <= (*nsizes); j++ {
-		nmax = max(nmax, (*nn)[j-1])
-		if (*nn)[j-1] < 0 {
+	for j = 1; j <= nsizes; j++ {
+		nmax = max(nmax, nn[j-1])
+		if nn[j-1] < 0 {
 			badnn = true
 		}
 	}
 
-	nblock = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZHETRD"), []byte{'L'}, &nmax, toPtr(-1), toPtr(-1), toPtr(-1))
+	nblock = ilaenv(1, "Zhetrd", []byte{'L'}, nmax, -1, -1, -1)
 	nblock = min(nmax, max(1, nblock))
 
 	//     Check for errors
-	if (*nsizes) < 0 {
-		(*info) = -1
+	if nsizes < 0 {
+		err = fmt.Errorf("nsizes < 0: nsizes=%v", nsizes)
 	} else if badnn {
-		(*info) = -2
-	} else if (*ntypes) < 0 {
-		(*info) = -3
-	} else if (*lda) < nmax {
-		(*info) = -9
-	} else if (*ldu) < nmax {
-		(*info) = -23
-	} else if 2*pow(max(2, nmax), 2) > (*lwork) {
-		(*info) = -29
+		err = fmt.Errorf("badnn: nn=%v", nn)
+	} else if ntypes < 0 {
+		err = fmt.Errorf("ntypes < 0: ntypes=%v", ntypes)
+	} else if a.Rows < nmax {
+		err = fmt.Errorf("a.Rows < nmax: a.Rows=%v, nmax=%v", a.Rows, nmax)
+	} else if u.Rows < nmax {
+		err = fmt.Errorf("u.Rows < nmax: u.Rows=%v, nmax=%v", u.Rows, nmax)
+	} else if 2*pow(max(2, nmax), 2) > lwork {
+		err = fmt.Errorf("2*pow(max(2, nmax), 2) > lwork: nmax=%v, lwork=%v", nmax, lwork)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZCHKST2STG"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("zchkst2stg", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*nsizes) == 0 || (*ntypes) == 0 {
+	if nsizes == 0 || ntypes == 0 {
 		return
 	}
 
 	//     More Important constants
 	unfl = golapack.Dlamch(SafeMinimum)
 	ovfl = one / unfl
-	golapack.Dlabad(&unfl, &ovfl)
+	unfl, ovfl = golapack.Dlabad(unfl, ovfl)
 	ulp = golapack.Dlamch(Epsilon) * golapack.Dlamch(Base)
 	ulpinv = one / ulp
 	log2ui = int(math.Log(ulpinv) / math.Log(two))
@@ -331,13 +325,13 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 	//     Loop over sizes, types
 	for i = 1; i <= 4; i++ {
-		iseed2[i-1] = (*iseed)[i-1]
+		iseed2[i-1] = iseed[i-1]
 	}
 	nerrs = 0
 	nmats = 0
 
-	for jsize = 1; jsize <= (*nsizes); jsize++ {
-		n = (*nn)[jsize-1]
+	for jsize = 1; jsize <= nsizes; jsize++ {
+		n = nn[jsize-1]
 		if n > 0 {
 			lgn = int(math.Log(float64(n)) / math.Log(two))
 			if pow(2, lgn) < n {
@@ -357,21 +351,21 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 		nap = (n * (n + 1)) / 2
 		aninv = one / float64(max(1, n))
 		//
-		if (*nsizes) != 1 {
-			mtypes = min(maxtyp, *ntypes)
+		if nsizes != 1 {
+			mtypes = min(maxtyp, ntypes)
 		} else {
-			mtypes = min(maxtyp+1, *ntypes)
+			mtypes = min(maxtyp+1, ntypes)
 		}
 
 		for jtype = 1; jtype <= mtypes; jtype++ {
-			if !(*dotype)[jtype-1] {
+			if !dotype[jtype-1] {
 				goto label300
 			}
 			nmats = nmats + 1
 			ntest = 0
 
 			for j = 1; j <= 4; j++ {
-				ioldsd[j-1] = (*iseed)[j-1]
+				ioldsd[j-1] = iseed[j-1]
 			}
 
 			//           Compute "A"
@@ -424,7 +418,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 		label70:
 			;
 
-			golapack.Zlaset('F', lda, &n, &czero, &czero, a, lda)
+			golapack.Zlaset(Full, a.Rows, n, czero, czero, a)
 			iinfo = 0
 			if jtype <= 15 {
 				cond = ulpinv
@@ -446,27 +440,27 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 			} else if itype == 4 {
 				//              Diagonal Matrix, [Eigen]values Specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'H', rwork, imode, cond, anorm, 0, 0, 'N', a, work)
 
 			} else if itype == 5 {
 				//              Hermitian, eigenvalues specified
-				matgen.Zlatms(&n, &n, 'S', iseed, 'H', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'H', rwork, imode, cond, anorm, n, n, 'N', a, work)
 
 			} else if itype == 7 {
 				//              Diagonal, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'S', &iseed, 'H', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, 0, 0, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 8 {
 				//              Hermitian, random eigenvalues
-				matgen.Zlatmr(&n, &n, 'S', iseed, 'H', work, func() *int { y := 6; return &y }(), &one, &cone, 'T', 'N', work.Off(n), func() *int { y := 1; return &y }(), &one, work.Off(2*n), func() *int { y := 1; return &y }(), &one, 'N', &idumma, &n, &n, &zero, &anorm, 'N', a, lda, iwork, &iinfo)
+				err = matgen.Zlatmr(n, n, 'S', &iseed, 'H', work, 6, one, cone, 'T', 'N', work.Off(n), 1, one, work.Off(2*n), 1, one, 'N', &idumma, n, n, zero, anorm, 'N', a, &iwork)
 
 			} else if itype == 9 {
 				//              Positive definite, eigenvalues specified.
-				matgen.Zlatms(&n, &n, 'S', iseed, 'P', rwork, &imode, &cond, &anorm, &n, &n, 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'P', rwork, imode, cond, anorm, n, n, 'N', a, work)
 
 			} else if itype == 10 {
 				//              Positive definite tridiagonal, eigenvalues specified.
-				matgen.Zlatms(&n, &n, 'S', iseed, 'P', rwork, &imode, &cond, &anorm, func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), 'N', a, lda, work, &iinfo)
+				err = matgen.Zlatms(n, n, 'S', &iseed, 'P', rwork, imode, cond, anorm, 1, 1, 'N', a, work)
 				for i = 2; i <= n; i++ {
 					temp1 = a.GetMag(i-1-1, i-1)
 					temp2 = math.Sqrt(cmplx.Abs(a.Get(i-1-1, i-1-1) * a.Get(i-1, i-1)))
@@ -481,27 +475,22 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo != 0 || err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
 		label100:
 			;
 
-			//           Call ZHETRD and ZUNGTR to compute S and U from
+			//           Call Zhetrd and Zungtr to compute S and U from
 			//           upper triangle.
-			golapack.Zlacpy('U', &n, &n, a, lda, v, ldu)
+			golapack.Zlacpy(Upper, n, n, a, v)
 
 			ntest = 1
-			golapack.Zhetrd('U', &n, v, ldu, sd, se, tau, work, lwork, &iinfo)
-
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHETRD(U)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if err = golapack.Zhetrd(Upper, n, v, sd, se, tau, work, lwork); err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhetrd(U)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -510,15 +499,12 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 			}
 
-			golapack.Zlacpy('U', &n, &n, v, ldu, u, ldu)
+			golapack.Zlacpy(Upper, n, n, v, u)
 
 			ntest = 2
-			golapack.Zungtr('U', &n, u, ldu, tau, work, lwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUNGTR(U)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
-				if iinfo < 0 {
+			if err = golapack.Zungtr(Upper, n, u, tau, work, lwork); err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zungtr(U)", iinfo, n, jtype, ioldsd)
+				if err != nil {
 					return
 				} else {
 					result.Set(1, ulpinv)
@@ -527,8 +513,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do tests 1 and 2
-			Zhet21(func() *int { y := 2; return &y }(), 'U', &n, func() *int { y := 1; return &y }(), a, lda, sd, se, u, ldu, v, ldu, tau, work, rwork, result.Off(0))
-			Zhet21(func() *int { y := 3; return &y }(), 'U', &n, func() *int { y := 1; return &y }(), a, lda, sd, se, u, ldu, v, ldu, tau, work, rwork, result.Off(1))
+			zhet21(2, Upper, n, 1, a, sd, se, u, v, tau, work, rwork, result)
+			zhet21(3, Upper, n, 1, a, sd, se, u, v, tau, work, rwork, result.Off(1))
 
 			//           Compute D1 the eigenvalues resulting from the tridiagonal
 			//           form using the standard 1-stage algorithm and use it as a
@@ -541,11 +527,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
 			}
 
-			golapack.Zsteqr('N', &n, d1, rwork, work.CMatrix(*ldu, opts), ldu, rwork.Off(n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEQR(N)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zsteqr('N', n, d1, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zsteqr(N)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -558,12 +542,16 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Note to set SD and SE to zero to be sure not reusing
 			//           the one from above. Compare it with D1 computed
 			//           using the 1-stage.
-			golapack.Dlaset('F', &n, func() *int { y := 1; return &y }(), &zero, &zero, sd.Matrix(n, opts), func() *int { y := 1; return &y }())
-			golapack.Dlaset('F', &n, func() *int { y := 1; return &y }(), &zero, &zero, se.Matrix(n, opts), func() *int { y := 1; return &y }())
-			golapack.Zlacpy('U', &n, &n, a, lda, v, ldu)
+			// golapack.Dlaset(Full, n, 1, zero, zero, sd.Matrix(n, opts), func() *int { y := 1; return &y }())
+			// golapack.Dlaset(Full, n, 1, zero, zero, se.Matrix(n, opts), func() *int { y := 1; return &y }())
+			golapack.Dlaset(Full, n, 1, zero, zero, sd.Matrix(n, opts))
+			golapack.Dlaset(Full, n, 1, zero, zero, se.Matrix(n, opts))
+			golapack.Zlacpy(Upper, n, n, a, v)
 			lh = max(1, 4*n)
-			lw = (*lwork) - lh
-			golapack.Zhetrd2stage('N', 'U', &n, v, ldu, sd, se, tau, work, &lh, work.Off(lh), &lw, &iinfo)
+			lw = lwork - lh
+			if err = golapack.Zhetrd2stage('N', Upper, n, v, sd, se, tau, work, lh, work.Off(lh), lw); err != nil {
+				panic(err)
+			}
 
 			//           Compute D2 from the 2-stage Upper case
 			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
@@ -572,11 +560,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			ntest = 3
-			golapack.Zsteqr('N', &n, d2, rwork, work.CMatrix(*ldu, opts), ldu, rwork.Off(n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEQR(N)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zsteqr('N', n, d2, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zsteqr(N)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -589,10 +575,14 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Note to set SD and SE to zero to be sure not reusing
 			//           the one from above. Compare it with D1 computed
 			//           using the 1-stage.
-			golapack.Dlaset('F', &n, func() *int { y := 1; return &y }(), &zero, &zero, sd.Matrix(n, opts), func() *int { y := 1; return &y }())
-			golapack.Dlaset('F', &n, func() *int { y := 1; return &y }(), &zero, &zero, se.Matrix(n, opts), func() *int { y := 1; return &y }())
-			golapack.Zlacpy('L', &n, &n, a, lda, v, ldu)
-			golapack.Zhetrd2stage('N', 'L', &n, v, ldu, sd, se, tau, work, &lh, work.Off(lh), &lw, &iinfo)
+			// golapack.Dlaset(Full, n, 1, zero, zero, sd.Matrix(n, opts), func() *int { y := 1; return &y }())
+			// golapack.Dlaset(Full, n, 1, zero, zero, se.Matrix(n, opts), func() *int { y := 1; return &y }())
+			golapack.Dlaset(Full, n, 1, zero, zero, sd.Matrix(n, opts))
+			golapack.Dlaset(Full, n, 1, zero, zero, se.Matrix(n, opts))
+			golapack.Zlacpy(Lower, n, n, a, v)
+			if err = golapack.Zhetrd2stage('N', Lower, n, v, sd, se, tau, work, lh, work.Off(lh), lw); err != nil {
+				panic(err)
+			}
 
 			//           Compute D3 from the 2-stage Upper case
 			goblas.Dcopy(n, sd.Off(0, 1), d3.Off(0, 1))
@@ -601,11 +591,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			ntest = 4
-			golapack.Zsteqr('N', &n, d3, rwork, work.CMatrix(*ldu, opts), ldu, rwork.Off(n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEQR(N)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zsteqr('N', n, d3, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zsteqr(N)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -641,16 +629,12 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 			}
 
-			//           Call ZHPTRD and ZUPGTR to compute S and U from AP
+			//           Call Zhptrd and Zupgtr to compute S and U from AP
 			goblas.Zcopy(nap, ap.Off(0, 1), vp.Off(0, 1))
 
 			ntest = 5
-			golapack.Zhptrd('U', &n, vp, sd, se, tau, &iinfo)
-
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHPTRD(U)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if err = golapack.Zhptrd(Upper, n, vp, sd, se, tau); err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhptrd(U)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -660,12 +644,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			ntest = 6
-			golapack.Zupgtr('U', &n, vp, tau, u, ldu, work, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUPGTR(U)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
-				if iinfo < 0 {
+			if err = golapack.Zupgtr(Upper, n, vp, tau, u, work); err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zupgtr(U)", iinfo, n, jtype, ioldsd)
+				if err != nil {
 					return
 				} else {
 					result.Set(5, ulpinv)
@@ -674,8 +655,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do tests 5 and 6
-			Zhpt21(func() *int { y := 2; return &y }(), 'U', &n, func() *int { y := 1; return &y }(), ap, sd, se, u, ldu, vp, tau, work, rwork, result.Off(4))
-			Zhpt21(func() *int { y := 3; return &y }(), 'U', &n, func() *int { y := 1; return &y }(), ap, sd, se, u, ldu, vp, tau, work, rwork, result.Off(5))
+			zhpt21(2, Upper, n, 1, ap, sd, se, u, vp, tau, work, rwork, result.Off(4))
+			zhpt21(3, Upper, n, 1, ap, sd, se, u, vp, tau, work, rwork, result.Off(5))
 
 			//           Store the lower triangle of A in AP
 			i = 0
@@ -686,16 +667,12 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 			}
 
-			//           Call ZHPTRD and ZUPGTR to compute S and U from AP
+			//           Call Zhptrd and Zupgtr to compute S and U from AP
 			goblas.Zcopy(nap, ap.Off(0, 1), vp.Off(0, 1))
 
 			ntest = 7
-			golapack.Zhptrd('L', &n, vp, sd, se, tau, &iinfo)
-
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZHPTRD(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if err = golapack.Zhptrd(Lower, n, vp, sd, se, tau); err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zhptrd(L)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -705,12 +682,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			ntest = 8
-			golapack.Zupgtr('L', &n, vp, tau, u, ldu, work, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZUPGTR(L)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
-				if iinfo < 0 {
+			if err = golapack.Zupgtr(Lower, n, vp, tau, u, work); err != nil {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zupgtr(L)", iinfo, n, jtype, ioldsd)
+				if err != nil {
 					return
 				} else {
 					result.Set(7, ulpinv)
@@ -718,24 +692,22 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 			}
 
-			Zhpt21(func() *int { y := 2; return &y }(), 'L', &n, func() *int { y := 1; return &y }(), ap, sd, se, u, ldu, vp, tau, work, rwork, result.Off(6))
-			Zhpt21(func() *int { y := 3; return &y }(), 'L', &n, func() *int { y := 1; return &y }(), ap, sd, se, u, ldu, vp, tau, work, rwork, result.Off(7))
+			zhpt21(2, Lower, n, 1, ap, sd, se, u, vp, tau, work, rwork, result.Off(6))
+			zhpt21(3, Lower, n, 1, ap, sd, se, u, vp, tau, work, rwork, result.Off(7))
 
-			//           Call ZSTEQR to compute D1, D2, and Z, do tests.
+			//           Call Zsteqr to compute D1, D2, and Z, do tests.
 			//
 			//           Compute D1 and Z
 			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
 			if n > 0 {
 				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
 			}
-			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+			golapack.Zlaset(Full, n, n, czero, cone, z)
 
 			ntest = 9
-			golapack.Zsteqr('V', &n, d1, rwork, z, ldu, rwork.Off(n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEQR(V)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zsteqr('V', n, d1, rwork, z, rwork.Off(n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zsteqr(V)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -751,11 +723,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			ntest = 11
-			golapack.Zsteqr('N', &n, d2, rwork, work.CMatrix(*ldu, opts), ldu, rwork.Off(n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEQR(N)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zsteqr('N', n, d2, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zsteqr(N)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -771,11 +741,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			ntest = 12
-			golapack.Dsterf(&n, d3, rwork, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTERF", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Dsterf(n, d3, rwork); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsterf", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -785,7 +752,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do Tests 9 and 10
-			Zstt21(&n, func() *int { y := 0; return &y }(), sd, se, d1, dumma, z, ldu, work, rwork, result.Off(8))
+			zstt21(n, 0, sd, se, d1, dumma, z, work, rwork, result.Off(8))
 
 			//           Do Tests 11 and 12
 			temp1 = zero
@@ -806,10 +773,10 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Do Test 13 -- Sturm Sequence Test of Eigenvalues
 			//                         Go up by factors of two until it succeeds
 			ntest = 13
-			temp1 = (*thresh) * (half - ulp)
+			temp1 = thresh * (half - ulp)
 
 			for j = 0; j <= log2ui; j++ {
-				Dstech(&n, sd, se, d1, &temp1, rwork, &iinfo)
+				iinfo = dstech(n, sd, se, d1, temp1, rwork)
 				if iinfo == 0 {
 					goto label170
 				}
@@ -820,7 +787,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			;
 			result.Set(12, temp1)
 
-			//           For positive definite matrices ( JTYPE.GT.15 ) call ZPTEQR
+			//           For positive definite matrices ( jtype.GT.15 ) call Zpteqr
 			//           and do tests 14, 15, and 16 .
 			if jtype > 15 {
 				//              Compute D4 and Z4
@@ -828,14 +795,12 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if n > 0 {
 					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
 				}
-				golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+				golapack.Zlaset(Full, n, n, czero, cone, z)
 
 				ntest = 14
-				golapack.Zpteqr('V', &n, d4, rwork, z, ldu, rwork.Off(n), &iinfo)
-				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZPTEQR(V)", iinfo, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if iinfo, err = golapack.Zpteqr('V', n, d4, rwork, z, rwork.Off(n)); err != nil || iinfo != 0 {
+					fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zpteqr(V)", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -845,7 +810,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				//              Do Tests 14 and 15
-				Zstt21(&n, func() *int { y := 0; return &y }(), sd, se, d4, dumma, z, ldu, work, rwork, result.Off(13))
+				zstt21(n, 0, sd, se, d4, dumma, z, work, rwork, result.Off(13))
 
 				//              Compute D5
 				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
@@ -854,11 +819,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				ntest = 16
-				golapack.Zpteqr('N', &n, d5, rwork, z, ldu, rwork.Off(n), &iinfo)
-				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZPTEQR(N)", iinfo, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if iinfo, err = golapack.Zpteqr('N', n, d5, rwork, z, rwork.Off(n)); err != nil || iinfo != 0 {
+					fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zpteqr(N)", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -882,7 +845,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				result.Set(15, zero)
 			}
 
-			//           Call DSTEBZ with different options and do tests 17-18.
+			//           Call Dstebz with different options and do tests 17-18.
 			//
 			//              If S is positive definite and diagonally dominant,
 			//              ask for all eigenvalues with high relative accuracy.
@@ -893,11 +856,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			if jtype == 21 {
 				ntest = 17
 				abstol = unfl + unfl
-				golapack.Dstebz('A', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wr, iwork, toSlice(iwork, n), rwork, toSlice(iwork, 2*n), &iinfo)
-				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(A,rel)", iinfo, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if m, _, iinfo, err = golapack.Dstebz('A', 'E', n, vl, vu, il, iu, abstol, sd, se, wr, &iwork, toSlice(&iwork, n), rwork, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
+					fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(A,rel)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
 					} else {
@@ -922,11 +882,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//           Now ask for all eigenvalues with high absolute accuracy.
 			ntest = 18
 			abstol = unfl + unfl
-			golapack.Dstebz('A', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wa1, iwork, toSlice(iwork, n), rwork, toSlice(iwork, 2*n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(A)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if m, _, iinfo, err = golapack.Dstebz('A', 'E', n, vl, vu, il, iu, abstol, sd, se, wa1, &iwork, toSlice(&iwork, n), rwork, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(A)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -952,8 +909,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				il = 1
 				iu = n
 			} else {
-				il = 1 + (n-1)*int(matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
-				iu = 1 + (n-1)*int(matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
+				il = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
+				iu = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
 				if iu < il {
 					itemp = iu
 					iu = il
@@ -961,11 +918,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 			}
 			//
-			golapack.Dstebz('I', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m2, &nsplit, wa2, iwork, toSlice(iwork, n), rwork, toSlice(iwork, 2*n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(I)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if m2, _, iinfo, err = golapack.Dstebz('I', 'E', n, vl, vu, il, iu, abstol, sd, se, wa2, &iwork, toSlice(&iwork, n), rwork, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(I)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -992,11 +946,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				vu = one
 			}
 
-			golapack.Dstebz('V', 'E', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m3, &nsplit, wa3, iwork, toSlice(iwork, n), rwork, toSlice(iwork, 2*n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(V)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if m3, _, iinfo, err = golapack.Dstebz('V', 'E', n, vl, vu, il, iu, abstol, sd, se, wa3, &iwork, toSlice(&iwork, n), rwork, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(V)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -1011,8 +962,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do test 19
-			temp1 = Dsxt1(func() *int { y := 1; return &y }(), wa2, &m2, wa3, &m3, &abstol, &ulp, &unfl)
-			temp2 = Dsxt1(func() *int { y := 1; return &y }(), wa3, &m3, wa2, &m2, &abstol, &ulp, &unfl)
+			temp1 = dsxt1(1, wa2, m2, wa3, m3, abstol, ulp, unfl)
+			temp2 = dsxt1(1, wa3, m3, wa2, m2, abstol, ulp, unfl)
 			if n > 0 {
 				temp3 = math.Max(wa1.GetMag(n-1), wa1.GetMag(0))
 			} else {
@@ -1021,15 +972,12 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 			result.Set(18, (temp1+temp2)/math.Max(unfl, temp3*ulp))
 
-			//           Call ZSTEIN to compute eigenvectors corresponding to
-			//           eigenvalues in WA1.  (First call DSTEBZ again, to make sure
+			//           Call Zstein to compute eigenvectors corresponding to
+			//           eigenvalues in WA1.  (First call Dstebz again, to make sure
 			//           it returns these eigenvalues in the correct order.)
 			ntest = 21
-			golapack.Dstebz('A', 'B', &n, &vl, &vu, &il, &iu, &abstol, sd, se, &m, &nsplit, wa1, iwork, toSlice(iwork, n), rwork, toSlice(iwork, 2*n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "DSTEBZ(A,B)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if m, _, iinfo, err = golapack.Dstebz('A', 'B', n, vl, vu, il, iu, abstol, sd, se, wa1, &iwork, toSlice(&iwork, n), rwork, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(A,B)", iinfo, n, jtype, ioldsd)
 				if iinfo < 0 {
 					return
 				} else {
@@ -1039,11 +987,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 			}
 
-			golapack.Zstein(&n, sd, se, &m, wa1, iwork, toSlice(iwork, n), z, ldu, rwork, toSlice(iwork, 2*n), toSlice(iwork, 3*n), &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEIN", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zstein(n, sd, se, m, wa1, &iwork, toSlice(&iwork, n), z, rwork, toSlice(&iwork, 2*n), toSlice(&iwork, 3*n)); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstein", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -1054,9 +1000,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do tests 20 and 21
-			Zstt21(&n, func() *int { y := 0; return &y }(), sd, se, wa1, dumma, z, ldu, work, rwork, result.Off(19))
+			zstt21(n, 0, sd, se, wa1, dumma, z, work, rwork, result.Off(19))
 
-			//           Call ZSTEDC(I) to compute D1 and Z, do tests.
+			//           Call Zstedc(I) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
 			inde = 1
@@ -1065,14 +1011,12 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			if n > 0 {
 				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(inde-1, 1))
 			}
-			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+			golapack.Zlaset(Full, n, n, czero, cone, z)
 
 			ntest = 22
-			golapack.Zstedc('I', &n, d1, rwork.Off(inde-1), z, ldu, work, &lwedc, rwork.Off(indrwk-1), &lrwedc, iwork, &liwedc, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEDC(I)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zstedc('I', n, d1, rwork.Off(inde-1), z, work, lwedc, rwork.Off(indrwk-1), lrwedc, &iwork, liwedc); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstedc(I)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -1082,23 +1026,21 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do Tests 22 and 23
-			Zstt21(&n, func() *int { y := 0; return &y }(), sd, se, d1, dumma, z, ldu, work, rwork, result.Off(21))
+			zstt21(n, 0, sd, se, d1, dumma, z, work, rwork, result.Off(21))
 
-			//           Call ZSTEDC(V) to compute D1 and Z, do tests.
+			//           Call Zstedc(V) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
 			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
 			if n > 0 {
 				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(inde-1, 1))
 			}
-			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+			golapack.Zlaset(Full, n, n, czero, cone, z)
 
 			ntest = 24
-			golapack.Zstedc('V', &n, d1, rwork.Off(inde-1), z, ldu, work, &lwedc, rwork.Off(indrwk-1), &lrwedc, iwork, &liwedc, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEDC(V)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zstedc('V', n, d1, rwork.Off(inde-1), z, work, lwedc, rwork.Off(indrwk-1), lrwedc, &iwork, liwedc); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstedc(V)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -1108,23 +1050,21 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			}
 
 			//           Do Tests 24 and 25
-			Zstt21(&n, func() *int { y := 0; return &y }(), sd, se, d1, dumma, z, ldu, work, rwork, result.Off(23))
+			zstt21(n, 0, sd, se, d1, dumma, z, work, rwork, result.Off(23))
 
-			//           Call ZSTEDC(N) to compute D2, do tests.
+			//           Call Zstedc(N) to compute D2, do tests.
 			//
 			//           Compute D2
 			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
 			if n > 0 {
 				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(inde-1, 1))
 			}
-			golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+			golapack.Zlaset(Full, n, n, czero, cone, z)
 			//
 			ntest = 26
-			golapack.Zstedc('N', &n, d2, rwork.Off(inde-1), z, ldu, work, &lwedc, rwork.Off(indrwk-1), &lrwedc, iwork, &liwedc, &iinfo)
-			if iinfo != 0 {
-				t.Fail()
-				fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEDC(N)", iinfo, n, jtype, ioldsd)
-				(*info) = abs(iinfo)
+			if iinfo, err = golapack.Zstedc('N', n, d2, rwork.Off(inde-1), z, work, lwedc, rwork.Off(indrwk-1), lrwedc, &iwork, liwedc); err != nil || iinfo != 0 {
+				fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstedc(N)", iinfo, n, jtype, ioldsd)
+				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				if iinfo < 0 {
 					return
 				} else {
@@ -1144,9 +1084,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 			result.Set(25, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
-			//           Only test ZSTEMR if IEEE compliant
-			if Ilaenv(func() *int { y := 10; return &y }(), []byte("ZSTEMR"), []byte("VA"), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }()) == 1 && Ilaenv(func() *int { y := 11; return &y }(), []byte("ZSTEMR"), []byte("VA"), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }()) == 1 {
-				//           Call ZSTEMR, do test 27 (relative eigenvalue accuracy)
+			//           Only test Zstemr if IEEE compliant
+			if ilaenv(10, "Zstemr", []byte("VA"), 1, 0, 0, 0) == 1 && ilaenv(1, "Zstemr", []byte("VA"), 1, 0, 0, 0) == 1 {
+				//           Call Zstemr, do test 27 (relative eigenvalue accuracy)
 				//
 				//              If S is positive definite and diagonally dominant,
 				//              ask for all eigenvalues with high relative accuracy.
@@ -1157,11 +1097,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				if jtype == 21 && crel {
 					ntest = 27
 					abstol = unfl + unfl
-					golapack.Zstemr('V', 'A', &n, sd, se, &vl, &vu, &il, &iu, &m, wr, z, ldu, &n, iwork, &tryrac, rwork, lrwork, toSlice(iwork, 2*n), toPtr((*lwork)-2*n), &iinfo)
-					if iinfo != 0 {
-						t.Fail()
-						fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(V,A,rel)", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+					if m, tryrac, iinfo, err = golapack.Zstemr('V', 'A', n, sd, se, vl, vu, il, iu, wr, z, n, &iwork, tryrac, rwork, lrwork, toSlice(&iwork, 2*n), lwork-2*n); err != nil || iinfo != 0 {
+						fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(V,A,rel)", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						if iinfo < 0 {
 							return
 						} else {
@@ -1180,8 +1118,8 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 					result.Set(26, temp1/temp2)
 
-					il = 1 + (n-1)*int(matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
-					iu = 1 + (n-1)*int(matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
+					il = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
+					iu = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
 					if iu < il {
 						itemp = iu
 						iu = il
@@ -1191,12 +1129,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					if crange {
 						ntest = 28
 						abstol = unfl + unfl
-						golapack.Zstemr('V', 'I', &n, sd, se, &vl, &vu, &il, &iu, &m, wr, z, ldu, &n, iwork, &tryrac, rwork, lrwork, toSlice(iwork, 2*n), toPtr((*lwork)-2*n), &iinfo)
-
-						if iinfo != 0 {
-							t.Fail()
-							fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(V,I,rel)", iinfo, n, jtype, ioldsd)
-							(*info) = abs(iinfo)
+						if m, tryrac, iinfo, err = golapack.Zstemr('V', 'I', n, sd, se, vl, vu, il, iu, wr, z, n, &iwork, tryrac, rwork, lrwork, toSlice(&iwork, 2*n), lwork-2*n); err != nil || iinfo != 0 {
+							fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(V,I,rel)", iinfo, n, jtype, ioldsd)
+							err = fmt.Errorf("iinfo=%v", abs(iinfo))
 							if iinfo < 0 {
 								return
 							} else {
@@ -1222,29 +1157,27 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					result.Set(27, zero)
 				}
 
-				//           Call ZSTEMR(V,I) to compute D1 and Z, do tests.
+				//           Call Zstemr(V,I) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
 				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 				if n > 0 {
 					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
 				}
-				golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+				golapack.Zlaset(Full, n, n, czero, cone, z)
 
 				if crange {
 					ntest = 29
-					il = 1 + (n-1)*int(matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
-					iu = 1 + (n-1)*int(matgen.Dlarnd(func() *int { y := 1; return &y }(), &iseed2))
+					il = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
+					iu = 1 + (n-1)*int(matgen.Dlarnd(1, &iseed2))
 					if iu < il {
 						itemp = iu
 						iu = il
 						il = itemp
 					}
-					golapack.Zstemr('V', 'I', &n, d5, rwork, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, rwork.Off(n), toPtr((*lrwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-					if iinfo != 0 {
-						t.Fail()
-						fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(V,I)", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+					if m, tryrac, iinfo, err = golapack.Zstemr('V', 'I', n, d5, rwork, vl, vu, il, iu, d1, z, n, &iwork, tryrac, rwork.Off(n), lrwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
+						fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(V,I)", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						if iinfo < 0 {
 							return
 						} else {
@@ -1256,7 +1189,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					//           Do Tests 29 and 30
 					//
 					//
-					//           Call ZSTEMR to compute D2, do tests.
+					//           Call Zstemr to compute D2, do tests.
 					//
 					//           Compute D2
 					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
@@ -1265,11 +1198,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 
 					ntest = 31
-					golapack.Zstemr('N', 'I', &n, d5, rwork, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, rwork.Off(n), toPtr((*lrwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-					if iinfo != 0 {
-						t.Fail()
-						fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(N,I)", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+					if m, tryrac, iinfo, err = golapack.Zstemr('N', 'I', n, d5, rwork, vl, vu, il, iu, d2, z, n, &iwork, tryrac, rwork.Off(n), lrwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
+						fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(N,I)", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						if iinfo < 0 {
 							return
 						} else {
@@ -1289,14 +1220,14 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 					result.Set(30, temp2/math.Max(unfl, ulp*math.Max(temp1, temp2)))
 
-					//           Call ZSTEMR(V,V) to compute D1 and Z, do tests.
+					//           Call Zstemr(V,V) to compute D1 and Z, do tests.
 					//
 					//           Compute D1 and Z
 					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
 					if n > 0 {
 						goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
 					}
-					golapack.Zlaset('F', &n, &n, &czero, &cone, z, ldu)
+					golapack.Zlaset(Full, n, n, czero, cone, z)
 
 					ntest = 32
 
@@ -1316,11 +1247,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 						vu = one
 					}
 
-					golapack.Zstemr('V', 'V', &n, d5, rwork, &vl, &vu, &il, &iu, &m, d1, z, ldu, &m, iwork, &tryrac, rwork.Off(n), toPtr((*lrwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-					if iinfo != 0 {
-						t.Fail()
-						fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(V,V)", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+					if m, tryrac, iinfo, err = golapack.Zstemr('V', 'V', n, d5, rwork, vl, vu, il, iu, d1, z, m, &iwork, tryrac, rwork.Off(n), lrwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
+						fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(V,V)", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						if iinfo < 0 {
 							return
 						} else {
@@ -1330,9 +1259,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 
 					//           Do Tests 32 and 33
-					Zstt22(&n, &m, func() *int { y := 0; return &y }(), sd, se, d1, dumma, z, ldu, work.CMatrix(m, opts), &m, rwork, result.Off(31))
+					zstt22(n, m, 0, sd, se, d1, dumma, z, work.CMatrix(m, opts), rwork, result.Off(31))
 
-					//           Call ZSTEMR to compute D2, do tests.
+					//           Call Zstemr to compute D2, do tests.
 					//
 					//           Compute D2
 					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
@@ -1341,11 +1270,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					}
 
 					ntest = 34
-					golapack.Zstemr('N', 'V', &n, d5, rwork, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, rwork.Off(n), toPtr((*lrwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-					if iinfo != 0 {
-						t.Fail()
-						fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(N,V)", iinfo, n, jtype, ioldsd)
-						(*info) = abs(iinfo)
+					if m, tryrac, iinfo, err = golapack.Zstemr('N', 'V', n, d5, rwork, vl, vu, il, iu, d2, z, n, &iwork, tryrac, rwork.Off(n), lrwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
+						fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(N,V)", iinfo, n, jtype, ioldsd)
+						err = fmt.Errorf("iinfo=%v", abs(iinfo))
 						if iinfo < 0 {
 							return
 						} else {
@@ -1373,7 +1300,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 					result.Set(33, zero)
 				}
 
-				//           Call ZSTEMR(V,A) to compute D1 and Z, do tests.
+				//           Call Zstemr(V,A) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
 				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
@@ -1383,11 +1310,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 
 				ntest = 35
 
-				golapack.Zstemr('V', 'A', &n, d5, rwork, &vl, &vu, &il, &iu, &m, d1, z, ldu, &n, iwork, &tryrac, rwork.Off(n), toPtr((*lrwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(V,A)", iinfo, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if m, tryrac, iinfo, err = golapack.Zstemr('V', 'A', n, d5, rwork, vl, vu, il, iu, d1, z, n, &iwork, tryrac, rwork.Off(n), lrwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
+					fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(V,A)", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1397,9 +1322,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				//           Do Tests 35 and 36
-				Zstt22(&n, &m, func() *int { y := 0; return &y }(), sd, se, d1, dumma, z, ldu, work.CMatrix(m, opts), &m, rwork, result.Off(34))
+				zstt22(n, m, 0, sd, se, d1, dumma, z, work.CMatrix(m, opts), rwork, result.Off(34))
 
-				//           Call ZSTEMR to compute D2, do tests.
+				//           Call Zstemr to compute D2, do tests.
 				//
 				//           Compute D2
 				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
@@ -1408,11 +1333,9 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 				}
 
 				ntest = 37
-				golapack.Zstemr('N', 'A', &n, d5, rwork, &vl, &vu, &il, &iu, &m, d2, z, ldu, &n, iwork, &tryrac, rwork.Off(n), toPtr((*lrwork)-n), toSlice(iwork, 2*n), toPtr((*liwork)-2*n), &iinfo)
-				if iinfo != 0 {
-					t.Fail()
-					fmt.Printf(" ZCHKST2STG: %s returned INFO=%6d.\n         N=%6d, JTYPE=%6d, ISEED=%5d\n", "ZSTEMR(N,A)", iinfo, n, jtype, ioldsd)
-					(*info) = abs(iinfo)
+				if m, tryrac, iinfo, err = golapack.Zstemr('N', 'A', n, d5, rwork, vl, vu, il, iu, d2, z, n, &iwork, tryrac, rwork.Off(n), lrwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
+					fmt.Printf(" zchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Zstemr(N,A)", iinfo, n, jtype, ioldsd)
+					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					if iinfo < 0 {
 						return
 					} else {
@@ -1443,25 +1366,26 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 			//
 			//           Print out tests which fail.
 			for jr = 1; jr <= ntest; jr++ {
-				if result.Get(jr-1) >= (*thresh) {
-					t.Fail()
+				if result.Get(jr-1) >= thresh {
 					//                 If this is the first test to fail,
 					//                 print a header to the data file.
 					if nerrs == 0 {
 						fmt.Printf("\n %3s -- Complex Hermitian eigenvalue problem\n", "ZST")
-						fmt.Printf(" Matrix types (see ZCHKST2STG for details): \n")
+						fmt.Printf(" Matrix types (see zchkst2stg for details): \n")
 						fmt.Printf("\n Special Matrices:\n  1=Zero matrix.                          5=Diagonal: clustered entries.\n  2=Identity matrix.                      6=Diagonal: large, evenly spaced.\n  3=Diagonal: evenly spaced entries.      7=Diagonal: small, evenly spaced.\n  4=Diagonal: geometr. spaced entries.\n")
 						fmt.Printf(" Dense %s Matrices:\n  8=Evenly spaced eigenvals.             12=Small, evenly spaced eigenvals.\n  9=Geometrically spaced eigenvals.      13=Matrix with random O(1) entries.\n 10=Clustered eigenvalues.               14=Matrix with large random entries.\n 11=Large, evenly spaced eigenvals.      15=Matrix with small random entries.\n", "Hermitian")
 						fmt.Printf(" 16=Positive definite, evenly spaced eigenvalues\n 17=Positive definite, geometrically spaced eigenvlaues\n 18=Positive definite, clustered eigenvalues\n 19=Positive definite, small evenly spaced eigenvalues\n 20=Positive definite, large evenly spaced eigenvalues\n 21=Diagonally dominant tridiagonal, geometrically spaced eigenvalues\n")
 
 						//                    Tests performed
-						fmt.Printf("\nTest performed:  see ZCHKST2STG for details.\n\n")
+						fmt.Printf("\nTest performed:  see zchkst2stg for details.\n\n")
 					}
 					nerrs = nerrs + 1
 					if result.Get(jr-1) < 10000.0 {
 						fmt.Printf(" Matrix order=%5d, _type=%2d, seed=%4d, result %3d is%8.2f\n", n, jtype, ioldsd, jr, result.Get(jr-1))
+						err = fmt.Errorf(" Matrix order=%5d, _type=%2d, seed=%4d, result %3d is%8.2f\n", n, jtype, ioldsd, jr, result.Get(jr-1))
 					} else {
 						fmt.Printf(" Matrix order=%5d, _type=%2d, seed=%4d, result %3d is%10.3E\n", n, jtype, ioldsd, jr, result.Get(jr-1))
+						err = fmt.Errorf(" Matrix order=%5d, _type=%2d, seed=%4d, result %3d is%10.3E\n", n, jtype, ioldsd, jr, result.Get(jr-1))
 					}
 				}
 			}
@@ -1470,5 +1394,7 @@ func Zchkst2stg(nsizes *int, nn *[]int, ntypes *int, dotype *[]bool, iseed *[]in
 	}
 
 	//     Summary
-	Dlasum([]byte("ZST"), &nerrs, &ntestt)
+	dlasum("Zst", nerrs, ntestt)
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -13,101 +15,110 @@ import (
 // positive definite.  Eigenvalues and eigenvectors can be selected by
 // specifying either a _range of values or a _range of indices for the
 // desired eigenvalues.
-func Zhpgvx(itype *int, jobz, _range, uplo byte, n *int, ap, bp *mat.CVector, vl, vu *float64, il, iu *int, abstol *float64, m *int, w *mat.Vector, z *mat.CMatrix, ldz *int, work *mat.CVector, rwork *mat.Vector, iwork, ifail *[]int, info *int) {
+func Zhpgvx(itype int, jobz, _range byte, uplo mat.MatUplo, n int, ap, bp *mat.CVector, vl, vu float64, il, iu int, abstol float64, w *mat.Vector, z *mat.CMatrix, work *mat.CVector, rwork *mat.Vector, iwork, ifail *[]int) (m, info int, err error) {
 	var alleig, indeig, upper, valeig, wantz bool
-	var trans byte
+	var trans mat.MatTrans
 	var j int
-	var err error
-	_ = err
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
-	upper = uplo == 'U'
+	upper = uplo == Upper
 	alleig = _range == 'A'
 	valeig = _range == 'V'
 	indeig = _range == 'I'
 
-	(*info) = 0
-	if (*itype) < 1 || (*itype) > 3 {
-		(*info) = -1
+	if itype < 1 || itype > 3 {
+		err = fmt.Errorf("itype < 1 || itype > 3: itype=%v", itype)
 	} else if !(wantz || jobz == 'N') {
-		(*info) = -2
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
 	} else if !(alleig || valeig || indeig) {
-		(*info) = -3
-	} else if !(upper || uplo == 'L') {
-		(*info) = -4
-	} else if (*n) < 0 {
-		(*info) = -5
+		err = fmt.Errorf("!(alleig || valeig || indeig): _range='%c'", _range)
+	} else if !(upper || uplo == Lower) {
+		err = fmt.Errorf("!(upper || uplo == Lower): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	} else {
 		if valeig {
-			if (*n) > 0 && (*vu) <= (*vl) {
-				(*info) = -9
+			if n > 0 && vu <= vl {
+				err = fmt.Errorf("n > 0 && vu <= vl: n=%v, vl=%v, vu=%v", n, vl, vu)
 			}
 		} else if indeig {
-			if (*il) < 1 {
-				(*info) = -10
-			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
-				(*info) = -11
+			if il < 1 {
+				err = fmt.Errorf("il < 1: il=%v", il)
+			} else if iu < min(n, il) || iu > n {
+				err = fmt.Errorf("iu < min(n, il) || iu > n: n=%v, il=%v, iu=%v", n, il, iu)
 			}
 		}
 	}
-	if (*info) == 0 {
-		if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-			(*info) = -16
+	if err == nil {
+		if z.Rows < 1 || (wantz && z.Rows < n) {
+			err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHPGVX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhpgvx", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Form a Cholesky factorization of B.
-	Zpptrf(uplo, n, bp, info)
-	if (*info) != 0 {
-		(*info) = (*n) + (*info)
+	if info, err = Zpptrf(uplo, n, bp); err != nil {
+		panic(err)
+	}
+	if info != 0 {
+		info = n + info
 		return
 	}
 
 	//     Transform problem to standard eigenvalue problem and solve.
-	Zhpgst(itype, uplo, n, ap, bp, info)
-	Zhpevx(jobz, _range, uplo, n, ap, vl, vu, il, iu, abstol, m, w, z, ldz, work, rwork, iwork, ifail, info)
+	if err = Zhpgst(itype, uplo, n, ap, bp); err != nil {
+		panic(err)
+	}
+	if m, info, err = Zhpevx(jobz, _range, uplo, n, ap, vl, vu, il, iu, abstol, w, z, work, rwork, iwork, ifail); err != nil {
+		panic(err)
+	}
 
 	if wantz {
 		//        Backtransform eigenvectors to the original problem.
-		if (*info) > 0 {
-			(*m) = (*info) - 1
+		if info > 0 {
+			m = info - 1
 		}
-		if (*itype) == 1 || (*itype) == 2 {
+		if itype == 1 || itype == 2 {
 			//           For A*x=(lambda)*B*x and A*B*x=(lambda)*x;
 			//           backtransform eigenvectors: x = inv(L)**H *y or inv(U)*y
 			if upper {
-				trans = 'N'
+				trans = NoTrans
 			} else {
-				trans = 'C'
+				trans = ConjTrans
 			}
 
-			for j = 1; j <= (*m); j++ {
-				err = goblas.Ztpsv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1, 1))
+			for j = 1; j <= m; j++ {
+				if err = goblas.Ztpsv(uplo, trans, NonUnit, n, bp, z.CVector(0, j-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 
-		} else if (*itype) == 3 {
+		} else if itype == 3 {
 			//           For B*A*x=(lambda)*x;
 			//           backtransform eigenvectors: x = L*y or U**H *y
 			if upper {
-				trans = 'C'
+				trans = ConjTrans
 			} else {
-				trans = 'N'
+				trans = NoTrans
 			}
 
-			for j = 1; j <= (*m); j++ {
-				err = goblas.Ztpmv(mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, bp, z.CVector(0, j-1, 1))
+			for j = 1; j <= m; j++ {
+				if err = goblas.Ztpmv(uplo, trans, NonUnit, n, bp, z.CVector(0, j-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
+
+	return
 }

@@ -11,13 +11,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zchkps tests ZPSTRF.
-func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank *int, rankval *[]int, thresh *float64, tsterr *bool, nmax *int, a, afac, perm *mat.CVector, piv *[]int, work *mat.CVector, rwork *mat.Vector, nout *int, t *testing.T) {
-	var dist, _type, uplo byte
+// zchkps tests Zpstrf.
+func zchkps(dotype []bool, nn int, nval []int, nnb int, nbval []int, nrank int, rankval []int, thresh float64, tsterr bool, nmax int, a, afac, perm *mat.CVector, piv []int, work *mat.CVector, rwork *mat.Vector, t *testing.T) {
+	var dist, _type byte
+	var uplo mat.MatUplo
 	var anorm, cndnum, one, result, tol float64
-	var comprank, i, imat, in, inb, info, irank, iuplo, izero, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrun, ntypes, rank, rankdiff int
+	var comprank, i, imat, in, inb, info, irank, izero, kl, ku, lda, mode, n, nb, nerrs, nfail, nimat, nrun, ntypes, rank, rankdiff int
+	var err error
 
-	uplos := make([]byte, 2)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
 
@@ -27,10 +28,9 @@ func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1] = 'U', 'L'
 
 	//     Initialize constants and the random number seed.
-	path := []byte("ZPS")
+	path := "Zps"
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -39,14 +39,14 @@ func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Zerrps(path, t)
+	if tsterr {
+		zerrps(path, t)
 	}
 	(*infot) = 0
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lda = max(n, 1)
 		nimat = ntypes
 		if n <= 0 {
@@ -56,55 +56,48 @@ func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 		izero = 0
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label140
 			}
 
 			//              Do for each value of RANK in RANKVAL
-			for irank = 1; irank <= (*nrank); irank++ {
+			for irank = 1; irank <= nrank; irank++ {
 				//              Only repeat test 3 to 5 for different ranks
 				//              Other tests use full rank
 				if (imat < 3 || imat > 5) && irank > 1 {
 					goto label130
 				}
 
-				rank = int(math.Ceil((float64(n * (*rankval)[irank-1])) / 100.))
+				rank = int(math.Ceil((float64(n * rankval[irank-1])) / 100.))
 
-				//           Do first for UPLO = 'U', then for UPLO = 'L'
-				for iuplo = 1; iuplo <= 2; iuplo++ {
-					uplo = uplos[iuplo-1]
+				//           Do first for uplo='U', then for uplo='L'
+				for _, uplo = range mat.IterMatUplo(false) {
 
 					//              Set up parameters with ZLATB5 and generate a test matrix
-					//              with ZLATMT.
-					Zlatb5(path, &imat, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+					//              with Zlatmt.
+					_type, kl, ku, anorm, mode, cndnum, dist = zlatb5(path, imat, n)
 
-					*srnamt = "ZLATMT"
-					matgen.Zlatmt(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &rank, &kl, &ku, uplo, a.CMatrix(lda, opts), &lda, work, &info)
-
-					//              Check error code from ZLATMT.
-					if info != 0 {
+					*srnamt = "Zlatmt"
+					if err = matgen.Zlatmt(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, rank, kl, ku, uplo.Byte(), a.CMatrix(lda, opts), work); err != nil {
 						t.Fail()
-						Alaerh(path, []byte("ZLATMT"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+						nerrs = alaerh(path, "Zlatmt", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 						goto label120
 					}
 
 					//              Do for each value of NB in NBVAL
-					for inb = 1; inb <= (*nnb); inb++ {
-						nb = (*nbval)[inb-1]
-						Xlaenv(1, nb)
+					for inb = 1; inb <= nnb; inb++ {
+						nb = nbval[inb-1]
+						xlaenv(1, nb)
 
 						//                 Compute the pivoted L*L' or U'*U factorization
 						//                 of the matrix.
-						golapack.Zlacpy(uplo, &n, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda)
-						*srnamt = "ZPSTRF"
+						golapack.Zlacpy(uplo, n, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts))
+						*srnamt = "Zpstrf"
 
 						//                 Use default tolerance
 						tol = -one
-						golapack.Zpstrf(uplo, &n, afac.CMatrix(lda, opts), &lda, piv, &comprank, &tol, rwork, &info)
-
-						//                 Check error code from ZPSTRF.
-						if (info < izero) || (info != izero && rank == n) || (info <= izero && rank < n) {
-							Alaerh(path, []byte("ZPSTRF"), &info, &izero, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), &nb, &imat, &nfail, &nerrs)
+						if comprank, info, err = golapack.Zpstrf(uplo, n, afac.CMatrix(lda, opts), &piv, tol, rwork); err != nil || (info < izero) || (info != izero && rank == n) || (info <= izero && rank < n) {
+							nerrs = alaerh(path, "Zpstrf", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, nb, imat, nfail, nerrs)
 							goto label110
 						}
 
@@ -116,7 +109,7 @@ func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 						//                 Reconstruct matrix from factors and compute residual.
 						//
 						//                 PERM holds permuted L*L^T or U^T*U
-						Zpst01(uplo, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, perm.CMatrix(lda, opts), &lda, piv, rwork, &result, &comprank)
+						*&result = zpst01(uplo, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts), perm.CMatrix(lda, opts), &piv, rwork, comprank)
 
 						//                 Print information about the tests that did not pass
 						//                 the threshold or where computed rank was not RANK.
@@ -124,15 +117,15 @@ func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 							comprank = 0
 						}
 						rankdiff = rank - comprank
-						if result >= (*thresh) {
+						if result >= thresh {
 							t.Fail()
 							if nfail == 0 && nerrs == 0 {
-								Alahd(path)
+								alahd(path)
 							}
-							fmt.Printf(" UPLO = '%c', N =%5d, RANK =%3d, Diff =%5d, NB =%4d, _type %2d, Ratio =%12.5f\n", uplo, n, rank, rankdiff, nb, imat, result)
-							nfail = nfail + 1
+							fmt.Printf(" uplo=%s, n=%5d, rank=%3d, Diff =%5d, nb=%4d, _type %2d, Ratio =%12.5f\n", uplo, n, rank, rankdiff, nb, imat, result)
+							nfail++
 						}
-						nrun = nrun + 1
+						nrun++
 					label110:
 					}
 
@@ -145,5 +138,5 @@ func Zchkps(dotype *[]bool, nn *int, nval *[]int, nnb *int, nbval *[]int, nrank 
 	}
 
 	//     Print a summary of the results.
-	Alasum(path, &nfail, &nrun, &nerrs)
+	alasum(path, nfail, nrun, nerrs)
 }

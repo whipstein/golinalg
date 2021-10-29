@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -36,7 +37,7 @@ import (
 // digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
 // Cray-2. It could conceivably fail on hexadecimal or decimal machines
 // without guard digits, but we know of none.
-func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, s *mat.Vector, rcond *float64, rank *int, work *mat.CVector, lwork *int, rwork *mat.Vector, iwork *[]int, info *int) {
+func Zgelsd(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, work *mat.CVector, lwork int, rwork *mat.Vector, iwork *[]int) (rank, info int, err error) {
 	var lquery bool
 	var czero complex128
 	var anrm, bignum, bnrm, eps, one, sfmin, smlnum, two, zero float64
@@ -48,20 +49,19 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	czero = (0.0 + 0.0*1i)
 
 	//     Test the input arguments.
-	(*info) = 0
-	minmn = min(*m, *n)
-	maxmn = max(*m, *n)
-	lquery = ((*lwork) == -1)
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
-	} else if (*ldb) < max(1, maxmn) {
-		(*info) = -7
+	minmn = min(m, n)
+	maxmn = max(m, n)
+	lquery = (lwork == -1)
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, maxmn) {
+		err = fmt.Errorf("b.Rows < max(1, maxmn): b.Rows=%v, maxmn=%v", b.Rows, maxmn)
 	}
 
 	//     Compute workspace.
@@ -70,61 +70,61 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	//     as well as the preferred amount for good performance.
 	//     NB refers to the optimal block size for the immediately
 	//     following subroutine, as returned by ILAENV.)
-	if (*info) == 0 {
+	if err == nil {
 		minwrk = 1
 		maxwrk = 1
 		liwork = 1
 		lrwork = 1
 		if minmn > 0 {
-			smlsiz = Ilaenv(func() *int { y := 9; return &y }(), []byte("ZGELSD"), []byte{' '}, func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }())
-			mnthr = Ilaenv(func() *int { y := 6; return &y }(), []byte("ZGELSD"), []byte{' '}, m, n, nrhs, toPtr(-1))
+			smlsiz = Ilaenv(9, "Zgelsd", []byte{' '}, 0, 0, 0, 0)
+			mnthr = Ilaenv(6, "Zgelsd", []byte{' '}, m, n, nrhs, -1)
 			nlvl = max(int(math.Log(float64(minmn)/float64(smlsiz+1))/math.Log(two))+1, 0)
 			liwork = 3*minmn*nlvl + 11*minmn
-			mm = (*m)
-			if (*m) >= (*n) && (*m) >= mnthr {
+			mm = m
+			if m >= n && m >= mnthr {
 				//              Path 1a - overdetermined, with many more rows than
 				//                        columns.
-				mm = (*n)
-				maxwrk = max(maxwrk, (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1)))
-				maxwrk = max(maxwrk, (*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte("LC"), m, nrhs, n, toPtr(-1)))
+				mm = n
+				maxwrk = max(maxwrk, n*Ilaenv(1, "Zgeqrf", []byte{' '}, m, n, -1, -1))
+				maxwrk = max(maxwrk, nrhs*Ilaenv(1, "Zunmqr", []byte("LC"), m, nrhs, n, -1))
 			}
-			if (*m) >= (*n) {
+			if m >= n {
 				//              Path 1 - overdetermined or exactly determined.
-				lrwork = 10*(*n) + 2*(*n)*smlsiz + 8*(*n)*nlvl + 3*smlsiz*(*nrhs) + max(int(math.Pow(float64(smlsiz+1), 2)), (*n)*(1+(*nrhs))+2*(*nrhs))
-				maxwrk = max(maxwrk, 2*(*n)+(mm+(*n))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, &mm, n, toPtr(-1), toPtr(-1)))
-				maxwrk = max(maxwrk, 2*(*n)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), &mm, nrhs, n, toPtr(-1)))
-				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("PLN"), n, nrhs, n, toPtr(-1)))
-				maxwrk = max(maxwrk, 2*(*n)+(*n)*(*nrhs))
-				minwrk = max(2*(*n)+mm, 2*(*n)+(*n)*(*nrhs))
+				lrwork = 10*n + 2*n*smlsiz + 8*n*nlvl + 3*smlsiz*nrhs + max(int(math.Pow(float64(smlsiz+1), 2)), n*(1+nrhs)+2*nrhs)
+				maxwrk = max(maxwrk, 2*n+(mm+n)*Ilaenv(1, "Zgebrd", []byte{' '}, mm, n, -1, -1))
+				maxwrk = max(maxwrk, 2*n+nrhs*Ilaenv(1, "Zunmbr", []byte("QLC"), mm, nrhs, n, -1))
+				maxwrk = max(maxwrk, 2*n+(n-1)*Ilaenv(1, "Zunmbr", []byte("PLN"), n, nrhs, n, -1))
+				maxwrk = max(maxwrk, 2*n+n*nrhs)
+				minwrk = max(2*n+mm, 2*n+n*nrhs)
 			}
-			if (*n) > (*m) {
-				lrwork = 10*(*m) + 2*(*m)*smlsiz + 8*(*m)*nlvl + 3*smlsiz*(*nrhs) + max(int(math.Pow(float64(smlsiz+1), 2)), (*n)*(1+(*nrhs))+2*(*nrhs))
-				if (*n) >= mnthr {
+			if n > m {
+				lrwork = 10*m + 2*m*smlsiz + 8*m*nlvl + 3*smlsiz*nrhs + max(int(math.Pow(float64(smlsiz+1), 2)), n*(1+nrhs)+2*nrhs)
+				if n >= mnthr {
 					//                 Path 2a - underdetermined, with many more columns
 					//                           than rows.
-					maxwrk = (*m) + (*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGELQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+2*(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, m, toPtr(-1), toPtr(-1)))
-					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), m, nrhs, m, toPtr(-1)))
-					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+((*m)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMLQ"), []byte("LC"), n, nrhs, m, toPtr(-1)))
-					if (*nrhs) > 1 {
-						maxwrk = max(maxwrk, (*m)*(*m)+(*m)+(*m)*(*nrhs))
+					maxwrk = m + m*Ilaenv(1, "Zgelqf", []byte{' '}, m, n, -1, -1)
+					maxwrk = max(maxwrk, m*m+4*m+2*m*Ilaenv(1, "Zgebrd", []byte{' '}, m, m, -1, -1))
+					maxwrk = max(maxwrk, m*m+4*m+nrhs*Ilaenv(1, "Zunmbr", []byte("QLC"), m, nrhs, m, -1))
+					maxwrk = max(maxwrk, m*m+4*m+(m-1)*Ilaenv(1, "Zunmlq", []byte("LC"), n, nrhs, m, -1))
+					if nrhs > 1 {
+						maxwrk = max(maxwrk, m*m+m+m*nrhs)
 					} else {
-						maxwrk = max(maxwrk, (*m)*(*m)+2*(*m))
+						maxwrk = max(maxwrk, m*m+2*m)
 					}
-					maxwrk = max(maxwrk, (*m)*(*m)+4*(*m)+(*m)*(*nrhs))
+					maxwrk = max(maxwrk, m*m+4*m+m*nrhs)
 					//!     XXX: Ensure the Path 2a case below is triggered.  The workspace
 
 					//!     calculation should use queries for all routines eventually.
 
-					maxwrk = max(maxwrk, 4*(*m)+(*m)*(*m)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)))
+					maxwrk = max(maxwrk, 4*m+m*m+max(m, 2*m-4, nrhs, n-3*m))
 				} else {
 					//                 Path 2 - underdetermined.
-					maxwrk = 2*(*m) + ((*n)+(*m))*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEBRD"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-					maxwrk = max(maxwrk, 2*(*m)+(*nrhs)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("QLC"), m, nrhs, m, toPtr(-1)))
-					maxwrk = max(maxwrk, 2*(*m)+(*m)*Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMBR"), []byte("PLN"), n, nrhs, m, toPtr(-1)))
-					maxwrk = max(maxwrk, 2*(*m)+(*m)*(*nrhs))
+					maxwrk = 2*m + (n+m)*Ilaenv(1, "Zgebrd", []byte{' '}, m, n, -1, -1)
+					maxwrk = max(maxwrk, 2*m+nrhs*Ilaenv(1, "Zunmbr", []byte("QLC"), m, nrhs, m, -1))
+					maxwrk = max(maxwrk, 2*m+m*Ilaenv(1, "Zunmbr", []byte("PLN"), n, nrhs, m, -1))
+					maxwrk = max(maxwrk, 2*m+m*nrhs)
 				}
-				minwrk = max(2*(*m)+(*n), 2*(*m)+(*m)*(*nrhs))
+				minwrk = max(2*m+n, 2*m+m*nrhs)
 			}
 		}
 		minwrk = min(minwrk, maxwrk)
@@ -132,21 +132,21 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 		(*iwork)[0] = liwork
 		rwork.Set(0, float64(lrwork))
 
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -12
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGELSD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgelsd", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible.
-	if (*m) == 0 || (*n) == 0 {
-		(*rank) = 0
+	if m == 0 || n == 0 {
+		rank = 0
 		return
 	}
 
@@ -155,185 +155,228 @@ func Zgelsd(m, n, nrhs *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int,
 	sfmin = Dlamch(SafeMinimum)
 	smlnum = sfmin / eps
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 
 	//     Scale A if max entry outside range [SMLNUM,BIGNUM].
-	anrm = Zlange('M', m, n, a, lda, rwork)
+	anrm = Zlange('M', m, n, a, rwork)
 	iascl = 0
 	if anrm > zero && anrm < smlnum {
 		//        Scale matrix norm up to SMLNUM
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, m, n, a, lda, info)
+		if err = Zlascl('G', 0, 0, anrm, smlnum, m, n, a); err != nil {
+			panic(err)
+		}
 		iascl = 1
 	} else if anrm > bignum {
 		//        Scale matrix norm down to BIGNUM.
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, m, n, a, lda, info)
+		if err = Zlascl('G', 0, 0, anrm, bignum, m, n, a); err != nil {
+			panic(err)
+		}
 		iascl = 2
 	} else if anrm == zero {
 		//        Matrix all zero. Return zero solution.
-		Zlaset('F', toPtr(max(*m, *n)), nrhs, &czero, &czero, b, ldb)
-		Dlaset('F', &minmn, func() *int { y := 1; return &y }(), &zero, &zero, s.Matrix(1, opts), func() *int { y := 1; return &y }())
-		(*rank) = 0
+		Zlaset(Full, max(m, n), nrhs, czero, czero, b)
+		Dlaset(Full, minmn, 1, zero, zero, s.Matrix(1, opts))
+		rank = 0
 		goto label10
 	}
 
 	//     Scale B if max entry outside range [SMLNUM,BIGNUM].
-	bnrm = Zlange('M', m, nrhs, b, ldb, rwork)
+	bnrm = Zlange('M', m, nrhs, b, rwork)
 	ibscl = 0
 	if bnrm > zero && bnrm < smlnum {
 		//        Scale matrix norm up to SMLNUM.
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &smlnum, m, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, bnrm, smlnum, m, nrhs, b); err != nil {
+			panic(err)
+		}
 		ibscl = 1
 	} else if bnrm > bignum {
 		//        Scale matrix norm down to BIGNUM.
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bnrm, &bignum, m, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, bnrm, bignum, m, nrhs, b); err != nil {
+			panic(err)
+		}
 		ibscl = 2
 	}
 
 	//     If M < N make sure B(M+1:N,:) = 0
-	if (*m) < (*n) {
-		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m), 0), ldb)
+	if m < n {
+		Zlaset(Full, n-m, nrhs, czero, czero, b.Off(m, 0))
 	}
 
 	//     Overdetermined case.
-	if (*m) >= (*n) {
+	if m >= n {
 		//        Path 1 - overdetermined or exactly determined.
-		mm = (*m)
-		if (*m) >= mnthr {
+		mm = m
+		if m >= mnthr {
 			//           Path 1a - overdetermined, with many more rows than columns
-			mm = (*n)
+			mm = n
 			itau = 1
-			nwork = itau + (*n)
+			nwork = itau + n
 
 			//           Compute A=Q*R.
 			//           (RWorkspace: need N)
 			//           (CWorkspace: need N, prefer N*NB)
-			Zgeqrf(m, n, a, lda, work.Off(itau-1), work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+			if err = Zgeqrf(m, n, a, work.Off(itau-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				panic(err)
+			}
 
 			//           Multiply B by transpose(Q).
 			//           (RWorkspace: need N)
 			//           (CWorkspace: need NRHS, prefer NRHS*NB)
-			Zunmqr('L', 'C', m, nrhs, n, a, lda, work.Off(itau-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+			if err = Zunmqr(Left, ConjTrans, m, nrhs, n, a, work.Off(itau-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				panic(err)
+			}
 
 			//           Zero out below R.
-			if (*n) > 1 {
-				Zlaset('L', toPtr((*n)-1), toPtr((*n)-1), &czero, &czero, a.Off(1, 0), lda)
+			if n > 1 {
+				Zlaset(Lower, n-1, n-1, czero, czero, a.Off(1, 0))
 			}
 		}
 
 		itauq = 1
-		itaup = itauq + (*n)
-		nwork = itaup + (*n)
+		itaup = itauq + n
+		nwork = itaup + n
 		ie = 1
-		nrwork = ie + (*n)
+		nrwork = ie + n
 
 		//        Bidiagonalize R in A.
 		//        (RWorkspace: need N)
 		//        (CWorkspace: need 2*N+MM, prefer 2*N+(MM+N)*NB)
-		Zgebrd(&mm, n, a, lda, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zgebrd(mm, n, a, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors of R.
 		//        (CWorkspace: need 2*N+NRHS, prefer 2*N+NRHS*NB)
-		Zunmbr('Q', 'L', 'C', &mm, nrhs, n, a, lda, work.Off(itauq-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmbr('Q', Left, ConjTrans, mm, nrhs, n, a, work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Solve the bidiagonal least squares problem.
-		Zlalsd('U', &smlsiz, n, nrhs, s, rwork.Off(ie-1), b, ldb, rcond, rank, work.Off(nwork-1), rwork.Off(nrwork-1), iwork, info)
-		if (*info) != 0 {
+		if rank, info, err = Zlalsd(Upper, smlsiz, n, nrhs, s, rwork.Off(ie-1), b, rcond, work.Off(nwork-1), rwork.Off(nrwork-1), iwork); err != nil || info != 0 {
 			goto label10
 		}
 
 		//        Multiply B by right bidiagonalizing vectors of R.
-		Zunmbr('P', 'L', 'N', n, nrhs, n, a, lda, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmbr('P', Left, NoTrans, n, nrhs, n, a, work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
-	} else if (*n) >= mnthr && (*lwork) >= 4*(*m)+(*m)*(*m)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)) {
+	} else if n >= mnthr && lwork >= 4*m+m*m+max(m, 2*m-4, nrhs, n-3*m) {
 		//        Path 2a - underdetermined, with many more columns than rows
 		//        and sufficient workspace for an efficient algorithm.
-		ldwork = (*m)
-		if (*lwork) >= max(4*(*m)+(*m)*(*lda)+max(*m, 2*(*m)-4, *nrhs, (*n)-3*(*m)), (*m)*(*lda)+(*m)+(*m)*(*nrhs)) {
-			ldwork = (*lda)
+		ldwork = m
+		if lwork >= max(4*m+m*a.Rows+max(m, 2*m-4, nrhs, n-3*m), m*a.Rows+m+m*nrhs) {
+			ldwork = a.Rows
 		}
 		itau = 1
-		nwork = (*m) + 1
+		nwork = m + 1
 
 		//        Compute A=L*Q.
 		//        (CWorkspace: need 2*M, prefer M+M*NB)
-		Zgelqf(m, n, a, lda, work.Off(itau-1), work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zgelqf(m, n, a, work.Off(itau-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 		il = nwork
 
 		//        Copy L to WORK(IL), zeroing out above its diagonal.
-		Zlacpy('L', m, m, a, lda, work.CMatrixOff(il-1, ldwork, opts), &ldwork)
-		Zlaset('U', toPtr((*m)-1), toPtr((*m)-1), &czero, &czero, work.CMatrixOff(il+ldwork-1, ldwork, opts), &ldwork)
-		itauq = il + ldwork*(*m)
-		itaup = itauq + (*m)
-		nwork = itaup + (*m)
+		Zlacpy(Lower, m, m, a, work.CMatrixOff(il-1, ldwork, opts))
+		Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(il+ldwork-1, ldwork, opts))
+		itauq = il + ldwork*m
+		itaup = itauq + m
+		nwork = itaup + m
 		ie = 1
-		nrwork = ie + (*m)
+		nrwork = ie + m
 
 		//        Bidiagonalize L in WORK(IL).
 		//        (RWorkspace: need M)
 		//        (CWorkspace: need M*M+4*M, prefer M*M+4*M+2*M*NB)
-		Zgebrd(m, m, work.CMatrixOff(il-1, ldwork, opts), &ldwork, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zgebrd(m, m, work.CMatrixOff(il-1, ldwork, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors of L.
 		//        (CWorkspace: need M*M+4*M+NRHS, prefer M*M+4*M+NRHS*NB)
-		Zunmbr('Q', 'L', 'C', m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), &ldwork, work.Off(itauq-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmbr('Q', Left, ConjTrans, m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Solve the bidiagonal least squares problem.
-		Zlalsd('U', &smlsiz, m, nrhs, s, rwork.Off(ie-1), b, ldb, rcond, rank, work.Off(nwork-1), rwork.Off(nrwork-1), iwork, info)
-		if (*info) != 0 {
+		if rank, info, err = Zlalsd(Upper, smlsiz, m, nrhs, s, rwork.Off(ie-1), b, rcond, work.Off(nwork-1), rwork.Off(nrwork-1), iwork); err != nil || info != 0 {
 			goto label10
 		}
 
 		//        Multiply B by right bidiagonalizing vectors of L.
-		Zunmbr('P', 'L', 'N', m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), &ldwork, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmbr('P', Left, NoTrans, m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Zero out below first M rows of B.
-		Zlaset('F', toPtr((*n)-(*m)), nrhs, &czero, &czero, b.Off((*m), 0), ldb)
-		nwork = itau + (*m)
+		Zlaset(Full, n-m, nrhs, czero, czero, b.Off(m, 0))
+		nwork = itau + m
 
 		//        Multiply transpose(Q) by B.
 		//        (CWorkspace: need NRHS, prefer NRHS*NB)
-		Zunmlq('L', 'C', n, nrhs, m, a, lda, work.Off(itau-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmlq(Left, ConjTrans, n, nrhs, m, a, work.Off(itau-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 	} else {
 		//        Path 2 - remaining underdetermined cases.
 		itauq = 1
-		itaup = itauq + (*m)
-		nwork = itaup + (*m)
+		itaup = itauq + m
+		nwork = itaup + m
 		ie = 1
-		nrwork = ie + (*m)
+		nrwork = ie + m
 
 		//        Bidiagonalize A.
 		//        (RWorkspace: need M)
 		//        (CWorkspace: need 2*M+N, prefer 2*M+(M+N)*NB)
-		Zgebrd(m, n, a, lda, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zgebrd(m, n, a, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors.
 		//        (CWorkspace: need 2*M+NRHS, prefer 2*M+NRHS*NB)
-		Zunmbr('Q', 'L', 'C', m, nrhs, n, a, lda, work.Off(itauq-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmbr('Q', Left, ConjTrans, m, nrhs, n, a, work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 		//        Solve the bidiagonal least squares problem.
-		Zlalsd('L', &smlsiz, m, nrhs, s, rwork.Off(ie-1), b, ldb, rcond, rank, work.Off(nwork-1), rwork.Off(nrwork-1), iwork, info)
-		if (*info) != 0 {
+		if rank, info, err = Zlalsd(Lower, smlsiz, m, nrhs, s, rwork.Off(ie-1), b, rcond, work.Off(nwork-1), rwork.Off(nrwork-1), iwork); err != nil || info != 0 {
 			goto label10
 		}
 
 		//        Multiply B by right bidiagonalizing vectors of A.
-		Zunmbr('P', 'L', 'N', n, nrhs, m, a, lda, work.Off(itaup-1), b, ldb, work.Off(nwork-1), toPtr((*lwork)-nwork+1), info)
+		if err = Zunmbr('P', Left, NoTrans, n, nrhs, m, a, work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+			panic(err)
+		}
 
 	}
 
 	//     Undo scaling.
 	if iascl == 1 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &smlnum, n, nrhs, b, ldb, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &anrm, &minmn, func() *int { y := 1; return &y }(), s.Matrix(minmn, opts), &minmn, info)
+		if err = Zlascl('G', 0, 0, anrm, smlnum, n, nrhs, b); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, smlnum, anrm, minmn, 1, s.Matrix(minmn, opts)); err != nil {
+			panic(err)
+		}
 	} else if iascl == 2 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &bignum, n, nrhs, b, ldb, info)
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &anrm, &minmn, func() *int { y := 1; return &y }(), s.Matrix(minmn, opts), &minmn, info)
+		if err = Zlascl('G', 0, 0, anrm, bignum, n, nrhs, b); err != nil {
+			panic(err)
+		}
+		if err = Dlascl('G', 0, 0, bignum, anrm, minmn, 1, s.Matrix(minmn, opts)); err != nil {
+			panic(err)
+		}
 	}
 	if ibscl == 1 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &smlnum, &bnrm, n, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, smlnum, bnrm, n, nrhs, b); err != nil {
+			panic(err)
+		}
 	} else if ibscl == 2 {
-		Zlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &bignum, &bnrm, n, nrhs, b, ldb, info)
+		if err = Zlascl('G', 0, 0, bignum, bnrm, n, nrhs, b); err != nil {
+			panic(err)
+		}
 	}
 
 label10:
@@ -341,4 +384,6 @@ label10:
 	work.SetRe(0, float64(maxwrk))
 	(*iwork)[0] = liwork
 	rwork.Set(0, float64(lrwork))
+
+	return
 }

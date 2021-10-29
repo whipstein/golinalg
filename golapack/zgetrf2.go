@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -30,43 +32,40 @@ import (
 //                 [ A22 ]
 //
 // then calls itself to factor A22 and do the swaps on A21.
-func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
+func Zgetrf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 	var one, temp, zero complex128
 	var sfmin float64
 	var i, iinfo, n1, n2 int
-	var err error
-	_ = err
 
 	one = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
 	//     Test the input parameters
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGETRF2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgetrf2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
-	if (*m) == 1 {
+	if m == 1 {
 		//        Use unblocked code for one row case
 		//        Just need to handle IPIV and INFO
 		(*ipiv)[0] = 1
 		if a.Get(0, 0) == zero {
-			(*info) = 1
+			info = 1
 		}
 
-	} else if (*n) == 1 {
+	} else if n == 1 {
 		//        Use unblocked code for one column case
 		//
 		//
@@ -74,7 +73,7 @@ func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Find pivot and test for singularity
-		i = goblas.Izamax(*m, a.CVector(0, 0, 1))
+		i = goblas.Izamax(m, a.CVector(0, 0, 1))
 		(*ipiv)[0] = i
 		if a.Get(i-1, 0) != zero {
 			//           Apply the interchange
@@ -86,53 +85,63 @@ func Zgetrf2(m, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, info *int) {
 
 			//           Compute elements 2:M of the column
 			if a.GetMag(0, 0) >= sfmin {
-				goblas.Zscal((*m)-1, one/a.Get(0, 0), a.CVector(1, 0, 1))
+				goblas.Zscal(m-1, one/a.Get(0, 0), a.CVector(1, 0, 1))
 			} else {
-				for i = 1; i <= (*m)-1; i++ {
+				for i = 1; i <= m-1; i++ {
 					a.Set(1+i-1, 0, a.Get(1+i-1, 0)/a.Get(0, 0))
 				}
 			}
 
 		} else {
-			(*info) = 1
+			info = 1
 		}
 	} else {
 		//        Use recursive code
-		n1 = min(*m, *n) / 2
-		n2 = (*n) - n1
+		n1 = min(m, n) / 2
+		n2 = n - n1
 
 		//               [ A11 ]
 		//        Factor [ --- ]
 		//               [ A21 ]
-		Zgetrf2(m, &n1, a, lda, ipiv, &iinfo)
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo
+		if iinfo, err = Zgetrf2(m, n1, a, ipiv); err != nil {
+			panic(err)
+		}
+		if info == 0 && iinfo > 0 {
+			info = iinfo
 		}
 
 		//                              [ A12 ]
 		//        Apply interchanges to [ --- ]
 		//                              [ A22 ]
-		Zlaswp(&n2, a.Off(0, n1), lda, func() *int { y := 1; return &y }(), &n1, ipiv, func() *int { y := 1; return &y }())
+		Zlaswp(n2, a.Off(0, n1), 1, n1, ipiv, 1)
 
 		//        Solve A12
-		err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, a.Off(0, n1))
+		if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, a.Off(0, n1)); err != nil {
+			panic(err)
+		}
 
 		//        Update A22
-		err = goblas.Zgemm(NoTrans, NoTrans, (*m)-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1))
+		if err = goblas.Zgemm(NoTrans, NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1)); err != nil {
+			panic(err)
+		}
 
 		//        Factor A22
-		Zgetrf2(toPtr((*m)-n1), &n2, a.Off(n1, n1), lda, toSlice(ipiv, n1), &iinfo)
+		if iinfo, err = Zgetrf2(m-n1, n2, a.Off(n1, n1), toSlice(ipiv, n1)); err != nil {
+			panic(err)
+		}
 
 		//        Adjust INFO and the pivot indices
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo + n1
+		if info == 0 && iinfo > 0 {
+			info = iinfo + n1
 		}
-		for i = n1 + 1; i <= min(*m, *n); i++ {
+		for i = n1 + 1; i <= min(m, n); i++ {
 			(*ipiv)[i-1] = (*ipiv)[i-1] + n1
 		}
 
 		//        Apply interchanges to A21
-		Zlaswp(&n1, a.Off(0, 0), lda, toPtr(n1+1), toPtr(min(*m, *n)), ipiv, func() *int { y := 1; return &y }())
+		Zlaswp(n1, a, n1+1, min(m, n), ipiv, 1)
 
 	}
+
+	return
 }

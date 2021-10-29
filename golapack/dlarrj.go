@@ -13,7 +13,7 @@ import (
 // of the error in these guesses in WERR. During bisection, intervals
 // [left, right] are maintained by storing their mid-points and
 // semi-widths in the arrays W and WERR respectively.
-func Dlarrj(n *int, d, e2 *mat.Vector, ifirst, ilast *int, rtol *float64, offset *int, w, werr, work *mat.Vector, iwork *[]int, pivmin, spdiam *float64, info *int) {
+func Dlarrj(n int, d, e2 *mat.Vector, ifirst, ilast int, rtol float64, offset int, w, werr, work *mat.Vector, iwork *[]int, pivmin, spdiam float64) {
 	var dplus, fac, half, left, mid, one, right, s, tmp, two, width, zero float64
 	var cnt, i, i1, i2, ii, iter, j, k, maxitr, next, nint, olnint, p, prev, savi1 int
 
@@ -22,14 +22,12 @@ func Dlarrj(n *int, d, e2 *mat.Vector, ifirst, ilast *int, rtol *float64, offset
 	two = 2.0
 	half = 0.5
 
-	(*info) = 0
-
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
-	maxitr = int((math.Log((*spdiam)+(*pivmin))-math.Log(*pivmin))/math.Log(two)) + 2
+	maxitr = int((math.Log(spdiam+pivmin)-math.Log(pivmin))/math.Log(two)) + 2
 
 	//     Initialize unconverged intervals in [ WORK(2*I-1), WORK(2*I) ].
 	//     The Sturm Count, Count( WORK(2*I-1) ) is arranged to be I-1, while
@@ -37,22 +35,22 @@ func Dlarrj(n *int, d, e2 *mat.Vector, ifirst, ilast *int, rtol *float64, offset
 	//     for an unconverged interval is set to the index of the next unconverged
 	//     interval, and is -1 or 0 for a converged interval. Thus a linked
 	//     list of unconverged intervals is set up.
-	i1 = (*ifirst)
-	i2 = (*ilast)
+	i1 = ifirst
+	i2 = ilast
 	//     The number of unconverged intervals
 	nint = 0
 	//     The last unconverged interval found
 	prev = 0
 	for i = i1; i <= i2; i++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		left = w.Get(ii-1) - werr.Get(ii-1)
 		mid = w.Get(ii - 1)
 		right = w.Get(ii-1) + werr.Get(ii-1)
 		width = right - mid
 		tmp = math.Max(math.Abs(left), math.Abs(right))
 		//        The following test prevents the test of converged intervals
-		if width < (*rtol)*tmp {
+		if width < rtol*tmp {
 			//           This interval has already converged and does not need refinement.
 			//           (Note that the gaps might change through refining the
 			//            eigenvalues, however, they can only get bigger.)
@@ -81,7 +79,7 @@ func Dlarrj(n *int, d, e2 *mat.Vector, ifirst, ilast *int, rtol *float64, offset
 			if dplus < zero {
 				cnt = cnt + 1
 			}
-			for j = 2; j <= (*n); j++ {
+			for j = 2; j <= n; j++ {
 				dplus = d.Get(j-1) - s - e2.Get(j-1-1)/dplus
 				if dplus < zero {
 					cnt = cnt + 1
@@ -103,7 +101,7 @@ func Dlarrj(n *int, d, e2 *mat.Vector, ifirst, ilast *int, rtol *float64, offset
 			if dplus < zero {
 				cnt = cnt + 1
 			}
-			for j = 2; j <= (*n); j++ {
+			for j = 2; j <= n; j++ {
 				dplus = d.Get(j-1) - s - e2.Get(j-1-1)/dplus
 				if dplus < zero {
 					cnt = cnt + 1
@@ -133,7 +131,7 @@ label80:
 	olnint = nint
 	for p = 1; p <= olnint; p++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		next = (*iwork)[k-1-1]
 		left = work.Get(k - 1 - 1)
 		right = work.Get(k - 1)
@@ -141,7 +139,7 @@ label80:
 		//        semiwidth of interval
 		width = right - mid
 		tmp = math.Max(math.Abs(left), math.Abs(right))
-		if (width < (*rtol)*tmp) || (iter == maxitr) {
+		if (width < rtol*tmp) || (iter == maxitr) {
 			//           reduce number of unconverged intervals
 			nint = nint - 1
 			//           Mark interval as converged.
@@ -166,7 +164,7 @@ label80:
 		if dplus < zero {
 			cnt = cnt + 1
 		}
-		for j = 2; j <= (*n); j++ {
+		for j = 2; j <= n; j++ {
 			dplus = d.Get(j-1) - s - e2.Get(j-1-1)/dplus
 			if dplus < zero {
 				cnt = cnt + 1
@@ -189,9 +187,9 @@ label80:
 	}
 
 	//     At this point, all the intervals have converged
-	for i = savi1; i <= (*ilast); i++ {
+	for i = savi1; i <= ilast; i++ {
 		k = 2 * i
-		ii = i - (*offset)
+		ii = i - offset
 		//        All intervals marked by '0' have been refined.
 		if (*iwork)[k-1-1] == 0 {
 			w.Set(ii-1, half*(work.Get(k-1-1)+work.Get(k-1)))

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -11,42 +13,41 @@ import (
 //
 // Based on the algorithm of Elmroth and Gustavson,
 // IBM J. Res. Develop. Vol 44 No. 4 July 2000.
-func Dgelqt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) {
+func Dgelqt3(m, n int, a, t *mat.Matrix) (err error) {
 	var one float64
-	var i, i1, iinfo, j, j1, m1, m2 int
-	var err error
-	_ = err
+	var i, i1, j, j1, m1, m2 int
 
 	one = 1.0e+00
 
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < (*m) {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
-	} else if (*ldt) < max(1, *m) {
-		(*info) = -6
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < m {
+		err = fmt.Errorf("n < m: m=%v, n=%v", m, n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if t.Rows < max(1, m) {
+		err = fmt.Errorf("t.Rows < max(1, m): t.Rows=%v, m=%v", t.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGELQT3"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgelqt3", err)
 		return
 	}
 
-	if (*m) == 1 {
+	if m == 1 {
 		//        Compute Householder transform when N=1
-		Dlarfg(n, a.GetIdxPtr(0), a.Vector(0, min(2, *n)-1), lda, t.GetIdxPtr(0))
+		*a.GetIdxPtr(0), *t.GetIdxPtr(0) = Dlarfg(n, a.GetIdx(0), a.Vector(0, min(2, n)-1))
 
 	} else {
 		//        Otherwise, split A into blocks...
-		m1 = (*m) / 2
-		m2 = (*m) - m1
-		i1 = min(m1+1, *m)
-		j1 = min((*m)+1, *n)
+		m1 = m / 2
+		m2 = m - m1
+		i1 = min(m1+1, m)
+		j1 = min(m+1, n)
 
 		//        Compute A(1:M1,1:N) <- (Y1,R1,T1), where Q1 = I - Y1 T1 Y1^H
-		Dgelqt3(&m1, n, a, lda, t, ldt, &iinfo)
+		if err = Dgelqt3(m1, n, a, t); err != nil {
+			panic(err)
+		}
 
 		//        Compute A(J1:M,1:N) = Q1^H A(J1:M,1:N) [workspace: T(1:N1,J1:N)]
 		for i = 1; i <= m2; i++ {
@@ -54,15 +55,25 @@ func Dgelqt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 				t.Set(i+m1-1, j-1, a.Get(i+m1-1, j-1))
 			}
 		}
-		err = goblas.Dtrmm(Right, Upper, Trans, Unit, m2, m1, one, a, t.Off(i1-1, 0))
+		if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m2, m1, one, a, t.Off(i1-1, 0)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dgemm(NoTrans, Trans, m2, m1, (*n)-m1, one, a.Off(i1-1, i1-1), a.Off(0, i1-1), one, t.Off(i1-1, 0))
+		if err = goblas.Dgemm(NoTrans, Trans, m2, m1, n-m1, one, a.Off(i1-1, i1-1), a.Off(0, i1-1), one, t.Off(i1-1, 0)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m2, m1, one, t, t.Off(i1-1, 0))
+		if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m2, m1, one, t, t.Off(i1-1, 0)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dgemm(NoTrans, NoTrans, m2, (*n)-m1, m1, -one, t.Off(i1-1, 0), a.Off(0, i1-1), one, a.Off(i1-1, i1-1))
+		if err = goblas.Dgemm(NoTrans, NoTrans, m2, n-m1, m1, -one, t.Off(i1-1, 0), a.Off(0, i1-1), one, a.Off(i1-1, i1-1)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m2, m1, one, a, t.Off(i1-1, 0))
+		if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m2, m1, one, a, t.Off(i1-1, 0)); err != nil {
+			panic(err)
+		}
 
 		for i = 1; i <= m2; i++ {
 			for j = 1; j <= m1; j++ {
@@ -72,7 +83,9 @@ func Dgelqt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 		}
 
 		//        Compute A(J1:M,J1:N) <- (Y2,R2,T2) where Q2 = I - Y2 T2 Y2^H
-		Dgelqt3(&m2, toPtr((*n)-m1), a.Off(i1-1, i1-1), lda, t.Off(i1-1, i1-1), ldt, &iinfo)
+		if err = Dgelqt3(m2, n-m1, a.Off(i1-1, i1-1), t.Off(i1-1, i1-1)); err != nil {
+			panic(err)
+		}
 
 		//        Compute T3 = T(J1:N1,1:N) = -T1 Y1^H Y2 T2
 		for i = 1; i <= m2; i++ {
@@ -81,17 +94,27 @@ func Dgelqt3(m, n *int, a *mat.Matrix, lda *int, t *mat.Matrix, ldt, info *int) 
 			}
 		}
 
-		err = goblas.Dtrmm(Right, Upper, Trans, Unit, m1, m2, one, a.Off(i1-1, i1-1), t.Off(0, i1-1))
+		if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m1, m2, one, a.Off(i1-1, i1-1), t.Off(0, i1-1)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dgemm(NoTrans, Trans, m1, m2, (*n)-(*m), one, a.Off(0, j1-1), a.Off(i1-1, j1-1), one, t.Off(0, i1-1))
+		if err = goblas.Dgemm(NoTrans, Trans, m1, m2, n-m, one, a.Off(0, j1-1), a.Off(i1-1, j1-1), one, t.Off(0, i1-1)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, m1, m2, -one, t, t.Off(0, i1-1))
+		if err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, m1, m2, -one, t, t.Off(0, i1-1)); err != nil {
+			panic(err)
+		}
 
-		err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m1, m2, one, t.Off(i1-1, i1-1), t.Off(0, i1-1))
+		if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m1, m2, one, t.Off(i1-1, i1-1), t.Off(0, i1-1)); err != nil {
+			panic(err)
+		}
 
 		//
 		//
 		//        Y = (Y1,Y2); L = [ L1            0  ];  T = [T1 T3]
 		//                         [ A(1:N1,J1:N)  L2 ]       [ 0 T2]
 	}
+
+	return
 }

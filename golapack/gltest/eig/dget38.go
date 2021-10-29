@@ -8,13 +8,14 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget38 tests DTRSEN, a routine for estimating condition numbers of a
+// dget38 tests Dtrsen, a routine for estimating condition numbers of a
 // cluster of eigenvalues and/or its associated right invariant subspace
 //
 // The test matrices are read from a file with logical unit number NIN.
-func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
+func dget38(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 	var bignum, eps, epsin, one, s, sep, sepin, septmp, sin, smlnum, stmp, tnrm, tol, tolin, two, v, vimin, vmax, vmul, vrmin, zero float64
-	var _i, i, info, iscl, itmp, j, kmin, ldt, liwork, lwork, m, n, ndim int
+	var _i, i, info, iscl, itmp, j, kmin, ldt, liwork, lwork, n, ndim int
+	var err error
 
 	zero = 0.0
 	one = 1.0
@@ -46,7 +47,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     EPSIN = 2**(-24) = precision to which input data computed
 	eps = math.Max(eps, epsin)
@@ -56,7 +57,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 	(*lmax)[0] = 0
 	(*lmax)[1] = 0
 	(*lmax)[2] = 0
-	(*knt) = 0
+	knt = 0
 	(*ninfo)[0] = 0
 	(*ninfo)[1] = 0
 	(*ninfo)[2] = 0
@@ -328,11 +329,11 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 		sin = sinlist[_i]
 		sepin = sepinlist[_i]
 
-		tnrm = golapack.Dlange('M', &n, &n, tmp, &ldt, work)
+		tnrm = golapack.Dlange('M', n, n, tmp, work)
 		for iscl = 1; iscl <= 3; iscl++ {
 			//        Scale input matrix
-			(*knt) = (*knt) + 1
-			golapack.Dlacpy('F', &n, &n, tmp, &ldt, t, &ldt)
+			knt = knt + 1
+			golapack.Dlacpy(Full, n, n, tmp, t)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
 				goblas.Dscal(n, vmul, t.Vector(0, i-1, 1))
@@ -340,24 +341,24 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if tnrm == zero {
 				vmul = one
 			}
-			golapack.Dlacpy('F', &n, &n, t, &ldt, tsav, &ldt)
+			golapack.Dlacpy(Full, n, n, t, tsav)
 
 			//        Compute Schur form
-			golapack.Dgehrd(&n, func() *int { y := 1; return &y }(), &n, t, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
-			if info != 0 {
-				(*lmax)[0] = (*knt)
+			if err = golapack.Dgehrd(n, 1, n, t, work.Off(0), work.Off(n), lwork-n); err != nil {
+				(*lmax)[0] = knt
 				(*ninfo)[0] = (*ninfo)[0] + 1
 				goto label160
 			}
 
 			//        Generate orthogonal matrix
-			golapack.Dlacpy('L', &n, &n, t, &ldt, q, &ldt)
-			golapack.Dorghr(&n, func() *int { y := 1; return &y }(), &n, q, &ldt, work.Off(0), work.Off(n), toPtr(lwork-n), &info)
+			golapack.Dlacpy(Lower, n, n, t, q)
+			if err = golapack.Dorghr(n, 1, n, q, work.Off(0), work.Off(n), lwork-n); err != nil {
+				panic(err)
+			}
 
 			//        Compute Schur form
-			golapack.Dhseqr('S', 'V', &n, func() *int { y := 1; return &y }(), &n, t, &ldt, wr, wi, q, &ldt, work, &lwork, &info)
-			if info != 0 {
-				(*lmax)[1] = (*knt)
+			if info, err = golapack.Dhseqr('S', 'V', n, 1, n, t, wr, wi, q, work, lwork); info != 0 || err != nil {
+				(*lmax)[1] = knt
 				(*ninfo)[1] = (*ninfo)[1] + 1
 				goto label160
 			}
@@ -393,11 +394,10 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			}
 
 			//        Compute condition numbers
-			golapack.Dlacpy('F', &n, &n, q, &ldt, qsav, &ldt)
-			golapack.Dlacpy('F', &n, &n, t, &ldt, tsav1, &ldt)
-			golapack.Dtrsen('B', 'V', _select, &n, t, &ldt, q, &ldt, wrtmp, witmp, &m, &s, &sep, work, &lwork, &iwork, &liwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			golapack.Dlacpy(Full, n, n, q, qsav)
+			golapack.Dlacpy(Full, n, n, t, tsav1)
+			if _, s, sep, info, err = golapack.Dtrsen('B', 'V', _select, n, t, q, wrtmp, witmp, s, sep, work, lwork, &iwork, liwork); err != nil || info != 0 {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label160
 			}
@@ -405,12 +405,12 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			stmp = s
 
 			//        Compute residuals
-			Dhst01(&n, func() *int { y := 1; return &y }(), &n, tsav, &ldt, t, &ldt, q, &ldt, work, &lwork, result)
+			dhst01(n, 1, n, tsav, t, q, work, lwork, result)
 			vmax = math.Max(result.Get(0), result.Get(1))
 			if vmax > rmax.Get(0) {
 				rmax.Set(0, vmax)
 				if (*ninfo)[0] == 0 {
-					(*lmax)[0] = (*knt)
+					(*lmax)[0] = knt
 				}
 			}
 
@@ -446,7 +446,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(1) {
 				rmax.Set(1, vmax)
 				if (*ninfo)[1] == 0 {
-					(*lmax)[1] = (*knt)
+					(*lmax)[1] = knt
 				}
 			}
 
@@ -478,7 +478,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(1) {
 				rmax.Set(1, vmax)
 				if (*ninfo)[1] == 0 {
-					(*lmax)[1] = (*knt)
+					(*lmax)[1] = knt
 				}
 			}
 
@@ -500,7 +500,7 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(2) {
 				rmax.Set(2, vmax)
 				if (*ninfo)[2] == 0 {
-					(*lmax)[2] = (*knt)
+					(*lmax)[2] = knt
 				}
 			}
 
@@ -522,20 +522,19 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(2) {
 				rmax.Set(2, vmax)
 				if (*ninfo)[2] == 0 {
-					(*lmax)[2] = (*knt)
+					(*lmax)[2] = knt
 				}
 			}
 
 			//        Compute eigenvalue condition number only and compare
 			//        Update Q
 			vmax = zero
-			golapack.Dlacpy('F', &n, &n, tsav1, &ldt, ttmp, &ldt)
-			golapack.Dlacpy('F', &n, &n, qsav, &ldt, qtmp, &ldt)
+			golapack.Dlacpy(Full, n, n, tsav1, ttmp)
+			golapack.Dlacpy(Full, n, n, qsav, qtmp)
 			septmp = -one
 			stmp = -one
-			golapack.Dtrsen('E', 'V', _select, &n, ttmp, &ldt, qtmp, &ldt, wrtmp, witmp, &m, &stmp, &septmp, work, &lwork, &iwork, &liwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, stmp, septmp, info, err = golapack.Dtrsen('E', 'V', _select, n, ttmp, qtmp, wrtmp, witmp, stmp, septmp, work, lwork, &iwork, liwork); err != nil || info != 0 {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label160
 			}
@@ -558,13 +557,12 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 
 			//        Compute invariant subspace condition number only and compare
 			//        Update Q
-			golapack.Dlacpy('F', &n, &n, tsav1, &ldt, ttmp, &ldt)
-			golapack.Dlacpy('F', &n, &n, qsav, &ldt, qtmp, &ldt)
+			golapack.Dlacpy(Full, n, n, tsav1, ttmp)
+			golapack.Dlacpy(Full, n, n, qsav, qtmp)
 			septmp = -one
 			stmp = -one
-			golapack.Dtrsen('V', 'V', _select, &n, ttmp, &ldt, qtmp, &ldt, wrtmp, witmp, &m, &stmp, &septmp, work, &lwork, &iwork, &liwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, stmp, septmp, info, err = golapack.Dtrsen('V', 'V', _select, n, ttmp, qtmp, wrtmp, witmp, stmp, septmp, work, lwork, &iwork, liwork); err != nil || info != 0 {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label160
 			}
@@ -587,13 +585,12 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 
 			//        Compute eigenvalue condition number only and compare
 			//        Do not update Q
-			golapack.Dlacpy('F', &n, &n, tsav1, &ldt, ttmp, &ldt)
-			golapack.Dlacpy('F', &n, &n, qsav, &ldt, qtmp, &ldt)
+			golapack.Dlacpy(Full, n, n, tsav1, ttmp)
+			golapack.Dlacpy(Full, n, n, qsav, qtmp)
 			septmp = -one
 			stmp = -one
-			golapack.Dtrsen('E', 'N', _select, &n, ttmp, &ldt, qtmp, &ldt, wrtmp, witmp, &m, &stmp, &septmp, work, &lwork, &iwork, &liwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, stmp, septmp, info, err = golapack.Dtrsen('E', 'N', _select, n, ttmp, qtmp, wrtmp, witmp, stmp, septmp, work, lwork, &iwork, liwork); err != nil || info != 0 {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label160
 			}
@@ -616,13 +613,12 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 
 			//        Compute invariant subspace condition number only and compare
 			//        Do not update Q
-			golapack.Dlacpy('F', &n, &n, tsav1, &ldt, ttmp, &ldt)
-			golapack.Dlacpy('F', &n, &n, qsav, &ldt, qtmp, &ldt)
+			golapack.Dlacpy(Full, n, n, tsav1, ttmp)
+			golapack.Dlacpy(Full, n, n, qsav, qtmp)
 			septmp = -one
 			stmp = -one
-			golapack.Dtrsen('V', 'N', _select, &n, ttmp, &ldt, qtmp, &ldt, wrtmp, witmp, &m, &stmp, &septmp, work, &lwork, &iwork, &liwork, &info)
-			if info != 0 {
-				(*lmax)[2] = (*knt)
+			if _, stmp, septmp, info, err = golapack.Dtrsen('V', 'N', _select, n, ttmp, qtmp, wrtmp, witmp, stmp, septmp, work, lwork, &iwork, liwork); err != nil || info != 0 {
+				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
 				goto label160
 			}
@@ -645,10 +641,12 @@ func Dget38(rmax *mat.Vector, lmax, ninfo *[]int, knt *int) {
 			if vmax > rmax.Get(0) {
 				rmax.Set(0, vmax)
 				if (*ninfo)[0] == 0 {
-					(*lmax)[0] = (*knt)
+					(*lmax)[0] = knt
 				}
 			}
 		label160:
 		}
 	}
+
+	return
 }

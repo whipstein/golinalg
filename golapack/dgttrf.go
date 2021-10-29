@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -15,33 +16,33 @@ import (
 // where L is a product of permutation and unit lower bidiagonal
 // matrices and U is upper triangular with nonzeros in only the main
 // diagonal and first two superdiagonals.
-func Dgttrf(n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, info *int) {
+func Dgttrf(n int, dl, d, du, du2 *mat.Vector, ipiv *[]int) (info int, err error) {
 	var fact, temp, zero float64
 	var i int
 
 	zero = 0.0
 
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("DGTTRF"), -(*info))
+	if n < 0 {
+		info = -1
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Dgttrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Initialize IPIV(i) = i and DU2(I) = 0
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		(*ipiv)[i-1] = i
 	}
-	for i = 1; i <= (*n)-2; i++ {
+	for i = 1; i <= n-2; i++ {
 		du2.Set(i-1, zero)
 	}
 
-	for i = 1; i <= (*n)-2; i++ {
+	for i = 1; i <= n-2; i++ {
 		if math.Abs(d.Get(i-1)) >= math.Abs(dl.Get(i-1)) {
 			//           No row interchange required, eliminate DL(I)
 			if d.Get(i-1) != zero {
@@ -62,8 +63,8 @@ func Dgttrf(n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, info *int) {
 			(*ipiv)[i-1] = i + 1
 		}
 	}
-	if (*n) > 1 {
-		i = (*n) - 1
+	if n > 1 {
+		i = n - 1
 		if math.Abs(d.Get(i-1)) >= math.Abs(dl.Get(i-1)) {
 			if d.Get(i-1) != zero {
 				fact = dl.Get(i-1) / d.Get(i-1)
@@ -82,11 +83,12 @@ func Dgttrf(n *int, dl, d, du, du2 *mat.Vector, ipiv *[]int, info *int) {
 	}
 
 	//     Check for a zero on the diagonal of U.
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		if d.Get(i-1) == zero {
-			(*info) = i
-			goto label50
+			info = i
+			return
 		}
 	}
-label50:
+
+	return
 }

@@ -1,18 +1,19 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrtz tests the error exits for STZRZF.
-func Derrtz(path []byte, t *testing.T) {
-	var info int
-	lerr := &gltest.Common.Infoc.Lerr
+// derrtz tests the error exits for STZRZF.
+func derrtz(path string, t *testing.T) {
+	var err error
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	a := mf(2, 2, opts)
@@ -28,28 +29,32 @@ func Derrtz(path []byte, t *testing.T) {
 	w.Set(1, 0.0)
 	(*ok) = true
 
-	if string(c2) == "TZ" {
+	if c2 == "tz" {
 		//        Test error exits for the trapezoidal routines.
 		//
-		//        DTZRZF
-		*srnamt = "DTZRZF"
-		*infot = 1
-		golapack.Dtzrzf(toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DTZRZF", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dtzrzf(func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DTZRZF", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dtzrzf(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DTZRZF", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dtzrzf(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), tau, w, func() *int { y := 0; return &y }(), &info)
-		Chkxer("DTZRZF", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dtzrzf(func() *int { y := 2; return &y }(), func() *int { y := 3; return &y }(), a, func() *int { y := 2; return &y }(), tau, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DTZRZF", &info, lerr, ok, t)
+		//        Dtzrzf
+		*srnamt = "Dtzrzf"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		err = golapack.Dtzrzf(-1, 0, a.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("Dtzrzf", err)
+		*errt = fmt.Errorf("n < m: m=1, n=0")
+		err = golapack.Dtzrzf(1, 0, a.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("Dtzrzf", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		err = golapack.Dtzrzf(2, 2, a.Off(0, 0).UpdateRows(1), tau, w, 1)
+		chkxer2("Dtzrzf", err)
+		*errt = fmt.Errorf("lwork < lwkmin && !lquery: lwork=0, lwkmin=1, lquery=false")
+		err = golapack.Dtzrzf(2, 2, a.Off(0, 0).UpdateRows(2), tau, w, 0)
+		chkxer2("Dtzrzf", err)
+		*errt = fmt.Errorf("lwork < lwkmin && !lquery: lwork=1, lwkmin=2, lquery=false")
+		err = golapack.Dtzrzf(2, 3, a.Off(0, 0).UpdateRows(2), tau, w, 1)
+		chkxer2("Dtzrzf", err)
 	}
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

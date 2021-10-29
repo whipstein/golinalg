@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -10,10 +11,10 @@ import (
 
 // Dspev computes all the eigenvalues and, optionally, eigenvectors of a
 // real symmetric matrix A in packed storage.
-func Dspev(jobz, uplo byte, n *int, ap, w *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, info *int) {
+func Dspev(jobz byte, uplo mat.MatUplo, n int, ap, w *mat.Vector, z *mat.Matrix, work *mat.Vector) (info int, err error) {
 	var wantz bool
 	var anrm, bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, zero float64
-	var iinfo, imax, inde, indtau, indwrk, iscale int
+	var imax, inde, indtau, indwrk, iscale int
 
 	zero = 0.0
 	one = 1.0
@@ -21,28 +22,27 @@ func Dspev(jobz, uplo byte, n *int, ap, w *mat.Vector, z *mat.Matrix, ldz *int, 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
 
-	(*info) = 0
 	if !(wantz || jobz == 'N') {
-		(*info) = -1
-	} else if !(uplo == 'U' || uplo == 'L') {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-		(*info) = -7
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
+	} else if !(uplo == Upper || uplo == Lower) {
+		err = fmt.Errorf("!(uplo == Upper || uplo == Lower): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if z.Rows < 1 || (wantz && z.Rows < n) {
+		err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSPEV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dspev", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		w.Set(0, ap.Get(0))
 		if wantz {
 			z.Set(0, 0, one)
@@ -69,31 +69,41 @@ func Dspev(jobz, uplo byte, n *int, ap, w *mat.Vector, z *mat.Matrix, ldz *int, 
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(((*n)*((*n)+1))/2, sigma, ap.Off(0, 1))
+		goblas.Dscal((n*(n+1))/2, sigma, ap.Off(0, 1))
 	}
 
 	//     Call DSPTRD to reduce symmetric packed matrix to tridiagonal form.
 	inde = 1
-	indtau = inde + (*n)
-	Dsptrd(uplo, n, ap, w, work.Off(inde-1), work.Off(indtau-1), &iinfo)
+	indtau = inde + n
+	if err = Dsptrd(uplo, n, ap, w, work.Off(inde-1), work.Off(indtau-1)); err != nil {
+		panic(err)
+	}
 
 	//     For eigenvalues only, call DSTERF.  For eigenvectors, first call
 	//     DOPGTR to generate the orthogonal matrix, then call DSTEQR.
 	if !wantz {
-		Dsterf(n, w, work.Off(inde-1), info)
+		if info, err = Dsterf(n, w, work.Off(inde-1)); err != nil {
+			panic(err)
+		}
 	} else {
-		indwrk = indtau + (*n)
-		Dopgtr(uplo, n, ap, work.Off(indtau-1), z, ldz, work.Off(indwrk-1), &iinfo)
-		Dsteqr(jobz, n, w, work.Off(inde-1), z, ldz, work.Off(indtau-1), info)
+		indwrk = indtau + n
+		if err = Dopgtr(uplo, n, ap, work.Off(indtau-1), z, work.Off(indwrk-1)); err != nil {
+			panic(err)
+		}
+		if info, err = Dsteqr(jobz, n, w, work.Off(inde-1), z, work.Off(indtau-1)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		if (*info) == 0 {
-			imax = (*n)
+		if info == 0 {
+			imax = n
 		} else {
-			imax = (*info) - 1
+			imax = info - 1
 		}
 		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
+
+	return
 }

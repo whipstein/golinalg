@@ -17,19 +17,18 @@ import (
 // columns is returned in KB.
 //
 // Block A(1:OFFSET,1:N) is accordingly pivoted, but not factorized.
-func Zlaqps(m, n, offset, nb, kb *int, a *mat.CMatrix, lda *int, jpvt *[]int, tau *mat.CVector, vn1, vn2 *mat.Vector, auxv *mat.CVector, f *mat.CMatrix, ldf *int) {
+func Zlaqps(m, n, offset, nb int, a *mat.CMatrix, jpvt *[]int, tau *mat.CVector, vn1, vn2 *mat.Vector, auxv *mat.CVector, f *mat.CMatrix) (kb int) {
 	var akk, cone, czero complex128
 	var one, temp, temp2, tol3z, zero float64
 	var itemp, j, k, lastrk, lsticc, pvt, rk int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 	czero = (0.0 + 0.0*1i)
 	cone = (1.0 + 0.0*1i)
 
-	lastrk = min(*m, (*n)+(*offset))
+	lastrk = min(m, n+offset)
 	lsticc = 0
 	k = 0
 	tol3z = math.Sqrt(Dlamch(Epsilon))
@@ -37,15 +36,15 @@ func Zlaqps(m, n, offset, nb, kb *int, a *mat.CMatrix, lda *int, jpvt *[]int, ta
 	//     Beginning of while loop.
 label10:
 	;
-	if (k < (*nb)) && (lsticc == 0) {
+	if (k < nb) && (lsticc == 0) {
 		k = k + 1
-		rk = (*offset) + k
+		rk = offset + k
 
 		//        Determine ith pivot column and swap if necessary
-		pvt = (k - 1) + goblas.Idamax((*n)-k+1, vn1.Off(k-1, 1))
+		pvt = (k - 1) + goblas.Idamax(n-k+1, vn1.Off(k-1, 1))
 		if pvt != k {
-			goblas.Zswap(*m, a.CVector(0, pvt-1, 1), a.CVector(0, k-1, 1))
-			goblas.Zswap(k-1, f.CVector(pvt-1, 0, *ldf), f.CVector(k-1, 0, *ldf))
+			goblas.Zswap(m, a.CVector(0, pvt-1, 1), a.CVector(0, k-1, 1))
+			goblas.Zswap(k-1, f.CVector(pvt-1, 0), f.CVector(k-1, 0))
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[k-1]
 			(*jpvt)[k-1] = itemp
@@ -59,17 +58,19 @@ label10:
 			for j = 1; j <= k-1; j++ {
 				f.Set(k-1, j-1, f.GetConj(k-1, j-1))
 			}
-			err = goblas.Zgemv(NoTrans, (*m)-rk+1, k-1, -cone, a.Off(rk-1, 0), f.CVector(k-1, 0, *ldf), cone, a.CVector(rk-1, k-1, 1))
+			if err = goblas.Zgemv(NoTrans, m-rk+1, k-1, -cone, a.Off(rk-1, 0), f.CVector(k-1, 0), cone, a.CVector(rk-1, k-1, 1)); err != nil {
+				panic(err)
+			}
 			for j = 1; j <= k-1; j++ {
 				f.Set(k-1, j-1, f.GetConj(k-1, j-1))
 			}
 		}
 
 		//        Generate elementary reflector H(k).
-		if rk < (*m) {
-			Zlarfg(toPtr((*m)-rk+1), a.GetPtr(rk-1, k-1), a.CVector(rk, k-1), func() *int { y := 1; return &y }(), tau.GetPtr(k-1))
+		if rk < m {
+			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Zlarfg(m-rk+1, a.Get(rk-1, k-1), a.CVector(rk, k-1, 1))
 		} else {
-			Zlarfg(func() *int { y := 1; return &y }(), a.GetPtr(rk-1, k-1), a.CVector(rk-1, k-1), func() *int { y := 1; return &y }(), tau.GetPtr(k-1))
+			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Zlarfg(1, a.Get(rk-1, k-1), a.CVector(rk-1, k-1, 1))
 		}
 
 		akk = a.Get(rk-1, k-1)
@@ -78,8 +79,10 @@ label10:
 		//        Compute Kth column of F:
 		//
 		//        Compute  F(K+1:N,K) := tau(K)*A(RK:M,K+1:N)**H*A(RK:M,K).
-		if k < (*n) {
-			err = goblas.Zgemv(ConjTrans, (*m)-rk+1, (*n)-k, tau.Get(k-1), a.Off(rk-1, k), a.CVector(rk-1, k-1, 1), czero, f.CVector(k, k-1, 1))
+		if k < n {
+			if err = goblas.Zgemv(ConjTrans, m-rk+1, n-k, tau.Get(k-1), a.Off(rk-1, k), a.CVector(rk-1, k-1, 1), czero, f.CVector(k, k-1, 1)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Padding F(1:K,K) with zeros.
@@ -91,20 +94,26 @@ label10:
 		//        F(1:N,K) := F(1:N,K) - tau(K)*F(1:N,1:K-1)*A(RK:M,1:K-1)**H
 		//                    *A(RK:M,K).
 		if k > 1 {
-			err = goblas.Zgemv(ConjTrans, (*m)-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), a.CVector(rk-1, k-1, 1), czero, auxv.Off(0, 1))
+			if err = goblas.Zgemv(ConjTrans, m-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), a.CVector(rk-1, k-1, 1), czero, auxv.Off(0, 1)); err != nil {
+				panic(err)
+			}
 
-			err = goblas.Zgemv(NoTrans, *n, k-1, cone, f, auxv.Off(0, 1), cone, f.CVector(0, k-1, 1))
+			if err = goblas.Zgemv(NoTrans, n, k-1, cone, f, auxv.Off(0, 1), cone, f.CVector(0, k-1, 1)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Update the current row of A:
 		//        A(RK,K+1:N) := A(RK,K+1:N) - A(RK,1:K)*F(K+1:N,1:K)**H.
-		if k < (*n) {
-			err = goblas.Zgemm(NoTrans, ConjTrans, 1, (*n)-k, k, -cone, a.Off(rk-1, 0), f.Off(k, 0), cone, a.Off(rk-1, k))
+		if k < n {
+			if err = goblas.Zgemm(NoTrans, ConjTrans, 1, n-k, k, -cone, a.Off(rk-1, 0), f.Off(k, 0), cone, a.Off(rk-1, k)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Update partial column norms.
 		if rk < lastrk {
-			for j = k + 1; j <= (*n); j++ {
+			for j = k + 1; j <= n; j++ {
 				if vn1.Get(j-1) != zero {
 					//                 NOTE: The following 4 lines follow from the analysis in
 					//                 Lapack Working Note 176.
@@ -126,14 +135,16 @@ label10:
 		//        End of while loop.
 		goto label10
 	}
-	(*kb) = k
-	rk = (*offset) + (*kb)
+	kb = k
+	rk = offset + kb
 
 	//     Apply the block reflector to the rest of the matrix:
 	//     A(OFFSET+KB+1:M,KB+1:N) := A(OFFSET+KB+1:M,KB+1:N) -
 	//                         A(OFFSET+KB+1:M,1:KB)*F(KB+1:N,1:KB)**H.
-	if (*kb) < min(*n, (*m)-(*offset)) {
-		err = goblas.Zgemm(NoTrans, ConjTrans, (*m)-rk, (*n)-(*kb), *kb, -cone, a.Off(rk, 0), f.Off((*kb), 0), cone, a.Off(rk, (*kb)))
+	if kb < min(n, m-offset) {
+		if err = goblas.Zgemm(NoTrans, ConjTrans, m-rk, n-kb, kb, -cone, a.Off(rk, 0), f.Off(kb, 0), cone, a.Off(rk, kb)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Recomputation of difficult columns.
@@ -141,7 +152,7 @@ label60:
 	;
 	if lsticc > 0 {
 		itemp = int(math.Round(vn2.Get(lsticc - 1)))
-		vn1.Set(lsticc-1, goblas.Dznrm2((*m)-rk, a.CVector(rk, lsticc-1, 1)))
+		vn1.Set(lsticc-1, goblas.Dznrm2(m-rk, a.CVector(rk, lsticc-1, 1)))
 
 		//        NOTE: The computation of VN1( LSTICC ) relies on the fact that
 		//        SNRM2 does not fail on vectors with norm below the value of
@@ -150,4 +161,6 @@ label60:
 		lsticc = itemp
 		goto label60
 	}
+
+	return
 }

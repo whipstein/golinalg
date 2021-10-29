@@ -20,10 +20,10 @@ package golapack
 //
 // This routine will not function correctly if it is converted to all
 // lower case.  Converting it to all upper case is allowed.
-func Ilaenv2stage(ispec *int, name, opts []byte, n1, n2, n3, n4 *int) (ilaenv2stageReturn int) {
+func Ilaenv2stage(ispec int, name string, opts []byte, n1, n2, n3, n4 int) (ilaenv2stageReturn int) {
 	var iispec int
 
-	switch *ispec {
+	switch ispec {
 	case 1:
 		goto label10
 	case 2:
@@ -44,7 +44,7 @@ label10:
 	;
 
 	//     2stage eigenvalues and SVD or related subroutines.
-	iispec = 16 + (*ispec)
-	ilaenv2stageReturn = Iparam2stage(&iispec, name, opts, n1, n2, n3, n4)
+	iispec = 16 + ispec
+	ilaenv2stageReturn = Iparam2stage(iispec, name, opts, n1, n2, n3, n4)
 	return
 }

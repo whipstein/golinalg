@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -25,42 +27,45 @@ import (
 //    H  =  I - V**T * T * V
 //
 // Currently, only STOREV = 'R' and DIRECT = 'B' are supported.
-func Dlarzt(direct, storev byte, n, k *int, v *mat.Matrix, ldv *int, tau *mat.Vector, t *mat.Matrix, ldt *int) {
+func Dlarzt(direct, storev byte, n, k int, v *mat.Matrix, tau *mat.Vector, t *mat.Matrix) (err error) {
 	var zero float64
-	var i, info, j int
-	var err error
-	_ = err
+	var i, j int
 
 	zero = 0.0
 
 	//     Check for currently supported options
-	info = 0
 	if direct != 'B' {
-		info = -1
+		err = fmt.Errorf("direct != 'B': direct='%c'", direct)
 	} else if storev != 'R' {
-		info = -2
+		err = fmt.Errorf("storev != 'R': storev='%c'", storev)
 	}
-	if info != 0 {
-		gltest.Xerbla([]byte("DLARZT"), -info)
+	if err != nil {
+		gltest.Xerbla2("Dlarzt", err)
 		return
 	}
 
-	for i = (*k); i >= 1; i-- {
+	for i = k; i >= 1; i-- {
 		if tau.Get(i-1) == zero {
 			//           H(i)  =  I
-			for j = i; j <= (*k); j++ {
+			for j = i; j <= k; j++ {
 				t.Set(j-1, i-1, zero)
 			}
 		} else {
 			//           general case
-			if i < (*k) {
+			if i < k {
 				//              T(i+1:k,i) = - tau(i) * V(i+1:k,1:n) * V(i,1:n)**T
-				err = goblas.Dgemv(NoTrans, (*k)-i, *n, -tau.Get(i-1), v.Off(i, 0), v.Vector(i-1, 0), zero, t.Vector(i, i-1, 1))
+				if err = goblas.Dgemv(NoTrans, k-i, n, -tau.Get(i-1), v.Off(i, 0), v.Vector(i-1, 0), zero, t.Vector(i, i-1, 1)); err != nil {
+					panic(err)
+				}
 
 				//              T(i+1:k,i) = T(i+1:k,i+1:k) * T(i+1:k,i)
-				err = goblas.Dtrmv(Lower, NoTrans, NonUnit, (*k)-i, t.Off(i, i), t.Vector(i, i-1, 1))
+				if err = goblas.Dtrmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), t.Vector(i, i-1, 1)); err != nil {
+					panic(err)
+				}
 			}
 			t.Set(i-1, i-1, tau.Get(i-1))
 		}
 	}
+
+	return
 }

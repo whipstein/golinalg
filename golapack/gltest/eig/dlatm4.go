@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dlatm4 generates basic square matrices, which may later be
+// dlatm4 generates basic square matrices, which may later be
 // multiplied by others in order to produce test matrices.  It is
 // intended mainly to be used to test the generalized eigenvalue
 // routines.
@@ -17,7 +17,7 @@ import (
 // according to the value of ITYPE, NZ1, NZ2, ISIGN, AMAGN, and RCOND.
 // It then fills in the upper triangle with random numbers, if TRIANG is
 // non-zero.
-func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist *int, iseed *[]int, a *mat.Matrix, lda *int) {
+func dlatm4(itype, n, nz1, nz2, isign int, amagn, rcond, triang float64, idist int, iseed *[]int, a *mat.Matrix) {
 	var alpha, cl, cr, half, one, safmin, sl, sr, sv1, sv2, temp, two, zero float64
 	var i, ioff, isdb, isde, jc, jd, jr, k, kbeg, kend, klen int
 
@@ -26,10 +26,10 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 	two = 2.0
 	half = one / two
 
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
-	golapack.Dlaset('F', n, n, &zero, &zero, a, lda)
+	golapack.Dlaset(Full, n, n, zero, zero, a)
 
 	//     Insure a correct ISEED
 	if ((*iseed)[3] % 2) != 1 {
@@ -38,19 +38,19 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 
 	//     Compute diagonal and subdiagonal according to ITYPE, NZ1, NZ2,
 	//     and RCOND
-	if (*itype) != 0 {
-		if abs(*itype) >= 4 {
-			kbeg = max(1, min(*n, (*nz1)+1))
-			kend = max(kbeg, min(*n, (*n)-(*nz2)))
+	if itype != 0 {
+		if abs(itype) >= 4 {
+			kbeg = max(1, min(n, nz1+1))
+			kend = max(kbeg, min(n, n-nz2))
 			klen = kend + 1 - kbeg
 		} else {
 			kbeg = 1
-			kend = (*n)
-			klen = (*n)
+			kend = n
+			klen = n
 		}
 		isdb = 1
 		isde = 0
-		switch abs(*itype) {
+		switch abs(itype) {
 		case 1:
 			goto label10
 		case 2:
@@ -76,7 +76,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		//        abs(ITYPE) = 1: Identity
 	label10:
 		;
-		for jd = 1; jd <= (*n); jd++ {
+		for jd = 1; jd <= n; jd++ {
 			a.Set(jd-1, jd-1, one)
 		}
 		goto label220
@@ -84,18 +84,18 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		//        abs(ITYPE) = 2: Transposed Jordan block
 	label30:
 		;
-		for jd = 1; jd <= (*n)-1; jd++ {
+		for jd = 1; jd <= n-1; jd++ {
 			a.Set(jd, jd-1, one)
 		}
 		isdb = 1
-		isde = (*n) - 1
+		isde = n - 1
 		goto label220
 
 		//        abs(ITYPE) = 3: Transposed Jordan block, followed by the
 		//                        identity.
 	label50:
 		;
-		k = ((*n) - 1) / 2
+		k = (n - 1) / 2
 		for jd = 1; jd <= k; jd++ {
 			a.Set(jd, jd-1, one)
 		}
@@ -110,7 +110,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 	label80:
 		;
 		for jd = kbeg; jd <= kend; jd++ {
-			a.Set(jd-1, jd-1, float64(jd-(*nz1)))
+			a.Set(jd-1, jd-1, float64(jd-nz1))
 		}
 		goto label220
 
@@ -118,7 +118,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 	label100:
 		;
 		for jd = kbeg + 1; jd <= kend; jd++ {
-			a.Set(jd-1, jd-1, (*rcond))
+			a.Set(jd-1, jd-1, rcond)
 		}
 		a.Set(kbeg-1, kbeg-1, one)
 		goto label220
@@ -129,7 +129,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		for jd = kbeg; jd <= kend-1; jd++ {
 			a.Set(jd-1, jd-1, one)
 		}
-		a.Set(kend-1, kend-1, (*rcond))
+		a.Set(kend-1, kend-1, rcond)
 		goto label220
 
 		//        abs(ITYPE) = 7: Exponentially distributed D values:
@@ -137,9 +137,9 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		;
 		a.Set(kbeg-1, kbeg-1, one)
 		if klen > 1 {
-			alpha = math.Pow(*rcond, one/float64(klen-1))
+			alpha = math.Pow(rcond, one/float64(klen-1))
 			for i = 2; i <= klen; i++ {
-				a.Set((*nz1)+i-1, (*nz1)+i-1, math.Pow(alpha, float64(i-1)))
+				a.Set(nz1+i-1, nz1+i-1, math.Pow(alpha, float64(i-1)))
 			}
 		}
 		goto label220
@@ -149,9 +149,9 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		;
 		a.Set(kbeg-1, kbeg-1, one)
 		if klen > 1 {
-			alpha = (one - (*rcond)) / float64(klen-1)
+			alpha = (one - rcond) / float64(klen-1)
 			for i = 2; i <= klen; i++ {
-				a.Set((*nz1)+i-1, (*nz1)+i-1, float64(klen-i)*alpha+(*rcond))
+				a.Set(nz1+i-1, nz1+i-1, float64(klen-i)*alpha+rcond)
 			}
 		}
 		goto label220
@@ -159,7 +159,7 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		//        abs(ITYPE) = 9: Randomly distributed D values on ( RCOND, 1):
 	label180:
 		;
-		alpha = math.Log(*rcond)
+		alpha = math.Log(rcond)
 		for jd = kbeg; jd <= kend; jd++ {
 			a.Set(jd-1, jd-1, math.Exp(alpha*matgen.Dlaran(iseed)))
 		}
@@ -177,15 +177,15 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 
 		//        Scale by AMAGN
 		for jd = kbeg; jd <= kend; jd++ {
-			a.Set(jd-1, jd-1, (*amagn)*float64(a.Get(jd-1, jd-1)))
+			a.Set(jd-1, jd-1, amagn*float64(a.Get(jd-1, jd-1)))
 		}
 		for jd = isdb; jd <= isde; jd++ {
-			a.Set(jd, jd-1, (*amagn)*float64(a.Get(jd, jd-1)))
+			a.Set(jd, jd-1, amagn*float64(a.Get(jd, jd-1)))
 		}
 
 		//        If ISIGN = 1 or 2, assign random signs to diagonal and
 		//        subdiagonal
-		if (*isign) > 0 {
+		if isign > 0 {
 			for jd = kbeg; jd <= kend; jd++ {
 				if float64(a.Get(jd-1, jd-1)) != zero {
 					if matgen.Dlaran(iseed) > half {
@@ -203,22 +203,22 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 		}
 
 		//        Reverse if ITYPE < 0
-		if (*itype) < 0 {
+		if itype < 0 {
 			for jd = kbeg; jd <= (kbeg+kend-1)/2; jd++ {
 				temp = a.Get(jd-1, jd-1)
 				a.Set(jd-1, jd-1, a.Get(kbeg+kend-jd-1, kbeg+kend-jd-1))
 				a.Set(kbeg+kend-jd-1, kbeg+kend-jd-1, temp)
 			}
-			for jd = 1; jd <= ((*n)-1)/2; jd++ {
+			for jd = 1; jd <= (n-1)/2; jd++ {
 				temp = a.Get(jd, jd-1)
-				a.Set(jd, jd-1, a.Get((*n)+1-jd-1, (*n)-jd-1))
-				a.Set((*n)+1-jd-1, (*n)-jd-1, temp)
+				a.Set(jd, jd-1, a.Get(n+1-jd-1, n-jd-1))
+				a.Set(n+1-jd-1, n-jd-1, temp)
 			}
 		}
 
 		//        If ISIGN = 2, and no subdiagonals already, then apply
 		//        random rotations to make 2x2 blocks.
-		if (*isign) == 2 && (*itype) != 2 && (*itype) != 3 {
+		if isign == 2 && itype != 2 && itype != 3 {
 			safmin = golapack.Dlamch(SafeMinimum)
 			for jd = kbeg; jd <= kend-1; jd += 2 {
 				if matgen.Dlaran(iseed) > half {
@@ -250,22 +250,24 @@ func Dlatm4(itype, n, nz1, nz2, isign *int, amagn, rcond, triang *float64, idist
 	}
 
 	//     Fill in upper triangle (except for 2x2 blocks)
-	if (*triang) != zero {
-		if (*isign) != 2 || (*itype) == 2 || (*itype) == 3 {
+	if triang != zero {
+		if isign != 2 || itype == 2 || itype == 3 {
 			ioff = 1
 		} else {
 			ioff = 2
-			for jr = 1; jr <= (*n)-1; jr++ {
+			for jr = 1; jr <= n-1; jr++ {
 				if a.Get(jr, jr-1) == zero {
-					a.Set(jr-1, jr, (*triang)*matgen.Dlarnd(idist, iseed))
+					a.Set(jr-1, jr, triang*matgen.Dlarnd(idist, iseed))
 				}
 			}
 		}
 
-		for jc = 2; jc <= (*n); jc++ {
+		for jc = 2; jc <= n; jc++ {
 			for jr = 1; jr <= jc-ioff; jr++ {
-				a.Set(jr-1, jc-1, (*triang)*matgen.Dlarnd(idist, iseed))
+				a.Set(jr-1, jc-1, triang*matgen.Dlarnd(idist, iseed))
 			}
 		}
 	}
+
+	return
 }

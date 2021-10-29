@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dget35 tests DTRSYL, a routine for solving the Sylvester matrix
+// dget35 tests DTRSYL, a routine for solving the Sylvester matrix
 // equation
 //
 //    op(A)*X + ISGN*X*op(B) = scale*C,
@@ -21,12 +21,11 @@ import (
 //
 //    norm(op(A)*X + ISGN*X*op(B) - scale*C) /
 //        (EPS*max(norm(A),norm(B))*norm(X))
-func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
+func dget35() (rmax float64, lmax, ninfo, knt int) {
 	var trana, tranb byte
 	var bignum, cnrm, eps, four, one, res, res1, rmul, scale, smlnum, tnrm, two, xnrm, zero float64
 	var i, ima, imb, imlda1, imlda2, imldb1, imloff, info, isgn, itrana, itranb, j, m, n int
 	var err error
-	_ = err
 
 	dum := vf(1)
 	vm1 := vf(3)
@@ -51,7 +50,7 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 	eps = golapack.Dlamch(Precision)
 	smlnum = golapack.Dlamch(SafeMinimum) * four / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     Set up test case parameters
 	vm1.Set(0, math.Sqrt(smlnum))
@@ -61,10 +60,10 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 	vm2.Set(1, one+two*eps)
 	vm2.Set(2, two)
 
-	(*knt) = 0
-	(*ninfo) = 0
-	(*lmax) = 0
-	(*rmax) = zero
+	knt = 0
+	ninfo = 0
+	lmax = 0
+	rmax = zero
 
 	//     Begin test loop
 	for itrana = 1; itrana <= 2; itrana++ {
@@ -122,25 +121,28 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 												cc.Set(i-1, j-1, c.Get(i-1, j-1))
 											}
 										}
-										(*knt) = (*knt) + 1
-										golapack.Dtrsyl(trana, tranb, &isgn, &m, &n, a, func() *int { y := 6; return &y }(), b, func() *int { y := 6; return &y }(), c, func() *int { y := 6; return &y }(), &scale, &info)
-										if info != 0 {
-											(*ninfo) = (*ninfo) + 1
+										knt = knt + 1
+										if scale, info, err = golapack.Dtrsyl(mat.TransByte(trana), mat.TransByte(tranb), isgn, m, n, a.Off(0, 0).UpdateRows(6), b.Off(0, 0).UpdateRows(6), c.Off(0, 0).UpdateRows(6)); err != nil || info != 0 {
+											ninfo = ninfo + 1
 										}
-										xnrm = golapack.Dlange('M', &m, &n, c, func() *int { y := 6; return &y }(), dum)
+										xnrm = golapack.Dlange('M', m, n, c, dum)
 										rmul = one
 										if xnrm > one && tnrm > one {
 											if xnrm > bignum/tnrm {
 												rmul = one / math.Max(xnrm, tnrm)
 											}
 										}
-										err = goblas.Dgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, -scale*rmul, cc)
-										err = goblas.Dgemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, b, one, cc)
-										res1 = golapack.Dlange('M', &m, &n, cc, func() *int { y := 6; return &y }(), dum)
+										if err = goblas.Dgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, -scale*rmul, cc); err != nil {
+											panic(err)
+										}
+										if err = goblas.Dgemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, b, one, cc); err != nil {
+											panic(err)
+										}
+										res1 = golapack.Dlange('M', m, n, cc, dum)
 										res = res1 / math.Max(smlnum, math.Max(smlnum*xnrm, ((rmul*tnrm)*eps)*xnrm))
-										if res > (*rmax) {
-											(*lmax) = (*knt)
-											(*rmax) = res
+										if res > rmax {
+											lmax = knt
+											rmax = res
 										}
 									}
 								}
@@ -151,4 +153,6 @@ func Dget35(rmax *float64, lmax *int, ninfo *int, knt *int) {
 			}
 		}
 	}
+
+	return
 }

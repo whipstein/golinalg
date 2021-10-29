@@ -20,27 +20,30 @@ import (
 //    an orthogonal similarity transformation of H.  It is to be
 //    hoped that the final version of H has many zero subdiagonal
 //    entries.
-func Dlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz, ihiz *int, z *mat.Matrix, ldz, ns, nd *int, sr, si *mat.Vector, v *mat.Matrix, ldv, nh *int, t *mat.Matrix, ldt, nv *int, wv *mat.Matrix, ldwv *int, work *mat.Vector, lwork *int) {
+func Dlaqr2(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.Matrix, iloz, ihiz int, z *mat.Matrix, sr, si *mat.Vector, v *mat.Matrix, nh int, t *mat.Matrix, nv int, wv *mat.Matrix, work *mat.Vector, lwork int) (ns, nd int) {
 	var bulge, sorted bool
-	var aa, bb, beta, cc, cs, dd, evi, evk, foo, one, s, safmax, safmin, smlnum, sn, tau, ulp, zero float64
+	var aa, bb, beta, cc, dd, evi, evk, foo, one, s, safmax, safmin, smlnum, tau, ulp, zero float64
 	var i, ifst, ilst, info, infqr, j, jw, k, kcol, kend, kln, krow, kwtop, ltop, lwk1, lwk2, lwkopt int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
 
 	//     ==== Estimate optimal workspace. ====
-	jw = min(*nw, (*kbot)-(*ktop)+1)
+	jw = min(nw, kbot-ktop+1)
 	if jw <= 2 {
 		lwkopt = 1
 	} else {
 		//        ==== Workspace query call to DGEHRD ====
-		Dgehrd(&jw, func() *int { y := 1; return &y }(), toPtr(jw-1), t, ldt, work, work, toPtr(-1), &info)
+		if err = Dgehrd(jw, 1, jw-1, t, work, work, -1); err != nil {
+			panic(err)
+		}
 		lwk1 = int(work.Get(0))
 
 		//        ==== Workspace query call to DORMHR ====
-		Dormhr('R', 'N', &jw, &jw, func() *int { y := 1; return &y }(), toPtr(jw-1), t, ldt, work, v, ldv, work, toPtr(-1), &info)
+		if err = Dormhr(Right, NoTrans, jw, jw, 1, jw-1, t, work, v, work, -1); err != nil {
+			panic(err)
+		}
 		lwk2 = int(work.Get(0))
 
 		//        ==== Optimal workspace ====
@@ -48,50 +51,50 @@ func Dlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	}
 
 	//     ==== Quick return in case of workspace query. ====
-	if (*lwork) == -1 {
+	if lwork == -1 {
 		work.Set(0, float64(lwkopt))
 		return
 	}
 
 	//     ==== Nothing to do ...
 	//     ... for an empty active block ... ====
-	(*ns) = 0
-	(*nd) = 0
+	ns = 0
+	nd = 0
 	work.Set(0, one)
-	if (*ktop) > (*kbot) {
+	if ktop > kbot {
 		return
 	}
 	//     ... nor for an empty deflation window. ====
-	if (*nw) < 1 {
+	if nw < 1 {
 		return
 	}
 
 	//     ==== Machine constants ====
 	safmin = Dlamch(SafeMinimum)
 	safmax = one / safmin
-	Dlabad(&safmin, &safmax)
+	safmin, safmax = Dlabad(safmin, safmax)
 	ulp = Dlamch(Precision)
-	smlnum = safmin * (float64(*n) / ulp)
+	smlnum = safmin * (float64(n) / ulp)
 
 	//     ==== Setup deflation window ====
-	jw = min(*nw, (*kbot)-(*ktop)+1)
-	kwtop = (*kbot) - jw + 1
-	if kwtop == (*ktop) {
+	jw = min(nw, kbot-ktop+1)
+	kwtop = kbot - jw + 1
+	if kwtop == ktop {
 		s = zero
 	} else {
 		s = h.Get(kwtop-1, kwtop-1-1)
 	}
 
-	if (*kbot) == kwtop {
+	if kbot == kwtop {
 		//        ==== 1-by-1 deflation window: not much to do ====
 		sr.Set(kwtop-1, h.Get(kwtop-1, kwtop-1))
 		si.Set(kwtop-1, zero)
-		(*ns) = 1
-		(*nd) = 0
+		ns = 1
+		nd = 0
 		if math.Abs(s) <= math.Max(smlnum, ulp*math.Abs(h.Get(kwtop-1, kwtop-1))) {
-			(*ns) = 0
-			(*nd) = 1
-			if kwtop > (*ktop) {
+			ns = 0
+			nd = 1
+			if kwtop > ktop {
 				h.Set(kwtop-1, kwtop-1-1, zero)
 			}
 		}
@@ -104,11 +107,13 @@ func Dlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	//     .    aggressive early deflation using that part of
 	//     .    the deflation window that converged using INFQR
 	//     .    here and there to keep track.) ====
-	Dlacpy('U', &jw, &jw, h.Off(kwtop-1, kwtop-1), ldh, t, ldt)
-	goblas.Dcopy(jw-1, h.Vector(kwtop, kwtop-1, (*ldh)+1), t.Vector(1, 0, (*ldt)+1))
+	Dlacpy(Upper, jw, jw, h.Off(kwtop-1, kwtop-1), t)
+	goblas.Dcopy(jw-1, h.Vector(kwtop, kwtop-1, h.Rows+1), t.Vector(1, 0, t.Rows+1))
 
-	Dlaset('A', &jw, &jw, &zero, &one, v, ldv)
-	Dlahqr(true, true, &jw, func() *int { y := 1; return &y }(), &jw, t, ldt, sr.Off(kwtop-1), si.Off(kwtop-1), func() *int { y := 1; return &y }(), &jw, v, ldv, &infqr)
+	Dlaset(Full, jw, jw, zero, one, v)
+	if infqr, err = Dlahqr(true, true, jw, 1, jw, t, sr.Off(kwtop-1), si.Off(kwtop-1), 1, jw, v); err != nil {
+		panic(err)
+	}
 
 	//     ==== DTREXC needs a clean margin near the diagonal ====
 	for j = 1; j <= jw-3; j++ {
@@ -120,49 +125,53 @@ func Dlaqr2(wantt, wantz bool, n, ktop, kbot, nw *int, h *mat.Matrix, ldh, iloz,
 	}
 
 	//     ==== Deflation detection loop ====
-	(*ns) = jw
+	ns = jw
 	ilst = infqr + 1
 label20:
 	;
-	if ilst <= (*ns) {
-		if (*ns) == 1 {
+	if ilst <= ns {
+		if ns == 1 {
 			bulge = false
 		} else {
-			bulge = t.Get((*ns)-1, (*ns)-1-1) != zero
+			bulge = t.Get(ns-1, ns-1-1) != zero
 		}
 
 		//        ==== Small spike tip test for deflation ====
 		if !bulge {
 			//           ==== Real eigenvalue ====
-			foo = math.Abs(t.Get((*ns)-1, (*ns)-1))
+			foo = math.Abs(t.Get(ns-1, ns-1))
 			if foo == zero {
 				foo = math.Abs(s)
 			}
-			if math.Abs(s*v.Get(0, (*ns)-1)) <= math.Max(smlnum, ulp*foo) {
+			if math.Abs(s*v.Get(0, ns-1)) <= math.Max(smlnum, ulp*foo) {
 				//              ==== Deflatable ====
-				(*ns) = (*ns) - 1
+				ns = ns - 1
 			} else {
 				//              ==== Undeflatable.   Move it up out of the way.
 				//              .    (DTREXC can not fail in this case.) ====
-				ifst = (*ns)
-				Dtrexc('V', &jw, t, ldt, v, ldv, &ifst, &ilst, work, &info)
+				ifst = ns
+				if ifst, ilst, info, err = Dtrexc('V', jw, t, v, ifst, ilst, work); err != nil {
+					panic(err)
+				}
 				ilst = ilst + 1
 			}
 		} else {
 			//           ==== Complex conjugate pair ====
-			foo = math.Abs(t.Get((*ns)-1, (*ns)-1)) + math.Sqrt(math.Abs(t.Get((*ns)-1, (*ns)-1-1)))*math.Sqrt(math.Abs(t.Get((*ns)-1-1, (*ns)-1)))
+			foo = math.Abs(t.Get(ns-1, ns-1)) + math.Sqrt(math.Abs(t.Get(ns-1, ns-1-1)))*math.Sqrt(math.Abs(t.Get(ns-1-1, ns-1)))
 			if foo == zero {
 				foo = math.Abs(s)
 			}
-			if math.Max(math.Abs(s*v.Get(0, (*ns)-1)), math.Abs(s*v.Get(0, (*ns)-1-1))) <= math.Max(smlnum, ulp*foo) {
+			if math.Max(math.Abs(s*v.Get(0, ns-1)), math.Abs(s*v.Get(0, ns-1-1))) <= math.Max(smlnum, ulp*foo) {
 				//              ==== Deflatable ====
-				(*ns) = (*ns) - 2
+				ns = ns - 2
 			} else {
 				//              ==== Undeflatable. Move them up out of the way.
 				//              .    Fortunately, DTREXC does the right thing with
 				//              .    ILST in case of a rare exchange failure. ====
-				ifst = (*ns)
-				Dtrexc('V', &jw, t, ldt, v, ldv, &ifst, &ilst, work, &info)
+				ifst = ns
+				if ifst, ilst, info, err = Dtrexc('V', jw, t, v, ifst, ilst, work); err != nil {
+					panic(err)
+				}
 				ilst = ilst + 2
 			}
 		}
@@ -172,16 +181,16 @@ label20:
 	}
 
 	//        ==== Return to Hessenberg form ====
-	if (*ns) == 0 {
+	if ns == 0 {
 		s = zero
 	}
 
-	if (*ns) < jw {
+	if ns < jw {
 		//        ==== sorting diagonal blocks of T improves accuracy for
 		//        .    graded matrices.  Bubble sort deals well with
 		//        .    exchange failures. ====
 		sorted = false
-		i = (*ns) + 1
+		i = ns + 1
 	label30:
 		;
 		if sorted {
@@ -191,7 +200,7 @@ label20:
 
 		kend = i - 1
 		i = infqr + 1
-		if i == (*ns) {
+		if i == ns {
 			k = i + 1
 		} else if t.Get(i, i-1) == zero {
 			k = i + 1
@@ -221,7 +230,9 @@ label20:
 				sorted = false
 				ifst = i
 				ilst = k
-				Dtrexc('V', &jw, t, ldt, v, ldv, &ifst, &ilst, work, &info)
+				if ifst, ilst, info, err = Dtrexc('V', jw, t, v, ifst, ilst, work); err != nil {
+					panic(err)
+				}
 				if info == 0 {
 					i = ilst
 				} else {
@@ -259,83 +270,95 @@ label60:
 			cc = t.Get(i-1, i-1-1)
 			bb = t.Get(i-1-1, i-1)
 			dd = t.Get(i-1, i-1)
-			Dlanv2(&aa, &bb, &cc, &dd, sr.GetPtr(kwtop+i-2-1), si.GetPtr(kwtop+i-2-1), sr.GetPtr(kwtop+i-1-1), si.GetPtr(kwtop+i-1-1), &cs, &sn)
+			aa, bb, cc, dd, *sr.GetPtr(kwtop + i - 2 - 1), *si.GetPtr(kwtop + i - 2 - 1), *sr.GetPtr(kwtop + i - 1 - 1), *si.GetPtr(kwtop + i - 1 - 1), _, _ = Dlanv2(aa, bb, cc, dd)
 			i = i - 2
 		}
 		goto label60
 	}
 
-	if (*ns) < jw || s == zero {
-		if (*ns) > 1 && s != zero {
+	if ns < jw || s == zero {
+		if ns > 1 && s != zero {
 			//           ==== Reflect spike back into lower triangle ====
-			goblas.Dcopy(*ns, v.VectorIdx(0), work)
+			goblas.Dcopy(ns, v.VectorIdx(0), work)
 			beta = work.Get(0)
-			Dlarfg(ns, &beta, work.Off(1), func() *int { y := 1; return &y }(), &tau)
+			beta, tau = Dlarfg(ns, beta, work.Off(1, 1))
 			work.Set(0, one)
 
-			Dlaset('L', toPtr(jw-2), toPtr(jw-2), &zero, &zero, t.Off(2, 0), ldt)
+			Dlaset(Lower, jw-2, jw-2, zero, zero, t.Off(2, 0))
 
-			Dlarf('L', ns, &jw, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw))
-			Dlarf('R', ns, ns, work, func() *int { y := 1; return &y }(), &tau, t, ldt, work.Off(jw))
-			Dlarf('R', &jw, ns, work, func() *int { y := 1; return &y }(), &tau, v, ldv, work.Off(jw))
+			Dlarf(Left, ns, jw, work.Off(0, 1), tau, t, work.Off(jw))
+			Dlarf(Right, ns, ns, work.Off(0, 1), tau, t, work.Off(jw))
+			Dlarf(Right, jw, ns, work.Off(0, 1), tau, v, work.Off(jw))
 
-			Dgehrd(&jw, func() *int { y := 1; return &y }(), ns, t, ldt, work, work.Off(jw), toPtr((*lwork)-jw), &info)
+			if err = Dgehrd(jw, 1, ns, t, work, work.Off(jw), lwork-jw); err != nil {
+				panic(err)
+			}
 		}
 
 		//        ==== Copy updated reduced window into place ====
 		if kwtop > 1 {
 			h.Set(kwtop-1, kwtop-1-1, s*v.Get(0, 0))
 		}
-		Dlacpy('U', &jw, &jw, t, ldt, h.Off(kwtop-1, kwtop-1), ldh)
-		goblas.Dcopy(jw-1, t.Vector(1, 0, (*ldt)+1), h.Vector(kwtop, kwtop-1, (*ldh)+1))
+		Dlacpy(Upper, jw, jw, t, h.Off(kwtop-1, kwtop-1))
+		goblas.Dcopy(jw-1, t.Vector(1, 0, (*&t.Rows)+1), h.Vector(kwtop, kwtop-1, h.Rows+1))
 
 		//        ==== Accumulate orthogonal matrix in order update
 		//        .    H and Z, if requested.  ====
-		if (*ns) > 1 && s != zero {
-			Dormhr('R', 'N', &jw, ns, func() *int { y := 1; return &y }(), ns, t, ldt, work, v, ldv, work.Off(jw), toPtr((*lwork)-jw), &info)
+		if ns > 1 && s != zero {
+			if err = Dormhr(Right, NoTrans, jw, ns, 1, ns, t, work, v, work.Off(jw), lwork-jw); err != nil {
+				panic(err)
+			}
 		}
 
 		//        ==== Update vertical slab in H ====
 		if wantt {
 			ltop = 1
 		} else {
-			ltop = (*ktop)
+			ltop = ktop
 		}
-		for krow = ltop; krow <= kwtop-1; krow += (*nv) {
-			kln = min(*nv, kwtop-krow)
-			err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), v, zero, wv)
-			Dlacpy('A', &kln, &jw, wv, ldwv, h.Off(krow-1, kwtop-1), ldh)
+		for krow = ltop; krow <= kwtop-1; krow += nv {
+			kln = min(nv, kwtop-krow)
+			if err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), v, zero, wv); err != nil {
+				panic(err)
+			}
+			Dlacpy(Full, kln, jw, wv, h.Off(krow-1, kwtop-1))
 		}
 
 		//        ==== Update horizontal slab in H ====
 		if wantt {
-			for kcol = (*kbot) + 1; kcol <= (*n); kcol += (*nh) {
-				kln = min(*nh, (*n)-kcol+1)
-				err = goblas.Dgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, h.Off(kwtop-1, kcol-1), zero, t)
-				Dlacpy('A', &jw, &kln, t, ldt, h.Off(kwtop-1, kcol-1), ldh)
+			for kcol = kbot + 1; kcol <= n; kcol += nh {
+				kln = min(nh, n-kcol+1)
+				if err = goblas.Dgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, h.Off(kwtop-1, kcol-1), zero, t); err != nil {
+					panic(err)
+				}
+				Dlacpy(Full, jw, kln, t, h.Off(kwtop-1, kcol-1))
 			}
 		}
 
 		//        ==== Update vertical slab in Z ====
 		if wantz {
-			for krow = (*iloz); krow <= (*ihiz); krow += (*nv) {
-				kln = min(*nv, (*ihiz)-krow+1)
-				err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), v, zero, wv)
-				Dlacpy('A', &kln, &jw, wv, ldwv, z.Off(krow-1, kwtop-1), ldz)
+			for krow = iloz; krow <= ihiz; krow += nv {
+				kln = min(nv, ihiz-krow+1)
+				if err = goblas.Dgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), v, zero, wv); err != nil {
+					panic(err)
+				}
+				Dlacpy(Full, kln, jw, wv, z.Off(krow-1, kwtop-1))
 			}
 		}
 	}
 
 	//     ==== Return the number of deflations ... ====
-	(*nd) = jw - (*ns)
+	nd = jw - ns
 
 	//     ==== ... and the number of shifts. (Subtracting
 	//     .    INFQR from the spike length takes care
 	//     .    of the case of a rare QR failure while
 	//     .    calculating eigenvalues of the deflation
 	//     .    window.)  ====
-	(*ns) = (*ns) - infqr
+	ns = ns - infqr
 
 	//      ==== Return optimal workspace. ====
 	work.Set(0, float64(lwkopt))
+
+	return
 }

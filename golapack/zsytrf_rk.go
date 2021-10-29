@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -18,51 +20,50 @@ import (
 //
 // This is the blocked version of the algorithm, calling Level 3 BLAS.
 // For more information see Further Details section.
-func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv *[]int, work *mat.CVector, lwork, info *int) {
+func ZsytrfRk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]int, work *mat.CVector, lwork int) (info int, err error) {
 	var lquery, upper bool
 	var i, iinfo, ip, iws, k, kb, ldwork, lwkopt, nb, nbmin int
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	lquery = ((*lwork) == -1)
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*lwork) < 1 && !lquery {
-		(*info) = -8
+	upper = uplo == Upper
+	lquery = (lwork == -1)
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if lwork < 1 && !lquery {
+		err = fmt.Errorf("lwork < 1 && !lquery: lwork=%v, lquery=%v", lwork, lquery)
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		//        Determine the block size
-		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZSYTRF_RK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = (*n) * nb
+		nb = Ilaenv(1, "ZsytrfRk", []byte{uplo.Byte()}, n, -1, -1, -1)
+		lwkopt = n * nb
 		work.SetRe(0, float64(lwkopt))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZSYTRF_RK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZsytrfRk", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	nbmin = 2
-	ldwork = (*n)
-	if nb > 1 && nb < (*n) {
+	ldwork = n
+	if nb > 1 && nb < n {
 		iws = ldwork * nb
-		if (*lwork) < iws {
-			nb = max((*lwork)/ldwork, 1)
-			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("ZSYTRF_RK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+		if lwork < iws {
+			nb = max(lwork/ldwork, 1)
+			nbmin = max(2, Ilaenv(2, "ZsytrfRk", []byte{uplo.Byte()}, n, -1, -1, -1))
 		}
 	} else {
 		iws = 1
 	}
 	if nb < nbmin {
-		nb = (*n)
+		nb = n
 	}
 
 	if upper {
@@ -71,7 +72,7 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		//        K is the main loop index, decreasing from N to 1 in steps of
 		//        KB, where KB is the number of columns factorized by ZLASYF_RK;
 		//        KB is either NB or NB-1, or K for the last block
-		k = (*n)
+		k = n
 	label10:
 		;
 
@@ -83,16 +84,18 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		if k > nb {
 			//           Factorize columns k-kb+1:k of A and use blocked code to
 			//           update columns 1:k-kb
-			Zlasyfrk(uplo, &k, &nb, &kb, a, lda, e, ipiv, work.CMatrix(ldwork, opts), &ldwork, &iinfo)
+			kb, iinfo = ZlasyfRk(uplo, k, nb, a, e, ipiv, work.CMatrix(ldwork, opts))
 		} else {
 			//           Use unblocked code to factorize columns 1:k of A
-			Zsytf2rk(uplo, &k, a, lda, e, ipiv, &iinfo)
+			if iinfo, err = Zsytf2Rk(uplo, k, a, e, ipiv); err != nil {
+				panic(err)
+			}
 			kb = k
 		}
 
 		//        Set INFO on the first occurrence of a zero pivot
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo
+		if info == 0 && iinfo > 0 {
+			info = iinfo
 		}
 
 		//        No need to adjust IPIV
@@ -106,11 +109,11 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		//        (We can do the simple loop over IPIV with decrement -1,
 		//        since the ABS value of IPIV( I ) represents the row index
 		//        of the interchange with row i in both 1x1 and 2x2 pivot cases)
-		if k < (*n) {
+		if k < n {
 			for i = k; i >= (k - kb + 1); i-- {
 				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Zswap((*n)-k, a.CVector(i-1, k, *lda), a.CVector(ip-1, k, *lda))
+					goblas.Zswap(n-k, a.CVector(i-1, k), a.CVector(ip-1, k))
 				}
 			}
 		}
@@ -133,24 +136,26 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 		;
 
 		//        If K > N, exit from loop
-		if k > (*n) {
+		if k > n {
 			goto label35
 		}
 
-		if k <= (*n)-nb {
+		if k <= n-nb {
 			//           Factorize columns k:k+kb-1 of A and use blocked code to
 			//           update columns k+kb:n
-			Zlasyfrk(uplo, toPtr((*n)-k+1), &nb, &kb, a.Off(k-1, k-1), lda, e.Off(k-1), toSlice(ipiv, k-1), work.CMatrix(ldwork, opts), &ldwork, &iinfo)
+			kb, iinfo = ZlasyfRk(uplo, n-k+1, nb, a.Off(k-1, k-1), e.Off(k-1), toSlice(ipiv, k-1), work.CMatrix(ldwork, opts))
 		} else {
 			//           Use unblocked code to factorize columns k:n of A
-			Zsytf2rk(uplo, toPtr((*n)-k+1), a.Off(k-1, k-1), lda, e.Off(k-1), toSlice(ipiv, k-1), &iinfo)
-			kb = (*n) - k + 1
+			if iinfo, err = Zsytf2Rk(uplo, n-k+1, a.Off(k-1, k-1), e.Off(k-1), toSlice(ipiv, k-1)); err != nil {
+				panic(err)
+			}
+			kb = n - k + 1
 
 		}
 
 		//        Set INFO on the first occurrence of a zero pivot
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo + k - 1
+		if info == 0 && iinfo > 0 {
+			info = iinfo + k - 1
 		}
 
 		//        Adjust IPIV
@@ -174,7 +179,7 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 			for i = k; i <= (k + kb - 1); i++ {
 				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Zswap(k-1, a.CVector(i-1, 0, *lda), a.CVector(ip-1, 0, *lda))
+					goblas.Zswap(k-1, a.CVector(i-1, 0), a.CVector(ip-1, 0))
 				}
 			}
 		}
@@ -191,4 +196,6 @@ func Zsytrfrk(uplo byte, n *int, a *mat.CMatrix, lda *int, e *mat.CVector, ipiv 
 	}
 
 	work.SetRe(0, float64(lwkopt))
+
+	return
 }

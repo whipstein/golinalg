@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -21,32 +22,28 @@ import (
 // which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or Cray-2.
 // It could conceivably fail on hexadecimal or decimal machines
 // without guard digits, but we know of none.
-func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64, dlamda, q2 *mat.Vector, indx, ctot *[]int, w, s *mat.Vector, info *int) {
+func Dlaed3(k, n, n1 int, d *mat.Vector, q *mat.Matrix, rho float64, dlamda, q2 *mat.Vector, indx, ctot *[]int, w, s *mat.Vector) (info int, err error) {
 	var one, temp, zero float64
 	var i, ii, iq2, j, n12, n2, n23 int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-
-	if (*k) < 0 {
-		(*info) = -1
-	} else if (*n) < (*k) {
-		(*info) = -2
-	} else if (*ldq) < max(1, *n) {
-		(*info) = -6
+	if k < 0 {
+		err = fmt.Errorf("k < 0: k=%v", k)
+	} else if n < k {
+		err = fmt.Errorf("n < k: k=%v, n=%v", k, n)
+	} else if q.Rows < max(1, n) {
+		err = fmt.Errorf("q.Rows < max(1, n): q.Rows=%v, n=%v", q.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DLAED3"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dlaed3", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*k) == 0 {
+	if k == 0 {
 		return
 	}
 
@@ -66,24 +63,25 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 	//     (we know of none). We use a subroutine call to compute
 	//     2*DLAMBDA(I) to prevent optimizing compilers from eliminating
 	//     this code.
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		dlamda.Set(i-1, Dlamc3(dlamda.GetPtr(i-1), dlamda.GetPtr(i-1))-dlamda.Get(i-1))
 	}
 
-	for j = 1; j <= (*k); j++ {
-		Dlaed4(k, &j, dlamda, w, q.Vector(0, j-1), rho, d.GetPtr(j-1), info)
+	for j = 1; j <= k; j++ {
+		_d := d.GetPtr(j - 1)
+		*_d, info = Dlaed4(k, j, dlamda, w, q.Vector(0, j-1), rho)
 
 		//        If the zero finder fails, the computation is terminated.
-		if (*info) != 0 {
+		if info != 0 {
 			return
 		}
 	}
 
-	if (*k) == 1 {
+	if k == 1 {
 		goto label110
 	}
-	if (*k) == 2 {
-		for j = 1; j <= (*k); j++ {
+	if k == 2 {
+		for j = 1; j <= k; j++ {
 			w.Set(0, q.Get(0, j-1))
 			w.Set(1, q.Get(1, j-1))
 			ii = (*indx)[0]
@@ -95,29 +93,29 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(*k, w, s)
+	goblas.Dcopy(k, w, s)
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(*k, q.VectorIdx(0, (*ldq)+1), w)
-	for j = 1; j <= (*k); j++ {
+	goblas.Dcopy(k, q.VectorIdx(0, q.Rows+1), w)
+	for j = 1; j <= k; j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
 		}
-		for i = j + 1; i <= (*k); i++ {
+		for i = j + 1; i <= k; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
 		}
 	}
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		w.Set(i-1, math.Copysign(math.Sqrt(-w.Get(i-1)), s.Get(i-1)))
 	}
 
 	//     Compute eigenvectors of the modified rank-1 modification.
-	for j = 1; j <= (*k); j++ {
-		for i = 1; i <= (*k); i++ {
+	for j = 1; j <= k; j++ {
+		for i = 1; i <= k; i++ {
 			s.Set(i-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(*k, s)
-		for i = 1; i <= (*k); i++ {
+		temp = goblas.Dnrm2(k, s)
+		for i = 1; i <= k; i++ {
 			ii = (*indx)[i-1]
 			q.Set(i-1, j-1, s.Get(ii-1)/temp)
 		}
@@ -127,22 +125,28 @@ func Dlaed3(k, n, n1 *int, d *mat.Vector, q *mat.Matrix, ldq *int, rho *float64,
 label110:
 	;
 
-	n2 = (*n) - (*n1)
+	n2 = n - n1
 	n12 = (*ctot)[0] + (*ctot)[1]
 	n23 = (*ctot)[1] + (*ctot)[2]
 
-	Dlacpy('A', &n23, k, q.Off((*ctot)[0], 0), ldq, s.Matrix(n23, opts), &n23)
-	iq2 = (*n1)*n12 + 1
+	Dlacpy(Full, n23, k, q.Off((*ctot)[0], 0), s.Matrix(n23, opts))
+	iq2 = n1*n12 + 1
 	if n23 != 0 {
-		err = goblas.Dgemm(NoTrans, NoTrans, n2, *k, n23, one, q2.MatrixOff(iq2-1, n2, opts), s.Matrix(n23, opts), zero, q.Off((*n1), 0))
+		if err = goblas.Dgemm(NoTrans, NoTrans, n2, k, n23, one, q2.MatrixOff(iq2-1, n2, opts), s.Matrix(n23, opts), zero, q.Off(n1, 0)); err != nil {
+			panic(err)
+		}
 	} else {
-		Dlaset('A', &n2, k, &zero, &zero, q.Off((*n1), 0), ldq)
+		Dlaset(Full, n2, k, zero, zero, q.Off(n1, 0))
 	}
 
-	Dlacpy('A', &n12, k, q, ldq, s.Matrix(n12, opts), &n12)
+	Dlacpy(Full, n12, k, q, s.Matrix(n12, opts))
 	if n12 != 0 {
-		err = goblas.Dgemm(NoTrans, NoTrans, *n1, *k, n12, one, q2.Matrix(*n1, opts), s.Matrix(n12, opts), zero, q)
+		if err = goblas.Dgemm(NoTrans, NoTrans, n1, k, n12, one, q2.Matrix(n1, opts), s.Matrix(n12, opts), zero, q); err != nil {
+			panic(err)
+		}
 	} else {
-		Dlaset('A', n1, k, &zero, &zero, q.Off(0, 0), ldq)
+		Dlaset(Full, n1, k, zero, zero, q.Off(0, 0))
 	}
+
+	return
 }

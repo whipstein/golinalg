@@ -41,65 +41,62 @@ import "github.com/whipstein/golinalg/mat"
 //         bandwidth KU.
 //
 //      Set random entries to zero as specified by SPARSE.
-func Dlatm3(m, n, i, j, isub, jsub, kl, ku, idist *int, iseed *[]int, d *mat.Vector, igrade *int, dl, dr *mat.Vector, ipvtng *int, iwork *[]int, sparse *float64) (dlatm3Return float64) {
-	var temp, zero float64
+func Dlatm3(m, n, i, j, isub, jsub, kl, ku, idist int, iseed *[]int, d *mat.Vector, igrade int, dl, dr *mat.Vector, ipvtng int, iwork *[]int, sparse float64) (int, int, float64) {
+	var dlatm3Return, zero float64
 
 	zero = 0.0
 
 	//     Check for I and J in range
-	if (*i) < 1 || (*i) > (*m) || (*j) < 1 || (*j) > (*n) {
-		(*isub) = (*i)
-		(*jsub) = (*j)
-		dlatm3Return = zero
-		return
+	if i < 1 || i > m || j < 1 || j > n {
+		isub = i
+		jsub = j
+		return isub, jsub, dlatm3Return
 	}
 
 	//     Compute subscripts depending on IPVTNG
-	if (*ipvtng) == 0 {
-		(*isub) = (*i)
-		(*jsub) = (*j)
-	} else if (*ipvtng) == 1 {
-		(*isub) = (*iwork)[(*i)-1]
-		(*jsub) = (*j)
-	} else if (*ipvtng) == 2 {
-		(*isub) = (*i)
-		(*jsub) = (*iwork)[(*j)-1]
-	} else if (*ipvtng) == 3 {
-		(*isub) = (*iwork)[(*i)-1]
-		(*jsub) = (*iwork)[(*j)-1]
+	if ipvtng == 0 {
+		isub = i
+		jsub = j
+	} else if ipvtng == 1 {
+		isub = (*iwork)[i-1]
+		jsub = j
+	} else if ipvtng == 2 {
+		isub = i
+		jsub = (*iwork)[j-1]
+	} else if ipvtng == 3 {
+		isub = (*iwork)[i-1]
+		jsub = (*iwork)[j-1]
 	}
 
 	//     Check for banding
-	if (*jsub) > (*isub)+(*ku) || (*jsub) < (*isub)-(*kl) {
-		dlatm3Return = zero
-		return
+	if jsub > isub+ku || jsub < isub-kl {
+		return isub, jsub, dlatm3Return
 	}
 
 	//     Check for sparsity
-	if (*sparse) > zero {
-		if Dlaran(iseed) < (*sparse) {
-			dlatm3Return = zero
-			return
+	if sparse > zero {
+		if Dlaran(iseed) < sparse {
+			return isub, jsub, dlatm3Return
 		}
 	}
 
 	//     Compute entry and grade it according to IGRADE
-	if (*i) == (*j) {
-		temp = d.Get((*i) - 1)
+	if i == j {
+		dlatm3Return = d.Get(i - 1)
 	} else {
-		temp = Dlarnd(idist, iseed)
+		dlatm3Return = Dlarnd(idist, iseed)
 	}
-	if (*igrade) == 1 {
-		temp = temp * dl.Get((*i)-1)
-	} else if (*igrade) == 2 {
-		temp = temp * dr.Get((*j)-1)
-	} else if (*igrade) == 3 {
-		temp = temp * dl.Get((*i)-1) * dr.Get((*j)-1)
-	} else if (*igrade) == 4 && (*i) != (*j) {
-		temp = temp * dl.Get((*i)-1) / dl.Get((*j)-1)
-	} else if (*igrade) == 5 {
-		temp = temp * dl.Get((*i)-1) * dl.Get((*j)-1)
+	if igrade == 1 {
+		dlatm3Return *= dl.Get(i - 1)
+	} else if igrade == 2 {
+		dlatm3Return *= dr.Get(j - 1)
+	} else if igrade == 3 {
+		dlatm3Return *= dl.Get(i-1) * dr.Get(j-1)
+	} else if igrade == 4 && i != j {
+		dlatm3Return *= dl.Get(i-1) / dl.Get(j-1)
+	} else if igrade == 5 {
+		dlatm3Return *= dl.Get(i-1) * dl.Get(j-1)
 	}
-	dlatm3Return = temp
-	return
+
+	return isub, jsub, dlatm3Return
 }

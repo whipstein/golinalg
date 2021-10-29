@@ -1,26 +1,28 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrunhrcol tests the error exits for ZUNHR_COL that does
+// zerrunhrCol tests the error exits for ZunhrCol that does
 // Householder reconstruction from the ouput of tall-skinny
 // factorization ZLATSQR.
-func Zerrunhrcol(path []byte, _t *testing.T) {
-	var i, info, j, nmax int
+func zerrunhrCol(path string, _t *testing.T) {
+	var i, j, nmax int
+	var err error
 
 	d := cvf(2)
 	a := cmf(2, 2, opts)
 	t := cmf(2, 2, opts)
 
 	nmax = 2
-	infot := &gltest.Common.Infoc.Infot
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	//     Set the variables to innocuous values.
@@ -35,46 +37,51 @@ func Zerrunhrcol(path []byte, _t *testing.T) {
 
 	//     Error exits for Householder reconstruction
 	//
-	//     ZUNHR_COL
-	*srnamt = "ZUNHR_COL"
+	//     ZunhrCol
+	*srnamt = "ZunhrCol"
 
-	*infot = 1
-	golapack.Zunhrcol(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.ZunhrCol(-1, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
 
-	*infot = 2
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
-	golapack.Zunhrcol(func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
+	*errt = fmt.Errorf("n < 0 || n > m: m=0, n=-1")
+	err = golapack.ZunhrCol(0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
+	*errt = fmt.Errorf("n < 0 || n > m: m=1, n=2")
+	err = golapack.ZunhrCol(1, 2, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
 
-	*infot = 3
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
+	*errt = fmt.Errorf("nb < 1: nb=-1")
+	err = golapack.ZunhrCol(0, 0, -1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
+	*errt = fmt.Errorf("nb < 1: nb=0")
+	err = golapack.ZunhrCol(0, 0, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
 
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=-1, m=0")
+	err = golapack.ZunhrCol(0, 0, 1, a.Off(0, 0).UpdateRows(-1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
+	// *errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=0, m=0")
+	// err = golapack.ZunhrCol(0, 0, 1, a.Off(0, 0).UpdateRows(0), t.Off(0, 0).UpdateRows(1), d)
+	// chkxer2("ZunhrCol", err)
+	*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+	err = golapack.ZunhrCol(2, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
 
-	*infot = 5
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, toPtr(-1), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
-
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 0; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
-
-	golapack.Zunhrcol(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
-
-	*infot = 7
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, toPtr(-1), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
-
-	golapack.Zunhrcol(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 0; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
-
-	golapack.Zunhrcol(func() *int { y := 4; return &y }(), func() *int { y := 3; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 4; return &y }(), t, func() *int { y := 1; return &y }(), d, &info)
-	Chkxer("ZUNHR_COL", &info, lerr, ok, _t)
+	*errt = fmt.Errorf("t.Rows < max(1, min(nb, n)): t.Rows=-1, n=0, nb=1")
+	err = golapack.ZunhrCol(0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(-1), d)
+	chkxer2("ZunhrCol", err)
+	// *errt = fmt.Errorf("t.Rows < max(1, min(nb, n)): t.Rows=0, n=0, nb=1")
+	// err = golapack.ZunhrCol(0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(0), d)
+	// chkxer2("ZunhrCol", err)
+	*errt = fmt.Errorf("t.Rows < max(1, min(nb, n)): t.Rows=1, n=3, nb=2")
+	err = golapack.ZunhrCol(4, 3, 2, a.Off(0, 0).UpdateRows(4), t.Off(0, 0).UpdateRows(1), d)
+	chkxer2("ZunhrCol", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		_t.Fail()
+	}
 }

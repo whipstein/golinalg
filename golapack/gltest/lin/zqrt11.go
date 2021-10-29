@@ -1,12 +1,14 @@
 package lin
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zqrt11 computes the test ratio
+// zqrt11 computes the test ratio
 //
 //       || Q'*Q - I || / (eps * m)
 //
@@ -18,9 +20,10 @@ import (
 // where tau(k) is stored in TAU(k) and v(k) is an m-vector of the form
 // [ 0 ... 0 1 x(k) ]', where x(k) is a vector of length m-k stored
 // in A(k+1:m,k).
-func Zqrt11(m, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *int) (zqrt11Return float64) {
+func zqrt11(m, k int, a *mat.CMatrix, tau, work *mat.CVector, lwork int) (zqrt11Return float64) {
 	var one, zero float64
-	var info, j int
+	var j int
+	var err error
 
 	rdummy := vf(1)
 
@@ -30,29 +33,34 @@ func Zqrt11(m, k *int, a *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *
 	zqrt11Return = zero
 
 	//     Test for sufficient workspace
-	if (*lwork) < (*m)*(*m)+(*m) {
-		gltest.Xerbla([]byte("ZQRT11"), 7)
+	if lwork < m*m+m {
+		err = fmt.Errorf("lwork < m*m+m: lwork=%v, m=%v", lwork, m)
+		gltest.Xerbla2("zqrt11", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) <= 0 {
+	if m <= 0 {
 		return
 	}
 
-	golapack.Zlaset('F', m, m, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), work.CMatrix(*m, opts), m)
+	golapack.Zlaset(Full, m, m, complex(zero, 0), complex(one, 0), work.CMatrix(m, opts))
 
 	//     Form Q
-	golapack.Zunm2r('L', 'N', m, m, k, a, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*m)), &info)
-
-	//     Form Q'*Q
-	golapack.Zunm2r('L', 'C', m, m, k, a, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*m)), &info)
-
-	for j = 1; j <= (*m); j++ {
-		work.Set((j-1)*(*m)+j-1, work.Get((j-1)*(*m)+j-1)-complex(one, 0))
+	if err = golapack.Zunm2r(Left, NoTrans, m, m, k, a, tau, work.CMatrix(m, opts), work.Off(m*m)); err != nil {
+		panic(err)
 	}
 
-	zqrt11Return = golapack.Zlange('O', m, m, work.CMatrix(*m, opts), m, rdummy) / (float64(*m) * golapack.Dlamch(Epsilon))
+	//     Form Q'*Q
+	if err = golapack.Zunm2r(Left, ConjTrans, m, m, k, a, tau, work.CMatrix(m, opts), work.Off(m*m)); err != nil {
+		panic(err)
+	}
+
+	for j = 1; j <= m; j++ {
+		work.Set((j-1)*m+j-1, work.Get((j-1)*m+j-1)-complex(one, 0))
+	}
+
+	zqrt11Return = golapack.Zlange('O', m, m, work.CMatrix(m, opts), rdummy) / (float64(m) * golapack.Dlamch(Epsilon))
 
 	return
 }

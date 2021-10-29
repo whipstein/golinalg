@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -19,7 +21,7 @@ import (
 // if UPLO = 'U', Q = H(nq-1) . . . H(2) H(1);
 //
 // if UPLO = 'L', Q = H(1) H(2) . . . H(nq-1).
-func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMatrix, ldc *int, work *mat.CVector, info *int) {
+func Zupmtr(side mat.MatSide, uplo mat.MatUplo, trans mat.MatTrans, m, n int, ap, tau *mat.CVector, c *mat.CMatrix, work *mat.CVector) (err error) {
 	var forwrd, left, notran, upper bool
 	var aii, one, taui complex128
 	var i, i1, i2, i3, ic, ii, jc, mi, ni, nq int
@@ -27,37 +29,36 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 	one = (1.0 + 0.0*1i)
 
 	//     Test the input arguments
-	(*info) = 0
-	left = side == 'L'
-	notran = trans == 'N'
-	upper = uplo == 'U'
+	left = side == Left
+	notran = trans == NoTrans
+	upper = uplo == Upper
 
 	//     NQ is the order of Q
 	if left {
-		nq = (*m)
+		nq = m
 	} else {
-		nq = (*n)
+		nq = n
 	}
-	if !left && side != 'R' {
-		(*info) = -1
-	} else if !upper && uplo != 'L' {
-		(*info) = -2
-	} else if !notran && trans != 'C' {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*n) < 0 {
-		(*info) = -5
-	} else if (*ldc) < max(1, *m) {
-		(*info) = -9
+	if !left && side != Right {
+		err = fmt.Errorf("!left && side != Right: side=%s", side)
+	} else if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if !notran && trans != ConjTrans {
+		err = fmt.Errorf("!notran && trans != ConjTrans: trans=%s", trans)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if c.Rows < max(1, m) {
+		err = fmt.Errorf("c.Rows < max(1, m): c.Rows=%v, m=%v", c.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZUPMTR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zupmtr", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
@@ -78,9 +79,9 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 		}
 
 		if left {
-			ni = (*n)
+			ni = n
 		} else {
-			mi = (*m)
+			mi = m
 		}
 		//
 		for _, i = range genIter(i1, i2, i3) {
@@ -100,7 +101,7 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 			}
 			aii = ap.Get(ii - 1)
 			ap.Set(ii-1, one)
-			Zlarf(side, &mi, &ni, ap.Off(ii-i), func() *int { y := 1; return &y }(), &taui, c, ldc, work)
+			Zlarf(side, mi, ni, ap.Off(ii-i, 1), taui, c, work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {
@@ -126,10 +127,10 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 		}
 
 		if left {
-			ni = (*n)
+			ni = n
 			jc = 1
 		} else {
-			mi = (*m)
+			mi = m
 			ic = 1
 		}
 
@@ -138,11 +139,11 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 			ap.Set(ii-1, one)
 			if left {
 				//              H(i) or H(i)**H is applied to C(i+1:m,1:n)
-				mi = (*m) - i
+				mi = m - i
 				ic = i + 1
 			} else {
 				//              H(i) or H(i)**H is applied to C(1:m,i+1:n)
-				ni = (*n) - i
+				ni = n - i
 				jc = i + 1
 			}
 
@@ -152,7 +153,7 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 			} else {
 				taui = tau.GetConj(i - 1)
 			}
-			Zlarf(side, &mi, &ni, ap.Off(ii-1), func() *int { y := 1; return &y }(), &taui, c.Off(ic-1, jc-1), ldc, work)
+			Zlarf(side, mi, ni, ap.Off(ii-1, 1), taui, c.Off(ic-1, jc-1), work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {
@@ -162,4 +163,6 @@ func Zupmtr(side, uplo, trans byte, m, n *int, ap, tau *mat.CVector, c *mat.CMat
 			}
 		}
 	}
+
+	return
 }

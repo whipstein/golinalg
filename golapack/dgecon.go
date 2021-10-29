@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -15,7 +16,7 @@ import (
 // An estimate is obtained for norm(inv(A)), and the reciprocal of the
 // condition number is computed as
 //    RCOND = 1 / ( norm(A) * norm(inv(A)) ).
-func Dgecon(norm byte, n *int, a *mat.Matrix, lda *int, anorm *float64, rcond *float64, work *mat.Vector, iwork *[]int, info *int) {
+func Dgecon(norm byte, n int, a *mat.Matrix, anorm float64, work *mat.Vector, iwork *[]int) (rcond float64, err error) {
 	var onenrm bool
 	var normin byte
 	var ainvnm, one, scale, sl, smlnum, su, zero float64
@@ -26,28 +27,27 @@ func Dgecon(norm byte, n *int, a *mat.Matrix, lda *int, anorm *float64, rcond *f
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
 	onenrm = norm == '1' || norm == 'O'
 	if !onenrm && norm != 'I' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*anorm) < zero {
-		(*info) = -5
+		err = fmt.Errorf("!onenrm && norm != 'I': norm='%c'", norm)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if anorm < zero {
+		err = fmt.Errorf("anorm < zero: anorm=%v", anorm)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGECON"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgecon", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*rcond) = zero
-	if (*n) == 0 {
-		(*rcond) = one
+	rcond = zero
+	if n == 0 {
+		rcond = one
 		return
-	} else if (*anorm) == zero {
+	} else if anorm == zero {
 		return
 	}
 	//
@@ -64,39 +64,47 @@ func Dgecon(norm byte, n *int, a *mat.Matrix, lda *int, anorm *float64, rcond *f
 	kase = 0
 label10:
 	;
-	Dlacn2(n, work.Off((*n)), work, iwork, &ainvnm, &kase, &isave)
+	ainvnm, kase = Dlacn2(n, work.Off(n), work, iwork, ainvnm, kase, &isave)
 	if kase != 0 {
 		if kase == kase1 {
 			//           Multiply by inv(L).
-			Dlatrs('L', 'N', 'U', normin, n, a, lda, work, &sl, work.Off(2*(*n)), info)
+			if sl, err = Dlatrs(Lower, NoTrans, Unit, normin, n, a, work, sl, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 
 			//           Multiply by inv(U).
-			Dlatrs('U', 'N', 'N', normin, n, a, lda, work, &su, work.Off(3*(*n)), info)
+			if su, err = Dlatrs(Upper, NoTrans, NonUnit, normin, n, a, work, su, work.Off(3*n)); err != nil {
+				panic(err)
+			}
 		} else {
 			//           Multiply by inv(U**T).
-			Dlatrs('U', 'T', 'N', normin, n, a, lda, work, &su, work.Off(3*(*n)), info)
+			if su, err = Dlatrs(Upper, Trans, NonUnit, normin, n, a, work, su, work.Off(3*n)); err != nil {
+				panic(err)
+			}
 
 			//           Multiply by inv(L**T).
-			Dlatrs('L', 'T', 'U', normin, n, a, lda, work, &sl, work.Off(2*(*n)), info)
+			if sl, err = Dlatrs(Lower, Trans, Unit, normin, n, a, work, sl, work.Off(2*n)); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Divide X by 1/(SL*SU) if doing so will not cause overflow.
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(*n, work.Off(0, 1))
+			ix = goblas.Idamax(n, work.Off(0, 1))
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
-				goto label20
+				return
 			}
-			Drscl(n, &scale, work, func() *int { y := 1; return &y }())
+			Drscl(n, scale, work.Off(0, 1))
 		}
 		goto label10
 	}
 
 	//     Compute the estimate of the reciprocal condition number.
 	if ainvnm != zero {
-		(*rcond) = (one / ainvnm) / (*anorm)
+		rcond = (one / ainvnm) / anorm
 	}
 
-label20:
+	return
 }

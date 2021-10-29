@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
@@ -33,13 +34,11 @@ import (
 // If Q and Z are the unitary factors from the generalized Schur
 // factorization of a matrix pair (A,B), then Z*X and Q*Y
 // are the matrices of right and left eigenvectors of (A,B).
-func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int, p *mat.CMatrix, ldp *int, vl *mat.CMatrix, ldvl *int, vr *mat.CMatrix, ldvr, mm, m *int, work *mat.CVector, rwork *mat.Vector, info *int) {
+func Ztgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *mat.CMatrix, mm int, work *mat.CVector, rwork *mat.Vector) (m int, err error) {
 	var compl, compr, ilall, ilback, ilbbad, ilcomp, lsa, lsb bool
 	var bcoeff, ca, cb, cone, czero, d, salpha, sum, suma, sumb complex128
 	var acoefa, acoeff, anorm, ascale, bcoefa, big, bignum, bnorm, bscale, dmin, one, safmin, sbeta, scale, small, temp, ulp, xmax, zero float64
 	var i, ibeg, ieig, iend, ihwmny, im, iside, isrc, j, je, jr int
-	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -63,15 +62,15 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 		ihwmny = -1
 	}
 
-	if side == 'R' {
+	if side == Right {
 		iside = 1
 		compl = false
 		compr = true
-	} else if side == 'L' {
+	} else if side == Left {
 		iside = 2
 		compl = true
 		compr = false
-	} else if side == 'B' {
+	} else if side == Both {
 		iside = 3
 		compl = true
 		compr = true
@@ -79,71 +78,70 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 		iside = -1
 	}
 
-	(*info) = 0
 	if iside < 0 {
-		(*info) = -1
+		err = fmt.Errorf("iside < 0: side=%s", side)
 	} else if ihwmny < 0 {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lds) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldp) < max(1, *n) {
-		(*info) = -8
+		err = fmt.Errorf("ihwmny < 0: howmny='%c'", howmny)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if s.Rows < max(1, n) {
+		err = fmt.Errorf("s.Rows < max(1, n): s.Rows=%v, n=%v", s.Rows, n)
+	} else if p.Rows < max(1, n) {
+		err = fmt.Errorf("p.Rows < max(1, n): p.Rows=%v, n=%v", p.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTGEVC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztgevc", err)
 		return
 	}
 
 	//     Count the number of eigenvectors
 	if !ilall {
 		im = 0
-		for j = 1; j <= (*n); j++ {
+		for j = 1; j <= n; j++ {
 			if _select[j-1] {
 				im = im + 1
 			}
 		}
 	} else {
-		im = (*n)
+		im = n
 	}
 
 	//     Check diagonal of B
 	ilbbad = false
-	for j = 1; j <= (*n); j++ {
+	for j = 1; j <= n; j++ {
 		if p.GetIm(j-1, j-1) != zero {
 			ilbbad = true
 		}
 	}
 
 	if ilbbad {
-		(*info) = -7
-	} else if compl && (*ldvl) < (*n) || (*ldvl) < 1 {
-		(*info) = -10
-	} else if compr && (*ldvr) < (*n) || (*ldvr) < 1 {
-		(*info) = -12
-	} else if (*mm) < im {
-		(*info) = -13
+		err = fmt.Errorf("ilbbad=%v", ilbbad)
+	} else if compl && vl.Rows < n || vl.Rows < 1 {
+		err = fmt.Errorf("compl && vl.Rows < n || vl.Rows < 1: compl=%v, vl.Rows=%v, n=%v", compl, vl.Rows, n)
+	} else if compr && vr.Rows < n || vr.Rows < 1 {
+		err = fmt.Errorf("compr && vr.Rows < n || vr.Rows < 1: compr=%v, vr.Rows=%v, n=%v", compr, vr.Rows, n)
+	} else if mm < im {
+		err = fmt.Errorf("mm < im: mm=%v, im=%v", mm, im)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTGEVC"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztgevc", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*m) = im
-	if (*n) == 0 {
+	m = im
+	if n == 0 {
 		return
 	}
 
 	//     Machine Constants
 	safmin = Dlamch(SafeMinimum)
 	big = one / safmin
-	Dlabad(&safmin, &big)
+	safmin, big = Dlabad(safmin, big)
 	ulp = Dlamch(Epsilon) * Dlamch(Base)
-	small = safmin * float64(*n) / ulp
+	small = safmin * float64(n) / ulp
 	big = one / small
-	bignum = one / (safmin * float64(*n))
+	bignum = one / (safmin * float64(n))
 
 	//     Compute the 1-norm of each column of the strictly upper triangular
 	//     part of A and B to check for possible overflow in the triangular
@@ -151,16 +149,16 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 	anorm = abs1(s.Get(0, 0))
 	bnorm = abs1(p.Get(0, 0))
 	rwork.Set(0, zero)
-	rwork.Set((*n), zero)
-	for j = 2; j <= (*n); j++ {
+	rwork.Set(n, zero)
+	for j = 2; j <= n; j++ {
 		rwork.Set(j-1, zero)
-		rwork.Set((*n)+j-1, zero)
+		rwork.Set(n+j-1, zero)
 		for i = 1; i <= j-1; i++ {
 			rwork.Set(j-1, rwork.Get(j-1)+abs1(s.Get(i-1, j-1)))
-			rwork.Set((*n)+j-1, rwork.Get((*n)+j-1)+abs1(p.Get(i-1, j-1)))
+			rwork.Set(n+j-1, rwork.Get(n+j-1)+abs1(p.Get(i-1, j-1)))
 		}
 		anorm = math.Max(anorm, rwork.Get(j-1)+abs1(s.Get(j-1, j-1)))
-		bnorm = math.Max(bnorm, rwork.Get((*n)+j-1)+abs1(p.Get(j-1, j-1)))
+		bnorm = math.Max(bnorm, rwork.Get(n+j-1)+abs1(p.Get(j-1, j-1)))
 	}
 
 	ascale = one / math.Max(anorm, safmin)
@@ -171,7 +169,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 		ieig = 0
 
 		//        Main loop over eigenvalues
-		for je = 1; je <= (*n); je++ {
+		for je = 1; je <= n; je++ {
 			if ilall {
 				ilcomp = true
 			} else {
@@ -182,7 +180,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				if abs1(s.Get(je-1, je-1)) <= safmin && math.Abs(p.GetRe(je-1, je-1)) <= safmin {
 					//                 Singular matrix pencil -- return unit eigenvector
-					for jr = 1; jr <= (*n); jr++ {
+					for jr = 1; jr <= n; jr++ {
 						vl.Set(jr-1, ieig-1, czero)
 					}
 					vl.Set(ieig-1, ieig-1, cone)
@@ -228,7 +226,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				acoefa = math.Abs(acoeff)
 				bcoefa = abs1(bcoeff)
 				xmax = one
-				for jr = 1; jr <= (*n); jr++ {
+				for jr = 1; jr <= n; jr++ {
 					work.Set(jr-1, czero)
 				}
 				work.Set(je-1, cone)
@@ -239,14 +237,14 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//
 				//                                      H
 				//              (rowwise in  (a A - b B) , or columnwise in a A - b B)
-				for j = je + 1; j <= (*n); j++ {
+				for j = je + 1; j <= n; j++ {
 					//                 Compute
 					//                       j-1
 					//                 SUM = sum  conjg( a*S(k,j) - b*P(k,j) )*x(k)
 					//                       k=je
 					//                 (Scale if necessary)
 					temp = one / xmax
-					if acoefa*rwork.Get(j-1)+bcoefa*rwork.Get((*n)+j-1) > bignum*temp {
+					if acoefa*rwork.Get(j-1)+bcoefa*rwork.Get(n+j-1) > bignum*temp {
 						for jr = je; jr <= j-1; jr++ {
 							work.Set(jr-1, complex(temp, 0)*work.Get(jr-1))
 						}
@@ -279,13 +277,15 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 							sum = complex(temp, 0) * sum
 						}
 					}
-					work.Set(j-1, Zladiv(toPtrc128(-sum), &d))
+					work.Set(j-1, Zladiv(-sum, d))
 					xmax = math.Max(xmax, abs1(work.Get(j-1)))
 				}
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					err = goblas.Zgemv(NoTrans, *n, (*n)+1-je, cone, vl.Off(0, je-1), work.Off(je-1, 1), czero, work.Off((*n), 1))
+					if err = goblas.Zgemv(NoTrans, n, n+1-je, cone, vl.Off(0, je-1), work.Off(je-1, 1), czero, work.Off(n, 1)); err != nil {
+						panic(err)
+					}
 					isrc = 2
 					ibeg = 1
 				} else {
@@ -295,17 +295,17 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				//              Copy and scale eigenvector into column of VL
 				xmax = zero
-				for jr = ibeg; jr <= (*n); jr++ {
-					xmax = math.Max(xmax, abs1(work.Get((isrc-1)*(*n)+jr-1)))
+				for jr = ibeg; jr <= n; jr++ {
+					xmax = math.Max(xmax, abs1(work.Get((isrc-1)*n+jr-1)))
 				}
 
 				if xmax > safmin {
 					temp = one / xmax
-					for jr = ibeg; jr <= (*n); jr++ {
-						vl.Set(jr-1, ieig-1, complex(temp, 0)*work.Get((isrc-1)*(*n)+jr-1))
+					for jr = ibeg; jr <= n; jr++ {
+						vl.Set(jr-1, ieig-1, complex(temp, 0)*work.Get((isrc-1)*n+jr-1))
 					}
 				} else {
-					ibeg = (*n) + 1
+					ibeg = n + 1
 				}
 
 				for jr = 1; jr <= ibeg-1; jr++ {
@@ -322,7 +322,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 		ieig = im + 1
 
 		//        Main loop over eigenvalues
-		for je = (*n); je >= 1; je -= 1 {
+		for je = n; je >= 1; je -= 1 {
 			if ilall {
 				ilcomp = true
 			} else {
@@ -333,7 +333,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				if abs1(s.Get(je-1, je-1)) <= safmin && math.Abs(p.GetRe(je-1, je-1)) <= safmin {
 					//                 Singular matrix pencil -- return unit eigenvector
-					for jr = 1; jr <= (*n); jr++ {
+					for jr = 1; jr <= n; jr++ {
 						vr.Set(jr-1, ieig-1, czero)
 					}
 					vr.Set(ieig-1, ieig-1, cone)
@@ -378,7 +378,7 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				acoefa = math.Abs(acoeff)
 				bcoefa = abs1(bcoeff)
 				xmax = one
-				for jr = 1; jr <= (*n); jr++ {
+				for jr = 1; jr <= n; jr++ {
 					work.Set(jr-1, czero)
 				}
 				work.Set(je-1, cone)
@@ -410,13 +410,13 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 						}
 					}
 
-					work.Set(j-1, Zladiv(toPtrc128(-work.Get(j-1)), &d))
+					work.Set(j-1, Zladiv(-work.Get(j-1), d))
 
 					if j > 1 {
 						//                    w = w + x(j)*(a S(*,j) - b P(*,j) ) with scaling
 						if abs1(work.Get(j-1)) > one {
 							temp = one / abs1(work.Get(j-1))
-							if acoefa*rwork.Get(j-1)+bcoefa*rwork.Get((*n)+j-1) >= bignum*temp {
+							if acoefa*rwork.Get(j-1)+bcoefa*rwork.Get(n+j-1) >= bignum*temp {
 								for jr = 1; jr <= je; jr++ {
 									work.Set(jr-1, complex(temp, 0)*work.Get(jr-1))
 								}
@@ -433,9 +433,9 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					err = goblas.Zgemv(NoTrans, *n, je, cone, vr, work.Off(0, 1), czero, work.Off((*n), 1))
+					err = goblas.Zgemv(NoTrans, n, je, cone, vr, work.Off(0, 1), czero, work.Off(n, 1))
 					isrc = 2
-					iend = (*n)
+					iend = n
 				} else {
 					isrc = 1
 					iend = je
@@ -444,19 +444,19 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 				//              Copy and scale eigenvector into column of VR
 				xmax = zero
 				for jr = 1; jr <= iend; jr++ {
-					xmax = math.Max(xmax, abs1(work.Get((isrc-1)*(*n)+jr-1)))
+					xmax = math.Max(xmax, abs1(work.Get((isrc-1)*n+jr-1)))
 				}
 
 				if xmax > safmin {
 					temp = one / xmax
 					for jr = 1; jr <= iend; jr++ {
-						vr.Set(jr-1, ieig-1, complex(temp, 0)*work.Get((isrc-1)*(*n)+jr-1))
+						vr.Set(jr-1, ieig-1, complex(temp, 0)*work.Get((isrc-1)*n+jr-1))
 					}
 				} else {
 					iend = 0
 				}
 
-				for jr = iend + 1; jr <= (*n); jr++ {
+				for jr = iend + 1; jr <= n; jr++ {
 					vr.Set(jr-1, ieig-1, czero)
 				}
 
@@ -464,4 +464,6 @@ func Ztgevc(side, howmny byte, _select []bool, n *int, s *mat.CMatrix, lds *int,
 		label250:
 		}
 	}
+
+	return
 }

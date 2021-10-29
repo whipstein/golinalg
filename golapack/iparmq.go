@@ -3,10 +3,10 @@ package golapack
 import "math"
 
 // Iparmq This program sets problem and machine dependent parameters
-//      useful for xHSEQR and related subroutines for eigenvalue
+//      useful for xhseqr and related subroutines for eigenvalue
 //      problems. It is called whenever
 //      IPARMQ is called with 12 <= ISPEC <= 16
-func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqReturn int) {
+func Iparmq(ispec int, name string, opts []byte, n, ilo, ihi, lwork int) (iparmqReturn int) {
 	var two float64
 	var i, iacc22, ic, inibl, inmin, inwin, ishfts, iz, k22min, kacmin, knwswp, nh, nibble, nmin, ns int
 
@@ -22,9 +22,9 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 	knwswp = 500
 	two = 2.0
 
-	if ((*ispec) == ishfts) || ((*ispec) == inwin) || ((*ispec) == iacc22) {
+	if (ispec == ishfts) || (ispec == inwin) || (ispec == iacc22) {
 		//        ==== Set the number simultaneous shifts ====
-		nh = (*ihi) - (*ilo) + 1
+		nh = ihi - ilo + 1
 		ns = 2
 		if nh >= 30 {
 			ns = 4
@@ -47,23 +47,23 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 		ns = max(2, ns-ns%2)
 	}
 
-	if (*ispec) == inmin {
+	if ispec == inmin {
 		//        ===== Matrices of order smaller than NMIN get sent
 		//        .     to xLAHQR, the classic double shift algorithm.
 		//        .     This must be at least 11. ====
 		iparmqReturn = nmin
 
-	} else if (*ispec) == inibl {
+	} else if ispec == inibl {
 		//        ==== INIBL: skip a multi-shift qr iteration and
 		//        .    whenever aggressive early deflation finds
 		//        .    at least (NIBBLE*(window size)/100) deflations. ====
 		iparmqReturn = nibble
 
-	} else if (*ispec) == ishfts {
+	} else if ispec == ishfts {
 		//        ==== NSHFTS: The number of simultaneous shifts =====
 		iparmqReturn = ns
 
-	} else if (*ispec) == inwin {
+	} else if ispec == inwin {
 		//        ==== NW: deflation window size.  ====
 		if nh <= knwswp {
 			iparmqReturn = ns
@@ -71,7 +71,7 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 			iparmqReturn = 3 * ns / 2
 		}
 
-	} else if (*ispec) == iacc22 {
+	} else if ispec == iacc22 {
 		//        ==== IACC22: Whether to accumulate reflections
 		//        .     before updating the far-from-diagonal elements
 		//        .     and whether to use 2-by-2 block structure while
@@ -122,19 +122,19 @@ func Iparmq(ispec *int, name, opts []byte, n, ilo, ihi, lwork *int) (iparmqRetur
 			}
 		}
 
-		if string(subnam[1:6]) == "GGHRD" || string(subnam[1:6]) == "GGHD3" {
+		if name[1:6] == "gghrd" || name[1:6] == "gghd3" {
 			iparmqReturn = 1
 			if nh >= k22min {
 				iparmqReturn = 2
 			}
-		} else if string(subnam[3:6]) == "EXC" {
+		} else if name[3:6] == "exc" {
 			if nh >= kacmin {
 				iparmqReturn = 1
 			}
 			if nh >= k22min {
 				iparmqReturn = 2
 			}
-		} else if string(subnam[1:6]) == "HSEQR" || string(subnam[1:5]) == "LAQR" {
+		} else if name[1:6] == "hseqr" || name[1:5] == "laqr" {
 			if ns >= kacmin {
 				iparmqReturn = 1
 			}

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -18,7 +19,7 @@ import (
 // digits which subtract like the Cray X-MP, Cray Y-MP, Cray C-90, or
 // Cray-2. It could conceivably fail on hexadecimal or decimal machines
 // without guard digits, but we know of none.
-func Dstevd(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, lwork *int, iwork *[]int, liwork, info *int) {
+func Dstevd(jobz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork *[]int, liwork int) (info int, err error) {
 	var lquery, wantz bool
 	var bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, tnrm, zero float64
 	var iscale, liwmin, lwmin int
@@ -28,48 +29,47 @@ func Dstevd(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
-	lquery = ((*lwork) == -1 || (*liwork) == -1)
+	lquery = (lwork == -1 || liwork == -1)
 
-	(*info) = 0
 	liwmin = 1
 	lwmin = 1
-	if (*n) > 1 && wantz {
-		lwmin = 1 + 4*(*n) + int(math.Pow(float64(*n), 2))
-		liwmin = 3 + 5*(*n)
+	if n > 1 && wantz {
+		lwmin = 1 + 4*n + pow(n, 2)
+		liwmin = 3 + 5*n
 	}
 
 	if !(wantz || jobz == 'N') {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-		(*info) = -6
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if z.Rows < 1 || (wantz && z.Rows < n) {
+		err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		work.Set(0, float64(lwmin))
 		(*iwork)[0] = liwmin
 
-		if (*lwork) < lwmin && !lquery {
-			(*info) = -8
-		} else if (*liwork) < liwmin && !lquery {
-			(*info) = -10
+		if lwork < lwmin && !lquery {
+			err = fmt.Errorf("lwork < lwmin && !lquery: lwork=%v, lwmin=%v, lquery=%v", lwork, lwmin, lquery)
+		} else if liwork < liwmin && !lquery {
+			err = fmt.Errorf("liwork < liwmin && !lquery: liwork=%v, liwmin=%v, lquery=%v", liwork, liwmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSTEVD"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dstevd", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if wantz {
 			z.Set(0, 0, one)
 		}
@@ -95,23 +95,29 @@ func Dstevd(jobz byte, n *int, d, e *mat.Vector, z *mat.Matrix, ldz *int, work *
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(*n, sigma, d.Off(0, 1))
-		goblas.Dscal((*n)-1, sigma, e.Off(0, 1))
+		goblas.Dscal(n, sigma, d.Off(0, 1))
+		goblas.Dscal(n-1, sigma, e.Off(0, 1))
 	}
 
 	//     For eigenvalues only, call DSTERF.  For eigenvalues and
 	//     eigenvectors, call DSTEDC.
 	if !wantz {
-		Dsterf(n, d, e, info)
+		if info, err = Dsterf(n, d, e); err != nil {
+			panic(err)
+		}
 	} else {
-		Dstedc('I', n, d, e, z, ldz, work, lwork, iwork, liwork, info)
+		if info, err = Dstedc('I', n, d, e, z, work, lwork, iwork, liwork); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(*n, one/sigma, d.Off(0, 1))
+		goblas.Dscal(n, one/sigma, d.Off(0, 1))
 	}
 
 	work.Set(0, float64(lwmin))
 	(*iwork)[0] = liwmin
+
+	return
 }

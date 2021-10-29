@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -10,97 +12,108 @@ import (
 // a real distributed M-by-N  C from the left or the right.
 //
 // Currently, only STOREV = 'R' and DIRECT = 'B' are supported.
-func Dlarzb(side, trans, direct, storev byte, m, n, k, l *int, v *mat.Matrix, ldv *int, t *mat.Matrix, ldt *int, c *mat.Matrix, ldc *int, work *mat.Matrix, ldwork *int) {
-	var transt byte
+func Dlarzb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, l int, v, t, c, work *mat.Matrix) (err error) {
+	var transt mat.MatTrans
 	var one float64
-	var i, info, j int
-	var err error
-	_ = err
+	var i, j int
 
 	one = 1.0
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
+	if m <= 0 || n <= 0 {
 		return
 	}
 
 	//     Check for currently supported options
-	info = 0
 	if direct != 'B' {
-		info = -3
+		err = fmt.Errorf("direct != 'B': direct='%c'", direct)
 	} else if storev != 'R' {
-		info = -4
+		err = fmt.Errorf("storev != 'R': storev='%c'", storev)
 	}
-	if info != 0 {
-		gltest.Xerbla([]byte("DLARZB"), -info)
+	if err != nil {
+		gltest.Xerbla2("Dlarzb", err)
 		return
 	}
 
-	if trans == 'N' {
-		transt = 'T'
+	if trans == NoTrans {
+		transt = Trans
 	} else {
-		transt = 'N'
+		transt = NoTrans
 	}
 
-	if side == 'L' {
+	if side == Left {
 		//        Form  H * C  or  H**T * C
 		//
 		//        W( 1:n, 1:k ) = C( 1:k, 1:n )**T
-		for j = 1; j <= (*k); j++ {
-			goblas.Dcopy(*n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
+		for j = 1; j <= k; j++ {
+			goblas.Dcopy(n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) + ...
 		//                        C( m-l+1:m, 1:n )**T * V( 1:k, 1:l )**T
-		if (*l) > 0 {
-			err = goblas.Dgemm(Trans, Trans, *n, *k, *l, one, c.Off((*m)-(*l), 0), v, one, work)
+		if l > 0 {
+			if err = goblas.Dgemm(Trans, Trans, n, k, l, one, c.Off(m-l, 0), v, one, work); err != nil {
+				panic(err)
+			}
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) * T**T  or  W( 1:m, 1:k ) * T
-		err = goblas.Dtrmm(Right, Lower, mat.TransByte(transt), NonUnit, *n, *k, one, t, work)
+		if err = goblas.Dtrmm(Right, Lower, transt, NonUnit, n, k, one, t, work); err != nil {
+			panic(err)
+		}
 
 		//        C( 1:k, 1:n ) = C( 1:k, 1:n ) - W( 1:n, 1:k )**T
-		for j = 1; j <= (*n); j++ {
-			for i = 1; i <= (*k); i++ {
+		for j = 1; j <= n; j++ {
+			for i = 1; i <= k; i++ {
 				c.Set(i-1, j-1, c.Get(i-1, j-1)-work.Get(j-1, i-1))
 			}
 		}
 
 		//        C( m-l+1:m, 1:n ) = C( m-l+1:m, 1:n ) - ...
 		//                            V( 1:k, 1:l )**T * W( 1:n, 1:k )**T
-		if (*l) > 0 {
-			err = goblas.Dgemm(Trans, Trans, *l, *n, *k, -one, v, work, one, c.Off((*m)-(*l), 0))
+		if l > 0 {
+			if err = goblas.Dgemm(Trans, Trans, l, n, k, -one, v, work, one, c.Off(m-l, 0)); err != nil {
+				panic(err)
+			}
 		}
 
-	} else if side == 'R' {
+	} else if side == Right {
 		//        Form  C * H  or  C * H**T
 		//
 		//        W( 1:m, 1:k ) = C( 1:m, 1:k )
-		for j = 1; j <= (*k); j++ {
-			goblas.Dcopy(*m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
+		for j = 1; j <= k; j++ {
+			goblas.Dcopy(m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) + ...
 		//                        C( 1:m, n-l+1:n ) * V( 1:k, 1:l )**T
-		if (*l) > 0 {
-			err = goblas.Dgemm(NoTrans, Trans, *m, *k, *l, one, c.Off(0, (*n)-(*l)), v, one, work)
+		if l > 0 {
+			if err = goblas.Dgemm(NoTrans, Trans, m, k, l, one, c.Off(0, n-l), v, one, work); err != nil {
+				panic(err)
+			}
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) * T  or  W( 1:m, 1:k ) * T**T
-		err = goblas.Dtrmm(Right, Lower, mat.TransByte(trans), NonUnit, *m, *k, one, t, work)
+		if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+			panic(err)
+		}
 
 		//        C( 1:m, 1:k ) = C( 1:m, 1:k ) - W( 1:m, 1:k )
-		for j = 1; j <= (*k); j++ {
-			for i = 1; i <= (*m); i++ {
+		for j = 1; j <= k; j++ {
+			for i = 1; i <= m; i++ {
 				c.Set(i-1, j-1, c.Get(i-1, j-1)-work.Get(i-1, j-1))
 			}
 		}
 
 		//        C( 1:m, n-l+1:n ) = C( 1:m, n-l+1:n ) - ...
 		//                            W( 1:m, 1:k ) * V( 1:k, 1:l )
-		if (*l) > 0 {
-			err = goblas.Dgemm(NoTrans, NoTrans, *m, *l, *k, -one, work, v, one, c.Off(0, (*n)-(*l)))
+		if l > 0 {
+			if err = goblas.Dgemm(NoTrans, NoTrans, m, l, k, -one, work, v, one, c.Off(0, n-l)); err != nil {
+				panic(err)
+			}
 		}
 
 	}
+
+	return
 }

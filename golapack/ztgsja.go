@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 	"math/cmplx"
 
@@ -93,10 +94,10 @@ import (
 // The computation of the unitary transformation matrices U, V or Q
 // is optional.  These matrices may either be formed explicitly, or they
 // may be postmultiplied into input matrices U1, V1, or Q1.
-func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, tola, tolb *float64, alpha, beta *mat.Vector, u *mat.CMatrix, ldu *int, v *mat.CMatrix, ldv *int, q *mat.CMatrix, ldq *int, work *mat.CVector, ncycle, info *int) {
+func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.CMatrix, tola, tolb float64, alpha, beta *mat.Vector, u, v, q *mat.CMatrix, work *mat.CVector) (ncycle, info int, err error) {
 	var initq, initu, initv, upper, wantq, wantu, wantv bool
 	var a2, b2, cone, czero, snq, snu, snv complex128
-	var a1, a3, b1, b3, csq, csu, csv, _error, gamma, one, rwk, ssmin, zero float64
+	var a1, a3, b1, b3, csq, csu, csv, _error, gamma, one, ssmin, zero float64
 	var i, j, kcycle, maxit int
 
 	maxit = 40
@@ -115,44 +116,43 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 	initq = jobq == 'I'
 	wantq = initq || jobq == 'Q'
 
-	(*info) = 0
 	if !(initu || wantu || jobu == 'N') {
-		(*info) = -1
+		err = fmt.Errorf("!(initu || wantu || jobu == 'N'): jobu='%c'", jobu)
 	} else if !(initv || wantv || jobv == 'N') {
-		(*info) = -2
+		err = fmt.Errorf("!(initv || wantv || jobv == 'N'): jobv='%c'", jobv)
 	} else if !(initq || wantq || jobq == 'N') {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*p) < 0 {
-		(*info) = -5
-	} else if (*n) < 0 {
-		(*info) = -6
-	} else if (*lda) < max(1, *m) {
-		(*info) = -10
-	} else if (*ldb) < max(1, *p) {
-		(*info) = -12
-	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
-		(*info) = -18
-	} else if (*ldv) < 1 || (wantv && (*ldv) < (*p)) {
-		(*info) = -20
-	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
-		(*info) = -22
+		err = fmt.Errorf("!(initq || wantq || jobq == 'N'): jobq='%c'", jobq)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 {
+		err = fmt.Errorf("p < 0: p=%v", p)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, p) {
+		err = fmt.Errorf("b.Rows < max(1, p): b.Rows=%v, p=%v", b.Rows, p)
+	} else if u.Rows < 1 || (wantu && u.Rows < m) {
+		err = fmt.Errorf("u.Rows < 1 || (wantu && u.Rows < m): jobu='%c', u.Rows=%v, m=%v", jobu, u.Rows, m)
+	} else if v.Rows < 1 || (wantv && v.Rows < p) {
+		err = fmt.Errorf("v.Rows < 1 || (wantv && v.Rows < p): jobv='%c', v.Rows=%v, p=%v", jobv, v.Rows, p)
+	} else if q.Rows < 1 || (wantq && q.Rows < n) {
+		err = fmt.Errorf("q.Rows < 1 || (wantq && q.Rows < n): jobq='%c', q.Rows=%v, n=%v", jobq, q.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZTGSJA"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Ztgsja", err)
 		return
 	}
 
 	//     Initialize U, V and Q, if necessary
 	if initu {
-		Zlaset('F', m, m, &czero, &cone, u, ldu)
+		Zlaset(Full, m, m, czero, cone, u)
 	}
 	if initv {
-		Zlaset('F', p, p, &czero, &cone, v, ldv)
+		Zlaset(Full, p, p, czero, cone, v)
 	}
 	if initq {
-		Zlaset('F', n, n, &czero, &cone, q, ldq)
+		Zlaset(Full, n, n, czero, cone, q)
 	}
 
 	//     Loop until convergence
@@ -161,83 +161,83 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 
 		upper = !upper
 
-		for i = 1; i <= (*l)-1; i++ {
-			for j = i + 1; j <= (*l); j++ {
+		for i = 1; i <= l-1; i++ {
+			for j = i + 1; j <= l; j++ {
 
 				a1 = zero
 				a2 = czero
 				a3 = zero
-				if (*k)+i <= (*m) {
-					a1 = a.GetRe((*k)+i-1, (*n)-(*l)+i-1)
+				if k+i <= m {
+					a1 = a.GetRe(k+i-1, n-l+i-1)
 				}
-				if (*k)+j <= (*m) {
-					a3 = a.GetRe((*k)+j-1, (*n)-(*l)+j-1)
+				if k+j <= m {
+					a3 = a.GetRe(k+j-1, n-l+j-1)
 				}
 
-				b1 = b.GetRe(i-1, (*n)-(*l)+i-1)
-				b3 = b.GetRe(j-1, (*n)-(*l)+j-1)
+				b1 = b.GetRe(i-1, n-l+i-1)
+				b3 = b.GetRe(j-1, n-l+j-1)
 
 				if upper {
-					if (*k)+i <= (*m) {
-						a2 = a.Get((*k)+i-1, (*n)-(*l)+j-1)
+					if k+i <= m {
+						a2 = a.Get(k+i-1, n-l+j-1)
 					}
-					b2 = b.Get(i-1, (*n)-(*l)+j-1)
+					b2 = b.Get(i-1, n-l+j-1)
 				} else {
-					if (*k)+j <= (*m) {
-						a2 = a.Get((*k)+j-1, (*n)-(*l)+i-1)
+					if k+j <= m {
+						a2 = a.Get(k+j-1, n-l+i-1)
 					}
-					b2 = b.Get(j-1, (*n)-(*l)+i-1)
+					b2 = b.Get(j-1, n-l+i-1)
 				}
 
-				Zlags2(upper, &a1, &a2, &a3, &b1, &b2, &b3, &csu, &snu, &csv, &snv, &csq, &snq)
+				csu, snu, csv, snv, csq, snq = Zlags2(upper, a1, a2, a3, b1, b2, b3)
 
 				//              Update (K+I)-th and (K+J)-th rows of matrix A: U**H *A
-				if (*k)+j <= (*m) {
-					Zrot(l, a.CVector((*k)+j-1, (*n)-(*l)), lda, a.CVector((*k)+i-1, (*n)-(*l)), lda, &csu, toPtrc128(cmplx.Conj(snu)))
+				if k+j <= m {
+					Zrot(l, a.CVector(k+j-1, n-l), a.CVector(k+i-1, n-l), csu, cmplx.Conj(snu))
 				}
 
 				//              Update I-th and J-th rows of matrix B: V**H *B
-				Zrot(l, b.CVector(j-1, (*n)-(*l)), ldb, b.CVector(i-1, (*n)-(*l)), ldb, &csv, toPtrc128(cmplx.Conj(snv)))
+				Zrot(l, b.CVector(j-1, n-l), b.CVector(i-1, n-l), csv, cmplx.Conj(snv))
 
 				//              Update (N-L+I)-th and (N-L+J)-th columns of matrices
 				//              A and B: A*Q and B*Q
-				Zrot(toPtr(min((*k)+(*l), *m)), a.CVector(0, (*n)-(*l)+j-1), func() *int { y := 1; return &y }(), a.CVector(0, (*n)-(*l)+i-1), func() *int { y := 1; return &y }(), &csq, &snq)
+				Zrot(min(k+l, m), a.CVector(0, n-l+j-1, 1), a.CVector(0, n-l+i-1, 1), csq, snq)
 
-				Zrot(l, b.CVector(0, (*n)-(*l)+j-1), func() *int { y := 1; return &y }(), b.CVector(0, (*n)-(*l)+i-1), func() *int { y := 1; return &y }(), &csq, &snq)
+				Zrot(l, b.CVector(0, n-l+j-1, 1), b.CVector(0, n-l+i-1, 1), csq, snq)
 
 				if upper {
-					if (*k)+i <= (*m) {
-						a.Set((*k)+i-1, (*n)-(*l)+j-1, czero)
+					if k+i <= m {
+						a.Set(k+i-1, n-l+j-1, czero)
 					}
-					b.Set(i-1, (*n)-(*l)+j-1, czero)
+					b.Set(i-1, n-l+j-1, czero)
 				} else {
-					if (*k)+j <= (*m) {
-						a.Set((*k)+j-1, (*n)-(*l)+i-1, czero)
+					if k+j <= m {
+						a.Set(k+j-1, n-l+i-1, czero)
 					}
-					b.Set(j-1, (*n)-(*l)+i-1, czero)
+					b.Set(j-1, n-l+i-1, czero)
 				}
 
 				//              Ensure that the diagonal elements of A and B are real.
-				if (*k)+i <= (*m) {
-					a.Set((*k)+i-1, (*n)-(*l)+i-1, a.GetReCmplx((*k)+i-1, (*n)-(*l)+i-1))
+				if k+i <= m {
+					a.Set(k+i-1, n-l+i-1, a.GetReCmplx(k+i-1, n-l+i-1))
 				}
-				if (*k)+j <= (*m) {
-					a.Set((*k)+j-1, (*n)-(*l)+j-1, a.GetReCmplx((*k)+j-1, (*n)-(*l)+j-1))
+				if k+j <= m {
+					a.Set(k+j-1, n-l+j-1, a.GetReCmplx(k+j-1, n-l+j-1))
 				}
-				b.Set(i-1, (*n)-(*l)+i-1, b.GetReCmplx(i-1, (*n)-(*l)+i-1))
-				b.Set(j-1, (*n)-(*l)+j-1, b.GetReCmplx(j-1, (*n)-(*l)+j-1))
+				b.Set(i-1, n-l+i-1, b.GetReCmplx(i-1, n-l+i-1))
+				b.Set(j-1, n-l+j-1, b.GetReCmplx(j-1, n-l+j-1))
 
 				//              Update unitary matrices U, V, Q, if desired.
-				if wantu && (*k)+j <= (*m) {
-					Zrot(m, u.CVector(0, (*k)+j-1), func() *int { y := 1; return &y }(), u.CVector(0, (*k)+i-1), func() *int { y := 1; return &y }(), &csu, &snu)
+				if wantu && k+j <= m {
+					Zrot(m, u.CVector(0, k+j-1, 1), u.CVector(0, k+i-1, 1), csu, snu)
 				}
 
 				if wantv {
-					Zrot(p, v.CVector(0, j-1), func() *int { y := 1; return &y }(), v.CVector(0, i-1), func() *int { y := 1; return &y }(), &csv, &snv)
+					Zrot(p, v.CVector(0, j-1, 1), v.CVector(0, i-1, 1), csv, snv)
 				}
 
 				if wantq {
-					Zrot(n, q.CVector(0, (*n)-(*l)+j-1), func() *int { y := 1; return &y }(), q.CVector(0, (*n)-(*l)+i-1), func() *int { y := 1; return &y }(), &csq, &snq)
+					Zrot(n, q.CVector(0, n-l+j-1, 1), q.CVector(0, n-l+i-1, 1), csq, snq)
 				}
 
 			}
@@ -250,14 +250,14 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 			//           Convergence test: test the parallelism of the corresponding
 			//           rows of A and B.
 			_error = zero
-			for i = 1; i <= min(*l, (*m)-(*k)); i++ {
-				goblas.Zcopy((*l)-i+1, a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda), work.Off(0, 1))
-				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1, *ldb), work.Off((*l), 1))
-				Zlapll(toPtr((*l)-i+1), work, func() *int { y := 1; return &y }(), work.Off((*l)), func() *int { y := 1; return &y }(), &ssmin)
+			for i = 1; i <= min(l, m-k); i++ {
+				goblas.Zcopy(l-i+1, a.CVector(k+i-1, n-l+i-1), work.Off(0, 1))
+				goblas.Zcopy(l-i+1, b.CVector(i-1, n-l+i-1), work.Off(l, 1))
+				ssmin = Zlapll(l-i+1, work.Off(0, 1), work.Off(l, 1))
 				_error = math.Max(_error, ssmin)
 			}
 
-			if math.Abs(_error) <= math.Min(*tola, *tolb) {
+			if math.Abs(_error) <= math.Min(tola, tolb) {
 				goto label50
 			}
 		}
@@ -266,7 +266,7 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l *int, a *mat.CMatrix, lda *int,
 	}
 
 	//     The algorithm has not converged after MAXIT cycles.
-	(*info) = 1
+	info = 1
 	goto label100
 
 label50:
@@ -275,51 +275,51 @@ label50:
 	//     If ERROR <= min(TOLA,TOLB), then the algorithm has converged.
 	//     Compute the generalized singular value pairs (ALPHA, BETA), and
 	//     set the triangular matrix R to array A.
-	for i = 1; i <= (*k); i++ {
+	for i = 1; i <= k; i++ {
 		alpha.Set(i-1, one)
 		beta.Set(i-1, zero)
 	}
 
-	for i = 1; i <= min(*l, (*m)-(*k)); i++ {
+	for i = 1; i <= min(l, m-k); i++ {
 
-		a1 = a.GetRe((*k)+i-1, (*n)-(*l)+i-1)
-		b1 = b.GetRe(i-1, (*n)-(*l)+i-1)
+		a1 = a.GetRe(k+i-1, n-l+i-1)
+		b1 = b.GetRe(i-1, n-l+i-1)
 
 		if a1 != zero {
 			gamma = b1 / a1
 			//
 			if gamma < zero {
-				goblas.Zdscal((*l)-i+1, -one, b.CVector(i-1, (*n)-(*l)+i-1, *ldb))
+				goblas.Zdscal(l-i+1, -one, b.CVector(i-1, n-l+i-1))
 				if wantv {
-					goblas.Zdscal(*p, -one, v.CVector(0, i-1, 1))
+					goblas.Zdscal(p, -one, v.CVector(0, i-1, 1))
 				}
 			}
 
-			Dlartg(toPtrf64(math.Abs(gamma)), &one, beta.GetPtr((*k)+i-1), alpha.GetPtr((*k)+i-1), &rwk)
+			*beta.GetPtr(k + i - 1), *alpha.GetPtr(k + i - 1), _ = Dlartg(math.Abs(gamma), one)
 
-			if alpha.Get((*k)+i-1) >= beta.Get((*k)+i-1) {
-				goblas.Zdscal((*l)-i+1, one/alpha.Get((*k)+i-1), a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda))
+			if alpha.Get(k+i-1) >= beta.Get(k+i-1) {
+				goblas.Zdscal(l-i+1, one/alpha.Get(k+i-1), a.CVector(k+i-1, n-l+i-1))
 			} else {
-				goblas.Zdscal((*l)-i+1, one/beta.Get((*k)+i-1), b.CVector(i-1, (*n)-(*l)+i-1, *ldb))
-				goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1, *ldb), a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda))
+				goblas.Zdscal(l-i+1, one/beta.Get(k+i-1), b.CVector(i-1, n-l+i-1))
+				goblas.Zcopy(l-i+1, b.CVector(i-1, n-l+i-1), a.CVector(k+i-1, n-l+i-1))
 			}
 
 		} else {
 
-			alpha.Set((*k)+i-1, zero)
-			beta.Set((*k)+i-1, one)
-			goblas.Zcopy((*l)-i+1, b.CVector(i-1, (*n)-(*l)+i-1, *ldb), a.CVector((*k)+i-1, (*n)-(*l)+i-1, *lda))
+			alpha.Set(k+i-1, zero)
+			beta.Set(k+i-1, one)
+			goblas.Zcopy(l-i+1, b.CVector(i-1, n-l+i-1), a.CVector(k+i-1, n-l+i-1))
 		}
 	}
 
 	//     Post-assignment
-	for i = (*m) + 1; i <= (*k)+(*l); i++ {
+	for i = m + 1; i <= k+l; i++ {
 		alpha.Set(i-1, zero)
 		beta.Set(i-1, one)
 	}
 
-	if (*k)+(*l) < (*n) {
-		for i = (*k) + (*l) + 1; i <= (*n); i++ {
+	if k+l < n {
+		for i = k + l + 1; i <= n; i++ {
 			alpha.Set(i-1, zero)
 			beta.Set(i-1, zero)
 		}
@@ -327,5 +327,7 @@ label50:
 
 label100:
 	;
-	(*ncycle) = kcycle
+	ncycle = kcycle
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -9,55 +11,52 @@ import (
 // Zhetri computes the inverse of a complex Hermitian indefinite matrix
 // A using the factorization A = U*D*U**H or A = L*D*L**H computed by
 // ZHETRF.
-func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.CVector, info *int) {
+func Zhetri(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.CVector) (info int, err error) {
 	var upper bool
 	var akkp1, cone, temp, zero complex128
 	var ak, akp1, d, one, t float64
 	var j, k, kp, kstep int
-	var err error
-	_ = err
 
 	one = 1.0
 	cone = (1.0 + 0.0*1i)
 	zero = (0.0 + 0.0*1i)
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZHETRI"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zhetri", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Check that the diagonal matrix D is nonsingular.
 	if upper {
 		//        Upper triangular storage: examine D from bottom to top
-		for (*info) = (*n); (*info) >= 1; (*info)-- {
-			if (*ipiv)[(*info)-1] > 0 && a.Get((*info)-1, (*info)-1) == zero {
+		for info = n; info >= 1; info-- {
+			if (*ipiv)[info-1] > 0 && a.Get(info-1, info-1) == zero {
 				return
 			}
 		}
 	} else {
 		//        Lower triangular storage: examine D from top to bottom.
-		for (*info) = 1; (*info) <= (*n); (*info)++ {
-			if (*ipiv)[(*info)-1] > 0 && a.Get((*info)-1, (*info)-1) == zero {
+		for info = 1; info <= n; info++ {
+			if (*ipiv)[info-1] > 0 && a.Get(info-1, info-1) == zero {
 				return
 			}
 		}
 	}
-	(*info) = 0
+	info = 0
 
 	if upper {
 		//        Compute inv(A) from the factorization A = U*D*U**H.
@@ -69,7 +68,7 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 		;
 
 		//        If K > N, exit from loop.
-		if k > (*n) {
+		if k > n {
 			goto label50
 		}
 
@@ -82,7 +81,9 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 			//           Compute column K of the inverse.
 			if k > 1 {
 				goblas.Zcopy(k-1, a.CVector(0, k-1, 1), work.Off(0, 1))
-				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k-1, 1))
+				if err = goblas.Zhemv(uplo, k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k-1, 1)); err != nil {
+					panic(err)
+				}
 				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(k-1, work.Off(0, 1), a.CVector(0, k-1, 1))), 0))
 			}
 			kstep = 1
@@ -102,11 +103,15 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
 				goblas.Zcopy(k-1, a.CVector(0, k-1, 1), work.Off(0, 1))
-				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k-1, 1))
+				if err = goblas.Zhemv(uplo, k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k-1, 1)); err != nil {
+					panic(err)
+				}
 				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(k-1, work.Off(0, 1), a.CVector(0, k-1, 1))), 0))
 				a.Set(k-1, k, a.Get(k-1, k)-goblas.Zdotc(k-1, a.CVector(0, k-1, 1), a.CVector(0, k, 1)))
 				goblas.Zcopy(k-1, a.CVector(0, k, 1), work.Off(0, 1))
-				err = goblas.Zhemv(mat.UploByte(uplo), k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k, 1))
+				if err = goblas.Zhemv(uplo, k-1, -cone, a, work.Off(0, 1), zero, a.CVector(0, k, 1)); err != nil {
+					panic(err)
+				}
 				a.Set(k, k, a.Get(k, k)-complex(real(goblas.Zdotc(k-1, work.Off(0, 1), a.CVector(0, k, 1))), 0))
 			}
 			kstep = 2
@@ -141,7 +146,7 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 		//
 		//        K is the main loop index, increasing from 1 to N in steps of
 		//        1 or 2, depending on the size of the diagonal blocks.
-		k = (*n)
+		k = n
 	label60:
 		;
 
@@ -157,10 +162,12 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 			a.Set(k-1, k-1, complex(one/a.GetRe(k-1, k-1), 0))
 
 			//           Compute column K of the inverse.
-			if k < (*n) {
-				goblas.Zcopy((*n)-k, a.CVector(k, k-1, 1), work.Off(0, 1))
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1, 1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc((*n)-k, work.Off(0, 1), a.CVector(k, k-1, 1))), 0))
+			if k < n {
+				goblas.Zcopy(n-k, a.CVector(k, k-1, 1), work.Off(0, 1))
+				if err = goblas.Zhemv(uplo, n-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1, 1)); err != nil {
+					panic(err)
+				}
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(n-k, work.Off(0, 1), a.CVector(k, k-1, 1))), 0))
 			}
 			kstep = 1
 		} else {
@@ -177,14 +184,18 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 			a.Set(k-1, k-1-1, -akkp1/complex(d, 0))
 
 			//           Compute columns K-1 and K of the inverse.
-			if k < (*n) {
-				goblas.Zcopy((*n)-k, a.CVector(k, k-1, 1), work.Off(0, 1))
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1, 1))
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc((*n)-k, work.Off(0, 1), a.CVector(k, k-1, 1))), 0))
-				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotc((*n)-k, a.CVector(k, k-1, 1), a.CVector(k, k-1-1, 1)))
-				goblas.Zcopy((*n)-k, a.CVector(k, k-1-1, 1), work.Off(0, 1))
-				err = goblas.Zhemv(mat.UploByte(uplo), (*n)-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1-1, 1))
-				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-complex(real(goblas.Zdotc((*n)-k, work.Off(0, 1), a.CVector(k, k-1-1, 1))), 0))
+			if k < n {
+				goblas.Zcopy(n-k, a.CVector(k, k-1, 1), work.Off(0, 1))
+				if err = goblas.Zhemv(uplo, n-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1, 1)); err != nil {
+					panic(err)
+				}
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-complex(real(goblas.Zdotc(n-k, work.Off(0, 1), a.CVector(k, k-1, 1))), 0))
+				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotc(n-k, a.CVector(k, k-1, 1), a.CVector(k, k-1-1, 1)))
+				goblas.Zcopy(n-k, a.CVector(k, k-1-1, 1), work.Off(0, 1))
+				if err = goblas.Zhemv(uplo, n-k, -cone, a.Off(k, k), work.Off(0, 1), zero, a.CVector(k, k-1-1, 1)); err != nil {
+					panic(err)
+				}
+				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-complex(real(goblas.Zdotc(n-k, work.Off(0, 1), a.CVector(k, k-1-1, 1))), 0))
 			}
 			kstep = 2
 		}
@@ -193,8 +204,8 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 		if kp != k {
 			//           Interchange rows and columns K and KP in the trailing
 			//           submatrix A(k-1:n,k-1:n)
-			if kp < (*n) {
-				goblas.Zswap((*n)-kp, a.CVector(kp, k-1, 1), a.CVector(kp, kp-1, 1))
+			if kp < n {
+				goblas.Zswap(n-kp, a.CVector(kp, k-1, 1), a.CVector(kp, kp-1, 1))
 			}
 			for j = k + 1; j <= kp-1; j++ {
 				temp = a.GetConj(j-1, k-1)
@@ -216,4 +227,6 @@ func Zhetri(uplo byte, n *int, a *mat.CMatrix, lda *int, ipiv *[]int, work *mat.
 		goto label60
 	label80:
 	}
+
+	return
 }

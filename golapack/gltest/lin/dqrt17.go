@@ -7,7 +7,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dqrt17 computes the ratio
+// dqrt17 computes the ratio
 //
 //    || R'*op(A) ||/(||A||*alpha*max(M,N,NRHS)*eps)
 //
@@ -15,11 +15,10 @@ import (
 //
 //    alpha = ||B|| if IRESID = 1 (zero-residual problem)
 //    alpha = ||R|| if IRESID = 2 (otherwise).
-func Dqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.Matrix, lda *int, x *mat.Matrix, ldx *int, b *mat.Matrix, ldb *int, c *mat.Matrix, work *mat.Vector, lwork *int) (dqrt17Return float64) {
+func dqrt17(trans mat.MatTrans, iresid, m, n, nrhs int, a, x, b, c *mat.Matrix, work *mat.Vector, lwork int) (dqrt17Return float64) {
 	var err2, norma, normb, normrs, one, smlnum, zero float64
-	var info, iscl, ncols, nrows int
+	var iscl, ncols, nrows int
 	var err error
-	_ = err
 
 	rwork := vf(1)
 
@@ -28,64 +27,70 @@ func Dqrt17(trans byte, iresid, m, n, nrhs *int, a *mat.Matrix, lda *int, x *mat
 
 	dqrt17Return = zero
 
-	if trans == 'N' {
-		nrows = (*m)
-		ncols = (*n)
-	} else if trans == 'T' {
-		nrows = (*n)
-		ncols = (*m)
+	if trans == NoTrans {
+		nrows = m
+		ncols = n
+	} else if trans == Trans {
+		nrows = n
+		ncols = m
 	} else {
-		gltest.Xerbla([]byte("DQRT17"), 1)
+		gltest.Xerbla("dqrt17", 1)
 		return
 	}
 
-	if (*lwork) < ncols*(*nrhs) {
-		gltest.Xerbla([]byte("DQRT17"), 13)
+	if lwork < ncols*nrhs {
+		gltest.Xerbla("dqrt17", 13)
 		return
 	}
 
-	if (*m) <= 0 || (*n) <= 0 || (*nrhs) <= 0 {
+	if m <= 0 || n <= 0 || nrhs <= 0 {
 		return
 	}
 
-	norma = golapack.Dlange('O', m, n, a, lda, rwork)
+	norma = golapack.Dlange('O', m, n, a, rwork)
 	smlnum = golapack.Dlamch(SafeMinimum) / golapack.Dlamch(Precision)
 	// bignum = one / smlnum
 	iscl = 0
 
 	//     compute residual and scale it
-	golapack.Dlacpy('A', &nrows, nrhs, b, ldb, c, ldb)
-	err = goblas.Dgemm(mat.TransByte(trans), NoTrans, nrows, *nrhs, ncols, -one, a, x, one, c)
-	normrs = golapack.Dlange('M', &nrows, nrhs, c, ldb, rwork)
+	golapack.Dlacpy(Full, nrows, nrhs, b, c)
+	if err = goblas.Dgemm(trans, NoTrans, nrows, nrhs, ncols, -one, a, x, one, c); err != nil {
+		panic(err)
+	}
+	normrs = golapack.Dlange('M', nrows, nrhs, c, rwork)
 	if normrs > smlnum {
 		iscl = 1
-		golapack.Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &normrs, &one, &nrows, nrhs, c, ldb, &info)
+		if err = golapack.Dlascl('G', 0, 0, normrs, one, nrows, nrhs, c); err != nil {
+			panic(err)
+		}
 	}
 
 	//     compute R'*A
-	err = goblas.Dgemm(Trans, mat.TransByte(trans), *nrhs, ncols, nrows, one, c, a, zero, work.Matrix(*nrhs, opts))
+	if err = goblas.Dgemm(Trans, trans, nrhs, ncols, nrows, one, c, a, zero, work.Matrix(nrhs, opts)); err != nil {
+		panic(err)
+	}
 
 	//     compute and properly scale error
-	err2 = golapack.Dlange('O', nrhs, &ncols, work.Matrix(*nrhs, opts), nrhs, rwork)
+	err2 = golapack.Dlange('O', nrhs, ncols, work.Matrix(nrhs, opts), rwork)
 	if norma != zero {
-		err2 = err2 / norma
+		err2 /= norma
 	}
 
 	if iscl == 1 {
-		err2 = err2 * normrs
+		err2 *= normrs
 	}
 
-	if (*iresid) == 1 {
-		normb = golapack.Dlange('O', &nrows, nrhs, b, ldb, rwork)
+	if iresid == 1 {
+		normb = golapack.Dlange('O', nrows, nrhs, b, rwork)
 		if normb != zero {
-			err2 = err2 / normb
+			err2 /= normb
 		}
 	} else {
 		if normrs != zero {
-			err2 = err2 / normrs
+			err2 /= normrs
 		}
 	}
 
-	dqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(max(*m, *n, *nrhs)))
+	dqrt17Return = err2 / (golapack.Dlamch(Epsilon) * float64(max(m, n, nrhs)))
 	return
 }

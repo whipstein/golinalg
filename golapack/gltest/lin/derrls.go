@@ -1,20 +1,21 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Derrls tests the error exits for the DOUBLE PRECISION least squares
+// derrls tests the error exits for the DOUBLE PRECISION least squares
 // driver routines (DGELS, SGELSS, SGELSY, SGELSD).
-func Derrls(path []byte, t *testing.T) {
+func derrls(path string, t *testing.T) {
 	var rcond float64
-	var info, irnk int
-	lerr := &gltest.Common.Infoc.Lerr
+	var err error
+
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	infot := &gltest.Common.Infoc.Infot
 	srnamt := &gltest.Common.Srnamc.Srnamt
 	ip := make([]int, 2)
 
@@ -30,94 +31,98 @@ func Derrls(path []byte, t *testing.T) {
 	a.Set(1, 0, 4.0)
 	(*ok) = true
 
-	if string(c2) == "LS" {
+	if c2 == "ls" {
 		//        Test error exits for the least squares driver routines.
 		//
 		//        DGELS
-		*srnamt = "DGELS "
-		*infot = 1
-		golapack.Dgels('/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgels('N', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgels('N', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
-		*infot = 4
-		golapack.Dgels('N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
-		*infot = 6
-		golapack.Dgels('N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), w, func() *int { y := 2; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
-		*infot = 8
-		golapack.Dgels('N', func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), w, func() *int { y := 2; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
-		*infot = 10
-		golapack.Dgels('N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELS ", &info, lerr, ok, t)
+		*srnamt = "Dgels"
+		*errt = fmt.Errorf("!(trans == NoTrans || trans == Trans): trans=Unrecognized: /")
+		_, err = golapack.Dgels('/', 0, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dgels", err)
+		*errt = fmt.Errorf("m < 0: m=-1")
+		_, err = golapack.Dgels(NoTrans, -1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dgels", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgels(NoTrans, 0, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dgels", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dgels(NoTrans, 0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dgels", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		_, err = golapack.Dgels(NoTrans, 2, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), w, 2)
+		chkxer2("Dgels", err)
+		*errt = fmt.Errorf("b.Rows < max(1, m, n): b.Rows=1, m=2, n=0")
+		_, err = golapack.Dgels(NoTrans, 2, 0, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), w, 2)
+		chkxer2("Dgels", err)
+		*errt = fmt.Errorf("lwork < max(1, mn+max(mn, nrhs)) && !lquery: lwork=1, m=1, n=1, nrhs=0, lquery=false")
+		_, err = golapack.Dgels(NoTrans, 1, 1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), w, 1)
+		chkxer2("Dgels", err)
 
-		//        DGELSS
-		*srnamt = "DGELSS"
-		*infot = 1
-		golapack.Dgelss(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELSS", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgelss(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELSS", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgelss(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELSS", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dgelss(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), s, &rcond, &irnk, w, func() *int { y := 2; return &y }(), &info)
-		Chkxer("DGELSS", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dgelss(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 2; return &y }(), &info)
-		Chkxer("DGELSS", &info, lerr, ok, t)
+		//        Dgelss
+		*srnamt = "Dgelss"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		_, _, err = golapack.Dgelss(-1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), s, rcond, w, 1)
+		chkxer2("Dgelss", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Dgelss(0, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), s, rcond, w, 1)
+		chkxer2("Dgelss", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Dgelss(0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), s, rcond, w, 1)
+		chkxer2("Dgelss", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		_, _, err = golapack.Dgelss(2, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), s, rcond, w, 2)
+		chkxer2("Dgelss", err)
+		*errt = fmt.Errorf("b.Rows < max(1, maxmn): b.Rows=1, m=2, n=0")
+		_, _, err = golapack.Dgelss(2, 0, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), s, rcond, w, 2)
+		chkxer2("Dgelss", err)
 
-		//        DGELSY
-		*srnamt = "DGELSY"
-		*infot = 1
-		golapack.Dgelsy(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &ip, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &info)
-		Chkxer("DGELSY", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgelsy(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &ip, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &info)
-		Chkxer("DGELSY", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgelsy(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), &ip, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &info)
-		Chkxer("DGELSY", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dgelsy(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), &ip, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &info)
-		Chkxer("DGELSY", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dgelsy(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), &ip, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &info)
-		Chkxer("DGELSY", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Dgelsy(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), &ip, &rcond, &irnk, w, func() *int { y := 1; return &y }(), &info)
-		Chkxer("DGELSY", &info, lerr, ok, t)
+		//        Dgelsy
+		*srnamt = "Dgelsy"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		_, err = golapack.Dgelsy(-1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), &ip, rcond, w, 10)
+		chkxer2("Dgelsy", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, err = golapack.Dgelsy(0, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), &ip, rcond, w, 10)
+		chkxer2("Dgelsy", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, err = golapack.Dgelsy(0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), &ip, rcond, w, 10)
+		chkxer2("Dgelsy", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		_, err = golapack.Dgelsy(2, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), &ip, rcond, w, 10)
+		chkxer2("Dgelsy", err)
+		*errt = fmt.Errorf("b.Rows < max(1, m, n): b.Rows=1, m=2, n=0")
+		_, err = golapack.Dgelsy(2, 0, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), &ip, rcond, w, 10)
+		chkxer2("Dgelsy", err)
+		*errt = fmt.Errorf("lwork < lwkmin && !lquery: lwork=1, lwkmin=6, lquery=false")
+		_, err = golapack.Dgelsy(2, 2, 1, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), &ip, rcond, w, 1)
+		chkxer2("Dgelsy", err)
 
-		//        DGELSD
-		*srnamt = "DGELSD"
-		*infot = 1
-		golapack.Dgelsd(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &ip, &info)
-		Chkxer("DGELSD", &info, lerr, ok, t)
-		*infot = 2
-		golapack.Dgelsd(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &ip, &info)
-		Chkxer("DGELSD", &info, lerr, ok, t)
-		*infot = 3
-		golapack.Dgelsd(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &ip, &info)
-		Chkxer("DGELSD", &info, lerr, ok, t)
-		*infot = 5
-		golapack.Dgelsd(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), s, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &ip, &info)
-		Chkxer("DGELSD", &info, lerr, ok, t)
-		*infot = 7
-		golapack.Dgelsd(func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), s, &rcond, &irnk, w, func() *int { y := 10; return &y }(), &ip, &info)
-		Chkxer("DGELSD", &info, lerr, ok, t)
-		*infot = 12
-		golapack.Dgelsd(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), s, &rcond, &irnk, w, func() *int { y := 1; return &y }(), &ip, &info)
-		Chkxer("DGELSD", &info, lerr, ok, t)
+		//        Dgelsd
+		*srnamt = "Dgelsd"
+		*errt = fmt.Errorf("m < 0: m=-1")
+		_, _, err = golapack.Dgelsd(-1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), s, rcond, w, 10, &ip)
+		chkxer2("Dgelsd", err)
+		*errt = fmt.Errorf("n < 0: n=-1")
+		_, _, err = golapack.Dgelsd(0, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), s, rcond, w, 10, &ip)
+		chkxer2("Dgelsd", err)
+		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
+		_, _, err = golapack.Dgelsd(0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), s, rcond, w, 10, &ip)
+		chkxer2("Dgelsd", err)
+		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
+		_, _, err = golapack.Dgelsd(2, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), s, rcond, w, 10, &ip)
+		chkxer2("Dgelsd", err)
+		*errt = fmt.Errorf("b.Rows < max(1, maxmn): b.Rows=1, m=2, n=0")
+		_, _, err = golapack.Dgelsd(2, 0, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), s, rcond, w, 10, &ip)
+		chkxer2("Dgelsd", err)
+		*errt = fmt.Errorf("lwork < minwrk && !lquery: lwork=1, minwrk=802, lquery=false")
+		_, _, err = golapack.Dgelsd(2, 2, 1, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), s, rcond, w, 1, &ip)
+		chkxer2("Dgelsd", err)
 	}
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		t.Fail()
+	}
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -8,32 +10,31 @@ import (
 // Dsyconv convert A given by TRF into L and D and vice-versa.
 // Get Non-diag elements of D (returned in workspace) and
 // apply or reverse permutation done in TRF.
-func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *mat.Vector, info *int) {
+func Dsyconv(uplo mat.MatUplo, way byte, n int, a *mat.Matrix, ipiv *[]int, e *mat.Vector) (err error) {
 	var convert, upper bool
 	var temp, zero float64
 	var i, ip, j int
 
 	zero = 0.0
 
-	(*info) = 0
-	upper = uplo == 'U'
+	upper = uplo == Upper
 	convert = way == 'C'
-	if !upper && uplo != 'L' {
-		(*info) = -1
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
 	} else if !convert && way != 'R' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
+		err = fmt.Errorf("!convert && way != 'R': way='%c'", way)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYCONV"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsyconv", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -44,7 +45,7 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 		//
 		//        Convert VALUE
 		if convert {
-			i = (*n)
+			i = n
 			e.Set(0, zero)
 			for i > 1 {
 				if (*ipiv)[i-1] < 0 {
@@ -59,12 +60,12 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 			}
 
 			//        Convert PERMUTATIONS
-			i = (*n)
+			i = n
 			for i >= 1 {
 				if (*ipiv)[i-1] > 0 {
 					ip = (*ipiv)[i-1]
-					if i < (*n) {
-						for j = i + 1; j <= (*n); j++ {
+					if i < n {
+						for j = i + 1; j <= n; j++ {
 							temp = a.Get(ip-1, j-1)
 							a.Set(ip-1, j-1, a.Get(i-1, j-1))
 							a.Set(i-1, j-1, temp)
@@ -72,8 +73,8 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 					}
 				} else {
 					ip = -(*ipiv)[i-1]
-					if i < (*n) {
-						for j = i + 1; j <= (*n); j++ {
+					if i < n {
+						for j = i + 1; j <= n; j++ {
 							temp = a.Get(ip-1, j-1)
 							a.Set(ip-1, j-1, a.Get(i-1-1, j-1))
 							a.Set(i-1-1, j-1, temp)
@@ -89,11 +90,11 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 			//
 			//        Revert PERMUTATIONS
 			i = 1
-			for i <= (*n) {
+			for i <= n {
 				if (*ipiv)[i-1] > 0 {
 					ip = (*ipiv)[i-1]
-					if i < (*n) {
-						for j = i + 1; j <= (*n); j++ {
+					if i < n {
+						for j = i + 1; j <= n; j++ {
 							temp = a.Get(ip-1, j-1)
 							a.Set(ip-1, j-1, a.Get(i-1, j-1))
 							a.Set(i-1, j-1, temp)
@@ -102,8 +103,8 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 				} else {
 					ip = -(*ipiv)[i-1]
 					i = i + 1
-					if i < (*n) {
-						for j = i + 1; j <= (*n); j++ {
+					if i < n {
+						for j = i + 1; j <= n; j++ {
 							temp = a.Get(ip-1, j-1)
 							a.Set(ip-1, j-1, a.Get(i-1-1, j-1))
 							a.Set(i-1-1, j-1, temp)
@@ -114,7 +115,7 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 			}
 
 			//        Revert VALUE
-			i = (*n)
+			i = n
 			for i > 1 {
 				if (*ipiv)[i-1] < 0 {
 					a.Set(i-1-1, i-1, e.Get(i-1))
@@ -131,9 +132,9 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 			//
 			//        Convert VALUE
 			i = 1
-			e.Set((*n)-1, zero)
-			for i <= (*n) {
-				if i < (*n) && (*ipiv)[i-1] < 0 {
+			e.Set(n-1, zero)
+			for i <= n {
+				if i < n && (*ipiv)[i-1] < 0 {
 					e.Set(i-1, a.Get(i, i-1))
 					e.Set(i, zero)
 					a.Set(i, i-1, zero)
@@ -146,7 +147,7 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 
 			//        Convert PERMUTATIONS
 			i = 1
-			for i <= (*n) {
+			for i <= n {
 				if (*ipiv)[i-1] > 0 {
 					ip = (*ipiv)[i-1]
 					if i > 1 {
@@ -174,7 +175,7 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 			//
 			//
 			//        Revert PERMUTATIONS
-			i = (*n)
+			i = n
 			for i >= 1 {
 				if (*ipiv)[i-1] > 0 {
 					ip = (*ipiv)[i-1]
@@ -201,7 +202,7 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 
 			//        Revert VALUE
 			i = 1
-			for i <= (*n)-1 {
+			for i <= n-1 {
 				if (*ipiv)[i-1] < 0 {
 					a.Set(i, i-1, e.Get(i-1))
 					i = i + 1
@@ -210,4 +211,6 @@ func Dsyconv(uplo, way byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, e *ma
 			}
 		}
 	}
+
+	return
 }

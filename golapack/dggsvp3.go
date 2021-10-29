@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
@@ -30,7 +31,7 @@ import (
 // This decomposition is the preprocessing step for computing the
 // Generalized Singular Value Decomposition (GSVD), see subroutine
 // DGGSVD3.
-func Dggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, tola, tolb *float64, k, l *int, u *mat.Matrix, ldu *int, v *mat.Matrix, ldv *int, q *mat.Matrix, ldq *int, iwork *[]int, tau, work *mat.Vector, lwork, info *int) {
+func Dggsvp3(jobu, jobv, jobq byte, m, p, n int, a, b *mat.Matrix, tola, tolb float64, u, v, q *mat.Matrix, iwork *[]int, tau, work *mat.Vector, lwork int) (k, l int, err error) {
 	var forwrd, lquery, wantq, wantu, wantv bool
 	var one, zero float64
 	var i, j, lwkopt int
@@ -43,57 +44,60 @@ func Dggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.Matrix, lda *int, b *ma
 	wantv = jobv == 'V'
 	wantq = jobq == 'Q'
 	forwrd = true
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 	lwkopt = 1
 
 	//     Test the input arguments
-	(*info) = 0
 	if !(wantu || jobu == 'N') {
-		(*info) = -1
+		err = fmt.Errorf("!(wantu || jobu == 'N'): jobu='%c'", jobu)
 	} else if !(wantv || jobv == 'N') {
-		(*info) = -2
+		err = fmt.Errorf("!(wantv || jobv == 'N'): jobv='%c'", jobv)
 	} else if !(wantq || jobq == 'N') {
-		(*info) = -3
-	} else if (*m) < 0 {
-		(*info) = -4
-	} else if (*p) < 0 {
-		(*info) = -5
-	} else if (*n) < 0 {
-		(*info) = -6
-	} else if (*lda) < max(1, *m) {
-		(*info) = -8
-	} else if (*ldb) < max(1, *p) {
-		(*info) = -10
-	} else if (*ldu) < 1 || (wantu && (*ldu) < (*m)) {
-		(*info) = -16
-	} else if (*ldv) < 1 || (wantv && (*ldv) < (*p)) {
-		(*info) = -18
-	} else if (*ldq) < 1 || (wantq && (*ldq) < (*n)) {
-		(*info) = -20
-	} else if (*lwork) < 1 && !lquery {
-		(*info) = -24
+		err = fmt.Errorf("!(wantq || jobq == 'N'): jobq='%c'", jobq)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if p < 0 {
+		err = fmt.Errorf("p < 0: p=%v", p)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, p) {
+		err = fmt.Errorf("b.Rows < max(1, p): b.Rows=%v, p=%v", b.Rows, p)
+	} else if u.Rows < 1 || (wantu && u.Rows < m) {
+		err = fmt.Errorf("u.Rows < 1 || (wantu && u.Rows < m): jobu='%c', u.Rows=%v, m=%v", jobu, u.Rows, m)
+	} else if v.Rows < 1 || (wantv && v.Rows < p) {
+		err = fmt.Errorf("v.Rows < 1 || (wantv && v.Rows < p): jobv='%c', v.Rows=%v, p=%v", jobv, v.Rows, p)
+	} else if q.Rows < 1 || (wantq && q.Rows < n) {
+		err = fmt.Errorf("q.Rows < 1 || (wantq && q.Rows < n): jobq='%c', q.Rows=%v, n=%v", jobq, q.Rows, n)
+	} else if lwork < 1 && !lquery {
+		err = fmt.Errorf("lwork < 1 && !lquery: lwork=%v, lquery=%v", lwork, lquery)
 	}
 
 	//     Compute workspace
-	if (*info) == 0 {
-		Dgeqp3(p, n, b, ldb, iwork, tau, work, toPtr(-1), info)
+	if err == nil {
+		if err = Dgeqp3(p, n, b, iwork, tau, work, -1); err != nil {
+			panic(err)
+		}
 		lwkopt = int(work.Get(0))
 		if wantv {
-			lwkopt = max(lwkopt, *p)
+			lwkopt = max(lwkopt, p)
 		}
-		lwkopt = max(lwkopt, min(*n, *p))
-		lwkopt = max(lwkopt, *m)
+		lwkopt = max(lwkopt, min(n, p))
+		lwkopt = max(lwkopt, m)
 		if wantq {
-			lwkopt = max(lwkopt, *n)
+			lwkopt = max(lwkopt, n)
 		}
-		Dgeqp3(m, n, a, lda, iwork, tau, work, toPtr(-1), info)
+		if err = Dgeqp3(m, n, a, iwork, tau, work, -1); err != nil {
+			panic(err)
+		}
 		lwkopt = max(lwkopt, int(work.Get(0)))
 		lwkopt = max(1, lwkopt)
 		work.Set(0, float64(lwkopt))
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGGSVP3"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dggsvp3", err)
 		return
 	}
 	if lquery {
@@ -102,63 +106,73 @@ func Dggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.Matrix, lda *int, b *ma
 
 	//     QR with column pivoting of B: B*P = V*( S11 S12 )
 	//                                           (  0   0  )
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		(*iwork)[i-1] = 0
 	}
-	Dgeqp3(p, n, b, ldb, iwork, tau, work, lwork, info)
+	if err = Dgeqp3(p, n, b, iwork, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Update A := A*P
-	Dlapmt(forwrd, m, n, a, lda, iwork)
+	Dlapmt(forwrd, m, n, a, iwork)
 
 	//     Determine the effective rank of matrix B.
-	(*l) = 0
-	for i = 1; i <= min(*p, *n); i++ {
-		if math.Abs(b.Get(i-1, i-1)) > (*tolb) {
-			(*l) = (*l) + 1
+	l = 0
+	for i = 1; i <= min(p, n); i++ {
+		if math.Abs(b.Get(i-1, i-1)) > tolb {
+			l = l + 1
 		}
 	}
 
 	if wantv {
 		//        Copy the details of V, and form V.
-		Dlaset('F', p, p, &zero, &zero, v, ldv)
-		if (*p) > 1 {
-			Dlacpy('L', toPtr((*p)-1), n, b.Off(1, 0), ldb, v.Off(1, 0), ldv)
+		Dlaset(Full, p, p, zero, zero, v)
+		if p > 1 {
+			Dlacpy(Lower, p-1, n, b.Off(1, 0), v.Off(1, 0))
 		}
-		Dorg2r(p, p, toPtr(min(*p, *n)), v, ldv, tau, work, info)
+		if err = Dorg2r(p, p, min(p, n), v, tau, work); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Clean up B
-	for j = 1; j <= (*l)-1; j++ {
-		for i = j + 1; i <= (*l); i++ {
+	for j = 1; j <= l-1; j++ {
+		for i = j + 1; i <= l; i++ {
 			b.Set(i-1, j-1, zero)
 		}
 	}
-	if (*p) > (*l) {
-		Dlaset('F', toPtr((*p)-(*l)), n, &zero, &zero, b.Off((*l), 0), ldb)
+	if p > l {
+		Dlaset(Full, p-l, n, zero, zero, b.Off(l, 0))
 	}
 
 	if wantq {
 		//        Set Q = I and Update Q := Q*P
-		Dlaset('F', n, n, &zero, &one, q, ldq)
-		Dlapmt(forwrd, n, n, q, ldq, iwork)
+		Dlaset(Full, n, n, zero, one, q)
+		Dlapmt(forwrd, n, n, q, iwork)
 	}
 
-	if (*p) >= (*l) && (*n) != (*l) {
+	if p >= l && n != l {
 		//        RQ factorization of (S11 S12): ( S11 S12 ) = ( 0 S12 )*Z
-		Dgerq2(l, n, b, ldb, tau, work, info)
+		if err = Dgerq2(l, n, b, tau, work); err != nil {
+			panic(err)
+		}
 
 		//        Update A := A*Z**T
-		Dormr2('R', 'T', m, n, l, b, ldb, tau, a, lda, work, info)
+		if err = Dormr2(Right, Trans, m, n, l, b, tau, a, work); err != nil {
+			panic(err)
+		}
 
 		if wantq {
 			//           Update Q := Q*Z**T
-			Dormr2('R', 'T', n, n, l, b, ldb, tau, q, ldq, work, info)
+			if err = Dormr2(Right, Trans, n, n, l, b, tau, q, work); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Clean up B
-		Dlaset('F', l, toPtr((*n)-(*l)), &zero, &zero, b, ldb)
-		for j = (*n) - (*l) + 1; j <= (*n); j++ {
-			for i = j - (*n) + (*l) + 1; i <= (*l); i++ {
+		Dlaset(Full, l, n-l, zero, zero, b)
+		for j = n - l + 1; j <= n; j++ {
+			for i = j - n + l + 1; i <= l; i++ {
 				b.Set(i-1, j-1, zero)
 			}
 		}
@@ -172,78 +186,92 @@ func Dggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.Matrix, lda *int, b *ma
 	//
 	//              A11 = U*(  0  T12 )*P1**T
 	//                      (  0   0  )
-	for i = 1; i <= (*n)-(*l); i++ {
+	for i = 1; i <= n-l; i++ {
 		(*iwork)[i-1] = 0
 	}
-	Dgeqp3(m, toPtr((*n)-(*l)), a, lda, iwork, tau, work, lwork, info)
+	if err = Dgeqp3(m, n-l, a, iwork, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Determine the effective rank of A11
-	(*k) = 0
-	for i = 1; i <= min(*m, (*n)-(*l)); i++ {
-		if math.Abs(a.Get(i-1, i-1)) > (*tola) {
-			(*k) = (*k) + 1
+	k = 0
+	for i = 1; i <= min(m, n-l); i++ {
+		if math.Abs(a.Get(i-1, i-1)) > tola {
+			k = k + 1
 		}
 	}
 
 	//     Update A12 := U**T*A12, where A12 = A( 1:M, N-L+1:N )
-	Dorm2r('L', 'T', m, l, toPtr(min(*m, (*n)-(*l))), a, lda, tau, a.Off(0, (*n)-(*l)), lda, work, info)
+	if err = Dorm2r(Left, Trans, m, l, min(m, n-l), a, tau, a.Off(0, n-l), work); err != nil {
+		panic(err)
+	}
 
 	if wantu {
 		//        Copy the details of U, and form U
-		Dlaset('F', m, m, &zero, &zero, u, ldu)
-		if (*m) > 1 {
-			Dlacpy('L', toPtr((*m)-1), toPtr((*n)-(*l)), a.Off(1, 0), lda, u.Off(1, 0), ldu)
+		Dlaset(Full, m, m, zero, zero, u)
+		if m > 1 {
+			Dlacpy(Lower, m-1, n-l, a.Off(1, 0), u.Off(1, 0))
 		}
-		Dorg2r(m, m, toPtr(min(*m, (*n)-(*l))), u, ldu, tau, work, info)
+		if err = Dorg2r(m, m, min(m, n-l), u, tau, work); err != nil {
+			panic(err)
+		}
 	}
 
 	if wantq {
 		//        Update Q( 1:N, 1:N-L )  = Q( 1:N, 1:N-L )*P1
-		Dlapmt(forwrd, n, toPtr((*n)-(*l)), q, ldq, iwork)
+		Dlapmt(forwrd, n, n-l, q, iwork)
 	}
 
 	//     Clean up A: set the strictly lower triangular part of
 	//     A(1:K, 1:K) = 0, and A( K+1:M, 1:N-L ) = 0.
-	for j = 1; j <= (*k)-1; j++ {
-		for i = j + 1; i <= (*k); i++ {
+	for j = 1; j <= k-1; j++ {
+		for i = j + 1; i <= k; i++ {
 			a.Set(i-1, j-1, zero)
 		}
 	}
-	if (*m) > (*k) {
-		Dlaset('F', toPtr((*m)-(*k)), toPtr((*n)-(*l)), &zero, &zero, a.Off((*k), 0), lda)
+	if m > k {
+		Dlaset(Full, m-k, n-l, zero, zero, a.Off(k, 0))
 	}
 
-	if (*n)-(*l) > (*k) {
+	if n-l > k {
 		//        RQ factorization of ( T11 T12 ) = ( 0 T12 )*Z1
-		Dgerq2(k, toPtr((*n)-(*l)), a, lda, tau, work, info)
+		if err = Dgerq2(k, n-l, a, tau, work); err != nil {
+			panic(err)
+		}
 
 		if wantq {
 			//           Update Q( 1:N,1:N-L ) = Q( 1:N,1:N-L )*Z1**T
-			Dormr2('R', 'T', n, toPtr((*n)-(*l)), k, a, lda, tau, q, ldq, work, info)
+			if err = Dormr2(Right, Trans, n, n-l, k, a, tau, q, work); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Clean up A
-		Dlaset('F', k, toPtr((*n)-(*l)-(*k)), &zero, &zero, a, lda)
-		for j = (*n) - (*l) - (*k) + 1; j <= (*n)-(*l); j++ {
-			for i = j - (*n) + (*l) + (*k) + 1; i <= (*k); i++ {
+		Dlaset(Full, k, n-l-k, zero, zero, a)
+		for j = n - l - k + 1; j <= n-l; j++ {
+			for i = j - n + l + k + 1; i <= k; i++ {
 				a.Set(i-1, j-1, zero)
 			}
 		}
 
 	}
 
-	if (*m) > (*k) {
+	if m > k {
 		//        QR factorization of A( K+1:M,N-L+1:N )
-		Dgeqr2(toPtr((*m)-(*k)), l, a.Off((*k), (*n)-(*l)), lda, tau, work, info)
+		if err = Dgeqr2(m-k, l, a.Off(k, n-l), tau, work); err != nil {
+			panic(err)
+		}
 
 		if wantu {
 			//           Update U(:,K+1:M) := U(:,K+1:M)*U1
-			Dorm2r('R', 'N', m, toPtr((*m)-(*k)), toPtr(min((*m)-(*k), *l)), a.Off((*k), (*n)-(*l)), lda, tau, u.Off(0, (*k)), ldu, work, info)
+			if err = Dorm2r(Right, NoTrans, m, m-k, min(m-k, l), a.Off(k, n-l), tau, u.Off(0, k), work); err != nil {
+				panic(err)
+			}
 		}
 
 		//        Clean up
-		for j = (*n) - (*l) + 1; j <= (*n); j++ {
-			for i = j - (*n) + (*k) + (*l) + 1; i <= (*m); i++ {
+		for j = n - l + 1; j <= n; j++ {
+			for i = j - n + k + l + 1; i <= m; i++ {
 				a.Set(i-1, j-1, zero)
 			}
 		}
@@ -251,4 +279,6 @@ func Dggsvp3(jobu, jobv, jobq byte, m, p, n *int, a *mat.Matrix, lda *int, b *ma
 	}
 
 	work.Set(0, float64(lwkopt))
+
+	return
 }

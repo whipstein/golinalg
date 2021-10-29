@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -16,28 +18,33 @@ import (
 // where U is an upper triangular matrix and L is a lower triangular
 // matrix.  The factored form of A is then used to solve the system of
 // equations A * X = B.
-func Zppsv(uplo byte, n, nrhs *int, ap *mat.CVector, b *mat.CMatrix, ldb, info *int) {
+func Zppsv(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, b *mat.CMatrix) (info int, err error) {
 	//     Test the input parameters.
-	(*info) = 0
-	if uplo != 'U' && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -6
+	if uplo != Upper && uplo != Lower {
+		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZPPSV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zppsv", err)
 		return
 	}
 
 	//     Compute the Cholesky factorization A = U**H *U or A = L*L**H.
-	Zpptrf(uplo, n, ap, info)
-	if (*info) == 0 {
+	if info, err = Zpptrf(uplo, n, ap); err != nil {
+		panic(err)
+	}
+	if info == 0 {
 		//        Solve the system A*X = B, overwriting B with X.
-		Zpptrs(uplo, n, nrhs, ap, b, ldb, info)
+		if err = Zpptrs(uplo, n, nrhs, ap, b); err != nil {
+			panic(err)
+		}
 
 	}
+
+	return
 }

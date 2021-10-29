@@ -37,7 +37,7 @@ import (
 //
 //    The element p would have to be set correctly, then that column
 //    is rotated, setting p to its new value.  The next call to
-//    ZLAROT would rotate columns j and j+1, using p, and restore
+//    Zlarot would rotate columns j and j+1, using p, and restore
 //    symmetry.  The element q would start out being zero, and be
 //    made non-zero by the rotation.  Later, rotations would presumably
 //    be chosen to zero q out.
@@ -47,14 +47,14 @@ import (
 //
 //      General dense matrix:
 //
-//              CALL ZLAROT(.TRUE.,.FALSE.,.FALSE., N, C,S,
+//              CALL Zlarot(.TRUE.,.FALSE.,.FALSE., N, C,S,
 //                      A(i,1),LDA, DUMMY, DUMMY)
 //
 //      General banded matrix in GB format:
 //
 //              j = MAX(1, i-KL )
 //              NL = MIN( N, i+KU+1 ) + 1-j
-//              CALL ZLAROT( .TRUE., i-KL.GE.1, i+KU.LT.N, NL, C,S,
+//              CALL Zlarot( .TRUE., i-KL.GE.1, i+KU.LT.N, NL, C,S,
 //                      A(KU+i+1-j,j),LDA-1, XLEFT, XRIGHT )
 //
 //              [ note that i+1-j is just MIN(i,KL+1) ]
@@ -64,13 +64,13 @@ import (
 //
 //              j = MAX(1, i-K )
 //              NL = MIN( K+1, i ) + 1
-//              CALL ZLAROT( .TRUE., i-K.GE.1, .TRUE., NL, C,S,
+//              CALL Zlarot( .TRUE., i-K.GE.1, .TRUE., NL, C,S,
 //                      A(i,j), LDA, XLEFT, XRIGHT )
 //
 //      Same, but upper triangle only:
 //
 //              NL = MIN( K+1, N-i ) + 1
-//              CALL ZLAROT( .TRUE., .TRUE., i+K.LT.N, NL, C,S,
+//              CALL Zlarot( .TRUE., .TRUE., i+K.LT.N, NL, C,S,
 //                      A(i,i), LDA, XLEFT, XRIGHT )
 //
 //      Symmetric banded matrix in SB format, bandwidth K,
@@ -92,7 +92,7 @@ import (
 //      GB:
 //              j = MAX(1, i-KU )
 //              NL = MIN( N, i+KL+1 ) + 1-j
-//              CALL ZLAROT( .TRUE., i-KU.GE.1, i+KL.LT.N, NL, C,S,
+//              CALL Zlarot( .TRUE., i-KU.GE.1, i+KL.LT.N, NL, C,S,
 //                      A(KU+j+1-i,i),LDA-1, XTOP, XBOTTM )
 //
 //              [note that KU+j+1-i is just MAX(1,KU+2-i)]
@@ -106,7 +106,7 @@ import (
 //
 //                   . . . . . .
 //                      A(1,i),LDA-1, XTOP, XBOTTM )
-func Zlarot(lrows, lleft, lright bool, nl *int, c, s *complex128, a *mat.CVector, lda *int, xleft, xright *complex128) {
+func Zlarot(lrows, lleft, lright bool, nl int, c, s complex128, a *mat.CVector, lda int, xleft, xright complex128) (complex128, complex128) {
 	var tempx complex128
 	var iinc, inext, ix, iy, iyt, j, nt int
 
@@ -115,19 +115,19 @@ func Zlarot(lrows, lleft, lright bool, nl *int, c, s *complex128, a *mat.CVector
 
 	//     Set up indices, arrays for ends
 	if lrows {
-		iinc = (*lda)
+		iinc = lda
 		inext = 1
 	} else {
 		iinc = 1
-		inext = (*lda)
+		inext = lda
 	}
 
 	if lleft {
 		nt = 1
 		ix = 1 + iinc
-		iy = 2 + (*lda)
+		iy = 2 + lda
 		xt.Set(0, a.Get(0))
-		yt.Set(0, (*xleft))
+		yt.Set(0, xleft)
 	} else {
 		nt = 0
 		ix = 1
@@ -135,46 +135,48 @@ func Zlarot(lrows, lleft, lright bool, nl *int, c, s *complex128, a *mat.CVector
 	}
 
 	if lright {
-		iyt = 1 + inext + ((*nl)-1)*iinc
+		iyt = 1 + inext + (nl-1)*iinc
 		nt = nt + 1
-		xt.Set(nt-1, (*xright))
+		xt.Set(nt-1, xright)
 		yt.Set(nt-1, a.Get(iyt-1))
 	}
 
 	//     Check for errors
-	if (*nl) < nt {
-		gltest.Xerbla([]byte("ZLAROT"), 4)
-		return
+	if nl < nt {
+		gltest.Xerbla("Zlarot", 4)
+		return xleft, xright
 	}
-	if (*lda) <= 0 || (!lrows && (*lda) < (*nl)-nt) {
-		gltest.Xerbla([]byte("ZLAROT"), 8)
-		return
+	if lda <= 0 || (!lrows && lda < nl-nt) {
+		gltest.Xerbla("Zlarot", 8)
+		return xleft, xright
 	}
 
 	//     Rotate
 	//
 	//     ZROT( NL-NT, A(IX),IINC, A(IY),IINC, C, S ) with complex C, S
-	for j = 0; j <= (*nl)-nt-1; j++ {
-		tempx = (*c)*a.Get(ix+j*iinc-1) + (*s)*a.Get(iy+j*iinc-1)
-		a.Set(iy+j*iinc-1, -cmplx.Conj(*s)*a.Get(ix+j*iinc-1)+cmplx.Conj(*c)*a.Get(iy+j*iinc-1))
+	for j = 0; j <= nl-nt-1; j++ {
+		tempx = c*a.Get(ix+j*iinc-1) + s*a.Get(iy+j*iinc-1)
+		a.Set(iy+j*iinc-1, -cmplx.Conj(s)*a.Get(ix+j*iinc-1)+cmplx.Conj(c)*a.Get(iy+j*iinc-1))
 		a.Set(ix+j*iinc-1, tempx)
 	}
 
 	//     ZROT( NT, XT,1, YT,1, C, S ) with complex C, S
 	for j = 1; j <= nt; j++ {
-		tempx = (*c)*xt.Get(j-1) + (*s)*yt.Get(j-1)
-		yt.Set(j-1, -cmplx.Conj(*s)*xt.Get(j-1)+cmplx.Conj(*c)*yt.Get(j-1))
+		tempx = c*xt.Get(j-1) + s*yt.Get(j-1)
+		yt.Set(j-1, -cmplx.Conj(s)*xt.Get(j-1)+cmplx.Conj(c)*yt.Get(j-1))
 		xt.Set(j-1, tempx)
 	}
 
 	//     Stuff values back into XLEFT, XRIGHT, etc.
 	if lleft {
 		a.Set(0, xt.Get(0))
-		(*xleft) = yt.Get(0)
+		xleft = yt.Get(0)
 	}
 
 	if lright {
-		(*xright) = xt.Get(nt - 1)
+		xright = xt.Get(nt - 1)
 		a.Set(iyt-1, yt.Get(nt-1))
 	}
+
+	return xleft, xright
 }

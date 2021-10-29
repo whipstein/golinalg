@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -23,61 +25,58 @@ import (
 // matrices (B, A) given by
 //
 //    B = (0 R)*Q,   A = Z*T*Q.
-func Zgglse(m, n, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c, d, x, work *mat.CVector, lwork, info *int) {
+func Zgglse(m, n, p int, a, b *mat.CMatrix, c, d, x, work *mat.CVector, lwork int) (info int, err error) {
 	var lquery bool
 	var cone complex128
 	var lopt, lwkmin, lwkopt, mn, nb, nb1, nb2, nb3, nb4, nr int
-	var err error
-	_ = err
 
 	cone = (1.0 + 0.0*1i)
 
 	//     Test the input parameters
-	(*info) = 0
-	mn = min(*m, *n)
-	lquery = ((*lwork) == -1)
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*p) < 0 || (*p) > (*n) || (*p) < (*n)-(*m) {
-		(*info) = -3
-	} else if (*lda) < max(1, *m) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *p) {
-		(*info) = -7
+	mn = min(m, n)
+	lquery = (lwork == -1)
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if p < 0 || p > n || p < n-m {
+		err = fmt.Errorf("p < 0 || p > n || p < n-m: p=%v, m=%v, n=%v", p, m, n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
+	} else if b.Rows < max(1, p) {
+		err = fmt.Errorf("b.Rows < max(1, p): b.Rows=%v, p=%v", b.Rows, p)
 	}
 
 	//     Calculate workspace
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			lwkmin = 1
 			lwkopt = 1
 		} else {
-			nb1 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGEQRF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-			nb2 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZGERQF"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-			nb3 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMQR"), []byte{' '}, m, n, p, toPtr(-1))
-			nb4 = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZUNMRQ"), []byte{' '}, m, n, p, toPtr(-1))
+			nb1 = Ilaenv(1, "Zgeqrf", []byte{' '}, m, n, -1, -1)
+			nb2 = Ilaenv(1, "Zgerqf", []byte{' '}, m, n, -1, -1)
+			nb3 = Ilaenv(1, "Zunmqr", []byte{' '}, m, n, p, -1)
+			nb4 = Ilaenv(1, "Zunmrq", []byte{' '}, m, n, p, -1)
 			nb = max(nb1, nb2, nb3, nb4)
-			lwkmin = (*m) + (*n) + (*p)
-			lwkopt = (*p) + mn + max(*m, *n)*nb
+			lwkmin = m + n + p
+			lwkopt = p + mn + max(m, n)*nb
 		}
 		work.SetRe(0, float64(lwkopt))
 
-		if (*lwork) < lwkmin && !lquery {
-			(*info) = -12
+		if lwork < lwkmin && !lquery {
+			err = fmt.Errorf("lwork < lwkmin && !lquery: lwork=%v, lwkmin=%v, lquery=%v", lwork, lwkmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZGGLSE"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zgglse", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
@@ -89,60 +88,76 @@ func Zgglse(m, n, p *int, a *mat.CMatrix, lda *int, b *mat.CMatrix, ldb *int, c,
 	//
 	//     where T12 and R11 are upper triangular, and Q and Z are
 	//     unitary.
-	Zggrqf(p, m, n, b, ldb, work, a, lda, work.Off((*p)), work.Off((*p)+mn), toPtr((*lwork)-(*p)-mn), info)
-	lopt = int(work.GetRe((*p) + mn + 1 - 1))
+	if err = Zggrqf(p, m, n, b, work, a, work.Off(p), work.Off(p+mn), lwork-p-mn); err != nil {
+		panic(err)
+	}
+	lopt = int(work.GetRe(p + mn + 1 - 1))
 
 	//     Update c = Z**H *c = ( c1 ) N-P
 	//                       ( c2 ) M+P-N
-	Zunmqr('L', 'C', m, func() *int { y := 1; return &y }(), &mn, a, lda, work.Off((*p)), c.CMatrix(max(1, *m), opts), toPtr(max(1, *m)), work.Off((*p)+mn), toPtr((*lwork)-(*p)-mn), info)
-	lopt = max(lopt, int(work.GetRe((*p)+mn)))
+	if err = Zunmqr(Left, ConjTrans, m, 1, mn, a, work.Off(p), c.CMatrix(max(1, m), opts), work.Off(p+mn), lwork-p-mn); err != nil {
+		panic(err)
+	}
+	lopt = max(lopt, int(work.GetRe(p+mn)))
 
 	//     Solve T12*x2 = d for x2
-	if (*p) > 0 {
-		Ztrtrs('U', 'N', 'N', p, func() *int { y := 1; return &y }(), b.Off(0, (*n)-(*p)), ldb, d.CMatrix(*p, opts), p, info)
+	if p > 0 {
+		if info, err = Ztrtrs(Upper, NoTrans, NonUnit, p, 1, b.Off(0, n-p), d.CMatrix(p, opts)); err != nil {
+			panic(err)
+		}
 
-		if (*info) > 0 {
-			(*info) = 1
+		if info > 0 {
+			info = 1
 			return
 		}
 
 		//        Put the solution in X
-		goblas.Zcopy(*p, d.Off(0, 1), x.Off((*n)-(*p), 1))
+		goblas.Zcopy(p, d.Off(0, 1), x.Off(n-p, 1))
 
 		//        Update c1
-		err = goblas.Zgemv(NoTrans, (*n)-(*p), *p, -cone, a.Off(0, (*n)-(*p)), d.Off(0, 1), cone, c.Off(0, 1))
+		err = goblas.Zgemv(NoTrans, n-p, p, -cone, a.Off(0, n-p), d.Off(0, 1), cone, c.Off(0, 1))
 	}
 	//
 	//     Solve R11*x1 = c1 for x1
 	//
-	if (*n) > (*p) {
-		Ztrtrs('U', 'N', 'N', toPtr((*n)-(*p)), func() *int { y := 1; return &y }(), a, lda, c.CMatrix((*n)-(*p), opts), toPtr((*n)-(*p)), info)
+	if n > p {
+		if info, err = Ztrtrs(Upper, NoTrans, NonUnit, n-p, 1, a, c.CMatrix(n-p, opts)); err != nil {
+			panic(err)
+		}
 
-		if (*info) > 0 {
-			(*info) = 2
+		if info > 0 {
+			info = 2
 			return
 		}
 
 		//        Put the solutions in X
-		goblas.Zcopy((*n)-(*p), c.Off(0, 1), x.Off(0, 1))
+		goblas.Zcopy(n-p, c.Off(0, 1), x.Off(0, 1))
 	}
 
 	//     Compute the residual vector:
-	if (*m) < (*n) {
-		nr = (*m) + (*p) - (*n)
+	if m < n {
+		nr = m + p - n
 		if nr > 0 {
-			err = goblas.Zgemv(NoTrans, nr, (*n)-(*m), -cone, a.Off((*n)-(*p), (*m)), d.Off(nr, 1), cone, c.Off((*n)-(*p), 1))
+			if err = goblas.Zgemv(NoTrans, nr, n-m, -cone, a.Off(n-p, m), d.Off(nr, 1), cone, c.Off(n-p, 1)); err != nil {
+				panic(err)
+			}
 		}
 	} else {
-		nr = (*p)
+		nr = p
 	}
 	if nr > 0 {
-		err = goblas.Ztrmv(Upper, NoTrans, NonUnit, nr, a.Off((*n)-(*p), (*n)-(*p)), d.Off(0, 1))
-		goblas.Zaxpy(nr, -cone, d.Off(0, 1), c.Off((*n)-(*p), 1))
+		if err = goblas.Ztrmv(Upper, NoTrans, NonUnit, nr, a.Off(n-p, n-p), d.Off(0, 1)); err != nil {
+			panic(err)
+		}
+		goblas.Zaxpy(nr, -cone, d.Off(0, 1), c.Off(n-p, 1))
 	}
 	//
 	//     Backward transformation x = Q**H*x
 	//
-	Zunmrq('L', 'C', n, func() *int { y := 1; return &y }(), p, b, ldb, work.Off(0), x.CMatrix(*n, opts), n, work.Off((*p)+mn), toPtr((*lwork)-(*p)-mn), info)
-	work.SetRe(0, float64((*p)+mn+max(lopt, int(work.GetRe((*p)+mn)))))
+	if err = Zunmrq(Left, ConjTrans, n, 1, p, b, work.Off(0), x.CMatrix(n, opts), work.Off(p+mn), lwork-p-mn); err != nil {
+		panic(err)
+	}
+	work.SetRe(0, float64(p+mn+max(lopt, int(work.GetRe(p+mn)))))
+
+	return
 }

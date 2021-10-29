@@ -8,13 +8,13 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dchkgl tests DGGBAL, a routine for balancing a matrix pair (A, B).
-func Dchkgl(t *testing.T) {
+// dchkgl tests DGGBAL, a routine for balancing a matrix pair (A, B).
+func dchkgl(t *testing.T) {
 	var anorm, bnorm, eps, rmax, vmax, zero float64
-	var _i, i, ihi, ihiin, ilo, iloin, info, j, knt, lda, ldb, lwork, n, ninfo int
+	var _i, i, ihi, ihiin, ilo, iloin, j, knt, lda, lwork, n, ninfo int
+	var err error
 
 	lda = 20
-	ldb = 20
 	lwork = 6 * lda
 	zero = 0.0
 	lscale := vf(20)
@@ -358,14 +358,12 @@ func Dchkgl(t *testing.T) {
 			rsclin.Set(i-1, rsclinlist[_i][i-1])
 		}
 
-		anorm = golapack.Dlange('M', &n, &n, a, &lda, work)
-		bnorm = golapack.Dlange('M', &n, &n, b, &ldb, work)
+		anorm = golapack.Dlange('M', n, n, a, work)
+		bnorm = golapack.Dlange('M', n, n, b, work)
 
 		knt = knt + 1
 
-		golapack.Dggbal('B', &n, a, &lda, b, &ldb, &ilo, &ihi, lscale, rscale, work, &info)
-
-		if info != 0 {
+		if ilo, ihi, err = golapack.Dggbal('B', n, a, b, lscale, rscale, work); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt

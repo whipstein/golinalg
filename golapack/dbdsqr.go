@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -37,7 +38,7 @@ import (
 // B. Parlett and V. Fernando, Technical Report CPAM-554, Mathematics
 // Department, University of California at Berkeley, July 1992
 // for a detailed description of the algorithm.
-func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix, ldvt *int, u *mat.Matrix, ldu *int, c *mat.Matrix, ldc *int, work *mat.Vector, info *int) {
+func Dbdsqr(uplo mat.MatUplo, n, ncvt, nru, ncc int, d, e *mat.Vector, vt *mat.Matrix, u *mat.Matrix, c *mat.Matrix, work *mat.Vector) (info int, err error) {
 	var lower, rotate bool
 	var abse, abss, cosl, cosr, cs, eps, f, g, h, hndrd, hndrth, meigth, mu, negone, oldcs, oldsn, one, r, shift, sigmn, sigmx, sinl, sinr, sll, smax, smin, sminl, sminoa, sn, ten, thresh, tol, tolmul, unfl, zero float64
 	var i, idir, isub, iter, iterdivn, j, ll, lll, m, maxitdivn, maxitr, nm1, nm12, nm13, oldll, oldm int
@@ -52,51 +53,53 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 	maxitr = 6
 
 	//     Test the input parameters.
-	(*info) = 0
-	lower = uplo == 'L'
-	if uplo != 'U' && !lower {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*ncvt) < 0 {
-		(*info) = -3
-	} else if (*nru) < 0 {
-		(*info) = -4
-	} else if (*ncc) < 0 {
-		(*info) = -5
-	} else if ((*ncvt) == 0 && (*ldvt) < 1) || ((*ncvt) > 0 && (*ldvt) < max(1, *n)) {
-		(*info) = -9
-	} else if (*ldu) < max(1, *nru) {
-		(*info) = -11
-	} else if ((*ncc) == 0 && (*ldc) < 1) || ((*ncc) > 0 && (*ldc) < max(1, *n)) {
-		(*info) = -13
+	lower = uplo == Lower
+	if uplo != Upper && !lower {
+		err = fmt.Errorf("uplo != Upper && !lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if ncvt < 0 {
+		err = fmt.Errorf("ncvt < 0: ncvt=%v", ncvt)
+	} else if nru < 0 {
+		err = fmt.Errorf("nru < 0: nru=%v", nru)
+	} else if ncc < 0 {
+		err = fmt.Errorf("ncc < 0: ncc=%v", ncc)
+	} else if (ncvt == 0 && vt.Rows < 1) || (ncvt > 0 && vt.Rows < max(1, n)) {
+		err = fmt.Errorf("(ncvt == 0 && vt.Rows < 1) || (ncvt > 0 && vt.Rows < max(1, n)): vt.Rows=%v, n=%v, ncvt=%v", vt.Rows, n, ncvt)
+	} else if u.Rows < max(1, nru) {
+		err = fmt.Errorf("u.Rows < max(1, nru): u.Rows=%v, nru=%v", u.Rows, nru)
+	} else if (ncc == 0 && c.Rows < 1) || (ncc > 0 && c.Rows < max(1, n)) {
+		err = fmt.Errorf("(ncc == 0 && c.Rows < 1) || (ncc > 0 && c.Rows < max(1, n)): c.Rows=%v, n=%v, ncc=%v", c.Rows, n, ncc)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DBDSQR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dbdsqr", err)
 		return
 	}
-	if (*n) == 0 {
+
+	if n == 0 {
 		return
 	}
-	if (*n) == 1 {
+	if n == 1 {
 		goto label160
 	}
 
 	//     ROTATE is true if any singular vectors desired, false otherwise
-	rotate = ((*ncvt) > 0) || ((*nru) > 0) || ((*ncc) > 0)
+	rotate = (ncvt > 0) || (nru > 0) || (ncc > 0)
 
 	//     If no singular vectors desired, use qd algorithm
 	if !rotate {
-		Dlasq1(n, d, e, work, info)
+		if info, err = Dlasq1(n, d, e, work); err != nil {
+			panic(err)
+		}
 
 		//     If INFO equals 2, dqds didn't finish, try to finish
-		if (*info) != 2 {
+		if info != 2 {
 			return
 		}
-		(*info) = 0
+		info = 0
 	}
 
-	nm1 = (*n) - 1
+	nm1 = n - 1
 	nm12 = nm1 + nm1
 	nm13 = nm12 + nm1
 	idir = 0
@@ -108,8 +111,8 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 	//     If matrix lower bidiagonal, rotate to be upper bidiagonal
 	//     by applying Givens rotations on the left
 	if lower {
-		for i = 1; i <= (*n)-1; i++ {
-			Dlartg(d.GetPtr(i-1), e.GetPtr(i-1), &cs, &sn, &r)
+		for i = 1; i <= n-1; i++ {
+			cs, sn, r = Dlartg(d.Get(i-1), e.Get(i-1))
 			d.Set(i-1, r)
 			e.Set(i-1, sn*d.Get(i))
 			d.Set(i, cs*d.Get(i))
@@ -118,11 +121,15 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 		}
 
 		//        Update singular vectors if desired
-		if (*nru) > 0 {
-			Dlasr('R', 'V', 'F', nru, n, work, work.Off((*n)-1), u, ldu)
+		if nru > 0 {
+			if err = Dlasr(Right, 'V', 'F', nru, n, work, work.Off(n-1), u); err != nil {
+				panic(err)
+			}
 		}
-		if (*ncc) > 0 {
-			Dlasr('L', 'V', 'F', n, ncc, work, work.Off((*n)-1), c, ldc)
+		if ncc > 0 {
+			if err = Dlasr(Left, 'V', 'F', n, ncc, work, work.Off(n-1), c); err != nil {
+				panic(err)
+			}
 		}
 	}
 
@@ -134,10 +141,10 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 
 	//     Compute approximate maximum, minimum singular values
 	smax = zero
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		smax = math.Max(smax, math.Abs(d.Get(i-1)))
 	}
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		smax = math.Max(smax, math.Abs(e.Get(i-1)))
 	}
 	sminl = zero
@@ -148,7 +155,7 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 			goto label50
 		}
 		mu = sminoa
-		for i = 2; i <= (*n); i++ {
+		for i = 2; i <= n; i++ {
 			mu = math.Abs(d.Get(i-1)) * (mu / (mu + math.Abs(e.Get(i-1-1))))
 			sminoa = math.Min(sminoa, mu)
 			if sminoa == zero {
@@ -157,24 +164,24 @@ func Dbdsqr(uplo byte, n, ncvt, nru, ncc *int, d, e *mat.Vector, vt *mat.Matrix,
 		}
 	label50:
 		;
-		sminoa = sminoa / math.Sqrt(float64(*n))
-		thresh = math.Max(tol*sminoa, float64(maxitr)*(float64(*n)*(float64(*n)*unfl)))
+		sminoa = sminoa / math.Sqrt(float64(n))
+		thresh = math.Max(tol*sminoa, float64(maxitr)*(float64(n)*(float64(n)*unfl)))
 	} else {
 		//        Absolute accuracy desired
-		thresh = math.Max(math.Abs(tol)*smax, float64(maxitr)*(float64(*n)*(float64(*n)*unfl)))
+		thresh = math.Max(math.Abs(tol)*smax, float64(maxitr)*(float64(n)*(float64(n)*unfl)))
 	}
 
 	//     Prepare for main iteration loop for the singular values
 	//     (MAXIT is the maximum number of passes through the inner
 	//     loop permitted before nonconvergence signalled.)
-	maxitdivn = maxitr * (*n)
+	maxitdivn = maxitr * n
 	iterdivn = 0
 	iter = -1
 	oldll = -1
 	oldm = -1
 
 	//     M points to last element of unconverged part of matrix
-	m = (*n)
+	m = n
 
 	//     Begin main iteration loop
 label60:
@@ -185,8 +192,8 @@ label60:
 		goto label160
 	}
 
-	if iter >= (*n) {
-		iter = iter - (*n)
+	if iter >= n {
+		iter = iter - n
 		iterdivn = iterdivn + 1
 		if iterdivn >= maxitdivn {
 			goto label200
@@ -231,20 +238,20 @@ label90:
 	//     E(LL) through E(M-1) are nonzero, E(LL-1) is zero
 	if ll == m-1 {
 		//        2 by 2 block, handle separately
-		Dlasv2(d.GetPtr(m-1-1), e.GetPtr(m-1-1), d.GetPtr(m-1), &sigmn, &sigmx, &sinr, &cosr, &sinl, &cosl)
+		sigmn, sigmx, sinr, cosr, sinl, cosl = Dlasv2(d.Get(m-1-1), e.Get(m-1-1), d.Get(m-1))
 		d.Set(m-1-1, sigmx)
 		e.Set(m-1-1, zero)
 		d.Set(m-1, sigmn)
 
 		//        Compute singular vectors, if desired
-		if (*ncvt) > 0 {
-			goblas.Drot(*ncvt, vt.Vector(m-1-1, 0), vt.Vector(m-1, 0), cosr, sinr)
+		if ncvt > 0 {
+			goblas.Drot(ncvt, vt.Vector(m-1-1, 0), vt.Vector(m-1, 0), cosr, sinr)
 		}
-		if (*nru) > 0 {
-			goblas.Drot(*nru, u.Vector(0, m-1-1, 1), u.Vector(0, m-1, 1), cosl, sinl)
+		if nru > 0 {
+			goblas.Drot(nru, u.Vector(0, m-1-1, 1), u.Vector(0, m-1, 1), cosl, sinl)
 		}
-		if (*ncc) > 0 {
-			goblas.Drot(*ncc, c.Vector(m-1-1, 0), c.Vector(m-1, 0), cosl, sinl)
+		if ncc > 0 {
+			goblas.Drot(ncc, c.Vector(m-1-1, 0), c.Vector(m-1, 0), cosl, sinl)
 		}
 		m = m - 2
 		goto label60
@@ -314,17 +321,17 @@ label90:
 
 	//     Compute shift.  First, test if shifting would ruin relative
 	//     accuracy, and if so set the shift to zero.
-	if tol >= zero && float64(*n)*tol*(sminl/smax) <= math.Max(eps, hndrth*tol) {
+	if tol >= zero && float64(n)*tol*(sminl/smax) <= math.Max(eps, hndrth*tol) {
 		//        Use a zero shift to avoid loss of relative accuracy
 		shift = zero
 	} else {
 		//        Compute the shift from 2-by-2 block at end of matrix
 		if idir == 1 {
 			sll = math.Abs(d.Get(ll - 1))
-			Dlas2(d.GetPtr(m-1-1), e.GetPtr(m-1-1), d.GetPtr(m-1), &shift, &r)
+			shift, r = Dlas2(d.Get(m-1-1), e.Get(m-1-1), d.Get(m-1))
 		} else {
 			sll = math.Abs(d.Get(m - 1))
-			Dlas2(d.GetPtr(ll-1), e.GetPtr(ll-1), d.GetPtr(ll), &shift, &r)
+			shift, r = Dlas2(d.Get(ll-1), e.Get(ll-1), d.Get(ll))
 		}
 
 		//        Test if shift negligible, and if so set to zero
@@ -346,11 +353,11 @@ label90:
 			cs = one
 			oldcs = one
 			for i = ll; i <= m-1; i++ {
-				Dlartg(func() *float64 { y := d.Get(i-1) * cs; return &y }(), e.GetPtr(i-1), &cs, &sn, &r)
+				cs, sn, r = Dlartg(d.Get(i-1)*cs, e.Get(i-1))
 				if i > ll {
 					e.Set(i-1-1, oldsn*r)
 				}
-				Dlartg(func() *float64 { y := oldcs * r; return &y }(), func() *float64 { y := d.Get(i) * sn; return &y }(), &oldcs, &oldsn, d.GetPtr(i-1))
+				oldcs, oldsn, *d.GetPtr(i - 1) = Dlartg(oldcs*r, d.Get(i)*sn)
 				work.Set(i-ll, cs)
 				work.Set(i-ll+1+nm1-1, sn)
 				work.Set(i-ll+1+nm12-1, oldcs)
@@ -361,14 +368,20 @@ label90:
 			e.Set(m-1-1, h*oldsn)
 
 			//           Update singular vectors
-			if (*ncvt) > 0 {
-				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncvt, work, work.Off((*n)-1), vt.Off(ll-1, 0), ldvt)
+			if ncvt > 0 {
+				if err = Dlasr(Left, 'V', 'F', m-ll+1, ncvt, work, work.Off(n-1), vt.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
-			if (*nru) > 0 {
-				Dlasr('R', 'V', 'F', nru, toPtr(m-ll+1), work.Off(nm12), work.Off(nm13), u.Off(0, ll-1), ldu)
+			if nru > 0 {
+				if err = Dlasr(Right, 'V', 'F', nru, m-ll+1, work.Off(nm12), work.Off(nm13), u.Off(0, ll-1)); err != nil {
+					panic(err)
+				}
 			}
-			if (*ncc) > 0 {
-				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, work.Off(nm12), work.Off(nm13), c.Off(ll-1, 0), ldc)
+			if ncc > 0 {
+				if err = Dlasr(Left, 'V', 'F', m-ll+1, ncc, work.Off(nm12), work.Off(nm13), c.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Test convergence
@@ -382,11 +395,11 @@ label90:
 			cs = one
 			oldcs = one
 			for i = m; i >= ll+1; i-- {
-				Dlartg(func() *float64 { y := d.Get(i-1) * cs; return &y }(), e.GetPtr(i-1-1), &cs, &sn, &r)
+				cs, sn, r = Dlartg(d.Get(i-1)*cs, e.Get(i-1-1))
 				if i < m {
 					e.Set(i-1, oldsn*r)
 				}
-				Dlartg(func() *float64 { y := oldcs * r; return &y }(), func() *float64 { y := d.Get(i-1-1) * sn; return &y }(), &oldcs, &oldsn, d.GetPtr(i-1))
+				oldcs, oldsn, *d.GetPtr(i - 1) = Dlartg(oldcs*r, d.Get(i-1-1)*sn)
 				work.Set(i-ll-1, cs)
 				work.Set(i-ll+nm1-1, -sn)
 				work.Set(i-ll+nm12-1, oldcs)
@@ -397,14 +410,20 @@ label90:
 			e.Set(ll-1, h*oldsn)
 
 			//           Update singular vectors
-			if (*ncvt) > 0 {
-				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, work.Off(nm12), work.Off(nm13), vt.Off(ll-1, 0), ldvt)
+			if ncvt > 0 {
+				if err = Dlasr(Left, 'V', 'B', m-ll+1, ncvt, work.Off(nm12), work.Off(nm13), vt.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
-			if (*nru) > 0 {
-				Dlasr('R', 'V', 'B', nru, toPtr(m-ll+1), work, work.Off((*n)-1), u.Off(0, ll-1), ldu)
+			if nru > 0 {
+				if err = Dlasr(Right, 'V', 'B', nru, m-ll+1, work, work.Off(n-1), u.Off(0, ll-1)); err != nil {
+					panic(err)
+				}
 			}
-			if (*ncc) > 0 {
-				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncc, work, work.Off((*n)-1), c.Off(ll-1, 0), ldc)
+			if ncc > 0 {
+				if err = Dlasr(Left, 'V', 'B', m-ll+1, ncc, work, work.Off(n-1), c.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Test convergence
@@ -420,7 +439,7 @@ label90:
 			f = (math.Abs(d.Get(ll-1)) - shift) * (math.Copysign(one, d.Get(ll-1)) + shift/d.Get(ll-1))
 			g = e.Get(ll - 1)
 			for i = ll; i <= m-1; i++ {
-				Dlartg(&f, &g, &cosr, &sinr, &r)
+				cosr, sinr, r = Dlartg(f, g)
 				if i > ll {
 					e.Set(i-1-1, r)
 				}
@@ -428,7 +447,7 @@ label90:
 				e.Set(i-1, cosr*e.Get(i-1)-sinr*d.Get(i-1))
 				g = sinr * d.Get(i)
 				d.Set(i, cosr*d.Get(i))
-				Dlartg(&f, &g, &cosl, &sinl, &r)
+				cosl, sinl, r = Dlartg(f, g)
 				d.Set(i-1, r)
 				f = cosl*e.Get(i-1) + sinl*d.Get(i)
 				d.Set(i, cosl*d.Get(i)-sinl*e.Get(i-1))
@@ -444,14 +463,20 @@ label90:
 			e.Set(m-1-1, f)
 
 			//           Update singular vectors
-			if (*ncvt) > 0 {
-				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncvt, work, work.Off((*n)-1), vt.Off(ll-1, 0), ldvt)
+			if ncvt > 0 {
+				if err = Dlasr(Left, 'V', 'F', m-ll+1, ncvt, work, work.Off(n-1), vt.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
-			if (*nru) > 0 {
-				Dlasr('R', 'V', 'F', nru, toPtr(m-ll+1), work.Off(nm12), work.Off(nm13), u.Off(0, ll-1), ldu)
+			if nru > 0 {
+				if err = Dlasr(Right, 'V', 'F', nru, m-ll+1, work.Off(nm12), work.Off(nm13), u.Off(0, ll-1)); err != nil {
+					panic(err)
+				}
 			}
-			if (*ncc) > 0 {
-				Dlasr('L', 'V', 'F', toPtr(m-ll+1), ncc, work.Off(nm12), work.Off(nm13), c.Off(ll-1, 0), ldc)
+			if ncc > 0 {
+				if err = Dlasr(Left, 'V', 'F', m-ll+1, ncc, work.Off(nm12), work.Off(nm13), c.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Test convergence
@@ -465,7 +490,7 @@ label90:
 			f = (math.Abs(d.Get(m-1)) - shift) * (math.Copysign(one, d.Get(m-1)) + shift/d.Get(m-1))
 			g = e.Get(m - 1 - 1)
 			for i = m; i >= ll+1; i-- {
-				Dlartg(&f, &g, &cosr, &sinr, &r)
+				cosr, sinr, r = Dlartg(f, g)
 				if i < m {
 					e.Set(i-1, r)
 				}
@@ -473,7 +498,7 @@ label90:
 				e.Set(i-1-1, cosr*e.Get(i-1-1)-sinr*d.Get(i-1))
 				g = sinr * d.Get(i-1-1)
 				d.Set(i-1-1, cosr*d.Get(i-1-1))
-				Dlartg(&f, &g, &cosl, &sinl, &r)
+				cosl, sinl, r = Dlartg(f, g)
 				d.Set(i-1, r)
 				f = cosl*e.Get(i-1-1) + sinl*d.Get(i-1-1)
 				d.Set(i-1-1, cosl*d.Get(i-1-1)-sinl*e.Get(i-1-1))
@@ -494,14 +519,20 @@ label90:
 			}
 
 			//           Update singular vectors if desired
-			if (*ncvt) > 0 {
-				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncvt, work.Off(nm12), work.Off(nm13), vt.Off(ll-1, 0), ldvt)
+			if ncvt > 0 {
+				if err = Dlasr(Left, 'V', 'B', m-ll+1, ncvt, work.Off(nm12), work.Off(nm13), vt.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
-			if (*nru) > 0 {
-				Dlasr('R', 'V', 'B', nru, toPtr(m-ll+1), work, work.Off((*n)-1), u.Off(0, ll-1), ldu)
+			if nru > 0 {
+				if err = Dlasr(Right, 'V', 'B', nru, m-ll+1, work, work.Off(n-1), u.Off(0, ll-1)); err != nil {
+					panic(err)
+				}
 			}
-			if (*ncc) > 0 {
-				Dlasr('L', 'V', 'B', toPtr(m-ll+1), ncc, work, work.Off((*n)-1), c.Off(ll-1, 0), ldc)
+			if ncc > 0 {
+				if err = Dlasr(Left, 'V', 'B', m-ll+1, ncc, work, work.Off(n-1), c.Off(ll-1, 0)); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -512,42 +543,42 @@ label90:
 	//     All singular values converged, so make them positive
 label160:
 	;
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		if d.Get(i-1) < zero {
 			d.Set(i-1, -d.Get(i-1))
 
 			//           Change sign of singular vectors, if desired
-			if (*ncvt) > 0 {
-				// goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0, *ldvt))
-				goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0))
+			if ncvt > 0 {
+				// goblas.Dscal(*ncvt, negone, vt.Vector(i-1, 0, *&vt.Rows))
+				goblas.Dscal(ncvt, negone, vt.Vector(i-1, 0))
 			}
 		}
 	}
 
 	//     Sort the singular values into decreasing order (insertion sort on
 	//     singular values, but only one transposition per singular vector)
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		//        Scan for smallest D(I)
 		isub = 1
 		smin = d.Get(0)
-		for j = 2; j <= (*n)+1-i; j++ {
+		for j = 2; j <= n+1-i; j++ {
 			if d.Get(j-1) <= smin {
 				isub = j
 				smin = d.Get(j - 1)
 			}
 		}
-		if isub != (*n)+1-i {
+		if isub != n+1-i {
 			//           Swap singular values and vectors
-			d.Set(isub-1, d.Get((*n)+1-i-1))
-			d.Set((*n)+1-i-1, smin)
-			if (*ncvt) > 0 {
-				goblas.Dswap(*ncvt, vt.Vector(isub-1, 0), vt.Vector((*n)+1-i-1, 0))
+			d.Set(isub-1, d.Get(n+1-i-1))
+			d.Set(n+1-i-1, smin)
+			if ncvt > 0 {
+				goblas.Dswap(ncvt, vt.Vector(isub-1, 0), vt.Vector(n+1-i-1, 0))
 			}
-			if (*nru) > 0 {
-				goblas.Dswap(*nru, u.Vector(0, isub-1, 1), u.Vector(0, (*n)+1-i-1, 1))
+			if nru > 0 {
+				goblas.Dswap(nru, u.Vector(0, isub-1, 1), u.Vector(0, n+1-i-1, 1))
 			}
-			if (*ncc) > 0 {
-				goblas.Dswap(*ncc, c.Vector(isub-1, 0), c.Vector((*n)+1-i-1, 0))
+			if ncc > 0 {
+				goblas.Dswap(ncc, c.Vector(isub-1, 0), c.Vector(n+1-i-1, 0))
 			}
 		}
 	}
@@ -556,10 +587,12 @@ label160:
 	//     Maximum number of iterations exceeded, failure to converge
 label200:
 	;
-	(*info) = 0
-	for i = 1; i <= (*n)-1; i++ {
+	info = 0
+	for i = 1; i <= n-1; i++ {
 		if e.Get(i-1) != zero {
-			(*info) = (*info) + 1
+			info = info + 1
 		}
 	}
+
+	return
 }

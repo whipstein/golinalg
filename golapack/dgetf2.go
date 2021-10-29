@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -18,65 +19,64 @@ import (
 // triangular (upper trapezoidal if m < n).
 //
 // This is the right-looking Level 2 BLAS version of the algorithm.
-func Dgetf2(m, n *int, a *mat.Matrix, lda *int, ipiv *[]int, info *int) {
+func Dgetf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 	var one, sfmin, zero float64
 	var i, j, jp int
-	var err error
-	_ = err
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGETF2"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgetf2", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) == 0 || (*n) == 0 {
+	if m == 0 || n == 0 {
 		return
 	}
 
 	//     Compute machine safe minimum
 	sfmin = Dlamch(SafeMinimum)
 	//
-	for j = 1; j <= min(*m, *n); j++ {
+	for j = 1; j <= min(m, n); j++ {
 		//        Find pivot and test for singularity.
-		jp = j - 1 + goblas.Idamax((*m)-j+1, a.Vector(j-1, j-1, 1))
+		jp = j - 1 + goblas.Idamax(m-j+1, a.Vector(j-1, j-1, 1))
 		(*ipiv)[j-1] = jp
 		if a.Get(jp-1, j-1) != zero {
 			//           Apply the interchange to columns 1:N.
 			if jp != j {
-				goblas.Dswap(*n, a.Vector(j-1, 0), a.Vector(jp-1, 0))
+				goblas.Dswap(n, a.Vector(j-1, 0), a.Vector(jp-1, 0))
 			}
 
 			//           Compute elements J+1:M of J-th column.
-			if j < (*m) {
+			if j < m {
 				if math.Abs(a.Get(j-1, j-1)) >= sfmin {
-					goblas.Dscal((*m)-j, one/a.Get(j-1, j-1), a.Vector(j, j-1, 1))
+					goblas.Dscal(m-j, one/a.Get(j-1, j-1), a.Vector(j, j-1, 1))
 				} else {
-					for i = 1; i <= (*m)-j; i++ {
+					for i = 1; i <= m-j; i++ {
 						a.Set(j+i-1, j-1, a.Get(j+i-1, j-1)/a.Get(j-1, j-1))
 					}
 				}
 			}
 
-		} else if (*info) == 0 {
-			*info = j
+		} else if info == 0 {
+			info = j
 		}
 
-		if j < min(*m, *n) {
+		if j < min(m, n) {
 			//           Update trailing submatrix.
-			err = goblas.Dger((*m)-j, (*n)-j, -one, a.Vector(j, j-1, 1), a.Vector(j-1, j), a.Off(j, j))
+			err = goblas.Dger(m-j, n-j, -one, a.Vector(j, j-1, 1), a.Vector(j-1, j), a.Off(j, j))
 		}
 	}
+
+	return
 }

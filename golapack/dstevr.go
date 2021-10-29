@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -13,7 +14,7 @@ import (
 // eigenvectors can be selected by specifying either a _range of values
 // or a _range of indices for the desired eigenvalues.
 //
-// Whenever possible, DSTEVR calls DSTEMR to compute the
+// Whenever possible, Dstevr calls DSTEMR to compute the
 // eigenspectrum using Relatively Robust Representations.  DSTEMR
 // computes eigenvalues by the dqds algorithm, while orthogonal
 // eigenvectors are computed from various "good" L D L^T representations
@@ -39,94 +40,93 @@ import (
 // UC Berkeley, May 1997.
 //
 //
-// Note 1 : DSTEVR calls DSTEMR when the full spectrum is requested
+// Note 1 : Dstevr calls DSTEMR when the full spectrum is requested
 // on machines which conform to the ieee-754 floating point standard.
-// DSTEVR calls DSTEBZ and DSTEIN on non-ieee machines and
+// Dstevr calls DSTEBZ and DSTEIN on non-ieee machines and
 // when partial spectrum requests are made.
 //
 // Normal execution of DSTEMR may create NaNs and infinities and
 // hence may abort due to a floating point exception in environments
 // which do not handle NaNs and infinities in the ieee standard default
 // manner.
-func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu *int, abstol *float64, m *int, w *mat.Vector, z *mat.Matrix, ldz *int, isuppz *[]int, work *mat.Vector, lwork *int, iwork *[]int, liwork, info *int) {
+func Dstevr(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu int, abstol float64, w *mat.Vector, z *mat.Matrix, isuppz *[]int, work *mat.Vector, lwork int, iwork *[]int, liwork int) (m, info int, err error) {
 	var alleig, indeig, lquery, test, tryrac, valeig, wantz bool
 	var order byte
 	var bignum, eps, one, rmax, rmin, safmin, sigma, smlnum, tmp1, tnrm, two, vll, vuu, zero float64
-	var i, ieeeok, imax, indibl, indifl, indisp, indiwo, iscale, itmp1, j, jj, liwmin, lwmin, nsplit int
+	var i, ieeeok, imax, indibl, indifl, indisp, indiwo, iscale, itmp1, j, jj, liwmin, lwmin int
 
 	zero = 0.0
 	one = 1.0
 	two = 2.0
 
 	//     Test the input parameters.
-	ieeeok = Ilaenv(func() *int { y := 10; return &y }(), []byte("DSTEVR"), []byte("N"), toPtr(1), toPtr(2), toPtr(3), toPtr(4))
+	ieeeok = Ilaenv(10, "Dstevr", []byte("N"), 1, 2, 3, 4)
 
 	wantz = jobz == 'V'
 	alleig = _range == 'A'
 	valeig = _range == 'V'
 	indeig = _range == 'I'
 
-	lquery = (((*lwork) == -1) || ((*liwork) == -1))
-	lwmin = max(1, 20*(*n))
-	liwmin = max(1, 10*(*n))
+	lquery = ((lwork == -1) || (liwork == -1))
+	lwmin = max(1, 20*n)
+	liwmin = max(1, 10*n)
 
-	(*info) = 0
 	if !(wantz || jobz == 'N') {
-		(*info) = -1
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
 	} else if !(alleig || valeig || indeig) {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
+		err = fmt.Errorf("!(alleig || valeig || indeig): _range='%c'", _range)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
 	} else {
 		if valeig {
-			if (*n) > 0 && (*vu) <= (*vl) {
-				(*info) = -7
+			if n > 0 && vu <= vl {
+				err = fmt.Errorf("n > 0 && vu <= vl: n=%v, vl=%v, vu=%v", n, vl, vu)
 			}
 		} else if indeig {
-			if (*il) < 1 || (*il) > max(1, *n) {
-				(*info) = -8
-			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
-				(*info) = -9
+			if il < 1 || il > max(1, n) {
+				err = fmt.Errorf("il < 1 || il > max(1, n): n=%v, il=%v", n, il)
+			} else if iu < min(n, il) || iu > n {
+				err = fmt.Errorf("iu < min(n, il) || iu > n: n=%v, il=%v, iu=%v", n, il, iu)
 			}
 		}
 	}
-	if (*info) == 0 {
-		if (*ldz) < 1 || (wantz && (*ldz) < (*n)) {
-			(*info) = -14
+	if err == nil {
+		if z.Rows < 1 || (wantz && z.Rows < n) {
+			err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 		}
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		work.Set(0, float64(lwmin))
 		(*iwork)[0] = liwmin
 
-		if (*lwork) < lwmin && !lquery {
-			(*info) = -17
-		} else if (*liwork) < liwmin && !lquery {
-			(*info) = -19
+		if lwork < lwmin && !lquery {
+			err = fmt.Errorf("lwork < lwmin && !lquery: lwork=%v, lwmin=%v, lquery=%v", lwork, lwmin, lquery)
+		} else if liwork < liwmin && !lquery {
+			err = fmt.Errorf("liwork < liwmin && !lquery: liwork=%v, liwmin=%v, lquery=%v", liwork, liwmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSTEVR"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dstevr", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	(*m) = 0
-	if (*n) == 0 {
+	m = 0
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if alleig || indeig {
-			(*m) = 1
+			m = 1
 			w.Set(0, d.Get(0))
 		} else {
-			if (*vl) < d.Get(0) && (*vu) >= d.Get(0) {
-				(*m) = 1
+			if vl < d.Get(0) && vu >= d.Get(0) {
+				m = 1
 				w.Set(0, d.Get(0))
 			}
 		}
@@ -147,8 +147,8 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 	//     Scale matrix to allowable _range, if necessary.
 	iscale = 0
 	if valeig {
-		vll = (*vl)
-		vuu = (*vu)
+		vll = vl
+		vuu = vu
 	}
 
 	tnrm = Dlanst('M', n, d, e)
@@ -160,11 +160,11 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(*n, sigma, d.Off(0, 1))
-		goblas.Dscal((*n)-1, sigma, e.Off(0, 1))
+		goblas.Dscal(n, sigma, d.Off(0, 1))
+		goblas.Dscal(n-1, sigma, e.Off(0, 1))
 		if valeig {
-			vll = (*vl) * sigma
-			vuu = (*vu) * sigma
+			vll = vl * sigma
+			vuu = vu * sigma
 		}
 	}
 	//     Initialize indices into workspaces.  Note: These indices are used only
@@ -174,14 +174,14 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 	indibl = 1
 	//     IWORK(INDISP:INDISP+NSPLIT-1) corresponds to ISPLIT in DSTEBZ and
 	//     stores the starting and finishing indices of each block.
-	indisp = indibl + (*n)
+	indisp = indibl + n
 	//     IWORK(INDIFL:INDIFL+N-1) stores the indices of eigenvectors
 	//     that corresponding to eigenvectors that fail to converge in
 	//     DSTEIN.  This information is discarded; if any fail, the driver
 	//     returns INFO > 0.
-	indifl = indisp + (*n)
+	indifl = indisp + n
 	//     INDIWO is the offset of the remaining integer workspace.
-	indiwo = indisp + (*n)
+	indiwo = indisp + n
 	//
 	//     If all eigenvalues are desired, then
 	//     call DSTERF or DSTEMR.  If this fails for some eigenvalue, then
@@ -189,30 +189,34 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 
 	test = false
 	if indeig {
-		if (*il) == 1 && (*iu) == (*n) {
+		if il == 1 && iu == n {
 			test = true
 		}
 	}
 	if (alleig || test) && ieeeok == 1 {
-		goblas.Dcopy((*n)-1, e.Off(0, 1), work.Off(0, 1))
+		goblas.Dcopy(n-1, e.Off(0, 1), work.Off(0, 1))
 		if !wantz {
-			goblas.Dcopy(*n, d.Off(0, 1), w.Off(0, 1))
-			Dsterf(n, w, work, info)
+			goblas.Dcopy(n, d.Off(0, 1), w.Off(0, 1))
+			if info, err = Dsterf(n, w, work); err != nil {
+				panic(err)
+			}
 		} else {
-			goblas.Dcopy(*n, d.Off(0, 1), work.Off((*n), 1))
-			if (*abstol) <= two*float64(*n)*eps {
+			goblas.Dcopy(n, d.Off(0, 1), work.Off(n, 1))
+			if abstol <= two*float64(n)*eps {
 				tryrac = true
 			} else {
 				tryrac = false
 			}
-			Dstemr(jobz, 'A', n, work.Off((*n)), work, vl, vu, il, iu, m, w, z, ldz, n, isuppz, &tryrac, work.Off(2*(*n)), toPtr((*lwork)-2*(*n)), iwork, liwork, info)
+			if m, tryrac, info, err = Dstemr(jobz, 'A', n, work.Off(n), work, vl, vu, il, iu, w, z, n, isuppz, tryrac, work.Off(2*n), lwork-2*n, iwork, liwork); err != nil {
+				panic(err)
+			}
 
 		}
-		if (*info) == 0 {
-			(*m) = (*n)
+		if info == 0 {
+			m = n
 			goto label10
 		}
-		(*info) = 0
+		info = 0
 	}
 
 	//     Otherwise, call DSTEBZ and, if eigenvectors are desired, DSTEIN.
@@ -221,20 +225,24 @@ func Dstevr(jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu
 	} else {
 		order = 'E'
 	}
-	Dstebz(_range, order, n, &vll, &vuu, il, iu, abstol, d, e, m, &nsplit, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), work, toSlice(iwork, indiwo-1), info)
+	if m, _, info, err = Dstebz(_range, order, n, vll, vuu, il, iu, abstol, d, e, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), work, toSlice(iwork, indiwo-1)); err != nil {
+		panic(err)
+	}
 
 	if wantz {
-		Dstein(n, d, e, m, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), z, ldz, work, toSlice(iwork, indiwo-1), toSlice(iwork, indifl-1), info)
+		if info, err = Dstein(n, d, e, m, w, toSlice(iwork, indibl-1), toSlice(iwork, indisp-1), z, work, toSlice(iwork, indiwo-1), toSlice(iwork, indifl-1)); err != nil {
+			panic(err)
+		}
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 label10:
 	;
 	if iscale == 1 {
-		if (*info) == 0 {
-			imax = (*m)
+		if info == 0 {
+			imax = m
 		} else {
-			imax = (*info) - 1
+			imax = info - 1
 		}
 		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
 	}
@@ -242,10 +250,10 @@ label10:
 	//     If eigenvalues are not in order, then sort them, along with
 	//     eigenvectors.
 	if wantz {
-		for j = 1; j <= (*m)-1; j++ {
+		for j = 1; j <= m-1; j++ {
 			i = 0
 			tmp1 = w.Get(j - 1)
-			for jj = j + 1; jj <= (*m); jj++ {
+			for jj = j + 1; jj <= m; jj++ {
 				if w.Get(jj-1) < tmp1 {
 					i = jj
 					tmp1 = w.Get(jj - 1)
@@ -258,7 +266,7 @@ label10:
 				(*iwork)[i-1] = (*iwork)[j-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[j-1] = itmp1
-				goblas.Dswap(*n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
 			}
 		}
 	}
@@ -267,4 +275,6 @@ label10:
 	//      IF (wantz .and. INDEIG ) Z( 1,1) = Z(1,1) / 1.002 + .002
 	work.Set(0, float64(lwmin))
 	(*iwork)[0] = liwmin
+
+	return
 }

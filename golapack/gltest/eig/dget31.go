@@ -6,7 +6,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dget31 tests DLALN2, a routine for solving
+// dget31 tests DLALN2, a routine for solving
 //
 //    (ca A - w D)X = sB
 //
@@ -28,7 +28,7 @@ import (
 // should be on the order of 1.  Here, ulp is the machine precision.
 // Also, it is verified that SCALE is less than or equal to 1, and that
 // XNORM = infinity-norm(X).
-func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
+func dget31(ninfo *[]int) (rmax float64, lmax int, knt int) {
 	var bignum, ca, d1, d2, den, eps, four, half, one, res, scale, seven, smin, smlnum, ten, three, tmp, twnone, two, unfl, wi, wr, xnorm, zero float64
 	var ia, ib, ica, id1, id2, info, ismin, itrans, iwi, iwr, na, nw int
 
@@ -59,7 +59,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 	unfl = golapack.Dlamch(Underflow)
 	smlnum = golapack.Dlamch(SafeMinimum) / eps
 	bignum = one / smlnum
-	golapack.Dlabad(&smlnum, &bignum)
+	smlnum, bignum = golapack.Dlabad(smlnum, bignum)
 
 	//     Set up test case parameters
 	vsmin.Set(0, smlnum)
@@ -87,11 +87,11 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 	vca.Set(3, half)
 	vca.Set(4, one)
 
-	(*knt) = 0
+	knt = 0
 	(*ninfo)[0] = 0
 	(*ninfo)[1] = 0
-	(*lmax) = 0
-	(*rmax) = zero
+	lmax = 0
+	rmax = zero
 
 	//     Begin test loop
 	for id1 = 1; id1 <= 4; id1++ {
@@ -117,8 +117,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										wr = vwr.Get(iwr - 1)
 									}
 									wi = zero
-									golapack.Dlaln2(ltrans[itrans-0], &na, &nw, &smin, &ca, a, func() *int { y := 2; return &y }(), &d1, &d2, b, func() *int { y := 2; return &y }(), &wr, &wi, x, func() *int { y := 2; return &y }(), &scale, &xnorm, &info)
-									if info < 0 {
+									if scale, xnorm, info = golapack.Dlaln2(ltrans[itrans-0], na, nw, smin, ca, a, d1, d2, b, wr, wi, x); info < 0 {
 										(*ninfo)[0] = (*ninfo)[0] + 1
 									}
 									if info > 0 {
@@ -141,10 +140,10 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 									if info != 0 && info != 1 {
 										res = res + one/eps
 									}
-									(*knt) = (*knt) + 1
-									if res > (*rmax) {
-										(*lmax) = (*knt)
-										(*rmax) = res
+									knt = knt + 1
+									if res > rmax {
+										lmax = knt
+										rmax = res
 									}
 								}
 							}
@@ -169,8 +168,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										} else {
 											wi = vwi.Get(iwi - 1)
 										}
-										golapack.Dlaln2(ltrans[itrans-0], &na, &nw, &smin, &ca, a, func() *int { y := 2; return &y }(), &d1, &d2, b, func() *int { y := 2; return &y }(), &wr, &wi, x, func() *int { y := 2; return &y }(), &scale, &xnorm, &info)
-										if info < 0 {
+										if scale, xnorm, info = golapack.Dlaln2(ltrans[itrans-0], na, nw, smin, ca, a, d1, d2, b, wr, wi, x); info < 0 {
 											(*ninfo)[0] = (*ninfo)[0] + 1
 										}
 										if info > 0 {
@@ -194,10 +192,10 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										if info != 0 && info != 1 {
 											res = res + one/eps
 										}
-										(*knt) = (*knt) + 1
-										if res > (*rmax) {
-											(*lmax) = (*knt)
-											(*rmax) = res
+										knt = knt + 1
+										if res > rmax {
+											lmax = knt
+											rmax = res
 										}
 									}
 								}
@@ -221,8 +219,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										wr = vwr.Get(iwr - 1)
 									}
 									wi = zero
-									golapack.Dlaln2(ltrans[itrans-0], &na, &nw, &smin, &ca, a, func() *int { y := 2; return &y }(), &d1, &d2, b, func() *int { y := 2; return &y }(), &wr, &wi, x, func() *int { y := 2; return &y }(), &scale, &xnorm, &info)
-									if info < 0 {
+									if scale, xnorm, info = golapack.Dlaln2(ltrans[itrans-0], na, nw, smin, ca, a, d1, d2, b, wr, wi, x); info < 0 {
 										(*ninfo)[0] = (*ninfo)[0] + 1
 									}
 									if info > 0 {
@@ -251,10 +248,10 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 									if info != 0 && info != 1 {
 										res = res + one/eps
 									}
-									(*knt) = (*knt) + 1
-									if res > (*rmax) {
-										(*lmax) = (*knt)
-										(*rmax) = res
+									knt = knt + 1
+									if res > rmax {
+										lmax = knt
+										rmax = res
 									}
 								}
 							}
@@ -284,8 +281,7 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										} else {
 											wi = vwi.Get(iwi - 1)
 										}
-										golapack.Dlaln2(ltrans[itrans-0], &na, &nw, &smin, &ca, a, func() *int { y := 2; return &y }(), &d1, &d2, b, func() *int { y := 2; return &y }(), &wr, &wi, x, func() *int { y := 2; return &y }(), &scale, &xnorm, &info)
-										if info < 0 {
+										if scale, xnorm, info = golapack.Dlaln2(ltrans[itrans-0], na, nw, smin, ca, a, d1, d2, b, wr, wi, x); info < 0 {
 											(*ninfo)[0] = (*ninfo)[0] + 1
 										}
 										if info > 0 {
@@ -316,10 +312,10 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 										if info != 0 && info != 1 {
 											res = res + one/eps
 										}
-										(*knt) = (*knt) + 1
-										if res > (*rmax) {
-											(*lmax) = (*knt)
-											(*rmax) = res
+										knt = knt + 1
+										if res > rmax {
+											lmax = knt
+											rmax = res
 										}
 									}
 								}
@@ -330,4 +326,6 @@ func Dget31(rmax *float64, lmax *int, ninfo *[]int, knt *int) {
 			}
 		}
 	}
+
+	return
 }

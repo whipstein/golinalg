@@ -1,12 +1,14 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zlaunhrcolgetrfnp computes the modified LU factorization without
+// ZlaunhrColGetrfnp computes the modified LU factorization without
 // pivoting of a complex general M-by-N matrix A. The factorization has
 // the form:
 //
@@ -47,54 +49,61 @@ import (
 //     G. Ballard, J. Demmel, L. Grigori, M. Jacquelin, H.D. Nguyen,
 //     E. Solomonik, J. Parallel Distrib. Comput.,
 //     vol. 85, pp. 3-31, 2015.
-func Zlaunhrcolgetrfnp(m, n *int, a *mat.CMatrix, lda *int, d *mat.CVector, info *int) {
+func ZlaunhrColGetrfnp(m, n int, a *mat.CMatrix, d *mat.CVector) (err error) {
 	var cone complex128
-	var iinfo, j, jb, nb int
-	var err error
-	_ = err
+	var j, jb, nb int
 
 	cone = (1.0 + 0.0*1i)
 
 	//     Test the input parameters.
-	(*info) = 0
-	if (*m) < 0 {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *m) {
-		(*info) = -4
+	if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZLAUNHR_COL_GETRFNP"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("ZlaunhrColGetrfnp", err)
 		return
 	}
 
 	//     Quick return if possible
-	if min(*m, *n) == 0 {
+	if min(m, n) == 0 {
 		return
 	}
 
 	//     Determine the block size for this environment.
-	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("ZLAUNHR_COL_GETRFNP"), []byte{' '}, m, n, toPtr(-1), toPtr(-1))
-	if nb <= 1 || nb >= min(*m, *n) {
+	nb = Ilaenv(1, "ZlaunhrColGetrfnp", []byte{' '}, m, n, -1, -1)
+	if nb <= 1 || nb >= min(m, n) {
 		//        Use unblocked code.
-		Zlaunhrcolgetrfnp2(m, n, a, lda, d, info)
+		if err = ZlaunhrColGetrfnp2(m, n, a, d); err != nil {
+			panic(err)
+		}
 	} else {
 		//        Use blocked code.
-		for j = 1; j <= min(*m, *n); j += nb {
-			jb = min(min(*m, *n)-j+1, nb)
+		for j = 1; j <= min(m, n); j += nb {
+			jb = min(min(m, n)-j+1, nb)
 
 			//           Factor diagonal and subdiagonal blocks.
-			Zlaunhrcolgetrfnp2(toPtr((*m)-j+1), &jb, a.Off(j-1, j-1), lda, d.Off(j-1), &iinfo)
+			if err = ZlaunhrColGetrfnp2(m-j+1, jb, a.Off(j-1, j-1), d.Off(j-1)); err != nil {
+				panic(err)
+			}
 
-			if j+jb <= (*n) {
+			if j+jb <= n {
 				//              Compute block row of U.
-				err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, (*n)-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
-				if j+jb <= (*m) {
+				if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, n-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1)); err != nil {
+					panic(err)
+				}
+				if j+jb <= m {
 					//                 Update trailing submatrix.
-					err = goblas.Zgemm(NoTrans, NoTrans, (*m)-j-jb+1, (*n)-j-jb+1, jb, -cone, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), cone, a.Off(j+jb-1, j+jb-1))
+					if err = goblas.Zgemm(NoTrans, NoTrans, m-j-jb+1, n-j-jb+1, jb, -cone, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), cone, a.Off(j+jb-1, j+jb-1)); err != nil {
+						panic(err)
+					}
 				}
 			}
 		}
 	}
+
+	return
 }

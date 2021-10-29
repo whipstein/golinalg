@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -14,7 +16,7 @@ import (
 // Norm(inv(A)) is computed by a direct method, and the reciprocal of
 // the condition number is computed as
 //                  RCOND = 1 / (ANORM * norm(inv(A))).
-func Zptcon(n *int, d *mat.Vector, e *mat.CVector, anorm, rcond *float64, rwork *mat.Vector, info *int) {
+func Zptcon(n int, d *mat.Vector, e *mat.CVector, anorm float64, rwork *mat.Vector) (rcond float64, err error) {
 	var ainvnm, one, zero float64
 	var i, ix int
 
@@ -22,28 +24,27 @@ func Zptcon(n *int, d *mat.Vector, e *mat.CVector, anorm, rcond *float64, rwork 
 	zero = 0.0
 
 	//     Test the input arguments.
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*anorm) < zero {
-		(*info) = -4
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if anorm < zero {
+		err = fmt.Errorf("anorm < zero: anorm=%v", anorm)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("ZPTCON"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Zptcon", err)
 		return
 	}
 
 	//     Quick return if possible
-	(*rcond) = zero
-	if (*n) == 0 {
-		(*rcond) = one
+	rcond = zero
+	if n == 0 {
+		rcond = one
 		return
-	} else if (*anorm) == zero {
+	} else if anorm == zero {
 		return
 	}
 
 	//     Check that D(1:N) is positive.
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		if d.Get(i-1) <= zero {
 			return
 		}
@@ -58,22 +59,24 @@ func Zptcon(n *int, d *mat.Vector, e *mat.CVector, anorm, rcond *float64, rwork 
 	//
 	//     Solve M(L) * x = e.
 	rwork.Set(0, one)
-	for i = 2; i <= (*n); i++ {
+	for i = 2; i <= n; i++ {
 		rwork.Set(i-1, one+rwork.Get(i-1-1)*e.GetMag(i-1-1))
 	}
 
 	//     Solve D * M(L)**H * x = b.
-	rwork.Set((*n)-1, rwork.Get((*n)-1)/d.Get((*n)-1))
-	for i = (*n) - 1; i >= 1; i-- {
+	rwork.Set(n-1, rwork.Get(n-1)/d.Get(n-1))
+	for i = n - 1; i >= 1; i-- {
 		rwork.Set(i-1, rwork.Get(i-1)/d.Get(i-1)+rwork.Get(i)*e.GetMag(i-1))
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(*n, rwork.Off(0, 1))
+	ix = goblas.Idamax(n, rwork.Off(0, 1))
 	ainvnm = rwork.GetMag(ix - 1)
 
 	//     Compute the reciprocal condition number.
 	if ainvnm != zero {
-		(*rcond) = (one / ainvnm) / (*anorm)
+		rcond = (one / ainvnm) / anorm
 	}
+
+	return
 }

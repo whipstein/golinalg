@@ -20,10 +20,11 @@ import (
 // conpute all and then discard any unwanted one.
 // As an added benefit, DLARRE also outputs the n
 // Gerschgorin intervals for the matrices L_i D_i L_i^T.
-func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vector, rtol1, rtol2, spltol *float64, nsplit *int, isplit *[]int, m *int, w, werr, wgap *mat.Vector, iblock, indexw *[]int, gers *mat.Vector, pivmin *float64, work *mat.Vector, iwork *[]int, info *int) {
+func Dlarre(_range byte, n int, vl, vu float64, il, iu int, d, e, e2 *mat.Vector, rtol1, rtol2, spltol float64, isplit *[]int, w, werr, wgap *mat.Vector, iblock, indexw *[]int, gers *mat.Vector, work *mat.Vector, iwork *[]int) (vlOut, vuOut float64, nsplit int, m int, pivmin float64, info int, err error) {
 	var forceb, norep, usedqd bool
 	var avgap, bsrtol, clwdth, dmax, dpivot, eabs, emax, eold, eps, fac, four, fourth, fudge, gl, gu, half, hndrd, isleft, isrght, maxgrowth, one, pert, rtl, rtol, s1, s2, safmin, sgndef, sigma, spdiam, tau, tmp, tmp1, two, zero float64
-	var allrng, cnt, cnt1, cnt2, i, ibegin, idum, iend, iinfo, in, indl, indrng, indu, irange, j, jblk, maxtry, mb, mm, valrng, wbegin, wend int
+	var allrng, cnt1, cnt2, i, ibegin, idum, iend, iinfo, in, indl, indrng, indu, irange, j, jblk, maxtry, mb, mm, valrng, wbegin, wend int
+
 	iseed := make([]int, 4)
 
 	zero = 0.0
@@ -41,11 +42,11 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 	allrng = 1
 	indrng = 2
 	valrng = 3
-
-	(*info) = 0
+	vlOut = vl
+	vuOut = vu
 
 	//     Quick return if possible
-	if (*n) <= 0 {
+	if n <= 0 {
 		return
 	}
 
@@ -57,7 +58,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 	} else if _range == 'I' {
 		irange = indrng
 	}
-	(*m) = 0
+	m = 0
 	//     Get machine constants
 	safmin = Dlamch(SafeMinimum)
 	eps = Dlamch(Precision)
@@ -65,9 +66,9 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 	rtl = math.Sqrt(eps)
 	bsrtol = math.Sqrt(eps)
 	//     Treat case of 1x1 matrix for quick return
-	if (*n) == 1 {
-		if (irange == allrng) || ((irange == valrng) && (d.Get(0) > (*vl)) && (d.Get(0) <= (*vu))) || ((irange == indrng) && ((*il) == 1) && ((*iu) == 1)) {
-			(*m) = 1
+	if n == 1 {
+		if (irange == allrng) || ((irange == valrng) && (d.Get(0) > vlOut) && (d.Get(0) <= vuOut)) || ((irange == indrng) && (il == 1) && (iu == 1)) {
+			m = 1
 			w.Set(0, d.Get(0))
 			//           The computation error of the eigenvalue is zero
 			werr.Set(0, zero)
@@ -89,8 +90,8 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 	gu = d.Get(0)
 	eold = zero
 	emax = zero
-	e.Set((*n)-1, zero)
-	for i = 1; i <= (*n); i++ {
+	e.Set(n-1, zero)
+	for i = 1; i <= n; i++ {
 		werr.Set(i-1, zero)
 		wgap.Set(i-1, zero)
 		eabs = math.Abs(e.Get(i - 1))
@@ -105,12 +106,12 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 		eold = eabs
 	}
 	//     The minimum pivot allowed in the Sturm sequence for T
-	(*pivmin) = safmin * math.Max(one, math.Pow(emax, 2))
+	pivmin = safmin * math.Max(one, math.Pow(emax, 2))
 	//     Compute spectral diameter. The Gerschgorin bounds give an
 	//     estimate that is wrong by at most a factor of SQRT(2)
 	spdiam = gu - gl
 	//     Compute splitting points
-	Dlarra(n, d, e, e2, spltol, &spdiam, nsplit, isplit, &iinfo)
+	nsplit = Dlarra(n, d, e, e2, spltol, spdiam, isplit)
 	//     Can force use of bisection instead of faster DQDS.
 	//     Option left in the code for future multisection work.
 	forceb = false
@@ -119,8 +120,8 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 	usedqd = ((irange == allrng) && (!forceb))
 	if (irange == allrng) && (!forceb) {
 		//        Set interval [VL,VU] that contains all eigenvalues
-		(*vl) = gl
-		(*vu) = gu
+		vlOut = gl
+		vuOut = gu
 	} else {
 		//        We call DLARRD to find crude approximations to the eigenvalues
 		//        in the desired _range. In case IRANGE = INDRNG, we also obtain the
@@ -128,13 +129,15 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 		//        An interval [LEFT,RIGHT] has converged if
 		//        RIGHT-LEFT.LT.RTOL*MAX(ABS(LEFT),ABS(RIGHT))
 		//        DLARRD needs a WORK of size 4*N, IWORK of size 3*N
-		Dlarrd(_range, 'B', n, vl, vu, il, iu, gers, &bsrtol, d, e, e2, pivmin, nsplit, isplit, &mm, w, werr, vl, vu, iblock, indexw, work, iwork, &iinfo)
+		if mm, vlOut, vuOut, iinfo, err = Dlarrd(_range, 'B', n, vlOut, vuOut, il, iu, gers, bsrtol, d, e, e2, pivmin, nsplit, isplit, w, werr, iblock, indexw, work, iwork); err != nil {
+			panic(err)
+		}
 		if iinfo != 0 {
-			(*info) = -1
+			info = -1
 			return
 		}
 		//        Make sure that the entries M+1 to N in W, WERR, IBLOCK, INDEXW are 0
-		for i = mm + 1; i <= (*n); i++ {
+		for i = mm + 1; i <= n; i++ {
 			w.Set(i-1, zero)
 			werr.Set(i-1, zero)
 			(*iblock)[i-1] = 0
@@ -145,20 +148,20 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 	//     Loop over unreduced blocks
 	ibegin = 1
 	wbegin = 1
-	for jblk = 1; jblk <= (*nsplit); jblk++ {
+	for jblk = 1; jblk <= nsplit; jblk++ {
 		iend = (*isplit)[jblk-1]
 		in = iend - ibegin + 1
 		//        1 X 1 block
 		if in == 1 {
-			if (irange == allrng) || ((irange == valrng) && (d.Get(ibegin-1) > (*vl)) && (d.Get(ibegin-1) <= (*vu))) || ((irange == indrng) && ((*iblock)[wbegin-1] == jblk)) {
-				(*m) = (*m) + 1
-				w.Set((*m)-1, d.Get(ibegin-1))
-				werr.Set((*m)-1, zero)
+			if (irange == allrng) || ((irange == valrng) && (d.Get(ibegin-1) > vlOut) && (d.Get(ibegin-1) <= vuOut)) || ((irange == indrng) && ((*iblock)[wbegin-1] == jblk)) {
+				m = m + 1
+				w.Set(m-1, d.Get(ibegin-1))
+				werr.Set(m-1, zero)
 				//              The gap for a single block doesn't matter for the later
 				//              algorithm and is assigned an arbitrary large value
-				wgap.Set((*m)-1, zero)
-				(*iblock)[(*m)-1] = jblk
-				(*indexw)[(*m)-1] = 1
+				wgap.Set(m-1, zero)
+				(*iblock)[m-1] = jblk
+				(*indexw)[m-1] = 1
 				wbegin = wbegin + 1
 			}
 			//           E( IEND ) holds the shift for the initial RRR
@@ -209,7 +212,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 				for i = wbegin; i <= wend-1; i++ {
 					wgap.Set(i-1, math.Max(zero, w.Get(i)-werr.Get(i)-(w.Get(i-1)+werr.Get(i-1))))
 				}
-				wgap.Set(wend-1, math.Max(zero, (*vu)-sigma-(w.Get(wend-1)+werr.Get(wend-1))))
+				wgap.Set(wend-1, math.Max(zero, vuOut-sigma-(w.Get(wend-1)+werr.Get(wend-1))))
 				//              Find local index of the first and last desired evalue.
 				indl = (*indexw)[wbegin-1]
 				indu = (*indexw)[wend-1]
@@ -218,15 +221,15 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 		if ((irange == allrng) && (!forceb)) || usedqd {
 			//           Case of DQDS
 			//           Find approximations to the extremal eigenvalues of the block
-			Dlarrk(&in, func() *int { y := 1; return &y }(), &gl, &gu, d.Off(ibegin-1), e2.Off(ibegin-1), pivmin, &rtl, &tmp, &tmp1, &iinfo)
+			tmp, tmp1, iinfo = Dlarrk(in, 1, gl, gu, d.Off(ibegin-1), e2.Off(ibegin-1), pivmin, rtl)
 			if iinfo != 0 {
-				(*info) = -1
+				info = -1
 				return
 			}
 			isleft = math.Max(gl, tmp-tmp1-hndrd*eps*math.Abs(tmp-tmp1))
-			Dlarrk(&in, &in, &gl, &gu, d.Off(ibegin-1), e2.Off(ibegin-1), pivmin, &rtl, &tmp, &tmp1, &iinfo)
+			tmp, tmp1, iinfo = Dlarrk(in, in, gl, gu, d.Off(ibegin-1), e2.Off(ibegin-1), pivmin, rtl)
 			if iinfo != 0 {
-				(*info) = -1
+				info = -1
 				return
 			}
 			isrght = math.Min(gu, tmp+tmp1+hndrd*eps*math.Abs(tmp+tmp1))
@@ -266,14 +269,14 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 				s1 = isleft + fourth*spdiam
 				s2 = isrght - fourth*spdiam
 			} else {
-				tmp = math.Min(isrght, *vu) - math.Max(isleft, *vl)
-				s1 = math.Max(isleft, *vl) + fourth*tmp
-				s2 = math.Min(isrght, *vu) - fourth*tmp
+				tmp = math.Min(isrght, vuOut) - math.Max(isleft, vlOut)
+				s1 = math.Max(isleft, vlOut) + fourth*tmp
+				s2 = math.Min(isrght, vuOut) - fourth*tmp
 			}
 		}
 		//        Compute the negcount at the 1/4 and 3/4 points
 		if mb > 1 {
-			Dlarrc('T', &in, &s1, &s2, d.Off(ibegin-1), e.Off(ibegin-1), pivmin, &cnt, &cnt1, &cnt2, &iinfo)
+			_, cnt1, cnt2 = Dlarrc('T', in, s1, s2, d.Off(ibegin-1), e.Off(ibegin-1), pivmin)
 		}
 		if mb == 1 {
 			sigma = gl
@@ -288,7 +291,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 			} else {
 				//              use approximation of the first desired eigenvalue of the
 				//              block as shift
-				sigma = math.Max(isleft, *vl)
+				sigma = math.Max(isleft, vlOut)
 			}
 			sgndef = one
 		} else {
@@ -301,7 +304,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 			} else {
 				//              use approximation of the first desired eigenvalue of the
 				//              block as shift
-				sigma = math.Min(isrght, *vu)
+				sigma = math.Min(isrght, vuOut)
 			}
 			sgndef = -one
 		}
@@ -313,7 +316,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 		if usedqd {
 			//           The initial SIGMA was to the outer end of the spectrum
 			//           the matrix is definite and we need not retreat.
-			tau = spdiam*eps*float64(*n) + two*(*pivmin)
+			tau = spdiam*eps*float64(n) + two*pivmin
 			tau = math.Max(tau, two*eps*math.Abs(sigma))
 		} else {
 			if mb > 1 {
@@ -371,9 +374,9 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 				if idum == maxtry-1 {
 					if sgndef == one {
 						//                    The fudged Gerschgorin shift should succeed
-						sigma = gl - fudge*spdiam*eps*float64(*n) - fudge*two*(*pivmin)
+						sigma = gl - fudge*spdiam*eps*float64(n) - fudge*two*pivmin
 					} else {
-						sigma = gu + fudge*spdiam*eps*float64(*n) + fudge*two*(*pivmin)
+						sigma = gu + fudge*spdiam*eps*float64(n) + fudge*two*pivmin
 					}
 				} else {
 					sigma = sigma - sgndef*tau
@@ -386,7 +389,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 		}
 		//        if the program reaches this point, no base representation could be
 		//        found in MAXTRY iterations.
-		(*info) = 2
+		info = 2
 		return
 	label83:
 		;
@@ -404,7 +407,7 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 			for i = 1; i <= 4; i++ {
 				iseed[i-1] = 1
 			}
-			Dlarnv(func() *int { y := 2; return &y }(), &iseed, toPtr(2*in-1), work)
+			Dlarnv(2, &iseed, 2*in-1, work)
 			for i = 1; i <= in-1; i++ {
 				d.Set(ibegin+i-1-1, d.Get(ibegin+i-1-1)*(one+eps*pert*work.Get(i-1)))
 				e.Set(ibegin+i-1-1, e.Get(ibegin+i-1-1)*(one+eps*pert*work.Get(in+i-1)))
@@ -434,18 +437,18 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 				work.Set(i-1, d.Get(i-1)*math.Pow(e.Get(i-1), 2))
 			}
 			//           use bisection to find EV from INDL to INDU
-			Dlarrb(&in, d.Off(ibegin-1), work.Off(ibegin-1), &indl, &indu, rtol1, rtol2, toPtr(indl-1), w.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(2*(*n)), iwork, pivmin, &spdiam, &in, &iinfo)
+			Dlarrb(in, d.Off(ibegin-1), work.Off(ibegin-1), indl, indu, rtol1, rtol2, indl-1, w.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), work.Off(2*n), iwork, pivmin, spdiam, in)
 			if iinfo != 0 {
-				(*info) = -4
+				info = -4
 				return
 			}
 			//           DLARRB computes all gaps correctly except for the last one
 			//           Record distance to VU/GU
-			wgap.Set(wend-1, math.Max(zero, ((*vu)-sigma)-(w.Get(wend-1)+werr.Get(wend-1))))
+			wgap.Set(wend-1, math.Max(zero, (vuOut-sigma)-(w.Get(wend-1)+werr.Get(wend-1))))
 			for i = indl; i <= indu; i++ {
-				(*m) = (*m) + 1
-				(*iblock)[(*m)-1] = jblk
-				(*indexw)[(*m)-1] = i
+				m = m + 1
+				(*iblock)[m-1] = jblk
+				(*indexw)[m-1] = i
 			}
 		} else {
 			//           Call dqds to get all eigs (and then possibly delete unwanted
@@ -468,50 +471,54 @@ func Dlarre(_range byte, n *int, vl, vu *float64, il, iu *int, d, e, e2 *mat.Vec
 			}
 			work.Set(2*in-1-1, math.Abs(d.Get(iend-1)))
 			work.Set(2*in-1, zero)
-			Dlasq2(&in, work, &iinfo)
+			if iinfo, err = Dlasq2(in, work); err != nil {
+				panic(err)
+			}
 			if iinfo != 0 {
 				//              If IINFO = -5 then an index is part of a tight cluster
 				//              and should be changed. The index is in IWORK(1) and the
 				//              gap is in WORK(N+1)
-				(*info) = -5
+				info = -5
 				return
 			} else {
 				//              Test that all eigenvalues are positive as expected
 				for i = 1; i <= in; i++ {
 					if work.Get(i-1) < zero {
-						(*info) = -6
+						info = -6
 						return
 					}
 				}
 			}
 			if sgndef > zero {
 				for i = indl; i <= indu; i++ {
-					(*m) = (*m) + 1
-					w.Set((*m)-1, work.Get(in-i))
-					(*iblock)[(*m)-1] = jblk
-					(*indexw)[(*m)-1] = i
+					m = m + 1
+					w.Set(m-1, work.Get(in-i))
+					(*iblock)[m-1] = jblk
+					(*indexw)[m-1] = i
 				}
 			} else {
 				for i = indl; i <= indu; i++ {
-					(*m) = (*m) + 1
-					w.Set((*m)-1, -work.Get(i-1))
-					(*iblock)[(*m)-1] = jblk
-					(*indexw)[(*m)-1] = i
+					m = m + 1
+					w.Set(m-1, -work.Get(i-1))
+					(*iblock)[m-1] = jblk
+					(*indexw)[m-1] = i
 				}
 			}
-			for i = (*m) - mb + 1; i <= (*m); i++ {
+			for i = m - mb + 1; i <= m; i++ {
 				//              the value of RTOL below should be the tolerance in DLASQ2
 				werr.Set(i-1, rtol*math.Abs(w.Get(i-1)))
 			}
-			for i = (*m) - mb + 1; i <= (*m)-1; i++ {
+			for i = m - mb + 1; i <= m-1; i++ {
 				//              compute the right gap between the intervals
 				wgap.Set(i-1, math.Max(zero, w.Get(i)-werr.Get(i)-(w.Get(i-1)+werr.Get(i-1))))
 			}
-			wgap.Set((*m)-1, math.Max(zero, ((*vu)-sigma)-(w.Get((*m)-1)+werr.Get((*m)-1))))
+			wgap.Set(m-1, math.Max(zero, (vuOut-sigma)-(w.Get(m-1)+werr.Get(m-1))))
 		}
 		//        proceed with next block
 		ibegin = iend + 1
 		wbegin = wend + 1
 	label170:
 	}
+
+	return
 }

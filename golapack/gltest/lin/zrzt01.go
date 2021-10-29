@@ -1,18 +1,21 @@
 package lin
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zrzt01 returns
+// zrzt01 returns
 //      || A - R*Q || / ( M * eps * ||A|| )
 // for an upper trapezoidal A that was factored with ZTZRZF.
-func Zrzt01(m, n *int, a, af *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *int) (zrzt01Return float64) {
+func zrzt01(m, n int, a, af *mat.CMatrix, tau, work *mat.CVector, lwork int) (zrzt01Return float64) {
 	var norma, one, zero float64
-	var i, info, j int
+	var i, j int
+	var err error
 
 	rwork := vf(1)
 
@@ -21,37 +24,40 @@ func Zrzt01(m, n *int, a, af *mat.CMatrix, lda *int, tau, work *mat.CVector, lwo
 
 	zrzt01Return = zero
 
-	if (*lwork) < (*m)*(*n)+(*m) {
-		gltest.Xerbla([]byte("ZRZT01"), 8)
+	if lwork < m*n+m {
+		err = fmt.Errorf("lwork < m*n+m: lwork=%v, m=%v, n=%v", lwork, m, n)
+		gltest.Xerbla2("zrzt01", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*m) <= 0 || (*n) <= 0 {
+	if m <= 0 || n <= 0 {
 		return
 	}
 
-	norma = golapack.Zlange('O', m, n, a, lda, rwork)
+	norma = golapack.Zlange('O', m, n, a, rwork)
 
 	//     Copy upper triangle R
-	golapack.Zlaset('F', m, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), work.CMatrix(*m, opts), m)
-	for j = 1; j <= (*m); j++ {
+	golapack.Zlaset(Full, m, n, complex(zero, 0), complex(zero, 0), work.CMatrix(m, opts))
+	for j = 1; j <= m; j++ {
 		for i = 1; i <= j; i++ {
-			work.Set((j-1)*(*m)+i-1, af.Get(i-1, j-1))
+			work.Set((j-1)*m+i-1, af.Get(i-1, j-1))
 		}
 	}
 
 	//     R = R * P(1) * ... *P(m)
-	golapack.Zunmrz('R', 'N', m, n, m, toPtr((*n)-(*m)), af, lda, tau, work.CMatrix(*m, opts), m, work.Off((*m)*(*n)), toPtr((*lwork)-(*m)*(*n)), &info)
-
-	//     R = R - A
-	for i = 1; i <= (*n); i++ {
-		goblas.Zaxpy(*m, complex(-one, 0), a.CVector(0, i-1, 1), work.Off((i-1)*(*m), 1))
+	if err = golapack.Zunmrz(Right, NoTrans, m, n, m, n-m, af, tau, work.CMatrix(m, opts), work.Off(m*n), lwork-m*n); err != nil {
+		panic(err)
 	}
 
-	zrzt01Return = golapack.Zlange('O', m, n, work.CMatrix(*m, opts), m, rwork)
+	//     R = R - A
+	for i = 1; i <= n; i++ {
+		goblas.Zaxpy(m, complex(-one, 0), a.CVector(0, i-1, 1), work.Off((i-1)*m, 1))
+	}
 
-	zrzt01Return = zrzt01Return / (golapack.Dlamch(Epsilon) * float64(max(*m, *n)))
+	zrzt01Return = golapack.Zlange('O', m, n, work.CMatrix(m, opts), rwork)
+
+	zrzt01Return = zrzt01Return / (golapack.Dlamch(Epsilon) * float64(max(m, n)))
 	if norma != zero {
 		zrzt01Return = zrzt01Return / norma
 	}

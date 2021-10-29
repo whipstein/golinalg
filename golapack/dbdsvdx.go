@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -39,7 +40,7 @@ import (
 //  algorithm. (See P. Willems and B. Lang, A framework for the MR^3
 //  algorithm: theory and implementation, SIAM J. Sci. Comput.,
 //  35:740-766, 2013.)
-func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64, il, iu, ns *int, s *mat.Vector, z *mat.Matrix, ldz *int, work *mat.Vector, iwork *[]int, info *int) {
+func Dbdsvdx(uplo mat.MatUplo, jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu, ns int, s *mat.Vector, z *mat.Matrix, work *mat.Vector, iwork *[]int) (info int, err error) {
 	var allsv, indsv, lower, split, sveq0, valsv, wantz bool
 	var rngvx byte
 	var abstol, emin, eps, fudge, hndrd, meigth, mu, nrmu, nrmv, one, ortol, smax, smin, sqrt2, ten, thresh, tol, ulp, vltgk, vutgk, zero, zjtji float64
@@ -57,56 +58,55 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 	valsv = _range == 'V'
 	indsv = _range == 'I'
 	wantz = jobz == 'V'
-	lower = uplo == 'L'
+	lower = uplo == Lower
 
-	(*info) = 0
-	if uplo != 'U' && !lower {
-		(*info) = -1
+	if uplo != Upper && !lower {
+		err = fmt.Errorf("uplo != Upper && !lower: uplo=%s", uplo)
 	} else if !(wantz || jobz == 'N') {
-		(*info) = -2
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
 	} else if !(allsv || valsv || indsv) {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*n) > 0 {
+		err = fmt.Errorf("!(allsv || valsv || indsv): _range='%c'", _range)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if n > 0 {
 		if valsv {
-			if (*vl) < zero {
-				(*info) = -7
-			} else if (*vu) <= (*vl) {
-				(*info) = -8
+			if vl < zero {
+				err = fmt.Errorf("vl < zero: _range='%c', vl=%v", _range, vl)
+			} else if vu <= vl {
+				err = fmt.Errorf("vu <= vl: _range='%c', vl=%v, vu=%v", _range, vl, vu)
 			}
 		} else if indsv {
-			if (*il) < 1 || (*il) > max(1, *n) {
-				(*info) = -9
-			} else if (*iu) < min(*n, *il) || (*iu) > (*n) {
-				(*info) = -10
+			if il < 1 || il > max(1, n) {
+				err = fmt.Errorf("il < 1 || il > max(1, n): _range='%c', n=%v, il=%v", _range, n, il)
+			} else if iu < min(n, il) || iu > n {
+				err = fmt.Errorf("iu < min(n, il) || iu > n: _range='%c', n=%v, il=%v, iu=%v", _range, n, il, iu)
 			}
 		}
 	}
-	if (*info) == 0 {
-		if (*ldz) < 1 || (wantz && (*ldz) < (*n)*2) {
-			(*info) = -14
+	if err == nil {
+		if z.Rows < 1 || (wantz && z.Rows < n*2) {
+			err = fmt.Errorf("z.Rows < 1 || (wantz && z.Rows < n*2): jobz='%c', z.Rows=%v, n=%v", jobz, z.Rows, n)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DBDSVDX"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dbdsvdx", err)
 		return
 	}
 
 	//     Quick return if possible (N.LE.1)
-	(*ns) = 0
-	if (*n) == 0 {
+	ns = 0
+	if n == 0 {
 		return
 	}
 
-	if (*n) == 1 {
+	if n == 1 {
 		if allsv || indsv {
-			(*ns) = 1
+			ns = 1
 			s.Set(0, math.Abs(d.Get(0)))
 		} else {
-			if (*vl) < math.Abs(d.Get(0)) && (*vu) >= math.Abs(d.Get(0)) {
-				(*ns) = 1
+			if vl < math.Abs(d.Get(0)) && vu >= math.Abs(d.Get(0)) {
+				ns = 1
 				s.Set(0, math.Abs(d.Get(0)))
 			}
 		}
@@ -130,16 +130,16 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 	tol = math.Max(ten, math.Min(hndrd, math.Pow(eps, meigth))) * eps
 
 	//     Compute approximate maximum, minimum singular values.
-	i = goblas.Idamax(*n, d)
+	i = goblas.Idamax(n, d)
 	smax = math.Abs(d.Get(i - 1))
-	i = goblas.Idamax((*n)-1, e)
+	i = goblas.Idamax(n-1, e)
 	smax = math.Max(smax, math.Abs(e.Get(i-1)))
 
 	//     Compute threshold for neglecting D's and E's.
 	smin = math.Abs(d.Get(0))
 	if smin != zero {
 		mu = smin
-		for i = 2; i <= (*n); i++ {
+		for i = 2; i <= n; i++ {
 			mu = math.Abs(d.Get(i-1)) * (mu / (mu + math.Abs(e.Get(i-1-1))))
 			smin = math.Min(smin, mu)
 			if smin == zero {
@@ -147,11 +147,11 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 			}
 		}
 	}
-	smin = smin / math.Sqrt(float64(*n))
+	smin = smin / math.Sqrt(float64(n))
 	thresh = tol * smin
 
 	//     Check for zeros in D and E (splits), i.e. submatrices.
-	for i = 1; i <= (*n)-1; i++ {
+	for i = 1; i <= n-1; i++ {
 		if math.Abs(d.Get(i-1)) <= thresh {
 			d.Set(i-1, zero)
 		}
@@ -159,16 +159,16 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 			e.Set(i-1, zero)
 		}
 	}
-	if math.Abs(d.Get((*n)-1)) <= thresh {
-		d.Set((*n)-1, zero)
+	if math.Abs(d.Get(n-1)) <= thresh {
+		d.Set(n-1, zero)
 	}
 
 	//     Pointers for arrays used by DSTEVX.
 	idtgk = 1
-	ietgk = idtgk + (*n)*2
-	itemp = ietgk + (*n)*2
+	ietgk = idtgk + n*2
+	itemp = ietgk + n*2
 	iifail = 1
-	iiwork = iifail + (*n)*2
+	iiwork = iifail + n*2
 
 	//     Set RNGVX, which corresponds to RANGE for DSTEVX in TGK mode.
 	//     VL,VU or IL,IU are redefined to conform to implementation a)
@@ -185,26 +185,28 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 		//        of the active submatrix.
 		rngvx = 'I'
 		if wantz {
-			Dlaset('F', toPtr((*n)*2), toPtr((*n)+1), &zero, &zero, z, ldz)
+			Dlaset(Full, n*2, n+1, zero, zero, z)
 		}
 	} else if valsv {
 		//        Find singular values in a half-open interval. We aim
 		//        at -s (see leading comments) and we swap VL and VU
 		//        (as VUTGK and VLTGK), changing their signs.
 		rngvx = 'V'
-		vltgk = -(*vu)
-		vutgk = -(*vl)
-		for _i := idtgk; _i <= idtgk+2*(*n)-1; _i++ {
+		vltgk = -vu
+		vutgk = -vl
+		for _i := idtgk; _i <= idtgk+2*n-1; _i++ {
 			work.Set(_i-1, zero)
 		}
-		goblas.Dcopy(*n, d, work.Off(ietgk-1, 2))
-		goblas.Dcopy((*n)-1, e, work.Off(ietgk, 2))
-		Dstevx('N', 'V', toPtr((*n)*2), work.Off(idtgk-1), work.Off(ietgk-1), &vltgk, &vutgk, &iltgk, &iltgk, &abstol, ns, s, z, ldz, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1), info)
-		if (*ns) == 0 {
+		goblas.Dcopy(n, d, work.Off(ietgk-1, 2))
+		goblas.Dcopy(n-1, e, work.Off(ietgk, 2))
+		if ns, info, err = Dstevx('N', 'V', n*2, work.Off(idtgk-1), work.Off(ietgk-1), vltgk, vutgk, iltgk, iltgk, abstol, s, z, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1)); err != nil {
+			panic(err)
+		}
+		if ns == 0 {
 			return
 		} else {
 			if wantz {
-				Dlaset('F', toPtr((*n)*2), ns, &zero, &zero, z, ldz)
+				Dlaset(Full, n*2, ns, zero, zero, z)
 			}
 		}
 	} else if indsv {
@@ -214,23 +216,27 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 		//
 		//        GL = GL - FUDGE*TNORM*ULP*N - FUDGE*TWO*PIVMIN
 		//        GU = GU + FUDGE*TNORM*ULP*N + FUDGE*PIVMIN
-		iltgk = (*il)
-		iutgk = (*iu)
+		iltgk = il
+		iutgk = iu
 		rngvx = 'V'
-		for _i := idtgk; _i <= idtgk+2*(*n)-1; _i++ {
+		for _i := idtgk; _i <= idtgk+2*n-1; _i++ {
 			work.Set(_i-1, zero)
 		}
-		goblas.Dcopy(*n, d, work.Off(ietgk-1, 2))
-		goblas.Dcopy((*n)-1, e, work.Off(ietgk, 2))
-		Dstevx('N', 'I', toPtr((*n)*2), work.Off(idtgk-1), work.Off(ietgk-1), &vltgk, &vltgk, &iltgk, &iltgk, &abstol, ns, s, z, ldz, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1), info)
-		vltgk = s.Get(0) - fudge*smax*ulp*float64(*n)
-		for _i := idtgk; _i <= idtgk+2*(*n)-1; _i++ {
+		goblas.Dcopy(n, d, work.Off(ietgk-1, 2))
+		goblas.Dcopy(n-1, e, work.Off(ietgk, 2))
+		if ns, info, err = Dstevx('N', 'I', n*2, work.Off(idtgk-1), work.Off(ietgk-1), vltgk, vltgk, iltgk, iltgk, abstol, s, z, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1)); err != nil {
+			panic(err)
+		}
+		vltgk = s.Get(0) - fudge*smax*ulp*float64(n)
+		for _i := idtgk; _i <= idtgk+2*n-1; _i++ {
 			work.Set(_i-1, zero)
 		}
-		goblas.Dcopy(*n, d, work.Off(ietgk-1, 2))
-		goblas.Dcopy((*n)-1, e, work.Off(ietgk, 2))
-		Dstevx('N', 'I', toPtr((*n)*2), work.Off(idtgk-1), work.Off(ietgk-1), &vutgk, &vutgk, &iutgk, &iutgk, &abstol, ns, s, z, ldz, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1), info)
-		vutgk = s.Get(0) + fudge*smax*ulp*float64(*n)
+		goblas.Dcopy(n, d, work.Off(ietgk-1, 2))
+		goblas.Dcopy(n-1, e, work.Off(ietgk, 2))
+		if ns, info, err = Dstevx('N', 'I', n*2, work.Off(idtgk-1), work.Off(ietgk-1), vutgk, vutgk, iutgk, iutgk, abstol, s, z, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1)); err != nil {
+			panic(err)
+		}
+		vutgk = s.Get(0) + fudge*smax*ulp*float64(n)
 		vutgk = math.Min(vutgk, zero)
 
 		//        If VLTGK=VUTGK, DSTEVX returns an error message,
@@ -240,7 +246,7 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 		}
 
 		if wantz {
-			Dlaset('F', toPtr((*n)*2), toPtr((*iu)-(*il)+1), &zero, &zero, z, ldz)
+			Dlaset(Full, n*2, iu-il+1, zero, zero, z)
 		}
 	}
 
@@ -250,7 +256,7 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 	//     IDBEG, ISBEG: offsets for the entries of D and S
 	//     IROWZ, ICOLZ: offsets for the rows and columns of Z
 	//     IROWU, IROWV: offsets for the rows of U and V
-	(*ns) = 0
+	ns = 0
 	nru = 0
 	nrv = 0
 	idbeg = 1
@@ -264,16 +270,16 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 
 	//     Form the tridiagonal TGK matrix.
 	s.Set(0, zero)
-	work.Set(ietgk+2*(*n)-1-1, zero)
-	for _i := idtgk; _i <= idtgk+2*(*n)-1; _i++ {
+	work.Set(ietgk+2*n-1-1, zero)
+	for _i := idtgk; _i <= idtgk+2*n-1; _i++ {
 		work.Set(_i-1, zero)
 	}
-	goblas.Dcopy(*n, d, work.Off(ietgk-1, 2))
-	goblas.Dcopy((*n)-1, e, work.Off(ietgk, 2))
+	goblas.Dcopy(n, d, work.Off(ietgk-1, 2))
+	goblas.Dcopy(n-1, e, work.Off(ietgk, 2))
 
 	//     Check for splits in two levels, outer level
 	//     in E and inner level in D.
-	for ieptr = 2; ieptr <= (*n)*2; ieptr += 2 {
+	for ieptr = 2; ieptr <= n*2; ieptr += 2 {
 		if work.Get(ietgk+ieptr-1-1) == zero {
 			//           Split in E (this piece of B is square) or bottom
 			//           of the (input bidiagonal) matrix.
@@ -343,8 +349,10 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 					//                 Workspace needed by DSTEVX:
 					//                 WORK( ITEMP: ): 2*5*NTGK
 					//                 IWORK( 1: ): 2*6*NTGK
-					Dstevx(jobz, rngvx, &ntgk, work.Off(idtgk+isplt-1-1), work.Off(ietgk+isplt-1-1), &vltgk, &vutgk, &iltgk, &iutgk, &abstol, &nsl, s.Off(isbeg-1), z.Off(irowz-1, icolz-1), ldz, work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1), info)
-					if (*info) != 0 {
+					if nsl, info, err = Dstevx(jobz, rngvx, ntgk, work.Off(idtgk+isplt-1-1), work.Off(ietgk+isplt-1-1), vltgk, vutgk, iltgk, iutgk, abstol, s.Off(isbeg-1), z.Off(irowz-1, icolz-1), work.Off(itemp-1), toSlice(iwork, iiwork-1), toSlice(iwork, iifail-1)); err != nil {
+						panic(err)
+					}
+					if info != 0 {
 						//                    Exit with the error code from DSTEVX.
 						return
 					}
@@ -383,7 +391,7 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 						for i = 0; i <= min(nsl-1, nru-1); i++ {
 							nrmu = goblas.Dnrm2(nru, z.Vector(irowu-1, icolz+i-1, 2))
 							if nrmu == zero {
-								(*info) = (*n)*2 + 1
+								info = n*2 + 1
 								return
 							}
 							goblas.Dscal(nru, one/nrmu, z.Vector(irowu-1, icolz+i-1, 2))
@@ -399,7 +407,7 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 						for i = 0; i <= min(nsl-1, nrv-1); i++ {
 							nrmv = goblas.Dnrm2(nrv, z.Vector(irowv-1, icolz+i-1, 2))
 							if nrmv == zero {
-								(*info) = (*n)*2 + 1
+								info = n*2 + 1
 								return
 							}
 							goblas.Dscal(nrv, -one/nrmv, z.Vector(irowv-1, icolz+i-1, 2))
@@ -419,8 +427,8 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 							//                       active submatrix is reached).
 							split = true
 							for _i := irowz; _i <= irowz+ntgk-1; _i++ {
-								z.Set(_i-1, (*n), z.Get(_i-1, (*ns)+nsl-1))
-								z.Set(_i-1, (*ns)+nsl-1, zero)
+								z.Set(_i-1, n, z.Get(_i-1, ns+nsl-1))
+								z.Set(_i-1, ns+nsl-1, zero)
 							}
 						}
 					}
@@ -441,13 +449,13 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 					irowu = irowz
 					irowv = irowz + 1
 					isplt = idptr + 1
-					(*ns) = (*ns) + nsl
+					ns = ns + nsl
 					nru = 0
 					nrv = 0
 				}
 				//!** NTGK.GT.0 **!
 
-				if irowz < (*n)*2 && wantz {
+				if irowz < n*2 && wantz {
 					for _i := 1; _i <= irowz-1; _i++ {
 						z.Set(_i-1, icolz-1, zero)
 					}
@@ -459,8 +467,8 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 				//              Bring back eigenvector corresponding
 				//              to eigenvalue equal to zero.
 				for _i := idbeg; _i <= idend-ntgk+1; _i++ {
-					z.Set(_i-1, isbeg-1-1, z.Get(_i-1, isbeg-1-1)+z.Get(_i-1, (*n)))
-					z.Set(_i-1, (*n), 0)
+					z.Set(_i-1, isbeg-1-1, z.Get(_i-1, isbeg-1-1)+z.Get(_i-1, n))
+					z.Set(_i-1, n, 0)
 				}
 			}
 			irowv = irowv - 1
@@ -476,52 +484,54 @@ func Dbdsvdx(uplo, jobz, _range byte, n *int, d, e *mat.Vector, vl, vu *float64,
 
 	//     Sort the singular values into decreasing order (insertion sort on
 	//     singular values, but only one transposition per singular vector)
-	for i = 1; i <= (*ns)-1; i++ {
+	for i = 1; i <= ns-1; i++ {
 		k = 1
 		smin = s.Get(0)
-		for j = 2; j <= (*ns)+1-i; j++ {
+		for j = 2; j <= ns+1-i; j++ {
 			if s.Get(j-1) <= smin {
 				k = j
 				smin = s.Get(j - 1)
 			}
 		}
-		if k != (*ns)+1-i {
-			s.Set(k-1, s.Get((*ns)+1-i-1))
-			s.Set((*ns)+1-i-1, smin)
+		if k != ns+1-i {
+			s.Set(k-1, s.Get(ns+1-i-1))
+			s.Set(ns+1-i-1, smin)
 			if wantz {
-				goblas.Dswap((*n)*2, z.Vector(0, k-1, 1), z.Vector(0, (*ns)+1-i-1, 1))
+				goblas.Dswap(n*2, z.Vector(0, k-1, 1), z.Vector(0, ns+1-i-1, 1))
 			}
 		}
 	}
 
 	//     If RANGE=I, check for singular values/vectors to be discarded.
 	if indsv {
-		k = (*iu) - (*il) + 1
-		if k < (*ns) {
-			for _i := k + 1; _i <= (*ns); _i++ {
+		k = iu - il + 1
+		if k < ns {
+			for _i := k + 1; _i <= ns; _i++ {
 				s.Set(_i-1, zero)
 				if wantz {
-					for _j := 1; _j <= (*n)*2; _j++ {
+					for _j := 1; _j <= n*2; _j++ {
 						z.Set(_j-1, _i-1, zero)
 					}
 				}
 			}
-			(*ns) = k
+			ns = k
 		}
 	}
 
 	//     Reorder Z: U = Z( 1:N,1:NS ), V = Z( N+1:N*2,1:NS ).
 	//     If B is a lower diagonal, swap U and V.
 	if wantz {
-		for i = 1; i <= (*ns); i++ {
-			goblas.Dcopy((*n)*2, z.Vector(0, i-1, 1), work)
+		for i = 1; i <= ns; i++ {
+			goblas.Dcopy(n*2, z.Vector(0, i-1, 1), work)
 			if lower {
-				goblas.Dcopy(*n, work.Off(1, 2), z.Vector((*n), i-1, 1))
-				goblas.Dcopy(*n, work.Off(0, 2), z.Vector(0, i-1, 1))
+				goblas.Dcopy(n, work.Off(1, 2), z.Vector(n, i-1, 1))
+				goblas.Dcopy(n, work.Off(0, 2), z.Vector(0, i-1, 1))
 			} else {
-				goblas.Dcopy(*n, work.Off(1, 2), z.Vector(0, i-1, 1))
-				goblas.Dcopy(*n, work.Off(0, 2), z.Vector((*n), i-1, 1))
+				goblas.Dcopy(n, work.Off(1, 2), z.Vector(0, i-1, 1))
+				goblas.Dcopy(n, work.Off(0, 2), z.Vector(n, i-1, 1))
 			}
 		}
 	}
+
+	return
 }

@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -24,10 +25,10 @@ import (
 //         [  c  a  ]
 //
 // where b*c < 0. The eigenvalues of such a block are a +- math.Sqrt(bc).
-func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdim *int, wr, wi *mat.Vector, vs *mat.Matrix, ldvs *int, work *mat.Vector, lwork *int, bwork *[]bool, info *int) {
+func Dgees(jobvs, sort byte, _select dslectFunc, n int, a *mat.Matrix, wr, wi *mat.Vector, vs *mat.Matrix, work *mat.Vector, lwork int, bwork *[]bool) (sdim, info int, err error) {
 	var cursl, lastsl, lquery, lst2sl, scalea, wantst, wantvs bool
 	var anrm, bignum, cscale, eps, one, s, sep, smlnum, zero float64
-	var hswork, i, i1, i2, ibal, icond, ierr, ieval, ihi, ilo, inxt, ip, itau, iwrk, maxwrk, minwrk int
+	var hswork, i, i1, i2, ibal, icond, ieval, ihi, ilo, inxt, ip, itau, iwrk, maxwrk, minwrk int
 
 	dum := vf(1)
 	idum := make([]int, 1)
@@ -36,20 +37,19 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 	one = 1.0
 
 	//     Test the input arguments
-	(*info) = 0
-	lquery = ((*lwork) == -1)
+	lquery = (lwork == -1)
 	wantvs = jobvs == 'V'
 	wantst = sort == 'S'
 	if (!wantvs) && jobvs != 'N' {
-		(*info) = -1
+		err = fmt.Errorf("(!wantvs) && jobvs != 'N': jobvs='%c'", jobvs)
 	} else if (!wantst) && sort != 'N' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldvs) < 1 || (wantvs && (*ldvs) < (*n)) {
-		(*info) = -11
+		err = fmt.Errorf("(!wantst) && sort != 'N': sort='%c'", sort)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if vs.Rows < 1 || (wantvs && vs.Rows < n) {
+		err = fmt.Errorf("vs.Rows < 1 || (wantvs && vs.Rows < n): jobvs='%c', vs.Rows=%v, n=%v", jobvs, vs.Rows, n)
 	}
 
 	//     Compute workspace
@@ -61,41 +61,43 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 	//       HSWORK refers to the workspace preferred by DHSEQR, as
 	//       calculated below. HSWORK is computed assuming ILO=1 and IHI=N,
 	//       the worst case.)
-	if (*info) == 0 {
-		if (*n) == 0 {
+	if err == nil {
+		if n == 0 {
 			minwrk = 1
 			maxwrk = 1
 		} else {
-			maxwrk = 2*(*n) + (*n)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DGEHRD"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, func() *int { y := 0; return &y }())
-			minwrk = 3 * (*n)
+			maxwrk = 2*n + n*Ilaenv(1, "Dgehrd", []byte{' '}, n, 1, n, 0)
+			minwrk = 3 * n
 
-			Dhseqr('S', jobvs, n, func() *int { y := 1; return &y }(), n, a, lda, wr, wi, vs, ldvs, work, toPtr(-1), &ieval)
+			if ieval, err = Dhseqr('S', jobvs, n, 1, n, a, wr, wi, vs, work, -1); err != nil {
+				panic(err)
+			}
 			hswork = int(work.Get(0))
 
 			if !wantvs {
-				maxwrk = max(maxwrk, (*n)+hswork)
+				maxwrk = max(maxwrk, n+hswork)
 			} else {
-				maxwrk = max(maxwrk, 2*(*n)+((*n)-1)*Ilaenv(func() *int { y := 1; return &y }(), []byte("DORGHR"), []byte{' '}, n, func() *int { y := 1; return &y }(), n, toPtr(-1)))
-				maxwrk = max(maxwrk, (*n)+hswork)
+				maxwrk = max(maxwrk, 2*n+(n-1)*Ilaenv(1, "Dorghr", []byte{' '}, n, 1, n, -1))
+				maxwrk = max(maxwrk, n+hswork)
 			}
 		}
 		work.Set(0, float64(maxwrk))
 
-		if (*lwork) < minwrk && !lquery {
-			(*info) = -13
+		if lwork < minwrk && !lquery {
+			err = fmt.Errorf("lwork < minwrk && !lquery: lwork=%v, minwrk=%v, lquery=%v", lwork, minwrk, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DGEES "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dgees", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
-		(*sdim) = 0
+	if n == 0 {
+		sdim = 0
 		return
 	}
 
@@ -103,12 +105,12 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 	eps = Dlamch(Precision)
 	smlnum = Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	Dlabad(&smlnum, &bignum)
+	smlnum, bignum = Dlabad(smlnum, bignum)
 	smlnum = math.Sqrt(smlnum) / eps
 	bignum = one / smlnum
 
 	//     Scale A if max element outside range [SMLNUM,BIGNUM]
-	anrm = Dlange('M', n, n, a, lda, dum)
+	anrm = Dlange('M', n, n, a, dum)
 	scalea = false
 	if anrm > zero && anrm < smlnum {
 		scalea = true
@@ -118,67 +120,84 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 		cscale = bignum
 	}
 	if scalea {
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &anrm, &cscale, n, n, a, lda, &ierr)
+		if err = Dlascl('G', 0, 0, anrm, cscale, n, n, a); err != nil {
+			panic(err)
+		}
 	}
 
 	//     Permute the matrix to make it more nearly triangular
 	//     (Workspace: need N)
 	ibal = 1
-	Dgebal('P', n, a, lda, &ilo, &ihi, work.Off(ibal-1), &ierr)
+	if ilo, ihi, err = Dgebal('P', n, a, work.Off(ibal-1)); err != nil {
+		panic(err)
+	}
 
 	//     Reduce to upper Hessenberg form
 	//     (Workspace: need 3*N, prefer 2*N+N*NB)
-	itau = (*n) + ibal
-	iwrk = (*n) + itau
-	Dgehrd(n, &ilo, &ihi, a, lda, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+	itau = n + ibal
+	iwrk = n + itau
+	if err = Dgehrd(n, ilo, ihi, a, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+		panic(err)
+	}
 
 	if wantvs {
 		//        Copy Householder vectors to VS
-		Dlacpy('L', n, n, a, lda, vs, ldvs)
+		Dlacpy(Lower, n, n, a, vs)
 
 		//        Generate orthogonal matrix in VS
 		//        (Workspace: need 3*N-1, prefer 2*N+(N-1)*NB)
-		Dorghr(n, &ilo, &ihi, vs, ldvs, work.Off(itau-1), work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ierr)
+		if err = Dorghr(n, ilo, ihi, vs, work.Off(itau-1), work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+			panic(err)
+		}
 	}
 
-	(*sdim) = 0
+	sdim = 0
 
 	//     Perform QR iteration, accumulating Schur vectors in VS if desired
 	//     (Workspace: need N+1, prefer N+HSWORK (see comments) )
 	iwrk = itau
-	Dhseqr('S', jobvs, n, &ilo, &ihi, a, lda, wr, wi, vs, ldvs, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &ieval)
+	if ieval, err = Dhseqr('S', jobvs, n, ilo, ihi, a, wr, wi, vs, work.Off(iwrk-1), lwork-iwrk+1); err != nil {
+		panic(err)
+	}
 	if ieval > 0 {
-		(*info) = ieval
+		info = ieval
 	}
 
 	//     Sort eigenvalues if desired
-	if wantst && (*info) == 0 {
+	if wantst && info == 0 {
 		if scalea {
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, func() *int { y := 1; return &y }(), wr.Matrix(*n, opts), n, &ierr)
-			Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, func() *int { y := 1; return &y }(), wi.Matrix(*n, opts), n, &ierr)
+			if err = Dlascl('G', 0, 0, cscale, anrm, n, 1, wr.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
+			if err = Dlascl('G', 0, 0, cscale, anrm, n, 1, wi.Matrix(n, opts)); err != nil {
+				panic(err)
+			}
 		}
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			(*bwork)[i-1] = _select(wr.GetPtr(i-1), wi.GetPtr(i-1))
 		}
 
 		//        Reorder eigenvalues and transform Schur vectors
 		//        (Workspace: none needed)
-		Dtrsen('N', jobvs, *bwork, n, a, lda, vs, ldvs, wr, wi, sdim, &s, &sep, work.Off(iwrk-1), toPtr((*lwork)-iwrk+1), &idum, func() *int { y := 1; return &y }(), &icond)
-		if icond > 0 {
-			(*info) = (*n) + icond
+		if sdim, s, sep, icond, err = Dtrsen('N', jobvs, *bwork, n, a, vs, wr, wi, s, sep, work.Off(iwrk-1), lwork-iwrk+1, &idum, 1); icond > 0 {
+			info = n + icond
 		}
 	}
 
 	if wantvs {
 		//        Undo balancing
 		//        (Workspace: need N)
-		Dgebak('P', 'R', n, &ilo, &ihi, work.Off(ibal-1), n, vs, ldvs, &ierr)
+		if err = Dgebak('P', Right, n, ilo, ihi, work.Off(ibal-1), n, vs); err != nil {
+			panic(err)
+		}
 	}
 
 	if scalea {
 		//        Undo scaling for the Schur form of A
-		Dlascl('H', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, n, n, a, lda, &ierr)
-		goblas.Dcopy(*n, a.VectorIdx(0, (*lda)+1), wr)
+		if err = Dlascl('H', 0, 0, cscale, anrm, n, n, a); err != nil {
+			panic(err)
+		}
+		goblas.Dcopy(n, a.VectorIdx(0, a.Rows+1), wr)
 		if cscale == smlnum {
 			//           If scaling back towards underflow, adjust WI if an
 			//           offdiagonal element of a 2-by-2 block in the Schur form
@@ -186,10 +205,12 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 			if ieval > 0 {
 				i1 = ieval + 1
 				i2 = ihi - 1
-				Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr(ilo-1), func() *int { y := 1; return &y }(), wi.Matrix(max(ilo-1, 1), opts), toPtr(max(ilo-1, 1)), &ierr)
+				if err = Dlascl('G', 0, 0, cscale, anrm, ilo-1, 1, wi.Matrix(max(ilo-1, 1), opts)); err != nil {
+					panic(err)
+				}
 			} else if wantst {
 				i1 = 1
-				i2 = (*n) - 1
+				i2 = n - 1
 			} else {
 				i1 = ilo
 				i2 = ihi - 1
@@ -211,11 +232,11 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 						if i > 1 {
 							goblas.Dswap(i-1, a.Vector(0, i-1, 1), a.Vector(0, i, 1))
 						}
-						if (*n) > i+1 {
-							goblas.Dswap((*n)-i-1, a.Vector(i-1, i+2-1), a.Vector(i, i+2-1))
+						if n > i+1 {
+							goblas.Dswap(n-i-1, a.Vector(i-1, i+2-1), a.Vector(i, i+2-1))
 						}
 						if wantvs {
-							goblas.Dswap(*n, vs.Vector(0, i-1, 1), vs.Vector(0, i, 1))
+							goblas.Dswap(n, vs.Vector(0, i-1, 1), vs.Vector(0, i, 1))
 						}
 						a.Set(i-1, i, a.Get(i, i-1))
 						a.Set(i, i-1, zero)
@@ -227,24 +248,26 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 		}
 
 		//        Undo scaling for the imaginary part of the eigenvalues
-		Dlascl('G', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), &cscale, &anrm, toPtr((*n)-ieval), func() *int { y := 1; return &y }(), wi.MatrixOff(ieval, max((*n)-ieval, 1), opts), toPtr(max((*n)-ieval, 1)), &ierr)
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-ieval, 1, wi.MatrixOff(ieval, max(n-ieval, 1), opts)); err != nil {
+			panic(err)
+		}
 	}
 
-	if wantst && (*info) == 0 {
+	if wantst && info == 0 {
 		//        Check if reordering successful
 		lastsl = true
 		lst2sl = true
-		(*sdim) = 0
+		sdim = 0
 		ip = 0
-		for i = 1; i <= (*n); i++ {
+		for i = 1; i <= n; i++ {
 			cursl = _select(wr.GetPtr(i-1), wi.GetPtr(i-1))
 			if wi.Get(i-1) == zero {
 				if cursl {
-					(*sdim) = (*sdim) + 1
+					sdim = sdim + 1
 				}
 				ip = 0
 				if cursl && !lastsl {
-					(*info) = (*n) + 2
+					info = n + 2
 				}
 			} else {
 				if ip == 1 {
@@ -252,11 +275,11 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 					cursl = cursl || lastsl
 					lastsl = cursl
 					if cursl {
-						(*sdim) = (*sdim) + 2
+						sdim = sdim + 2
 					}
 					ip = -1
 					if cursl && !lst2sl {
-						(*info) = (*n) + 2
+						info = n + 2
 					}
 				} else {
 					//                 First eigenvalue of conjugate pair
@@ -269,4 +292,6 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n *int, a *mat.Matrix, lda, sdi
 	}
 
 	work.Set(0, float64(maxwrk))
+
+	return
 }

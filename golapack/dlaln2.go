@@ -36,12 +36,12 @@ import (
 //
 // Note: all input quantities are assumed to be smaller than overflow
 // by a reasonable factor.  (See BIGNUM.)
-func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int, d1, d2 *float64, b *mat.Matrix, ldb *int, wr, wi *float64, x *mat.Matrix, ldx *int, scale, xnorm *float64, info *int) {
+func Dlaln2(ltrans bool, na, nw int, smin, ca float64, a *mat.Matrix, d1, d2 float64, b *mat.Matrix, wr, wi float64, x *mat.Matrix) (scale, xnorm float64, info int) {
 	var bbnd, bi1, bi2, bignum, bnorm, br1, br2, ci21, ci22, cmax, cnorm, cr21, cr22, csi, csr, li21, lr21, one, smini, smlnum, temp, two, u22abs, ui11, ui11r, ui12, ui12s, ui22, ur11, ur11r, ur12, ur12s, ur22, xi1, xi2, xr1, xr2, zero float64
 	var icmax, j int
 	rswap := []bool{false, true, false, true}
 	zswap := []bool{false, false, true, true}
-	ipivot := make([]int, 4*4)
+	ipivot := []int{1, 2, 3, 4, 2, 1, 4, 3, 3, 4, 1, 2, 4, 3, 2, 1}
 
 	ci := mf(2, 2, opts)
 	cr := mf(2, 2, opts)
@@ -50,52 +50,47 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 	one = 1.0
 	two = 2.0
 
-	ipivot[0+(0)*4], ipivot[1+(0)*4], ipivot[2+(0)*4], ipivot[3+(0)*4], ipivot[0+(1)*4], ipivot[1+(1)*4], ipivot[2+(1)*4], ipivot[3+(1)*4], ipivot[0+(2)*4], ipivot[1+(2)*4], ipivot[2+(2)*4], ipivot[3+(2)*4], ipivot[0+(3)*4], ipivot[1+(3)*4], ipivot[2+(3)*4], ipivot[3+(3)*4] = 1, 2, 3, 4, 2, 1, 4, 3, 3, 4, 1, 2, 4, 3, 2, 1
-
 	//     Compute BIGNUM
 	smlnum = two * Dlamch(SafeMinimum)
 	bignum = one / smlnum
-	smini = math.Max(*smin, smlnum)
-
-	//     Don't check for input errors
-	(*info) = 0
+	smini = math.Max(smin, smlnum)
 
 	//     Standard Initializations
-	(*scale) = one
+	scale = one
 
-	if (*na) == 1 {
+	if na == 1 {
 		//        1 x 1  (i.e., scalar) system   C X = B
-		if (*nw) == 1 {
+		if nw == 1 {
 			//           Real 1x1 system.
 			//
 			//           C = ca A - w D
-			csr = (*ca)*a.Get(0, 0) - (*wr)*(*d1)
+			csr = ca*a.Get(0, 0) - wr*d1
 			cnorm = math.Abs(csr)
 
 			//           If | C | < SMINI, use C = SMINI
 			if cnorm < smini {
 				csr = smini
 				cnorm = smini
-				(*info) = 1
+				info = 1
 			}
 
 			//           Check scaling for  X = B / C
 			bnorm = math.Abs(b.Get(0, 0))
 			if cnorm < one && bnorm > one {
 				if bnorm > bignum*cnorm {
-					(*scale) = one / bnorm
+					scale = one / bnorm
 				}
 			}
 
 			//           Compute X
-			x.Set(0, 0, (b.Get(0, 0)*(*scale))/csr)
-			(*xnorm) = math.Abs(x.Get(0, 0))
+			x.Set(0, 0, (b.Get(0, 0)*scale)/csr)
+			xnorm = math.Abs(x.Get(0, 0))
 		} else {
 			//           Complex 1x1 system (w is complex)
 			//
 			//           C = ca A - w D
-			csr = (*ca)*a.Get(0, 0) - (*wr)*(*d1)
-			csi = -(*wi) * (*d1)
+			csr = ca*a.Get(0, 0) - wr*d1
+			csi = -wi * d1
 			cnorm = math.Abs(csr) + math.Abs(csi)
 
 			//           If | C | < SMINI, use C = SMINI
@@ -103,39 +98,41 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				csr = smini
 				csi = zero
 				cnorm = smini
-				(*info) = 1
+				info = 1
 			}
 
 			//           Check scaling for  X = B / C
 			bnorm = math.Abs(b.Get(0, 0)) + math.Abs(b.Get(0, 1))
 			if cnorm < one && bnorm > one {
 				if bnorm > bignum*cnorm {
-					(*scale) = one / bnorm
+					scale = one / bnorm
 				}
 			}
 
 			//           Compute X
-			_scaleB00 := (*scale) * b.Get(0, 0)
-			_scaleB01 := (*scale) * b.Get(0, 1)
-			Dladiv(&_scaleB00, &_scaleB01, &csr, &csi, x.GetPtr(0, 0), x.GetPtr(0, 1))
-			(*xnorm) = math.Abs(x.Get(0, 0)) + math.Abs(x.Get(0, 1))
+			_scaleB00 := scale * b.Get(0, 0)
+			_scaleB01 := scale * b.Get(0, 1)
+			_x00 := x.GetPtr(0, 0)
+			_x01 := x.GetPtr(0, 1)
+			*_x00, *_x01 = Dladiv(_scaleB00, _scaleB01, csr, csi)
+			xnorm = math.Abs(x.Get(0, 0)) + math.Abs(x.Get(0, 1))
 		}
 
 	} else {
 		//        2x2 System
 		//
 		//        Compute the real part of  C = ca A - w D  (or  ca A**T - w D )
-		cr.Set(0, 0, (*ca)*a.Get(0, 0)-(*wr)*(*d1))
-		cr.Set(1, 1, (*ca)*a.Get(1, 1)-(*wr)*(*d2))
+		cr.Set(0, 0, ca*a.Get(0, 0)-wr*d1)
+		cr.Set(1, 1, ca*a.Get(1, 1)-wr*d2)
 		if ltrans {
-			cr.Set(0, 1, (*ca)*a.Get(1, 0))
-			cr.Set(1, 0, (*ca)*a.Get(0, 1))
+			cr.Set(0, 1, ca*a.Get(1, 0))
+			cr.Set(1, 0, ca*a.Get(0, 1))
 		} else {
-			cr.Set(1, 0, (*ca)*a.Get(1, 0))
-			cr.Set(0, 1, (*ca)*a.Get(0, 1))
+			cr.Set(1, 0, ca*a.Get(1, 0))
+			cr.Set(0, 1, ca*a.Get(0, 1))
 		}
 
-		if (*nw) == 1 {
+		if nw == 1 {
 			//           Real 2x2 system  (w is real)
 			//
 			//           Find the largest element in C
@@ -154,14 +151,14 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				bnorm = math.Max(math.Abs(b.Get(0, 0)), math.Abs(b.Get(1, 0)))
 				if smini < one && bnorm > one {
 					if bnorm > bignum*smini {
-						(*scale) = one / bnorm
+						scale = one / bnorm
 					}
 				}
-				temp = (*scale) / smini
+				temp = scale / smini
 				x.Set(0, 0, temp*b.Get(0, 0))
 				x.Set(1, 0, temp*b.Get(1, 0))
-				(*xnorm) = temp * bnorm
-				(*info) = 1
+				xnorm = temp * bnorm
+				info = 1
 				return
 			}
 
@@ -177,7 +174,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 			//           If smaller pivot < SMINI, use SMINI
 			if math.Abs(ur22) < smini {
 				ur22 = smini
-				(*info) = 1
+				info = 1
 			}
 			if rswap[icmax-1] {
 				br1 = b.Get(1, 0)
@@ -190,12 +187,12 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 			bbnd = math.Max(math.Abs(br1*(ur22*ur11r)), math.Abs(br2))
 			if bbnd > one && math.Abs(ur22) < one {
 				if bbnd >= bignum*math.Abs(ur22) {
-					(*scale) = one / bbnd
+					scale = one / bbnd
 				}
 			}
 
-			xr2 = (br2 * (*scale)) / ur22
-			xr1 = ((*scale)*br1)*ur11r - xr2*(ur11r*ur12)
+			xr2 = (br2 * scale) / ur22
+			xr1 = (scale*br1)*ur11r - xr2*(ur11r*ur12)
 			if zswap[icmax-1] {
 				x.Set(0, 0, xr2)
 				x.Set(1, 0, xr1)
@@ -203,26 +200,26 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				x.Set(0, 0, xr1)
 				x.Set(1, 0, xr2)
 			}
-			(*xnorm) = math.Max(math.Abs(xr1), math.Abs(xr2))
+			xnorm = math.Max(math.Abs(xr1), math.Abs(xr2))
 
 			//           Further scaling if  norm(A) norm(X) > overflow
-			if (*xnorm) > one && cmax > one {
-				if (*xnorm) > bignum/cmax {
+			if xnorm > one && cmax > one {
+				if xnorm > bignum/cmax {
 					temp = cmax / bignum
 					x.Set(0, 0, temp*x.Get(0, 0))
 					x.Set(1, 0, temp*x.Get(1, 0))
-					(*xnorm) = temp * (*xnorm)
-					(*scale) = temp * (*scale)
+					xnorm = temp * xnorm
+					scale = temp * scale
 				}
 			}
 		} else {
 			//           Complex 2x2 system  (w is complex)
 			//
 			//           Find the largest element in C
-			ci.Set(0, 0, -(*wi)*(*d1))
+			ci.Set(0, 0, -wi*d1)
 			ci.Set(1, 0, zero)
 			ci.Set(0, 1, zero)
-			ci.Set(1, 1, -(*wi)*(*d2))
+			ci.Set(1, 1, -wi*d2)
 			cmax = zero
 			icmax = 0
 
@@ -238,16 +235,16 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				bnorm = math.Max(math.Abs(b.Get(0, 0))+math.Abs(b.Get(0, 1)), math.Abs(b.Get(1, 0))+math.Abs(b.Get(1, 1)))
 				if smini < one && bnorm > one {
 					if bnorm > bignum*smini {
-						(*scale) = one / bnorm
+						scale = one / bnorm
 					}
 				}
-				temp = (*scale) / smini
+				temp = scale / smini
 				x.Set(0, 0, temp*b.Get(0, 0))
 				x.Set(1, 0, temp*b.Get(1, 0))
 				x.Set(0, 1, temp*b.Get(0, 1))
 				x.Set(1, 1, temp*b.Get(1, 1))
-				(*xnorm) = temp * bnorm
-				(*info) = 1
+				xnorm = temp * bnorm
+				info = 1
 				return
 			}
 
@@ -294,7 +291,7 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 			if u22abs < smini {
 				ur22 = smini
 				ui22 = zero
-				(*info) = 1
+				info = 1
 			}
 			if rswap[icmax-1] {
 				br2 = b.Get(0, 0)
@@ -312,15 +309,15 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 			bbnd = math.Max((math.Abs(br1)+math.Abs(bi1))*(u22abs*(math.Abs(ur11r)+math.Abs(ui11r))), math.Abs(br2)+math.Abs(bi2))
 			if bbnd > one && u22abs < one {
 				if bbnd >= bignum*u22abs {
-					(*scale) = one / bbnd
-					br1 = (*scale) * br1
-					bi1 = (*scale) * bi1
-					br2 = (*scale) * br2
-					bi2 = (*scale) * bi2
+					scale = one / bbnd
+					br1 = scale * br1
+					bi1 = scale * bi1
+					br2 = scale * br2
+					bi2 = scale * bi2
 				}
 			}
 
-			Dladiv(&br2, &bi2, &ur22, &ui22, &xr2, &xi2)
+			xr2, xi2 = Dladiv(br2, bi2, ur22, ui22)
 			xr1 = ur11r*br1 - ui11r*bi1 - ur12s*xr2 + ui12s*xi2
 			xi1 = ui11r*br1 + ur11r*bi1 - ui12s*xr2 - ur12s*xi2
 			if zswap[icmax-1] {
@@ -334,20 +331,22 @@ func Dlaln2(ltrans bool, na, nw *int, smin, ca *float64, a *mat.Matrix, lda *int
 				x.Set(0, 1, xi1)
 				x.Set(1, 1, xi2)
 			}
-			(*xnorm) = math.Max(math.Abs(xr1)+math.Abs(xi1), math.Abs(xr2)+math.Abs(xi2))
+			xnorm = math.Max(math.Abs(xr1)+math.Abs(xi1), math.Abs(xr2)+math.Abs(xi2))
 
 			//           Further scaling if  norm(A) norm(X) > overflow
-			if (*xnorm) > one && cmax > one {
-				if (*xnorm) > bignum/cmax {
+			if xnorm > one && cmax > one {
+				if xnorm > bignum/cmax {
 					temp = cmax / bignum
 					x.Set(0, 0, temp*x.Get(0, 0))
 					x.Set(1, 0, temp*x.Get(1, 0))
 					x.Set(0, 1, temp*x.Get(0, 1))
 					x.Set(1, 1, temp*x.Get(1, 1))
-					(*xnorm) = temp * (*xnorm)
-					(*scale) = temp * (*scale)
+					xnorm = temp * xnorm
+					scale = temp * scale
 				}
 			}
 		}
 	}
+
+	return
 }

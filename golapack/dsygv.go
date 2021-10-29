@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -11,99 +13,108 @@ import (
 // A*x=(lambda)*B*x,  A*Bx=(lambda)*x,  or B*A*x=(lambda)*x.
 // Here A and B are assumed to be symmetric and B is also
 // positive definite.
-func Dsygv(itype *int, jobz, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, w, work *mat.Vector, lwork, info *int) {
+func Dsygv(itype int, jobz byte, uplo mat.MatUplo, n int, a, b *mat.Matrix, w, work *mat.Vector, lwork int) (info int, err error) {
 	var lquery, upper, wantz bool
-	var trans byte
+	var trans mat.MatTrans
 	var one float64
 	var lwkmin, lwkopt, nb, neig int
-	var err error
-	_ = err
 
 	one = 1.0
 
 	//     Test the input parameters.
 	wantz = jobz == 'V'
-	upper = uplo == 'U'
-	lquery = ((*lwork) == -1)
+	upper = uplo == Upper
+	lquery = (lwork == -1)
 
-	(*info) = 0
-	if (*itype) < 1 || (*itype) > 3 {
-		(*info) = -1
+	if itype < 1 || itype > 3 {
+		err = fmt.Errorf("itype < 1 || itype > 3: itype=%v", itype)
 	} else if !(wantz || jobz == 'N') {
-		(*info) = -2
-	} else if !(upper || uplo == 'L') {
-		(*info) = -3
-	} else if (*n) < 0 {
-		(*info) = -4
-	} else if (*lda) < max(1, *n) {
-		(*info) = -6
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -8
+		err = fmt.Errorf("!(wantz || jobz == 'N'): jobz='%c'", jobz)
+	} else if !(upper || uplo == Lower) {
+		err = fmt.Errorf("!(upper || uplo == Lower): uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
 
-	if (*info) == 0 {
-		lwkmin = max(1, 3*(*n)-1)
-		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYTRD"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = max(lwkmin, (nb+2)*(*n))
+	if err == nil {
+		lwkmin = max(1, 3*n-1)
+		nb = Ilaenv(1, "Dsytrd", []byte{uplo.Byte()}, n, -1, -1, -1)
+		lwkopt = max(lwkmin, (nb+2)*n)
 		work.Set(0, float64(lwkopt))
 
-		if (*lwork) < lwkmin && !lquery {
-			(*info) = -11
+		if lwork < lwkmin && !lquery {
+			err = fmt.Errorf("lwork < lwkmin && !lquery: lwork=%v, lwkmin=%v, lquery=%v", lwork, lwkmin, lquery)
 		}
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYGV "), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsygv", err)
 		return
 	} else if lquery {
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Form a Cholesky factorization of B.
-	Dpotrf(uplo, n, b, ldb, info)
-	if (*info) != 0 {
-		(*info) = (*n) + (*info)
+	if info, err = Dpotrf(uplo, n, b); err != nil {
+		panic(err)
+	}
+	if info != 0 {
+		info = n + info
 		return
 	}
 
 	//     Transform problem to standard eigenvalue problem and solve.
-	Dsygst(itype, uplo, n, a, lda, b, ldb, info)
-	Dsyev(jobz, uplo, n, a, lda, w, work, lwork, info)
+	if err = Dsygst(itype, uplo, n, a, b); err != nil {
+		panic(err)
+	}
+	if info, err = Dsyev(jobz, uplo, n, a, w, work, lwork); err != nil {
+		panic(err)
+	}
 
 	if wantz {
 		//        Backtransform eigenvectors to the original problem.
-		neig = (*n)
-		if (*info) > 0 {
-			neig = (*info) - 1
+		neig = n
+		if info > 0 {
+			neig = info - 1
 		}
-		if (*itype) == 1 || (*itype) == 2 {
+		if itype == 1 || itype == 2 {
 			//           For A*x=(lambda)*B*x and A*B*x=(lambda)*x;
 			//           backtransform eigenvectors: x = inv(L)**T*y or inv(U)*y
 			if upper {
-				trans = 'N'
+				trans = NoTrans
 			} else {
-				trans = 'T'
+				trans = Trans
 			}
 
-			err = goblas.Dtrsm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, a)
+			if err = goblas.Dtrsm(Left, uplo, trans, NonUnit, n, neig, one, b, a); err != nil {
+				panic(err)
+			}
 
-		} else if (*itype) == 3 {
+		} else if itype == 3 {
 			//           For B*A*x=(lambda)*x;
 			//           backtransform eigenvectors: x = L*y or U**T*y
 			if upper {
-				trans = 'T'
+				trans = Trans
 			} else {
-				trans = 'N'
+				trans = NoTrans
 			}
 
-			err = goblas.Dtrmm(Left, mat.UploByte(uplo), mat.TransByte(trans), NonUnit, *n, neig, one, b, a)
+			if err = goblas.Dtrmm(Left, uplo, trans, NonUnit, n, neig, one, b, a); err != nil {
+				panic(err)
+			}
 		}
 	}
 
 	work.Set(0, float64(lwkopt))
+
+	return
 }

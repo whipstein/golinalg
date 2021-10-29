@@ -10,16 +10,17 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zdrvsyaa tests the driver routine ZSYSV_AA.
-func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, tsterr *bool, nmax *int, a, afac, ainv, b, x, xact, work *mat.CVector, rwork *mat.Vector, iwork *[]int, nout *int, t *testing.T) {
+// zdrvsyAa tests the driver routine ZsysvAa.
+func zdrvsyAa(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, nmax int, a, afac, ainv, b, x, xact, work *mat.CVector, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var zerot bool
-	var dist, _type, uplo, xtype byte
+	var dist, _type, xtype byte
+	var uplo mat.MatUplo
 	var czero complex128
 	var anorm, cndnum float64
-	var i, i1, i2, ifact, imat, in, info, ioff, iuplo, izero, j, k, kl, ku, lda, lwork, mode, n, nb, nbmin, nerrs, nfact, nfail, nimat, nrun, nt, ntypes int
+	var i, i1, i2, ifact, imat, in, info, ioff, izero, j, k, kl, ku, lda, lwork, mode, n, nb, nbmin, nerrs, nfact, nfail, nimat, nrun, nt, ntypes int
+	var err error
 
 	facts := make([]byte, 2)
-	uplos := make([]byte, 2)
 	result := vf(3)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
@@ -31,15 +32,15 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 1988, 1989, 1990, 1991
-	uplos[0], uplos[1], facts[0], facts[1] = 'U', 'L', 'F', 'N'
+	facts[0], facts[1] = 'F', 'N'
 
 	//     Initialize constants and the random number seed.
 	//
 	//     Test path
-	path := []byte("ZSA")
+	path := "Zsa"
 
 	//     Path to generate matrices
-	matpath := []byte("ZSY")
+	matpath := "Zsy"
 
 	nrun = 0
 	nfail = 0
@@ -49,20 +50,20 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 	}
 
 	//     Test the error exits
-	if *tsterr {
-		Zerrvx(path, t)
+	if tsterr {
+		zerrvx(path, t)
 	}
 	(*infot) = 0
 
 	//     Set the block size and minimum block size for testing.
 	nb = 1
 	nbmin = 2
-	Xlaenv(1, nb)
-	Xlaenv(2, nbmin)
+	xlaenv(1, nb)
+	xlaenv(2, nbmin)
 
 	//     Do for each value of N in NVAL
-	for in = 1; in <= (*nn); in++ {
-		n = (*nval)[in-1]
+	for in = 1; in <= nn; in++ {
+		n = nval[in-1]
 		lwork = max(3*n-2, n*(1+nb))
 		lwork = max(lwork, 1)
 		lda = max(n, 1)
@@ -74,7 +75,7 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 
 		for imat = 1; imat <= nimat; imat++ {
 			//           Do the tests only if DOTYPE( IMAT ) is true.
-			if !(*dotype)[imat-1] {
+			if !dotype[imat-1] {
 				goto label170
 			}
 
@@ -84,21 +85,17 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 				goto label170
 			}
 
-			//           Do first for UPLO = 'U', then for UPLO = 'L'
-			for iuplo = 1; iuplo <= 2; iuplo++ {
-				uplo = uplos[iuplo-1]
+			//           Do first for uplo= 'U', then for uplo= 'L'
+			for _, uplo = range mat.IterMatUplo(false) {
 
 				//              Set up parameters with ZLATB4 and generate a test matrix
-				//              with ZLATMS.
-				Zlatb4(matpath, &imat, &n, &n, &_type, &kl, &ku, &anorm, &mode, &cndnum, &dist)
+				//              with Zlatms.
+				_type, kl, ku, anorm, mode, cndnum, dist = zlatb4(matpath, imat, n, n)
 
-				*srnamt = "ZLATMS"
-				matgen.Zlatms(&n, &n, dist, &iseed, _type, rwork, &mode, &cndnum, &anorm, &kl, &ku, uplo, a.CMatrix(lda, opts), &lda, work, &info)
-
-				//              Check error code from ZLATMS.
-				if info != 0 {
+				*srnamt = "Zlatms"
+				if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, uplo.Byte(), a.CMatrix(lda, opts), work); err != nil {
 					t.Fail()
-					Alaerh(path, []byte("ZLATMS"), &info, func() *int { y := 0; return &y }(), []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), toPtr(-1), &imat, &nfail, &nerrs)
+					nerrs = alaerh(path, "Zlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					goto label160
 				}
 
@@ -115,7 +112,7 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 
 					if imat < 6 {
 						//                    Set row and column IZERO to zero.
-						if iuplo == 1 {
+						if uplo == Upper {
 							ioff = (izero - 1) * lda
 							for i = 1; i <= izero-1; i++ {
 								a.Set(ioff+i-1, czero)
@@ -138,7 +135,7 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 						}
 					} else {
 						ioff = 0
-						if iuplo == 1 {
+						if uplo == Upper {
 							//                       Set the first IZERO rows and columns to zero.
 							for j = 1; j <= n; j++ {
 								i2 = min(j, izero)
@@ -168,18 +165,20 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 					// fact = facts[ifact-1]
 
 					//                 Form an exact solution and set the right hand side.
-					*srnamt = "ZLARHS"
-					Zlarhs(matpath, xtype, uplo, ' ', &n, &n, &kl, &ku, nrhs, a.CMatrix(lda, opts), &lda, xact.CMatrix(lda, opts), &lda, b.CMatrix(lda, opts), &lda, &iseed, &info)
+					*srnamt = "zlarhs"
+					if err = zlarhs(matpath, xtype, uplo, NoTrans, n, n, kl, ku, nrhs, a.CMatrix(lda, opts), xact.CMatrix(lda, opts), b.CMatrix(lda, opts), &iseed); err != nil {
+						panic(err)
+					}
 					xtype = 'C'
 
-					//                 --- Test ZSYSV_AA  ---
+					//                 --- Test ZsysvAa  ---
 					if ifact == 2 {
-						golapack.Zlacpy(uplo, &n, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda)
-						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda)
+						golapack.Zlacpy(uplo, n, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts))
+						golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), x.CMatrix(lda, opts))
 
-						//                    Factor the matrix and solve the system using ZSYSV_AA.
-						*srnamt = "ZSYSV_AA"
-						golapack.Zsysvaa(uplo, &n, nrhs, afac.CMatrix(lda, opts), &lda, iwork, x.CMatrix(lda, opts), &lda, work, &lwork, &info)
+						//                    Factor the matrix and solve the system using ZsysvAa.
+						*srnamt = "ZsysvAa"
+						info, err = golapack.ZsysvAa(uplo, n, nrhs, afac.CMatrix(lda, opts), &iwork, x.CMatrix(lda, opts), work, lwork)
 
 						//                    Adjust the expected value of INFO to account for
 						//                    pivoting.
@@ -189,8 +188,8 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 						label100:
 							;
 							if j == k {
-								k = (*iwork)[j-1]
-							} else if (*iwork)[j-1] == k {
+								k = iwork[j-1]
+							} else if iwork[j-1] == k {
 								k = j
 							}
 							if j < k {
@@ -201,10 +200,10 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 							k = 0
 						}
 
-						//                    Check error code from ZSYSV_AA .
-						if info != k {
+						//                    Check error code from ZsysvAa .
+						if err != nil || info != k {
 							t.Fail()
-							Alaerh(path, []byte("ZSYSV_AA "), &info, &k, []byte{uplo}, &n, &n, toPtr(-1), toPtr(-1), nrhs, &imat, &nfail, &nerrs)
+							nerrs = alaerh(path, "ZsysvAa", info, k, []byte{uplo.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 							goto label120
 						} else if info != 0 {
 							goto label120
@@ -212,23 +211,23 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 
 						//                    Reconstruct matrix from factors and compute
 						//                    residual.
-						Zsyt01aa(uplo, &n, a.CMatrix(lda, opts), &lda, afac.CMatrix(lda, opts), &lda, iwork, ainv.CMatrix(lda, opts), &lda, rwork, result.GetPtr(0))
+						*result.GetPtr(0) = zsyt01Aa(uplo, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts), &iwork, ainv.CMatrix(lda, opts), rwork)
 
 						//                    Compute residual of the computed solution.
-						golapack.Zlacpy('F', &n, nrhs, b.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda)
-						Zsyt02(uplo, &n, nrhs, a.CMatrix(lda, opts), &lda, x.CMatrix(lda, opts), &lda, work.CMatrix(lda, opts), &lda, rwork, result.GetPtr(1))
+						golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), work.CMatrix(lda, opts))
+						*result.GetPtr(1) = zsyt02(uplo, n, nrhs, a.CMatrix(lda, opts), x.CMatrix(lda, opts), work.CMatrix(lda, opts), rwork)
 						nt = 2
 
 						//                    Print information about the tests that did not pass
 						//                    the threshold.
 						for k = 1; k <= nt; k++ {
-							if result.Get(k-1) >= (*thresh) {
+							if result.Get(k-1) >= thresh {
 								t.Fail()
 								if nfail == 0 && nerrs == 0 {
-									Aladhd(path)
+									aladhd(path)
 								}
-								fmt.Printf(" %s, UPLO='%c', N =%5d, _type %2d, test %2d, ratio =%12.5f\n", "ZSYSV_AA ", uplo, n, imat, k, result.Get(k-1))
-								nfail = nfail + 1
+								fmt.Printf(" %s, uplo=%s, n=%5d, _type %2d, test %2d, ratio =%12.5f\n", "ZsysvAa ", uplo, n, imat, k, result.Get(k-1))
+								nfail++
 							}
 						}
 						nrun = nrun + nt
@@ -244,5 +243,5 @@ func Zdrvsyaa(dotype *[]bool, nn *int, nval *[]int, nrhs *int, thresh *float64, 
 	}
 
 	//     Print a summary of the results.
-	Alasvm(path, &nfail, &nrun, &nerrs)
+	alasvm(path, nfail, nrun, nerrs)
 }

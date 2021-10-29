@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -76,47 +78,46 @@ import (
 //
 // where R(k) appears in rows and columns k and z.  The rotations are
 // performed without ever forming P(k) explicitly.
-func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix, lda *int) {
+func Zlasr(side mat.MatSide, pivot, direct byte, m, n int, c, s *mat.Vector, a *mat.CMatrix) (err error) {
 	var temp complex128
 	var ctemp, one, stemp, zero float64
-	var i, info, j int
+	var i, j int
 
 	one = 1.0
 	zero = 0.0
 
 	//     Test the input parameters
-	info = 0
-	if !(side == 'L' || side == 'R') {
-		info = 1
+	if !(side == Left || side == Right) {
+		err = fmt.Errorf("!(side == Left || side == Right): side=%s", side)
 	} else if !(pivot == 'V' || pivot == 'T' || pivot == 'B') {
-		info = 2
+		err = fmt.Errorf("!(pivot == 'V' || pivot == 'T' || pivot == 'B'): pivot='%c'", pivot)
 	} else if !(direct == 'F' || direct == 'B') {
-		info = 3
-	} else if (*m) < 0 {
-		info = 4
-	} else if (*n) < 0 {
-		info = 5
-	} else if (*lda) < max(1, *m) {
-		info = 9
+		err = fmt.Errorf("!(direct == 'F' || direct == 'B'): direct='%c'", direct)
+	} else if m < 0 {
+		err = fmt.Errorf("m < 0: m=%v", m)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, m) {
+		err = fmt.Errorf("a.Rows < max(1, m): a.Rows=%v, m=%v", a.Rows, m)
 	}
-	if info != 0 {
-		gltest.Xerbla([]byte("ZLASR "), info)
+	if err != nil {
+		gltest.Xerbla2("Zlasr", err)
 		return
 	}
 
 	//     Quick return if possible
-	if ((*m) == 0) || ((*n) == 0) {
+	if (m == 0) || (n == 0) {
 		return
 	}
-	if side == 'L' {
+	if side == Left {
 		//        Form  P * A
 		if pivot == 'V' {
 			if direct == 'F' {
-				for j = 1; j <= (*m)-1; j++ {
+				for j = 1; j <= m-1; j++ {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*n); i++ {
+						for i = 1; i <= n; i++ {
 							temp = a.Get(j, i-1)
 							a.Set(j, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(j-1, i-1))
 							a.Set(j-1, i-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(j-1, i-1))
@@ -124,11 +125,11 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					}
 				}
 			} else if direct == 'B' {
-				for j = (*m) - 1; j >= 1; j-- {
+				for j = m - 1; j >= 1; j-- {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*n); i++ {
+						for i = 1; i <= n; i++ {
 							temp = a.Get(j, i-1)
 							a.Set(j, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(j-1, i-1))
 							a.Set(j-1, i-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(j-1, i-1))
@@ -138,11 +139,11 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 			}
 		} else if pivot == 'T' {
 			if direct == 'F' {
-				for j = 2; j <= (*m); j++ {
+				for j = 2; j <= m; j++ {
 					ctemp = c.Get(j - 1 - 1)
 					stemp = s.Get(j - 1 - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*n); i++ {
+						for i = 1; i <= n; i++ {
 							temp = a.Get(j-1, i-1)
 							a.Set(j-1, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(0, i-1))
 							a.Set(0, i-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(0, i-1))
@@ -150,11 +151,11 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					}
 				}
 			} else if direct == 'B' {
-				for j = (*m); j >= 2; j-- {
+				for j = m; j >= 2; j-- {
 					ctemp = c.Get(j - 1 - 1)
 					stemp = s.Get(j - 1 - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*n); i++ {
+						for i = 1; i <= n; i++ {
 							temp = a.Get(j-1, i-1)
 							a.Set(j-1, i-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(0, i-1))
 							a.Set(0, i-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(0, i-1))
@@ -164,40 +165,40 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 			}
 		} else if pivot == 'B' {
 			if direct == 'F' {
-				for j = 1; j <= (*m)-1; j++ {
+				for j = 1; j <= m-1; j++ {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*n); i++ {
+						for i = 1; i <= n; i++ {
 							temp = a.Get(j-1, i-1)
-							a.Set(j-1, i-1, complex(stemp, 0)*a.Get((*m)-1, i-1)+complex(ctemp, 0)*temp)
-							a.Set((*m)-1, i-1, complex(ctemp, 0)*a.Get((*m)-1, i-1)-complex(stemp, 0)*temp)
+							a.Set(j-1, i-1, complex(stemp, 0)*a.Get(m-1, i-1)+complex(ctemp, 0)*temp)
+							a.Set(m-1, i-1, complex(ctemp, 0)*a.Get(m-1, i-1)-complex(stemp, 0)*temp)
 						}
 					}
 				}
 			} else if direct == 'B' {
-				for j = (*m) - 1; j >= 1; j-- {
+				for j = m - 1; j >= 1; j-- {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*n); i++ {
+						for i = 1; i <= n; i++ {
 							temp = a.Get(j-1, i-1)
-							a.Set(j-1, i-1, complex(stemp, 0)*a.Get((*m)-1, i-1)+complex(ctemp, 0)*temp)
-							a.Set((*m)-1, i-1, complex(ctemp, 0)*a.Get((*m)-1, i-1)-complex(stemp, 0)*temp)
+							a.Set(j-1, i-1, complex(stemp, 0)*a.Get(m-1, i-1)+complex(ctemp, 0)*temp)
+							a.Set(m-1, i-1, complex(ctemp, 0)*a.Get(m-1, i-1)-complex(stemp, 0)*temp)
 						}
 					}
 				}
 			}
 		}
-	} else if side == 'R' {
+	} else if side == Right {
 		//        Form A * P**T
 		if pivot == 'V' {
 			if direct == 'F' {
-				for j = 1; j <= (*n)-1; j++ {
+				for j = 1; j <= n-1; j++ {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*m); i++ {
+						for i = 1; i <= m; i++ {
 							temp = a.Get(i-1, j)
 							a.Set(i-1, j, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, j-1))
 							a.Set(i-1, j-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(i-1, j-1))
@@ -205,11 +206,11 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					}
 				}
 			} else if direct == 'B' {
-				for j = (*n) - 1; j >= 1; j-- {
+				for j = n - 1; j >= 1; j-- {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*m); i++ {
+						for i = 1; i <= m; i++ {
 							temp = a.Get(i-1, j)
 							a.Set(i-1, j, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, j-1))
 							a.Set(i-1, j-1, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(i-1, j-1))
@@ -219,11 +220,11 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 			}
 		} else if pivot == 'T' {
 			if direct == 'F' {
-				for j = 2; j <= (*n); j++ {
+				for j = 2; j <= n; j++ {
 					ctemp = c.Get(j - 1 - 1)
 					stemp = s.Get(j - 1 - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*m); i++ {
+						for i = 1; i <= m; i++ {
 							temp = a.Get(i-1, j-1)
 							a.Set(i-1, j-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, 0))
 							a.Set(i-1, 0, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(i-1, 0))
@@ -231,11 +232,11 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 					}
 				}
 			} else if direct == 'B' {
-				for j = (*n); j >= 2; j-- {
+				for j = n; j >= 2; j-- {
 					ctemp = c.Get(j - 1 - 1)
 					stemp = s.Get(j - 1 - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*m); i++ {
+						for i = 1; i <= m; i++ {
 							temp = a.Get(i-1, j-1)
 							a.Set(i-1, j-1, complex(ctemp, 0)*temp-complex(stemp, 0)*a.Get(i-1, 0))
 							a.Set(i-1, 0, complex(stemp, 0)*temp+complex(ctemp, 0)*a.Get(i-1, 0))
@@ -245,30 +246,32 @@ func Zlasr(side, pivot, direct byte, m, n *int, c, s *mat.Vector, a *mat.CMatrix
 			}
 		} else if pivot == 'B' {
 			if direct == 'F' {
-				for j = 1; j <= (*n)-1; j++ {
+				for j = 1; j <= n-1; j++ {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*m); i++ {
+						for i = 1; i <= m; i++ {
 							temp = a.Get(i-1, j-1)
-							a.Set(i-1, j-1, complex(stemp, 0)*a.Get(i-1, (*n)-1)+complex(ctemp, 0)*temp)
-							a.Set(i-1, (*n)-1, complex(ctemp, 0)*a.Get(i-1, (*n)-1)-complex(stemp, 0)*temp)
+							a.Set(i-1, j-1, complex(stemp, 0)*a.Get(i-1, n-1)+complex(ctemp, 0)*temp)
+							a.Set(i-1, n-1, complex(ctemp, 0)*a.Get(i-1, n-1)-complex(stemp, 0)*temp)
 						}
 					}
 				}
 			} else if direct == 'B' {
-				for j = (*n) - 1; j >= 1; j-- {
+				for j = n - 1; j >= 1; j-- {
 					ctemp = c.Get(j - 1)
 					stemp = s.Get(j - 1)
 					if (ctemp != one) || (stemp != zero) {
-						for i = 1; i <= (*m); i++ {
+						for i = 1; i <= m; i++ {
 							temp = a.Get(i-1, j-1)
-							a.Set(i-1, j-1, complex(stemp, 0)*a.Get(i-1, (*n)-1)+complex(ctemp, 0)*temp)
-							a.Set(i-1, (*n)-1, complex(ctemp, 0)*a.Get(i-1, (*n)-1)-complex(stemp, 0)*temp)
+							a.Set(i-1, j-1, complex(stemp, 0)*a.Get(i-1, n-1)+complex(ctemp, 0)*temp)
+							a.Set(i-1, n-1, complex(ctemp, 0)*a.Get(i-1, n-1)-complex(stemp, 0)*temp)
 						}
 					}
 				}
 			}
 		}
 	}
+
+	return
 }

@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -9,34 +11,31 @@ import (
 // Dpotrs solves a system of linear equations A*X = B with a symmetric
 // positive definite matrix A using the Cholesky factorization
 // A = U**T*U or A = L*L**T computed by DPOTRF.
-func Dpotrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb, info *int) {
+func Dpotrs(uplo mat.MatUplo, n, nrhs int, a, b *mat.Matrix) (err error) {
 	var upper bool
-	var err error
-	_ = err
 
 	one := 1.0
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*nrhs) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
+	upper = uplo == Upper
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if nrhs < 0 {
+		err = fmt.Errorf("nrhs < 0: nrhs=%v", nrhs)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DPOTRS"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dpotrs", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*nrhs) == 0 {
+	if n == 0 || nrhs == 0 {
 		return
 	}
 
@@ -44,17 +43,27 @@ func Dpotrs(uplo byte, n, nrhs *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb
 		//        Solve A*X = B where A = U**T *U.
 		//
 		//        Solve U**T *X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, b)
+		if err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n, nrhs, one, a, b); err != nil {
+			panic(err)
+		}
 
 		//        Solve U*X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, b)
+		if err = goblas.Dtrsm(mat.Left, mat.Upper, mat.NoTrans, mat.NonUnit, n, nrhs, one, a, b); err != nil {
+			panic(err)
+		}
 	} else {
 		//        Solve A*X = B where A = L*L**T.
 		//
 		//        Solve L*X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.NonUnit, *n, *nrhs, one, a, b)
+		if err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.NonUnit, n, nrhs, one, a, b); err != nil {
+			panic(err)
+		}
 
 		//        Solve L**T *X = B, overwriting B with X.
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, *n, *nrhs, one, a, b)
+		if err = goblas.Dtrsm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, n, nrhs, one, a, b); err != nil {
+			panic(err)
+		}
 	}
+
+	return
 }

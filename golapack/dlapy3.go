@@ -4,14 +4,14 @@ import "math"
 
 // Dlapy3 returns math.Sqrt(x**2+y**2+z**2), taking care not to cause
 // unnecessary overflow.
-func Dlapy3(x, y, z *float64) (dlapy3Return float64) {
+func Dlapy3(x, y, z float64) (dlapy3Return float64) {
 	var w, xabs, yabs, zabs, zero float64
 
 	zero = 0.0
 
-	xabs = math.Abs(*x)
-	yabs = math.Abs(*y)
-	zabs = math.Abs(*z)
+	xabs = math.Abs(x)
+	yabs = math.Abs(y)
+	zabs = math.Abs(z)
 	w = math.Max(xabs, math.Max(yabs, zabs))
 	if w == zero {
 		//     W can be zero for max(0,nan,0)

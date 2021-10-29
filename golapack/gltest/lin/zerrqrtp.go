@@ -1,16 +1,18 @@
 package lin
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 )
 
-// Zerrqrtp tests the error exits for the COMPLEX*16 routines
+// zerrqrtp tests the error exits for the COMPLEX*16 routines
 // that use the QRT decomposition of a triangular-pentagonal matrix.
-func Zerrqrtp(path []byte, _t *testing.T) {
-	var i, info, j, nmax int
+func zerrqrtp(path string, _t *testing.T) {
+	var i, j, nmax int
+	var err error
 
 	w := cvf(2)
 	a := cmf(2, 2, opts)
@@ -19,9 +21,8 @@ func Zerrqrtp(path []byte, _t *testing.T) {
 	t := cmf(2, 2, opts)
 
 	nmax = 2
-	infot := &gltest.Common.Infoc.Infot
+	errt := &gltest.Common.Infoc.Errt
 	ok := &gltest.Common.Infoc.Ok
-	lerr := &gltest.Common.Infoc.Lerr
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
 	//     Set the variables to innocuous values.
@@ -37,97 +38,102 @@ func Zerrqrtp(path []byte, _t *testing.T) {
 
 	//     Error exits for TPQRT factorization
 	//
-	//     ZTPQRT
-	*srnamt = "ZTPQRT"
-	*infot = 1
-	golapack.Ztpqrt(toPtr(-1), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Ztpqrt(func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Ztpqrt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Ztpqrt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Ztpqrt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Ztpqrt(func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 6
-	golapack.Ztpqrt(func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 8
-	golapack.Ztpqrt(func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
-	*infot = 10
-	golapack.Ztpqrt(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), t, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPQRT", &info, lerr, ok, _t)
+	//     Ztpqrt
+	*srnamt = "Ztpqrt"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Ztpqrt(-1, 1, 0, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Ztpqrt(1, -1, 0, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("l < 0 || (l > min(m, n) && min(m, n) >= 0): l=-1, m=0, n=1")
+	err = golapack.Ztpqrt(0, 1, -1, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("l < 0 || (l > min(m, n) && min(m, n) >= 0): l=1, m=0, n=1")
+	err = golapack.Ztpqrt(0, 1, 1, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("nb < 1 || (nb > n && n > 0): nb=0, n=1")
+	err = golapack.Ztpqrt(0, 1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("nb < 1 || (nb > n && n > 0): nb=2, n=1")
+	err = golapack.Ztpqrt(0, 1, 0, 2, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+	err = golapack.Ztpqrt(1, 2, 0, 2, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("b.Rows < max(1, m): b.Rows=1, m=2")
+	err = golapack.Ztpqrt(2, 1, 0, 1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
+	*errt = fmt.Errorf("t.Rows < nb: t.Rows=1, nb=2")
+	err = golapack.Ztpqrt(2, 2, 1, 2, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpqrt", err)
 	//
-	//     ZTPQRT2
+	//     Ztpqrt2
 	//
-	*srnamt = "ZTPQRT2"
-	*infot = 1
-	golapack.Ztpqrt2(toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("ZTPQRT2", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Ztpqrt2(func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("ZTPQRT2", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Ztpqrt2(func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), a, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("ZTPQRT2", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Ztpqrt2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), b, func() *int { y := 2; return &y }(), t, func() *int { y := 2; return &y }(), &info)
-	Chkxer("ZTPQRT2", &info, lerr, ok, _t)
-	*infot = 7
-	golapack.Ztpqrt2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 1; return &y }(), t, func() *int { y := 2; return &y }(), &info)
-	Chkxer("ZTPQRT2", &info, lerr, ok, _t)
-	*infot = 9
-	golapack.Ztpqrt2(func() *int { y := 2; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 2; return &y }(), b, func() *int { y := 2; return &y }(), t, func() *int { y := 1; return &y }(), &info)
-	Chkxer("ZTPQRT2", &info, lerr, ok, _t)
+	*srnamt = "Ztpqrt2"
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Ztpqrt2(-1, 0, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Ztpqrt2", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Ztpqrt2(0, -1, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Ztpqrt2", err)
+	*errt = fmt.Errorf("l < 0 || l > min(m, n): l=-1, m=0, n=0")
+	err = golapack.Ztpqrt2(0, 0, -1, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Ztpqrt2", err)
+	*errt = fmt.Errorf("a.Rows < max(1, n): a.Rows=1, n=2")
+	err = golapack.Ztpqrt2(2, 2, 0, a.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(2))
+	chkxer2("Ztpqrt2", err)
+	*errt = fmt.Errorf("b.Rows < max(1, m): b.Rows=1, m=2")
+	err = golapack.Ztpqrt2(2, 2, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(2))
+	chkxer2("Ztpqrt2", err)
+	*errt = fmt.Errorf("t.Rows < max(1, n): t.Rows=1, n=2")
+	err = golapack.Ztpqrt2(2, 2, 0, a.Off(0, 0).UpdateRows(2), b.Off(0, 0).UpdateRows(2), t.Off(0, 0).UpdateRows(1))
+	chkxer2("Ztpqrt2", err)
 	//
-	//     ZTPMQRT
+	//     Ztpmqrt
 	//
-	*srnamt = "ZTPMQRT"
-	*infot = 1
-	golapack.Ztpmqrt('/', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 2
-	golapack.Ztpmqrt('L', '/', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 3
-	golapack.Ztpmqrt('L', 'N', toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 4
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 5
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 0; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	*infot = 6
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), toPtr(-1), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 7
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), func() *int { y := 0; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 9
-	golapack.Ztpmqrt('R', 'N', func() *int { y := 1; return &y }(), func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 9
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 2; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 11
-	golapack.Ztpmqrt('R', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 0; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 13
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 0; return &y }(), c, func() *int { y := 1; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
-	*infot = 15
-	golapack.Ztpmqrt('L', 'N', func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), func() *int { y := 1; return &y }(), a, func() *int { y := 1; return &y }(), t, func() *int { y := 1; return &y }(), b, func() *int { y := 1; return &y }(), c, func() *int { y := 0; return &y }(), w, &info)
-	Chkxer("ZTPMQRT", &info, lerr, ok, _t)
+	*srnamt = "Ztpmqrt"
+	*errt = fmt.Errorf("!left && !right: side=Unrecognized: /")
+	err = golapack.Ztpmqrt('/', NoTrans, 0, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("!tran && !notran: trans=Unrecognized: /")
+	err = golapack.Ztpmqrt(Left, '/', 0, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("m < 0: m=-1")
+	err = golapack.Ztpmqrt(Left, NoTrans, -1, 0, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("n < 0: n=-1")
+	err = golapack.Ztpmqrt(Left, NoTrans, 0, -1, 0, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("k < 0: k=-1")
+	err = golapack.Ztpmqrt(Left, NoTrans, 0, 0, -1, 0, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("l < 0 || l > k: l=-1, k=0")
+	err = golapack.Ztpmqrt(Left, NoTrans, 0, 0, 0, -1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("nb < 1 || (nb > k && k > 0): nb=0, k=0")
+	err = golapack.Ztpmqrt(Left, NoTrans, 0, 0, 0, 0, 0, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("v.Rows < ldvq: v.Rows=1, ldvq=2")
+	err = golapack.Ztpmqrt(Right, NoTrans, 1, 2, 1, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("v.Rows < ldvq: v.Rows=1, ldvq=2")
+	err = golapack.Ztpmqrt(Left, NoTrans, 2, 1, 1, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	*errt = fmt.Errorf("t.Rows < nb: t.Rows=1, nb=2")
+	err = golapack.Ztpmqrt(Right, NoTrans, 1, 1, 3, 1, 2, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(1), w)
+	chkxer2("Ztpmqrt", err)
+	// *errt = fmt.Errorf("a.Rows < ldaq: a.Rows=0, ldaq=1")
+	// err = golapack.Ztpmqrt(Left, NoTrans, 1, 1, 1, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(0), c.Off(0, 0).UpdateRows(1), w)
+	// chkxer2("Ztpmqrt", err)
+	// *errt = fmt.Errorf("b.Rows < max(1, m): b.Rows=0, m=1")
+	// err = golapack.Ztpmqrt(Left, NoTrans, 1, 1, 1, 1, 1, a.Off(0, 0).UpdateRows(1), t.Off(0, 0).UpdateRows(1), b.Off(0, 0).UpdateRows(1), c.Off(0, 0).UpdateRows(0), w)
+	// chkxer2("Ztpmqrt", err)
 
 	//     Print a summary line.
-	Alaesm(path, ok)
+	alaesm(path, *ok)
+
+	if !(*ok) {
+		_t.Fail()
+	}
 }

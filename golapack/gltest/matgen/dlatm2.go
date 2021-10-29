@@ -38,64 +38,61 @@ import "github.com/whipstein/golinalg/mat"
 //         bandwidth KU.
 //
 //      Set random entries to zero as specified by SPARSE.
-func Dlatm2(m, n, i, j, kl, ku, idist *int, iseed *[]int, d *mat.Vector, igrade *int, dl, dr *mat.Vector, ipvtng *int, iwork *[]int, sparse *float64) (dlatm2Return float64) {
-	var temp, zero float64
+func Dlatm2(m, n, i, j, kl, ku, idist int, iseed *[]int, d *mat.Vector, igrade int, dl, dr *mat.Vector, ipvtng int, iwork *[]int, sparse float64) (dlatm2Return float64) {
+	var zero float64
 	var isub, jsub int
 
 	zero = 0.0
 
 	//     Check for I and J in range
-	if (*i) < 1 || (*i) > (*m) || (*j) < 1 || (*j) > (*n) {
-		dlatm2Return = zero
+	if i < 1 || i > m || j < 1 || j > n {
 		return
 	}
 
 	//     Check for banding
-	if (*j) > (*i)+(*ku) || (*j) < (*i)-(*kl) {
-		dlatm2Return = zero
+	if j > i+ku || j < i-kl {
 		return
 	}
 
 	//     Check for sparsity
-	if (*sparse) > zero {
-		if Dlaran(iseed) < (*sparse) {
-			dlatm2Return = zero
+	if sparse > zero {
+		if Dlaran(iseed) < sparse {
 			return
 		}
 	}
 
 	//     Compute subscripts depending on IPVTNG
-	if (*ipvtng) == 0 {
-		isub = (*i)
-		jsub = (*j)
-	} else if (*ipvtng) == 1 {
-		isub = (*iwork)[(*i)-1]
-		jsub = (*j)
-	} else if (*ipvtng) == 2 {
-		isub = (*i)
-		jsub = (*iwork)[(*j)-1]
-	} else if (*ipvtng) == 3 {
-		isub = (*iwork)[(*i)-1]
-		jsub = (*iwork)[(*j)-1]
+	if ipvtng == 0 {
+		isub = i
+		jsub = j
+	} else if ipvtng == 1 {
+		isub = (*iwork)[i-1]
+		jsub = j
+	} else if ipvtng == 2 {
+		isub = i
+		jsub = (*iwork)[j-1]
+	} else if ipvtng == 3 {
+		isub = (*iwork)[i-1]
+		jsub = (*iwork)[j-1]
 	}
 
 	//     Compute entry and grade it according to IGRADE
 	if isub == jsub {
-		temp = d.Get(isub - 1)
+		dlatm2Return = d.Get(isub - 1)
 	} else {
-		temp = Dlarnd(idist, iseed)
+		dlatm2Return = Dlarnd(idist, iseed)
 	}
-	if (*igrade) == 1 {
-		temp = temp * dl.Get(isub-1)
-	} else if (*igrade) == 2 {
-		temp = temp * dr.Get(jsub-1)
-	} else if (*igrade) == 3 {
-		temp = temp * dl.Get(isub-1) * dr.Get(jsub-1)
-	} else if (*igrade) == 4 && isub != jsub {
-		temp = temp * dl.Get(isub-1) / dl.Get(jsub-1)
-	} else if (*igrade) == 5 {
-		temp = temp * dl.Get(isub-1) * dl.Get(jsub-1)
+	if igrade == 1 {
+		dlatm2Return *= dl.Get(isub - 1)
+	} else if igrade == 2 {
+		dlatm2Return *= dr.Get(jsub - 1)
+	} else if igrade == 3 {
+		dlatm2Return *= dl.Get(isub-1) * dr.Get(jsub-1)
+	} else if igrade == 4 && isub != jsub {
+		dlatm2Return *= dl.Get(isub-1) / dl.Get(jsub-1)
+	} else if igrade == 5 {
+		dlatm2Return *= dl.Get(isub-1) * dl.Get(jsub-1)
 	}
-	dlatm2Return = temp
+
 	return
 }

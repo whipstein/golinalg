@@ -7,17 +7,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dqrt03 tests DORMQR, which computes Q*C, Q'*C, C*Q or C*Q'.
+// dqrt03 tests Dormqr, which computes Q*C, Q'*C, C*Q or C*Q'.
 //
-// DQRT03 compares the results of a call to DORMQR with the results of
-// forming Q explicitly by a call to DORGQR and then performing matrix
+// DQRT03 compares the results of a call to Dormqr with the results of
+// forming Q explicitly by a call to Dorgqr and then performing matrix
 // multiplication by a call to DGEMM.
-func Dqrt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vector, lwork *int, rwork, result *mat.Vector) {
+func dqrt03(m, n, k int, af, c, cc, q *mat.Matrix, tau, work *mat.Vector, lwork int, rwork, result *mat.Vector) {
 	var side, trans byte
 	var cnorm, eps, one, resid, rogue float64
-	var info, iside, itrans, j, mc, nc int
+	var iside, itrans, j, mc, nc int
 	var err error
-	_ = err
 
 	iseed := make([]int, 4)
 	srnamt := &gltest.Common.Srnamc.Srnamt
@@ -30,29 +29,31 @@ func Dqrt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the first k columns of the factorization to the array Q
-	golapack.Dlaset('F', m, m, &rogue, &rogue, q, lda)
-	golapack.Dlacpy('L', toPtr((*m)-1), k, af.Off(1, 0), lda, q.Off(1, 0), lda)
+	golapack.Dlaset(Full, m, m, rogue, rogue, q)
+	golapack.Dlacpy(Lower, m-1, k, af.Off(1, 0), q.Off(1, 0))
 
 	//     Generate the m-by-m matrix Q
-	*srnamt = "DORGQR"
-	golapack.Dorgqr(m, m, k, q, lda, tau, work, lwork, &info)
+	*srnamt = "Dorgqr"
+	if err = golapack.Dorgqr(m, m, k, q, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	for iside = 1; iside <= 2; iside++ {
 		if iside == 1 {
 			side = 'L'
-			mc = (*m)
-			nc = (*n)
+			mc = m
+			nc = n
 		} else {
 			side = 'R'
-			mc = (*n)
-			nc = (*m)
+			mc = n
+			nc = m
 		}
 
 		//        Generate MC by NC matrix C
 		for j = 1; j <= nc; j++ {
-			golapack.Dlarnv(func() *int { y := 2; return &y }(), &iseed, &mc, c.Vector(0, j-1))
+			golapack.Dlarnv(2, &iseed, mc, c.Vector(0, j-1))
 		}
-		cnorm = golapack.Dlange('1', &mc, &nc, c, lda, rwork)
+		cnorm = golapack.Dlange('1', mc, nc, c, rwork)
 		if cnorm == 0.0 {
 			cnorm = one
 		}
@@ -65,22 +66,28 @@ func Dqrt03(m, n, k *int, af, c, cc, q *mat.Matrix, lda *int, tau, work *mat.Vec
 			}
 
 			//           Copy C
-			golapack.Dlacpy('F', &mc, &nc, c, lda, cc, lda)
+			golapack.Dlacpy(Full, mc, nc, c, cc)
 
 			//           Apply Q or Q' to C
-			*srnamt = "DORMQR"
-			golapack.Dormqr(side, trans, &mc, &nc, k, af, lda, tau, cc, lda, work, lwork, &info)
+			*srnamt = "Dormqr"
+			if err = golapack.Dormqr(mat.SideByte(side), mat.TransByte(trans), mc, nc, k, af, tau, cc, work, lwork); err != nil {
+				panic(err)
+			}
 
 			//           Form explicit product and subtract
 			if side == 'L' {
-				err = goblas.Dgemm(mat.TransByte(trans), mat.NoTrans, mc, nc, mc, -one, q, c, one, cc)
+				if err = goblas.Dgemm(mat.TransByte(trans), mat.NoTrans, mc, nc, mc, -one, q, c, one, cc); err != nil {
+					panic(err)
+				}
 			} else {
-				err = goblas.Dgemm(mat.NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, q, one, cc)
+				if err = goblas.Dgemm(mat.NoTrans, mat.TransByte(trans), mc, nc, nc, -one, c, q, one, cc); err != nil {
+					panic(err)
+				}
 			}
 
 			//           Compute error in the difference
-			resid = golapack.Dlange('1', &mc, &nc, cc, lda, rwork)
-			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, *m))*cnorm*eps))
+			resid = golapack.Dlange('1', mc, nc, cc, rwork)
+			result.Set((iside-1)*2+itrans-1, resid/(float64(max(1, m))*cnorm*eps))
 
 		}
 	}

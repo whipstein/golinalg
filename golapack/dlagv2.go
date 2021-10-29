@@ -31,8 +31,8 @@ import (
 //    [  0  b22 ]    [ -SNL  CSL ] [  0  b22 ] [  SNR  CSR ]
 //
 //    where b11 >= b22 > 0.
-func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, beta *mat.Vector, csl, snl, csr, snr *float64) {
-	var anorm, ascale, bnorm, bscale, h1, h2, h3, one, qq, r, rr, safmin, scale1, scale2, t, ulp, wi, wr1, wr2, zero float64
+func Dlagv2(a, b *mat.Matrix, alphar, alphai, beta *mat.Vector) (csl, snl, csr, snr float64) {
+	var anorm, ascale, bnorm, bscale, h1, h2, h3, one, qq, rr, safmin, scale1, ulp, wi, wr1, zero float64
 
 	zero = 0.0
 	one = 1.0
@@ -57,33 +57,33 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 
 	//     Check if A can be deflated
 	if math.Abs(a.Get(1, 0)) <= ulp {
-		(*csl) = one
-		(*snl) = zero
-		(*csr) = one
-		(*snr) = zero
+		csl = one
+		snl = zero
+		csr = one
+		snr = zero
 		a.Set(1, 0, zero)
 		b.Set(1, 0, zero)
 		wi = zero
 
 		//     Check if B is singular
 	} else if math.Abs(b.Get(0, 0)) <= ulp {
-		Dlartg(a.GetPtr(0, 0), a.GetPtr(1, 0), csl, snl, &r)
-		(*csr) = one
-		(*snr) = zero
-		goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), *csl, *snl)
-		goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), *csl, *snl)
+		csl, snl, _ = Dlartg(a.Get(0, 0), a.Get(1, 0))
+		csr = one
+		snr = zero
+		goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), csl, snl)
+		goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), csl, snl)
 		a.Set(1, 0, zero)
 		b.Set(0, 0, zero)
 		b.Set(1, 0, zero)
 		wi = zero
 
 	} else if math.Abs(b.Get(1, 1)) <= ulp {
-		Dlartg(a.GetPtr(1, 1), a.GetPtr(1, 0), csr, snr, &t)
-		(*snr) = -(*snr)
-		goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), *csr, *snr)
-		goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), *csr, *snr)
-		(*csl) = one
-		(*snl) = zero
+		csr, snr, _ = Dlartg(a.Get(1, 1), a.Get(1, 0))
+		snr = -snr
+		goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), csr, snr)
+		goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), csr, snr)
+		csl = one
+		snl = zero
 		a.Set(1, 0, zero)
 		b.Set(1, 0, zero)
 		b.Set(1, 1, zero)
@@ -91,7 +91,7 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 
 	} else {
 		//        B is nonsingular, first compute the eigenvalues of (A,B)
-		Dlag2(a, lda, b, ldb, &safmin, &scale1, &scale2, &wr1, &wr2, &wi)
+		scale1, _, wr1, _, wi = Dlag2(a, b, safmin)
 
 		if wi == zero {
 			//           two real eigenvalues, compute s*A-w*B
@@ -99,24 +99,24 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 			h2 = scale1*a.Get(0, 1) - wr1*b.Get(0, 1)
 			h3 = scale1*a.Get(1, 1) - wr1*b.Get(1, 1)
 
-			rr = Dlapy2(&h1, &h2)
-			qq = Dlapy2(toPtrf64(scale1*a.Get(1, 0)), &h3)
+			rr = Dlapy2(h1, h2)
+			qq = Dlapy2(scale1*a.Get(1, 0), h3)
 
 			if rr > qq {
 				//              find right rotation matrix to zero 1,1 element of
 				//              (sA - wB)
-				Dlartg(&h2, &h1, csr, snr, &t)
+				csr, snr, _ = Dlartg(h2, h1)
 
 			} else {
 				//              find right rotation matrix to zero 2,1 element of
 				//              (sA - wB)
-				Dlartg(&h3, toPtrf64(scale1*a.Get(1, 0)), csr, snr, &t)
+				csr, snr, _ = Dlartg(h3, scale1*a.Get(1, 0))
 
 			}
 
-			(*snr) = -(*snr)
-			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), *csr, *snr)
-			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), *csr, *snr)
+			snr = -snr
+			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), csr, snr)
+			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), csr, snr)
 
 			//           compute inf norms of A and B
 			h1 = math.Max(math.Abs(a.Get(0, 0))+math.Abs(a.Get(0, 1)), math.Abs(a.Get(1, 0))+math.Abs(a.Get(1, 1)))
@@ -124,16 +124,16 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 
 			if (scale1 * h1) >= math.Abs(wr1)*h2 {
 				//              find left rotation matrix Q to zero out B(2,1)
-				Dlartg(b.GetPtr(0, 0), b.GetPtr(1, 0), csl, snl, &r)
+				csl, snl, _ = Dlartg(b.Get(0, 0), b.Get(1, 0))
 
 			} else {
 				//              find left rotation matrix Q to zero out A(2,1)
-				Dlartg(a.GetPtr(0, 0), a.GetPtr(1, 0), csl, snl, &r)
+				csl, snl, _ = Dlartg(a.Get(0, 0), a.Get(1, 0))
 
 			}
 
-			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), *csl, *snl)
-			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), *csl, *snl)
+			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), csl, snl)
+			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), csl, snl)
 
 			a.Set(1, 0, zero)
 			b.Set(1, 0, zero)
@@ -141,14 +141,14 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 		} else {
 			//           a pair of complex conjugate eigenvalues
 			//           first compute the SVD of the matrix B
-			Dlasv2(b.GetPtr(0, 0), b.GetPtr(0, 1), b.GetPtr(1, 1), &r, &t, snr, csr, snl, csl)
+			_, _, snr, csr, snl, csl = Dlasv2(b.Get(0, 0), b.Get(0, 1), b.Get(1, 1))
 
 			//           Form (A,B) := Q(A,B)Z**T where Q is left rotation matrix and
 			//           Z is right rotation matrix computed from DLASV2
-			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), *csl, *snl)
-			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), *csl, *snl)
-			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), *csr, *snr)
-			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), *csr, *snr)
+			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), csl, snl)
+			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), csl, snl)
+			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), csr, snr)
+			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), csr, snr)
 
 			b.Set(1, 0, zero)
 			b.Set(0, 1, zero)
@@ -182,4 +182,6 @@ func Dlagv2(a *mat.Matrix, lda *int, b *mat.Matrix, ldb *int, alphar, alphai, be
 		beta.Set(0, one)
 		beta.Set(1, one)
 	}
+
+	return
 }

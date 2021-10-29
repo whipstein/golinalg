@@ -9,13 +9,13 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Zchkgl tests ZGGBAL, a routine for balancing a matrix pair (A, B).
-func Zchkgl(t *testing.T) {
+// zchkgl tests Zggbal, a routine for balancing a matrix pair (A, B).
+func zchkgl(t *testing.T) {
 	var anorm, bnorm, eps, rmax, vmax, zero float64
-	var _i, i, ihi, ihiin, ilo, iloin, info, j, knt, lda, ldb, lwork, n, ninfo int
+	var _i, i, ihi, ihiin, ilo, iloin, j, knt, lda, lwork, n, ninfo int
+	var err error
 
 	lda = 20
-	ldb = 20
 	lwork = 6 * lda
 	zero = 0.0
 
@@ -413,14 +413,12 @@ func Zchkgl(t *testing.T) {
 		iloin = iloinlist[_i]
 		ihiin = ihiinlist[_i]
 
-		anorm = golapack.Zlange('M', &n, &n, a, &lda, work)
-		bnorm = golapack.Zlange('M', &n, &n, b, &ldb, work)
+		anorm = golapack.Zlange('M', n, n, a, work)
+		bnorm = golapack.Zlange('M', n, n, b, work)
 
 		knt = knt + 1
 
-		golapack.Zggbal('B', &n, a, &lda, b, &ldb, &ilo, &ihi, lscale, rscale, work, &info)
-
-		if info != 0 {
+		if ilo, ihi, err = golapack.Zggbal('B', n, a, b, lscale, rscale, work); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt
@@ -453,11 +451,11 @@ func Zchkgl(t *testing.T) {
 		}
 	}
 
-	fmt.Printf(" .. test output of ZGGBAL .. \n")
+	fmt.Printf(" .. test output of Zggbal .. \n")
 
 	fmt.Printf(" ratio of largest test error              = %12.3E\n", rmax)
 	fmt.Printf(" example number where info is not zero    = %4d\n", lmax[0])
-	fmt.Printf(" example number where ILO or IHI is wrong = %4d\n", lmax[1])
+	fmt.Printf(" example number where ilo or ihi is wrong = %4d\n", lmax[1])
 	fmt.Printf(" example number having largest error      = %4d\n", lmax[2])
 	fmt.Printf(" number of examples where info is not 0   = %4d\n", ninfo)
 	fmt.Printf(" total number of examples tested          = %4d\n\n", knt)

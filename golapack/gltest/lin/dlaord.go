@@ -6,16 +6,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dlaord sorts the elements of a vector x in increasing or decreasing
+// dlaord sorts the elements of a vector x in increasing or decreasing
 // order.
-func Dlaord(job byte, n *int, x *mat.Vector, incx *int) {
+func dlaord(job byte, n int, x *mat.Vector) {
 	var temp float64
 	var i, inc, ix, ixnext int
 
-	inc = int(math.Abs(float64(*incx)))
+	inc = int(math.Abs(float64(x.Inc)))
 	if job == 'I' {
 		//        Sort in increasing order
-		for i = 2; i <= (*n); i++ {
+		for i = 2; i <= n; i++ {
 			ix = 1 + (i-1)*inc
 		label10:
 			;
@@ -37,7 +37,7 @@ func Dlaord(job byte, n *int, x *mat.Vector, incx *int) {
 
 	} else if job == 'D' {
 		//        Sort in decreasing order
-		for i = 2; i <= (*n); i++ {
+		for i = 2; i <= n; i++ {
 			ix = 1 + (i-1)*inc
 		label30:
 			;

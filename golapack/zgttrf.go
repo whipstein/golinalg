@@ -1,7 +1,7 @@
 package golapack
 
 import (
-	"math"
+	"fmt"
 
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -15,39 +15,36 @@ import (
 // where L is a product of permutation and unit lower bidiagonal
 // matrices and U is upper triangular with nonzeros in only the main
 // diagonal and first two superdiagonals.
-func Zgttrf(n *int, dl, d, du, du2 *mat.CVector, ipiv *[]int, info *int) {
+func Zgttrf(n int, dl, d, du, du2 *mat.CVector, ipiv *[]int) (info int, err error) {
 	var fact, temp complex128
 	var zero float64
 	var i int
 
 	zero = 0.0
 
-	Cabs1 := func(zdum complex128) float64 { return math.Abs(real(zdum)) + math.Abs(imag(zdum)) }
-
-	(*info) = 0
-	if (*n) < 0 {
-		(*info) = -1
-		gltest.Xerbla([]byte("ZGTTRF"), -(*info))
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+		gltest.Xerbla2("Zgttrf", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Initialize IPIV(i) = i and DU2(i) = 0
-	for i = 1; i <= (*n); i++ {
+	for i = 1; i <= n; i++ {
 		(*ipiv)[i-1] = i
 	}
-	for i = 1; i <= (*n)-2; i++ {
+	for i = 1; i <= n-2; i++ {
 		du2.SetRe(i-1, zero)
 	}
 
-	for i = 1; i <= (*n)-2; i++ {
-		if Cabs1(d.Get(i-1)) >= Cabs1(dl.Get(i-1)) {
+	for i = 1; i <= n-2; i++ {
+		if cabs1(d.Get(i-1)) >= cabs1(dl.Get(i-1)) {
 			//           No row interchange required, eliminate DL(I)
-			if Cabs1(d.Get(i-1)) != zero {
+			if cabs1(d.Get(i-1)) != zero {
 				fact = dl.Get(i-1) / d.Get(i-1)
 				dl.Set(i-1, fact)
 				d.Set(i, d.Get(i)-fact*du.Get(i-1))
@@ -65,10 +62,10 @@ func Zgttrf(n *int, dl, d, du, du2 *mat.CVector, ipiv *[]int, info *int) {
 			(*ipiv)[i-1] = i + 1
 		}
 	}
-	if (*n) > 1 {
-		i = (*n) - 1
-		if Cabs1(d.Get(i-1)) >= Cabs1(dl.Get(i-1)) {
-			if Cabs1(d.Get(i-1)) != zero {
+	if n > 1 {
+		i = n - 1
+		if cabs1(d.Get(i-1)) >= cabs1(dl.Get(i-1)) {
+			if cabs1(d.Get(i-1)) != zero {
 				fact = dl.Get(i-1) / d.Get(i-1)
 				dl.Set(i-1, fact)
 				d.Set(i, d.Get(i)-fact*du.Get(i-1))
@@ -85,10 +82,12 @@ func Zgttrf(n *int, dl, d, du, du2 *mat.CVector, ipiv *[]int, info *int) {
 	}
 
 	//     Check for a zero on the diagonal of U.
-	for i = 1; i <= (*n); i++ {
-		if Cabs1(d.Get(i-1)) == zero {
-			(*info) = i
+	for i = 1; i <= n; i++ {
+		if cabs1(d.Get(i-1)) == zero {
+			info = i
 			return
 		}
 	}
+
+	return
 }

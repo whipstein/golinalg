@@ -7,17 +7,16 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Zqrt01p tests ZGEQRFP, which computes the QR factorization of an m-by-n
-// matrix A, and partially tests ZUNGQR which forms the m-by-m
+// zqrt01p tests Zgeqrfp, which computes the QR factorization of an m-by-n
+// matrix A, and partially tests Zungqr which forms the m-by-m
 // orthogonal matrix Q.
 //
 // ZQRT01P compares R with Q'*A, and checks that Q is orthogonal.
-func Zqrt01p(m, n *int, a, af, q, r *mat.CMatrix, lda *int, tau, work *mat.CVector, lwork *int, rwork, result *mat.Vector) {
+func zqrt01p(m, n int, a, af, q, r *mat.CMatrix, tau, work *mat.CVector, lwork int, rwork, result *mat.Vector) {
 	var rogue complex128
 	var anorm, eps, one, resid, zero float64
-	var info, minmn int
+	var minmn int
 	var err error
-	_ = err
 
 	zero = 0.0
 	one = 1.0
@@ -25,46 +24,54 @@ func Zqrt01p(m, n *int, a, af, q, r *mat.CMatrix, lda *int, tau, work *mat.CVect
 
 	srnamt := &gltest.Common.Srnamc.Srnamt
 
-	minmn = min(*m, *n)
+	minmn = min(m, n)
 	eps = golapack.Dlamch(Epsilon)
 
 	//     Copy the matrix A to the array AF.
-	golapack.Zlacpy('F', m, n, a, lda, af, lda)
+	golapack.Zlacpy(Full, m, n, a, af)
 
 	//     Factorize the matrix A in the array AF.
-	*srnamt = "ZGEQRFP"
-	golapack.Zgeqrfp(m, n, af, lda, tau, work, lwork, &info)
+	*srnamt = "Zgeqrfp"
+	if err = golapack.Zgeqrfp(m, n, af, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy details of Q
-	golapack.Zlaset('F', m, m, &rogue, &rogue, q, lda)
-	golapack.Zlacpy('L', toPtr((*m)-1), n, af.Off(1, 0), lda, q.Off(1, 0), lda)
+	golapack.Zlaset(Full, m, m, rogue, rogue, q)
+	golapack.Zlacpy(Lower, m-1, n, af.Off(1, 0), q.Off(1, 0))
 
 	//     Generate the m-by-m matrix Q
-	*srnamt = "ZUNGQR"
-	golapack.Zungqr(m, m, &minmn, q, lda, tau, work, lwork, &info)
+	*srnamt = "Zungqr"
+	if err = golapack.Zungqr(m, m, minmn, q, tau, work, lwork); err != nil {
+		panic(err)
+	}
 
 	//     Copy R
-	golapack.Zlaset('F', m, n, toPtrc128(complex(zero, 0)), toPtrc128(complex(zero, 0)), r, lda)
-	golapack.Zlacpy('U', m, n, af, lda, r, lda)
+	golapack.Zlaset(Full, m, n, complex(zero, 0), complex(zero, 0), r)
+	golapack.Zlacpy(Upper, m, n, af, r)
 
 	//     Compute R - Q'*A
-	err = goblas.Zgemm(ConjTrans, NoTrans, *m, *n, *m, complex(-one, 0), q, a, complex(one, 0), r)
+	if err = goblas.Zgemm(ConjTrans, NoTrans, m, n, m, complex(-one, 0), q, a, complex(one, 0), r); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( R - Q'*A ) / ( M * norm(A) * EPS ) .
-	anorm = golapack.Zlange('1', m, n, a, lda, rwork)
-	resid = golapack.Zlange('1', m, n, r, lda, rwork)
+	anorm = golapack.Zlange('1', m, n, a, rwork)
+	resid = golapack.Zlange('1', m, n, r, rwork)
 	if anorm > zero {
-		result.Set(0, ((resid/float64(max(1, *m)))/anorm)/eps)
+		result.Set(0, ((resid/float64(max(1, m)))/anorm)/eps)
 	} else {
 		result.Set(0, zero)
 	}
 
 	//     Compute I - Q'*Q
-	golapack.Zlaset('F', m, m, toPtrc128(complex(zero, 0)), toPtrc128(complex(one, 0)), r, lda)
-	err = goblas.Zherk(Upper, ConjTrans, *m, *m, -one, q, one, r)
+	golapack.Zlaset(Full, m, m, complex(zero, 0), complex(one, 0), r)
+	if err = goblas.Zherk(Upper, ConjTrans, m, m, -one, q, one, r); err != nil {
+		panic(err)
+	}
 
 	//     Compute norm( I - Q'*Q ) / ( M * EPS ) .
-	resid = golapack.Zlansy('1', 'U', m, r, lda, rwork)
+	resid = golapack.Zlansy('1', Upper, m, r, rwork)
 
-	result.Set(1, (resid/float64(max(1, *m)))/eps)
+	result.Set(1, (resid/float64(max(1, m)))/eps)
 }

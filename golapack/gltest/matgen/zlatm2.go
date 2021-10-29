@@ -38,7 +38,7 @@ import "github.com/whipstein/golinalg/mat"
 //         bandwidth KU.
 //
 //      Set random entries to zero as specified by SPARSE.
-func Zlatm2(m, n, i, j, kl, ku, idist *int, iseed *[]int, d *mat.CVector, igrade *int, dl, dr *mat.CVector, ipvtng *int, iwork *[]int, sparse *float64) (zlatm2Return complex128) {
+func Zlatm2(m, n, i, j, kl, ku, idist int, iseed *[]int, d *mat.CVector, igrade int, dl, dr *mat.CVector, ipvtng int, iwork *[]int, sparse float64) (zlatm2Return complex128) {
 	var ctemp, czero complex128
 	var zero float64
 	var isub, jsub int
@@ -47,57 +47,57 @@ func Zlatm2(m, n, i, j, kl, ku, idist *int, iseed *[]int, d *mat.CVector, igrade
 	zero = 0.0
 
 	//     Check for I and J in range
-	if (*i) < 1 || (*i) > (*m) || (*j) < 1 || (*j) > (*n) {
+	if i < 1 || i > m || j < 1 || j > n {
 		zlatm2Return = czero
 		return
 	}
 
 	//     Check for banding
-	if (*j) > (*i)+(*ku) || (*j) < (*i)-(*kl) {
+	if j > i+ku || j < i-kl {
 		zlatm2Return = czero
 		return
 	}
 
 	//     Check for sparsity
-	if (*sparse) > zero {
-		if Dlaran(iseed) < (*sparse) {
+	if sparse > zero {
+		if Dlaran(iseed) < sparse {
 			zlatm2Return = czero
 			return
 		}
 	}
 
 	//     Compute subscripts depending on IPVTNG
-	if (*ipvtng) == 0 {
-		isub = (*i)
-		jsub = (*j)
-	} else if (*ipvtng) == 1 {
-		isub = (*iwork)[(*i)-1]
-		jsub = (*j)
-	} else if (*ipvtng) == 2 {
-		isub = (*i)
-		jsub = (*iwork)[(*j)-1]
-	} else if (*ipvtng) == 3 {
-		isub = (*iwork)[(*i)-1]
-		jsub = (*iwork)[(*j)-1]
+	if ipvtng == 0 {
+		isub = i
+		jsub = j
+	} else if ipvtng == 1 {
+		isub = (*iwork)[i-1]
+		jsub = j
+	} else if ipvtng == 2 {
+		isub = i
+		jsub = (*iwork)[j-1]
+	} else if ipvtng == 3 {
+		isub = (*iwork)[i-1]
+		jsub = (*iwork)[j-1]
 	}
 
 	//     Compute entry and grade it according to IGRADE
 	if isub == jsub {
 		ctemp = d.Get(isub - 1)
 	} else {
-		ctemp = Zlarnd(idist, iseed)
+		ctemp = Zlarnd(idist, *iseed)
 	}
-	if (*igrade) == 1 {
+	if igrade == 1 {
 		ctemp = ctemp * dl.Get(isub-1)
-	} else if (*igrade) == 2 {
+	} else if igrade == 2 {
 		ctemp = ctemp * dr.Get(jsub-1)
-	} else if (*igrade) == 3 {
+	} else if igrade == 3 {
 		ctemp = ctemp * dl.Get(isub-1) * dr.Get(jsub-1)
-	} else if (*igrade) == 4 && isub != jsub {
+	} else if igrade == 4 && isub != jsub {
 		ctemp = ctemp * dl.Get(isub-1) / dl.Get(jsub-1)
-	} else if (*igrade) == 5 {
+	} else if igrade == 5 {
 		ctemp = ctemp * dl.Get(isub-1) * dl.GetConj(jsub-1)
-	} else if (*igrade) == 6 {
+	} else if igrade == 6 {
 		ctemp = ctemp * dl.Get(isub-1) * dl.Get(jsub-1)
 	}
 	zlatm2Return = ctemp

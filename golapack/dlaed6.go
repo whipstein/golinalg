@@ -20,7 +20,7 @@ import (
 // This routine will be called by DLAED4 when necessary. In most cases,
 // the root sought is the smallest in magnitude, though it might not be
 // in some extremely rare situations.
-func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau *float64, info *int) {
+func Dlaed6(kniter int, orgati bool, rho float64, d, z *mat.Vector, finit float64) (tau float64, info int) {
 	var scale bool
 	var a, b, base, c, ddf, df, eight, eps, erretm, eta, f, fc, four, lbd, one, sclfac, sclinv, small1, small2, sminv1, sminv2, temp, temp1, temp2, temp3, temp4, three, two, ubd, zero float64
 	var i, iter, maxit, niter int
@@ -35,8 +35,6 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 	four = 4.0
 	eight = 8.0
 
-	(*info) = 0
-
 	if orgati {
 		lbd = d.Get(1)
 		ubd = d.Get(2)
@@ -44,23 +42,23 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 		lbd = d.Get(0)
 		ubd = d.Get(1)
 	}
-	if (*finit) < zero {
+	if finit < zero {
 		lbd = zero
 	} else {
 		ubd = zero
 	}
 
 	niter = 1
-	(*tau) = zero
-	if (*kniter) == 2 {
+	tau = zero
+	if kniter == 2 {
 		if orgati {
 			temp = (d.Get(2) - d.Get(1)) / two
-			c = (*rho) + z.Get(0)/((d.Get(0)-d.Get(1))-temp)
+			c = rho + z.Get(0)/((d.Get(0)-d.Get(1))-temp)
 			a = c*(d.Get(1)+d.Get(2)) + z.Get(1) + z.Get(2)
 			b = c*d.Get(1)*d.Get(2) + z.Get(1)*d.Get(2) + z.Get(2)*d.Get(1)
 		} else {
 			temp = (d.Get(0) - d.Get(1)) / two
-			c = (*rho) + z.Get(2)/((d.Get(2)-d.Get(1))-temp)
+			c = rho + z.Get(2)/((d.Get(2)-d.Get(1))-temp)
 			a = c*(d.Get(0)+d.Get(1)) + z.Get(0) + z.Get(1)
 			b = c*d.Get(0)*d.Get(1) + z.Get(0)*d.Get(1) + z.Get(1)*d.Get(0)
 		}
@@ -69,26 +67,26 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 		b = b / temp
 		c = c / temp
 		if c == zero {
-			(*tau) = b / a
+			tau = b / a
 		} else if a <= zero {
-			(*tau) = (a - math.Sqrt(math.Abs(a*a-four*b*c))) / (two * c)
+			tau = (a - math.Sqrt(math.Abs(a*a-four*b*c))) / (two * c)
 		} else {
-			(*tau) = two * b / (a + math.Sqrt(math.Abs(a*a-four*b*c)))
+			tau = two * b / (a + math.Sqrt(math.Abs(a*a-four*b*c)))
 		}
-		if (*tau) < lbd || (*tau) > ubd {
-			(*tau) = (lbd + ubd) / two
+		if tau < lbd || tau > ubd {
+			tau = (lbd + ubd) / two
 		}
-		if d.Get(0) == (*tau) || d.Get(1) == (*tau) || d.Get(2) == (*tau) {
-			(*tau) = zero
+		if d.Get(0) == tau || d.Get(1) == tau || d.Get(2) == tau {
+			tau = zero
 		} else {
-			temp = (*finit) + (*tau)*z.Get(0)/(d.Get(0)*(d.Get(0)-(*tau))) + (*tau)*z.Get(1)/(d.Get(1)*(d.Get(1)-(*tau))) + (*tau)*z.Get(2)/(d.Get(2)*(d.Get(2)-(*tau)))
+			temp = finit + tau*z.Get(0)/(d.Get(0)*(d.Get(0)-tau)) + tau*z.Get(1)/(d.Get(1)*(d.Get(1)-tau)) + tau*z.Get(2)/(d.Get(2)*(d.Get(2)-tau))
 			if temp <= zero {
-				lbd = (*tau)
+				lbd = tau
 			} else {
-				ubd = (*tau)
+				ubd = tau
 			}
-			if math.Abs(*finit) <= math.Abs(temp) {
-				(*tau) = zero
+			if math.Abs(finit) <= math.Abs(temp) {
+				tau = zero
 			}
 		}
 	}
@@ -108,9 +106,9 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 	//     Determine if scaling of inputs necessary to avoid overflow
 	//     when computing 1/TEMP**3
 	if orgati {
-		temp = math.Min(math.Abs(d.Get(1)-(*tau)), math.Abs(d.Get(2)-(*tau)))
+		temp = math.Min(math.Abs(d.Get(1)-tau), math.Abs(d.Get(2)-tau))
 	} else {
-		temp = math.Min(math.Abs(d.Get(0)-(*tau)), math.Abs(d.Get(1)-(*tau)))
+		temp = math.Min(math.Abs(d.Get(0)-tau), math.Abs(d.Get(1)-tau))
 	}
 	scale = false
 	if temp <= small1 {
@@ -130,7 +128,7 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 			dscale.Set(i-1, d.Get(i-1)*sclfac)
 			zscale.Set(i-1, z.Get(i-1)*sclfac)
 		}
-		(*tau) = (*tau) * sclfac
+		tau = tau * sclfac
 		lbd = lbd * sclfac
 		ubd = ubd * sclfac
 	} else {
@@ -145,7 +143,7 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 	df = zero
 	ddf = zero
 	for i = 1; i <= 3; i++ {
-		temp = one / (dscale.Get(i-1) - (*tau))
+		temp = one / (dscale.Get(i-1) - tau)
 		temp1 = zscale.Get(i-1) * temp
 		temp2 = temp1 * temp
 		temp3 = temp2 * temp
@@ -153,15 +151,15 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 		df = df + temp2
 		ddf = ddf + temp3
 	}
-	f = (*finit) + (*tau)*fc
+	f = finit + tau*fc
 
 	if math.Abs(f) <= zero {
 		goto label60
 	}
 	if f <= zero {
-		lbd = (*tau)
+		lbd = tau
 	} else {
-		ubd = (*tau)
+		ubd = tau
 	}
 
 	//        Iteration begins -- Use Gragg-Thornton-Warner cubic convergent
@@ -179,11 +177,11 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 	for niter = iter; niter <= maxit; niter++ {
 
 		if orgati {
-			temp1 = dscale.Get(1) - (*tau)
-			temp2 = dscale.Get(2) - (*tau)
+			temp1 = dscale.Get(1) - tau
+			temp2 = dscale.Get(2) - tau
 		} else {
-			temp1 = dscale.Get(0) - (*tau)
-			temp2 = dscale.Get(1) - (*tau)
+			temp1 = dscale.Get(0) - tau
+			temp2 = dscale.Get(1) - tau
 		}
 		a = (temp1+temp2)*f - temp1*temp2*df
 		b = temp1 * temp2 * f
@@ -203,9 +201,9 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 			eta = -f / df
 		}
 
-		(*tau) = (*tau) + eta
-		if (*tau) < lbd || (*tau) > ubd {
-			(*tau) = (lbd + ubd) / two
+		tau = tau + eta
+		if tau < lbd || tau > ubd {
+			tau = (lbd + ubd) / two
 		}
 
 		fc = zero
@@ -213,8 +211,8 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 		df = zero
 		ddf = zero
 		for i = 1; i <= 3; i++ {
-			if (dscale.Get(i-1) - (*tau)) != zero {
-				temp = one / (dscale.Get(i-1) - (*tau))
+			if (dscale.Get(i-1) - tau) != zero {
+				temp = one / (dscale.Get(i-1) - tau)
 				temp1 = zscale.Get(i-1) * temp
 				temp2 = temp1 * temp
 				temp3 = temp2 * temp
@@ -227,23 +225,25 @@ func Dlaed6(kniter *int, orgati bool, rho *float64, d, z *mat.Vector, finit, tau
 				goto label60
 			}
 		}
-		f = (*finit) + (*tau)*fc
-		erretm = eight*(math.Abs(*finit)+math.Abs(*tau)*erretm) + math.Abs(*tau)*df
-		if (math.Abs(f) <= four*eps*erretm) || ((ubd - lbd) <= four*eps*math.Abs(*tau)) {
+		f = finit + tau*fc
+		erretm = eight*(math.Abs(finit)+math.Abs(tau)*erretm) + math.Abs(tau)*df
+		if (math.Abs(f) <= four*eps*erretm) || ((ubd - lbd) <= four*eps*math.Abs(tau)) {
 			goto label60
 		}
 		if f <= zero {
-			lbd = (*tau)
+			lbd = tau
 		} else {
-			ubd = (*tau)
+			ubd = tau
 		}
 	}
-	(*info) = 1
+	info = 1
 label60:
 	;
 
 	//     Undo scaling
 	if scale {
-		(*tau) = (*tau) * sclinv
+		tau = tau * sclinv
 	}
+
+	return
 }

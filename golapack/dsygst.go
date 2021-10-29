@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -16,104 +18,153 @@ import (
 // B*A*x = lambda*x, and A is overwritten by U*A*U**T or L**T*A*L.
 //
 // B must have been previously factorized as U**T*U or L*L**T by DPOTRF.
-func Dsygst(itype *int, uplo byte, n *int, a *mat.Matrix, lda *int, b *mat.Matrix, ldb, info *int) {
+func Dsygst(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 	var upper bool
 	var half, one float64
 	var k, kb, nb int
-	var err error
-	_ = err
 
 	one = 1.0
 	half = 0.5
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	if (*itype) < 1 || (*itype) > 3 {
-		(*info) = -1
-	} else if !upper && uplo != 'L' {
-		(*info) = -2
-	} else if (*n) < 0 {
-		(*info) = -3
-	} else if (*lda) < max(1, *n) {
-		(*info) = -5
-	} else if (*ldb) < max(1, *n) {
-		(*info) = -7
+	upper = uplo == Upper
+	if itype < 1 || itype > 3 {
+		err = fmt.Errorf("itype < 1 || itype > 3: itype=%v", itype)
+	} else if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if b.Rows < max(1, n) {
+		err = fmt.Errorf("b.Rows < max(1, n): b.Rows=%v, n=%v", b.Rows, n)
 	}
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYGST"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dsygst", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 {
+	if n == 0 {
 		return
 	}
 
 	//     Determine the block size for this environment.
-	nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYGST"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
+	nb = Ilaenv(1, "Dsygst", []byte{uplo.Byte()}, n, -1, -1, -1)
 
-	if nb <= 1 || nb >= (*n) {
+	if nb <= 1 || nb >= n {
 		//        Use unblocked code
-		Dsygs2(itype, uplo, n, a, lda, b, ldb, info)
+		if err = Dsygs2(itype, uplo, n, a, b); err != nil {
+			panic(err)
+		}
 	} else {
 		//        Use blocked code
-		if (*itype) == 1 {
+		if itype == 1 {
 			if upper {
 				//              Compute inv(U**T)*A*inv(U)
-				for k = 1; k <= (*n); k += nb {
-					kb = min((*n)-k+1, nb)
+				for k = 1; k <= n; k += nb {
+					kb = min(n-k+1, nb)
 					//                 Update the upper triangle of A(k:n,k:n)
-					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
-					if k+kb <= (*n) {
-						err = goblas.Dtrsm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.NonUnit, kb, (*n)-k-kb+1, one, b.Off(k-1, k-1), a.Off(k-1, k+kb-1))
-						err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one, a.Off(k-1, k+kb-1))
-						err = goblas.Dsyr2k(mat.UploByte(uplo), mat.Trans, (*n)-k-kb+1, kb, one, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one, a.Off(k+kb-1, k+kb-1))
-						err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, (*n)-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one, a.Off(k-1, k+kb-1))
-						err = goblas.Dtrsm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, kb, (*n)-k-kb+1, one, b.Off(k+kb-1, k+kb-1), a.Off(k-1, k+kb-1))
+					if err = Dsygs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {
+						panic(err)
+					}
+					if k+kb <= n {
+						if err = goblas.Dtrsm(Left, uplo, Trans, NonUnit, kb, n-k-kb+1, one, b.Off(k-1, k-1), a.Off(k-1, k+kb-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dsymm(Left, uplo, kb, n-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one, a.Off(k-1, k+kb-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dsyr2k(uplo, Trans, n-k-kb+1, kb, one, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one, a.Off(k+kb-1, k+kb-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dsymm(Left, uplo, kb, n-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one, a.Off(k-1, k+kb-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dtrsm(Right, uplo, NoTrans, NonUnit, kb, n-k-kb+1, one, b.Off(k+kb-1, k+kb-1), a.Off(k-1, k+kb-1)); err != nil {
+							panic(err)
+						}
 					}
 				}
 			} else {
 				//              Compute inv(L)*A*inv(L**T)
-				for k = 1; k <= (*n); k += nb {
-					kb = min((*n)-k+1, nb)
+				for k = 1; k <= n; k += nb {
+					kb = min(n-k+1, nb)
 					//                 Update the lower triangle of A(k:n,k:n)
-					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
-					if k+kb <= (*n) {
-						err = goblas.Dtrsm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.NonUnit, (*n)-k-kb+1, kb, one, b.Off(k-1, k-1), a.Off(k+kb-1, k-1))
-						err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k-1))
-						err = goblas.Dsyr2k(mat.UploByte(uplo), mat.NoTrans, (*n)-k-kb+1, kb, one, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k+kb-1))
-						err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), (*n)-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k-1))
-						err = goblas.Dtrsm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, (*n)-k-kb+1, kb, one, b.Off(k+kb-1, k+kb-1), a.Off(k+kb-1, k-1))
+					if err = Dsygs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {
+						panic(err)
+					}
+					if k+kb <= n {
+						if err = goblas.Dtrsm(Right, uplo, Trans, NonUnit, n-k-kb+1, kb, one, b.Off(k-1, k-1), a.Off(k+kb-1, k-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dsymm(Right, uplo, n-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dsyr2k(uplo, NoTrans, n-k-kb+1, kb, one, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k+kb-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dsymm(Right, uplo, n-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k-1)); err != nil {
+							panic(err)
+						}
+						if err = goblas.Dtrsm(Left, uplo, NoTrans, NonUnit, n-k-kb+1, kb, one, b.Off(k+kb-1, k+kb-1), a.Off(k+kb-1, k-1)); err != nil {
+							panic(err)
+						}
 					}
 				}
 			}
 		} else {
 			if upper {
 				//              Compute U*A*U**T
-				for k = 1; k <= (*n); k += nb {
-					kb = min((*n)-k+1, nb)
+				for k = 1; k <= n; k += nb {
+					kb = min(n-k+1, nb)
 					//                 Update the upper triangle of A(1:k+kb-1,1:k+kb-1)
-					err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, k-1, kb, one, b, a.Off(0, k-1))
-					err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one, a.Off(0, k-1))
-					err = goblas.Dsyr2k(mat.UploByte(uplo), mat.NoTrans, k-1, kb, one, a.Off(0, k-1), b.Off(0, k-1), one, a)
-					err = goblas.Dsymm(mat.Right, mat.UploByte(uplo), k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one, a.Off(0, k-1))
-					err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.Trans, mat.NonUnit, k-1, kb, one, b.Off(k-1, k-1), a.Off(0, k-1))
-					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
+					if err = goblas.Dtrmm(Left, uplo, NoTrans, NonUnit, k-1, kb, one, b, a.Off(0, k-1)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dsymm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one, a.Off(0, k-1)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dsyr2k(uplo, NoTrans, k-1, kb, one, a.Off(0, k-1), b.Off(0, k-1), one, a); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dsymm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one, a.Off(0, k-1)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dtrmm(Right, uplo, Trans, NonUnit, k-1, kb, one, b.Off(k-1, k-1), a.Off(0, k-1)); err != nil {
+						panic(err)
+					}
+					if err = Dsygs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {
+						panic(err)
+					}
 				}
 			} else {
 				//              Compute L**T*A*L
-				for k = 1; k <= (*n); k += nb {
-					kb = min((*n)-k+1, nb)
+				for k = 1; k <= n; k += nb {
+					kb = min(n-k+1, nb)
 					//                 Update the lower triangle of A(1:k+kb-1,1:k+kb-1)
-					err = goblas.Dtrmm(mat.Right, mat.UploByte(uplo), mat.NoTrans, mat.NonUnit, kb, k-1, one, b, a.Off(k-1, 0))
-					err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one, a.Off(k-1, 0))
-					err = goblas.Dsyr2k(mat.UploByte(uplo), mat.Trans, k-1, kb, one, a.Off(k-1, 0), b.Off(k-1, 0), one, a)
-					err = goblas.Dsymm(mat.Left, mat.UploByte(uplo), kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one, a.Off(k-1, 0))
-					err = goblas.Dtrmm(mat.Left, mat.UploByte(uplo), mat.Trans, mat.NonUnit, kb, k-1, one, b.Off(k-1, k-1), a.Off(k-1, 0))
-					Dsygs2(itype, uplo, &kb, a.Off(k-1, k-1), lda, b.Off(k-1, k-1), ldb, info)
+					if err = goblas.Dtrmm(Right, uplo, NoTrans, NonUnit, kb, k-1, one, b, a.Off(k-1, 0)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dsymm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one, a.Off(k-1, 0)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dsyr2k(uplo, Trans, k-1, kb, one, a.Off(k-1, 0), b.Off(k-1, 0), one, a); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dsymm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one, a.Off(k-1, 0)); err != nil {
+						panic(err)
+					}
+					if err = goblas.Dtrmm(Left, uplo, Trans, NonUnit, kb, k-1, one, b.Off(k-1, k-1), a.Off(k-1, 0)); err != nil {
+						panic(err)
+					}
+					if err = Dsygs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {
+						panic(err)
+					}
 				}
 			}
 		}
 	}
+
+	return
 }

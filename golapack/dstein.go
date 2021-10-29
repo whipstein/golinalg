@@ -1,6 +1,7 @@
 package golapack
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/whipstein/golinalg/goblas"
@@ -14,9 +15,10 @@ import (
 //
 // The maximum number of iterations allowed for each eigenvector is
 // specified by an internal parameter MAXITS (currently set to 5).
-func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]int, z *mat.Matrix, ldz *int, work *mat.Vector, iwork, ifail *[]int, info *int) {
+func Dstein(n int, d, e *mat.Vector, m int, w *mat.Vector, iblock, isplit *[]int, z *mat.Matrix, work *mat.Vector, iwork, ifail *[]int) (info int, err error) {
 	var dtpcrt, eps, eps1, nrm, odm1, odm3, one, onenrm, ortol, pertol, scl, sep, ten, tol, xj, xjm, zero, ztr float64
-	var b1, blksiz, bn, extra, gpind, i, iinfo, indrv1, indrv2, indrv3, indrv4, indrv5, its, j, j1, jblk, jmax, maxits, nblk, nrmchk int
+	var b1, blksiz, bn, extra, gpind, i, indrv1, indrv2, indrv3, indrv4, indrv5, its, j, j1, jblk, jmax, maxits, nblk, nrmchk int
+
 	iseed := make([]int, 4)
 
 	zero = 0.0
@@ -28,40 +30,39 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 	extra = 2
 
 	//     Test the input parameters.
-	(*info) = 0
-	for i = 1; i <= (*m); i++ {
+	for i = 1; i <= m; i++ {
 		(*ifail)[i-1] = 0
 	}
 
-	if (*n) < 0 {
-		(*info) = -1
-	} else if (*m) < 0 || (*m) > (*n) {
-		(*info) = -4
-	} else if (*ldz) < max(1, *n) {
-		(*info) = -9
+	if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if m < 0 || m > n {
+		err = fmt.Errorf("m < 0 || m > n: m=%v, n=%v", m, n)
+	} else if z.Rows < max(1, n) {
+		err = fmt.Errorf("z.Rows < max(1, n): z.Rows=%v, n=%v", z.Rows, n)
 	} else {
-		for j = 2; j <= (*m); j++ {
+		for j = 2; j <= m; j++ {
 			if (*iblock)[j-1] < (*iblock)[j-1-1] {
-				(*info) = -6
+				err = fmt.Errorf("iblock[j-1] < iblock[j-2]: iblock[j-1]=%v, iblock[j-2]=%v", (*iblock)[j-1], (*iblock)[j-2])
 				goto label30
 			}
 			if (*iblock)[j-1] == (*iblock)[j-1-1] && w.Get(j-1) < w.Get(j-1-1) {
-				(*info) = -5
+				err = fmt.Errorf("iblock[j-1] == iblock[j-2] && w[j-1] < w[j-2]: iblock[j-1]=%v, iblock[j-2]=%v, w[j-1]=%v, w[j-2]=%v", (*iblock)[j-1], (*iblock)[j-2], w.Get(j-1), w.Get(j-2))
 				goto label30
 			}
 		}
 	label30:
 	}
 
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSTEIN"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("Dstein", err)
 		return
 	}
 
 	//     Quick return if possible
-	if (*n) == 0 || (*m) == 0 {
+	if n == 0 || m == 0 {
 		return
-	} else if (*n) == 1 {
+	} else if n == 1 {
 		z.Set(0, 0, one)
 		return
 	}
@@ -76,14 +77,14 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 
 	//     Initialize pointers.
 	indrv1 = 0
-	indrv2 = indrv1 + (*n)
-	indrv3 = indrv2 + (*n)
-	indrv4 = indrv3 + (*n)
-	indrv5 = indrv4 + (*n)
+	indrv2 = indrv1 + n
+	indrv3 = indrv2 + n
+	indrv4 = indrv3 + n
+	indrv5 = indrv4 + n
 
 	//     Compute eigenvectors of matrix blocks.
 	j1 = 1
-	for nblk = 1; nblk <= (*iblock)[(*m)-1]; nblk++ {
+	for nblk = 1; nblk <= (*iblock)[m-1]; nblk++ {
 		//        Find starting and ending indices of block nblk.
 		if nblk == 1 {
 			b1 = 1
@@ -111,7 +112,7 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 	label60:
 		;
 		jblk = 0
-		for j = j1; j <= (*m); j++ {
+		for j = j1; j <= m; j++ {
 			if (*iblock)[j-1] != nblk {
 				j1 = j
 				goto label160
@@ -140,7 +141,7 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			nrmchk = 0
 
 			//           Get random starting vector.
-			Dlarnv(func() *int { y := 2; return &y }(), &iseed, &blksiz, work.Off(indrv1))
+			Dlarnv(2, &iseed, blksiz, work.Off(indrv1))
 
 			//           Copy the matrix T so it won't be destroyed in factorization.
 			goblas.Dcopy(blksiz, d.Off(b1-1, 1), work.Off(indrv4, 1))
@@ -149,7 +150,9 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 
 			//           Compute LU factors with partial pivoting  ( PT = LU )
 			tol = zero
-			Dlagtf(&blksiz, work.Off(indrv4), &xj, work.Off(indrv2+2-1), work.Off(indrv3), &tol, work.Off(indrv5), iwork, &iinfo)
+			if err = Dlagtf(blksiz, work.Off(indrv4), xj, work.Off(indrv2+2-1), work.Off(indrv3), tol, work.Off(indrv5), iwork); err != nil {
+				panic(err)
+			}
 
 			//           Update iteration count.
 		label70:
@@ -165,7 +168,9 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			goblas.Dscal(blksiz, scl, work.Off(indrv1, 1))
 
 			//           Solve the system LU = Pb.
-			Dlagts(toPtr(-1), &blksiz, work.Off(indrv4), work.Off(indrv2+2-1), work.Off(indrv3), work.Off(indrv5), iwork, work.Off(indrv1), &tol, &iinfo)
+			if tol, _, err = Dlagts(-1, blksiz, work.Off(indrv4), work.Off(indrv2+2-1), work.Off(indrv3), work.Off(indrv5), iwork, work.Off(indrv1), tol); err != nil {
+				panic(err)
+			}
 
 			//           Reorthogonalize by modified Gram-Schmidt if eigenvalues are
 			//           close enough.
@@ -204,8 +209,8 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			//           store eigenvector number in array ifail.
 		label100:
 			;
-			(*info) = (*info) + 1
-			(*ifail)[(*info)-1] = j
+			info = info + 1
+			(*ifail)[info-1] = j
 
 			//           Accept iterate as jth eigenvector.
 		label110:
@@ -218,7 +223,7 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 			goblas.Dscal(blksiz, scl, work.Off(indrv1, 1))
 		label120:
 			;
-			for i = 1; i <= (*n); i++ {
+			for i = 1; i <= n; i++ {
 				z.Set(i-1, j-1, zero)
 			}
 			for i = 1; i <= blksiz; i++ {
@@ -232,4 +237,6 @@ func Dstein(n *int, d, e *mat.Vector, m *int, w *mat.Vector, iblock, isplit *[]i
 		}
 	label160:
 	}
+
+	return
 }

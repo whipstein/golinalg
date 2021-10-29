@@ -1,6 +1,8 @@
 package golapack
 
 import (
+	"fmt"
+
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -16,51 +18,50 @@ import (
 // 1-by-1 and 2-by-2 diagonal blocks.
 //
 // This is the blocked version of the algorithm, calling Level 3 BLAS.
-func DsytrfRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *mat.Matrix, lwork *int, info *int) {
+func DsytrfRook(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Matrix, lwork int) (info int, err error) {
 	var lquery, upper bool
 	var iinfo, iws, j, k, kb, ldwork, lwkopt, nb, nbmin int
 
 	//     Test the input parameters.
-	(*info) = 0
-	upper = uplo == 'U'
-	lquery = ((*lwork) == -1)
-	if !upper && uplo != 'L' {
-		(*info) = -1
-	} else if (*n) < 0 {
-		(*info) = -2
-	} else if (*lda) < max(1, *n) {
-		(*info) = -4
-	} else if (*lwork) < 1 && !lquery {
-		(*info) = -7
+	upper = uplo == Upper
+	lquery = (lwork == -1)
+	if !upper && uplo != Lower {
+		err = fmt.Errorf("!upper && uplo != Lower: uplo=%s", uplo)
+	} else if n < 0 {
+		err = fmt.Errorf("n < 0: n=%v", n)
+	} else if a.Rows < max(1, n) {
+		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
+	} else if lwork < 1 && !lquery {
+		err = fmt.Errorf("lwork < 1 && !lquery: lwork=%v, lquery=%v", lwork, lquery)
 	}
 
-	if (*info) == 0 {
+	if err == nil {
 		//        Determine the block size
-		nb = Ilaenv(func() *int { y := 1; return &y }(), []byte("DSYTRF_ROOK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1))
-		lwkopt = max(1, (*n)*nb)
+		nb = Ilaenv(1, "DsytrfRook", []byte{uplo.Byte()}, n, -1, -1, -1)
+		lwkopt = max(1, n*nb)
 		work.SetIdx(0, float64(lwkopt))
 	}
 	//
-	if (*info) != 0 {
-		gltest.Xerbla([]byte("DSYTRF_ROOK"), -(*info))
+	if err != nil {
+		gltest.Xerbla2("DsytrfRook", err)
 		return
 	} else if lquery {
 		return
 	}
 	//
 	nbmin = 2
-	ldwork = (*n)
-	if nb > 1 && nb < (*n) {
+	ldwork = n
+	if nb > 1 && nb < n {
 		iws = ldwork * nb
-		if (*lwork) < iws {
-			nb = max((*lwork)/ldwork, 1)
-			nbmin = max(2, Ilaenv(func() *int { y := 2; return &y }(), []byte("DSYTRF_ROOK"), []byte{uplo}, n, toPtr(-1), toPtr(-1), toPtr(-1)))
+		if lwork < iws {
+			nb = max(lwork/ldwork, 1)
+			nbmin = max(2, Ilaenv(2, "DsytrfRook", []byte{uplo.Byte()}, n, -1, -1, -1))
 		}
 	} else {
 		iws = 1
 	}
 	if nb < nbmin {
-		nb = (*n)
+		nb = n
 	}
 
 	if upper {
@@ -69,7 +70,7 @@ func DsytrfRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 		//        K is the main loop index, decreasing from N to 1 in steps of
 		//        KB, where KB is the number of columns factorized by DLASYF_ROOK;
 		//        KB is either NB or NB-1, or K for the last block
-		k = (*n)
+		k = n
 	label10:
 		;
 
@@ -81,16 +82,18 @@ func DsytrfRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 		if k > nb {
 			//           Factorize columns k-kb+1:k of A and use blocked code to
 			//           update columns 1:k-kb
-			DlasyfRook(uplo, &k, &nb, &kb, a, lda, ipiv, work, &ldwork, &iinfo)
+			kb, iinfo = DlasyfRook(uplo, k, nb, a, ipiv, work)
 		} else {
 			//           Use unblocked code to factorize columns 1:k of A
-			Dsytf2Rook(uplo, &k, a, lda, ipiv, &iinfo)
+			if iinfo, err = Dsytf2Rook(uplo, k, a, ipiv); err != nil {
+				panic(err)
+			}
 			kb = k
 		}
 
 		//        Set INFO on the first occurrence of a zero pivot
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo
+		if info == 0 && iinfo > 0 {
+			info = iinfo
 		}
 
 		//        No need to adjust IPIV
@@ -110,24 +113,26 @@ func DsytrfRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 		;
 
 		//        If K > N, exit from loop
-		if k > (*n) {
+		if k > n {
 			goto label40
 		}
 
 		_ipiv := (*ipiv)[k-1:]
-		if k <= (*n)-nb {
+		if k <= n-nb {
 			//           Factorize columns k:k+kb-1 of A and use blocked code to
 			//           update columns k+kb:n
-			DlasyfRook(uplo, toPtr((*n)-k+1), &nb, &kb, a.Off(k-1, k-1), lda, &_ipiv, work, &ldwork, &iinfo)
+			kb, iinfo = DlasyfRook(uplo, n-k+1, nb, a.Off(k-1, k-1), toSlice(ipiv, k-1), work)
 		} else {
 			//           Use unblocked code to factorize columns k:n of A
-			Dsytf2Rook(uplo, toPtr((*n)-k+1), a.Off(k-1, k-1), lda, &_ipiv, &iinfo)
-			kb = (*n) - k + 1
+			if iinfo, err = Dsytf2Rook(uplo, n-k+1, a.Off(k-1, k-1), &_ipiv); err != nil {
+				panic(err)
+			}
+			kb = n - k + 1
 		}
 
 		//        Set INFO on the first occurrence of a zero pivot
-		if (*info) == 0 && iinfo > 0 {
-			(*info) = iinfo + k - 1
+		if info == 0 && iinfo > 0 {
+			info = iinfo + k - 1
 		}
 
 		//        Adjust IPIV
@@ -148,4 +153,6 @@ func DsytrfRook(uplo byte, n *int, a *mat.Matrix, lda *int, ipiv *[]int, work *m
 label40:
 	;
 	work.SetIdx(0, float64(lwkopt))
+
+	return
 }
