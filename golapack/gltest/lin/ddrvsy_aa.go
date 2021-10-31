@@ -35,6 +35,7 @@ func ddrvsyAa(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tster
 
 	//     Test path
 	path := "Dsa"
+	alasvmStart(path)
 
 	//     Path to generate matrices
 	matpath := "Dsy"
@@ -248,5 +249,6 @@ func ddrvsyAa(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tster
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

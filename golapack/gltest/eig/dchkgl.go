@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// dchkgl tests DGGBAL, a routine for balancing a matrix pair (A, B).
+// dchkgl tests dggbal, a routine for balancing a matrix pair (A, B).
 func dchkgl(t *testing.T) {
 	var anorm, bnorm, eps, rmax, vmax, zero float64
 	var _i, i, ihi, ihiin, ilo, iloin, j, knt, lda, lwork, n, ninfo int
@@ -397,12 +397,12 @@ func dchkgl(t *testing.T) {
 
 	}
 
-	fmt.Printf(" .. test output of DGGBAL .. \n")
+	fmt.Printf(" .. test output of dggbal .. \n")
 
-	fmt.Printf(" value of largest test error            = %12.3E\n", rmax)
-	fmt.Printf(" example number where info is not zero  = %4d\n", lmax[0])
-	fmt.Printf(" example number where ILO or IHI wrong  = %4d\n", lmax[1])
-	fmt.Printf(" example number having largest error    = %4d\n", lmax[2])
-	fmt.Printf(" number of examples where info is not 0 = %4d\n", ninfo)
-	fmt.Printf(" total number of examples tested        = %4d\n", knt)
+	fmt.Printf("\tvalue of largest test error            = %12.3E\n", rmax)
+	fmt.Printf("\texample number where info is not zero  = %4d\n", lmax[0])
+	fmt.Printf("\texample number where ILO or IHI wrong  = %4d\n", lmax[1])
+	fmt.Printf("\texample number having largest error    = %4d\n", lmax[2])
+	fmt.Printf("\tnumber of examples where info is not 0 = %4d\n", ninfo)
+	fmt.Printf("\ttotal number of examples tested        = %4d\n", knt)
 }

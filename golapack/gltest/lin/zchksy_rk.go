@@ -44,6 +44,7 @@ func zchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, 
 
 	//     Test path
 	path := "Zsk"
+	alasumStart(path)
 
 	//     Path to generate matrices
 	matpath := "Zsy"
@@ -544,5 +545,6 @@ func zchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, 
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

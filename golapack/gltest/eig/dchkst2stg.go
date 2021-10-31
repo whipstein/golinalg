@@ -241,10 +241,10 @@ import (
 // (20) Same as (16), but multiplied by SQRT( underflow threshold )
 // (21) A diagonally dominant tridiagonal matrix with geometrically
 //      spaced diagonal entries 1, ..., ULP.
-func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, ap, sd, se, d1, d2, d3, d4, d5, wa1, wa2, wa3, wr *mat.Vector, u, v *mat.Matrix, vp, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector) (err error) {
+func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, ap, sd, se, d1, d2, d3, d4, d5, wa1, wa2, wa3, wr *mat.Vector, u, v *mat.Matrix, vp, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn, srange, srel, tryrac bool
 	var abstol, aninv, anorm, cond, eight, half, hun, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, temp4, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, iinfo, il, imode, itemp, itype, iu, j, jc, jr, jsize, jtype, lgn, lh, liwedc, log2ui, lw, lwedc, m, m2, m3, maxtyp, mtypes, n, nap, nblock, nerrs, nmats, nmax, ntest, ntestt int
+	var i, iinfo, il, imode, itemp, itype, iu, j, jc, jr, jsize, jtype, lgn, lh, liwedc, log2ui, lw, lwedc, m, m2, m3, maxtyp, mtypes, n, nap, nblock, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
@@ -488,7 +488,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 1
 			if err = golapack.Dsytrd(Upper, n, v, sd, se, tau, work, lwork); err != nil {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsytrd(U)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(0, ulpinv)
@@ -502,7 +502,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			if err = golapack.Dorgtr(Upper, n, u, tau, work, lwork); err != nil {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dorgtr(U)", iinfo, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(iinfo))
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(1, ulpinv)
@@ -527,7 +527,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 			if iinfo, err = golapack.Dsteqr('N', n, d1, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(2, ulpinv)
@@ -556,7 +556,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 			if iinfo, err = golapack.Dsteqr('N', n, d2, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(2, ulpinv)
@@ -583,7 +583,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 			if iinfo, err = golapack.Dsteqr('N', n, d3, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(3, ulpinv)
@@ -624,7 +624,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 5
 			if err = golapack.Dsptrd(Upper, n, vp, sd, se, tau); err != nil {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsptrd(U)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(4, ulpinv)
@@ -636,7 +636,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			if err = golapack.Dopgtr(Upper, n, vp, tau, u, work); err != nil {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dopgtr(U)", iinfo, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(iinfo))
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(5, ulpinv)
@@ -663,7 +663,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 7
 			if err = golapack.Dsptrd(Lower, n, vp, sd, se, tau); err != nil {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsptrd(L)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(6, ulpinv)
@@ -675,7 +675,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			if err = golapack.Dopgtr(Lower, n, vp, tau, u, work); err != nil {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dopgtr(L)", iinfo, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(iinfo))
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(7, ulpinv)
@@ -698,7 +698,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 9
 			if iinfo, err = golapack.Dsteqr('V', n, d1, work, z, work.Off(n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(V)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(8, ulpinv)
@@ -715,7 +715,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 11
 			if iinfo, err = golapack.Dsteqr('N', n, d2, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(10, ulpinv)
@@ -732,7 +732,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 12
 			if iinfo, err = golapack.Dsterf(n, d3, work); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "DSTERF", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(11, ulpinv)
@@ -789,7 +789,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				ntest = 14
 				if iinfo, err = golapack.Dpteqr('V', n, d4, work, z, work.Off(n)); err != nil || iinfo != 0 {
 					fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dpteqr(V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(13, ulpinv)
@@ -809,7 +809,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				ntest = 16
 				if iinfo, err = golapack.Dpteqr('N', n, d5, work, z, work.Off(n)); err != nil || iinfo != 0 {
 					fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dpteqr(N)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(15, ulpinv)
@@ -845,7 +845,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				abstol = unfl + unfl
 				if m, _, iinfo, err = golapack.Dstebz('A', 'E', n, vl, vu, il, iu, abstol, sd, se, wr, &iwork, toSlice(&iwork, n), work, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(A,rel)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(16, ulpinv)
@@ -871,7 +871,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			abstol = unfl + unfl
 			if m, _, iinfo, err = golapack.Dstebz('A', 'E', n, vl, vu, il, iu, abstol, sd, se, wa1, &iwork, toSlice(&iwork, n), work, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(A)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(17, ulpinv)
@@ -907,7 +907,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 			if m2, _, iinfo, err = golapack.Dstebz('I', 'E', n, vl, vu, il, iu, abstol, sd, se, wa2, &iwork, toSlice(&iwork, n), work, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(I)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(18, ulpinv)
@@ -935,7 +935,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 			if m3, _, iinfo, err = golapack.Dstebz('V', 'E', n, vl, vu, il, iu, abstol, sd, se, wa3, &iwork, toSlice(&iwork, n), work, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(V)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(18, ulpinv)
@@ -965,7 +965,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 21
 			if m, _, iinfo, err = golapack.Dstebz('A', 'B', n, vl, vu, il, iu, abstol, sd, se, wa1, &iwork, toSlice(&iwork, n), work, toSlice(&iwork, 2*n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstebz(A,B)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(19, ulpinv)
@@ -977,7 +977,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			if iinfo, err = golapack.Dstein(n, sd, se, m, wa1, &iwork, toSlice(&iwork, n), z, work, toSlice(&iwork, 2*n), toSlice(&iwork, 3*n)); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "DSTEIN", iinfo, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(iinfo))
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(19, ulpinv)
@@ -1001,7 +1001,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 22
 			if iinfo, err = golapack.Dstedc('I', n, d1, work, z, work.Off(n), lwedc-n, &iwork, liwedc); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstedc(I)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(21, ulpinv)
@@ -1024,7 +1024,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 24
 			if iinfo, err = golapack.Dstedc('V', n, d1, work, z, work.Off(n), lwedc-n, &iwork, liwedc); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstedc(V)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(23, ulpinv)
@@ -1047,7 +1047,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			ntest = 26
 			if iinfo, err = golapack.Dstedc('N', n, d2, work, z, work.Off(n), lwedc-n, &iwork, liwedc); err != nil || iinfo != 0 {
 				fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstedc(N)", iinfo, n, jtype, ioldsd)
-				if iinfo < 0 {
+				if err != nil {
 					return
 				} else {
 					result.Set(25, ulpinv)
@@ -1081,7 +1081,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					abstol = unfl + unfl
 					if m, tryrac, iinfo, err = golapack.Dstemr('V', 'A', n, sd, se, vl, vu, il, iu, wr, z, n, &iwork, tryrac, work, lwork, toSlice(&iwork, 2*n), lwork-2*n); err != nil || iinfo != 0 {
 						fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(V,A,rel)", iinfo, n, jtype, ioldsd)
-						if iinfo < 0 {
+						if err != nil {
 							return
 						} else {
 							result.Set(26, ulpinv)
@@ -1112,7 +1112,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 						abstol = unfl + unfl
 						if m, tryrac, iinfo, err = golapack.Dstemr('V', 'I', n, sd, se, vl, vu, il, iu, wr, z, n, &iwork, tryrac, work, lwork, toSlice(&iwork, 2*n), lwork-2*n); err != nil || iinfo != 0 {
 							fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(V,I,rel)", iinfo, n, jtype, ioldsd)
-							if iinfo < 0 {
+							if err != nil {
 								return
 							} else {
 								result.Set(27, ulpinv)
@@ -1157,7 +1157,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					}
 					if m, tryrac, iinfo, err = golapack.Dstemr('V', 'I', n, d5, work, vl, vu, il, iu, d1, z, n, &iwork, tryrac, work.Off(n), lwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 						fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(V,I)", iinfo, n, jtype, ioldsd)
-						if iinfo < 0 {
+						if err != nil {
 							return
 						} else {
 							result.Set(28, ulpinv)
@@ -1179,7 +1179,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					ntest = 31
 					if m, tryrac, iinfo, err = golapack.Dstemr('N', 'I', n, d5, work, vl, vu, il, iu, d2, z, n, &iwork, tryrac, work.Off(n), lwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 						fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(N,I)", iinfo, n, jtype, ioldsd)
-						if iinfo < 0 {
+						if err != nil {
 							return
 						} else {
 							result.Set(30, ulpinv)
@@ -1227,7 +1227,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 					if m, tryrac, iinfo, err = golapack.Dstemr('V', 'V', n, d5, work, vl, vu, il, iu, d1, z, n, &iwork, tryrac, work.Off(n), lwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 						fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(V,V)", iinfo, n, jtype, ioldsd)
-						if iinfo < 0 {
+						if err != nil {
 							return
 						} else {
 							result.Set(31, ulpinv)
@@ -1249,7 +1249,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					ntest = 34
 					if m, tryrac, iinfo, err = golapack.Dstemr('N', 'V', n, d5, work, vl, vu, il, iu, d2, z, n, &iwork, tryrac, work.Off(n), lwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 						fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(N,V)", iinfo, n, jtype, ioldsd)
-						if iinfo < 0 {
+						if err != nil {
 							return
 						} else {
 							result.Set(33, ulpinv)
@@ -1288,7 +1288,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 
 				if m, tryrac, iinfo, err = golapack.Dstemr('V', 'A', n, d5, work, vl, vu, il, iu, d1, z, n, &iwork, tryrac, work.Off(n), lwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(V,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(34, ulpinv)
@@ -1310,7 +1310,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				ntest = 37
 				if m, tryrac, iinfo, err = golapack.Dstemr('N', 'A', n, d5, work, vl, vu, il, iu, d2, z, n, &iwork, tryrac, work.Off(n), lwork-n, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" dchkst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstemr(N,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(36, ulpinv)
@@ -1362,7 +1362,7 @@ func dchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Summary
-	dlasum("Dst", nerrs, ntestt)
+	// dlasum("Dst", nerrs, ntestt)
 
 	return
 }

@@ -11,3 +11,15 @@ func dlasum(_type string, ie, nrun int) {
 		fmt.Printf(" routines:    Passed (%5d tests run)\n", nrun)
 	}
 }
+
+func dlasumStart(_type string) {
+	fmt.Printf(" Testing %3s routines.........", _type)
+}
+
+func dlasumEnd(nfail, nrun int) {
+	if nfail > 0 {
+		fmt.Printf("Fail\t\t( %6d tests failed )\n", nfail)
+	} else {
+		fmt.Printf("Pass\t\t( %6d tests run )\n", nrun)
+	}
+}

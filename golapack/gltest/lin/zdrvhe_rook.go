@@ -38,6 +38,7 @@ func zdrvheRook(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tst
 	//
 	//     Test path
 	path := "Zhr"
+	alasvmStart(path)
 
 	//     Path to generate matrices
 	matpath := "Zhe"
@@ -284,5 +285,6 @@ func zdrvheRook(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tst
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

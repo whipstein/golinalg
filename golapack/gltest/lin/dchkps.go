@@ -31,6 +31,7 @@ func dchkps(dotype []bool, nn int, nval []int, nnb int, nbval []int, nrank int, 
 
 	//     Initialize constants and the random number seed.
 	path := "Dps"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -152,5 +153,6 @@ func dchkps(dotype []bool, nn int, nval []int, nnb int, nbval []int, nrank int, 
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

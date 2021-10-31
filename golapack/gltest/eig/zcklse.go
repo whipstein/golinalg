@@ -9,11 +9,11 @@ import (
 
 // zcklse tests Zgglse - a subroutine for solving linear equality
 // constrained least square problem (Lse).
-func zcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work *mat.CVector, rwork *mat.Vector) (err error) {
+func zcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work *mat.CVector, rwork *mat.Vector) (nfail, nrun int, err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb float64
-	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nfail, nrun, nt, ntypes, p int
+	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nt, ntypes, p int
 	dotype := make([]bool, 8)
 	result := vf(7)
 
@@ -110,7 +110,7 @@ func zcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

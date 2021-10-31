@@ -107,12 +107,12 @@ import (
 //           with random signs.
 //      (17) Same as (16), but multiplied by SQRT( overflow threshold )
 //      (18) Same as (16), but multiplied by SQRT( underflow threshold )
-func zdrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, d1, d2, d3, wa1, wa2, wa3 *mat.Vector, u, v *mat.CMatrix, tau *mat.CVector, z *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (err error) {
+func zdrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, d1, d2, d3, wa1, wa2, wa3 *mat.Vector, u, v *mat.CMatrix, tau *mat.CVector, z *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var uplo mat.MatUplo
 	var cone, czero complex128
 	var abstol, aninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, idiag, ihbw, iinfo, il, imode, indwrk, indx, irow, itemp, itype, iu, iuplo, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lrwedc, lwedc, m2, m3, maxtyp, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
+	var i, idiag, ihbw, iinfo, il, imode, indwrk, indx, irow, itemp, itype, iu, iuplo, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lrwedc, lwedc, m2, m3, maxtyp, mtypes, n, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
@@ -1522,7 +1522,7 @@ func zdrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Summary
-	alasvm("Zst", nerrs, ntestt, 0)
+	// alasvm("Zst", nerrs, ntestt, 0)
 
 	return
 }

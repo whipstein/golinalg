@@ -36,6 +36,7 @@ func ddrvgt(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	iseedy[0], iseedy[1], iseedy[2], iseedy[3] = 0, 0, 0, 1
 
 	path := "Dgt"
+	alasvmStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -355,5 +356,6 @@ func ddrvgt(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

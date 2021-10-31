@@ -141,12 +141,12 @@ import (
 //         near the overflow threshold
 //    (21) Same as (19), but multiplied by a constant
 //         near the underflow threshold
-func zdrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, ht *mat.CMatrix, w, wt *mat.CVector, vs *mat.CMatrix, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int, bwork []bool) (err error) {
+func zdrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, ht *mat.CMatrix, w, wt *mat.CVector, vs *mat.CMatrix, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int, bwork []bool) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var sort byte
 	var cone, czero complex128
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, ulp, ulpinv, unfl, zero float64
-	var i, iinfo, imode, isort, itype, iwk, j, jcol, jsize, jtype, knteig, lwork, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, ntest, ntestf, ntestt, rsub, sdim int
+	var i, iinfo, imode, isort, itype, iwk, j, jcol, jsize, jtype, knteig, lwork, maxtyp, mtypes, n, nfail, nmax, nnwork, ntest, ntestf, rsub, sdim int
 	res := vf(2)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
@@ -514,7 +514,7 @@ func zdrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

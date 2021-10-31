@@ -126,7 +126,7 @@ func zerrlqtp(path string, _t *testing.T) {
 	chkxer2("Ztpmlqt", err)
 
 	//     Print a summary line.
-	alaesm(path, *ok)
+	// alaesm(path, *ok)
 
 	if !(*ok) {
 		_t.Fail()

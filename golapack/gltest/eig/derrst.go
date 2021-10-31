@@ -16,8 +16,8 @@ import (
 // Dsyev2stage, Dsbev2stage, Dsbevd2stage,
 // Dsbevx2stage, Dsytrd2stage, DsytrdSy2sb,
 // DsytrdSb2st
-func derrst(path string, t *testing.T) {
-	var i, j, liw, lw, n, nmax, nt int
+func derrst(path string, t *testing.T) (nt int) {
+	var i, j, liw, lw, n, nmax int
 	var err error
 
 	//     NMAX has to be at least 3 or LIW may be too small
@@ -1084,13 +1084,15 @@ func derrst(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

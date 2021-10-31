@@ -14,10 +14,10 @@ import (
 // dckcsd tests DORCSD:
 //        the CSD for an M-by-M orthogonal matrix X partitioned as
 //        [ X11 X12; X21 X22 ]. X11 is P-by-Q.
-func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, thresh float64, mmax int, x, xf, u1, u2, v1t, v2t, theta *mat.Vector, iwork []int, work, rwork *mat.Vector, nout int, t *testing.T) (err error) {
+func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, thresh float64, mmax int, x, xf, u1, u2, v1t, v2t, theta *mat.Vector, iwork []int, work, rwork *mat.Vector, nout int, t *testing.T) (nfail, nrun int, err error) {
 	var firstt bool
 	var gapdigit, one, orth, piover2, ten, zero float64
-	var i, iinfo, im, imat, j, ldu1, ldu2, ldv1t, ldv2t, ldx, lwork, m, nfail, nrun, nt, ntypes, p, q, r int
+	var i, iinfo, im, imat, j, ldu1, ldu2, ldv1t, ldv2t, ldx, lwork, m, nt, ntypes, p, q, r int
 
 	dotype := make([]bool, 4)
 	result := vf(15)
@@ -60,7 +60,7 @@ func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, 
 				err = matgen.Dlaror('L', 'I', m, m, x.Matrix(ldx, opts), &iseed, work)
 				if m != 0 && err != nil {
 					t.Fail()
-					fmt.Printf(" Dlaror in dchkcsd: M = %5d, info = %15d\n", m, iinfo)
+					fmt.Printf(" Dlaror in dchkcsd: m=%5d, info = %15d\n", m, iinfo)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label20
 				}
@@ -110,7 +110,7 @@ func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, 
 						firstt = false
 						alahdg(path)
 					}
-					fmt.Printf(" M=%4d P=%4d, Q=%4d, type %2d, test %2d, ratio=%13.6f\n", m, p, q, imat, i, result.Get(i-1))
+					fmt.Printf(" m=%4d p=%4d, q=%4d, type %2d, test %2d, ratio=%13.6f\n", m, p, q, imat, i, result.Get(i-1))
 					nfail++
 				}
 			}
@@ -120,7 +120,7 @@ func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, 
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

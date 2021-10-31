@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// Dchkbl tests DGEBAL, a routine for balancing a general real
+// Dchkbl tests dgebal, a routine for balancing a general real
 // matrix and isolating some of its eigenvalues.
 func Dchkbl(t *testing.T) {
 	var rmax, sfmin, temp, vmax, zero float64
@@ -301,12 +301,12 @@ func Dchkbl(t *testing.T) {
 
 	}
 
-	fmt.Printf(" .. test output of DGEBAL .. \n")
+	fmt.Printf(" .. test output of dgebal .. \n")
 
-	fmt.Printf(" value of largest test error            = %12.3E\n", rmax)
-	fmt.Printf(" example number where info is not zero  = %4d\n", lmax[0])
-	fmt.Printf(" example number where ILO or IHI wrong  = %4d\n", lmax[1])
-	fmt.Printf(" example number having largest error    = %4d\n", lmax[2])
-	fmt.Printf(" number of examples where info is not 0 = %4d\n", ninfo)
-	fmt.Printf(" total number of examples tested        = %4d\n", knt)
+	fmt.Printf("\tvalue of largest test error            = %12.3E\n", rmax)
+	fmt.Printf("\texample number where info is not zero  = %4d\n", lmax[0])
+	fmt.Printf("\texample number where ilo or ihi wrong  = %4d\n", lmax[1])
+	fmt.Printf("\texample number having largest error    = %4d\n", lmax[2])
+	fmt.Printf("\tnumber of examples where info is not 0 = %4d\n", ninfo)
+	fmt.Printf("\ttotal number of examples tested        = %4d\n", knt)
 }

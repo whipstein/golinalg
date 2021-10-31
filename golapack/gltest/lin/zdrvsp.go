@@ -36,6 +36,7 @@ func zdrvsp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	facts[0], facts[1] = 'F', 'N'
 
 	path := "Zsp"
+	alasvmStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -356,5 +357,6 @@ func zdrvsp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

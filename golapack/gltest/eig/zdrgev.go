@@ -153,11 +153,11 @@ import (
 //
 // (26) Q ( T1, T2 ) Z     where T1 and T2 are random upper-triangular
 //                         matrices.
-func zdrgev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, b, s, t, q, z, qe *mat.CMatrix, alpha, beta, alpha1, beta1, work *mat.CVector, lwork int, rwork, result *mat.Vector) (err error) {
+func zdrgev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, b, s, t, q, z, qe *mat.CMatrix, alpha, beta, alpha1, beta1, work *mat.CVector, lwork int, rwork, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var cone, ctemp, czero complex128
 	var one, safmax, safmin, ulp, ulpinv, zero float64
-	var i, iadd, ierr, in, j, jc, jr, jsize, jtype, maxtyp, maxwrk, minwrk, mtypes, n, n1, nb, nerrs, nmats, nmax, ntestt int
+	var i, iadd, ierr, in, j, jc, jr, jsize, jtype, maxtyp, maxwrk, minwrk, mtypes, n, n1, nb, nmats, nmax int
 	lasign := []bool{false, false, false, false, false, false, true, false, true, true, false, false, true, true, true, false, true, false, false, false, true, true, true, true, true, false}
 	lbsign := []bool{false, false, false, false, false, false, false, true, false, false, true, true, false, false, true, false, true, false, false, false, false, false, false, false, false, false}
 	rmagn := vf(4)
@@ -524,7 +524,7 @@ func zdrgev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	alasvm("Zgv", nerrs, ntestt, 0)
+	// alasvm("Zgv", nerrs, ntestt, 0)
 
 	work.SetRe(0, float64(maxwrk))
 

@@ -157,11 +157,11 @@ import (
 //                  |                      -1+b  -d    |
 //                  |                              1-d |
 //          and matrix B are chosen as identity matrices (see DLATM5).
-func ddrgsx(nsize int, ncmax int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi, z, q *mat.Matrix, alphar, alphai, beta *mat.Vector, c *mat.Matrix, s, work *mat.Vector, lwork int, iwork []int, liwork int, bwork []bool, t *testing.T) (err error) {
+func ddrgsx(nsize int, ncmax int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi, z, q *mat.Matrix, alphar, alphai, beta *mat.Vector, c *mat.Matrix, s, work *mat.Vector, lwork int, iwork []int, liwork int, bwork []bool, t *testing.T) (nerrs, ntestt int, err error) {
 	var ilabad bool
 	var sense byte
 	var abnrm, bignum, diftru, one, pltru, smlnum, temp1, temp2, ten, thrsh2, ulp, ulpinv, weight, zero float64
-	var _i, bdspac, i, i1, ifunc, iinfo, j, linfo, maxwrk, minwrk, mm, mn2, nerrs, nptknt, ntest, ntestt, prtype, qba, qbb int
+	var _i, bdspac, i, i1, ifunc, iinfo, j, linfo, maxwrk, minwrk, mm, mn2, nptknt, ntest, prtype, qba, qbb int
 
 	difest := vf(2)
 	pl := vf(2)
@@ -664,7 +664,7 @@ func ddrgsx(nsize int, ncmax int, thresh float64, nin *util.Reader, nout int, a,
 	}
 
 	//     Summary
-	alasvm("Dgx", nerrs, ntestt, 0)
+	// alasvm("Dgx", nerrs, ntestt, 0)
 
 	work.Set(0, float64(maxwrk))
 

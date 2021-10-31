@@ -152,12 +152,12 @@ import (
 //      on the diagonal.
 // (4)  Same as (3), but multiplied by the underflow-threshold / ULP.
 // (5)  Same as (3), but multiplied by the overflow-threshold * ULP.
-func zdrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, u, vt, asav, usav, vtsav *mat.CMatrix, s, ssav, e *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int) (err error) {
+func zdrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, u, vt, asav, usav, vtsav *mat.CMatrix, s, ssav, e *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int) (nerrs, ntestt int, err error) {
 	var badmm, badnn bool
 	var jobq, jobu, jobvt byte
 	var cone, czero complex128
 	var anorm, dif, div, half, one, ovfl, rtunfl, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, iinfo, ijq, iju, ijvt, il, itemp, iu, iwspc, iwtmp, j, jsize, jtype, liwork, lrwork, lswork, m, maxtyp, minwrk, mmax, mnmax, mnmin, mtypes, n, nerrs, nfail, nmax, ns, nsi, nsv, ntest, ntestf, ntestt int
+	var i, iinfo, ijq, iju, ijvt, il, itemp, iu, iwspc, iwtmp, j, jsize, jtype, liwork, lrwork, lswork, m, maxtyp, minwrk, mmax, mnmax, mnmin, mtypes, n, nfail, nmax, ns, nsi, nsv, ntest, ntestf int
 	cjob := []byte{'N', 'O', 'S', 'A'}
 	cjobv := []byte{'N', 'V'}
 	result := vf(39)
@@ -884,7 +884,7 @@ func zdrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Summary
-	alasvm("Zbd", nerrs, ntestt, 0)
+	// alasvm("Zbd", nerrs, ntestt, 0)
 
 	return
 }

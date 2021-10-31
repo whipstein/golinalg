@@ -31,6 +31,7 @@ func zchktz(dotype []bool, nm int, mval []int, nn int, nval []int, thresh *float
 
 	//     Initialize constants and the random number seed.
 	path := "Ztz"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -127,5 +128,6 @@ func zchktz(dotype []bool, nm int, mval []int, nn int, nval []int, thresh *float
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

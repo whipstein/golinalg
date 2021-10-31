@@ -221,11 +221,11 @@ import (
 // (20) Same as (16), but multiplied by SQRT( underflow threshold )
 // (21) A diagonally dominant tridiagonal matrix with geometrically
 //      spaced diagonal entries 1, ..., ULP.
-func zchkst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, ap *mat.CVector, sd, se, d1, d2, d3, d4, d5, wa1, wa2, wa3, wr *mat.Vector, u, v *mat.CMatrix, vp, tau *mat.CVector, z *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (err error) {
+func zchkst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, ap *mat.CVector, sd, se, d1, d2, d3, d4, d5, wa1, wa2, wa3, wr *mat.Vector, u, v *mat.CMatrix, vp, tau *mat.CVector, z *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn, crange, crel, tryrac bool
 	var cone, czero complex128
 	var abstol, aninv, anorm, cond, eight, half, hun, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, temp4, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, iinfo, il, imode, inde, indrwk, itemp, itype, iu, j, jc, jr, jsize, jtype, lgn, liwedc, log2ui, lrwedc, lwedc, m, m2, m3, maxtyp, mtypes, n, nap, nblock, nerrs, nmats, nmax, ntest, ntestt int
+	var i, iinfo, il, imode, inde, indrwk, itemp, itype, iu, j, jc, jr, jsize, jtype, lgn, liwedc, log2ui, lrwedc, lwedc, m, m2, m3, maxtyp, mtypes, n, nap, nblock, nmats, nmax, ntest int
 	dumma := vf(1)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
@@ -1300,7 +1300,7 @@ func zchkst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum("Zst", nerrs, ntestt)
+	// dlasum("Zst", nerrs, ntestt)
 
 	return
 }

@@ -38,6 +38,7 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 
 	//     Initialize constants and the random number seed.
 	path := "Dgb"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -92,12 +93,12 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 			}
 
 			for ikl = 1; ikl <= nkl; ikl++ {
-				//              Do for KL = 0, (5*M+1)/4, (3M-1)/4, and (M+1)/4. This
+				//              Do for kl = 0, (5*M+1)/4, (3M-1)/4, and (M+1)/4. This
 				//              order makes it easier to skip redundant values for small
 				//              values of M.
 				kl = klval[ikl-1]
 				for iku = 1; iku <= nku; iku++ {
-					//                 Do for KU = 0, (5*N+1)/4, (3N-1)/4, and (N+1)/4. This
+					//                 Do for ku = 0, (5*N+1)/4, (3N-1)/4, and (N+1)/4. This
 					//                 order makes it easier to skip redundant values for
 					//                 small values of N.
 					ku = kuval[iku-1]
@@ -112,11 +113,11 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 							alahd(path)
 						}
 						if n*(kl+ku+1) > la {
-							fmt.Printf(" *** In Dchkgb, LA=%5d is too small for M=%5d, N=%5d, KL=%4d, KU=%4d\n ==> Increase LA to at least %5d\n", la, m, n, kl, ku, n*(kl+ku+1))
+							fmt.Printf(" *** In Dchkgb, LA=%5d is too small for M=%5d, N=%5d, kl=%4d, ku=%4d\n ==> Increase LA to at least %5d\n", la, m, n, kl, ku, n*(kl+ku+1))
 							nerrs = nerrs + 1
 						}
 						if n*(2*kl+ku+1) > lafac {
-							fmt.Printf(" *** In Dchkgb, LAFAC=%5d is too small for M=%5d, N=%5d, KL=%4d, KU=%4d\n ==> Increase LAFAC to at least %5d\n", lafac, m, n, kl, ku, n*(2*kl+ku+1))
+							fmt.Printf(" *** In Dchkgb, LAFAC=%5d is too small for M=%5d, N=%5d, kl=%4d, ku=%4d\n ==> Increase LAFAC to at least %5d\n", lafac, m, n, kl, ku, n*(2*kl+ku+1))
 							nerrs = nerrs + 1
 						}
 						continue
@@ -190,8 +191,8 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 						//                    loop over INB, cause the code to bomb on a Sun
 						//                    SPARCstation.
 						//
-						//                     ANORMO = DLANGB( 'O', N, KL, KU, A, LDA, RWORK )
-						//                     ANORMI = DLANGB( 'I', N, KL, KU, A, LDA, RWORK )
+						//                     ANORMO = DLANGB( 'O', N, kl, ku, A, LDA, RWORK )
+						//                     ANORMI = DLANGB( 'I', N, kl, ku, A, LDA, RWORK )
 						//
 						//                    Do for each blocksize in NBVAL
 						for inb = 1; inb <= nnb; inb++ {
@@ -225,7 +226,7 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 								if nfail == 0 && nerrs == 0 {
 									alahd(path)
 								}
-								fmt.Printf(" M =%5d, N =%5d, KL=%5d, KU=%5d, NB =%4d, _type %1d, test(%1d)=%12.5f\n", m, n, kl, ku, nb, imat, 1, result.Get(0))
+								fmt.Printf(" m=%5d, n=%5d, kl=%5d, ku=%5d, nb=%4d, _type %1d, test(%1d)=%12.5f\n", m, n, kl, ku, nb, imat, 1, result.Get(0))
 								nfail++
 							}
 							nrun++
@@ -335,7 +336,7 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 											if nfail == 0 && nerrs == 0 {
 												alahd(path)
 											}
-											fmt.Printf(" TRANS=%s, N=%5d, KL=%5d, KU=%5d, NRHS=%3d, _type %1d, test(%1d)=%12.5f\n", trans, n, kl, ku, nrhs, imat, k, result.Get(k-1))
+											fmt.Printf(" trans=%s, N=%5d, kl=%5d, ku=%5d, nrhs=%3d, _type %1d, test(%1d)=%12.5f\n", trans, n, kl, ku, nrhs, imat, k, result.Get(k-1))
 											nfail++
 										}
 									}
@@ -371,7 +372,7 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 									if nfail == 0 && nerrs == 0 {
 										alahd(path)
 									}
-									fmt.Printf(" NORM ='%c', N=%5d, KL=%5d, KU=%5d,           _type %1d, test(%1d)=%12.5f\n", norm, n, kl, ku, imat, 7, result.Get(6))
+									fmt.Printf(" norm='%c', N=%5d, kl=%5d, ku=%5d,           _type %1d, test(%1d)=%12.5f\n", norm, n, kl, ku, imat, 7, result.Get(6))
 									nfail++
 								}
 								nrun++
@@ -393,5 +394,6 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

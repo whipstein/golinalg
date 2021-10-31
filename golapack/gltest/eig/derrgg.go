@@ -12,9 +12,9 @@ import (
 // Dggglm, Dgghrd, Dgglse, Dggqrf, Dggrqf, Dggsvd3,
 // Dggsvp3, Dhgeqz, Dorcsd, Dtgevc, Dtgexc, Dtgsen, Dtgsja, Dtgsna,
 // DGGES3, DGGEV3, and Dtgsyl.
-func derrgg(path string, t *testing.T) {
+func derrgg(path string, t *testing.T) (nt int) {
 	var one, tola, tolb, zero float64
-	var dummyk, dummyl, i, ifst, ilst, j, lw, lwork, nmax, nt int
+	var dummyk, dummyl, i, ifst, ilst, j, lw, lwork, nmax int
 	var err error
 
 	nmax = 3
@@ -789,13 +789,15 @@ func derrgg(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

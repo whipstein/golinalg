@@ -9,11 +9,11 @@ import (
 
 // zckglm tests ZGGGLM - subroutine for solving generalized linear
 //                       model problem.
-func zckglm(nn int, nval, mval, pval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work *mat.CVector, rwork *mat.Vector) (err error) {
+func zckglm(nn int, nval, mval, pval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work *mat.CVector, rwork *mat.Vector) (nfail, nrun int, err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb, resid float64
-	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nfail, nrun, ntypes, p int
+	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, ntypes, p int
 	dotype := make([]bool, 8)
 
 	ntypes = 8
@@ -100,7 +100,7 @@ func zckglm(nn int, nval, mval, pval []int, nmats int, iseed []int, thresh float
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

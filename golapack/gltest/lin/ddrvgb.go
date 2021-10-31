@@ -11,7 +11,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// ddrvgb tests the driver routines DGBSV and -SVX.
+// ddrvgb tests the driver routines Dgbsvand -SVX.
 func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, a *mat.Vector, la int, afb *mat.Vector, lafb int, asav, b, bsav, x, xact, s, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var equil, nofact, prefac, trfcon, zerot bool
 	var dist, equed, fact, _type, xtype byte
@@ -39,6 +39,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 	//     Initialize constants and the random number seed.
 	path := "Dgb"
+	alasvmStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -76,7 +77,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 		}
 
 		for ikl = 1; ikl <= nkl; ikl++ {
-			//           Do for KL = 0, N-1, (3N-1)/4, and (N+1)/4. This order makes
+			//           Do for kl = 0, N-1, (3N-1)/4, and (N+1)/4. This order makes
 			//           it easier to skip redundant values for small values of N.
 			if ikl == 1 {
 				kl = 0
@@ -88,7 +89,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 				kl = (n + 1) / 4
 			}
 			for iku = 1; iku <= nku; iku++ {
-				//              Do for KU = 0, N-1, (3N-1)/4, and (N+1)/4. This order
+				//              Do for ku = 0, N-1, (3N-1)/4, and (N+1)/4. This order
 				//              makes it easier to skip redundant values for small
 				//              values of N.
 				if iku == 1 {
@@ -110,11 +111,11 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 					}
 					t.Fail()
 					if lda*n > la {
-						fmt.Printf(" *** In DDRVGB, LA=%5d is too small for N=%5d, KU=%5d, KL=%5d\n ==> Increase LA to at least %5d\n", la, n, kl, ku, n*(kl+ku+1))
+						fmt.Printf(" *** In Ddrvgb, LA=%5d is too small for n=%5d, ku=%5d, kl=%5d\n ==> Increase LA to at least %5d\n", la, n, kl, ku, n*(kl+ku+1))
 						nerrs = nerrs + 1
 					}
 					if ldafb*n > lafb {
-						fmt.Printf(" *** In DDRVGB, LAFB=%5d is too small for N=%5d, KU=%5d, KL=%5d\n ==> Increase LAFB to at least %5d\n", lafb, n, kl, ku, n*(2*kl+ku+1))
+						fmt.Printf(" *** In Ddrvgb, LAFB=%5d is too small for n=%5d, ku=%5d, kl=%5d\n ==> Increase LAFB to at least %5d\n", lafb, n, kl, ku, n*(2*kl+ku+1))
 						nerrs++
 					}
 					goto label130
@@ -286,7 +287,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								golapack.Dlacpy(Full, n, nrhs, b.Matrix(ldb, opts), bsav.Matrix(ldb, opts))
 
 								if nofact && trans == NoTrans {
-									//                             --- Test DGBSV  ---
+									//                             --- Test Dgbsv ---
 									//
 									//                             Compute the LU factorization of the matrix
 									//                             and solve the system.
@@ -296,7 +297,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 									*srnamt = "Dgbsv"
 									info, err = golapack.Dgbsv(n, kl, ku, nrhs, afb.Matrix(ldafb, opts), &iwork, x.Matrix(ldb, opts))
 
-									//                             Check error code from DGBSV .
+									//                             Check error code from Dgbsv.
 									if info != izero {
 										nerrs = alaerh(path, "Dgbsv", info, 0, []byte(" "), n, n, kl, ku, nrhs, imat, nfail, nerrs)
 									}
@@ -324,35 +325,35 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 											if nfail == 0 && nerrs == 0 {
 												aladhd(path)
 											}
-											fmt.Printf(" %s, N=%5d, KL=%5d, KU=%5d, _type %1d, test(%1d)=%12.5f\n", "DGBSV ", n, kl, ku, imat, k, result.Get(k-1))
+											fmt.Printf(" %s, n=%5d, kl=%5d, ku=%5d, _type %1d, test(%1d)=%12.5f\n", "Dgbsv", n, kl, ku, imat, k, result.Get(k-1))
 											nfail++
 										}
 									}
 									nrun += nt
 								}
 
-								//                          --- Test DGBSVX ---
+								//                          --- Test Dgbsvx ---
 								if !prefac {
 									golapack.Dlaset(Full, 2*kl+ku+1, n, zero, zero, afb.Matrix(ldafb, opts))
 								}
 								golapack.Dlaset(Full, n, nrhs, zero, zero, x.Matrix(ldb, opts))
 								if iequed > 1 && n > 0 {
 									//                             Equilibrate the matrix if FACT = 'F' and
-									//                             EQUED = 'R', 'C', or 'B'.
+									//                             equed = 'R', 'C', or 'B'.
 									equed = golapack.Dlaqgb(n, n, kl, ku, a.Matrix(lda, opts), s, s.Off(n), rowcnd, colcnd, amax)
 								}
 
 								//                          Solve the system and compute the condition
-								//                          number and error bounds using DGBSVX.
+								//                          number and error bounds using Dgbsvx.
 								*srnamt = "Dgbsvx"
 								equed, rcond, info, err = golapack.Dgbsvx(fact, trans, n, kl, ku, nrhs, a.Matrix(lda, opts), afb.Matrix(ldafb, opts), &iwork, equed, s, s.Off(n), b.Matrix(ldb, opts), x.Matrix(ldb, opts), rwork, rwork.Off(nrhs), work, toSlice(&iwork, n))
 
-								//                          Check the error code from DGBSVX.
+								//                          Check the error code from Dgbsvx.
 								if info != izero {
 									nerrs = alaerh(path, "Dgbsvx", info, 0, []byte{fact, trans.Byte()}, n, n, kl, ku, nrhs, imat, nfail, nerrs)
 								}
 
-								//                          Compare WORK(1) from DGBSVX with the computed
+								//                          Compare WORK(1) from Dgbsvx with the computed
 								//                          reciprocal pivot growth factor RPVGRW
 								if info != 0 && info <= n {
 									anrmpv = zero
@@ -413,7 +414,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 									trfcon = true
 								}
 
-								//                          Compare RCOND from DGBSVX with the computed
+								//                          Compare RCOND from Dgbsvx with the computed
 								//                          value in RCONDC.
 								result.Set(5, dget06(rcond, rcondc))
 
@@ -427,9 +428,9 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 											}
 											t.Fail()
 											if prefac {
-												fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), EQUED='%c', _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, equed, imat, k, result.Get(k-1))
+												fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), equed='%c', _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, equed, imat, k, result.Get(k-1))
 											} else {
-												fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, imat, k, result.Get(k-1))
+												fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, imat, k, result.Get(k-1))
 											}
 											nfail++
 										}
@@ -442,9 +443,9 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 										}
 										t.Fail()
 										if prefac {
-											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), EQUED='%c', _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, equed, imat, 1, result.Get(0))
+											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), equed='%c', _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, equed, imat, 1, result.Get(0))
 										} else {
-											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, imat, 1, result.Get(0))
+											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, imat, 1, result.Get(0))
 										}
 										nfail++
 										nrun++
@@ -455,9 +456,9 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 										}
 										t.Fail()
 										if prefac {
-											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), EQUED='%c', _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, equed, imat, 6, result.Get(5))
+											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), equed='%c', _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, equed, imat, 6, result.Get(5))
 										} else {
-											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, imat, 6, result.Get(5))
+											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, imat, 6, result.Get(5))
 										}
 										nfail++
 										nrun++
@@ -468,9 +469,9 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 										}
 										t.Fail()
 										if prefac {
-											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), EQUED='%c', _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, equed, imat, 7, result.Get(6))
+											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), equed='%c', _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, equed, imat, 7, result.Get(6))
 										} else {
-											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "DGBSVX", fact, trans, n, kl, ku, imat, 7, result.Get(6))
+											fmt.Printf(" %s( '%c',%s,%5d,%5d,%5d,...), _type %1d, test(%1d)=%12.5f\n", "Dgbsvx", fact, trans, n, kl, ku, imat, 7, result.Get(6))
 										}
 										nfail++
 										nrun++
@@ -497,5 +498,6 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

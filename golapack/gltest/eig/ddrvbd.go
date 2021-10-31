@@ -153,11 +153,11 @@ import (
 //      on the diagonal.
 // (4)  Same as (3), but multiplied by the underflow-threshold / ULP.
 // (5)  Same as (3), but multiplied by the overflow-threshold * ULP.
-func ddrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, u, vt, asav, usav, vtsav *mat.Matrix, s, ssav, e, work *mat.Vector, lwork int, iwork []int, nout int, t *testing.T) (err error) {
+func ddrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, u, vt, asav, usav, vtsav *mat.Matrix, s, ssav, e, work *mat.Vector, lwork int, iwork []int, nout int, t *testing.T) (nfail, ntest int, err error) {
 	var badmm, badnn bool
 	var jobq, jobu, jobvt, _range byte
 	var anorm, dif, div, half, one, ovfl, rtunfl, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, iinfo, ijq, iju, ijvt, il, itemp, iu, iws, iwtmp, j, jsize, jtype, liwork, lrwork, lswork, m, maxtyp, minwrk, mmax, mnmax, mnmin, mtypes, n, nfail, nmax, ns, nsi, nsv, ntest int
+	var i, iinfo, ijq, iju, ijvt, il, itemp, iu, iws, iwtmp, j, jsize, jtype, liwork, lrwork, lswork, m, maxtyp, minwrk, mmax, mnmax, mnmin, mtypes, n, nmax, ns, nsi, nsv int
 
 	cjob := make([]byte, 4)
 	cjobr := make([]byte, 3)
@@ -225,7 +225,7 @@ func ddrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Initialize constants
-	path := "Dbd"
+	// path := "Dbd"
 	nfail = 0
 	ntest = 0
 	unfl = golapack.Dlamch(SafeMinimum)
@@ -831,7 +831,7 @@ func ddrvbd(nsizes int, mm, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Summary
-	alasvm(path, nfail, ntest, 0)
+	// alasvm(path, nfail, ntest, 0)
 
 	return
 }

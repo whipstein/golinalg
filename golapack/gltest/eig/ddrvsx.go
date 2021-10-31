@@ -184,27 +184,22 @@ import (
 //      number of RCONDV, and takes errors in computing RCONDV into
 //      account, so that the resulting quantity should be O(ULP).
 //      cond(RCONDV) is essentially given by norm(A)/RCONDE.
-func ddrvsx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h, ht *mat.Matrix, wr, wi, wrt, wit, wrtmp, witmp *mat.Vector, vs, vs1 *mat.Matrix, result, work *mat.Vector, lwork int, iwork []int, bwork []bool, t *testing.T) (err error) {
+func ddrvsx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h, ht *mat.Matrix, wr, wi, wrt, wit, wrtmp, witmp *mat.Vector, vs, vs1 *mat.Matrix, result, work *mat.Vector, lwork int, iwork []int, bwork []bool, t *testing.T) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var anorm, cond, conds, one, ovfl, rcdein, rcdvin, rtulp, rtulpi, ulp, ulpinv, unfl, zero float64
-	var _i, i, iinfo, imode, itype, iwk, j, jcol, jsize, jtype, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, nslct, ntest, ntestf, ntestt int
+	var _i, i, iinfo, imode, itype, iwk, j, jcol, jsize, jtype, maxtyp, mtypes, n, nfail, nmax, nnwork, nslct, ntest, ntestf int
 	adumma := make([]byte, 1)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	islct := make([]int, 20)
-	kconds := make([]int, 21)
-	kmagn := make([]int, 21)
-	kmode := make([]int, 21)
-	ktype := make([]int, 21)
+	kconds := []int{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0}
+	kmagn := []int{1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1}
+	ktype := []int{1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	zero = 0.0
 	one = 1.0
 	maxtyp = 21
-
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15], ktype[16], ktype[17], ktype[18], ktype[19], ktype[20] = 1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15], kmagn[16], kmagn[17], kmagn[18], kmagn[19], kmagn[20] = 1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1
-	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
 
 	path := "Dsx"
 
@@ -896,7 +891,7 @@ func ddrvsx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

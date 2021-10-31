@@ -79,9 +79,9 @@ import (
 //
 // a, b, x and y will have all values independently of each other from
 // { sqrt(sqrt(ULP)),  0.1,  1,  10,  1/sqrt(sqrt(ULP)) }.
-func ddrgvx(nsize int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi *mat.Matrix, alphar, alphai, beta *mat.Vector, vl, vr *mat.Matrix, ilo, ihi int, lscale, rscale, s, dtru, dif, diftru, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, bwork []bool, t *testing.T) (err error) {
+func ddrgvx(nsize int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi *mat.Matrix, alphar, alphai, beta *mat.Vector, vl, vr *mat.Matrix, ilo, ihi int, lscale, rscale, s, dtru, dif, diftru, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, bwork []bool, t *testing.T) (nerrs, ntestt int, err error) {
 	var abnorm, half, one, ratio1, ratio2, ten, thrsh2, tnth, ulp, ulpinv, zero float64
-	var _i, i, iptype, iwa, iwb, iwx, iwy, j, linfo, maxwrk, minwrk, n, nerrs, nmax, nptknt, ntestt int
+	var _i, i, iptype, iwa, iwb, iwx, iwy, j, linfo, maxwrk, minwrk, n, nmax, nptknt int
 
 	weight := vf(5)
 
@@ -122,7 +122,7 @@ func ddrgvx(nsize int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi 
 	}
 
 	if lwork < minwrk {
-		err = fmt.Errorf("")
+		err = fmt.Errorf("lwork < minwrk: lwork=%v, minwrk=%v", lwork, minwrk)
 	}
 
 	if err != nil {
@@ -422,7 +422,7 @@ func ddrgvx(nsize int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi 
 	}
 
 	//     Summary
-	alasvm("Dxv", nerrs, ntestt, 0)
+	// alasvm("Dxv", nerrs, ntestt, 0)
 
 	work.Set(0, float64(maxwrk))
 

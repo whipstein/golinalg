@@ -66,7 +66,7 @@ func derrps(path string, t *testing.T) {
 	chkxer2("Dpstf2", err)
 
 	//     Print a summary line.
-	alaesm(path, *ok)
+	// alaesm(path, *ok)
 
 	if !(*ok) {
 		t.Fail()

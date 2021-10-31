@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// dchkbk tests DGEBAK, a routine for backward transformation of
+// dchkbk tests dgebak, a routine for backward transformation of
 // the computed right or left eigenvectors if the original matrix
 // was preprocessed by balance subroutine DGEBAL.
 func dchkbk(t *testing.T) {
@@ -198,11 +198,11 @@ func dchkbk(t *testing.T) {
 
 	}
 
-	fmt.Printf(" .. test output of DGEBAK .. \n")
+	fmt.Printf(" .. test output of dgebak .. \n")
 
-	fmt.Printf(" value of largest test error             = %12.3E\n", rmax)
-	fmt.Printf(" example number where info is not zero   = %4d\n", lmax[0])
-	fmt.Printf(" example number having largest error     = %4d\n", lmax[1])
-	fmt.Printf(" number of examples where info is not 0  = %4d\n", ninfo)
-	fmt.Printf(" total number of examples tested         = %4d\n", knt)
+	fmt.Printf("\tvalue of largest test error             = %12.3E\n", rmax)
+	fmt.Printf("\texample number where info is not zero   = %4d\n", lmax[0])
+	fmt.Printf("\texample number having largest error     = %4d\n", lmax[1])
+	fmt.Printf("\tnumber of examples where info is not 0  = %4d\n", ninfo)
+	fmt.Printf("\ttotal number of examples tested         = %4d\n", knt)
 }

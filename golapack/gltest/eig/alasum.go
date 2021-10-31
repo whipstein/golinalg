@@ -14,3 +14,15 @@ func alasum(_type string, nfail, nrun, nerrs int) {
 		fmt.Printf("      %6d error messages recorded\n", nerrs)
 	}
 }
+
+func alasumStart(_type string) {
+	fmt.Printf(" Testing %3s routines.........", _type)
+}
+
+func alasumEnd(nfail, nrun, nerrs int) {
+	if nfail > 0 {
+		fmt.Printf("Fail\t\t( %6d tests failed )\n", nfail)
+	} else {
+		fmt.Printf("Pass\t\t( %6d tests run )\n", nrun)
+	}
+}

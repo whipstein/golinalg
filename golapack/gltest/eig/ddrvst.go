@@ -118,11 +118,11 @@ import (
 //           with random signs.
 //      (17) Same as (16), but multiplied by SQRT( overflow threshold )
 //      (18) Same as (16), but multiplied by SQRT( underflow threshold )
-func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, d1, d2, d3, d4, eveigs, wa1, wa2, wa3 *mat.Vector, u, v *mat.Matrix, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, t *testing.T) (err error) {
+func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, d1, d2, d3, d4, eveigs, wa1, wa2, wa3 *mat.Vector, u, v *mat.Matrix, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, t *testing.T) (nfails, ntestt int, err error) {
 	var badnn bool
 	var uplo mat.MatUplo
 	var abstol, aninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, idiag, ihbw, iinfo, il, imode, indx, irow, itemp, itype, iu, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lwedc, m2, m3, maxtyp, mtypes, n, nerrs, nfails, nmats, nmax, ntest, ntestt int
+	var i, idiag, ihbw, iinfo, il, imode, indx, irow, itemp, itype, iu, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lwedc, m2, m3, maxtyp, mtypes, n, nerrs, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
@@ -345,7 +345,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
+			if err != nil || iinfo != 0 {
 				t.Fail()
 				nerrs++
 				fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
@@ -384,7 +384,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstev(V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(0, ulpinv)
@@ -412,7 +412,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstev(N)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(2, ulpinv)
@@ -445,7 +445,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(3, ulpinv)
@@ -478,7 +478,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(5, ulpinv)
@@ -510,7 +510,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(6, ulpinv)
@@ -542,7 +542,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(8, ulpinv)
@@ -574,7 +574,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(9, ulpinv)
@@ -602,7 +602,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(11, ulpinv)
@@ -646,7 +646,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(12, ulpinv)
@@ -681,7 +681,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(14, ulpinv)
@@ -709,7 +709,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevd(V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(15, ulpinv)
@@ -737,7 +737,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevd(N)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(17, ulpinv)
@@ -769,7 +769,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(18, ulpinv)
@@ -797,7 +797,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(20, ulpinv)
@@ -841,7 +841,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(21, ulpinv)
@@ -876,7 +876,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(23, ulpinv)
@@ -911,7 +911,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -932,7 +932,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -978,7 +978,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1000,7 +1000,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1027,7 +1027,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1050,7 +1050,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1073,7 +1073,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1096,7 +1096,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1151,7 +1151,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1188,7 +1188,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1252,7 +1252,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1290,7 +1290,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1334,7 +1334,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1372,7 +1372,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1422,7 +1422,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1460,7 +1460,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1517,7 +1517,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1550,7 +1550,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1591,7 +1591,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1625,7 +1625,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1664,7 +1664,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1698,7 +1698,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1738,7 +1738,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1773,7 +1773,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1808,7 +1808,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1829,7 +1829,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1878,7 +1878,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1916,7 +1916,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1966,7 +1966,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1999,7 +1999,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2026,7 +2026,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2047,7 +2047,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2074,7 +2074,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2097,7 +2097,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2119,7 +2119,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					t.Fail()
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2142,7 +2142,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					nerrs++
 					nerrs++
 					fmt.Printf(" ddrvst: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2179,7 +2179,7 @@ func ddrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	alasvm("Dst", nfails, ntestt, nerrs)
+	// alasvm("Dst", nfails, ntestt, nerrs)
 
 	return
 }

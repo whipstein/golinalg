@@ -34,7 +34,8 @@ func zchkeq(thresh float64, t *testing.T) {
 	a := cmf(5, 5, opts)
 	ab := cmf(nszb, 5, opts)
 
-	path := []byte("Zeq")
+	path := "Zeq"
+	alasumStart(path)
 
 	eps = golapack.Dlamch(Precision)
 	for i = 1; i <= 5; i++ {
@@ -343,7 +344,8 @@ func zchkeq(thresh float64, t *testing.T) {
 	reslts.Set(4, reslts.Get(4)/eps)
 	ok = (reslts.Get(0) <= thresh) && (reslts.Get(1) <= thresh) && (reslts.Get(2) <= thresh) && (reslts.Get(3) <= thresh) && (reslts.Get(4) <= thresh)
 	if ok {
-		fmt.Printf(" All tests for %3s routines passed the threshold\n\n", path)
+		// fmt.Printf(" All tests for %3s routines passed the threshold\n\n", path)
+		fmt.Printf("Pass\n")
 	} else {
 		if reslts.Get(0) > thresh {
 			fmt.Printf(" Zgeequ failed test with value %10.3E exceeding threshold %10.3E\n", reslts.Get(0), thresh)

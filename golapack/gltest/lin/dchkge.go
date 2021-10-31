@@ -36,6 +36,7 @@ func dchkge(dotype []bool, mval, nval, nbval, nsval []int, thresh float64, tster
 
 	//     Initialize constants and the random number seed.
 	path := "Dge"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -180,7 +181,7 @@ func dchkge(dotype []bool, mval, nval, nbval, nsval []int, thresh float64, tster
 							if nfail == 0 && nerrs == 0 {
 								alahd(path)
 							}
-							fmt.Printf(" M = %5d, N =%5d, NB =%4d, _type %2d, test(%2d) =%12.5f\n", m, n, nb, imat, k, result.Get(k-1))
+							fmt.Printf(" m=%5d, n=%5d, nb=%4d, _type %2d, test(%2d) =%12.5f\n", m, n, nb, imat, k, result.Get(k-1))
 							nfail++
 						}
 					}
@@ -251,7 +252,7 @@ func dchkge(dotype []bool, mval, nval, nbval, nsval []int, thresh float64, tster
 									if nfail == 0 && nerrs == 0 {
 										alahd(path)
 									}
-									fmt.Printf(" TRANS=%s, N =%5d, NRHS=%3d, _type %2d, test(%2d) =%12.5f\n", trans, n, nrhs, imat, k, result.Get(k-1))
+									fmt.Printf(" trans=%s, n=%5d, nrhs=%3d, _type %2d, test(%2d) =%12.5f\n", trans, n, nrhs, imat, k, result.Get(k-1))
 									nfail++
 								}
 							}
@@ -291,7 +292,7 @@ func dchkge(dotype []bool, mval, nval, nbval, nsval []int, thresh float64, tster
 							if nfail == 0 && nerrs == 0 {
 								alahd(path)
 							}
-							fmt.Printf(" NORM ='%c', N =%5d,           _type %2d, test(%2d) =%12.5f\n", norm, n, imat, 8, result.Get(7))
+							fmt.Printf(" norm='%c', n=%5d,           _type %2d, test(%2d) =%12.5f\n", norm, n, imat, 8, result.Get(7))
 							nfail++
 						}
 						nrun++
@@ -304,5 +305,6 @@ func dchkge(dotype []bool, mval, nval, nbval, nsval []int, thresh float64, tster
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

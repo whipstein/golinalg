@@ -10,8 +10,8 @@ import (
 
 // zerrhs tests the error exits for Zgebak, CGEBAL, CGEHRD, Zunghr,
 // Zunmhr, Zhseqr, CHSEIN, and Ztrevc.
-func zerrhs(path string, t *testing.T) {
-	var i, info, j, lw, nmax, nt int
+func zerrhs(path string, t *testing.T) (nt int) {
+	var i, info, j, lw, nmax int
 	var err error
 
 	nmax = 3
@@ -282,14 +282,15 @@ func zerrhs(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 	*infot = 0
 	*srnamt = ""
 	if !(*ok) {
 		t.Fail()
 	}
+	return
 }

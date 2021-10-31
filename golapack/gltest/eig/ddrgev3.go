@@ -28,7 +28,7 @@ import (
 // (A - wB) * r = 0.  A left generalized eigenvector is a vector l such
 // that l**H * (A - wB) = 0, where l**H is the conjugate-transpose of l.
 //
-// When DDRGEV3 is called, a number of matrix "sizes" ("n's") and a
+// When ddrgev3 is called, a number of matrix "sizes" ("n's") and a
 // number of matrix "types" are specified.  For each size ("n")
 // and each type of matrix, a pair of matrices (A, B) will be generated
 // and used for testing.  For each matrix pair, the following tests
@@ -153,44 +153,30 @@ import (
 //
 // (26) Q ( T1, T2 ) Z     where T1 and T2 are random upper-triangular
 //                         matrices.
-func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, b, s, t, q, z, qe *mat.Matrix, alphar, alphai, beta, alphr1, alphi1, beta1, work *mat.Vector, lwork int, result *mat.Vector, _t *testing.T) (err error) {
+func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, b, s, t, q, z, qe *mat.Matrix, alphar, alphai, beta, alphr1, alphi1, beta1, work *mat.Vector, lwork int, result *mat.Vector, _t *testing.T) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var one, safmax, safmin, ulp, ulpinv, zero float64
-	var i, iadd, ierr, in, j, jc, jr, jsize, jtype, maxtyp, maxwrk, minwrk, mtypes, n, n1, nerrs, nmats, nmax, ntestt int
+	var i, iadd, ierr, in, j, jc, jr, jsize, jtype, maxtyp, maxwrk, minwrk, mtypes, n, n1, nmats, nmax int
 
 	rmagn := vf(4)
-	iasign := make([]int, 26)
-	ibsign := make([]int, 26)
+	iasign := []int{0, 0, 0, 0, 0, 0, 2, 0, 2, 2, 0, 0, 2, 2, 2, 0, 2, 0, 0, 0, 2, 2, 2, 2, 2, 0}
+	ibsign := []int{0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	ioldsd := make([]int, 4)
-	kadd := make([]int, 6)
-	kamagn := make([]int, 26)
-	katype := make([]int, 26)
-	kazero := make([]int, 26)
-	kbmagn := make([]int, 26)
-	kbtype := make([]int, 26)
-	kbzero := make([]int, 26)
-	kclass := make([]int, 26)
-	ktrian := make([]int, 26)
-	kz1 := make([]int, 6)
-	kz2 := make([]int, 6)
+	kadd := []int{0, 0, 0, 0, 3, 2}
+	kamagn := []int{1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 2, 3, 2, 3, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 2, 1}
+	katype := []int{0, 1, 0, 1, 2, 3, 4, 1, 4, 4, 1, 1, 4, 4, 4, 2, 4, 5, 8, 7, 9, 4, 4, 4, 4, 0}
+	kazero := []int{1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 1, 1, 2, 2, 3, 1, 3, 5, 5, 5, 5, 3, 3, 3, 3, 1}
+	kbmagn := []int{1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 3, 2, 2, 3, 1, 1, 1, 1, 1, 1, 1, 3, 2, 3, 2, 1}
+	kbtype := []int{0, 0, 1, 1, 2, -3, 1, 4, 1, 1, 4, 4, 1, 1, -4, 2, -4, 8, 8, 8, 8, 8, 8, 8, 8, 0}
+	kbzero := []int{1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 4, 1, 4, 6, 6, 6, 6, 4, 4, 4, 4, 1}
+	kclass := []int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3}
+	ktrian := []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+	kz1 := []int{0, 1, 2, 1, 3, 3}
+	kz2 := []int{0, 0, 1, 2, 1, 1}
 
 	zero = 0.0
 	one = 1.0
 	maxtyp = 26
-
-	kclass[0], kclass[1], kclass[2], kclass[3], kclass[4], kclass[5], kclass[6], kclass[7], kclass[8], kclass[9], kclass[10], kclass[11], kclass[12], kclass[13], kclass[14], kclass[15], kclass[16], kclass[17], kclass[18], kclass[19], kclass[20], kclass[21], kclass[22], kclass[23], kclass[24], kclass[25] = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3
-	kz1[0], kz1[1], kz1[2], kz1[3], kz1[4], kz1[5] = 0, 1, 2, 1, 3, 3
-	kz2[0], kz2[1], kz2[2], kz2[3], kz2[4], kz2[5] = 0, 0, 1, 2, 1, 1
-	kadd[0], kadd[1], kadd[2], kadd[3], kadd[4], kadd[5] = 0, 0, 0, 0, 3, 2
-	katype[0], katype[1], katype[2], katype[3], katype[4], katype[5], katype[6], katype[7], katype[8], katype[9], katype[10], katype[11], katype[12], katype[13], katype[14], katype[15], katype[16], katype[17], katype[18], katype[19], katype[20], katype[21], katype[22], katype[23], katype[24], katype[25] = 0, 1, 0, 1, 2, 3, 4, 1, 4, 4, 1, 1, 4, 4, 4, 2, 4, 5, 8, 7, 9, 4, 4, 4, 4, 0
-	kbtype[0], kbtype[1], kbtype[2], kbtype[3], kbtype[4], kbtype[5], kbtype[6], kbtype[7], kbtype[8], kbtype[9], kbtype[10], kbtype[11], kbtype[12], kbtype[13], kbtype[14], kbtype[15], kbtype[16], kbtype[17], kbtype[18], kbtype[19], kbtype[20], kbtype[21], kbtype[22], kbtype[23], kbtype[24], kbtype[25] = 0, 0, 1, 1, 2, -3, 1, 4, 1, 1, 4, 4, 1, 1, -4, 2, -4, 8, 8, 8, 8, 8, 8, 8, 8, 0
-	kazero[0], kazero[1], kazero[2], kazero[3], kazero[4], kazero[5], kazero[6], kazero[7], kazero[8], kazero[9], kazero[10], kazero[11], kazero[12], kazero[13], kazero[14], kazero[15], kazero[16], kazero[17], kazero[18], kazero[19], kazero[20], kazero[21], kazero[22], kazero[23], kazero[24], kazero[25] = 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 1, 1, 2, 2, 3, 1, 3, 5, 5, 5, 5, 3, 3, 3, 3, 1
-	kbzero[0], kbzero[1], kbzero[2], kbzero[3], kbzero[4], kbzero[5], kbzero[6], kbzero[7], kbzero[8], kbzero[9], kbzero[10], kbzero[11], kbzero[12], kbzero[13], kbzero[14], kbzero[15], kbzero[16], kbzero[17], kbzero[18], kbzero[19], kbzero[20], kbzero[21], kbzero[22], kbzero[23], kbzero[24], kbzero[25] = 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 4, 1, 4, 6, 6, 6, 6, 4, 4, 4, 4, 1
-	kamagn[0], kamagn[1], kamagn[2], kamagn[3], kamagn[4], kamagn[5], kamagn[6], kamagn[7], kamagn[8], kamagn[9], kamagn[10], kamagn[11], kamagn[12], kamagn[13], kamagn[14], kamagn[15], kamagn[16], kamagn[17], kamagn[18], kamagn[19], kamagn[20], kamagn[21], kamagn[22], kamagn[23], kamagn[24], kamagn[25] = 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 2, 3, 2, 3, 1, 1, 1, 1, 1, 1, 1, 2, 3, 3, 2, 1
-	kbmagn[0], kbmagn[1], kbmagn[2], kbmagn[3], kbmagn[4], kbmagn[5], kbmagn[6], kbmagn[7], kbmagn[8], kbmagn[9], kbmagn[10], kbmagn[11], kbmagn[12], kbmagn[13], kbmagn[14], kbmagn[15], kbmagn[16], kbmagn[17], kbmagn[18], kbmagn[19], kbmagn[20], kbmagn[21], kbmagn[22], kbmagn[23], kbmagn[24], kbmagn[25] = 1, 1, 1, 1, 1, 1, 1, 1, 3, 2, 3, 2, 2, 3, 1, 1, 1, 1, 1, 1, 1, 3, 2, 3, 2, 1
-	ktrian[0], ktrian[1], ktrian[2], ktrian[3], ktrian[4], ktrian[5], ktrian[6], ktrian[7], ktrian[8], ktrian[9], ktrian[10], ktrian[11], ktrian[12], ktrian[13], ktrian[14], ktrian[15], ktrian[16], ktrian[17], ktrian[18], ktrian[19], ktrian[20], ktrian[21], ktrian[22], ktrian[23], ktrian[24], ktrian[25] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-	iasign[0], iasign[1], iasign[2], iasign[3], iasign[4], iasign[5], iasign[6], iasign[7], iasign[8], iasign[9], iasign[10], iasign[11], iasign[12], iasign[13], iasign[14], iasign[15], iasign[16], iasign[17], iasign[18], iasign[19], iasign[20], iasign[21], iasign[22], iasign[23], iasign[24], iasign[25] = 0, 0, 0, 0, 0, 0, 2, 0, 2, 2, 0, 0, 2, 2, 2, 0, 2, 0, 0, 0, 2, 2, 2, 2, 2, 0
-	ibsign[0], ibsign[1], ibsign[2], ibsign[3], ibsign[4], ibsign[5], ibsign[6], ibsign[7], ibsign[8], ibsign[9], ibsign[10], ibsign[11], ibsign[12], ibsign[13], ibsign[14], ibsign[15], ibsign[16], ibsign[17], ibsign[18], ibsign[19], ibsign[20], ibsign[21], ibsign[22], ibsign[23], ibsign[24], ibsign[25] = 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 	//     Check for errors
 
@@ -238,7 +224,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 	}
 
 	if err != nil {
-		gltest.Xerbla2("DDRGEV3", err)
+		gltest.Xerbla2("ddrgev3", err)
 		return
 	}
 
@@ -402,7 +388,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 
 			if ierr != 0 {
 				_t.Fail()
-				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Generator", ierr, n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Generator", ierr, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				return
 			}
@@ -420,7 +406,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 			if ierr, err = golapack.Dggev3('V', 'V', n, s, t, alphar, alphai, beta, q, z, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev31", ierr, n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev31", ierr, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
@@ -429,14 +415,14 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 			dget52(true, n, a, b, q, alphar, alphai, beta, work, result)
 			if result.Get(1) > thresh {
 				_t.Fail()
-				fmt.Printf(" DDRGEV3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   n=%4d, jtype=%3d, oseed=%4d\n", "Left", "Dggev31", result.Get(1), n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   n=%4d, jtype=%3d, oseed=%4d\n", "Left", "Dggev31", result.Get(1), n, jtype, ioldsd)
 			}
 
 			//           Do the tests (3) and (4)
 			dget52(false, n, a, b, z, alphar, alphai, beta, work, result.Off(2))
 			if result.Get(3) > thresh {
 				_t.Fail()
-				fmt.Printf(" DDRGEV3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   n=%4d, jtype=%3d, oseed=%4d\n", "Right", "Dggev31", result.Get(3), n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s Eigenvectors from %s incorrectly normalized.\n Bits of error= %10.3f,   n=%4d, jtype=%3d, oseed=%4d\n", "Right", "Dggev31", result.Get(3), n, jtype, ioldsd)
 			}
 
 			//           Do the test (5)
@@ -445,7 +431,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 			if ierr, err = golapack.Dggev3('N', 'N', n, s, t, alphr1, alphi1, beta1, q, z, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev32", ierr, n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev32", ierr, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
@@ -463,7 +449,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 			if ierr, err = golapack.Dggev3('V', 'N', n, s, t, alphr1, alphi1, beta1, qe, z, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev33", ierr, n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev33", ierr, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
@@ -489,7 +475,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 			if ierr, err = golapack.Dggev3('N', 'V', n, s, t, alphr1, alphi1, beta1, q, qe, work, lwork); ierr != 0 && ierr != n+1 || err != nil {
 				_t.Fail()
 				result.Set(0, ulpinv)
-				fmt.Printf(" DDRGEV3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev34", ierr, n, jtype, ioldsd)
+				fmt.Printf(" ddrgev3: %s returned info=%6d.\n   n=%6d, jtype=%6d, oseed=%4d\n", "Dggev34", ierr, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(ierr))
 				goto label190
 			}
@@ -524,7 +510,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 						fmt.Printf("\n %3s -- Real Generalized eigenvalue problem driver\n", "Dgv")
 
 						//                    Matrix types
-						fmt.Printf(" Matrix types (see DDRGEV3 for details): \n")
+						fmt.Printf(" Matrix types (see ddrgev3 for details): \n")
 						fmt.Printf(" Special Matrices:                       (J'=transposed Jordan block)\n   1=(0,0)  2=(I,0)  3=(0,I)  4=(I,I)  5=(J',J')  6=(diag(J',I), diag(I,J'))\n Diagonal Matrices:  ( D=diag(0,1,2,...) )\n   7=(D,I)   9=(large*D, small*I)  11=(large*I, small*D)  13=(large*D, large*I)\n   8=(I,D)  10=(small*D, large*I)  12=(small*I, large*D)  14=(small*D, small*I)\n  15=(D, reversed D)\n")
 						fmt.Printf(" Matrices Rotated by Random %s Matrices U, V:\n  16=Transposed Jordan Blocks             19=geometric alpha, beta=0,1\n  17=arithm. alpha&beta                   20=arithmetic alpha, beta=0,1\n  18=clustered alpha, beta=0,1            21=random alpha, beta=0,1\n Large & Small Matrices:\n  22=(large, small)   23=(small,large)    24=(small,small)    25=(large,large)\n  26=random O(1) matrices.\n", "Orthogonal")
 
@@ -546,7 +532,7 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 	}
 
 	//     Summary
-	alasvm("Dgv", nerrs, ntestt, 0)
+	// alasvm("Dgv", nerrs, ntestt, 0)
 
 	work.Set(0, float64(maxwrk))
 

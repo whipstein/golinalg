@@ -9,7 +9,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// dchkgk tests DGGBAK, a routine for backward balancing  of
+// dchkgk tests dggbak, a routine for backward balancing  of
 // a matrix pair (A, B).
 func dchkgk(t *testing.T) {
 	var anorm, bnorm, eps, one, rmax, vmax, zero float64
@@ -372,7 +372,7 @@ func dchkgk(t *testing.T) {
 			lmax[2] = knt
 		}
 
-		//     Test of DGGBAK
+		//     Test of dggbak
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
@@ -431,13 +431,13 @@ func dchkgk(t *testing.T) {
 
 	}
 
-	fmt.Printf(" .. test output of DGGBAK .. \n")
+	fmt.Printf(" .. test output of dggbak .. \n")
 
-	fmt.Printf(" value of largest test error                  =%12.3E\n", rmax)
-	fmt.Printf(" example number where DGGBAL info is not 0    =%4d\n", lmax[0])
-	fmt.Printf(" example number where DGGBAK(L) info is not 0 =%4d\n", lmax[1])
-	fmt.Printf(" example number where DGGBAK(R) info is not 0 =%4d\n", lmax[2])
-	fmt.Printf(" example number having largest error          =%4d\n", lmax[3])
-	fmt.Printf(" number of examples where info is not 0       =%4d\n", ninfo)
-	fmt.Printf(" total number of examples tested              =%4d\n", knt)
+	fmt.Printf("\tvalue of largest test error                  =%12.3E\n", rmax)
+	fmt.Printf("\texample number where dggbal info is not 0    =%4d\n", lmax[0])
+	fmt.Printf("\texample number where dggbak(L) info is not 0 =%4d\n", lmax[1])
+	fmt.Printf("\texample number where dggbak(R) info is not 0 =%4d\n", lmax[2])
+	fmt.Printf("\texample number having largest error          =%4d\n", lmax[3])
+	fmt.Printf("\tnumber of examples where info is not 0       =%4d\n", ninfo)
+	fmt.Printf("\ttotal number of examples tested              =%4d\n", knt)
 }

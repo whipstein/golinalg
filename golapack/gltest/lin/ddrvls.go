@@ -35,6 +35,7 @@ func ddrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsva
 
 	//     Initialize constants and the random number seed.
 	path := "Dls"
+	alasvmStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -486,5 +487,6 @@ func ddrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsva
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

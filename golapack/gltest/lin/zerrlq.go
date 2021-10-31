@@ -208,7 +208,7 @@ func zerrlq(path string, t *testing.T) {
 	chkxer2("Zunml2", err)
 
 	//     Print a summary line.
-	alaesm(path, *ok)
+	// alaesm(path, *ok)
 
 	if !(*ok) {
 		t.Fail()

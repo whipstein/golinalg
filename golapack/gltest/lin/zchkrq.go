@@ -32,6 +32,7 @@ func zchkrq(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 
 	//     Initialize constants and the random number seed.
 	path := "Zrq"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -163,5 +164,6 @@ func zchkrq(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

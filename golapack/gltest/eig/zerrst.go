@@ -15,8 +15,8 @@ import (
 // Zheevd2stage, Zheevr2stage, Zheevx2stage,
 // Zheev2stage, Zhbev2stage, Zhbevd2stage,
 // Zhbevx2stage, Zhetrd2stage
-func zerrst(path string, t *testing.T) {
-	var i, j, liw, lw, n, nmax, nt int
+func zerrst(path string, t *testing.T) (nt int) {
+	var i, j, liw, lw, n, nmax int
 	var err error
 
 	nmax = 3
@@ -961,14 +961,16 @@ func zerrst(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" error exits: Passed (%5d tests run)\n", nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" error exits: Passed (%5d tests run)\n", nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 	*infot = 0
 	*srnamt = ""
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

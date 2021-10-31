@@ -10,8 +10,8 @@ import (
 
 // derrhs tests the error exits for Dgebak, SGEBAL, SGEHRD, Dorghr,
 // Dormhr, Dhseqr, SHSEIN, and Dtrevc.
-func derrhs(path string, t *testing.T) {
-	var i, j, lw, nmax, nt int
+func derrhs(path string, t *testing.T) (nt int) {
+	var i, j, lw, nmax int
 	var err error
 	sel := make([]bool, 3)
 	ifaill := make([]int, 3)
@@ -281,13 +281,15 @@ func derrhs(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

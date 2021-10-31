@@ -11,7 +11,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// ddrvge tests the driver routines DGESV and -SVX.
+// ddrvge tests the driver routines Dgesvand -SVX.
 func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr bool, nmax int, a, afac, asav, b, bsav, x, xact, s, work, rwork *mat.Vector, iwork []int, t *testing.T) {
 	var equil, nofact, prefac, trfcon, zerot bool
 	var dist, equed, fact, _type, xtype byte
@@ -39,6 +39,7 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 	//     Initialize constants and the random number seed.
 	path := "Dge"
+	alasvmStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -139,9 +140,9 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 					} else if !nofact {
 						//                    Compute the condition number for comparison with
-						//                    the value returned by DGESVX (FACT = 'N' reuses
+						//                    the value returned by Dgesvx (fact = 'N' reuses
 						//                    the condition number from the previous iteration
-						//                    with FACT = 'F').
+						//                    with fact = 'F').
 						golapack.Dlacpy(Full, n, n, asav.Matrix(lda, opts), afac.Matrix(lda, opts))
 						if equil || iequed > 1 {
 							//                       Compute row and column scale factors to
@@ -209,7 +210,7 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 					}
 
 					for _, trans = range mat.IterMatTrans() {
-						//                    Do for each value of TRANS.
+						//                    Do for each value of trans.
 						if trans == NoTrans {
 							rcondc = rcondo
 						} else {
@@ -228,7 +229,7 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), bsav.Matrix(lda, opts))
 
 						if nofact && trans == NoTrans {
-							//                       --- Test DGESV  ---
+							//                       --- Test Dgesv ---
 							//
 							//                       Compute the LU factorization of the matrix and
 							//                       solve the system.
@@ -240,7 +241,7 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								panic(err)
 							}
 
-							//                       Check error code from DGESV .
+							//                       Check error code from Dgesv.
 							if info != izero {
 								nerrs = alaerh(path, "Dgesv", info, 0, []byte(" "), n, n, -1, -1, nrhs, imat, nfail, nerrs)
 							}
@@ -267,37 +268,37 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 										aladhd(path)
 									}
 									t.Fail()
-									fmt.Printf(" %s, N =%5d, _type %2d, test(%2d) =%12.5f\n", "DGESV ", n, imat, k, result.Get(k-1))
+									fmt.Printf(" %s, n=%5d, _type %2d, test(%2d) =%12.5f\n", "Dgesv", n, imat, k, result.Get(k-1))
 									nfail++
 								}
 							}
 							nrun += nt
 						}
 
-						//                    --- Test DGESVX ---
+						//                    --- Test Dgesvx ---
 						if !prefac {
 							golapack.Dlaset(Full, n, n, zero, zero, afac.Matrix(lda, opts))
 						}
 						golapack.Dlaset(Full, n, nrhs, zero, zero, x.Matrix(lda, opts))
 						if iequed > 1 && n > 0 {
-							//                       Equilibrate the matrix if FACT = 'F' and
-							//                       EQUED = 'R', 'C', or 'B'.
+							//                       Equilibrate the matrix if fact = 'F' and
+							//                       equed = 'R', 'C', or 'B'.
 							equed = golapack.Dlaqge(n, n, a.Matrix(lda, opts), s, s.Off(n), rowcnd, colcnd, amax)
 						}
 
 						//                    Solve the system and compute the condition number
-						//                    and error bounds using DGESVX.
+						//                    and error bounds using Dgesvx.
 						*srnamt = "Dgesvx"
 						if equed, rcond, info, err = golapack.Dgesvx(fact, trans, n, nrhs, a.Matrix(lda, opts), afac.Matrix(lda, opts), &iwork, equed, s, s.Off(n), b.Matrix(lda, opts), x.Matrix(lda, opts), rwork, rwork.Off(nrhs), work, toSlice(&iwork, n)); err != nil {
 							panic(err)
 						}
 
-						//                    Check the error code from DGESVX.
+						//                    Check the error code from Dgesvx.
 						if info != izero {
 							nerrs = alaerh(path, "Dgesvx", info, 0, []byte{fact, trans.Byte()}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 						}
 
-						//                    Compare WORK(1) from DGESVX with the computed
+						//                    Compare WORK(1) from Dgesvx with the computed
 						//                    reciprocal pivot growth factor RPVGRW
 						if info != 0 && info <= n {
 							rpvgrw = golapack.Dlantr('M', Upper, NonUnit, info, info, afac.Matrix(lda, opts), work)
@@ -351,7 +352,7 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 							trfcon = true
 						}
 
-						//                    Compare RCOND from DGESVX with the computed value
+						//                    Compare RCOND from Dgesvx with the computed value
 						//                    in RCONDC.
 						result.Set(5, dget06(rcond, rcondc))
 
@@ -365,9 +366,9 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 									}
 									t.Fail()
 									if prefac {
-										fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, EQUED='%c', _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, equed, imat, k, result.Get(k-1))
+										fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, equed='%c', _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, equed, imat, k, result.Get(k-1))
 									} else {
-										fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, imat, k, result.Get(k-1))
+										fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, imat, k, result.Get(k-1))
 									}
 									nfail++
 								}
@@ -380,9 +381,9 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								}
 								t.Fail()
 								if prefac {
-									fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, EQUED='%c', _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, equed, imat, 1, result.Get(0))
+									fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, equed='%c', _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, equed, imat, 1, result.Get(0))
 								} else {
-									fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, imat, 1, result.Get(0))
+									fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, imat, 1, result.Get(0))
 								}
 								nfail++
 								nrun++
@@ -393,9 +394,9 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								}
 								t.Fail()
 								if prefac {
-									fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, EQUED='%c', _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, equed, imat, 6, result.Get(5))
+									fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, equed='%c', _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, equed, imat, 6, result.Get(5))
 								} else {
-									fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, imat, 6, result.Get(5))
+									fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, imat, 6, result.Get(5))
 								}
 								nfail++
 								nrun++
@@ -406,9 +407,9 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								}
 								t.Fail()
 								if prefac {
-									fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, EQUED='%c', _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, equed, imat, 7, result.Get(6))
+									fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, equed='%c', _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, equed, imat, 7, result.Get(6))
 								} else {
-									fmt.Printf(" %s, FACT='%c', TRANS=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "DGESVX", fact, trans, n, imat, 7, result.Get(6))
+									fmt.Printf(" %s, fact='%c', trans=%s, N=%5d, _type %2d, test(%1d)=%12.5f\n", "Dgesvx", fact, trans, n, imat, 7, result.Get(6))
 								}
 								nfail++
 								nrun++
@@ -433,5 +434,6 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

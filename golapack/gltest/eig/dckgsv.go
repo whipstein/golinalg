@@ -10,11 +10,11 @@ import (
 
 // dckgsv tests DGGSVD:
 //        the GSVD for M-by-N matrix A and P-by-N matrix B.
-func dckgsv(nm int, mval []int, pval []int, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Vector, r *mat.Matrix, iwork []int, work, rwork *mat.Vector, nout int, t *testing.T) (err error) {
+func dckgsv(nm int, mval []int, pval []int, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Vector, r *mat.Matrix, iwork []int, work, rwork *mat.Vector, nout int, t *testing.T) (nfail, nrun int, err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb float64
-	var i, iinfo, im, imat, kla, klb, kua, kub, lwork, m, modea, modeb, n, nfail, nrun, nt, ntypes, p int
+	var i, iinfo, im, imat, kla, klb, kua, kub, lwork, m, modea, modeb, n, nt, ntypes, p int
 
 	dotype := make([]bool, 8)
 	result := vf(12)
@@ -83,7 +83,7 @@ func dckgsv(nm int, mval []int, pval []int, nval []int, nmats int, iseed []int, 
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

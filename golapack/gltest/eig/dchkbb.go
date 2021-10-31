@@ -75,23 +75,19 @@ import (
 // (13) Rectangular matrix with random entries chosen from (-1,1).
 // (14) Same as (13), but multiplied by SQRT( overflow threshold )
 // (15) Same as (13), but multiplied by SQRT( underflow threshold )
-func dchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, nounit int, a, ab *mat.Matrix, bd, be *mat.Vector, q, p, c, cc *mat.Matrix, work *mat.Vector, lwork int, result *mat.Vector, t *testing.T) (err error) {
+func dchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, nounit int, a, ab *mat.Matrix, bd, be *mat.Vector, q, p, c, cc *mat.Matrix, work *mat.Vector, lwork int, result *mat.Vector, t *testing.T) (nerrs, ntestt int, err error) {
 	var badmm, badnn, badnnb bool
 	var amninv, anorm, cond, one, ovfl, rtovfl, rtunfl, ulp, ulpinv, unfl, zero float64
-	var i, iinfo, imode, itype, j, jcol, jr, jsize, jtype, jwidth, k, kl, kmax, ku, m, maxtyp, mmax, mnmax, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
+	var i, iinfo, imode, itype, j, jcol, jr, jsize, jtype, jwidth, k, kl, kmax, ku, m, maxtyp, mmax, mnmax, mtypes, n, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
-	kmagn := make([]int, 15)
-	kmode := make([]int, 15)
-	ktype := make([]int, 15)
+	kmagn := []int{1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0}
+	ktype := []int{1, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	zero = 0.0
 	one = 1.0
 	maxtyp = 15
-
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14] = 1, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14] = 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14] = 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 4, 4, 0, 0, 0
 
 	//     Check for errors
 	ntestt = 0
@@ -345,7 +341,7 @@ func dchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, doty
 							dlahd2("Dbb")
 						}
 						nerrs = nerrs + 1
-						fmt.Printf(" M =%4d n=%4d, k=%3d, seed=%4d, type %2d, test(%2d)=%10.3f\n", m, n, k, ioldsd, jtype, jr, result.Get(jr-1))
+						fmt.Printf(" m=%4d n=%4d, k=%3d, seed=%4d, type %2d, test(%2d)=%10.3f\n", m, n, k, ioldsd, jtype, jr, result.Get(jr-1))
 					}
 				}
 
@@ -356,7 +352,7 @@ func dchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, doty
 	}
 
 	//     Summary
-	dlasum("Dbb", nerrs, ntestt)
+	// dlasum("Dbb", nerrs, ntestt)
 
 	return
 }

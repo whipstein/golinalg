@@ -10,11 +10,11 @@ import (
 // zckgqr tests
 // Zggqrf: gqr factorization for N-by-M matrix A and N-by-P matrix B,
 // Zggrqf: grq factorization for M-by-N matrix A and P-by-N matrix B.
-func zckgqr(nm int, mval []int, np int, pval []int, nn int, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, aq, ar, taua, b, bf, bz, bt, bwk, taub, work *mat.CVector, rwork *mat.Vector) (err error) {
+func zckgqr(nm int, mval []int, np int, pval []int, nn int, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, aq, ar, taua, b, bf, bz, bt, bwk, taub, work *mat.CVector, rwork *mat.Vector) (nfail, nrun int, err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb float64
-	var i, iinfo, im, imat, in, ip, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nfail, nrun, nt, ntypes, p int
+	var i, iinfo, im, imat, in, ip, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nt, ntypes, p int
 	dotype := make([]bool, 8)
 	result := vf(7)
 
@@ -130,7 +130,7 @@ func zckgqr(nm int, mval []int, np int, pval []int, nn int, nval []int, nmats in
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

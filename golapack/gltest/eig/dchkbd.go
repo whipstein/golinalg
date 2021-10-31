@@ -210,11 +210,11 @@ import (
 //
 // A subset of the full set of matrix types may be selected through
 // the logical array DOTYPE.
-func dchkbd(nsizes int, mval []int, nval []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a *mat.Matrix, bd, be, s1, s2 *mat.Vector, x, y, z, q, pt, u, vt *mat.Matrix, work *mat.Vector, lwork int, iwork []int, nout int, t *testing.T) (err error) {
+func dchkbd(nsizes int, mval []int, nval []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a *mat.Matrix, bd, be, s1, s2 *mat.Vector, x, y, z, q, pt, u, vt *mat.Matrix, work *mat.Vector, lwork int, iwork []int, nout int, t *testing.T) (nfail, ntest int, err error) {
 	var badmm, badnn, bidiag bool
 	var uplo mat.MatUplo
 	var amninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, iinfo, il, imode, itemp, itype, iu, iwbd, iwbe, iwbs, iwbz, iwwork, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mnmin2, mq, mtypes, n, nfail, nmax, ns1, ns2, ntest int
+	var i, iinfo, il, imode, itemp, itype, iu, iwbd, iwbe, iwbs, iwbz, iwwork, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mnmin2, mq, mtypes, n, nmax, ns1, ns2 int
 
 	dum := vf(1)
 	dumma := vf(1)
@@ -1048,7 +1048,7 @@ func dchkbd(nsizes int, mval []int, nval []int, ntypes int, dotype []bool, nrhs 
 	}
 
 	//     Summary
-	alasum(path, nfail, ntest, 0)
+	// alasum(path, nfail, ntest, 0)
 
 	return
 }

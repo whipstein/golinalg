@@ -234,7 +234,7 @@ func derrqr(path string, t *testing.T) {
 	chkxer2("Dorm2r", err)
 
 	//     Print a summary line.
-	alaesm(path, *ok)
+	// alaesm(path, *ok)
 
 	if !(*ok) {
 		t.Fail()

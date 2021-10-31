@@ -11,11 +11,11 @@ import (
 
 // dcklse tests DGGLSE - a subroutine for solving linear equality
 // constrained least square problem (LSE).
-func dcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work, rwork *mat.Vector, nout int, t *testing.T) (err error) {
+func dcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, x, work, rwork *mat.Vector, nout int, t *testing.T) (nfail, nrun int, err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb float64
-	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nfail, nrun, nt, ntypes, p int
+	var i, iinfo, ik, imat, kla, klb, kua, kub, lda, ldb, lwork, m, modea, modeb, n, nt, ntypes, p int
 
 	dotype := make([]bool, 8)
 	result := vf(7)
@@ -103,7 +103,7 @@ func dcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float
 						firstt = false
 						alahdg(path)
 					}
-					fmt.Printf(" M=%4d P=%4d, N=%4d, _type %2d, test %2d, ratio=%13.6f\n", m, p, n, imat, i, result.Get(i-1))
+					fmt.Printf(" m=%4d p=%4d, n=%4d, _type %2d, test %2d, ratio=%13.6f\n", m, p, n, imat, i, result.Get(i-1))
 					nfail++
 				}
 			}
@@ -115,7 +115,7 @@ func dcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

@@ -34,6 +34,7 @@ func zchksyAa2stage(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns
 	//
 	//     Test path
 	path := "Zs2"
+	alasumStart(path)
 
 	//     Path to generate matrices
 	matpath := "Zsy"
@@ -298,5 +299,6 @@ func zchksyAa2stage(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

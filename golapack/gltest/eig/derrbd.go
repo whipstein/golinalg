@@ -10,9 +10,9 @@ import (
 
 // derrbd tests the error exits for Dgebd2, Dgebrd, Dorgbr, Dormbr,
 // Dbdsqr, Dbdsdc and Dbdsvdx.
-func derrbd(path string, t *testing.T) {
+func derrbd(path string, t *testing.T) (nt int) {
 	var one, zero float64
-	var i, j, lw, nmax, ns, nt int
+	var i, j, lw, nmax, ns int
 	var err error
 
 	nmax = 4
@@ -244,13 +244,15 @@ func derrbd(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

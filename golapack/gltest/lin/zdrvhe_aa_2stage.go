@@ -37,6 +37,7 @@ func zdrvheAa2stage(dotype []bool, nn int, nval []int, nrhs int, thresh float64,
 	//
 	//     Test path
 	path := "Zh2"
+	alasvmStart(path)
 
 	//     Path to generate matrices
 	matpath := "Zhe"
@@ -251,5 +252,6 @@ func zdrvheAa2stage(dotype []bool, nn int, nval []int, nrhs int, thresh float64,
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

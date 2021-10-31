@@ -35,6 +35,7 @@ func zchkpp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 	//     Initialize constants and the random number seed.
 	path := "Zpp"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -252,5 +253,6 @@ func zchkpp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/whipstein/golinalg/golapack"
 )
 
-// dchkeq tests DGEEQU, DGBEQU, DPOEQU, DPPEQU and DPBEQU
+// dchkeq tests Dgeequ, Dgbequ, Dpoequ, Dppequ and Dpbequ
 func dchkeq(thresh float64, t *testing.T) {
 	var ok bool
 	var ccond, eps, norm, one, ratio, rcmax, rcmin, rcond, ten, zero float64
@@ -31,7 +31,8 @@ func dchkeq(thresh float64, t *testing.T) {
 	a := mf(nsz, nsz, opts)
 	ab := mf(nszb, nszb, opts)
 
-	path := []byte("Deq")
+	path := "Deq"
+	alasumStart(path)
 
 	eps = golapack.Dlamch(Precision)
 	for i = 1; i <= 5; i++ {
@@ -42,7 +43,7 @@ func dchkeq(thresh float64, t *testing.T) {
 		rpow.Set(i-1, one/pow.Get(i-1))
 	}
 
-	//     Test DGEEQU
+	//     Test Dgeequ
 	for n = 0; n <= nsz; n++ {
 		for m = 0; m <= nsz; m++ {
 
@@ -104,7 +105,7 @@ func dchkeq(thresh float64, t *testing.T) {
 	}
 	reslts[0] = reslts[0] / eps
 
-	//     Test DGBEQU
+	//     Test Dgbequ
 	for n = 0; n <= nsz; n++ {
 		for m = 0; m <= nsz; m++ {
 			for kl = 0; kl <= max(m-1, 0); kl++ {
@@ -183,7 +184,7 @@ func dchkeq(thresh float64, t *testing.T) {
 	}
 	reslts[1] = reslts[1] / eps
 
-	//     Test DPOEQU
+	//     Test Dpoequ
 	for n = 0; n <= nsz; n++ {
 
 		for i = 1; i <= nsz; i++ {
@@ -221,7 +222,7 @@ func dchkeq(thresh float64, t *testing.T) {
 	}
 	reslts[2] = reslts[2] / eps
 
-	//     Test DPPEQU
+	//     Test Dppequ
 	for n = 0; n <= nsz; n++ {
 		//        Upper triangular packed storage
 		for i = 1; i <= (n*(n+1))/2; i++ {
@@ -284,7 +285,7 @@ func dchkeq(thresh float64, t *testing.T) {
 	}
 	reslts[3] = reslts[3] / eps
 
-	//     Test DPBEQU
+	//     Test Dpbequ
 	for n = 0; n <= nsz; n++ {
 		for kl = 0; kl <= max(n-1, 0); kl++ {
 			//           Test upper triangular storage
@@ -361,27 +362,28 @@ func dchkeq(thresh float64, t *testing.T) {
 	reslts[4] = reslts[4] / eps
 	ok = (reslts[0] <= thresh) && (reslts[1] <= thresh) && (reslts[2] <= thresh) && (reslts[3] <= thresh) && (reslts[4] <= thresh)
 	if ok {
-		fmt.Printf(" All tests for %3s routines passed the threshold\n\n", path)
+		// fmt.Printf(" All tests for %3s routines passed the threshold\n\n", path)
+		fmt.Printf("Pass\n")
 	} else {
 		if reslts[0] > thresh {
 			t.Fail()
-			fmt.Printf(" DGEEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[0], thresh)
+			fmt.Printf(" Dgeequ failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[0], thresh)
 		}
 		if reslts[1] > thresh {
 			t.Fail()
-			fmt.Printf(" DGBEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[1], thresh)
+			fmt.Printf(" Dgbequ failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[1], thresh)
 		}
 		if reslts[2] > thresh {
 			t.Fail()
-			fmt.Printf(" DPOEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[2], thresh)
+			fmt.Printf(" Dpoequ failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[2], thresh)
 		}
 		if reslts[3] > thresh {
 			t.Fail()
-			fmt.Printf(" DPPEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[3], thresh)
+			fmt.Printf(" Dppequ failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[3], thresh)
 		}
 		if reslts[4] > thresh {
 			t.Fail()
-			fmt.Printf(" DPBEQU failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[4], thresh)
+			fmt.Printf(" Dpbequ failed test with value %10.3E exceeding threshold %10.3E\n\n", reslts[4], thresh)
 		}
 	}
 }

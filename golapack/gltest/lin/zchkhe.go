@@ -34,6 +34,7 @@ func zchkhe(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, ns
 
 	//     Initialize constants and the random number seed.
 	path := "Zhe"
+	alasumStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -374,5 +375,6 @@ func zchkhe(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, ns
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

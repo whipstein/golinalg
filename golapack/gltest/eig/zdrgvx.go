@@ -74,9 +74,9 @@ import (
 //
 // a, b, x and y will have all values independently of each other from
 // { sqrt(sqrt(ULP)),  0.1,  1,  10,  1/sqrt(sqrt(ULP)) }.
-func zdrgvx(nsize int, thresh float64, a, b, ai, bi *mat.CMatrix, alpha, beta *mat.CVector, vl, vr *mat.CMatrix, ilo, ihi int, lscale, rscale, s, dtru, dif, diftru *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int, liwork int, result *mat.Vector, bwork []bool) (err error) {
+func zdrgvx(nsize int, thresh float64, a, b, ai, bi *mat.CMatrix, alpha, beta *mat.CVector, vl, vr *mat.CMatrix, ilo, ihi int, lscale, rscale, s, dtru, dif, diftru *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int, liwork int, result *mat.Vector, bwork []bool) (nerrs, ntestt int, err error) {
 	var abnorm, half, one, ratio1, ratio2, ten, thrsh2, tnth, ulp, ulpinv, zero float64
-	var _i, i, iptype, iwa, iwb, iwx, iwy, j, linfo, maxwrk, minwrk, n, nerrs, nmax, nptknt, ntestt int
+	var _i, i, iptype, iwa, iwb, iwx, iwy, j, linfo, maxwrk, minwrk, n, nmax, nptknt int
 	weight := cvf(5)
 
 	zero = 0.0
@@ -418,7 +418,7 @@ func zdrgvx(nsize int, thresh float64, a, b, ai, bi *mat.CMatrix, alpha, beta *m
 	}
 
 	//     Summary
-	alasvm("Zxv", nerrs, ntestt, 0)
+	// alasvm("Zxv", nerrs, ntestt, 0)
 
 	work.SetRe(0, float64(maxwrk))
 

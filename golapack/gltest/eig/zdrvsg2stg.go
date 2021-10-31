@@ -142,12 +142,12 @@ import (
 //      (19) Same as (8), but with KA = 3 and KB = 1
 //      (20) Same as (8), but with KA = 3 and KB = 2
 //      (21) Same as (8), but with KA = 3 and KB = 3
-func zdrvsg2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, b *mat.CMatrix, d, d2 *mat.Vector, z, ab, bb *mat.CMatrix, ap, bp, work *mat.CVector, nwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (err error) {
+func zdrvsg2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, b *mat.CMatrix, d, d2 *mat.Vector, z, ab, bb *mat.CMatrix, ap, bp, work *mat.CVector, nwork int, rwork *mat.Vector, lrwork int, iwork []int, liwork int, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var uplo mat.MatUplo
 	var cone, czero complex128
 	var abstol, aninv, anorm, cond, one, ovfl, rtovfl, rtunfl, temp1, temp2, ten, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, ibtype, ibuplo, iinfo, ij, il, imode, itemp, itype, iu, j, jcol, jsize, jtype, ka, ka9, kb, kb9, m, maxtyp, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
+	var i, ibtype, ibuplo, iinfo, ij, il, imode, itemp, itype, iu, j, jcol, jsize, jtype, ka, ka9, kb, kb9, m, maxtyp, mtypes, n, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
@@ -928,7 +928,7 @@ func zdrvsg2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Summary
-	dlasum("Zsg", nerrs, ntestt)
+	// dlasum("Zsg", nerrs, ntestt)
 
 	return
 }

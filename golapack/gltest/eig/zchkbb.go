@@ -74,11 +74,11 @@ import (
 // (13) Rectangular matrix with random entries chosen from (-1,1).
 // (14) Same as (13), but multiplied by SQRT( overflow threshold )
 // (15) Same as (13), but multiplied by SQRT( underflow threshold )
-func zchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a, ab *mat.CMatrix, bd, be *mat.Vector, q, p, c, cc *mat.CMatrix, work *mat.CVector, lwork int, rwork, result *mat.Vector) (err error) {
+func zchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a, ab *mat.CMatrix, bd, be *mat.Vector, q, p, c, cc *mat.CMatrix, work *mat.CVector, lwork int, rwork, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badmm, badnn, badnnb bool
 	var cone, czero complex128
 	var amninv, anorm, cond, one, ovfl, rtovfl, rtunfl, ulp, ulpinv, unfl, zero float64
-	var i, iinfo, imode, itype, j, jcol, jr, jsize, jtype, jwidth, k, kl, kmax, ku, m, maxtyp, mmax, mnmax, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
+	var i, iinfo, imode, itype, j, jcol, jr, jsize, jtype, jwidth, k, kl, kmax, ku, m, maxtyp, mmax, mnmax, mtypes, n, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	kmagn := []int{1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3}
@@ -351,7 +351,7 @@ func zchkbb(nsizes int, mval, nval []int, nwdths int, kk []int, ntypes int, doty
 	}
 
 	//     Summary
-	dlasum("Zbb", nerrs, ntestt)
+	// dlasum("Zbb", nerrs, ntestt)
 
 	return
 }

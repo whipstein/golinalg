@@ -35,6 +35,7 @@ func zchkheAa2stage(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns
 	//
 	//     Test path
 	path := "Zh2"
+	alasumStart(path)
 
 	//     Path to generate matrices
 	matpath := "Zhe"
@@ -304,5 +305,6 @@ func zchkheAa2stage(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

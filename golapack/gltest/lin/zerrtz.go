@@ -51,7 +51,7 @@ func zerrtz(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	alaesm(path, *ok)
+	// alaesm(path, *ok)
 
 	if !(*ok) {
 		t.Fail()

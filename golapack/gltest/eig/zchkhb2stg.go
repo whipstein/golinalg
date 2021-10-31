@@ -98,11 +98,11 @@ import (
 // (13) Hermitian matrix with random entries chosen from (-1,1).
 // (14) Same as (13), but multiplied by SQRT( overflow threshold )
 // (15) Same as (13), but multiplied by SQRT( underflow threshold )
-func zchkhb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, sd, se, d1, d2, d3 *mat.Vector, u *mat.CMatrix, work *mat.CVector, lwork int, rwork, result *mat.Vector) (err error) {
+func zchkhb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype []bool, iseed []int, thresh float64, a *mat.CMatrix, sd, se, d1, d2, d3 *mat.Vector, u *mat.CMatrix, work *mat.CVector, lwork int, rwork, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn, badnnb bool
 	var cone, czero complex128
 	var aninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, temp4, ten, two, ulp, ulpinv, unfl, zero float64
-	var i, iinfo, imode, itype, j, jc, jcol, jr, jsize, jtype, jwidth, k, kmax, lh, lw, maxtyp, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
+	var i, iinfo, imode, itype, j, jc, jcol, jr, jsize, jtype, jwidth, k, kmax, lh, lw, maxtyp, mtypes, n, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	kmagn := []int{1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 1, 2, 3}
@@ -515,7 +515,7 @@ func zchkhb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 	}
 
 	//     Summary
-	dlasum("Zhb", nerrs, ntestt)
+	// dlasum("Zhb", nerrs, ntestt)
 
 	return
 }

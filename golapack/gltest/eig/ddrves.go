@@ -142,11 +142,11 @@ import (
 //         near the overflow threshold
 //    (21) Same as (19), but multiplied by a constant
 //         near the underflow threshold
-func ddrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h, ht *mat.Matrix, wr, wi, wrt, wit *mat.Vector, vs *mat.Matrix, result, work *mat.Vector, nwork int, iwork []int, bwork []bool, t *testing.T) (err error) {
+func ddrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h, ht *mat.Matrix, wr, wi, wrt, wit *mat.Vector, vs *mat.Matrix, result, work *mat.Vector, nwork int, iwork []int, bwork []bool, t *testing.T) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var sort byte
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, tmp, ulp, ulpinv, unfl, zero float64
-	var i, iinfo, imode, isort, itype, iwk, j, jcol, jsize, jtype, knteig, lwork, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, ntest, ntestf, ntestt, rsub, sdim int
+	var i, iinfo, imode, isort, itype, iwk, j, jcol, jsize, jtype, knteig, lwork, maxtyp, mtypes, n, nfail, nmax, nnwork, ntest, ntestf, rsub, sdim int
 
 	adumma := make([]byte, 1)
 	res := vf(2)
@@ -558,7 +558,7 @@ func ddrves(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

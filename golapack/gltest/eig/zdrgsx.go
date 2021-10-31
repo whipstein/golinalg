@@ -144,12 +144,12 @@ import (
 //                  |                      -1+b  -d    |
 //                  |                              1-d |
 //          and matrix B are chosen as identity matrices (see DLATM5).
-func zdrgsx(nsize, ncmax int, thresh float64, a, b, ai, bi, z, q *mat.CMatrix, alpha *mat.CVector, beta *mat.CVector, c *mat.CMatrix, s *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int, liwork int, bwork []bool) (err error) {
+func zdrgsx(nsize, ncmax int, thresh float64, a, b, ai, bi, z, q *mat.CMatrix, alpha *mat.CVector, beta *mat.CVector, c *mat.CMatrix, s *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, iwork []int, liwork int, bwork []bool) (nerrs, ntestt int, err error) {
 	var ilabad bool
 	var sense byte
 	var czero complex128
 	var abnrm, bignum, diftru, one, pltru, smlnum, temp1, temp2, ten, thrsh2, ulp, ulpinv, weight, zero float64
-	var _i, bdspac, i, ifunc, j, linfo, maxwrk, minwrk, mm, mn2, nerrs, nptknt, ntest, ntestt, prtype, qba, qbb int
+	var _i, bdspac, i, ifunc, j, linfo, maxwrk, minwrk, mm, mn2, nptknt, ntest, prtype, qba, qbb int
 	var mplusnlist, nlist []int
 	var ailist, bilist [][]complex128
 	var pltrulist, diftrulist []float64
@@ -600,7 +600,7 @@ label150:
 	;
 
 	//     Summary
-	alasvm("Zgx", nerrs, ntestt, 0)
+	// alasvm("Zgx", nerrs, ntestt, 0)
 
 	work.SetRe(0, float64(maxwrk))
 

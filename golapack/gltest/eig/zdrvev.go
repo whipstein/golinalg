@@ -131,11 +131,11 @@ import (
 //         near the overflow threshold
 //    (21) Same as (19), but multiplied by a constant
 //         near the underflow threshold
-func zdrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h *mat.CMatrix, w, w1 *mat.CVector, vl, vr, lre *mat.CMatrix, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int) (err error) {
+func zdrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h *mat.CMatrix, w, w1 *mat.CVector, vl, vr, lre *mat.CMatrix, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var cone, czero complex128
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, tnrm, two, ulp, ulpinv, unfl, vmx, vrmx, vtst, zero float64
-	var iinfo, imode, itype, iwk, j, jcol, jj, jsize, jtype, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, ntest, ntestf, ntestt int
+	var iinfo, imode, itype, iwk, j, jcol, jj, jsize, jtype, maxtyp, mtypes, n, nfail, nmax, nnwork, ntest, ntestf int
 	dum := cvf(1)
 	res := vf(2)
 	idumma := make([]int, 1)
@@ -540,7 +540,7 @@ func zdrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

@@ -9,11 +9,11 @@ import (
 
 // zckgsv tests Zggsvd:
 //        the GSVD for M-by-N matrix A and P-by-N matrix B.
-func zckgsv(nm int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, u, v, q *mat.CVector, alpha, beta *mat.Vector, r *mat.CVector, iwork []int, work *mat.CVector, rwork *mat.Vector) (err error) {
+func zckgsv(nm int, mval, pval, nval []int, nmats int, iseed []int, thresh float64, nmax int, a, af, b, bf, u, v, q *mat.CVector, alpha, beta *mat.Vector, r *mat.CVector, iwork []int, work *mat.CVector, rwork *mat.Vector) (nfail, nrun int, err error) {
 	var firstt bool
 	var dista, distb, _type byte
 	var anorm, bnorm, cndnma, cndnmb float64
-	var i, iinfo, im, imat, kla, klb, kua, kub, lda, ldb, ldq, ldr, ldu, ldv, lwork, m, modea, modeb, n, nfail, nrun, nt, ntypes, p int
+	var i, iinfo, im, imat, kla, klb, kua, kub, lda, ldb, ldq, ldr, ldu, ldv, lwork, m, modea, modeb, n, nt, ntypes, p int
 	dotype := make([]bool, 8)
 	result := vf(12)
 
@@ -88,7 +88,7 @@ func zckgsv(nm int, mval, pval, nval []int, nmats int, iseed []int, thresh float
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

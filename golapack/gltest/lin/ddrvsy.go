@@ -36,6 +36,7 @@ func ddrvsy(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 	//     Initialize constants and the random number seed.
 	path := "Dsy"
+	alasvmStart(path)
 	nrun = 0
 	nfail = 0
 	nerrs = 0
@@ -357,5 +358,6 @@ func ddrvsy(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

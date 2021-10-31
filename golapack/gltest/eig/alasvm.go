@@ -13,3 +13,15 @@ func alasvm(_type string, nfail, nrun, nerrs int) {
 		fmt.Printf("              %6d error messages recorded\n", nerrs)
 	}
 }
+
+func alasvmStart(_type string) {
+	fmt.Printf(" Testing %3s drivers..........", _type)
+}
+
+func alasvmEnd(nfail, nrun, nerrs int) {
+	if nfail > 0 {
+		fmt.Printf("Fail\t\t( %6d tests failed )\n", nfail)
+	} else {
+		fmt.Printf("Pass\t\t( %6d tests run )\n", nrun)
+	}
+}

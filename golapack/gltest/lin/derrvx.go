@@ -596,11 +596,11 @@ func derrvx(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s drivers passed the tests of the error exits\n", path)
-	} else {
-		fmt.Printf(" *** %3s drivers failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s drivers passed the tests of the error exits\n", path)
+	// } else {
+	// 	fmt.Printf(" *** %3s drivers failed the tests of the error exits ***\n", path)
+	// }
 
 	if !(*ok) {
 		t.Fail()

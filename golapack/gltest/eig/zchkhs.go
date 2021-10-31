@@ -141,11 +141,11 @@ import (
 //    (19) Nonsymmetric matrix with random entries chosen from |z| < 1
 //    (20) Same as (19), but multiplied by math.Sqrt( overflow threshold )
 //    (21) Same as (19), but multiplied by math.Sqrt( underflow threshold )
-func zchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, t1, t2, u, z, uz *mat.CMatrix, w1, w3 *mat.CVector, evectl, evectr, evecty, evectx, uu *mat.CMatrix, tau, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int, _select []bool, result *mat.Vector) (err error) {
+func zchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, t1, t2, u, z, uz *mat.CMatrix, w1, w3 *mat.CVector, evectl, evectr, evecty, evectx, uu *mat.CMatrix, tau, work *mat.CVector, nwork int, rwork *mat.Vector, iwork []int, _select []bool, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn, match bool
 	var cone, czero complex128
 	var aninv, anorm, cond, conds, one, ovfl, rtovfl, rtulp, rtulpi, rtunfl, temp1, temp2, ulp, ulpinv, unfl, zero float64
-	var i, ihi, iinfo, ilo, imode, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, ntest, ntestt int
+	var i, ihi, iinfo, ilo, imode, itype, j, jcol, jj, jsize, jtype, k, maxtyp, mtypes, n, n1, nmats, nmax, ntest int
 	cdumma := cvf(4)
 	dumma := vf(4)
 	idumma := make([]int, 1)
@@ -653,7 +653,7 @@ func zchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum("Zhs", nerrs, ntestt)
+	// dlasum("Zhs", nerrs, ntestt)
 
 	return
 }

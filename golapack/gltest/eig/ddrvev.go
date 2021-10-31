@@ -142,30 +142,25 @@ import (
 //         near the overflow threshold
 //    (21) Same as (19), but multiplied by a constant
 //         near the underflow threshold
-func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h *mat.Matrix, wr, wi, wr1, wi1 *mat.Vector, vl, vr, lre *mat.Matrix, result, work *mat.Vector, nwork int, iwork []int, t *testing.T) (err error) {
+func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a, h *mat.Matrix, wr, wi, wr1, wi1 *mat.Vector, vl, vr, lre *mat.Matrix, result, work *mat.Vector, nwork int, iwork []int, t *testing.T) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, tnrm, two, ulp, ulpinv, unfl, vmx, vrmx, vtst, zero float64
-	var iinfo, imode, itype, iwk, j, jcol, jj, jsize, jtype, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, ntest, ntestf, ntestt int
+	var iinfo, imode, itype, iwk, j, jcol, jj, jsize, jtype, maxtyp, mtypes, n, nfail, nmax, nnwork, ntest, ntestf int
 
 	adumma := make([]byte, 1)
 	dum := vf(1)
 	res := vf(2)
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
-	kconds := make([]int, 21)
-	kmagn := make([]int, 21)
-	kmode := make([]int, 21)
-	ktype := make([]int, 21)
+	kconds := []int{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0}
+	kmagn := []int{1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3}
+	kmode := []int{0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1}
+	ktype := []int{1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9}
 
 	zero = 0.0
 	one = 1.0
 	two = 2.0
 	maxtyp = 21
-
-	ktype[0], ktype[1], ktype[2], ktype[3], ktype[4], ktype[5], ktype[6], ktype[7], ktype[8], ktype[9], ktype[10], ktype[11], ktype[12], ktype[13], ktype[14], ktype[15], ktype[16], ktype[17], ktype[18], ktype[19], ktype[20] = 1, 2, 3, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 9, 9, 9
-	kmagn[0], kmagn[1], kmagn[2], kmagn[3], kmagn[4], kmagn[5], kmagn[6], kmagn[7], kmagn[8], kmagn[9], kmagn[10], kmagn[11], kmagn[12], kmagn[13], kmagn[14], kmagn[15], kmagn[16], kmagn[17], kmagn[18], kmagn[19], kmagn[20] = 1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 2, 3
-	kmode[0], kmode[1], kmode[2], kmode[3], kmode[4], kmode[5], kmode[6], kmode[7], kmode[8], kmode[9], kmode[10], kmode[11], kmode[12], kmode[13], kmode[14], kmode[15], kmode[16], kmode[17], kmode[18], kmode[19], kmode[20] = 0, 0, 0, 4, 3, 1, 4, 4, 4, 3, 1, 5, 4, 3, 1, 5, 5, 5, 4, 3, 1
-	kconds[0], kconds[1], kconds[2], kconds[3], kconds[4], kconds[5], kconds[6], kconds[7], kconds[8], kconds[9], kconds[10], kconds[11], kconds[12], kconds[13], kconds[14], kconds[15], kconds[16], kconds[17], kconds[18], kconds[19], kconds[20] = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0
 
 	path := "Dev"
 
@@ -370,10 +365,9 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
+			if err != nil || iinfo != 0 {
 				t.Fail()
 				fmt.Printf(" ddrvev: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
-				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
 			}
 
@@ -401,7 +395,6 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					result.Set(0, ulpinv)
 					t.Fail()
 					fmt.Printf(" ddrvev: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dgeev1", iinfo, n, jtype, ioldsd)
-					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label220
 				}
 
@@ -468,15 +461,11 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 				}
 
 				//              Compute eigenvalues only, and test them
-				if nc == 119 {
-					fmt.Println()
-				}
 				golapack.Dlacpy(Full, n, n, a, h)
 				if iinfo, err = golapack.Dgeev('N', 'N', n, h, wr1, wi1, dum.Matrix(1, opts), dum.Matrix(1, opts), work, nnwork); iinfo != 0 {
 					result.Set(0, ulpinv)
 					t.Fail()
 					fmt.Printf(" ddrvev: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dgeev2", iinfo, n, jtype, ioldsd)
-					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label220
 				}
 
@@ -493,7 +482,6 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					result.Set(0, ulpinv)
 					t.Fail()
 					fmt.Printf(" ddrvev: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dgeev3", iinfo, n, jtype, ioldsd)
-					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label220
 				}
 
@@ -519,7 +507,6 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					result.Set(0, ulpinv)
 					t.Fail()
 					fmt.Printf(" ddrvev: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dgeev4", iinfo, n, jtype, ioldsd)
-					err = fmt.Errorf("iinfo=%v", abs(iinfo))
 					goto label220
 				}
 
@@ -570,12 +557,12 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 				for j = 1; j <= 7; j++ {
 					if result.Get(j-1) >= thresh {
 						t.Fail()
-						fmt.Printf(" n=%5d, IWK=%2d, seed=%4d, type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
+						fmt.Printf(" n=%5d, iwk=%2d, seed=%4d, type %2d, test(%2d)=%10.3f\n", n, iwk, ioldsd, jtype, j, result.Get(j-1))
 					}
 				}
 
-				nerrs = nerrs + nfail
-				ntestt = ntestt + ntest
+				nerrs += nfail
+				ntestt += ntest
 
 			}
 		label260:
@@ -583,7 +570,7 @@ func ddrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

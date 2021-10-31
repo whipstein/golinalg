@@ -175,12 +175,12 @@ import (
 //      of RCONDE, and takes errors in computing RCONDE into account,
 //      so that the resulting quantity should be O(ULP). cond(RCONDE)
 //      is essentially given by norm(A)/RCONDV.
-func zdrvvx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h *mat.CMatrix, w, w1 *mat.CVector, vl, vr, lre *mat.CMatrix, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector) (err error) {
+func zdrvvx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h *mat.CMatrix, w, w1 *mat.CVector, vl, vr, lre *mat.CMatrix, rcondv, rcndv1, rcdvin, rconde, rcnde1, rcdein, scale, scale1, result *mat.Vector, work *mat.CVector, nwork int, rwork *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var balanc byte
 	var cone, czero complex128
 	var anorm, cond, conds, one, ovfl, rtulp, rtulpi, ulp, ulpinv, unfl, wi, wr, zero float64
-	var _i, i, ibal, iinfo, imode, isrt, itype, iwk, j, jcol, jsize, jtype, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, ntest, ntestf, ntestt int
+	var _i, i, ibal, iinfo, imode, isrt, itype, iwk, j, jcol, jsize, jtype, maxtyp, mtypes, n, nfail, nmax, nnwork, ntest, ntestf int
 	bal := []byte{'N', 'P', 'S', 'B'}
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
@@ -791,7 +791,7 @@ label160:
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

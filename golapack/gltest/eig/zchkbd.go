@@ -130,12 +130,12 @@ import (
 //
 // A subset of the full set of matrix types may be selected through
 // the logical array DOTYPE.
-func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a *mat.CMatrix, bd, be, s1, s2 *mat.Vector, x, y, z, q, pt, u, vt *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector) (err error) {
+func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, iseed *[]int, thresh float64, a *mat.CMatrix, bd, be, s1, s2 *mat.Vector, x, y, z, q, pt, u, vt *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector) (nfail, ntest int, err error) {
 	var badmm, badnn, bidiag bool
 	var uplo mat.MatUplo
 	var cone, czero complex128
 	var amninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, two, ulp, ulpinv, unfl, zero float64
-	var i, iinfo, imode, itype, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mq, mtypes, n, nfail, nmax, ntest int
+	var i, iinfo, imode, itype, j, jcol, jsize, jtype, log2ui, m, maxtyp, minwrk, mmax, mnmax, mnmin, mq, mtypes, n, nmax int
 
 	dumma := vf(1)
 	result := vf(14)
@@ -554,7 +554,7 @@ func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, i
 	}
 
 	//     Summary
-	alasum(path, nfail, ntest, 0)
+	// alasum(path, nfail, ntest, 0)
 
 	return
 }

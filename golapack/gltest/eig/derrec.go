@@ -11,9 +11,9 @@ import (
 // derrec tests the error exits for the routines for eigen- condition
 // estimation for DOUBLE PRECISION matrices:
 //    Dtrsyl, Dtrexc, Dtrsna and Dtrsen.
-func derrec(path string, t *testing.T) {
+func derrec(path string, t *testing.T) (nt int) {
 	var one, zero float64
-	var i, ifst, ilst, j, nmax, nt int
+	var i, ifst, ilst, j, nmax int
 	var err error
 
 	sel := make([]bool, 4)
@@ -182,13 +182,15 @@ func derrec(path string, t *testing.T) {
 	nt = nt + 10
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

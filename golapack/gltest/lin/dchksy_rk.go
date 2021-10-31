@@ -42,6 +42,7 @@ func dchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, 
 
 	//     Test path
 	path := "Dsk"
+	alasumStart(path)
 
 	//     Path to generate matrices
 	matpath := "Dsy"
@@ -544,5 +545,6 @@ func dchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, 
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

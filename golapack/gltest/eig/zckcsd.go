@@ -13,11 +13,11 @@ import (
 // zckcsd tests ZUNCSD:
 //        the CSD for an M-by-M unitary matrix X partitioned as
 //        [ X11 X12; X21 X22 ]. X11 is P-by-Q.
-func zckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, thresh float64, mmax int, x, xf, u1, u2, v1t, v2t *mat.CVector, theta *mat.Vector, iwork []int, work *mat.CVector, rwork *mat.Vector) (err error) {
+func zckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, thresh float64, mmax int, x, xf, u1, u2, v1t, v2t *mat.CVector, theta *mat.Vector, iwork []int, work *mat.CVector, rwork *mat.Vector) (nfail, nrun int, err error) {
 	var firstt bool
 	var one, zero complex128
 	var gapdigit, orth, piover2, realone, realzero, ten float64
-	var i, iinfo, im, imat, j, ldu1, ldu2, ldv1t, ldv2t, ldx, lwork, m, nfail, nrun, nt, ntypes, p, q, r int
+	var i, iinfo, im, imat, j, ldu1, ldu2, ldv1t, ldv2t, ldx, lwork, m, nt, ntypes, p, q, r int
 	dotype := make([]bool, 4)
 	result := vf(15)
 
@@ -120,7 +120,7 @@ func zckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, 
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, 0)
+	// alasum(path, nfail, nrun, 0)
 
 	return
 }

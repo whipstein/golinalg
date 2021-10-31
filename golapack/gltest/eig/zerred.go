@@ -25,9 +25,9 @@ import (
 //                and inverse iteration)
 //       Zgesvdq  compute SVD of an M-by-N matrix A(with a
 //                QR-Preconditioned )
-func zerred(path string, t *testing.T) {
+func zerred(path string, t *testing.T) (nt int) {
 	var one, zero float64
-	var i, j, lw, nmax, ns, nt int
+	var i, j, lw, nmax, ns int
 	var err error
 
 	nmax = 4
@@ -205,11 +205,11 @@ func zerred(path string, t *testing.T) {
 		_, err = golapack.Zgesvd('N', 'A', 1, 2, a.Off(0, 0).UpdateRows(1), s, u.Off(0, 0).UpdateRows(1), vt.Off(0, 0).UpdateRows(1), w, 5, rw)
 		chkxer2("Zgesvd", err)
 		nt = nt + 8
-		if *ok {
-			fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
-		} else {
-			fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
-		}
+		// if *ok {
+		// 	fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
+		// } else {
+		// 	fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
+		// }
 
 		//        Test Zgesdd
 		*srnamt = "Zgesdd"
@@ -232,11 +232,11 @@ func zerred(path string, t *testing.T) {
 		_, err = golapack.Zgesdd('A', 1, 2, a.Off(0, 0).UpdateRows(1), s, u.Off(0, 0).UpdateRows(1), vt.Off(0, 0).UpdateRows(1), w, 5, rw, &iw)
 		chkxer2("Zgesdd", err)
 		nt = nt - 2
-		if *ok {
-			fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
-		} else {
-			fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
-		}
+		// if *ok {
+		// 	fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
+		// } else {
+		// 	fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
+		// }
 
 		//        Test Zgejsv
 		*srnamt = "Zgejsv"
@@ -275,12 +275,12 @@ func zerred(path string, t *testing.T) {
 		*errt = fmt.Errorf("rsvec && (v.Rows < n): jobv='V', v.Rows=1, n=2")
 		_, err = golapack.Zgejsv('G', 'U', 'V', 'R', 'N', 'N', 2, 2, a.Off(0, 0).UpdateRows(2), s, u.Off(0, 0).UpdateRows(2), vt.Off(0, 0).UpdateRows(1), w, 1, rw, 1, &iw)
 		chkxer2("Zgejsv", err)
-		nt = 11
-		if *ok {
-			fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
-		} else {
-			fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
-		}
+		// nt = 11
+		// if *ok {
+		// 	fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
+		// } else {
+		// 	fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
+		// }
 
 		//        Test Zgesvdx
 		*srnamt = "Zgesvdx"
@@ -322,11 +322,11 @@ func zerred(path string, t *testing.T) {
 		_, err = golapack.Zgesvdx('N', 'V', 'A', 2, 2, a.Off(0, 0).UpdateRows(2), zero, zero, 0, 0, ns, s, u.Off(0, 0).UpdateRows(1), vt.Off(0, 0).UpdateRows(1), w, 1, rw, &iw)
 		chkxer2("Zgesvdx", err)
 		nt = 12
-		if *ok {
-			fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
-		} else {
-			fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
-		}
+		// if *ok {
+		// 	fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
+		// } else {
+		// 	fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
+		// }
 
 		//        Test Zgesvdq
 		*srnamt = "Zgesvdq"
@@ -369,24 +369,26 @@ func zerred(path string, t *testing.T) {
 		_, _, _, err = golapack.Zgesvdq('A', 'P', 'T', 'A', 'A', 1, 1, a.Off(0, 0).UpdateRows(1), s, u.Off(0, 0).UpdateRows(1), vt.Off(0, 0).UpdateRows(1), &iw, -5, w, 1, rw, 1)
 		chkxer2("Zgesvdq", err)
 		nt = 11
-		if *ok {
-			fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
-		} else {
-			fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
-		}
+		// if *ok {
+		// 	fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
+		// } else {
+		// 	fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
+		// }
 	}
 
 	//     Print a summary line.
-	if c2 != "bd" {
-		if *ok {
-			fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
-		} else {
-			fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
-		}
-	}
+	// if c2 != "bd" {
+	// 	if *ok {
+	// 		fmt.Printf(" %s passed the tests of the error exits (%3d tests done)\n", (*srnamt)[1:], nt)
+	// 	} else {
+	// 		fmt.Printf(" *** %s failed the tests of the error exits ***\n", (*srnamt)[1:])
+	// 	}
+	// }
 	*infot = 0
 	*srnamt = ""
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

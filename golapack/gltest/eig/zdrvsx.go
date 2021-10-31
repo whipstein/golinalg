@@ -183,11 +183,11 @@ import (
 //      number of RCONDV, and takes errors in computing RCONDV into
 //      account, so that the resulting quantity should be O(ULP).
 //      cond(RCONDV) is essentially given by norm(A)/RCONDE.
-func zdrvsx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, ht *mat.CMatrix, w, wt, wtmp *mat.CVector, vs, vs1 *mat.CMatrix, result *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, bwork []bool) (err error) {
+func zdrvsx(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, h, ht *mat.CMatrix, w, wt, wtmp *mat.CVector, vs, vs1 *mat.CMatrix, result *mat.Vector, work *mat.CVector, lwork int, rwork *mat.Vector, bwork []bool) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var cone, czero complex128
 	var anorm, cond, conds, one, ovfl, rcdein, rcdvin, rtulp, rtulpi, ulp, ulpinv, unfl, zero float64
-	var _i, i, iinfo, imode, isrt, itype, iwk, j, jcol, jsize, jtype, maxtyp, mtypes, n, nerrs, nfail, nmax, nnwork, nslct, ntest, ntestf, ntestt int
+	var _i, i, iinfo, imode, isrt, itype, iwk, j, jcol, jsize, jtype, maxtyp, mtypes, n, nfail, nmax, nnwork, nslct, ntest, ntestf int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	islct := make([]int, 20)
@@ -696,7 +696,7 @@ label150:
 	}
 
 	//     Summary
-	dlasum(path, nerrs, ntestt)
+	// dlasum(path, nerrs, ntestt)
 
 	return
 }

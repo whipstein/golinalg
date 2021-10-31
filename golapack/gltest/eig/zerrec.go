@@ -11,9 +11,9 @@ import (
 // zerrec tests the error exits for the routines for eigen- condition
 // estimation for DOUBLE PRECISION matrices:
 //    Ztrsyl, Ztrexc, Ztrsna and Ztrsen.
-func zerrec(path string, t *testing.T) {
+func zerrec(path string, t *testing.T) (nt int) {
 	var one, zero float64
-	var i, ifst, ilst, j, lw, nmax, nt int
+	var i, ifst, ilst, j, lw, nmax int
 	var err error
 
 	nmax = 4
@@ -175,13 +175,15 @@ func zerrec(path string, t *testing.T) {
 	nt = nt + 8
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 	*srnamt = ""
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }

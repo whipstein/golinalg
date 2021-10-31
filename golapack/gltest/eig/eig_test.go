@@ -10,6 +10,12 @@ import (
 	"github.com/whipstein/golinalg/util"
 )
 
+var chkString string = "\troutines................."
+var drvString string = "\tdrivers.................."
+var errString string = "\terrors..................."
+var chkerrString string = "\troutine errors..........."
+var drverrString string = "\tdriver errors............"
+
 // Dchkee tests the DOUBLE PRECISION LAPACK subroutines for the matrix
 // eigenvalue problem.  The test paths in this version are
 //
@@ -41,26 +47,26 @@ import (
 //     Test DGGHD3, DGGBAL, DGGBAK, DHGEQZ, and DTGEVC
 //
 // Dgs (Generalized Nonsymmetric Schur form Driver):
-//     Test DGGES
+//     Test dgges
 //
 // Dgv (Generalized Nonsymmetric Eigenvalue/eigenvector Driver):
-//     Test DGGEV
+//     Test dggev
 //
 // Dgx (Generalized Nonsymmetric Schur form Expert Driver):
-//     Test DGGESX
+//     Test dggesx
 //
 // Dxv (Generalized Nonsymmetric Eigenvalue/eigenvector Expert Driver):
-//     Test DGGEVX
+//     Test dggevx
 //
 // Dsg (Symmetric Generalized Eigenvalue Problem):
 //     Test DSYGST, DSYGV, DSYGVD, DSYGVX, DSPGST, DSPGV, DSPGVD,
 //     DSPGVX, DSBGST, DSBGV, DSBGVD, and DSBGVX
 //
 // Dsb (Symmetric Band Eigenvalue Problem):
-//     Test DSBTRD
+//     Test dsbtrd
 //
 // Dbb (Band Singular Value Decomposition):
-//     Test DGBBRD
+//     Test dgbbrd
 //
 // Dec (Eigencondition estimation):
 //     Test DLALN2, DLASY2, DLAEQU, DLAEXC, DTRSYL, DTREXC, DTRSNA,
@@ -105,12 +111,11 @@ import (
 func TestDeig(t *testing.T) {
 	var tstchk, tstdif, tstdrv, tsterr bool
 	var eps, thresh, thrshn float64
-	var i, info, k, liwork, lwork, maxtyp, ncmax, newsd, nk, nmax, nn, nout, nparms, nrhs, ntypes, versMajor, versMinor, versPatch int
+	var i, info, k, liwork, lwork, maxtyp, ncmax, newsd, nfail, nfailt, nk, nmax, nn, nout, nparms, nrhs, ntest, ntestt, ntypes, versMajor, versMinor, versPatch int
 	var err error
 	var nin *util.Reader
 	dotype := make([]bool, 30)
 	logwrk := make([]bool, 132)
-	intstr := make([]byte, 10)
 	iacc22 := make([]int, 20)
 	inibl := make([]int, 20)
 	inmin := make([]int, 20)
@@ -173,29 +178,41 @@ func TestDeig(t *testing.T) {
 	x := vf(5 * nmax)
 	result := vf(500)
 
-	intstr[0], intstr[1], intstr[2], intstr[3], intstr[4], intstr[5], intstr[6], intstr[7], intstr[8], intstr[9] = '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-	ioldsd[0], ioldsd[1], ioldsd[2], ioldsd[3] = 0, 0, 0, 1
+	versMajor, versMinor, versPatch = golapack.Ilaver()
+	fmt.Printf("\n LAPACK VERSION %1d.%1d.%1d\n", versMajor, versMinor, versPatch)
+	fmt.Printf("\n The following parameter values will be used:\n")
+
+	//     Calculate and print the machine dependent constants.
+	fmt.Printf("\n")
+	eps = golapack.Dlamch(Underflow)
+	fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "underflow", eps)
+	eps = golapack.Dlamch(Overflow)
+	fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "overflow ", eps)
+	eps = golapack.Dlamch(Epsilon)
+	fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "precision", eps)
 
 	for _, path := range []string{"Nep", "Sep", "Se2", "Svd", "Dec", "Dev", "Des", "Dvx", "Dsx", "Dgg", "Dgs", "Dgv", "Dgx", "Dxv", "Dsb", "Dsg", "Dbl", "Dbk", "Dgl", "Dgk", "Dbb", "Glm", "Gqr", "Gsv", "Csd", "Lse"} {
 		c3 := path
+		ntestt = 0
+		nfailt = 0
 		tstchk = false
 		tstdrv = false
 		tsterr = false
 		dgx := path == "Dgx"
 		dxv := path == "Dxv"
 
-		versMajor, versMinor, versPatch = golapack.Ilaver()
-		fmt.Printf("\n LAPACK VERSION %1d.%1d.%1d\n", versMajor, versMinor, versPatch)
-		fmt.Printf("\n The following parameter values will be used:\n")
+		// versMajor, versMinor, versPatch = golapack.Ilaver()
+		// fmt.Printf("\n LAPACK VERSION %1d.%1d.%1d\n", versMajor, versMinor, versPatch)
+		// fmt.Printf("\n The following parameter values will be used:\n")
 
-		//     Calculate and print the machine dependent constants.
-		fmt.Printf("\n")
-		eps = golapack.Dlamch(Underflow)
-		fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "underflow", eps)
-		eps = golapack.Dlamch(Overflow)
-		fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "overflow ", eps)
-		eps = golapack.Dlamch(Epsilon)
-		fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "precision", eps)
+		// //     Calculate and print the machine dependent constants.
+		// fmt.Printf("\n")
+		// eps = golapack.Dlamch(Underflow)
+		// fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "underflow", eps)
+		// eps = golapack.Dlamch(Overflow)
+		// fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "overflow ", eps)
+		// eps = golapack.Dlamch(Epsilon)
+		// fmt.Printf(" Relative machine %s is taken to be%16.6E\n", "precision", eps)
 
 		for i = 1; i <= 4; i++ {
 			iseed[i-1] = ioldsd[i-1]
@@ -207,12 +224,12 @@ func TestDeig(t *testing.T) {
 			//        -------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
 			//           NS    = number of shifts
 			//           MAXB  = minimum submatrix size
 
-			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem routines\n")
+			fmt.Printf(" Tests of the Nonsymmetric Eigenvalue Problem routines: Dhs/Nep\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 16}
 			nbval = []int{1, 3, 3, 3, 20}
 			nbmin = []int{2, 2, 2, 2, 2}
@@ -229,11 +246,19 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 21
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				derrhs("Dhseqr", t)
+				fmt.Printf(errString)
+				ntestt = derrhs("Dhseqr", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -249,11 +274,18 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d, INMIN=%4d, INWIN =%4d, INIBL =%4d, ISHFTS =%4d, IACC22 =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
-				if err = dchkhs(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[4], a[5], a[6], d[0], d[1], d[2], d[3], d[4], d[5], a[7], a[8], a[9], a[10], a[11], d[6], work, lwork, iwork, logwrk, result, t); err != nil {
+				// fmt.Printf(" %3s:  nb=%4d, nbmin=%4d, nx=%4d, inmin=%4d, inwin=%4d, inibl=%4d, ishfts=%4d, iacc22=%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
+				if nfail, ntest, err = dchkhs(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[4], a[5], a[6], d[0], d[1], d[2], d[3], d[4], d[5], a[7], a[8], a[9], a[10], a[11], d[6], work, lwork, iwork, logwrk, result, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "dchkhs", info)
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dst" || c3 == "Sep" || c3 == "Se2" {
@@ -262,9 +294,9 @@ func TestDeig(t *testing.T) {
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
-			fmt.Printf(" Tests of the Symmetric Eigenvalue Problem routines\n")
+			fmt.Printf(" Tests of the Symmetric Eigenvalue Problem routines: Dst/Sep/Se2\n")
 			nval = []int{0, 1, 2, 3, 5, 20}
 			nbval = []int{1, 3, 3, 3, 10}
 			nbmin = []int{2, 2, 2, 2, 2}
@@ -280,12 +312,20 @@ func TestDeig(t *testing.T) {
 			alareq(ntypes, &dotype)
 			dotype[8] = false
 			ntypes = min(maxtyp, ntypes)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			xlaenv(9, 25)
 			if tsterr {
-				derrst("Dst", t)
+				fmt.Printf(errString)
+				ntestt = derrst("Dst", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -296,13 +336,13 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1])
+				// fmt.Printf("\n\n %3s:  nb=%4d, nbmin=%4d, nx=%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
 					if c3 == "Se2" {
 						dotype[8] = false
-						err = dchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result)
+						nfail, ntest, err = dchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result)
 					} else {
-						err = dchkst(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result, t)
+						nfail, ntest, err = dchkst(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result, t)
 					}
 					if err != nil {
 						t.Fail()
@@ -312,15 +352,22 @@ func TestDeig(t *testing.T) {
 				if tstdrv {
 					if c3 == "Se2" {
 						dotype[8] = false
-						err = ddrvst2stg(nn, nval, 18, dotype, iseed, thresh, nout, a[0], d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], a[2], d[11], a[3], work, lwork, iwork, liwork, result, t)
+						nfail, ntest, err = ddrvst2stg(nn, nval, 18, dotype, iseed, thresh, nout, a[0], d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], a[2], d[11], a[3], work, lwork, iwork, liwork, result, t)
 					} else {
-						err = ddrvst(nn, nval, 18, dotype, iseed, thresh, nout, a[0], d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], a[2], d[11], a[3], work, lwork, iwork, liwork, result, t)
+						nfail, ntest, err = ddrvst(nn, nval, 18, dotype, iseed, thresh, nout, a[0], d[2], d[3], d[4], d[5], d[7], d[8], d[9], d[10], a[1], a[2], d[11], a[3], work, lwork, iwork, liwork, result, t)
 					}
 					if err != nil || info != 0 {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %4d\n", "ddrvst", info)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dsg" {
@@ -329,9 +376,9 @@ func TestDeig(t *testing.T) {
 			//        ----------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
-			fmt.Printf(" Tests of the Symmetric Eigenvalue Problem routines\n")
+			fmt.Printf("\n Tests of the Symmetric Eigenvalue Problem routines: Dsg\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 16}
 			nbval = []int{1, 3, 20}
 			nbmin = []int{2, 2, 2}
@@ -347,8 +394,9 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 21
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(9, 25)
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -359,18 +407,25 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1])
+				// fmt.Printf("\n\n %3s:  nb=%4d, nbmin=%4d, nx=%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
 					//               CALL ddrvsg( NN, NVAL, MAXTYP, DOTYPE, ISEED, THRESH,
 					//     $                      NOUT, A( 1, 1 ), NMAX, A( 1, 2 ), NMAX,
 					//     $                      D( 1, 3 ), A( 1, 3 ), NMAX, A( 1, 4 ),
 					//     $                      A( 1, 5 ), A( 1, 6 ), A( 1, 7 ), WORK,
 					//     $                      LWORK, IWORK, LIWORK, RESULT, INFO )
-					if err = ddrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], d[2], d[2], a[2], a[3], a[4], a[5].VectorIdx(0), a[6].VectorIdx(0), work, lwork, iwork, liwork, result, t); err != nil {
+					if nfail, ntest, err = ddrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], d[2], d[2], a[2], a[3], a[4], a[5].VectorIdx(0), a[6].VectorIdx(0), work, lwork, iwork, liwork, result, t); err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %4d\n", "ddrvsg", info)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dbd" || c3 == "Svd" {
@@ -379,10 +434,10 @@ func TestDeig(t *testing.T) {
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
 			//           NRHS  = number of right hand sides
-			fmt.Printf(" Tests of the Singular Value Decomposition routines\n")
+			fmt.Printf(" Tests of the Singular Value Decomposition routines: Dbd/Svd\n")
 			mval = []int{0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 10, 10, 16, 16, 30, 30, 40, 40}
 			nval = []int{0, 1, 3, 0, 1, 2, 0, 1, 0, 1, 3, 10, 16, 10, 16, 30, 40, 30, 40}
 			nbval = []int{1, 3, 3, 3, 20}
@@ -398,18 +453,32 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 16
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			xlaenv(9, 25)
 
 			//        Test the error exits
 			if tsterr && tstchk {
-				derrbd("Dbd", t)
+				fmt.Printf(chkerrString)
+				ntestt = derrbd("Dbd", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
 			if tsterr && tstdrv {
-				derred("Dbd", t)
+				fmt.Printf(drverrString)
+				ntestt = derred("Dbd", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
 
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
 				xlaenv(1, nbval[i-1])
@@ -420,18 +489,25 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NX =%4d, NRHS =%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
+				// fmt.Printf("\n\n %3s:  nb=%4d, nbmin=%4d, nx=%4d, nrhs=%4d\n", c3, nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
 				if tstchk {
-					if err = dchkbd(nn, mval, nval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], d[0], d[1], d[2], d[3], a[1], a[2], a[3], a[4], a[5], a[6], a[7], work, lwork, iwork, nout, t); err != nil {
+					if nfail, ntest, err = dchkbd(nn, mval, nval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], d[0], d[1], d[2], d[3], a[1], a[2], a[3], a[4], a[5], a[6], a[7], work, lwork, iwork, nout, t); err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %v\n", "dchkbd", err)
 					}
 				}
 				if tstdrv {
-					if err = ddrvbd(nn, mval, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], work, lwork, iwork, nout, t); err != nil {
+					if nfail, ntest, err = ddrvbd(nn, mval, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], work, lwork, iwork, nout, t); err != nil {
 						t.Fail()
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dev" {
@@ -439,7 +515,7 @@ func TestDeig(t *testing.T) {
 			//        Dev:  Nonsymmetric Eigenvalue Problem Driver
 			//              dgeev (eigenvalues and eigenvectors)
 			//        --------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    dgeev (eigenvalues and eigevectors)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    dgeev (eigenvalues and eigevectors): Dev\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -457,7 +533,7 @@ func TestDeig(t *testing.T) {
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -470,21 +546,32 @@ func TestDeig(t *testing.T) {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derred(c3, t)
+					fmt.Printf(errString)
+					ntestt = derred(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
-				if err = ddrvev(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], d[0], d[1], d[2], d[3], a[2], a[3], a[4], result, work, lwork, iwork, t); err != nil {
+				fmt.Printf(drvString)
+				if nfailt, ntestt, err = ddrvev(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], d[0], d[1], d[2], d[3], a[2], a[3], a[4], result, work, lwork, iwork, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "dgeev", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if c3 == "Des" {
 			//        --------------------------------------------
 			//        Des:  Nonsymmetric Eigenvalue Problem Driver
 			//              dgees (Schur form)
 			//        --------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    dgees (Schur form)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Driver\n    dgees (Schur form): Des\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -502,7 +589,7 @@ func TestDeig(t *testing.T) {
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -515,21 +602,32 @@ func TestDeig(t *testing.T) {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derred(c3, t)
+					fmt.Printf(errString)
+					ntestt = derred(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
-				if err = ddrves(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], a[2], d[0], d[1], d[2], d[3], a[3], result, work, lwork, iwork, logwrk, t); err != nil {
+				fmt.Printf(drvString)
+				if nfailt, ntestt, err = ddrves(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], a[2], d[0], d[1], d[2], d[3], a[3], result, work, lwork, iwork, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "dgees", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if c3 == "Dvx" {
 			//        --------------------------------------------------------------
 			//        Dvx:  Nonsymmetric Eigenvalue Problem Expert Driver
 			//              dgeevx (eigenvalues, eigenvectors and condition numbers)
 			//        --------------------------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    dgeevx (eigenvalues, eigenvectors and condition numbers)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    dgeevx (eigenvalues, eigenvectors and condition numbers): Dvx\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 20}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -547,7 +645,7 @@ func TestDeig(t *testing.T) {
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -560,21 +658,32 @@ func TestDeig(t *testing.T) {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derred(c3, t)
+					fmt.Printf(errString)
+					ntestt = derred(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
-				if err = ddrvvx(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], d[0], d[1], d[2], d[3], a[2], a[3], a[4], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], result, work, lwork, iwork, t); err != nil {
+				fmt.Printf(drvString)
+				if nfailt, ntestt, err = ddrvvx(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], d[0], d[1], d[2], d[3], a[2], a[3], a[4], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], result, work, lwork, iwork, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "dgeevx", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if c3 == "Dsx" {
 			//        ---------------------------------------------------
 			//        Dsx:  Nonsymmetric Eigenvalue Problem Expert Driver
 			//              dgeesx (Schur form and condition numbers)
 			//        ---------------------------------------------------
-			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    dgeesx (Schur form and condition numbers)\n")
+			fmt.Printf("\n Tests of the Nonsymmetric Eigenvalue Problem Expert Driver\n    dgeesx (Schur form and condition numbers): Dsx\n")
 			nval = []int{0, 1, 2, 3, 5, 10}
 			nbval = []int{3}
 			nbmin = []int{3}
@@ -591,7 +700,7 @@ func TestDeig(t *testing.T) {
 			newsd = 2
 			ioldsd = []int{2518, 3899, 995, 397}
 			ntypes = 21
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -604,15 +713,26 @@ func TestDeig(t *testing.T) {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derred(c3, t)
+					fmt.Printf(errString)
+					ntestt = derred(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				fmt.Printf(drvString)
 				alareq(ntypes, &dotype)
-				if err = ddrvsx(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], a[2], d[0], d[1], d[2], d[3], d[4], d[5], a[3], a[4], result, work, lwork, iwork, logwrk, t); err != nil {
+				if nfailt, ntestt, err = ddrvsx(nn, nval, ntypes, dotype, iseed, thresh, nout, a[0], a[1], a[2], d[0], d[1], d[2], d[3], d[4], d[5], a[3], a[4], result, work, lwork, iwork, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "dgeesx", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if c3 == "Dgg" {
 			//
@@ -621,12 +741,12 @@ func TestDeig(t *testing.T) {
 			//        -------------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NS    = number of shifts
 			//           MAXB  = minimum submatrix size
 			//           IACC22: structured matrix multiply
-			//           NBCOL = minimum column dimension for blocks
-			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem routines\n")
+			//           nbcol= minimum column dimension for blocks
+			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem routines: Dgg\n")
 			nval = []int{0, 1, 2, 3, 5, 10, 16}
 			nbval = []int{1, 1, 2, 2}
 			nbmin = []int{40, 40, 2, 2}
@@ -649,11 +769,19 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 26
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tstchk && tsterr {
-				derrgg(c3, t)
+				fmt.Printf(errString)
+				ntestt = derrgg(c3, t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -667,23 +795,30 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf("\n\n %3s:  NB =%4d, NBMIN =%4d, NS =%4d, MAXB =%4d, IACC22 =%4d, NBCOL =%4d\n", c3, nbval[i-1], nbmin[i-1], nsval[i-1], mxbval[i-1], iacc22[i-1], nbcol[i-1])
+				// fmt.Printf("\n\n %3s:  nb=%4d, nbmin=%4d, ns=%4d, maxb=%4d, iacc22=%4d, nbcol=%4d\n", c3, nbval[i-1], nbmin[i-1], nsval[i-1], mxbval[i-1], iacc22[i-1], nbcol[i-1])
 				tstdif = false
 				thrshn = 10.
 				if tstchk {
-					if err = dchkgg(nn, nval, maxtyp, dotype, iseed, thresh, tstdif, thrshn, nout, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], d[0], d[1], d[2], d[3], d[4], d[5], a[12], a[13], work, lwork, logwrk, result, t); err != nil {
+					if nfail, ntest, err = dchkgg(nn, nval, maxtyp, dotype, iseed, thresh, tstdif, thrshn, nout, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], d[0], d[1], d[2], d[3], d[4], d[5], a[12], a[13], work, lwork, logwrk, result, t); err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %4d\n", "dchkgg", info)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dgs" {
 			//        -------------------------------------------------
 			//        Dgs:  Generalized Nonsymmetric Eigenvalue Problem
-			//              DGGES (Schur form)
+			//              dgges (Schur form)
 			//        -------------------------------------------------
-			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver DGGES\n")
+			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver dgges: Dgs\n")
 			nval = []int{2, 6, 10, 12, 20, 30}
 			nbval = []int{1}
 			nbmin = []int{1}
@@ -697,7 +832,7 @@ func TestDeig(t *testing.T) {
 			newsd = 0
 			ntypes = 26
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -707,28 +842,46 @@ func TestDeig(t *testing.T) {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derrgg(c3, t)
+					fmt.Printf(errString)
+					ntestt = derrgg(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
-				if err = ddrges(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], d[0], d[1], d[2], work, lwork, result, logwrk, t); err != nil {
+				ntestt = 0
+				fmt.Printf(drvString)
+				if nfailt, ntestt, err = ddrges(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], d[0], d[1], d[2], work, lwork, result, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrges", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 
 				//     Blocked version
+				fmt.Printf(drvString)
 				xlaenv(16, 2)
-				if err = ddrges3(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], d[0], d[1], d[2], work, lwork, result, logwrk, t); err != nil {
+				if nfailt, ntestt, err = ddrges3(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], d[0], d[1], d[2], work, lwork, result, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrges3", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if dgx {
 			//        -------------------------------------------------
 			//        Dgx:  Generalized Nonsymmetric Eigenvalue Problem
-			//              DGGESX (Schur form and condition numbers)
+			//              dggesx (Schur form and condition numbers)
 			//        -------------------------------------------------
-			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver DGGESX\n")
+			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver dggesx: Dgx\n")
 			nn = 2
 			nbval = []int{1}
 			nbmin = []int{1}
@@ -741,7 +894,7 @@ func TestDeig(t *testing.T) {
 			newsd = 0
 			ntypes = 5
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -751,23 +904,35 @@ func TestDeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derrgg(c3, t)
+					fmt.Printf(errString)
+					ntestt = derrgg(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
 
+				fmt.Printf(drvString)
+				ntestt = 0
 				xlaenv(5, 2)
-				if err = ddrgsx(nn, ncmax, thresh, nin, nout, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], c, a[11].VectorIdx(0), work, lwork, iwork, liwork, logwrk, t); err != nil {
+				if nfailt, ntestt, err = ddrgsx(nn, ncmax, thresh, nin, nout, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], c, a[11].VectorIdx(0), work, lwork, iwork, liwork, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgsx", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if c3 == "Dgv" {
 			//        -------------------------------------------------
 			//        Dgv:  Generalized Nonsymmetric Eigenvalue Problem
-			//              DGGEV (Eigenvalue/vector form)
+			//              dggev (Eigenvalue/vector form)
 			//        -------------------------------------------------
-			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver DGGEV\n")
+			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Driver dggev: Dgv\n")
 			nval = []int{2, 6, 8, 10, 15, 20}
 			nbval = []int{1}
 			nbmin = []int{1}
@@ -781,7 +946,7 @@ func TestDeig(t *testing.T) {
 			newsd = 0
 			ntypes = 26
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -791,27 +956,45 @@ func TestDeig(t *testing.T) {
 				fmt.Printf("\n\n %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derrgg(c3, t)
+					fmt.Printf(errString)
+					ntestt = derrgg(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
-				if err = ddrgev(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], a[8], d[0], d[1], d[2], d[3], d[4], d[5], work, lwork, result, t); err != nil {
+				ntestt = 0
+				fmt.Printf(drvString)
+				if nfailt, ntestt, err = ddrgev(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], a[8], d[0], d[1], d[2], d[3], d[4], d[5], work, lwork, result, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgev", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 
+				fmt.Printf(drvString)
 				//     Blocked version
-				if err = ddrgev3(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], a[8], d[0], d[1], d[2], d[3], d[4], d[5], work, lwork, result, t); err != nil {
+				if nfailt, ntestt, err = ddrgev3(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], a[2], a[3], a[6], a[7], a[8], d[0], d[1], d[2], d[3], d[4], d[5], work, lwork, result, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgev3", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if dxv {
 			//        -------------------------------------------------
 			//        Dxv:  Generalized Nonsymmetric Eigenvalue Problem
-			//              DGGEVX (eigenvalue/vector with condition numbers)
+			//              dggevx (eigenvalue/vector with condition numbers)
 			//        -------------------------------------------------
-			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver DGGEVX\n")
+			fmt.Printf("\n Tests of the Generalized Nonsymmetric Eigenvalue Problem Expert Driver dggevx: Dxv\n")
 			nn = 5
 			nbval = []int{1}
 			nbmin = []int{1}
@@ -824,7 +1007,7 @@ func TestDeig(t *testing.T) {
 			newsd = 0
 			ntypes = 2
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, nbval[0])
 			xlaenv(2, nbmin[0])
 			xlaenv(3, nxval[0])
@@ -834,21 +1017,32 @@ func TestDeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", c3)
 			} else {
 				if tsterr {
-					derrgg(c3, t)
+					fmt.Printf(errString)
+					ntestt = derrgg(c3, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
 
-				if err = ddrgvx(nn, thresh, nin, nout, a[0], a[1], a[2], a[3], d[0], d[1], d[2], a[4], a[5], iwork[0], iwork[1], d[3], d[4], d[5], d[6], d[7], d[8], work, lwork, *toSlice(&iwork, 2), liwork-2, result, logwrk, t); err != nil {
+				fmt.Printf(drvString)
+				if nfailt, ntestt, err = ddrgvx(nn, thresh, nin, nout, a[0], a[1], a[2], a[3], d[0], d[1], d[2], a[4], a[5], iwork[0], iwork[1], d[3], d[4], d[5], d[6], d[7], d[8], work, lwork, *toSlice(&iwork, 2), liwork-2, result, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgvx", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if c3 == "Dsb" {
 			//        ------------------------------
 			//        Dsb:  Symmetric Band Reduction
 			//        ------------------------------
-			fmt.Printf(" Tests of DSBTRD\n (reduction of a symmetric band matrix to tridiagonal form)\n")
+			fmt.Printf("\n Tests of dsbtrd\n (reduction of a symmetric band matrix to tridiagonal form): Dsb\n")
 			nval = []int{5, 20}
 			kval = []int{0, 1, 2, 5, 16}
 			nk = len(kval)
@@ -859,23 +1053,33 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 15
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if tsterr {
-				derrst("Dsb", t)
+				fmt.Printf(errString)
+				ntestt = derrst("Dsb", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			//         CALL dchksb( NN, NVAL, NK, KVAL, MAXTYP, DOTYPE, ISEED, THRESH,
-			//     $                NOUT, A( 1, 1 ), NMAX, D( 1, 1 ), D( 1, 2 ),
-			//     $                A( 1, 2 ), NMAX, WORK, LWORK, RESULT, INFO )
-			if err = dchksb2stg(nn, nval, nk, kval, maxtyp, dotype, iseed, thresh, nout, a[0], d[0], d[1], d[2], d[3], d[4], a[1], work, lwork, result, t); err != nil {
+			ntestt = 0
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = dchksb2stg(nn, nval, nk, kval, maxtyp, dotype, iseed, thresh, nout, a[0], d[0], d[1], d[2], d[3], d[4], a[1], work, lwork, result, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dchksb", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dbb" {
 			//        ------------------------------
 			//        Dbb:  General Band Reduction
 			//        ------------------------------
-			fmt.Printf(" Tests of DGBBRD\n (reduction of a general band matrix to real bidiagonal form)\n")
+			fmt.Printf("\n Tests of dgbbrd\n (reduction of a general band matrix to real bidiagonal form): Dbb\n")
 			mval = []int{0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 10, 10, 16, 16}
 			nval = []int{0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 10, 16, 10, 16}
 			nn = len(nval)
@@ -888,7 +1092,8 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 15
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
 
@@ -897,18 +1102,25 @@ func TestDeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf("\n\n %3s:  NRHS =%4d\n", c3, nrhs)
-				if err = dchkbb(nn, mval, nval, nk, kval, maxtyp, dotype, nrhs, &iseed, thresh, nout, a[0], a[1].Off(0, 0).UpdateRows(2*nmax), d[0], d[1], a[3], a[4], a[5], a[6], work, lwork, result, t); err != nil {
+				// fmt.Printf("\n\n %3s:  nrhs=%4d\n", c3, nrhs)
+				if nfail, ntest, err = dchkbb(nn, mval, nval, nk, kval, maxtyp, dotype, nrhs, &iseed, thresh, nout, a[0], a[1].Off(0, 0).UpdateRows(2*nmax), d[0], d[1], a[3], a[4], a[5], a[6], work, lwork, result, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "dchkbb", err)
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Glm" {
 			//        -----------------------------------------
 			//        Glm:  Generalized Linear Regression Model
 			//        -----------------------------------------
-			fmt.Printf("\n Tests of the Generalized Linear Regression Model routines\n")
+			fmt.Printf("\n Tests of the Generalized Linear Regression Model routines: Glm\n")
 			mval = []int{0, 5, 8, 15, 20, 40}
 			pval = []int{9, 0, 15, 12, 15, 30}
 			nval = []int{5, 5, 10, 25, 30, 40}
@@ -918,21 +1130,33 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 8
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				derrgg("Glm", t)
+				fmt.Printf(errString)
+				ntestt = derrgg("Glm", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = dckglm(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Vector(0, 0), a[1].Vector(0, 0), b[0].Vector(0, 0), b[1].Vector(0, 0), x, work, d[0], nout, t); err != nil {
+			fmt.Printf(chkString)
+			if ntestt, nfailt, err = dckglm(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Vector(0, 0), a[1].Vector(0, 0), b[0].Vector(0, 0), b[1].Vector(0, 0), x, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dckglm", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Gqr" {
 			//        ------------------------------------------
 			//        Gqr:  Generalized QR and RQ factorizations
 			//        ------------------------------------------
-			fmt.Printf("\n Tests of the Generalized QR and RQ routines\n")
+			fmt.Printf("\n Tests of the Generalized QR and RQ routines: Gqr\n")
 			mval = []int{0, 3, 10}
 			pval = []int{0, 5, 20}
 			nval = []int{0, 3, 30}
@@ -942,21 +1166,33 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 8
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				derrgg("Gqr", t)
+				fmt.Printf(errString)
+				ntestt = derrgg("Gqr", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = dckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0], a[1], a[2], a[3], taua, b[0], b[1], b[2], b[3], b[4], taub, work, d[0], nout, t); err != nil {
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = dckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0], a[1], a[2], a[3], taua, b[0], b[1], b[2], b[3], b[4], taub, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dckgqr", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Gsv" {
 			//        ----------------------------------------------
 			//        Gsv:  Generalized Singular Value Decomposition
 			//        ----------------------------------------------
-			fmt.Printf("\n Tests of the Generalized Singular Value Decomposition routines\n")
+			fmt.Printf("\n Tests of the Generalized Singular Value Decomposition routines: Gsv\n")
 			mval = []int{0, 5, 9, 10, 20, 12, 12, 40}
 			pval = []int{4, 0, 12, 14, 10, 10, 20, 15}
 			nval = []int{3, 10, 15, 12, 8, 20, 8, 20}
@@ -966,21 +1202,33 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 8
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				derrgg("Gsv", t)
+				fmt.Printf(errString)
+				ntestt = derrgg("Gsv", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = dckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0], a[1], b[0], b[1], a[2], b[2], a[3], taua, taub, b[3], iwork, work, d[0], nout, t); err != nil {
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = dckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0], a[1], b[0], b[1], a[2], b[2], a[3], taua, taub, b[3], iwork, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dckgsv", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Csd" {
 			//        ----------------------------------------------
 			//        Csd:  CS Decomposition
 			//        ----------------------------------------------
-			fmt.Printf("\n Tests of the CS Decomposition routines\n")
+			fmt.Printf("\n Tests of the CS Decomposition routines: Csd\n")
 			mval = []int{0, 10, 10, 10, 10, 21, 24, 30, 22, 32, 55}
 			pval = []int{0, 4, 4, 0, 10, 9, 10, 20, 12, 12, 40}
 			nval = []int{0, 0, 10, 4, 4, 15, 12, 8, 20, 8, 20}
@@ -990,14 +1238,26 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 4
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				derrgg("Csd", t)
+				fmt.Printf(errString)
+				ntestt = derrgg("Csd", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = dckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), a[5].VectorIdx(0), a[6].VectorIdx(0), iwork, work, d[0], nout, t); err != nil {
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = dckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), a[5].VectorIdx(0), a[6].VectorIdx(0), iwork, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dckcsd", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Lse" {
@@ -1005,7 +1265,7 @@ func TestDeig(t *testing.T) {
 			//        Lse:  Constrained Linear Least Squares
 			//        --------------------------------------
 			//
-			fmt.Printf("\n Tests of the Linear Least Squares routines\n")
+			fmt.Printf("\n Tests of the Linear Least Squares routines: Lse\n")
 			mval = []int{6, 0, 5, 8, 10, 30}
 			pval = []int{0, 5, 5, 5, 8, 20}
 			nval = []int{5, 5, 6, 8, 12, 40}
@@ -1015,14 +1275,26 @@ func TestDeig(t *testing.T) {
 			newsd = 1
 			ntypes = 8
 			alareq(ntypes, &dotype)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				derrgg("Lse", t)
+				fmt.Printf(errString)
+				ntestt = derrgg("Lse", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = dcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), x, work, d[0], nout, t); err != nil {
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = dcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), x, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dcklse", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if c3 == "Dbl" {
@@ -1043,6 +1315,7 @@ func TestDeig(t *testing.T) {
 
 		} else if c3 == "Dec" {
 			//        Dec:  Eigencondition estimation
+			fmt.Printf(" Tests of the Nonsymmetric eigenproblem condition estimation routines: Dec\n")
 			xlaenv(1, 1)
 			xlaenv(12, 11)
 			xlaenv(13, 2)
@@ -1051,17 +1324,30 @@ func TestDeig(t *testing.T) {
 			xlaenv(16, 2)
 			thresh = 50.0
 			tsterr = true
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
-			Dchkec(&thresh, &tsterr, t)
+			if tsterr {
+				fmt.Printf(errString)
+				ntestt = derrec(path, t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
+			}
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			fmt.Printf(chkString)
+			ntestt = Dchkec(&thresh, &tsterr, t)
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+			}
 
 		} else {
-			fmt.Printf("\n")
-			fmt.Printf("\n")
-			fmt.Printf(" %3s:  Unrecognized path name\n", c3)
+			fmt.Printf("\n %3s:  Unrecognized path name\n", c3)
 		}
 
 	}
-	fmt.Printf("\n\n End of tests\n")
+	fmt.Printf("\n End of tests\n")
 }
 
 // Zchkee tests the COMPLEX*16 LAPACK subroutines for the matrix
@@ -1171,9 +1457,9 @@ func TestDeig(t *testing.T) {
 // Zgs             26     zdrges
 // Zgx              5     zdrgsx
 // Zgv             26     zdrgev
-// Zxv              2     ZDRGVX
-// Zsg             21     ZDRVSG
-// Zhb             15     ZCHKHB
+// Zxv              2     zdrgvx
+// Zsg             21     zdrvsg
+// Zhb             15     Zchkhb
 // Zbb             15     zchkbb
 // Zec              -     ZCHKEC
 // Zbl              -     ZCHKBL
@@ -2064,7 +2350,7 @@ func TestDeig(t *testing.T) {
 func TestZeig(t *testing.T) {
 	var csd, fatal, glm, gqr, gsv, lse, nep, sep, svd, tstchk, tstdif, tstdrv, tsterr, zbb, zbk, zbl, zes, zev, zgg, zgk, zgl, zgs, zgv, zgx, Zhb, zsx, zvx, zxv bool
 	var eps, thresh, thrshn float64
-	var i, info, k, liwork, lwork, maxtyp, ncmax, need, newsd, nk, nmax, nn, nparms, nrhs, ntypes, versMajor, versMinor, versPatch int
+	var i, info, k, liwork, lwork, maxtyp, ncmax, need, newsd, nfail, nfailt, nk, nmax, nn, nparms, nrhs, ntest, ntestt, ntypes, versMajor, versMinor, versPatch int
 	var err error
 
 	nmax = 132
@@ -2181,6 +2467,8 @@ func TestZeig(t *testing.T) {
 		zbk = path == "Zbk"
 		zgl = path == "Zgl"
 		zgk = path == "Zgk"
+		ntestt = 0
+		nfailt = 0
 
 		//     Report values of parameters.
 		fmt.Printf("\n------------------------------------------------------\n")
@@ -2244,7 +2532,23 @@ func TestZeig(t *testing.T) {
 			xlaenv(1, 1)
 			xlaenv(12, 1)
 			tsterr = true
-			zchkec(thresh, tsterr, t)
+			fmt.Printf(" Tests of the Nonsymmetric eigenproblem condition estimation routines\n Ztrsyl, Ztrexc, Ztrsna, Ztrsen\n")
+			if tsterr {
+				fmt.Printf(errString)
+				ntestt = zerrec(path, t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
+			}
+			fmt.Printf(chkString)
+			ntestt = zchkec(thresh, tsterr, t)
+			if t.Failed() {
+				fmt.Printf("Fail\n")
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+			}
 			continue
 		} else {
 			fmt.Printf(" %3s:  Unrecognized path name\n", path)
@@ -2266,7 +2570,7 @@ func TestZeig(t *testing.T) {
 			//        -------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
 			//           NS    = number of shifts
 			//           MAXB  = minimum submatrix size
@@ -2287,12 +2591,20 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			alareq(ntypes, &dotype)
 			xlaenv(1, 1)
 			if tsterr {
-				zerrhs("Zhseqr", t)
+				fmt.Printf(errString)
+				ntestt = zerrhs("Zhseqr", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -2308,11 +2620,18 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" nb =%4d, nbmin =%4d, nx =%4d, inmin=%4d, inwin =%4d, inibl =%4d, ishfts =%4d, iacc22 =%4d:\n", nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
-				if err = zchkhs(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], a[6], dc[0], dc[1], a[7], a[8], a[9], a[10], a[11], dc[2], work, lwork, rwork, iwork, logwrk, result); err != nil {
+				// fmt.Printf(" nb =%4d, nbmin =%4d, nx =%4d, inmin=%4d, inwin =%4d, inibl =%4d, ishfts =%4d, iacc22 =%4d:\n", nbval[i-1], nbmin[i-1], nxval[i-1], max(11, inmin[i-1]), inwin[i-1], inibl[i-1], ishfts[i-1], iacc22[i-1])
+				if nfail, ntest, err = zchkhs(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], a[6], dc[0], dc[1], a[7], a[8], a[9], a[10], a[11], dc[2], work, lwork, rwork, iwork, logwrk, result); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "Zchkhs", info)
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Zst" || path == "Sep" || path == "Se2" {
@@ -2321,7 +2640,7 @@ func TestZeig(t *testing.T) {
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
 			nval = []int{0, 1, 2, 3, 5, 20}
 			nbval = []int{1, 3, 3, 3, 10}
@@ -2340,12 +2659,20 @@ func TestZeig(t *testing.T) {
 			ntypes = min(maxtyp, ntypes)
 			alareq(ntypes, &dotype)
 			dotype[8] = false
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			xlaenv(9, 25)
 			if tsterr {
-				zerrst("Zst", t)
+				fmt.Printf(errString)
+				ntestt = zerrst("Zst", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -2356,12 +2683,12 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf("  nb =%4d, nbmin =%4d, nx =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1])
+				// fmt.Printf("  nb =%4d, nbmin =%4d, nx =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
 					if path == "Se2" {
-						err = zchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
+						nfail, ntest, err = zchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
 					} else {
-						err = zchkst(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
+						nfail, ntest, err = zchkst(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
 					}
 					if err != nil {
 						t.Fail()
@@ -2370,15 +2697,22 @@ func TestZeig(t *testing.T) {
 				}
 				if tstdrv {
 					if path == "Se2" {
-						err = zdrvst2stg(nn, nval, 18, dotype, iseed, thresh, a[0], dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], a[2], dc[0], a[3], work, lwork, rwork, lwork, iwork, liwork, result)
+						nfail, ntest, err = zdrvst2stg(nn, nval, 18, dotype, iseed, thresh, a[0], dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], a[2], dc[0], a[3], work, lwork, rwork, lwork, iwork, liwork, result)
 					} else {
-						err = zdrvst(nn, nval, 18, dotype, iseed, thresh, a[0], dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], a[2], dc[0], a[3], work, lwork, rwork, lwork, iwork, liwork, result)
+						nfail, ntest, err = zdrvst(nn, nval, 18, dotype, iseed, thresh, a[0], dr[2], dr[3], dr[4], dr[7], dr[8], dr[9], a[1], a[2], dc[0], a[3], work, lwork, rwork, lwork, iwork, liwork, result)
 					}
 					if err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %v\n", "zdrvst", err)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Zsg" {
@@ -2387,7 +2721,7 @@ func TestZeig(t *testing.T) {
 			//        ----------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
 			nval = []int{0, 1, 2, 3, 5, 10, 16}
 			nbval = []int{1, 3, 20}
@@ -2402,9 +2736,10 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			alareq(ntypes, &dotype)
 			xlaenv(9, 25)
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -2415,13 +2750,20 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NB =%4d, NBMIN =%4d, NX =%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1])
+				// fmt.Printf(" %3s:  nb=%4d, nbmin=%4d, nx=%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
-					if err = zdrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], dr[2], dr[3], a[2], a[3], a[4], a[5].CVector(0, 0), a[6].CVector(0, 0), work, lwork, rwork, lwork, iwork, liwork, result); err != nil {
+					if nfail, ntest, err = zdrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], dr[2], dr[3], a[2], a[3], a[4], a[5].CVector(0, 0), a[6].CVector(0, 0), work, lwork, rwork, lwork, iwork, liwork, result); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %v\n", "ZDRVSG", err)
+						fmt.Printf(" *** Error code from %s = %v\n", "zdrvsg", err)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Zbd" || path == "Svd" {
@@ -2430,7 +2772,7 @@ func TestZeig(t *testing.T) {
 			//        ----------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NX    = crossover point
 			//           NRHS  = number of right hand sides
 			mval = []int{0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3, 10, 10, 16, 16, 30, 30, 40, 40}
@@ -2448,19 +2790,33 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			alareq(ntypes, &dotype)
 			xlaenv(9, 25)
 
 			//        Test the error exits
 			xlaenv(1, 1)
 			if tsterr && tstchk {
-				zerrbd("Zbd", t)
+				fmt.Printf(errString)
+				ntestt = zerrbd("Zbd", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
 			if tsterr && tstdrv {
-				zerred("Zbd", t)
+				fmt.Printf(errString)
+				ntestt = zerred("Zbd", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
 
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
 				xlaenv(1, nbval[i-1])
@@ -2471,19 +2827,26 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" nb =%4d, nbmin =%4d, nx =%4d, nrhs =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
+				// fmt.Printf(" nb =%4d, nbmin =%4d, nx =%4d, nrhs =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1], nrhs)
 				if tstchk {
-					if err = zchkbd(nn, mval, nval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], dr[0], dr[1], dr[2], dr[3], a[1], a[2], a[3], a[4], a[5], a[6], a[7], work, lwork, rwork); err != nil {
+					if nfail, ntest, err = zchkbd(nn, mval, nval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], dr[0], dr[1], dr[2], dr[3], a[1], a[2], a[3], a[4], a[5], a[6], a[7], work, lwork, rwork); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %v\n", "Zchkbd", err)
+						fmt.Printf(" *** Error code from %s = %v\n", "zchkbd", err)
 					}
 				}
 				if tstdrv {
-					if err = zdrvbd(nn, mval, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dr[0], dr[1], dr[2], work, lwork, rwork, iwork); err != nil {
+					if nfail, ntest, err = zdrvbd(nn, mval, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dr[0], dr[1], dr[2], work, lwork, rwork, iwork); err != nil {
 						t.Fail()
-						fmt.Printf(" *** Error code from %s = %v\n", "Zdrvbd", err)
+						fmt.Printf(" *** Error code from %s = %v\n", "zdrvbd", err)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Zev" {
@@ -2508,20 +2871,32 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if ntypes <= 0 {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerred(path, t)
+					fmt.Printf(errString)
+					ntestt = zerred(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(drvString)
 				alareq(ntypes, &dotype)
-				if err = zdrvev(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], dc[0], dc[1], a[2], a[3], a[4], result, work, lwork, rwork, iwork); err != nil {
+				if nfailt, ntestt, err = zdrvev(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], dc[0], dc[1], a[2], a[3], a[4], result, work, lwork, rwork, iwork); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %v\n", "Zgeev", err)
+					fmt.Printf(" *** Error code from %s = %v\n", "zgeev", err)
+				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if path == "Zes" {
 			//        --------------------------------------------
@@ -2545,20 +2920,32 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if ntypes <= 0 {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerred(path, t)
+					fmt.Printf(errString)
+					ntestt = zerred(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(drvString)
 				alareq(ntypes, &dotype)
-				if err = zdrves(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], a[2], dc[0], dc[1], a[3], result, work, lwork, rwork, iwork, logwrk); err != nil {
+				if nfailt, ntestt, err = zdrves(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], a[2], dc[0], dc[1], a[3], result, work, lwork, rwork, iwork, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "Zgees", err)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if path == "Zvx" {
 			//        --------------------------------------------------------------
@@ -2582,20 +2969,32 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if ntypes < 0 {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerred(path, t)
+					fmt.Printf(errString)
+					ntestt = zerred(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(drvString)
 				alareq(ntypes, &dotype)
-				if err = zdrvvx(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], dc[0], dc[1], a[2], a[3], a[4], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], result, work, lwork, rwork); err != nil {
+				if nfailt, ntestt, err = zdrvvx(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], dc[0], dc[1], a[2], a[3], a[4], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], result, work, lwork, rwork); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "Zgeevx", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if path == "Zsx" {
 			//        ---------------------------------------------------
@@ -2619,20 +3018,33 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if ntypes < 0 {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
 					zerred(path, t)
+					fmt.Printf(errString)
+					ntestt = zerrhs("Zhseqr", t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(chkString)
 				alareq(ntypes, &dotype)
-				if err = zdrvsx(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], a[2], dc[0], dc[1], dc[2], a[3], a[4], result, work, lwork, rwork, logwrk); err != nil {
+				if nfailt, ntestt, err = zdrvsx(nn, nval, ntypes, dotype, iseed, thresh, a[0], a[1], a[2], dc[0], dc[1], dc[2], a[3], a[4], result, work, lwork, rwork, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "Zgeesx", info)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if path == "Zgg" {
 			//        -------------------------------------------------
@@ -2640,11 +3052,11 @@ func TestZeig(t *testing.T) {
 			//        -------------------------------------------------
 			//        Vary the parameters
 			//           NB    = block size
-			//           NBMIN = minimum block size
+			//           nbmin= minimum block size
 			//           NS    = number of shifts
 			//           MAXB  = minimum submatrix size
 			//           IACC22: structured matrix multiply
-			//           NBCOL = minimum column dimension for blocks
+			//           nbcol= minimum column dimension for blocks
 			nval = []int{0, 1, 2, 3, 5, 10, 16}
 			nbval = []int{1, 1, 2, 2}
 			nbmin = []int{40, 40, 2, 2}
@@ -2661,12 +3073,20 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			alareq(ntypes, &dotype)
 			xlaenv(1, 1)
 			if tstchk && tsterr {
-				zerrgg(path, t)
+				fmt.Printf(errString)
+				ntestt = zerrgg(path, t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
+			ntestt = 0
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				xlaenv(1, nbval[i-1])
 				xlaenv(2, nbmin[i-1])
@@ -2680,15 +3100,22 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" nb =%4d, nbmin =%4d, ns =%4d, maxb =%4d, iacc22 =%4d, nbcol =%4d: ", nbval[i-1], nbmin[i-1], nsval[i-1], mxbval[i-1], iacc22[i-1], nbcol[i-1])
+				// fmt.Printf(" nb =%4d, nbmin =%4d, ns =%4d, maxb =%4d, iacc22 =%4d, nbcol =%4d: ", nbval[i-1], nbmin[i-1], nsval[i-1], mxbval[i-1], iacc22[i-1], nbcol[i-1])
 				tstdif = false
 				thrshn = 10.
 				if tstchk {
-					if err = zchkgg(nn, nval, maxtyp, dotype, &iseed, thresh, tstdif, thrshn, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], dc[0], dc[1], dc[2], dc[3], a[12], a[13], work, lwork, rwork, logwrk, result); err != nil {
+					if nfailt, ntestt, err = zchkgg(nn, nval, maxtyp, dotype, &iseed, thresh, tstdif, thrshn, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], dc[0], dc[1], dc[2], dc[3], a[12], a[13], work, lwork, rwork, logwrk, result); err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %v\n", "zchkgg", err)
 					}
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Zgs" {
@@ -2709,7 +3136,7 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if newsd == 0 {
 				for k = 1; k <= 4; k++ {
 					iseed[k-1] = ioldsd[k-1]
@@ -2719,21 +3146,37 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerrgg(path, t)
+					fmt.Printf(errString)
+					ntestt = zerrgg(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(chkString)
 				alareq(ntypes, &dotype)
-				if err = zdrges(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], dc[0], dc[1], work, lwork, rwork, result, logwrk); err != nil {
+				if nfail, ntest, err = zdrges(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], dc[0], dc[1], work, lwork, rwork, result, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zdrges", err)
 				}
+				nfailt += nfail
+				ntestt += ntest
 
 				// Blocked version
-				if err = zdrges3(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], dc[0], dc[1], work, lwork, rwork, result, logwrk); err != nil {
+				if nfail, ntest, err = zdrges3(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], dc[0], dc[1], work, lwork, rwork, result, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zdrges3", err)
 				}
+				nfailt += nfail
+				ntestt += ntest
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if zgx {
 			//        -------------------------------------------------
@@ -2752,7 +3195,7 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = 2
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if newsd == 0 {
 				for k = 1; k <= 4; k++ {
 					iseed[k-1] = ioldsd[k-1]
@@ -2762,22 +3205,34 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerrgg(path, t)
+					fmt.Printf(errString)
+					ntestt = zerrgg(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(chkString)
 				alareq(ntypes, &dotype)
 				xlaenv(5, 2)
-				if err = zdrgsx(nn, ncmax, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, s, work, lwork, rwork, iwork, liwork, logwrk); err != nil {
+				if nfailt, ntestt, err = zdrgsx(nn, ncmax, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, s, work, lwork, rwork, iwork, liwork, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zdrgsx", err)
 				}
 
 				nn = 0
-				if err = zdrgsx(nn, ncmax, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, s, work, lwork, rwork, iwork, liwork, logwrk); err != nil {
+				if nfailt, ntestt, err = zdrgsx(nn, ncmax, thresh, a[0], a[1], a[2], a[3], a[4], a[5], dc[0], dc[1], c, s, work, lwork, rwork, iwork, liwork, logwrk); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zdrgsx", err)
 				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if path == "Zgv" {
 			//        -------------------------------------------------
@@ -2797,27 +3252,43 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if ntypes <= 0 {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerrgg(path, t)
+					fmt.Printf(errString)
+					ntestt = zerrgg(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				ntestt = 0
+				fmt.Printf(chkString)
 				alareq(ntypes, &dotype)
-				if err = zdrgev(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], a[8], dc[0], dc[1], dc[2], dc[3], work, lwork, rwork, result); err != nil {
+				if nfail, ntest, err = zdrgev(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], a[8], dc[0], dc[1], dc[2], dc[3], work, lwork, rwork, result); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zdrgev", err)
 				}
+				nfailt += nfail
+				ntestt += ntest
 
 				// Blocked version
 				xlaenv(16, 2)
-				if err = zdrgev3(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], a[8], dc[0], dc[1], dc[2], dc[3], work, lwork, rwork, result); err != nil {
+				if nfail, ntest, err = zdrgev3(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], a[2], a[3], a[6], a[7], a[8], dc[0], dc[1], dc[2], dc[3], work, lwork, rwork, result); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zdrgev3", err)
 				}
+				nfailt += nfail
+				ntestt += ntest
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if zxv {
 			//        -------------------------------------------------
@@ -2836,7 +3307,7 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = 6
 			nparms = len(nbval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			if newsd == 0 {
 				for k = 1; k <= 4; k++ {
 					iseed[k-1] = ioldsd[k-1]
@@ -2846,15 +3317,26 @@ func TestZeig(t *testing.T) {
 				fmt.Printf(" %3s routines were not tested\n", path)
 			} else {
 				if tsterr {
-					zerrgg(path, t)
+					fmt.Printf(errString)
+					ntestt = zerrgg(path, t)
+					if t.Failed() {
+						fmt.Printf("Fail\n")
+					} else {
+						fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+					}
 				}
+				fmt.Printf(chkString)
 				alareq(ntypes, &dotype)
-				if err = zdrgvx(nn, thresh, a[0], a[1], a[2], a[3], dc[0], dc[1], a[4], a[5], iwork[0], iwork[1], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], work, lwork, rwork, *toSlice(&iwork, 2), *toPtr(liwork - 2), result, logwrk); err != nil {
+				if nfailt, ntestt, err = zdrgvx(nn, thresh, a[0], a[1], a[2], a[3], dc[0], dc[1], a[4], a[5], iwork[0], iwork[1], dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], work, lwork, rwork, *toSlice(&iwork, 2), *toPtr(liwork - 2), result, logwrk); err != nil {
 					t.Fail()
-					fmt.Printf(" *** Error code from %s = %4d\n", "ZDRGVX", info)
+					fmt.Printf(" *** Error code from %s = %4d\n", "zdrgvx", info)
+				}
+				if t.Failed() {
+					fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 				}
 			}
-			fmt.Printf("\n -\n")
 
 		} else if path == "Zhb" {
 			//        ------------------------------
@@ -2869,7 +3351,7 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nk = len(kval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			alareq(ntypes, &dotype)
 			if newsd == 0 {
 				for k = 1; k <= 4; k++ {
@@ -2877,11 +3359,23 @@ func TestZeig(t *testing.T) {
 				}
 			}
 			if tsterr {
-				zerrst("Zhb", t)
+				fmt.Printf(errString)
+				ntestt = zerrst("Zhb", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = zchkhb2stg(nn, nval, nk, kval, maxtyp, dotype, iseed, thresh, a[0], dr[0], dr[1], dr[2], dr[3], dr[4], a[1], work, lwork, rwork, result); err != nil {
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = zchkhb2stg(nn, nval, nk, kval, maxtyp, dotype, iseed, thresh, a[0], dr[0], dr[1], dr[2], dr[3], dr[4], a[1], work, lwork, rwork, result); err != nil {
 				t.Fail()
-				fmt.Printf(" *** Error code from %s = %4d\n", "ZCHKHB", info)
+				fmt.Printf(" *** Error code from %s = %4d\n", "zchkhb", info)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Zbb" {
@@ -2900,8 +3394,9 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			nparms = len(nsval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			alareq(ntypes, &dotype)
+			fmt.Printf(chkString)
 			for i = 1; i <= nparms; i++ {
 				nrhs = nsval[i-1]
 
@@ -2910,11 +3405,18 @@ func TestZeig(t *testing.T) {
 						iseed[k-1] = ioldsd[k-1]
 					}
 				}
-				fmt.Printf(" %3s:  NRHS =%4d\n", path, nrhs)
-				if err = zchkbb(nn, mval, nval, nk, kval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], a[1].Off(0, 0).UpdateRows(2*nmax), dr[0], dr[1], a[3], a[4], a[5], a[6], work, lwork, rwork, result); err != nil {
+				// fmt.Printf(" %3s:  nrhs=%4d\n", path, nrhs)
+				if nfail, ntest, err = zchkbb(nn, mval, nval, nk, kval, maxtyp, dotype, nrhs, &iseed, thresh, a[0], a[1].Off(0, 0).UpdateRows(2*nmax), dr[0], dr[1], a[3], a[4], a[5], a[6], work, lwork, rwork, result); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %v\n", "zchkbb", err)
 				}
+				nfailt += nfail
+				ntestt += ntest
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Glm" {
@@ -2933,14 +3435,27 @@ func TestZeig(t *testing.T) {
 			nn = len(nval)
 			nk = len(kval)
 			nparms = len(nsval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				zerrgg("Glm", t)
+				fmt.Printf(errString)
+				ntestt = zerrgg("Glm", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = zckglm(nn, nval, mval, pval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
+			ntestt = 0
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = zckglm(nn, nval, mval, pval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckglm", err)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Gqr" {
@@ -2957,14 +3472,27 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nk = len(kval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				zerrgg("Gqr", t)
+				fmt.Printf(errString)
+				ntestt = zerrgg("Gqr", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = zckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), taua, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), b[4].CVector(0, 0), taub, work, dr[0]); err != nil {
+			ntestt = 0
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = zckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), taua, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), b[4].CVector(0, 0), taub, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckgqr", err)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Gsv" {
@@ -2981,14 +3509,27 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nk = len(kval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				zerrgg("Gsv", t)
+				fmt.Printf(errString)
+				ntestt = zerrgg("Gsv", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = zckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), a[2].CVector(0, 0), b[2].CVector(0, 0), a[3].CVector(0, 0), alpha, beta, b[3].CVector(0, 0), iwork, work, dr[0]); err != nil {
+			ntestt = 0
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = zckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), a[2].CVector(0, 0), b[2].CVector(0, 0), a[3].CVector(0, 0), alpha, beta, b[3].CVector(0, 0), iwork, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckgsv", err)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Csd" {
@@ -3005,14 +3546,27 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nk = len(kval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				zerrgg("Csd", t)
+				fmt.Printf(errString)
+				ntestt = zerrgg("Csd", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = zckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), a[5].CVector(0, 0), rwork, iwork, work, dr[0]); err != nil {
+			ntestt = 0
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = zckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), a[5].CVector(0, 0), rwork, iwork, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckcsd", err)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else if path == "Lse" {
@@ -3029,14 +3583,27 @@ func TestZeig(t *testing.T) {
 			maxtyp = ntypes
 			nn = len(nval)
 			nk = len(kval)
-			fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
+			// fmt.Printf("\n Routines pass computational tests if test ratio is less than%8.2f\n\n", thresh)
 			xlaenv(1, 1)
 			if tsterr {
-				zerrgg("Lse", t)
+				fmt.Printf(errString)
+				ntestt = zerrgg("Lse", t)
+				if t.Failed() {
+					fmt.Printf("Fail\n")
+				} else {
+					fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
+				}
 			}
-			if err = zcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
+			ntestt = 0
+			fmt.Printf(chkString)
+			if nfailt, ntestt, err = zcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zcklse", err)
+			}
+			if t.Failed() {
+				fmt.Printf("Fail\t\t( %6d tests failed )\n", nfailt)
+			} else {
+				fmt.Printf("Pass\t\t( %6d tests run )\n", ntestt)
 			}
 
 		} else {

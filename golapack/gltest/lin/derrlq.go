@@ -209,7 +209,7 @@ func derrlq(path string, t *testing.T) {
 	chkxer2("Dorml2", err)
 
 	//     Print a summary line.
-	alaesm(path, *ok)
+	// alaesm(path, *ok)
 
 	if !(*ok) {
 		t.Fail()

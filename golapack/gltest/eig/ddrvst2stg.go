@@ -118,11 +118,11 @@ import (
 //           with random signs.
 //      (17) Same as (16), but multiplied by SQRT( overflow threshold )
 //      (18) Same as (16), but multiplied by SQRT( underflow threshold )
-func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, d1, d2, d3, d4, eveigs, wa1, wa2, wa3 *mat.Vector, u, v *mat.Matrix, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, t *testing.T) (err error) {
+func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, nounit int, a *mat.Matrix, d1, d2, d3, d4, eveigs, wa1, wa2, wa3 *mat.Vector, u, v *mat.Matrix, tau *mat.Vector, z *mat.Matrix, work *mat.Vector, lwork int, iwork []int, liwork int, result *mat.Vector, t *testing.T) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var uplo mat.MatUplo
 	var abstol, aninv, anorm, cond, half, one, ovfl, rtovfl, rtunfl, temp1, temp2, temp3, ten, two, ulp, ulpinv, unfl, vl, vu, zero float64
-	var i, idiag, ihbw, iinfo, il, imode, indx, irow, itemp, itype, iu, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lwedc, m2, m3, maxtyp, mtypes, n, nerrs, nmats, nmax, ntest, ntestt int
+	var i, idiag, ihbw, iinfo, il, imode, indx, irow, itemp, itype, iu, j, j1, j2, jcol, jsize, jtype, kd, lgn, liwedc, lwedc, m2, m3, maxtyp, mtypes, n, nmats, nmax, ntest int
 	idumma := make([]int, 1)
 	ioldsd := make([]int, 4)
 	iseed2 := make([]int, 4)
@@ -344,7 +344,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				iinfo = 1
 			}
 
-			if iinfo != 0 {
+			if err != nil || iinfo != 0 {
 				fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Generator", iinfo, n, jtype, ioldsd)
 				err = fmt.Errorf("iinfo=%v", abs(iinfo))
 				return
@@ -379,7 +379,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstev"
 				if iinfo, err = golapack.Dstev('V', n, d1, d2, z, work); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstev(V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(0, ulpinv)
@@ -405,7 +405,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstev"
 				if iinfo, err = golapack.Dstev('N', n, d3, d4, z, work); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstev(N)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(2, ulpinv)
@@ -436,7 +436,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevx"
 				if _, iinfo, err = golapack.Dstevx('V', 'A', n, d1, d2, vl, vu, il, iu, abstol, wa1, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(3, ulpinv)
@@ -467,7 +467,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevx"
 				if m2, iinfo, err = golapack.Dstevx('N', 'A', n, d3, d4, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(5, ulpinv)
@@ -497,7 +497,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevr"
 				if _, iinfo, err = golapack.Dstevr('V', 'A', n, d1, d2, vl, vu, il, iu, abstol, wa1, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(6, ulpinv)
@@ -527,7 +527,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevr"
 				if m2, iinfo, err = golapack.Dstevr('N', 'A', n, d3, d4, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,A)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(8, ulpinv)
@@ -557,7 +557,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevx"
 				if m2, iinfo, err = golapack.Dstevx('V', 'I', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(9, ulpinv)
@@ -583,7 +583,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevx"
 				if m3, iinfo, err = golapack.Dstevx('N', 'I', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(11, ulpinv)
@@ -625,7 +625,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevx"
 				if m2, iinfo, err = golapack.Dstevx('V', 'V', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(V,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(12, ulpinv)
@@ -658,7 +658,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevx"
 				if m3, iinfo, err = golapack.Dstevx('N', 'V', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevx(N,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(14, ulpinv)
@@ -684,7 +684,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevd"
 				if iinfo, err = golapack.Dstevd('V', n, d1, d2, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevd(V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(15, ulpinv)
@@ -710,7 +710,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevd"
 				if iinfo, err = golapack.Dstevd('N', n, d3, d4, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevd(N)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(17, ulpinv)
@@ -740,7 +740,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevr"
 				if m2, iinfo, err = golapack.Dstevr('V', 'I', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(18, ulpinv)
@@ -766,7 +766,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevr"
 				if m3, iinfo, err = golapack.Dstevr('N', 'I', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,I)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(20, ulpinv)
@@ -808,7 +808,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevr"
 				if m2, iinfo, err = golapack.Dstevr('V', 'V', n, d1, d2, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(V,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(21, ulpinv)
@@ -841,7 +841,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dstevr"
 				if m3, iinfo, err = golapack.Dstevr('N', 'V', n, d3, d4, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dstevr(N,V)", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(23, ulpinv)
@@ -873,7 +873,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyev"
 				if iinfo, err = golapack.Dsyev('V', uplo, n, a, d1, work, lwork); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -892,7 +892,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyev2stage"
 				if iinfo, err = golapack.Dsyev2stage('N', uplo, n, a, d3, work, lwork); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyev2stage(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -936,7 +936,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevx"
 				if _, iinfo, err = golapack.Dsyevx('V', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa1, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -955,7 +955,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevx2stage"
 				if m2, iinfo, err = golapack.Dsyevx2stage('N', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx2stage(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -980,7 +980,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevx"
 				if m2, iinfo, err = golapack.Dsyevx('V', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1000,7 +1000,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevx2stage"
 				if m3, iinfo, err = golapack.Dsyevx2stage('N', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx2stage(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1020,7 +1020,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevx"
 				if m2, iinfo, err = golapack.Dsyevx('V', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1040,7 +1040,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevx2stage"
 				if m3, iinfo, err = golapack.Dsyevx2stage('N', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevx2stage(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1093,7 +1093,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspev"
 				if iinfo, err = golapack.Dspev('V', uplo, n, work, d1, z, v.VectorIdx(0)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1128,7 +1128,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspev"
 				if iinfo, err = golapack.Dspev('N', uplo, n, work, d3, z, v.VectorIdx(0)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspev(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1190,7 +1190,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevx"
 				if _, iinfo, err = golapack.Dspevx('V', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa1, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1226,7 +1226,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevx"
 				if m2, iinfo, err = golapack.Dspevx('N', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1268,7 +1268,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevx"
 				if m2, iinfo, err = golapack.Dspevx('V', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1304,7 +1304,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevx"
 				if m3, iinfo, err = golapack.Dspevx('N', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1352,7 +1352,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevx"
 				if m2, iinfo, err = golapack.Dspevx('V', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1388,7 +1388,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevx"
 				if m3, iinfo, err = golapack.Dspevx('N', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.VectorIdx(0), &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevx(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1443,7 +1443,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbev"
 				if iinfo, err = golapack.Dsbev('V', uplo, n, kd, v, d1, z, work); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbev(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1474,7 +1474,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbev2stage"
 				if iinfo, err = golapack.Dsbev2stage('N', uplo, n, kd, v, d3, z, work, lwork); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbev2stage(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1513,7 +1513,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevx"
 				if _, iinfo, err = golapack.Dsbevx('V', 'A', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1545,7 +1545,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevx2stage"
 				if m3, iinfo, err = golapack.Dsbevx2stage('N', 'A', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx2stage(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1582,7 +1582,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevx"
 				if m2, iinfo, err = golapack.Dsbevx('V', 'I', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1614,7 +1614,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevx2stage"
 				if m3, iinfo, err = golapack.Dsbevx2stage('N', 'I', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx2stage(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1652,7 +1652,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevx"
 				if m2, iinfo, err = golapack.Dsbevx('V', 'V', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa2, z, work, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1684,7 +1684,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevx2stage"
 				if m3, iinfo, err = golapack.Dsbevx2stage('N', 'V', uplo, n, kd, v, u, vl, vu, il, iu, abstol, wa3, z, work, lwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevx2stage(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1717,7 +1717,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevd"
 				if iinfo, err = golapack.Dsyevd('V', uplo, n, a, d1, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1736,7 +1736,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "DSYEVD_2STAGE"
 				if iinfo, err = golapack.Dsyevd2stage('N', uplo, n, a, d3, work, lwork, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "DSYEVD_2STAGE(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1783,7 +1783,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevd"
 				if iinfo, err = golapack.Dspevd('V', uplo, n, work, d1, z, work.Off(indx-1), lwedc-indx+1, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1819,7 +1819,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dspevd"
 				if iinfo, err = golapack.Dspevd('N', uplo, n, work, d3, z, work.Off(indx-1), lwedc-indx+1, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dspevd(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1867,7 +1867,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsbevd"
 				if iinfo, err = golapack.Dsbevd('V', uplo, n, kd, v, d1, z, work, lwedc, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevd(V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1899,7 +1899,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				if iinfo, err = golapack.Dsbevd2stage('N', uplo, n, kd, v, d3, z, work, lwork, &iwork, liwedc); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsbevd2stage(N,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
 					err = fmt.Errorf("iinfo=%v", abs(iinfo))
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1924,7 +1924,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevr"
 				if _, iinfo, err = golapack.Dsyevr('V', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa1, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1943,7 +1943,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevr2stage"
 				if m2, iinfo, err = golapack.Dsyevr2stage('N', 'A', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr2stage(N,A,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1968,7 +1968,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevr"
 				if m2, iinfo, err = golapack.Dsyevr('V', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -1988,7 +1988,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevr2stage"
 				if m3, iinfo, err = golapack.Dsyevr2stage('N', 'I', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr2stage(N,I,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2008,7 +2008,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevr"
 				if m2, iinfo, err = golapack.Dsyevr('V', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa2, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr(V,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2028,7 +2028,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				*srnamt = "Dsyevr2stage"
 				if m3, iinfo, err = golapack.Dsyevr2stage('N', 'V', uplo, n, a, vl, vu, il, iu, abstol, wa3, z, &iwork, work, lwork, toSlice(&iwork, 2*n), liwork-2*n); err != nil || iinfo != 0 {
 					fmt.Printf(" ddrvst2stg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsyevr2stage(N,V,"+string(uplo.Byte())+")", iinfo, n, jtype, ioldsd)
-					if iinfo < 0 {
+					if err != nil {
 						return
 					} else {
 						result.Set(ntest-1, ulpinv)
@@ -2065,7 +2065,7 @@ func ddrvst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 	}
 
 	//     Summary
-	alasvm("Dst", nerrs, ntestt, 0)
+	// alasvm("Dst", nerrs, ntestt, 0)
 
 	return
 }

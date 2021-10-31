@@ -189,11 +189,11 @@ import (
 //
 // (26) U ( T1, T2 ) V     where T1 and T2 are random upper-triangular
 //                         matrices.
-func zchkgg(nsizes int, nn []int, ntypes int, dotype []bool, iseed *[]int, thresh float64, tstdif bool, thrshn float64, a, b, h, t, s1, s2, p1, p2, u, v, q, z *mat.CMatrix, alpha1, beta1, alpha3, beta3 *mat.CVector, evectl, evectr *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, llwork []bool, result *mat.Vector) (err error) {
+func zchkgg(nsizes int, nn []int, ntypes int, dotype []bool, iseed *[]int, thresh float64, tstdif bool, thrshn float64, a, b, h, t, s1, s2, p1, p2, u, v, q, z *mat.CMatrix, alpha1, beta1, alpha3, beta3 *mat.CVector, evectl, evectr *mat.CMatrix, work *mat.CVector, lwork int, rwork *mat.Vector, llwork []bool, result *mat.Vector) (nerrs, ntestt int, err error) {
 	var badnn bool
 	var cone, ctemp, czero complex128
 	var anorm, bnorm, one, safmax, safmin, temp1, temp2, ulp, ulpinv, zero float64
-	var i1, iadd, iinfo, in, j, jc, jr, jsize, jtype, lwkopt, maxtyp, mtypes, n, n1, nerrs, nmats, nmax, ntest, ntestt int
+	var i1, iadd, iinfo, in, j, jc, jr, jsize, jtype, lwkopt, maxtyp, mtypes, n, n1, nmats, nmax, ntest int
 	lasign := []bool{false, false, false, false, false, false, true, false, true, true, false, false, true, true, true, false, true, false, false, false, true, true, true, true, true, false}
 	lbsign := []bool{false, false, false, false, false, false, false, true, false, false, true, true, false, false, true, false, true, false, false, false, false, false, false, false, false, false}
 	cdumma := cvf(4)
@@ -684,7 +684,7 @@ func zchkgg(nsizes int, nn []int, ntypes int, dotype []bool, iseed *[]int, thres
 	}
 
 	//     Summary
-	dlasum("Zgg", nerrs, ntestt)
+	// dlasum("Zgg", nerrs, ntestt)
 
 	return
 }

@@ -20,6 +20,7 @@ func zchkge(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 	var err error
 
 	path := "Zge"
+	alasumStart(path)
 	result := vf(8)
 	iseed := make([]int, 4)
 	iseedy := make([]int, 4)
@@ -304,5 +305,6 @@ func zchkge(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 	}
 
 	//     Print a summary of the results.
-	alasum(path, nfail, nrun, nerrs)
+	// alasum(path, nfail, nrun, nerrs)
+	alasumEnd(nfail, nrun, nerrs)
 }

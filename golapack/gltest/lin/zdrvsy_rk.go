@@ -37,6 +37,7 @@ func zdrvsyRk(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tster
 	//
 	//     Test path
 	path := "Zsk"
+	alasvmStart(path)
 
 	//     Path to generate matrices
 	matpath := "Zsy"
@@ -291,5 +292,6 @@ func zdrvsyRk(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tster
 	}
 
 	//     Print a summary of the results.
-	alasvm(path, nfail, nrun, nerrs)
+	// alasvm(path, nfail, nrun, nerrs)
+	alasvmEnd(nfail, nrun, nerrs)
 }

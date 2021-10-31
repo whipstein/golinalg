@@ -161,12 +161,12 @@ import (
 //
 // (26) Q ( T1, T2 ) Z     where T1 and T2 are random upper-triangular
 //                         matrices.
-func zdrges3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, b, s, t, q, z *mat.CMatrix, alpha, beta, work *mat.CVector, lwork int, rwork, result *mat.Vector, bwork []bool) (err error) {
+func zdrges3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh float64, a, b, s, t, q, z *mat.CMatrix, alpha, beta, work *mat.CVector, lwork int, rwork, result *mat.Vector, bwork []bool) (nerrs, ntestt int, err error) {
 	var badnn, ilabad bool
 	var sort byte
 	var cone, ctemp, czero complex128
 	var one, safmax, safmin, temp1, temp2, ulp, ulpinv, zero float64
-	var i, iadd, iinfo, in, isort, j, jc, jr, jsize, jtype, knteig, maxtyp, maxwrk, minwrk, mtypes, n, n1, nb, nerrs, nmats, nmax, ntest, ntestt, rsub, sdim int
+	var i, iadd, iinfo, in, isort, j, jc, jr, jsize, jtype, knteig, maxtyp, maxwrk, minwrk, mtypes, n, n1, nb, nmats, nmax, ntest, rsub, sdim int
 	lasign := []bool{false, false, false, false, false, false, true, false, true, true, false, false, true, true, true, false, true, false, false, false, true, true, true, true, true, false}
 	lbsign := []bool{false, false, false, false, false, false, false, true, false, false, true, true, false, false, true, false, true, false, false, false, false, false, false, false, false, false}
 	rmagn := vf(4)
@@ -532,7 +532,7 @@ func zdrges3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 	}
 
 	//     Summary
-	alasvm("Zgs", nerrs, ntestt, 0)
+	// alasvm("Zgs", nerrs, ntestt, 0)
 
 	work.SetRe(0, float64(maxwrk))
 

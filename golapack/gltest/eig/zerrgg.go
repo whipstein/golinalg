@@ -12,9 +12,9 @@ import (
 // Zgges3, Zggev3, Zggglm, Zgghrd, Zgglse, Zggqrf, Zggrqf,
 // Zggsvd3, Zggsvp3, Zhgeqz, Ztgevc, Ztgexc, Ztgsen, Ztgsja,
 // Ztgsna, Ztgsyl, and Zuncsd.
-func zerrgg(path string, t *testing.T) {
+func zerrgg(path string, t *testing.T) (nt int) {
 	var one, tola, tolb, zero float64
-	var dummyk, dummyl, i, ifst, ilst, j, lw, lwork, nmax, nt int
+	var dummyk, dummyl, i, ifst, ilst, j, lw, lwork, nmax int
 	var err error
 
 	nmax = 3
@@ -818,14 +818,16 @@ func zerrgg(path string, t *testing.T) {
 	}
 
 	//     Print a summary line.
-	if *ok {
-		fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
-	} else {
-		fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
-	}
+	// if *ok {
+	// 	fmt.Printf(" %3s routines passed the tests of the error exits (%3d tests done)\n", path, nt)
+	// } else {
+	// 	fmt.Printf(" *** %3s routines failed the tests of the error exits ***\n", path)
+	// }
 	*infot = 0
 	*srnamt = ""
 	if !(*ok) {
 		t.Fail()
 	}
+
+	return
 }
