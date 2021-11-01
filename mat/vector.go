@@ -79,11 +79,15 @@ func (v *Vector) Iter(n int) []int {
 
 	if v.Inc > 0 {
 		for i := 0; i < n; i++ {
-			iter = append(iter, i*v.Inc)
+			if i*v.Inc < v.Size {
+				iter = append(iter, i*v.Inc)
+			}
 		}
 	} else {
 		for i := 0; i < n; i++ {
-			iter = append(iter, (-n+1+i)*v.Inc)
+			if (-n+1+i)*v.Inc < v.Size {
+				iter = append(iter, (-n+1+i)*v.Inc)
+			}
 		}
 	}
 	return iter
@@ -250,11 +254,15 @@ func (v *CVector) Iter(n int) []int {
 
 	if v.Inc > 0 {
 		for i := 0; i < n; i++ {
-			iter = append(iter, i*v.Inc)
+			if i*v.Inc < v.Size {
+				iter = append(iter, i*v.Inc)
+			}
 		}
 	} else {
 		for i := 0; i < n; i++ {
-			iter = append(iter, (-n+1+i)*v.Inc)
+			if (-n+1+i)*v.Inc < v.Size {
+				iter = append(iter, (-n+1+i)*v.Inc)
+			}
 		}
 	}
 	return iter
