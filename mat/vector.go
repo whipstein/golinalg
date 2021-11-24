@@ -13,9 +13,11 @@ type Vector struct {
 	Data []float64
 }
 
-func (v *Vector) Append(x float64) {
-	v.Size++
-	v.Data = append(v.Data, x)
+func (v *Vector) Append(x ...float64) {
+	for _, xx := range x {
+		v.Size++
+		v.Data = append(v.Data, xx)
+	}
 }
 func (v *Vector) Get(n int) float64 {
 	return v.Data[n]
@@ -159,9 +161,11 @@ type CVector struct {
 	Data []complex128
 }
 
-func (v *CVector) Append(x complex128) {
-	v.Size++
-	v.Data = append(v.Data, x)
+func (v *CVector) Append(x ...complex128) {
+	for _, xx := range x {
+		v.Size++
+		v.Data = append(v.Data, xx)
+	}
 }
 func (v *CVector) Get(n int) complex128 {
 	return v.Data[n]
