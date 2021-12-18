@@ -3,7 +3,6 @@ package lin
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -52,7 +51,7 @@ func zrzt01(m, n int, a, af *mat.CMatrix, tau, work *mat.CVector, lwork int) (zr
 
 	//     R = R - A
 	for i = 1; i <= n; i++ {
-		goblas.Zaxpy(m, complex(-one, 0), a.CVector(0, i-1, 1), work.Off((i-1)*m, 1))
+		work.Off((i-1)*m).Axpy(m, complex(-one, 0), a.Off(0, i-1).CVector(), 1, 1)
 	}
 
 	zrzt01Return = golapack.Zlange('O', m, n, work.CMatrix(m, opts), rwork)

@@ -71,7 +71,7 @@ func Zlanhs(norm byte, n int, a *mat.CMatrix, work *mat.Vector) (zlanhsReturn fl
 		for j = 1; j <= n; j++ {
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n, j+1), a.CVector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+			*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n, j+1), a.Off(0, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

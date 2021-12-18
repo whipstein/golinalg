@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -66,12 +65,12 @@ func Zpbtf2(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) 
 			//           trailing submatrix within the band.
 			kn = min(kd, n-j)
 			if kn > 0 {
-				goblas.Zdscal(kn, one/ajj, ab.CVector(kd-1, j, kld))
-				Zlacgv(kn, ab.CVector(kd-1, j, kld))
-				if err = goblas.Zher(Upper, kn, -one, ab.CVector(kd-1, j, kld), ab.Off(kd, j).UpdateRows(kld)); err != nil {
+				ab.Off(kd-1, j).CVector().Dscal(kn, one/ajj, kld)
+				Zlacgv(kn, ab.Off(kd-1, j).CVector(), kld)
+				if err = ab.Off(kd, j).UpdateRows(kld).Her(Upper, kn, -one, ab.Off(kd-1, j).CVector(), kld); err != nil {
 					panic(err)
 				}
-				Zlacgv(kn, ab.CVector(kd-1, j, kld))
+				Zlacgv(kn, ab.Off(kd-1, j).CVector(), kld)
 			}
 		}
 	} else {
@@ -90,8 +89,8 @@ func Zpbtf2(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) 
 			//           trailing submatrix within the band.
 			kn = min(kd, n-j)
 			if kn > 0 {
-				goblas.Zdscal(kn, one/ajj, ab.CVector(1, j-1, 1))
-				if err = goblas.Zher(Lower, kn, -one, ab.CVector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld)); err != nil {
+				ab.Off(1, j-1).CVector().Dscal(kn, one/ajj, 1)
+				if err = ab.Off(0, j).UpdateRows(kld).Her(Lower, kn, -one, ab.Off(1, j-1).CVector(), 1); err != nil {
 					panic(err)
 				}
 			}

@@ -295,11 +295,11 @@ func zchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, 
 						if iwork[k-1] > int(zero) {
 							//                       Get max absolute value from elements
 							//                       in column k in in U
-							dtemp = golapack.Zlange('M', k-1, 1, afac.CMatrixOff((k-1)*lda, lda, opts), rwork)
+							dtemp = golapack.Zlange('M', k-1, 1, afac.Off((k-1)*lda).CMatrix(lda, opts), rwork)
 						} else {
 							//                       Get max absolute value from elements
 							//                       in columns k and k-1 in U
-							dtemp = golapack.Zlange('M', k-2, 2, afac.CMatrixOff((k-2)*lda, lda, opts), rwork)
+							dtemp = golapack.Zlange('M', k-2, 2, afac.Off((k-2)*lda).CMatrix(lda, opts), rwork)
 							k = k - 1
 
 						}
@@ -326,11 +326,11 @@ func zchksyRk(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, 
 						if iwork[k-1] > int(zero) {
 							//                       Get max absolute value from elements
 							//                       in column k in in L
-							dtemp = golapack.Zlange('M', n-k, 1, afac.CMatrixOff((k-1)*lda+k, lda, opts), rwork)
+							dtemp = golapack.Zlange('M', n-k, 1, afac.Off((k-1)*lda+k).CMatrix(lda, opts), rwork)
 						} else {
 							//                       Get max absolute value from elements
 							//                       in columns k and k+1 in L
-							dtemp = golapack.Zlange('M', n-k-1, 2, afac.CMatrixOff((k-1)*lda+k+2-1, lda, opts), rwork)
+							dtemp = golapack.Zlange('M', n-k-1, 2, afac.Off((k-1)*lda+k+2-1).CMatrix(lda, opts), rwork)
 							k = k + 1
 
 						}

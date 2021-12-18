@@ -3,14 +3,13 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
 // Zdrscl multiplies an n-element complex vector x by the real scalar
 // 1/a.  This is done without overflow or underflow as long as
 // the final result x/a does not overflow or underflow.
-func Zdrscl(n int, sa float64, sx *mat.CVector) {
+func Zdrscl(n int, sa float64, sx *mat.CVector, incx int) {
 	var done bool
 	var bignum, cden, cden1, cnum, cnum1, mul, one, smlnum, zero float64
 
@@ -52,7 +51,7 @@ label10:
 	}
 
 	//     Scale the vector X by MUL
-	goblas.Zdscal(n, mul, sx)
+	sx.Dscal(n, mul, incx)
 
 	if !done {
 		goto label10

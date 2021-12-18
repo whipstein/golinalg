@@ -15,7 +15,7 @@ import (
 //
 //      (  c(i) conjg(s(i)) ) (       x(i)  z(i) ) ( c(i) -conjg(s(i)) )
 //      ( -s(i)       c(i)  ) ( conjg(z(i)) y(i) ) ( s(i)        c(i)  )
-func Zlar2v(n int, x, y, z *mat.CVector, c *mat.Vector, s *mat.CVector) {
+func Zlar2v(n int, x, y, z *mat.CVector, incx int, c *mat.Vector, s *mat.CVector, incc int) {
 	var si, t2, t3, t4, zi complex128
 	var ci, sii, sir, t1i, t1r, t5, t6, xi, yi, zii, zir float64
 	var i, ic, ix int
@@ -42,7 +42,7 @@ func Zlar2v(n int, x, y, z *mat.CVector, c *mat.Vector, s *mat.CVector) {
 		x.SetRe(ix-1, ci*t5+(sir*real(t4)+sii*imag(t4)))
 		y.SetRe(ix-1, ci*t6-(sir*real(t3)-sii*imag(t3)))
 		z.Set(ix-1, complex(ci, 0)*t3+cmplx.Conj(si)*complex(t6, t1i))
-		ix = ix + x.Inc
-		ic = ic + c.Inc
+		ix = ix + incx
+		ic = ic + incc
 	}
 }

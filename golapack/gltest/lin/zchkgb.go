@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -144,7 +143,7 @@ func zchkgb(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 								a.Set(i-1, complex(zero, 0))
 							}
 							*srnamt = "Zlatms"
-							if err = matgen.Zlatms(m, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, 'Z', a.CMatrixOff(koff-1, lda, opts), work); err != nil {
+							if err = matgen.Zlatms(m, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, 'Z', a.Off(koff-1).CMatrix(lda, opts), work); err != nil {
 								t.Fail()
 								nerrs = alaerh(path, "Zlatms", info, 0, []byte{' '}, m, n, kl, ku, -1, imat, nfail, nerrs)
 								goto label120
@@ -152,7 +151,7 @@ func zchkgb(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 						} else if izero > 0 {
 							//                       Use the same matrix for types 3 and 4 as for
 							//                       _type 2 by copying back the zeroed out column.
-							goblas.Zcopy(i2-i1+1, b.Off(0, 1), a.Off(ioff+i1-1, 1))
+							a.Off(ioff+i1-1).Copy(i2-i1+1, b, 1, 1)
 						}
 
 						//                    For types 2, 3, and 4, zero one or more columns of
@@ -171,7 +170,7 @@ func zchkgb(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 								//                          Store the column to be zeroed out in B.
 								i1 = max(1, ku+2-izero)
 								i2 = min(kl+ku+1, ku+1+(m-izero))
-								goblas.Zcopy(i2-i1+1, a.Off(ioff+i1-1, 1), b.Off(0, 1))
+								b.Copy(i2-i1+1, a.Off(ioff+i1-1), 1, 1)
 
 								for i = i1; i <= i2; i++ {
 									a.Set(ioff+i-1, complex(zero, 0))
@@ -200,7 +199,7 @@ func zchkgb(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 
 							//                       Compute the LU factorization of the band matrix.
 							if m > 0 && n > 0 {
-								golapack.Zlacpy(Full, kl+ku+1, n, a.CMatrix(lda, opts), afac.CMatrixOff(kl, ldafac, opts))
+								golapack.Zlacpy(Full, kl+ku+1, n, a.CMatrix(lda, opts), afac.Off(kl).CMatrix(ldafac, opts))
 							}
 							*srnamt = "Zgbtrf"
 							if info, err = golapack.Zgbtrf(m, n, kl, ku, afac.CMatrix(ldafac, opts), iwork); err != nil {

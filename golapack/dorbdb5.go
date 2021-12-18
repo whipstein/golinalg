@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -20,7 +19,7 @@ import (
 // criterion, then some other vector from the orthogonal complement
 // is returned. This vector is chosen in an arbitrary but deterministic
 // way.
-func Dorbdb5(m1, m2, n int, x1, x2 *mat.Vector, q1, q2 *mat.Matrix, work *mat.Vector, lwork int) (err error) {
+func Dorbdb5(m1, m2, n int, x1 *mat.Vector, incx1 int, x2 *mat.Vector, incx2 int, q1, q2 *mat.Matrix, work *mat.Vector, lwork int) (err error) {
 	var one, zero float64
 	var i, j int
 
@@ -34,10 +33,10 @@ func Dorbdb5(m1, m2, n int, x1, x2 *mat.Vector, q1, q2 *mat.Matrix, work *mat.Ve
 		err = fmt.Errorf("m2 < 0: m2=%v", m2)
 	} else if n < 0 {
 		err = fmt.Errorf("n < 0: n=%v", n)
-	} else if x1.Inc < 1 {
-		err = fmt.Errorf("x1.Inc < 1: x1.Inc=%v", x1.Inc)
-	} else if x2.Inc < 1 {
-		err = fmt.Errorf("x2.Inc < 1: x2.Inc=%v", x2.Inc)
+	} else if incx1 < 1 {
+		err = fmt.Errorf("x1.Inc < 1: x1.Inc=%v", incx1)
+	} else if incx2 < 1 {
+		err = fmt.Errorf("x2.Inc < 1: x2.Inc=%v", incx2)
 	} else if q1.Rows < max(1, m1) {
 		err = fmt.Errorf("q1.Rows < max(1, m1): q1.Rows=%v, m1=%v", q1.Rows, m1)
 	} else if q2.Rows < max(1, m2) {
@@ -52,12 +51,12 @@ func Dorbdb5(m1, m2, n int, x1, x2 *mat.Vector, q1, q2 *mat.Matrix, work *mat.Ve
 	}
 
 	//     Project X onto the orthogonal complement of Q
-	if err = Dorbdb6(m1, m2, n, x1, x2, q1, q2, work, lwork); err != nil {
+	if err = Dorbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, q2, work, lwork); err != nil {
 		panic(err)
 	}
 
 	//     If the projection is nonzero, then return
-	if goblas.Dnrm2(m1, x1) != zero || goblas.Dnrm2(m2, x2) != zero {
+	if x1.Nrm2(m1, incx1) != zero || x2.Nrm2(m2, incx2) != zero {
 		return
 	}
 
@@ -71,10 +70,10 @@ func Dorbdb5(m1, m2, n int, x1, x2 *mat.Vector, q1, q2 *mat.Matrix, work *mat.Ve
 		for j = 1; j <= m2; j++ {
 			x2.Set(j-1, zero)
 		}
-		if err = Dorbdb6(m1, m2, n, x1, x2, q1, q2, work, lwork); err != nil {
+		if err = Dorbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, q2, work, lwork); err != nil {
 			panic(err)
 		}
-		if goblas.Dnrm2(m1, x1) != zero || goblas.Dnrm2(m2, x2) != zero {
+		if x1.Nrm2(m1, incx1) != zero || x2.Nrm2(m2, incx2) != zero {
 			return
 		}
 	}
@@ -89,10 +88,10 @@ func Dorbdb5(m1, m2, n int, x1, x2 *mat.Vector, q1, q2 *mat.Matrix, work *mat.Ve
 			x2.Set(j-1, zero)
 		}
 		x2.Set(i-1, one)
-		if err = Dorbdb6(m1, m2, n, x1, x2, q1, q2, work, lwork); err != nil {
+		if err = Dorbdb6(m1, m2, n, x1, incx1, x2, incx2, q1, q2, work, lwork); err != nil {
 			panic(err)
 		}
-		if goblas.Dnrm2(m1, x1) != zero || goblas.Dnrm2(m2, x2) != zero {
+		if x1.Nrm2(m1, incx1) != zero || x2.Nrm2(m2, incx2) != zero {
 			return
 		}
 	}

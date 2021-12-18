@@ -48,11 +48,11 @@ func Dsytri2(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Matr
 		return
 	}
 	if nbmax >= n {
-		if info, err = Dsytri(uplo, n, a, ipiv, work.VectorIdx(0)); err != nil {
+		if info, err = Dsytri(uplo, n, a, ipiv, work.OffIdx(0).Vector()); err != nil {
 			panic(err)
 		}
 	} else {
-		if info, err = Dsytri2x(uplo, n, a, ipiv, work.VectorIdx(0), nbmax); err != nil {
+		if info, err = Dsytri2x(uplo, n, a, ipiv, work.OffIdx(0).Vector(), nbmax); err != nil {
 			panic(err)
 		}
 	}

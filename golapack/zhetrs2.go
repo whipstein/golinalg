@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,7 +57,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k - 1
 			} else {
@@ -66,14 +65,14 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if kp == -(*ipiv)[k-1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k - 2
 			}
 		}
 
 		//  Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		if err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -82,7 +81,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
 				s = real(one) / a.GetRe(i-1, i-1)
-				goblas.Zdscal(nrhs, s, b.CVector(i-1, 0))
+				b.Off(i-1, 0).CVector().Dscal(nrhs, s, b.Rows)
 			} else if i > 1 {
 				if (*ipiv)[i-1-1] == (*ipiv)[i-1] {
 					akm1k = work.Get(i - 1)
@@ -102,7 +101,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 		}
 
 		//      Compute (U**H \ B) -> B   [ U**H \ (D \ (U \P**T * B) ) ]
-		if err = goblas.Ztrsm(Left, Upper, ConjTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, ConjTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -114,7 +113,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k + 1
 			} else {
@@ -122,7 +121,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k < n && kp == -(*ipiv)[k] {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k + 2
 			}
@@ -139,7 +138,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k + 1
 			} else {
@@ -147,14 +146,14 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K and -IPIV(K+1).
 				kp = -(*ipiv)[k]
 				if kp == -(*ipiv)[k-1] {
-					goblas.Zswap(nrhs, b.CVector(k, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k + 2
 			}
 		}
 
 		//  Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -163,7 +162,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 		for i <= n {
 			if (*ipiv)[i-1] > 0 {
 				s = real(one) / a.GetRe(i-1, i-1)
-				goblas.Zdscal(nrhs, s, b.CVector(i-1, 0))
+				b.Off(i-1, 0).CVector().Dscal(nrhs, s, b.Rows)
 			} else {
 				akm1k = work.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / cmplx.Conj(akm1k)
@@ -181,7 +180,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 		}
 
 		//  Compute (L**H \ B) -> B   [ L**H \ (D \ (L \P**T * B) ) ]
-		if err = goblas.Ztrsm(Left, Lower, ConjTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, ConjTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -193,7 +192,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k - 1
 			} else {
@@ -201,7 +200,7 @@ func Zhetrs2(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k > 1 && kp == -(*ipiv)[k-1-1] {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 				k = k - 2
 			}

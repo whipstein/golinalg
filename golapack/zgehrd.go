@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -101,28 +100,28 @@ func Zgehrd(n, ilo, ihi int, a *mat.CMatrix, tau, work *mat.CVector, lwork int) 
 			//           Reduce columns i:i+ib-1 to Hessenberg form, returning the
 			//           matrices V and T of the block reflector H = I - V*T*V**H
 			//           which performs the reduction, and also the matrix Y = A*V*T
-			Zlahr2(ihi, i, ib, a.Off(0, i-1), tau.Off(i-1), work.CMatrixOff(iwt-1, ldt, opts), work.CMatrix(ldwork, opts))
+			Zlahr2(ihi, i, ib, a.Off(0, i-1), tau.Off(i-1), work.Off(iwt-1).CMatrix(ldt, opts), work.CMatrix(ldwork, opts))
 
 			//           Apply the block reflector H to A(1:ihi,i+ib:ihi) from the
 			//           right, computing  A := A - Y * V**H. V(i+ib,ib-1) must be set
 			//           to 1
 			ei = a.Get(i+ib-1, i+ib-1-1)
 			a.Set(i+ib-1, i+ib-1-1, one)
-			err = goblas.Zgemm(NoTrans, ConjTrans, ihi, ihi-i-ib+1, ib, -one, work.CMatrix(ldwork, opts), a.Off(i+ib-1, i-1), one, a.Off(0, i+ib-1))
+			err = a.Off(0, i+ib-1).Gemm(NoTrans, ConjTrans, ihi, ihi-i-ib+1, ib, -one, work.CMatrix(ldwork, opts), a.Off(i+ib-1, i-1), one)
 			a.Set(i+ib-1, i+ib-1-1, ei)
 
 			//           Apply the block reflector H to A(1:i,i+1:i+ib-1) from the
 			//           right
-			if err = goblas.Ztrmm(Right, Lower, ConjTrans, Unit, i, ib-1, one, a.Off(i, i-1), work.CMatrix(ldwork, opts)); err != nil {
+			if err = work.CMatrix(ldwork, opts).Trmm(Right, Lower, ConjTrans, Unit, i, ib-1, one, a.Off(i, i-1)); err != nil {
 				panic(err)
 			}
 			for j = 0; j <= ib-2; j++ {
-				goblas.Zaxpy(i, -one, work.Off(ldwork*j, 1), a.CVector(0, i+j, 1))
+				a.Off(0, i+j).CVector().Axpy(i, -one, work.Off(ldwork*j), 1, 1)
 			}
 
 			//           Apply the block reflector H to A(i+1:ihi,i+ib:n) from the
 			//           left
-			Zlarfb(Left, ConjTrans, 'F', 'C', ihi-i, n-i-ib+1, ib, a.Off(i, i-1), work.CMatrixOff(iwt-1, ldt, opts), a.Off(i, i+ib-1), work.CMatrix(ldwork, opts))
+			Zlarfb(Left, ConjTrans, 'F', 'C', ihi-i, n-i-ib+1, ib, a.Off(i, i-1), work.Off(iwt-1).CMatrix(ldt, opts), a.Off(i, i+ib-1), work.CMatrix(ldwork, opts))
 		}
 	}
 

@@ -3,7 +3,6 @@ package lin
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -45,7 +44,7 @@ func dgelqs(m, n, nrhs int, a *mat.Matrix, tau *mat.Vector, b *mat.Matrix, work 
 	}
 
 	//     Solve L*X = B(1:m,:)
-	if err = goblas.Dtrsm(Left, Lower, NoTrans, NonUnit, m, nrhs, one, a, b); err != nil {
+	if err = b.Trsm(Left, Lower, NoTrans, NonUnit, m, nrhs, one, a); err != nil {
 		panic(err)
 	}
 

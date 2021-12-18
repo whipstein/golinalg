@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 )
 
@@ -345,13 +344,13 @@ func dchkgk(t *testing.T) {
 
 		knt = knt + 1
 
-		anorm = golapack.Dlange('M', n, n, a, work.VectorIdx(0))
-		bnorm = golapack.Dlange('M', n, n, b, work.VectorIdx(0))
+		anorm = golapack.Dlange('M', n, n, a, work.OffIdx(0).Vector())
+		bnorm = golapack.Dlange('M', n, n, b, work.OffIdx(0).Vector())
 
 		golapack.Dlacpy(Full, n, n, a, af)
 		golapack.Dlacpy(Full, n, n, b, bf)
 
-		if ilo, ihi, err = golapack.Dggbal('B', n, a, b, lscale, rscale, work.VectorIdx(0)); err != nil {
+		if ilo, ihi, err = golapack.Dggbal('B', n, a, b, lscale, rscale, work.OffIdx(0).Vector()); err != nil {
 			t.Fail()
 			ninfo = ninfo + 1
 			lmax[0] = knt
@@ -376,17 +375,17 @@ func dchkgk(t *testing.T) {
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
-		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, af, vr, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, n, m, n, one, af, vr, zero); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e); err != nil {
+		if err = e.Gemm(Trans, NoTrans, m, m, n, one, vl, work, zero); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, a, vrf, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, n, m, n, one, a, vrf, zero); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f); err != nil {
+		if err = f.Gemm(Trans, NoTrans, m, m, n, one, vlf, work, zero); err != nil {
 			panic(err)
 		}
 
@@ -403,17 +402,17 @@ func dchkgk(t *testing.T) {
 		}
 
 		//     Check tilde(VL)'*B*tilde(VR) - VL'*tilde(B)*VR
-		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, bf, vr, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, n, m, n, one, bf, vr, zero); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vl, work, zero, e); err != nil {
+		if err = e.Gemm(Trans, NoTrans, m, m, n, one, vl, work, zero); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, one, b, vrf, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, n, m, n, one, b, vrf, zero); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, vlf, work, zero, f); err != nil {
+		if err = f.Gemm(Trans, NoTrans, m, m, n, one, vlf, work, zero); err != nil {
 			panic(err)
 		}
 

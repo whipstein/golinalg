@@ -109,7 +109,7 @@ func Dorgrq(m, n, k int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (err e
 				Dlarft('B', 'R', n-k+i+ib-1, ib, a.Off(ii-1, 0), tau.Off(i-1), work.Matrix(ldwork, opts))
 
 				//              Apply H**T to A(1:m-k+i-1,1:n-k+i+ib-1) from the right
-				Dlarfb(Right, Trans, 'B', 'R', ii-1, n-k+i+ib-1, ib, a.Off(ii-1, 0), work.Matrix(ldwork, opts), a, work.MatrixOff(ib, ldwork, opts))
+				Dlarfb(Right, Trans, 'B', 'R', ii-1, n-k+i+ib-1, ib, a.Off(ii-1, 0), work.Matrix(ldwork, opts), a, work.Off(ib).Matrix(ldwork, opts))
 			}
 
 			//           Apply H**T to columns 1:n-k+i+ib-1 of current block

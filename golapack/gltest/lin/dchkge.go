@@ -102,7 +102,7 @@ func dchkge(dotype []bool, mval, nval, nbval, nsval []int, thresh float64, tster
 							a.Set(ioff+i-1, zero)
 						}
 					} else {
-						golapack.Dlaset(Full, m, n-izero+1, zero, zero, a.MatrixOff(ioff, lda, opts))
+						golapack.Dlaset(Full, m, n-izero+1, zero, zero, a.Off(ioff).Matrix(lda, opts))
 					}
 				} else {
 					izero = 0

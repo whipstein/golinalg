@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -19,7 +18,7 @@ import (
 // tau.
 //
 // H is a product of k elementary reflectors as returned by ZTZRZF.
-func Zlarz(side mat.MatSide, m, n, l int, v *mat.CVector, tau complex128, c *mat.CMatrix, work *mat.CVector) {
+func Zlarz(side mat.MatSide, m, n, l int, v *mat.CVector, incv int, tau complex128, c *mat.CMatrix, work *mat.CVector) {
 	var one, zero complex128
 	var err error
 
@@ -30,19 +29,19 @@ func Zlarz(side mat.MatSide, m, n, l int, v *mat.CVector, tau complex128, c *mat
 		//        Form  H * C
 		if tau != zero {
 			//           w( 1:n ) = conjg( C( 1, 1:n ) )
-			goblas.Zcopy(n, c.CVector(0, 0), work.Off(0, 1))
-			Zlacgv(n, work.Off(0, 1))
+			work.Copy(n, c.Off(0, 0).CVector(), c.Rows, 1)
+			Zlacgv(n, work, 1)
 
 			//           w( 1:n ) = conjg( w( 1:n ) + C( m-l+1:m, 1:n )**H * v( 1:l ) )
-			err = goblas.Zgemv(ConjTrans, l, n, one, c.Off(m-l, 0), v, one, work.Off(0, 1))
-			Zlacgv(n, work.Off(0, 1))
+			err = work.Gemv(ConjTrans, l, n, one, c.Off(m-l, 0), v, incv, one, 1)
+			Zlacgv(n, work, 1)
 
 			//           C( 1, 1:n ) = C( 1, 1:n ) - tau * w( 1:n )
-			goblas.Zaxpy(n, -tau, work.Off(0, 1), c.CVector(0, 0))
+			c.Off(0, 0).CVector().Axpy(n, -tau, work, 1, c.Rows)
 
 			//           C( m-l+1:m, 1:n ) = C( m-l+1:m, 1:n ) - ...
 			//                               tau * v( 1:l ) * w( 1:n )**H
-			if err = goblas.Zgeru(l, n, -tau, v, work.Off(0, 1), c.Off(m-l, 0)); err != nil {
+			if err = c.Off(m-l, 0).Geru(l, n, -tau, v, incv, work, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -51,19 +50,19 @@ func Zlarz(side mat.MatSide, m, n, l int, v *mat.CVector, tau complex128, c *mat
 		//        Form  C * H
 		if tau != zero {
 			//           w( 1:m ) = C( 1:m, 1 )
-			goblas.Zcopy(m, c.CVector(0, 0, 1), work.Off(0, 1))
+			work.Copy(m, c.Off(0, 0).CVector(), 1, 1)
 
 			//           w( 1:m ) = w( 1:m ) + C( 1:m, n-l+1:n, 1:n ) * v( 1:l )
-			if err = goblas.Zgemv(NoTrans, m, l, one, c.Off(0, n-l), v, one, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(NoTrans, m, l, one, c.Off(0, n-l), v, incv, one, 1); err != nil {
 				panic(err)
 			}
 
 			//           C( 1:m, 1 ) = C( 1:m, 1 ) - tau * w( 1:m )
-			goblas.Zaxpy(m, -tau, work.Off(0, 1), c.CVector(0, 0, 1))
+			c.Off(0, 0).CVector().Axpy(m, -tau, work, 1, 1)
 
 			//           C( 1:m, n-l+1:n ) = C( 1:m, n-l+1:n ) - ...
 			//                               tau * w( 1:m ) * v( 1:l )**H
-			if err = goblas.Zgerc(m, l, -tau, work.Off(0, 1), v, c.Off(0, n-l)); err != nil {
+			if err = c.Off(0, n-l).Gerc(m, l, -tau, work, 1, v, incv); err != nil {
 				panic(err)
 			}
 

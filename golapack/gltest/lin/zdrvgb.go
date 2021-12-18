@@ -205,11 +205,11 @@ func zdrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								//                          with the value returned by DGESVX (FACT =
 								//                          'N' reuses the condition number from the
 								//                          previous iteration with FACT = 'F').
-								golapack.Zlacpy(Full, kl+ku+1, n, asav.CMatrix(lda, opts), afb.CMatrixOff(kl, ldafb, opts))
+								golapack.Zlacpy(Full, kl+ku+1, n, asav.CMatrix(lda, opts), afb.Off(kl).CMatrix(ldafb, opts))
 								if equil || iequed > 1 {
 									//                             Compute row and column scale factors to
 									//                             equilibrate the matrix A.
-									if rowcnd, colcnd, amax, info, err = golapack.Zgbequ(n, n, kl, ku, afb.CMatrixOff(kl, ldafb, opts), s, s.Off(n)); err != nil {
+									if rowcnd, colcnd, amax, info, err = golapack.Zgbequ(n, n, kl, ku, afb.Off(kl).CMatrix(ldafb, opts), s, s.Off(n)); err != nil {
 										panic(err)
 									}
 									if info == 0 && n > 0 {
@@ -225,7 +225,7 @@ func zdrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 										}
 
 										//                                Equilibrate the matrix.
-										equed = golapack.Zlaqgb(n, n, kl, ku, afb.CMatrixOff(kl, ldafb, opts), s, s.Off(n), rowcnd, colcnd, amax)
+										equed = golapack.Zlaqgb(n, n, kl, ku, afb.Off(kl).CMatrix(ldafb, opts), s, s.Off(n), rowcnd, colcnd, amax)
 									}
 								}
 
@@ -237,8 +237,8 @@ func zdrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								}
 
 								//                          Compute the 1-norm and infinity-norm of A.
-								anormo = golapack.Zlangb('1', n, kl, ku, afb.CMatrixOff(kl, ldafb, opts), rwork)
-								anormi = golapack.Zlangb('I', n, kl, ku, afb.CMatrixOff(kl, ldafb, opts), rwork)
+								anormo = golapack.Zlangb('1', n, kl, ku, afb.Off(kl).CMatrix(ldafb, opts), rwork)
+								anormi = golapack.Zlangb('I', n, kl, ku, afb.Off(kl).CMatrix(ldafb, opts), rwork)
 
 								//                          Factor the matrix A.
 								if info, err = golapack.Zgbtrf(n, n, kl, ku, afb.CMatrix(ldafb, opts), &iwork); err != nil {
@@ -295,7 +295,7 @@ func zdrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 									//
 									//                             Compute the LU factorization of the matrix
 									//                             and solve the system.
-									golapack.Zlacpy(Full, kl+ku+1, n, a.CMatrix(lda, opts), afb.CMatrixOff(kl, ldafb, opts))
+									golapack.Zlacpy(Full, kl+ku+1, n, a.CMatrix(lda, opts), afb.Off(kl).CMatrix(ldafb, opts))
 									golapack.Zlacpy(Full, n, nrhs, b.CMatrix(ldb, opts), x.CMatrix(ldb, opts))
 
 									*srnamt = "Zgbsv"
@@ -370,7 +370,7 @@ func zdrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 											anrmpv = math.Max(anrmpv, a.GetMag(i+(j-1)*lda-1))
 										}
 									}
-									rpvgrw = golapack.Zlantb('M', Upper, NonUnit, info, min(info-1, kl+ku), afb.CMatrixOff(max(1, kl+ku+2-info)-1, ldafb, opts), rdum)
+									rpvgrw = golapack.Zlantb('M', Upper, NonUnit, info, min(info-1, kl+ku), afb.Off(max(1, kl+ku+2-info)-1).CMatrix(ldafb, opts), rdum)
 									if rpvgrw == zero {
 										rpvgrw = one
 									} else {

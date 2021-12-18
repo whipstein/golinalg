@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -39,35 +38,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C1**T
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(n, c.Off(j-1, 0).Vector(), c.Rows, 1)
 				}
 
 				//              W := W * V1
-				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, n, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Lower, NoTrans, Unit, n, k, one, v); err != nil {
 					panic(err)
 				}
 				if m > k {
 					//                 W := W + C2**T * V2
-					if err = goblas.Dgemm(Trans, NoTrans, n, k, m-k, one, c.Off(k, 0), v.Off(k, 0), one, work); err != nil {
+					if err = work.Gemm(Trans, NoTrans, n, k, m-k, one, c.Off(k, 0), v.Off(k, 0), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T**T  or  W * T
-				if err = goblas.Dtrmm(Right, Upper, transt, NonUnit, n, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Upper, transt, NonUnit, n, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - V * W**T
 				if m > k {
 					//                 C2 := C2 - V2 * W**T
-					if err = goblas.Dgemm(NoTrans, Trans, m-k, n, k, -one, v.Off(k, 0), work, one, c.Off(k, 0)); err != nil {
+					if err = c.Off(k, 0).Gemm(NoTrans, Trans, m-k, n, k, -one, v.Off(k, 0), work, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V1**T
-				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, n, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Lower, Trans, Unit, n, k, one, v); err != nil {
 					panic(err)
 				}
 
@@ -85,35 +84,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C1
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(m, c.Off(0, j-1).Vector(), 1, 1)
 				}
 
 				//              W := W * V1
-				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, m, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Lower, NoTrans, Unit, m, k, one, v); err != nil {
 					panic(err)
 				}
 				if n > k {
 					//                 W := W + C2 * V2
-					if err = goblas.Dgemm(NoTrans, NoTrans, m, k, n-k, one, c.Off(0, k), v.Off(k, 0), one, work); err != nil {
+					if err = work.Gemm(NoTrans, NoTrans, m, k, n-k, one, c.Off(0, k), v.Off(k, 0), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T  or  W * T**T
-				if err = goblas.Dtrmm(Right, Upper, trans, NonUnit, m, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Upper, trans, NonUnit, m, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - W * V**T
 				if n > k {
 					//                 C2 := C2 - W * V2**T
-					if err = goblas.Dgemm(NoTrans, Trans, m, n-k, k, -one, work, v.Off(k, 0), one, c.Off(0, k)); err != nil {
+					if err = c.Off(0, k).Gemm(NoTrans, Trans, m, n-k, k, -one, work, v.Off(k, 0), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V1**T
-				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, m, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Lower, Trans, Unit, m, k, one, v); err != nil {
 					panic(err)
 				}
 
@@ -137,35 +136,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C2**T
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(n, c.Vector(m-k+j-1, 0), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(n, c.Off(m-k+j-1, 0).Vector(), c.Rows, 1)
 				}
 
 				//              W := W * V2
-				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, n, k, one, v.Off(m-k, 0), work); err != nil {
+				if err = work.Trmm(Right, Upper, NoTrans, Unit, n, k, one, v.Off(m-k, 0)); err != nil {
 					panic(err)
 				}
 				if m > k {
 					//                 W := W + C1**T * V1
-					if err = goblas.Dgemm(Trans, NoTrans, n, k, m-k, one, c, v, one, work); err != nil {
+					if err = work.Gemm(Trans, NoTrans, n, k, m-k, one, c, v, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T**T  or  W * T
-				if err = goblas.Dtrmm(Right, Lower, transt, NonUnit, n, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Lower, transt, NonUnit, n, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - V * W**T
 				if m > k {
 					//                 C1 := C1 - V1 * W**T
-					if err = goblas.Dgemm(NoTrans, Trans, m-k, n, k, -one, v, work, one, c); err != nil {
+					if err = c.Gemm(NoTrans, Trans, m-k, n, k, -one, v, work, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V2**T
-				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, n, k, one, v.Off(m-k, 0), work); err != nil {
+				if err = work.Trmm(Right, Upper, Trans, Unit, n, k, one, v.Off(m-k, 0)); err != nil {
 					panic(err)
 				}
 
@@ -183,35 +182,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C2
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(m, c.Vector(0, n-k+j-1, 1), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(m, c.Off(0, n-k+j-1).Vector(), 1, 1)
 				}
 
 				//              W := W * V2
-				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m, k, one, v.Off(n-k, 0), work); err != nil {
+				if err = work.Trmm(Right, Upper, NoTrans, Unit, m, k, one, v.Off(n-k, 0)); err != nil {
 					panic(err)
 				}
 				if n > k {
 					//                 W := W + C1 * V1
-					if err = goblas.Dgemm(NoTrans, NoTrans, m, k, n-k, one, c, v, one, work); err != nil {
+					if err = work.Gemm(NoTrans, NoTrans, m, k, n-k, one, c, v, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T  or  W * T**T
-				if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Lower, trans, NonUnit, m, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - W * V**T
 				if n > k {
 					//                 C1 := C1 - W * V1**T
-					if err = goblas.Dgemm(NoTrans, Trans, m, n-k, k, -one, work, v, one, c); err != nil {
+					if err = c.Gemm(NoTrans, Trans, m, n-k, k, -one, work, v, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V2**T
-				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m, k, one, v.Off(n-k, 0), work); err != nil {
+				if err = work.Trmm(Right, Upper, Trans, Unit, m, k, one, v.Off(n-k, 0)); err != nil {
 					panic(err)
 				}
 
@@ -237,35 +236,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C1**T
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(n, c.Vector(j-1, 0), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(n, c.Off(j-1, 0).Vector(), c.Rows, 1)
 				}
 
 				//              W := W * V1**T
-				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, n, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Upper, Trans, Unit, n, k, one, v); err != nil {
 					panic(err)
 				}
 				if m > k {
 					//                 W := W + C2**T * V2**T
-					if err = goblas.Dgemm(Trans, Trans, n, k, m-k, one, c.Off(k, 0), v.Off(0, k), one, work); err != nil {
+					if err = work.Gemm(Trans, Trans, n, k, m-k, one, c.Off(k, 0), v.Off(0, k), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T**T  or  W * T
-				if err = goblas.Dtrmm(Right, Upper, transt, NonUnit, n, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Upper, transt, NonUnit, n, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - V**T * W**T
 				if m > k {
 					//                 C2 := C2 - V2**T * W**T
-					if err = goblas.Dgemm(Trans, Trans, m-k, n, k, -one, v.Off(0, k), work, one, c.Off(k, 0)); err != nil {
+					if err = c.Off(k, 0).Gemm(Trans, Trans, m-k, n, k, -one, v.Off(0, k), work, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V1
-				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, n, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Upper, NoTrans, Unit, n, k, one, v); err != nil {
 					panic(err)
 				}
 
@@ -283,35 +282,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C1
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(m, c.Vector(0, j-1, 1), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(m, c.Off(0, j-1).Vector(), 1, 1)
 				}
 
 				//              W := W * V1**T
-				if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Upper, Trans, Unit, m, k, one, v); err != nil {
 					panic(err)
 				}
 				if n > k {
 					//                 W := W + C2 * V2**T
-					if err = goblas.Dgemm(NoTrans, Trans, m, k, n-k, one, c.Off(0, k), v.Off(0, k), one, work); err != nil {
+					if err = work.Gemm(NoTrans, Trans, m, k, n-k, one, c.Off(0, k), v.Off(0, k), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T  or  W * T**T
-				if err = goblas.Dtrmm(Right, Upper, trans, NonUnit, m, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Upper, trans, NonUnit, m, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - W * V
 				if n > k {
 					//                 C2 := C2 - W * V2
-					if err = goblas.Dgemm(NoTrans, NoTrans, m, n-k, k, -one, work, v.Off(0, k), one, c.Off(0, k)); err != nil {
+					if err = c.Off(0, k).Gemm(NoTrans, NoTrans, m, n-k, k, -one, work, v.Off(0, k), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V1
-				if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m, k, one, v, work); err != nil {
+				if err = work.Trmm(Right, Upper, NoTrans, Unit, m, k, one, v); err != nil {
 					panic(err)
 				}
 
@@ -335,35 +334,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C2**T
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(n, c.Vector(m-k+j-1, 0), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(n, c.Off(m-k+j-1, 0).Vector(), c.Rows, 1)
 				}
 
 				//              W := W * V2**T
-				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, n, k, one, v.Off(0, m-k), work); err != nil {
+				if err = work.Trmm(Right, Lower, Trans, Unit, n, k, one, v.Off(0, m-k)); err != nil {
 					panic(err)
 				}
 				if m > k {
 					//                 W := W + C1**T * V1**T
-					if err = goblas.Dgemm(Trans, Trans, n, k, m-k, one, c, v, one, work); err != nil {
+					if err = work.Gemm(Trans, Trans, n, k, m-k, one, c, v, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T**T  or  W * T
-				if err = goblas.Dtrmm(Right, Lower, transt, NonUnit, n, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Lower, transt, NonUnit, n, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - V**T * W**T
 				if m > k {
 					//                 C1 := C1 - V1**T * W**T
-					if err = goblas.Dgemm(Trans, Trans, m-k, n, k, -one, v, work, one, c); err != nil {
+					if err = c.Gemm(Trans, Trans, m-k, n, k, -one, v, work, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V2
-				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, n, k, one, v.Off(0, m-k), work); err != nil {
+				if err = work.Trmm(Right, Lower, NoTrans, Unit, n, k, one, v.Off(0, m-k)); err != nil {
 					panic(err)
 				}
 
@@ -381,35 +380,35 @@ func Dlarfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k i
 				//
 				//              W := C2
 				for j = 1; j <= k; j++ {
-					goblas.Dcopy(m, c.Vector(0, n-k+j-1, 1), work.Vector(0, j-1, 1))
+					work.Off(0, j-1).Vector().Copy(m, c.Off(0, n-k+j-1).Vector(), 1, 1)
 				}
 
 				//              W := W * V2**T
-				if err = goblas.Dtrmm(Right, Lower, Trans, Unit, m, k, one, v.Off(0, n-k), work); err != nil {
+				if err = work.Trmm(Right, Lower, Trans, Unit, m, k, one, v.Off(0, n-k)); err != nil {
 					panic(err)
 				}
 				if n > k {
 					//                 W := W + C1 * V1**T
-					if err = goblas.Dgemm(NoTrans, Trans, m, k, n-k, one, c, v, one, work); err != nil {
+					if err = work.Gemm(NoTrans, Trans, m, k, n-k, one, c, v, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * T  or  W * T**T
-				if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+				if err = work.Trmm(Right, Lower, trans, NonUnit, m, k, one, t); err != nil {
 					panic(err)
 				}
 
 				//              C := C - W * V
 				if n > k {
 					//                 C1 := C1 - W * V1
-					if err = goblas.Dgemm(NoTrans, NoTrans, m, n-k, k, -one, work, v, one, c); err != nil {
+					if err = c.Gemm(NoTrans, NoTrans, m, n-k, k, -one, work, v, one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              W := W * V2
-				if err = goblas.Dtrmm(Right, Lower, NoTrans, Unit, m, k, one, v.Off(0, n-k), work); err != nil {
+				if err = work.Trmm(Right, Lower, NoTrans, Unit, m, k, one, v.Off(0, n-k)); err != nil {
 					panic(err)
 				}
 

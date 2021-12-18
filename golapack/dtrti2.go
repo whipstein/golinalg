@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,8 +46,8 @@ func Dtrti2(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.Matrix) (err error
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			err = goblas.Dtrmv(mat.Upper, mat.NoTrans, diag, j-1, a, a.Vector(0, j-1, 1))
-			goblas.Dscal(j-1, ajj, a.Vector(0, j-1, 1))
+			err = a.Off(0, j-1).Vector().Trmv(Upper, NoTrans, diag, j-1, a, 1)
+			a.Off(0, j-1).Vector().Scal(j-1, ajj, 1)
 		}
 	} else {
 		//        Compute inverse of lower triangular matrix.
@@ -61,8 +60,8 @@ func Dtrti2(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.Matrix) (err error
 			}
 			if j < n {
 				//              Compute elements j+1:n of j-th column.
-				err = goblas.Dtrmv(mat.Lower, mat.NoTrans, diag, n-j, a.Off(j, j), a.Vector(j, j-1, 1))
-				goblas.Dscal(n-j, ajj, a.Vector(j, j-1, 1))
+				err = a.Off(j, j-1).Vector().Trmv(Lower, NoTrans, diag, n-j, a.Off(j, j), 1)
+				a.Off(j, j-1).Vector().Scal(n-j, ajj, 1)
 			}
 		}
 	}

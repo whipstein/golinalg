@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -125,18 +124,18 @@ label30:
 	}
 	if anorm > ssfmax {
 		iscale = 1
-		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l+1, 1, d.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l, 1, e.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	} else if anorm < ssfmin {
 		iscale = 2
-		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l+1, 1, d.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l, 1, e.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	}
@@ -375,17 +374,17 @@ label30:
 label140:
 	;
 	if iscale == 1 {
-		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv+1, 1, d.Off(lsv-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv, 1, e.MatrixOff(lsv-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv, 1, e.Off(lsv-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	} else if iscale == 2 {
-		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv+1, 1, d.Off(lsv-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv, 1, e.MatrixOff(lsv-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv, 1, e.Off(lsv-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	}
@@ -426,7 +425,7 @@ label160:
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, k-1, 1))
+				z.Off(0, k-1).CVector().Swap(n, z.Off(0, i-1).CVector(), 1, 1)
 			}
 		}
 	}

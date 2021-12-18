@@ -100,3 +100,10 @@ func min(a ...int) int {
 	}
 	return minval
 }
+
+func sign(a, b int) int {
+	if b < 0 && a > 0 {
+		return -a
+	}
+	return a
+}

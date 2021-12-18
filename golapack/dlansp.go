@@ -118,7 +118,7 @@ func Dlansp(norm byte, uplo mat.MatUplo, n int, ap, work *mat.Vector) (dlanspRet
 			for j = 2; j <= n; j++ {
 				colssq.Set(0, zero)
 				colssq.Set(1, one)
-				*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(j-1, ap.Off(k-1, 1), colssq.Get(0), colssq.Get(1))
+				*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(j-1, ap.Off(k-1), 1, colssq.Get(0), colssq.Get(1))
 				Dcombssq(ssq, colssq)
 				k = k + j
 			}
@@ -126,7 +126,7 @@ func Dlansp(norm byte, uplo mat.MatUplo, n int, ap, work *mat.Vector) (dlanspRet
 			for j = 1; j <= n-1; j++ {
 				colssq.Set(0, zero)
 				colssq.Set(1, one)
-				*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(n-j, ap.Off(k-1, 1), colssq.Get(0), colssq.Get(1))
+				*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(n-j, ap.Off(k-1), 1, colssq.Get(0), colssq.Get(1))
 				Dcombssq(ssq, colssq)
 				k = k + n - j + 1
 			}

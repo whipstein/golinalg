@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -73,17 +72,17 @@ func zchkgt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 				//              Types 1-6:  generate matrices of known condition number.
 				koff = max(2-ku, 3-max(1, n))
 				*srnamt = "Zlatms"
-				if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'Z', af.CMatrixOff(koff-1, 3, opts), work); err != nil {
+				if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'Z', af.Off(koff-1).CMatrix(3, opts), work); err != nil {
 					nerrs = alaerh(path, "Zlatms", info, 0, []byte{' '}, n, n, kl, ku, -1, imat, nfail, nerrs)
 					goto label100
 				}
 				izero = 0
 
 				if n > 1 {
-					goblas.Zcopy(n-1, af.Off(3, 3), a.Off(0, 1))
-					goblas.Zcopy(n-1, af.Off(2, 3), a.Off(n+m, 1))
+					a.Copy(n-1, af.Off(3), 3, 1)
+					a.Off(n+m).Copy(n-1, af.Off(2), 3, 1)
 				}
-				goblas.Zcopy(n, af.Off(1, 3), a.Off(m, 1))
+				a.Off(m).Copy(n, af.Off(1), 3, 1)
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
@@ -92,7 +91,7 @@ func zchkgt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 					//                 imaginary parts are from [-1,1].
 					golapack.Zlarnv(2, &iseed, n+2*m, a)
 					if anorm != one {
-						goblas.Zdscal(n+2*m, anorm, a.Off(0, 1))
+						a.Dscal(n+2*m, anorm, 1)
 					}
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -144,7 +143,7 @@ func zchkgt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 			//+    TEST 1
 			//           Factor A as L*U and compute the ratio
 			//              norm(L*U - A) / (n * norm(A) * EPS )
-			goblas.Zcopy(n+2*m, a.Off(0, 1), af.Off(0, 1))
+			af.Copy(n+2*m, a, 1, 1)
 			*srnamt = "Zgttrf"
 			if info, err = golapack.Zgttrf(n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), &iwork); err != nil || info != izero {
 				nerrs = alaerh(path, "Zgttrf", info, 0, []byte{' '}, n, n, 1, 1, -1, imat, nfail, nerrs)
@@ -184,7 +183,7 @@ func zchkgt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 						if err = golapack.Zgttrs(trans, n, 1, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), &iwork, x.CMatrix(lda, opts)); err != nil {
 							panic(err)
 						}
-						ainvnm = math.Max(ainvnm, goblas.Dzasum(n, x.Off(0, 1)))
+						ainvnm = math.Max(ainvnm, x.Asum(n, 1))
 					}
 
 					//                 Compute RCONDC = 1 / (norm(A) * norm(inv(A))

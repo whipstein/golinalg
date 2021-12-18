@@ -57,7 +57,7 @@ type SrotMatrix struct {
 // }
 
 func passL1() {
-	fmt.Printf(" %6s passed %6d computational tests\n", common.combla._case, common.combla.n)
+	fmt.Printf(" %6s passed %6d computational tests\n", common.combla._case, common.combla.ntest)
 }
 
 func passL2(name string, n, x int, t *testing.T) {

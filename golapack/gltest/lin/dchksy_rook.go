@@ -280,11 +280,11 @@ func dchksyRook(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int
 						if iwork[k-1] > int(zero) {
 							//                       Get max absolute value from elements
 							//                       in column k in in U
-							dtemp = golapack.Dlange('M', k-1, 1, afac.MatrixOff(0+(k-1)*lda, lda, opts), rwork)
+							dtemp = golapack.Dlange('M', k-1, 1, afac.Off(0+(k-1)*lda).Matrix(lda, opts), rwork)
 						} else {
 							//                       Get max absolute value from elements
 							//                       in columns k and k-1 in U
-							dtemp = golapack.Dlange('M', k-2, 2, afac.MatrixOff(0+(k-2)*lda, lda, opts), rwork)
+							dtemp = golapack.Dlange('M', k-2, 2, afac.Off(0+(k-2)*lda).Matrix(lda, opts), rwork)
 							k = k - 1
 
 						}
@@ -311,11 +311,11 @@ func dchksyRook(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int
 						if iwork[k-1] > int(zero) {
 							//                       Get max absolute value from elements
 							//                       in column k in in L
-							dtemp = golapack.Dlange('M', n-k, 1, afac.MatrixOff(k+(k-1)*lda, lda, opts), rwork)
+							dtemp = golapack.Dlange('M', n-k, 1, afac.Off(k+(k-1)*lda).Matrix(lda, opts), rwork)
 						} else {
 							//                       Get max absolute value from elements
 							//                       in columns k and k+1 in L
-							dtemp = golapack.Dlange('M', n-k-1, 2, afac.MatrixOff(k+2-1+(k-1)*lda, lda, opts), rwork)
+							dtemp = golapack.Dlange('M', n-k-1, 2, afac.Off(k+2-1+(k-1)*lda).Matrix(lda, opts), rwork)
 							k = k + 1
 
 						}

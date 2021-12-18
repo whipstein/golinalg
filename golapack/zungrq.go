@@ -109,7 +109,7 @@ func Zungrq(m, n, k int, a *mat.CMatrix, tau, work *mat.CVector, lwork int) (err
 				Zlarft('B', 'R', n-k+i+ib-1, ib, a.Off(ii-1, 0), tau.Off(i-1), work.CMatrix(ldwork, opts))
 
 				//              Apply H**H to A(1:m-k+i-1,1:n-k+i+ib-1) from the right
-				Zlarfb(Right, ConjTrans, 'B', 'R', ii-1, n-k+i+ib-1, ib, a.Off(ii-1, 0), work.CMatrix(ldwork, opts), a, work.CMatrixOff(ib, ldwork, opts))
+				Zlarfb(Right, ConjTrans, 'B', 'R', ii-1, n-k+i+ib-1, ib, a.Off(ii-1, 0), work.CMatrix(ldwork, opts), a, work.Off(ib).CMatrix(ldwork, opts))
 			}
 
 			//           Apply H**H to columns 1:n-k+i+ib-1 of current block

@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -51,16 +50,16 @@ func Dlaexc(wantq bool, n int, t, q *mat.Matrix, j1, n1, n2 int, work *mat.Vecto
 
 		//        Apply transformation to the matrix T.
 		if j3 <= n {
-			goblas.Drot(n-j1-1, t.Vector(j1-1, j3-1), t.Vector(j2-1, j3-1), cs, sn)
+			t.Off(j2-1, j3-1).Vector().Rot(n-j1-1, t.Off(j1-1, j3-1).Vector(), t.Rows, t.Rows, cs, sn)
 		}
-		goblas.Drot(j1-1, t.Vector(0, j1-1, 1), t.Vector(0, j2-1, 1), cs, sn)
+		t.Off(0, j2-1).Vector().Rot(j1-1, t.Off(0, j1-1).Vector(), 1, 1, cs, sn)
 
 		t.Set(j1-1, j1-1, t22)
 		t.Set(j2-1, j2-1, t11)
 
 		if wantq {
 			//           Accumulate transformation in the matrix Q.
-			goblas.Drot(n, q.Vector(0, j1-1, 1), q.Vector(0, j2-1, 1), cs, sn)
+			q.Off(0, j2-1).Vector().Rot(n, q.Off(0, j1-1).Vector(), 1, 1, cs, sn)
 		}
 
 	} else {
@@ -101,7 +100,7 @@ func Dlaexc(wantq bool, n int, t, q *mat.Matrix, j1, n1, n2 int, work *mat.Vecto
 		u.Set(0, scale)
 		u.Set(1, x.Get(0, 0))
 		u.Set(2, x.Get(0, 1))
-		*u.GetPtr(2), tau = Dlarfg(3, u.Get(2), u.Off(0, 1))
+		*u.GetPtr(2), tau = Dlarfg(3, u.Get(2), u, 1)
 		u.Set(2, one)
 		t11 = t.Get(j1-1, j1-1)
 
@@ -139,7 +138,7 @@ func Dlaexc(wantq bool, n int, t, q *mat.Matrix, j1, n1, n2 int, work *mat.Vecto
 		u.Set(0, -x.Get(0, 0))
 		u.Set(1, -x.Get(1, 0))
 		u.Set(2, scale)
-		*u.GetPtr(0), tau = Dlarfg(3, u.Get(0), u.Off(1, 1))
+		*u.GetPtr(0), tau = Dlarfg(3, u.Get(0), u.Off(1), 1)
 		u.Set(0, one)
 		t33 = t.Get(j3-1, j3-1)
 
@@ -179,14 +178,14 @@ func Dlaexc(wantq bool, n int, t, q *mat.Matrix, j1, n1, n2 int, work *mat.Vecto
 		u1.Set(0, -x.Get(0, 0))
 		u1.Set(1, -x.Get(1, 0))
 		u1.Set(2, scale)
-		*u1.GetPtr(0), tau1 = Dlarfg(3, u1.Get(0), u1.Off(1, 1))
+		*u1.GetPtr(0), tau1 = Dlarfg(3, u1.Get(0), u1.Off(1), 1)
 		u1.Set(0, one)
 
 		temp = -tau1 * (x.Get(0, 1) + u1.Get(1)*x.Get(1, 1))
 		u2.Set(0, -temp*u1.Get(1)-x.Get(1, 1))
 		u2.Set(1, -temp*u1.Get(2))
 		u2.Set(2, scale)
-		*u2.GetPtr(0), tau2 = Dlarfg(3, u2.Get(0), u2.Off(1, 1))
+		*u2.GetPtr(0), tau2 = Dlarfg(3, u2.Get(0), u2.Off(1), 1)
 		u2.Set(0, one)
 
 		//        Perform swap provisionally on diagonal block in D.
@@ -223,10 +222,10 @@ func Dlaexc(wantq bool, n int, t, q *mat.Matrix, j1, n1, n2 int, work *mat.Vecto
 		if n2 == 2 {
 			//           Standardize new 2-by-2 block T11
 			*t.GetPtr(j1-1, j1-1), *t.GetPtr(j1-1, j2-1), *t.GetPtr(j2-1, j1-1), *t.GetPtr(j2-1, j2-1), _, _, _, _, cs, sn = Dlanv2(t.Get(j1-1, j1-1), t.Get(j1-1, j2-1), t.Get(j2-1, j1-1), t.Get(j2-1, j2-1))
-			goblas.Drot(n-j1-1, t.Vector(j1-1, j1+2-1), t.Vector(j2-1, j1+2-1), cs, sn)
-			goblas.Drot(j1-1, t.Vector(0, j1-1, 1), t.Vector(0, j2-1, 1), cs, sn)
+			t.Off(j2-1, j1+2-1).Vector().Rot(n-j1-1, t.Off(j1-1, j1+2-1).Vector(), t.Rows, t.Rows, cs, sn)
+			t.Off(0, j2-1).Vector().Rot(j1-1, t.Off(0, j1-1).Vector(), 1, 1, cs, sn)
 			if wantq {
-				goblas.Drot(n, q.Vector(0, j1-1, 1), q.Vector(0, j2-1, 1), cs, sn)
+				q.Off(0, j2-1).Vector().Rot(n, q.Off(0, j1-1).Vector(), 1, 1, cs, sn)
 			}
 		}
 
@@ -236,11 +235,11 @@ func Dlaexc(wantq bool, n int, t, q *mat.Matrix, j1, n1, n2 int, work *mat.Vecto
 			j4 = j3 + 1
 			*t.GetPtr(j3-1, j3-1), *t.GetPtr(j3-1, j4-1), *t.GetPtr(j4-1, j3-1), *t.GetPtr(j4-1, j4-1), _, _, _, _, cs, sn = Dlanv2(t.Get(j3-1, j3-1), t.Get(j3-1, j4-1), t.Get(j4-1, j3-1), t.Get(j4-1, j4-1))
 			if j3+2 <= n {
-				goblas.Drot(n-j3-1, t.Vector(j3-1, j3+2-1), t.Vector(j4-1, j3+2-1), cs, sn)
+				t.Off(j4-1, j3+2-1).Vector().Rot(n-j3-1, t.Off(j3-1, j3+2-1).Vector(), t.Rows, t.Rows, cs, sn)
 			}
-			goblas.Drot(j3-1, t.Vector(0, j3-1, 1), t.Vector(0, j4-1, 1), cs, sn)
+			t.Off(0, j4-1).Vector().Rot(j3-1, t.Off(0, j3-1).Vector(), 1, 1, cs, sn)
 			if wantq {
-				goblas.Drot(n, q.Vector(0, j3-1, 1), q.Vector(0, j4-1, 1), cs, sn)
+				q.Off(0, j4-1).Vector().Rot(n, q.Off(0, j3-1).Vector(), 1, 1, cs, sn)
 			}
 		}
 

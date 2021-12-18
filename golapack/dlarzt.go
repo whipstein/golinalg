@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -54,12 +53,12 @@ func Dlarzt(direct, storev byte, n, k int, v *mat.Matrix, tau *mat.Vector, t *ma
 			//           general case
 			if i < k {
 				//              T(i+1:k,i) = - tau(i) * V(i+1:k,1:n) * V(i,1:n)**T
-				if err = goblas.Dgemv(NoTrans, k-i, n, -tau.Get(i-1), v.Off(i, 0), v.Vector(i-1, 0), zero, t.Vector(i, i-1, 1)); err != nil {
+				if err = t.Off(i, i-1).Vector().Gemv(NoTrans, k-i, n, -tau.Get(i-1), v.Off(i, 0), v.Off(i-1, 0).Vector(), v.Rows, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              T(i+1:k,i) = T(i+1:k,i+1:k) * T(i+1:k,i)
-				if err = goblas.Dtrmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), t.Vector(i, i-1, 1)); err != nil {
+				if err = t.Off(i, i-1).Vector().Trmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), 1); err != nil {
 					panic(err)
 				}
 			}

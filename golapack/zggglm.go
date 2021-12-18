@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,7 +111,7 @@ func Zggglm(n, m, p int, a, b *mat.CMatrix, d, x, y, work *mat.CVector, lwork in
 
 	//     Solve T22*y2 = d2 for y2
 	if n > m {
-		if info, err = Ztrtrs(Upper, NoTrans, NonUnit, n-m, 1, b.Off(m, m+p-n), d.CMatrixOff(m, n-m, opts)); err != nil {
+		if info, err = Ztrtrs(Upper, NoTrans, NonUnit, n-m, 1, b.Off(m, m+p-n), d.Off(m).CMatrix(n-m, opts)); err != nil {
 			panic(err)
 		}
 
@@ -121,7 +120,7 @@ func Zggglm(n, m, p int, a, b *mat.CMatrix, d, x, y, work *mat.CVector, lwork in
 			return
 		}
 
-		goblas.Zcopy(n-m, d.Off(m, 1), y.Off(m+p-n, 1))
+		y.Off(m+p-n).Copy(n-m, d.Off(m), 1, 1)
 	}
 
 	//     Set y1 = 0
@@ -130,7 +129,7 @@ func Zggglm(n, m, p int, a, b *mat.CMatrix, d, x, y, work *mat.CVector, lwork in
 	}
 
 	//     Update d1 = d1 - T12*y2
-	if err = goblas.Zgemv(NoTrans, m, n-m, -cone, b.Off(0, m+p-n), y.Off(m+p-n, 1), cone, d.Off(0, 1)); err != nil {
+	if err = d.Gemv(NoTrans, m, n-m, -cone, b.Off(0, m+p-n), y.Off(m+p-n), 1, cone, 1); err != nil {
 		panic(err)
 	}
 
@@ -146,7 +145,7 @@ func Zggglm(n, m, p int, a, b *mat.CMatrix, d, x, y, work *mat.CVector, lwork in
 		}
 
 		//        Copy D to X
-		goblas.Zcopy(m, d.Off(0, 1), x.Off(0, 1))
+		x.Copy(m, d, 1, 1)
 	}
 
 	//     Backward transformation y = Z**H *y

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -78,12 +77,12 @@ func Dgebrd(m, n int, a *mat.Matrix, d, e, tauq, taup, work *mat.Vector, lwork i
 		//        Reduce rows and columns i:i+nb-1 to bidiagonal form and return
 		//        the matrices X and Y which are needed to update the unreduced
 		//        part of the matrix
-		Dlabrd(m-i+1, n-i+1, nb, a.Off(i-1, i-1), d.Off(i-1), e.Off(i-1), tauq.Off(i-1), taup.Off(i-1), work.Matrix(ldwrkx, opts), work.MatrixOff(ldwrkx*nb, ldwrky, opts))
+		Dlabrd(m-i+1, n-i+1, nb, a.Off(i-1, i-1), d.Off(i-1), e.Off(i-1), tauq.Off(i-1), taup.Off(i-1), work.Matrix(ldwrkx, opts), work.Off(ldwrkx*nb).Matrix(ldwrky, opts))
 
 		//        Update the trailing submatrix A(i+nb:m,i+nb:n), using an update
 		//        of the form  A := A - V*Y**T - X*U**T
-		err = goblas.Dgemm(NoTrans, Trans, m-i-nb+1, n-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.MatrixOff(ldwrkx*nb+nb, ldwrky, opts), one, a.Off(i+nb-1, i+nb-1))
-		err = goblas.Dgemm(NoTrans, NoTrans, m-i-nb+1, n-i-nb+1, nb, -one, work.MatrixOff(nb, ldwrkx, opts), a.Off(i-1, i+nb-1), one, a.Off(i+nb-1, i+nb-1))
+		err = a.Off(i+nb-1, i+nb-1).Gemm(NoTrans, Trans, m-i-nb+1, n-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.Off(ldwrkx*nb+nb).Matrix(ldwrky, opts), one)
+		err = a.Off(i+nb-1, i+nb-1).Gemm(NoTrans, NoTrans, m-i-nb+1, n-i-nb+1, nb, -one, work.Off(nb).Matrix(ldwrkx, opts), a.Off(i-1, i+nb-1), one)
 
 		//        Copy diagonal and off-diagonal elements of B back into A
 		if m >= n {

@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -46,7 +45,7 @@ func dget07(trans mat.MatTrans, n, nrhs int, a *mat.Matrix, b *mat.Matrix, x *ma
 	errbnd = zero
 	if chkferr {
 		for j = 1; j <= nrhs; j++ {
-			imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
+			imax = x.Off(0, j-1).Vector().Iamax(n, 1)
 			xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 			diff = zero
 			for i = 1; i <= n; i++ {

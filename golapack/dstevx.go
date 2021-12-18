@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -106,8 +105,8 @@ func Dstevx(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu i
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(n, sigma, d.Off(0, 1))
-		goblas.Dscal(n-1, sigma, e.Off(0, 1))
+		d.Scal(n, sigma, 1)
+		e.Scal(n-1, sigma, 1)
 		if valeig {
 			vll = vl * sigma
 			vuu = vu * sigma
@@ -124,8 +123,8 @@ func Dstevx(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu i
 		}
 	}
 	if (alleig || test) && (abstol <= zero) {
-		goblas.Dcopy(n, d.Off(0, 1), w.Off(0, 1))
-		goblas.Dcopy(n-1, e.Off(0, 1), work.Off(0, 1))
+		w.Copy(n, d, 1, 1)
+		work.Copy(n-1, e, 1, 1)
 		indwrk = n + 1
 		if !wantz {
 			if info, err = Dsterf(n, w, work); err != nil {
@@ -177,7 +176,7 @@ label20:
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -199,7 +198,7 @@ label20:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+				z.Off(0, j-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

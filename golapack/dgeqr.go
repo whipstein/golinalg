@@ -113,11 +113,11 @@ func Dgeqr(m, n int, a *mat.Matrix, t *mat.Vector, tsize int, work *mat.Vector, 
 
 	//     The QR Decomposition
 	if (m <= n) || (mb <= n) || (mb >= m) {
-		if err = Dgeqrt(m, n, nb, a, t.MatrixOff(5, nb, opts), work); err != nil {
+		if err = Dgeqrt(m, n, nb, a, t.Off(5).Matrix(nb, opts), work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Dlatsqr(m, n, mb, nb, a, t.MatrixOff(5, nb, opts), work, lwork); err != nil {
+		if err = Dlatsqr(m, n, mb, nb, a, t.Off(5).Matrix(nb, opts), work, lwork); err != nil {
 			panic(err)
 		}
 	}

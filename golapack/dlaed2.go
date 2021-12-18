@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,13 +49,13 @@ func Dlaed2(k, n, n1 int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho float6
 	n1p1 = n1 + 1
 
 	if rhoOut < zero {
-		goblas.Dscal(n2, mone, z.Off(n1p1-1))
+		z.Off(n1p1-1).Scal(n2, mone, 1)
 	}
 
 	//     Normalize z so that norm(z) = 1.  Since z is the concatenation of
 	//     two normalized vectors, norm2(z) = math.Sqrt(2).
 	t = one / math.Sqrt(two)
-	goblas.Dscal(n, t, z)
+	z.Scal(n, t, 1)
 
 	//     RHO = ABS( norm(z)**2 * RHO )
 	rhoOut = math.Abs(two * rhoOut)
@@ -76,8 +75,8 @@ func Dlaed2(k, n, n1 int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho float6
 	}
 
 	//     Calculate the allowable deflation tolerance
-	imax = goblas.Idamax(n, z)
-	jmax = goblas.Idamax(n, d)
+	imax = z.Iamax(n, 1)
+	jmax = d.Iamax(n, 1)
 	eps = Dlamch(Epsilon)
 	tol = eight * eps * math.Max(math.Abs(d.Get(jmax-1)), math.Abs(z.Get(imax-1)))
 
@@ -89,12 +88,12 @@ func Dlaed2(k, n, n1 int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho float6
 		iq2 = 1
 		for j = 1; j <= n; j++ {
 			i = (*indx)[j-1]
-			goblas.Dcopy(n, q.Vector(0, i-1, 1), q2.Off(iq2-1))
+			q2.Off(iq2-1).Copy(n, q.Off(0, i-1).Vector(), 1, 1)
 			dlamda.Set(j-1, d.Get(i-1))
 			iq2 = iq2 + n
 		}
 		Dlacpy(Full, n, n, q2.Matrix(n, opts), q)
-		goblas.Dcopy(n, dlamda, d)
+		d.Copy(n, dlamda, 1, 1)
 		return
 	}
 
@@ -158,7 +157,7 @@ label80:
 				(*coltyp)[nj-1] = 2
 			}
 			(*coltyp)[pj-1] = 4
-			goblas.Drot(n, q.Vector(0, pj-1, 1), q.Vector(0, nj-1, 1), c, s)
+			q.Off(0, nj-1).Vector().Rot(n, q.Off(0, pj-1).Vector(), 1, 1, c, s)
 			t = d.Get(pj-1)*math.Pow(c, 2) + d.Get(nj-1)*math.Pow(s, 2)
 			d.Set(nj-1, d.Get(pj-1)*math.Pow(s, 2)+d.Get(nj-1)*math.Pow(c, 2))
 			d.Set(pj-1, t)
@@ -236,7 +235,7 @@ label100:
 	iq2 = 1 + (ctot[0]+ctot[1])*n1
 	for j = 1; j <= ctot[0]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(n1, q.Vector(0, js-1, 1), q2.Off(iq1-1))
+		q2.Off(iq1-1).Copy(n1, q.Off(0, js-1).Vector(), 1, 1)
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
 		iq1 = iq1 + n1
@@ -244,8 +243,8 @@ label100:
 
 	for j = 1; j <= ctot[1]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(n1, q.Vector(0, js-1, 1), q2.Off(iq1-1))
-		goblas.Dcopy(n2, q.Vector(n1, js-1, 1), q2.Off(iq2-1))
+		q2.Off(iq1-1).Copy(n1, q.Off(0, js-1).Vector(), 1, 1)
+		q2.Off(iq2-1).Copy(n2, q.Off(n1, js-1).Vector(), 1, 1)
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
 		iq1 = iq1 + n1
@@ -254,7 +253,7 @@ label100:
 
 	for j = 1; j <= ctot[2]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(n2, q.Vector(n1, js-1, 1), q2.Off(iq2-1))
+		q2.Off(iq2-1).Copy(n2, q.Off(n1, js-1).Vector(), 1, 1)
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
 		iq2 = iq2 + n2
@@ -263,7 +262,7 @@ label100:
 	iq1 = iq2
 	for j = 1; j <= ctot[3]; j++ {
 		js = (*indx)[i-1]
-		goblas.Dcopy(n, q.Vector(0, js-1, 1), q2.Off(iq2-1))
+		q2.Off(iq2-1).Copy(n, q.Off(0, js-1).Vector(), 1, 1)
 		iq2 = iq2 + n
 		z.Set(i-1, d.Get(js-1))
 		i = i + 1
@@ -272,8 +271,8 @@ label100:
 	//     The deflated eigenvalues and their corresponding vectors go back
 	//     into the last N - K slots of D and Q respectively.
 	if k < n {
-		Dlacpy(Full, n, ctot[3], q2.MatrixOff(iq1-1, n, opts), q.Off(0, k))
-		goblas.Dcopy(n-k, z.Off(k), d.Off(k))
+		Dlacpy(Full, n, ctot[3], q2.Off(iq1-1).Matrix(n, opts), q.Off(0, k))
+		d.Off(k).Copy(n-k, z.Off(k), 1, 1)
 	}
 
 	//     Copy CTOT into COLTYP for referencing in DLAED3.

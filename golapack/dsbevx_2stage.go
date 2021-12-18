@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -181,16 +180,16 @@ func Dsbevx2stage(jobz, _range byte, uplo mat.MatUplo, n, kd int, ab, q *mat.Mat
 		}
 	}
 	if (alleig || test) && (abstol <= zero) {
-		goblas.Dcopy(n, work.Off(indd-1, 1), w.Off(0, 1))
+		w.Copy(n, work.Off(indd-1), 1, 1)
 		indee = indwrk + 2*n
 		if !wantz {
-			goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+			work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
 			if info, err = Dsterf(n, w, work.Off(indee-1)); err != nil {
 				panic(err)
 			}
 		} else {
 			Dlacpy(Full, n, n, q, z)
-			goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+			work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
 			if info, err = Dsteqr(jobz, n, w, work.Off(indee-1), z, work.Off(indwrk-1)); err != nil {
 				panic(err)
 			}
@@ -228,8 +227,8 @@ func Dsbevx2stage(jobz, _range byte, uplo mat.MatUplo, n, kd int, ab, q *mat.Mat
 		//        Apply orthogonal matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by DSTEIN.
 		for j = 1; j <= m; j++ {
-			goblas.Dcopy(n, z.Vector(0, j-1, 1), work.Off(0, 1))
-			err = goblas.Dgemv(NoTrans, n, n, one, q, work.Off(0, 1), zero, z.Vector(0, j-1, 1))
+			work.Copy(n, z.Off(0, j-1).Vector(), 1, 1)
+			err = z.Off(0, j-1).Vector().Gemv(NoTrans, n, n, one, q, work, 1, zero, 1)
 		}
 	}
 
@@ -242,7 +241,7 @@ label30:
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -264,7 +263,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+				z.Off(0, j-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

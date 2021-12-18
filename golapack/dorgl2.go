@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -59,9 +58,9 @@ func Dorgl2(m, n, k int, a *mat.Matrix, tau, work *mat.Vector) (err error) {
 		if i < n {
 			if i < m {
 				a.Set(i-1, i-1, one)
-				Dlarf(Right, m-i, n-i+1, a.Vector(i-1, i-1), tau.Get(i-1), a.Off(i, i-1), work)
+				Dlarf(Right, m-i, n-i+1, a.Off(i-1, i-1).Vector(), a.Rows, tau.Get(i-1), a.Off(i, i-1), work)
 			}
-			goblas.Dscal(n-i, -tau.Get(i-1), a.Vector(i-1, i))
+			a.Off(i-1, i).Vector().Scal(n-i, -tau.Get(i-1), a.Rows)
 		}
 		a.Set(i-1, i-1, one-tau.Get(i-1))
 

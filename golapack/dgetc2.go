@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -63,13 +62,13 @@ func Dgetc2(n int, a *mat.Matrix, ipiv, jpiv *[]int) (info int) {
 
 		//        Swap rows
 		if ipv != i {
-			goblas.Dswap(n, a.Vector(ipv-1, 0), a.Vector(i-1, 0))
+			a.Off(i-1, 0).Vector().Swap(n, a.Off(ipv-1, 0).Vector(), a.Rows, a.Rows)
 		}
 		(*ipiv)[i-1] = ipv
 
 		//        Swap columns
 		if jpv != i {
-			goblas.Dswap(n, a.Vector(0, jpv-1, 1), a.Vector(0, i-1, 1))
+			a.Off(0, i-1).Vector().Swap(n, a.Off(0, jpv-1).Vector(), 1, 1)
 		}
 		(*jpiv)[i-1] = jpv
 
@@ -81,7 +80,7 @@ func Dgetc2(n int, a *mat.Matrix, ipiv, jpiv *[]int) (info int) {
 		for j = i + 1; j <= n; j++ {
 			a.Set(j-1, i-1, a.Get(j-1, i-1)/a.Get(i-1, i-1))
 		}
-		if err = goblas.Dger(n-i, n-i, -one, a.Vector(i, i-1, 1), a.Vector(i-1, i), a.Off(i, i)); err != nil {
+		if err = a.Off(i, i).Ger(n-i, n-i, -one, a.Off(i, i-1).Vector(), 1, a.Off(i-1, i).Vector(), a.Rows); err != nil {
 			panic(err)
 		}
 	}

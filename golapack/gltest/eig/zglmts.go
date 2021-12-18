@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -27,7 +26,7 @@ func zglmts(n, m, p int, a, af, b, bf *mat.CMatrix, d, df, x, u, work *mat.CVect
 	//     and the vector D the array DF.
 	golapack.Zlacpy(Full, n, m, a, af)
 	golapack.Zlacpy(Full, n, p, b, bf)
-	goblas.Zcopy(n, d.Off(0, 1), df.Off(0, 1))
+	df.Copy(n, d, 1, 1)
 
 	//     Solve GLM problem
 	if _, err = golapack.Zggglm(n, m, p, af, bf, df, x, u, work, lwork); err != nil {
@@ -39,17 +38,17 @@ func zglmts(n, m, p int, a, af, b, bf *mat.CMatrix, d, df, x, u, work *mat.CVect
 	//                       norm( d - A*x - B*u )
 	//       RESULT = -----------------------------------------
 	//                (norm(A)+norm(B))*(norm(x)+norm(u))*EPS
-	goblas.Zcopy(n, d.Off(0, 1), df.Off(0, 1))
-	if err = goblas.Zgemv(NoTrans, n, m, -cone, a, x.Off(0, 1), cone, df.Off(0, 1)); err != nil {
+	df.Copy(n, d, 1, 1)
+	if err = df.Gemv(NoTrans, n, m, -cone, a, x, 1, cone, 1); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemv(NoTrans, n, p, -cone, b, u.Off(0, 1), cone, df.Off(0, 1)); err != nil {
+	if err = df.Gemv(NoTrans, n, p, -cone, b, u, 1, cone, 1); err != nil {
 		panic(err)
 	}
 
-	dnorm = goblas.Dzasum(n, df.Off(0, 1))
-	xnorm = goblas.Dzasum(m, x.Off(0, 1)) + goblas.Dzasum(p, u.Off(0, 1))
+	dnorm = df.Asum(n, 1)
+	xnorm = x.Asum(m, 1) + u.Asum(p, 1)
 	ynorm = anorm + bnorm
 
 	if xnorm <= zero {

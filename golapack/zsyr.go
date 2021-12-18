@@ -13,7 +13,7 @@ import (
 //
 // where alpha is a complex scalar, x is an n element vector and A is an
 // n by n symmetric matrix.
-func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, a *mat.CMatrix) (err error) {
+func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, incx int, a *mat.CMatrix) (err error) {
 	var temp, zero complex128
 	var i, ix, j, jx, kx int
 
@@ -24,8 +24,8 @@ func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, a *mat.CMat
 		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
 	} else if n < 0 {
 		err = fmt.Errorf("n < 0: n=%v", n)
-	} else if x.Inc == 0 {
-		err = fmt.Errorf("x.Inc == 0: x.Inc=%v", x.Inc)
+	} else if incx == 0 {
+		err = fmt.Errorf("incx == 0: incx=%v", incx)
 	} else if a.Rows < max(1, n) {
 		err = fmt.Errorf("a.Rows < max(1, n): a.Rows=%v, n=%v", a.Rows, n)
 	}
@@ -40,9 +40,9 @@ func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, a *mat.CMat
 	}
 
 	//     Set the start point in X if the increment is not unity.
-	if x.Inc <= 0 {
-		kx = 1 - (n-1)*x.Inc
-	} else if x.Inc != 1 {
+	if incx <= 0 {
+		kx = 1 - (n-1)*incx
+	} else if incx != 1 {
 		kx = 1
 	}
 
@@ -51,7 +51,7 @@ func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, a *mat.CMat
 	//     of A.
 	if uplo == Upper {
 		//        Form  A  when A is stored in upper triangle.
-		if x.Inc == 1 {
+		if incx == 1 {
 			for j = 1; j <= n; j++ {
 				if x.Get(j-1) != zero {
 					temp = alpha * x.Get(j-1)
@@ -68,15 +68,15 @@ func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, a *mat.CMat
 					ix = kx
 					for i = 1; i <= j; i++ {
 						a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
-						ix = ix + x.Inc
+						ix = ix + incx
 					}
 				}
-				jx = jx + x.Inc
+				jx = jx + incx
 			}
 		}
 	} else {
 		//        Form  A  when A is stored in lower triangle.
-		if x.Inc == 1 {
+		if incx == 1 {
 			for j = 1; j <= n; j++ {
 				if x.Get(j-1) != zero {
 					temp = alpha * x.Get(j-1)
@@ -93,10 +93,10 @@ func Zsyr(uplo mat.MatUplo, n int, alpha complex128, x *mat.CVector, a *mat.CMat
 					ix = jx
 					for i = j; i <= n; i++ {
 						a.Set(i-1, j-1, a.Get(i-1, j-1)+x.Get(ix-1)*temp)
-						ix = ix + x.Inc
+						ix = ix + incx
 					}
 				}
-				jx = jx + x.Inc
+				jx = jx + incx
 			}
 		}
 	}

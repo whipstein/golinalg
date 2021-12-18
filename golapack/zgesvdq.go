@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -351,7 +350,7 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n int, a *mat.CMatrix, s *mat
 			}
 		}
 		for p = 1; p <= m-1; p++ {
-			q = goblas.Idamax(m-p+1, rwork.Off(p-1, 1)) + p - 1
+			q = rwork.Off(p-1).Iamax(m-p+1, 1) + p - 1
 			(*iwork)[n+p-1] = q
 			if p != q {
 				rtmp = rwork.Get(p - 1)
@@ -499,8 +498,8 @@ func Zgesvdq(joba, jobp, jobr, jobu, jobv byte, m, n int, a *mat.CMatrix, s *mat
 			//              expert level and obtain useful information in the sense of
 			//              perturbation theory.
 			for p = 1; p <= nr; p++ {
-				rtmp = goblas.Dznrm2(p, v.CVector(0, p-1, 1))
-				goblas.Zdscal(p, one/rtmp, v.CVector(0, p-1, 1))
+				rtmp = v.Off(0, p-1).CVector().Nrm2(p, 1)
+				v.Off(0, p-1).CVector().Dscal(p, one/rtmp, 1)
 			}
 			if !(lsvec || rsvec) {
 				if rtmp, err = Zpocon(Upper, nr, v, one, cwork, rwork); err != nil {
@@ -999,7 +998,7 @@ label4002:
 	//     .. if numerical rank deficiency is detected, the truncated
 	//     singular values are set to zero.
 	if nr < n {
-		Dlaset(Full, n-nr, 1, zero, zero, s.MatrixOff(nr, n, opts))
+		Dlaset(Full, n-nr, 1, zero, zero, s.Off(nr).Matrix(n, opts))
 	}
 	//     .. undo scaling; this may cause overflow in the largest singular
 	//     values.

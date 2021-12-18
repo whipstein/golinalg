@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -120,7 +119,7 @@ func Dsyev(jobz byte, uplo mat.MatUplo, n int, a *mat.Matrix, w, work *mat.Vecto
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     Set WORK(1) to optimal workspace size.

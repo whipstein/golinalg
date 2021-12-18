@@ -9,7 +9,7 @@ import (
 	"github.com/whipstein/golinalg/mat"
 )
 
-// Dchkaa is the main test program for the DOUBLE PRECISION LAPACK
+// TestDlin is the main test program for the DOUBLE PRECISION LAPACK
 // linear equation routines
 //
 // The program must be driven by a short data file. The first 15 records
@@ -193,13 +193,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkge(dotype, mval, nval, nbval2, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkge(dotype, mval, nval, nbval2, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvge(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
+				ddrvge(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), s, work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -212,13 +212,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkgb(dotype, mval, nval, nnb2, nbval2, nsval, thresh, tsterr, a[0].VectorIdx(0), la, a[2].VectorIdx(0), lafac, b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkgb(dotype, mval, nval, nnb2, nbval2, nsval, thresh, tsterr, a[0].OffIdx(0).Vector(), la, a[2].OffIdx(0).Vector(), lafac, b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvgb(dotype, nn, nval, nrhs, thresh, tsterr, a[0].VectorIdx(0), la, a[2].VectorIdx(0), lafac, a[5].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
+				ddrvgb(dotype, nn, nval, nrhs, thresh, tsterr, a[0].OffIdx(0).Vector(), la, a[2].OffIdx(0).Vector(), lafac, a[5].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), s, work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -229,13 +229,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkgt(dotype, nval, nsval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkgt(dotype, nval, nsval, thresh, tsterr, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvgt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvgt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -246,13 +246,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkpo(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkpo(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvpo(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
+				ddrvpo(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), s, work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -264,7 +264,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkps(dotype, nn, nval, nnb2, nbval2, nrank, rankval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), piv, work.VectorIdx(0), rwork, t)
+				dchkps(dotype, nn, nval, nnb2, nbval2, nrank, rankval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), piv, work.OffIdx(0).Vector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -275,13 +275,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkpp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkpp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvpp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
+				ddrvpp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), s, work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -292,13 +292,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkpb(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkpb(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvpb(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), s, work.VectorIdx(0), rwork, iwork, t)
+				ddrvpb(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), s, work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -309,13 +309,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkpt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, t)
+				dchkpt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvpt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, t)
+				ddrvpt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -327,13 +327,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchksy(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchksy(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvsy(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvsy(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -345,13 +345,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchksyRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchksyRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvsyRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvsyRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -364,13 +364,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchksyRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), e, a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchksyRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), e, a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvsyRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), e, a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvsyRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), e, a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -382,13 +382,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchksyAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchksyAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvsyAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvsyAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -400,13 +400,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchksyAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchksyAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvsyAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvsyAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -418,13 +418,13 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchksp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchksp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				ddrvsp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				ddrvsp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -435,7 +435,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchktr(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchktr(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -446,7 +446,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchktp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchktp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -457,7 +457,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchktb(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchktb(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -468,7 +468,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkqr(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkqr(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), a[3].OffIdx(0).Vector(), a[4].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -479,7 +479,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchklq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, t)
+				dchklq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), a[3].OffIdx(0).Vector(), a[4].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -490,7 +490,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkql(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, t)
+				dchkql(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), a[3].OffIdx(0).Vector(), a[4].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -501,7 +501,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkrq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), b[3].VectorIdx(0), work.VectorIdx(0), rwork, iwork, t)
+				dchkrq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), a[3].OffIdx(0).Vector(), a[4].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), b[3].OffIdx(0).Vector(), work.OffIdx(0).Vector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -512,7 +512,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchkq3(dotype, nm, mval, nn, nval, nnb, nbval, nxval, thresh, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), iwork, t)
+				dchkq3(dotype, nm, mval, nn, nval, nnb, nbval, nxval, thresh, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -523,7 +523,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				dchktz(dotype, nm, mval, nn, nval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[2].VectorIdx(0), work.VectorIdx(0), t)
+				dchktz(dotype, nm, mval, nn, nval, thresh, tsterr, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), work.OffIdx(0).Vector(), t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -534,7 +534,7 @@ func TestDlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstdrv {
-				ddrvls(dotype, nm, mval, nn, nval, nns, nsval, nnb, nbval, nxval, thresh, tsterr, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), b[2].VectorIdx(0), rwork, rwork.Off(nmax), t)
+				ddrvls(dotype, nm, mval, nn, nval, nns, nsval, nnb, nbval, nxval, thresh, tsterr, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), b[2].OffIdx(0).Vector(), rwork, rwork.Off(nmax), t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -606,7 +606,7 @@ func TestDlin(t *testing.T) {
 	fmt.Print("\n End of tests\n")
 }
 
-// Zchkaa is the main test program for the COMPLEX*16 linear equation
+// TestZlin is the main test program for the COMPLEX*16 linear equation
 // routines.
 //
 // The program must be driven by a short data file. The first 15 records
@@ -804,13 +804,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkge(dotype, nm, mval, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkge(dotype, nm, mval, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvge(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVectorIdx(0), rwork, iwork, t)
+				zdrvge(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), s, work.OffIdx(0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -823,13 +823,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkgb(dotype, nm, mval, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, a[0].CVector(0, 0), la, a[2].CVector(0, 0), lafac, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, &iwork, t)
+				zchkgb(dotype, nm, mval, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, a[0].Off(0, 0).CVector(), la, a[2].Off(0, 0).CVector(), lafac, b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, &iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvgb(dotype, nn, nval, nrhs, thresh, tsterr, a[0].CVector(0, 0), la, a[2].CVector(0, 0), lafac, a[5].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, iwork, t)
+				zdrvgb(dotype, nn, nval, nrhs, thresh, tsterr, a[0].Off(0, 0).CVector(), la, a[2].Off(0, 0).CVector(), lafac, a[5].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), s, work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -840,13 +840,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkgt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkgt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvgt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvgt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -857,13 +857,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkpo(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchkpo(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvpo(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, t)
+				zdrvpo(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), s, work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -875,7 +875,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkps(dotype, nn, nval, nnb2, nbval2, nrank, rankval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), piv, work.CVector(0, 0), rwork, t)
+				zchkps(dotype, nn, nval, nnb2, nbval2, nrank, rankval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), piv, work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -886,13 +886,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkpp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchkpp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvpp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, t)
+				zdrvpp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), s, work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -903,13 +903,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkpb(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchkpb(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvpb(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), s, work.CVector(0, 0), rwork, t)
+				zdrvpb(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), s, work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -920,13 +920,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkpt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].CVector(0, 0), s, a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchkpt(dotype, nn, nval, nns, nsval, thresh, tsterr, a[0].Off(0, 0).CVector(), s, a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvpt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].CVector(0, 0), s, a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zdrvpt(dotype, nn, nval, nrhs, thresh, tsterr, a[0].Off(0, 0).CVector(), s, a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -937,13 +937,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkhe(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkhe(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvhe(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvhe(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -955,13 +955,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkheRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkheRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvheRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvheRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -974,13 +974,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkheRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkheRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), e, a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvheRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvheRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), e, a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -992,13 +992,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkheAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkheAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvheAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvheAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1010,13 +1010,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkheAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkheAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvheAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvheAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1027,13 +1027,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkhp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkhp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvhp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvhp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1045,13 +1045,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchksy(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchksy(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvsy(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvsy(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1063,13 +1063,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchksyRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchksyRook(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvsyRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvsyRook(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1082,13 +1082,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchksyRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchksyRk(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), e, a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvsyRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), e, a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvsyRk(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), e, a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1099,13 +1099,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchksyAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchksyAa(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvsyAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvsyAa(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1117,13 +1117,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchksyAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchksyAa2stage(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvsyAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvsyAa2stage(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1135,13 +1135,13 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchksp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchksp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
 
 			if tstdrv {
-				zdrvsp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zdrvsp(dotype, nn, nval, nrhs, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s driver routines were not tested\n", path)
 			}
@@ -1152,7 +1152,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchktr(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchktr(dotype, nn, nval, nnb2, nbval2, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1163,7 +1163,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchktp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchktp(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1174,7 +1174,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchktb(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchktb(dotype, nn, nval, nns, nsval, thresh, tsterr, lda, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1185,7 +1185,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkqr(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkqr(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), a[4].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1196,7 +1196,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchklq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchklq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), a[4].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1207,7 +1207,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkql(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchkql(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), a[4].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1218,7 +1218,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkrq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkrq(dotype, nm, mval, nn, nval, nnb, nbval, nxval, nrhs, thresh, tsterr, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), a[4].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1238,7 +1238,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchktz(dotype, nm, mval, nn, nval, &thresh, &tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), s, b[0].CVector(0, 0), work.CVector(0, 0), rwork, t)
+				zchktz(dotype, nm, mval, nn, nval, &thresh, &tsterr, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), s, b[0].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1249,7 +1249,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstchk {
-				zchkq3(dotype, nm, mval, nn, nval, nnb, nbval, nxval, thresh, a[0].CVector(0, 0), a[1].CVector(0, 0), s, b[0].CVector(0, 0), work.CVector(0, 0), rwork, iwork, t)
+				zchkq3(dotype, nm, mval, nn, nval, nnb, nbval, nxval, thresh, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), s, b[0].Off(0, 0).CVector(), work.Off(0, 0).CVector(), rwork, iwork, t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}
@@ -1260,7 +1260,7 @@ func TestZlin(t *testing.T) {
 			alareq(nmats, &dotype)
 
 			if tstdrv {
-				zdrvls(dotype, nm, mval, nn, nval, nns, nsval, nnb, nbval, nxval, thresh, tsterr, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), s, s.Off(nmax), t)
+				zdrvls(dotype, nm, mval, nn, nval, nns, nsval, nnb, nbval, nxval, thresh, tsterr, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), a[4].Off(0, 0).CVector(), s, s.Off(nmax), t)
 			} else {
 				fmt.Printf("\n %3s routines were not tested\n", path)
 			}

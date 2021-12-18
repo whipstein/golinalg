@@ -113,11 +113,11 @@ func Zgelq(m, n int, a *mat.CMatrix, t *mat.CVector, tsize int, work *mat.CVecto
 
 	//     The LQ Decomposition
 	if (n <= m) || (nb <= m) || (nb >= n) {
-		if err = Zgelqt(m, n, mb, a, t.CMatrixOff(5, mb, opts), work); err != nil {
+		if err = Zgelqt(m, n, mb, a, t.Off(5).CMatrix(mb, opts), work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Zlaswlq(m, n, mb, nb, a, t.CMatrixOff(5, mb, opts), work, lwork); err != nil {
+		if err = Zlaswlq(m, n, mb, nb, a, t.Off(5).CMatrix(mb, opts), work, lwork); err != nil {
 			panic(err)
 		}
 	}

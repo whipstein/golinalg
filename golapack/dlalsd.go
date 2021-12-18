@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -81,7 +80,7 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 			e.Set(i-1, sn*d.Get(i))
 			d.Set(i, cs*d.Get(i))
 			if nrhs == 1 {
-				goblas.Drot(1, b.Vector(i-1, 0, 1), b.Vector(i, 0, 1), cs, sn)
+				b.Off(i, 0).Vector().Rot(1, b.Off(i-1, 0).Vector(), 1, 1, cs, sn)
 			} else {
 				work.Set(i*2-1-1, cs)
 				work.Set(i*2-1, sn)
@@ -92,7 +91,7 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 				for j = 1; j <= n-1; j++ {
 					cs = work.Get(j*2 - 1 - 1)
 					sn = work.Get(j*2 - 1)
-					goblas.Drot(1, b.Vector(j-1, i-1, 1), b.Vector(j, i-1, 1), cs, sn)
+					b.Off(j, i-1).Vector().Rot(1, b.Off(j-1, i-1).Vector(), 1, 1, cs, sn)
 				}
 			}
 		}
@@ -124,7 +123,7 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 		if info != 0 {
 			return
 		}
-		tol = rcnd * math.Abs(d.Get(goblas.Idamax(n, d)-1))
+		tol = rcnd * math.Abs(d.Get(d.Iamax(n, 1)-1))
 		for i = 1; i <= n; i++ {
 			if d.Get(i-1) <= tol {
 				Dlaset(Full, 1, nrhs, zero, zero, b.Off(i-1, 0))
@@ -135,10 +134,10 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 				rank = rank + 1
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, n, nrhs, n, one, work.Matrix(n, opts), b, zero, work.MatrixOff(nwork-1, n, opts)); err != nil {
+		if err = work.Off(nwork-1).Matrix(n, opts).Gemm(Trans, NoTrans, n, nrhs, n, one, work.Matrix(n, opts), b, zero); err != nil {
 			panic(err)
 		}
-		Dlacpy(Full, n, nrhs, work.MatrixOff(nwork-1, n, opts), b)
+		Dlacpy(Full, n, nrhs, work.Off(nwork-1).Matrix(n, opts), b)
 
 		//        Unscale.
 		if err = Dlascl('G', 0, 0, one, orgnrm, n, 1, d.Matrix(n, opts)); err != nil {
@@ -214,33 +213,33 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 				nsub = nsub + 1
 				(*iwork)[nsub-1] = n
 				(*iwork)[sizei+nsub-1-1] = 1
-				goblas.Dcopy(nrhs, b.Vector(n-1, 0), work.Off(bx+nm1-1, n))
+				work.Off(bx+nm1-1).Copy(nrhs, b.Off(n-1, 0).Vector(), b.Rows, n)
 			}
 			st1 = st - 1
 			if nsize == 1 {
 				//              This is a 1-by-1 subproblem and is not solved
 				//              explicitly.
-				goblas.Dcopy(nrhs, b.Vector(st-1, 0), work.Off(bx+st1-1, n))
+				work.Off(bx+st1-1).Copy(nrhs, b.Off(st-1, 0).Vector(), b.Rows, n)
 			} else if nsize <= smlsiz {
 				//              This is a small subproblem and is solved by DLASDQ.
-				Dlaset(Full, nsize, nsize, zero, one, work.MatrixOff(vt+st1-1, n, opts))
-				if info, err = Dlasdq(Upper, 0, nsize, nsize, 0, nrhs, d.Off(st-1), e.Off(st-1), work.MatrixOff(vt+st1-1, n, opts), work.MatrixOff(nwork-1, n, opts), b.Off(st-1, 0), work.Off(nwork-1)); err != nil {
+				Dlaset(Full, nsize, nsize, zero, one, work.Off(vt+st1-1).Matrix(n, opts))
+				if info, err = Dlasdq(Upper, 0, nsize, nsize, 0, nrhs, d.Off(st-1), e.Off(st-1), work.Off(vt+st1-1).Matrix(n, opts), work.Off(nwork-1).Matrix(n, opts), b.Off(st-1, 0), work.Off(nwork-1)); err != nil {
 					panic(err)
 				}
 				if info != 0 {
 					return
 				}
-				Dlacpy(Full, nsize, nrhs, b.Off(st-1, 0), work.MatrixOff(bx+st1-1, n, opts))
+				Dlacpy(Full, nsize, nrhs, b.Off(st-1, 0), work.Off(bx+st1-1).Matrix(n, opts))
 			} else {
 				//              A large problem. Solve it using divide and conquer.
-				if info, err = Dlasda(icmpq1, smlsiz, nsize, sqre, d.Off(st-1), e.Off(st-1), work.MatrixOff(u+st1-1, n, opts), work.MatrixOff(vt+st1-1, n, opts), toSlice(iwork, k+st1-1), work.MatrixOff(difl+st1-1, n, opts), work.MatrixOff(difr+st1-1, n, opts), work.MatrixOff(z+st1-1, n, opts), work.MatrixOff(poles+st1-1, n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), work.MatrixOff(givnum+st1-1, n, opts), work.Off(c+st1-1), work.Off(s+st1-1), work.Off(nwork-1), toSlice(iwork, iwk-1)); err != nil {
+				if info, err = Dlasda(icmpq1, smlsiz, nsize, sqre, d.Off(st-1), e.Off(st-1), work.Off(u+st1-1).Matrix(n, opts), work.Off(vt+st1-1).Matrix(n, opts), toSlice(iwork, k+st1-1), work.Off(difl+st1-1).Matrix(n, opts), work.Off(difr+st1-1).Matrix(n, opts), work.Off(z+st1-1).Matrix(n, opts), work.Off(poles+st1-1).Matrix(n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), work.Off(givnum+st1-1).Matrix(n, opts), work.Off(c+st1-1), work.Off(s+st1-1), work.Off(nwork-1), toSlice(iwork, iwk-1)); err != nil {
 					panic(err)
 				}
 				if info != 0 {
 					return
 				}
 				bxst = bx + st1
-				if err = Dlalsa(icmpq2, smlsiz, nsize, nrhs, b.Off(st-1, 0), work.MatrixOff(bxst-1, n, opts), work.MatrixOff(u+st1-1, n, opts), work.MatrixOff(vt+st1-1, n, opts), toSlice(iwork, k+st1-1), work.MatrixOff(difl+st1-1, n, opts), work.MatrixOff(difr+st1-1, n, opts), work.MatrixOff(z+st1-1, n, opts), work.MatrixOff(poles+st1-1, n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), work.MatrixOff(givnum+st1-1, n, opts), work.Off(c+st1-1), work.Off(s+st1-1), work.Off(nwork-1), toSlice(iwork, iwk-1)); err != nil {
+				if err = Dlalsa(icmpq2, smlsiz, nsize, nrhs, b.Off(st-1, 0), work.Off(bxst-1).Matrix(n, opts), work.Off(u+st1-1).Matrix(n, opts), work.Off(vt+st1-1).Matrix(n, opts), toSlice(iwork, k+st1-1), work.Off(difl+st1-1).Matrix(n, opts), work.Off(difr+st1-1).Matrix(n, opts), work.Off(z+st1-1).Matrix(n, opts), work.Off(poles+st1-1).Matrix(n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), work.Off(givnum+st1-1).Matrix(n, opts), work.Off(c+st1-1), work.Off(s+st1-1), work.Off(nwork-1), toSlice(iwork, iwk-1)); err != nil {
 					return
 				}
 			}
@@ -249,16 +248,16 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 	}
 
 	//     Apply the singular values and treat the tiny ones as zero.
-	tol = rcnd * math.Abs(d.Get(goblas.Idamax(n, d)-1))
+	tol = rcnd * math.Abs(d.Get(d.Iamax(n, 1)-1))
 
 	for i = 1; i <= n; i++ {
 		//        Some of the elements in D can be negative because 1-by-1
 		//        subproblems were not solved explicitly.
 		if math.Abs(d.Get(i-1)) <= tol {
-			Dlaset(Full, 1, nrhs, zero, zero, work.MatrixOff(bx+i-1-1, n, opts))
+			Dlaset(Full, 1, nrhs, zero, zero, work.Off(bx+i-1-1).Matrix(n, opts))
 		} else {
 			rank = rank + 1
-			if err = Dlascl('G', 0, 0, d.Get(i-1), one, 1, nrhs, work.MatrixOff(bx+i-1-1, n, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, d.Get(i-1), one, 1, nrhs, work.Off(bx+i-1-1).Matrix(n, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -273,13 +272,13 @@ func Dlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.Matr
 		nsize = (*iwork)[sizei+i-1-1]
 		bxst = bx + st1
 		if nsize == 1 {
-			goblas.Dcopy(nrhs, work.Off(bxst-1, n), b.Vector(st-1, 0))
+			b.Off(st-1, 0).Vector().Copy(nrhs, work.Off(bxst-1), n, b.Rows)
 		} else if nsize <= smlsiz {
-			if err = goblas.Dgemm(Trans, NoTrans, nsize, nrhs, nsize, one, work.MatrixOff(vt+st1-1, n, opts), work.MatrixOff(bxst-1, n, opts), zero, b.Off(st-1, 0)); err != nil {
+			if err = b.Off(st-1, 0).Gemm(Trans, NoTrans, nsize, nrhs, nsize, one, work.Off(vt+st1-1).Matrix(n, opts), work.Off(bxst-1).Matrix(n, opts), zero); err != nil {
 				panic(err)
 			}
 		} else {
-			if err = Dlalsa(icmpq2, smlsiz, nsize, nrhs, work.MatrixOff(bxst-1, n, opts), b.Off(st-1, 0), work.MatrixOff(u+st1-1, n, opts), work.MatrixOff(vt+st1-1, n, opts), toSlice(iwork, k+st1-1), work.MatrixOff(difl+st1-1, n, opts), work.MatrixOff(difr+st1-1, n, opts), work.MatrixOff(z+st1-1, n, opts), work.MatrixOff(poles+st1-1, n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), work.MatrixOff(givnum+st1-1, n, opts), work.Off(c+st1-1), work.Off(s+st1-1), work.Off(nwork-1), toSlice(iwork, iwk-1)); err != nil {
+			if err = Dlalsa(icmpq2, smlsiz, nsize, nrhs, work.Off(bxst-1).Matrix(n, opts), b.Off(st-1, 0), work.Off(u+st1-1).Matrix(n, opts), work.Off(vt+st1-1).Matrix(n, opts), toSlice(iwork, k+st1-1), work.Off(difl+st1-1).Matrix(n, opts), work.Off(difr+st1-1).Matrix(n, opts), work.Off(z+st1-1).Matrix(n, opts), work.Off(poles+st1-1).Matrix(n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), work.Off(givnum+st1-1).Matrix(n, opts), work.Off(c+st1-1), work.Off(s+st1-1), work.Off(nwork-1), toSlice(iwork, iwk-1)); err != nil {
 				return
 			}
 		}

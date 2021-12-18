@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -44,24 +43,24 @@ func Zpotrs(uplo mat.MatUplo, n, nrhs int, a, b *mat.CMatrix) (err error) {
 		//        Solve A*X = B where A = U**H *U.
 		//
 		//        Solve U**H *X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, ConjTrans, NonUnit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Solve U*X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, NoTrans, NonUnit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 	} else {
 		//        Solve A*X = B where A = L*L**H.
 		//
 		//        Solve L*X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, NoTrans, NonUnit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Solve L**H *X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Lower, ConjTrans, NonUnit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, ConjTrans, NonUnit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 	}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -38,10 +37,10 @@ label10:
 		rk = offset + k
 
 		//        Determine ith pivot column and swap if necessary
-		pvt = (k - 1) + goblas.Idamax(n-k+1, vn1.Off(k-1))
+		pvt = (k - 1) + vn1.Off(k-1).Iamax(n-k+1, 1)
 		if pvt != k {
-			goblas.Dswap(m, a.Vector(0, pvt-1, 1), a.Vector(0, k-1, 1))
-			goblas.Dswap(k-1, f.Vector(pvt-1, 0, f.Rows), f.Vector(k-1, 0, f.Rows))
+			a.Off(0, k-1).Vector().Swap(m, a.Off(0, pvt-1).Vector(), 1, 1)
+			f.Off(k-1, 0).Vector().Swap(k-1, f.Off(pvt-1, 0).Vector(), f.Rows, f.Rows)
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[k-1]
 			(*jpvt)[k-1] = itemp
@@ -52,16 +51,16 @@ label10:
 		//        Apply previous Householder reflectors to column K:
 		//        A(RK:M,K) := A(RK:M,K) - A(RK:M,1:K-1)*F(K,1:K-1)**T.
 		if k > 1 {
-			if err = goblas.Dgemv(NoTrans, m-rk+1, k-1, -one, a.Off(rk-1, 0), f.Vector(k-1, 0, f.Rows), one, a.Vector(rk-1, k-1, 1)); err != nil {
+			if err = a.Off(rk-1, k-1).Vector().Gemv(NoTrans, m-rk+1, k-1, -one, a.Off(rk-1, 0), f.Off(k-1, 0).Vector(), f.Rows, one, 1); err != nil {
 				panic(err)
 			}
 		}
 
 		//        Generate elementary reflector H(k).
 		if rk < m {
-			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Dlarfg(m-rk+1, a.Get(rk-1, k-1), a.Vector(rk, k-1, 1))
+			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Dlarfg(m-rk+1, a.Get(rk-1, k-1), a.Off(rk, k-1).Vector(), 1)
 		} else {
-			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Dlarfg(1, a.Get(rk-1, k-1), a.Vector(rk-1, k-1, 1))
+			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Dlarfg(1, a.Get(rk-1, k-1), a.Off(rk-1, k-1).Vector(), 1)
 		}
 
 		akk = a.Get(rk-1, k-1)
@@ -71,7 +70,7 @@ label10:
 		//
 		//        Compute  F(K+1:N,K) := tau(K)*A(RK:M,K+1:N)**T*A(RK:M,K).
 		if k < n {
-			if err = goblas.Dgemv(Trans, m-rk+1, n-k, tau.Get(k-1), a.Off(rk-1, k), a.Vector(rk-1, k-1, 1), zero, f.Vector(k, k-1, 1)); err != nil {
+			if err = f.Off(k, k-1).Vector().Gemv(Trans, m-rk+1, n-k, tau.Get(k-1), a.Off(rk-1, k), a.Off(rk-1, k-1).Vector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -85,11 +84,11 @@ label10:
 		//        F(1:N,K) := F(1:N,K) - tau(K)*F(1:N,1:K-1)*A(RK:M,1:K-1)**T
 		//                    *A(RK:M,K).
 		if k > 1 {
-			if err = goblas.Dgemv(Trans, m-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), a.Vector(rk-1, k-1, 1), zero, auxv); err != nil {
+			if err = auxv.Gemv(Trans, m-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), a.Off(rk-1, k-1).Vector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dgemv(NoTrans, n, k-1, one, f.Off(0, 0), auxv, one, f.Vector(0, k-1, 1)); err != nil {
+			if err = f.Off(0, k-1).Vector().Gemv(NoTrans, n, k-1, one, f.Off(0, 0), auxv, 1, one, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -97,7 +96,7 @@ label10:
 		//        Update the current row of A:
 		//        A(RK,K+1:N) := A(RK,K+1:N) - A(RK,1:K)*F(K+1:N,1:K)**T.
 		if k < n {
-			if err = goblas.Dgemv(NoTrans, n-k, k, -one, f.Off(k, 0), a.Vector(rk-1, 0), one, a.Vector(rk-1, k)); err != nil {
+			if err = a.Off(rk-1, k).Vector().Gemv(NoTrans, n-k, k, -one, f.Off(k, 0), a.Off(rk-1, 0).Vector(), a.Rows, one, a.Rows); err != nil {
 				panic(err)
 			}
 		}
@@ -133,7 +132,7 @@ label10:
 	//     A(OFFSET+KB+1:M,KB+1:N) := A(OFFSET+KB+1:M,KB+1:N) -
 	//                         A(OFFSET+KB+1:M,1:KB)*F(KB+1:N,1:KB)**T.
 	if kb < min(n, m-offset) {
-		if err = goblas.Dgemm(NoTrans, Trans, m-rk, n-kb, kb, -one, a.Off(rk, 0), f.Off(kb, 0), one, a.Off(rk, kb)); err != nil {
+		if err = a.Off(rk, kb).Gemm(NoTrans, Trans, m-rk, n-kb, kb, -one, a.Off(rk, 0), f.Off(kb, 0), one); err != nil {
 			panic(err)
 		}
 	}
@@ -143,7 +142,7 @@ label40:
 	;
 	if lsticc > 0 {
 		itemp = int(math.Round(vn2.Get(lsticc - 1)))
-		vn1.Set(lsticc-1, goblas.Dnrm2(m-rk, a.Vector(rk, lsticc-1, 1)))
+		vn1.Set(lsticc-1, a.Off(rk, lsticc-1).Vector().Nrm2(m-rk, 1))
 
 		//        NOTE: The computation of VN1( LSTICC ) relies on the fact that
 		//        SNRM2 does not fail on vectors with norm below the value of

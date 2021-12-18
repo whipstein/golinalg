@@ -33,14 +33,14 @@ func Zgehd2(n, ilo, ihi int, a *mat.CMatrix, tau, work *mat.CVector) (err error)
 	for i = ilo; i <= ihi-1; i++ {
 		//        Compute elementary reflector H(i) to annihilate A(i+2:ihi,i)
 		alpha = a.Get(i, i-1)
-		alpha, *tau.GetPtr(i - 1) = Zlarfg(ihi-i, alpha, a.CVector(min(i+2, n)-1, i-1, 1))
+		alpha, *tau.GetPtr(i - 1) = Zlarfg(ihi-i, alpha, a.Off(min(i+2, n)-1, i-1).CVector(), 1)
 		a.Set(i, i-1, one)
 
 		//        Apply H(i) to A(1:ihi,i+1:ihi) from the right
-		Zlarf(Right, ihi, ihi-i, a.CVector(i, i-1, 1), tau.Get(i-1), a.Off(0, i), work)
+		Zlarf(Right, ihi, ihi-i, a.Off(i, i-1).CVector(), 1, tau.Get(i-1), a.Off(0, i), work)
 
 		//        Apply H(i)**H to A(i+1:ihi,i+1:n) from the left
-		Zlarf(Left, ihi-i, n-i, a.CVector(i, i-1, 1), tau.GetConj(i-1), a.Off(i, i), work)
+		Zlarf(Left, ihi-i, n-i, a.Off(i, i-1).CVector(), 1, tau.GetConj(i-1), a.Off(i, i), work)
 
 		a.Set(i, i-1, alpha)
 	}

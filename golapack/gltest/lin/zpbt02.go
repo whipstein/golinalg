@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -38,7 +37,7 @@ func zpbt02(uplo mat.MatUplo, n, kd, nrhs int, a, x, b *mat.CMatrix, rwork *mat.
 
 	//     Compute  B - A*X
 	for j = 1; j <= nrhs; j++ {
-		if err = goblas.Zhbmv(uplo, n, kd, -cone, a, x.CVector(0, j-1, 1), cone, b.CVector(0, j-1, 1)); err != nil {
+		if err = b.Off(0, j-1).CVector().Hbmv(uplo, n, kd, -cone, a, x.Off(0, j-1).CVector(), 1, cone, 1); err != nil {
 			panic(err)
 		}
 	}
@@ -47,8 +46,8 @@ func zpbt02(uplo mat.MatUplo, n, kd, nrhs int, a, x, b *mat.CMatrix, rwork *mat.
 	//          norm( B - A*X ) / ( norm(A) * norm(X) * EPS )
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dzasum(n, b.CVector(0, j-1, 1))
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).CVector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).CVector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

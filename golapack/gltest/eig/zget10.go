@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -28,9 +27,9 @@ func zget10(m, n int, a, b *mat.CMatrix, work *mat.CVector, rwork *mat.Vector) (
 
 	wnorm = zero
 	for j = 1; j <= n; j++ {
-		goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
-		goblas.Zaxpy(m, complex(-one, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
-		wnorm = math.Max(wnorm, goblas.Dzasum(n, work.Off(0, 1)))
+		work.Copy(m, a.Off(0, j-1).CVector(), 1, 1)
+		work.Axpy(m, complex(-one, 0), b.Off(0, j-1).CVector(), 1, 1)
+		wnorm = math.Max(wnorm, work.Asum(n, 1))
 	}
 
 	anorm = math.Max(golapack.Zlange('1', m, n, a, rwork), unfl)

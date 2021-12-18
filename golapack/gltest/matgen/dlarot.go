@@ -1,7 +1,6 @@
 package matgen
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -150,8 +149,8 @@ func Dlarot(lrows, lleft, lright bool, nl int, c, s float64, a *mat.Vector, lda 
 	}
 
 	//     Rotate
-	goblas.Drot(nl-nt, a.Off(ix-1, iinc), a.Off(iy-1, iinc), c, s)
-	goblas.Drot(nt, xt.Off(0, 1), yt.Off(0, 1), c, s)
+	a.Off(iy-1).Rot(nl-nt, a.Off(ix-1), iinc, iinc, c, s)
+	yt.Rot(nt, xt, 1, 1, c, s)
 
 	//     Stuff values back into XLEFT, XRIGHT, etc.
 	if lleft {

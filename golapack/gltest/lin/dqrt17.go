@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -54,7 +53,7 @@ func dqrt17(trans mat.MatTrans, iresid, m, n, nrhs int, a, x, b, c *mat.Matrix, 
 
 	//     compute residual and scale it
 	golapack.Dlacpy(Full, nrows, nrhs, b, c)
-	if err = goblas.Dgemm(trans, NoTrans, nrows, nrhs, ncols, -one, a, x, one, c); err != nil {
+	if err = c.Gemm(trans, NoTrans, nrows, nrhs, ncols, -one, a, x, one); err != nil {
 		panic(err)
 	}
 	normrs = golapack.Dlange('M', nrows, nrhs, c, rwork)
@@ -66,7 +65,7 @@ func dqrt17(trans mat.MatTrans, iresid, m, n, nrhs int, a, x, b, c *mat.Matrix, 
 	}
 
 	//     compute R'*A
-	if err = goblas.Dgemm(Trans, trans, nrhs, ncols, nrows, one, c, a, zero, work.Matrix(nrhs, opts)); err != nil {
+	if err = work.Matrix(nrhs, opts).Gemm(Trans, trans, nrhs, ncols, nrows, one, c, a, zero); err != nil {
 		panic(err)
 	}
 

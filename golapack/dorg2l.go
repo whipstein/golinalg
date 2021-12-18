@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -55,8 +54,8 @@ func Dorg2l(m, n, k int, a *mat.Matrix, tau, work *mat.Vector) (err error) {
 
 		//        Apply H(i) to A(1:m-k+i,1:n-k+i) from the left
 		a.Set(m-n+ii-1, ii-1, one)
-		Dlarf(Left, m-n+ii, ii-1, a.Vector(0, ii-1, 1), tau.Get(i-1), a, work)
-		goblas.Dscal(m-n+ii-1, -tau.Get(i-1), a.Vector(0, ii-1, 1))
+		Dlarf(Left, m-n+ii, ii-1, a.Off(0, ii-1).Vector(), 1, tau.Get(i-1), a, work)
+		a.Off(0, ii-1).Vector().Scal(m-n+ii-1, -tau.Get(i-1), 1)
 		a.Set(m-n+ii-1, ii-1, one-tau.Get(i-1))
 
 		//        Set A(m-k+i+1:m,n-k+i) to zero

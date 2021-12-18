@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -141,7 +140,7 @@ func Zlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 		//        The eigenvalue approximations will be refined when necessary as
 		//        high relative accuracy is required for the computation of the
 		//        corresponding eigenvectors.
-		goblas.Dcopy(im, w.Off(wbegin-1, 1), work.Off(wbegin-1, 1))
+		work.Off(wbegin-1).Copy(im, w.Off(wbegin-1), 1, 1)
 		//        We store in W the eigenvalue approximations w.r.t. the original
 		//        matrix T.
 		for i = 1; i <= im; i++ {
@@ -482,7 +481,7 @@ func Zlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 							(*iwork)[iindr+windex-1] = 0
 						}
 						//                    Given LAMBDA, compute the eigenvector.
-						negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Zlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.CVector(ibegin-1, windex-1), !usedbs, (*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), work.Off(indwrk-1))
+						negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Zlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.Off(ibegin-1, windex-1).CVector(), !usedbs, (*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), work.Off(indwrk-1))
 						if iter == 0 {
 							bstres = resid
 							bstw = lambda
@@ -565,7 +564,7 @@ func Zlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 							}
 							if stp2ii {
 								//                          improve error angle by second step
-								negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Zlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.CVector(ibegin-1, windex-1), !usedbs, (*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), work.Off(indwrk-1))
+								negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Zlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.Off(ibegin-1, windex-1).CVector(), !usedbs, (*iwork)[iindr+windex-1], toSlice(isuppz, 2*windex-1-1), work.Off(indwrk-1))
 							}
 							work.Set(windex-1, lambda)
 						}
@@ -588,7 +587,7 @@ func Zlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 								z.SetRe(ii-1, windex-1, zero)
 							}
 						}
-						goblas.Zdscal(zto-zfrom+1, nrminv, z.CVector(zfrom-1, windex-1, 1))
+						z.Off(zfrom-1, windex-1).CVector().Dscal(zto-zfrom+1, nrminv, 1)
 					label125:
 						;
 						//                    Update W

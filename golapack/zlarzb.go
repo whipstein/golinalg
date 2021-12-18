@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -46,19 +45,19 @@ func Zlarzb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 		//
 		//        W( 1:n, 1:k ) = C( 1:k, 1:n )**H
 		for j = 1; j <= k; j++ {
-			goblas.Zcopy(n, c.CVector(j-1, 0), work.CVector(0, j-1, 1))
+			work.Off(0, j-1).CVector().Copy(n, c.Off(j-1, 0).CVector(), c.Rows, 1)
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) + ...
 		//                        C( m-l+1:m, 1:n )**H * V( 1:k, 1:l )**T
 		if l > 0 {
-			if err = goblas.Zgemm(Trans, ConjTrans, n, k, l, one, c.Off(m-l, 0), v, one, work); err != nil {
+			if err = work.Gemm(Trans, ConjTrans, n, k, l, one, c.Off(m-l, 0), v, one); err != nil {
 				panic(err)
 			}
 		}
 
 		//        W( 1:n, 1:k ) = W( 1:n, 1:k ) * T**T  or  W( 1:m, 1:k ) * T
-		if err = goblas.Ztrmm(Right, Lower, transt, NonUnit, n, k, one, t, work); err != nil {
+		if err = work.Trmm(Right, Lower, transt, NonUnit, n, k, one, t); err != nil {
 			panic(err)
 		}
 
@@ -72,7 +71,7 @@ func Zlarzb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 		//        C( m-l+1:m, 1:n ) = C( m-l+1:m, 1:n ) - ...
 		//                            V( 1:k, 1:l )**H * W( 1:n, 1:k )**H
 		if l > 0 {
-			if err = goblas.Zgemm(Trans, Trans, l, n, k, -one, v, work, one, c.Off(m-l, 0)); err != nil {
+			if err = c.Off(m-l, 0).Gemm(Trans, Trans, l, n, k, -one, v, work, one); err != nil {
 				panic(err)
 			}
 		}
@@ -82,13 +81,13 @@ func Zlarzb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 		//
 		//        W( 1:m, 1:k ) = C( 1:m, 1:k )
 		for j = 1; j <= k; j++ {
-			goblas.Zcopy(m, c.CVector(0, j-1, 1), work.CVector(0, j-1, 1))
+			work.Off(0, j-1).CVector().Copy(m, c.Off(0, j-1).CVector(), 1, 1)
 		}
 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) + ...
 		//                        C( 1:m, n-l+1:n ) * V( 1:k, 1:l )**H
 		if l > 0 {
-			if err = goblas.Zgemm(NoTrans, Trans, m, k, l, one, c.Off(0, n-l), v, one, work); err != nil {
+			if err = work.Gemm(NoTrans, Trans, m, k, l, one, c.Off(0, n-l), v, one); err != nil {
 				panic(err)
 			}
 		}
@@ -96,13 +95,13 @@ func Zlarzb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 		//        W( 1:m, 1:k ) = W( 1:m, 1:k ) * conjg( T )  or
 		//                        W( 1:m, 1:k ) * T**H
 		for j = 1; j <= k; j++ {
-			Zlacgv(k-j+1, t.CVector(j-1, j-1, 1))
+			Zlacgv(k-j+1, t.Off(j-1, j-1).CVector(), 1)
 		}
-		if err = goblas.Ztrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+		if err = work.Trmm(Right, Lower, trans, NonUnit, m, k, one, t); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= k; j++ {
-			Zlacgv(k-j+1, t.CVector(j-1, j-1, 1))
+			Zlacgv(k-j+1, t.Off(j-1, j-1).CVector(), 1)
 		}
 
 		//        C( 1:m, 1:k ) = C( 1:m, 1:k ) - W( 1:m, 1:k )
@@ -115,15 +114,15 @@ func Zlarzb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 		//        C( 1:m, n-l+1:n ) = C( 1:m, n-l+1:n ) - ...
 		//                            W( 1:m, 1:k ) * conjg( V( 1:k, 1:l ) )
 		for j = 1; j <= l; j++ {
-			Zlacgv(k, v.CVector(0, j-1, 1))
+			Zlacgv(k, v.Off(0, j-1).CVector(), 1)
 		}
 		if l > 0 {
-			if err = goblas.Zgemm(NoTrans, NoTrans, m, l, k, -one, work, v, one, c.Off(0, n-l)); err != nil {
+			if err = c.Off(0, n-l).Gemm(NoTrans, NoTrans, m, l, k, -one, work, v, one); err != nil {
 				panic(err)
 			}
 		}
 		for j = 1; j <= l; j++ {
-			Zlacgv(k, v.CVector(0, j-1, 1))
+			Zlacgv(k, v.Off(0, j-1).CVector(), 1)
 		}
 
 	}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -87,13 +86,13 @@ func Zunm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.CM
 
 	//     Degenerate cases (N1 = 0 or N2 = 0) are handled using ZTRMM.
 	if n1 == 0 {
-		if err = goblas.Ztrmm(side, Upper, trans, NonUnit, m, n, one, q, c); err != nil {
+		if err = c.Trmm(side, Upper, trans, NonUnit, m, n, one, q); err != nil {
 			panic(err)
 		}
 		work.Set(0, one)
 		return
 	} else if n2 == 0 {
-		if err = goblas.Ztrmm(side, Lower, trans, NonUnit, m, n, one, q, c); err != nil {
+		if err = c.Trmm(side, Lower, trans, NonUnit, m, n, one, q); err != nil {
 			panic(err)
 		}
 		work.Set(0, one)
@@ -111,23 +110,23 @@ func Zunm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.CM
 
 				//              Multiply bottom part of C by Q12.
 				Zlacpy(Full, n1, len, c.Off(n2, i-1), work.CMatrix(ldwork, opts))
-				if err = goblas.Ztrmm(Left, Lower, NoTrans, NonUnit, n1, len, one, q.Off(0, n2), work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Trmm(Left, Lower, NoTrans, NonUnit, n1, len, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q11.
-				if err = goblas.Zgemm(NoTrans, NoTrans, n1, len, n2, one, q, c.Off(0, i-1), one, work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Gemm(NoTrans, NoTrans, n1, len, n2, one, q, c.Off(0, i-1), one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q21.
-				Zlacpy(Full, n2, len, c.Off(0, i-1), work.CMatrixOff(n1, ldwork, opts))
-				if err = goblas.Ztrmm(Left, Upper, NoTrans, NonUnit, n2, len, one, q.Off(n1, 0), work.CMatrixOff(n1, ldwork, opts)); err != nil {
+				Zlacpy(Full, n2, len, c.Off(0, i-1), work.Off(n1).CMatrix(ldwork, opts))
+				if err = work.Off(n1).CMatrix(ldwork, opts).Trmm(Left, Upper, NoTrans, NonUnit, n2, len, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply bottom part of C by Q22.
-				if err = goblas.Zgemm(NoTrans, NoTrans, n2, len, n1, one, q.Off(n1, n2), c.Off(n2, i-1), one, work.CMatrixOff(n1, ldwork, opts)); err != nil {
+				if err = work.Off(n1).CMatrix(ldwork, opts).Gemm(NoTrans, NoTrans, n2, len, n1, one, q.Off(n1, n2), c.Off(n2, i-1), one); err != nil {
 					panic(err)
 				}
 
@@ -141,23 +140,23 @@ func Zunm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.CM
 
 				//              Multiply bottom part of C by Q21**H.
 				Zlacpy(Full, n2, len, c.Off(n1, i-1), work.CMatrix(ldwork, opts))
-				if err = goblas.Ztrmm(Left, Upper, ConjTrans, NonUnit, n2, len, one, q.Off(n1, 0), work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Trmm(Left, Upper, ConjTrans, NonUnit, n2, len, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q11**H.
-				if err = goblas.Zgemm(ConjTrans, NoTrans, n2, len, n1, one, q, c.Off(0, i-1), one, work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Gemm(ConjTrans, NoTrans, n2, len, n1, one, q, c.Off(0, i-1), one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q12**H.
-				Zlacpy(Full, n1, len, c.Off(0, i-1), work.CMatrixOff(n2, ldwork, opts))
-				if err = goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, n1, len, one, q.Off(0, n2), work.CMatrixOff(n2, ldwork, opts)); err != nil {
+				Zlacpy(Full, n1, len, c.Off(0, i-1), work.Off(n2).CMatrix(ldwork, opts))
+				if err = work.Off(n2).CMatrix(ldwork, opts).Trmm(Left, Lower, ConjTrans, NonUnit, n1, len, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply bottom part of C by Q22**H.
-				if err = goblas.Zgemm(ConjTrans, NoTrans, n1, len, n2, one, q.Off(n1, n2), c.Off(n1, i-1), one, work.CMatrixOff(n2, ldwork, opts)); err != nil {
+				if err = work.Off(n2).CMatrix(ldwork, opts).Gemm(ConjTrans, NoTrans, n1, len, n2, one, q.Off(n1, n2), c.Off(n1, i-1), one); err != nil {
 					panic(err)
 				}
 
@@ -173,23 +172,23 @@ func Zunm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.CM
 
 				//              Multiply right part of C by Q21.
 				Zlacpy(Full, len, n2, c.Off(i-1, n1), work.CMatrix(ldwork, opts))
-				if err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, len, n2, one, q.Off(n1, 0), work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Trmm(Right, Upper, NoTrans, NonUnit, len, n2, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q11.
-				if err = goblas.Zgemm(NoTrans, NoTrans, len, n2, n1, one, c.Off(i-1, 0), q, one, work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Gemm(NoTrans, NoTrans, len, n2, n1, one, c.Off(i-1, 0), q, one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q12.
-				Zlacpy(Full, len, n1, c.Off(i-1, 0), work.CMatrixOff(1+n2*ldwork-1, ldwork, opts))
-				if err = goblas.Ztrmm(Right, Lower, NoTrans, NonUnit, len, n1, one, q.Off(0, n2), work.CMatrixOff(1+n2*ldwork-1, ldwork, opts)); err != nil {
+				Zlacpy(Full, len, n1, c.Off(i-1, 0), work.Off(1+n2*ldwork-1).CMatrix(ldwork, opts))
+				if err = work.Off(1+n2*ldwork-1).CMatrix(ldwork, opts).Trmm(Right, Lower, NoTrans, NonUnit, len, n1, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply right part of C by Q22.
-				if err = goblas.Zgemm(NoTrans, NoTrans, len, n1, n2, one, c.Off(i-1, n1), q.Off(n1, n2), one, work.CMatrixOff(1+n2*ldwork-1, ldwork, opts)); err != nil {
+				if err = work.Off(1+n2*ldwork-1).CMatrix(ldwork, opts).Gemm(NoTrans, NoTrans, len, n1, n2, one, c.Off(i-1, n1), q.Off(n1, n2), one); err != nil {
 					panic(err)
 				}
 
@@ -203,23 +202,23 @@ func Zunm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.CM
 
 				//              Multiply right part of C by Q12**H.
 				Zlacpy(Full, len, n1, c.Off(i-1, n2), work.CMatrix(ldwork, opts))
-				if err = goblas.Ztrmm(Right, Lower, ConjTrans, NonUnit, len, n1, one, q.Off(0, n2), work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Trmm(Right, Lower, ConjTrans, NonUnit, len, n1, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q11**H.
-				if err = goblas.Zgemm(NoTrans, ConjTrans, len, n1, n2, one, c.Off(i-1, 0), q, one, work.CMatrix(ldwork, opts)); err != nil {
+				if err = work.CMatrix(ldwork, opts).Gemm(NoTrans, ConjTrans, len, n1, n2, one, c.Off(i-1, 0), q, one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q21**H.
-				Zlacpy(Full, len, n2, c.Off(i-1, 0), work.CMatrixOff(1+n1*ldwork-1, ldwork, opts))
-				if err = goblas.Ztrmm(Right, Upper, ConjTrans, NonUnit, len, n2, one, q.Off(n1, 0), work.CMatrixOff(1+n1*ldwork-1, ldwork, opts)); err != nil {
+				Zlacpy(Full, len, n2, c.Off(i-1, 0), work.Off(1+n1*ldwork-1).CMatrix(ldwork, opts))
+				if err = work.Off(1+n1*ldwork-1).CMatrix(ldwork, opts).Trmm(Right, Upper, ConjTrans, NonUnit, len, n2, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply right part of C by Q22**H.
-				if err = goblas.Zgemm(NoTrans, ConjTrans, len, n2, n1, one, c.Off(i-1, n2), q.Off(n1, n2), one, work.CMatrixOff(1+n1*ldwork-1, ldwork, opts)); err != nil {
+				if err = work.Off(1+n1*ldwork-1).CMatrix(ldwork, opts).Gemm(NoTrans, ConjTrans, len, n2, n1, one, c.Off(i-1, n2), q.Off(n1, n2), one); err != nil {
 					panic(err)
 				}
 

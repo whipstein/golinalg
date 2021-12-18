@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -63,9 +62,9 @@ func Zgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.CMatrix, ipiv *[]in
 				lm = min(kl, n-j)
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Zswap(nrhs, b.CVector(l-1, 0), b.CVector(j-1, 0))
+					b.Off(j-1, 0).CVector().Swap(nrhs, b.Off(l-1, 0).CVector(), b.Rows, b.Rows)
 				}
-				if err = goblas.Zgeru(lm, nrhs, -one, ab.CVector(kd, j-1, 1), b.CVector(j-1, 0), b.Off(j, 0)); err != nil {
+				if err = b.Off(j, 0).Geru(lm, nrhs, -one, ab.Off(kd, j-1).CVector(), 1, b.Off(j-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -73,7 +72,7 @@ func Zgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.CMatrix, ipiv *[]in
 
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U*X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Upper, NoTrans, NonUnit, n, kl+ku, ab, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tbsv(Upper, NoTrans, NonUnit, n, kl+ku, ab, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -82,7 +81,7 @@ func Zgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.CMatrix, ipiv *[]in
 		//        Solve A**T * X = B.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U**T * X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Upper, Trans, NonUnit, n, kl+ku, ab, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tbsv(Upper, Trans, NonUnit, n, kl+ku, ab, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -91,12 +90,12 @@ func Zgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.CMatrix, ipiv *[]in
 		if lnoti {
 			for j = n - 1; j >= 1; j-- {
 				lm = min(kl, n-j)
-				if err = goblas.Zgemv(Trans, lm, nrhs, -one, b.Off(j, 0), ab.CVector(kd, j-1, 1), one, b.CVector(j-1, 0)); err != nil {
+				if err = b.Off(j-1, 0).CVector().Gemv(Trans, lm, nrhs, -one, b.Off(j, 0), ab.Off(kd, j-1).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Zswap(nrhs, b.CVector(l-1, 0), b.CVector(j-1, 0))
+					b.Off(j-1, 0).CVector().Swap(nrhs, b.Off(l-1, 0).CVector(), b.Rows, b.Rows)
 				}
 			}
 		}
@@ -105,7 +104,7 @@ func Zgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.CMatrix, ipiv *[]in
 		//        Solve A**H * X = B.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U**H * X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Upper, ConjTrans, NonUnit, n, kl+ku, ab, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tbsv(Upper, ConjTrans, NonUnit, n, kl+ku, ab, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -114,12 +113,12 @@ func Zgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.CMatrix, ipiv *[]in
 		if lnoti {
 			for j = n - 1; j >= 1; j-- {
 				lm = min(kl, n-j)
-				Zlacgv(nrhs, b.CVector(j-1, 0))
-				err = goblas.Zgemv(ConjTrans, lm, nrhs, -one, b.Off(j, 0), ab.CVector(kd, j-1, 1), one, b.CVector(j-1, 0))
-				Zlacgv(nrhs, b.CVector(j-1, 0))
+				Zlacgv(nrhs, b.Off(j-1, 0).CVector(), b.Rows)
+				err = b.Off(j-1, 0).CVector().Gemv(ConjTrans, lm, nrhs, -one, b.Off(j, 0), ab.Off(kd, j-1).CVector(), 1, one, b.Rows)
+				Zlacgv(nrhs, b.Off(j-1, 0).CVector(), b.Rows)
 				l = (*ipiv)[j-1]
 				if l != j {
-					goblas.Zswap(nrhs, b.CVector(l-1, 0), b.CVector(j-1, 0))
+					b.Off(j-1, 0).CVector().Swap(nrhs, b.Off(l-1, 0).CVector(), b.Rows, b.Rows)
 				}
 			}
 		}

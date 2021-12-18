@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -101,7 +100,7 @@ func Zppsvx(fact byte, uplo mat.MatUplo, n, nrhs int, ap, afp *mat.CVector, eque
 
 	if nofact || equil {
 		//        Compute the Cholesky factorization A = U**H * U or A = L * L**H.
-		goblas.Zcopy(n*(n+1)/2, ap.Off(0, 1), afp.Off(0, 1))
+		afp.Copy(n*(n+1)/2, ap, 1, 1)
 		if info, err = Zpptrf(uplo, n, afp); err != nil {
 			panic(err)
 		}

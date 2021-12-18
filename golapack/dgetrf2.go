@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -72,7 +71,7 @@ func Dgetrf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Find pivot and test for singularity
-		i = goblas.Idamax(m, a.Vector(0, 0, 1))
+		i = a.Off(0, 0).Vector().Iamax(m, 1)
 		(*ipiv)[0] = i
 		if a.Get(i-1, 0) != zero {
 			//           Apply the interchange
@@ -84,7 +83,7 @@ func Dgetrf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 
 			//           Compute elements 2:M of the column
 			if math.Abs(a.Get(0, 0)) >= sfmin {
-				goblas.Dscal(m-1, one/a.Get(0, 0), a.Vector(1, 0, 1))
+				a.Off(1, 0).Vector().Scal(m-1, one/a.Get(0, 0), 1)
 			} else {
 				for i = 1; i <= m-1; i++ {
 					a.Set(1+i-1, 0, a.Get(1+i-1, 0)/a.Get(0, 0))
@@ -113,10 +112,10 @@ func Dgetrf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 		Dlaswp(n2, a.Off(0, n1), 1, n1, (*ipiv), 1)
 
 		//        Solve A12
-		err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, n1, n2, one, a, a.Off(0, n1))
+		err = a.Off(0, n1).Trsm(Left, Lower, NoTrans, Unit, n1, n2, one, a)
 
 		//        Update A22
-		err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1))
+		err = a.Off(n1, n1).Gemm(NoTrans, NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one)
 
 		//        Factor A22
 		iinfo, err = Dgetrf2(m-n1, n2, a.Off(n1, n1), toSlice(ipiv, n1))

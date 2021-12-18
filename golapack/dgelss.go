@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -317,7 +316,7 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		rank = 0
 		for i = 1; i <= n; i++ {
 			if s.Get(i-1) > thr {
-				Drscl(nrhs, s.Get(i-1), b.Vector(i-1, 0))
+				Drscl(nrhs, s.Get(i-1), b.Off(i-1, 0).Vector(), b.Rows)
 				rank = rank + 1
 			} else {
 				Dlaset(Full, 1, nrhs, zero, zero, b.Off(i-1, 0))
@@ -327,18 +326,18 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		//        Multiply B by right singular vectors
 		//        (Workspace: need N, prefer N*NRHS)
 		if lwork >= b.Rows*nrhs && nrhs > 1 {
-			err = goblas.Dgemm(Trans, NoTrans, n, nrhs, n, one, a, b, zero, work.Matrix(*&b.Rows, opts))
-			Dlacpy(Full, n, nrhs, work.Matrix(*&b.Rows, opts), b)
+			err = work.Matrix(b.Rows, opts).Gemm(Trans, NoTrans, n, nrhs, n, one, a, b, zero)
+			Dlacpy(Full, n, nrhs, work.Matrix(b.Rows, opts), b)
 		} else if nrhs > 1 {
 			chunk = lwork / n
 			for i = 1; i <= nrhs; i += chunk {
 				bl = min(nrhs-i+1, chunk)
-				err = goblas.Dgemm(Trans, NoTrans, n, bl, n, one, a, b.Off(0, i-1), zero, work.Matrix(n, opts))
+				err = work.Matrix(n, opts).Gemm(Trans, NoTrans, n, bl, n, one, a, b.Off(0, i-1), zero)
 				Dlacpy(Full, n, bl, work.Matrix(n, opts), b.Off(0, i-1))
 			}
 		} else {
-			err = goblas.Dgemv(Trans, n, n, one, a, b.VectorIdx(0, 1), zero, work)
-			goblas.Dcopy(n, work, b.VectorIdx(0, 1))
+			err = work.Gemv(Trans, n, n, one, a, b.OffIdx(0).Vector(), 1, zero, 1)
+			b.OffIdx(0).Vector().Copy(n, work, 1, 1)
 		}
 
 	} else if n >= mnthr && lwork >= 4*m+m*m+max(m, 2*m-4, nrhs, n-3*m) {
@@ -359,8 +358,8 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		il = iwork
 
 		//        Copy L to WORK(IL), zeroing out above it
-		Dlacpy(Lower, m, m, a, work.MatrixOff(il-1, ldwork, opts))
-		Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(il+ldwork-1, ldwork, opts))
+		Dlacpy(Lower, m, m, a, work.Off(il-1).Matrix(ldwork, opts))
+		Dlaset(Upper, m-1, m-1, zero, zero, work.Off(il+ldwork-1).Matrix(ldwork, opts))
 		ie = il + ldwork*m
 		itauq = ie + m
 		itaup = itauq + m
@@ -368,19 +367,19 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 
 		//        Bidiagonalize L in WORK(IL)
 		//        (Workspace: need M*M+5*M, prefer M*M+4*M+2*M*NB)
-		if err = Dgebrd(m, m, work.MatrixOff(il-1, ldwork, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+		if err = Dgebrd(m, m, work.Off(il-1).Matrix(ldwork, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 			panic(err)
 		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors of L
 		//        (Workspace: need M*M+4*M+NRHS, prefer M*M+4*M+NRHS*NB)
-		if err = Dormbr('Q', Left, Trans, m, nrhs, m, work.MatrixOff(il-1, ldwork, opts), work.Off(itauq-1), b, work.Off(iwork), lwork-iwork+1); err != nil {
+		if err = Dormbr('Q', Left, Trans, m, nrhs, m, work.Off(il-1).Matrix(ldwork, opts), work.Off(itauq-1), b, work.Off(iwork), lwork-iwork+1); err != nil {
 			panic(err)
 		}
 
 		//        Generate right bidiagonalizing vectors of R in WORK(IL)
 		//        (Workspace: need M*M+5*M-1, prefer M*M+4*M+(M-1)*NB)
-		if err = Dorgbr('P', m, m, m, work.MatrixOff(il-1, ldwork, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+		if err = Dorgbr('P', m, m, m, work.Off(il-1).Matrix(ldwork, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 			panic(err)
 		}
 		iwork = ie + m
@@ -389,7 +388,7 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		//           computing right singular vectors of L in WORK(IL) and
 		//           multiplying B by transpose of left singular vectors
 		//        (Workspace: need M*M+M+BDSPAC)
-		if info, err = Dbdsqr(Upper, m, m, 0, nrhs, s, work.Off(ie-1), work.MatrixOff(il-1, ldwork, opts), a, b, work.Off(iwork-1)); info != 0 {
+		if info, err = Dbdsqr(Upper, m, m, 0, nrhs, s, work.Off(ie-1), work.Off(il-1).Matrix(ldwork, opts), a, b, work.Off(iwork-1)); info != 0 {
 			goto label70
 		}
 
@@ -401,7 +400,7 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		rank = 0
 		for i = 1; i <= m; i++ {
 			if s.Get(i-1) > thr {
-				Drscl(nrhs, s.Get(i-1), b.Vector(i-1, 0))
+				Drscl(nrhs, s.Get(i-1), b.Off(i-1, 0).Vector(), b.Rows)
 				rank = rank + 1
 			} else {
 				Dlaset(Full, 1, nrhs, zero, zero, b.Off(i-1, 0))
@@ -412,18 +411,18 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		//        Multiply B by right singular vectors of L in WORK(IL)
 		//        (Workspace: need M*M+2*M, prefer M*M+M+M*NRHS)
 		if lwork >= b.Rows*nrhs+iwork-1 && nrhs > 1 {
-			err = goblas.Dgemm(Trans, NoTrans, m, nrhs, m, one, work.MatrixOff(il-1, ldwork, opts), b, zero, work.MatrixOff(iwork-1, *&b.Rows, opts))
-			Dlacpy(Full, m, nrhs, work.MatrixOff(iwork-1, *&b.Rows, opts), b)
+			err = work.Off(iwork-1).Matrix(b.Rows, opts).Gemm(Trans, NoTrans, m, nrhs, m, one, work.Off(il-1).Matrix(ldwork, opts), b, zero)
+			Dlacpy(Full, m, nrhs, work.Off(iwork-1).Matrix(b.Rows, opts), b)
 		} else if nrhs > 1 {
 			chunk = (lwork - iwork + 1) / m
 			for i = 1; i <= nrhs; i += chunk {
 				bl = min(nrhs-i+1, chunk)
-				err = goblas.Dgemm(Trans, NoTrans, m, bl, m, one, work.MatrixOff(il-1, ldwork, opts), b.Off(0, i-1), zero, work.MatrixOff(iwork-1, m, opts))
-				Dlacpy(Full, m, bl, work.MatrixOff(iwork-1, m, opts), b.Off(0, i-1))
+				err = work.Off(iwork-1).Matrix(m, opts).Gemm(Trans, NoTrans, m, bl, m, one, work.Off(il-1).Matrix(ldwork, opts), b.Off(0, i-1), zero)
+				Dlacpy(Full, m, bl, work.Off(iwork-1).Matrix(m, opts), b.Off(0, i-1))
 			}
 		} else {
-			err = goblas.Dgemv(Trans, m, m, one, work.MatrixOff(il-1, ldwork, opts), b.Vector(0, 0, 1), zero, work.Off(iwork-1))
-			goblas.Dcopy(m, work.Off(iwork-1), b.Vector(0, 0, 1))
+			err = work.Off(iwork-1).Gemv(Trans, m, m, one, work.Off(il-1).Matrix(ldwork, opts), b.Off(0, 0).Vector(), 1, zero, 1)
+			b.Off(0, 0).Vector().Copy(m, work.Off(iwork-1), 1, 1)
 		}
 
 		//        Zero out below first M rows of B
@@ -478,7 +477,7 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		rank = 0
 		for i = 1; i <= m; i++ {
 			if s.Get(i-1) > thr {
-				Drscl(nrhs, s.Get(i-1), b.Vector(i-1, 0))
+				Drscl(nrhs, s.Get(i-1), b.Off(i-1, 0).Vector(), b.Rows)
 				rank = rank + 1
 			} else {
 				Dlaset(Full, 1, nrhs, zero, zero, b.Off(i-1, 0))
@@ -488,18 +487,18 @@ func Dgelss(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		//        Multiply B by right singular vectors of A
 		//        (Workspace: need N, prefer N*NRHS)
 		if lwork >= b.Rows*nrhs && nrhs > 1 {
-			err = goblas.Dgemm(Trans, NoTrans, n, nrhs, m, one, a, b, zero, work.Matrix(*&b.Rows, opts))
-			Dlacpy(Full, n, nrhs, work.Matrix(*&b.Rows, opts), b)
+			err = work.Matrix(b.Rows, opts).Gemm(Trans, NoTrans, n, nrhs, m, one, a, b, zero)
+			Dlacpy(Full, n, nrhs, work.Matrix(b.Rows, opts), b)
 		} else if nrhs > 1 {
 			chunk = lwork / n
 			for i = 1; i <= nrhs; i += chunk {
 				bl = min(nrhs-i+1, chunk)
-				err = goblas.Dgemm(Trans, NoTrans, n, bl, m, one, a, b.Off(0, i-1), zero, work.Matrix(n, opts))
+				err = work.Matrix(n, opts).Gemm(Trans, NoTrans, n, bl, m, one, a, b.Off(0, i-1), zero)
 				Dlacpy(Full, n, bl, work.Matrix(n, opts), b.Off(0, i-1))
 			}
 		} else {
-			err = goblas.Dgemv(Trans, m, n, one, a, b.VectorIdx(0, 1), zero, work)
-			goblas.Dcopy(n, work, b.VectorIdx(0, 1))
+			err = work.Gemv(Trans, m, n, one, a, b.OffIdx(0).Vector(), 1, zero, 1)
+			b.OffIdx(0).Vector().Copy(n, work, 1, 1)
 		}
 	}
 

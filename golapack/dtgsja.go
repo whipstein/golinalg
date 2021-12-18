@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -188,17 +187,17 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.Matrix, tola, to
 
 				//              Update (K+I)-th and (K+J)-th rows of matrix A: U**T *A
 				if k+j <= m {
-					goblas.Drot(l, a.Vector(k+j-1, n-l), a.Vector(k+i-1, n-l), csu, snu)
+					a.Off(k+i-1, n-l).Vector().Rot(l, a.Off(k+j-1, n-l).Vector(), a.Rows, a.Rows, csu, snu)
 				}
 
 				//              Update I-th and J-th rows of matrix B: V**T *B
-				goblas.Drot(l, b.Vector(j-1, n-l), b.Vector(i-1, n-l), csv, snv)
+				b.Off(i-1, n-l).Vector().Rot(l, b.Off(j-1, n-l).Vector(), b.Rows, b.Rows, csv, snv)
 
 				//              Update (N-L+I)-th and (N-L+J)-th columns of matrices
 				//              A and B: A*Q and B*Q
-				goblas.Drot(min(k+l, m), a.Vector(0, n-l+j-1, 1), a.Vector(0, n-l+i-1, 1), csq, snq)
+				a.Off(0, n-l+i-1).Vector().Rot(min(k+l, m), a.Off(0, n-l+j-1).Vector(), 1, 1, csq, snq)
 
-				goblas.Drot(l, b.Vector(0, n-l+j-1, 1), b.Vector(0, n-l+i-1, 1), csq, snq)
+				b.Off(0, n-l+i-1).Vector().Rot(l, b.Off(0, n-l+j-1).Vector(), 1, 1, csq, snq)
 
 				if upper {
 					if k+i <= m {
@@ -214,15 +213,15 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.Matrix, tola, to
 
 				//              Update orthogonal matrices U, V, Q, if desired.
 				if wantu && k+j <= m {
-					goblas.Drot(m, u.Vector(0, k+j-1, 1), u.Vector(0, k+i-1, 1), csu, snu)
+					u.Off(0, k+i-1).Vector().Rot(m, u.Off(0, k+j-1).Vector(), 1, 1, csu, snu)
 				}
 
 				if wantv {
-					goblas.Drot(p, v.Vector(0, j-1, 1), v.Vector(0, i-1, 1), csv, snv)
+					v.Off(0, i-1).Vector().Rot(p, v.Off(0, j-1).Vector(), 1, 1, csv, snv)
 				}
 
 				if wantq {
-					goblas.Drot(n, q.Vector(0, n-l+j-1, 1), q.Vector(0, n-l+i-1, 1), csq, snq)
+					q.Off(0, n-l+i-1).Vector().Rot(n, q.Off(0, n-l+j-1).Vector(), 1, 1, csq, snq)
 				}
 
 			}
@@ -236,9 +235,9 @@ func Dtgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.Matrix, tola, to
 			//           rows of A and B.
 			error = zero
 			for i = 1; i <= min(l, m-k); i++ {
-				goblas.Dcopy(l-i+1, a.Vector(k+i-1, n-l+i-1), work.Off(0, 1))
-				goblas.Dcopy(l-i+1, b.Vector(i-1, n-l+i-1), work.Off(l, 1))
-				ssmin = Dlapll(l-i+1, work.Off(0, 1), work.Off(l, 1))
+				work.Copy(l-i+1, a.Off(k+i-1, n-l+i-1).Vector(), a.Rows, 1)
+				work.Off(l).Copy(l-i+1, b.Off(i-1, n-l+i-1).Vector(), b.Rows, 1)
+				ssmin = Dlapll(l-i+1, work, 1, work.Off(l), 1)
 				error = math.Max(error, ssmin)
 			}
 
@@ -275,26 +274,26 @@ label50:
 
 			//           change sign if necessary
 			if gamma < zero {
-				goblas.Dscal(l-i+1, -one, b.Vector(i-1, n-l+i-1))
+				b.Off(i-1, n-l+i-1).Vector().Scal(l-i+1, -one, b.Rows)
 				if wantv {
-					goblas.Dscal(p, -one, v.Vector(0, i-1, 1))
+					v.Off(0, i-1).Vector().Scal(p, -one, 1)
 				}
 			}
 
 			*beta.GetPtr(k + i - 1), *alpha.GetPtr(k + i - 1), _ = Dlartg(math.Abs(gamma), one)
 
 			if alpha.Get(k+i-1) >= beta.Get(k+i-1) {
-				goblas.Dscal(l-i+1, one/alpha.Get(k+i-1), a.Vector(k+i-1, n-l+i-1))
+				a.Off(k+i-1, n-l+i-1).Vector().Scal(l-i+1, one/alpha.Get(k+i-1), a.Rows)
 			} else {
-				goblas.Dscal(l-i+1, one/beta.Get(k+i-1), b.Vector(i-1, n-l+i-1))
-				goblas.Dcopy(l-i+1, b.Vector(i-1, n-l+i-1), a.Vector(k+i-1, n-l+i-1))
+				b.Off(i-1, n-l+i-1).Vector().Scal(l-i+1, one/beta.Get(k+i-1), b.Rows)
+				a.Off(k+i-1, n-l+i-1).Vector().Copy(l-i+1, b.Off(i-1, n-l+i-1).Vector(), b.Rows, a.Rows)
 			}
 
 		} else {
 
 			alpha.Set(k+i-1, zero)
 			beta.Set(k+i-1, one)
-			goblas.Dcopy(l-i+1, b.Vector(i-1, n-l+i-1), a.Vector(k+i-1, n-l+i-1))
+			a.Off(k+i-1, n-l+i-1).Vector().Copy(l-i+1, b.Off(i-1, n-l+i-1).Vector(), b.Rows, a.Rows)
 
 		}
 

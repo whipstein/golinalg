@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -162,12 +161,12 @@ func Dtgsyl(trans mat.MatTrans, ijob, m, n int, a, b, c, d, e, f *mat.Matrix, wo
 				}
 				scale2 = scale
 				Dlacpy(Full, m, n, c, work.Matrix(m, opts))
-				Dlacpy(Full, m, n, f, work.MatrixOff(m*n, m, opts))
+				Dlacpy(Full, m, n, f, work.Off(m*n).Matrix(m, opts))
 				Dlaset(Full, m, n, zero, zero, c)
 				Dlaset(Full, m, n, zero, zero, f)
 			} else if isolve == 2 && iround == 2 {
 				Dlacpy(Full, m, n, work.Matrix(m, opts), c)
-				Dlacpy(Full, m, n, work.MatrixOff(m*n, m, opts), f)
+				Dlacpy(Full, m, n, work.Off(m*n).Matrix(m, opts), f)
 				scale = scale2
 			}
 		}
@@ -257,20 +256,20 @@ label70:
 					pq = pq + ppqq
 					if scaloc != one {
 						for k = 1; k <= js-1; k++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, k-1, 1))
-							goblas.Dscal(m, scaloc, f.Vector(0, k-1, 1))
+							c.Off(0, k-1).Vector().Scal(m, scaloc, 1)
+							f.Off(0, k-1).Vector().Scal(m, scaloc, 1)
 						}
 						for k = js; k <= je; k++ {
-							goblas.Dscal(is-1, scaloc, c.Vector(0, k-1, 1))
-							goblas.Dscal(is-1, scaloc, f.Vector(0, k-1, 1))
+							c.Off(0, k-1).Vector().Scal(is-1, scaloc, 1)
+							f.Off(0, k-1).Vector().Scal(is-1, scaloc, 1)
 						}
 						for k = js; k <= je; k++ {
-							goblas.Dscal(m-ie, scaloc, c.Vector(ie, k-1, 1))
-							goblas.Dscal(m-ie, scaloc, f.Vector(ie, k-1, 1))
+							c.Off(ie, k-1).Vector().Scal(m-ie, scaloc, 1)
+							f.Off(ie, k-1).Vector().Scal(m-ie, scaloc, 1)
 						}
 						for k = je + 1; k <= n; k++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, k-1, 1))
-							goblas.Dscal(m, scaloc, f.Vector(0, k-1, 1))
+							c.Off(0, k-1).Vector().Scal(m, scaloc, 1)
+							f.Off(0, k-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -278,18 +277,18 @@ label70:
 					//                 Substitute R(I, J) and L(I, J) into remaining
 					//                 equation.
 					if i > 1 {
-						if err = goblas.Dgemm(NoTrans, NoTrans, is-1, nb, mb, -one, a.Off(0, is-1), c.Off(is-1, js-1), one, c.Off(0, js-1)); err != nil {
+						if err = c.Off(0, js-1).Gemm(NoTrans, NoTrans, is-1, nb, mb, -one, a.Off(0, is-1), c.Off(is-1, js-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dgemm(NoTrans, NoTrans, is-1, nb, mb, -one, d.Off(0, is-1), c.Off(is-1, js-1), one, f.Off(0, js-1)); err != nil {
+						if err = f.Off(0, js-1).Gemm(NoTrans, NoTrans, is-1, nb, mb, -one, d.Off(0, is-1), c.Off(is-1, js-1), one); err != nil {
 							panic(err)
 						}
 					}
 					if j < q {
-						if err = goblas.Dgemm(NoTrans, NoTrans, mb, n-je, nb, one, f.Off(is-1, js-1), b.Off(js-1, je), one, c.Off(is-1, je)); err != nil {
+						if err = c.Off(is-1, je).Gemm(NoTrans, NoTrans, mb, n-je, nb, one, f.Off(is-1, js-1), b.Off(js-1, je), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dgemm(NoTrans, NoTrans, mb, n-je, nb, one, f.Off(is-1, js-1), e.Off(js-1, je), one, f.Off(is-1, je)); err != nil {
+						if err = f.Off(is-1, je).Gemm(NoTrans, NoTrans, mb, n-je, nb, one, f.Off(is-1, js-1), e.Off(js-1, je), one); err != nil {
 							panic(err)
 						}
 					}
@@ -308,12 +307,12 @@ label70:
 				}
 				scale2 = scale
 				Dlacpy(Full, m, n, c, work.Matrix(m, opts))
-				Dlacpy(Full, m, n, f, work.MatrixOff(m*n, m, opts))
+				Dlacpy(Full, m, n, f, work.Off(m*n).Matrix(m, opts))
 				Dlaset(Full, m, n, zero, zero, c)
 				Dlaset(Full, m, n, zero, zero, f)
 			} else if isolve == 2 && iround == 2 {
 				Dlacpy(Full, m, n, work.Matrix(m, opts), c)
-				Dlacpy(Full, m, n, work.MatrixOff(m*n, m, opts), f)
+				Dlacpy(Full, m, n, work.Off(m*n).Matrix(m, opts), f)
 				scale = scale2
 			}
 		}
@@ -340,38 +339,38 @@ label70:
 				}
 				if scaloc != one {
 					for k = 1; k <= js-1; k++ {
-						goblas.Dscal(m, scaloc, c.Vector(0, k-1, 1))
-						goblas.Dscal(m, scaloc, f.Vector(0, k-1, 1))
+						c.Off(0, k-1).Vector().Scal(m, scaloc, 1)
+						f.Off(0, k-1).Vector().Scal(m, scaloc, 1)
 					}
 					for k = js; k <= je; k++ {
-						goblas.Dscal(is-1, scaloc, c.Vector(0, k-1, 1))
-						goblas.Dscal(is-1, scaloc, f.Vector(0, k-1, 1))
+						c.Off(0, k-1).Vector().Scal(is-1, scaloc, 1)
+						f.Off(0, k-1).Vector().Scal(is-1, scaloc, 1)
 					}
 					for k = js; k <= je; k++ {
-						goblas.Dscal(m-ie, scaloc, c.Vector(ie, k-1, 1))
-						goblas.Dscal(m-ie, scaloc, f.Vector(ie, k-1, 1))
+						c.Off(ie, k-1).Vector().Scal(m-ie, scaloc, 1)
+						f.Off(ie, k-1).Vector().Scal(m-ie, scaloc, 1)
 					}
 					for k = je + 1; k <= n; k++ {
-						goblas.Dscal(m, scaloc, c.Vector(0, k-1, 1))
-						goblas.Dscal(m, scaloc, f.Vector(0, k-1, 1))
+						c.Off(0, k-1).Vector().Scal(m, scaloc, 1)
+						f.Off(0, k-1).Vector().Scal(m, scaloc, 1)
 					}
 					scale = scale * scaloc
 				}
 
 				//              Substitute R(I, J) and L(I, J) into remaining equation.
 				if j > p+2 {
-					if err = goblas.Dgemm(NoTrans, Trans, mb, js-1, nb, one, c.Off(is-1, js-1), b.Off(0, js-1), one, f.Off(is-1, 0)); err != nil {
+					if err = f.Off(is-1, 0).Gemm(NoTrans, Trans, mb, js-1, nb, one, c.Off(is-1, js-1), b.Off(0, js-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dgemm(NoTrans, Trans, mb, js-1, nb, one, f.Off(is-1, js-1), e.Off(0, js-1), one, f.Off(is-1, 0)); err != nil {
+					if err = f.Off(is-1, 0).Gemm(NoTrans, Trans, mb, js-1, nb, one, f.Off(is-1, js-1), e.Off(0, js-1), one); err != nil {
 						panic(err)
 					}
 				}
 				if i < p {
-					if err = goblas.Dgemm(Trans, NoTrans, m-ie, nb, mb, -one, a.Off(is-1, ie), c.Off(is-1, js-1), one, c.Off(ie, js-1)); err != nil {
+					if err = c.Off(ie, js-1).Gemm(Trans, NoTrans, m-ie, nb, mb, -one, a.Off(is-1, ie), c.Off(is-1, js-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dgemm(Trans, NoTrans, m-ie, nb, mb, -one, d.Off(is-1, ie), f.Off(is-1, js-1), one, c.Off(ie, js-1)); err != nil {
+					if err = c.Off(ie, js-1).Gemm(Trans, NoTrans, m-ie, nb, mb, -one, d.Off(is-1, ie), f.Off(is-1, js-1), one); err != nil {
 						panic(err)
 					}
 				}

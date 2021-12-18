@@ -84,18 +84,18 @@ label30:
 	}
 	if anorm > ssfmax {
 		iscale = 1
-		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l+1, 1, d.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmax, lend-l, 1, e.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	} else if anorm < ssfmin {
 		iscale = 2
-		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l+1, 1, d.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l+1, 1, d.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l, 1, e.MatrixOff(l-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, anorm, ssfmin, lend-l, 1, e.Off(l-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	}
@@ -298,12 +298,12 @@ label30:
 label150:
 	;
 	if iscale == 1 {
-		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, ssfmax, anorm, lendsv-lsv+1, 1, d.Off(lsv-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	}
 	if iscale == 2 {
-		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv+1, 1, d.MatrixOff(lsv-1, n, opts)); err != nil {
+		if err = Dlascl('G', 0, 0, ssfmin, anorm, lendsv-lsv+1, 1, d.Off(lsv-1).Matrix(n, opts)); err != nil {
 			panic(err)
 		}
 	}

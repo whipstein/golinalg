@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -73,14 +72,14 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 			//           A is upper triangular.
 			for j = 1; j <= n; j++ {
 				jlen = min(kd, j-1)
-				cnorm.Set(j-1, goblas.Dasum(jlen, ab.Vector(kd+1-jlen-1, j-1, 1)))
+				cnorm.Set(j-1, ab.Off(kd+1-jlen-1, j-1).Vector().Asum(jlen, 1))
 			}
 		} else {
 			//           A is lower triangular.
 			for j = 1; j <= n; j++ {
 				jlen = min(kd, n-j)
 				if jlen > 0 {
-					cnorm.Set(j-1, goblas.Dasum(jlen, ab.Vector(1, j-1, 1)))
+					cnorm.Set(j-1, ab.Off(1, j-1).Vector().Asum(jlen, 1))
 				} else {
 					cnorm.Set(j-1, zero)
 				}
@@ -90,18 +89,18 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 
 	//     Scale the column norms by TSCAL if the maximum element in CNORM is
 	//     greater than BIGNUM.
-	imax = goblas.Idamax(n, cnorm.Off(0, 1))
+	imax = cnorm.Iamax(n, 1)
 	tmax = cnorm.Get(imax - 1)
 	if tmax <= bignum {
 		tscal = one
 	} else {
 		tscal = one / (smlnum * tmax)
-		goblas.Dscal(n, tscal, cnorm.Off(0, 1))
+		cnorm.Scal(n, tscal, 1)
 	}
 
 	//     Compute a bound on the computed solution vector to see if the
 	//     Level 2 BLAS routine DTBSV can be used.
-	j = goblas.Idamax(n, x.Off(0, 1))
+	j = x.Iamax(n, 1)
 	xmax = math.Abs(x.Get(j - 1))
 	xbnd = xmax
 	if notran {
@@ -231,14 +230,14 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 	if (grow * tscal) > smlnum {
 		//        Use the Level 2 BLAS solve if the reciprocal of the bound on
 		//        elements of X is not too small.
-		err = goblas.Dtbsv(uplo, trans, diag, n, kd, ab, x.Off(0, 1))
+		err = x.Tbsv(uplo, trans, diag, n, kd, ab, 1)
 	} else {
 		//        Use a Level 1 BLAS solve, scaling intermediate results.
 		if xmax > bignum {
 			//           Scale X so that its components are less than or equal to
 			//           BIGNUM in absolute value.
 			scale = bignum / xmax
-			goblas.Dscal(n, scale, x.Off(0, 1))
+			x.Scal(n, scale, 1)
 			xmax = bignum
 		}
 
@@ -262,7 +261,7 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 						if xj > tjj*bignum {
 							//                          Scale x by 1/b(j).
 							rec = one / xj
-							goblas.Dscal(n, rec, x.Off(0, 1))
+							x.Scal(n, rec, 1)
 							scale *= rec
 							xmax *= rec
 						}
@@ -280,7 +279,7 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 							//                          multiplying x(j) times column j.
 							rec /= cnorm.Get(j - 1)
 						}
-						goblas.Dscal(n, rec, x.Off(0, 1))
+						x.Scal(n, rec, 1)
 						scale *= rec
 						xmax *= rec
 					}
@@ -307,12 +306,12 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 					if cnorm.Get(j-1) > (bignum-xmax)*rec {
 						//                    Scale x by 1/(2*abs(x(j))).
 						rec *= half
-						goblas.Dscal(n, rec, x.Off(0, 1))
+						x.Scal(n, rec, 1)
 						scale *= rec
 					}
 				} else if xj*cnorm.Get(j-1) > (bignum - xmax) {
 					//                 Scale x by 1/2.
-					goblas.Dscal(n, half, x.Off(0, 1))
+					x.Scal(n, half, 1)
 					scale *= half
 				}
 
@@ -322,8 +321,8 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 						//                       x(max(1,j-kd):j-1) := x(max(1,j-kd):j-1) -
 						//                                             x(j)* A(max(1,j-kd):j-1,j)
 						jlen = min(kd, j-1)
-						goblas.Daxpy(jlen, -x.Get(j-1)*tscal, ab.Vector(kd+1-jlen-1, j-1, 1), x.Off(j-jlen-1, 1))
-						i = goblas.Idamax(j-1, x.Off(0, 1))
+						x.Off(j-jlen-1).Axpy(jlen, -x.Get(j-1)*tscal, ab.Off(kd+1-jlen-1, j-1).Vector(), 1, 1)
+						i = x.Iamax(j-1, 1)
 						xmax = math.Abs(x.Get(i - 1))
 					}
 				} else if j < n {
@@ -332,9 +331,9 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 					//                                          x(j) * A(j+1:min(j+kd,n),j)
 					jlen = min(kd, n-j)
 					if jlen > 0 {
-						goblas.Daxpy(jlen, -x.Get(j-1)*tscal, ab.Vector(1, j-1, 1), x.Off(j, 1))
+						x.Off(j).Axpy(jlen, -x.Get(j-1)*tscal, ab.Off(1, j-1).Vector(), 1, 1)
 					}
-					i = j + goblas.Idamax(n-j, x.Off(j, 1))
+					i = j + x.Off(j).Iamax(n-j, 1)
 					xmax = math.Abs(x.Get(i - 1))
 				}
 			}
@@ -362,7 +361,7 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 						uscal = uscal / tjjs
 					}
 					if rec < one {
-						goblas.Dscal(n, rec, x.Off(0, 1))
+						x.Scal(n, rec, 1)
 						scale *= rec
 						xmax *= rec
 					}
@@ -374,11 +373,11 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 					//                 call DDOT to perform the dot product.
 					if upper {
 						jlen = min(kd, j-1)
-						sumj = goblas.Ddot(jlen, ab.Vector(kd+1-jlen-1, j-1, 1), x.Off(j-jlen-1, 1))
+						sumj = x.Off(j-jlen-1).Dot(jlen, ab.Off(kd+1-jlen-1, j-1).Vector(), 1, 1)
 					} else {
 						jlen = min(kd, n-j)
 						if jlen > 0 {
-							sumj = goblas.Ddot(jlen, ab.Vector(1, j-1, 1), x.Off(j, 1))
+							sumj = x.Off(j).Dot(jlen, ab.Off(1, j-1).Vector(), 1, 1)
 						}
 					}
 				} else {
@@ -417,7 +416,7 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 							if xj > tjj*bignum {
 								//                             Scale X by 1/abs(x(j)).
 								rec = one / xj
-								goblas.Dscal(n, rec, x.Off(0, 1))
+								x.Scal(n, rec, 1)
 								scale *= rec
 								xmax *= rec
 							}
@@ -428,7 +427,7 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 						if xj > tjj*bignum {
 							//                          Scale x by (1/abs(x(j)))*abs(A(j,j))*BIGNUM.
 							rec = (tjj * bignum) / xj
-							goblas.Dscal(n, rec, x.Off(0, 1))
+							x.Scal(n, rec, 1)
 							scale *= rec
 							xmax *= rec
 						}
@@ -457,7 +456,7 @@ func Dlatbs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, normin byte,
 
 	//     Scale the column norms by 1/TSCAL for return.
 	if tscal != one {
-		goblas.Dscal(n, one/tscal, cnorm.Off(0, 1))
+		cnorm.Scal(n, one/tscal, 1)
 	}
 
 	return scale, err

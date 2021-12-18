@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,10 +111,10 @@ func Zgglse(m, n, p int, a, b *mat.CMatrix, c, d, x, work *mat.CVector, lwork in
 		}
 
 		//        Put the solution in X
-		goblas.Zcopy(p, d.Off(0, 1), x.Off(n-p, 1))
+		x.Off(n-p).Copy(p, d, 1, 1)
 
 		//        Update c1
-		err = goblas.Zgemv(NoTrans, n-p, p, -cone, a.Off(0, n-p), d.Off(0, 1), cone, c.Off(0, 1))
+		err = c.Gemv(NoTrans, n-p, p, -cone, a.Off(0, n-p), d, 1, cone, 1)
 	}
 	//
 	//     Solve R11*x1 = c1 for x1
@@ -131,14 +130,14 @@ func Zgglse(m, n, p int, a, b *mat.CMatrix, c, d, x, work *mat.CVector, lwork in
 		}
 
 		//        Put the solutions in X
-		goblas.Zcopy(n-p, c.Off(0, 1), x.Off(0, 1))
+		x.Copy(n-p, c, 1, 1)
 	}
 
 	//     Compute the residual vector:
 	if m < n {
 		nr = m + p - n
 		if nr > 0 {
-			if err = goblas.Zgemv(NoTrans, nr, n-m, -cone, a.Off(n-p, m), d.Off(nr, 1), cone, c.Off(n-p, 1)); err != nil {
+			if err = c.Off(n-p).Gemv(NoTrans, nr, n-m, -cone, a.Off(n-p, m), d.Off(nr), 1, cone, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -146,10 +145,10 @@ func Zgglse(m, n, p int, a, b *mat.CMatrix, c, d, x, work *mat.CVector, lwork in
 		nr = p
 	}
 	if nr > 0 {
-		if err = goblas.Ztrmv(Upper, NoTrans, NonUnit, nr, a.Off(n-p, n-p), d.Off(0, 1)); err != nil {
+		if err = d.Trmv(Upper, NoTrans, NonUnit, nr, a.Off(n-p, n-p), 1); err != nil {
 			panic(err)
 		}
-		goblas.Zaxpy(nr, -cone, d.Off(0, 1), c.Off(n-p, 1))
+		c.Off(n-p).Axpy(nr, -cone, d, 1, 1)
 	}
 	//
 	//     Backward transformation x = Q**H*x

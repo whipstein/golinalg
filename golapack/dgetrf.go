@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -76,10 +75,10 @@ func Dgetrf(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 				Dlaswp(n-j-jb+1, a.Off(0, j+jb-1), j, j+jb-1, *ipiv, 1)
 
 				//              Compute block row of U.
-				err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, jb, n-j-jb+1, one, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
+				err = a.Off(j-1, j+jb-1).Trsm(Left, Lower, NoTrans, Unit, jb, n-j-jb+1, one, a.Off(j-1, j-1))
 				if j+jb <= m {
 					//                 Update trailing submatrix.
-					err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, m-j-jb+1, n-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), one, a.Off(j+jb-1, j+jb-1))
+					err = a.Off(j+jb-1, j+jb-1).Gemm(NoTrans, NoTrans, m-j-jb+1, n-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), one)
 				}
 			}
 		}

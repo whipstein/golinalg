@@ -111,7 +111,7 @@ func zdrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						a.SetRe(ioff+i-1, zero)
 					}
 				} else {
-					golapack.Zlaset(Full, n, n-izero+1, complex(zero, 0), complex(zero, 0), a.CMatrixOff(ioff, lda, opts))
+					golapack.Zlaset(Full, n, n-izero+1, complex(zero, 0), complex(zero, 0), a.Off(ioff).CMatrix(lda, opts))
 				}
 			} else {
 				izero = 0
@@ -247,7 +247,7 @@ func zdrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 							//                       Check error code from Zgesv.
 							if info != izero {
 								t.Fail()
-								nerrs = alaerh(path, "Zgesv", info, 0, []byte{' '}, n, n, -1, -1, *&nrhs, imat, nfail, nerrs)
+								nerrs = alaerh(path, "Zgesv", info, 0, []byte{' '}, n, n, -1, -1, nrhs, imat, nfail, nerrs)
 							}
 
 							//                       Reconstruct matrix from factors and compute

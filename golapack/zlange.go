@@ -71,7 +71,7 @@ func Zlange(norm byte, m, n int, a *mat.CMatrix, work *mat.Vector) (zlangeReturn
 		for j = 1; j <= n; j++ {
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(m, a.CVector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+			*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(m, a.Off(0, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

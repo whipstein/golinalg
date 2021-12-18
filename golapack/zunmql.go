@@ -120,7 +120,7 @@ func Zunmql(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, t
 
 			//           Form the triangular factor of the block reflector
 			//           H = H(i+ib-1) . . . H(i+1) H(i)
-			Zlarft('B', 'C', nq-k+i+ib-1, ib, a.Off(0, i-1), tau.Off(i-1), work.CMatrixOff(iwt-1, ldt, opts))
+			Zlarft('B', 'C', nq-k+i+ib-1, ib, a.Off(0, i-1), tau.Off(i-1), work.Off(iwt-1).CMatrix(ldt, opts))
 			if left {
 				//              H or H**H is applied to C(1:m-k+i+ib-1,1:n)
 				mi = m - k + i + ib - 1
@@ -130,7 +130,7 @@ func Zunmql(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, t
 			}
 
 			//           Apply H or H**H
-			Zlarfb(side, trans, 'B', 'C', mi, ni, ib, a.Off(0, i-1), work.CMatrixOff(iwt-1, ldt, opts), c, work.CMatrix(ldwork, opts))
+			Zlarfb(side, trans, 'B', 'C', mi, ni, ib, a.Off(0, i-1), work.Off(iwt-1).CMatrix(ldt, opts), c, work.CMatrix(ldwork, opts))
 		}
 	}
 	work.SetRe(0, float64(lwkopt))

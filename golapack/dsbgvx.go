@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -115,9 +114,9 @@ func Dsbgvx(jobz, _range byte, uplo mat.MatUplo, n, ka, kb int, ab, bb, q *mat.M
 		}
 	}
 	if (alleig || test) && (abstol <= zero) {
-		goblas.Dcopy(n, work.Off(indd-1, 1), w.Off(0, 1))
+		w.Copy(n, work.Off(indd-1), 1, 1)
 		indee = indwrk + 2*n
-		goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+		work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
 		if !wantz {
 			if info, err = Dsterf(n, w, work.Off(indee-1)); err != nil {
 				panic(err)
@@ -162,8 +161,8 @@ func Dsbgvx(jobz, _range byte, uplo mat.MatUplo, n, ka, kb int, ab, bb, q *mat.M
 		//        Apply transformation matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by DSTEIN.
 		for j = 1; j <= m; j++ {
-			goblas.Dcopy(n, z.Vector(0, j-1, 1), work.Off(0, 1))
-			if err = goblas.Dgemv(NoTrans, n, n, one, q, work.Off(0, 1), zero, z.Vector(0, j-1, 1)); err != nil {
+			work.Copy(n, z.Off(0, j-1).Vector(), 1, 1)
+			if err = z.Off(0, j-1).Vector().Gemv(NoTrans, n, n, one, q, work, 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -191,7 +190,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+				z.Off(0, j-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

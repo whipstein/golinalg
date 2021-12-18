@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -56,12 +55,12 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 			for k = 1; k <= n; k++ {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 			}
 
 			//           Compute U**T \ B -> B    [ (U**T \P**T * B) ]
-			if err = goblas.Ztrsm(Left, Upper, Trans, Unit, n-1, nrhs, one, a.Off(0, 1), b.Off(1, 0)); err != nil {
+			if err = b.Off(1, 0).Trsm(Left, Upper, Trans, Unit, n-1, nrhs, one, a.Off(0, 1)); err != nil {
 				panic(err)
 			}
 		}
@@ -70,10 +69,10 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 		//
 		//        Compute T \ B -> B   [ T \ (U**T \P**T * B) ]
 		//
-		Zlacpy(Full, 1, n, a.Off(0, 0).UpdateRows(a.Rows+1), work.CMatrixOff(n-1, 1, opts))
+		Zlacpy(Full, 1, n, a.Off(0, 0).UpdateRows(a.Rows+1), work.Off(n-1).CMatrix(1, opts))
 		if n > 1 {
 			Zlacpy(Full, 1, n-1, a.Off(0, 1).UpdateRows(a.Rows+1), work.CMatrix(1, opts))
-			Zlacpy(Full, 1, n-1, a.Off(0, 1).UpdateRows(a.Rows+1), work.CMatrixOff(2*n-1, 1, opts))
+			Zlacpy(Full, 1, n-1, a.Off(0, 1).UpdateRows(a.Rows+1), work.Off(2*n-1).CMatrix(1, opts))
 		}
 		if info, err = Zgtsv(n, nrhs, work.Off(0), work.Off(n-1), work.Off(2*n-1), b); err != nil {
 			panic(err)
@@ -82,7 +81,7 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 		//        3) Backward substitution with U
 		if n > 1 {
 			//           Compute U \ B -> B   [ U \ (T \ (U**T \P**T * B) ) ]
-			if err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, n-1, nrhs, one, a.Off(0, 1), b.Off(1, 0)); err != nil {
+			if err = b.Off(1, 0).Trsm(Left, Upper, NoTrans, Unit, n-1, nrhs, one, a.Off(0, 1)); err != nil {
 				panic(err)
 			}
 
@@ -90,7 +89,7 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 			for k = n; k >= 1; k-- {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 			}
 		}
@@ -104,12 +103,12 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 			for k = 1; k <= n; k++ {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 			}
 
 			//           Compute L \ B -> B    [ (L \P**T * B) ]
-			if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n-1, nrhs, one, a.Off(1, 0), b.Off(1, 0)); err != nil {
+			if err = b.Off(1, 0).Trsm(Left, Lower, NoTrans, Unit, n-1, nrhs, one, a.Off(1, 0)); err != nil {
 				panic(err)
 			}
 		}
@@ -117,10 +116,10 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 		//        2) Solve with triangular matrix T
 		//
 		//        Compute T \ B -> B   [ T \ (L \P**T * B) ]
-		Zlacpy(Full, 1, n, a.Off(0, 0).UpdateRows(a.Rows+1), work.CMatrixOff(n-1, 1, opts))
+		Zlacpy(Full, 1, n, a.Off(0, 0).UpdateRows(a.Rows+1), work.Off(n-1).CMatrix(1, opts))
 		if n > 1 {
 			Zlacpy(Full, 1, n-1, a.Off(1, 0).UpdateRows(a.Rows+1), work.CMatrix(1, opts))
-			Zlacpy(Full, 1, n-1, a.Off(1, 0).UpdateRows(a.Rows+1), work.CMatrixOff(2*n-1, 1, opts))
+			Zlacpy(Full, 1, n-1, a.Off(1, 0).UpdateRows(a.Rows+1), work.Off(2*n-1).CMatrix(1, opts))
 		}
 		if info, err = Zgtsv(n, nrhs, work.Off(0), work.Off(n-1), work.Off(2*n-1), b); err != nil {
 			panic(err)
@@ -129,7 +128,7 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 		//        3) Backward substitution with L**T
 		if n > 1 {
 			//           Compute (L**T \ B) -> B   [ L**T \ (T \ (L \P**T * B) ) ]
-			if err = goblas.Ztrsm(Left, Lower, Trans, Unit, n-1, nrhs, one, a.Off(1, 0), b.Off(1, 0)); err != nil {
+			if err = b.Off(1, 0).Trsm(Left, Lower, Trans, Unit, n-1, nrhs, one, a.Off(1, 0)); err != nil {
 				panic(err)
 			}
 
@@ -137,7 +136,7 @@ func ZsytrsAa(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 			for k = n; k >= 1; k-- {
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+					b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 				}
 			}
 		}

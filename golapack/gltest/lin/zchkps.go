@@ -110,7 +110,7 @@ func zchkps(dotype []bool, nn int, nval []int, nnb int, nbval []int, nrank int, 
 						//                 Reconstruct matrix from factors and compute residual.
 						//
 						//                 PERM holds permuted L*L^T or U^T*U
-						*&result = zpst01(uplo, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts), perm.CMatrix(lda, opts), &piv, rwork, comprank)
+						result = zpst01(uplo, n, a.CMatrix(lda, opts), afac.CMatrix(lda, opts), perm.CMatrix(lda, opts), &piv, rwork, comprank)
 
 						//                 Print information about the tests that did not pass
 						//                 the threshold or where computed rank was not RANK.

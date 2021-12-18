@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,14 +49,14 @@ func Zlauu2(uplo mat.MatUplo, n int, a *mat.CMatrix) (err error) {
 		for i = 1; i <= n; i++ {
 			aii = real(a.Get(i-1, i-1))
 			if i < n {
-				a.SetRe(i-1, i-1, aii*aii+real(goblas.Zdotc(n-i, a.CVector(i-1, i), a.CVector(i-1, i))))
-				Zlacgv(n-i, a.CVector(i-1, i))
-				if err = goblas.Zgemv(NoTrans, i-1, n-i, one, a.Off(0, i), a.CVector(i-1, i), complex(aii, 0), a.CVector(0, i-1, 1)); err != nil {
+				a.SetRe(i-1, i-1, aii*aii+real(a.Off(i-1, i).CVector().Dotc(n-i, a.Off(i-1, i).CVector(), a.Rows, a.Rows)))
+				Zlacgv(n-i, a.Off(i-1, i).CVector(), a.Rows)
+				if err = a.Off(0, i-1).CVector().Gemv(NoTrans, i-1, n-i, one, a.Off(0, i), a.Off(i-1, i).CVector(), a.Rows, complex(aii, 0), 1); err != nil {
 					panic(err)
 				}
-				Zlacgv(n-i, a.CVector(i-1, i))
+				Zlacgv(n-i, a.Off(i-1, i).CVector(), a.Rows)
 			} else {
-				goblas.Zdscal(i, aii, a.CVector(0, i-1, 1))
+				a.Off(0, i-1).CVector().Dscal(i, aii, 1)
 			}
 		}
 
@@ -66,14 +65,14 @@ func Zlauu2(uplo mat.MatUplo, n int, a *mat.CMatrix) (err error) {
 		for i = 1; i <= n; i++ {
 			aii = real(a.Get(i-1, i-1))
 			if i < n {
-				a.SetRe(i-1, i-1, aii*aii+real(goblas.Zdotc(n-i, a.CVector(i, i-1, 1), a.CVector(i, i-1, 1))))
-				Zlacgv(i-1, a.CVector(i-1, 0))
-				if err = goblas.Zgemv(ConjTrans, n-i, i-1, one, a.Off(i, 0), a.CVector(i, i-1, 1), complex(aii, 0), a.CVector(i-1, 0)); err != nil {
+				a.SetRe(i-1, i-1, aii*aii+real(a.Off(i, i-1).CVector().Dotc(n-i, a.Off(i, i-1).CVector(), 1, 1)))
+				Zlacgv(i-1, a.Off(i-1, 0).CVector(), a.Rows)
+				if err = a.Off(i-1, 0).CVector().Gemv(ConjTrans, n-i, i-1, one, a.Off(i, 0), a.Off(i, i-1).CVector(), 1, complex(aii, 0), a.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(i-1, a.CVector(i-1, 0))
+				Zlacgv(i-1, a.Off(i-1, 0).CVector(), a.Rows)
 			} else {
-				goblas.Zdscal(i, aii, a.CVector(i-1, 0))
+				a.Off(i-1, 0).CVector().Dscal(i, aii, a.Rows)
 			}
 		}
 	}

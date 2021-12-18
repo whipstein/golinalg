@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -48,24 +47,24 @@ func Zgetrs(trans mat.MatTrans, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat
 		Zlaswp(nrhs, b, 1, n, ipiv, 1)
 
 		//        Solve L*X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Solve U*X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, NoTrans, NonUnit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 	} else {
 		//        Solve A**T * X = B  or A**H * X = B.
 		//
 		//        Solve U**T *X = B or U**H *X = B, overwriting B with X.
-		if err = goblas.Ztrsm(Left, Upper, trans, NonUnit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, trans, NonUnit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Solve L**T *X = B, or L**H *X = B overwriting B with X.
-		if err = goblas.Ztrsm(Left, Lower, trans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, trans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 

@@ -7,7 +7,7 @@ import "github.com/whipstein/golinalg/mat"
 //
 //    ( x(i) ) := (  c(i)  s(i) ) ( x(i) )
 //    ( y(i) )    ( -s(i)  c(i) ) ( y(i) )
-func Dlartv(n int, x, y, c, s *mat.Vector) {
+func Dlartv(n int, x *mat.Vector, incx int, y *mat.Vector, incy int, c, s *mat.Vector, incc int) {
 	var xi, yi float64
 	var i, ic, ix, iy int
 
@@ -19,8 +19,8 @@ func Dlartv(n int, x, y, c, s *mat.Vector) {
 		yi = y.Get(iy - 1)
 		x.Set(ix-1, c.Get(ic-1)*xi+s.Get(ic-1)*yi)
 		y.Set(iy-1, c.Get(ic-1)*yi-s.Get(ic-1)*xi)
-		ix = ix + x.Inc
-		iy = iy + y.Inc
-		ic = ic + c.Inc
+		ix = ix + incx
+		iy = iy + incy
+		ic = ic + incc
 	}
 }

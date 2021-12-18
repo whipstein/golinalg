@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -49,10 +48,10 @@ func Dlauu2(uplo mat.MatUplo, n int, a *mat.Matrix) (err error) {
 		for i = 1; i <= n; i++ {
 			aii = a.Get(i-1, i-1)
 			if i < n {
-				a.Set(i-1, i-1, goblas.Ddot(n-i+1, a.Vector(i-1, i-1), a.Vector(i-1, i-1)))
-				err = goblas.Dgemv(NoTrans, i-1, n-i, one, a.Off(0, i), a.Vector(i-1, i), aii, a.Vector(0, i-1, 1))
+				a.Set(i-1, i-1, a.Off(i-1, i-1).Vector().Dot(n-i+1, a.Off(i-1, i-1).Vector(), a.Rows, a.Rows))
+				err = a.Off(0, i-1).Vector().Gemv(NoTrans, i-1, n-i, one, a.Off(0, i), a.Off(i-1, i).Vector(), a.Rows, aii, 1)
 			} else {
-				goblas.Dscal(i, aii, a.Vector(0, i-1, 1))
+				a.Off(0, i-1).Vector().Scal(i, aii, 1)
 			}
 		}
 
@@ -61,10 +60,10 @@ func Dlauu2(uplo mat.MatUplo, n int, a *mat.Matrix) (err error) {
 		for i = 1; i <= n; i++ {
 			aii = a.Get(i-1, i-1)
 			if i < n {
-				a.Set(i-1, i-1, goblas.Ddot(n-i+1, a.Vector(i-1, i-1, 1), a.Vector(i-1, i-1, 1)))
-				err = goblas.Dgemv(Trans, n-i, i-1, one, a.Off(i, 0), a.Vector(i, i-1, 1), aii, a.Vector(i-1, 0))
+				a.Set(i-1, i-1, a.Off(i-1, i-1).Vector().Dot(n-i+1, a.Off(i-1, i-1).Vector(), 1, 1))
+				err = a.Off(i-1, 0).Vector().Gemv(Trans, n-i, i-1, one, a.Off(i, 0), a.Off(i, i-1).Vector(), 1, aii, a.Rows)
 			} else {
-				goblas.Dscal(i, aii, a.Vector(i-1, 0))
+				a.Off(i-1, 0).Vector().Scal(i, aii, a.Rows)
 			}
 		}
 	}

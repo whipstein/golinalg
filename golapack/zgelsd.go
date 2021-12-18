@@ -279,8 +279,8 @@ func Zgelsd(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		il = nwork
 
 		//        Copy L to WORK(IL), zeroing out above its diagonal.
-		Zlacpy(Lower, m, m, a, work.CMatrixOff(il-1, ldwork, opts))
-		Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(il+ldwork-1, ldwork, opts))
+		Zlacpy(Lower, m, m, a, work.Off(il-1).CMatrix(ldwork, opts))
+		Zlaset(Upper, m-1, m-1, czero, czero, work.Off(il+ldwork-1).CMatrix(ldwork, opts))
 		itauq = il + ldwork*m
 		itaup = itauq + m
 		nwork = itaup + m
@@ -290,13 +290,13 @@ func Zgelsd(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		//        Bidiagonalize L in WORK(IL).
 		//        (RWorkspace: need M)
 		//        (CWorkspace: need M*M+4*M, prefer M*M+4*M+2*M*NB)
-		if err = Zgebrd(m, m, work.CMatrixOff(il-1, ldwork, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+		if err = Zgebrd(m, m, work.Off(il-1).CMatrix(ldwork, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
 			panic(err)
 		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors of L.
 		//        (CWorkspace: need M*M+4*M+NRHS, prefer M*M+4*M+NRHS*NB)
-		if err = Zunmbr('Q', Left, ConjTrans, m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+		if err = Zunmbr('Q', Left, ConjTrans, m, nrhs, m, work.Off(il-1).CMatrix(ldwork, opts), work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
 			panic(err)
 		}
 
@@ -306,7 +306,7 @@ func Zgelsd(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		}
 
 		//        Multiply B by right bidiagonalizing vectors of L.
-		if err = Zunmbr('P', Left, NoTrans, m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+		if err = Zunmbr('P', Left, NoTrans, m, nrhs, m, work.Off(il-1).CMatrix(ldwork, opts), work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
 			panic(err)
 		}
 

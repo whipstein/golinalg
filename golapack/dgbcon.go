@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -83,7 +82,7 @@ label10:
 						work.Set(jp-1, work.Get(j-1))
 						work.Set(j-1, t)
 					}
-					goblas.Daxpy(lm, -t, ab.Vector(kd, j-1, 1), work.Off(j, 1))
+					work.Off(j).Axpy(lm, -t, ab.Off(kd, j-1).Vector(), 1, 1)
 				}
 			}
 
@@ -103,7 +102,7 @@ label10:
 			if lnoti {
 				for j = n - 1; j >= 1; j-- {
 					lm = min(kl, n-j)
-					work.Set(j-1, work.Get(j-1)-goblas.Ddot(lm, ab.Vector(kd, j-1, 1), work.Off(j, 1)))
+					work.Set(j-1, work.Get(j-1)-work.Off(j).Dot(lm, ab.Off(kd, j-1).Vector(), 1, 1))
 					jp = ipiv[j-1]
 					if jp != j {
 						t = work.Get(jp - 1)
@@ -117,11 +116,11 @@ label10:
 		//        Divide X by 1/SCALE if doing so will not cause overflow.
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(n, work)
+			ix = work.Iamax(n, 1)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}
-			Drscl(n, scale, work.Off(0, 1))
+			Drscl(n, scale, work, 1)
 		}
 		goto label10
 	}

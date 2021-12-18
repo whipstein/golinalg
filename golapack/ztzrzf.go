@@ -107,7 +107,7 @@ func Ztzrzf(m, n int, a *mat.CMatrix, tau, work *mat.CVector, lwork int) (err er
 				}
 
 				//              Apply H to A(1:i-1,i:n) from the right
-				if err = Zlarzb(Right, NoTrans, 'B', 'R', i-1, n-i+1, ib, n-m, a.Off(i-1, m1-1), work.CMatrix(ldwork, opts), a.Off(0, i-1), work.CMatrixOff(ib, ldwork, opts)); err != nil {
+				if err = Zlarzb(Right, NoTrans, 'B', 'R', i-1, n-i+1, ib, n-m, a.Off(i-1, m1-1), work.CMatrix(ldwork, opts), a.Off(0, i-1), work.Off(ib).CMatrix(ldwork, opts)); err != nil {
 					panic(err)
 				}
 			}

@@ -136,7 +136,7 @@ func Zunmrz(side mat.MatSide, trans mat.MatTrans, m, n, k, l int, a *mat.CMatrix
 
 			//           Form the triangular factor of the block reflector
 			//           H = H(i+ib-1) . . . H(i+1) H(i)
-			if err = Zlarzt('B', 'R', l, ib, a.Off(i-1, ja-1), tau.Off(i-1), work.CMatrixOff(iwt-1, ldt, opts)); err != nil {
+			if err = Zlarzt('B', 'R', l, ib, a.Off(i-1, ja-1), tau.Off(i-1), work.Off(iwt-1).CMatrix(ldt, opts)); err != nil {
 				panic(err)
 			}
 
@@ -151,7 +151,7 @@ func Zunmrz(side mat.MatSide, trans mat.MatTrans, m, n, k, l int, a *mat.CMatrix
 			}
 
 			//           Apply H or H**H
-			Zlarzb(side, transt, 'B', 'R', mi, ni, ib, l, a.Off(i-1, ja-1), work.CMatrixOff(iwt-1, ldt, opts), c.Off(ic-1, jc-1), work.CMatrix(ldwork, opts))
+			Zlarzb(side, transt, 'B', 'R', mi, ni, ib, l, a.Off(i-1, ja-1), work.Off(iwt-1).CMatrix(ldt, opts), c.Off(ic-1, jc-1), work.CMatrix(ldwork, opts))
 		}
 
 	}

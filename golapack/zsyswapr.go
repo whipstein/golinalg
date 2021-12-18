@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -17,7 +16,7 @@ func Zsyswapr(uplo mat.MatUplo, n int, a *mat.CMatrix, i1, i2 int) {
 		//         UPPER
 		//         first swap
 		//          - swap column I1 and I2 from I1 to I1-1
-		goblas.Zswap(i1-1, a.CVector(0, i1-1, 1), a.CVector(0, i2-1, 1))
+		a.Off(0, i2-1).CVector().Swap(i1-1, a.Off(0, i1-1).CVector(), 1, 1)
 
 		//          second swap :
 		//          - swap A(I1,I1) and A(I2,I2)
@@ -44,7 +43,7 @@ func Zsyswapr(uplo mat.MatUplo, n int, a *mat.CMatrix, i1, i2 int) {
 		//         LOWER
 		//         first swap
 		//          - swap row I1 and I2 from I1 to I1-1
-		goblas.Zswap(i1-1, a.CVector(i1-1, 0), a.CVector(i2-1, 0))
+		a.Off(i2-1, 0).CVector().Swap(i1-1, a.Off(i1-1, 0).CVector(), a.Rows, a.Rows)
 
 		//         second swap :
 		//          - swap A(I1,I1) and A(I2,I2)

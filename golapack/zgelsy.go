@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -168,8 +167,8 @@ label10:
 	;
 	if rank < mn {
 		i = rank + 1
-		sminpr, s1, c1 = Zlaic1(imin, rank, work.Off(ismin-1), smin, a.CVector(0, i-1), a.Get(i-1, i-1))
-		smaxpr, s2, c2 = Zlaic1(imax, rank, work.Off(ismax-1), smax, a.CVector(0, i-1), a.Get(i-1, i-1))
+		sminpr, s1, c1 = Zlaic1(imin, rank, work.Off(ismin-1), smin, a.Off(0, i-1).CVector(), a.Get(i-1, i-1))
+		smaxpr, s2, c2 = Zlaic1(imax, rank, work.Off(ismax-1), smax, a.Off(0, i-1).CVector(), a.Get(i-1, i-1))
 
 		if smaxpr*rcond <= sminpr {
 			for i = 1; i <= rank; i++ {
@@ -210,7 +209,7 @@ label10:
 	//     complex workspace: 2*MN+NB*NRHS.
 	//
 	//     B(1:RANK,1:NRHS) := inv(T11) * B(1:RANK,1:NRHS)
-	if err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, cone, a, b); err != nil {
+	if err = b.Trsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, cone, a); err != nil {
 		panic(err)
 	}
 
@@ -234,7 +233,7 @@ label10:
 		for i = 1; i <= n; i++ {
 			work.Set((*jpvt)[i-1]-1, b.Get(i-1, j-1))
 		}
-		goblas.Zcopy(n, work.Off(0, 1), b.CVector(0, j-1, 1))
+		b.Off(0, j-1).CVector().Copy(n, work, 1, 1)
 	}
 
 	//     complex workspace: N.

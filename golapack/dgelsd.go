@@ -274,8 +274,8 @@ func Dgelsd(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		il = nwork
 
 		//        Copy L to WORK(IL), zeroing out above its diagonal.
-		Dlacpy(Lower, m, m, a, work.MatrixOff(il-1, ldwork, opts))
-		Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(il+ldwork-1, ldwork, opts))
+		Dlacpy(Lower, m, m, a, work.Off(il-1).Matrix(ldwork, opts))
+		Dlaset(Upper, m-1, m-1, zero, zero, work.Off(il+ldwork-1).Matrix(ldwork, opts))
 		ie = il + ldwork*m
 		itauq = ie + m
 		itaup = itauq + m
@@ -283,13 +283,13 @@ func Dgelsd(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 
 		//        Bidiagonalize L in WORK(IL).
 		//        (Workspace: need M*M+5*M, prefer M*M+4*M+2*M*NB)
-		if err = Dgebrd(m, m, work.MatrixOff(il-1, ldwork, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+		if err = Dgebrd(m, m, work.Off(il-1).Matrix(ldwork, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
 			panic(err)
 		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors of L.
 		//        (Workspace: need M*M+4*M+NRHS, prefer M*M+4*M+NRHS*NB)
-		if err = Dormbr('Q', Left, Trans, m, nrhs, m, work.MatrixOff(il-1, ldwork, opts), work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+		if err = Dormbr('Q', Left, Trans, m, nrhs, m, work.Off(il-1).Matrix(ldwork, opts), work.Off(itauq-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
 			panic(err)
 		}
 
@@ -302,7 +302,7 @@ func Dgelsd(m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, rcond float64, work
 		}
 
 		//        Multiply B by right bidiagonalizing vectors of L.
-		if err = Dormbr('P', Left, NoTrans, m, nrhs, m, work.MatrixOff(il-1, ldwork, opts), work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
+		if err = Dormbr('P', Left, NoTrans, m, nrhs, m, work.Off(il-1).Matrix(ldwork, opts), work.Off(itaup-1), b, work.Off(nwork-1), lwork-nwork+1); err != nil {
 			panic(err)
 		}
 

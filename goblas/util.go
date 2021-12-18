@@ -24,6 +24,7 @@ type memory struct {
 		icase int
 		_case string
 		n     int
+		ntest int
 		incx  int
 		incy  int
 		off   int

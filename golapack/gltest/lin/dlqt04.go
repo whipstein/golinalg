@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -40,7 +39,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 
 	//     Put random numbers into A and copy to AF
 	for j = 1; j <= n; j++ {
-		golapack.Dlarnv(2, &iseed, m, a.Vector(1-1, j-1))
+		golapack.Dlarnv(2, &iseed, m, a.Off(1-1, j-1).Vector())
 	}
 	golapack.Dlacpy(Full, m, n, a, af)
 
@@ -60,7 +59,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 	golapack.Dlacpy(Lower, m, n, af, l)
 
 	//     Compute |L - A*Q'| / |A| and store in RESULT(1)
-	if err = goblas.Dgemm(NoTrans, Trans, m, n, n, -one, a, q, one, l); err != nil {
+	if err = l.Gemm(NoTrans, Trans, m, n, n, -one, a, q, one); err != nil {
 		panic(err)
 	}
 	anorm = golapack.Dlange('1', m, n, a, rwork)
@@ -73,7 +72,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 
 	//     Compute |I - Q'*Q| and store in RESULT(2)
 	golapack.Dlaset(Full, n, n, zero, one, l)
-	if err = goblas.Dsyrk(Upper, ConjTrans, n, n, -one, q, one, l); err != nil {
+	if err = l.Syrk(Upper, ConjTrans, n, n, -one, q, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Dlansy('1', Upper, n, l, rwork)
@@ -81,7 +80,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 
 	//     Generate random m-by-n matrix C and a copy CF
 	for j = 1; j <= m; j++ {
-		golapack.Dlarnv(2, &iseed, n, d.Vector(1-1, j-1))
+		golapack.Dlarnv(2, &iseed, n, d.Off(1-1, j-1).Vector())
 	}
 	dnorm = golapack.Dlange('1', n, m, d, rwork)
 	golapack.Dlacpy(Full, n, m, d, df)
@@ -92,7 +91,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |Q*D - Q*D| / |D|
-	if err = goblas.Dgemm(NoTrans, NoTrans, n, m, n, -one, q, d, one, df); err != nil {
+	if err = df.Gemm(NoTrans, NoTrans, n, m, n, -one, q, d, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Dlange('1', n, m, df, rwork)
@@ -111,7 +110,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |QT*D - QT*D| / |D|
-	if err = goblas.Dgemm(Trans, NoTrans, n, m, n, -one, q, d, one, df); err != nil {
+	if err = df.Gemm(Trans, NoTrans, n, m, n, -one, q, d, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Dlange('1', n, m, df, rwork)
@@ -123,7 +122,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 
 	//     Generate random n-by-m matrix D and a copy DF
 	for j = 1; j <= n; j++ {
-		golapack.Dlarnv(2, &iseed, m, c.Vector(1-1, j-1))
+		golapack.Dlarnv(2, &iseed, m, c.Off(1-1, j-1).Vector())
 	}
 	cnorm = golapack.Dlange('1', m, n, c, rwork)
 	golapack.Dlacpy(Full, m, n, c, cf)
@@ -134,7 +133,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |C*Q - C*Q| / |C|
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, -one, c, q, one, cf); err != nil {
+	if err = cf.Gemm(NoTrans, NoTrans, m, n, n, -one, c, q, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Dlange('1', n, m, df, rwork)
@@ -153,7 +152,7 @@ func dlqt04(m, n, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |C*QT - C*QT| / |C|
-	if err = goblas.Dgemm(NoTrans, Trans, m, n, n, -one, c, q, one, cf); err != nil {
+	if err = cf.Gemm(NoTrans, Trans, m, n, n, -one, c, q, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Dlange('1', m, n, cf, rwork)

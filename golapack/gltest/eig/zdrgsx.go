@@ -279,7 +279,7 @@ func zdrgsx(nsize, ncmax int, thresh float64, a, b, ai, bi, z, q *mat.CMatrix, a
 
 					//                 Compute the norm(A, B)
 					golapack.Zlacpy(Full, *mplusn, *mplusn, ai, work.CMatrix(*mplusn, opts))
-					golapack.Zlacpy(Full, *mplusn, *mplusn, bi, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts))
+					golapack.Zlacpy(Full, *mplusn, *mplusn, bi, work.Off((*mplusn)*(*mplusn)).CMatrix(*mplusn, opts))
 					abnrm = golapack.Zlange('F', *mplusn, 2*(*mplusn), work.CMatrix(*mplusn, opts), rwork)
 
 					//                 Do tests (1) to (4)
@@ -337,7 +337,7 @@ func zdrgsx(nsize, ncmax int, thresh float64, a, b, ai, bi, z, q *mat.CMatrix, a
 						//                    almost same number of test cases fail the test.
 						matgen.Zlakf2(mm, (*mplusn)-mm, ai, ai.Off(mm, mm), bi, bi.Off(mm, mm), c)
 
-						if linfo, err = golapack.Zgesvd('N', 'N', mn2, mn2, c, s, work.CMatrix(1, opts), work.CMatrixOff(1, 1, opts), work.Off(2), lwork-2, rwork); err != nil {
+						if linfo, err = golapack.Zgesvd('N', 'N', mn2, mn2, c, s, work.CMatrix(1, opts), work.Off(1).CMatrix(1, opts), work.Off(2), lwork-2, rwork); err != nil {
 							panic(err)
 						}
 						diftru = s.Get(mn2 - 1)
@@ -476,7 +476,7 @@ label70:
 		//     Compute the norm(A, B)
 		//        (should this be norm of (A,B) or (AI,BI)?)
 		golapack.Zlacpy(Full, *mplusn, *mplusn, ai, work.CMatrix(*mplusn, opts))
-		golapack.Zlacpy(Full, *mplusn, *mplusn, bi, work.CMatrixOff((*mplusn)*(*mplusn), *mplusn, opts))
+		golapack.Zlacpy(Full, *mplusn, *mplusn, bi, work.Off((*mplusn)*(*mplusn)).CMatrix(*mplusn, opts))
 		abnrm = golapack.Zlange('F', *mplusn, 2*(*mplusn), work.CMatrix(*mplusn, opts), rwork)
 
 		//     Do tests (1) to (4)

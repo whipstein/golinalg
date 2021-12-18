@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -68,7 +67,7 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
 		if k > 1 {
-			imax = goblas.Izamax(k-1, ap.Off(kc-1, 1))
+			imax = ap.Off(kc-1).Iamax(k-1, 1)
 			colmax = cabs1(ap.Get(kc + imax - 1 - 1))
 		} else {
 			colmax = zero
@@ -100,7 +99,7 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 				}
 				kpc = (imax-1)*imax/2 + 1
 				if imax > 1 {
-					jmax = goblas.Izamax(imax-1, ap.Off(kpc-1, 1))
+					jmax = ap.Off(kpc-1).Iamax(imax-1, 1)
 					rowmax = math.Max(rowmax, cabs1(ap.Get(kpc+jmax-1-1)))
 				}
 
@@ -126,7 +125,7 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
-				goblas.Zswap(kp-1, ap.Off(knc-1, 1), ap.Off(kpc-1, 1))
+				ap.Off(kpc-1).Swap(kp-1, ap.Off(knc-1), 1, 1)
 				kx = kpc + kp - 1
 				for j = kp + 1; j <= kk-1; j++ {
 					kx = kx + j - 1
@@ -163,12 +162,12 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 				//
 				//              A := A - U(k)*D(k)*U(k)**H = A - W(k)*1/D(k)*W(k)**H
 				r1 = one / ap.GetRe(kc+k-1-1)
-				if err = goblas.Zhpr(uplo, k-1, -r1, ap.Off(kc-1, 1), ap); err != nil {
+				if err = ap.Hpr(uplo, k-1, -r1, ap.Off(kc-1), 1); err != nil {
 					panic(err)
 				}
 
 				//              Store U(k) in column k
-				goblas.Zdscal(k-1, r1, ap.Off(kc-1, 1))
+				ap.Off(kc-1).Dscal(k-1, r1, 1)
 			} else {
 				//              2-by-2 pivot block D(k): columns k and k-1 now hold
 				//
@@ -244,7 +243,7 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 		//        IMAX is the row-index of the largest off-diagonal element in
 		//        column K, and COLMAX is its absolute value
 		if k < n {
-			imax = k + goblas.Izamax(n-k, ap.Off(kc, 1))
+			imax = k + ap.Off(kc).Iamax(n-k, 1)
 			colmax = cabs1(ap.Get(kc + imax - k - 1))
 		} else {
 			colmax = zero
@@ -275,7 +274,7 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 				}
 				kpc = npp - (n-imax+1)*(n-imax+2)/2 + 1
 				if imax < n {
-					jmax = imax + goblas.Izamax(n-imax, ap.Off(kpc, 1))
+					jmax = imax + ap.Off(kpc).Iamax(n-imax, 1)
 					rowmax = math.Max(rowmax, cabs1(ap.Get(kpc+jmax-imax-1)))
 				}
 
@@ -302,7 +301,7 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < n {
-					goblas.Zswap(n-kp, ap.Off(knc+kp-kk, 1), ap.Off(kpc, 1))
+					ap.Off(kpc).Swap(n-kp, ap.Off(knc+kp-kk), 1, 1)
 				}
 				kx = knc + kp - kk
 				for j = kk + 1; j <= kp-1; j++ {
@@ -340,12 +339,12 @@ func Zhptrf(uplo mat.MatUplo, n int, ap *mat.CVector, ipiv *[]int) (info int, er
 					//
 					//                 A := A - L(k)*D(k)*L(k)**H = A - W(k)*(1/D(k))*W(k)**H
 					r1 = one / ap.GetRe(kc-1)
-					if err = goblas.Zhpr(uplo, n-k, -r1, ap.Off(kc, 1), ap.Off(kc+n-k)); err != nil {
+					if err = ap.Off(kc+n-k).Hpr(uplo, n-k, -r1, ap.Off(kc), 1); err != nil {
 						panic(err)
 					}
 
 					//                 Store L(k) in column K
-					goblas.Zdscal(n-k, r1, ap.Off(kc, 1))
+					ap.Off(kc).Dscal(n-k, r1, 1)
 				}
 			} else {
 				//              2-by-2 pivot block D(k): columns K and K+1 now hold

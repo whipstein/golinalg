@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -89,8 +88,8 @@ func Zgbrfs(trans mat.MatTrans, n, kl, ku, nrhs int, ab, afb *mat.CMatrix, ipiv 
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(n, b.CVector(0, j-1, 1), work.Off(0, 1))
-		if err = goblas.Zgbmv(trans, n, n, kl, ku, -cone, ab, x.CVector(0, j-1, 1), cone, work.Off(0, 1)); err != nil {
+		work.Copy(n, b.Off(0, j-1).CVector(), 1, 1)
+		if err = work.Gbmv(trans, n, n, kl, ku, -cone, ab, x.Off(0, j-1).CVector(), 1, cone, 1); err != nil {
 			panic(err)
 		}
 
@@ -145,7 +144,7 @@ func Zgbrfs(trans mat.MatTrans, n, kl, ku, nrhs int, ab, afb *mat.CMatrix, ipiv 
 			if err = Zgbtrs(trans, n, kl, ku, 1, afb, ipiv, work.CMatrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Zaxpy(n, cone, work.Off(0, 1), x.CVector(0, j-1, 1))
+			x.Off(0, j-1).CVector().Axpy(n, cone, work, 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

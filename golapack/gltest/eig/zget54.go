@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -40,26 +39,26 @@ func zget54(n int, a, b, s, t, u, v *mat.CMatrix, work *mat.CVector) (result flo
 
 	//     compute the norm of (A,B)
 	golapack.Zlacpy(Full, n, n, a, work.CMatrix(n, opts))
-	golapack.Zlacpy(Full, n, n, b, work.CMatrixOff(n*n, n, opts))
+	golapack.Zlacpy(Full, n, n, b, work.Off(n*n).CMatrix(n, opts))
 	abnorm = math.Max(golapack.Zlange('1', n, 2*n, work.CMatrix(n, opts), dum), unfl)
 
 	//     Compute W1 = A - U*S*V', and put in the array WORK(1:N*N)
 	golapack.Zlacpy(Full, n, n, a, work.CMatrix(n, opts))
-	if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, cone, u, s, czero, work.CMatrixOff(n*n, n, opts)); err != nil {
+	if err = work.Off(n*n).CMatrix(n, opts).Gemm(NoTrans, NoTrans, n, n, n, cone, u, s, czero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, -cone, work.CMatrixOff(n*n, n, opts), v, cone, work.CMatrix(n, opts)); err != nil {
+	if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, -cone, work.Off(n*n).CMatrix(n, opts), v, cone); err != nil {
 		panic(err)
 	}
 
 	//     Compute W2 = B - U*T*V', and put in the workarray W(N*N+1:2*N*N)
-	golapack.Zlacpy(Full, n, n, b, work.CMatrixOff(n*n, n, opts))
-	if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, cone, u, t, czero, work.CMatrixOff(2*n*n, n, opts)); err != nil {
+	golapack.Zlacpy(Full, n, n, b, work.Off(n*n).CMatrix(n, opts))
+	if err = work.Off(2*n*n).CMatrix(n, opts).Gemm(NoTrans, NoTrans, n, n, n, cone, u, t, czero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, -cone, work.CMatrixOff(2*n*n, n, opts), v, cone, work.CMatrixOff(n*n, n, opts)); err != nil {
+	if err = work.Off(n*n).CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, -cone, work.Off(2*n*n).CMatrix(n, opts), v, cone); err != nil {
 		panic(err)
 	}
 

@@ -53,7 +53,7 @@ func Zlarfx(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.C
 		}
 
 		//        Code for general M
-		Zlarf(side, m, n, v.Off(0, 1), tau, c, work)
+		Zlarf(side, m, n, v, 1, tau, c, work)
 		return
 	label10:
 		;
@@ -324,7 +324,7 @@ func Zlarfx(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.C
 		}
 
 		//        Code for general N
-		Zlarf(side, m, n, v.Off(0, 1), tau, c, work)
+		Zlarf(side, m, n, v, 1, tau, c, work)
 		return
 	label210:
 		;

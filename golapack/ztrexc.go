@@ -68,16 +68,16 @@ func Ztrexc(compq byte, n int, t, q *mat.CMatrix, ifst, ilst int) (err error) {
 
 		//        Apply transformation to the matrix T.
 		if k+2 <= n {
-			Zrot(n-k-1, t.CVector(k-1, k+2-1), t.CVector(k, k+2-1), cs, sn)
+			Zrot(n-k-1, t.Off(k-1, k+2-1).CVector(), t.Rows, t.Off(k, k+2-1).CVector(), t.Rows, cs, sn)
 		}
-		Zrot(k-1, t.CVector(0, k-1, 1), t.CVector(0, k, 1), cs, cmplx.Conj(sn))
+		Zrot(k-1, t.Off(0, k-1).CVector(), 1, t.Off(0, k).CVector(), 1, cs, cmplx.Conj(sn))
 
 		t.Set(k-1, k-1, t22)
 		t.Set(k, k, t11)
 
 		if wantq {
 			//           Accumulate transformation in the matrix Q.
-			Zrot(n, q.CVector(0, k-1, 1), q.CVector(0, k, 1), cs, cmplx.Conj(sn))
+			Zrot(n, q.Off(0, k-1).CVector(), 1, q.Off(0, k).CVector(), 1, cs, cmplx.Conj(sn))
 		}
 
 	}

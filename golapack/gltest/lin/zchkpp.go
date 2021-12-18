@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -131,7 +130,7 @@ func zchkpp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 				//              Compute the L*L' or U'*U factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+				afac.Copy(npp, a, 1, 1)
 				*srnamt = "Zpptrf"
 				if info, err = golapack.Zpptrf(uplo, n, afac); err != nil || info != izero {
 					t.Fail()
@@ -146,12 +145,12 @@ func zchkpp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 				//+    TEST 1
 				//              Reconstruct matrix from factors and compute residual.
-				goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+				ainv.Copy(npp, afac, 1, 1)
 				*result.GetPtr(0) = zppt01(uplo, n, a, ainv, rwork)
 
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
-				goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+				ainv.Copy(npp, afac, 1, 1)
 				*srnamt = "Zpptri"
 				if info, err = golapack.Zpptri(uplo, n, ainv); err != nil || info != 0 {
 					t.Fail()

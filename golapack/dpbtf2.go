@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -65,8 +64,8 @@ func Dpbtf2(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 			//           trailing submatrix within the band.
 			kn = min(kd, n-j)
 			if kn > 0 {
-				goblas.Dscal(kn, one/ajj, ab.Vector(kd-1, j, kld))
-				err = goblas.Dsyr(Upper, kn, -one, ab.Vector(kd-1, j, kld), ab.Off(kd, j).UpdateRows(kld))
+				ab.Off(kd-1, j).Vector().Scal(kn, one/ajj, kld)
+				err = ab.Off(kd, j).UpdateRows(kld).Syr(Upper, kn, -one, ab.Off(kd-1, j).Vector(), kld)
 			}
 		}
 	} else {
@@ -84,8 +83,8 @@ func Dpbtf2(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 			//           trailing submatrix within the band.
 			kn = min(kd, n-j)
 			if kn > 0 {
-				goblas.Dscal(kn, one/ajj, ab.Vector(1, j-1, 1))
-				err = goblas.Dsyr(Lower, kn, -one, ab.Vector(1, j-1, 1), ab.Off(0, j).UpdateRows(kld))
+				ab.Off(1, j-1).Vector().Scal(kn, one/ajj, 1)
+				err = ab.Off(0, j).UpdateRows(kld).Syr(Lower, kn, -one, ab.Off(1, j-1).Vector(), 1)
 			}
 		}
 	}

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -51,7 +50,7 @@ func zqrt01p(m, n int, a, af, q, r *mat.CMatrix, tau, work *mat.CVector, lwork i
 	golapack.Zlacpy(Upper, m, n, af, r)
 
 	//     Compute R - Q'*A
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m, n, m, complex(-one, 0), q, a, complex(one, 0), r); err != nil {
+	if err = r.Gemm(ConjTrans, NoTrans, m, n, m, complex(-one, 0), q, a, complex(one, 0)); err != nil {
 		panic(err)
 	}
 
@@ -66,7 +65,7 @@ func zqrt01p(m, n int, a, af, q, r *mat.CMatrix, tau, work *mat.CVector, lwork i
 
 	//     Compute I - Q'*Q
 	golapack.Zlaset(Full, m, m, complex(zero, 0), complex(one, 0), r)
-	if err = goblas.Zherk(Upper, ConjTrans, m, m, -one, q, one, r); err != nil {
+	if err = r.Herk(Upper, ConjTrans, m, m, -one, q, one); err != nil {
 		panic(err)
 	}
 

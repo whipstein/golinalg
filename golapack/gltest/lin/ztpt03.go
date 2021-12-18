@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -60,18 +59,18 @@ func ztpt03(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 	//
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		goblas.Zcopy(n, x.CVector(0, j-1, 1), work.Off(0, 1))
-		ix = goblas.Izamax(n, work.Off(0, 1))
+		work.Copy(n, x.Off(0, j-1).CVector(), 1, 1)
+		ix = work.Iamax(n, 1)
 		xnorm = math.Max(one, x.GetMag(ix-1, j-1))
 		xscal = (one / xnorm) / float64(n)
-		goblas.Zdscal(n, xscal, work.Off(0, 1))
-		if err = goblas.Ztpmv(uplo, trans, diag, n, ap, work.Off(0, 1)); err != nil {
+		work.Dscal(n, xscal, 1)
+		if err = work.Tpmv(uplo, trans, diag, n, ap, 1); err != nil {
 			panic(err)
 		}
-		goblas.Zaxpy(n, complex(-scale*xscal, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
-		ix = goblas.Izamax(n, work.Off(0, 1))
+		work.Axpy(n, complex(-scale*xscal, 0), b.Off(0, j-1).CVector(), 1, 1)
+		ix = work.Iamax(n, 1)
 		errf = tscal * work.GetMag(ix-1)
-		ix = goblas.Izamax(n, x.CVector(0, j-1, 1))
+		ix = x.Off(0, j-1).CVector().Iamax(n, 1)
 		xnorm = x.GetMag(ix-1, j-1)
 		if errf*smlnum <= xnorm {
 			if xnorm > zero {

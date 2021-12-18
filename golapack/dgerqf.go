@@ -89,7 +89,7 @@ func Dgerqf(m, n int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (err erro
 				Dlarft('B', 'R', n-k+i+ib-1, ib, a.Off(m-k+i-1, 0), tau.Off(i-1), work.Matrix(ldwork, opts))
 
 				//              Apply H to A(1:m-k+i-1,1:n-k+i+ib-1) from the right
-				Dlarfb(Right, NoTrans, 'B', 'R', m-k+i-1, n-k+i+ib-1, ib, a.Off(m-k+i-1, 0), work.Matrix(ldwork, opts), a, work.MatrixOff(ib, ldwork, opts))
+				Dlarfb(Right, NoTrans, 'B', 'R', m-k+i-1, n-k+i+ib-1, ib, a.Off(m-k+i-1, 0), work.Matrix(ldwork, opts), a, work.Off(ib).Matrix(ldwork, opts))
 			}
 		}
 		mu = m - k + i + nb - 1

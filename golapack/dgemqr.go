@@ -84,11 +84,11 @@ func Dgemqr(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.Matrix, t 
 	}
 
 	if (left && m <= k) || (right && n <= k) || (mb <= k) || (mb >= max(m, n, k)) {
-		if err = Dgemqrt(side, trans, m, n, k, nb, a, t.MatrixOff(5, nb, opts), c, work); err != nil {
+		if err = Dgemqrt(side, trans, m, n, k, nb, a, t.Off(5).Matrix(nb, opts), c, work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Dlamtsqr(side, trans, m, n, k, mb, nb, a, t.MatrixOff(5, nb, opts), c, work, lwork); err != nil {
+		if err = Dlamtsqr(side, trans, m, n, k, mb, nb, a, t.Off(5).Matrix(nb, opts), c, work, lwork); err != nil {
 			panic(err)
 		}
 	}

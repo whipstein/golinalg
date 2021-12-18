@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -84,21 +83,21 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 		//
 		//        Step (1L): apply back the Givens rotations performed.
 		for i = 1; i <= givptr; i++ {
-			goblas.Zdrot(nrhs, b.CVector((*givcol)[i-1+(2-1)*ldgcol]-1, 0), b.CVector((*givcol)[i-1+(1-1)*ldgcol]-1, 0), givnum.Get(i-1, 1), givnum.Get(i-1, 0))
+			b.Off((*givcol)[i-1+(1-1)*ldgcol]-1, 0).CVector().Drot(nrhs, b.Off((*givcol)[i-1+(2-1)*ldgcol]-1, 0).CVector(), b.Rows, b.Rows, givnum.Get(i-1, 1), givnum.Get(i-1, 0))
 		}
 
 		//        Step (2L): permute rows of B.
-		goblas.Zcopy(nrhs, b.CVector(nlp1-1, 0), bx.CVector(0, 0))
+		bx.Off(0, 0).CVector().Copy(nrhs, b.Off(nlp1-1, 0).CVector(), b.Rows, bx.Rows)
 		for i = 2; i <= n; i++ {
-			goblas.Zcopy(nrhs, b.CVector((*perm)[i-1]-1, 0), bx.CVector(i-1, 0))
+			bx.Off(i-1, 0).CVector().Copy(nrhs, b.Off((*perm)[i-1]-1, 0).CVector(), b.Rows, bx.Rows)
 		}
 
 		//        Step (3L): apply the inverse of the left singular vector
 		//        matrix to BX.
 		if k == 1 {
-			goblas.Zcopy(nrhs, bx.CVector(0, 0), b.CVector(0, 0))
+			b.Off(0, 0).CVector().Copy(nrhs, bx.Off(0, 0).CVector(), bx.Rows, b.Rows)
 			if z.Get(0) < zero {
-				goblas.Zdscal(nrhs, negone, b.CVector(0, 0))
+				b.Off(0, 0).CVector().Dscal(nrhs, negone, b.Rows)
 			}
 		} else {
 			for j = 1; j <= k; j++ {
@@ -129,7 +128,7 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 					}
 				}
 				rwork.Set(0, negone)
-				temp = goblas.Dnrm2(k, rwork.Off(0, 1))
+				temp = rwork.Nrm2(k, 1)
 
 				//              Since B and BX are complex, the following call to DGEMV
 				//              is performed in two steps (real and imaginary parts).
@@ -143,7 +142,7 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 						rwork.Set(i-1, bx.GetRe(jrow-1, jcol-1))
 					}
 				}
-				if err = goblas.Dgemv(Trans, k, nrhs, one, rwork.MatrixOff(1+k+nrhs*2-1, k, opts), rwork.Off(0, 1), zero, rwork.Off(1+k-1, 1)); err != nil {
+				if err = rwork.Off(1+k-1).Gemv(Trans, k, nrhs, one, rwork.Off(1+k+nrhs*2-1).Matrix(k, opts), rwork, 1, zero, 1); err != nil {
 					panic(err)
 				}
 				i = k + nrhs*2
@@ -153,7 +152,7 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 						rwork.Set(i-1, bx.GetIm(jrow-1, jcol-1))
 					}
 				}
-				if err = goblas.Dgemv(Trans, k, nrhs, one, rwork.MatrixOff(1+k+nrhs*2-1, k, opts), rwork.Off(0, 1), zero, rwork.Off(1+k+nrhs-1, 1)); err != nil {
+				if err = rwork.Off(1+k+nrhs-1).Gemv(Trans, k, nrhs, one, rwork.Off(1+k+nrhs*2-1).Matrix(k, opts), rwork, 1, zero, 1); err != nil {
 					panic(err)
 				}
 				for jcol = 1; jcol <= nrhs; jcol++ {
@@ -175,7 +174,7 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 		//        Step (1R): apply back the new right singular vector matrix
 		//        to B.
 		if k == 1 {
-			goblas.Zcopy(nrhs, b.CVector(0, 0), bx.CVector(0, 0))
+			bx.Off(0, 0).CVector().Copy(nrhs, b.Off(0, 0).CVector(), b.Rows, bx.Rows)
 		} else {
 			for j = 1; j <= k; j++ {
 				dsigj = poles.Get(j-1, 1)
@@ -211,7 +210,7 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 						rwork.Set(i-1, b.GetRe(jrow-1, jcol-1))
 					}
 				}
-				if err = goblas.Dgemv(Trans, k, nrhs, one, rwork.MatrixOff(1+k+nrhs*2-1, k, opts), rwork.Off(0, 1), zero, rwork.Off(1+k-1, 1)); err != nil {
+				if err = rwork.Off(1+k-1).Gemv(Trans, k, nrhs, one, rwork.Off(1+k+nrhs*2-1).Matrix(k, opts), rwork, 1, zero, 1); err != nil {
 					panic(err)
 				}
 				i = k + nrhs*2
@@ -221,7 +220,7 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 						rwork.Set(i-1, b.GetIm(jrow-1, jcol-1))
 					}
 				}
-				if err = goblas.Dgemv(Trans, k, nrhs, one, rwork.MatrixOff(1+k+nrhs*2-1, k, opts), rwork.Off(0, 1), zero, rwork.Off(1+k+nrhs-1, 1)); err != nil {
+				if err = rwork.Off(1+k+nrhs-1).Gemv(Trans, k, nrhs, one, rwork.Off(1+k+nrhs*2-1).Matrix(k, opts), rwork, 1, zero, 1); err != nil {
 					panic(err)
 				}
 				for jcol = 1; jcol <= nrhs; jcol++ {
@@ -233,25 +232,25 @@ func Zlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.CMatrix, perm *[]int, giv
 		//        Step (2R): if SQRE = 1, apply back the rotation that is
 		//        related to the right null space of the subproblem.
 		if sqre == 1 {
-			goblas.Zcopy(nrhs, b.CVector(m-1, 0), bx.CVector(m-1, 0))
-			goblas.Zdrot(nrhs, bx.CVector(0, 0), bx.CVector(m-1, 0), c, s)
+			bx.Off(m-1, 0).CVector().Copy(nrhs, b.Off(m-1, 0).CVector(), b.Rows, bx.Rows)
+			bx.Off(m-1, 0).CVector().Drot(nrhs, bx.Off(0, 0).CVector(), bx.Rows, bx.Rows, c, s)
 		}
 		if k < max(m, n) {
 			Zlacpy(Full, n-k, nrhs, b.Off(k, 0), bx.Off(k, 0))
 		}
 
 		//        Step (3R): permute rows of B.
-		goblas.Zcopy(nrhs, bx.CVector(0, 0), b.CVector(nlp1-1, 0))
+		b.Off(nlp1-1, 0).CVector().Copy(nrhs, bx.Off(0, 0).CVector(), bx.Rows, b.Rows)
 		if sqre == 1 {
-			goblas.Zcopy(nrhs, bx.CVector(m-1, 0), b.CVector(m-1, 0))
+			b.Off(m-1, 0).CVector().Copy(nrhs, bx.Off(m-1, 0).CVector(), bx.Rows, b.Rows)
 		}
 		for i = 2; i <= n; i++ {
-			goblas.Zcopy(nrhs, bx.CVector(i-1, 0), b.CVector((*perm)[i-1]-1, 0))
+			b.Off((*perm)[i-1]-1, 0).CVector().Copy(nrhs, bx.Off(i-1, 0).CVector(), bx.Rows, b.Rows)
 		}
 
 		//        Step (4R): apply back the Givens rotations performed.
 		for i = givptr; i >= 1; i-- {
-			goblas.Zdrot(nrhs, b.CVector((*givcol)[i-1+(2-1)*ldgcol]-1, 0), b.CVector((*givcol)[i-1+(1-1)*ldgcol]-1, 0), givnum.Get(i-1, 1), -givnum.Get(i-1, 0))
+			b.Off((*givcol)[i-1+(1-1)*ldgcol]-1, 0).CVector().Drot(nrhs, b.Off((*givcol)[i-1+(2-1)*ldgcol]-1, 0).CVector(), b.Rows, b.Rows, givnum.Get(i-1, 1), -givnum.Get(i-1, 0))
 		}
 	}
 

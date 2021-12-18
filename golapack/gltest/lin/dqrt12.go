@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -35,7 +34,7 @@ func dqrt12(m, n int, a *mat.Matrix, s, work *mat.Vector, lwork int) (dqrt12Retu
 		return
 	}
 
-	nrmsvl = goblas.Dnrm2(mn, s.Off(0, 1))
+	nrmsvl = s.Nrm2(mn, 1)
 
 	//     Copy upper triangle of A into work
 	golapack.Dlaset(Full, m, n, zero, zero, work.Matrix(m, opts))
@@ -76,12 +75,12 @@ func dqrt12(m, n int, a *mat.Matrix, s, work *mat.Vector, lwork int) (dqrt12Retu
 
 		if iscl == 1 {
 			if anrm > bignum {
-				if err = golapack.Dlascl('G', 0, 0, bignum, anrm, mn, 1, work.MatrixOff(m*n, mn, opts)); err != nil {
+				if err = golapack.Dlascl('G', 0, 0, bignum, anrm, mn, 1, work.Off(m*n).Matrix(mn, opts)); err != nil {
 					panic(err)
 				}
 			}
 			if anrm < smlnum {
-				if err = golapack.Dlascl('G', 0, 0, smlnum, anrm, mn, 1, work.MatrixOff(m*n, mn, opts)); err != nil {
+				if err = golapack.Dlascl('G', 0, 0, smlnum, anrm, mn, 1, work.Off(m*n).Matrix(mn, opts)); err != nil {
 					panic(err)
 				}
 			}
@@ -95,8 +94,8 @@ func dqrt12(m, n int, a *mat.Matrix, s, work *mat.Vector, lwork int) (dqrt12Retu
 	}
 
 	//     Compare s and singular values of work
-	goblas.Daxpy(mn, -one, s.Off(0, 1), work.Off(m*n, 1))
-	dqrt12Return = goblas.Dasum(mn, work.Off(m*n, 1)) / (golapack.Dlamch(Epsilon) * float64(max(m, n)))
+	work.Off(m*n).Axpy(mn, -one, s, 1, 1)
+	dqrt12Return = work.Off(m*n).Asum(mn, 1) / (golapack.Dlamch(Epsilon) * float64(max(m, n)))
 	if nrmsvl != zero {
 		dqrt12Return = dqrt12Return / nrmsvl
 	}

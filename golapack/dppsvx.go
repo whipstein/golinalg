@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -101,7 +100,7 @@ func Dppsvx(fact byte, uplo mat.MatUplo, n, nrhs int, ap, afp *mat.Vector, equed
 
 	if nofact || equil {
 		//        Compute the Cholesky factorization A = U**T * U or A = L * L**T.
-		goblas.Dcopy(n*(n+1)/2, ap.Off(0, 1), afp.Off(0, 1))
+		afp.Copy(n*(n+1)/2, ap, 1, 1)
 		if info, err = Dpptrf(uplo, n, afp); err != nil {
 			panic(err)
 		}

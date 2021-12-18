@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -99,21 +98,21 @@ func Dlasda(icompq, smlsiz, n, sqre int, d, e *mat.Vector, u, vt *mat.Matrix, k 
 		vli = vl + nlf - 1
 		sqrei = 1
 		if icompq == 0 {
-			Dlaset(Full, nlp1, nlp1, zero, one, work.MatrixOff(nwork1-1, smlszp, opts))
-			if info, err = Dlasdq(Upper, sqrei, nl, nlp1, nru, ncc, d.Off(nlf-1), e.Off(nlf-1), work.MatrixOff(nwork1-1, smlszp, opts), work.MatrixOff(nwork2-1, nl, opts), work.MatrixOff(nwork2-1, nl, opts), work.Off(nwork2-1)); err != nil {
+			Dlaset(Full, nlp1, nlp1, zero, one, work.Off(nwork1-1).Matrix(smlszp, opts))
+			if info, err = Dlasdq(Upper, sqrei, nl, nlp1, nru, ncc, d.Off(nlf-1), e.Off(nlf-1), work.Off(nwork1-1).Matrix(smlszp, opts), work.Off(nwork2-1).Matrix(nl, opts), work.Off(nwork2-1).Matrix(nl, opts), work.Off(nwork2-1)); err != nil {
 				panic(err)
 			}
 			itemp = nwork1 + nl*smlszp
-			goblas.Dcopy(nlp1, work.Off(nwork1-1, 1), work.Off(vfi-1, 1))
-			goblas.Dcopy(nlp1, work.Off(itemp-1, 1), work.Off(vli-1, 1))
+			work.Off(vfi-1).Copy(nlp1, work.Off(nwork1-1), 1, 1)
+			work.Off(vli-1).Copy(nlp1, work.Off(itemp-1), 1, 1)
 		} else {
 			Dlaset(Full, nl, nl, zero, one, u.Off(nlf-1, 0))
 			Dlaset(Full, nlp1, nlp1, zero, one, vt.Off(nlf-1, 0))
 			if info, err = Dlasdq(Upper, sqrei, nl, nlp1, nl, ncc, d.Off(nlf-1), e.Off(nlf-1), vt.Off(nlf-1, 0), u.Off(nlf-1, 0), u.Off(nlf-1, 0), work.Off(nwork1-1)); err != nil {
 				panic(err)
 			}
-			goblas.Dcopy(nlp1, vt.Vector(nlf-1, 0, 1), work.Off(vfi-1, 1))
-			goblas.Dcopy(nlp1, vt.Vector(nlf-1, nlp1-1, 1), work.Off(vli-1, 1))
+			work.Off(vfi-1).Copy(nlp1, vt.Off(nlf-1, 0).Vector(), 1, 1)
+			work.Off(vli-1).Copy(nlp1, vt.Off(nlf-1, nlp1-1).Vector(), 1, 1)
 		}
 		if info != 0 {
 			return
@@ -131,21 +130,21 @@ func Dlasda(icompq, smlsiz, n, sqre int, d, e *mat.Vector, u, vt *mat.Matrix, k 
 		vli = vli + nlp1
 		nrp1 = nr + sqrei
 		if icompq == 0 {
-			Dlaset(Full, nrp1, nrp1, zero, one, work.MatrixOff(nwork1-1, smlszp, opts))
-			if info, err = Dlasdq(Upper, sqrei, nr, nrp1, nru, ncc, d.Off(nrf-1), e.Off(nrf-1), work.MatrixOff(nwork1-1, smlszp, opts), work.MatrixOff(nwork2-1, nr, opts), work.MatrixOff(nwork2-1, nr, opts), work.Off(nwork2-1)); err != nil {
+			Dlaset(Full, nrp1, nrp1, zero, one, work.Off(nwork1-1).Matrix(smlszp, opts))
+			if info, err = Dlasdq(Upper, sqrei, nr, nrp1, nru, ncc, d.Off(nrf-1), e.Off(nrf-1), work.Off(nwork1-1).Matrix(smlszp, opts), work.Off(nwork2-1).Matrix(nr, opts), work.Off(nwork2-1).Matrix(nr, opts), work.Off(nwork2-1)); err != nil {
 				panic(err)
 			}
 			itemp = nwork1 + (nrp1-1)*smlszp
-			goblas.Dcopy(nrp1, work.Off(nwork1-1, 1), work.Off(vfi-1, 1))
-			goblas.Dcopy(nrp1, work.Off(itemp-1, 1), work.Off(vli-1, 1))
+			work.Off(vfi-1).Copy(nrp1, work.Off(nwork1-1), 1, 1)
+			work.Off(vli-1).Copy(nrp1, work.Off(itemp-1), 1, 1)
 		} else {
 			Dlaset(Full, nr, nr, zero, one, u.Off(nrf-1, 0))
 			Dlaset(Full, nrp1, nrp1, zero, one, vt.Off(nrf-1, 0))
 			if info, err = Dlasdq(Upper, sqrei, nr, nrp1, nr, ncc, d.Off(nrf-1), e.Off(nrf-1), vt.Off(nrf-1, 0), u.Off(nrf-1, 0), u.Off(nrf-1, 0), work.Off(nwork1-1)); err != nil {
 				panic(err)
 			}
-			goblas.Dcopy(nrp1, vt.Vector(nrf-1, 0, 1), work.Off(vfi-1, 1))
-			goblas.Dcopy(nrp1, vt.Vector(nrf-1, nrp1-1, 1), work.Off(vli-1, 1))
+			work.Off(vfi-1).Copy(nrp1, vt.Off(nrf-1, 0).Vector(), 1, 1)
+			work.Off(vli-1).Copy(nrp1, vt.Off(nrf-1, nrp1-1).Vector(), 1, 1)
 		}
 		if info != 0 {
 			return
@@ -187,12 +186,12 @@ func Dlasda(icompq, smlsiz, n, sqre int, d, e *mat.Vector, u, vt *mat.Matrix, k 
 			alpha = d.Get(ic - 1)
 			beta = e.Get(ic - 1)
 			if icompq == 0 {
-				if alpha, beta, (*givptr)[0], (*k)[0], *c.GetPtr(0), *s.GetPtr(0), info, err = Dlasd6(icompq, nl, nr, sqrei, d.Off(nlf-1), work.Off(vfi-1), work.Off(vli-1), alpha, beta, toSlice(iwork, idxqi-1), perm, givcol, ldgcol, givnum, poles, difl.VectorIdx(0), difr.VectorIdx(0), z.VectorIdx(0), work.Off(nwork1-1), toSlice(iwork, iwk-1)); err != nil {
+				if alpha, beta, (*givptr)[0], (*k)[0], *c.GetPtr(0), *s.GetPtr(0), info, err = Dlasd6(icompq, nl, nr, sqrei, d.Off(nlf-1), work.Off(vfi-1), work.Off(vli-1), alpha, beta, toSlice(iwork, idxqi-1), perm, givcol, ldgcol, givnum, poles, difl.OffIdx(0).Vector(), difr.OffIdx(0).Vector(), z.OffIdx(0).Vector(), work.Off(nwork1-1), toSlice(iwork, iwk-1)); err != nil {
 					panic(err)
 				}
 			} else {
 				j = j - 1
-				if alpha, beta, (*givptr)[j-1], (*k)[j-1], *c.GetPtr(j - 1), *s.GetPtr(j - 1), info, err = Dlasd6(icompq, nl, nr, sqrei, d.Off(nlf-1), work.Off(vfi-1), work.Off(vli-1), alpha, beta, toSlice(iwork, idxqi-1), toSlice(perm, nlf-1+(lvl-1)*ldgcol), toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Vector(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), work.Off(nwork1-1), toSlice(iwork, iwk-1)); err != nil {
+				if alpha, beta, (*givptr)[j-1], (*k)[j-1], *c.GetPtr(j - 1), *s.GetPtr(j - 1), info, err = Dlasd6(icompq, nl, nr, sqrei, d.Off(nlf-1), work.Off(vfi-1), work.Off(vli-1), alpha, beta, toSlice(iwork, idxqi-1), toSlice(perm, nlf-1+(lvl-1)*ldgcol), toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Off(nlf-1, lvl-1).Vector(), difr.Off(nlf-1, lvl2-1).Vector(), z.Off(nlf-1, lvl-1).Vector(), work.Off(nwork1-1), toSlice(iwork, iwk-1)); err != nil {
 					panic(err)
 				}
 			}

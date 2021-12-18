@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -489,8 +488,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					}
 
 					//                 Copy R to WORK(IR) and zero out below it
-					Zlacpy(Upper, n, n, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-					Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(ir, ldwrkr, opts))
+					Zlacpy(Upper, n, n, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+					Zlaset(Lower, n-1, n-1, czero, czero, work.Off(ir).CMatrix(ldwrkr, opts))
 
 					//                 Generate Q in A
 					//                 (CWorkspace: need N*N+2*N, prefer N*N+N+N*NB)
@@ -506,14 +505,14 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 Bidiagonalize R in WORK(IR)
 					//                 (CWorkspace: need N*N+3*N, prefer N*N+2*N+2*N*NB)
 					//                 (RWorkspace: need N)
-					if err = Zgebrd(n, n, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Zgebrd(n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
 					//                 Generate left vectors bidiagonalizing R
 					//                 (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
 					//                 (RWorkspace: need 0)
-					if err = Zungbr('Q', n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Zungbr('Q', n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 					irwork = ie + n
@@ -522,7 +521,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 singular vectors of R in WORK(IR)
 					//                 (CWorkspace: need N*N)
 					//                 (RWorkspace: need BDSPAC)
-					if info, err = Zbdsqr(Upper, n, 0, n, 0, s, rwork.Off(ie-1), cdum.CMatrix(1, opts), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+					if info, err = Zbdsqr(Upper, n, 0, n, 0, s, rwork.Off(ie-1), cdum.CMatrix(1, opts), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 						panic(err)
 					}
 					iu = itauq
@@ -533,10 +532,10 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 (RWorkspace: 0)
 					for i = 1; i <= m; i += ldwrku {
 						chunk = min(m-i+1, ldwrku)
-						if err = goblas.Zgemm(NoTrans, NoTrans, chunk, n, n, cone, a.Off(i-1, 0), work.CMatrixOff(ir-1, ldwrkr, opts), czero, work.CMatrixOff(iu-1, ldwrku, opts)); err != nil {
+						if err = work.Off(iu-1).CMatrix(ldwrku, opts).Gemm(NoTrans, NoTrans, chunk, n, n, cone, a.Off(i-1, 0), work.Off(ir-1).CMatrix(ldwrkr, opts), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, chunk, n, work.CMatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
+						Zlacpy(Full, chunk, n, work.Off(iu-1).CMatrix(ldwrku, opts), a.Off(i-1, 0))
 					}
 
 				} else {
@@ -624,12 +623,12 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					if err = Zgebrd(n, n, vt, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
-					Zlacpy(Lower, n, n, vt, work.CMatrixOff(ir-1, ldwrkr, opts))
+					Zlacpy(Lower, n, n, vt, work.Off(ir-1).CMatrix(ldwrkr, opts))
 
 					//                 Generate left vectors bidiagonalizing R in WORK(IR)
 					//                 (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
 					//                 (RWorkspace: 0)
-					if err = Zungbr('Q', n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Zungbr('Q', n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
@@ -646,7 +645,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 singular vectors of R in VT
 					//                 (CWorkspace: need N*N)
 					//                 (RWorkspace: need BDSPAC)
-					if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), vt, work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+					if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), vt, work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 						panic(err)
 					}
 					iu = itauq
@@ -657,10 +656,10 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 (RWorkspace: 0)
 					for i = 1; i <= m; i += ldwrku {
 						chunk = min(m-i+1, ldwrku)
-						if err = goblas.Zgemm(NoTrans, NoTrans, chunk, n, n, cone, a.Off(i-1, 0), work.CMatrixOff(ir-1, ldwrkr, opts), czero, work.CMatrixOff(iu-1, ldwrku, opts)); err != nil {
+						if err = work.Off(iu-1).CMatrix(ldwrku, opts).Gemm(NoTrans, NoTrans, chunk, n, n, cone, a.Off(i-1, 0), work.Off(ir-1).CMatrix(ldwrkr, opts), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, chunk, n, work.CMatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
+						Zlacpy(Full, chunk, n, work.Off(iu-1).CMatrix(ldwrku, opts), a.Off(i-1, 0))
 					}
 
 				} else {
@@ -752,8 +751,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy R to WORK(IR), zeroing out below it
-						Zlacpy(Upper, n, n, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-						Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(ir, ldwrkr, opts))
+						Zlacpy(Upper, n, n, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+						Zlaset(Lower, n-1, n-1, czero, czero, work.Off(ir).CMatrix(ldwrkr, opts))
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need N*N+2*N, prefer N*N+N+N*NB)
@@ -769,14 +768,14 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize R in WORK(IR)
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+2*N*NB)
 						//                    (RWorkspace: need N)
-						if err = Zgebrd(n, n, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left vectors bidiagonalizing R in WORK(IR)
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + n
@@ -785,7 +784,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    singular vectors of R in WORK(IR)
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, n, 0, n, 0, s, rwork.Off(ie-1), cdum.CMatrix(1, opts), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, n, 0, n, 0, s, rwork.Off(ie-1), cdum.CMatrix(1, opts), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -793,7 +792,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IR), storing result in U
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, a, work.CMatrixOff(ir-1, ldwrkr, opts), czero, u); err != nil {
+						if err = u.Gemm(NoTrans, NoTrans, m, n, n, cone, a, work.Off(ir-1).CMatrix(ldwrkr, opts), czero); err != nil {
 							panic(err)
 						}
 
@@ -885,8 +884,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Zlacpy(Upper, n, n, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(iu, ldwrku, opts))
+						Zlacpy(Upper, n, n, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Lower, n-1, n-1, czero, czero, work.Off(iu).CMatrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need 2*N*N+2*N, prefer 2*N*N+N+N*NB)
@@ -904,15 +903,15 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   2*N*N+3*N,
 						//                                 prefer 2*N*N+2*N+2*N*NB)
 						//                    (RWorkspace: need   N)
-						if err = Zgebrd(n, n, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(n, n, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Upper, n, n, work.CMatrixOff(iu-1, ldwrku, opts), work.CMatrixOff(ir-1, ldwrkr, opts))
+						Zlacpy(Upper, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(ir-1).CMatrix(ldwrkr, opts))
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need 2*N*N+3*N, prefer 2*N*N+2*N+N*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', n, n, n, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', n, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -920,7 +919,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   2*N*N+3*N-1,
 						//                                 prefer 2*N*N+2*N+(N-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + n
@@ -930,7 +929,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    right singular vectors of R in WORK(IR)
 						//                    (CWorkspace: need 2*N*N)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), work.CMatrixOff(ir-1, ldwrkr, opts), work.CMatrixOff(iu-1, ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(iu-1).CMatrix(ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -938,14 +937,14 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IU), storing result in U
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, a, work.CMatrixOff(iu-1, ldwrku, opts), czero, u); err != nil {
+						if err = u.Gemm(NoTrans, NoTrans, m, n, n, cone, a, work.Off(iu-1).CMatrix(ldwrku, opts), czero); err != nil {
 							panic(err)
 						}
 
 						//                    Copy right singular vectors of R to A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						Zlacpy(Full, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), a)
+						Zlacpy(Full, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1035,8 +1034,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Zlacpy(Upper, n, n, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(iu, ldwrku, opts))
+						Zlacpy(Upper, n, n, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Lower, n-1, n-1, czero, czero, work.Off(iu).CMatrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need N*N+2*N, prefer N*N+N+N*NB)
@@ -1052,15 +1051,15 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize R in WORK(IU), copying result to VT
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+2*N*NB)
 						//                    (RWorkspace: need N)
-						if err = Zgebrd(n, n, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(n, n, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Upper, n, n, work.CMatrixOff(iu-1, ldwrku, opts), vt)
+						Zlacpy(Upper, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), vt)
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', n, n, n, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', n, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -1078,7 +1077,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    right singular vectors of R in VT
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), vt, work.CMatrixOff(iu-1, ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), vt, work.Off(iu-1).CMatrix(ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -1086,7 +1085,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IU), storing result in U
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, a, work.CMatrixOff(iu-1, ldwrku, opts), czero, u); err != nil {
+						if err = u.Gemm(NoTrans, NoTrans, m, n, n, cone, a, work.Off(iu-1).CMatrix(ldwrku, opts), czero); err != nil {
 							panic(err)
 						}
 
@@ -1184,8 +1183,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						Zlacpy(Lower, m, n, a, u)
 
 						//                    Copy R to WORK(IR), zeroing out below it
-						Zlacpy(Upper, n, n, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-						Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(ir, ldwrkr, opts))
+						Zlacpy(Upper, n, n, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+						Zlaset(Lower, n-1, n-1, czero, czero, work.Off(ir).CMatrix(ldwrkr, opts))
 
 						//                    Generate Q in U
 						//                    (CWorkspace: need N*N+N+M, prefer N*N+N+M*NB)
@@ -1201,14 +1200,14 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize R in WORK(IR)
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+2*N*NB)
 						//                    (RWorkspace: need N)
-						if err = Zgebrd(n, n, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + n
@@ -1217,7 +1216,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    singular vectors of R in WORK(IR)
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, n, 0, n, 0, s, rwork.Off(ie-1), cdum.CMatrix(1, opts), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, n, 0, n, 0, s, rwork.Off(ie-1), cdum.CMatrix(1, opts), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -1225,7 +1224,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IR), storing result in A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, u, work.CMatrixOff(ir-1, ldwrkr, opts), czero, a); err != nil {
+						if err = a.Gemm(NoTrans, NoTrans, m, n, n, cone, u, work.Off(ir-1).CMatrix(ldwrkr, opts), czero); err != nil {
 							panic(err)
 						}
 
@@ -1329,8 +1328,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Zlacpy(Upper, n, n, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(iu, ldwrku, opts))
+						Zlacpy(Upper, n, n, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Lower, n-1, n-1, czero, czero, work.Off(iu).CMatrix(ldwrku, opts))
 						ie = 1
 						itauq = itau
 						itaup = itauq + n
@@ -1341,15 +1340,15 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   2*N*N+3*N,
 						//                                 prefer 2*N*N+2*N+2*N*NB)
 						//                    (RWorkspace: need   N)
-						if err = Zgebrd(n, n, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(n, n, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Upper, n, n, work.CMatrixOff(iu-1, ldwrku, opts), work.CMatrixOff(ir-1, ldwrkr, opts))
+						Zlacpy(Upper, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(ir-1).CMatrix(ldwrkr, opts))
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need 2*N*N+3*N, prefer 2*N*N+2*N+N*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', n, n, n, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', n, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -1357,7 +1356,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   2*N*N+3*N-1,
 						//                                 prefer 2*N*N+2*N+(N-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + n
@@ -1367,7 +1366,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    right singular vectors of R in WORK(IR)
 						//                    (CWorkspace: need 2*N*N)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), work.CMatrixOff(ir-1, ldwrkr, opts), work.CMatrixOff(iu-1, ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(iu-1).CMatrix(ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -1375,7 +1374,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IU), storing result in A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, u, work.CMatrixOff(iu-1, ldwrku, opts), czero, a); err != nil {
+						if err = a.Gemm(NoTrans, NoTrans, m, n, n, cone, u, work.Off(iu-1).CMatrix(ldwrku, opts), czero); err != nil {
 							panic(err)
 						}
 
@@ -1383,7 +1382,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						Zlacpy(Full, m, n, a, u)
 
 						//                    Copy right singular vectors of R from WORK(IR) to A
-						Zlacpy(Full, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), a)
+						Zlacpy(Full, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1482,8 +1481,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Zlacpy(Upper, n, n, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(iu, ldwrku, opts))
+						Zlacpy(Upper, n, n, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Lower, n-1, n-1, czero, czero, work.Off(iu).CMatrix(ldwrku, opts))
 						ie = 1
 						itauq = itau
 						itaup = itauq + n
@@ -1492,15 +1491,15 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize R in WORK(IU), copying result to VT
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+2*N*NB)
 						//                    (RWorkspace: need N)
-						if err = Zgebrd(n, n, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(n, n, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Upper, n, n, work.CMatrixOff(iu-1, ldwrku, opts), vt)
+						Zlacpy(Upper, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), vt)
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need N*N+3*N, prefer N*N+2*N+N*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', n, n, n, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', n, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -1518,7 +1517,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    right singular vectors of R in VT
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), vt, work.CMatrixOff(iu-1, ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, n, n, n, 0, s, rwork.Off(ie-1), vt, work.Off(iu-1).CMatrix(ldwrku, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -1526,7 +1525,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IU), storing result in A
 						//                    (CWorkspace: need N*N)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, u, work.CMatrixOff(iu-1, ldwrku, opts), czero, a); err != nil {
+						if err = a.Gemm(NoTrans, NoTrans, m, n, n, cone, u, work.Off(iu-1).CMatrix(ldwrku, opts), czero); err != nil {
 							panic(err)
 						}
 
@@ -1798,8 +1797,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					}
 
 					//                 Copy L to WORK(IR) and zero out above it
-					Zlacpy(Lower, m, m, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-					Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(ir+ldwrkr-1, ldwrkr, opts))
+					Zlacpy(Lower, m, m, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+					Zlaset(Upper, m-1, m-1, czero, czero, work.Off(ir+ldwrkr-1).CMatrix(ldwrkr, opts))
 
 					//                 Generate Q in A
 					//                 (CWorkspace: need M*M+2*M, prefer M*M+M+M*NB)
@@ -1815,14 +1814,14 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 Bidiagonalize L in WORK(IR)
 					//                 (CWorkspace: need M*M+3*M, prefer M*M+2*M+2*M*NB)
 					//                 (RWorkspace: need M)
-					if err = Zgebrd(m, m, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Zgebrd(m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
 					//                 Generate right vectors bidiagonalizing L
 					//                 (CWorkspace: need M*M+3*M-1, prefer M*M+2*M+(M-1)*NB)
 					//                 (RWorkspace: 0)
-					if err = Zungbr('P', m, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Zungbr('P', m, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 					irwork = ie + m
@@ -1831,7 +1830,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 singular vectors of L in WORK(IR)
 					//                 (CWorkspace: need M*M)
 					//                 (RWorkspace: need BDSPAC)
-					if info, err = Zbdsqr(Upper, m, m, 0, 0, s, rwork.Off(ie-1), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+					if info, err = Zbdsqr(Upper, m, m, 0, 0, s, rwork.Off(ie-1), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 						panic(err)
 					}
 					iu = itauq
@@ -1842,10 +1841,10 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 (RWorkspace: 0)
 					for i = 1; i <= n; i += chunk {
 						blk = min(n-i+1, chunk)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, blk, m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), czero, work.CMatrixOff(iu-1, ldwrku, opts)); err != nil {
+						if err = work.Off(iu-1).CMatrix(ldwrku, opts).Gemm(NoTrans, NoTrans, m, blk, m, cone, work.Off(ir-1).CMatrix(ldwrkr, opts), a.Off(0, i-1), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, m, blk, work.CMatrixOff(iu-1, ldwrku, opts), a.Off(0, i-1))
+						Zlacpy(Full, m, blk, work.Off(iu-1).CMatrix(ldwrku, opts), a.Off(0, i-1))
 					}
 
 				} else {
@@ -1935,12 +1934,12 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					if err = Zgebrd(m, m, u, s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
-					Zlacpy(Upper, m, m, u, work.CMatrixOff(ir-1, ldwrkr, opts))
+					Zlacpy(Upper, m, m, u, work.Off(ir-1).CMatrix(ldwrkr, opts))
 
 					//                 Generate right vectors bidiagonalizing L in WORK(IR)
 					//                 (CWorkspace: need M*M+3*M-1, prefer M*M+2*M+(M-1)*NB)
 					//                 (RWorkspace: 0)
-					if err = Zungbr('P', m, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Zungbr('P', m, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
@@ -1957,7 +1956,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 singular vectors of L in WORK(IR)
 					//                 (CWorkspace: need M*M)
 					//                 (RWorkspace: need BDSPAC)
-					if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.CMatrixOff(ir-1, ldwrkr, opts), u, cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+					if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.Off(ir-1).CMatrix(ldwrkr, opts), u, cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 						panic(err)
 					}
 					iu = itauq
@@ -1968,10 +1967,10 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 					//                 (RWorkspace: 0)
 					for i = 1; i <= n; i += chunk {
 						blk = min(n-i+1, chunk)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, blk, m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), czero, work.CMatrixOff(iu-1, ldwrku, opts)); err != nil {
+						if err = work.Off(iu-1).CMatrix(ldwrku, opts).Gemm(NoTrans, NoTrans, m, blk, m, cone, work.Off(ir-1).CMatrix(ldwrkr, opts), a.Off(0, i-1), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, m, blk, work.CMatrixOff(iu-1, ldwrku, opts), a.Off(0, i-1))
+						Zlacpy(Full, m, blk, work.Off(iu-1).CMatrix(ldwrku, opts), a.Off(0, i-1))
 					}
 
 				} else {
@@ -2062,8 +2061,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy L to WORK(IR), zeroing out above it
-						Zlacpy(Lower, m, m, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-						Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(ir+ldwrkr-1, ldwrkr, opts))
+						Zlacpy(Lower, m, m, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+						Zlaset(Upper, m-1, m-1, czero, czero, work.Off(ir+ldwrkr-1).CMatrix(ldwrkr, opts))
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need M*M+2*M, prefer M*M+M+M*NB)
@@ -2079,7 +2078,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize L in WORK(IR)
 						//                    (CWorkspace: need M*M+3*M, prefer M*M+2*M+2*M*NB)
 						//                    (RWorkspace: need M)
-						if err = Zgebrd(m, m, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -2087,7 +2086,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    WORK(IR)
 						//                    (CWorkspace: need M*M+3*M, prefer M*M+2*M+(M-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', m, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', m, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + m
@@ -2096,7 +2095,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    singular vectors of L in WORK(IR)
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, m, m, 0, 0, s, rwork.Off(ie-1), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, m, m, 0, 0, s, rwork.Off(ie-1), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -2104,7 +2103,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Q in A, storing result in VT
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), a, czero, vt); err != nil {
+						if err = vt.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(ir-1).CMatrix(ldwrkr, opts), a, czero); err != nil {
 							panic(err)
 						}
 
@@ -2196,8 +2195,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy L to WORK(IU), zeroing out below it
-						Zlacpy(Lower, m, m, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Zlacpy(Lower, m, m, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Upper, m-1, m-1, czero, czero, work.Off(iu+ldwrku-1).CMatrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need 2*M*M+2*M, prefer 2*M*M+M+M*NB)
@@ -2215,23 +2214,23 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   2*M*M+3*M,
 						//                                 prefer 2*M*M+2*M+2*M*NB)
 						//                    (RWorkspace: need   M)
-						if err = Zgebrd(m, m, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(m, m, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Lower, m, m, work.CMatrixOff(iu-1, ldwrku, opts), work.CMatrixOff(ir-1, ldwrkr, opts))
+						Zlacpy(Lower, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(ir-1).CMatrix(ldwrkr, opts))
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need   2*M*M+3*M-1,
 						//                                 prefer 2*M*M+2*M+(M-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', m, m, m, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', m, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (CWorkspace: need 2*M*M+3*M, prefer 2*M*M+2*M+M*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', m, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', m, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + m
@@ -2241,7 +2240,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    right singular vectors of L in WORK(IU)
 						//                    (CWorkspace: need 2*M*M)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.CMatrixOff(iu-1, ldwrku, opts), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -2249,14 +2248,14 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Q in A, storing result in VT
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(iu-1, ldwrku, opts), a, czero, vt); err != nil {
+						if err = vt.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(iu-1).CMatrix(ldwrku, opts), a, czero); err != nil {
 							panic(err)
 						}
 
 						//                    Copy left singular vectors of L to A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						Zlacpy(Full, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), a)
+						Zlacpy(Full, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -2344,8 +2343,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Zlacpy(Lower, m, m, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Zlacpy(Lower, m, m, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Upper, m-1, m-1, czero, czero, work.Off(iu+ldwrku-1).CMatrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (CWorkspace: need M*M+2*M, prefer M*M+M+M*NB)
@@ -2361,16 +2360,16 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize L in WORK(IU), copying result to U
 						//                    (CWorkspace: need M*M+3*M, prefer M*M+2*M+2*M*NB)
 						//                    (RWorkspace: need M)
-						if err = Zgebrd(m, m, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(m, m, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Lower, m, m, work.CMatrixOff(iu-1, ldwrku, opts), u)
+						Zlacpy(Lower, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), u)
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need   M*M+3*M-1,
 						//                                 prefer M*M+2*M+(M-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', m, m, m, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', m, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -2387,7 +2386,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    singular vectors of L in WORK(IU)
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.CMatrixOff(iu-1, ldwrku, opts), u, cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.Off(iu-1).CMatrix(ldwrku, opts), u, cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -2395,7 +2394,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Q in A, storing result in VT
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(iu-1, ldwrku, opts), a, czero, vt); err != nil {
+						if err = vt.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(iu-1).CMatrix(ldwrku, opts), a, czero); err != nil {
 							panic(err)
 						}
 
@@ -2491,8 +2490,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						Zlacpy(Upper, m, n, a, vt)
 
 						//                    Copy L to WORK(IR), zeroing out above it
-						Zlacpy(Lower, m, m, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-						Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(ir+ldwrkr-1, ldwrkr, opts))
+						Zlacpy(Lower, m, m, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+						Zlaset(Upper, m-1, m-1, czero, czero, work.Off(ir+ldwrkr-1).CMatrix(ldwrkr, opts))
 
 						//                    Generate Q in VT
 						//                    (CWorkspace: need M*M+M+N, prefer M*M+M+N*NB)
@@ -2508,7 +2507,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize L in WORK(IR)
 						//                    (CWorkspace: need M*M+3*M, prefer M*M+2*M+2*M*NB)
 						//                    (RWorkspace: need M)
-						if err = Zgebrd(m, m, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -2516,7 +2515,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   M*M+3*M-1,
 						//                                 prefer M*M+2*M+(M-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', m, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', m, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + m
@@ -2525,7 +2524,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    singular vectors of L in WORK(IR)
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, m, m, 0, 0, s, rwork.Off(ie-1), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, m, m, 0, 0, s, rwork.Off(ie-1), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -2533,7 +2532,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Q in VT, storing result in A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(ir-1, ldwrkr, opts), vt, czero, a); err != nil {
+						if err = a.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(ir-1).CMatrix(ldwrkr, opts), vt, czero); err != nil {
 							panic(err)
 						}
 
@@ -2635,8 +2634,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Zlacpy(Lower, m, m, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Zlacpy(Lower, m, m, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Upper, m-1, m-1, czero, czero, work.Off(iu+ldwrku-1).CMatrix(ldwrku, opts))
 						ie = 1
 						itauq = itau
 						itaup = itauq + m
@@ -2647,23 +2646,23 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    (CWorkspace: need   2*M*M+3*M,
 						//                                 prefer 2*M*M+2*M+2*M*NB)
 						//                    (RWorkspace: need   M)
-						if err = Zgebrd(m, m, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(m, m, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Lower, m, m, work.CMatrixOff(iu-1, ldwrku, opts), work.CMatrixOff(ir-1, ldwrkr, opts))
+						Zlacpy(Lower, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(ir-1).CMatrix(ldwrkr, opts))
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need   2*M*M+3*M-1,
 						//                                 prefer 2*M*M+2*M+(M-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', m, m, m, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', m, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (CWorkspace: need 2*M*M+3*M, prefer 2*M*M+2*M+M*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('Q', m, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('Q', m, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						irwork = ie + m
@@ -2673,7 +2672,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    right singular vectors of L in WORK(IU)
 						//                    (CWorkspace: need 2*M*M)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.CMatrixOff(iu-1, ldwrku, opts), work.CMatrixOff(ir-1, ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(ir-1).CMatrix(ldwrkr, opts), cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -2681,7 +2680,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Q in VT, storing result in A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(iu-1, ldwrku, opts), vt, czero, a); err != nil {
+						if err = a.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(iu-1).CMatrix(ldwrku, opts), vt, czero); err != nil {
 							panic(err)
 						}
 
@@ -2689,7 +2688,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						Zlacpy(Full, m, n, a, vt)
 
 						//                    Copy left singular vectors of A from WORK(IR) to A
-						Zlacpy(Full, m, m, work.CMatrixOff(ir-1, ldwrkr, opts), a)
+						Zlacpy(Full, m, m, work.Off(ir-1).CMatrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -2786,8 +2785,8 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Zlacpy(Lower, m, m, a, work.CMatrixOff(iu-1, ldwrku, opts))
-						Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Zlacpy(Lower, m, m, a, work.Off(iu-1).CMatrix(ldwrku, opts))
+						Zlaset(Upper, m-1, m-1, czero, czero, work.Off(iu+ldwrku-1).CMatrix(ldwrku, opts))
 						ie = 1
 						itauq = itau
 						itaup = itauq + m
@@ -2796,15 +2795,15 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Bidiagonalize L in WORK(IU), copying result to U
 						//                    (CWorkspace: need M*M+3*M, prefer M*M+2*M+2*M*NB)
 						//                    (RWorkspace: need M)
-						if err = Zgebrd(m, m, work.CMatrixOff(iu-1, ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zgebrd(m, m, work.Off(iu-1).CMatrix(ldwrku, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Zlacpy(Lower, m, m, work.CMatrixOff(iu-1, ldwrku, opts), u)
+						Zlacpy(Lower, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), u)
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (CWorkspace: need M*M+3*M, prefer M*M+2*M+(M-1)*NB)
 						//                    (RWorkspace: 0)
-						if err = Zungbr('P', m, m, m, work.CMatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Zungbr('P', m, m, m, work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -2821,7 +2820,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    singular vectors of L in WORK(IU)
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: need BDSPAC)
-						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.CMatrixOff(iu-1, ldwrku, opts), u, cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
+						if info, err = Zbdsqr(Upper, m, m, m, 0, s, rwork.Off(ie-1), work.Off(iu-1).CMatrix(ldwrku, opts), u, cdum.CMatrix(1, opts), rwork.Off(irwork-1)); err != nil {
 							panic(err)
 						}
 
@@ -2829,7 +2828,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 						//                    Q in VT, storing result in A
 						//                    (CWorkspace: need M*M)
 						//                    (RWorkspace: 0)
-						if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(iu-1, ldwrku, opts), vt, czero, a); err != nil {
+						if err = a.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(iu-1).CMatrix(ldwrku, opts), vt, czero); err != nil {
 							panic(err)
 						}
 
@@ -3016,7 +3015,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 			}
 		}
 		if info != 0 && anrm > bignum {
-			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, rwork.MatrixOff(ie-1, minmn, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, rwork.Off(ie-1).Matrix(minmn, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -3026,7 +3025,7 @@ func Zgesvd(jobu, jobvt byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *ma
 			}
 		}
 		if info != 0 && anrm < smlnum {
-			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, rwork.MatrixOff(ie-1, minmn, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, rwork.Off(ie-1).Matrix(minmn, opts)); err != nil {
 				panic(err)
 			}
 		}

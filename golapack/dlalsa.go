@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -79,15 +78,15 @@ func Dlalsa(icompq, smlsiz, n, nrhs int, b, bx, u, vt *mat.Matrix, k *[]int, dif
 		nr = (*iwork)[ndimr+i1-1]
 		nlf = ic - nl
 		nrf = ic + 1
-		err = goblas.Dgemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0))
-		err = goblas.Dgemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0))
+		err = bx.Off(nlf-1, 0).Gemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), b.Off(nlf-1, 0), zero)
+		err = bx.Off(nrf-1, 0).Gemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), b.Off(nrf-1, 0), zero)
 	}
 
 	//     Next copy the rows of B that correspond to unchanged rows
 	//     in the bidiagonal matrix to BX.
 	for i = 1; i <= nd; i++ {
 		ic = (*iwork)[inode+i-1-1]
-		goblas.Dcopy(nrhs, b.Vector(ic-1, 0), bx.Vector(ic-1, 0))
+		bx.Off(ic-1, 0).Vector().Copy(nrhs, b.Off(ic-1, 0).Vector(), b.Rows, bx.Rows)
 	}
 
 	//     Finally go through the left singular vector matrices of all
@@ -115,7 +114,7 @@ func Dlalsa(icompq, smlsiz, n, nrhs int, b, bx, u, vt *mat.Matrix, k *[]int, dif
 			nlf = ic - nl
 			nrf = ic + 1
 			j = j - 1
-			if err = Dlals0(icompq, nl, nr, sqre, nrhs, bx.Off(nlf-1, 0), b.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), (*k)[j-1], c.Get(j-1), s.Get(j-1), work); err != nil {
+			if err = Dlals0(icompq, nl, nr, sqre, nrhs, bx.Off(nlf-1, 0), b.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Off(nlf-1, lvl-1).Vector(), difr.Off(nlf-1, lvl2-1), z.Off(nlf-1, lvl-1).Vector(), (*k)[j-1], c.Get(j-1), s.Get(j-1), work); err != nil {
 				panic(err)
 			}
 		}
@@ -154,7 +153,7 @@ label50:
 				sqre = 1
 			}
 			j = j + 1
-			if err = Dlals0(icompq, nl, nr, sqre, nrhs, b.Off(nlf-1, 0), bx.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), (*k)[j-1], c.Get(j-1), s.Get(j-1), work); err != nil {
+			if err = Dlals0(icompq, nl, nr, sqre, nrhs, b.Off(nlf-1, 0), bx.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Off(nlf-1, lvl-1).Vector(), difr.Off(nlf-1, lvl2-1), z.Off(nlf-1, lvl-1).Vector(), (*k)[j-1], c.Get(j-1), s.Get(j-1), work); err != nil {
 				panic(err)
 			}
 		}
@@ -177,10 +176,10 @@ label50:
 		}
 		nlf = ic - nl
 		nrf = ic + 1
-		if err = goblas.Dgemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), b.Off(nlf-1, 0), zero, bx.Off(nlf-1, 0)); err != nil {
+		if err = bx.Off(nlf-1, 0).Gemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), b.Off(nlf-1, 0), zero); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), b.Off(nrf-1, 0), zero, bx.Off(nrf-1, 0)); err != nil {
+		if err = bx.Off(nrf-1, 0).Gemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), b.Off(nrf-1, 0), zero); err != nil {
 			panic(err)
 		}
 	}

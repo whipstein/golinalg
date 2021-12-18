@@ -94,7 +94,7 @@ func Dlansb(norm byte, uplo mat.MatUplo, n, k int, ab *mat.Matrix, work *mat.Vec
 				for j = 2; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j-1, k), ab.Vector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j-1, k), ab.Off(max(k+2-j, 1)-1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 				l = k + 1
@@ -102,7 +102,7 @@ func Dlansb(norm byte, uplo mat.MatUplo, n, k int, ab *mat.Matrix, work *mat.Vec
 				for j = 1; j <= n-1; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j, k), ab.Vector(1, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j, k), ab.Off(1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 				l = 1
@@ -115,7 +115,7 @@ func Dlansb(norm byte, uplo mat.MatUplo, n, k int, ab *mat.Matrix, work *mat.Vec
 		//        Sum diagonal
 		colssq.Set(0, zero)
 		colssq.Set(1, one)
-		*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(n, ab.Vector(l-1, 0), colssq.Get(0), colssq.Get(1))
+		*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(n, ab.Off(l-1, 0).Vector(), ab.Rows, colssq.Get(0), colssq.Get(1))
 		Dcombssq(ssq, colssq)
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))
 	}

@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -66,7 +65,7 @@ func dbdt04(uplo mat.MatUplo, n int, d, e, s *mat.Vector, ns int, u, vt *mat.Mat
 		}
 	}
 
-	if err = goblas.Dgemm(Trans, NoTrans, ns, ns, n, -one, u, work.Matrix(n, opts), zero, work.MatrixOff(1+n*ns-1, ns, opts)); err != nil {
+	if err = work.Off(1+n*ns-1).Matrix(ns, opts).Gemm(Trans, NoTrans, ns, ns, n, -one, u, work.Matrix(n, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -74,7 +73,7 @@ func dbdt04(uplo mat.MatUplo, n int, d, e, s *mat.Vector, ns int, u, vt *mat.Mat
 	k = n * ns
 	for i = 1; i <= ns; i++ {
 		work.Set(k+i-1, work.Get(k+i-1)+s.Get(i-1))
-		resid = math.Max(resid, goblas.Dasum(ns, work.Off(k, 1)))
+		resid = math.Max(resid, work.Off(k).Asum(ns, 1))
 		k += ns
 	}
 

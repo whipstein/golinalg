@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -113,7 +112,7 @@ func DsytrfRk(uplo mat.MatUplo, n int, a *mat.Matrix, e *mat.Vector, ipiv *[]int
 			for i = k; i >= (k - kb + 1); i-- {
 				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Dswap(n-k, a.Vector(i-1, k), a.Vector(ip-1, k))
+					a.Off(ip-1, k).Vector().Swap(n-k, a.Off(i-1, k).Vector(), a.Rows, a.Rows)
 				}
 			}
 		}
@@ -181,7 +180,7 @@ func DsytrfRk(uplo mat.MatUplo, n int, a *mat.Matrix, e *mat.Vector, ipiv *[]int
 			for i = k; i <= (k + kb - 1); i++ {
 				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Dswap(k-1, a.Vector(i-1, 0), a.Vector(ip-1, 0))
+					a.Off(ip-1, 0).Vector().Swap(k-1, a.Off(i-1, 0).Vector(), a.Rows, a.Rows)
 				}
 			}
 		}

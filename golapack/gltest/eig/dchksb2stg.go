@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -356,12 +355,12 @@ func dchksb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 				//
 				//              Compute D1 from the Dsbtrd and used as reference for the
 				//              DSYTRD_SB2ST
-				goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
+				d1.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
+					work.Copy(n-1, se, 1, 1)
 				}
 
-				if iinfo, err = golapack.Dsteqr('N', n, d1, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
+				if iinfo, err = golapack.Dsteqr('N', n, d1, work, work.Off(n).Matrix(u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" dchksbstg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
@@ -386,12 +385,12 @@ func dchksb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 				}
 
 				//              Compute D2 from the DSYTRD_SB2ST Upper case
-				goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
+				d2.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
+					work.Copy(n-1, se, 1, 1)
 				}
 
-				if iinfo, err = golapack.Dsteqr('N', n, d2, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
+				if iinfo, err = golapack.Dsteqr('N', n, d2, work, work.Off(n).Matrix(u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" dchksbstg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
@@ -449,12 +448,12 @@ func dchksb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 				}
 
 				//              Compute D3 from the 2-stage Upper case
-				goblas.Dcopy(n, sd.Off(0, 1), d3.Off(0, 1))
+				d3.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), work.Off(0, 1))
+					work.Copy(n-1, se, 1, 1)
 				}
 
-				if iinfo, err = golapack.Dsteqr('N', n, d3, work, work.MatrixOff(n, u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
+				if iinfo, err = golapack.Dsteqr('N', n, d3, work, work.Off(n).Matrix(u.Rows, opts), work.Off(n)); err != nil || iinfo != 0 {
 					t.Fail()
 					fmt.Printf(" dchksbstg: %s returned info=%6d.\n         n=%6d, jtype=%6d, iseed=%5d\n", "Dsteqr(N)", iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {

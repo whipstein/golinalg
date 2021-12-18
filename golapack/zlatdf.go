@@ -3,7 +3,6 @@ package golapack
 import (
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -47,8 +46,8 @@ func Zlatdf(ijob, n int, z *mat.CMatrix, rhs *mat.CVector, rdsum, rdscal float64
 
 			//           Lockahead for L- part RHS(1:N-1) = +-1
 			//           SPLUS and SMIN computed more efficiently than in BSOLVE[1].
-			splus = splus + real(goblas.Zdotc(n-j, z.CVector(j, j-1, 1), z.CVector(j, j-1, 1)))
-			sminu = real(goblas.Zdotc(n-j, z.CVector(j, j-1, 1), rhs.Off(j, 1)))
+			splus = splus + real(z.Off(j, j-1).CVector().Dotc(n-j, z.Off(j, j-1).CVector(), 1, 1))
+			sminu = real(rhs.Off(j).Dotc(n-j, z.Off(j, j-1).CVector(), 1, 1))
 			splus = splus * rhs.GetRe(j-1)
 			if splus > sminu {
 				rhs.Set(j-1, bp)
@@ -66,14 +65,14 @@ func Zlatdf(ijob, n int, z *mat.CMatrix, rhs *mat.CVector, rdsum, rdscal float64
 
 			//           Compute the remaining r.h.s.
 			temp = -rhs.Get(j - 1)
-			goblas.Zaxpy(n-j, temp, z.CVector(j, j-1, 1), rhs.Off(j, 1))
+			rhs.Off(j).Axpy(n-j, temp, z.Off(j, j-1).CVector(), 1, 1)
 		}
 
 		//        Solve for U- part, lockahead for RHS(N) = +-1. This is not done
 		//        In BSOLVE and will hopefully give us a better estimate because
 		//        any ill-conditioning of the original matrix is transferred to U
 		//        and not to L. U(N, N) is an approximation to sigma_min(LU).
-		goblas.Zcopy(n-1, rhs.Off(0, 1), work.Off(0, 1))
+		work.Copy(n-1, rhs, 1, 1)
 		work.Set(n-1, rhs.Get(n-1)+cone)
 		rhs.Set(n-1, rhs.Get(n-1)-cone)
 		splus = zero
@@ -90,14 +89,14 @@ func Zlatdf(ijob, n int, z *mat.CMatrix, rhs *mat.CVector, rdsum, rdscal float64
 			sminu = sminu + rhs.GetMag(i-1)
 		}
 		if splus > sminu {
-			goblas.Zcopy(n, work.Off(0, 1), rhs.Off(0, 1))
+			rhs.Copy(n, work, 1, 1)
 		}
 
 		//        Apply the permutations JPIV to the computed solution (RHS)
 		Zlaswp(1, rhs.CMatrix(z.Rows, opts), 1, n-1, jpiv, -1)
 
 		//        Compute the sum of squares
-		rdscalOut, rdsumOut = Zlassq(n, rhs.Off(0, 1), rdscalOut, rdsumOut)
+		rdscalOut, rdsumOut = Zlassq(n, rhs, 1, rdscalOut, rdsumOut)
 		return
 	}
 
@@ -107,23 +106,23 @@ func Zlatdf(ijob, n int, z *mat.CMatrix, rhs *mat.CVector, rdsum, rdscal float64
 	if _, err = Zgecon('I', n, z, one, work, rwork); err != nil {
 		panic(err)
 	}
-	goblas.Zcopy(n, work.Off(n, 1), xm.Off(0, 1))
+	xm.Copy(n, work.Off(n), 1, 1)
 
 	//     Compute RHS
 	Zlaswp(1, xm.CMatrix(z.Rows, opts), 1, n-1, ipiv, -1)
-	temp = cone / cmplx.Sqrt(goblas.Zdotc(n, xm.Off(0, 1), xm.Off(0, 1)))
-	goblas.Zscal(n, temp, xm.Off(0, 1))
-	goblas.Zcopy(n, xm.Off(0, 1), xp.Off(0, 1))
-	goblas.Zaxpy(n, cone, rhs.Off(0, 1), xp.Off(0, 1))
-	goblas.Zaxpy(n, -cone, xm.Off(0, 1), rhs.Off(0, 1))
+	temp = cone / cmplx.Sqrt(xm.Dotc(n, xm, 1, 1))
+	xm.Scal(n, temp, 1)
+	xp.Copy(n, xm, 1, 1)
+	xp.Axpy(n, cone, rhs, 1, 1)
+	rhs.Axpy(n, -cone, xm, 1, 1)
 	_ = Zgesc2(n, z, rhs, ipiv, jpiv)
 	_ = Zgesc2(n, z, xp, ipiv, jpiv)
-	if goblas.Dzasum(n, xp.Off(0, 1)) > goblas.Dzasum(n, rhs.Off(0, 1)) {
-		goblas.Zcopy(n, xp.Off(0, 1), rhs.Off(0, 1))
+	if xp.Asum(n, 1) > rhs.Asum(n, 1) {
+		rhs.Copy(n, xp, 1, 1)
 	}
 
 	//     Compute the sum of squares
-	rdscalOut, rdsumOut = Zlassq(n, rhs.Off(0, 1), rdscalOut, rdsumOut)
+	rdscalOut, rdsumOut = Zlassq(n, rhs, 1, rdscalOut, rdsumOut)
 
 	return
 }

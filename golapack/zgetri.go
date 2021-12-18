@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -79,9 +78,9 @@ func Zgetri(n int, a *mat.CMatrix, ipiv *[]int, work *mat.CVector, lwork int) (i
 			//           Compute current column of inv(A).
 			if j < n {
 				if a.Opts.Major == mat.Col {
-					err = goblas.Zgemv(NoTrans, n, n-j, -one, a.Off(0, j), work.Off(j, 1), one, a.CVector(0, j-1, 1))
+					err = a.Off(0, j-1).CVector().Gemv(NoTrans, n, n-j, -one, a.Off(0, j), work.Off(j), 1, one, 1)
 				} else {
-					err = goblas.Zgemv(NoTrans, n, n-j, -one, a.Off(0, j), work.Off(j, 1), one, a.CVector(0, j-1, a.Cols))
+					err = a.Off(0, j-1).CVector().Gemv(NoTrans, n, n-j, -one, a.Off(0, j), work.Off(j), 1, one, a.Cols)
 				}
 			}
 		}
@@ -102,11 +101,11 @@ func Zgetri(n int, a *mat.CMatrix, ipiv *[]int, work *mat.CVector, lwork int) (i
 
 			//           Compute current block column of inv(A).
 			if j+jb <= n {
-				if err = goblas.Zgemm(NoTrans, NoTrans, n, jb, n-j-jb+1, -one, a.Off(0, j+jb-1), work.CMatrixOff(j+jb-1, ldwork, opts), one, a.Off(0, j-1)); err != nil {
+				if err = a.Off(0, j-1).Gemm(NoTrans, NoTrans, n, jb, n-j-jb+1, -one, a.Off(0, j+jb-1), work.Off(j+jb-1).CMatrix(ldwork, opts), one); err != nil {
 					panic(err)
 				}
 			}
-			if err = goblas.Ztrsm(Right, Lower, NoTrans, Unit, n, jb, one, work.CMatrixOff(j-1, ldwork, opts), a.Off(0, j-1)); err != nil {
+			if err = a.Off(0, j-1).Trsm(Right, Lower, NoTrans, Unit, n, jb, one, work.Off(j-1).CMatrix(ldwork, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -117,9 +116,9 @@ func Zgetri(n int, a *mat.CMatrix, ipiv *[]int, work *mat.CVector, lwork int) (i
 		jp = (*ipiv)[j-1]
 		if jp != j {
 			if a.Opts.Major == mat.Col {
-				goblas.Zswap(n, a.CVector(0, j-1, 1), a.CVector(0, jp-1, 1))
+				a.Off(0, jp-1).CVector().Swap(n, a.Off(0, j-1).CVector(), 1, 1)
 			} else {
-				goblas.Zswap(n, a.CVector(0, j-1, a.Cols), a.CVector(0, jp-1, a.Cols))
+				a.Off(0, jp-1).CVector().Swap(n, a.Off(0, j-1).CVector(), a.Cols, a.Cols)
 			}
 		}
 	}

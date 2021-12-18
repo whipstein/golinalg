@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -33,10 +32,10 @@ func dbdt05(m, n int, a *mat.Matrix, s *mat.Vector, ns int, u, vt *mat.Matrix, w
 	anorm = golapack.Dlange('M', m, n, a, work)
 
 	//     Compute U' * A * V.
-	if err = goblas.Dgemm(NoTrans, Trans, m, ns, n, one, a, vt, zero, work.MatrixOff(1+ns*ns-1, m, opts)); err != nil {
+	if err = work.Off(1+ns*ns-1).Matrix(m, opts).Gemm(NoTrans, Trans, m, ns, n, one, a, vt, zero); err != nil {
 		panic(err)
 	}
-	if err = goblas.Dgemm(Trans, NoTrans, ns, ns, m, -one, u, work.MatrixOff(1+ns*ns-1, m, opts), zero, work.Matrix(ns, opts)); err != nil {
+	if err = work.Matrix(ns, opts).Gemm(Trans, NoTrans, ns, ns, m, -one, u, work.Off(1+ns*ns-1).Matrix(m, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -44,7 +43,7 @@ func dbdt05(m, n int, a *mat.Matrix, s *mat.Vector, ns int, u, vt *mat.Matrix, w
 	j = 0
 	for i = 1; i <= ns; i++ {
 		work.Set(j+i-1, work.Get(j+i-1)+s.Get(i-1))
-		resid = math.Max(resid, goblas.Dasum(ns, work.Off(j, 1)))
+		resid = math.Max(resid, work.Off(j).Asum(ns, 1))
 		j = j + ns
 	}
 

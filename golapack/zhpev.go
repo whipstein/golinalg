@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -70,7 +69,7 @@ func Zhpev(jobz byte, uplo mat.MatUplo, n int, ap *mat.CVector, w *mat.Vector, z
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Zdscal((n*(n+1))/2, sigma, ap.Off(0, 1))
+		ap.Dscal((n*(n+1))/2, sigma, 1)
 	}
 
 	//     Call ZHPTRD to reduce Hermitian packed matrix to tridiagonal form.
@@ -104,7 +103,7 @@ func Zhpev(jobz byte, uplo mat.MatUplo, n int, ap *mat.CVector, w *mat.Vector, z
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	return

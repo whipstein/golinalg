@@ -173,7 +173,7 @@ func Dlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.Mat
 					for j = 2; j <= n; j++ {
 						colssq.Set(0, zero)
 						colssq.Set(1, one)
-						*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j-1, k), ab.Vector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+						*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j-1, k), ab.Off(max(k+2-j, 1)-1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 						Dcombssq(ssq, colssq)
 					}
 				}
@@ -183,7 +183,7 @@ func Dlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.Mat
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j, k+1), ab.Vector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(j, k+1), ab.Off(max(k+2-j, 1)-1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}
@@ -195,7 +195,7 @@ func Dlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.Mat
 					for j = 1; j <= n-1; j++ {
 						colssq.Set(0, zero)
 						colssq.Set(1, one)
-						*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j, k), ab.Vector(1, j-1, 1), colssq.Get(0), colssq.Get(1))
+						*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j, k), ab.Off(1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 						Dcombssq(ssq, colssq)
 					}
 				}
@@ -205,7 +205,7 @@ func Dlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.Mat
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j+1, k+1), ab.Vector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n-j+1, k+1), ab.Off(0, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}

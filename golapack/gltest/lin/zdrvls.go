@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -211,9 +210,9 @@ func zdrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsva
 									//                             Set up a consistent rhs
 									if ncols > 0 {
 										golapack.Zlarnv(2, &iseed, ncols*nrhs, work)
-										goblas.Zdscal(ncols*nrhs, one/float64(ncols), work.Off(0, 1))
+										work.Dscal(ncols*nrhs, one/float64(ncols), 1)
 									}
-									if err = goblas.Zgemm(trans, NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), work.CMatrix(ldwork, opts), czero, b.CMatrix(ldb, opts)); err != nil {
+									if err = b.CMatrix(ldb, opts).Gemm(trans, NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), work.CMatrix(ldwork, opts), czero); err != nil {
 										panic(err)
 									}
 									golapack.Zlacpy(Full, nrows, nrhs, b.CMatrix(ldb, opts), copyb.CMatrix(ldb, opts))
@@ -289,9 +288,9 @@ func zdrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsva
 										//                             Set up a consistent rhs
 										if ncols > 0 {
 											golapack.Zlarnv(2, &iseed, ncols*nrhs, work)
-											goblas.Zscal(ncols*nrhs, complex(one/float64(ncols), 0), work.Off(0, 1))
+											work.Scal(ncols*nrhs, complex(one/float64(ncols), 0), 1)
 										}
-										if err = goblas.Zgemm(trans, NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), work.CMatrix(ldwork, opts), czero, b.CMatrix(ldb, opts)); err != nil {
+										if err = b.CMatrix(ldb, opts).Gemm(trans, NoTrans, nrows, nrhs, ncols, cone, copya.CMatrix(lda, opts), work.CMatrix(ldwork, opts), czero); err != nil {
 											panic(err)
 										}
 										golapack.Zlacpy(Full, nrows, nrhs, b.CMatrix(ldb, opts), copyb.CMatrix(ldb, opts))
@@ -422,8 +421,8 @@ func zdrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsva
 							//
 							//                       Test 7:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(mnmin, -one, copys.Off(0, 1), s.Off(0, 1))
-								result.Set(6, goblas.Dasum(mnmin, s.Off(0, 1))/goblas.Dasum(mnmin, copys.Off(0, 1))/(eps*float64(mnmin)))
+								s.Axpy(mnmin, -one, copys, 1, 1)
+								result.Set(6, s.Asum(mnmin, 1)/copys.Asum(mnmin, 1)/(eps*float64(mnmin)))
 							} else {
 								result.Set(6, zero)
 							}
@@ -462,8 +461,8 @@ func zdrvls(dotype []bool, nm int, mval []int, nn int, nval []int, nns int, nsva
 
 							//                       Test 11:  Compute relative error in svd
 							if rank > 0 {
-								goblas.Daxpy(mnmin, -one, copys.Off(0, 1), s.Off(0, 1))
-								result.Set(10, goblas.Dasum(mnmin, s.Off(0, 1))/goblas.Dasum(mnmin, copys.Off(0, 1))/(eps*float64(mnmin)))
+								s.Axpy(mnmin, -one, copys, 1, 1)
+								result.Set(10, s.Asum(mnmin, 1)/copys.Asum(mnmin, 1)/(eps*float64(mnmin)))
 							} else {
 								result.Set(10, zero)
 							}

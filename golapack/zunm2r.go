@@ -103,7 +103,7 @@ func Zunm2r(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, t
 		}
 		aii = a.Get(i-1, i-1)
 		a.Set(i-1, i-1, one)
-		Zlarf(side, mi, ni, a.CVector(i-1, i-1, 1), taui, c.Off(ic-1, jc-1), work)
+		Zlarf(side, mi, ni, a.Off(i-1, i-1).CVector(), 1, taui, c.Off(ic-1, jc-1), work)
 		a.Set(i-1, i-1, aii)
 	}
 

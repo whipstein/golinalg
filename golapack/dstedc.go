@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -180,10 +179,10 @@ func Dstedc(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector
 			if m > smlsiz {
 				//              Scale.
 				orgnrm = Dlanst('M', m, d.Off(start-1), e.Off(start-1))
-				if err = Dlascl('G', 0, 0, orgnrm, one, m, 1, d.MatrixOff(start-1, m, opts)); err != nil {
+				if err = Dlascl('G', 0, 0, orgnrm, one, m, 1, d.Off(start-1).Matrix(m, opts)); err != nil {
 					panic(err)
 				}
-				if err = Dlascl('G', 0, 0, orgnrm, one, m-1, 1, e.MatrixOff(start-1, m-1, opts)); err != nil {
+				if err = Dlascl('G', 0, 0, orgnrm, one, m-1, 1, e.Off(start-1).Matrix(m-1, opts)); err != nil {
 					panic(err)
 				}
 
@@ -192,7 +191,7 @@ func Dstedc(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector
 				} else {
 					strtrw = start
 				}
-				if info, err = Dlaed0(icompz, n, m, d.Off(start-1), e.Off(start-1), z.Off(strtrw-1, start-1), work.MatrixOff(0, n, opts), work.Off(storez-1), iwork); err != nil {
+				if info, err = Dlaed0(icompz, n, m, d.Off(start-1), e.Off(start-1), z.Off(strtrw-1, start-1), work.Off(0).Matrix(n, opts), work.Off(storez-1), iwork); err != nil {
 					panic(err)
 				}
 				if info != 0 {
@@ -201,7 +200,7 @@ func Dstedc(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector
 				}
 
 				//              Scale back.
-				if err = Dlascl('G', 0, 0, one, orgnrm, m, 1, d.MatrixOff(start-1, m, opts)); err != nil {
+				if err = Dlascl('G', 0, 0, one, orgnrm, m, 1, d.Off(start-1).Matrix(m, opts)); err != nil {
 					panic(err)
 				}
 
@@ -213,8 +212,8 @@ func Dstedc(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector
 					if info, err = Dsteqr('I', m, d.Off(start-1), e.Off(start-1), work.Matrix(m, opts), work.Off(m*m)); err != nil {
 						panic(err)
 					}
-					Dlacpy(Full, n, m, z.Off(0, start-1), work.MatrixOff(storez-1, n, opts))
-					if err = goblas.Dgemm(NoTrans, NoTrans, n, m, m, one, work.MatrixOff(storez-1, n, opts), work.Matrix(m, opts), zero, z.Off(0, start-1)); err != nil {
+					Dlacpy(Full, n, m, z.Off(0, start-1), work.Off(storez-1).Matrix(n, opts))
+					if err = z.Off(0, start-1).Gemm(NoTrans, NoTrans, n, m, m, one, work.Off(storez-1).Matrix(n, opts), work.Matrix(m, opts), zero); err != nil {
 						panic(err)
 					}
 				} else if icompz == 2 {
@@ -258,7 +257,7 @@ func Dstedc(compz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector
 				if k != i {
 					d.Set(k-1, d.Get(i-1))
 					d.Set(i-1, p)
-					goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, k-1, 1))
+					z.Off(0, k-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 				}
 			}
 		}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -91,7 +90,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs int, b, bx *mat.CMatrix, u, vt *mat.Matrix, 
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), rwork.MatrixOff(1+nl*nrhs*2-1, nl, opts), zero, rwork.Matrix(nl, opts)); err != nil {
+		if err = rwork.Matrix(nl, opts).Gemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), rwork.Off(1+nl*nrhs*2-1).Matrix(nl, opts), zero); err != nil {
 			panic(err)
 		}
 		j = nl * nrhs * 2
@@ -101,7 +100,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs int, b, bx *mat.CMatrix, u, vt *mat.Matrix, 
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), rwork.MatrixOff(1+nl*nrhs*2-1, nl, opts), zero, rwork.MatrixOff(1+nl*nrhs-1, nl, opts)); err != nil {
+		if err = rwork.Off(1+nl*nrhs-1).Matrix(nl, opts).Gemm(Trans, NoTrans, nl, nrhs, nl, one, u.Off(nlf-1, 0), rwork.Off(1+nl*nrhs*2-1).Matrix(nl, opts), zero); err != nil {
 			panic(err)
 		}
 		jreal = 0
@@ -126,7 +125,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs int, b, bx *mat.CMatrix, u, vt *mat.Matrix, 
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), rwork.MatrixOff(1+nr*nrhs*2-1, nr, opts), zero, rwork.Matrix(nr, opts)); err != nil {
+		if err = rwork.Matrix(nr, opts).Gemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), rwork.Off(1+nr*nrhs*2-1).Matrix(nr, opts), zero); err != nil {
 			panic(err)
 		}
 		j = nr * nrhs * 2
@@ -136,7 +135,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs int, b, bx *mat.CMatrix, u, vt *mat.Matrix, 
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), rwork.MatrixOff(1+nr*nrhs*2-1, nr, opts), zero, rwork.MatrixOff(1+nr*nrhs-1, nr, opts)); err != nil {
+		if err = rwork.Off(1+nr*nrhs-1).Matrix(nr, opts).Gemm(Trans, NoTrans, nr, nrhs, nr, one, u.Off(nrf-1, 0), rwork.Off(1+nr*nrhs*2-1).Matrix(nr, opts), zero); err != nil {
 			panic(err)
 		}
 		jreal = 0
@@ -155,7 +154,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs int, b, bx *mat.CMatrix, u, vt *mat.Matrix, 
 	//     in the bidiagonal matrix to BX.
 	for i = 1; i <= nd; i++ {
 		ic = (*iwork)[inode+i-1-1]
-		goblas.Zcopy(nrhs, b.CVector(ic-1, 0), bx.CVector(ic-1, 0))
+		bx.Off(ic-1, 0).CVector().Copy(nrhs, b.Off(ic-1, 0).CVector(), b.Rows, bx.Rows)
 	}
 
 	//     Finally go through the left singular vector matrices of all
@@ -183,7 +182,7 @@ func Zlalsa(icompq, smlsiz, n, nrhs int, b, bx *mat.CMatrix, u, vt *mat.Matrix, 
 			nlf = ic - nl
 			nrf = ic + 1
 			j = j - 1
-			if err = Zlals0(icompq, nl, nr, sqre, nrhs, bx.Off(nlf-1, 0), b.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), (*k)[j-1], c.Get(j-1), s.Get(j-1), rwork); err != nil {
+			if err = Zlals0(icompq, nl, nr, sqre, nrhs, bx.Off(nlf-1, 0), b.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Off(nlf-1, lvl-1).Vector(), difr.Off(nlf-1, lvl2-1), z.Off(nlf-1, lvl-1).Vector(), (*k)[j-1], c.Get(j-1), s.Get(j-1), rwork); err != nil {
 				panic(err)
 			}
 		}
@@ -222,7 +221,7 @@ label170:
 				sqre = 1
 			}
 			j = j + 1
-			if err = Zlals0(icompq, nl, nr, sqre, nrhs, b.Off(nlf-1, 0), bx.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Vector(nlf-1, lvl-1), difr.Off(nlf-1, lvl2-1), z.Vector(nlf-1, lvl-1), (*k)[j-1], c.Get(j-1), s.Get(j-1), rwork); err != nil {
+			if err = Zlals0(icompq, nl, nr, sqre, nrhs, b.Off(nlf-1, 0), bx.Off(nlf-1, 0), toSlice(perm, nlf-1+(lvl-1)*ldgcol), (*givptr)[j-1], toSlice(givcol, nlf-1+(lvl2-1)*ldgcol), ldgcol, givnum.Off(nlf-1, lvl2-1), poles.Off(nlf-1, lvl2-1), difl.Off(nlf-1, lvl-1).Vector(), difr.Off(nlf-1, lvl2-1), z.Off(nlf-1, lvl-1).Vector(), (*k)[j-1], c.Get(j-1), s.Get(j-1), rwork); err != nil {
 				panic(err)
 			}
 		}
@@ -258,7 +257,7 @@ label170:
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), rwork.MatrixOff(1+nlp1*nrhs*2-1, nlp1, opts), zero, rwork.Matrix(nlp1, opts)); err != nil {
+		if err = rwork.Matrix(nlp1, opts).Gemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), rwork.Off(1+nlp1*nrhs*2-1).Matrix(nlp1, opts), zero); err != nil {
 			panic(err)
 		}
 		j = nlp1 * nrhs * 2
@@ -268,7 +267,7 @@ label170:
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), rwork.MatrixOff(1+nlp1*nrhs*2-1, nlp1, opts), zero, rwork.MatrixOff(1+nlp1*nrhs-1, nlp1, opts)); err != nil {
+		if err = rwork.Off(1+nlp1*nrhs-1).Matrix(nlp1, opts).Gemm(Trans, NoTrans, nlp1, nrhs, nlp1, one, vt.Off(nlf-1, 0), rwork.Off(1+nlp1*nrhs*2-1).Matrix(nlp1, opts), zero); err != nil {
 			panic(err)
 		}
 		jreal = 0
@@ -293,7 +292,7 @@ label170:
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), rwork.MatrixOff(1+nrp1*nrhs*2-1, nrp1, opts), zero, rwork.Matrix(nrp1, opts)); err != nil {
+		if err = rwork.Matrix(nrp1, opts).Gemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), rwork.Off(1+nrp1*nrhs*2-1).Matrix(nrp1, opts), zero); err != nil {
 			panic(err)
 		}
 		j = nrp1 * nrhs * 2
@@ -303,7 +302,7 @@ label170:
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), rwork.MatrixOff(1+nrp1*nrhs*2-1, nrp1, opts), zero, rwork.MatrixOff(1+nrp1*nrhs-1, nrp1, opts)); err != nil {
+		if err = rwork.Off(1+nrp1*nrhs-1).Matrix(nrp1, opts).Gemm(Trans, NoTrans, nrp1, nrhs, nrp1, one, vt.Off(nrf-1, 0), rwork.Off(1+nrp1*nrhs*2-1).Matrix(nrp1, opts), zero); err != nil {
 			panic(err)
 		}
 		jreal = 0

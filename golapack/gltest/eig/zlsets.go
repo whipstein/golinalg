@@ -1,7 +1,6 @@
 package eig
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -15,8 +14,8 @@ func zlsets(m, p, n int, a, af, b, bf *mat.CMatrix, c, cf, d, df, x, work *mat.C
 	//     and the vectors C and D to the arrays CF and DF,
 	golapack.Zlacpy(Full, m, n, a, af)
 	golapack.Zlacpy(Full, p, n, b, bf)
-	goblas.Zcopy(m, c.Off(0, 1), cf.Off(0, 1))
-	goblas.Zcopy(p, d.Off(0, 1), df.Off(0, 1))
+	cf.Copy(m, c, 1, 1)
+	df.Copy(p, d, 1, 1)
 
 	//     Solve LSE problem
 	if _, err = golapack.Zgglse(m, n, p, af, bf, cf, df, x, work, lwork); err != nil {
@@ -26,8 +25,8 @@ func zlsets(m, p, n int, a, af, b, bf *mat.CMatrix, c, cf, d, df, x, work *mat.C
 	//     Test the residual for the solution of LSE
 	//
 	//     Compute RESULT(1) = norm( A*x - c ) / norm(A)*norm(X)*EPS
-	goblas.Zcopy(m, c.Off(0, 1), cf.Off(0, 1))
-	goblas.Zcopy(p, d.Off(0, 1), df.Off(0, 1))
+	cf.Copy(m, c, 1, 1)
+	df.Copy(p, d, 1, 1)
 	result.Set(0, zget02(NoTrans, m, n, 1, a, x.CMatrix(n, opts), cf.CMatrix(m, opts), rwork))
 
 	//     Compute result(2) = norm( B*x - d ) / norm(B)*norm(X)*EPS

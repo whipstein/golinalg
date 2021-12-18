@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -152,9 +151,9 @@ func Zstein(n int, d, e *mat.Vector, m int, w *mat.Vector, iblock, isplit *[]int
 			Dlarnv(2, &iseed, blksiz, work.Off(indrv1))
 
 			//           Copy the matrix T so it won't be destroyed in factorization.
-			goblas.Dcopy(blksiz, d.Off(b1-1, 1), work.Off(indrv4, 1))
-			goblas.Dcopy(blksiz-1, e.Off(b1-1, 1), work.Off(indrv2+2-1, 1))
-			goblas.Dcopy(blksiz-1, e.Off(b1-1, 1), work.Off(indrv3, 1))
+			work.Off(indrv4).Copy(blksiz, d.Off(b1-1), 1, 1)
+			work.Off(indrv2+2-1).Copy(blksiz-1, e.Off(b1-1), 1, 1)
+			work.Off(indrv3).Copy(blksiz-1, e.Off(b1-1), 1, 1)
 
 			//           Compute LU factors with partial pivoting  ( PT = LU )
 			tol = zero
@@ -171,9 +170,9 @@ func Zstein(n int, d, e *mat.Vector, m int, w *mat.Vector, iblock, isplit *[]int
 			}
 
 			//           Normalize and scale the righthand side vector Pb.
-			jmax = goblas.Idamax(blksiz, work.Off(indrv1, 1))
+			jmax = work.Off(indrv1).Iamax(blksiz, 1)
 			scl = float64(blksiz) * onenrm * math.Max(eps, work.GetMag(indrv4+blksiz-1)) / work.GetMag(indrv1+jmax-1)
-			goblas.Dscal(blksiz, scl, work.Off(indrv1, 1))
+			work.Off(indrv1).Scal(blksiz, scl, 1)
 
 			//           Solve the system LU = Pb.
 			if tol, _, err = Dlagts(-1, blksiz, work.Off(indrv4), work.Off(indrv2+2-1), work.Off(indrv3), work.Off(indrv5), iwork, work.Off(indrv1), tol); err != nil {
@@ -203,7 +202,7 @@ func Zstein(n int, d, e *mat.Vector, m int, w *mat.Vector, iblock, isplit *[]int
 			//           Check the infinity norm of the iterate.
 		label110:
 			;
-			jmax = goblas.Idamax(blksiz, work.Off(indrv1, 1))
+			jmax = work.Off(indrv1).Iamax(blksiz, 1)
 			nrm = work.GetMag(indrv1 + jmax - 1)
 
 			//           Continue for additional iterations after norm reaches
@@ -228,12 +227,12 @@ func Zstein(n int, d, e *mat.Vector, m int, w *mat.Vector, iblock, isplit *[]int
 			//           Accept iterate as jth eigenvector.
 		label130:
 			;
-			scl = one / goblas.Dnrm2(blksiz, work.Off(indrv1, 1))
-			jmax = goblas.Idamax(blksiz, work.Off(indrv1, 1))
+			scl = one / work.Off(indrv1).Nrm2(blksiz, 1)
+			jmax = work.Off(indrv1).Iamax(blksiz, 1)
 			if work.Get(indrv1+jmax-1) < zero {
 				scl = -scl
 			}
-			goblas.Dscal(blksiz, scl, work.Off(indrv1, 1))
+			work.Off(indrv1).Scal(blksiz, scl, 1)
 		label140:
 			;
 			for i = 1; i <= n; i++ {

@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
 	"github.com/whipstein/golinalg/mat"
@@ -92,7 +91,7 @@ func dckcsd(nm int, mval []int, pval []int, qval []int, nmats int, iseed []int, 
 				for i = 1; i <= m; i++ {
 					j = int(matgen.Dlaran(&iseed))*m + 1
 					if j != i {
-						goblas.Drot(m, x.Off(1+(i-1)*ldx-1, 1), x.Off(1+(j-1)*ldx-1, 1), zero, one)
+						x.Off(1+(j-1)*ldx-1).Rot(m, x.Off(1+(i-1)*ldx-1), 1, 1, zero, one)
 					}
 				}
 			}

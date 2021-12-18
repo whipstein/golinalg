@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -45,7 +44,7 @@ func Ztplqt2(m, n, l int, a, b, t *mat.CMatrix) (err error) {
 	for i = 1; i <= m; i++ {
 		//        Generate elementary reflector H(I) to annihilate B(I,:)
 		p = n - l + min(l, i)
-		*a.GetPtr(i-1, i-1), *t.GetPtr(0, i-1) = Zlarfg(p+1, a.Get(i-1, i-1), b.CVector(i-1, 0))
+		*a.GetPtr(i-1, i-1), *t.GetPtr(0, i-1) = Zlarfg(p+1, a.Get(i-1, i-1), b.Off(i-1, 0).CVector(), b.Rows)
 		t.Set(0, i-1, t.GetConj(0, i-1))
 		if i < m {
 			for j = 1; j <= p; j++ {
@@ -56,14 +55,14 @@ func Ztplqt2(m, n, l int, a, b, t *mat.CMatrix) (err error) {
 			for j = 1; j <= m-i; j++ {
 				t.Set(m-1, j-1, (a.Get(i+j-1, i-1)))
 			}
-			err = goblas.Zgemv(NoTrans, m-i, p, one, b.Off(i, 0), b.CVector(i-1, 0), one, t.CVector(m-1, 0))
+			err = t.Off(m-1, 0).CVector().Gemv(NoTrans, m-i, p, one, b.Off(i, 0), b.Off(i-1, 0).CVector(), b.Rows, one, t.Rows)
 
 			//           C(I+1:M,I:N) = C(I+1:M,I:N) + alpha * C(I,I:N)*W(M-1:1)^H
 			alpha = -(t.Get(0, i-1))
 			for j = 1; j <= m-i; j++ {
 				a.Set(i+j-1, i-1, a.Get(i+j-1, i-1)+alpha*(t.Get(m-1, j-1)))
 			}
-			err = goblas.Zgerc(m-i, p, alpha, t.CVector(m-1, 0), b.CVector(i-1, 0), b.Off(i, 0))
+			err = b.Off(i, 0).Gerc(m-i, p, alpha, t.Off(m-1, 0).CVector(), t.Rows, b.Off(i-1, 0).CVector(), b.Rows)
 			for j = 1; j <= p; j++ {
 				b.Set(i-1, j-1, b.GetConj(i-1, j-1))
 			}
@@ -87,19 +86,19 @@ func Ztplqt2(m, n, l int, a, b, t *mat.CMatrix) (err error) {
 		for j = 1; j <= p; j++ {
 			t.Set(i-1, j-1, (alpha * b.Get(i-1, n-l+j-1)))
 		}
-		err = goblas.Ztrmv(Lower, NoTrans, NonUnit, p, b.Off(0, np-1), t.CVector(i-1, 0))
+		err = t.Off(i-1, 0).CVector().Trmv(Lower, NoTrans, NonUnit, p, b.Off(0, np-1), t.Rows)
 
 		//        Rectangular part of B2
-		err = goblas.Zgemv(NoTrans, i-1-p, l, alpha, b.Off(mp-1, np-1), b.CVector(i-1, np-1), zero, t.CVector(i-1, mp-1))
+		err = t.Off(i-1, mp-1).CVector().Gemv(NoTrans, i-1-p, l, alpha, b.Off(mp-1, np-1), b.Off(i-1, np-1).CVector(), b.Rows, zero, t.Rows)
 
 		//        B1
-		err = goblas.Zgemv(NoTrans, i-1, n-l, alpha, b, b.CVector(i-1, 0), one, t.CVector(i-1, 0))
+		err = t.Off(i-1, 0).CVector().Gemv(NoTrans, i-1, n-l, alpha, b, b.Off(i-1, 0).CVector(), b.Rows, one, t.Rows)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(I,1:I-1)
 		for j = 1; j <= i-1; j++ {
 			t.Set(i-1, j-1, t.GetConj(i-1, j-1))
 		}
-		err = goblas.Ztrmv(Lower, ConjTrans, NonUnit, i-1, t, t.CVector(i-1, 0))
+		err = t.Off(i-1, 0).CVector().Trmv(Lower, ConjTrans, NonUnit, i-1, t, t.Rows)
 		for j = 1; j <= i-1; j++ {
 			t.Set(i-1, j-1, t.GetConj(i-1, j-1))
 		}

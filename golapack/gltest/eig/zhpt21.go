@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -122,17 +121,17 @@ func zhpt21(itype int, uplo mat.MatUplo, n, kband int, ap *mat.CVector, d, e *ma
 	if itype == 1 {
 		//        ITYPE=1: error = A - U S U**H
 		golapack.Zlaset(Full, n, n, czero, czero, work.CMatrix(n, opts))
-		goblas.Zcopy(lap, ap.Off(0, 1), work.Off(0, 1))
+		work.Copy(lap, ap, 1, 1)
 
 		for j = 1; j <= n; j++ {
-			if err = goblas.Zhpr(cuplo, n, -d.Get(j-1), u.CVector(0, j-1, 1), work); err != nil {
+			if err = work.Hpr(cuplo, n, -d.Get(j-1), u.Off(0, j-1).CVector(), 1); err != nil {
 				panic(err)
 			}
 		}
 
 		if n > 1 && kband == 1 {
 			for j = 1; j <= n-1; j++ {
-				if err = goblas.Zhpr2(cuplo, n, -e.GetCmplx(j-1), u.CVector(0, j-1, 1), u.CVector(0, j-1-1, 1), work); err != nil {
+				if err = work.Hpr2(cuplo, n, -e.GetCmplx(j-1), u.Off(0, j-1).CVector(), 1, u.Off(0, j-1-1).CVector(), 1); err != nil {
 					panic(err)
 				}
 			}
@@ -158,10 +157,10 @@ func zhpt21(itype int, uplo mat.MatUplo, n, kband int, ap *mat.CVector, d, e *ma
 				if tau.Get(j-1) != czero {
 					vsave = vp.Get(jp + j + 1 - 1)
 					vp.Set(jp+j, cone)
-					err = goblas.Zhpmv(Lower, n-j, cone, work.Off(jp1+j), vp.Off(jp+j, 1), czero, work.Off(lap, 1))
-					temp = complex(-half, 0) * tau.Get(j-1) * goblas.Zdotc(n-j, work.Off(lap, 1), vp.Off(jp+j, 1))
-					goblas.Zaxpy(n-j, temp, vp.Off(jp+j, 1), work.Off(lap, 1))
-					err = goblas.Zhpr2(Lower, n-j, -tau.Get(j-1), vp.Off(jp+j, 1), work.Off(lap, 1), work.Off(jp1+j))
+					err = work.Off(lap).Hpmv(Lower, n-j, cone, work.Off(jp1+j), vp.Off(jp+j), 1, czero, 1)
+					temp = complex(-half, 0) * tau.Get(j-1) * vp.Off(jp+j).Dotc(n-j, work.Off(lap), 1, 1)
+					work.Off(lap).Axpy(n-j, temp, vp.Off(jp+j), 1, 1)
+					err = work.Off(jp1+j).Hpr2(Lower, n-j, -tau.Get(j-1), vp.Off(jp+j), 1, work.Off(lap), 1)
 
 					vp.Set(jp+j, vsave)
 				}
@@ -182,10 +181,10 @@ func zhpt21(itype int, uplo mat.MatUplo, n, kband int, ap *mat.CVector, d, e *ma
 				if tau.Get(j-1) != czero {
 					vsave = vp.Get(jp1 + j - 1)
 					vp.Set(jp1+j-1, cone)
-					err = goblas.Zhpmv(Upper, j, cone, work, vp.Off(jp1, 1), czero, work.Off(lap, 1))
-					temp = complex(-half, 0) * tau.Get(j-1) * goblas.Zdotc(j, work.Off(lap, 1), vp.Off(jp1, 1))
-					goblas.Zaxpy(j, temp, vp.Off(jp1, 1), work.Off(lap, 1))
-					err = goblas.Zhpr2(Upper, j, -tau.Get(j-1), vp.Off(jp1, 1), work.Off(lap, 1), work)
+					err = work.Off(lap).Hpmv(Upper, j, cone, work, vp.Off(jp1), 1, czero, 1)
+					temp = complex(-half, 0) * tau.Get(j-1) * vp.Off(jp1).Dotc(j, work.Off(lap), 1, 1)
+					work.Off(lap).Axpy(j, temp, vp.Off(jp1), 1, 1)
+					err = work.Hpr2(Upper, j, -tau.Get(j-1), vp.Off(jp1), 1, work.Off(lap), 1)
 					vp.Set(jp1+j-1, vsave)
 				}
 				work.Set(jp1+j, d.GetCmplx(j))
@@ -229,7 +228,7 @@ func zhpt21(itype int, uplo mat.MatUplo, n, kband int, ap *mat.CVector, d, e *ma
 	//
 	//     Compute  U U**H - I
 	if itype == 1 {
-		if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero); err != nil {
 			panic(err)
 		}
 

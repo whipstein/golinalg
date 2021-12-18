@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -116,14 +115,14 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 			for m = mtop; m <= mbot; m++ {
 				k = krcol + 3*(m-1)
 				if k == ktop-1 {
-					Dlaqr1(3, h.Off(ktop-1, ktop-1), sr.Get(2*m-1-1), si.Get(2*m-1-1), sr.Get(2*m-1), si.Get(2*m-1), v.Vector(0, m-1))
+					Dlaqr1(3, h.Off(ktop-1, ktop-1), sr.Get(2*m-1-1), si.Get(2*m-1-1), sr.Get(2*m-1), si.Get(2*m-1), v.Off(0, m-1).Vector())
 					alpha = v.Get(0, m-1)
-					alpha, *v.GetPtr(0, m-1) = Dlarfg(3, alpha, v.Vector(1, m-1, 1))
+					alpha, *v.GetPtr(0, m-1) = Dlarfg(3, alpha, v.Off(1, m-1).Vector(), 1)
 				} else {
 					beta = h.Get(k, k-1)
 					v.Set(1, m-1, h.Get(k+2-1, k-1))
 					v.Set(2, m-1, h.Get(k+3-1, k-1))
-					beta, *v.GetPtr(0, m-1) = Dlarfg(3, beta, v.Vector(1, m-1, 1))
+					beta, *v.GetPtr(0, m-1) = Dlarfg(3, beta, v.Off(1, m-1).Vector(), 1)
 
 					//                 ==== A Bulge may collapse because of vigilant
 					//                 .    deflation or destructive underflow.  In the
@@ -142,7 +141,7 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 						//                    .    Otherwise, use the new one. ====
 						Dlaqr1(3, h.Off(k, k), sr.Get(2*m-1-1), si.Get(2*m-1-1), sr.Get(2*m-1), si.Get(2*m-1), vt)
 						alpha = vt.Get(0)
-						alpha, *vt.GetPtr(0) = Dlarfg(3, alpha, vt.Off(1, 1))
+						alpha, *vt.GetPtr(0) = Dlarfg(3, alpha, vt.Off(1), 1)
 						refsum = vt.Get(0) * (h.Get(k, k-1) + vt.Get(1)*h.Get(k+2-1, k-1))
 
 						if math.Abs(h.Get(k+2-1, k-1)-refsum*vt.Get(1))+math.Abs(refsum*vt.Get(2)) > ulp*(math.Abs(h.Get(k-1, k-1))+math.Abs(h.Get(k, k))+math.Abs(h.Get(k+2-1, k+2-1))) {
@@ -172,13 +171,13 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 			k = krcol + 3*(m22-1)
 			if bmp22 {
 				if k == ktop-1 {
-					Dlaqr1(2, h.Off(k, k), sr.Get(2*m22-1-1), si.Get(2*m22-1-1), sr.Get(2*m22-1), si.Get(2*m22-1), v.Vector(0, m22-1))
+					Dlaqr1(2, h.Off(k, k), sr.Get(2*m22-1-1), si.Get(2*m22-1-1), sr.Get(2*m22-1), si.Get(2*m22-1), v.Off(0, m22-1).Vector())
 					beta = v.Get(0, m22-1)
-					beta, *v.GetPtr(0, m22-1) = Dlarfg(2, beta, v.Vector(1, m22-1, 1))
+					beta, *v.GetPtr(0, m22-1) = Dlarfg(2, beta, v.Off(1, m22-1).Vector(), 1)
 				} else {
 					beta = h.Get(k, k-1)
 					v.Set(1, m22-1, h.Get(k+2-1, k-1))
-					beta, *v.GetPtr(0, m22-1) = Dlarfg(2, beta, v.Vector(1, m22-1, 1))
+					beta, *v.GetPtr(0, m22-1) = Dlarfg(2, beta, v.Off(1, m22-1).Vector(), 1)
 					h.Set(k, k-1, beta)
 					h.Set(k+2-1, k-1, zero)
 				}
@@ -382,7 +381,7 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 				//              ==== Horizontal Multiply ====
 				for jcol = min(ndcol, kbot) + 1; jcol <= jbot; jcol += nh {
 					jlen = min(nh, jbot-jcol+1)
-					if err = goblas.Dgemm(ConjTrans, NoTrans, nu, jlen, nu, one, u.Off(k1-1, k1-1), h.Off(incol+k1-1, jcol-1), zero, wh); err != nil {
+					if err = wh.Gemm(ConjTrans, NoTrans, nu, jlen, nu, one, u.Off(k1-1, k1-1), h.Off(incol+k1-1, jcol-1), zero); err != nil {
 						panic(err)
 					}
 					Dlacpy(Full, nu, jlen, wh, h.Off(incol+k1-1, jcol-1))
@@ -391,7 +390,7 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 				//              ==== Vertical multiply ====
 				for jrow = jtop; jrow <= max(ktop, incol)-1; jrow += nv {
 					jlen = min(nv, max(ktop, incol)-jrow)
-					if err = goblas.Dgemm(NoTrans, NoTrans, jlen, nu, nu, one, h.Off(jrow-1, incol+k1-1), u.Off(k1-1, k1-1), zero, wv); err != nil {
+					if err = wv.Gemm(NoTrans, NoTrans, jlen, nu, nu, one, h.Off(jrow-1, incol+k1-1), u.Off(k1-1, k1-1), zero); err != nil {
 						panic(err)
 					}
 					Dlacpy(Full, jlen, nu, wv, h.Off(jrow-1, incol+k1-1))
@@ -401,7 +400,7 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 				if wantz {
 					for jrow = iloz; jrow <= ihiz; jrow += nv {
 						jlen = min(nv, ihiz-jrow+1)
-						if err = goblas.Dgemm(NoTrans, NoTrans, jlen, nu, nu, one, z.Off(jrow-1, incol+k1-1), u.Off(k1-1, k1-1), zero, wv); err != nil {
+						if err = wv.Gemm(NoTrans, NoTrans, jlen, nu, nu, one, z.Off(jrow-1, incol+k1-1), u.Off(k1-1, k1-1), zero); err != nil {
 							panic(err)
 						}
 						Dlacpy(Full, jlen, nu, wv, z.Off(jrow-1, incol+k1-1))
@@ -432,12 +431,12 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 
 					//                 ==== Multiply by U21**T ====
 					Dlaset(Full, kzs, jlen, zero, zero, wh)
-					if err = goblas.Dtrmm(Left, Upper, ConjTrans, NonUnit, knz, jlen, one, u.Off(j2, 1+kzs-1), wh.Off(kzs, 0)); err != nil {
+					if err = wh.Off(kzs, 0).Trmm(Left, Upper, ConjTrans, NonUnit, knz, jlen, one, u.Off(j2, 1+kzs-1)); err != nil {
 						panic(err)
 					}
 
 					//                 ==== Multiply top of H by U11**T ====
-					if err = goblas.Dgemm(ConjTrans, NoTrans, i2, jlen, j2, one, u, h.Off(incol, jcol-1), one, wh); err != nil {
+					if err = wh.Gemm(ConjTrans, NoTrans, i2, jlen, j2, one, u, h.Off(incol, jcol-1), one); err != nil {
 						panic(err)
 					}
 
@@ -445,12 +444,12 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 					Dlacpy(Full, j2, jlen, h.Off(incol, jcol-1), wh.Off(i2, 0))
 
 					//                 ==== Multiply by U21**T ====
-					if err = goblas.Dtrmm(Left, Lower, ConjTrans, NonUnit, j2, jlen, one, u.Off(0, i2), wh.Off(i2, 0)); err != nil {
+					if err = wh.Off(i2, 0).Trmm(Left, Lower, ConjTrans, NonUnit, j2, jlen, one, u.Off(0, i2)); err != nil {
 						panic(err)
 					}
 
 					//                 ==== Multiply by U22 ====
-					if err = goblas.Dgemm(ConjTrans, NoTrans, i4-i2, jlen, j4-j2, one, u.Off(j2, i2), h.Off(incol+1+j2-1, jcol-1), one, wh.Off(i2, 0)); err != nil {
+					if err = wh.Off(i2, 0).Gemm(ConjTrans, NoTrans, i4-i2, jlen, j4-j2, one, u.Off(j2, i2), h.Off(incol+1+j2-1, jcol-1), one); err != nil {
 						panic(err)
 					}
 
@@ -468,12 +467,12 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 
 					//                 ==== Multiply by U21 ====
 					Dlaset(Full, jlen, kzs, zero, zero, wv)
-					if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2, 1+kzs-1), wv.Off(0, 1+kzs-1)); err != nil {
+					if err = wv.Off(0, 1+kzs-1).Trmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2, 1+kzs-1)); err != nil {
 						panic(err)
 					}
 
 					//                 ==== Multiply by U11 ====
-					if err = goblas.Dgemm(NoTrans, NoTrans, jlen, i2, j2, one, h.Off(jrow-1, incol), u, one, wv); err != nil {
+					if err = wv.Gemm(NoTrans, NoTrans, jlen, i2, j2, one, h.Off(jrow-1, incol), u, one); err != nil {
 						panic(err)
 					}
 
@@ -481,12 +480,12 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 					Dlacpy(Full, jlen, j2, h.Off(jrow-1, incol), wv.Off(0, 1+i2-1))
 
 					//                 ==== Multiply by U21 ====
-					if err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2), wv.Off(0, 1+i2-1)); err != nil {
+					if err = wv.Off(0, 1+i2-1).Trmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2)); err != nil {
 						panic(err)
 					}
 
 					//                 ==== Multiply by U22 ====
-					if err = goblas.Dgemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, h.Off(jrow-1, incol+1+j2-1), u.Off(j2, i2), one, wv.Off(0, 1+i2-1)); err != nil {
+					if err = wv.Off(0, 1+i2-1).Gemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, h.Off(jrow-1, incol+1+j2-1), u.Off(j2, i2), one); err != nil {
 						panic(err)
 					}
 
@@ -505,12 +504,12 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 
 						//                    ==== Multiply by U12 ====
 						Dlaset(Full, jlen, kzs, zero, zero, wv)
-						if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2, 1+kzs-1), wv.Off(0, 1+kzs-1)); err != nil {
+						if err = wv.Off(0, 1+kzs-1).Trmm(Right, Upper, NoTrans, NonUnit, jlen, knz, one, u.Off(j2, 1+kzs-1)); err != nil {
 							panic(err)
 						}
 
 						//                    ==== Multiply by U11 ====
-						if err = goblas.Dgemm(NoTrans, NoTrans, jlen, i2, j2, one, z.Off(jrow-1, incol), u, one, wv); err != nil {
+						if err = wv.Gemm(NoTrans, NoTrans, jlen, i2, j2, one, z.Off(jrow-1, incol), u, one); err != nil {
 							panic(err)
 						}
 
@@ -518,12 +517,12 @@ func Dlaqr5(wantt, wantz bool, kacc22, n, ktop, kbot, nshfts int, sr, si *mat.Ve
 						Dlacpy(Full, jlen, j2, z.Off(jrow-1, incol), wv.Off(0, 1+i2-1))
 
 						//                    ==== Multiply by U21 ====
-						if err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2), wv.Off(0, 1+i2-1)); err != nil {
+						if err = wv.Off(0, 1+i2-1).Trmm(Right, Lower, NoTrans, NonUnit, jlen, i4-i2, one, u.Off(0, i2)); err != nil {
 							panic(err)
 						}
 
 						//                    ==== Multiply by U22 ====
-						if err = goblas.Dgemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, z.Off(jrow-1, incol+1+j2-1), u.Off(j2, i2), one, wv.Off(0, 1+i2-1)); err != nil {
+						if err = wv.Off(0, 1+i2-1).Gemm(NoTrans, NoTrans, jlen, i4-i2, j4-j2, one, z.Off(jrow-1, incol+1+j2-1), u.Off(j2, i2), one); err != nil {
 							panic(err)
 						}
 

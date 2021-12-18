@@ -108,11 +108,11 @@ func zchkrq(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 						nt = 2
 						if ik == 1 {
 							//                       Test ZGERQF
-							zrqt01(m, n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), ar.CMatrix(lda, opts), tau, work, lwork, rwork, result.Off(0))
+							zrqt01(m, n, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), ar.CMatrix(lda, opts), tau, work, lwork, rwork, result)
 						} else if m <= n {
 							//                       Test ZUNGRQ, using factorization
 							//                       returned by ZRQT01
-							zrqt02(m, n, k, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), ar.CMatrix(lda, opts), tau, work, lwork, rwork, result.Off(0))
+							zrqt02(m, n, k, a.CMatrix(lda, opts), af.CMatrix(lda, opts), aq.CMatrix(lda, opts), ar.CMatrix(lda, opts), tau, work, lwork, rwork, result)
 						}
 						if m >= k {
 							//                       Test ZUNMRQ, using factorization returned
@@ -131,7 +131,7 @@ func zchkrq(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 									panic(err)
 								}
 
-								golapack.Zlacpy(Full, m, nrhs, b.CMatrix(lda, opts), x.CMatrixOff(n-m, lda, opts))
+								golapack.Zlacpy(Full, m, nrhs, b.CMatrix(lda, opts), x.Off(n-m).CMatrix(lda, opts))
 								*srnamt = "zgerqs"
 								if err = zgerqs(m, n, nrhs, af.CMatrix(lda, opts), tau, x.CMatrix(lda, opts), work, lwork); err != nil {
 									t.Fail()

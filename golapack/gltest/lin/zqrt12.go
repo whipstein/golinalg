@@ -3,7 +3,6 @@ package lin
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -38,7 +37,7 @@ func zqrt12(m, n int, a *mat.CMatrix, s *mat.Vector, work *mat.CVector, lwork in
 		return
 	}
 
-	nrmsvl = goblas.Dnrm2(mn, s.Off(0, 1))
+	nrmsvl = s.Nrm2(mn, 1)
 
 	//     Copy upper triangle of A into work
 	golapack.Zlaset(Full, m, n, complex(zero, 0), complex(zero, 0), work.CMatrix(m, opts))
@@ -100,8 +99,8 @@ func zqrt12(m, n int, a *mat.CMatrix, s *mat.Vector, work *mat.CVector, lwork in
 	}
 
 	//     Compare s and singular values of work
-	goblas.Daxpy(mn, -one, s.Off(0, 1), rwork.Off(0, 1))
-	zqrt12Return = goblas.Dasum(mn, rwork.Off(0, 1)) / (golapack.Dlamch(Epsilon) * float64(max(m, n)))
+	rwork.Axpy(mn, -one, s, 1, 1)
+	zqrt12Return = rwork.Asum(mn, 1) / (golapack.Dlamch(Epsilon) * float64(max(m, n)))
 	if nrmsvl != zero {
 		zqrt12Return = zqrt12Return / nrmsvl
 	}

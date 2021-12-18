@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -57,20 +56,20 @@ func Zhegs2(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 				akk = akk / math.Pow(bkk, 2)
 				a.SetRe(k-1, k-1, akk)
 				if k < n {
-					goblas.Zdscal(n-k, one/bkk, a.CVector(k-1, k))
+					a.Off(k-1, k).CVector().Dscal(n-k, one/bkk, a.Rows)
 					ct = complex(-half*akk, 0)
-					Zlacgv(n-k, a.CVector(k-1, k))
-					Zlacgv(n-k, b.CVector(k-1, k))
-					goblas.Zaxpy(n-k, ct, b.CVector(k-1, k), a.CVector(k-1, k))
-					if err = goblas.Zher2(uplo, n-k, -cone, a.CVector(k-1, k), b.CVector(k-1, k), a.Off(k, k)); err != nil {
+					Zlacgv(n-k, a.Off(k-1, k).CVector(), a.Rows)
+					Zlacgv(n-k, b.Off(k-1, k).CVector(), b.Rows)
+					a.Off(k-1, k).CVector().Axpy(n-k, ct, b.Off(k-1, k).CVector(), b.Rows, a.Rows)
+					if err = a.Off(k, k).Her2(uplo, n-k, -cone, a.Off(k-1, k).CVector(), a.Rows, b.Off(k-1, k).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
-					goblas.Zaxpy(n-k, ct, b.CVector(k-1, k), a.CVector(k-1, k))
-					Zlacgv(n-k, b.CVector(k-1, k))
-					if err = goblas.Ztrsv(uplo, ConjTrans, NonUnit, n-k, b.Off(k, k), a.CVector(k-1, k)); err != nil {
+					a.Off(k-1, k).CVector().Axpy(n-k, ct, b.Off(k-1, k).CVector(), b.Rows, a.Rows)
+					Zlacgv(n-k, b.Off(k-1, k).CVector(), b.Rows)
+					if err = a.Off(k-1, k).CVector().Trsv(uplo, ConjTrans, NonUnit, n-k, b.Off(k, k), a.Rows); err != nil {
 						panic(err)
 					}
-					Zlacgv(n-k, a.CVector(k-1, k))
+					Zlacgv(n-k, a.Off(k-1, k).CVector(), a.Rows)
 				}
 			}
 		} else {
@@ -82,14 +81,14 @@ func Zhegs2(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 				akk = akk / math.Pow(bkk, 2)
 				a.SetRe(k-1, k-1, akk)
 				if k < n {
-					goblas.Zdscal(n-k, one/bkk, a.CVector(k, k-1, 1))
+					a.Off(k, k-1).CVector().Dscal(n-k, one/bkk, 1)
 					ct = complex(-half*akk, 0)
-					goblas.Zaxpy(n-k, ct, b.CVector(k, k-1, 1), a.CVector(k, k-1, 1))
-					if err = goblas.Zher2(uplo, n-k, -cone, a.CVector(k, k-1, 1), b.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+					a.Off(k, k-1).CVector().Axpy(n-k, ct, b.Off(k, k-1).CVector(), 1, 1)
+					if err = a.Off(k, k).Her2(uplo, n-k, -cone, a.Off(k, k-1).CVector(), 1, b.Off(k, k-1).CVector(), 1); err != nil {
 						panic(err)
 					}
-					goblas.Zaxpy(n-k, ct, b.CVector(k, k-1, 1), a.CVector(k, k-1, 1))
-					if err = goblas.Ztrsv(uplo, NoTrans, NonUnit, n-k, b.Off(k, k), a.CVector(k, k-1, 1)); err != nil {
+					a.Off(k, k-1).CVector().Axpy(n-k, ct, b.Off(k, k-1).CVector(), 1, 1)
+					if err = a.Off(k, k-1).CVector().Trsv(uplo, NoTrans, NonUnit, n-k, b.Off(k, k), 1); err != nil {
 						panic(err)
 					}
 				}
@@ -102,14 +101,14 @@ func Zhegs2(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = a.GetRe(k-1, k-1)
 				bkk = b.GetRe(k-1, k-1)
-				err = goblas.Ztrmv(uplo, NoTrans, NonUnit, k-1, b, a.CVector(0, k-1, 1))
+				err = a.Off(0, k-1).CVector().Trmv(uplo, NoTrans, NonUnit, k-1, b, 1)
 				ct = complex(half*akk, 0)
-				goblas.Zaxpy(k-1, ct, b.CVector(0, k-1, 1), a.CVector(0, k-1, 1))
-				if err = goblas.Zher2(uplo, k-1, cone, a.CVector(0, k-1, 1), b.CVector(0, k-1, 1), a); err != nil {
+				a.Off(0, k-1).CVector().Axpy(k-1, ct, b.Off(0, k-1).CVector(), 1, 1)
+				if err = a.Her2(uplo, k-1, cone, a.Off(0, k-1).CVector(), 1, b.Off(0, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
-				goblas.Zaxpy(k-1, ct, b.CVector(0, k-1, 1), a.CVector(0, k-1, 1))
-				goblas.Zdscal(k-1, bkk, a.CVector(0, k-1, 1))
+				a.Off(0, k-1).CVector().Axpy(k-1, ct, b.Off(0, k-1).CVector(), 1, 1)
+				a.Off(0, k-1).CVector().Dscal(k-1, bkk, 1)
 				a.SetRe(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -120,20 +119,20 @@ func Zhegs2(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 				//
 				akk = a.GetRe(k-1, k-1)
 				bkk = b.GetRe(k-1, k-1)
-				Zlacgv(k-1, a.CVector(k-1, 0))
-				if err = goblas.Ztrmv(uplo, ConjTrans, NonUnit, k-1, b, a.CVector(k-1, 0)); err != nil {
+				Zlacgv(k-1, a.Off(k-1, 0).CVector(), a.Rows)
+				if err = a.Off(k-1, 0).CVector().Trmv(uplo, ConjTrans, NonUnit, k-1, b, a.Rows); err != nil {
 					panic(err)
 				}
 				ct = complex(half*akk, 0)
-				Zlacgv(k-1, b.CVector(k-1, 0))
-				goblas.Zaxpy(k-1, ct, b.CVector(k-1, 0), a.CVector(k-1, 0))
-				if err = goblas.Zher2(uplo, k-1, cone, a.CVector(k-1, 0), b.CVector(k-1, 0), a); err != nil {
+				Zlacgv(k-1, b.Off(k-1, 0).CVector(), b.Rows)
+				a.Off(k-1, 0).CVector().Axpy(k-1, ct, b.Off(k-1, 0).CVector(), b.Rows, a.Rows)
+				if err = a.Her2(uplo, k-1, cone, a.Off(k-1, 0).CVector(), a.Rows, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
-				goblas.Zaxpy(k-1, ct, b.CVector(k-1, 0), a.CVector(k-1, 0))
-				Zlacgv(k-1, b.CVector(k-1, 0))
-				goblas.Zdscal(k-1, bkk, a.CVector(k-1, 0))
-				Zlacgv(k-1, a.CVector(k-1, 0))
+				a.Off(k-1, 0).CVector().Axpy(k-1, ct, b.Off(k-1, 0).CVector(), b.Rows, a.Rows)
+				Zlacgv(k-1, b.Off(k-1, 0).CVector(), b.Rows)
+				a.Off(k-1, 0).CVector().Dscal(k-1, bkk, a.Rows)
+				Zlacgv(k-1, a.Off(k-1, 0).CVector(), a.Rows)
 				a.SetRe(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		}

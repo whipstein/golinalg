@@ -1,15 +1,6 @@
 package util
 
 const (
-	// uvnan    = 0xFF800001
-	// uvinf    = 0x7F800000
-	// uvneginf = 0xFF800000
-	// uvone    = 0x3F800000
-	// mask     = 0xFF
-	// shift = 32 - 8 - 1
-	// bias     = 127
-	// signMask = 1 << 31
-	// fracMask = 1<<shift - 1
 	epsf64 = 2.2204460492503131e-016
 	tiny   = 2.2250738585072014e-308
 	huge   = 1.7976931348623157e+308

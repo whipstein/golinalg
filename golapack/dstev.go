@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -66,8 +65,8 @@ func Dstev(jobz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector) 
 		sigma = rmax / tnrm
 	}
 	if iscale == 1 {
-		goblas.Dscal(n, sigma, d.Off(0, 1))
-		goblas.Dscal(n-1, sigma, e.Off(0, 1))
+		d.Scal(n, sigma, 1)
+		e.Scal(n-1, sigma, 1)
 	}
 
 	//     For eigenvalues only, call DSTERF.  For eigenvalues and
@@ -89,7 +88,7 @@ func Dstev(jobz byte, n int, d, e *mat.Vector, z *mat.Matrix, work *mat.Vector) 
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, d.Off(0, 1))
+		d.Scal(imax, one/sigma, 1)
 	}
 
 	return

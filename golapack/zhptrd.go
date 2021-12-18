@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -46,7 +45,7 @@ func Zhptrd(uplo mat.MatUplo, n int, ap *mat.CVector, d, e *mat.Vector, tau *mat
 			//           Generate elementary reflector H(i) = I - tau * v * v**H
 			//           to annihilate A(1:i-1,i+1)
 			alpha = ap.Get(i1 + i - 1 - 1)
-			alpha, taui = Zlarfg(i, alpha, ap.Off(i1-1, 1))
+			alpha, taui = Zlarfg(i, alpha, ap.Off(i1-1), 1)
 			e.Set(i-1, real(alpha))
 
 			if taui != zero {
@@ -54,17 +53,17 @@ func Zhptrd(uplo mat.MatUplo, n int, ap *mat.CVector, d, e *mat.Vector, tau *mat
 				ap.Set(i1+i-1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(1:i)
-				if err = goblas.Zhpmv(uplo, i, taui, ap, ap.Off(i1-1, 1), zero, tau.Off(0, 1)); err != nil {
+				if err = tau.Hpmv(uplo, i, taui, ap, ap.Off(i1-1), 1, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              Compute  w := y - 1/2 * tau * (y**H *v) * v
-				alpha = -half * taui * goblas.Zdotc(i, tau.Off(0, 1), ap.Off(i1-1, 1))
-				goblas.Zaxpy(i, alpha, ap.Off(i1-1, 1), tau.Off(0, 1))
+				alpha = -half * taui * ap.Off(i1-1).Dotc(i, tau, 1, 1)
+				tau.Axpy(i, alpha, ap.Off(i1-1), 1, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**H - w * v**H
-				if err = goblas.Zhpr2(uplo, i, -one, ap.Off(i1-1, 1), tau.Off(0, 1), ap); err != nil {
+				if err = ap.Hpr2(uplo, i, -one, ap.Off(i1-1), 1, tau, 1); err != nil {
 					panic(err)
 				}
 
@@ -86,7 +85,7 @@ func Zhptrd(uplo mat.MatUplo, n int, ap *mat.CVector, d, e *mat.Vector, tau *mat
 			//           Generate elementary reflector H(i) = I - tau * v * v**H
 			//           to annihilate A(i+2:n,i)
 			alpha = ap.Get(ii + 1 - 1)
-			alpha, taui = Zlarfg(n-i, alpha, ap.Off(ii+2-1, 1))
+			alpha, taui = Zlarfg(n-i, alpha, ap.Off(ii+2-1), 1)
 			e.Set(i-1, real(alpha))
 
 			if taui != zero {
@@ -94,17 +93,17 @@ func Zhptrd(uplo mat.MatUplo, n int, ap *mat.CVector, d, e *mat.Vector, tau *mat
 				ap.Set(ii, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(i:n-1)
-				if err = goblas.Zhpmv(uplo, n-i, taui, ap.Off(i1i1-1), ap.Off(ii, 1), zero, tau.Off(i-1, 1)); err != nil {
+				if err = tau.Off(i-1).Hpmv(uplo, n-i, taui, ap.Off(i1i1-1), ap.Off(ii), 1, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              Compute  w := y - 1/2 * tau * (y**H *v) * v
-				alpha = -half * taui * goblas.Zdotc(n-i, tau.Off(i-1, 1), ap.Off(ii, 1))
-				goblas.Zaxpy(n-i, alpha, ap.Off(ii, 1), tau.Off(i-1, 1))
+				alpha = -half * taui * ap.Off(ii).Dotc(n-i, tau.Off(i-1), 1, 1)
+				tau.Off(i-1).Axpy(n-i, alpha, ap.Off(ii), 1, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**H - w * v**H
-				if err = goblas.Zhpr2(uplo, n-i, -one, ap.Off(ii, 1), tau.Off(i-1, 1), ap.Off(i1i1-1)); err != nil {
+				if err = ap.Off(i1i1-1).Hpr2(uplo, n-i, -one, ap.Off(ii), 1, tau.Off(i-1), 1); err != nil {
 					panic(err)
 				}
 

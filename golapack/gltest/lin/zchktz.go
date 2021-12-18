@@ -85,8 +85,8 @@ func zchktz(dotype []bool, nm int, mval []int, nn int, nval []int, thresh *float
 						if err = golapack.Zgeqr2(m, n, a.CMatrix(lda, opts), work, work.Off(mnmin)); err != nil {
 							panic(err)
 						}
-						golapack.Zlaset(Lower, m-1, n, complex(zero, 0), complex(zero, 0), a.CMatrixOff(1, lda, opts))
-						dlaord('D', mnmin, s.Off(0, 1))
+						golapack.Zlaset(Lower, m-1, n, complex(zero, 0), complex(zero, 0), a.Off(1).CMatrix(lda, opts))
+						dlaord('D', mnmin, s, 1)
 					}
 
 					//                 Save A and its singular values

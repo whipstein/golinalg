@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -131,11 +130,11 @@ func Dsyevx(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.Matrix, vl, vu fl
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= n; j++ {
-				goblas.Dscal(n-j+1, sigma, a.Vector(j-1, j-1, 1))
+				a.Off(j-1, j-1).Vector().Scal(n-j+1, sigma, 1)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				goblas.Dscal(j, sigma, a.Vector(0, j-1, 1))
+				a.Off(0, j-1).Vector().Scal(j, sigma, 1)
 			}
 		}
 		if abstol > 0 {
@@ -167,10 +166,10 @@ func Dsyevx(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.Matrix, vl, vu fl
 		}
 	}
 	if (alleig || test) && (abstol <= zero) {
-		goblas.Dcopy(n, work.Off(indd-1, 1), w.Off(0, 1))
+		w.Copy(n, work.Off(indd-1), 1, 1)
 		indee = indwrk + 2*n
 		if !wantz {
-			goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+			work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
 			if info, err = Dsterf(n, w, work.Off(indee-1)); err != nil {
 				panic(err)
 			}
@@ -179,7 +178,7 @@ func Dsyevx(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.Matrix, vl, vu fl
 			if err = Dorgtr(uplo, n, z, work.Off(indtau-1), work.Off(indwrk-1), llwork); err != nil {
 				panic(err)
 			}
-			goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+			work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
 			if info, err = Dsteqr(jobz, n, w, work.Off(indee-1), z, work.Off(indwrk-1)); err != nil {
 				panic(err)
 			}
@@ -232,7 +231,7 @@ label40:
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -254,7 +253,7 @@ label40:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+				z.Off(0, j-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

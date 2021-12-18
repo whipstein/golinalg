@@ -123,20 +123,20 @@ func Zgghrd(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix) (err er
 			ctemp = a.Get(jrow-1-1, jcol-1)
 			c, s, *a.GetPtr(jrow-1-1, jcol-1) = Zlartg(ctemp, a.Get(jrow-1, jcol-1))
 			a.Set(jrow-1, jcol-1, czero)
-			Zrot(n-jcol, a.CVector(jrow-1-1, jcol), a.CVector(jrow-1, jcol), c, s)
-			Zrot(n+2-jrow, b.CVector(jrow-1-1, jrow-1-1), b.CVector(jrow-1, jrow-1-1), c, s)
+			Zrot(n-jcol, a.Off(jrow-1-1, jcol).CVector(), a.Rows, a.Off(jrow-1, jcol).CVector(), a.Rows, c, s)
+			Zrot(n+2-jrow, b.Off(jrow-1-1, jrow-1-1).CVector(), b.Rows, b.Off(jrow-1, jrow-1-1).CVector(), b.Rows, c, s)
 			if ilq {
-				Zrot(n, q.CVector(0, jrow-1-1, 1), q.CVector(0, jrow-1, 1), c, cmplx.Conj(s))
+				Zrot(n, q.Off(0, jrow-1-1).CVector(), 1, q.Off(0, jrow-1).CVector(), 1, c, cmplx.Conj(s))
 			}
 
 			//           Step 2: rotate columns JROW, JROW-1 to kill B(JROW,JROW-1)
 			ctemp = b.Get(jrow-1, jrow-1)
 			c, s, *b.GetPtr(jrow-1, jrow-1) = Zlartg(ctemp, b.Get(jrow-1, jrow-1-1))
 			b.Set(jrow-1, jrow-1-1, czero)
-			Zrot(ihi, a.CVector(0, jrow-1, 1), a.CVector(0, jrow-1-1, 1), c, s)
-			Zrot(jrow-1, b.CVector(0, jrow-1, 1), b.CVector(0, jrow-1-1, 1), c, s)
+			Zrot(ihi, a.Off(0, jrow-1).CVector(), 1, a.Off(0, jrow-1-1).CVector(), 1, c, s)
+			Zrot(jrow-1, b.Off(0, jrow-1).CVector(), 1, b.Off(0, jrow-1-1).CVector(), 1, c, s)
 			if ilz {
-				Zrot(n, z.CVector(0, jrow-1, 1), z.CVector(0, jrow-1-1, 1), c, s)
+				Zrot(n, z.Off(0, jrow-1).CVector(), 1, z.Off(0, jrow-1-1).CVector(), 1, c, s)
 			}
 		}
 	}

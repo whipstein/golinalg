@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -28,9 +27,9 @@ func dget10(m, n int, a, b *mat.Matrix, work *mat.Vector) float64 {
 
 	wnorm = zero
 	for j = 1; j <= n; j++ {
-		goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
-		goblas.Daxpy(m, -one, b.Vector(0, j-1, 1), work.Off(0, 1))
-		wnorm = math.Max(wnorm, goblas.Dasum(n, work.Off(0, 1)))
+		work.Copy(m, a.Off(0, j-1).Vector(), 1, 1)
+		work.Axpy(m, -one, b.Off(0, j-1).Vector(), 1, 1)
+		wnorm = math.Max(wnorm, work.Asum(n, 1))
 	}
 
 	anorm = math.Max(golapack.Dlange('1', m, n, a, work), unfl)

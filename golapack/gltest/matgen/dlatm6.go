@@ -134,13 +134,13 @@ func Dlatm6(_type, n int, a, b, x, y *mat.Matrix, alpha, beta, wx, wy float64, s
 		s.Set(4, one/math.Sqrt((one+two*wx*wx)/(one+a.Get(4, 4)*a.Get(4, 4))))
 
 		Dlakf2(1, 4, a, a.Off(1, 1), b, b.Off(1, 1), z)
-		if _, err = golapack.Dgesvd('N', 'N', 8, 8, z, work, work.MatrixOff(8, 1, opts), work.MatrixOff(9, 1, opts), work.Off(10), 40); err != nil {
+		if _, err = golapack.Dgesvd('N', 'N', 8, 8, z, work, work.Off(8).Matrix(1, opts), work.Off(9).Matrix(1, opts), work.Off(10), 40); err != nil {
 			panic(err)
 		}
 		dif.Set(0, work.Get(7))
 
 		Dlakf2(4, 1, a, a.Off(4, 4), b, b.Off(4, 4), z)
-		if _, err = golapack.Dgesvd('N', 'N', 8, 8, z, work, work.MatrixOff(8, 1, opts), work.MatrixOff(9, 1, opts), work.Off(10), 40); err != nil {
+		if _, err = golapack.Dgesvd('N', 'N', 8, 8, z, work, work.Off(8).Matrix(1, opts), work.Off(9).Matrix(1, opts), work.Off(10), 40); err != nil {
 			panic(err)
 		}
 		dif.Set(4, work.Get(7))
@@ -154,13 +154,13 @@ func Dlatm6(_type, n int, a, b, x, y *mat.Matrix, alpha, beta, wx, wy float64, s
 		s.Set(4, s.Get(3))
 
 		Dlakf2(2, 3, a, a.Off(2, 2), b, b.Off(2, 2), z)
-		if _, err = golapack.Dgesvd('N', 'N', 12, 12, z, work, work.MatrixOff(12, 1, opts), work.MatrixOff(13, 1, opts), work.Off(14), 60); err != nil {
+		if _, err = golapack.Dgesvd('N', 'N', 12, 12, z, work, work.Off(12).Matrix(1, opts), work.Off(13).Matrix(1, opts), work.Off(14), 60); err != nil {
 			panic(err)
 		}
 		dif.Set(0, work.Get(11))
 
 		Dlakf2(3, 2, a, a.Off(3, 3), b, b.Off(3, 3), z)
-		if _, err = golapack.Dgesvd('N', 'N', 12, 12, z, work, work.MatrixOff(12, 1, opts), work.MatrixOff(13, 1, opts), work.Off(14), 60); err != nil {
+		if _, err = golapack.Dgesvd('N', 'N', 12, 12, z, work, work.Off(12).Matrix(1, opts), work.Off(13).Matrix(1, opts), work.Off(14), 60); err != nil {
 			panic(err)
 		}
 		dif.Set(4, work.Get(11))

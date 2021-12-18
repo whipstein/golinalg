@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -174,8 +173,8 @@ func dget24(comp bool, jtype int, thresh float64, iseed []int, nounit int, n int
 			return
 		}
 		if isort == 0 {
-			goblas.Dcopy(n, wr.Off(0, 1), wrtmp.Off(0, 1))
-			goblas.Dcopy(n, wi.Off(0, 1), witmp.Off(0, 1))
+			wrtmp.Copy(n, wr, 1, 1)
+			witmp.Copy(n, wi, 1, 1)
 		}
 
 		//        Do Test (1) or Test (7)
@@ -206,10 +205,10 @@ func dget24(comp bool, jtype int, thresh float64, iseed []int, nounit int, n int
 		golapack.Dlacpy(Full, n, n, a, vs1)
 
 		//        Compute Q*H and store in HT.
-		err = goblas.Dgemm(NoTrans, NoTrans, n, n, n, one, vs, h, zero, ht)
+		err = ht.Gemm(NoTrans, NoTrans, n, n, n, one, vs, h, zero)
 
 		//        Compute A - Q*H*Q'
-		err = goblas.Dgemm(NoTrans, Trans, n, n, n, -one, ht, vs, one, vs1)
+		err = vs1.Gemm(NoTrans, Trans, n, n, n, -one, ht, vs, one)
 
 		anorm = math.Max(golapack.Dlange('1', n, n, a, work), smlnum)
 		wnorm = golapack.Dlange('1', n, n, vs1, work)

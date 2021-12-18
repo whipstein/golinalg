@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -28,10 +27,10 @@ func Zlaqp2(m, n, offset int, a *mat.CMatrix, jpvt *[]int, tau *mat.CVector, vn1
 		offpi = offset + i
 
 		//        Determine ith pivot column and swap if necessary.
-		pvt = (i - 1) + goblas.Idamax(n-i+1, vn1.Off(i-1, 1))
+		pvt = (i - 1) + vn1.Off(i-1).Iamax(n-i+1, 1)
 
 		if pvt != i {
-			goblas.Zswap(m, a.CVector(0, pvt-1, 1), a.CVector(0, i-1, 1))
+			a.Off(0, i-1).CVector().Swap(m, a.Off(0, pvt-1).CVector(), 1, 1)
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[i-1]
 			(*jpvt)[i-1] = itemp
@@ -41,16 +40,16 @@ func Zlaqp2(m, n, offset int, a *mat.CMatrix, jpvt *[]int, tau *mat.CVector, vn1
 
 		//        Generate elementary reflector H(i).
 		if offpi < m {
-			*a.GetPtr(offpi-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(m-offpi+1, a.Get(offpi-1, i-1), a.CVector(offpi, i-1, 1))
+			*a.GetPtr(offpi-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(m-offpi+1, a.Get(offpi-1, i-1), a.Off(offpi, i-1).CVector(), 1)
 		} else {
-			*a.GetPtr(m-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(1, a.Get(m-1, i-1), a.CVector(m-1, i-1, 1))
+			*a.GetPtr(m-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(1, a.Get(m-1, i-1), a.Off(m-1, i-1).CVector(), 1)
 		}
 
 		if i < n {
 			//           Apply H(i)**H to A(offset+i:m,i+1:n) from the left.
 			aii = a.Get(offpi-1, i-1)
 			a.Set(offpi-1, i-1, cone)
-			Zlarf(Left, m-offpi+1, n-i, a.CVector(offpi-1, i-1, 1), tau.GetConj(i-1), a.Off(offpi-1, i), work)
+			Zlarf(Left, m-offpi+1, n-i, a.Off(offpi-1, i-1).CVector(), 1, tau.GetConj(i-1), a.Off(offpi-1, i), work)
 			a.Set(offpi-1, i-1, aii)
 		}
 
@@ -64,7 +63,7 @@ func Zlaqp2(m, n, offset int, a *mat.CMatrix, jpvt *[]int, tau *mat.CVector, vn1
 				temp2 = temp * math.Pow(vn1.Get(j-1)/vn2.Get(j-1), 2)
 				if temp2 <= tol3z {
 					if offpi < m {
-						vn1.Set(j-1, goblas.Dznrm2(m-offpi, a.CVector(offpi, j-1, 1)))
+						vn1.Set(j-1, a.Off(offpi, j-1).CVector().Nrm2(m-offpi, 1))
 						vn2.Set(j-1, vn1.Get(j-1))
 					} else {
 						vn1.Set(j-1, zero)

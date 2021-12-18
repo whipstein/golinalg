@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -71,7 +70,7 @@ func Dtbtrs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 
 	//     Solve A * X = B  or  A**T * X = B.
 	for j = 1; j <= nrhs; j++ {
-		if err = goblas.Dtbsv(uplo, trans, diag, n, kd, ab, b.Vector(0, j-1, 1)); err != nil {
+		if err = b.Off(0, j-1).Vector().Tbsv(uplo, trans, diag, n, kd, ab, 1); err != nil {
 			panic(err)
 		}
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -85,10 +84,10 @@ func Zhseqr(job, compz byte, n, ilo, ihi int, h *mat.CMatrix, w *mat.CVector, z 
 	} else {
 		//        ==== copy eigenvalues isolated by ZGEBAL ====
 		if ilo > 1 {
-			goblas.Zcopy(ilo-1, h.CVector(0, 0, h.Rows+1), w.Off(0, 1))
+			w.Copy(ilo-1, h.Off(0, 0).CVector(), h.Rows+1, 1)
 		}
 		if ihi < n {
-			goblas.Zcopy(n-ihi, h.CVector(ihi, ihi, h.Rows+1), w.Off(ihi, 1))
+			w.Off(ihi).Copy(n-ihi, h.Off(ihi, ihi).CVector(), h.Rows+1, 1)
 		}
 
 		//        ==== Initialize Z, if requested ====

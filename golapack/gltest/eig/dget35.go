@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -132,10 +131,10 @@ func dget35() (rmax float64, lmax, ninfo, knt int) {
 												rmul = one / math.Max(xnrm, tnrm)
 											}
 										}
-										if err = goblas.Dgemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, -scale*rmul, cc); err != nil {
+										if err = cc.Gemm(mat.TransByte(trana), NoTrans, m, n, m, rmul, a, c, -scale*rmul); err != nil {
 											panic(err)
 										}
-										if err = goblas.Dgemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, b, one, cc); err != nil {
+										if err = cc.Gemm(NoTrans, mat.TransByte(tranb), m, n, n, float64(isgn)*rmul, c, b, one); err != nil {
 											panic(err)
 										}
 										res1 = golapack.Dlange('M', m, n, cc, dum)

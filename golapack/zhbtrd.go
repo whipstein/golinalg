@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -85,7 +84,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					if nr > 0 {
 						//                    generate plane rotations to annihilate nonzero
 						//                    elements which have been created outside the band
-						Zlargv(nr, ab.CVector(0, j1-1-1, inca), work.Off(j1-1, kd1), d.Off(j1-1, kd1))
+						Zlargv(nr, ab.Off(0, j1-1-1).CVector(), inca, work.Off(j1-1), kd1, d.Off(j1-1), kd1)
 
 						//                    apply rotations from the right
 						//
@@ -94,13 +93,13 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 						//                    ZLARTV or ZROT is used
 						if nr >= 2*kd-1 {
 							for l = 1; l <= kd-1; l++ {
-								Zlartv(nr, ab.CVector(l, j1-1-1, inca), ab.CVector(l-1, j1-1, inca), d.Off(j1-1, kd1), work.Off(j1-1, kd1))
+								Zlartv(nr, ab.Off(l, j1-1-1).CVector(), inca, ab.Off(l-1, j1-1).CVector(), inca, d.Off(j1-1), work.Off(j1-1), kd1)
 							}
 
 						} else {
 							jend = j1 + (nr-1)*kd1
 							for jinc = j1; jinc <= jend; jinc += kd1 {
-								Zrot(kdm1, ab.CVector(1, jinc-1-1, 1), ab.CVector(0, jinc-1, 1), d.Get(jinc-1), work.Get(jinc-1))
+								Zrot(kdm1, ab.Off(1, jinc-1-1).CVector(), 1, ab.Off(0, jinc-1).CVector(), 1, d.Get(jinc-1), work.Get(jinc-1))
 							}
 						}
 					}
@@ -113,7 +112,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 							ab.Set(kd-k+3-1, i+k-2-1, temp)
 
 							//                       apply rotation from the right
-							Zrot(k-3, ab.CVector(kd-k+4-1, i+k-2-1, 1), ab.CVector(kd-k+3-1, i+k-1-1, 1), d.Get(i+k-1-1), work.Get(i+k-1-1))
+							Zrot(k-3, ab.Off(kd-k+4-1, i+k-2-1).CVector(), 1, ab.Off(kd-k+3-1, i+k-1-1).CVector(), 1, d.Get(i+k-1-1), work.Get(i+k-1-1))
 						}
 						nr = nr + 1
 						j1 = j1 - kdn - 1
@@ -122,12 +121,12 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					//                 apply plane rotations from both sides to diagonal
 					//                 blocks
 					if nr > 0 {
-						Zlar2v(nr, ab.CVector(kd1-1, j1-1-1, inca), ab.CVector(kd1-1, j1-1, inca), ab.CVector(kd-1, j1-1, inca), d.Off(j1-1, kd1), work.Off(j1-1, kd1))
+						Zlar2v(nr, ab.Off(kd1-1, j1-1-1).CVector(), ab.Off(kd1-1, j1-1).CVector(), ab.Off(kd-1, j1-1).CVector(), inca, d.Off(j1-1), work.Off(j1-1), kd1)
 					}
 
 					//                 apply plane rotations from the left
 					if nr > 0 {
-						Zlacgv(nr, work.Off(j1-1, kd1))
+						Zlacgv(nr, work.Off(j1-1), kd1)
 						if 2*kd-1 < nr {
 							//                    Dependent on the the number of diagonals either
 							//                    ZLARTV or ZROT is used
@@ -138,20 +137,20 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 									nrt = nr
 								}
 								if nrt > 0 {
-									Zlartv(nrt, ab.CVector(kd-l-1, j1+l-1, inca), ab.CVector(kd-l, j1+l-1, inca), d.Off(j1-1, kd1), work.Off(j1-1, kd1))
+									Zlartv(nrt, ab.Off(kd-l-1, j1+l-1).CVector(), inca, ab.Off(kd-l, j1+l-1).CVector(), inca, d.Off(j1-1), work.Off(j1-1), kd1)
 								}
 							}
 						} else {
 							j1end = j1 + kd1*(nr-2)
 							if j1end >= j1 {
 								for jin = j1; jin <= j1end; jin += kd1 {
-									Zrot(kd-1, ab.CVector(kd-1-1, jin, incx), ab.CVector(kd-1, jin, incx), d.Get(jin-1), work.Get(jin-1))
+									Zrot(kd-1, ab.Off(kd-1-1, jin).CVector(), incx, ab.Off(kd-1, jin).CVector(), incx, d.Get(jin-1), work.Get(jin-1))
 								}
 							}
 							lend = min(kdm1, n-j2)
 							last = j1end + kd1
 							if lend > 0 {
-								Zrot(lend, ab.CVector(kd-1-1, last, incx), ab.CVector(kd-1, last, incx), d.Get(last-1), work.Get(last-1))
+								Zrot(lend, ab.Off(kd-1-1, last).CVector(), incx, ab.Off(kd-1, last).CVector(), incx, d.Get(last-1), work.Get(last-1))
 							}
 						}
 					}
@@ -174,12 +173,12 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 								iqb = max(1, j-ibl)
 								nq = 1 + iqaend - iqb
 								iqaend = min(iqaend+kd, iqend)
-								Zrot(nq, q.CVector(iqb-1, j-1-1, 1), q.CVector(iqb-1, j-1, 1), d.Get(j-1), work.GetConj(j-1))
+								Zrot(nq, q.Off(iqb-1, j-1-1).CVector(), 1, q.Off(iqb-1, j-1).CVector(), 1, d.Get(j-1), work.GetConj(j-1))
 							}
 						} else {
 
 							for j = j1; j <= j2; j += kd1 {
-								Zrot(n, q.CVector(0, j-1-1, 1), q.CVector(0, j-1, 1), d.Get(j-1), work.GetConj(j-1))
+								Zrot(n, q.Off(0, j-1-1).CVector(), 1, q.Off(0, j-1).CVector(), 1, d.Get(j-1), work.GetConj(j-1))
 							}
 						}
 
@@ -217,7 +216,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					ab.Set(kd-1, i+2-1, ab.Get(kd-1, i+2-1)*t)
 				}
 				if wantq {
-					goblas.Zscal(n, cmplx.Conj(t), q.CVector(0, i, 1))
+					q.Off(0, i).CVector().Scal(n, cmplx.Conj(t), 1)
 				}
 			}
 		} else {
@@ -251,7 +250,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					if nr > 0 {
 						//                    generate plane rotations to annihilate nonzero
 						//                    elements which have been created outside the band
-						Zlargv(nr, ab.CVector(kd1-1, j1-kd1-1, inca), work.Off(j1-1, kd1), d.Off(j1-1, kd1))
+						Zlargv(nr, ab.Off(kd1-1, j1-kd1-1).CVector(), inca, work.Off(j1-1), kd1, d.Off(j1-1), kd1)
 
 						//                    apply plane rotations from one side
 						//
@@ -260,12 +259,12 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 						//                    ZLARTV or ZROT is used
 						if nr > 2*kd-1 {
 							for l = 1; l <= kd-1; l++ {
-								Zlartv(nr, ab.CVector(kd1-l-1, j1-kd1+l-1, inca), ab.CVector(kd1-l, j1-kd1+l-1, inca), d.Off(j1-1, kd1), work.Off(j1-1, kd1))
+								Zlartv(nr, ab.Off(kd1-l-1, j1-kd1+l-1).CVector(), inca, ab.Off(kd1-l, j1-kd1+l-1).CVector(), inca, d.Off(j1-1), work.Off(j1-1), kd1)
 							}
 						} else {
 							jend = j1 + kd1*(nr-1)
 							for jinc = j1; jinc <= jend; jinc += kd1 {
-								Zrot(kdm1, ab.CVector(kd-1, jinc-kd-1, incx), ab.CVector(kd1-1, jinc-kd-1, incx), d.Get(jinc-1), work.Get(jinc-1))
+								Zrot(kdm1, ab.Off(kd-1, jinc-kd-1).CVector(), incx, ab.Off(kd1-1, jinc-kd-1).CVector(), incx, d.Get(jinc-1), work.Get(jinc-1))
 							}
 						}
 
@@ -279,7 +278,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 							ab.Set(k-1-1, i-1, temp)
 
 							//                       apply rotation from the left
-							Zrot(k-3, ab.CVector(k-2-1, i, ab.Rows-1), ab.CVector(k-1-1, i, ab.Rows-1), d.Get(i+k-1-1), work.Get(i+k-1-1))
+							Zrot(k-3, ab.Off(k-2-1, i).CVector(), ab.Rows-1, ab.Off(k-1-1, i).CVector(), ab.Rows-1, d.Get(i+k-1-1), work.Get(i+k-1-1))
 						}
 						nr = nr + 1
 						j1 = j1 - kdn - 1
@@ -288,7 +287,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					//                 apply plane rotations from both sides to diagonal
 					//                 blocks
 					if nr > 0 {
-						Zlar2v(nr, ab.CVector(0, j1-1-1, inca), ab.CVector(0, j1-1, inca), ab.CVector(1, j1-1-1, inca), d.Off(j1-1, kd1), work.Off(j1-1, kd1))
+						Zlar2v(nr, ab.Off(0, j1-1-1).CVector(), ab.Off(0, j1-1).CVector(), ab.Off(1, j1-1-1).CVector(), inca, d.Off(j1-1), work.Off(j1-1), kd1)
 					}
 
 					//                 apply plane rotations from the right
@@ -297,7 +296,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					//                    Dependent on the the number of diagonals either
 					//                    ZLARTV or ZROT is used
 					if nr > 0 {
-						Zlacgv(nr, work.Off(j1-1, kd1))
+						Zlacgv(nr, work.Off(j1-1), kd1)
 						if nr > 2*kd-1 {
 							for l = 1; l <= kd-1; l++ {
 								if j2+l > n {
@@ -306,20 +305,20 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 									nrt = nr
 								}
 								if nrt > 0 {
-									Zlartv(nrt, ab.CVector(l+2-1, j1-1-1, inca), ab.CVector(l, j1-1, inca), d.Off(j1-1, kd1), work.Off(j1-1, kd1))
+									Zlartv(nrt, ab.Off(l+2-1, j1-1-1).CVector(), inca, ab.Off(l, j1-1).CVector(), inca, d.Off(j1-1), work.Off(j1-1), kd1)
 								}
 							}
 						} else {
 							j1end = j1 + kd1*(nr-2)
 							if j1end >= j1 {
 								for j1inc = j1; j1inc <= j1end; j1inc += kd1 {
-									Zrot(kdm1, ab.CVector(2, j1inc-1-1, 1), ab.CVector(1, j1inc-1, 1), d.Get(j1inc-1), work.Get(j1inc-1))
+									Zrot(kdm1, ab.Off(2, j1inc-1-1).CVector(), 1, ab.Off(1, j1inc-1).CVector(), 1, d.Get(j1inc-1), work.Get(j1inc-1))
 								}
 							}
 							lend = min(kdm1, n-j2)
 							last = j1end + kd1
 							if lend > 0 {
-								Zrot(lend, ab.CVector(2, last-1-1, 1), ab.CVector(1, last-1, 1), d.Get(last-1), work.Get(last-1))
+								Zrot(lend, ab.Off(2, last-1-1).CVector(), 1, ab.Off(1, last-1).CVector(), 1, d.Get(last-1), work.Get(last-1))
 							}
 						}
 					}
@@ -343,12 +342,12 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 								iqb = max(1, j-ibl)
 								nq = 1 + iqaend - iqb
 								iqaend = min(iqaend+kd, iqend)
-								Zrot(nq, q.CVector(iqb-1, j-1-1, 1), q.CVector(iqb-1, j-1, 1), d.Get(j-1), work.Get(j-1))
+								Zrot(nq, q.Off(iqb-1, j-1-1).CVector(), 1, q.Off(iqb-1, j-1).CVector(), 1, d.Get(j-1), work.Get(j-1))
 							}
 						} else {
 
 							for j = j1; j <= j2; j += kd1 {
-								Zrot(n, q.CVector(0, j-1-1, 1), q.CVector(0, j-1, 1), d.Get(j-1), work.Get(j-1))
+								Zrot(n, q.Off(0, j-1-1).CVector(), 1, q.Off(0, j-1).CVector(), 1, d.Get(j-1), work.Get(j-1))
 							}
 						}
 					}
@@ -385,7 +384,7 @@ func Zhbtrd(vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, d, e *mat.V
 					ab.Set(1, i, ab.Get(1, i)*t)
 				}
 				if wantq {
-					goblas.Zscal(n, t, q.CVector(0, i, 1))
+					q.Off(0, i).CVector().Scal(n, t, 1)
 				}
 			}
 		} else {

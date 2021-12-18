@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -53,7 +52,7 @@ label20:
 		//        ... QUIT
 		goto label130
 	}
-	estOut = Dzsum1(n, x.Off(0, 1))
+	estOut = Dzsum1(n, x, 1)
 
 	for i = 1; i <= n; i++ {
 		absxi = x.GetMag(i - 1)
@@ -71,7 +70,7 @@ label20:
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY CTRANS(A)*X.
 label40:
 	;
-	(*isave)[1] = Izmax1(n, x.Off(0, 1))
+	(*isave)[1] = Izmax1(n, x, 1)
 	(*isave)[2] = 2
 
 	//     MAIN LOOP - ITERATIONS 2,3,...,ITMAX.
@@ -89,9 +88,9 @@ label50:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label70:
 	;
-	goblas.Zcopy(n, x.Off(0, 1), v.Off(0, 1))
+	v.Copy(n, x, 1, 1)
 	estold = estOut
-	estOut = Dzsum1(n, v.Off(0, 1))
+	estOut = Dzsum1(n, v, 1)
 
 	//     TEST FOR CYCLING.
 	if estOut <= estold {
@@ -115,7 +114,7 @@ label70:
 label90:
 	;
 	jlast = (*isave)[1]
-	(*isave)[1] = Izmax1(n, x.Off(0, 1))
+	(*isave)[1] = Izmax1(n, x, 1)
 	if (x.GetMag(jlast-1) != x.GetMag((*isave)[2-1]-1)) && ((*isave)[2] < itmax) {
 		(*isave)[2] = (*isave)[2] + 1
 		goto label50
@@ -137,9 +136,9 @@ label100:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label120:
 	;
-	temp = two * (Dzsum1(n, x.Off(0, 1)) / float64(3*n))
+	temp = two * (Dzsum1(n, x, 1) / float64(3*n))
 	if temp > estOut {
-		goblas.Zcopy(n, x.Off(0, 1), v.Off(0, 1))
+		x.Copy(n, x, 1, 1)
 		estOut = temp
 	}
 

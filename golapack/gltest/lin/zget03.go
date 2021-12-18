@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -39,7 +38,7 @@ func zget03(n int, a, ainv, work *mat.CMatrix, rwork *mat.Vector) (rcond, resid 
 	rcond = (one / anorm) / ainvnm
 
 	//     Compute I - A * AINV
-	if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, -cone, ainv, a, czero, work); err != nil {
+	if err = work.Gemm(NoTrans, NoTrans, n, n, n, -cone, ainv, a, czero); err != nil {
 		panic(err)
 	}
 	for i = 1; i <= n; i++ {

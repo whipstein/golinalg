@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -121,8 +120,8 @@ func Ztgsy2(trans mat.MatTrans, ijob, m, n int, a, b, c, d, e, f *mat.CMatrix, r
 					scaloc = Zgesc2(ldz, z, rhs, &ipiv, &jpiv)
 					if scaloc != one {
 						for k = 1; k <= n; k++ {
-							goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-							goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+							c.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
+							f.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
 						}
 						scale = scale * scaloc
 					}
@@ -137,12 +136,12 @@ func Ztgsy2(trans mat.MatTrans, ijob, m, n int, a, b, c, d, e, f *mat.CMatrix, r
 				//              Substitute R(I, J) and L(I, J) into remaining equation.
 				if i > 1 {
 					alpha = -rhs.Get(0)
-					goblas.Zaxpy(i-1, alpha, a.CVector(0, i-1, 1), c.CVector(0, j-1, 1))
-					goblas.Zaxpy(i-1, alpha, d.CVector(0, i-1, 1), f.CVector(0, j-1, 1))
+					c.Off(0, j-1).CVector().Axpy(i-1, alpha, a.Off(0, i-1).CVector(), 1, 1)
+					f.Off(0, j-1).CVector().Axpy(i-1, alpha, d.Off(0, i-1).CVector(), 1, 1)
 				}
 				if j < n {
-					goblas.Zaxpy(n-j, rhs.Get(1), b.CVector(j-1, j), c.CVector(i-1, j))
-					goblas.Zaxpy(n-j, rhs.Get(1), e.CVector(j-1, j), f.CVector(i-1, j))
+					c.Off(i-1, j).CVector().Axpy(n-j, rhs.Get(1), b.Off(j-1, j).CVector(), b.Rows, c.Rows)
+					f.Off(i-1, j).CVector().Axpy(n-j, rhs.Get(1), e.Off(j-1, j).CVector(), e.Rows, f.Rows)
 				}
 
 			}
@@ -173,8 +172,8 @@ func Ztgsy2(trans mat.MatTrans, ijob, m, n int, a, b, c, d, e, f *mat.CMatrix, r
 				scaloc = Zgesc2(ldz, z, rhs, &ipiv, &jpiv)
 				if scaloc != one {
 					for k = 1; k <= n; k++ {
-						goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-						goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+						c.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
+						f.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
 					}
 					scale = scale * scaloc
 				}

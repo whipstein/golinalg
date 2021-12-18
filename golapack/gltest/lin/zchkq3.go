@@ -103,7 +103,7 @@ func zchkq3(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 							iwork[i-1] = 1
 						}
 					}
-					dlaord('D', mnmin, s.Off(0, 1))
+					dlaord('D', mnmin, s, 1)
 				}
 
 				for inb = 1; inb <= nnb; inb++ {

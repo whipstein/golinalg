@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -49,7 +48,7 @@ func drzt01(m, n int, a, af *mat.Matrix, tau, work *mat.Vector, lwork int) (drzt
 
 	//     R = R - A
 	for i = 1; i <= n; i++ {
-		goblas.Daxpy(m, -one, a.Vector(0, i-1, 1), work.Off((i-1)*m, 1))
+		work.Off((i-1)*m).Axpy(m, -one, a.Off(0, i-1).Vector(), 1, 1)
 	}
 
 	drzt01Return = golapack.Dlange('O', m, n, work.Matrix(m, opts), rwork)

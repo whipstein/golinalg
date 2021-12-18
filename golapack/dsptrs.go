@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -62,17 +61,17 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			if err = goblas.Dger(k-1, nrhs, -one, ap.Off(kc-1, 1), b.Vector(k-1, 0), b); err != nil {
+			if err = b.Ger(k-1, nrhs, -one, ap.Off(kc-1), 1, b.Off(k-1, 0).Vector(), b.Rows); err != nil {
 				panic(err)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Dscal(nrhs, one/ap.Get(kc+k-1-1), b.Vector(k-1, 0))
+			b.Off(k-1, 0).Vector().Scal(nrhs, one/ap.Get(kc+k-1-1), b.Rows)
 			k = k - 1
 		} else {
 			//           2 x 2 diagonal block
@@ -80,15 +79,15 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Interchange rows K-1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k-1 {
-				goblas.Dswap(nrhs, b.Vector(k-1-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1-1, 0).Vector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in columns K-1 and K of A.
-			if err = goblas.Dger(k-2, nrhs, -one, ap.Off(kc-1, 1), b.Vector(k-1, 0), b); err != nil {
+			if err = b.Ger(k-2, nrhs, -one, ap.Off(kc-1), 1, b.Off(k-1, 0).Vector(), b.Rows); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dger(k-2, nrhs, -one, ap.Off(kc-(k-1)-1, 1), b.Vector(k-1-1, 0), b); err != nil {
+			if err = b.Ger(k-2, nrhs, -one, ap.Off(kc-(k-1)-1), 1, b.Off(k-1-1, 0).Vector(), b.Rows); err != nil {
 				panic(err)
 			}
 
@@ -130,14 +129,14 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//
 			//           Multiply by inv(U**T(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			if err = goblas.Dgemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1, 1), one, b.Vector(k-1, 0)); err != nil {
+			if err = b.Off(k-1, 0).Vector().Gemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1), 1, one, b.Rows); err != nil {
 				panic(err)
 			}
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 			}
 			kc = kc + k
 			k = k + 1
@@ -146,17 +145,17 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//
 			//           Multiply by inv(U**T(K+1)), where U(K+1) is the transformation
 			//           stored in columns K and K+1 of A.
-			if err = goblas.Dgemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1, 1), one, b.Vector(k-1, 0)); err != nil {
+			if err = b.Off(k-1, 0).Vector().Gemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1), 1, one, b.Rows); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dgemv(Trans, k-1, nrhs, -one, b, ap.Off(kc+k-1, 1), one, b.Vector(k, 0)); err != nil {
+			if err = b.Off(k, 0).Vector().Gemv(Trans, k-1, nrhs, -one, b, ap.Off(kc+k-1), 1, one, b.Rows); err != nil {
 				panic(err)
 			}
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 			}
 			kc = kc + 2*k + 1
 			k = k + 2
@@ -187,19 +186,19 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				if err = goblas.Dger(n-k, nrhs, -one, ap.Off(kc, 1), b.Vector(k-1, 0), b.Off(k, 0)); err != nil {
+				if err = b.Off(k, 0).Ger(n-k, nrhs, -one, ap.Off(kc), 1, b.Off(k-1, 0).Vector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Dscal(nrhs, one/ap.Get(kc-1), b.Vector(k-1, 0))
+			b.Off(k-1, 0).Vector().Scal(nrhs, one/ap.Get(kc-1), b.Rows)
 			kc = kc + n - k + 1
 			k = k + 1
 		} else {
@@ -208,16 +207,16 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Interchange rows K+1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k+1 {
-				goblas.Dswap(nrhs, b.Vector(k, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k, 0).Vector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k < n-1 {
-				if err = goblas.Dger(n-k-1, nrhs, -one, ap.Off(kc+2-1, 1), b.Vector(k-1, 0), b.Off(k+2-1, 0)); err != nil {
+				if err = b.Off(k+2-1, 0).Ger(n-k-1, nrhs, -one, ap.Off(kc+2-1), 1, b.Off(k-1, 0).Vector(), b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dger(n-k-1, nrhs, -one, ap.Off(kc+n-k+2-1, 1), b.Vector(k, 0), b.Off(k+2-1, 0)); err != nil {
+				if err = b.Off(k+2-1, 0).Ger(n-k-1, nrhs, -one, ap.Off(kc+n-k+2-1), 1, b.Off(k, 0).Vector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -262,7 +261,7 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Multiply by inv(L**T(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				if err = goblas.Dgemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc, 1), one, b.Vector(k-1, 0)); err != nil {
+				if err = b.Off(k-1, 0).Vector().Gemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -270,7 +269,7 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 			}
 			k = k - 1
 		} else {
@@ -279,10 +278,10 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Multiply by inv(L**T(K-1)), where L(K-1) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k < n {
-				if err = goblas.Dgemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc, 1), one, b.Vector(k-1, 0)); err != nil {
+				if err = b.Off(k-1, 0).Vector().Gemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc-(n-k)-1, 1), one, b.Vector(k-1-1, 0)); err != nil {
+				if err = b.Off(k-1-1, 0).Vector().Gemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc-(n-k)-1), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -290,7 +289,7 @@ func Dsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, ipiv *[]int, b *mat.M
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+				b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 			}
 			kc = kc - (n - k + 2)
 			k = k - 2

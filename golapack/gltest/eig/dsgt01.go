@@ -1,7 +1,6 @@
 package eig
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -45,13 +44,13 @@ func dsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.Matrix, d, work,
 
 	if itype == 1 {
 		//        Norm of AZ - BZD
-		if err = goblas.Dsymm(Left, uplo, n, m, one, a, z, zero, work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Symm(Left, uplo, n, m, one, a, z, zero); err != nil {
 			panic(err)
 		}
 		for i = 1; i <= m; i++ {
-			goblas.Dscal(n, d.Get(i-1), z.Vector(0, i-1, 1))
+			z.Off(0, i-1).Vector().Scal(n, d.Get(i-1), 1)
 		}
-		if err = goblas.Dsymm(Left, uplo, n, m, one, b, z, -one, work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Symm(Left, uplo, n, m, one, b, z, -one); err != nil {
 			panic(err)
 		}
 
@@ -59,13 +58,13 @@ func dsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.Matrix, d, work,
 
 	} else if itype == 2 {
 		//        Norm of ABZ - ZD
-		if err = goblas.Dsymm(Left, uplo, n, m, one, b, z, zero, work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Symm(Left, uplo, n, m, one, b, z, zero); err != nil {
 			panic(err)
 		}
 		for i = 1; i <= m; i++ {
-			goblas.Dscal(n, d.Get(i-1), z.Vector(0, i-1, 1))
+			z.Off(0, i-1).Vector().Scal(n, d.Get(i-1), 1)
 		}
-		if err = goblas.Dsymm(Left, uplo, n, m, one, a, work.Matrix(n, opts), -one, z); err != nil {
+		if err = z.Symm(Left, uplo, n, m, one, a, work.Matrix(n, opts), -one); err != nil {
 			panic(err)
 		}
 
@@ -73,13 +72,13 @@ func dsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.Matrix, d, work,
 
 	} else if itype == 3 {
 		//        Norm of BAZ - ZD
-		if err = goblas.Dsymm(Left, uplo, n, m, one, a, z, zero, work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Symm(Left, uplo, n, m, one, a, z, zero); err != nil {
 			panic(err)
 		}
 		for i = 1; i <= m; i++ {
-			goblas.Dscal(n, d.Get(i-1), z.Vector(0, i-1, 1))
+			z.Off(0, i-1).Vector().Scal(n, d.Get(i-1), 1)
 		}
-		if err = goblas.Dsymm(Left, uplo, n, m, one, b, work.Matrix(n, opts), -one, z); err != nil {
+		if err = z.Symm(Left, uplo, n, m, one, b, work.Matrix(n, opts), -one); err != nil {
 			panic(err)
 		}
 

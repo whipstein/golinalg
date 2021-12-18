@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -182,9 +181,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(n-m, one/bii, x.CVector(m, i-1, 1))
+				x.Off(m, i-1).CVector().Dscal(n-m, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Zgerc(n-m, kbt, -cone, x.CVector(m, i-1, 1), bb.CVector(kb1-kbt-1, i-1, 1), x.Off(m, i-kbt-1))
+					err = x.Off(m, i-kbt-1).Gerc(n-m, kbt, -cone, x.Off(m, i-1).CVector(), 1, bb.Off(kb1-kbt-1, i-1).CVector(), 1)
 				}
 			}
 
@@ -230,33 +229,33 @@ label10:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Zlargv(nrt, ab.CVector(0, j2t-1, inca), work.Off(j2t-m-1, ka1), rwork.Off(j2t-m-1, ka1))
+				Zlargv(nrt, ab.Off(0, j2t-1).CVector(), inca, work.Off(j2t-m-1), ka1, rwork.Off(j2t-m-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the right
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(ka1-l-1, j2-1, inca), ab.CVector(ka-l-1, j2, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Zlartv(nr, ab.Off(ka1-l-1, j2-1).CVector(), inca, ab.Off(ka-l-1, j2).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(ka1-1, j2-1, inca), ab.CVector(ka1-1, j2, inca), ab.CVector(ka-1, j2, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+				Zlar2v(nr, ab.Off(ka1-1, j2-1).CVector(), ab.Off(ka1-1, j2).CVector(), ab.Off(ka-1, j2).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 
-				Zlacgv(nr, work.Off(j2-m-1, ka1))
+				Zlacgv(nr, work.Off(j2-m-1), ka1)
 			}
 
 			//           start applying rotations in 1st set from the left
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j2+ka1-l-1, inca), ab.CVector(l, j2+ka1-l-1, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j2+ka1-l-1).CVector(), inca, ab.Off(l, j2+ka1-l-1).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					Zrot(n-m, x.CVector(m, j-1, 1), x.CVector(m, j, 1), rwork.Get(j-m-1), work.GetConj(j-m-1))
+					Zrot(n-m, x.Off(m, j-1).CVector(), 1, x.Off(m, j).CVector(), 1, rwork.Get(j-m-1), work.GetConj(j-m-1))
 				}
 			}
 		}
@@ -280,7 +279,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + ka + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j2-l, inca), ab.CVector(l, j2-l, inca), rwork.Off(j2-ka-1, ka1), work.Off(j2-ka-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j2-l).CVector(), inca, ab.Off(l, j2-l).CVector(), inca, rwork.Off(j2-ka-1), work.Off(j2-ka-1), ka1)
 				}
 			}
 			nr = (n - j2 + ka) / ka1
@@ -309,32 +308,32 @@ label10:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Zlargv(nr, ab.CVector(0, j2-1, inca), work.Off(j2-1, ka1), rwork.Off(j2-1, ka1))
+				Zlargv(nr, ab.Off(0, j2-1).CVector(), inca, work.Off(j2-1), ka1, rwork.Off(j2-1), ka1)
 
 				//              apply rotations in 2nd set from the right
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(ka1-l-1, j2-1, inca), ab.CVector(ka-l-1, j2, inca), rwork.Off(j2-1, ka1), work.Off(j2-1, ka1))
+					Zlartv(nr, ab.Off(ka1-l-1, j2-1).CVector(), inca, ab.Off(ka-l-1, j2).CVector(), inca, rwork.Off(j2-1), work.Off(j2-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(ka1-1, j2-1, inca), ab.CVector(ka1-1, j2, inca), ab.CVector(ka-1, j2, inca), rwork.Off(j2-1, ka1), work.Off(j2-1, ka1))
+				Zlar2v(nr, ab.Off(ka1-1, j2-1).CVector(), ab.Off(ka1-1, j2).CVector(), ab.Off(ka-1, j2).CVector(), inca, rwork.Off(j2-1), work.Off(j2-1), ka1)
 
-				Zlacgv(nr, work.Off(j2-1, ka1))
+				Zlacgv(nr, work.Off(j2-1), ka1)
 			}
 
 			//           start applying rotations in 2nd set from the left
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j2+ka1-l-1, inca), ab.CVector(l, j2+ka1-l-1, inca), rwork.Off(j2-1, ka1), work.Off(j2-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j2+ka1-l-1).CVector(), inca, ab.Off(l, j2+ka1-l-1).CVector(), inca, rwork.Off(j2-1), work.Off(j2-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					Zrot(n-m, x.CVector(m, j-1, 1), x.CVector(m, j, 1), rwork.Get(j-1), work.GetConj(j-1))
+					Zrot(n-m, x.Off(m, j-1).CVector(), 1, x.Off(m, j).CVector(), 1, rwork.Get(j-1), work.GetConj(j-1))
 				}
 			}
 		}
@@ -346,7 +345,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j2+ka1-l-1, inca), ab.CVector(l, j2+ka1-l-1, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j2+ka1-l-1).CVector(), inca, ab.Off(l, j2+ka1-l-1).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 		}
@@ -386,9 +385,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(n-m, one/bii, x.CVector(m, i-1, 1))
+				x.Off(m, i-1).CVector().Dscal(n-m, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Zgeru(n-m, kbt, -cone, x.CVector(m, i-1, 1), bb.CVector(kbt, i-kbt-1, bb.Rows-1), x.Off(m, i-kbt-1))
+					err = x.Off(m, i-kbt-1).Geru(n-m, kbt, -cone, x.Off(m, i-1).CVector(), 1, bb.Off(kbt, i-kbt-1).CVector(), bb.Rows-1)
 				}
 			}
 
@@ -434,33 +433,33 @@ label10:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Zlargv(nrt, ab.CVector(ka1-1, j2t-ka-1, inca), work.Off(j2t-m-1, ka1), rwork.Off(j2t-m-1, ka1))
+				Zlargv(nrt, ab.Off(ka1-1, j2t-ka-1).CVector(), inca, work.Off(j2t-m-1), ka1, rwork.Off(j2t-m-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the left
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(l, j2-l-1, inca), ab.CVector(l+2-1, j2-l-1, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Zlartv(nr, ab.Off(l, j2-l-1).CVector(), inca, ab.Off(l+2-1, j2-l-1).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(0, j2-1, inca), ab.CVector(0, j2, inca), ab.CVector(1, j2-1, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+				Zlar2v(nr, ab.Off(0, j2-1).CVector(), ab.Off(0, j2).CVector(), ab.Off(1, j2-1).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 
-				Zlacgv(nr, work.Off(j2-m-1, ka1))
+				Zlacgv(nr, work.Off(j2-m-1), ka1)
 			}
 
 			//           start applying rotations in 1st set from the right
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j2-1, inca), ab.CVector(ka1-l-1, j2, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j2-1).CVector(), inca, ab.Off(ka1-l-1, j2).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					Zrot(n-m, x.CVector(m, j-1, 1), x.CVector(m, j, 1), rwork.Get(j-m-1), work.Get(j-m-1))
+					Zrot(n-m, x.Off(m, j-1).CVector(), 1, x.Off(m, j).CVector(), 1, rwork.Get(j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -484,7 +483,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + ka + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j2-ka-1, inca), ab.CVector(ka1-l-1, j2-ka, inca), rwork.Off(j2-ka-1, ka1), work.Off(j2-ka-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j2-ka-1).CVector(), inca, ab.Off(ka1-l-1, j2-ka).CVector(), inca, rwork.Off(j2-ka-1), work.Off(j2-ka-1), ka1)
 				}
 			}
 			nr = (n - j2 + ka) / ka1
@@ -513,32 +512,32 @@ label10:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Zlargv(nr, ab.CVector(ka1-1, j2-ka-1, inca), work.Off(j2-1, ka1), rwork.Off(j2-1, ka1))
+				Zlargv(nr, ab.Off(ka1-1, j2-ka-1).CVector(), inca, work.Off(j2-1), ka1, rwork.Off(j2-1), ka1)
 
 				//              apply rotations in 2nd set from the left
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(l, j2-l-1, inca), ab.CVector(l+2-1, j2-l-1, inca), rwork.Off(j2-1, ka1), work.Off(j2-1, ka1))
+					Zlartv(nr, ab.Off(l, j2-l-1).CVector(), inca, ab.Off(l+2-1, j2-l-1).CVector(), inca, rwork.Off(j2-1), work.Off(j2-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(0, j2-1, inca), ab.CVector(0, j2, inca), ab.CVector(1, j2-1, inca), rwork.Off(j2-1, ka1), work.Off(j2-1, ka1))
+				Zlar2v(nr, ab.Off(0, j2-1).CVector(), ab.Off(0, j2).CVector(), ab.Off(1, j2-1).CVector(), inca, rwork.Off(j2-1), work.Off(j2-1), ka1)
 
-				Zlacgv(nr, work.Off(j2-1, ka1))
+				Zlacgv(nr, work.Off(j2-1), ka1)
 			}
 
 			//           start applying rotations in 2nd set from the right
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j2-1, inca), ab.CVector(ka1-l-1, j2, inca), rwork.Off(j2-1, ka1), work.Off(j2-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j2-1).CVector(), inca, ab.Off(ka1-l-1, j2).CVector(), inca, rwork.Off(j2-1), work.Off(j2-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					Zrot(n-m, x.CVector(m, j-1, 1), x.CVector(m, j, 1), rwork.Get(j-1), work.Get(j-1))
+					Zrot(n-m, x.Off(m, j-1).CVector(), 1, x.Off(m, j).CVector(), 1, rwork.Get(j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -550,7 +549,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j2-1, inca), ab.CVector(ka1-l-1, j2, inca), rwork.Off(j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j2-1).CVector(), inca, ab.Off(ka1-l-1, j2).CVector(), inca, rwork.Off(j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 		}
@@ -644,9 +643,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(nx, one/bii, x.CVector(0, i-1, 1))
+				x.Off(0, i-1).CVector().Dscal(nx, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Zgeru(nx, kbt, -cone, x.CVector(0, i-1, 1), bb.CVector(kb-1, i, bb.Rows-1), x.Off(0, i))
+					err = x.Off(0, i).Geru(nx, kbt, -cone, x.Off(0, i-1).CVector(), 1, bb.Off(kb-1, i).CVector(), bb.Rows-1)
 				}
 			}
 
@@ -691,19 +690,19 @@ label490:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Zlargv(nrt, ab.CVector(0, j1+ka-1, inca), work.Off(j1-1, ka1), rwork.Off(j1-1, ka1))
+				Zlargv(nrt, ab.Off(0, j1+ka-1).CVector(), inca, work.Off(j1-1), ka1, rwork.Off(j1-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the left
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(ka1-l-1, j1+l-1, inca), ab.CVector(ka-l-1, j1+l-1, inca), rwork.Off(j1-1, ka1), work.Off(j1-1, ka1))
+					Zlartv(nr, ab.Off(ka1-l-1, j1+l-1).CVector(), inca, ab.Off(ka-l-1, j1+l-1).CVector(), inca, rwork.Off(j1-1), work.Off(j1-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(ka1-1, j1-1, inca), ab.CVector(ka1-1, j1-1-1, inca), ab.CVector(ka-1, j1-1, inca), rwork.Off(j1-1, ka1), work.Off(j1-1, ka1))
+				Zlar2v(nr, ab.Off(ka1-1, j1-1).CVector(), ab.Off(ka1-1, j1-1-1).CVector(), ab.Off(ka-1, j1-1).CVector(), inca, rwork.Off(j1-1), work.Off(j1-1), ka1)
 
-				Zlacgv(nr, work.Off(j1-1, ka1))
+				Zlacgv(nr, work.Off(j1-1), ka1)
 			}
 
 			//           start applying rotations in 1st set from the right
@@ -711,14 +710,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j1t-1, inca), ab.CVector(l, j1t-1-1, inca), rwork.Off(j1t-1, ka1), work.Off(j1t-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j1t-1).CVector(), inca, ab.Off(l, j1t-1-1).CVector(), inca, rwork.Off(j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					Zrot(nx, x.CVector(0, j-1, 1), x.CVector(0, j-1-1, 1), rwork.Get(j-1), work.Get(j-1))
+					Zrot(nx, x.Off(0, j-1).CVector(), 1, x.Off(0, j-1-1).CVector(), 1, rwork.Get(j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -743,7 +742,7 @@ label490:
 				nrt = (j2 + ka + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j1t+ka-1, inca), ab.CVector(l, j1t+ka-1-1, inca), rwork.Off(m-kb+j1t+ka-1, ka1), work.Off(m-kb+j1t+ka-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j1t+ka-1).CVector(), inca, ab.Off(l, j1t+ka-1-1).CVector(), inca, rwork.Off(m-kb+j1t+ka-1), work.Off(m-kb+j1t+ka-1), ka1)
 				}
 			}
 			nr = (j2 + ka - 1) / ka1
@@ -772,18 +771,18 @@ label490:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Zlargv(nr, ab.CVector(0, j1+ka-1, inca), work.Off(m-kb+j1-1, ka1), rwork.Off(m-kb+j1-1, ka1))
+				Zlargv(nr, ab.Off(0, j1+ka-1).CVector(), inca, work.Off(m-kb+j1-1), ka1, rwork.Off(m-kb+j1-1), ka1)
 
 				//              apply rotations in 2nd set from the left
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(ka1-l-1, j1+l-1, inca), ab.CVector(ka-l-1, j1+l-1, inca), rwork.Off(m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+					Zlartv(nr, ab.Off(ka1-l-1, j1+l-1).CVector(), inca, ab.Off(ka-l-1, j1+l-1).CVector(), inca, rwork.Off(m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(ka1-1, j1-1, inca), ab.CVector(ka1-1, j1-1-1, inca), ab.CVector(ka-1, j1-1, inca), rwork.Off(m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+				Zlar2v(nr, ab.Off(ka1-1, j1-1).CVector(), ab.Off(ka1-1, j1-1-1).CVector(), ab.Off(ka-1, j1-1).CVector(), inca, rwork.Off(m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 
-				Zlacgv(nr, work.Off(m-kb+j1-1, ka1))
+				Zlacgv(nr, work.Off(m-kb+j1-1), ka1)
 			}
 
 			//           start applying rotations in 2nd set from the right
@@ -791,14 +790,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j1t-1, inca), ab.CVector(l, j1t-1-1, inca), rwork.Off(m-kb+j1t-1, ka1), work.Off(m-kb+j1t-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j1t-1).CVector(), inca, ab.Off(l, j1t-1-1).CVector(), inca, rwork.Off(m-kb+j1t-1), work.Off(m-kb+j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					Zrot(nx, x.CVector(0, j-1, 1), x.CVector(0, j-1-1, 1), rwork.Get(m-kb+j-1), work.Get(m-kb+j-1))
+					Zrot(nx, x.Off(0, j-1).CVector(), 1, x.Off(0, j-1-1).CVector(), 1, rwork.Get(m-kb+j-1), work.Get(m-kb+j-1))
 				}
 			}
 		}
@@ -811,7 +810,7 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(l-1, j1t-1, inca), ab.CVector(l, j1t-1-1, inca), rwork.Off(j1t-1, ka1), work.Off(j1t-1, ka1))
+					Zlartv(nrt, ab.Off(l-1, j1t-1).CVector(), inca, ab.Off(l, j1t-1-1).CVector(), inca, rwork.Off(j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 		}
@@ -851,9 +850,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Zdscal(nx, one/bii, x.CVector(0, i-1, 1))
+				x.Off(0, i-1).CVector().Dscal(nx, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Zgerc(nx, kbt, -cone, x.CVector(0, i-1, 1), bb.CVector(1, i-1, 1), x.Off(0, i))
+					err = x.Off(0, i).Gerc(nx, kbt, -cone, x.Off(0, i-1).CVector(), 1, bb.Off(1, i-1).CVector(), 1)
 				}
 			}
 
@@ -898,19 +897,19 @@ label490:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Zlargv(nrt, ab.CVector(ka1-1, j1-1, inca), work.Off(j1-1, ka1), rwork.Off(j1-1, ka1))
+				Zlargv(nrt, ab.Off(ka1-1, j1-1).CVector(), inca, work.Off(j1-1), ka1, rwork.Off(j1-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the right
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(l, j1-1, inca), ab.CVector(l+2-1, j1-1-1, inca), rwork.Off(j1-1, ka1), work.Off(j1-1, ka1))
+					Zlartv(nr, ab.Off(l, j1-1).CVector(), inca, ab.Off(l+2-1, j1-1-1).CVector(), inca, rwork.Off(j1-1), work.Off(j1-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(0, j1-1, inca), ab.CVector(0, j1-1-1, inca), ab.CVector(1, j1-1-1, inca), rwork.Off(j1-1, ka1), work.Off(j1-1, ka1))
+				Zlar2v(nr, ab.Off(0, j1-1).CVector(), ab.Off(0, j1-1-1).CVector(), ab.Off(1, j1-1-1).CVector(), inca, rwork.Off(j1-1), work.Off(j1-1), ka1)
 
-				Zlacgv(nr, work.Off(j1-1, ka1))
+				Zlacgv(nr, work.Off(j1-1), ka1)
 			}
 
 			//           start applying rotations in 1st set from the left
@@ -918,14 +917,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j1t-ka1+l-1, inca), ab.CVector(ka1-l-1, j1t-ka1+l-1, inca), rwork.Off(j1t-1, ka1), work.Off(j1t-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j1t-ka1+l-1).CVector(), inca, ab.Off(ka1-l-1, j1t-ka1+l-1).CVector(), inca, rwork.Off(j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					Zrot(nx, x.CVector(0, j-1, 1), x.CVector(0, j-1-1, 1), rwork.Get(j-1), work.GetConj(j-1))
+					Zrot(nx, x.Off(0, j-1).CVector(), 1, x.Off(0, j-1-1).CVector(), 1, rwork.Get(j-1), work.GetConj(j-1))
 				}
 			}
 		}
@@ -950,7 +949,7 @@ label490:
 				nrt = (j2 + ka + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j1t+l-1-1, inca), ab.CVector(ka1-l-1, j1t+l-1-1, inca), rwork.Off(m-kb+j1t+ka-1, ka1), work.Off(m-kb+j1t+ka-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j1t+l-1-1).CVector(), inca, ab.Off(ka1-l-1, j1t+l-1-1).CVector(), inca, rwork.Off(m-kb+j1t+ka-1), work.Off(m-kb+j1t+ka-1), ka1)
 				}
 			}
 			nr = (j2 + ka - 1) / ka1
@@ -979,18 +978,18 @@ label490:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Zlargv(nr, ab.CVector(ka1-1, j1-1, inca), work.Off(m-kb+j1-1, ka1), rwork.Off(m-kb+j1-1, ka1))
+				Zlargv(nr, ab.Off(ka1-1, j1-1).CVector(), inca, work.Off(m-kb+j1-1), ka1, rwork.Off(m-kb+j1-1), ka1)
 
 				//              apply rotations in 2nd set from the right
 				for l = 1; l <= ka-1; l++ {
-					Zlartv(nr, ab.CVector(l, j1-1, inca), ab.CVector(l+2-1, j1-1-1, inca), rwork.Off(m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+					Zlartv(nr, ab.Off(l, j1-1).CVector(), inca, ab.Off(l+2-1, j1-1-1).CVector(), inca, rwork.Off(m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Zlar2v(nr, ab.CVector(0, j1-1, inca), ab.CVector(0, j1-1-1, inca), ab.CVector(1, j1-1-1, inca), rwork.Off(m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+				Zlar2v(nr, ab.Off(0, j1-1).CVector(), ab.Off(0, j1-1-1).CVector(), ab.Off(1, j1-1-1).CVector(), inca, rwork.Off(m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 
-				Zlacgv(nr, work.Off(m-kb+j1-1, ka1))
+				Zlacgv(nr, work.Off(m-kb+j1-1), ka1)
 			}
 
 			//           start applying rotations in 2nd set from the left
@@ -998,14 +997,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j1t-ka1+l-1, inca), ab.CVector(ka1-l-1, j1t-ka1+l-1, inca), rwork.Off(m-kb+j1t-1, ka1), work.Off(m-kb+j1t-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j1t-ka1+l-1).CVector(), inca, ab.Off(ka1-l-1, j1t-ka1+l-1).CVector(), inca, rwork.Off(m-kb+j1t-1), work.Off(m-kb+j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					Zrot(nx, x.CVector(0, j-1, 1), x.CVector(0, j-1-1, 1), rwork.Get(m-kb+j-1), work.GetConj(m-kb+j-1))
+					Zrot(nx, x.Off(0, j-1).CVector(), 1, x.Off(0, j-1-1).CVector(), 1, rwork.Get(m-kb+j-1), work.GetConj(m-kb+j-1))
 				}
 			}
 		}
@@ -1018,7 +1017,7 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Zlartv(nrt, ab.CVector(ka1-l, j1t-ka1+l-1, inca), ab.CVector(ka1-l-1, j1t-ka1+l-1, inca), rwork.Off(j1t-1, ka1), work.Off(j1t-1, ka1))
+					Zlartv(nrt, ab.Off(ka1-l, j1t-ka1+l-1).CVector(), inca, ab.Off(ka1-l-1, j1t-ka1+l-1).CVector(), inca, rwork.Off(j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 		}

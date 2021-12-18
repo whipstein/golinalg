@@ -201,11 +201,11 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								//                          with the value returned by DGESVX (FACT =
 								//                          'N' reuses the condition number from the
 								//                          previous iteration with FACT = 'F').
-								golapack.Dlacpy(Full, kl+ku+1, n, asav.Matrix(lda, opts), afb.MatrixOff(kl, ldafb, opts))
+								golapack.Dlacpy(Full, kl+ku+1, n, asav.Matrix(lda, opts), afb.Off(kl).Matrix(ldafb, opts))
 								if equil || iequed > 1 {
 									//                             Compute row and column scale factors to
 									//                             equilibrate the matrix A.
-									if rowcnd, colcnd, amax, info, err = golapack.Dgbequ(n, n, kl, ku, afb.MatrixOff(kl, ldafb, opts), s, s.Off(n)); err != nil {
+									if rowcnd, colcnd, amax, info, err = golapack.Dgbequ(n, n, kl, ku, afb.Off(kl).Matrix(ldafb, opts), s, s.Off(n)); err != nil {
 										panic(err)
 									}
 									if info == 0 && n > 0 {
@@ -221,7 +221,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 										}
 
 										//                                Equilibrate the matrix.
-										equed = golapack.Dlaqgb(n, n, kl, ku, afb.MatrixOff(kl, ldafb, opts), s, s.Off(n), rowcnd, colcnd, amax)
+										equed = golapack.Dlaqgb(n, n, kl, ku, afb.Off(kl).Matrix(ldafb, opts), s, s.Off(n), rowcnd, colcnd, amax)
 									}
 								}
 
@@ -233,8 +233,8 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 								}
 
 								//                          Compute the 1-norm and infinity-norm of A.
-								anormo = golapack.Dlangb('1', n, kl, ku, afb.MatrixOff(kl, ldafb, opts), rwork)
-								anormi = golapack.Dlangb('I', n, kl, ku, afb.MatrixOff(kl, ldafb, opts), rwork)
+								anormo = golapack.Dlangb('1', n, kl, ku, afb.Off(kl).Matrix(ldafb, opts), rwork)
+								anormi = golapack.Dlangb('I', n, kl, ku, afb.Off(kl).Matrix(ldafb, opts), rwork)
 
 								//                          Factor the matrix A.
 								if info, err = golapack.Dgbtrf(n, n, kl, ku, afb.Matrix(ldafb, opts), &iwork); err != nil {
@@ -291,7 +291,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 									//
 									//                             Compute the LU factorization of the matrix
 									//                             and solve the system.
-									golapack.Dlacpy(Full, kl+ku+1, n, a.Matrix(lda, opts), afb.MatrixOff(kl, ldafb, opts))
+									golapack.Dlacpy(Full, kl+ku+1, n, a.Matrix(lda, opts), afb.Off(kl).Matrix(ldafb, opts))
 									golapack.Dlacpy(Full, n, nrhs, b.Matrix(ldb, opts), x.Matrix(ldb, opts))
 
 									*srnamt = "Dgbsv"
@@ -362,7 +362,7 @@ func ddrvgb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 											anrmpv = math.Max(anrmpv, math.Abs(a.Get(i-1+(j-1)*lda)))
 										}
 									}
-									rpvgrw = golapack.Dlantb('M', Upper, NonUnit, info, min(info-1, kl+ku), afb.MatrixOff(max(1, kl+ku+2-info)-1, ldafb, opts), work)
+									rpvgrw = golapack.Dlantb('M', Upper, NonUnit, info, min(info-1, kl+ku), afb.Off(max(1, kl+ku+2-info)-1).Matrix(ldafb, opts), work)
 									if rpvgrw == zero {
 										rpvgrw = one
 									} else {

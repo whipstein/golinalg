@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -373,7 +372,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 	for p = 1; p <= n; p++ {
 		aapp = zero
 		aaqq = one
-		aapp, aaqq = Zlassq(m, a.CVector(0, p-1, 1), aapp, aaqq)
+		aapp, aaqq = Zlassq(m, a.Off(0, p-1).CVector(), 1, aapp, aaqq)
 		if aapp > big {
 			err = fmt.Errorf("aapp > big: aapp=%v", aapp)
 			gltest.Xerbla2("Zgejsv", err)
@@ -387,7 +386,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			sva.Set(p-1, aapp*(aaqq*scalem))
 			if goscal {
 				goscal = false
-				goblas.Dscal(p-1, scalem, sva.Off(0, 1))
+				sva.Scal(p-1, scalem, 1)
 			}
 		}
 	}
@@ -459,7 +458,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				if err = Zungqr(m, n1, 1, u, cwork, cwork.Off(n), lwork-n); err != nil {
 					panic(err)
 				}
-				goblas.Zcopy(m, a.CVector(0, 0, 1), u.CVector(0, 0, 1))
+				u.Off(0, 0).CVector().Copy(m, a.Off(0, 0).CVector(), 1, 1)
 			}
 		}
 		if rsvec {
@@ -512,7 +511,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			for p = 1; p <= m; p++ {
 				xsc = zero
 				temp1 = one
-				xsc, temp1 = Zlassq(n, a.CVector(p-1, 0), xsc, temp1)
+				xsc, temp1 = Zlassq(n, a.Off(p-1, 0).CVector(), a.Rows, xsc, temp1)
 				//              ZLASSQ gets both the ell_2 and the ell_infinity norm
 				//              in one pass through the vector
 				rwork.Set(m+p-1, xsc*scalem)
@@ -524,7 +523,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			}
 		} else {
 			for p = 1; p <= m; p++ {
-				rwork.Set(m+p-1, scalem*a.GetMag(p-1, goblas.Izamax(n, a.CVector(p-1, 0, *&a.Rows))-1))
+				rwork.Set(m+p-1, scalem*a.GetMag(p-1, a.Off(p-1, 0).CVector().Iamax(n, a.Rows)-1))
 				aatmax = math.Max(aatmax, rwork.Get(m+p-1))
 				aatmin = math.Min(aatmin, rwork.Get(m+p-1))
 			}
@@ -544,7 +543,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 
 		xsc = zero
 		temp1 = one
-		xsc, temp1 = Dlassq(n, sva.Off(0, 1), xsc, temp1)
+		xsc, temp1 = Dlassq(n, sva, 1, xsc, temp1)
 		temp1 = one / temp1
 
 		entra = zero
@@ -688,7 +687,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			iwoff = n
 		}
 		for p = 1; p <= m-1; p++ {
-			q = goblas.Idamax(m-p+1, rwork.Off(m+p-1, 1)) + p - 1
+			q = rwork.Off(m+p-1).Iamax(m-p+1, 1) + p - 1
 			(*iwork)[iwoff+p-1] = q
 			if p != q {
 				temp1 = rwork.Get(m + p - 1)
@@ -797,7 +796,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				Zlacpy(Upper, n, n, a, v)
 				for p = 1; p <= n; p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Zdscal(p, one/temp1, v.CVector(0, p-1, 1))
+					v.Off(0, p-1).CVector().Dscal(p, one/temp1, 1)
 				}
 				if lsvec {
 					if temp1, err = Zpocon(Upper, n, v, one, cwork.Off(n), rwork); err != nil {
@@ -814,7 +813,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				Zlacpy(Upper, n, n, a, u)
 				for p = 1; p <= n; p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
-					goblas.Zdscal(p, one/temp1, u.CVector(0, p-1, 1))
+					u.Off(0, p-1).CVector().Dscal(p, one/temp1, 1)
 				}
 				if temp1, err = Zpocon(Upper, n, u, one, cwork.Off(n), rwork); err != nil {
 					panic(err)
@@ -827,7 +826,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				for p = 1; p <= n; p++ {
 					temp1 = sva.Get((*iwork)[p-1] - 1)
 					//[]               CALL ZDSCAL( p, ONE/TEMP1, CWORK(N+(p-1)*N+1), 1 )
-					goblas.Zdscal(p, one/temp1, cwork.Off((p-1)*n, 1))
+					cwork.Off((p-1)*n).Dscal(p, one/temp1, 1)
 				}
 				//           .. the columns of R are scaled to have unit Euclidean lengths.
 				//[]               CALL ZPOCON( 'U', N, CWORK(N+1), N, ONE, TEMP1,
@@ -858,8 +857,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 		//
 		//         .. transpose A(1:NR,1:N)
 		for p = 1; p <= min(n-1, nr); p++ {
-			goblas.Zcopy(n-p, a.CVector(p-1, p, *&a.Rows), a.CVector(p, p-1, 1))
-			Zlacgv(n-p+1, a.CVector(p-1, p-1, 1))
+			a.Off(p, p-1).CVector().Copy(n-p, a.Off(p-1, p).CVector(), a.Rows, 1)
+			Zlacgv(n-p+1, a.Off(p-1, p-1).CVector(), 1)
 		}
 		if nr == n {
 			a.Set(n-1, n-1, a.GetConj(n-1, n-1))
@@ -901,8 +900,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 
 			//           .. and transpose upper to lower triangular
 			for p = 1; p <= nr-1; p++ {
-				goblas.Zcopy(nr-p, a.CVector(p-1, p, *&a.Rows), a.CVector(p, p-1, 1))
-				Zlacgv(nr-p+1, a.CVector(p-1, p-1, 1))
+				a.Off(p, p-1).CVector().Copy(nr-p, a.Off(p-1, p).CVector(), a.Rows, 1)
+				Zlacgv(nr-p+1, a.Off(p-1, p-1).CVector(), 1)
 			}
 
 		}
@@ -942,8 +941,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 		if almort {
 			//           .. in this case NR equals N
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy(n-p+1, a.CVector(p-1, p-1, *&a.Rows), v.CVector(p-1, p-1, 1))
-				Zlacgv(n-p+1, v.CVector(p-1, p-1, 1))
+				v.Off(p-1, p-1).CVector().Copy(n-p+1, a.Off(p-1, p-1).CVector(), a.Rows, 1)
+				Zlacgv(n-p+1, v.Off(p-1, p-1).CVector(), 1)
 			}
 			Zlaset(Upper, nr-1, nr-1, czero, czero, v.Off(0, 1))
 
@@ -965,8 +964,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				panic(err)
 			}
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy(nr-p+1, v.CVector(p-1, p-1, *&v.Rows), v.CVector(p-1, p-1, 1))
-				Zlacgv(nr-p+1, v.CVector(p-1, p-1, 1))
+				v.Off(p-1, p-1).CVector().Copy(nr-p+1, v.Off(p-1, p-1).CVector(), v.Rows, 1)
+				Zlacgv(nr-p+1, v.Off(p-1, p-1).CVector(), 1)
 			}
 			Zlaset(Upper, nr-1, nr-1, czero, czero, v.Off(0, 1))
 
@@ -1014,8 +1013,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 		//        .. second preconditioning step to avoid need to accumulate
 		//        Jacobi rotations in the Jacobi iterations.
 		for p = 1; p <= nr; p++ {
-			goblas.Zcopy(n-p+1, a.CVector(p-1, p-1, *&a.Rows), u.CVector(p-1, p-1, 1))
-			Zlacgv(n-p+1, u.CVector(p-1, p-1, 1))
+			u.Off(p-1, p-1).CVector().Copy(n-p+1, a.Off(p-1, p-1).CVector(), a.Rows, 1)
+			Zlacgv(n-p+1, u.Off(p-1, p-1).CVector(), 1)
 		}
 		Zlaset(Upper, nr-1, nr-1, czero, czero, u.Off(0, 1))
 
@@ -1024,8 +1023,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 		}
 
 		for p = 1; p <= nr-1; p++ {
-			goblas.Zcopy(nr-p, u.CVector(p-1, p, *&u.Rows), u.CVector(p, p-1, 1))
-			Zlacgv(n-p+1, u.CVector(p-1, p-1, 1))
+			u.Off(p, p-1).CVector().Copy(nr-p, u.Off(p-1, p).CVector(), u.Rows, 1)
+			Zlacgv(n-p+1, u.Off(p-1, p-1).CVector(), 1)
 		}
 		Zlaset(Upper, nr-1, nr-1, czero, czero, u.Off(0, 1))
 
@@ -1052,8 +1051,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 		}
 
 		for p = 1; p <= n1; p++ {
-			xsc = one / goblas.Dznrm2(m, u.CVector(0, p-1, 1))
-			goblas.Zdscal(m, xsc, u.CVector(0, p-1, 1))
+			xsc = one / u.Off(0, p-1).CVector().Nrm2(m, 1)
+			u.Off(0, p-1).CVector().Dscal(m, xsc, 1)
 		}
 
 		if transp {
@@ -1072,8 +1071,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				//           transpose and use the QRF. This is subject to changes in an
 				//           optimized implementation of Zgejsv.
 				for p = 1; p <= nr; p++ {
-					goblas.Zcopy(n-p+1, a.CVector(p-1, p-1, *&a.Rows), v.CVector(p-1, p-1, 1))
-					Zlacgv(n-p+1, v.CVector(p-1, p-1, 1))
+					v.Off(p-1, p-1).CVector().Copy(n-p+1, a.Off(p-1, p-1).CVector(), a.Rows, 1)
+					Zlacgv(n-p+1, v.Off(p-1, p-1).CVector(), 1)
 				}
 
 				//           .. the following two loops perturb small entries to avoid
@@ -1108,12 +1107,12 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				//           Estimate the row scaled condition number of R1
 				//           (If R1 is rectangular, N > NR, then the condition number
 				//           of the leading NR x NR submatrix is estimated.)
-				Zlacpy(Lower, nr, nr, v, cwork.CMatrixOff(2*n, nr, opts))
+				Zlacpy(Lower, nr, nr, v, cwork.Off(2*n).CMatrix(nr, opts))
 				for p = 1; p <= nr; p++ {
-					temp1 = goblas.Dznrm2(nr-p+1, cwork.Off(2*n+(p-1)*nr+p-1, 1))
-					goblas.Zdscal(nr-p+1, one/temp1, cwork.Off(2*n+(p-1)*nr+p-1, 1))
+					temp1 = cwork.Off(2*n+(p-1)*nr+p-1).Nrm2(nr-p+1, 1)
+					cwork.Off(2*n+(p-1)*nr+p-1).Dscal(nr-p+1, one/temp1, 1)
 				}
-				if temp1, err = Zpocon(Lower, nr, cwork.CMatrixOff(2*n, nr, opts), one, cwork.Off(2*n+nr*nr), rwork); err != nil {
+				if temp1, err = Zpocon(Lower, nr, cwork.Off(2*n).CMatrix(nr, opts), one, cwork.Off(2*n+nr*nr), rwork); err != nil {
 					panic(err)
 				}
 				condr1 = one / math.Sqrt(temp1)
@@ -1147,14 +1146,14 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 					}
 
 					if nr != n {
-						Zlacpy(Full, n, nr, v, cwork.CMatrixOff(2*n, n, opts))
+						Zlacpy(Full, n, nr, v, cwork.Off(2*n).CMatrix(n, opts))
 					}
 					//              .. save ...
 					//
 					//           .. this transposed copy should be better than naive
 					for p = 1; p <= nr-1; p++ {
-						goblas.Zcopy(nr-p, v.CVector(p-1, p, *&v.Rows), v.CVector(p, p-1, 1))
-						Zlacgv(nr-p+1, v.CVector(p-1, p-1, 1))
+						v.Off(p, p-1).CVector().Copy(nr-p, v.Off(p-1, p).CVector(), v.Rows, 1)
+						Zlacgv(nr-p+1, v.Off(p-1, p-1).CVector(), 1)
 					}
 					v.Set(nr-1, nr-1, v.GetConj(nr-1, nr-1))
 
@@ -1190,7 +1189,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						}
 					}
 
-					Zlacpy(Full, n, nr, v, cwork.CMatrixOff(2*n, n, opts))
+					Zlacpy(Full, n, nr, v, cwork.Off(2*n).CMatrix(n, opts))
 
 					if l2pert {
 						xsc = math.Sqrt(small)
@@ -1209,12 +1208,12 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						panic(err)
 					}
 					//              .. and estimate the condition number
-					Zlacpy(Lower, nr, nr, v, cwork.CMatrixOff(2*n+n*nr+nr, nr, opts))
+					Zlacpy(Lower, nr, nr, v, cwork.Off(2*n+n*nr+nr).CMatrix(nr, opts))
 					for p = 1; p <= nr; p++ {
-						temp1 = goblas.Dznrm2(p, cwork.Off(2*n+n*nr+nr+p-1, nr))
-						goblas.Zdscal(p, one/temp1, cwork.Off(2*n+n*nr+nr+p-1, nr))
+						temp1 = cwork.Off(2*n+n*nr+nr+p-1).Nrm2(p, nr)
+						cwork.Off(2*n+n*nr+nr+p-1).Dscal(p, one/temp1, nr)
 					}
-					if temp1, err = Zpocon(Lower, nr, cwork.CMatrixOff(2*n+n*nr+nr, nr, opts), one, cwork.Off(2*n+n*nr+nr+nr*nr), rwork); err != nil {
+					if temp1, err = Zpocon(Lower, nr, cwork.Off(2*n+n*nr+nr).CMatrix(nr, opts), one, cwork.Off(2*n+n*nr+nr+nr*nr), rwork); err != nil {
 						panic(err)
 					}
 					condr2 = one / math.Sqrt(temp1)
@@ -1224,7 +1223,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						//                 (this overwrites the copy of R2, as it will not be
 						//                 needed in this branch, but it does not overwritte the
 						//                 Huseholder vectors of Q2.).
-						Zlacpy(Upper, nr, nr, v, cwork.CMatrixOff(2*n, n, opts))
+						Zlacpy(Upper, nr, nr, v, cwork.Off(2*n).CMatrix(n, opts))
 						//                 .. and the rest of the information on Q3 is in
 						//                 WORK(2*N+N*NR+1:2*N+N*NR+N)
 					}
@@ -1257,8 +1256,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 					scalem = rwork.Get(0)
 					numrank = int(math.Round(rwork.Get(1)))
 					for p = 1; p <= nr; p++ {
-						goblas.Zcopy(nr, v.CVector(0, p-1, 1), u.CVector(0, p-1, 1))
-						goblas.Zdscal(nr, sva.Get(p-1), v.CVector(0, p-1, 1))
+						u.Off(0, p-1).CVector().Copy(nr, v.Off(0, p-1).CVector(), 1, 1)
+						v.Off(0, p-1).CVector().Dscal(nr, sva.Get(p-1), 1)
 					}
 					//        .. pick the right matrix equation and solve it
 
@@ -1267,7 +1266,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						//                 equation is Q2*V2 = the product of the Jacobi rotations
 						//                 used in ZGESVJ, premultiplied with the orthogonal matrix
 						//                 from the second QR factorization.
-						if err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, a, v); err != nil {
+						if err = v.Trsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, a); err != nil {
 							panic(err)
 						}
 					} else {
@@ -1275,7 +1274,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						//                 is inverted to get the product of the Jacobi rotations
 						//                 used in ZGESVJ. The Q-factor from the second QR
 						//                 factorization is then built in explicitly.
-						if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, nr, nr, cone, cwork.CMatrixOff(2*n, n, opts), v); err != nil {
+						if err = v.Trsm(Left, Upper, ConjTrans, NonUnit, nr, nr, cone, cwork.Off(2*n).CMatrix(n, opts)); err != nil {
 							panic(err)
 						}
 						if nr < n {
@@ -1283,7 +1282,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 							Zlaset(Full, nr, n-nr, czero, czero, v.Off(0, nr))
 							Zlaset(Full, n-nr, n-nr, czero, cone, v.Off(nr, nr))
 						}
-						if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.CMatrixOff(2*n, n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
+						if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.Off(2*n).CMatrix(n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
 							panic(err)
 						}
 					}
@@ -1299,10 +1298,10 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 					scalem = rwork.Get(0)
 					numrank = int(math.Round(rwork.Get(1)))
 					for p = 1; p <= nr; p++ {
-						goblas.Zcopy(nr, v.CVector(0, p-1, 1), u.CVector(0, p-1, 1))
-						goblas.Zdscal(nr, sva.Get(p-1), u.CVector(0, p-1, 1))
+						u.Off(0, p-1).CVector().Copy(nr, v.Off(0, p-1).CVector(), 1, 1)
+						u.Off(0, p-1).CVector().Dscal(nr, sva.Get(p-1), 1)
 					}
-					if err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, cwork.CMatrixOff(2*n, n, opts), u); err != nil {
+					if err = u.Trsm(Left, Upper, NoTrans, NonUnit, nr, nr, cone, cwork.Off(2*n).CMatrix(n, opts)); err != nil {
 						panic(err)
 					}
 					//              .. apply the permutation from the second QR factorization
@@ -1319,7 +1318,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						Zlaset(Full, nr, n-nr, czero, czero, v.Off(0, nr))
 						Zlaset(Full, n-nr, n-nr, czero, cone, v.Off(nr, nr))
 					}
-					if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.CMatrixOff(2*n, n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
+					if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.Off(2*n).CMatrix(n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
 						panic(err)
 					}
 				} else {
@@ -1344,11 +1343,11 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						Zlaset(Full, nr, n-nr, czero, czero, v.Off(0, nr))
 						Zlaset(Full, n-nr, n-nr, czero, cone, v.Off(nr, nr))
 					}
-					if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.CMatrixOff(2*n, n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
+					if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.Off(2*n).CMatrix(n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
 						panic(err)
 					}
 
-					if err = Zunmlq(Left, ConjTrans, nr, nr, nr, cwork.CMatrixOff(2*n, n, opts), cwork.Off(2*n+n*nr), u, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
+					if err = Zunmlq(Left, ConjTrans, nr, nr, nr, cwork.Off(2*n).CMatrix(n, opts), cwork.Off(2*n+n*nr), u, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
 						panic(err)
 					}
 					for q = 1; q <= nr; q++ {
@@ -1373,9 +1372,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 					for p = 1; p <= n; p++ {
 						v.Set(p-1, q-1, cwork.Get(2*n+n*nr+nr+p-1))
 					}
-					xsc = one / goblas.Dznrm2(n, v.CVector(0, q-1, 1))
+					xsc = one / v.Off(0, q-1).CVector().Nrm2(n, 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(n, xsc, v.CVector(0, q-1, 1))
+						v.Off(0, q-1).CVector().Dscal(n, xsc, 1)
 					}
 				}
 				//           At this moment, V contains the right singular vectors of A.
@@ -1397,9 +1396,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				//           The columns of U are normalized. The cost is O(M*N) flops.
 				temp1 = math.Sqrt(float64(m)) * epsln
 				for p = 1; p <= nr; p++ {
-					xsc = one / goblas.Dznrm2(m, u.CVector(0, p-1, 1))
+					xsc = one / u.Off(0, p-1).CVector().Nrm2(m, 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(m, xsc, u.CVector(0, p-1, 1))
+						u.Off(0, p-1).CVector().Dscal(m, xsc, 1)
 					}
 				}
 
@@ -1412,7 +1411,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			} else {
 				//        .. the initial matrix A has almost orthogonal columns and
 				//        the second QRF is not needed
-				Zlacpy(Upper, n, n, a, cwork.CMatrixOff(n, n, opts))
+				Zlacpy(Upper, n, n, a, cwork.Off(n).CMatrix(n, opts))
 				if l2pert {
 					xsc = math.Sqrt(small)
 					for p = 2; p <= n; p++ {
@@ -1424,31 +1423,31 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 						}
 					}
 				} else {
-					Zlaset(Lower, n-1, n-1, czero, czero, cwork.CMatrixOff(n+2-1, n, opts))
+					Zlaset(Lower, n-1, n-1, czero, czero, cwork.Off(n+2-1).CMatrix(n, opts))
 				}
 
-				if info, err = Zgesvj('U', 'U', 'N', n, n, cwork.CMatrixOff(n, n, opts), sva, n, u, cwork.Off(n+n*n), lwork-n-n*n, rwork, lrwork); err != nil {
+				if info, err = Zgesvj('U', 'U', 'N', n, n, cwork.Off(n).CMatrix(n, opts), sva, n, u, cwork.Off(n+n*n), lwork-n-n*n, rwork, lrwork); err != nil {
 					panic(err)
 				}
 
 				scalem = rwork.Get(0)
 				numrank = int(math.Round(rwork.Get(1)))
 				for p = 1; p <= n; p++ {
-					goblas.Zcopy(n, cwork.Off(n+(p-1)*n, 1), u.CVector(0, p-1, 1))
-					goblas.Zdscal(n, sva.Get(p-1), cwork.Off(n+(p-1)*n, 1))
+					u.Off(0, p-1).CVector().Copy(n, cwork.Off(n+(p-1)*n), 1, 1)
+					cwork.Off(n+(p-1)*n).Dscal(n, sva.Get(p-1), 1)
 				}
 
-				if err = goblas.Ztrsm(Left, Upper, NoTrans, NonUnit, n, n, cone, a, cwork.CMatrixOff(n, n, opts)); err != nil {
+				if err = cwork.Off(n).CMatrix(n, opts).Trsm(Left, Upper, NoTrans, NonUnit, n, n, cone, a); err != nil {
 					panic(err)
 				}
 				for p = 1; p <= n; p++ {
-					goblas.Zcopy(n, cwork.Off(n+p-1, n), v.CVector((*iwork)[p-1]-1, 0, *&v.Rows))
+					v.Off((*iwork)[p-1]-1, 0).CVector().Copy(n, cwork.Off(n+p-1), n, v.Rows)
 				}
 				temp1 = math.Sqrt(float64(n)) * epsln
 				for p = 1; p <= n; p++ {
-					xsc = one / goblas.Dznrm2(n, v.CVector(0, p-1, 1))
+					xsc = one / v.Off(0, p-1).CVector().Nrm2(n, 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(n, xsc, v.CVector(0, p-1, 1))
+						v.Off(0, p-1).CVector().Dscal(n, xsc, 1)
 					}
 				}
 
@@ -1465,9 +1464,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				}
 				temp1 = math.Sqrt(float64(m)) * epsln
 				for p = 1; p <= n1; p++ {
-					xsc = one / goblas.Dznrm2(m, u.CVector(0, p-1, 1))
+					xsc = one / u.Off(0, p-1).CVector().Nrm2(m, 1)
 					if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-						goblas.Zdscal(m, xsc, u.CVector(0, p-1, 1))
+						u.Off(0, p-1).CVector().Dscal(m, xsc, 1)
 					}
 				}
 
@@ -1490,8 +1489,8 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			//        in presence of extreme values, e.g. when the singular values spread from
 			//        the underflow to the overflow threshold.
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy(n-p+1, a.CVector(p-1, p-1, *&a.Rows), v.CVector(p-1, p-1, 1))
-				Zlacgv(n-p+1, v.CVector(p-1, p-1, 1))
+				v.Off(p-1, p-1).CVector().Copy(n-p+1, a.Off(p-1, p-1).CVector(), a.Rows, 1)
+				Zlacgv(n-p+1, v.Off(p-1, p-1).CVector(), 1)
 			}
 
 			if l2pert {
@@ -1514,11 +1513,11 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 			if err = Zgeqrf(n, nr, v, cwork.Off(n), cwork.Off(2*n), lwork-2*n); err != nil {
 				panic(err)
 			}
-			Zlacpy(Lower, n, nr, v, cwork.CMatrixOff(2*n, n, opts))
+			Zlacpy(Lower, n, nr, v, cwork.Off(2*n).CMatrix(n, opts))
 
 			for p = 1; p <= nr; p++ {
-				goblas.Zcopy(nr-p+1, v.CVector(p-1, p-1, *&v.Rows), u.CVector(p-1, p-1, 1))
-				Zlacgv(nr-p+1, u.CVector(p-1, p-1, 1))
+				u.Off(p-1, p-1).CVector().Copy(nr-p+1, v.Off(p-1, p-1).CVector(), v.Rows, 1)
+				Zlacgv(nr-p+1, u.Off(p-1, p-1).CVector(), 1)
 			}
 			if l2pert {
 				xsc = math.Sqrt(small / epsln)
@@ -1542,7 +1541,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				Zlaset(Full, nr, n-nr, czero, czero, v.Off(0, nr))
 				Zlaset(Full, n-nr, n-nr, czero, cone, v.Off(nr, nr))
 			}
-			if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.CMatrixOff(2*n, n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
+			if err = Zunmqr(Left, NoTrans, n, n, nr, cwork.Off(2*n).CMatrix(n, opts), cwork.Off(n), v, cwork.Off(2*n+n*nr+nr), lwork-2*n-n*nr-nr); err != nil {
 				panic(err)
 			}
 
@@ -1557,9 +1556,9 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 				for p = 1; p <= n; p++ {
 					v.Set(p-1, q-1, cwork.Get(2*n+n*nr+nr+p-1))
 				}
-				xsc = one / goblas.Dznrm2(n, v.CVector(0, q-1, 1))
+				xsc = one / v.Off(0, q-1).CVector().Nrm2(n, 1)
 				if (xsc < (one - temp1)) || (xsc > (one + temp1)) {
-					goblas.Zdscal(n, xsc, v.CVector(0, q-1, 1))
+					v.Off(0, q-1).CVector().Dscal(n, xsc, 1)
 				}
 			}
 
@@ -1585,7 +1584,7 @@ func Zgejsv(joba, jobu, jobv, jobr, jobt, jobp byte, m, n int, a *mat.CMatrix, s
 		if transp {
 			//           .. swap U and V because the procedure worked on A^*
 			for p = 1; p <= n; p++ {
-				goblas.Zswap(n, u.CVector(0, p-1, 1), v.CVector(0, p-1, 1))
+				v.Off(0, p-1).CVector().Swap(n, u.Off(0, p-1).CVector(), 1, 1)
 			}
 		}
 

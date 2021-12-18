@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -26,7 +25,7 @@ import (
 // and H is taken to be the unit matrix.
 //
 // Otherwise  1 <= real(tau) <= 2  and  abs(tau-1) <= 1 .
-func Zlarfg(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128) {
+func Zlarfg(n int, alpha complex128, x *mat.CVector, incx int) (alphaOut, tau complex128) {
 	var alphi, alphr, beta, one, rsafmn, safmin, xnorm, zero float64
 	var j, knt int
 
@@ -39,7 +38,7 @@ func Zlarfg(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128) 
 		return
 	}
 
-	xnorm = goblas.Dznrm2(n-1, x)
+	xnorm = x.Nrm2(n-1, incx)
 	alphr = real(alphaOut)
 	alphi = imag(alphaOut)
 
@@ -58,7 +57,7 @@ func Zlarfg(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128) 
 		label10:
 			;
 			knt = knt + 1
-			goblas.Zdscal(n-1, rsafmn, x)
+			x.Dscal(n-1, rsafmn, incx)
 			beta = beta * rsafmn
 			alphi = alphi * rsafmn
 			alphr = alphr * rsafmn
@@ -67,13 +66,13 @@ func Zlarfg(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128) 
 			}
 
 			//           New BETA is at most 1, at least SAFMIN
-			xnorm = goblas.Dznrm2(n-1, x)
+			xnorm = x.Nrm2(n-1, incx)
 			alphaOut = complex(alphr, alphi)
 			beta = -math.Copysign(Dlapy3(alphr, alphi, xnorm), alphr)
 		}
 		tau = complex((beta-alphr)/beta, -alphi/beta)
 		alphaOut = Zladiv(complex(one, 0), alphaOut-complex(beta, 0))
-		goblas.Zscal(n-1, alphaOut, x)
+		x.Scal(n-1, alphaOut, incx)
 
 		//        If ALPHA is subnormal, it may lose relative accuracy
 		for j = 1; j <= knt; j++ {

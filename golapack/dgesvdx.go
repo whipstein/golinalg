@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -235,9 +234,9 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			itauq = ie + n
 			itaup = itauq + n
 			itemp = itaup + n
-			Dlacpy(Upper, n, n, a, work.MatrixOff(iqrf-1, n, opts))
-			Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iqrf, n, opts))
-			if err = Dgebrd(n, n, work.MatrixOff(iqrf-1, n, opts), work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+			Dlacpy(Upper, n, n, a, work.Off(iqrf-1).Matrix(n, opts))
+			Dlaset(Lower, n-1, n-1, zero, zero, work.Off(iqrf).Matrix(n, opts))
+			if err = Dgebrd(n, n, work.Off(iqrf-1).Matrix(n, opts), work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
 				panic(err)
 			}
 
@@ -245,20 +244,20 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			//           (Workspace: need 14*N + 2*N*(N+1))
 			itgkz = itemp
 			itemp = itgkz + n*(n*2+1)
-			info, err = Dbdsvdx(Upper, jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, n*2, opts), work.Off(itemp-1), iwork)
+			info, err = Dbdsvdx(Upper, jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.Off(itgkz-1).Matrix(n*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(n, work.Off(j-1), u.Vector(0, i-1, 1))
+					u.Off(0, i-1).Vector().Copy(n, work.Off(j-1), 1, 1)
 					j = j + n*2
 				}
 				Dlaset(Full, m-n, ns, zero, zero, u.Off(n, 0))
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				if err = Dormbr('Q', Left, NoTrans, n, ns, n, work.MatrixOff(iqrf-1, n, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Dormbr('Q', Left, NoTrans, n, ns, n, work.Off(iqrf-1).Matrix(n, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 
@@ -273,13 +272,13 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			if wantvt {
 				j = itgkz + n
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(n, work.Off(j-1), vt.Vector(i-1, 0))
+					vt.Off(i-1, 0).Vector().Copy(n, work.Off(j-1), 1, vt.Rows)
 					j = j + n*2
 				}
 
 				//              Call DORMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				if err = Dormbr('P', Right, Trans, ns, n, n, work.MatrixOff(iqrf-1, n, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Dormbr('P', Right, Trans, ns, n, n, work.Off(iqrf-1).Matrix(n, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 			}
@@ -304,13 +303,13 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			//           (Workspace: need 14*N + 2*N*(N+1))
 			itgkz = itemp
 			itemp = itgkz + n*(n*2+1)
-			info, err = Dbdsvdx(Upper, jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, n*2, opts), work.Off(itemp-1), iwork)
+			info, err = Dbdsvdx(Upper, jobz, rngtgk, n, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.Off(itgkz-1).Matrix(n*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(n, work.Off(j-1), u.Vector(0, i-1, 1))
+					u.Off(0, i-1).Vector().Copy(n, work.Off(j-1), 1, 1)
 					j = j + n*2
 				}
 				Dlaset(Full, m-n, ns, zero, zero, u.Off(n, 0))
@@ -326,7 +325,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			if wantvt {
 				j = itgkz + n
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(n, work.Off(j-1), vt.Vector(i-1, 0))
+					vt.Off(i-1, 0).Vector().Copy(n, work.Off(j-1), 1, vt.Rows)
 					j = j + n*2
 				}
 
@@ -362,9 +361,9 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			itauq = ie + m
 			itaup = itauq + m
 			itemp = itaup + m
-			Dlacpy(Lower, m, m, a, work.MatrixOff(ilqf-1, m, opts))
-			Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ilqf+m-1, m, opts))
-			if err = Dgebrd(m, m, work.MatrixOff(ilqf-1, m, opts), work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+			Dlacpy(Lower, m, m, a, work.Off(ilqf-1).Matrix(m, opts))
+			Dlaset(Upper, m-1, m-1, zero, zero, work.Off(ilqf+m-1).Matrix(m, opts))
+			if err = Dgebrd(m, m, work.Off(ilqf-1).Matrix(m, opts), work.Off(id-1), work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
 				panic(err)
 			}
 			//
@@ -373,19 +372,19 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 
 			itgkz = itemp
 			itemp = itgkz + m*(m*2+1)
-			info, err = Dbdsvdx(Upper, jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, m*2, opts), work.Off(itemp-1), iwork)
+			info, err = Dbdsvdx(Upper, jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.Off(itgkz-1).Matrix(m*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(m, work.Off(j-1), u.Vector(0, i-1, 1))
+					u.Off(0, i-1).Vector().Copy(m, work.Off(j-1), 1, 1)
 					j = j + m*2
 				}
 
 				//              Call DORMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				if err = Dormbr('Q', Left, NoTrans, m, ns, m, work.MatrixOff(ilqf-1, m, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Dormbr('Q', Left, NoTrans, m, ns, m, work.Off(ilqf-1).Matrix(m, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 			}
@@ -394,14 +393,14 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			if wantvt {
 				j = itgkz + m
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(m, work.Off(j-1), vt.Vector(i-1, 0))
+					vt.Off(i-1, 0).Vector().Copy(m, work.Off(j-1), 1, vt.Rows)
 					j = j + m*2
 				}
 				Dlaset(Full, ns, n-m, zero, zero, vt.Off(0, m))
 
 				//              Call DORMBR to compute (VB**T)*(PB**T)
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				if err = Dormbr('P', Right, Trans, ns, m, m, work.MatrixOff(ilqf-1, m, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Dormbr('P', Right, Trans, ns, m, m, work.Off(ilqf-1).Matrix(m, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 
@@ -432,13 +431,13 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			//           (Workspace: need 2*M*M+14*M)
 			itgkz = itemp
 			itemp = itgkz + m*(m*2+1)
-			info, err = Dbdsvdx(Lower, jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.MatrixOff(itgkz-1, m*2, opts), work.Off(itemp-1), iwork)
+			info, err = Dbdsvdx(Lower, jobz, rngtgk, m, work.Off(id-1), work.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, work.Off(itgkz-1).Matrix(m*2, opts), work.Off(itemp-1), iwork)
 
 			//           If needed, compute left singular vectors.
 			if wantu {
 				j = itgkz
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(m, work.Off(j-1), u.Vector(0, i-1, 1))
+					u.Off(0, i-1).Vector().Copy(m, work.Off(j-1), 1, 1)
 					j = j + m*2
 				}
 
@@ -453,7 +452,7 @@ func Dgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.Matrix, vl, vu float64, 
 			if wantvt {
 				j = itgkz + m
 				for i = 1; i <= ns; i++ {
-					goblas.Dcopy(m, work.Off(j-1), vt.Vector(i-1, 0))
+					vt.Off(i-1, 0).Vector().Copy(m, work.Off(j-1), 1, vt.Rows)
 					j = j + m*2
 				}
 				Dlaset(Full, ns, n-m, zero, zero, vt.Off(0, m))

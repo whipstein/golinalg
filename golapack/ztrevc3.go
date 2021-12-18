@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -127,7 +126,7 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 	//     part of T to control overflow in triangular solver.
 	rwork.Set(0, zero)
 	for j = 2; j <= n; j++ {
-		rwork.Set(j-1, goblas.Dzasum(j-1, t.CVector(0, j-1, 1)))
+		rwork.Set(j-1, t.Off(0, j-1).CVector().Asum(j-1, 1))
 	}
 
 	if rightv {
@@ -177,11 +176,11 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 			if !over {
 				//              ------------------------------
 				//              no back-transform: copy x to VR and normalize.
-				goblas.Zcopy(ki, work.Off(1+iv*n-1, 1), vr.CVector(0, is-1, 1))
+				vr.Off(0, is-1).CVector().Copy(ki, work.Off(1+iv*n-1), 1, 1)
 				//
-				ii = goblas.Izamax(ki, vr.CVector(0, is-1, 1))
+				ii = vr.Off(0, is-1).CVector().Iamax(ki, 1)
 				remax = one / cabs1(vr.Get(ii-1, is-1))
-				goblas.Zdscal(ki, remax, vr.CVector(0, is-1, 1))
+				vr.Off(0, is-1).CVector().Dscal(ki, remax, 1)
 
 				for k = ki + 1; k <= n; k++ {
 					vr.Set(k-1, is-1, czero)
@@ -191,14 +190,14 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 				//              ------------------------------
 				//              version 1: back-transform each vector with GEMV, Q*x.
 				if ki > 1 {
-					if err = goblas.Zgemv(NoTrans, n, ki-1, cone, vr, work.Off(1+iv*n-1, 1), complex(scale, 0), vr.CVector(0, ki-1, 1)); err != nil {
+					if err = vr.Off(0, ki-1).CVector().Gemv(NoTrans, n, ki-1, cone, vr, work.Off(1+iv*n-1), 1, complex(scale, 0), 1); err != nil {
 						panic(err)
 					}
 				}
 
-				ii = goblas.Izamax(n, vr.CVector(0, ki-1, 1))
+				ii = vr.Off(0, ki-1).CVector().Iamax(n, 1)
 				remax = one / cabs1(vr.Get(ii-1, ki-1))
-				goblas.Zdscal(n, remax, vr.CVector(0, ki-1, 1))
+				vr.Off(0, ki-1).CVector().Dscal(n, remax, 1)
 
 			} else {
 				//              ------------------------------
@@ -212,16 +211,16 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 				//              When the number of vectors stored reaches NB,
 				//              or if this was last vector, do the GEMM
 				if (iv == 1) || (ki == 1) {
-					if err = goblas.Zgemm(NoTrans, NoTrans, n, nb-iv+1, ki+nb-iv, cone, vr, work.CMatrixOff(1+iv*n-1, n, opts), czero, work.CMatrixOff(1+(nb+iv)*n-1, n, opts)); err != nil {
+					if err = work.Off(1+(nb+iv)*n-1).CMatrix(n, opts).Gemm(NoTrans, NoTrans, n, nb-iv+1, ki+nb-iv, cone, vr, work.Off(1+iv*n-1).CMatrix(n, opts), czero); err != nil {
 						panic(err)
 					}
 					//                 normalize vectors
 					for k = iv; k <= nb; k++ {
-						ii = goblas.Izamax(n, work.Off(1+(nb+k)*n-1, 1))
+						ii = work.Off(1+(nb+k)*n-1).Iamax(n, 1)
 						remax = one / cabs1(work.Get(ii+(nb+k)*n-1))
-						goblas.Zdscal(n, remax, work.Off(1+(nb+k)*n-1, 1))
+						work.Off(1+(nb+k)*n-1).Dscal(n, remax, 1)
 					}
-					Zlacpy(Full, n, nb-iv+1, work.CMatrixOff(1+(nb+iv)*n-1, n, opts), vr.Off(0, ki-1))
+					Zlacpy(Full, n, nb-iv+1, work.Off(1+(nb+iv)*n-1).CMatrix(n, opts), vr.Off(0, ki-1))
 					iv = nb
 				} else {
 					iv = iv - 1
@@ -286,11 +285,11 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 			if !over {
 				//              ------------------------------
 				//              no back-transform: copy x to VL and normalize.
-				goblas.Zcopy(n-ki+1, work.Off(ki+iv*n-1, 1), vl.CVector(ki-1, is-1, 1))
+				vl.Off(ki-1, is-1).CVector().Copy(n-ki+1, work.Off(ki+iv*n-1), 1, 1)
 				//
-				ii = goblas.Izamax(n-ki+1, vl.CVector(ki-1, is-1, 1)) + ki - 1
+				ii = vl.Off(ki-1, is-1).CVector().Iamax(n-ki+1, 1) + ki - 1
 				remax = one / cabs1(vl.Get(ii-1, is-1))
-				goblas.Zdscal(n-ki+1, remax, vl.CVector(ki-1, is-1, 1))
+				vl.Off(ki-1, is-1).CVector().Dscal(n-ki+1, remax, 1)
 				//
 				for k = 1; k <= ki-1; k++ {
 					vl.Set(k-1, is-1, czero)
@@ -300,14 +299,14 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 				//              ------------------------------
 				//              version 1: back-transform each vector with GEMV, Q*x.
 				if ki < n {
-					if err = goblas.Zgemv(NoTrans, n, n-ki, cone, vl.Off(0, ki), work.Off(ki+1+iv*n-1, 1), complex(scale, 0), vl.CVector(0, ki-1, 1)); err != nil {
+					if err = vl.Off(0, ki-1).CVector().Gemv(NoTrans, n, n-ki, cone, vl.Off(0, ki), work.Off(ki+1+iv*n-1), 1, complex(scale, 0), 1); err != nil {
 						panic(err)
 					}
 				}
 
-				ii = goblas.Izamax(n, vl.CVector(0, ki-1, 1))
+				ii = vl.Off(0, ki-1).CVector().Iamax(n, 1)
 				remax = one / cabs1(vl.Get(ii-1, ki-1))
-				goblas.Zdscal(n, remax, vl.CVector(0, ki-1, 1))
+				vl.Off(0, ki-1).CVector().Dscal(n, remax, 1)
 
 			} else {
 				//              ------------------------------
@@ -322,16 +321,16 @@ func Ztrevc3(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *ma
 				//              When the number of vectors stored reaches NB,
 				//              or if this was last vector, do the GEMM
 				if (iv == nb) || (ki == n) {
-					if err = goblas.Zgemm(NoTrans, NoTrans, n, iv, n-ki+iv, cone, vl.Off(0, ki-iv), work.CMatrixOff(ki-iv+1+1*n-1, n, opts), czero, work.CMatrixOff(1+(nb+1)*n-1, n, opts)); err != nil {
+					if err = work.Off(1+(nb+1)*n-1).CMatrix(n, opts).Gemm(NoTrans, NoTrans, n, iv, n-ki+iv, cone, vl.Off(0, ki-iv), work.Off(ki-iv+1+1*n-1).CMatrix(n, opts), czero); err != nil {
 						panic(err)
 					}
 					//                 normalize vectors
 					for k = 1; k <= iv; k++ {
-						ii = goblas.Izamax(n, work.Off(1+(nb+k)*n-1, 1))
+						ii = work.Off(1+(nb+k)*n-1).Iamax(n, 1)
 						remax = one / cabs1(work.Get(ii+(nb+k)*n-1))
-						goblas.Zdscal(n, remax, work.Off(1+(nb+k)*n-1, 1))
+						work.Off(1+(nb+k)*n-1).Dscal(n, remax, 1)
 					}
-					Zlacpy(Full, n, iv, work.CMatrixOff(1+(nb+1)*n-1, n, opts), vl.Off(0, ki-iv))
+					Zlacpy(Full, n, iv, work.Off(1+(nb+1)*n-1).CMatrix(n, opts), vl.Off(0, ki-iv))
 					iv = 1
 				} else {
 					iv = iv + 1

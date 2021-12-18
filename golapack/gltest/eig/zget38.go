@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -265,7 +264,7 @@ func zget38(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			golapack.Zlacpy(Full, n, n, tmp, t)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Zdscal(n, vmul, t.CVector(0, i-1, 1))
+				t.Off(0, i-1).CVector().Dscal(n, vmul, 1)
 			}
 			if tnrm == zero {
 				vmul = one

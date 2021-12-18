@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -556,7 +555,7 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			golapack.Dlacpy(Full, n, n, tmp, t)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Dscal(n, vmul, t.Vector(0, i-1, 1))
+				t.Off(0, i-1).Vector().Scal(n, vmul, 1)
 			}
 			if tnrm == zero {
 				vmul = one
@@ -595,11 +594,11 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 
 			//        Sort eigenvalues and condition numbers lexicographically
 			//        to compare with inputs
-			goblas.Dcopy(n, wr.Off(0, 1), wrtmp.Off(0, 1))
-			goblas.Dcopy(n, wi.Off(0, 1), witmp.Off(0, 1))
-			goblas.Dcopy(n, s.Off(0, 1), stmp.Off(0, 1))
-			goblas.Dcopy(n, sep.Off(0, 1), septmp.Off(0, 1))
-			goblas.Dscal(n, one/vmul, septmp.Off(0, 1))
+			wrtmp.Copy(n, wr, 1, 1)
+			witmp.Copy(n, wi, 1, 1)
+			stmp.Copy(n, s, 1, 1)
+			septmp.Copy(n, sep, 1, 1)
+			septmp.Scal(n, one/vmul, 1)
 			for i = 1; i <= n-1; i++ {
 				kmin = i
 				vrmin = wrtmp.Get(i - 1)
@@ -746,8 +745,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			//        Compute eigenvalue condition numbers only and compare
 			vmax = zero
 			dum.Set(0, -one)
-			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(n, dum, 0, 1)
+			septmp.Copy(n, dum, 0, 1)
 			if _, err = golapack.Dtrsna('E', 'A', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -763,8 +762,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			}
 
 			//        Compute eigenvector condition numbers only and compare
-			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(n, dum, 0, 1)
+			septmp.Copy(n, dum, 0, 1)
 			if _, err = golapack.Dtrsna('V', 'A', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -783,8 +782,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			for i = 1; i <= n; i++ {
 				_select[i-1] = true
 			}
-			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(n, dum, 0, 1)
+			septmp.Copy(n, dum, 0, 1)
 			if _, err = golapack.Dtrsna('B', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -800,8 +799,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			}
 
 			//        Compute eigenvalue condition numbers using SELECT and compare
-			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(n, dum, 0, 1)
+			septmp.Copy(n, dum, 0, 1)
 			if _, err = golapack.Dtrsna('E', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -817,8 +816,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			}
 
 			//        Compute eigenvector condition numbers using SELECT and compare
-			goblas.Dcopy(n, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(n, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(n, dum, 0, 1)
+			septmp.Copy(n, dum, 0, 1)
 			if _, err = golapack.Dtrsna('V', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -850,10 +849,10 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 						ifnd = 1
 						lcmp[1] = i
 						lcmp[2] = i + 1
-						goblas.Dcopy(n, re.Vector(0, i-1, 1), re.Vector(0, 1, 1))
-						goblas.Dcopy(n, re.Vector(0, i, 1), re.Vector(0, 2, 1))
-						goblas.Dcopy(n, le.Vector(0, i-1, 1), le.Vector(0, 1, 1))
-						goblas.Dcopy(n, le.Vector(0, i, 1), le.Vector(0, 2, 1))
+						re.Off(0, 1).Vector().Copy(n, re.Off(0, i-1).Vector(), 1, 1)
+						re.Off(0, 2).Vector().Copy(n, re.Off(0, i).Vector(), 1, 1)
+						le.Off(0, 1).Vector().Copy(n, le.Off(0, i-1).Vector(), 1, 1)
+						le.Off(0, 2).Vector().Copy(n, le.Off(0, i).Vector(), 1, 1)
 					}
 				}
 				if ifnd == 0 {
@@ -871,8 +870,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 					} else {
 						lcmp[2] = i
 						ifnd = 1
-						goblas.Dcopy(n, re.Vector(0, i-1, 1), re.Vector(0, 2, 1))
-						goblas.Dcopy(n, le.Vector(0, i-1, 1), le.Vector(0, 2, 1))
+						re.Off(0, 2).Vector().Copy(n, re.Off(0, i-1).Vector(), 1, 1)
+						le.Off(0, 2).Vector().Copy(n, le.Off(0, i-1).Vector(), 1, 1)
 					}
 				}
 				if ifnd == 0 {
@@ -883,8 +882,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			}
 
 			//        Compute all selected condition numbers
-			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(icmp, dum, 0, 1)
+			septmp.Copy(icmp, dum, 0, 1)
 			if _, err = golapack.Dtrsna('B', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -901,8 +900,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			}
 
 			//        Compute selected eigenvalue condition numbers
-			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(icmp, dum, 0, 1)
+			septmp.Copy(icmp, dum, 0, 1)
 			if _, err = golapack.Dtrsna('E', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1
@@ -919,8 +918,8 @@ func dget37(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			}
 
 			//        Compute selected eigenvector condition numbers
-			goblas.Dcopy(icmp, dum.Off(0, 0), stmp.Off(0, 1))
-			goblas.Dcopy(icmp, dum.Off(0, 0), septmp.Off(0, 1))
+			stmp.Copy(icmp, dum, 0, 1)
+			septmp.Copy(icmp, dum, 0, 1)
 			if _, err = golapack.Dtrsna('V', 'S', _select, n, t, le, re, stmp, septmp, n, work.Matrix(n, opts), &iwork); err != nil {
 				(*lmax)[2] = knt
 				(*ninfo)[2] = (*ninfo)[2] + 1

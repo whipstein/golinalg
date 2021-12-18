@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -168,7 +167,7 @@ func Dggsvd3(jobu, jobv, jobq byte, m, n, p int, a, b *mat.Matrix, alpha, beta *
 
 	//     Sort the singular values and store the pivot indices in IWORK
 	//     Copy ALPHA to WORK, then sort ALPHA in WORK
-	goblas.Dcopy(n, alpha.Off(0, 1), work.Off(0, 1))
+	work.Copy(n, alpha, 1, 1)
 	ibnd = min(l, m-k)
 	for i = 1; i <= ibnd; i++ {
 		//        Scan for largest ALPHA(K+I)

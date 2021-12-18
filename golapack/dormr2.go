@@ -94,7 +94,7 @@ func Dormr2(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.Matrix, ta
 		//        Apply H(i)
 		aii = a.Get(i-1, nq-k+i-1)
 		a.Set(i-1, nq-k+i-1, one)
-		Dlarf(side, mi, ni, a.Vector(i-1, 0), tau.Get(i-1), c, work)
+		Dlarf(side, mi, ni, a.Off(i-1, 0).Vector(), a.Rows, tau.Get(i-1), c, work)
 		a.Set(i-1, nq-k+i-1, aii)
 	}
 

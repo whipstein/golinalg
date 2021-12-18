@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -66,7 +65,7 @@ func DorhrCol(m, n, nb int, a, t *mat.Matrix, d *mat.Vector) (err error) {
 
 	//     (1-2) Solve for V2.
 	if m > n {
-		if err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, m-n, n, one, a, a.Off(n, 0)); err != nil {
+		if err = a.Off(n, 0).Trsm(Right, Upper, NoTrans, NonUnit, m-n, n, one, a); err != nil {
 			panic(err)
 		}
 	}
@@ -90,7 +89,7 @@ func DorhrCol(m, n, nb int, a, t *mat.Matrix, d *mat.Vector) (err error) {
 		//        column-by-column, total JNB*(JNB+1)/2 elements.
 		jbtemp1 = jb - 1
 		for j = jb; j <= jb+jnb-1; j++ {
-			goblas.Dcopy(j-jbtemp1, a.Vector(jb-1, j-1, 1), t.Vector(0, j-1, 1))
+			t.Off(0, j-1).Vector().Copy(j-jbtemp1, a.Off(jb-1, j-1).Vector(), 1, 1)
 		}
 
 		//        (2-2) Perform on the upper-triangular part of the current
@@ -105,7 +104,7 @@ func DorhrCol(m, n, nb int, a, t *mat.Matrix, d *mat.Vector) (err error) {
 		//        S(JB), i.e. S(J,J) that is stored in the array element D(J).
 		for j = jb; j <= jb+jnb-1; j++ {
 			if d.Get(j-1) == one {
-				goblas.Dscal(j-jbtemp1, -one, t.Vector(0, j-1, 1))
+				t.Off(0, j-1).Vector().Scal(j-jbtemp1, -one, 1)
 			}
 		}
 
@@ -152,7 +151,7 @@ func DorhrCol(m, n, nb int, a, t *mat.Matrix, d *mat.Vector) (err error) {
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		if err = goblas.Dtrsm(Right, Lower, Trans, Unit, jnb, jnb, one, a.Off(jb-1, jb-1), t.Off(0, jb-1)); err != nil {
+		if err = t.Off(0, jb-1).Trsm(Right, Lower, Trans, Unit, jnb, jnb, one, a.Off(jb-1, jb-1)); err != nil {
 			panic(err)
 		}
 

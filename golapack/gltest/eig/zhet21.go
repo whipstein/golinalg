@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -94,14 +93,14 @@ func zhet21(itype int, uplo mat.MatUplo, n, kband int, a *mat.CMatrix, d, e *mat
 		golapack.Zlacpy(cuplo, n, n, a, work.CMatrix(n, opts))
 
 		for j = 1; j <= n; j++ {
-			if err = goblas.Zher(cuplo, n, -d.Get(j-1), u.CVector(0, j-1, 1), work.CMatrix(n, opts)); err != nil {
+			if err = work.CMatrix(n, opts).Her(cuplo, n, -d.Get(j-1), u.Off(0, j-1).CVector(), 1); err != nil {
 				panic(err)
 			}
 		}
 
 		if n > 1 && kband == 1 {
 			for j = 1; j <= n-1; j++ {
-				if err = goblas.Zher2(cuplo, n, -complex(e.Get(j-1), 0), u.CVector(0, j-1, 1), u.CVector(0, j-1-1, 1), work.CMatrix(n, opts)); err != nil {
+				if err = work.CMatrix(n, opts).Her2(cuplo, n, -complex(e.Get(j-1), 0), u.Off(0, j-1).CVector(), 1, u.Off(0, j-1-1).CVector(), 1); err != nil {
 					panic(err)
 				}
 			}
@@ -124,7 +123,7 @@ func zhet21(itype int, uplo mat.MatUplo, n, kband int, a *mat.CMatrix, d, e *mat
 
 				vsave = v.Get(j, j-1)
 				v.SetRe(j, j-1, one)
-				golapack.Zlarfy(Lower, n-j, v.CVector(j, j-1, 1), tau.Get(j-1), work.CMatrixOff((n+1)*j, n, opts), work.Off(pow(n, 2)))
+				golapack.Zlarfy(Lower, n-j, v.Off(j, j-1).CVector(), 1, tau.Get(j-1), work.Off((n+1)*j).CMatrix(n, opts), work.Off(pow(n, 2)))
 				v.Set(j, j-1, vsave)
 				work.Set((n+1)*(j-1), d.GetCmplx(j-1))
 			}
@@ -140,7 +139,7 @@ func zhet21(itype int, uplo mat.MatUplo, n, kband int, a *mat.CMatrix, d, e *mat
 
 				vsave = v.Get(j-1, j)
 				v.SetRe(j-1, j, one)
-				golapack.Zlarfy(Upper, j, v.CVector(0, j, 1), tau.Get(j-1), work.CMatrix(n, opts), work.Off(pow(n, 2)))
+				golapack.Zlarfy(Upper, j, v.Off(0, j).CVector(), 1, tau.Get(j-1), work.CMatrix(n, opts), work.Off(pow(n, 2)))
 				v.Set(j-1, j, vsave)
 				work.Set((n+1)*j, d.GetCmplx(j))
 			}
@@ -166,7 +165,7 @@ func zhet21(itype int, uplo mat.MatUplo, n, kband int, a *mat.CMatrix, d, e *mat
 		}
 		golapack.Zlacpy(Full, n, n, u, work.CMatrix(n, opts))
 		if lower {
-			err = golapack.Zunm2r(Right, ConjTrans, n, n-1, n-1, v.Off(1, 0), tau, work.CMatrixOff(n, n, opts), work.Off(pow(n, 2)))
+			err = golapack.Zunm2r(Right, ConjTrans, n, n-1, n-1, v.Off(1, 0), tau, work.Off(n).CMatrix(n, opts), work.Off(pow(n, 2)))
 		} else {
 			err = golapack.Zunm2l(Right, ConjTrans, n, n-1, n-1, v.Off(0, 1), tau, work.CMatrix(n, opts), work.Off(pow(n, 2)))
 		}
@@ -196,7 +195,7 @@ func zhet21(itype int, uplo mat.MatUplo, n, kband int, a *mat.CMatrix, d, e *mat
 	//
 	//     Compute  U U**H - I
 	if itype == 1 {
-		if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero); err != nil {
 			panic(err)
 		}
 

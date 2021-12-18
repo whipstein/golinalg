@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -83,11 +82,11 @@ func Dsptri(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int, work *mat.Vect
 
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Dcopy(k-1, ap.Off(kc-1, 1), work.Off(0, 1))
-				if err = goblas.Dspmv(uplo, k-1, -one, ap, work.Off(0, 1), zero, ap.Off(kc-1, 1)); err != nil {
+				work.Copy(k-1, ap.Off(kc-1), 1, 1)
+				if err = ap.Off(kc-1).Spmv(uplo, k-1, -one, ap, work, 1, zero, 1); err != nil {
 					panic(err)
 				}
-				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-goblas.Ddot(k-1, work.Off(0, 1), ap.Off(kc-1, 1)))
+				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-ap.Off(kc-1).Dot(k-1, work, 1, 1))
 			}
 			kstep = 1
 		} else {
@@ -105,17 +104,17 @@ func Dsptri(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int, work *mat.Vect
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Dcopy(k-1, ap.Off(kc-1, 1), work.Off(0, 1))
-				if err = goblas.Dspmv(uplo, k-1, -one, ap, work.Off(0, 1), zero, ap.Off(kc-1, 1)); err != nil {
+				work.Copy(k-1, ap.Off(kc-1), 1, 1)
+				if err = ap.Off(kc-1).Spmv(uplo, k-1, -one, ap, work, 1, zero, 1); err != nil {
 					panic(err)
 				}
-				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-goblas.Ddot(k-1, work.Off(0, 1), ap.Off(kc-1, 1)))
-				ap.Set(kcnext+k-1-1, ap.Get(kcnext+k-1-1)-goblas.Ddot(k-1, ap.Off(kc-1, 1), ap.Off(kcnext-1, 1)))
-				goblas.Dcopy(k-1, ap.Off(kcnext-1, 1), work.Off(0, 1))
-				if err = goblas.Dspmv(uplo, k-1, -one, ap, work.Off(0, 1), zero, ap.Off(kcnext-1, 1)); err != nil {
+				ap.Set(kc+k-1-1, ap.Get(kc+k-1-1)-ap.Off(kc-1).Dot(k-1, work, 1, 1))
+				ap.Set(kcnext+k-1-1, ap.Get(kcnext+k-1-1)-ap.Off(kcnext-1).Dot(k-1, ap.Off(kc-1), 1, 1))
+				work.Copy(k-1, ap.Off(kcnext-1), 1, 1)
+				if err = ap.Off(kcnext-1).Spmv(uplo, k-1, -one, ap, work, 1, zero, 1); err != nil {
 					panic(err)
 				}
-				ap.Set(kcnext+k-1, ap.Get(kcnext+k-1)-goblas.Ddot(k-1, work.Off(0, 1), ap.Off(kcnext-1, 1)))
+				ap.Set(kcnext+k-1, ap.Get(kcnext+k-1)-ap.Off(kcnext-1).Dot(k-1, work, 1, 1))
 			}
 			kstep = 2
 			kcnext = kcnext + k + 1
@@ -126,7 +125,7 @@ func Dsptri(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int, work *mat.Vect
 			//           Interchange rows and columns K and KP in the leading
 			//           submatrix A(1:k+1,1:k+1)
 			kpc = (kp-1)*kp/2 + 1
-			goblas.Dswap(kp-1, ap.Off(kc-1, 1), ap.Off(kpc-1, 1))
+			ap.Off(kpc-1).Swap(kp-1, ap.Off(kc-1), 1, 1)
 			kx = kpc + kp - 1
 			for j = kp + 1; j <= k-1; j++ {
 				kx = kx + j - 1
@@ -173,11 +172,11 @@ func Dsptri(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int, work *mat.Vect
 
 			//           Compute column K of the inverse.
 			if k < n {
-				goblas.Dcopy(n-k, ap.Off(kc, 1), work.Off(0, 1))
-				if err = goblas.Dspmv(uplo, n-k, -one, ap.Off(kc+n-k), work.Off(0, 1), zero, ap.Off(kc, 1)); err != nil {
+				work.Copy(n-k, ap.Off(kc), 1, 1)
+				if err = ap.Off(kc).Spmv(uplo, n-k, -one, ap.Off(kc+n-k), work, 1, zero, 1); err != nil {
 					panic(err)
 				}
-				ap.Set(kc-1, ap.Get(kc-1)-goblas.Ddot(n-k, work.Off(0, 1), ap.Off(kc, 1)))
+				ap.Set(kc-1, ap.Get(kc-1)-ap.Off(kc).Dot(n-k, work, 1, 1))
 			}
 			kstep = 1
 		} else {
@@ -195,17 +194,17 @@ func Dsptri(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int, work *mat.Vect
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < n {
-				goblas.Dcopy(n-k, ap.Off(kc, 1), work.Off(0, 1))
-				if err = goblas.Dspmv(uplo, n-k, -one, ap.Off(kc+(n-k+1)-1), work.Off(0, 1), zero, ap.Off(kc, 1)); err != nil {
+				work.Copy(n-k, ap.Off(kc), 1, 1)
+				if err = ap.Off(kc).Spmv(uplo, n-k, -one, ap.Off(kc+(n-k+1)-1), work, 1, zero, 1); err != nil {
 					panic(err)
 				}
-				ap.Set(kc-1, ap.Get(kc-1)-goblas.Ddot(n-k, work.Off(0, 1), ap.Off(kc, 1)))
-				ap.Set(kcnext, ap.Get(kcnext)-goblas.Ddot(n-k, ap.Off(kc, 1), ap.Off(kcnext+2-1, 1)))
-				goblas.Dcopy(n-k, ap.Off(kcnext+2-1, 1), work.Off(0, 1))
-				if err = goblas.Dspmv(uplo, n-k, -one, ap.Off(kc+(n-k+1)-1), work.Off(0, 1), zero, ap.Off(kcnext+2-1, 1)); err != nil {
+				ap.Set(kc-1, ap.Get(kc-1)-ap.Off(kc).Dot(n-k, work, 1, 1))
+				ap.Set(kcnext, ap.Get(kcnext)-ap.Off(kcnext+2-1).Dot(n-k, ap.Off(kc), 1, 1))
+				work.Copy(n-k, ap.Off(kcnext+2-1), 1, 1)
+				if err = ap.Off(kcnext+2-1).Spmv(uplo, n-k, -one, ap.Off(kc+(n-k+1)-1), work, 1, zero, 1); err != nil {
 					panic(err)
 				}
-				ap.Set(kcnext-1, ap.Get(kcnext-1)-goblas.Ddot(n-k, work.Off(0, 1), ap.Off(kcnext+2-1, 1)))
+				ap.Set(kcnext-1, ap.Get(kcnext-1)-ap.Off(kcnext+2-1).Dot(n-k, work, 1, 1))
 			}
 			kstep = 2
 			kcnext = kcnext - (n - k + 3)
@@ -217,7 +216,7 @@ func Dsptri(uplo mat.MatUplo, n int, ap *mat.Vector, ipiv *[]int, work *mat.Vect
 			//           submatrix A(k-1:n,k-1:n)
 			kpc = npp - (n-kp+1)*(n-kp+2)/2 + 1
 			if kp < n {
-				goblas.Dswap(n-kp, ap.Off(kc+kp-k, 1), ap.Off(kpc, 1))
+				ap.Off(kpc).Swap(n-kp, ap.Off(kc+kp-k), 1, 1)
 			}
 			kx = kc + kp - k
 			for j = k + 1; j <= kp-1; j++ {

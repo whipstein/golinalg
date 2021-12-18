@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -76,7 +75,7 @@ func zunt03(rc byte, mu, mv, n, k int, u, v *mat.CMatrix, work *mat.CVector, lwo
 		//        Compare rows
 		res1 = zero
 		for i = 1; i <= k; i++ {
-			lmx = goblas.Izamax(n, u.CVector(i-1, 0))
+			lmx = u.Off(i-1, 0).CVector().Iamax(n, u.Rows)
 			if v.Get(i-1, lmx-1) == complex(zero, 0) {
 				sv = complex(one, 0)
 			} else {
@@ -101,7 +100,7 @@ func zunt03(rc byte, mu, mv, n, k int, u, v *mat.CMatrix, work *mat.CVector, lwo
 		//        Compare columns
 		res1 = zero
 		for i = 1; i <= k; i++ {
-			lmx = goblas.Izamax(n, u.CVector(0, i-1, 1))
+			lmx = u.Off(0, i-1).CVector().Iamax(n, 1)
 			if v.Get(lmx-1, i-1) == complex(zero, 0) {
 				sv = complex(one, 0)
 			} else {

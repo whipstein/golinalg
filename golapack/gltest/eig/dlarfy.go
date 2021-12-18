@@ -1,7 +1,6 @@
 package eig
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -15,7 +14,7 @@ import (
 // where  tau  is a scalar and  v  is a vector.
 //
 // If  tau  is  zero, then  H  is taken to be the unit matrix.
-func dlarfy(uplo mat.MatUplo, n int, v *mat.Vector, tau float64, c *mat.Matrix, work *mat.Vector) {
+func dlarfy(uplo mat.MatUplo, n int, v *mat.Vector, incv int, tau float64, c *mat.Matrix, work *mat.Vector) {
 	var alpha, half, one, zero float64
 	var err error
 
@@ -28,15 +27,15 @@ func dlarfy(uplo mat.MatUplo, n int, v *mat.Vector, tau float64, c *mat.Matrix, 
 	}
 
 	//     Form  w:= C * v
-	if err = goblas.Dsymv(uplo, n, one, c, v, zero, work.Off(0, 1)); err != nil {
+	if err = work.Symv(uplo, n, one, c, v, incv, zero, 1); err != nil {
 		panic(err)
 	}
 
-	alpha = -half * tau * goblas.Ddot(n, work.Off(0, 1), v)
-	goblas.Daxpy(n, alpha, v, work.Off(0, 1))
+	alpha = -half * tau * v.Dot(n, work, 1, incv)
+	work.Axpy(n, alpha, v, incv, 1)
 
 	//     C := C - v * w' - w * v'
-	if err = goblas.Dsyr2(uplo, n, -tau, v, work.Off(0, 1), c); err != nil {
+	if err = c.Syr2(uplo, n, -tau, v, incv, work, 1); err != nil {
 		panic(err)
 	}
 }

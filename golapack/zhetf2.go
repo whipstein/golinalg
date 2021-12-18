@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -71,7 +70,7 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
+			imax = a.Off(0, k-1).CVector().Iamax(k-1, 1)
 			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -96,10 +95,10 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value.
 				//              Determine only ROWMAX.
-				jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax))
+				jmax = imax + a.Off(imax-1, imax).CVector().Iamax(k-imax, a.Rows)
 				rowmax = cabs1(a.Get(imax-1, jmax-1))
 				if imax > 1 {
-					jmax = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
+					jmax = a.Off(0, imax-1).CVector().Iamax(imax-1, 1)
 					rowmax = math.Max(rowmax, cabs1(a.Get(jmax-1, imax-1)))
 				}
 
@@ -125,7 +124,7 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 			if kp != kk {
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
-				goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
+				a.Off(0, kp-1).CVector().Swap(kp-1, a.Off(0, kk-1).CVector(), 1, 1)
 				for j = kp + 1; j <= kk-1; j++ {
 					t = cmplx.Conj(a.Get(j-1, kk-1))
 					a.Set(j-1, kk-1, cmplx.Conj(a.Get(kp-1, j-1)))
@@ -160,12 +159,12 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 				//
 				//              A := A - U(k)*D(k)*U(k)**H = A - W(k)*1/D(k)*W(k)**H
 				r1 = one / real(a.Get(k-1, k-1))
-				if err = goblas.Zher(uplo, k-1, -r1, a.CVector(0, k-1, 1), a); err != nil {
+				if err = a.Her(uplo, k-1, -r1, a.Off(0, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
 
 				//              Store U(k) in column k
-				goblas.Zdscal(k-1, r1, a.CVector(0, k-1, 1))
+				a.Off(0, k-1).CVector().Dscal(k-1, r1, 1)
 			} else {
 				//              2-by-2 pivot block D(k): columns k and k-1 now hold
 				//
@@ -238,7 +237,7 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < n {
-			imax = k + goblas.Izamax(n-k, a.CVector(k, k-1, 1))
+			imax = k + a.Off(k, k-1).CVector().Iamax(n-k, 1)
 			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -263,10 +262,10 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value.
 				//              Determine only ROWMAX.
-				jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1))
+				jmax = k - 1 + a.Off(imax-1, k-1).CVector().Iamax(imax-k, a.Rows)
 				rowmax = cabs1(a.Get(imax-1, jmax-1))
 				if imax < n {
-					jmax = imax + goblas.Izamax(n-imax, a.CVector(imax, imax-1, 1))
+					jmax = imax + a.Off(imax, imax-1).CVector().Iamax(n-imax, 1)
 					rowmax = math.Max(rowmax, cabs1(a.Get(jmax-1, imax-1)))
 				}
 
@@ -293,7 +292,7 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < n {
-					goblas.Zswap(n-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
+					a.Off(kp, kp-1).CVector().Swap(n-kp, a.Off(kp, kk-1).CVector(), 1, 1)
 				}
 				for j = kk + 1; j <= kp-1; j++ {
 					t = cmplx.Conj(a.Get(j-1, kk-1))
@@ -329,12 +328,12 @@ func Zhetf2(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int, err
 					//
 					//                 A := A - L(k)*D(k)*L(k)**H = A - W(k)*(1/D(k))*W(k)**H
 					r1 = one / real(a.Get(k-1, k-1))
-					if err = goblas.Zher(uplo, n-k, -r1, a.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+					if err = a.Off(k, k).Her(uplo, n-k, -r1, a.Off(k, k-1).CVector(), 1); err != nil {
 						panic(err)
 					}
 
 					//                 Store L(k) in column K
-					goblas.Zdscal(n-k, r1, a.CVector(k, k-1, 1))
+					a.Off(k, k-1).CVector().Dscal(n-k, r1, 1)
 				}
 			} else {
 				//              2-by-2 pivot block D(k)

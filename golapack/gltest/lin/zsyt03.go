@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -54,7 +53,7 @@ func zsyt03(uplo mat.MatUplo, n int, a, ainv, work *mat.CMatrix, rwork *mat.Vect
 			}
 		}
 	}
-	if err = goblas.Zsymm(Left, uplo, n, n, -cone, a, ainv, czero, work); err != nil {
+	if err = work.Symm(Left, uplo, n, n, -cone, a, ainv, czero); err != nil {
 		panic(err)
 	}
 

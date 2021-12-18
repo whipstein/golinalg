@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -51,7 +50,7 @@ func Zpotf2(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 		//        Compute the Cholesky factorization A = U**H *U.
 		for j = 1; j <= n; j++ {
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = a.GetRe(j-1, j-1) - real(goblas.Zdotc(j-1, a.CVector(0, j-1, 1), a.CVector(0, j-1, 1)))
+			ajj = a.GetRe(j-1, j-1) - real(a.Off(0, j-1).CVector().Dotc(j-1, a.Off(0, j-1).CVector(), 1, 1))
 			if ajj <= zero || Disnan(int(ajj)) {
 				a.SetRe(j-1, j-1, ajj)
 				goto label30
@@ -61,19 +60,19 @@ func Zpotf2(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 
 			//           Compute elements J+1:N of row J.
 			if j < n {
-				Zlacgv(j-1, a.CVector(0, j-1, 1))
-				if err = goblas.Zgemv(Trans, j-1, n-j, -cone, a.Off(0, j), a.CVector(0, j-1, 1), cone, a.CVector(j-1, j)); err != nil {
+				Zlacgv(j-1, a.Off(0, j-1).CVector(), 1)
+				if err = a.Off(j-1, j).CVector().Gemv(Trans, j-1, n-j, -cone, a.Off(0, j), a.Off(0, j-1).CVector(), 1, cone, a.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(j-1, a.CVector(0, j-1, 1))
-				goblas.Zdscal(n-j, one/ajj, a.CVector(j-1, j))
+				Zlacgv(j-1, a.Off(0, j-1).CVector(), 1)
+				a.Off(j-1, j).CVector().Dscal(n-j, one/ajj, a.Rows)
 			}
 		}
 	} else {
 		//        Compute the Cholesky factorization A = L*L**H.
 		for j = 1; j <= n; j++ {
 			//           Compute L(J,J) and test for non-positive-definiteness.
-			ajj = a.GetRe(j-1, j-1) - real(goblas.Zdotc(j-1, a.CVector(j-1, 0), a.CVector(j-1, 0)))
+			ajj = a.GetRe(j-1, j-1) - real(a.Off(j-1, 0).CVector().Dotc(j-1, a.Off(j-1, 0).CVector(), a.Rows, a.Rows))
 			if ajj <= zero || Disnan(int(ajj)) {
 				a.SetRe(j-1, j-1, ajj)
 				goto label30
@@ -83,12 +82,12 @@ func Zpotf2(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 
 			//           Compute elements J+1:N of column J.
 			if j < n {
-				Zlacgv(j-1, a.CVector(j-1, 0))
-				if err = goblas.Zgemv(NoTrans, n-j, j-1, -cone, a.Off(j, 0), a.CVector(j-1, 0), cone, a.CVector(j, j-1, 1)); err != nil {
+				Zlacgv(j-1, a.Off(j-1, 0).CVector(), a.Rows)
+				if err = a.Off(j, j-1).CVector().Gemv(NoTrans, n-j, j-1, -cone, a.Off(j, 0), a.Off(j-1, 0).CVector(), a.Rows, cone, 1); err != nil {
 					panic(err)
 				}
-				Zlacgv(j-1, a.CVector(j-1, 0))
-				goblas.Zdscal(n-j, one/ajj, a.CVector(j, j-1, 1))
+				Zlacgv(j-1, a.Off(j-1, 0).CVector(), a.Rows)
+				a.Off(j, j-1).CVector().Dscal(n-j, one/ajj, 1)
 			}
 		}
 	}

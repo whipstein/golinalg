@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -81,12 +80,12 @@ func Dpotrf2(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 		//        Compute the Cholesky factorization A = U**T*U
 		if upper {
 			//           Update and scale A12
-			if err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n1, n2, one, a, a.Off(0, n1)); err != nil {
+			if err = a.Off(0, n1).Trsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, n1, n2, one, a); err != nil {
 				panic(err)
 			}
 
 			//           Update and factor A22
-			if err = goblas.Dsyrk(uplo, Trans, n2, n1, -one, a.Off(0, n1), one, a.Off(n1, n1)); err != nil {
+			if err = a.Off(n1, n1).Syrk(uplo, Trans, n2, n1, -one, a.Off(0, n1), one); err != nil {
 				panic(err)
 			}
 			if iinfo, err = Dpotrf2(uplo, n2, a.Off(n1, n1)); err != nil {
@@ -100,12 +99,12 @@ func Dpotrf2(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 			//        Compute the Cholesky factorization A = L*L**T
 		} else {
 			//           Update and scale A21
-			if err = goblas.Dtrsm(Right, Lower, Trans, NonUnit, n2, n1, one, a, a.Off(n1, 0)); err != nil {
+			if err = a.Off(n1, 0).Trsm(Right, Lower, Trans, NonUnit, n2, n1, one, a); err != nil {
 				panic(err)
 			}
 
 			//           Update and factor A22
-			if err = goblas.Dsyrk(uplo, NoTrans, n2, n1, -one, a.Off(n1, 0), one, a.Off(n1, n1)); err != nil {
+			if err = a.Off(n1, n1).Syrk(uplo, NoTrans, n2, n1, -one, a.Off(n1, 0), one); err != nil {
 				panic(err)
 			}
 			if iinfo, err = Dpotrf2(uplo, n2, a.Off(n1, n1)); err != nil {

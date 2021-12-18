@@ -74,7 +74,7 @@ func Dlangb(norm byte, n, kl, ku int, ab *mat.Matrix, work *mat.Vector) (dlangbR
 			k = ku + 1 - j + l
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n, j+kl)-l+1, ab.Vector(k-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+			*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n, j+kl)-l+1, ab.Off(k-1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

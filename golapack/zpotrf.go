@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -60,7 +59,7 @@ func Zpotrf(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
 				jb = min(nb, n-j+1)
-				if err = goblas.Zherk(Upper, ConjTrans, jb, j-1, -one, a.Off(0, j-1), one, a.Off(j-1, j-1)); err != nil {
+				if err = a.Off(j-1, j-1).Herk(Upper, ConjTrans, jb, j-1, -one, a.Off(0, j-1), one); err != nil {
 					panic(err)
 				}
 				if info, err = Zpotrf2(Upper, jb, a.Off(j-1, j-1)); err != nil {
@@ -71,10 +70,10 @@ func Zpotrf(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 				}
 				if j+jb <= n {
 					//                 Compute the current block row.
-					if err = goblas.Zgemm(ConjTrans, NoTrans, jb, n-j-jb+1, j-1, -cone, a.Off(0, j-1), a.Off(0, j+jb-1), cone, a.Off(j-1, j+jb-1)); err != nil {
+					if err = a.Off(j-1, j+jb-1).Gemm(ConjTrans, NoTrans, jb, n-j-jb+1, j-1, -cone, a.Off(0, j-1), a.Off(0, j+jb-1), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, jb, n-j-jb+1, cone, a.Off(j-1, j-1), a.Off(j-1, j+jb-1)); err != nil {
+					if err = a.Off(j-1, j+jb-1).Trsm(Left, Upper, ConjTrans, NonUnit, jb, n-j-jb+1, cone, a.Off(j-1, j-1)); err != nil {
 						panic(err)
 					}
 				}
@@ -86,7 +85,7 @@ func Zpotrf(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
 				jb = min(nb, n-j+1)
-				if err = goblas.Zherk(Lower, NoTrans, jb, j-1, -one, a.Off(j-1, 0), one, a.Off(j-1, j-1)); err != nil {
+				if err = a.Off(j-1, j-1).Herk(Lower, NoTrans, jb, j-1, -one, a.Off(j-1, 0), one); err != nil {
 					panic(err)
 				}
 				if info, err = Zpotrf2(Lower, jb, a.Off(j-1, j-1)); err != nil {
@@ -97,10 +96,10 @@ func Zpotrf(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 				}
 				if j+jb <= n {
 					//                 Compute the current block column.
-					if err = goblas.Zgemm(NoTrans, ConjTrans, n-j-jb+1, jb, j-1, -cone, a.Off(j+jb-1, 0), a.Off(j-1, 0), cone, a.Off(j+jb-1, j-1)); err != nil {
+					if err = a.Off(j+jb-1, j-1).Gemm(NoTrans, ConjTrans, n-j-jb+1, jb, j-1, -cone, a.Off(j+jb-1, 0), a.Off(j-1, 0), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, n-j-jb+1, jb, cone, a.Off(j-1, j-1), a.Off(j+jb-1, j-1)); err != nil {
+					if err = a.Off(j+jb-1, j-1).Trsm(Right, Lower, ConjTrans, NonUnit, n-j-jb+1, jb, cone, a.Off(j-1, j-1)); err != nil {
 						panic(err)
 					}
 				}

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -41,12 +40,12 @@ func dpbt01(uplo mat.MatUplo, n, kd int, a, afac *mat.Matrix, rwork *mat.Vector)
 			klen = kd + 1 - kc
 
 			//           Compute the (K,K) element of the result.
-			t = goblas.Ddot(klen+1, afac.Vector(kc-1, k-1, 1), afac.Vector(kc-1, k-1, 1))
+			t = afac.Off(kc-1, k-1).Vector().Dot(klen+1, afac.Off(kc-1, k-1).Vector(), 1, 1)
 			afac.Set(kd, k-1, t)
 
 			//           Compute the rest of column K.
 			if klen > 0 {
-				if err = goblas.Dtrmv(mat.Upper, mat.Trans, mat.NonUnit, klen, afac.Off(kd, k-klen-1).UpdateRows(afac.Rows-1), afac.Vector(kc-1, k-1, 1)); err != nil {
+				if err = afac.Off(kc-1, k-1).Vector().Trmv(Upper, Trans, NonUnit, klen, afac.Off(kd, k-klen-1).UpdateRows(afac.Rows-1), 1); err != nil {
 					panic(err)
 				}
 			}
@@ -61,14 +60,14 @@ func dpbt01(uplo mat.MatUplo, n, kd int, a, afac *mat.Matrix, rwork *mat.Vector)
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if klen > 0 {
-				if err = goblas.Dsyr(mat.Lower, klen, one, afac.Vector(1, k-1, 1), afac.Off(0, k).UpdateRows(afac.Rows-1)); err != nil {
+				if err = afac.Off(0, k).UpdateRows(afac.Rows-1).Syr(Lower, klen, one, afac.Off(1, k-1).Vector(), 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Scale column K by the diagonal element.
 			t = afac.Get(0, k-1)
-			goblas.Dscal(klen+1, t, afac.Vector(0, k-1, 1))
+			afac.Off(0, k-1).Vector().Scal(klen+1, t, 1)
 
 		}
 	}

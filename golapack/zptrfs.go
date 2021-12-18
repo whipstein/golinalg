@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -153,7 +152,7 @@ func Zptrfs(uplo mat.MatUplo, n, nrhs int, d *mat.Vector, e *mat.CVector, df *ma
 			if err = Zpttrs(uplo, n, 1, df, ef, work.CMatrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Zaxpy(n, complex(one, 0), work.Off(0, 1), x.CVector(0, j-1, 1))
+			x.Off(0, j-1).CVector().Axpy(n, complex(one, 0), work, 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -183,7 +182,7 @@ func Zptrfs(uplo mat.MatUplo, n, nrhs int, d *mat.Vector, e *mat.CVector, df *ma
 				rwork.Set(i-1, cabs1(work.Get(i-1))+float64(nz)*eps*rwork.Get(i-1)+safe1)
 			}
 		}
-		ix = goblas.Idamax(n, rwork.Off(0, 1))
+		ix = rwork.Iamax(n, 1)
 		ferr.Set(j-1, rwork.Get(ix-1))
 
 		//        Estimate the norm of inv(A).
@@ -208,7 +207,7 @@ func Zptrfs(uplo mat.MatUplo, n, nrhs int, d *mat.Vector, e *mat.CVector, df *ma
 		}
 
 		//        Compute norm(inv(A)) = max(x(i)), 1<=i<=n.
-		ix = goblas.Idamax(n, rwork.Off(0, 1))
+		ix = rwork.Iamax(n, 1)
 		ferr.Set(j-1, ferr.Get(j-1)*rwork.GetMag(ix-1))
 
 		//        Normalize error.

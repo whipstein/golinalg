@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -72,19 +71,19 @@ func Zhegst(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 						panic(err)
 					}
 					if k+kb <= n {
-						if err = goblas.Ztrsm(Left, uplo, ConjTrans, NonUnit, kb, n-k-kb+1, cone, b.Off(k-1, k-1), a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Trsm(Left, uplo, ConjTrans, NonUnit, kb, n-k-kb+1, cone, b.Off(k-1, k-1)); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zhemm(Left, uplo, kb, n-k-kb+1, -half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), cone, a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Hemm(Left, uplo, kb, n-k-kb+1, -half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), cone); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zher2k(uplo, ConjTrans, n-k-kb+1, kb, -cone, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one, a.Off(k+kb-1, k+kb-1)); err != nil {
+						if err = a.Off(k+kb-1, k+kb-1).Her2k(uplo, ConjTrans, n-k-kb+1, kb, -cone, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zhemm(Left, uplo, kb, n-k-kb+1, -half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), cone, a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Hemm(Left, uplo, kb, n-k-kb+1, -half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), cone); err != nil {
 							panic(err)
 						}
-						if err = goblas.Ztrsm(Right, uplo, NoTrans, NonUnit, kb, n-k-kb+1, cone, b.Off(k+kb-1, k+kb-1), a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Trsm(Right, uplo, NoTrans, NonUnit, kb, n-k-kb+1, cone, b.Off(k+kb-1, k+kb-1)); err != nil {
 							panic(err)
 						}
 					}
@@ -99,19 +98,19 @@ func Zhegst(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 						panic(err)
 					}
 					if k+kb <= n {
-						if err = goblas.Ztrsm(Right, uplo, ConjTrans, NonUnit, n-k-kb+1, kb, cone, b.Off(k-1, k-1), a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Trsm(Right, uplo, ConjTrans, NonUnit, n-k-kb+1, kb, cone, b.Off(k-1, k-1)); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zhemm(Right, uplo, n-k-kb+1, kb, -half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), cone, a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Hemm(Right, uplo, n-k-kb+1, kb, -half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), cone); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zher2k(uplo, NoTrans, n-k-kb+1, kb, -cone, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k+kb-1)); err != nil {
+						if err = a.Off(k+kb-1, k+kb-1).Her2k(uplo, NoTrans, n-k-kb+1, kb, -cone, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zhemm(Right, uplo, n-k-kb+1, kb, -half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), cone, a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Hemm(Right, uplo, n-k-kb+1, kb, -half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), cone); err != nil {
 							panic(err)
 						}
-						if err = goblas.Ztrsm(Left, uplo, NoTrans, NonUnit, n-k-kb+1, kb, cone, b.Off(k+kb-1, k+kb-1), a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Trsm(Left, uplo, NoTrans, NonUnit, n-k-kb+1, kb, cone, b.Off(k+kb-1, k+kb-1)); err != nil {
 							panic(err)
 						}
 					}
@@ -124,19 +123,19 @@ func Zhegst(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 					kb = min(n-k+1, nb)
 
 					//                 Update the upper triangle of A(1:k+kb-1,1:k+kb-1)
-					if err = goblas.Ztrmm(Left, uplo, NoTrans, NonUnit, k-1, kb, cone, b, a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Trmm(Left, uplo, NoTrans, NonUnit, k-1, kb, cone, b); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zhemm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), cone, a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Hemm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zher2k(uplo, NoTrans, k-1, kb, cone, a.Off(0, k-1), b.Off(0, k-1), one, a); err != nil {
+					if err = a.Her2k(uplo, NoTrans, k-1, kb, cone, a.Off(0, k-1), b.Off(0, k-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zhemm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), cone, a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Hemm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Ztrmm(Right, uplo, ConjTrans, NonUnit, k-1, kb, cone, b.Off(k-1, k-1), a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Trmm(Right, uplo, ConjTrans, NonUnit, k-1, kb, cone, b.Off(k-1, k-1)); err != nil {
 						panic(err)
 					}
 					if err = Zhegs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {
@@ -149,19 +148,19 @@ func Zhegst(itype int, uplo mat.MatUplo, n int, a, b *mat.CMatrix) (err error) {
 					kb = min(n-k+1, nb)
 
 					//                 Update the lower triangle of A(1:k+kb-1,1:k+kb-1)
-					if err = goblas.Ztrmm(Right, uplo, NoTrans, NonUnit, kb, k-1, cone, b, a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Trmm(Right, uplo, NoTrans, NonUnit, kb, k-1, cone, b); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zhemm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), cone, a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Hemm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zher2k(uplo, ConjTrans, k-1, kb, cone, a.Off(k-1, 0), b.Off(k-1, 0), one, a); err != nil {
+					if err = a.Her2k(uplo, ConjTrans, k-1, kb, cone, a.Off(k-1, 0), b.Off(k-1, 0), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zhemm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), cone, a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Hemm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Ztrmm(Left, uplo, ConjTrans, NonUnit, kb, k-1, cone, b.Off(k-1, k-1), a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Trmm(Left, uplo, ConjTrans, NonUnit, kb, k-1, cone, b.Off(k-1, k-1)); err != nil {
 						panic(err)
 					}
 					if err = Zhegs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {

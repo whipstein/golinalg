@@ -105,7 +105,7 @@ func Dtzrzf(m, n int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (err erro
 				Dlarzt('B', 'R', n-m, ib, a.Off(i-1, m1-1), tau.Off(i-1), work.Matrix(ldwork, opts))
 
 				//              Apply H to A(1:i-1,i:n) from the right
-				Dlarzb(Right, NoTrans, 'B', 'R', i-1, n-i+1, ib, n-m, a.Off(i-1, m1-1), work.Matrix(ldwork, opts), a.Off(0, i-1), work.MatrixOff(ib, ldwork, opts))
+				Dlarzb(Right, NoTrans, 'B', 'R', i-1, n-i+1, ib, n-m, a.Off(i-1, m1-1), work.Matrix(ldwork, opts), a.Off(0, i-1), work.Off(ib).Matrix(ldwork, opts))
 			}
 		}
 		mu = i + nb - 1

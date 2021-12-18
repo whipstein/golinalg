@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -82,11 +81,11 @@ func Dtbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 	for j = 1; j <= nrhs; j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A or A**T, depending on TRANS.
-		goblas.Dcopy(n, x.Vector(0, j-1, 1), work.Off(n, 1))
-		if err = goblas.Dtbmv(uplo, trans, diag, n, kd, ab, work.Off(n, 1)); err != nil {
+		work.Off(n).Copy(n, x.Off(0, j-1).Vector(), 1, 1)
+		if err = work.Off(n).Tbmv(uplo, trans, diag, n, kd, ab, 1); err != nil {
 			panic(err)
 		}
-		goblas.Daxpy(n, -one, b.Vector(0, j-1, 1), work.Off(n, 1))
+		work.Off(n).Axpy(n, -one, b.Off(0, j-1).Vector(), 1, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -224,7 +223,7 @@ func Dtbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				if err = goblas.Dtbsv(uplo, transt, diag, n, kd, ab, work.Off(n, 1)); err != nil {
+				if err = work.Off(n).Tbsv(uplo, transt, diag, n, kd, ab, 1); err != nil {
 					panic(err)
 				}
 				for i = 1; i <= n; i++ {
@@ -235,7 +234,7 @@ func Dtbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
-				if err = goblas.Dtbsv(uplo, trans, diag, n, kd, ab, work.Off(n, 1)); err != nil {
+				if err = work.Off(n).Tbsv(uplo, trans, diag, n, kd, ab, 1); err != nil {
 					panic(err)
 				}
 			}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -53,7 +52,7 @@ func ZhetrsAa2stage(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, tb *mat.CVect
 			Zlaswp(nrhs, b, nb+1, n, ipiv, 1)
 
 			//           Compute (U**H \ B) -> B    [ (U**H \P**T * B) ]
-			if err = goblas.Ztrsm(Left, Upper, ConjTrans, Unit, n-nb, nrhs, one, a.Off(0, nb), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Upper, ConjTrans, Unit, n-nb, nrhs, one, a.Off(0, nb)); err != nil {
 				panic(err)
 			}
 
@@ -65,7 +64,7 @@ func ZhetrsAa2stage(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, tb *mat.CVect
 		}
 		if n > nb {
 			//           Compute (U \ B) -> B   [ U \ (T \ (U**H \P**T * B) ) ]
-			if err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, n-nb, nrhs, one, a.Off(0, nb), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Upper, NoTrans, Unit, n-nb, nrhs, one, a.Off(0, nb)); err != nil {
 				panic(err)
 			}
 
@@ -81,7 +80,7 @@ func ZhetrsAa2stage(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, tb *mat.CVect
 			Zlaswp(nrhs, b, nb+1, n, ipiv, 1)
 
 			//           Compute (L \ B) -> B    [ (L \P**T * B) ]
-			if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n-nb, nrhs, one, a.Off(nb, 0), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Lower, NoTrans, Unit, n-nb, nrhs, one, a.Off(nb, 0)); err != nil {
 				panic(err)
 			}
 
@@ -93,7 +92,7 @@ func ZhetrsAa2stage(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, tb *mat.CVect
 		}
 		if n > nb {
 			//           Compute (L**H \ B) -> B   [ L**H \ (T \ (L \P**T * B) ) ]
-			if err = goblas.Ztrsm(Left, Lower, ConjTrans, Unit, n-nb, nrhs, one, a.Off(nb, 0), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Lower, ConjTrans, Unit, n-nb, nrhs, one, a.Off(nb, 0)); err != nil {
 				panic(err)
 			}
 

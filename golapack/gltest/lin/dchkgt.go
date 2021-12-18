@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -73,17 +72,17 @@ func dchkgt(dotype []bool, nval, nsval []int, thresh float64, tsterr bool, a, af
 				//              Types 1-6:  generate matrices of known condition number.
 				koff = max(2-ku, 3-max(1, n))
 				*srnamt = "Dlatms"
-				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'Z', af.MatrixOff(koff-1, 3, opts), work); info != 0 {
+				if info, _ = matgen.Dlatms(n, n, dist, &iseed, _type, rwork, mode, cond, anorm, kl, ku, 'Z', af.Off(koff-1).Matrix(3, opts), work); info != 0 {
 					nerrs = alaerh(path, "Dlatms", info, 0, []byte(" "), n, n, kl, ku, -1, imat, nfail, nerrs)
 					continue
 				}
 				izero = 0
 
 				if n > 1 {
-					goblas.Dcopy(n-1, af.Off(3, 3), a.Off(0, 1))
-					goblas.Dcopy(n-1, af.Off(2, 3), a.Off(n+m, 1))
+					a.Copy(n-1, af.Off(3), 3, 1)
+					a.Off(n+m).Copy(n-1, af.Off(2), 3, 1)
 				}
-				goblas.Dcopy(n, af.Off(1, 3), a.Off(m, 1))
+				a.Off(m).Copy(n, af.Off(1), 3, 1)
 			} else {
 				//              Types 7-12:  generate tridiagonal matrices with
 				//              unknown condition numbers.
@@ -91,7 +90,7 @@ func dchkgt(dotype []bool, nval, nsval []int, thresh float64, tsterr bool, a, af
 					//                 Generate a matrix with elements from [-1,1].
 					golapack.Dlarnv(2, &iseed, n+2*m, a)
 					if anorm != one {
-						goblas.Dscal(n+2*m, anorm, a.Off(0, 1))
+						a.Scal(n+2*m, anorm, 1)
 					}
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -143,7 +142,7 @@ func dchkgt(dotype []bool, nval, nsval []int, thresh float64, tsterr bool, a, af
 			//+    TEST 1
 			//           Factor A as L*U and compute the ratio
 			//              norm(L*U - A) / (n * norm(A) * EPS )
-			goblas.Dcopy(n+2*m, a.Off(0, 1), af.Off(0, 1))
+			af.Copy(n+2*m, a, 1, 1)
 			*srnamt = "Dgttrf"
 			if info, err = golapack.Dgttrf(n, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), &iwork); err != nil {
 				panic(err)
@@ -189,7 +188,7 @@ func dchkgt(dotype []bool, nval, nsval []int, thresh float64, tsterr bool, a, af
 						if err = golapack.Dgttrs(trans, n, 1, af, af.Off(m), af.Off(n+m), af.Off(n+2*m), iwork, x.Matrix(lda, opts)); err != nil {
 							panic(err)
 						}
-						ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
+						ainvnm = math.Max(ainvnm, x.Asum(n, 1))
 					}
 
 					//                 Compute RCONDC = 1 / (norm(A) * norm(inv(A))

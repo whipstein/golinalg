@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -48,13 +47,13 @@ func ztbt02(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 	//        norm(op(A)*x - b) / ( norm(op(A)) * norm(x) * EPS ).
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		goblas.Zcopy(n, x.CVector(0, j-1, 1), work.Off(0, 1))
-		if err = goblas.Ztbmv(uplo, trans, diag, n, kd, ab, work.Off(0, 1)); err != nil {
+		work.Copy(n, x.Off(0, j-1).CVector(), 1, 1)
+		if err = work.Tbmv(uplo, trans, diag, n, kd, ab, 1); err != nil {
 			panic(err)
 		}
-		goblas.Zaxpy(n, complex(-one, 0), b.CVector(0, j-1, 1), work.Off(0, 1))
-		bnorm = goblas.Dzasum(n, work.Off(0, 1))
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1, 1))
+		work.Axpy(n, complex(-one, 0), b.Off(0, j-1).CVector(), 1, 1)
+		bnorm = work.Asum(n, 1)
+		xnorm = x.Off(0, j-1).CVector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

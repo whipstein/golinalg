@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -60,17 +59,17 @@ func Zlauum(uplo mat.MatUplo, n int, a *mat.CMatrix) (err error) {
 			//           Compute the product U * U**H.
 			for i = 1; i <= n; i += nb {
 				ib = min(nb, n-i+1)
-				if err = goblas.Ztrmm(Right, Upper, ConjTrans, NonUnit, i-1, ib, cone, a.Off(i-1, i-1), a.Off(0, i-1)); err != nil {
+				if err = a.Off(0, i-1).Trmm(Right, Upper, ConjTrans, NonUnit, i-1, ib, cone, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if err = Zlauu2(Upper, ib, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if i+ib <= n {
-					if err = goblas.Zgemm(NoTrans, ConjTrans, i-1, ib, n-i-ib+1, cone, a.Off(0, i+ib-1), a.Off(i-1, i+ib-1), cone, a.Off(0, i-1)); err != nil {
+					if err = a.Off(0, i-1).Gemm(NoTrans, ConjTrans, i-1, ib, n-i-ib+1, cone, a.Off(0, i+ib-1), a.Off(i-1, i+ib-1), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zherk(Upper, NoTrans, ib, n-i-ib+1, one, a.Off(i-1, i+ib-1), one, a.Off(i-1, i-1)); err != nil {
+					if err = a.Off(i-1, i-1).Herk(Upper, NoTrans, ib, n-i-ib+1, one, a.Off(i-1, i+ib-1), one); err != nil {
 						panic(err)
 					}
 				}
@@ -79,17 +78,17 @@ func Zlauum(uplo mat.MatUplo, n int, a *mat.CMatrix) (err error) {
 			//           Compute the product L**H * L.
 			for i = 1; i <= n; i += nb {
 				ib = min(nb, n-i+1)
-				if err = goblas.Ztrmm(Left, Lower, ConjTrans, NonUnit, ib, i-1, cone, a.Off(i-1, i-1), a.Off(i-1, 0)); err != nil {
+				if err = a.Off(i-1, 0).Trmm(Left, Lower, ConjTrans, NonUnit, ib, i-1, cone, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if err = Zlauu2(Lower, ib, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if i+ib <= n {
-					if err = goblas.Zgemm(ConjTrans, NoTrans, ib, i-1, n-i-ib+1, cone, a.Off(i+ib-1, i-1), a.Off(i+ib-1, 0), cone, a.Off(i-1, 0)); err != nil {
+					if err = a.Off(i-1, 0).Gemm(ConjTrans, NoTrans, ib, i-1, n-i-ib+1, cone, a.Off(i+ib-1, i-1), a.Off(i+ib-1, 0), cone); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zherk(Lower, ConjTrans, ib, n-i-ib+1, one, a.Off(i+ib-1, i-1), one, a.Off(i-1, i-1)); err != nil {
+					if err = a.Off(i-1, i-1).Herk(Lower, ConjTrans, ib, n-i-ib+1, one, a.Off(i+ib-1, i-1), one); err != nil {
 						panic(err)
 					}
 				}

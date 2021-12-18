@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -73,26 +72,26 @@ func Dorbdb1(m, p, q int, x11, x21 *mat.Matrix, theta, phi, taup1, taup2, tauq1,
 	//     Reduce columns 1, ..., Q of X11 and X21
 	for i = 1; i <= q; i++ {
 
-		*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Vector(i, i-1, 1))
-		*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Dlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Vector(i, i-1, 1))
+		*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Off(i, i-1).Vector(), 1)
+		*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Dlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Off(i, i-1).Vector(), 1)
 		theta.Set(i-1, math.Atan2(x21.Get(i-1, i-1), x11.Get(i-1, i-1)))
 		c = math.Cos(theta.Get(i - 1))
 		s = math.Sin(theta.Get(i - 1))
 		x11.Set(i-1, i-1, one)
 		x21.Set(i-1, i-1, one)
-		Dlarf(Left, p-i+1, q-i, x11.Vector(i-1, i-1, 1), taup1.Get(i-1), x11.Off(i-1, i), work.Off(ilarf-1))
-		Dlarf(Left, m-p-i+1, q-i, x21.Vector(i-1, i-1, 1), taup2.Get(i-1), x21.Off(i-1, i), work.Off(ilarf-1))
+		Dlarf(Left, p-i+1, q-i, x11.Off(i-1, i-1).Vector(), 1, taup1.Get(i-1), x11.Off(i-1, i), work.Off(ilarf-1))
+		Dlarf(Left, m-p-i+1, q-i, x21.Off(i-1, i-1).Vector(), 1, taup2.Get(i-1), x21.Off(i-1, i), work.Off(ilarf-1))
 
 		if i < q {
-			goblas.Drot(q-i, x11.Vector(i-1, i), x21.Vector(i-1, i), c, s)
-			*x21.GetPtr(i-1, i), *tauq1.GetPtr(i - 1) = Dlarfgp(q-i, x21.Get(i-1, i), x21.Vector(i-1, i+2-1))
+			x21.Off(i-1, i).Vector().Rot(q-i, x11.Off(i-1, i).Vector(), x11.Rows, x21.Rows, c, s)
+			*x21.GetPtr(i-1, i), *tauq1.GetPtr(i - 1) = Dlarfgp(q-i, x21.Get(i-1, i), x21.Off(i-1, i+2-1).Vector(), x21.Rows)
 			s = x21.Get(i-1, i)
 			x21.Set(i-1, i, one)
-			Dlarf(Right, p-i, q-i, x21.Vector(i-1, i), tauq1.Get(i-1), x11.Off(i, i), work.Off(ilarf-1))
-			Dlarf(Right, m-p-i, q-i, x21.Vector(i-1, i), tauq1.Get(i-1), x21.Off(i, i), work.Off(ilarf-1))
-			c = math.Sqrt(math.Pow(goblas.Dnrm2(p-i, x11.Vector(i, i, 1)), 2) + math.Pow(goblas.Dnrm2(m-p-i, x21.Vector(i, i, 1)), 2))
+			Dlarf(Right, p-i, q-i, x21.Off(i-1, i).Vector(), x21.Rows, tauq1.Get(i-1), x11.Off(i, i), work.Off(ilarf-1))
+			Dlarf(Right, m-p-i, q-i, x21.Off(i-1, i).Vector(), x21.Rows, tauq1.Get(i-1), x21.Off(i, i), work.Off(ilarf-1))
+			c = math.Sqrt(math.Pow(x11.Off(i, i).Vector().Nrm2(p-i, 1), 2) + math.Pow(x21.Off(i, i).Vector().Nrm2(m-p-i, 1), 2))
 			phi.Set(i-1, math.Atan2(s, c))
-			if err = Dorbdb5(p-i, m-p-i, q-i-1, x11.Vector(i, i, 1), x21.Vector(i, i, 1), x11.Off(i, i+2-1), x21.Off(i, i+2-1), work.Off(iorbdb5-1), lorbdb5); err != nil {
+			if err = Dorbdb5(p-i, m-p-i, q-i-1, x11.Off(i, i).Vector(), 1, x21.Off(i, i).Vector(), 1, x11.Off(i, i+2-1), x21.Off(i, i+2-1), work.Off(iorbdb5-1), lorbdb5); err != nil {
 				panic(err)
 			}
 		}

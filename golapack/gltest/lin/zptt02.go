@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -42,8 +41,8 @@ func zptt02(uplo mat.MatUplo, n, nrhs int, d *mat.Vector, e *mat.CVector, x, b *
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dzasum(n, b.CVector(0, j-1, 1))
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).CVector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).CVector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -68,7 +67,7 @@ func drqt03(m, n, k int, af, c, cc, q *mat.Matrix, tau, work *mat.Vector, lwork 
 
 		//        Generate MC by NC matrix C
 		for j = 1; j <= nc; j++ {
-			golapack.Dlarnv(2, &iseed, mc, c.Vector(0, j-1))
+			golapack.Dlarnv(2, &iseed, mc, c.Off(0, j-1).Vector())
 		}
 		cnorm = golapack.Dlange('1', mc, nc, c, rwork)
 		if cnorm == 0.0 {
@@ -95,11 +94,11 @@ func drqt03(m, n, k int, af, c, cc, q *mat.Matrix, tau, work *mat.Vector, lwork 
 
 			//           Form explicit product and subtract
 			if side == Left {
-				if err = goblas.Dgemm(trans, NoTrans, mc, nc, mc, -one, q, c, one, cc); err != nil {
+				if err = cc.Gemm(trans, NoTrans, mc, nc, mc, -one, q, c, one); err != nil {
 					panic(err)
 				}
 			} else {
-				if err = goblas.Dgemm(NoTrans, trans, mc, nc, nc, -one, c, q, one, cc); err != nil {
+				if err = cc.Gemm(NoTrans, trans, mc, nc, nc, -one, c, q, one); err != nil {
 					panic(err)
 				}
 			}

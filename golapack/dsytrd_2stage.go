@@ -64,11 +64,11 @@ func Dsytrd2stage(vect byte, uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau, 
 	lwrk = lwork - ldab*n
 	abpos = 1
 	wpos = abpos + ldab*n
-	if err = DsytrdSy2sb(uplo, n, kd, a, work.MatrixOff(abpos-1, ldab, opts), tau, work.Off(wpos-1), lwrk); err != nil {
+	if err = DsytrdSy2sb(uplo, n, kd, a, work.Off(abpos-1).Matrix(ldab, opts), tau, work.Off(wpos-1), lwrk); err != nil {
 		gltest.Xerbla2("DsytrdSy2sb", err)
 		return
 	}
-	if err = DsytrdSb2st('Y', vect, uplo, n, kd, work.MatrixOff(abpos-1, ldab, opts), d, e, hous2, lhous2, work.Off(wpos-1), lwrk); err != nil {
+	if err = DsytrdSb2st('Y', vect, uplo, n, kd, work.Off(abpos-1).Matrix(ldab, opts), d, e, hous2, lhous2, work.Off(wpos-1), lwrk); err != nil {
 		gltest.Xerbla2("DsytrdSb2st", err)
 		return
 	}

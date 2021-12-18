@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -57,7 +56,7 @@ func Dgeqp3(m, n int, a *mat.Matrix, jpvt *[]int, tau, work *mat.Vector, lwork i
 	for j = 1; j <= n; j++ {
 		if (*jpvt)[j-1] != 0 {
 			if j != nfxd {
-				goblas.Dswap(m, a.Vector(0, j-1, 1), a.Vector(0, nfxd-1, 1))
+				a.Off(0, nfxd-1).Vector().Swap(m, a.Off(0, j-1).Vector(), 1, 1)
 				(*jpvt)[j-1] = (*jpvt)[nfxd-1]
 				(*jpvt)[nfxd-1] = j
 			} else {
@@ -126,7 +125,7 @@ func Dgeqp3(m, n int, a *mat.Matrix, jpvt *[]int, tau, work *mat.Vector, lwork i
 		//        Initialize partial column norms. The first N elements of work
 		//        store the exact column norms.
 		for j = nfxd + 1; j <= n; j++ {
-			work.Set(j-1, goblas.Dnrm2(sm, a.Vector(nfxd, j-1, 1)))
+			work.Set(j-1, a.Off(nfxd, j-1).Vector().Nrm2(sm, 1))
 			work.Set(n+j-1, work.Get(j-1))
 		}
 
@@ -142,7 +141,7 @@ func Dgeqp3(m, n int, a *mat.Matrix, jpvt *[]int, tau, work *mat.Vector, lwork i
 				jb = min(nb, topbmn-j+1)
 
 				//              Factorize JB columns among columns J:N.
-				Dlaqps(m, n-j+1, j-1, jb, fjb, a.Off(0, j-1), toSlice(jpvt, j-1), tau.Off(j-1), work.Off(j-1), work.Off(n+j-1), work.Off(2*n), work.MatrixOff(2*n+jb, n-j+1, opts))
+				Dlaqps(m, n-j+1, j-1, jb, fjb, a.Off(0, j-1), toSlice(jpvt, j-1), tau.Off(j-1), work.Off(j-1), work.Off(n+j-1), work.Off(2*n), work.Off(2*n+jb).Matrix(n-j+1, opts))
 
 				j = j + fjb
 				goto label30

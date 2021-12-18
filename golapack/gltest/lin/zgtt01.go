@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -56,12 +55,12 @@ func zgtt01(n int, dl, d, du, dlf, df, duf, du2 *mat.CVector, ipiv *[]int, work 
 	lastj = n
 	for i = n - 1; i >= 1; i-- {
 		li = dlf.Get(i - 1)
-		goblas.Zaxpy(lastj-i+1, li, work.CVector(i-1, i-1), work.CVector(i, i-1))
+		work.Off(i, i-1).CVector().Axpy(lastj-i+1, li, work.Off(i-1, i-1).CVector(), work.Rows, work.Rows)
 		ip = (*ipiv)[i-1]
 		if ip == i {
 			lastj = min(i+2, n)
 		} else {
-			goblas.Zswap(lastj-i+1, work.CVector(i-1, i-1), work.CVector(i, i-1))
+			work.Off(i, i-1).CVector().Swap(lastj-i+1, work.Off(i-1, i-1).CVector(), work.Rows, work.Rows)
 		}
 	}
 

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -61,12 +60,12 @@ func zppt01(uplo mat.MatUplo, n int, a, afac *mat.CVector, rwork *mat.Vector) (r
 		kc = (n*(n-1))/2 + 1
 		for k = n; k >= 1; k-- {
 			//           Compute the (K,K) element of the result.
-			tr = real(goblas.Zdotc(k, afac.Off(kc-1, 1), afac.Off(kc-1, 1)))
+			tr = real(afac.Off(kc-1).Dotc(k, afac.Off(kc-1), 1, 1))
 			afac.SetRe(kc+k-1-1, tr)
 
 			//           Compute the rest of column K.
 			if k > 1 {
-				if err = goblas.Ztpmv(Upper, ConjTrans, NonUnit, k-1, afac, afac.Off(kc-1, 1)); err != nil {
+				if err = afac.Off(kc-1).Tpmv(Upper, ConjTrans, NonUnit, k-1, afac, 1); err != nil {
 					panic(err)
 				}
 				kc = kc - (k - 1)
@@ -91,14 +90,14 @@ func zppt01(uplo mat.MatUplo, n int, a, afac *mat.CVector, rwork *mat.Vector) (r
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if k < n {
-				if err = goblas.Zhpr(Lower, n-k, one, afac.Off(kc, 1), afac.Off(kc+n-k)); err != nil {
+				if err = afac.Off(kc+n-k).Hpr(Lower, n-k, one, afac.Off(kc), 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Scale column K by the diagonal element.
 			tc = afac.Get(kc - 1)
-			goblas.Zscal(n-k+1, tc, afac.Off(kc-1, 1))
+			afac.Off(kc-1).Scal(n-k+1, tc, 1)
 
 			kc = kc - (n - k + 2)
 		}

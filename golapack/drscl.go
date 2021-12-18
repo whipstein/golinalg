@@ -3,14 +3,13 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
 // Drscl multiplies an n-element real vector x by the real scalar 1/a.
 // This is done without overflow or underflow as long as
 // the final result x/a does not overflow or underflow.
-func Drscl(n int, sa float64, sx *mat.Vector) {
+func Drscl(n int, sa float64, sx *mat.Vector, incx int) {
 	var done bool
 	var bignum, cden, cden1, cnum, cnum1, mul, one, smlnum, zero float64
 
@@ -52,7 +51,7 @@ label10:
 	}
 
 	//     Scale the vector X by MUL
-	goblas.Dscal(n, mul, sx)
+	sx.Scal(n, mul, incx)
 
 	if !done {
 		goto label10

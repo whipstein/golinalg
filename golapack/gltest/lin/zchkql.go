@@ -138,7 +138,7 @@ func zchkql(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 									nerrs = alaerh(path, "zgeqls", info, 0, []byte{' '}, m, n, nrhs, -1, nb, imat, nfail, nerrs)
 								}
 
-								*result.GetPtr(6) = zget02(NoTrans, m, n, nrhs, a.CMatrix(lda, opts), x.CMatrixOff(m-n, lda, opts), b.CMatrix(lda, opts), rwork)
+								*result.GetPtr(6) = zget02(NoTrans, m, n, nrhs, a.CMatrix(lda, opts), x.Off(m-n).CMatrix(lda, opts), b.CMatrix(lda, opts), rwork)
 								nt = nt + 1
 							}
 						}

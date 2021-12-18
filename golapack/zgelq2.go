@@ -39,16 +39,16 @@ func Zgelq2(m, n int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 
 	for i = 1; i <= k; i++ {
 		//        Generate elementary reflector H(i) to annihilate A(i,i+1:n)
-		Zlacgv(n-i+1, a.CVector(i-1, i-1))
+		Zlacgv(n-i+1, a.Off(i-1, i-1).CVector(), a.Rows)
 		alpha = a.Get(i-1, i-1)
-		alpha, *tau.GetPtr(i - 1) = Zlarfg(n-i+1, alpha, a.CVector(i-1, min(i+1, n)-1))
+		alpha, *tau.GetPtr(i - 1) = Zlarfg(n-i+1, alpha, a.Off(i-1, min(i+1, n)-1).CVector(), a.Rows)
 		if i < m {
 			//           Apply H(i) to A(i+1:m,i:n) from the right
 			a.Set(i-1, i-1, one)
-			Zlarf(Right, m-i, n-i+1, a.CVector(i-1, i-1), tau.Get(i-1), a.Off(i, i-1), work)
+			Zlarf(Right, m-i, n-i+1, a.Off(i-1, i-1).CVector(), a.Rows, tau.Get(i-1), a.Off(i, i-1), work)
 		}
 		a.Set(i-1, i-1, alpha)
-		Zlacgv(n-i+1, a.CVector(i-1, i-1))
+		Zlacgv(n-i+1, a.Off(i-1, i-1).CVector(), a.Rows)
 	}
 
 	return

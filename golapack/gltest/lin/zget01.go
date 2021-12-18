@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -35,24 +34,24 @@ func zget01(m, n int, a, afac *mat.CMatrix, ipiv *[]int, rwork *mat.Vector) (res
 	//     column N.
 	for k = n; k >= 1; k-- {
 		if k > m {
-			if err = goblas.Ztrmv(Lower, NoTrans, Unit, m, afac, afac.CVector(0, k-1, 1)); err != nil {
+			if err = afac.Off(0, k-1).CVector().Trmv(Lower, NoTrans, Unit, m, afac, 1); err != nil {
 				panic(err)
 			}
 		} else {
 			//           Compute elements (K+1:M,K)
 			t = afac.Get(k-1, k-1)
 			if k+1 <= m {
-				goblas.Zscal(m-k, t, afac.CVector(k, k-1, 1))
-				if err = goblas.Zgemv(NoTrans, m-k, k-1, cone, afac.Off(k, 0), afac.CVector(0, k-1, 1), cone, afac.CVector(k, k-1, 1)); err != nil {
+				afac.Off(k, k-1).CVector().Scal(m-k, t, 1)
+				if err = afac.Off(k, k-1).CVector().Gemv(NoTrans, m-k, k-1, cone, afac.Off(k, 0), afac.Off(0, k-1).CVector(), 1, cone, 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Compute the (K,K) element
-			afac.Set(k-1, k-1, t+goblas.Zdotu(k-1, afac.CVector(k-1, 0), afac.CVector(0, k-1, 1)))
+			afac.Set(k-1, k-1, t+afac.Off(0, k-1).CVector().Dotu(k-1, afac.Off(k-1, 0).CVector(), afac.Rows, 1))
 
 			//           Compute elements (1:K-1,K)
-			err = goblas.Ztrmv(Lower, NoTrans, Unit, k-1, afac, afac.CVector(0, k-1, 1))
+			err = afac.Off(0, k-1).CVector().Trmv(Lower, NoTrans, Unit, k-1, afac, 1)
 		}
 	}
 	golapack.Zlaswp(n, afac, 1, min(m, n), ipiv, -1)

@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -38,7 +37,7 @@ func zget04(n, nrhs int, x, xact *mat.CMatrix, rcond float64) (resid float64) {
 	//     over all the vectors X and XACT .
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		ix = goblas.Izamax(n, xact.CVector(0, j-1, 1))
+		ix = xact.Off(0, j-1).CVector().Iamax(n, 1)
 		xnorm = cabs1(xact.Get(ix-1, j-1))
 		diffnm = zero
 		for i = 1; i <= n; i++ {

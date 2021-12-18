@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -17,7 +16,7 @@ import (
 //
 // To apply H**H, supply conjg(tau) instead
 // tau.
-func Zlarf(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.CMatrix, work *mat.CVector) {
+func Zlarf(side mat.MatSide, m, n int, v *mat.CVector, incv int, tau complex128, c *mat.CMatrix, work *mat.CVector) {
 	var applyleft bool
 	var one, zero complex128
 	var i, lastc, lastv int
@@ -37,15 +36,15 @@ func Zlarf(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.CM
 		} else {
 			lastv = n
 		}
-		if v.Inc > 0 {
-			i = 1 + (lastv-1)*v.Inc
+		if incv > 0 {
+			i = 1 + (lastv-1)*incv
 		} else {
 			i = 1
 		}
 		//     Look for the last non-zero row in V.
 		for lastv > 0 && v.Get(i-1) == zero {
 			lastv = lastv - 1
-			i = i - v.Inc
+			i = i - incv
 		}
 		if applyleft {
 			//     Scan for the last non-zero column in C(1:lastv,:).
@@ -61,12 +60,12 @@ func Zlarf(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.CM
 		//        Form  H * C
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastv,1:lastc)**H * v(1:lastv,1)
-			if err = goblas.Zgemv(ConjTrans, lastv, lastc, one, c, v, zero, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(ConjTrans, lastv, lastc, one, c, v, incv, zero, 1); err != nil {
 				panic(err)
 			}
 
 			//           C(1:lastv,1:lastc) := C(...) - v(1:lastv,1) * w(1:lastc,1)**H
-			if err = goblas.Zgerc(lastv, lastc, -tau, v, work.Off(0, 1), c); err != nil {
+			if err = c.Gerc(lastv, lastc, -tau, v, incv, work, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -74,12 +73,12 @@ func Zlarf(side mat.MatSide, m, n int, v *mat.CVector, tau complex128, c *mat.CM
 		//        Form  C * H
 		if lastv > 0 {
 			//           w(1:lastc,1) := C(1:lastc,1:lastv) * v(1:lastv,1)
-			if err = goblas.Zgemv(NoTrans, lastc, lastv, one, c, v, zero, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(NoTrans, lastc, lastv, one, c, v, incv, zero, 1); err != nil {
 				panic(err)
 			}
 
 			//           C(1:lastc,1:lastv) := C(...) - w(1:lastc,1) * v(1:lastv,1)**H
-			if err = goblas.Zgerc(lastc, lastv, -tau, work.Off(0, 1), v, c); err != nil {
+			if err = c.Gerc(lastc, lastv, -tau, work, 1, v, incv); err != nil {
 				panic(err)
 			}
 		}

@@ -9,7 +9,7 @@ import (
 //
 // Based on DZASUM from the Level 1 BLAS.
 // The change is to use the 'genuine' absolute value.
-func Dzsum1(n int, cx *mat.CVector) (dzsum1Return float64) {
+func Dzsum1(n int, cx *mat.CVector, incx int) (dzsum1Return float64) {
 	var stemp float64
 	var i, nincx int
 
@@ -18,13 +18,13 @@ func Dzsum1(n int, cx *mat.CVector) (dzsum1Return float64) {
 	if n <= 0 {
 		return
 	}
-	if cx.Inc == 1 {
+	if incx == 1 {
 		goto label20
 	}
 
 	//     CODE FOR INCREMENT NOT EQUAL TO 1
-	nincx = n * cx.Inc
-	for i = 1; i <= nincx; i += cx.Inc {
+	nincx = n * incx
+	for i = 1; i <= nincx; i += incx {
 		//        NEXT LINE MODIFIED.
 		stemp = stemp + cx.GetMag(i-1)
 	}

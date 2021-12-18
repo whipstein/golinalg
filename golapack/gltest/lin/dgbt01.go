@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -36,7 +35,7 @@ func dgbt01(m, n, kl, ku int, a *mat.Matrix, afac *mat.Matrix, ipiv []int, work 
 		i1 = max(kd+1-j, 1)
 		i2 = min(kd+m-j, kl+kd)
 		if i2 >= i1 {
-			anorm = math.Max(anorm, goblas.Dasum(i2-i1+1, a.Vector(i1-1, j-1, 1)))
+			anorm = math.Max(anorm, a.Off(i1-1, j-1).Vector().Asum(i2-i1+1, 1))
 		}
 	}
 
@@ -48,7 +47,7 @@ func dgbt01(m, n, kl, ku int, a *mat.Matrix, afac *mat.Matrix, ipiv []int, work 
 		jl = min(kl, m-j)
 		lenj = min(m, j) - j + ju + 1
 		if lenj > 0 {
-			goblas.Dcopy(lenj, afac.Vector(kd-ju-1, j-1, 1), work.Off(0, 1))
+			work.Copy(lenj, afac.Off(kd-ju-1, j-1).Vector(), 1, 1)
 			for i = lenj + 1; i <= ju+jl+1; i++ {
 				work.Set(i-1, zero)
 			}
@@ -60,7 +59,7 @@ func dgbt01(m, n, kl, ku int, a *mat.Matrix, afac *mat.Matrix, ipiv []int, work 
 				if il > 0 {
 					iw = i - j + ju + 1
 					t = work.Get(iw - 1)
-					goblas.Daxpy(il, t, afac.Vector(kd, i-1, 1), work.Off(iw, 1))
+					work.Off(iw).Axpy(il, t, afac.Off(kd, i-1).Vector(), 1, 1)
 					ip = ipiv[i-1]
 					if i != ip {
 						ip = ip - j + ju + 1
@@ -73,11 +72,11 @@ func dgbt01(m, n, kl, ku int, a *mat.Matrix, afac *mat.Matrix, ipiv []int, work 
 			//           Subtract the corresponding column of A.
 			jua = min(ju, ku)
 			if jua+jl+1 > 0 {
-				goblas.Daxpy(jua+jl+1, -one, a.Vector(ku+1-jua-1, j-1, 1), work.Off(ju+1-jua-1, 1))
+				work.Off(ju+1-jua-1).Axpy(jua+jl+1, -one, a.Off(ku+1-jua-1, j-1).Vector(), 1, 1)
 			}
 
 			//           Compute the 1-norm of the column.
-			resid = math.Max(resid, goblas.Dasum(ju+jl+1, work.Off(0, 1)))
+			resid = math.Max(resid, work.Asum(ju+jl+1, 1))
 		}
 	}
 

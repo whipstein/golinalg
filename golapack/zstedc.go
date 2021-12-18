@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -187,10 +186,10 @@ func Zstedc(compz byte, n int, d, e *mat.Vector, z *mat.CMatrix, work *mat.CVect
 			if m > smlsiz {
 				//              Scale.
 				orgnrm = Dlanst('M', m, d.Off(start-1), e.Off(start-1))
-				if err = Dlascl('G', 0, 0, orgnrm, one, m, 1, d.MatrixOff(start-1, m, opts)); err != nil {
+				if err = Dlascl('G', 0, 0, orgnrm, one, m, 1, d.Off(start-1).Matrix(m, opts)); err != nil {
 					panic(err)
 				}
-				if err = Dlascl('G', 0, 0, orgnrm, one, m-1, 1, e.MatrixOff(start-1, m-1, opts)); err != nil {
+				if err = Dlascl('G', 0, 0, orgnrm, one, m-1, 1, e.Off(start-1).Matrix(m-1, opts)); err != nil {
 					panic(err)
 				}
 
@@ -203,7 +202,7 @@ func Zstedc(compz byte, n int, d, e *mat.Vector, z *mat.CMatrix, work *mat.CVect
 				}
 
 				//              Scale back.
-				if err = Dlascl('G', 0, 0, one, orgnrm, m, 1, d.MatrixOff(start-1, m, opts)); err != nil {
+				if err = Dlascl('G', 0, 0, one, orgnrm, m, 1, d.Off(start-1).Matrix(m, opts)); err != nil {
 					panic(err)
 				}
 
@@ -240,7 +239,7 @@ func Zstedc(compz byte, n int, d, e *mat.Vector, z *mat.CMatrix, work *mat.CVect
 			if k != i {
 				d.Set(k-1, d.Get(i-1))
 				d.Set(i-1, p)
-				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, k-1, 1))
+				z.Off(0, k-1).CVector().Swap(n, z.Off(0, i-1).CVector(), 1, 1)
 			}
 		}
 	}

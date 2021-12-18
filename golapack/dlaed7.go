@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -111,7 +110,7 @@ func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm int, d *mat.Vector, q *mat.Ma
 	}
 
 	//     Sort and Deflate eigenvalues.
-	if k, rho, (*givptr)[curr], err = Dlaed8(icompq, n, qsiz, d, q, indxq, rho, cutpnt, work.Off(iz-1), work.Off(idlmda-1), work.MatrixOff(iq2-1, ldq2, opts), work.Off(iw-1), toSlice(perm, (*prmptr)[curr-1]-1), toSlice(givcol, 0+((*givptr)[curr-1]-1)*2), givnum.Off(0, (*givptr)[curr-1]-1), toSlice(iwork, indxp-1), toSlice(iwork, indx-1)); err != nil {
+	if k, rho, (*givptr)[curr], err = Dlaed8(icompq, n, qsiz, d, q, indxq, rho, cutpnt, work.Off(iz-1), work.Off(idlmda-1), work.Off(iq2-1).Matrix(ldq2, opts), work.Off(iw-1), toSlice(perm, (*prmptr)[curr-1]-1), toSlice(givcol, 0+((*givptr)[curr-1]-1)*2), givnum.Off(0, (*givptr)[curr-1]-1), toSlice(iwork, indxp-1), toSlice(iwork, indx-1)); err != nil {
 		panic(err)
 	}
 	(*prmptr)[curr] = (*prmptr)[curr-1] + n
@@ -119,14 +118,14 @@ func Dlaed7(icompq, n, qsiz, tlvls, curlvl, curpbm int, d *mat.Vector, q *mat.Ma
 
 	//     Solve Secular Equation.
 	if k != 0 {
-		if info, err = Dlaed9(k, 1, k, n, d, work.MatrixOff(is-1, k, opts), rho, work.Off(idlmda-1), work.Off(iw-1), qstore.MatrixOff((*qptr)[curr-1]-1, k, opts)); err != nil {
+		if info, err = Dlaed9(k, 1, k, n, d, work.Off(is-1).Matrix(k, opts), rho, work.Off(idlmda-1), work.Off(iw-1), qstore.Off((*qptr)[curr-1]-1).Matrix(k, opts)); err != nil {
 			panic(err)
 		}
 		if info != 0 {
 			return
 		}
 		if icompq == 1 {
-			if err = goblas.Dgemm(NoTrans, NoTrans, qsiz, k, k, one, work.MatrixOff(iq2-1, ldq2, opts), qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), zero, q); err != nil {
+			if err = q.Gemm(NoTrans, NoTrans, qsiz, k, k, one, work.Off(iq2-1).Matrix(ldq2, opts), qstore.Off((*qptr)[curr-1]-1).Matrix(k, opts), zero); err != nil {
 				panic(err)
 			}
 		}

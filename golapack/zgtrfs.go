@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -80,7 +79,7 @@ func Zgtrfs(trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf, du2 *mat.C
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(n, b.CVector(0, j-1, 1), work.Off(0, 1))
+		work.Copy(n, b.Off(0, j-1).CVector(), 1, 1)
 		Zlagtm(trans, n, 1, -one, dl, d, du, x.Off(0, j-1), one, work.CMatrix(n, opts))
 
 		//        Compute abs(op(A))*abs(x) + abs(b) for use in the backward
@@ -135,7 +134,7 @@ func Zgtrfs(trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf, du2 *mat.C
 			if err = Zgttrs(trans, n, 1, dlf, df, duf, du2, ipiv, work.CMatrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Zaxpy(n, complex(one, 0), work.Off(0, 1), x.CVector(0, j-1, 1))
+			x.Off(0, j-1).CVector().Axpy(n, complex(one, 0), work, 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

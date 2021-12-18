@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -66,7 +65,7 @@ func ZunhrCol(m, n, nb int, a, t *mat.CMatrix, d *mat.CVector) (err error) {
 
 	//     (1-2) Solve for V2.
 	if m > n {
-		if err = goblas.Ztrsm(Right, Upper, NoTrans, NonUnit, m-n, n, cone, a, a.Off(n, 0)); err != nil {
+		if err = a.Off(n, 0).Trsm(Right, Upper, NoTrans, NonUnit, m-n, n, cone, a); err != nil {
 			panic(err)
 		}
 	}
@@ -90,7 +89,7 @@ func ZunhrCol(m, n, nb int, a, t *mat.CMatrix, d *mat.CVector) (err error) {
 		//        column-by-column, total JNB*(JNB+1)/2 elements.
 		jbtemp1 = jb - 1
 		for j = jb; j <= jb+jnb-1; j++ {
-			goblas.Zcopy(j-jbtemp1, a.CVector(jb-1, j-1, 1), t.CVector(0, j-1, 1))
+			t.Off(0, j-1).CVector().Copy(j-jbtemp1, a.Off(jb-1, j-1).CVector(), 1, 1)
 		}
 
 		//        (2-2) Perform on the upper-triangular part of the current
@@ -105,7 +104,7 @@ func ZunhrCol(m, n, nb int, a, t *mat.CMatrix, d *mat.CVector) (err error) {
 		//        S(JB), i.e. S(J,J) that is stored in the array element D(J).
 		for j = jb; j <= jb+jnb-1; j++ {
 			if d.Get(j-1) == cone {
-				goblas.Zscal(j-jbtemp1, -cone, t.CVector(0, j-1, 1))
+				t.Off(0, j-1).CVector().Scal(j-jbtemp1, -cone, 1)
 			}
 		}
 
@@ -152,7 +151,7 @@ func ZunhrCol(m, n, nb int, a, t *mat.CMatrix, d *mat.CVector) (err error) {
 		}
 
 		//        (2-3b) Perform the triangular solve.
-		if err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1), t.Off(0, jb-1)); err != nil {
+		if err = t.Off(0, jb-1).Trsm(Right, Lower, ConjTrans, Unit, jnb, jnb, cone, a.Off(jb-1, jb-1)); err != nil {
 			panic(err)
 		}
 

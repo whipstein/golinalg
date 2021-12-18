@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -225,9 +224,9 @@ label20:
 			//           submatrix. NR is the order of G.
 			nr = min(3, i-k+1)
 			if k > m {
-				goblas.Dcopy(nr, h.Vector(k-1, k-1-1, 1), v)
+				v.Copy(nr, h.Off(k-1, k-1-1).Vector(), 1, 1)
 			}
-			*v.GetPtr(0), t1 = Dlarfg(nr, v.Get(0), v.Off(1, 1))
+			*v.GetPtr(0), t1 = Dlarfg(nr, v.Get(0), v.Off(1), 1)
 			if k > m {
 				h.Set(k-1, k-1-1, v.Get(0))
 				h.Set(k, k-1-1, zero)
@@ -326,13 +325,13 @@ label150:
 		if wantt {
 			//           Apply the transformation to the rest of H.
 			if i2 > i {
-				goblas.Drot(i2-i, h.Vector(i-1-1, i), h.Vector(i-1, i), cs, sn)
+				h.Off(i-1, i).Vector().Rot(i2-i, h.Off(i-1-1, i).Vector(), h.Rows, h.Rows, cs, sn)
 			}
-			goblas.Drot(i-i1-1, h.Vector(i1-1, i-1-1, 1), h.Vector(i1-1, i-1, 1), cs, sn)
+			h.Off(i1-1, i-1).Vector().Rot(i-i1-1, h.Off(i1-1, i-1-1).Vector(), 1, 1, cs, sn)
 		}
 		if wantz {
 			//           Apply the transformation to Z.
-			goblas.Drot(nz, z.Vector(iloz-1, i-1-1, 1), z.Vector(iloz-1, i-1, 1), cs, sn)
+			z.Off(iloz-1, i-1).Vector().Rot(nz, z.Off(iloz-1, i-1-1).Vector(), 1, 1, cs, sn)
 		}
 	}
 

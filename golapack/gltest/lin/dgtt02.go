@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -43,8 +42,8 @@ func dgtt02(trans mat.MatTrans, n, nrhs int, dl, d, du *mat.Vector, x *mat.Matri
 	golapack.Dlagtm(trans, n, nrhs, -one, dl, d, du, x, one, b)
 
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1, 1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).Vector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).Vector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

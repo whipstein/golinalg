@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -55,12 +54,12 @@ func ZhetrdHe2hb(uplo mat.MatUplo, n, kd int, a, ab *mat.CMatrix, tau, work *mat
 		if upper {
 			for i = 1; i <= n; i++ {
 				lk = min(kd+1, i)
-				goblas.Zcopy(lk, a.CVector(i-lk, i-1, 1), ab.CVector(kd+1-lk, i-1, 1))
+				ab.Off(kd+1-lk, i-1).CVector().Copy(lk, a.Off(i-lk, i-1).CVector(), 1, 1)
 			}
 		} else {
 			for i = 1; i <= n; i++ {
 				lk = min(kd+1, n-i+1)
-				goblas.Zcopy(lk, a.CVector(i-1, i-1, 1), ab.CVector(0, i-1, 1))
+				ab.Off(0, i-1).CVector().Copy(lk, a.Off(i-1, i-1).CVector(), 1, 1)
 			}
 		}
 		work.Set(0, 1)
@@ -89,7 +88,7 @@ func ZhetrdHe2hb(uplo mat.MatUplo, n, kd int, a, ab *mat.CMatrix, tau, work *mat
 
 	//     Set the workspace of the triangular matrix T to zero once such a
 	//     way every time T is generated the upper/lower portion will be always zero
-	Zlaset(Full, ldt, kd, zero, zero, work.CMatrixOff(tpos-1, ldt, opts))
+	Zlaset(Full, ldt, kd, zero, zero, work.Off(tpos-1).CMatrix(ldt, opts))
 
 	if upper {
 		for i = 1; i <= n-kd; i += kd {
@@ -104,34 +103,34 @@ func ZhetrdHe2hb(uplo mat.MatUplo, n, kd int, a, ab *mat.CMatrix, tau, work *mat
 			//            Copy the upper portion of A into AB
 			for j = i; j <= i+pk-1; j++ {
 				lk = min(kd, n-j) + 1
-				goblas.Zcopy(lk, a.CVector(j-1, j-1), ab.CVector(kd, j-1, ab.Rows-1))
+				ab.Off(kd, j-1).CVector().Copy(lk, a.Off(j-1, j-1).CVector(), a.Rows, ab.Rows-1)
 			}
 
 			Zlaset(Lower, pk, pk, zero, one, a.Off(i-1, i+kd-1))
 
 			//            Form the matrix T
-			Zlarft('F', 'R', pn, pk, a.Off(i-1, i+kd-1), tau.Off(i-1), work.CMatrixOff(tpos-1, ldt, opts))
+			Zlarft('F', 'R', pn, pk, a.Off(i-1, i+kd-1), tau.Off(i-1), work.Off(tpos-1).CMatrix(ldt, opts))
 
 			//            Compute W:
-			if err = goblas.Zgemm(ConjTrans, NoTrans, pk, pn, pk, one, work.CMatrixOff(tpos-1, ldt, opts), a.Off(i-1, i+kd-1), zero, work.CMatrixOff(s2pos-1, lds2, opts)); err != nil {
+			if err = work.Off(s2pos-1).CMatrix(lds2, opts).Gemm(ConjTrans, NoTrans, pk, pn, pk, one, work.Off(tpos-1).CMatrix(ldt, opts), a.Off(i-1, i+kd-1), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zhemm(Right, uplo, pk, pn, one, a.Off(i+kd-1, i+kd-1), work.CMatrixOff(s2pos-1, lds2, opts), zero, work.CMatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).CMatrix(ldw, opts).Hemm(Right, uplo, pk, pn, one, a.Off(i+kd-1, i+kd-1), work.Off(s2pos-1).CMatrix(lds2, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemm(NoTrans, ConjTrans, pk, pk, pn, one, work.CMatrixOff(wpos-1, ldw, opts), work.CMatrixOff(s2pos-1, lds2, opts), zero, work.CMatrixOff(s1pos-1, lds1, opts)); err != nil {
+			if err = work.Off(s1pos-1).CMatrix(lds1, opts).Gemm(NoTrans, ConjTrans, pk, pk, pn, one, work.Off(wpos-1).CMatrix(ldw, opts), work.Off(s2pos-1).CMatrix(lds2, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemm(NoTrans, NoTrans, pk, pn, pk, -half, work.CMatrixOff(s1pos-1, lds1, opts), a.Off(i-1, i+kd-1), one, work.CMatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).CMatrix(ldw, opts).Gemm(NoTrans, NoTrans, pk, pn, pk, -half, work.Off(s1pos-1).CMatrix(lds1, opts), a.Off(i-1, i+kd-1), one); err != nil {
 				panic(err)
 			}
 
 			//            Update the unreduced submatrix A(i+kd:n,i+kd:n), using
 			//            an update of the form:  A := A - V'*W - W'*V
-			if err = goblas.Zher2k(uplo, ConjTrans, pn, pk, -one, a.Off(i-1, i+kd-1), work.CMatrixOff(wpos-1, ldw, opts), rone, a.Off(i+kd-1, i+kd-1)); err != nil {
+			if err = a.Off(i+kd-1, i+kd-1).Her2k(uplo, ConjTrans, pn, pk, -one, a.Off(i-1, i+kd-1), work.Off(wpos-1).CMatrix(ldw, opts), rone); err != nil {
 				panic(err)
 			}
 		}
@@ -139,7 +138,7 @@ func ZhetrdHe2hb(uplo mat.MatUplo, n, kd int, a, ab *mat.CMatrix, tau, work *mat
 		//        Copy the upper band to AB which is the band storage matrix
 		for j = n - kd + 1; j <= n; j++ {
 			lk = min(kd, n-j) + 1
-			goblas.Zcopy(lk, a.CVector(j-1, j-1), ab.CVector(kd, j-1, ab.Rows-1))
+			ab.Off(kd, j-1).CVector().Copy(lk, a.Off(j-1, j-1).CVector(), a.Rows, ab.Rows-1)
 		}
 
 	} else {
@@ -156,34 +155,34 @@ func ZhetrdHe2hb(uplo mat.MatUplo, n, kd int, a, ab *mat.CMatrix, tau, work *mat
 			//            Copy the upper portion of A into AB
 			for j = i; j <= i+pk-1; j++ {
 				lk = min(kd, n-j) + 1
-				goblas.Zcopy(lk, a.CVector(j-1, j-1, 1), ab.CVector(0, j-1, 1))
+				ab.Off(0, j-1).CVector().Copy(lk, a.Off(j-1, j-1).CVector(), 1, 1)
 			}
 
 			Zlaset(Upper, pk, pk, zero, one, a.Off(i+kd-1, i-1))
 
 			//            Form the matrix T
-			Zlarft('F', 'C', pn, pk, a.Off(i+kd-1, i-1), tau.Off(i-1), work.CMatrixOff(tpos-1, ldt, opts))
+			Zlarft('F', 'C', pn, pk, a.Off(i+kd-1, i-1), tau.Off(i-1), work.Off(tpos-1).CMatrix(ldt, opts))
 
 			//            Compute W:
-			if err = goblas.Zgemm(NoTrans, NoTrans, pn, pk, pk, one, a.Off(i+kd-1, i-1), work.CMatrixOff(tpos-1, ldt, opts), zero, work.CMatrixOff(s2pos-1, lds2, opts)); err != nil {
+			if err = work.Off(s2pos-1).CMatrix(lds2, opts).Gemm(NoTrans, NoTrans, pn, pk, pk, one, a.Off(i+kd-1, i-1), work.Off(tpos-1).CMatrix(ldt, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zhemm(Left, uplo, pn, pk, one, a.Off(i+kd-1, i+kd-1), work.CMatrixOff(s2pos-1, lds2, opts), zero, work.CMatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).CMatrix(ldw, opts).Hemm(Left, uplo, pn, pk, one, a.Off(i+kd-1, i+kd-1), work.Off(s2pos-1).CMatrix(lds2, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemm(ConjTrans, NoTrans, pk, pk, pn, one, work.CMatrixOff(s2pos-1, lds2, opts), work.CMatrixOff(wpos-1, ldw, opts), zero, work.CMatrixOff(s1pos-1, lds1, opts)); err != nil {
+			if err = work.Off(s1pos-1).CMatrix(lds1, opts).Gemm(ConjTrans, NoTrans, pk, pk, pn, one, work.Off(s2pos-1).CMatrix(lds2, opts), work.Off(wpos-1).CMatrix(ldw, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemm(NoTrans, NoTrans, pn, pk, pk, -half, a.Off(i+kd-1, i-1), work.CMatrixOff(s1pos-1, lds1, opts), one, work.CMatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).CMatrix(ldw, opts).Gemm(NoTrans, NoTrans, pn, pk, pk, -half, a.Off(i+kd-1, i-1), work.Off(s1pos-1).CMatrix(lds1, opts), one); err != nil {
 				panic(err)
 			}
 
 			//            Update the unreduced submatrix A(i+kd:n,i+kd:n), using
 			//            an update of the form:  A := A - V*W' - W*V'
-			if err = goblas.Zher2k(uplo, NoTrans, pn, pk, -one, a.Off(i+kd-1, i-1), work.CMatrixOff(wpos-1, ldw, opts), rone, a.Off(i+kd-1, i+kd-1)); err != nil {
+			if err = a.Off(i+kd-1, i+kd-1).Her2k(uplo, NoTrans, pn, pk, -one, a.Off(i+kd-1, i-1), work.Off(wpos-1).CMatrix(ldw, opts), rone); err != nil {
 				panic(err)
 			}
 			//            ==================================================================
@@ -198,7 +197,7 @@ func ZhetrdHe2hb(uplo mat.MatUplo, n, kd int, a, ab *mat.CMatrix, tau, work *mat
 		//        Copy the lower band to AB which is the band storage matrix
 		for j = n - kd + 1; j <= n; j++ {
 			lk = min(kd, n-j) + 1
-			goblas.Zcopy(lk, a.CVector(j-1, j-1, 1), ab.CVector(0, j-1, 1))
+			ab.Off(0, j-1).CVector().Copy(lk, a.Off(j-1, j-1).CVector(), 1, 1)
 		}
 	}
 

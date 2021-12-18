@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -91,8 +90,8 @@ func Dbdsdc(uplo mat.MatUplo, compq byte, n int, d, e *mat.Vector, u, vt *mat.Ma
 	wstart = 1
 	qstart = 3
 	if icompq == 1 {
-		goblas.Dcopy(n, d, q)
-		goblas.Dcopy(n-1, e, q.Off(n))
+		q.Copy(n, d, 1, 1)
+		q.Off(n).Copy(n-1, e, 1, 1)
 	}
 	if iuplo == 2 {
 		qstart = 5
@@ -137,9 +136,9 @@ func Dbdsdc(uplo mat.MatUplo, compq byte, n int, d, e *mat.Vector, u, vt *mat.Ma
 		} else if icompq == 1 {
 			iu = 1
 			ivt = iu + n
-			Dlaset(Full, n, n, zero, one, q.MatrixOff(iu+(qstart-1)*n-1, n, opts))
-			Dlaset(Full, n, n, zero, one, q.MatrixOff(ivt+(qstart-1)*n-1, n, opts))
-			if info, err = Dlasdq(Upper, 0, n, n, n, 0, d, e, q.MatrixOff(ivt+(qstart-1)*n-1, n, opts), q.MatrixOff(iu+(qstart-1)*n-1, n, opts), q.MatrixOff(iu+(qstart-1)*n-1, n, opts), work.Off(wstart-1)); err != nil {
+			Dlaset(Full, n, n, zero, one, q.Off(iu+(qstart-1)*n-1).Matrix(n, opts))
+			Dlaset(Full, n, n, zero, one, q.Off(ivt+(qstart-1)*n-1).Matrix(n, opts))
+			if info, err = Dlasdq(Upper, 0, n, n, n, 0, d, e, q.Off(ivt+(qstart-1)*n-1).Matrix(n, opts), q.Off(iu+(qstart-1)*n-1).Matrix(n, opts), q.Off(iu+(qstart-1)*n-1).Matrix(n, opts), work.Off(wstart-1)); err != nil {
 				panic(err)
 			}
 		}
@@ -221,7 +220,7 @@ func Dbdsdc(uplo mat.MatUplo, compq byte, n int, d, e *mat.Vector, u, vt *mat.Ma
 			if icompq == 2 {
 				info, err = Dlasd0(nsize, sqre, d.Off(start-1), e.Off(start-1), u.Off(start-1, start-1), vt.Off(start-1, start-1), smlsiz, iwork, work.Off(wstart-1))
 			} else {
-				if info, err = Dlasda(icompq, smlsiz, nsize, sqre, d.Off(start-1), e.Off(start-1), q.MatrixOff(start+(iu+qstart-2)*n-1, n, opts), q.MatrixOff(start+(ivt+qstart-2)*n-1, n, opts), toSlice(iq, start+k*n-1), q.MatrixOff(start+(difl+qstart-2)*n-1, n, opts), q.MatrixOff(start+(difr+qstart-2)*n-1, n, opts), q.MatrixOff(start+(z+qstart-2)*n-1, n, opts), q.MatrixOff(start+(poles+qstart-2)*n-1, n, opts), toSlice(iq, start+givptr*n-1), toSlice(iq, start+givcol*n-1), n, toSlice(iq, start+perm*n-1), q.MatrixOff(start+(givnum+qstart-2)*n-1, n, opts), q.Off(start+(ic+qstart-2)*n-1), q.Off(start+(is+qstart-2)*n-1), work.Off(wstart-1), iwork); err != nil {
+				if info, err = Dlasda(icompq, smlsiz, nsize, sqre, d.Off(start-1), e.Off(start-1), q.Off(start+(iu+qstart-2)*n-1).Matrix(n, opts), q.Off(start+(ivt+qstart-2)*n-1).Matrix(n, opts), toSlice(iq, start+k*n-1), q.Off(start+(difl+qstart-2)*n-1).Matrix(n, opts), q.Off(start+(difr+qstart-2)*n-1).Matrix(n, opts), q.Off(start+(z+qstart-2)*n-1).Matrix(n, opts), q.Off(start+(poles+qstart-2)*n-1).Matrix(n, opts), toSlice(iq, start+givptr*n-1), toSlice(iq, start+givcol*n-1), n, toSlice(iq, start+perm*n-1), q.Off(start+(givnum+qstart-2)*n-1).Matrix(n, opts), q.Off(start+(ic+qstart-2)*n-1), q.Off(start+(is+qstart-2)*n-1), work.Off(wstart-1), iwork); err != nil {
 					panic(err)
 				}
 			}
@@ -256,8 +255,8 @@ label40:
 			if icompq == 1 {
 				(*iq)[i-1] = kk
 			} else if icompq == 2 {
-				goblas.Dswap(n, u.Vector(0, i-1, 1), u.Vector(0, kk-1, 1))
-				goblas.Dswap(n, vt.Vector(i-1, 0), vt.Vector(kk-1, 0))
+				u.Off(0, kk-1).Vector().Swap(n, u.Off(0, i-1).Vector(), 1, 1)
+				vt.Off(kk-1, 0).Vector().Swap(n, vt.Off(i-1, 0).Vector(), vt.Rows, vt.Rows)
 			}
 		} else if icompq == 1 {
 			(*iq)[i-1] = i

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -104,7 +103,7 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 					} else {
 						jb = 2 * nb
 					}
-					if err = goblas.Zgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.CMatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), a.Off((i-1)*nb, j*nb), zero, work.CMatrixOff(i*nb, n, opts)); err != nil {
+					if err = work.Off(i*nb).CMatrix(n, opts).Gemm(NoTrans, NoTrans, nb, kb, jb, one, tb.Off(td+1+(i*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off((i-1)*nb, j*nb), zero); err != nil {
 						panic(err)
 					}
 				} else {
@@ -114,29 +113,29 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 					} else {
 						jb = 3 * nb
 					}
-					if err = goblas.Zgemm(NoTrans, NoTrans, nb, kb, jb, one, tb.CMatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), a.Off((i-2)*nb, j*nb), zero, work.CMatrixOff(i*nb, n, opts)); err != nil {
+					if err = work.Off(i*nb).CMatrix(n, opts).Gemm(NoTrans, NoTrans, nb, kb, jb, one, tb.Off(td+nb+1+((i-1)*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off((i-2)*nb, j*nb), zero); err != nil {
 						panic(err)
 					}
 				}
 			}
 
 			//           Compute T(J,J)
-			Zlacpy(Upper, kb, kb, a.Off(j*nb, j*nb), tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
+			Zlacpy(Upper, kb, kb, a.Off(j*nb, j*nb), tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts))
 			if j > 1 {
 				//              T(J,J) = U(1:J,J)'*H(1:J)
-				if err = goblas.Zgemm(ConjTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(0, j*nb), work.CMatrixOff(nb, n, opts), one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+				if err = tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts).Gemm(ConjTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(0, j*nb), work.Off(nb).CMatrix(n, opts), one); err != nil {
 					panic(err)
 				}
 				//              T(J,J) += U(J,J)'*T(J,J-1)*U(J-1,J)
-				if err = goblas.Zgemm(ConjTrans, NoTrans, kb, nb, kb, one, a.Off((j-1)*nb, j*nb), tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), zero, work.CMatrix(n, opts)); err != nil {
+				if err = work.CMatrix(n, opts).Gemm(ConjTrans, NoTrans, kb, nb, kb, one, a.Off((j-1)*nb, j*nb), tb.Off(td+nb+1+((j-1)*nb)*ldtb-1).CMatrix(ldtb-1, opts), zero); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, nb, -one, work.CMatrix(n, opts), a.Off((j-2)*nb, j*nb), one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+				if err = tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts).Gemm(NoTrans, NoTrans, kb, kb, nb, -one, work.CMatrix(n, opts), a.Off((j-2)*nb, j*nb), one); err != nil {
 					panic(err)
 				}
 			}
 			if j > 0 {
-				if err = Zhegst(1, Upper, kb, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off((j-1)*nb, j*nb)); err != nil {
+				if err = Zhegst(1, Upper, kb, tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off((j-1)*nb, j*nb)); err != nil {
 					panic(err)
 				}
 			}
@@ -153,24 +152,24 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 				if j > 0 {
 					//                 Compute H(J,J)
 					if j == 1 {
-						if err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, kb, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off((j-1)*nb, j*nb), zero, work.CMatrixOff(j*nb, n, opts)); err != nil {
+						if err = work.Off(j*nb).CMatrix(n, opts).Gemm(NoTrans, NoTrans, kb, kb, kb, one, tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off((j-1)*nb, j*nb), zero); err != nil {
 							panic(err)
 						}
 					} else {
-						if err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, nb+kb, one, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), a.Off((j-2)*nb, j*nb), zero, work.CMatrixOff(j*nb, n, opts)); err != nil {
+						if err = work.Off(j*nb).CMatrix(n, opts).Gemm(NoTrans, NoTrans, kb, kb, nb+kb, one, tb.Off(td+nb+1+((j-1)*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off((j-2)*nb, j*nb), zero); err != nil {
 							panic(err)
 						}
 					}
 
 					//                 Update with the previous column
-					if err = goblas.Zgemm(ConjTrans, NoTrans, nb, n-(j+1)*nb, j*nb, -one, work.CMatrixOff(nb, n, opts), a.Off(0, (j+1)*nb), one, a.Off(j*nb, (j+1)*nb)); err != nil {
+					if err = a.Off(j*nb, (j+1)*nb).Gemm(ConjTrans, NoTrans, nb, n-(j+1)*nb, j*nb, -one, work.Off(nb).CMatrix(n, opts), a.Off(0, (j+1)*nb), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              Copy panel to workspace to call ZGETRF
 				for k = 1; k <= nb; k++ {
-					goblas.Zcopy(n-(j+1)*nb, a.CVector(j*nb+k-1, (j+1)*nb, *&a.Rows), work.Off(1+(k-1)*n-1, 1))
+					work.Off(1+(k-1)*n-1).Copy(n-(j+1)*nb, a.Off(j*nb+k-1, (j+1)*nb).CVector(), a.Rows, 1)
 				}
 
 				//              Factorize panel
@@ -184,18 +183,18 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 				//              Copy panel back
 				for k = 1; k <= nb; k++ {
 					//                  Copy only L-factor
-					goblas.Zcopy(n-k-(j+1)*nb, work.Off(k+1+(k-1)*n-1, 1), a.CVector(j*nb+k-1, (j+1)*nb+k, *&a.Rows))
+					a.Off(j*nb+k-1, (j+1)*nb+k).CVector().Copy(n-k-(j+1)*nb, work.Off(k+1+(k-1)*n-1), 1, a.Rows)
 
 					//                  Transpose U-factor to be copied back into T(J+1, J)
-					Zlacgv(k, work.Off(1+(k-1)*n-1, 1))
+					Zlacgv(k, work.Off(1+(k-1)*n-1), 1)
 				}
 
 				//              Compute T(J+1, J), zero out for GEMM update
 				kb = min(nb, n-(j+1)*nb)
-				Zlaset(Full, kb, nb, zero, zero, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
-				Zlacpy(Upper, kb, nb, work.CMatrix(n, opts), tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				Zlaset(Full, kb, nb, zero, zero, tb.Off(td+nb+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts))
+				Zlacpy(Upper, kb, nb, work.CMatrix(n, opts), tb.Off(td+nb+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts))
 				if j > 0 {
-					if err = goblas.Ztrsm(Right, Upper, NoTrans, Unit, kb, nb, one, a.Off((j-1)*nb, j*nb), tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+					if err = tb.Off(td+nb+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts).Trsm(Right, Upper, NoTrans, Unit, kb, nb, one, a.Off((j-1)*nb, j*nb)); err != nil {
 						panic(err)
 					}
 				}
@@ -218,16 +217,16 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 					i2 = (*ipiv)[(j+1)*nb+k-1]
 					if i1 != i2 {
 						//                    > Apply pivots to previous columns of L
-						goblas.Zswap(k-1, a.CVector((j+1)*nb, i1-1, 1), a.CVector((j+1)*nb, i2-1, 1))
+						a.Off((j+1)*nb, i2-1).CVector().Swap(k-1, a.Off((j+1)*nb, i1-1).CVector(), 1, 1)
 						//                    > Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 						if i2 > (i1 + 1) {
-							goblas.Zswap(i2-i1-1, a.CVector(i1-1, i1, *&a.Rows), a.CVector(i1, i2-1, 1))
-							Zlacgv(i2-i1-1, a.CVector(i1, i2-1, 1))
+							a.Off(i1, i2-1).CVector().Swap(i2-i1-1, a.Off(i1-1, i1).CVector(), a.Rows, 1)
+							Zlacgv(i2-i1-1, a.Off(i1, i2-1).CVector(), 1)
 						}
-						Zlacgv(i2-i1, a.CVector(i1-1, i1))
+						Zlacgv(i2-i1, a.Off(i1-1, i1).CVector(), a.Rows)
 						//                    > Swap A(I2+1:M, I1) with A(I2+1:M, I2)
 						if i2 < n {
-							goblas.Zswap(n-i2, a.CVector(i1-1, i2, *&a.Rows), a.CVector(i2-1, i2, *&a.Rows))
+							a.Off(i2-1, i2).CVector().Swap(n-i2, a.Off(i1-1, i2).CVector(), a.Rows, a.Rows)
 						}
 						//                    > Swap A(I1, I1) with A(I2, I2)
 						piv = a.Get(i1-1, i1-1)
@@ -235,7 +234,7 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 						a.Set(i2-1, i2-1, piv)
 						//                    > Apply pivots to previous columns of L
 						if j > 0 {
-							goblas.Zswap(j*nb, a.CVector(0, i1-1, 1), a.CVector(0, i2-1, 1))
+							a.Off(0, i2-1).CVector().Swap(j*nb, a.Off(0, i1-1).CVector(), 1, 1)
 						}
 					}
 				}
@@ -256,7 +255,7 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 					} else {
 						jb = 2 * nb
 					}
-					if err = goblas.Zgemm(NoTrans, ConjTrans, nb, kb, jb, one, tb.CMatrixOff(td+1+(i*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (i-1)*nb), zero, work.CMatrixOff(i*nb, n, opts)); err != nil {
+					if err = work.Off(i*nb).CMatrix(n, opts).Gemm(NoTrans, ConjTrans, nb, kb, jb, one, tb.Off(td+1+(i*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off(j*nb, (i-1)*nb), zero); err != nil {
 						panic(err)
 					}
 				} else {
@@ -266,29 +265,29 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 					} else {
 						jb = 3 * nb
 					}
-					if err = goblas.Zgemm(NoTrans, ConjTrans, nb, kb, jb, one, tb.CMatrixOff(td+nb+1+((i-1)*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (i-2)*nb), zero, work.CMatrixOff(i*nb, n, opts)); err != nil {
+					if err = work.Off(i*nb).CMatrix(n, opts).Gemm(NoTrans, ConjTrans, nb, kb, jb, one, tb.Off(td+nb+1+((i-1)*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off(j*nb, (i-2)*nb), zero); err != nil {
 						panic(err)
 					}
 				}
 			}
 
 			//           Compute T(J,J)
-			Zlacpy(Lower, kb, kb, a.Off(j*nb, j*nb), tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts))
+			Zlacpy(Lower, kb, kb, a.Off(j*nb, j*nb), tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts))
 			if j > 1 {
 				//              T(J,J) = L(J,1:J)*H(1:J)
-				if err = goblas.Zgemm(NoTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(j*nb, 0), work.CMatrixOff(nb, n, opts), one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+				if err = tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts).Gemm(NoTrans, NoTrans, kb, kb, (j-1)*nb, -one, a.Off(j*nb, 0), work.Off(nb).CMatrix(n, opts), one); err != nil {
 					panic(err)
 				}
 				//              T(J,J) += L(J,J)*T(J,J-1)*L(J,J-1)'
-				if err = goblas.Zgemm(NoTrans, NoTrans, kb, nb, kb, one, a.Off(j*nb, (j-1)*nb), tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), zero, work.CMatrix(n, opts)); err != nil {
+				if err = work.CMatrix(n, opts).Gemm(NoTrans, NoTrans, kb, nb, kb, one, a.Off(j*nb, (j-1)*nb), tb.Off(td+nb+1+((j-1)*nb)*ldtb-1).CMatrix(ldtb-1, opts), zero); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgemm(NoTrans, ConjTrans, kb, kb, nb, -one, work.CMatrix(n, opts), a.Off(j*nb, (j-2)*nb), one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+				if err = tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts).Gemm(NoTrans, ConjTrans, kb, kb, nb, -one, work.CMatrix(n, opts), a.Off(j*nb, (j-2)*nb), one); err != nil {
 					panic(err)
 				}
 			}
 			if j > 0 {
-				if err = Zhegst(1, Lower, kb, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-1)*nb)); err != nil {
+				if err = Zhegst(1, Lower, kb, tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off(j*nb, (j-1)*nb)); err != nil {
 					panic(err)
 				}
 			}
@@ -305,17 +304,17 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 				if j > 0 {
 					//                 Compute H(J,J)
 					if j == 1 {
-						if err = goblas.Zgemm(NoTrans, ConjTrans, kb, kb, kb, one, tb.CMatrixOff(td+1+(j*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-1)*nb), zero, work.CMatrixOff(j*nb, n, opts)); err != nil {
+						if err = work.Off(j*nb).CMatrix(n, opts).Gemm(NoTrans, ConjTrans, kb, kb, kb, one, tb.Off(td+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off(j*nb, (j-1)*nb), zero); err != nil {
 							panic(err)
 						}
 					} else {
-						if err = goblas.Zgemm(NoTrans, ConjTrans, kb, kb, nb+kb, one, tb.CMatrixOff(td+nb+1+((j-1)*nb)*ldtb-1, ldtb-1, opts), a.Off(j*nb, (j-2)*nb), zero, work.CMatrixOff(j*nb, n, opts)); err != nil {
+						if err = work.Off(j*nb).CMatrix(n, opts).Gemm(NoTrans, ConjTrans, kb, kb, nb+kb, one, tb.Off(td+nb+1+((j-1)*nb)*ldtb-1).CMatrix(ldtb-1, opts), a.Off(j*nb, (j-2)*nb), zero); err != nil {
 							panic(err)
 						}
 					}
 
 					//                 Update with the previous column
-					if err = goblas.Zgemm(NoTrans, NoTrans, n-(j+1)*nb, nb, j*nb, -one, a.Off((j+1)*nb, 0), work.CMatrixOff(nb, n, opts), one, a.Off((j+1)*nb, j*nb)); err != nil {
+					if err = a.Off((j+1)*nb, j*nb).Gemm(NoTrans, NoTrans, n-(j+1)*nb, nb, j*nb, -one, a.Off((j+1)*nb, 0), work.Off(nb).CMatrix(n, opts), one); err != nil {
 						panic(err)
 					}
 				}
@@ -330,10 +329,10 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 				//
 				//              Compute T(J+1, J), zero out for GEMM update
 				kb = min(nb, n-(j+1)*nb)
-				Zlaset(Full, kb, nb, zero, zero, tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
-				Zlacpy(Upper, kb, nb, a.Off((j+1)*nb, j*nb), tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts))
+				Zlaset(Full, kb, nb, zero, zero, tb.Off(td+nb+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts))
+				Zlacpy(Upper, kb, nb, a.Off((j+1)*nb, j*nb), tb.Off(td+nb+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts))
 				if j > 0 {
-					if err = goblas.Ztrsm(Right, Lower, ConjTrans, Unit, kb, nb, one, a.Off(j*nb, (j-1)*nb), tb.CMatrixOff(td+nb+1+(j*nb)*ldtb-1, ldtb-1, opts)); err != nil {
+					if err = tb.Off(td+nb+1+(j*nb)*ldtb-1).CMatrix(ldtb-1, opts).Trsm(Right, Lower, ConjTrans, Unit, kb, nb, one, a.Off(j*nb, (j-1)*nb)); err != nil {
 						panic(err)
 					}
 				}
@@ -356,16 +355,16 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 					i2 = (*ipiv)[(j+1)*nb+k-1]
 					if i1 != i2 {
 						//                    > Apply pivots to previous columns of L
-						goblas.Zswap(k-1, a.CVector(i1-1, (j+1)*nb, *&a.Rows), a.CVector(i2-1, (j+1)*nb, *&a.Rows))
+						a.Off(i2-1, (j+1)*nb).CVector().Swap(k-1, a.Off(i1-1, (j+1)*nb).CVector(), a.Rows, a.Rows)
 						//                    > Swap A(I1+1:M, I1) with A(I2, I1+1:M)
 						if i2 > (i1 + 1) {
-							goblas.Zswap(i2-i1-1, a.CVector(i1, i1-1, 1), a.CVector(i2-1, i1, *&a.Rows))
-							Zlacgv(i2-i1-1, a.CVector(i2-1, i1))
+							a.Off(i2-1, i1).CVector().Swap(i2-i1-1, a.Off(i1, i1-1).CVector(), 1, a.Rows)
+							Zlacgv(i2-i1-1, a.Off(i2-1, i1).CVector(), a.Rows)
 						}
-						Zlacgv(i2-i1, a.CVector(i1, i1-1, 1))
+						Zlacgv(i2-i1, a.Off(i1, i1-1).CVector(), 1)
 						//                    > Swap A(I2+1:M, I1) with A(I2+1:M, I2)
 						if i2 < n {
-							goblas.Zswap(n-i2, a.CVector(i2, i1-1, 1), a.CVector(i2, i2-1, 1))
+							a.Off(i2, i2-1).CVector().Swap(n-i2, a.Off(i2, i1-1).CVector(), 1, 1)
 						}
 						//                    > Swap A(I1, I1) with A(I2, I2)
 						piv = a.Get(i1-1, i1-1)
@@ -373,7 +372,7 @@ func ZhetrfAa2stage(uplo mat.MatUplo, n int, a *mat.CMatrix, tb *mat.CVector, lt
 						a.Set(i2-1, i2-1, piv)
 						//                    > Apply pivots to previous columns of L
 						if j > 0 {
-							goblas.Zswap(j*nb, a.CVector(i1-1, 0, *&a.Rows), a.CVector(i2-1, 0, *&a.Rows))
+							a.Off(i2-1, 0).CVector().Swap(j*nb, a.Off(i1-1, 0).CVector(), a.Rows, a.Rows)
 						}
 					}
 				}

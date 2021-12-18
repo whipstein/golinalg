@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -61,20 +60,20 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 			//           columns
 			//         > for the rest of the columns, K is J+1, skipping only the
 			//           first column
-			Zlacgv(j-k1, a.CVector(0, j-1, 1))
-			if err = goblas.Zgemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.CVector(0, j-1, 1), one, h.CVector(j-1, j-1, 1)); err != nil {
+			Zlacgv(j-k1, a.Off(0, j-1).CVector(), 1)
+			if err = h.Off(j-1, j-1).CVector().Gemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.Off(0, j-1).CVector(), 1, one, 1); err != nil {
 				panic(err)
 			}
-			Zlacgv(j-k1, a.CVector(0, j-1, 1))
+			Zlacgv(j-k1, a.Off(0, j-1).CVector(), 1)
 		}
 		//        Copy H(i:n, i) into WORK
-		goblas.Zcopy(mj, h.CVector(j-1, j-1, 1), work.Off(0, 1))
+		work.Copy(mj, h.Off(j-1, j-1).CVector(), 1, 1)
 
 		if j > k1 {
 			//           Compute WORK := WORK - L(J-1, J:N) * T(J-1,J),
 			//            where A(J-1, J) stores T(J-1, J) and A(J-2, J:N) stores U(J-1, J:N)
 			alpha = -a.GetConj(k-1-1, j-1)
-			goblas.Zaxpy(mj, alpha, a.CVector(k-2-1, j-1), work.Off(0, 1))
+			work.Axpy(mj, alpha, a.Off(k-2-1, j-1).CVector(), a.Rows, 1)
 		}
 
 		//        Set A(J, J) = T(J, J)
@@ -85,11 +84,11 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 			//            where A(J, J) stores T(J, J) and A(J-1, (J+1):N) stores U(J, (J+1):N)
 			if k > 1 {
 				alpha = -a.Get(k-1, j-1)
-				goblas.Zaxpy(m-j, alpha, a.CVector(k-1-1, j), work.Off(1, 1))
+				work.Off(1).Axpy(m-j, alpha, a.Off(k-1-1, j).CVector(), a.Rows, 1)
 			}
 
 			//           Find max(|WORK(2:n)|)
-			i2 = goblas.Izamax(m-j, work.Off(1, 1)) + 1
+			i2 = work.Off(1).Iamax(m-j, 1) + 1
 			piv = work.Get(i2 - 1)
 
 			//           Apply hermitian pivot
@@ -102,13 +101,13 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 				//              Swap A(I1, I1+1:N) with A(I1+1:N, I2)
 				i1 = i1 + j - 1
 				i2 = i2 + j - 1
-				goblas.Zswap(i2-i1-1, a.CVector(j1+i1-1-1, i1), a.CVector(j1+i1-1, i2-1, 1))
-				Zlacgv(i2-i1, a.CVector(j1+i1-1-1, i1))
-				Zlacgv(i2-i1-1, a.CVector(j1+i1-1, i2-1, 1))
+				a.Off(j1+i1-1, i2-1).CVector().Swap(i2-i1-1, a.Off(j1+i1-1-1, i1).CVector(), a.Rows, 1)
+				Zlacgv(i2-i1, a.Off(j1+i1-1-1, i1).CVector(), a.Rows)
+				Zlacgv(i2-i1-1, a.Off(j1+i1-1, i2-1).CVector(), 1)
 
 				//              Swap A(I1, I2+1:N) with A(I2, I2+1:N)
 				if i2 < m {
-					goblas.Zswap(m-i2, a.CVector(j1+i1-1-1, i2), a.CVector(j1+i2-1-1, i2))
+					a.Off(j1+i2-1-1, i2).CVector().Swap(m-i2, a.Off(j1+i1-1-1, i2).CVector(), a.Rows, a.Rows)
 				}
 
 				//              Swap A(I1, I1) with A(I2,I2)
@@ -117,13 +116,13 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 				a.Set(j1+i2-1-1, i2-1, piv)
 
 				//              Swap H(I1, 1:J1) with H(I2, 1:J1)
-				goblas.Zswap(i1-1, h.CVector(i1-1, 0), h.CVector(i2-1, 0))
+				h.Off(i2-1, 0).CVector().Swap(i1-1, h.Off(i1-1, 0).CVector(), h.Rows, h.Rows)
 				(*ipiv)[i1-1] = i2
 
 				if i1 > (k1 - 1) {
 					//                 Swap L(1:I1-1, I1) with L(1:I1-1, I2),
 					//                  skipping the first column
-					goblas.Zswap(i1-k1+1, a.CVector(0, i1-1, 1), a.CVector(0, i2-1, 1))
+					a.Off(0, i2-1).CVector().Swap(i1-k1+1, a.Off(0, i1-1).CVector(), 1, 1)
 				}
 			} else {
 				(*ipiv)[j] = j + 1
@@ -134,7 +133,7 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 
 			if j < nb {
 				//              Copy A(J+1:N, J+1) into H(J:N, J),
-				goblas.Zcopy(m-j, a.CVector(k, j), h.CVector(j, j, 1))
+				h.Off(j, j).CVector().Copy(m-j, a.Off(k, j).CVector(), a.Rows, 1)
 			}
 
 			//           Compute L(J+2, J+1) = WORK( 3:N ) / T(J, J+1),
@@ -142,8 +141,8 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 			if j < (m - 1) {
 				if a.Get(k-1, j) != zero {
 					alpha = one / a.Get(k-1, j)
-					goblas.Zcopy(m-j-1, work.Off(2, 1), a.CVector(k-1, j+2-1))
-					goblas.Zscal(m-j-1, alpha, a.CVector(k-1, j+2-1))
+					a.Off(k-1, j+2-1).CVector().Copy(m-j-1, work.Off(2), 1, a.Rows)
+					a.Off(k-1, j+2-1).CVector().Scal(m-j-1, alpha, a.Rows)
 				} else {
 					Zlaset(Full, 1, m-j-1, zero, zero, a.Off(k-1, j+2-1))
 				}
@@ -182,21 +181,21 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 			//           columns
 			//         > for the rest of the columns, K is J+1, skipping only the
 			//           first column
-			Zlacgv(j-k1, a.CVector(j-1, 0))
-			if err = goblas.Zgemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.CVector(j-1, 0), one, h.CVector(j-1, j-1, 1)); err != nil {
+			Zlacgv(j-k1, a.Off(j-1, 0).CVector(), a.Rows)
+			if err = h.Off(j-1, j-1).CVector().Gemv(NoTrans, mj, j-k1, -one, h.Off(j-1, k1-1), a.Off(j-1, 0).CVector(), a.Rows, one, 1); err != nil {
 				panic(err)
 			}
-			Zlacgv(j-k1, a.CVector(j-1, 0))
+			Zlacgv(j-k1, a.Off(j-1, 0).CVector(), a.Rows)
 		}
 
 		//        Copy H(J:N, J) into WORK
-		goblas.Zcopy(mj, h.CVector(j-1, j-1, 1), work.Off(0, 1))
+		work.Copy(mj, h.Off(j-1, j-1).CVector(), 1, 1)
 
 		if j > k1 {
 			//           Compute WORK := WORK - L(J:N, J-1) * T(J-1,J),
 			//            where A(J-1, J) = T(J-1, J) and A(J, J-2) = L(J, J-1)
 			alpha = -a.GetConj(j-1, k-1-1)
-			goblas.Zaxpy(mj, alpha, a.CVector(j-1, k-2-1, 1), work.Off(0, 1))
+			work.Axpy(mj, alpha, a.Off(j-1, k-2-1).CVector(), 1, 1)
 		}
 
 		//        Set A(J, J) = T(J, J)
@@ -207,11 +206,11 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 			//            where A(J, J) = T(J, J) and A((J+1):N, J-1) = L((J+1):N, J)
 			if k > 1 {
 				alpha = -a.Get(j-1, k-1)
-				goblas.Zaxpy(m-j, alpha, a.CVector(j, k-1-1, 1), work.Off(1, 1))
+				work.Off(1).Axpy(m-j, alpha, a.Off(j, k-1-1).CVector(), 1, 1)
 			}
 
 			//           Find max(|WORK(2:n)|)
-			i2 = goblas.Izamax(m-j, work.Off(1, 1)) + 1
+			i2 = work.Off(1).Iamax(m-j, 1) + 1
 			piv = work.Get(i2 - 1)
 
 			//           Apply hermitian pivot
@@ -224,13 +223,13 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 				//              Swap A(I1+1:N, I1) with A(I2, I1+1:N)
 				i1 = i1 + j - 1
 				i2 = i2 + j - 1
-				goblas.Zswap(i2-i1-1, a.CVector(i1, j1+i1-1-1, 1), a.CVector(i2-1, j1+i1-1))
-				Zlacgv(i2-i1, a.CVector(i1, j1+i1-1-1, 1))
-				Zlacgv(i2-i1-1, a.CVector(i2-1, j1+i1-1))
+				a.Off(i2-1, j1+i1-1).CVector().Swap(i2-i1-1, a.Off(i1, j1+i1-1-1).CVector(), 1, a.Rows)
+				Zlacgv(i2-i1, a.Off(i1, j1+i1-1-1).CVector(), 1)
+				Zlacgv(i2-i1-1, a.Off(i2-1, j1+i1-1).CVector(), a.Rows)
 
 				//              Swap A(I2+1:N, I1) with A(I2+1:N, I2)
 				if i2 < m {
-					goblas.Zswap(m-i2, a.CVector(i2, j1+i1-1-1, 1), a.CVector(i2, j1+i2-1-1, 1))
+					a.Off(i2, j1+i2-1-1).CVector().Swap(m-i2, a.Off(i2, j1+i1-1-1).CVector(), 1, 1)
 				}
 
 				//              Swap A(I1, I1) with A(I2, I2)
@@ -239,13 +238,13 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 				a.Set(i2-1, j1+i2-1-1, piv)
 
 				//              Swap H(I1, I1:J1) with H(I2, I2:J1)
-				goblas.Zswap(i1-1, h.CVector(i1-1, 0), h.CVector(i2-1, 0))
+				h.Off(i2-1, 0).CVector().Swap(i1-1, h.Off(i1-1, 0).CVector(), h.Rows, h.Rows)
 				(*ipiv)[i1-1] = i2
 
 				if i1 > (k1 - 1) {
 					//                 Swap L(1:I1-1, I1) with L(1:I1-1, I2),
 					//                  skipping the first column
-					goblas.Zswap(i1-k1+1, a.CVector(i1-1, 0), a.CVector(i2-1, 0))
+					a.Off(i2-1, 0).CVector().Swap(i1-k1+1, a.Off(i1-1, 0).CVector(), a.Rows, a.Rows)
 				}
 			} else {
 				(*ipiv)[j] = j + 1
@@ -256,7 +255,7 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 
 			if j < nb {
 				//              Copy A(J+1:N, J+1) into H(J+1:N, J),
-				goblas.Zcopy(m-j, a.CVector(j, k, 1), h.CVector(j, j, 1))
+				h.Off(j, j).CVector().Copy(m-j, a.Off(j, k).CVector(), 1, 1)
 			}
 
 			//           Compute L(J+2, J+1) = WORK( 3:N ) / T(J, J+1),
@@ -264,8 +263,8 @@ func ZlahefAa(uplo mat.MatUplo, j1, m, nb int, a *mat.CMatrix, ipiv *[]int, h *m
 			if j < (m - 1) {
 				if a.Get(j, k-1) != zero {
 					alpha = one / a.Get(j, k-1)
-					goblas.Zcopy(m-j-1, work.Off(2, 1), a.CVector(j+2-1, k-1, 1))
-					goblas.Zscal(m-j-1, alpha, a.CVector(j+2-1, k-1, 1))
+					a.Off(j+2-1, k-1).CVector().Copy(m-j-1, work.Off(2), 1, 1)
+					a.Off(j+2-1, k-1).CVector().Scal(m-j-1, alpha, 1)
 				} else {
 					Zlaset(Full, m-j-1, 1, zero, zero, a.Off(j+2-1, k-1))
 				}

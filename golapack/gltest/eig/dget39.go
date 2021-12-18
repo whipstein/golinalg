@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 )
 
@@ -142,10 +141,10 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 							}
 
 							norm = golapack.Dlange('1', n, n, t, work)
-							k = goblas.Idamax(n, b.Off(0, 1))
+							k = b.Iamax(n, 1)
 							normtb = norm + math.Abs(b.Get(k-1)) + math.Abs(w)
 
-							goblas.Dcopy(n, d.Off(0, 1), x.Off(0, 1))
+							x.Copy(n, d, 1, 1)
 							knt = knt + 1
 							scale, info = golapack.Dlaqtr(false, true, n, t, dum, dumm, x, work)
 							if info != 0 {
@@ -154,12 +153,12 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 
 							//                       || T*x - scale*d || /
 							//                         max(ulp*||T||*||x||,smlnum/ulp*||T||,smlnum)
-							goblas.Dcopy(n, d.Off(0, 1), y.Off(0, 1))
-							if err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(0, 1), -scale, y.Off(0, 1)); err != nil {
+							y.Copy(n, d, 1, 1)
+							if err = y.Gemv(NoTrans, n, n, one, t, x, 1, -scale, 1); err != nil {
 								panic(err)
 							}
-							xnorm = goblas.Dasum(n, x.Off(0, 1))
-							resid = goblas.Dasum(n, y.Off(0, 1))
+							xnorm = x.Asum(n, 1)
+							resid = y.Asum(n, 1)
 							domin = math.Max(smlnum, math.Max((smlnum/eps)*norm, (norm*eps)*xnorm))
 							resid = resid / domin
 							if resid > rmax {
@@ -167,7 +166,7 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 								lmax = knt
 							}
 
-							goblas.Dcopy(n, d.Off(0, 1), x.Off(0, 1))
+							x.Copy(n, d, 1, 1)
 							knt = knt + 1
 							scale, info = golapack.Dlaqtr(true, true, n, t, dum, dumm, x, work)
 							if info != 0 {
@@ -176,10 +175,10 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 
 							//                       || T*x - scale*d || /
 							//                         max(ulp*||T||*||x||,smlnum/ulp*||T||,smlnum)
-							goblas.Dcopy(n, d.Off(0, 1), y.Off(0, 1))
-							goblas.Dgemv(Trans, n, n, one, t, x.Off(0, 1), -scale, y.Off(0, 1))
-							xnorm = goblas.Dasum(n, x.Off(0, 1))
-							resid = goblas.Dasum(n, y.Off(0, 1))
+							y.Copy(n, d, 1, 1)
+							y.Gemv(Trans, n, n, one, t, x, 1, -scale, 1)
+							xnorm = x.Asum(n, 1)
+							resid = y.Asum(n, 1)
 							domin = math.Max(smlnum, math.Max((smlnum/eps)*norm, (norm*eps)*xnorm))
 							resid = resid / domin
 							if resid > rmax {
@@ -187,7 +186,7 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 								lmax = knt
 							}
 
-							goblas.Dcopy(2*n, d.Off(0, 1), x.Off(0, 1))
+							x.Copy(2*n, d, 1, 1)
 							knt = knt + 1
 							scale, info = golapack.Dlaqtr(false, false, n, t, b, w, x, work)
 							if info != 0 {
@@ -198,32 +197,32 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 							//                          max(ulp*(||T||+||B||)*(||x1||+||x2||),
 							//                                  smlnum/ulp * (||T||+||B||), smlnum )
 							//
-							goblas.Dcopy(2*n, d.Off(0, 1), y.Off(0, 1))
-							y.Set(0, goblas.Ddot(n, b.Off(0, 1), x.Off(1+n-1, 1))+scale*y.Get(0))
+							y.Copy(2*n, d, 1, 1)
+							y.Set(0, x.Off(1+n-1).Dot(n, b, 1, 1)+scale*y.Get(0))
 							for i = 2; i <= n; i++ {
 								y.Set(i-1, w*x.Get(i+n-1)+scale*y.Get(i-1))
 							}
-							if err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(0, 1), -one, y.Off(0, 1)); err != nil {
+							if err = y.Gemv(NoTrans, n, n, one, t, x, 1, -one, 1); err != nil {
 								panic(err)
 							}
 
-							y.Set(1+n-1, goblas.Ddot(n, b.Off(0, 1), x.Off(0, 1))-scale*y.Get(1+n-1))
+							y.Set(1+n-1, x.Dot(n, b, 1, 1)-scale*y.Get(1+n-1))
 							for i = 2; i <= n; i++ {
 								y.Set(i+n-1, w*x.Get(i-1)-scale*y.Get(i+n-1))
 							}
-							if err = goblas.Dgemv(NoTrans, n, n, one, t, x.Off(1+n-1, 1), one, y.Off(1+n-1, 1)); err != nil {
+							if err = y.Off(1+n-1).Gemv(NoTrans, n, n, one, t, x.Off(1+n-1), 1, one, 1); err != nil {
 								panic(err)
 							}
 
-							resid = goblas.Dasum(2*n, y.Off(0, 1))
-							domin = math.Max(smlnum, math.Max((smlnum/eps)*normtb, eps*(normtb*goblas.Dasum(2*n, x.Off(0, 1)))))
+							resid = y.Asum(2*n, 1)
+							domin = math.Max(smlnum, math.Max((smlnum/eps)*normtb, eps*(normtb*x.Asum(2*n, 1))))
 							resid = resid / domin
 							if resid > rmax {
 								rmax = resid
 								lmax = knt
 							}
 
-							goblas.Dcopy(2*n, d.Off(0, 1), x.Off(0, 1))
+							x.Copy(2*n, d, 1, 1)
 							knt = knt + 1
 							scale, info = golapack.Dlaqtr(true, false, n, t, b, w, x, work)
 							if info != 0 {
@@ -233,12 +232,12 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 							//                       ||(T+i*B)*(x1+i*x2) - scale*(d1+i*d2)|| /
 							//                          max(ulp*(||T||+||B||)*(||x1||+||x2||),
 							//                                  smlnum/ulp * (||T||+||B||), smlnum )
-							goblas.Dcopy(2*n, d.Off(0, 1), y.Off(0, 1))
+							y.Copy(2*n, d, 1, 1)
 							y.Set(0, b.Get(0)*x.Get(1+n-1)-scale*y.Get(0))
 							for i = 2; i <= n; i++ {
 								y.Set(i-1, b.Get(i-1)*x.Get(1+n-1)+w*x.Get(i+n-1)-scale*y.Get(i-1))
 							}
-							if err = goblas.Dgemv(Trans, n, n, one, t, x.Off(0, 1), one, y.Off(0, 1)); err != nil {
+							if err = y.Gemv(Trans, n, n, one, t, x, 1, one, 1); err != nil {
 								panic(err)
 							}
 
@@ -246,12 +245,12 @@ func dget39() (rmax float64, lmax, ninfo, knt int) {
 							for i = 2; i <= n; i++ {
 								y.Set(i+n-1, b.Get(i-1)*x.Get(0)+w*x.Get(i-1)+scale*y.Get(i+n-1))
 							}
-							if err = goblas.Dgemv(Trans, n, n, one, t, x.Off(1+n-1, 1), -one, y.Off(1+n-1, 1)); err != nil {
+							if err = y.Off(1+n-1).Gemv(Trans, n, n, one, t, x.Off(1+n-1), 1, -one, 1); err != nil {
 								panic(err)
 							}
 
-							resid = goblas.Dasum(2*n, y.Off(0, 1))
-							domin = math.Max(smlnum, math.Max((smlnum/eps)*normtb, eps*(normtb*goblas.Dasum(2*n, x.Off(0, 1)))))
+							resid = y.Asum(2*n, 1)
+							domin = math.Max(smlnum, math.Max((smlnum/eps)*normtb, eps*(normtb*x.Asum(2*n, 1))))
 							resid = resid / domin
 							if resid > rmax {
 								rmax = resid

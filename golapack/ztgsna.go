@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,12 +111,12 @@ func Ztgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.CMatrix, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			rnrm = goblas.Dznrm2(n, vr.CVector(0, ks-1, 1))
-			lnrm = goblas.Dznrm2(n, vl.CVector(0, ks-1, 1))
-			err = goblas.Zgemv(NoTrans, n, n, complex(one, zero), a, vr.CVector(0, ks-1, 1), complex(zero, zero), work.Off(0, 1))
-			yhax = goblas.Zdotc(n, work.Off(0, 1), vl.CVector(0, ks-1, 1))
-			err = goblas.Zgemv(NoTrans, n, n, complex(one, zero), b, vr.CVector(0, ks-1, 1), complex(zero, zero), work.Off(0, 1))
-			yhbx = goblas.Zdotc(n, work.Off(0, 1), vl.CVector(0, ks-1, 1))
+			rnrm = vr.Off(0, ks-1).CVector().Nrm2(n, 1)
+			lnrm = vl.Off(0, ks-1).CVector().Nrm2(n, 1)
+			err = work.Gemv(NoTrans, n, n, complex(one, zero), a, vr.Off(0, ks-1).CVector(), 1, complex(zero, zero), 1)
+			yhax = vl.Off(0, ks-1).CVector().Dotc(n, work, 1, 1)
+			err = work.Gemv(NoTrans, n, n, complex(one, zero), b, vr.Off(0, ks-1).CVector(), 1, complex(zero, zero), 1)
+			yhbx = vl.Off(0, ks-1).CVector().Dotc(n, work, 1, 1)
 			cond = Dlapy2(cmplx.Abs(yhax), cmplx.Abs(yhbx))
 			if cond == zero {
 				s.Set(ks-1, -one)
@@ -136,11 +135,11 @@ func Ztgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.CMatrix, 
 				//              Copy the matrix (A, B) to the array WORK and move the
 				//              (k,k)th pair to the (1,1) position.
 				Zlacpy(Full, n, n, a, work.CMatrix(n, opts))
-				Zlacpy(Full, n, n, b, work.CMatrixOff(n*n, n, opts))
+				Zlacpy(Full, n, n, b, work.Off(n*n).CMatrix(n, opts))
 				ifst = k
 				ilst = 1
 
-				if ilst, ierr, err = Ztgexc(false, false, n, work.CMatrix(n, opts), work.CMatrixOff(n*n, n, opts), dummy.CMatrix(1, opts), dummy1.CMatrix(1, opts), ifst, ilst); err != nil {
+				if ilst, ierr, err = Ztgexc(false, false, n, work.CMatrix(n, opts), work.Off(n*n).CMatrix(n, opts), dummy.CMatrix(1, opts), dummy1.CMatrix(1, opts), ifst, ilst); err != nil {
 					panic(err)
 				}
 
@@ -156,7 +155,7 @@ func Ztgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.CMatrix, 
 					n1 = 1
 					n2 = n - n1
 					i = n*n + 1
-					_, *dif.GetPtr(ks - 1), ierr, err = Ztgsyl(NoTrans, idifjb, n2, n1, work.CMatrixOff(n*n1+n1, n, opts), work.CMatrix(n, opts), work.CMatrixOff(n1, n, opts), work.CMatrixOff(n*n1+n1+i-1, n, opts), work.CMatrixOff(i-1, n, opts), work.CMatrixOff(n1+i-1, n, opts), dummy, 1, iwork)
+					_, *dif.GetPtr(ks - 1), ierr, err = Ztgsyl(NoTrans, idifjb, n2, n1, work.Off(n*n1+n1).CMatrix(n, opts), work.CMatrix(n, opts), work.Off(n1).CMatrix(n, opts), work.Off(n*n1+n1+i-1).CMatrix(n, opts), work.Off(i-1).CMatrix(n, opts), work.Off(n1+i-1).CMatrix(n, opts), dummy, 1, iwork)
 				}
 			}
 		}

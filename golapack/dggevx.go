@@ -348,7 +348,7 @@ func Dggevx(balanc, jobvl, jobvr, sense byte, n int, a, b *mat.Matrix, alphar, a
 				//              Compute a pair of left and right eigenvectors.
 				//              (compute workspace: need up to 4*N + 6*N)
 				if wantse || wantsb {
-					if _, ierr, err = Dtgevc(Both, 'S', *bwork, n, a, b, work.Matrix(n, opts), work.MatrixOff(iwrk-1, n, opts), mm, work.Off(iwrk1-1)); err != nil {
+					if _, ierr, err = Dtgevc(Both, 'S', *bwork, n, a, b, work.Matrix(n, opts), work.Off(iwrk-1).Matrix(n, opts), mm, work.Off(iwrk1-1)); err != nil {
 						panic(err)
 					}
 					if ierr != 0 {
@@ -357,7 +357,7 @@ func Dggevx(balanc, jobvl, jobvr, sense byte, n int, a, b *mat.Matrix, alphar, a
 					}
 				}
 
-				if _, err = Dtgsna(sense, 'S', *bwork, n, a, b, work.Matrix(n, opts), work.MatrixOff(iwrk-1, n, opts), rconde.Off(i-1), rcondv.Off(i-1), mm, work.Off(iwrk1-1), lwork-iwrk1+1, iwork); err != nil {
+				if _, err = Dtgsna(sense, 'S', *bwork, n, a, b, work.Matrix(n, opts), work.Off(iwrk-1).Matrix(n, opts), rconde.Off(i-1), rcondv.Off(i-1), mm, work.Off(iwrk1-1), lwork-iwrk1+1, iwork); err != nil {
 					panic(err)
 				}
 

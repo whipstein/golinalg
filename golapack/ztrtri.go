@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -67,8 +66,8 @@ func Ztrtri(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.CMatrix) (info int
 				jb = min(nb, n-j+1)
 
 				//              Compute rows 1:j-1 of current block column
-				err = goblas.Ztrmm(Left, Upper, NoTrans, diag, j-1, jb, one, a, a.Off(0, j-1))
-				err = goblas.Ztrsm(Right, Upper, NoTrans, diag, j-1, jb, -one, a.Off(j-1, j-1), a.Off(0, j-1))
+				err = a.Off(0, j-1).Trmm(Left, Upper, NoTrans, diag, j-1, jb, one, a)
+				err = a.Off(0, j-1).Trsm(Right, Upper, NoTrans, diag, j-1, jb, -one, a.Off(j-1, j-1))
 
 				//              Compute inverse of current diagonal block
 				if err = Ztrti2(Upper, diag, jb, a.Off(j-1, j-1)); err != nil {
@@ -82,8 +81,8 @@ func Ztrtri(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.CMatrix) (info int
 				jb = min(nb, n-j+1)
 				if j+jb <= n {
 					//                 Compute rows j+jb:n of current block column
-					err = goblas.Ztrmm(Left, Lower, NoTrans, diag, n-j-jb+1, jb, one, a.Off(j+jb-1, j+jb-1), a.Off(j+jb-1, j-1))
-					err = goblas.Ztrsm(Right, Lower, NoTrans, diag, n-j-jb+1, jb, -one, a.Off(j-1, j-1), a.Off(j+jb-1, j-1))
+					err = a.Off(j+jb-1, j-1).Trmm(Left, Lower, NoTrans, diag, n-j-jb+1, jb, one, a.Off(j+jb-1, j+jb-1))
+					err = a.Off(j+jb-1, j-1).Trsm(Right, Lower, NoTrans, diag, n-j-jb+1, jb, -one, a.Off(j-1, j-1))
 				}
 
 				//              Compute inverse of current diagonal block

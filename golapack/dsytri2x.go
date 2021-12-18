@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -15,8 +14,6 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 	var upper bool
 	var ak, akkp1, akp1, d, one, t, u01IJ, u01Ip1J, u11IJ, u11Ip1J, zero float64
 	var count, cut, i, invd, ip, j, k, nnb, u11 int
-
-	_work := work.Matrix(n+nb+1, opts)
 
 	one = 1.0
 	zero = 0.0
@@ -84,20 +81,20 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 		for k <= n {
 			if (*ipiv)[k-1] > 0 {
 				//           1 x 1 diagonal NNB
-				_work.Set(k-1, invd-1, one/a.Get(k-1, k-1))
-				_work.Set(k-1, invd, 0)
+				work.Matrix(n+nb+1, opts).Set(k-1, invd-1, one/a.Get(k-1, k-1))
+				work.Matrix(n+nb+1, opts).Set(k-1, invd, 0)
 				k = k + 1
 			} else {
 				//           2 x 2 diagonal NNB
-				t = _work.Get(k, 0)
+				t = work.Matrix(n+nb+1, opts).Get(k, 0)
 				ak = a.Get(k-1, k-1) / t
 				akp1 = a.Get(k, k) / t
-				akkp1 = _work.Get(k, 0) / t
+				akkp1 = work.Matrix(n+nb+1, opts).Get(k, 0) / t
 				d = t * (ak*akp1 - one)
-				_work.Set(k-1, invd-1, akp1/d)
-				_work.Set(k, invd, ak/d)
-				_work.Set(k-1, invd, -akkp1/d)
-				_work.Set(k, invd-1, -akkp1/d)
+				work.Matrix(n+nb+1, opts).Set(k-1, invd-1, akp1/d)
+				work.Matrix(n+nb+1, opts).Set(k, invd, ak/d)
+				work.Matrix(n+nb+1, opts).Set(k-1, invd, -akkp1/d)
+				work.Matrix(n+nb+1, opts).Set(k, invd-1, -akkp1/d)
 				k = k + 2
 			}
 		}
@@ -128,18 +125,18 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 			//          U01 Block
 			for i = 1; i <= cut; i++ {
 				for j = 1; j <= nnb; j++ {
-					_work.Set(i-1, j-1, a.Get(i-1, cut+j-1))
+					work.Matrix(n+nb+1, opts).Set(i-1, j-1, a.Get(i-1, cut+j-1))
 				}
 			}
 
 			//          U11 Block
 			for i = 1; i <= nnb; i++ {
-				_work.Set(u11+i-1, i-1, one)
+				work.Matrix(n+nb+1, opts).Set(u11+i-1, i-1, one)
 				for j = 1; j <= i-1; j++ {
-					_work.Set(u11+i-1, j-1, zero)
+					work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, zero)
 				}
 				for j = i + 1; j <= nnb; j++ {
-					_work.Set(u11+i-1, j-1, a.Get(cut+i-1, cut+j-1))
+					work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, a.Get(cut+i-1, cut+j-1))
 				}
 			}
 
@@ -148,15 +145,15 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 			for i <= cut {
 				if (*ipiv)[i-1] > 0 {
 					for j = 1; j <= nnb; j++ {
-						_work.Set(i-1, j-1, _work.Get(i-1, invd-1)*_work.Get(i-1, j-1))
+						work.Matrix(n+nb+1, opts).Set(i-1, j-1, work.Matrix(n+nb+1, opts).Get(i-1, invd-1)*work.Matrix(n+nb+1, opts).Get(i-1, j-1))
 					}
 					i = i + 1
 				} else {
 					for j = 1; j <= nnb; j++ {
-						u01IJ = _work.Get(i-1, j-1)
-						u01Ip1J = _work.Get(i, j-1)
-						_work.Set(i-1, j-1, _work.Get(i-1, invd-1)*u01IJ+_work.Get(i-1, invd)*u01Ip1J)
-						_work.Set(i, j-1, _work.Get(i, invd-1)*u01IJ+_work.Get(i, invd)*u01Ip1J)
+						u01IJ = work.Matrix(n+nb+1, opts).Get(i-1, j-1)
+						u01Ip1J = work.Matrix(n+nb+1, opts).Get(i, j-1)
+						work.Matrix(n+nb+1, opts).Set(i-1, j-1, work.Matrix(n+nb+1, opts).Get(i-1, invd-1)*u01IJ+work.Matrix(n+nb+1, opts).Get(i-1, invd)*u01Ip1J)
+						work.Matrix(n+nb+1, opts).Set(i, j-1, work.Matrix(n+nb+1, opts).Get(i, invd-1)*u01IJ+work.Matrix(n+nb+1, opts).Get(i, invd)*u01Ip1J)
 					}
 					i = i + 2
 				}
@@ -167,52 +164,52 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 			for i <= nnb {
 				if (*ipiv)[cut+i-1] > 0 {
 					for j = i; j <= nnb; j++ {
-						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1))
+						work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+i-1, invd-1)*work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 					}
 					i = i + 1
 				} else {
 					for j = i; j <= nnb; j++ {
-						u11IJ = _work.Get(u11+i-1, j-1)
-						u11Ip1J = _work.Get(u11+i, j-1)
-						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1)+_work.Get(cut+i-1, invd)*_work.Get(u11+i, j-1))
-						_work.Set(u11+i, j-1, _work.Get(cut+i, invd-1)*u11IJ+_work.Get(cut+i, invd)*u11Ip1J)
+						u11IJ = work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1)
+						u11Ip1J = work.Matrix(n+nb+1, opts).Get(u11+i, j-1)
+						work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+i-1, invd-1)*work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1)+work.Matrix(n+nb+1, opts).Get(cut+i-1, invd)*work.Matrix(n+nb+1, opts).Get(u11+i, j-1))
+						work.Matrix(n+nb+1, opts).Set(u11+i, j-1, work.Matrix(n+nb+1, opts).Get(cut+i, invd-1)*u11IJ+work.Matrix(n+nb+1, opts).Get(cut+i, invd)*u11Ip1J)
 					}
 					i = i + 2
 				}
 			}
 
 			//       U11**T*invD1*U11->U11
-			if err = goblas.Dtrmm(Left, Upper, Trans, Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Matrix(n+nb+1, opts).Off(u11, 0).UpdateRows(n+nb+1).Trmm(Left, Upper, Trans, Unit, nnb, nnb, one, a.Off(cut, cut)); err != nil {
 				panic(err)
 			}
 
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
-					a.Set(cut+i-1, cut+j-1, _work.Get(u11+i-1, j-1))
+					a.Set(cut+i-1, cut+j-1, work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 				}
 			}
 
 			//          U01**T*invD*U01->A(CUT+I,CUT+J)
-			if err = goblas.Dgemm(Trans, NoTrans, nnb, nnb, cut, one, a.Off(0, cut), _work.Off(0, 0).UpdateRows(n+nb+1), zero, _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Matrix(n+nb+1, opts).Off(u11, 0).UpdateRows(n+nb+1).Gemm(Trans, NoTrans, nnb, nnb, cut, one, a.Off(0, cut), work.Matrix(n+nb+1, opts).Off(0, 0).UpdateRows(n+nb+1), zero); err != nil {
 				panic(err)
 			}
 
 			//        U11 =  U11**T*invD1*U11 + U01**T*invD*U01
 			for i = 1; i <= nnb; i++ {
 				for j = i; j <= nnb; j++ {
-					a.Set(cut+i-1, cut+j-1, a.Get(cut+i-1, cut+j-1)+_work.Get(u11+i-1, j-1))
+					a.Set(cut+i-1, cut+j-1, a.Get(cut+i-1, cut+j-1)+work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 				}
 			}
 
 			//        U01 =  U00**T*invD0*U01
-			if err = goblas.Dtrmm(Left, uplo, Trans, Unit, cut, nnb, one, a, _work.Off(0, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Matrix(n+nb+1, opts).Off(0, 0).UpdateRows(n+nb+1).Trmm(Left, uplo, Trans, Unit, cut, nnb, one, a); err != nil {
 				panic(err)
 			}
 
 			//        Update U01
 			for i = 1; i <= cut; i++ {
 				for j = 1; j <= nnb; j++ {
-					a.Set(i-1, cut+j-1, _work.Get(i-1, j-1))
+					a.Set(i-1, cut+j-1, work.Matrix(n+nb+1, opts).Get(i-1, j-1))
 				}
 			}
 
@@ -256,20 +253,20 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 		for k >= 1 {
 			if (*ipiv)[k-1] > 0 {
 				//           1 x 1 diagonal NNB
-				_work.Set(k-1, invd-1, one/a.Get(k-1, k-1))
-				_work.Set(k-1, invd, 0)
+				work.Matrix(n+nb+1, opts).Set(k-1, invd-1, one/a.Get(k-1, k-1))
+				work.Matrix(n+nb+1, opts).Set(k-1, invd, 0)
 				k = k - 1
 			} else {
 				//           2 x 2 diagonal NNB
-				t = _work.Get(k-1-1, 0)
+				t = work.Matrix(n+nb+1, opts).Get(k-1-1, 0)
 				ak = a.Get(k-1-1, k-1-1) / t
 				akp1 = a.Get(k-1, k-1) / t
-				akkp1 = _work.Get(k-1-1, 0) / t
+				akkp1 = work.Matrix(n+nb+1, opts).Get(k-1-1, 0) / t
 				d = t * (ak*akp1 - one)
-				_work.Set(k-1-1, invd-1, akp1/d)
-				_work.Set(k-1, invd-1, ak/d)
-				_work.Set(k-1, invd, -akkp1/d)
-				_work.Set(k-1-1, invd, -akkp1/d)
+				work.Matrix(n+nb+1, opts).Set(k-1-1, invd-1, akp1/d)
+				work.Matrix(n+nb+1, opts).Set(k-1, invd-1, ak/d)
+				work.Matrix(n+nb+1, opts).Set(k-1, invd, -akkp1/d)
+				work.Matrix(n+nb+1, opts).Set(k-1-1, invd, -akkp1/d)
 				k = k - 2
 			}
 		}
@@ -298,17 +295,17 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 			//     L21 Block
 			for i = 1; i <= n-cut-nnb; i++ {
 				for j = 1; j <= nnb; j++ {
-					_work.Set(i-1, j-1, a.Get(cut+nnb+i-1, cut+j-1))
+					work.Matrix(n+nb+1, opts).Set(i-1, j-1, a.Get(cut+nnb+i-1, cut+j-1))
 				}
 			}
 			//     L11 Block
 			for i = 1; i <= nnb; i++ {
-				_work.Set(u11+i-1, i-1, one)
+				work.Matrix(n+nb+1, opts).Set(u11+i-1, i-1, one)
 				for j = i + 1; j <= nnb; j++ {
-					_work.Set(u11+i-1, j-1, zero)
+					work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, zero)
 				}
 				for j = 1; j <= i-1; j++ {
-					_work.Set(u11+i-1, j-1, a.Get(cut+i-1, cut+j-1))
+					work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, a.Get(cut+i-1, cut+j-1))
 				}
 			}
 
@@ -317,15 +314,15 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 			for i >= 1 {
 				if (*ipiv)[cut+nnb+i-1] > 0 {
 					for j = 1; j <= nnb; j++ {
-						_work.Set(i-1, j-1, _work.Get(cut+nnb+i-1, invd-1)*_work.Get(i-1, j-1))
+						work.Matrix(n+nb+1, opts).Set(i-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+nnb+i-1, invd-1)*work.Matrix(n+nb+1, opts).Get(i-1, j-1))
 					}
 					i = i - 1
 				} else {
 					for j = 1; j <= nnb; j++ {
-						u01IJ = _work.Get(i-1, j-1)
-						u01Ip1J = _work.Get(i-1-1, j-1)
-						_work.Set(i-1, j-1, _work.Get(cut+nnb+i-1, invd-1)*u01IJ+_work.Get(cut+nnb+i-1, invd)*u01Ip1J)
-						_work.Set(i-1-1, j-1, _work.Get(cut+nnb+i-1-1, invd)*u01IJ+_work.Get(cut+nnb+i-1-1, invd-1)*u01Ip1J)
+						u01IJ = work.Matrix(n+nb+1, opts).Get(i-1, j-1)
+						u01Ip1J = work.Matrix(n+nb+1, opts).Get(i-1-1, j-1)
+						work.Matrix(n+nb+1, opts).Set(i-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+nnb+i-1, invd-1)*u01IJ+work.Matrix(n+nb+1, opts).Get(cut+nnb+i-1, invd)*u01Ip1J)
+						work.Matrix(n+nb+1, opts).Set(i-1-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+nnb+i-1-1, invd)*u01IJ+work.Matrix(n+nb+1, opts).Get(cut+nnb+i-1-1, invd-1)*u01Ip1J)
 					}
 					i = i - 2
 				}
@@ -336,60 +333,60 @@ func Dsytri2x(uplo mat.MatUplo, n int, a *mat.Matrix, ipiv *[]int, work *mat.Vec
 			for i >= 1 {
 				if (*ipiv)[cut+i-1] > 0 {
 					for j = 1; j <= nnb; j++ {
-						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1))
+						work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+i-1, invd-1)*work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 					}
 					i = i - 1
 				} else {
 					for j = 1; j <= nnb; j++ {
-						u11IJ = _work.Get(u11+i-1, j-1)
-						u11Ip1J = _work.Get(u11+i-1-1, j-1)
-						_work.Set(u11+i-1, j-1, _work.Get(cut+i-1, invd-1)*_work.Get(u11+i-1, j-1)+_work.Get(cut+i-1, invd)*u11Ip1J)
-						_work.Set(u11+i-1-1, j-1, _work.Get(cut+i-1-1, invd)*u11IJ+_work.Get(cut+i-1-1, invd-1)*u11Ip1J)
+						u11IJ = work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1)
+						u11Ip1J = work.Matrix(n+nb+1, opts).Get(u11+i-1-1, j-1)
+						work.Matrix(n+nb+1, opts).Set(u11+i-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+i-1, invd-1)*work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1)+work.Matrix(n+nb+1, opts).Get(cut+i-1, invd)*u11Ip1J)
+						work.Matrix(n+nb+1, opts).Set(u11+i-1-1, j-1, work.Matrix(n+nb+1, opts).Get(cut+i-1-1, invd)*u11IJ+work.Matrix(n+nb+1, opts).Get(cut+i-1-1, invd-1)*u11Ip1J)
 					}
 					i = i - 2
 				}
 			}
 
 			//       L11**T*invD1*L11->L11
-			if err = goblas.Dtrmm(Left, uplo, Trans, Unit, nnb, nnb, one, a.Off(cut, cut), _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Matrix(n+nb+1, opts).Off(u11, 0).UpdateRows(n+nb+1).Trmm(Left, uplo, Trans, Unit, nnb, nnb, one, a.Off(cut, cut)); err != nil {
 				panic(err)
 			}
 
 			for i = 1; i <= nnb; i++ {
 				for j = 1; j <= i; j++ {
-					a.Set(cut+i-1, cut+j-1, _work.Get(u11+i-1, j-1))
+					a.Set(cut+i-1, cut+j-1, work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 				}
 			}
 
 			if (cut + nnb) < n {
 				//          L21**T*invD2*L21->A(CUT+I,CUT+J)
-				if err = goblas.Dgemm(Trans, NoTrans, nnb, nnb, n-nnb-cut, one, a.Off(cut+nnb, cut), _work.Off(0, 0).UpdateRows(n+nb+1), zero, _work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+				if err = work.Matrix(n+nb+1, opts).Off(u11, 0).UpdateRows(n+nb+1).Gemm(Trans, NoTrans, nnb, nnb, n-nnb-cut, one, a.Off(cut+nnb, cut), work.Matrix(n+nb+1, opts).Off(0, 0).UpdateRows(n+nb+1), zero); err != nil {
 					panic(err)
 				}
 
 				//        L11 =  L11**T*invD1*L11 + U01**T*invD*U01
 				for i = 1; i <= nnb; i++ {
 					for j = 1; j <= i; j++ {
-						a.Set(cut+i-1, cut+j-1, a.Get(cut+i-1, cut+j-1)+_work.Get(u11+i-1, j-1))
+						a.Set(cut+i-1, cut+j-1, a.Get(cut+i-1, cut+j-1)+work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 					}
 				}
 
 				//        L01 =  L22**T*invD2*L21
-				if err = goblas.Dtrmm(Left, uplo, Trans, Unit, n-nnb-cut, nnb, one, a.Off(cut+nnb, cut+nnb), _work.Off(0, 0).UpdateRows(n+nb+1)); err != nil {
+				if err = work.Matrix(n+nb+1, opts).Off(0, 0).UpdateRows(n+nb+1).Trmm(Left, uplo, Trans, Unit, n-nnb-cut, nnb, one, a.Off(cut+nnb, cut+nnb)); err != nil {
 					panic(err)
 				}
 
 				//      Update L21
 				for i = 1; i <= n-cut-nnb; i++ {
 					for j = 1; j <= nnb; j++ {
-						a.Set(cut+nnb+i-1, cut+j-1, _work.Get(i-1, j-1))
+						a.Set(cut+nnb+i-1, cut+j-1, work.Matrix(n+nb+1, opts).Get(i-1, j-1))
 					}
 				}
 			} else {
 				//        L11 =  L11**T*invD1*L11
 				for i = 1; i <= nnb; i++ {
 					for j = 1; j <= i; j++ {
-						a.Set(cut+i-1, cut+j-1, _work.Get(u11+i-1, j-1))
+						a.Set(cut+i-1, cut+j-1, work.Matrix(n+nb+1, opts).Get(u11+i-1, j-1))
 					}
 				}
 			}

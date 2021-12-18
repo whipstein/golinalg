@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -49,7 +48,7 @@ func ztbt05(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= nrhs; j++ {
-		imax = goblas.Izamax(n, x.CVector(0, j-1, 1))
+		imax = x.Off(0, j-1).CVector().Iamax(n, 1)
 		xnorm = math.Max(cabs1(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= n; i++ {

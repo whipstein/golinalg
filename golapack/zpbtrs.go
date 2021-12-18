@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -44,12 +43,12 @@ func Zpbtrs(uplo mat.MatUplo, n, kd, nrhs int, ab, b *mat.CMatrix) (err error) {
 		//        Solve A*X = B where A = U**H *U.
 		for j = 1; j <= nrhs; j++ {
 			//           Solve U**H *X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Upper, ConjTrans, NonUnit, n, kd, ab, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Tbsv(Upper, ConjTrans, NonUnit, n, kd, ab, 1); err != nil {
 				panic(err)
 			}
 
 			//           Solve U*X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Upper, NoTrans, NonUnit, n, kd, ab, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Tbsv(Upper, NoTrans, NonUnit, n, kd, ab, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -57,12 +56,12 @@ func Zpbtrs(uplo mat.MatUplo, n, kd, nrhs int, ab, b *mat.CMatrix) (err error) {
 		//        Solve A*X = B where A = L*L**H.
 		for j = 1; j <= nrhs; j++ {
 			//           Solve L*X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Lower, NoTrans, NonUnit, n, kd, ab, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Tbsv(Lower, NoTrans, NonUnit, n, kd, ab, 1); err != nil {
 				panic(err)
 			}
 
 			//           Solve L**H *X = B, overwriting B with X.
-			if err = goblas.Ztbsv(Lower, ConjTrans, NonUnit, n, kd, ab, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Tbsv(Lower, ConjTrans, NonUnit, n, kd, ab, 1); err != nil {
 				panic(err)
 			}
 		}

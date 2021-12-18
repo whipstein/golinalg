@@ -168,7 +168,7 @@ func ddrgvx(nsize int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi 
 
 						//                    Compute the norm(A, B)
 						golapack.Dlacpy(Full, n, n, ai, work.Matrix(n, opts))
-						golapack.Dlacpy(Full, n, n, bi, work.MatrixOff(n*n, n, opts))
+						golapack.Dlacpy(Full, n, n, bi, work.Off(n*n).Matrix(n, opts))
 						abnorm = golapack.Dlange('F', n, 2*n, work.Matrix(n, opts), work)
 
 						//                    Tests (1) and (2)
@@ -332,7 +332,7 @@ func ddrgvx(nsize int, thresh float64, nin *util.Reader, nout int, a, b, ai, bi 
 
 		//     Compute the norm(A, B)
 		golapack.Dlacpy(Full, n, n, ai, work.Matrix(n, opts))
-		golapack.Dlacpy(Full, n, n, bi, work.MatrixOff(n*n, n, opts))
+		golapack.Dlacpy(Full, n, n, bi, work.Off(n*n).Matrix(n, opts))
 		abnorm = golapack.Dlange('F', n, 2*n, work.Matrix(n, opts), work)
 
 		//     Tests (1) and (2)

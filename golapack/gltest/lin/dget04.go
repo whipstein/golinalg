@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -38,7 +37,7 @@ func dget04(n, nrhs int, x *mat.Matrix, xact *mat.Matrix, rcond float64) (resid 
 	//     over all the vectors X and XACT .
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		ix = goblas.Idamax(n, xact.Vector(0, j-1, 1))
+		ix = xact.Off(0, j-1).Vector().Iamax(n, 1)
 		xnorm = math.Abs(xact.Get(ix-1, j-1))
 		diffnm = zero
 		for i = 1; i <= n; i++ {

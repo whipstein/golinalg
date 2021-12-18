@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -76,9 +75,9 @@ func Dlaed1(n int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho float64, cutp
 
 	//     Form the z-vector which consists of the last row of Q_1 and the
 	//     first row of Q_2.
-	goblas.Dcopy(cutpnt, q.Vector(cutpnt-1, 0), work.Off(iz-1, 1))
+	work.Off(iz-1).Copy(cutpnt, q.Off(cutpnt-1, 0).Vector(), q.Rows, 1)
 	zpp1 = cutpnt + 1
-	goblas.Dcopy(n-cutpnt, q.Vector(zpp1-1, zpp1-1), work.Off(iz+cutpnt-1, 1))
+	work.Off(iz+cutpnt-1).Copy(n-cutpnt, q.Off(zpp1-1, zpp1-1).Vector(), q.Rows, 1)
 
 	//     Deflate eigenvalues.
 	if rho, err = Dlaed2(k, n, cutpnt, d, q, indxq, rho, work.Off(iz-1), work.Off(idlmda-1), work.Off(iw-1), work.Off(iq2-1), toSlice(iwork, indx-1), toSlice(iwork, indxc-1), toSlice(iwork, indxp-1), toSlice(iwork, coltyp-1)); err != nil {

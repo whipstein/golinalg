@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -153,22 +152,22 @@ func Dtgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.Matrix, s
 			//           eigenvalue.
 			if pair {
 				//              Complex eigenvalue pair.
-				rnrm = Dlapy2(goblas.Dnrm2(n, vr.Vector(0, ks-1, 1)), goblas.Dnrm2(n, vr.Vector(0, ks, 1)))
-				lnrm = Dlapy2(goblas.Dnrm2(n, vl.Vector(0, ks-1, 1)), goblas.Dnrm2(n, vl.Vector(0, ks, 1)))
-				err = goblas.Dgemv(NoTrans, n, n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				tmprr = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				tmpri = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				err = goblas.Dgemv(NoTrans, n, n, one, a, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
-				tmpii = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				tmpir = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				rnrm = Dlapy2(vr.Off(0, ks-1).Vector().Nrm2(n, 1), vr.Off(0, ks).Vector().Nrm2(n, 1))
+				lnrm = Dlapy2(vl.Off(0, ks-1).Vector().Nrm2(n, 1), vl.Off(0, ks).Vector().Nrm2(n, 1))
+				err = work.Gemv(NoTrans, n, n, one, a, vr.Off(0, ks-1).Vector(), 1, zero, 1)
+				tmprr = vl.Off(0, ks-1).Vector().Dot(n, work, 1, 1)
+				tmpri = vl.Off(0, ks).Vector().Dot(n, work, 1, 1)
+				err = work.Gemv(NoTrans, n, n, one, a, vr.Off(0, ks).Vector(), 1, zero, 1)
+				tmpii = vl.Off(0, ks).Vector().Dot(n, work, 1, 1)
+				tmpir = vl.Off(0, ks-1).Vector().Dot(n, work, 1, 1)
 				uhav = tmprr + tmpii
 				uhavi = tmpir - tmpri
-				err = goblas.Dgemv(NoTrans, n, n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				tmprr = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				tmpri = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				err = goblas.Dgemv(NoTrans, n, n, one, b, vr.Vector(0, ks, 1), zero, work.Off(0, 1))
-				tmpii = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks, 1))
-				tmpir = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				err = work.Gemv(NoTrans, n, n, one, b, vr.Off(0, ks-1).Vector(), 1, zero, 1)
+				tmprr = vl.Off(0, ks-1).Vector().Dot(n, work, 1, 1)
+				tmpri = vl.Off(0, ks).Vector().Dot(n, work, 1, 1)
+				err = work.Gemv(NoTrans, n, n, one, b, vr.Off(0, ks).Vector(), 1, zero, 1)
+				tmpii = vl.Off(0, ks).Vector().Dot(n, work, 1, 1)
+				tmpir = vl.Off(0, ks-1).Vector().Dot(n, work, 1, 1)
 				uhbv = tmprr + tmpii
 				uhbvi = tmpir - tmpri
 				uhav = Dlapy2(uhav, uhavi)
@@ -179,12 +178,12 @@ func Dtgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.Matrix, s
 
 			} else {
 				//              Real eigenvalue.
-				rnrm = goblas.Dnrm2(n, vr.Vector(0, ks-1, 1))
-				lnrm = goblas.Dnrm2(n, vl.Vector(0, ks-1, 1))
-				err = goblas.Dgemv(NoTrans, n, n, one, a, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				uhav = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
-				err = goblas.Dgemv(NoTrans, n, n, one, b, vr.Vector(0, ks-1, 1), zero, work.Off(0, 1))
-				uhbv = goblas.Ddot(n, work.Off(0, 1), vl.Vector(0, ks-1, 1))
+				rnrm = vr.Off(0, ks-1).Vector().Nrm2(n, 1)
+				lnrm = vl.Off(0, ks-1).Vector().Nrm2(n, 1)
+				err = work.Gemv(NoTrans, n, n, one, a, vr.Off(0, ks-1).Vector(), 1, zero, 1)
+				uhav = vl.Off(0, ks-1).Vector().Dot(n, work, 1, 1)
+				err = work.Gemv(NoTrans, n, n, one, b, vr.Off(0, ks-1).Vector(), 1, zero, 1)
+				uhbv = vl.Off(0, ks-1).Vector().Dot(n, work, 1, 1)
 				cond = Dlapy2(uhav, uhbv)
 				if cond == zero {
 					s.Set(ks-1, -one)
@@ -213,7 +212,7 @@ func Dtgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.Matrix, s
 				work.Set(5, b.Get(k, k-1))
 				work.Set(6, b.Get(k-1, k))
 				work.Set(7, b.Get(k, k))
-				beta, *dummy1.GetPtr(0), alphar, *dummy.GetPtr(0), alphai = Dlag2(work.Matrix(2, opts), work.MatrixOff(4, 2, opts), smlnum*eps)
+				beta, *dummy1.GetPtr(0), alphar, *dummy.GetPtr(0), alphai = Dlag2(work.Matrix(2, opts), work.Off(4).Matrix(2, opts), smlnum*eps)
 				alprqt = one
 				c1 = two * (alphar*alphar + alphai*alphai + beta*beta)
 				c2 = four * beta * beta * alphai * alphai
@@ -226,11 +225,11 @@ func Dtgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.Matrix, s
 			//           Copy the matrix (A, B) to the array WORK and swap the
 			//           diagonal block beginning at A(k,k) to the (1,1) position.
 			Dlacpy(Full, n, n, a, work.Matrix(n, opts))
-			Dlacpy(Full, n, n, b, work.MatrixOff(n*n, n, opts))
+			Dlacpy(Full, n, n, b, work.Off(n*n).Matrix(n, opts))
 			ifst = k
 			ilst = 1
 
-			if ifst, ilst, _, err = Dtgexc(false, false, n, work.Matrix(n, opts), work.MatrixOff(n*n, n, opts), dummy.Matrix(1, opts), dummy1.Matrix(1, opts), ifst, ilst, work.Off(n*n*2), lwork-2*n*n); err != nil {
+			if ifst, ilst, _, err = Dtgexc(false, false, n, work.Matrix(n, opts), work.Off(n*n).Matrix(n, opts), dummy.Matrix(1, opts), dummy1.Matrix(1, opts), ifst, ilst, work.Off(n*n*2), lwork-2*n*n); err != nil {
 				panic(err)
 			}
 
@@ -253,7 +252,7 @@ func Dtgsna(job, howmny byte, _select []bool, n int, a, b, vl, vr *mat.Matrix, s
 				} else {
 					i = n*n + 1
 					iz = 2*n*n + 1
-					if _, *dif.GetPtr(ks - 1), ierr, err = Dtgsyl(NoTrans, difdri, n2, n1, work.MatrixOff(n*n1+n1, n, opts), work.Matrix(n, opts), work.MatrixOff(n1, n, opts), work.MatrixOff(n*n1+n1+i-1, n, opts), work.MatrixOff(i-1, n, opts), work.MatrixOff(n1+i-1, n, opts), work.Off(iz), lwork-2*n*n, iwork); err != nil {
+					if _, *dif.GetPtr(ks - 1), ierr, err = Dtgsyl(NoTrans, difdri, n2, n1, work.Off(n*n1+n1).Matrix(n, opts), work.Matrix(n, opts), work.Off(n1).Matrix(n, opts), work.Off(n*n1+n1+i-1).Matrix(n, opts), work.Off(i-1).Matrix(n, opts), work.Off(n1+i-1).Matrix(n, opts), work.Off(iz), lwork-2*n*n, iwork); err != nil {
 						panic(err)
 					}
 

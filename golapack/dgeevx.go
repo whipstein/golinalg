@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -288,7 +287,7 @@ func Dgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.Matrix, wr, wi *mat.
 	//     Compute condition numbers if desired
 	//     (Workspace: need N*N+6*N unless SENSE = 'E')
 	if !wntsnn {
-		if _, err = Dtrsna(sense, 'A', _select, n, a, vl, vr, rconde, rcondv, n, work.MatrixOff(iwrk-1, n, opts), iwork); err != nil {
+		if _, err = Dtrsna(sense, 'A', _select, n, a, vl, vr, rconde, rcondv, n, work.Off(iwrk-1).Matrix(n, opts), iwork); err != nil {
 			panic(err)
 		}
 	}
@@ -302,18 +301,18 @@ func Dgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.Matrix, wr, wi *mat.
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= n; i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(n, vl.Vector(0, i-1, 1))
-				goblas.Dscal(n, scl, vl.Vector(0, i-1, 1))
+				scl = one / vl.Off(0, i-1).Vector().Nrm2(n, 1)
+				vl.Off(0, i-1).Vector().Scal(n, scl, 1)
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(goblas.Dnrm2(n, vl.Vector(0, i-1, 1)), goblas.Dnrm2(n, vl.Vector(0, i, 1)))
-				goblas.Dscal(n, scl, vl.Vector(0, i-1, 1))
-				goblas.Dscal(n, scl, vl.Vector(0, i, 1))
+				scl = one / Dlapy2(vl.Off(0, i-1).Vector().Nrm2(n, 1), vl.Off(0, i).Vector().Nrm2(n, 1))
+				vl.Off(0, i-1).Vector().Scal(n, scl, 1)
+				vl.Off(0, i).Vector().Scal(n, scl, 1)
 				for k = 1; k <= n; k++ {
 					work.Set(k-1, math.Pow(vl.Get(k-1, i-1), 2)+math.Pow(vl.Get(k-1, i), 2))
 				}
-				k = goblas.Idamax(n, work)
+				k = work.Iamax(n, 1)
 				cs, sn, _ = Dlartg(vl.Get(k-1, i-1), vl.Get(k-1, i))
-				goblas.Drot(n, vl.Vector(0, i-1, 1), vl.Vector(0, i, 1), cs, sn)
+				vl.Off(0, i).Vector().Rot(n, vl.Off(0, i-1).Vector(), 1, 1, cs, sn)
 				vl.Set(k-1, i, zero)
 			}
 		}
@@ -328,18 +327,18 @@ func Dgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.Matrix, wr, wi *mat.
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= n; i++ {
 			if wi.Get(i-1) == zero {
-				scl = one / goblas.Dnrm2(n, vr.Vector(0, i-1, 1))
-				goblas.Dscal(n, scl, vr.Vector(0, i-1, 1))
+				scl = one / vr.Off(0, i-1).Vector().Nrm2(n, 1)
+				vr.Off(0, i-1).Vector().Scal(n, scl, 1)
 			} else if wi.Get(i-1) > zero {
-				scl = one / Dlapy2(goblas.Dnrm2(n, vr.Vector(0, i-1, 1)), goblas.Dnrm2(n, vr.Vector(0, i, 1)))
-				goblas.Dscal(n, scl, vr.Vector(0, i-1, 1))
-				goblas.Dscal(n, scl, vr.Vector(0, i, 1))
+				scl = one / Dlapy2(vr.Off(0, i-1).Vector().Nrm2(n, 1), vr.Off(0, i).Vector().Nrm2(n, 1))
+				vr.Off(0, i-1).Vector().Scal(n, scl, 1)
+				vr.Off(0, i).Vector().Scal(n, scl, 1)
 				for k = 1; k <= n; k++ {
 					work.Set(k-1, math.Pow(vr.Get(k-1, i-1), 2)+math.Pow(vr.Get(k-1, i), 2))
 				}
-				k = goblas.Idamax(n, work)
+				k = work.Iamax(n, 1)
 				cs, sn, _ = Dlartg(vr.Get(k-1, i-1), vr.Get(k-1, i))
-				goblas.Drot(n, vr.Vector(0, i-1, 1), vr.Vector(0, i, 1), cs, sn)
+				vr.Off(0, i).Vector().Rot(n, vr.Off(0, i-1).Vector(), 1, 1, cs, sn)
 				vr.Set(k-1, i, zero)
 			}
 		}
@@ -349,10 +348,10 @@ func Dgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.Matrix, wr, wi *mat.
 label50:
 	;
 	if scalea {
-		if err = Dlascl('G', 0, 0, cscale, anrm, n-info, 1, wr.MatrixOff(info, max(n-info, 1), opts)); err != nil {
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-info, 1, wr.Off(info).Matrix(max(n-info, 1), opts)); err != nil {
 			panic(err)
 		}
-		if err = Dlascl('G', 0, 0, cscale, anrm, n-info, 1, wi.MatrixOff(info, max(n-info, 1), opts)); err != nil {
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-info, 1, wi.Off(info).Matrix(max(n-info, 1), opts)); err != nil {
 			panic(err)
 		}
 		if info == 0 {

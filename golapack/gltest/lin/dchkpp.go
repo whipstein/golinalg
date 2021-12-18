@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -125,7 +124,7 @@ func dchkpp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 				//              Compute the L*L' or U'*U factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+				afac.Copy(npp, a, 1, 1)
 				*srnamt = "Dpptrf"
 				if info, err = golapack.Dpptrf(uplo, n, afac); err != nil {
 					panic(err)
@@ -144,12 +143,12 @@ func dchkpp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 				//+    TEST 1
 				//              Reconstruct matrix from factors and compute residual.
-				goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+				ainv.Copy(npp, afac, 1, 1)
 				result.Set(0, dppt01(uplo, n, a, ainv, rwork))
 
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
-				goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+				ainv.Copy(npp, afac, 1, 1)
 				*srnamt = "Dpptri"
 				if info, err = golapack.Dpptri(uplo, n, ainv); err != nil {
 					panic(err)

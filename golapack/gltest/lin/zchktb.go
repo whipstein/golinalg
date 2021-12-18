@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -102,13 +101,13 @@ func zchktb(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 					golapack.Zlaset(Full, n, n, complex(zero, 0), complex(one, 0), ainv.CMatrix(lda, opts))
 					if uplo == Upper {
 						for j = 1; j <= n; j++ {
-							if err = goblas.Ztbsv(uplo, NoTrans, diag, j, kd, ab.CMatrix(ldab, opts), ainv.Off((j-1)*lda, 1)); err != nil {
+							if err = ainv.Off((j-1)*lda).Tbsv(uplo, NoTrans, diag, j, kd, ab.CMatrix(ldab, opts), 1); err != nil {
 								panic(err)
 							}
 						}
 					} else {
 						for j = 1; j <= n; j++ {
-							if err = goblas.Ztbsv(uplo, NoTrans, diag, n-j+1, kd, ab.CMatrixOff((j-1)*ldab, ldab, opts), ainv.Off((j-1)*lda+j-1, 1)); err != nil {
+							if err = ainv.Off((j-1)*lda+j-1).Tbsv(uplo, NoTrans, diag, n-j+1, kd, ab.Off((j-1)*ldab).CMatrix(ldab, opts), 1); err != nil {
 								panic(err)
 							}
 						}
@@ -244,7 +243,7 @@ func zchktb(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 						//+    TEST 7
 						//                    Solve the system op(A)*x = b
 						*srnamt = "Zlatbs"
-						goblas.Zcopy(n, x.Off(0, 1), b.Off(0, 1))
+						b.Copy(n, x, 1, 1)
 						if scale, err = golapack.Zlatbs(uplo, trans, diag, 'N', n, kd, ab.CMatrix(ldab, opts), b, rwork); err != nil {
 							t.Fail()
 							nerrs = alaerh(path, "Zlatbs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'N'}, n, n, kd, kd, -1, imat, nfail, nerrs)
@@ -254,7 +253,7 @@ func zchktb(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 						//+    TEST 8
 						//                    Solve op(A)*x = b again with NORMIN = 'Y'.
-						goblas.Zcopy(n, x.Off(0, 1), b.Off(0, 1))
+						b.Copy(n, x, 1, 1)
 						if scale, err = golapack.Zlatbs(uplo, trans, diag, 'Y', n, kd, ab.CMatrix(ldab, opts), b, rwork); err != nil {
 							t.Fail()
 							nerrs = alaerh(path, "Zlatbs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'Y'}, n, n, kd, kd, -1, imat, nfail, nerrs)

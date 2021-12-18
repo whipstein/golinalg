@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -39,7 +38,7 @@ func zbdt03(uplo mat.MatUplo, n, kd int, d, e *mat.Vector, u *mat.CMatrix, s *ma
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, s.GetCmplx(i-1)*vt.Get(i-1, j-1))
 				}
-				if err = goblas.Zgemv(NoTrans, n, n, -complex(one, 0), u, work.Off(n, 1), complex(zero, 0), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, n, n, -complex(one, 0), u, work.Off(n), 1, complex(zero, 0), 1); err != nil {
 					panic(err)
 				}
 				work.Set(j-1, work.Get(j-1)+d.GetCmplx(j-1))
@@ -49,7 +48,7 @@ func zbdt03(uplo mat.MatUplo, n, kd int, d, e *mat.Vector, u *mat.CMatrix, s *ma
 				} else {
 					bnorm = math.Max(bnorm, d.GetMag(j-1))
 				}
-				resid = math.Max(resid, goblas.Dzasum(n, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(n, 1))
 			}
 		} else {
 			//           B is lower bidiagonal.
@@ -57,7 +56,7 @@ func zbdt03(uplo mat.MatUplo, n, kd int, d, e *mat.Vector, u *mat.CMatrix, s *ma
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, s.GetCmplx(i-1)*vt.Get(i-1, j-1))
 				}
-				if err = goblas.Zgemv(NoTrans, n, n, -complex(one, 0), u, work.Off(n, 1), complex(zero, 0), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, n, n, -complex(one, 0), u, work.Off(n), 1, complex(zero, 0), 1); err != nil {
 					panic(err)
 				}
 				work.Set(j-1, work.Get(j-1)+d.GetCmplx(j-1))
@@ -67,7 +66,7 @@ func zbdt03(uplo mat.MatUplo, n, kd int, d, e *mat.Vector, u *mat.CMatrix, s *ma
 				} else {
 					bnorm = math.Max(bnorm, d.GetMag(j-1))
 				}
-				resid = math.Max(resid, goblas.Dzasum(n, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(n, 1))
 			}
 		}
 	} else {
@@ -76,13 +75,13 @@ func zbdt03(uplo mat.MatUplo, n, kd int, d, e *mat.Vector, u *mat.CMatrix, s *ma
 			for i = 1; i <= n; i++ {
 				work.Set(n+i-1, s.GetCmplx(i-1)*vt.Get(i-1, j-1))
 			}
-			if err = goblas.Zgemv(NoTrans, n, n, -complex(one, 0), u, work.Off(n, 1), complex(zero, 0), work.Off(0, 1)); err != nil {
+			if err = work.Gemv(NoTrans, n, n, -complex(one, 0), u, work.Off(n), 1, complex(zero, 0), 1); err != nil {
 				panic(err)
 			}
 			work.Set(j-1, work.Get(j-1)+d.GetCmplx(j-1))
-			resid = math.Max(resid, goblas.Dzasum(n, work.Off(0, 1)))
+			resid = math.Max(resid, work.Asum(n, 1))
 		}
-		j = goblas.Idamax(n, d.Off(0, 1))
+		j = d.Iamax(n, 1)
 		bnorm = d.GetMag(j - 1)
 	}
 

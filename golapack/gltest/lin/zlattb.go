@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
 	"github.com/whipstein/golinalg/mat"
@@ -167,11 +166,11 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 
 			//           Copy the tridiagonal T to AB.
 			if upper {
-				goblas.Zcopy(n-1, work.Off(0, 1), ab.CVector(kd-1, 1))
-				goblas.Zcopy(n-2, work.Off(n, 1), ab.CVector(kd-1-1, 2))
+				ab.Off(kd-1, 1).CVector().Copy(n-1, work, 1, ab.Rows)
+				ab.Off(kd-1-1, 2).CVector().Copy(n-2, work.Off(n), 1, ab.Rows)
 			} else {
-				goblas.Zcopy(n-1, work.Off(0, 1), ab.CVector(1, 0))
-				goblas.Zcopy(n-2, work.Off(n, 1), ab.CVector(2, 0))
+				ab.Off(1, 0).CVector().Copy(n-1, work, 1, ab.Rows)
+				ab.Off(2, 0).CVector().Copy(n-2, work.Off(n), 1, ab.Rows)
 			}
 		}
 
@@ -185,14 +184,14 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		if upper {
 			for j = 1; j <= n; j++ {
 				lenj = min(j-1, kd)
-				golapack.Zlarnv(4, iseed, lenj, ab.CVector(kd+1-lenj-1, j-1))
+				golapack.Zlarnv(4, iseed, lenj, ab.Off(kd+1-lenj-1, j-1).CVector())
 				ab.Set(kd, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				lenj = min(n-j, kd)
 				if lenj > 0 {
-					golapack.Zlarnv(4, iseed, lenj, ab.CVector(1, j-1))
+					golapack.Zlarnv(4, iseed, lenj, ab.Off(1, j-1).CVector())
 				}
 				ab.Set(0, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 			}
@@ -200,10 +199,10 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(2, iseed, n, b)
-		iy = goblas.Izamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Zdscal(n, bscal, b.Off(0, 1))
+		b.Dscal(n, bscal, 1)
 
 	} else if imat == 11 {
 		//        Type 11:  Make the first diagonal element in the solve small to
@@ -215,8 +214,8 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 			for j = 1; j <= n; j++ {
 				lenj = min(j-1, kd)
 				if lenj > 0 {
-					golapack.Zlarnv(4, iseed, lenj, ab.CVector(kd+2-lenj-1, j-1))
-					goblas.Zdscal(lenj, tscal, ab.CVector(kd+2-lenj-1, j-1, 1))
+					golapack.Zlarnv(4, iseed, lenj, ab.Off(kd+2-lenj-1, j-1).CVector())
+					ab.Off(kd+2-lenj-1, j-1).CVector().Dscal(lenj, tscal, 1)
 				}
 				ab.Set(kd, j-1, matgen.Zlarnd(5, *iseed))
 			}
@@ -225,8 +224,8 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 			for j = 1; j <= n; j++ {
 				lenj = min(n-j, kd)
 				if lenj > 0 {
-					golapack.Zlarnv(4, iseed, lenj, ab.CVector(1, j-1))
-					goblas.Zdscal(lenj, tscal, ab.CVector(1, j-1, 1))
+					golapack.Zlarnv(4, iseed, lenj, ab.Off(1, j-1).CVector())
+					ab.Off(1, j-1).CVector().Dscal(lenj, tscal, 1)
 				}
 				ab.Set(0, j-1, matgen.Zlarnd(5, *iseed))
 			}
@@ -242,7 +241,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 			for j = 1; j <= n; j++ {
 				lenj = min(j-1, kd)
 				if lenj > 0 {
-					golapack.Zlarnv(4, iseed, lenj, ab.CVector(kd+2-lenj-1, j-1))
+					golapack.Zlarnv(4, iseed, lenj, ab.Off(kd+2-lenj-1, j-1).CVector())
 				}
 				ab.Set(kd, j-1, matgen.Zlarnd(5, *iseed))
 			}
@@ -251,7 +250,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 			for j = 1; j <= n; j++ {
 				lenj = min(n-j, kd)
 				if lenj > 0 {
-					golapack.Zlarnv(4, iseed, lenj, ab.CVector(1, j-1))
+					golapack.Zlarnv(4, iseed, lenj, ab.Off(1, j-1).CVector())
 				}
 				ab.Set(0, j-1, matgen.Zlarnd(5, *iseed))
 			}
@@ -348,7 +347,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		if upper {
 			for j = 1; j <= n; j++ {
 				lenj = min(j, kd+1)
-				golapack.Zlarnv(4, iseed, lenj, ab.CVector(kd+2-lenj-1, j-1))
+				golapack.Zlarnv(4, iseed, lenj, ab.Off(kd+2-lenj-1, j-1).CVector())
 				if j != iy {
 					ab.Set(kd, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 				} else {
@@ -358,7 +357,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		} else {
 			for j = 1; j <= n; j++ {
 				lenj = min(n-j+1, kd+1)
-				golapack.Zlarnv(4, iseed, lenj, ab.CVector(0, j-1))
+				golapack.Zlarnv(4, iseed, lenj, ab.Off(0, j-1).CVector())
 				if j != iy {
 					ab.Set(0, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 				} else {
@@ -367,7 +366,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 			}
 		}
 		golapack.Zlarnv(2, iseed, n, b)
-		goblas.Zdscal(n, two, b.Off(0, 1))
+		b.Dscal(n, two, 1)
 
 	} else if imat == 16 {
 		//        Type 16:  Make the offdiagonal elements large to cause overflow
@@ -425,14 +424,14 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		if upper {
 			for j = 1; j <= n; j++ {
 				lenj = min(j-1, kd)
-				golapack.Zlarnv(4, iseed, lenj, ab.CVector(kd+1-lenj-1, j-1))
+				golapack.Zlarnv(4, iseed, lenj, ab.Off(kd+1-lenj-1, j-1).CVector())
 				ab.SetRe(kd, j-1, float64(j))
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				lenj = min(n-j, kd)
 				if lenj > 0 {
-					golapack.Zlarnv(4, iseed, lenj, ab.CVector(1, j-1))
+					golapack.Zlarnv(4, iseed, lenj, ab.Off(1, j-1).CVector())
 				}
 				ab.SetRe(0, j-1, float64(j))
 			}
@@ -440,10 +439,10 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(2, iseed, n, b)
-		iy = goblas.Izamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Zdscal(n, bscal, b.Off(0, 1))
+		b.Dscal(n, bscal, 1)
 
 	} else if imat == 18 {
 		//        Type 18:  Generate a triangular matrix with elements between
@@ -455,7 +454,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		if upper {
 			for j = 1; j <= n; j++ {
 				lenj = min(j, kd+1)
-				golapack.Zlarnv(5, iseed, lenj, ab.CVector(kd+2-lenj-1, j-1))
+				golapack.Zlarnv(5, iseed, lenj, ab.Off(kd+2-lenj-1, j-1).CVector())
 				golapack.Dlarnv(1, iseed, lenj, rwork.Off(kd+2-lenj-1))
 				for i = kd + 2 - lenj; i <= kd+1; i++ {
 					ab.Set(i-1, j-1, ab.Get(i-1, j-1)*complex(tleft+rwork.Get(i-1)*tscal, 0))
@@ -464,7 +463,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		} else {
 			for j = 1; j <= n; j++ {
 				lenj = min(n-j+1, kd+1)
-				golapack.Zlarnv(5, iseed, lenj, ab.CVector(0, j-1))
+				golapack.Zlarnv(5, iseed, lenj, ab.Off(0, j-1).CVector())
 				golapack.Dlarnv(1, iseed, lenj, rwork)
 				for i = 1; i <= lenj; i++ {
 					ab.Set(i-1, j-1, ab.Get(i-1, j-1)*complex(tleft+rwork.Get(i-1)*tscal, 0))
@@ -472,7 +471,7 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 			}
 		}
 		golapack.Zlarnv(2, iseed, n, b)
-		goblas.Zdscal(n, two, b.Off(0, 1))
+		b.Dscal(n, two, 1)
 	}
 
 	//     Flip the matrix if the transpose will be used.
@@ -480,12 +479,12 @@ func zlattb(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n, kd 
 		if upper {
 			for j = 1; j <= n/2; j++ {
 				lenj = min(n-2*j+1, kd+1)
-				goblas.Zswap(lenj, ab.CVector(kd, j-1, ab.Rows-1), ab.CVector(kd+2-lenj-1, n-j, -1))
+				ab.Off(kd+2-lenj-1, n-j).CVector().Swap(lenj, ab.Off(kd, j-1).CVector(), ab.Rows-1, -1)
 			}
 		} else {
 			for j = 1; j <= n/2; j++ {
 				lenj = min(n-2*j+1, kd+1)
-				goblas.Zswap(lenj, ab.CVector(0, j-1, 1), ab.CVector(lenj-1, n-j+2-lenj-1, -ab.Rows+1))
+				ab.Off(lenj-1, n-j+2-lenj-1).CVector().Swap(lenj, ab.Off(0, j-1).CVector(), 1, -ab.Rows+1)
 			}
 		}
 	}

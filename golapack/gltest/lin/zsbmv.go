@@ -13,7 +13,7 @@ import (
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n symmetric band matrix, with k super-diagonals.
-func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
+func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
 	var one, temp1, temp2, zero complex128
 	var i, ix, iy, j, jx, jy, kplus1, kx, ky, l int
 
@@ -29,10 +29,10 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 		err = fmt.Errorf("k < 0: k=%v", k)
 	} else if a.Rows < (k + 1) {
 		err = fmt.Errorf("a.Rows < (k + 1): a.Rows=%v, k=%v", a.Rows, k)
-	} else if x.Inc == 0 {
-		err = fmt.Errorf("x.Inc == 0: x.Inc=%v", x.Inc)
-	} else if y.Inc == 0 {
-		err = fmt.Errorf("y.Inc == 0: y.Inc=%v", y.Inc)
+	} else if incx == 0 {
+		err = fmt.Errorf("incx == 0: incx=%v", incx)
+	} else if incy == 0 {
+		err = fmt.Errorf("incy == 0: incy=%v", incy)
 	}
 	if err != nil {
 		gltest.Xerbla2("zsbmv", err)
@@ -45,15 +45,15 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 	}
 
 	//     Set up the start points in  X  and  Y.
-	if x.Inc > 0 {
+	if incx > 0 {
 		kx = 1
 	} else {
-		kx = 1 - (n-1)*x.Inc
+		kx = 1 - (n-1)*incx
 	}
-	if y.Inc > 0 {
+	if incy > 0 {
 		ky = 1
 	} else {
-		ky = 1 - (n-1)*y.Inc
+		ky = 1 - (n-1)*incy
 	}
 
 	//     Start the operations. In this version the elements of the array A
@@ -61,7 +61,7 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		if y.Inc == 1 {
+		if incy == 1 {
 			if beta == zero {
 				for i = 1; i <= n; i++ {
 					y.Set(i-1, zero)
@@ -76,12 +76,12 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 			if beta == zero {
 				for i = 1; i <= n; i++ {
 					y.Set(iy-1, zero)
-					iy = iy + y.Inc
+					iy = iy + incy
 				}
 			} else {
 				for i = 1; i <= n; i++ {
 					y.Set(iy-1, beta*y.Get(iy-1))
-					iy = iy + y.Inc
+					iy = iy + incy
 				}
 			}
 		}
@@ -92,7 +92,7 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 	if uplo == Upper {
 		//        Form  y  when upper triangle of A is stored.
 		kplus1 = k + 1
-		if (x.Inc == 1) && (y.Inc == 1) {
+		if (incx == 1) && (incy == 1) {
 			for j = 1; j <= n; j++ {
 				temp1 = alpha * x.Get(j-1)
 				temp2 = zero
@@ -115,21 +115,21 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 				for i = max(1, j-k); i <= j-1; i++ {
 					y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
 					temp2 = temp2 + a.Get(l+i-1, j-1)*x.Get(ix-1)
-					ix = ix + x.Inc
-					iy = iy + y.Inc
+					ix = ix + incx
+					iy = iy + incy
 				}
 				y.Set(jy-1, y.Get(jy-1)+temp1*a.Get(kplus1-1, j-1)+alpha*temp2)
-				jx = jx + x.Inc
-				jy = jy + y.Inc
+				jx = jx + incx
+				jy = jy + incy
 				if j > k {
-					kx = kx + x.Inc
-					ky = ky + y.Inc
+					kx = kx + incx
+					ky = ky + incy
 				}
 			}
 		}
 	} else {
 		//        Form  y  when lower triangle of A is stored.
-		if (x.Inc == 1) && (y.Inc == 1) {
+		if (incx == 1) && (incy == 1) {
 			for j = 1; j <= n; j++ {
 				temp1 = alpha * x.Get(j-1)
 				temp2 = zero
@@ -152,14 +152,14 @@ func zsbmv(uplo mat.MatUplo, n, k int, alpha complex128, a *mat.CMatrix, x *mat.
 				ix = jx
 				iy = jy
 				for i = j + 1; i <= min(n, j+k); i++ {
-					ix = ix + x.Inc
-					iy = iy + y.Inc
+					ix = ix + incx
+					iy = iy + incy
 					y.Set(iy-1, y.Get(iy-1)+temp1*a.Get(l+i-1, j-1))
 					temp2 = temp2 + a.Get(l+i-1, j-1)*x.Get(ix-1)
 				}
 				y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
-				jx = jx + x.Inc
-				jy = jy + y.Inc
+				jx = jx + incx
+				jy = jy + incy
 			}
 		}
 	}

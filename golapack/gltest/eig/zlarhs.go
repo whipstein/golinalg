@@ -3,7 +3,6 @@ package eig
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -73,7 +72,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	}
 	if xtype != 'C' {
 		for j = 1; j <= nrhs; j++ {
-			golapack.Zlarnv(2, iseed, n, x.CVector(0, j-1))
+			golapack.Zlarnv(2, iseed, n, x.Off(0, j-1).CVector())
 		}
 	}
 
@@ -82,31 +81,31 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	if c2 == "ge" || c2 == "qr" || c2 == "lq" || c2 == "ql" || c2 == "rq" {
 		//        General matrix
 		if b.Rows < mb {
-			if err = goblas.Zgemm(trans, NoTrans, mb, nrhs, nx, one, a, x, zero, b.Off(0, 0).UpdateRows(mb)); err != nil {
+			if err = b.Off(0, 0).UpdateRows(mb).Gemm(trans, NoTrans, mb, nrhs, nx, one, a, x, zero); err != nil {
 				panic(err)
 			}
 		} else {
-			if err = goblas.Zgemm(trans, NoTrans, mb, nrhs, nx, one, a, x, zero, b); err != nil {
+			if err = b.Gemm(trans, NoTrans, mb, nrhs, nx, one, a, x, zero); err != nil {
 				panic(err)
 			}
 		}
 
 	} else if c2 == "po" || c2 == "he" {
 		//        Hermitian matrix, 2-D storage
-		if err = goblas.Zhemm(Left, uplo, n, nrhs, one, a, x, zero, b); err != nil {
+		if err = b.Hemm(Left, uplo, n, nrhs, one, a, x, zero); err != nil {
 			panic(err)
 		}
 
 	} else if c2 == "sy" {
 		//        Symmetric matrix, 2-D storage
-		if err = goblas.Zsymm(Left, uplo, n, nrhs, one, a, x, zero, b); err != nil {
+		if err = b.Symm(Left, uplo, n, nrhs, one, a, x, zero); err != nil {
 			panic(err)
 		}
 
 	} else if c2 == "gb" {
 		//        General matrix, band storage
 		for j = 1; j <= nrhs; j++ {
-			if err = goblas.Zgbmv(trans, m, n, kl, ku, one, a, x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Gbmv(trans, m, n, kl, ku, one, a, x.Off(0, j-1).CVector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -114,7 +113,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	} else if c2 == "pb" || c2 == "hb" {
 		//        Hermitian matrix, band storage
 		for j = 1; j <= nrhs; j++ {
-			if err = goblas.Zhbmv(uplo, n, kl, one, a, x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Hbmv(uplo, n, kl, one, a, x.Off(0, j-1).CVector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -122,7 +121,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	} else if c2 == "sb" {
 		//        Symmetric matrix, band storage
 		for j = 1; j <= nrhs; j++ {
-			if err = zsbmv(uplo, n, kl, one, a, x.CVector(0, j-1), 1, zero, b.CVector(0, j-1), 1); err != nil {
+			if err = zsbmv(uplo, n, kl, one, a, x.Off(0, j-1).CVector(), 1, zero, b.Off(0, j-1).CVector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -130,7 +129,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	} else if c2 == "pp" || c2 == "hp" {
 		//        Hermitian matrix, packed storage
 		for j = 1; j <= nrhs; j++ {
-			if err = goblas.Zhpmv(uplo, n, one, a.CVector(0, 0), x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Hpmv(uplo, n, one, a.Off(0, 0).CVector(), x.Off(0, j-1).CVector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -138,7 +137,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	} else if c2 == "sp" {
 		//        Symmetric matrix, packed storage
 		for j = 1; j <= nrhs; j++ {
-			if err = golapack.Zspmv(uplo, n, one, a.CVector(0, 0), x.CVector(0, j-1, 1), zero, b.CVector(0, j-1, 1)); err != nil {
+			if err = golapack.Zspmv(uplo, n, one, a.Off(0, 0).CVector(), x.Off(0, j-1).CVector(), 1, zero, b.Off(0, j-1).CVector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -153,7 +152,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 		} else {
 			diag = 'N'
 		}
-		if err = goblas.Ztrmm(Left, uplo, trans, diag, n, nrhs, one, a, b); err != nil {
+		if err = b.Trmm(Left, uplo, trans, diag, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -166,7 +165,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 			diag = 'N'
 		}
 		for j = 1; j <= nrhs; j++ {
-			if err = goblas.Ztpmv(uplo, trans, diag, n, a.CVector(0, 0), b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Tpmv(uplo, trans, diag, n, a.Off(0, 0).CVector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -180,7 +179,7 @@ func zlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 			diag = 'N'
 		}
 		for j = 1; j <= nrhs; j++ {
-			if err = goblas.Ztbmv(uplo, trans, diag, n, kl, a, b.CVector(0, j-1, 1)); err != nil {
+			if err = b.Off(0, j-1).CVector().Tbmv(uplo, trans, diag, n, kl, a, 1); err != nil {
 				panic(err)
 			}
 		}

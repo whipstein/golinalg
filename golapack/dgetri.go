@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -81,7 +80,7 @@ func Dgetri(n int, a *mat.Matrix, ipiv []int, work *mat.Matrix) (info int, err e
 
 			//           Compute current column of inv(A).
 			if j < n {
-				err = goblas.Dgemv(NoTrans, n, n-j, -one, a.Off(0, j), work.VectorIdx(j, 1), one, a.Vector(0, j-1, 1))
+				err = a.Off(0, j-1).Vector().Gemv(NoTrans, n, n-j, -one, a.Off(0, j), work.OffIdx(j).Vector(), 1, one, 1)
 			}
 		}
 	} else {
@@ -101,9 +100,9 @@ func Dgetri(n int, a *mat.Matrix, ipiv []int, work *mat.Matrix) (info int, err e
 
 			//           Compute current block column of inv(A).
 			if j+jb <= n {
-				err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, n, jb, n-j-jb+1, -one, a.Off(0, j+jb-1), work.OffIdx(j+jb-1), one, a.Off(0, j-1))
+				err = a.Off(0, j-1).Gemm(NoTrans, NoTrans, n, jb, n-j-jb+1, -one, a.Off(0, j+jb-1), work.OffIdx(j+jb-1), one)
 			}
-			err = goblas.Dtrsm(mat.Right, mat.Lower, mat.NoTrans, mat.Unit, n, jb, one, work.OffIdx(j-1), a.Off(0, j-1))
+			err = a.Off(0, j-1).Trsm(Right, Lower, NoTrans, Unit, n, jb, one, work.OffIdx(j-1))
 		}
 	}
 
@@ -111,7 +110,7 @@ func Dgetri(n int, a *mat.Matrix, ipiv []int, work *mat.Matrix) (info int, err e
 	for j = n - 1; j >= 1; j-- {
 		jp = ipiv[j-1]
 		if jp != j {
-			goblas.Dswap(n, a.Vector(0, j-1, 1), a.Vector(0, jp-1, 1))
+			a.Off(0, jp-1).Vector().Swap(n, a.Off(0, j-1).Vector(), 1, 1)
 		}
 	}
 

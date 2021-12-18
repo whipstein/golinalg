@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -168,7 +167,7 @@ func dget22(transa, transe, transw mat.MatTrans, n int, a, e *mat.Matrix, wr, wi
 			wmat.Set(1, 0, -wi.Get(jcol-1))
 			wmat.Set(0, 1, wi.Get(jcol-1))
 			wmat.Set(1, 1, wr.Get(jcol-1))
-			if err = goblas.Dgemm(transe, transw, n, 2, 2, one, e.Off(ierow-1, iecol-1), wmat, zero, work.MatrixOff(n*(jcol-1), n, opts)); err != nil {
+			if err = work.Off(n*(jcol-1)).Matrix(n, opts).Gemm(transe, transw, n, 2, 2, one, e.Off(ierow-1, iecol-1), wmat, zero); err != nil {
 				panic(err)
 			}
 			ipair = 2
@@ -177,13 +176,13 @@ func dget22(transa, transe, transw mat.MatTrans, n int, a, e *mat.Matrix, wr, wi
 
 		} else {
 
-			goblas.Daxpy(n, wr.Get(jcol-1), e.Vector(ierow-1, iecol-1, ince), work.Off(n*(jcol-1), 1))
+			work.Off(n*(jcol-1)).Axpy(n, wr.Get(jcol-1), e.Off(ierow-1, iecol-1).Vector(), ince, 1)
 			ipair = 0
 		}
 
 	}
 
-	if err = goblas.Dgemm(transa, transe, n, n, n, one, a, e, -one, work.Matrix(n, opts)); err != nil {
+	if err = work.Matrix(n, opts).Gemm(transa, transe, n, n, n, one, a, e, -one); err != nil {
 		panic(err)
 	}
 

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -122,7 +121,7 @@ func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error
 				//              Find pivot and test for singularity. KM is the number of
 				//              subdiagonal elements in the current column.
 				km = min(kl, m-jj)
-				jp = goblas.Izamax(km+1, ab.CVector(kv, jj-1, 1))
+				jp = ab.Off(kv, jj-1).CVector().Iamax(km+1, 1)
 				(*ipiv)[jj-1] = jp + jj - j
 				if ab.Get(kv+jp-1, jj-1) != zero {
 					ju = max(ju, min(jj+ku+jp-1, n))
@@ -130,24 +129,24 @@ func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error
 						//                    Apply interchange to columns J to J+JB-1
 						if jp+jj-1 < j+kl {
 
-							goblas.Zswap(jb, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), ab.CVector(kv+jp+jj-j-1, j-1, ab.Rows-1))
+							ab.Off(kv+jp+jj-j-1, j-1).CVector().Swap(jb, ab.Off(kv+1+jj-j-1, j-1).CVector(), ab.Rows-1, ab.Rows-1)
 						} else {
 							//                       The interchange affects columns J to JJ-1 of A31
 							//                       which are stored in the work array WORK31
-							goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), work31.CVector(jp+jj-j-kl-1, 0, ldwork))
-							goblas.Zswap(j+jb-jj, ab.CVector(kv, jj-1, ab.Rows-1), ab.CVector(kv+jp-1, jj-1, ab.Rows-1))
+							work31.Off(jp+jj-j-kl-1, 0).CVector().Swap(jj-j, ab.Off(kv+1+jj-j-1, j-1).CVector(), ab.Rows-1, ldwork)
+							ab.Off(kv+jp-1, jj-1).CVector().Swap(j+jb-jj, ab.Off(kv, jj-1).CVector(), ab.Rows-1, ab.Rows-1)
 						}
 					}
 
 					//                 Compute multipliers
-					goblas.Zscal(km, one/ab.Get(kv, jj-1), ab.CVector(kv+2-1, jj-1, 1))
+					ab.Off(kv+2-1, jj-1).CVector().Scal(km, one/ab.Get(kv, jj-1), 1)
 
 					//                 Update trailing submatrix within the band and within
 					//                 the current block. JM is the index of the last column
 					//                 which needs to be updated.
 					jm = min(ju, j+jb-1)
 					if jm > jj {
-						if err = goblas.Zgeru(km, jm-jj, -one, ab.CVector(kv+2-1, jj-1, 1), ab.CVector(kv-1, jj, ab.Rows-1), ab.Off(kv, jj).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(kv, jj).UpdateRows(ab.Rows-1).Geru(km, jm-jj, -one, ab.Off(kv+2-1, jj-1).CVector(), 1, ab.Off(kv-1, jj).CVector(), ab.Rows-1); err != nil {
 							panic(err)
 						}
 					}
@@ -162,7 +161,7 @@ func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error
 				//              Copy current column of A31 into the work array WORK31
 				nw = min(jj-j+1, i3)
 				if nw > 0 {
-					goblas.Zcopy(nw, ab.CVector(kv+kl+1-jj+j-1, jj-1, 1), work31.CVector(0, jj-j, 1))
+					work31.Off(0, jj-j).CVector().Copy(nw, ab.Off(kv+kl+1-jj+j-1, jj-1).CVector(), 1, 1)
 				}
 			}
 			if j+jb <= n {
@@ -197,20 +196,20 @@ func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error
 				//              Update the relevant part of the trailing submatrix
 				if j2 > 0 {
 					//                 Update A12
-					if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j2, one, ab.Off(kv, j-1).UpdateRows(ab.Rows-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1)); err != nil {
+					if err = ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1).Trsm(Left, Lower, NoTrans, Unit, jb, j2, one, ab.Off(kv, j-1).UpdateRows(ab.Rows-1)); err != nil {
 						panic(err)
 					}
 
 					if i2 > 0 {
 						//                    Update A22
-						if err = goblas.Zgemm(NoTrans, NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows(ab.Rows-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), one, ab.Off(kv, j+jb-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(kv, j+jb-1).UpdateRows(ab.Rows-1).Gemm(NoTrans, NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows(ab.Rows-1), ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), one); err != nil {
 							panic(err)
 						}
 					}
 
 					if i3 > 0 {
 						//                    Update A32
-						if err = goblas.Zgemm(NoTrans, NoTrans, i3, j2, jb, -one, work31, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), one, ab.Off(kv+kl+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(kv+kl+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1).Gemm(NoTrans, NoTrans, i3, j2, jb, -one, work31, ab.Off(kv+1-jb-1, j+jb-1).UpdateRows(ab.Rows-1), one); err != nil {
 							panic(err)
 						}
 					}
@@ -226,20 +225,20 @@ func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error
 					}
 
 					//                 Update A13 in the work array
-					if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, j3, one, ab.Off(kv, j-1).UpdateRows(ab.Rows-1), work13); err != nil {
+					if err = work13.Trsm(Left, Lower, NoTrans, Unit, jb, j3, one, ab.Off(kv, j-1).UpdateRows(ab.Rows-1)); err != nil {
 						panic(err)
 					}
 
 					if i2 > 0 {
 						//                    Update A23
-						if err = goblas.Zgemm(NoTrans, NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows(ab.Rows-1), work13, one, ab.Off(1+jb-1, j+kv-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(1+jb-1, j+kv-1).UpdateRows(ab.Rows-1).Gemm(NoTrans, NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1).UpdateRows(ab.Rows-1), work13, one); err != nil {
 							panic(err)
 						}
 					}
 
 					if i3 > 0 {
 						//                    Update A33
-						if err = goblas.Zgemm(NoTrans, NoTrans, i3, j3, jb, -one, work31, work13, one, ab.Off(1+kl-1, j+kv-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(1+kl-1, j+kv-1).UpdateRows(ab.Rows-1).Gemm(NoTrans, NoTrans, i3, j3, jb, -one, work31, work13, one); err != nil {
 							panic(err)
 						}
 					}
@@ -267,17 +266,17 @@ func Zgbtrf(m, n, kl, ku int, ab *mat.CMatrix, ipiv *[]int) (info int, err error
 					//                 Apply interchange to columns J to JJ-1
 					if jp+jj-1 < j+kl {
 						//                    The interchange does not affect A31
-						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), ab.CVector(kv+jp+jj-j-1, j-1, ab.Rows-1))
+						ab.Off(kv+jp+jj-j-1, j-1).CVector().Swap(jj-j, ab.Off(kv+1+jj-j-1, j-1).CVector(), ab.Rows-1, ab.Rows-1)
 					} else {
 						//                    The interchange does affect A31
-						goblas.Zswap(jj-j, ab.CVector(kv+1+jj-j-1, j-1, ab.Rows-1), work31.CVector(jp+jj-j-kl-1, 0, ldwork))
+						work31.Off(jp+jj-j-kl-1, 0).CVector().Swap(jj-j, ab.Off(kv+1+jj-j-1, j-1).CVector(), ab.Rows-1, ldwork)
 					}
 				}
 
 				//              Copy the current column of A31 back into place
 				nw = min(i3, jj-j+1)
 				if nw > 0 {
-					goblas.Zcopy(nw, work31.CVector(0, jj-j, 1), ab.CVector(kv+kl+1-jj+j-1, jj-1, 1))
+					ab.Off(kv+kl+1-jj+j-1, jj-1).CVector().Copy(nw, work31.Off(0, jj-j).CVector(), 1, 1)
 				}
 			}
 		}

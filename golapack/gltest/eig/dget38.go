@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -336,7 +335,7 @@ func dget38(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 			golapack.Dlacpy(Full, n, n, tmp, t)
 			vmul = val.Get(iscl - 1)
 			for i = 1; i <= n; i++ {
-				goblas.Dscal(n, vmul, t.Vector(0, i-1, 1))
+				t.Off(0, i-1).Vector().Scal(n, vmul, 1)
 			}
 			if tnrm == zero {
 				vmul = one
@@ -368,8 +367,8 @@ func dget38(rmax *mat.Vector, lmax, ninfo *[]int) (knt int) {
 				ipnt[i-1] = i
 				_select[i-1] = false
 			}
-			goblas.Dcopy(n, wr.Off(0, 1), wrtmp.Off(0, 1))
-			goblas.Dcopy(n, wi.Off(0, 1), witmp.Off(0, 1))
+			wrtmp.Copy(n, wr, 1, 1)
+			witmp.Copy(n, wi, 1, 1)
 			for i = 1; i <= n-1; i++ {
 				kmin = i
 				vrmin = wrtmp.Get(i - 1)

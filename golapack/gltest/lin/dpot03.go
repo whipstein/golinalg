@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -51,7 +50,7 @@ func dpot03(uplo mat.MatUplo, n int, a, ainv, work *mat.Matrix, rwork *mat.Vecto
 			}
 		}
 	}
-	if err = goblas.Dsymm(Left, uplo, n, n, -one, a, ainv, zero, work); err != nil {
+	if err = work.Symm(Left, uplo, n, n, -one, a, ainv, zero); err != nil {
 		panic(err)
 	}
 

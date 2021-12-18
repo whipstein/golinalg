@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -63,32 +62,32 @@ func Dgbtrs(trans mat.MatTrans, n, kl, ku, nrhs int, ab *mat.Matrix, ipiv []int,
 				lm = min(kl, n-j)
 				l = ipiv[j-1]
 				if l != j {
-					goblas.Dswap(nrhs, b.Vector(l-1, 0), b.Vector(j-1, 0))
+					b.Off(j-1, 0).Vector().Swap(nrhs, b.Off(l-1, 0).Vector(), b.Rows, b.Rows)
 				}
-				err = goblas.Dger(lm, nrhs, -one, ab.Vector(kd, j-1, 1), b.Vector(j-1, 0), b.Off(j, 0))
+				err = b.Off(j, 0).Ger(lm, nrhs, -one, ab.Off(kd, j-1).Vector(), 1, b.Off(j-1, 0).Vector(), b.Rows)
 			}
 		}
 
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U*X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Upper, mat.NoTrans, mat.NonUnit, n, kl+ku, ab, b.Vector(0, i-1, 1))
+			err = b.Off(0, i-1).Vector().Tbsv(Upper, NoTrans, NonUnit, n, kl+ku, ab, 1)
 		}
 
 	} else {
 		//        Solve A**T*X = B.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U**T*X = B, overwriting B with X.
-			err = goblas.Dtbsv(mat.Upper, mat.Trans, mat.NonUnit, n, kl+ku, ab, b.Vector(0, i-1, 1))
+			err = b.Off(0, i-1).Vector().Tbsv(Upper, Trans, NonUnit, n, kl+ku, ab, 1)
 		}
 
 		//        Solve L**T*X = B, overwriting B with X.
 		if lnoti {
 			for j = n - 1; j >= 1; j-- {
 				lm = min(kl, n-j)
-				err = goblas.Dgemv(mat.Trans, lm, nrhs, -one, b.Off(j, 0), ab.Vector(kd, j-1, 1), one, b.Vector(j-1, 0))
+				err = b.Off(j-1, 0).Vector().Gemv(Trans, lm, nrhs, -one, b.Off(j, 0), ab.Off(kd, j-1).Vector(), 1, one, b.Rows)
 				l = ipiv[j-1]
 				if l != j {
-					goblas.Dswap(nrhs, b.Vector(l-1, 0), b.Vector(j-1, 0))
+					b.Off(j-1, 0).Vector().Swap(nrhs, b.Off(l-1, 0).Vector(), b.Rows, b.Rows)
 				}
 			}
 		}

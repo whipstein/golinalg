@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -37,7 +36,7 @@ func zgbt01(m, n, kl, ku int, a, afac *mat.CMatrix, ipiv *[]int, work *mat.CVect
 		i1 = max(kd+1-j, 1)
 		i2 = min(kd+m-j, kl+kd)
 		if i2 >= i1 {
-			anorm = math.Max(anorm, goblas.Dzasum(i2-i1+1, a.CVector(i1-1, j-1, 1)))
+			anorm = math.Max(anorm, a.Off(i1-1, j-1).CVector().Asum(i2-i1+1, 1))
 		}
 	}
 
@@ -49,7 +48,7 @@ func zgbt01(m, n, kl, ku int, a, afac *mat.CMatrix, ipiv *[]int, work *mat.CVect
 		jl = min(kl, m-j)
 		lenj = min(m, j) - j + ju + 1
 		if lenj > 0 {
-			goblas.Zcopy(lenj, afac.CVector(kd-ju-1, j-1, 1), work.Off(0, 1))
+			work.Copy(lenj, afac.Off(kd-ju-1, j-1).CVector(), 1, 1)
 			for i = lenj + 1; i <= ju+jl+1; i++ {
 				work.SetRe(i-1, zero)
 			}
@@ -61,7 +60,7 @@ func zgbt01(m, n, kl, ku int, a, afac *mat.CMatrix, ipiv *[]int, work *mat.CVect
 				if il > 0 {
 					iw = i - j + ju + 1
 					t = work.Get(iw - 1)
-					goblas.Zaxpy(il, t, afac.CVector(kd, i-1, 1), work.Off(iw, 1))
+					work.Off(iw).Axpy(il, t, afac.Off(kd, i-1).CVector(), 1, 1)
 					ip = (*ipiv)[i-1]
 					if i != ip {
 						ip = ip - j + ju + 1
@@ -74,11 +73,11 @@ func zgbt01(m, n, kl, ku int, a, afac *mat.CMatrix, ipiv *[]int, work *mat.CVect
 			//           Subtract the corresponding column of A.
 			jua = min(ju, ku)
 			if jua+jl+1 > 0 {
-				goblas.Zaxpy(jua+jl+1, -complex(one, 0), a.CVector(ku+1-jua-1, j-1, 1), work.Off(ju+1-jua-1, 1))
+				work.Off(ju+1-jua-1).Axpy(jua+jl+1, -complex(one, 0), a.Off(ku+1-jua-1, j-1).CVector(), 1, 1)
 			}
 
 			//           Compute the 1-norm of the column.
-			resid = math.Max(resid, goblas.Dzasum(ju+jl+1, work.Off(0, 1)))
+			resid = math.Max(resid, work.Asum(ju+jl+1, 1))
 		}
 	}
 

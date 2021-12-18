@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -111,12 +110,12 @@ func Dpbsvx(fact byte, uplo mat.MatUplo, n, kd, nrhs int, ab, afb *mat.Matrix, e
 		if upper {
 			for j = 1; j <= n; j++ {
 				j1 = max(j-kd, 1)
-				goblas.Dcopy(j-j1+1, ab.Vector(kd+1-j+j1-1, j-1, 1), afb.Vector(kd+1-j+j1-1, j-1, 1))
+				afb.Off(kd+1-j+j1-1, j-1).Vector().Copy(j-j1+1, ab.Off(kd+1-j+j1-1, j-1).Vector(), 1, 1)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				j2 = min(j+kd, n)
-				goblas.Dcopy(j2-j+1, ab.Vector(0, j-1, 1), afb.Vector(0, j-1, 1))
+				afb.Off(0, j-1).Vector().Copy(j2-j+1, ab.Off(0, j-1).Vector(), 1, 1)
 			}
 		}
 

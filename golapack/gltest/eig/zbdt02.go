@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -32,11 +31,11 @@ func zbdt02(m, n int, b, c, u *mat.CMatrix, work *mat.CVector, rwork *mat.Vector
 
 	//     Compute norm( B - U * C )
 	for j = 1; j <= n; j++ {
-		goblas.Zcopy(m, b.CVector(0, j-1, 1), work.Off(0, 1))
-		if err = goblas.Zgemv(NoTrans, m, m, -complex(one, 0), u, c.CVector(0, j-1, 1), complex(one, 0), work.Off(0, 1)); err != nil {
+		work.Copy(m, b.Off(0, j-1).CVector(), 1, 1)
+		if err = work.Gemv(NoTrans, m, m, -complex(one, 0), u, c.Off(0, j-1).CVector(), 1, complex(one, 0), 1); err != nil {
 			panic(err)
 		}
-		resid = math.Max(resid, goblas.Dzasum(m, work.Off(0, 1)))
+		resid = math.Max(resid, work.Asum(m, 1))
 	}
 
 	//     Compute norm of B.

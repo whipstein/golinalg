@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -183,13 +182,13 @@ func zdrvhp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						anorm = golapack.Zlanhp('1', uplo, n, a, rwork)
 
 						//                    Factor the matrix A.
-						goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+						afac.Copy(npp, a, 1, 1)
 						if info, err = golapack.Zhptrf(uplo, n, afac, &iwork); err != nil {
 							panic(err)
 						}
 
 						//                    Compute inv(A) and take its norm.
-						goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+						ainv.Copy(npp, afac, 1, 1)
 						if info, err = golapack.Zhptri(uplo, n, ainv, &iwork, work); err != nil {
 							panic(err)
 						}
@@ -212,7 +211,7 @@ func zdrvhp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 					//                 --- Test Zhpsv ---
 					if ifact == 2 {
-						goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+						afac.Copy(npp, a, 1, 1)
 						golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), x.CMatrix(lda, opts))
 
 						//                    Factor the matrix and solve the system using ZHPSV.

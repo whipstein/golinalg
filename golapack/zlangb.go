@@ -74,7 +74,7 @@ func Zlangb(norm byte, n, kl, ku int, ab *mat.CMatrix, work *mat.Vector) (zlangb
 			k = ku + 1 - j + l
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n, j+kl)-l+1, ab.CVector(k-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+			*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n, j+kl)-l+1, ab.Off(k-1, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

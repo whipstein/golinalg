@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -90,7 +89,7 @@ func Dsytrd(uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau, work *mat.Vector,
 
 			//           Update the unreduced submatrix A(1:i-1,1:i-1), using an
 			//           update of the form:  A := A - V*W**T - W*V**T
-			if err = goblas.Dsyr2k(uplo, NoTrans, i-1, nb, -one, a.Off(0, i-1), work.Matrix(ldwork, opts), one, a); err != nil {
+			if err = a.Syr2k(uplo, NoTrans, i-1, nb, -one, a.Off(0, i-1), work.Matrix(ldwork, opts), one); err != nil {
 				panic(err)
 			}
 
@@ -116,7 +115,7 @@ func Dsytrd(uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau, work *mat.Vector,
 
 			//           Update the unreduced submatrix A(i+ib:n,i+ib:n), using
 			//           an update of the form:  A := A - V*W**T - W*V**T
-			err = goblas.Dsyr2k(uplo, NoTrans, n-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.MatrixOff(nb, ldwork, opts), one, a.Off(i+nb-1, i+nb-1))
+			err = a.Off(i+nb-1, i+nb-1).Syr2k(uplo, NoTrans, n-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.Off(nb).Matrix(ldwork, opts), one)
 
 			//           Copy subdiagonal elements back into A, and diagonal
 			//           elements into D

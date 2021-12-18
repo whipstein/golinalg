@@ -180,8 +180,8 @@ func ZhetrdHb2st(stage1, vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix
 	stepercol = int(math.Ceil(float64(shift) / float64(grsiz)))
 	thgrnb = int(math.Ceil(float64(n-1) / float64(thgrsiz)))
 
-	Zlacpy(Full, kd+1, n, ab, work.CMatrixOff(apos-1, lda, opts))
-	Zlaset(Full, kd, n, zero, zero, work.CMatrixOff(awpos-1, lda, opts))
+	Zlacpy(Full, kd+1, n, ab, work.Off(apos-1).CMatrix(lda, opts))
+	Zlaset(Full, kd, n, zero, zero, work.Off(awpos-1).CMatrix(lda, opts))
 
 	//     main bulge chasing loop
 	for thgrid = 1; thgrid <= thgrnb; thgrid++ {
@@ -218,7 +218,7 @@ func ZhetrdHb2st(stage1, vect byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix
 							}
 						}
 
-						Zhb2stKernels(uplo, wantq, ttype, stind, edind, sweepid, n, kd, ib, work.CMatrixOff(inda-1, lda, opts), hous.Off(indv-1), hous.Off(indtau-1), ldv, work.Off(indw+tid*kd-1))
+						Zhb2stKernels(uplo, wantq, ttype, stind, edind, sweepid, n, kd, ib, work.Off(inda-1).CMatrix(lda, opts), hous.Off(indv-1), hous.Off(indtau-1), ldv, work.Off(indw+tid*kd-1))
 
 						if blklastind >= (n - 1) {
 							stt = stt + 1

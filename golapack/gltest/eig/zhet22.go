@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -53,10 +52,10 @@ func zhet22(itype int, uplo mat.MatUplo, n, m, kband int, a *mat.CMatrix, d, e *
 	//     Compute error matrix:
 	//
 	//     ITYPE=1: error = U**H A U - S
-	err = goblas.Zhemm(Left, uplo, n, m, cone, a, u, czero, work.CMatrix(n, opts))
+	err = work.CMatrix(n, opts).Hemm(Left, uplo, n, m, cone, a, u, czero)
 	nn = n * n
 	nnp1 = nn + 1
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, u, work.CMatrix(n, opts), czero, work.CMatrixOff(nnp1-1, n, opts)); err != nil {
+	if err = work.Off(nnp1-1).CMatrix(n, opts).Gemm(ConjTrans, NoTrans, m, m, n, cone, u, work.CMatrix(n, opts), czero); err != nil {
 		panic(err)
 	}
 	for j = 1; j <= m; j++ {
@@ -71,7 +70,7 @@ func zhet22(itype int, uplo mat.MatUplo, n, m, kband int, a *mat.CMatrix, d, e *
 			work.Set(jj2-1, work.Get(jj2-1)-e.GetCmplx(j-1-1))
 		}
 	}
-	wnorm = golapack.Zlanhe('1', uplo, m, work.CMatrixOff(nnp1-1, n, opts), rwork)
+	wnorm = golapack.Zlanhe('1', uplo, m, work.Off(nnp1-1).CMatrix(n, opts), rwork)
 
 	if anorm > wnorm {
 		result.Set(0, (wnorm/anorm)/(float64(n)*ulp))

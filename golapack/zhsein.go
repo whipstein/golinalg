@@ -152,7 +152,7 @@ func Zhsein(side mat.MatSide, eigsrc, initv byte, _select []bool, n int, h *mat.
 
 			if leftv {
 				//              Compute left eigenvector.
-				if iinfo = Zlaein(false, noinit, n-kl+1, h.Off(kl-1, kl-1), wk, vl.CVector(kl-1, ks-1), work.CMatrix(ldwork, opts), rwork, eps3, smlnum); iinfo > 0 {
+				if iinfo = Zlaein(false, noinit, n-kl+1, h.Off(kl-1, kl-1), wk, vl.Off(kl-1, ks-1).CVector(), work.CMatrix(ldwork, opts), rwork, eps3, smlnum); iinfo > 0 {
 					info = info + 1
 					(*ifaill)[ks-1] = k
 				} else {
@@ -164,7 +164,7 @@ func Zhsein(side mat.MatSide, eigsrc, initv byte, _select []bool, n int, h *mat.
 			}
 			if rightv {
 				//              Compute right eigenvector.
-				if iinfo = Zlaein(true, noinit, kr, h, wk, vr.CVector(0, ks-1), work.CMatrix(ldwork, opts), rwork, eps3, smlnum); iinfo > 0 {
+				if iinfo = Zlaein(true, noinit, kr, h, wk, vr.Off(0, ks-1).CVector(), work.CMatrix(ldwork, opts), rwork, eps3, smlnum); iinfo > 0 {
 					info = info + 1
 					(*ifailr)[ks-1] = k
 				} else {

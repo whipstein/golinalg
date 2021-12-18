@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,7 +57,7 @@ func dort01(rowcol byte, m, n int, u *mat.Matrix, work *mat.Vector, lwork int) (
 	if ldwork > 0 {
 		//        Compute I - U*U' or I - U'*U.
 		golapack.Dlaset(Upper, mnmin, mnmin, zero, one, work.Matrix(ldwork, opts))
-		if err = goblas.Dsyrk(Upper, transu, mnmin, k, -one, u, one, work.Matrix(ldwork, opts)); err != nil {
+		if err = work.Matrix(ldwork, opts).Syrk(Upper, transu, mnmin, k, -one, u, one); err != nil {
 			panic(err)
 		}
 
@@ -74,7 +73,7 @@ func dort01(rowcol byte, m, n int, u *mat.Matrix, work *mat.Vector, lwork int) (
 				} else {
 					tmp = one
 				}
-				tmp -= goblas.Ddot(m, u.Vector(0, i-1, 1), u.Vector(0, j-1, 1))
+				tmp -= u.Off(0, j-1).Vector().Dot(m, u.Off(0, i-1).Vector(), 1, 1)
 				resid = math.Max(resid, math.Abs(tmp))
 			}
 		}
@@ -88,7 +87,7 @@ func dort01(rowcol byte, m, n int, u *mat.Matrix, work *mat.Vector, lwork int) (
 				} else {
 					tmp = one
 				}
-				tmp = tmp - goblas.Ddot(n, u.Vector(j-1, 0), u.Vector(i-1, 0))
+				tmp -= u.Off(i-1, 0).Vector().Dot(n, u.Off(j-1, 0).Vector(), u.Rows, u.Rows)
 				resid = math.Max(resid, math.Abs(tmp))
 			}
 		}

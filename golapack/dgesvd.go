@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -500,8 +499,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					}
 
 					//                 Copy R to WORK(IR) and zero out below it
-					Dlacpy(Upper, n, n, a, work.MatrixOff(ir-1, ldwrkr, opts))
-					Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(ir, ldwrkr, opts))
+					Dlacpy(Upper, n, n, a, work.Off(ir-1).Matrix(ldwrkr, opts))
+					Dlaset(Lower, n-1, n-1, zero, zero, work.Off(ir).Matrix(ldwrkr, opts))
 
 					//                 Generate Q in A
 					//                 (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
@@ -515,13 +514,13 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 					//                 Bidiagonalize R in WORK(IR)
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-					if err = Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Dgebrd(n, n, work.Off(ir-1).Matrix(ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
 					//                 Generate left vectors bidiagonalizing R
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-					if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Dorgbr('Q', n, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 					iwork = ie + n
@@ -529,7 +528,7 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 Perform bidiagonal QR iteration, computing left
 					//                 singular vectors of R in WORK(IR)
 					//                 (Workspace: need N*N + BDSPAC)
-					info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+					info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 					iu = ie + n
 
 					//                 Multiply Q in A by left singular vectors of R in
@@ -537,8 +536,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 (Workspace: need N*N + 2*N, prefer N*N + M*N + N)
 					for i = 1; i <= m; i += ldwrku {
 						chunk = min(m-i+1, ldwrku)
-						err = goblas.Dgemm(NoTrans, NoTrans, chunk, n, n, one, a.Off(i-1, 0), work.MatrixOff(ir-1, ldwrkr, opts), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy(Full, chunk, n, work.MatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
+						err = work.Off(iu-1).Matrix(ldwrku, opts).Gemm(NoTrans, NoTrans, chunk, n, n, one, a.Off(i-1, 0), work.Off(ir-1).Matrix(ldwrkr, opts), zero)
+						Dlacpy(Full, chunk, n, work.Off(iu-1).Matrix(ldwrku, opts), a.Off(i-1, 0))
 					}
 
 				} else {
@@ -618,11 +617,11 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					if err = Dgebrd(n, n, vt, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
-					Dlacpy(Lower, n, n, vt, work.MatrixOff(ir-1, ldwrkr, opts))
+					Dlacpy(Lower, n, n, vt, work.Off(ir-1).Matrix(ldwrkr, opts))
 
 					//                 Generate left vectors bidiagonalizing R in WORK(IR)
 					//                 (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-					if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Dorgbr('Q', n, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
@@ -637,7 +636,7 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 singular vectors of R in WORK(IR) and computing right
 					//                 singular vectors of R in VT
 					//                 (Workspace: need N*N + BDSPAC)
-					info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+					info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 					iu = ie + n
 
 					//                 Multiply Q in A by left singular vectors of R in
@@ -645,8 +644,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 (Workspace: need N*N + 2*N, prefer N*N + M*N + N)
 					for i = 1; i <= m; i += ldwrku {
 						chunk = min(m-i+1, ldwrku)
-						err = goblas.Dgemm(NoTrans, NoTrans, chunk, n, n, one, a.Off(i-1, 0), work.MatrixOff(ir-1, ldwrkr, opts), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy(Full, chunk, n, work.MatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
+						err = work.Off(iu-1).Matrix(ldwrku, opts).Gemm(NoTrans, NoTrans, chunk, n, n, one, a.Off(i-1, 0), work.Off(ir-1).Matrix(ldwrkr, opts), zero)
+						Dlacpy(Full, chunk, n, work.Off(iu-1).Matrix(ldwrku, opts), a.Off(i-1, 0))
 					}
 
 				} else {
@@ -729,8 +728,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy R to WORK(IR), zeroing out below it
-						Dlacpy(Upper, n, n, a, work.MatrixOff(ir-1, ldwrkr, opts))
-						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(ir, ldwrkr, opts))
+						Dlacpy(Upper, n, n, a, work.Off(ir-1).Matrix(ldwrkr, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.Off(ir).Matrix(ldwrkr, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
@@ -744,13 +743,13 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize R in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						if err = Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(n, n, work.Off(ir-1).Matrix(ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left vectors bidiagonalizing R in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', n, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + n
@@ -758,12 +757,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IR)
 						//                    (Workspace: need N*N + BDSPAC)
-						info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IR), storing result in U
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, work.MatrixOff(ir-1, ldwrkr, opts), zero, u)
+						err = u.Gemm(NoTrans, NoTrans, m, n, n, one, a, work.Off(ir-1).Matrix(ldwrkr, opts), zero)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -845,8 +844,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
+						Dlacpy(Upper, n, n, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.Off(iu).Matrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need 2*N*N + 2*N, prefer 2*N*N + N + N*NB)
@@ -862,21 +861,21 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N,
 						//                                prefer 2*N*N+3*N+2*N*NB)
-						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(n, n, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlacpy(Upper, n, n, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(ir-1).Matrix(ldwrkr, opts))
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*N*N + 4*N, prefer 2*N*N + 3*N + N*NB)
-						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', n, n, n, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate right bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N-1,
 						//                                prefer 2*N*N+3*N+(N-1)*NB)
-						if err = Dorgbr('P', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', n, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + n
@@ -885,16 +884,16 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in WORK(IR)
 						//                    (Workspace: need 2*N*N + BDSPAC)
-						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(iu-1).Matrix(ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IU), storing result in U
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, work.MatrixOff(iu-1, ldwrku, opts), zero, u)
+						err = u.Gemm(NoTrans, NoTrans, m, n, n, one, a, work.Off(iu-1).Matrix(ldwrku, opts), zero)
 
 						//                    Copy right singular vectors of R to A
 						//                    (Workspace: need N*N)
-						Dlacpy(Full, n, n, work.MatrixOff(ir-1, ldwrkr, opts), a)
+						Dlacpy(Full, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -975,8 +974,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
+						Dlacpy(Upper, n, n, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.Off(iu).Matrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need N*N + 2*N, prefer N*N + N + N*NB)
@@ -990,14 +989,14 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize R in WORK(IU), copying result to VT
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(n, n, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), vt)
+						Dlacpy(Upper, n, n, work.Off(iu-1).Matrix(ldwrku, opts), vt)
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', n, n, n, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -1013,12 +1012,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in VT
 						//                    (Workspace: need N*N + BDSPAC)
-						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.Off(iu-1).Matrix(ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in A by left singular vectors of R in
 						//                    WORK(IU), storing result in U
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, work.MatrixOff(iu-1, ldwrku, opts), zero, u)
+						err = u.Gemm(NoTrans, NoTrans, m, n, n, one, a, work.Off(iu-1).Matrix(ldwrku, opts), zero)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1105,8 +1104,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						Dlacpy(Lower, m, n, a, u)
 
 						//                    Copy R to WORK(IR), zeroing out below it
-						Dlacpy(Upper, n, n, a, work.MatrixOff(ir-1, ldwrkr, opts))
-						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(ir, ldwrkr, opts))
+						Dlacpy(Upper, n, n, a, work.Off(ir-1).Matrix(ldwrkr, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.Off(ir).Matrix(ldwrkr, opts))
 
 						//                    Generate Q in U
 						//                    (Workspace: need N*N + N + M, prefer N*N + N + M*NB)
@@ -1120,13 +1119,13 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize R in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						if err = Dgebrd(n, n, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(n, n, work.Off(ir-1).Matrix(ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						if err = Dorgbr('Q', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', n, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + n
@@ -1134,12 +1133,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    Perform bidiagonal QR iteration, computing left
 						//                    singular vectors of R in WORK(IR)
 						//                    (Workspace: need N*N + BDSPAC)
-						info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, n, 0, n, 0, s, work.Off(ie-1), dum.Matrix(1, opts), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IR), storing result in A
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, u, work.MatrixOff(ir-1, ldwrkr, opts), zero, a)
+						err = a.Gemm(NoTrans, NoTrans, m, n, n, one, u, work.Off(ir-1).Matrix(ldwrkr, opts), zero)
 
 						//                    Copy left singular vectors of A from A to U
 						Dlacpy(Full, m, n, a, u)
@@ -1232,8 +1231,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
+						Dlacpy(Upper, n, n, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.Off(iu).Matrix(ldwrku, opts))
 						ie = itau
 						itauq = ie + n
 						itaup = itauq + n
@@ -1243,21 +1242,21 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N,
 						//                                prefer 2*N*N+3*N+2*N*NB)
-						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(n, n, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlacpy(Upper, n, n, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(ir-1).Matrix(ldwrkr, opts))
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*N*N + 4*N, prefer 2*N*N + 3*N + N*NB)
-						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', n, n, n, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate right bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*N*N + 4*N-1,
 						//                                prefer 2*N*N+3*N+(N-1)*NB)
-						if err = Dorgbr('P', n, n, n, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', n, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + n
@@ -1266,18 +1265,18 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in WORK(IR)
 						//                    (Workspace: need 2*N*N + BDSPAC)
-						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(iu-1).Matrix(ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IU), storing result in A
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
+						err = a.Gemm(NoTrans, NoTrans, m, n, n, one, u, work.Off(iu-1).Matrix(ldwrku, opts), zero)
 
 						//                    Copy left singular vectors of A from A to U
 						Dlacpy(Full, m, n, a, u)
 
 						//                    Copy right singular vectors of R from WORK(IR) to A
-						Dlacpy(Full, n, n, work.MatrixOff(ir-1, ldwrkr, opts), a)
+						Dlacpy(Full, n, n, work.Off(ir-1).Matrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1366,8 +1365,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy R to WORK(IU), zeroing out below it
-						Dlacpy(Upper, n, n, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Lower, n-1, n-1, zero, zero, work.MatrixOff(iu, ldwrku, opts))
+						Dlacpy(Upper, n, n, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Lower, n-1, n-1, zero, zero, work.Off(iu).Matrix(ldwrku, opts))
 						ie = itau
 						itauq = ie + n
 						itaup = itauq + n
@@ -1375,14 +1374,14 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize R in WORK(IU), copying result to VT
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + 2*N*NB)
-						if err = Dgebrd(n, n, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(n, n, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Upper, n, n, work.MatrixOff(iu-1, ldwrku, opts), vt)
+						Dlacpy(Upper, n, n, work.Off(iu-1).Matrix(ldwrku, opts), vt)
 
 						//                    Generate left bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need N*N + 4*N, prefer N*N + 3*N + N*NB)
-						if err = Dorgbr('Q', n, n, n, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', n, n, n, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -1398,12 +1397,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of R in WORK(IU) and computing
 						//                    right singular vectors of R in VT
 						//                    (Workspace: need N*N + BDSPAC)
-						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.MatrixOff(iu-1, ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, n, n, n, 0, s, work.Off(ie-1), vt, work.Off(iu-1).Matrix(ldwrku, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply Q in U by left singular vectors of R in
 						//                    WORK(IU), storing result in A
 						//                    (Workspace: need N*N)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, u, work.MatrixOff(iu-1, ldwrku, opts), zero, a)
+						err = a.Gemm(NoTrans, NoTrans, m, n, n, one, u, work.Off(iu-1).Matrix(ldwrku, opts), zero)
 
 						//                    Copy left singular vectors of A from A to U
 						Dlacpy(Full, m, n, a, u)
@@ -1644,8 +1643,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					}
 
 					//                 Copy L to WORK(IR) and zero out above it
-					Dlacpy(Lower, m, m, a, work.MatrixOff(ir-1, ldwrkr, opts))
-					Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts))
+					Dlacpy(Lower, m, m, a, work.Off(ir-1).Matrix(ldwrkr, opts))
+					Dlaset(Upper, m-1, m-1, zero, zero, work.Off(ir+ldwrkr-1).Matrix(ldwrkr, opts))
 
 					//                 Generate Q in A
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
@@ -1659,13 +1658,13 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 					//                 Bidiagonalize L in WORK(IR)
 					//                 (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-					if err = Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Dgebrd(m, m, work.Off(ir-1).Matrix(ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
 					//                 Generate right vectors bidiagonalizing L
 					//                 (Workspace: need M*M + 4*M-1, prefer M*M + 3*M + (M-1)*NB)
-					if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Dorgbr('P', m, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 					iwork = ie + m
@@ -1673,7 +1672,7 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 Perform bidiagonal QR iteration, computing right
 					//                 singular vectors of L in WORK(IR)
 					//                 (Workspace: need M*M + BDSPAC)
-					info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+					info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 					iu = ie + m
 
 					//                 Multiply right singular vectors of L in WORK(IR) by Q
@@ -1681,8 +1680,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M*N + M)
 					for i = 1; i <= n; i += chunk {
 						blk = min(n-i+1, chunk)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, blk, m, one, work.MatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy(Full, m, blk, work.MatrixOff(iu-1, ldwrku, opts), a.Off(0, i-1))
+						err = work.Off(iu-1).Matrix(ldwrku, opts).Gemm(NoTrans, NoTrans, m, blk, m, one, work.Off(ir-1).Matrix(ldwrkr, opts), a.Off(0, i-1), zero)
+						Dlacpy(Full, m, blk, work.Off(iu-1).Matrix(ldwrku, opts), a.Off(0, i-1))
 					}
 
 				} else {
@@ -1763,11 +1762,11 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					if err = Dgebrd(m, m, u, s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
-					Dlacpy(Upper, m, m, u, work.MatrixOff(ir-1, ldwrkr, opts))
+					Dlacpy(Upper, m, m, u, work.Off(ir-1).Matrix(ldwrkr, opts))
 
 					//                 Generate right vectors bidiagonalizing L in WORK(IR)
 					//                 (Workspace: need M*M + 4*M-1, prefer M*M + 3*M + (M-1)*NB)
-					if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+					if err = Dorgbr('P', m, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 						panic(err)
 					}
 
@@ -1782,7 +1781,7 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 singular vectors of L in U, and computing right
 					//                 singular vectors of L in WORK(IR)
 					//                 (Workspace: need M*M + BDSPAC)
-					info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
+					info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.Off(ir-1).Matrix(ldwrkr, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 					iu = ie + m
 
 					//                 Multiply right singular vectors of L in WORK(IR) by Q
@@ -1790,8 +1789,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 					//                 (Workspace: need M*M + 2*M, prefer M*M + M*N + M))
 					for i = 1; i <= n; i += chunk {
 						blk = min(n-i+1, chunk)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, blk, m, one, work.MatrixOff(ir-1, ldwrkr, opts), a.Off(0, i-1), zero, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlacpy(Full, m, blk, work.MatrixOff(iu-1, ldwrku, opts), a.Off(0, i-1))
+						err = work.Off(iu-1).Matrix(ldwrku, opts).Gemm(NoTrans, NoTrans, m, blk, m, one, work.Off(ir-1).Matrix(ldwrkr, opts), a.Off(0, i-1), zero)
+						Dlacpy(Full, m, blk, work.Off(iu-1).Matrix(ldwrku, opts), a.Off(0, i-1))
 					}
 
 				} else {
@@ -1872,8 +1871,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy L to WORK(IR), zeroing out above it
-						Dlacpy(Lower, m, m, a, work.MatrixOff(ir-1, ldwrkr, opts))
-						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts))
+						Dlacpy(Lower, m, m, a, work.Off(ir-1).Matrix(ldwrkr, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.Off(ir+ldwrkr-1).Matrix(ldwrkr, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
@@ -1887,14 +1886,14 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize L in WORK(IR)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						if err = Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(m, m, work.Off(ir-1).Matrix(ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate right vectors bidiagonalizing L in
 						//                    WORK(IR)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + (M-1)*NB)
-						if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', m, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + m
@@ -1902,12 +1901,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    Perform bidiagonal QR iteration, computing right
 						//                    singular vectors of L in WORK(IR)
 						//                    (Workspace: need M*M + BDSPAC)
-						info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IR) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(ir-1, ldwrkr, opts), a, zero, vt)
+						err = vt.Gemm(NoTrans, NoTrans, m, n, m, one, work.Off(ir-1).Matrix(ldwrkr, opts), a, zero)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -1989,8 +1988,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy L to WORK(IU), zeroing out below it
-						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Dlacpy(Lower, m, m, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.Off(iu+ldwrku-1).Matrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need 2*M*M + 2*M, prefer 2*M*M + M + M*NB)
@@ -2006,21 +2005,21 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M,
 						//                                prefer 2*M*M+3*M+2*M*NB)
-						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(m, m, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlacpy(Lower, m, m, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(ir-1).Matrix(ldwrkr, opts))
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*M*M + 4*M-1,
 						//                                prefer 2*M*M+3*M+(M-1)*NB)
-						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', m, m, m, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M, prefer 2*M*M + 3*M + M*NB)
-						if err = Dorgbr('Q', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', m, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + m
@@ -2029,16 +2028,16 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of L in WORK(IR) and computing
 						//                    right singular vectors of L in WORK(IU)
 						//                    (Workspace: need 2*M*M + BDSPAC)
-						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.Off(iu-1).Matrix(ldwrku, opts), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), a, zero, vt)
+						err = vt.Gemm(NoTrans, NoTrans, m, n, m, one, work.Off(iu-1).Matrix(ldwrku, opts), a, zero)
 
 						//                    Copy left singular vectors of L to A
 						//                    (Workspace: need M*M)
-						Dlacpy(Full, m, m, work.MatrixOff(ir-1, ldwrkr, opts), a)
+						Dlacpy(Full, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -2117,8 +2116,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Dlacpy(Lower, m, m, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.Off(iu+ldwrku-1).Matrix(ldwrku, opts))
 
 						//                    Generate Q in A
 						//                    (Workspace: need M*M + 2*M, prefer M*M + M + M*NB)
@@ -2132,15 +2131,15 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize L in WORK(IU), copying result to U
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(m, m, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), u)
+						Dlacpy(Lower, m, m, work.Off(iu-1).Matrix(ldwrku, opts), u)
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need M*M + 4*M-1,
 						//                                prefer M*M+3*M+(M-1)*NB)
-						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', m, m, m, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -2155,12 +2154,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of L in U and computing right
 						//                    singular vectors of L in WORK(IU)
 						//                    (Workspace: need M*M + BDSPAC)
-						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.Off(iu-1).Matrix(ldwrku, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in A, storing result in VT
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), a, zero, vt)
+						err = vt.Gemm(NoTrans, NoTrans, m, n, m, one, work.Off(iu-1).Matrix(ldwrku, opts), a, zero)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -2245,8 +2244,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						Dlacpy(Upper, m, n, a, vt)
 
 						//                    Copy L to WORK(IR), zeroing out above it
-						Dlacpy(Lower, m, m, a, work.MatrixOff(ir-1, ldwrkr, opts))
-						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(ir+ldwrkr-1, ldwrkr, opts))
+						Dlacpy(Lower, m, m, a, work.Off(ir-1).Matrix(ldwrkr, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.Off(ir+ldwrkr-1).Matrix(ldwrkr, opts))
 
 						//                    Generate Q in VT
 						//                    (Workspace: need M*M + M + N, prefer M*M + M + N*NB)
@@ -2260,14 +2259,14 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize L in WORK(IR)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						if err = Dgebrd(m, m, work.MatrixOff(ir-1, ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(m, m, work.Off(ir-1).Matrix(ldwrkr, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate right bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need M*M + 4*M-1,
 						//                                prefer M*M+3*M+(M-1)*NB)
-						if err = Dorgbr('P', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', m, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + m
@@ -2275,12 +2274,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    Perform bidiagonal QR iteration, computing right
 						//                    singular vectors of L in WORK(IR)
 						//                    (Workspace: need M*M + BDSPAC)
-						info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, m, m, 0, 0, s, work.Off(ie-1), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IR) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(ir-1, ldwrkr, opts), vt, zero, a)
+						err = a.Gemm(NoTrans, NoTrans, m, n, m, one, work.Off(ir-1).Matrix(ldwrkr, opts), vt, zero)
 
 						//                    Copy right singular vectors of A from A to VT
 						Dlacpy(Full, m, n, a, vt)
@@ -2371,8 +2370,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Dlacpy(Lower, m, m, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.Off(iu+ldwrku-1).Matrix(ldwrku, opts))
 						ie = itau
 						itauq = ie + m
 						itaup = itauq + m
@@ -2382,21 +2381,21 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M,
 						//                                prefer 2*M*M+3*M+2*M*NB)
-						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(m, m, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts))
+						Dlacpy(Lower, m, m, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(ir-1).Matrix(ldwrkr, opts))
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need 2*M*M + 4*M-1,
 						//                                prefer 2*M*M+3*M+(M-1)*NB)
-						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', m, m, m, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
 						//                    Generate left bidiagonalizing vectors in WORK(IR)
 						//                    (Workspace: need 2*M*M + 4*M, prefer 2*M*M + 3*M + M*NB)
-						if err = Dorgbr('Q', m, m, m, work.MatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('Q', m, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 						iwork = ie + m
@@ -2405,18 +2404,18 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of L in WORK(IR) and computing
 						//                    right singular vectors of L in WORK(IU)
 						//                    (Workspace: need 2*M*M + BDSPAC)
-						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), work.MatrixOff(ir-1, ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.Off(iu-1).Matrix(ldwrku, opts), work.Off(ir-1).Matrix(ldwrkr, opts), dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), vt, zero, a)
+						err = a.Gemm(NoTrans, NoTrans, m, n, m, one, work.Off(iu-1).Matrix(ldwrku, opts), vt, zero)
 
 						//                    Copy right singular vectors of A from A to VT
 						Dlacpy(Full, m, n, a, vt)
 
 						//                    Copy left singular vectors of A from WORK(IR) to A
-						Dlacpy(Full, m, m, work.MatrixOff(ir-1, ldwrkr, opts), a)
+						Dlacpy(Full, m, m, work.Off(ir-1).Matrix(ldwrkr, opts), a)
 
 					} else {
 						//                    Insufficient workspace for a fast algorithm
@@ -2503,8 +2502,8 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						}
 
 						//                    Copy L to WORK(IU), zeroing out above it
-						Dlacpy(Lower, m, m, a, work.MatrixOff(iu-1, ldwrku, opts))
-						Dlaset(Upper, m-1, m-1, zero, zero, work.MatrixOff(iu+ldwrku-1, ldwrku, opts))
+						Dlacpy(Lower, m, m, a, work.Off(iu-1).Matrix(ldwrku, opts))
+						Dlaset(Upper, m-1, m-1, zero, zero, work.Off(iu+ldwrku-1).Matrix(ldwrku, opts))
 						ie = itau
 						itauq = ie + m
 						itaup = itauq + m
@@ -2512,14 +2511,14 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 
 						//                    Bidiagonalize L in WORK(IU), copying result to U
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + 2*M*NB)
-						if err = Dgebrd(m, m, work.MatrixOff(iu-1, ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dgebrd(m, m, work.Off(iu-1).Matrix(ldwrku, opts), s, work.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
-						Dlacpy(Lower, m, m, work.MatrixOff(iu-1, ldwrku, opts), u)
+						Dlacpy(Lower, m, m, work.Off(iu-1).Matrix(ldwrku, opts), u)
 
 						//                    Generate right bidiagonalizing vectors in WORK(IU)
 						//                    (Workspace: need M*M + 4*M, prefer M*M + 3*M + (M-1)*NB)
-						if err = Dorgbr('P', m, m, m, work.MatrixOff(iu-1, ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+						if err = Dorgbr('P', m, m, m, work.Off(iu-1).Matrix(ldwrku, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 							panic(err)
 						}
 
@@ -2534,12 +2533,12 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 						//                    singular vectors of L in U and computing right
 						//                    singular vectors of L in WORK(IU)
 						//                    (Workspace: need M*M + BDSPAC)
-						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.MatrixOff(iu-1, ldwrku, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
+						info, err = Dbdsqr(Upper, m, m, m, 0, s, work.Off(ie-1), work.Off(iu-1).Matrix(ldwrku, opts), u, dum.Matrix(1, opts), work.Off(iwork-1))
 
 						//                    Multiply right singular vectors of L in WORK(IU) by
 						//                    Q in VT, storing result in A
 						//                    (Workspace: need M*M)
-						err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, work.MatrixOff(iu-1, ldwrku, opts), vt, zero, a)
+						err = a.Gemm(NoTrans, NoTrans, m, n, m, one, work.Off(iu-1).Matrix(ldwrku, opts), vt, zero)
 
 						//                    Copy right singular vectors of A from A to VT
 						Dlacpy(Full, m, n, a, vt)
@@ -2717,7 +2716,7 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 			}
 		}
 		if info != 0 && anrm > bignum {
-			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, work.MatrixOff(1, minmn, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, work.Off(1).Matrix(minmn, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -2727,7 +2726,7 @@ func Dgesvd(jobu, jobvt byte, m, n int, a *mat.Matrix, s *mat.Vector, u, vt *mat
 			}
 		}
 		if info != 0 && anrm < smlnum {
-			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, work.MatrixOff(1, minmn, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, work.Off(1).Matrix(minmn, opts)); err != nil {
 				panic(err)
 			}
 		}

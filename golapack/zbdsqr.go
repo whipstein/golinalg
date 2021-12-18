@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -238,13 +237,13 @@ label90:
 
 		//        Compute singular vectors, if desired
 		if ncvt > 0 {
-			goblas.Zdrot(ncvt, vt.CVector(m-1-1, 0), vt.CVector(m-1, 0), cosr, sinr)
+			vt.Off(m-1, 0).CVector().Drot(ncvt, vt.Off(m-1-1, 0).CVector(), vt.Rows, vt.Rows, cosr, sinr)
 		}
 		if nru > 0 {
-			goblas.Zdrot(nru, u.CVector(0, m-1-1, 1), u.CVector(0, m-1, 1), cosl, sinl)
+			u.Off(0, m-1).CVector().Drot(nru, u.Off(0, m-1-1).CVector(), 1, 1, cosl, sinl)
 		}
 		if ncc > 0 {
-			goblas.Zdrot(ncc, c.CVector(m-1-1, 0, *&c.Rows), c.CVector(m-1, 0, *&c.Rows), cosl, sinl)
+			c.Off(m-1, 0).CVector().Drot(ncc, c.Off(m-1-1, 0).CVector(), c.Rows, c.Rows, cosl, sinl)
 		}
 		m = m - 2
 		goto label60
@@ -542,7 +541,7 @@ label160:
 
 			//           Change sign of singular vectors, if desired
 			if ncvt > 0 {
-				goblas.Zdscal(ncvt, negone, vt.CVector(i-1, 0))
+				vt.Off(i-1, 0).CVector().Dscal(ncvt, negone, vt.Rows)
 			}
 		}
 	}
@@ -564,13 +563,13 @@ label160:
 			d.Set(isub-1, d.Get(n+1-i-1))
 			d.Set(n+1-i-1, smin)
 			if ncvt > 0 {
-				goblas.Zswap(ncvt, vt.CVector(isub-1, 0), vt.CVector(n+1-i-1, 0))
+				vt.Off(n+1-i-1, 0).CVector().Swap(ncvt, vt.Off(isub-1, 0).CVector(), vt.Rows, vt.Rows)
 			}
 			if nru > 0 {
-				goblas.Zswap(nru, u.CVector(0, isub-1, 1), u.CVector(0, n+1-i-1, 1))
+				u.Off(0, n+1-i-1).CVector().Swap(nru, u.Off(0, isub-1).CVector(), 1, 1)
 			}
 			if ncc > 0 {
-				goblas.Zswap(ncc, c.CVector(isub-1, 0, *&c.Rows), c.CVector(n+1-i-1, 0, *&c.Rows))
+				c.Off(n+1-i-1, 0).CVector().Swap(ncc, c.Off(isub-1, 0).CVector(), c.Rows, c.Rows)
 			}
 		}
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -164,8 +163,8 @@ label160:
 	if i == m {
 		goto label170
 	}
-	goblas.Zswap(n-k+1, a.CVector(i-1, k-1), a.CVector(m-1, k-1))
-	goblas.Zswap(n-k+1, b.CVector(i-1, k-1), b.CVector(m-1, k-1))
+	a.Off(m-1, k-1).CVector().Swap(n-k+1, a.Off(i-1, k-1).CVector(), a.Rows, a.Rows)
+	b.Off(m-1, k-1).CVector().Swap(n-k+1, b.Off(i-1, k-1).CVector(), b.Rows, b.Rows)
 
 	//     Permute columns M and J
 label170:
@@ -174,8 +173,8 @@ label170:
 	if j == m {
 		goto label180
 	}
-	goblas.Zswap(l, a.CVector(0, j-1, 1), a.CVector(0, m-1, 1))
-	goblas.Zswap(l, b.CVector(0, j-1, 1), b.CVector(0, m-1, 1))
+	a.Off(0, m-1).CVector().Swap(l, a.Off(0, j-1).CVector(), 1, 1)
+	b.Off(0, m-1).CVector().Swap(l, b.Off(0, j-1).CVector(), 1, 1)
 
 label180:
 	;
@@ -253,7 +252,7 @@ label190:
 label250:
 	;
 
-	gamma = goblas.Ddot(nr, work.Off(ilo+4*n-1, 1), work.Off(ilo+4*n-1, 1)) + goblas.Ddot(nr, work.Off(ilo+5*n-1, 1), work.Off(ilo+5*n-1, 1))
+	gamma = work.Off(ilo+4*n-1).Dot(nr, work.Off(ilo+4*n-1), 1, 1) + work.Off(ilo+5*n-1).Dot(nr, work.Off(ilo+5*n-1), 1, 1)
 
 	ew = zero
 	ewc = zero
@@ -272,11 +271,11 @@ label250:
 	t = coef5 * (ewc - three*ew)
 	tc = coef5 * (ew - three*ewc)
 
-	goblas.Dscal(nr, beta, work.Off(ilo-1, 1))
-	goblas.Dscal(nr, beta, work.Off(ilo+n-1, 1))
+	work.Off(ilo-1).Scal(nr, beta, 1)
+	work.Off(ilo+n-1).Scal(nr, beta, 1)
 
-	goblas.Daxpy(nr, coef, work.Off(ilo+4*n-1, 1), work.Off(ilo+n-1, 1))
-	goblas.Daxpy(nr, coef, work.Off(ilo+5*n-1, 1), work.Off(ilo-1, 1))
+	work.Off(ilo+n-1).Axpy(nr, coef, work.Off(ilo+4*n-1), 1, 1)
+	work.Off(ilo-1).Axpy(nr, coef, work.Off(ilo+5*n-1), 1, 1)
 
 	for i = ilo; i <= ihi; i++ {
 		work.Set(i-1, work.Get(i-1)+tc)
@@ -326,7 +325,7 @@ label250:
 		work.Set(j+3*n-1, float64(kount)*work.Get(j-1)+sum)
 	}
 
-	sum = goblas.Ddot(nr, work.Off(ilo+n-1, 1), work.Off(ilo+2*n-1, 1)) + goblas.Ddot(nr, work.Off(ilo-1, 1), work.Off(ilo+3*n-1, 1))
+	sum = work.Off(ilo+2*n-1).Dot(nr, work.Off(ilo+n-1), 1, 1) + work.Off(ilo+3*n-1).Dot(nr, work.Off(ilo-1), 1, 1)
 	alpha = gamma / sum
 
 	//     Determine correction to current iteration
@@ -347,8 +346,8 @@ label250:
 		goto label350
 	}
 
-	goblas.Daxpy(nr, -alpha, work.Off(ilo+2*n-1, 1), work.Off(ilo+4*n-1, 1))
-	goblas.Daxpy(nr, -alpha, work.Off(ilo+3*n-1, 1), work.Off(ilo+5*n-1, 1))
+	work.Off(ilo+4*n-1).Axpy(nr, -alpha, work.Off(ilo+2*n-1), 1, 1)
+	work.Off(ilo+5*n-1).Axpy(nr, -alpha, work.Off(ilo+3*n-1), 1, 1)
 
 	pgamma = gamma
 	it = it + 1
@@ -364,17 +363,17 @@ label350:
 	lsfmin = int(math.Log10(sfmin)/basl + one)
 	lsfmax = int(math.Log10(sfmax) / basl)
 	for i = ilo; i <= ihi; i++ {
-		irab = goblas.Izamax(n-ilo+1, a.CVector(i-1, ilo-1))
+		irab = a.Off(i-1, ilo-1).CVector().Iamax(n-ilo+1, a.Rows)
 		rab = a.GetMag(i-1, irab+ilo-1-1)
-		irab = goblas.Izamax(n-ilo+1, b.CVector(i-1, ilo-1))
+		irab = b.Off(i-1, ilo-1).CVector().Iamax(n-ilo+1, b.Rows)
 		rab = math.Max(rab, b.GetMag(i-1, irab+ilo-1-1))
 		lrab = int(math.Log10(rab+sfmin)/basl + one)
 		ir = int(lscale.Get(i-1) + math.Copysign(half, lscale.Get(i-1)))
 		ir = min(max(ir, lsfmin), lsfmax, lsfmax-lrab)
 		lscale.Set(i-1, math.Pow(sclfac, float64(ir)))
-		icab = goblas.Izamax(ihi, a.CVector(0, i-1, 1))
+		icab = a.Off(0, i-1).CVector().Iamax(ihi, 1)
 		cab = a.GetMag(icab-1, i-1)
-		icab = goblas.Izamax(ihi, b.CVector(0, i-1, 1))
+		icab = b.Off(0, i-1).CVector().Iamax(ihi, 1)
 		cab = math.Max(cab, b.GetMag(icab-1, i-1))
 		lcab = int(math.Log10(cab+sfmin)/basl + one)
 		jc = int(rscale.Get(i-1) + math.Copysign(half, rscale.Get(i-1)))
@@ -384,14 +383,14 @@ label350:
 
 	//     Row scaling of matrices A and B
 	for i = ilo; i <= ihi; i++ {
-		goblas.Zdscal(n-ilo+1, lscale.Get(i-1), a.CVector(i-1, ilo-1))
-		goblas.Zdscal(n-ilo+1, lscale.Get(i-1), b.CVector(i-1, ilo-1))
+		a.Off(i-1, ilo-1).CVector().Dscal(n-ilo+1, lscale.Get(i-1), a.Rows)
+		b.Off(i-1, ilo-1).CVector().Dscal(n-ilo+1, lscale.Get(i-1), b.Rows)
 	}
 
 	//     Column scaling of matrices A and B
 	for j = ilo; j <= ihi; j++ {
-		goblas.Zdscal(ihi, rscale.Get(j-1), a.CVector(0, j-1, 1))
-		goblas.Zdscal(ihi, rscale.Get(j-1), b.CVector(0, j-1, 1))
+		a.Off(0, j-1).CVector().Dscal(ihi, rscale.Get(j-1), 1)
+		b.Off(0, j-1).CVector().Dscal(ihi, rscale.Get(j-1), 1)
 	}
 
 	return

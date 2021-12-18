@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,7 +111,7 @@ func Dspgvd(itype int, jobz byte, uplo mat.MatUplo, n int, ap, bp, w *mat.Vector
 			}
 
 			for j = 1; j <= neig; j++ {
-				if err = goblas.Dtpsv(uplo, trans, NonUnit, n, bp, z.Vector(0, j-1, 1)); err != nil {
+				if err = z.Off(0, j-1).Vector().Tpsv(uplo, trans, NonUnit, n, bp, 1); err != nil {
 					panic(err)
 				}
 			}
@@ -127,7 +126,7 @@ func Dspgvd(itype int, jobz byte, uplo mat.MatUplo, n int, ap, bp, w *mat.Vector
 			}
 
 			for j = 1; j <= neig; j++ {
-				if err = goblas.Dtpmv(uplo, trans, NonUnit, n, bp, z.Vector(0, j-1, 1)); err != nil {
+				if err = z.Off(0, j-1).Vector().Tpmv(uplo, trans, NonUnit, n, bp, 1); err != nil {
 					panic(err)
 				}
 			}

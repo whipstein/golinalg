@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -198,11 +197,11 @@ func Zheevr2stage(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.CMatrix, vl
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= n; j++ {
-				goblas.Zdscal(n-j+1, sigma, a.CVector(j-1, j-1, 1))
+				a.Off(j-1, j-1).CVector().Dscal(n-j+1, sigma, 1)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				goblas.Zdscal(j, sigma, a.CVector(0, j-1, 1))
+				a.Off(0, j-1).CVector().Dscal(j, sigma, 1)
 			}
 		}
 		if abstol > 0 {
@@ -268,14 +267,14 @@ func Zheevr2stage(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.CMatrix, vl
 	}
 	if (alleig || test) && (ieeeok == 1) {
 		if !wantz {
-			goblas.Dcopy(n, rwork.Off(indrd-1, 1), w.Off(0, 1))
-			goblas.Dcopy(n-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
+			w.Copy(n, rwork.Off(indrd-1), 1, 1)
+			rwork.Off(indree-1).Copy(n-1, rwork.Off(indre-1), 1, 1)
 			if info, err = Dsterf(n, w, rwork.Off(indree-1)); err != nil {
 				panic(err)
 			}
 		} else {
-			goblas.Dcopy(n-1, rwork.Off(indre-1, 1), rwork.Off(indree-1, 1))
-			goblas.Dcopy(n, rwork.Off(indrd-1, 1), rwork.Off(indrdd-1, 1))
+			rwork.Off(indree-1).Copy(n-1, rwork.Off(indre-1), 1, 1)
+			rwork.Off(indrdd-1).Copy(n, rwork.Off(indrd-1), 1, 1)
 
 			if abstol <= two*float64(n)*eps {
 				tryrac = true
@@ -338,7 +337,7 @@ label30:
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -360,7 +359,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
+				z.Off(0, j-1).CVector().Swap(n, z.Off(0, i-1).CVector(), 1, 1)
 			}
 		}
 	}

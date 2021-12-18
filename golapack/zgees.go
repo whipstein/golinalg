@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -194,7 +193,7 @@ func Zgees(jobvs, sort byte, _select func(complex128) bool, n int, a *mat.CMatri
 		if err = Zlascl('U', 0, 0, cscale, anrm, n, n, a); err != nil {
 			panic(err)
 		}
-		goblas.Zcopy(n, a.CVector(0, 0, a.Rows+1), w.Off(0, 1))
+		w.Copy(n, a.Off(0, 0).CVector(), a.Rows+1, 1)
 	}
 
 	work.SetRe(0, float64(maxwrk))

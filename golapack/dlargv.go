@@ -11,7 +11,7 @@ import (
 //
 //    (  c(i)  s(i) ) ( x(i) ) = ( a(i) )
 //    ( -s(i)  c(i) ) ( y(i) ) = (   0  )
-func Dlargv(n int, x, y, c *mat.Vector) {
+func Dlargv(n int, x *mat.Vector, incx int, y *mat.Vector, incy int, c *mat.Vector, incc int) {
 	var f, g, one, t, tt, zero float64
 	var i, ic, ix, iy int
 
@@ -43,8 +43,8 @@ func Dlargv(n int, x, y, c *mat.Vector) {
 			c.Set(ic-1, t*y.Get(iy-1))
 			x.Set(ix-1, g*tt)
 		}
-		ic = ic + c.Inc
-		iy = iy + y.Inc
-		ix = ix + x.Inc
+		ic = ic + incc
+		iy = iy + incy
+		ix = ix + incx
 	}
 }

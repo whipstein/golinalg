@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -52,8 +51,8 @@ func Dlaeda(n, tlvls, curlvl, curpbm int, prmptr, perm, givptr, givcol *[]int, g
 	for k = 1; k <= mid-bsiz1-1; k++ {
 		z.Set(k-1, zero)
 	}
-	goblas.Dcopy(bsiz1, q.Off((*qptr)[curr-1]+bsiz1-1-1, bsiz1), z.Off(mid-bsiz1-1))
-	goblas.Dcopy(bsiz2, q.Off((*qptr)[curr]-1, bsiz2), z.Off(mid-1))
+	z.Off(mid-bsiz1-1).Copy(bsiz1, q.Off((*qptr)[curr-1]+bsiz1-1-1), bsiz1, 1)
+	z.Off(mid-1).Copy(bsiz2, q.Off((*qptr)[curr]-1), bsiz2, 1)
 	for k = mid + bsiz2; k <= n; k++ {
 		z.Set(k-1, zero)
 	}
@@ -70,10 +69,10 @@ func Dlaeda(n, tlvls, curlvl, curpbm int, prmptr, perm, givptr, givcol *[]int, g
 
 		//       Apply Givens at CURR and CURR+1
 		for i = (*givptr)[curr-1]; i <= (*givptr)[curr]-1; i++ {
-			goblas.Drot(1, z.Off(zptr1+(*givcol)[1-1+(i-1)*2]-1-1), z.Off(zptr1+(*givcol)[2-1+(i-1)*2]-1-1), givnum.Get(0, i-1), givnum.Get(1, i-1))
+			z.Off(zptr1+(*givcol)[2-1+(i-1)*2]-1-1).Rot(1, z.Off(zptr1+(*givcol)[1-1+(i-1)*2]-1-1), 1, 1, givnum.Get(0, i-1), givnum.Get(1, i-1))
 		}
 		for i = (*givptr)[curr]; i <= (*givptr)[curr+2-1]-1; i++ {
-			goblas.Drot(1, z.Off(mid-1+(*givcol)[1-1+(i-1)*2]-1), z.Off(mid-1+(*givcol)[2-1+(i-1)*2]-1), givnum.Get(0, i-1), givnum.Get(1, i-1))
+			z.Off(mid-1+(*givcol)[2-1+(i-1)*2]-1).Rot(1, z.Off(mid-1+(*givcol)[1-1+(i-1)*2]-1), 1, 1, givnum.Get(0, i-1), givnum.Get(1, i-1))
 		}
 		psiz1 = (*prmptr)[curr] - (*prmptr)[curr-1]
 		psiz2 = (*prmptr)[curr+2-1] - (*prmptr)[curr]
@@ -92,15 +91,15 @@ func Dlaeda(n, tlvls, curlvl, curpbm int, prmptr, perm, givptr, givcol *[]int, g
 		bsiz1 = int(half + math.Sqrt(float64((*qptr)[curr]-(*qptr)[curr-1])))
 		bsiz2 = int(half + math.Sqrt(float64((*qptr)[curr+2-1]-(*qptr)[curr])))
 		if bsiz1 > 0 {
-			err = goblas.Dgemv(Trans, bsiz1, bsiz1, one, q.MatrixOff((*qptr)[curr-1]-1, bsiz1, opts), ztemp, zero, z.Off(zptr1-1))
+			err = z.Off(zptr1-1).Gemv(Trans, bsiz1, bsiz1, one, q.Off((*qptr)[curr-1]-1).Matrix(bsiz1, opts), ztemp, 1, zero, 1)
 		}
-		goblas.Dcopy(psiz1-bsiz1, ztemp.Off(bsiz1), z.Off(zptr1+bsiz1-1))
+		z.Off(zptr1+bsiz1-1).Copy(psiz1-bsiz1, ztemp.Off(bsiz1), 1, 1)
 		if bsiz2 > 0 {
-			err = goblas.Dgemv(Trans, bsiz2, bsiz2, one, q.MatrixOff((*qptr)[curr]-1, bsiz2, opts), ztemp.Off(psiz1), zero, z.Off(mid-1))
+			err = z.Off(mid-1).Gemv(Trans, bsiz2, bsiz2, one, q.Off((*qptr)[curr]-1).Matrix(bsiz2, opts), ztemp.Off(psiz1), 1, zero, 1)
 		}
-		goblas.Dcopy(psiz2-bsiz2, ztemp.Off(psiz1+bsiz2), z.Off(mid+bsiz2-1))
+		z.Off(mid+bsiz2-1).Copy(psiz2-bsiz2, ztemp.Off(psiz1+bsiz2), 1, 1)
 
-		ptr = ptr + int(math.Pow(2, float64(tlvls-k)))
+		ptr += pow(2, tlvls-k)
 	}
 
 	return

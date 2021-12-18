@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -85,12 +84,12 @@ func dsbt21(uplo mat.MatUplo, n, ka, ks int, a *mat.Matrix, d, e *mat.Vector, u 
 	}
 
 	for j = 1; j <= n; j++ {
-		err = goblas.Dspr(cuplo, n, -d.Get(j-1), u.Vector(0, j-1, 1), work)
+		err = work.Spr(cuplo, n, -d.Get(j-1), u.Off(0, j-1).Vector(), 1)
 	}
 
 	if n > 1 && ks == 1 {
 		for j = 1; j <= n-1; j++ {
-			err = goblas.Dspr2(cuplo, n, -e.Get(j-1), u.Vector(0, j-1, 1), u.Vector(0, j, 1), work)
+			err = work.Spr2(cuplo, n, -e.Get(j-1), u.Off(0, j-1).Vector(), 1, u.Off(0, j).Vector(), 1)
 		}
 	}
 	wnorm = golapack.Dlansp('1', cuplo, n, work, work.Off(lw))
@@ -108,7 +107,7 @@ func dsbt21(uplo mat.MatUplo, n, ka, ks int, a *mat.Matrix, d, e *mat.Vector, u 
 	//     Do Test 2
 	//
 	//     Compute  U U**T - I
-	if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero, work.Matrix(n, opts)); err != nil {
+	if err = work.Matrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero); err != nil {
 		panic(err)
 	}
 

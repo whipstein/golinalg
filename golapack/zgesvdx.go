@@ -226,16 +226,16 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 			id = 1
 			ie = id + n
 			itgkz = ie + n
-			Zlacpy(Upper, n, n, a, work.CMatrixOff(iqrf-1, n, opts))
-			Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(iqrf, n, opts))
-			if err = Zgebrd(n, n, work.CMatrixOff(iqrf-1, n, opts), rwork.Off(id-1), rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+			Zlacpy(Upper, n, n, a, work.Off(iqrf-1).CMatrix(n, opts))
+			Zlaset(Lower, n-1, n-1, czero, czero, work.Off(iqrf).CMatrix(n, opts))
+			if err = Zgebrd(n, n, work.Off(iqrf-1).CMatrix(n, opts), rwork.Off(id-1), rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
 				panic(err)
 			}
 			itempr = itgkz + n*(n*2+1)
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 2*N*N+14*N)
-			if info, err = Dbdsvdx(Upper, jobz, rngtgk, n, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.MatrixOff(itgkz-1, n*2, opts), rwork.Off(itempr-1), iwork); err != nil {
+			if info, err = Dbdsvdx(Upper, jobz, rngtgk, n, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.Off(itgkz-1).Matrix(n*2, opts), rwork.Off(itempr-1), iwork); err != nil {
 				panic(err)
 			}
 
@@ -253,7 +253,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 
 				//              Call ZUNMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				if err = Zunmbr('Q', Left, NoTrans, n, ns, n, work.CMatrixOff(iqrf-1, n, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Zunmbr('Q', Left, NoTrans, n, ns, n, work.Off(iqrf-1).CMatrix(n, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 
@@ -277,7 +277,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 
 				//              Call ZUNMBR to compute VB**T * PB**T
 				//              (Workspace in WORK( ITEMP ): need N, prefer N*NB)
-				if err = Zunmbr('P', Right, ConjTrans, ns, n, n, work.CMatrixOff(iqrf-1, n, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Zunmbr('P', Right, ConjTrans, ns, n, n, work.Off(iqrf-1).CMatrix(n, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 			}
@@ -302,7 +302,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 2*N*N+14*N)
-			if info, err = Dbdsvdx(Upper, jobz, rngtgk, n, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.MatrixOff(itgkz-1, n*2, opts), rwork.Off(itempr-1), iwork); err != nil {
+			if info, err = Dbdsvdx(Upper, jobz, rngtgk, n, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.Off(itgkz-1).Matrix(n*2, opts), rwork.Off(itempr-1), iwork); err != nil {
 				panic(err)
 			}
 
@@ -368,16 +368,16 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 			id = 1
 			ie = id + m
 			itgkz = ie + m
-			Zlacpy(Lower, m, m, a, work.CMatrixOff(ilqf-1, m, opts))
-			Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(ilqf+m-1, m, opts))
-			if err = Zgebrd(m, m, work.CMatrixOff(ilqf-1, m, opts), rwork.Off(id-1), rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
+			Zlacpy(Lower, m, m, a, work.Off(ilqf-1).CMatrix(m, opts))
+			Zlaset(Upper, m-1, m-1, czero, czero, work.Off(ilqf+m-1).CMatrix(m, opts))
+			if err = Zgebrd(m, m, work.Off(ilqf-1).CMatrix(m, opts), rwork.Off(id-1), rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(itemp-1), lwork-itemp+1); err != nil {
 				panic(err)
 			}
 			itempr = itgkz + m*(m*2+1)
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 2*M*M+14*M)
-			if info, err = Dbdsvdx(Upper, jobz, rngtgk, m, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.MatrixOff(itgkz-1, m*2, opts), rwork.Off(itempr-1), iwork); err != nil {
+			if info, err = Dbdsvdx(Upper, jobz, rngtgk, m, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.Off(itgkz-1).Matrix(m*2, opts), rwork.Off(itempr-1), iwork); err != nil {
 				panic(err)
 			}
 
@@ -394,7 +394,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 
 				//              Call ZUNMBR to compute QB*UB.
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				if err = Zunmbr('Q', Left, NoTrans, m, ns, m, work.CMatrixOff(ilqf-1, m, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Zunmbr('Q', Left, NoTrans, m, ns, m, work.Off(ilqf-1).CMatrix(m, opts), work.Off(itauq-1), u, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 			}
@@ -413,7 +413,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 
 				//              Call ZUNMBR to compute (VB**T)*(PB**T)
 				//              (Workspace in WORK( ITEMP ): need M, prefer M*NB)
-				if err = Zunmbr('P', Right, ConjTrans, ns, m, m, work.CMatrixOff(ilqf-1, m, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
+				if err = Zunmbr('P', Right, ConjTrans, ns, m, m, work.Off(ilqf-1).CMatrix(m, opts), work.Off(itaup-1), vt, work.Off(itemp-1), lwork-itemp+1); err != nil {
 					panic(err)
 				}
 
@@ -444,7 +444,7 @@ func Zgesvdx(jobu, jobvt, _range byte, m, n int, a *mat.CMatrix, vl, vu float64,
 
 			//           Solve eigenvalue problem TGK*Z=Z*S.
 			//           (Workspace: need 2*M*M+14*M)
-			if info, err = Dbdsvdx(Lower, jobz, rngtgk, m, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.MatrixOff(itgkz-1, m*2, opts), rwork.Off(itempr-1), iwork); err != nil {
+			if info, err = Dbdsvdx(Lower, jobz, rngtgk, m, rwork.Off(id-1), rwork.Off(ie-1), vl, vu, iltgk, iutgk, ns, s, rwork.Off(itgkz-1).Matrix(m*2, opts), rwork.Off(itempr-1), iwork); err != nil {
 				panic(err)
 			}
 

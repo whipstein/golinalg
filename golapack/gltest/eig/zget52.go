@@ -4,7 +4,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -91,10 +90,10 @@ func zget52(left bool, n int, a, b, e *mat.CMatrix, alpha, beta, work *mat.CVect
 			acoeff = cmplx.Conj(acoeff)
 			bcoeff = cmplx.Conj(bcoeff)
 		}
-		if err = goblas.Zgemv(trans, n, n, acoeff, a, e.CVector(0, jvec-1, 1), czero, work.Off(n*(jvec-1), 1)); err != nil {
+		if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, acoeff, a, e.Off(0, jvec-1).CVector(), 1, czero, 1); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgemv(trans, n, n, -bcoeff, b, e.CVector(0, jvec-1, 1), cone, work.Off(n*(jvec-1), 1)); err != nil {
+		if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, -bcoeff, b, e.Off(0, jvec-1).CVector(), 1, cone, 1); err != nil {
 			panic(err)
 		}
 	}

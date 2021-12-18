@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -61,14 +60,14 @@ func zstt21(n, kband int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, work *mat.
 
 	//     Norm of A - USU*
 	for j = 1; j <= n; j++ {
-		if err = goblas.Zher(Lower, n, -sd.Get(j-1), u.CVector(0, j-1, 1), work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Her(Lower, n, -sd.Get(j-1), u.Off(0, j-1).CVector(), 1); err != nil {
 			panic(err)
 		}
 	}
 
 	if n > 1 && kband == 1 {
 		for j = 1; j <= n-1; j++ {
-			err = goblas.Zher2(Lower, n, -se.GetCmplx(j-1), u.CVector(0, j-1, 1), u.CVector(0, j, 1), work.CMatrix(n, opts))
+			err = work.CMatrix(n, opts).Her2(Lower, n, -se.GetCmplx(j-1), u.Off(0, j-1).CVector(), 1, u.Off(0, j).CVector(), 1)
 		}
 	}
 
@@ -87,7 +86,7 @@ func zstt21(n, kband int, ad, ae, sd, se *mat.Vector, u *mat.CMatrix, work *mat.
 	//     Do Test 2
 	//
 	//     Compute  U U**H - I
-	if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero, work.CMatrix(n, opts)); err != nil {
+	if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero); err != nil {
 		panic(err)
 	}
 

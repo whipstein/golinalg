@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -94,7 +93,7 @@ func zstt22(n, m, kband int, ad, ae, sd, se *mat.Vector, u, work *mat.CMatrix, r
 	//     Do Test 2
 	//
 	//     Compute  U*U - I
-	if err = goblas.Zgemm(Trans, NoTrans, m, m, n, cone, u, u, czero, work); err != nil {
+	if err = work.Gemm(Trans, NoTrans, m, m, n, cone, u, u, czero); err != nil {
 		panic(err)
 	}
 

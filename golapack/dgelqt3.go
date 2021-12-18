@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -35,7 +34,7 @@ func Dgelqt3(m, n int, a, t *mat.Matrix) (err error) {
 
 	if m == 1 {
 		//        Compute Householder transform when N=1
-		*a.GetIdxPtr(0), *t.GetIdxPtr(0) = Dlarfg(n, a.GetIdx(0), a.Vector(0, min(2, n)-1))
+		*a.GetIdxPtr(0), *t.GetIdxPtr(0) = Dlarfg(n, a.GetIdx(0), a.Off(0, min(2, n)-1).Vector(), a.Rows)
 
 	} else {
 		//        Otherwise, split A into blocks...
@@ -55,23 +54,23 @@ func Dgelqt3(m, n int, a, t *mat.Matrix) (err error) {
 				t.Set(i+m1-1, j-1, a.Get(i+m1-1, j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m2, m1, one, a, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Trmm(Right, Upper, Trans, Unit, m2, m1, one, a); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dgemm(NoTrans, Trans, m2, m1, n-m1, one, a.Off(i1-1, i1-1), a.Off(0, i1-1), one, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Gemm(NoTrans, Trans, m2, m1, n-m1, one, a.Off(i1-1, i1-1), a.Off(0, i1-1), one); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m2, m1, one, t, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Trmm(Right, Upper, NoTrans, NonUnit, m2, m1, one, t); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, m2, n-m1, m1, -one, t.Off(i1-1, 0), a.Off(0, i1-1), one, a.Off(i1-1, i1-1)); err != nil {
+		if err = a.Off(i1-1, i1-1).Gemm(NoTrans, NoTrans, m2, n-m1, m1, -one, t.Off(i1-1, 0), a.Off(0, i1-1), one); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dtrmm(Right, Upper, NoTrans, Unit, m2, m1, one, a, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Trmm(Right, Upper, NoTrans, Unit, m2, m1, one, a); err != nil {
 			panic(err)
 		}
 
@@ -94,19 +93,19 @@ func Dgelqt3(m, n int, a, t *mat.Matrix) (err error) {
 			}
 		}
 
-		if err = goblas.Dtrmm(Right, Upper, Trans, Unit, m1, m2, one, a.Off(i1-1, i1-1), t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Trmm(Right, Upper, Trans, Unit, m1, m2, one, a.Off(i1-1, i1-1)); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dgemm(NoTrans, Trans, m1, m2, n-m, one, a.Off(0, j1-1), a.Off(i1-1, j1-1), one, t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Gemm(NoTrans, Trans, m1, m2, n-m, one, a.Off(0, j1-1), a.Off(i1-1, j1-1), one); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, m1, m2, -one, t, t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Trmm(Left, Upper, NoTrans, NonUnit, m1, m2, -one, t); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m1, m2, one, t.Off(i1-1, i1-1), t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Trmm(Right, Upper, NoTrans, NonUnit, m1, m2, one, t.Off(i1-1, i1-1)); err != nil {
 			panic(err)
 		}
 

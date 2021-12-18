@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -73,7 +72,7 @@ func dchktp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 				//+    TEST 1
 				//              Form the inverse of A.
 				if n > 0 {
-					goblas.Dcopy(lap, ap.Off(0, 1), ainvp.Off(0, 1))
+					ainvp.Copy(lap, ap, 1, 1)
 				}
 				*srnamt = "Dtptri"
 				if info, err = golapack.Dtptri(uplo, diag, n, ainvp); err != nil || info != 0 {
@@ -218,7 +217,7 @@ func dchktp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "Dlatps"
-					goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
+					b.Copy(n, x, 1, 1)
 					if scale, err = golapack.Dlatps(uplo, trans, diag, 'N', n, ap, b, rwork); err != nil {
 						panic(err)
 					}
@@ -232,7 +231,7 @@ func dchktp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 					//+    TEST 9
 					//                 Solve op(A)*x = b again with NORMIN = 'Y'.
-					goblas.Dcopy(n, x.Off(0, 1), b.Off(n, 1))
+					b.Off(n).Copy(n, x, 1, 1)
 					if scale, err = golapack.Dlatps(uplo, trans, diag, 'Y', n, ap, b.Off(n), rwork); err != nil {
 						panic(err)
 					}
@@ -242,7 +241,7 @@ func dchktp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 						nerrs = alaerh(path, "Dlatps", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'Y'}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					result.Set(8, dtpt03(uplo, trans, diag, n, 1, ap, scale, rwork, one, b.MatrixOff(n, lda, opts), x.Matrix(lda, opts), work))
+					result.Set(8, dtpt03(uplo, trans, diag, n, 1, ap, scale, rwork, one, b.Off(n).Matrix(lda, opts), x.Matrix(lda, opts), work))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

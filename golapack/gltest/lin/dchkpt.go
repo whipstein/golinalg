@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -107,10 +106,10 @@ func dchkpt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 					}
 
 					//                 Scale D and E so the maximum element is ANORM.
-					ix = goblas.Idamax(n, d.Off(0, 1))
+					ix = d.Iamax(n, 1)
 					dmax = d.Get(ix - 1)
-					goblas.Dscal(n, anorm/dmax, d.Off(0, 1))
-					goblas.Dscal(n-1, anorm/dmax, e.Off(0, 1))
+					d.Scal(n, anorm/dmax, 1)
+					e.Scal(n-1, anorm/dmax, 1)
 
 				} else if izero > 0 {
 					//                 Reuse the last matrix by copying back the zeroed out
@@ -162,9 +161,9 @@ func dchkpt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 				}
 			}
 
-			goblas.Dcopy(n, d.Off(0, 1), d.Off(n, 1))
+			d.Off(n).Copy(n, d, 1, 1)
 			if n > 1 {
-				goblas.Dcopy(n-1, e.Off(0, 1), e.Off(n, 1))
+				e.Off(n).Copy(n-1, e, 1, 1)
 			}
 
 			//+    TEST 1
@@ -214,7 +213,7 @@ func dchkpt(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 				if err = golapack.Dpttrs(n, 1, d.Off(n), e.Off(n), x.Matrix(lda, opts)); err != nil {
 					panic(err)
 				}
-				ainvnm = math.Max(ainvnm, goblas.Dasum(n, x.Off(0, 1)))
+				ainvnm = math.Max(ainvnm, x.Asum(n, 1))
 			}
 			rcondc = one / math.Max(one, anorm*ainvnm)
 

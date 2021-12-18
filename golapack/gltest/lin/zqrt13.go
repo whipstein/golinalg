@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -25,9 +24,9 @@ func zqrt13(scale, m, n int, a *mat.CMatrix, iseed *[]int) (norma float64) {
 
 	//     benign matrix
 	for j = 1; j <= n; j++ {
-		golapack.Zlarnv(2, iseed, m, a.CVector(0, j-1))
+		golapack.Zlarnv(2, iseed, m, a.Off(0, j-1).CVector())
 		if j <= m {
-			a.Set(j-1, j-1, a.Get(j-1, j-1)+complex(math.Copysign(goblas.Dzasum(m, a.CVector(0, j-1, 1)), a.GetRe(j-1, j-1)), 0))
+			a.Set(j-1, j-1, a.Get(j-1, j-1)+complex(math.Copysign(a.Off(0, j-1).CVector().Asum(m, 1), a.GetRe(j-1, j-1)), 0))
 		}
 	}
 

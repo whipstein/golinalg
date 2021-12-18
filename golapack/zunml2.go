@@ -102,14 +102,14 @@ func Zunml2(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, t
 			taui = tau.Get(i - 1)
 		}
 		if i < nq {
-			Zlacgv(nq-i, a.CVector(i-1, i))
+			Zlacgv(nq-i, a.Off(i-1, i).CVector(), a.Rows)
 		}
 		aii = a.Get(i-1, i-1)
 		a.Set(i-1, i-1, one)
-		Zlarf(side, mi, ni, a.CVector(i-1, i-1), taui, c.Off(ic-1, jc-1), work)
+		Zlarf(side, mi, ni, a.Off(i-1, i-1).CVector(), a.Rows, taui, c.Off(ic-1, jc-1), work)
 		a.Set(i-1, i-1, aii)
 		if i < nq {
-			Zlacgv(nq-i, a.CVector(i-1, i))
+			Zlacgv(nq-i, a.Off(i-1, i).CVector(), a.Rows)
 		}
 	}
 

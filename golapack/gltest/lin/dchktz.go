@@ -83,8 +83,8 @@ func dchktz(dotype []bool, nm int, mval []int, nn int, nval []int, thresh float6
 						if err = golapack.Dgeqr2(m, n, a.Matrix(lda, opts), work, work.Off(mnmin)); err != nil {
 							panic(err)
 						}
-						golapack.Dlaset(Lower, m-1, n, zero, zero, a.MatrixOff(1, lda, opts))
-						dlaord('D', mnmin, s.Off(0, 1))
+						golapack.Dlaset(Lower, m-1, n, zero, zero, a.Off(1).Matrix(lda, opts))
+						dlaord('D', mnmin, s, 1)
 					}
 
 					//                 Save A and its singular values

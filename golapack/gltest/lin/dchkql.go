@@ -136,7 +136,7 @@ func dchkql(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 									nerrs = alaerh(path, "Dgeqls", info, 0, []byte(" "), m, n, nrhs, -1, nb, imat, nfail, nerrs)
 								}
 
-								result.Set(6, dget02(NoTrans, m, n, nrhs, a.Matrix(lda, opts), x.MatrixOff(m-n, lda, opts), b.Matrix(lda, opts), rwork))
+								result.Set(6, dget02(NoTrans, m, n, nrhs, a.Matrix(lda, opts), x.Off(m-n).Matrix(lda, opts), b.Matrix(lda, opts), rwork))
 								nt++
 							}
 						}

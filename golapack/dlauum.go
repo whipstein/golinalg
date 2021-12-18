@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,17 +57,17 @@ func Dlauum(uplo mat.MatUplo, n int, a *mat.Matrix) (err error) {
 			//           Compute the product U * U**T.
 			for i = 1; i <= n; i += nb {
 				ib = min(nb, n-i+1)
-				if err = goblas.Dtrmm(mat.Right, mat.Upper, mat.Trans, mat.NonUnit, i-1, ib, one, a.Off(i-1, i-1), a.Off(0, i-1)); err != nil {
+				if err = a.Off(0, i-1).Trmm(mat.Right, mat.Upper, mat.Trans, mat.NonUnit, i-1, ib, one, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if err = Dlauu2(Upper, ib, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if i+ib <= n {
-					if err = goblas.Dgemm(mat.NoTrans, mat.Trans, i-1, ib, n-i-ib+1, one, a.Off(0, i+ib-1), a.Off(i-1, i+ib-1), one, a.Off(0, i-1)); err != nil {
+					if err = a.Off(0, i-1).Gemm(mat.NoTrans, mat.Trans, i-1, ib, n-i-ib+1, one, a.Off(0, i+ib-1), a.Off(i-1, i+ib-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsyrk(mat.Upper, mat.NoTrans, ib, n-i-ib+1, one, a.Off(i-1, i+ib-1), one, a.Off(i-1, i-1)); err != nil {
+					if err = a.Off(i-1, i-1).Syrk(mat.Upper, mat.NoTrans, ib, n-i-ib+1, one, a.Off(i-1, i+ib-1), one); err != nil {
 						panic(err)
 					}
 				}
@@ -77,17 +76,17 @@ func Dlauum(uplo mat.MatUplo, n int, a *mat.Matrix) (err error) {
 			//           Compute the product L**T * L.
 			for i = 1; i <= n; i += nb {
 				ib = min(nb, n-i+1)
-				if err = goblas.Dtrmm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, ib, i-1, one, a.Off(i-1, i-1), a.Off(i-1, 0)); err != nil {
+				if err = a.Off(i-1, 0).Trmm(mat.Left, mat.Lower, mat.Trans, mat.NonUnit, ib, i-1, one, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if err = Dlauu2(Lower, ib, a.Off(i-1, i-1)); err != nil {
 					panic(err)
 				}
 				if i+ib <= n {
-					if err = goblas.Dgemm(mat.Trans, mat.NoTrans, ib, i-1, n-i-ib+1, one, a.Off(i+ib-1, i-1), a.Off(i+ib-1, 0), one, a.Off(i-1, 0)); err != nil {
+					if err = a.Off(i-1, 0).Gemm(mat.Trans, mat.NoTrans, ib, i-1, n-i-ib+1, one, a.Off(i+ib-1, i-1), a.Off(i+ib-1, 0), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsyrk(mat.Lower, mat.Trans, ib, n-i-ib+1, one, a.Off(i+ib-1, i-1), one, a.Off(i-1, i-1)); err != nil {
+					if err = a.Off(i-1, i-1).Syrk(mat.Lower, mat.Trans, ib, n-i-ib+1, one, a.Off(i+ib-1, i-1), one); err != nil {
 						panic(err)
 					}
 				}

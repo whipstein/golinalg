@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -77,7 +76,7 @@ func zgrqts(m, p, n int, a, af, q, r *mat.CMatrix, taua *mat.CVector, b, bf, z, 
 	golapack.Zlacpy(Upper, p, n, bf, t)
 
 	//     Compute R - A*Q'
-	if err = goblas.Zgemm(NoTrans, ConjTrans, m, n, n, -cone, a, q, cone, r); err != nil {
+	if err = r.Gemm(NoTrans, ConjTrans, m, n, n, -cone, a, q, cone); err != nil {
 		panic(err)
 	}
 
@@ -90,10 +89,10 @@ func zgrqts(m, p, n int, a, af, q, r *mat.CMatrix, taua *mat.CVector, b, bf, z, 
 	}
 
 	//     Compute T*Q - Z'*B
-	if err = goblas.Zgemm(ConjTrans, NoTrans, p, n, p, cone, z, b, czero, bwk); err != nil {
+	if err = bwk.Gemm(ConjTrans, NoTrans, p, n, p, cone, z, b, czero); err != nil {
 		panic(err)
 	}
-	if err = goblas.Zgemm(NoTrans, NoTrans, p, n, n, cone, t, q, -cone, bwk); err != nil {
+	if err = bwk.Gemm(NoTrans, NoTrans, p, n, n, cone, t, q, -cone); err != nil {
 		panic(err)
 	}
 
@@ -107,7 +106,7 @@ func zgrqts(m, p, n int, a, af, q, r *mat.CMatrix, taua *mat.CVector, b, bf, z, 
 
 	//     Compute I - Q*Q'
 	golapack.Zlaset(Full, n, n, czero, cone, r)
-	if err = goblas.Zherk(Upper, NoTrans, n, n, -one, q, one, r); err != nil {
+	if err = r.Herk(Upper, NoTrans, n, n, -one, q, one); err != nil {
 		panic(err)
 	}
 
@@ -117,7 +116,7 @@ func zgrqts(m, p, n int, a, af, q, r *mat.CMatrix, taua *mat.CVector, b, bf, z, 
 
 	//     Compute I - Z'*Z
 	golapack.Zlaset(Full, p, p, czero, cone, t)
-	if err = goblas.Zherk(Upper, ConjTrans, p, p, -one, z, one, t); err != nil {
+	if err = t.Herk(Upper, ConjTrans, p, p, -one, z, one); err != nil {
 		panic(err)
 	}
 

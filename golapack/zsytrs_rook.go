@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -62,17 +61,17 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			if err = goblas.Zgeru(k-1, nrhs, -cone, a.CVector(0, k-1, 1), b.CVector(k-1, 0), b); err != nil {
+			if err = b.Geru(k-1, nrhs, -cone, a.Off(0, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 				panic(err)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Zscal(nrhs, cone/a.Get(k-1, k-1), b.CVector(k-1, 0))
+			b.Off(k-1, 0).CVector().Scal(nrhs, cone/a.Get(k-1, k-1), b.Rows)
 			k = k - 1
 		} else {
 			//           2 x 2 diagonal block
@@ -80,21 +79,21 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and -IPIV(K) THEN K-1 and -IPIV(K-1)
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			kp = -(*ipiv)[k-1-1]
 			if kp != k-1 {
-				goblas.Zswap(nrhs, b.CVector(k-1-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k > 2 {
-				if err = goblas.Zgeru(k-2, nrhs, -cone, a.CVector(0, k-1, 1), b.CVector(k-1, 0), b); err != nil {
+				if err = b.Geru(k-2, nrhs, -cone, a.Off(0, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgeru(k-2, nrhs, -cone, a.CVector(0, k-1-1, 1), b.CVector(k-1-1, 0), b); err != nil {
+				if err = b.Geru(k-2, nrhs, -cone, a.Off(0, k-1-1).CVector(), 1, b.Off(k-1-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -136,7 +135,7 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Multiply by inv(U**T(K)), where U(K) is the transformation
 			//           stored in column K of A.
 			if k > 1 {
-				if err = goblas.Zgemv(Trans, k-1, nrhs, -cone, b, a.CVector(0, k-1, 1), cone, b.CVector(k-1, 0)); err != nil {
+				if err = b.Off(k-1, 0).CVector().Gemv(Trans, k-1, nrhs, -cone, b, a.Off(0, k-1).CVector(), 1, cone, b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -144,7 +143,7 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			k = k + 1
 		} else {
@@ -153,10 +152,10 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Multiply by inv(U**T(K+1)), where U(K+1) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k > 1 {
-				if err = goblas.Zgemv(Trans, k-1, nrhs, -cone, b, a.CVector(0, k-1, 1), cone, b.CVector(k-1, 0)); err != nil {
+				if err = b.Off(k-1, 0).CVector().Gemv(Trans, k-1, nrhs, -cone, b, a.Off(0, k-1).CVector(), 1, cone, b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgemv(Trans, k-1, nrhs, -cone, b, a.CVector(0, k, 1), cone, b.CVector(k, 0)); err != nil {
+				if err = b.Off(k, 0).CVector().Gemv(Trans, k-1, nrhs, -cone, b, a.Off(0, k).CVector(), 1, cone, b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -164,12 +163,12 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and -IPIV(K) THEN K+1 and -IPIV(K+1).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			kp = -(*ipiv)[k]
 			if kp != k+1 {
-				goblas.Zswap(nrhs, b.CVector(k, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			k = k + 2
@@ -199,17 +198,17 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				err = goblas.Zgeru(n-k, nrhs, -cone, a.CVector(k, k-1, 1), b.CVector(k-1, 0), b.Off(k, 0))
+				err = b.Off(k, 0).Geru(n-k, nrhs, -cone, a.Off(k, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Zscal(nrhs, cone/a.Get(k-1, k-1), b.CVector(k-1, 0))
+			b.Off(k-1, 0).CVector().Scal(nrhs, cone/a.Get(k-1, k-1), b.Rows)
 			k = k + 1
 		} else {
 			//           2 x 2 diagonal block
@@ -217,21 +216,21 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and -IPIV(K) THEN K+1 and -IPIV(K+1)
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			kp = -(*ipiv)[k]
 			if kp != k+1 {
-				goblas.Zswap(nrhs, b.CVector(k, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k < n-1 {
-				if err = goblas.Zgeru(n-k-1, nrhs, -cone, a.CVector(k+2-1, k-1, 1), b.CVector(k-1, 0), b.Off(k+2-1, 0)); err != nil {
+				if err = b.Off(k+2-1, 0).Geru(n-k-1, nrhs, -cone, a.Off(k+2-1, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgeru(n-k-1, nrhs, -cone, a.CVector(k+2-1, k, 1), b.CVector(k, 0), b.Off(k+2-1, 0)); err != nil {
+				if err = b.Off(k+2-1, 0).Geru(n-k-1, nrhs, -cone, a.Off(k+2-1, k).CVector(), 1, b.Off(k, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -273,7 +272,7 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Multiply by inv(L**T(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				if err = goblas.Zgemv(Trans, n-k, nrhs, -cone, b.Off(k, 0), a.CVector(k, k-1, 1), cone, b.CVector(k-1, 0)); err != nil {
+				if err = b.Off(k-1, 0).CVector().Gemv(Trans, n-k, nrhs, -cone, b.Off(k, 0), a.Off(k, k-1).CVector(), 1, cone, b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -281,7 +280,7 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			k = k - 1
 		} else {
@@ -290,10 +289,10 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Multiply by inv(L**T(K-1)), where L(K-1) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k < n {
-				if err = goblas.Zgemv(Trans, n-k, nrhs, -cone, b.Off(k, 0), a.CVector(k, k-1, 1), cone, b.CVector(k-1, 0)); err != nil {
+				if err = b.Off(k-1, 0).CVector().Gemv(Trans, n-k, nrhs, -cone, b.Off(k, 0), a.Off(k, k-1).CVector(), 1, cone, b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgemv(Trans, n-k, nrhs, -cone, b.Off(k, 0), a.CVector(k, k-1-1, 1), cone, b.CVector(k-1-1, 0)); err != nil {
+				if err = b.Off(k-1-1, 0).CVector().Gemv(Trans, n-k, nrhs, -cone, b.Off(k, 0), a.Off(k, k-1-1).CVector(), 1, cone, b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -301,12 +300,12 @@ func ZsytrsRook(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *m
 			//           Interchange rows K and -IPIV(K) THEN K-1 and -IPIV(K-1)
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			kp = -(*ipiv)[k-1-1]
 			if kp != k-1 {
-				goblas.Zswap(nrhs, b.CVector(k-1-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			k = k - 2

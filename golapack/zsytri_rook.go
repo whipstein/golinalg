@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -78,11 +77,11 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 
 			//           Compute column K of the inverse.
 			if k > 1 {
-				goblas.Zcopy(k-1, a.CVector(0, k-1, 1), work.Off(0, 1))
-				if err = Zsymv(uplo, k-1, -cone, a, work.Off(0, 1), czero, a.CVector(0, k-1, 1)); err != nil {
+				work.Copy(k-1, a.Off(0, k-1).CVector(), 1, 1)
+				if err = Zsymv(uplo, k-1, -cone, a, work, 1, czero, a.Off(0, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(k-1, work.Off(0, 1), a.CVector(0, k-1, 1)))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-a.Off(0, k-1).CVector().Dotu(k-1, work, 1, 1))
 			}
 			kstep = 1
 		} else {
@@ -100,17 +99,17 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 
 			//           Compute columns K and K+1 of the inverse.
 			if k > 1 {
-				goblas.Zcopy(k-1, a.CVector(0, k-1, 1), work.Off(0, 1))
-				if err = Zsymv(uplo, k-1, -cone, a, work.Off(0, 1), czero, a.CVector(0, k-1, 1)); err != nil {
+				work.Copy(k-1, a.Off(0, k-1).CVector(), 1, 1)
+				if err = Zsymv(uplo, k-1, -cone, a, work, 1, czero, a.Off(0, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(k-1, work.Off(0, 1), a.CVector(0, k-1, 1)))
-				a.Set(k-1, k, a.Get(k-1, k)-goblas.Zdotu(k-1, a.CVector(0, k-1, 1), a.CVector(0, k, 1)))
-				goblas.Zcopy(k-1, a.CVector(0, k, 1), work.Off(0, 1))
-				if err = Zsymv(uplo, k-1, -cone, a, work.Off(0, 1), czero, a.CVector(0, k, 1)); err != nil {
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-a.Off(0, k-1).CVector().Dotu(k-1, work, 1, 1))
+				a.Set(k-1, k, a.Get(k-1, k)-a.Off(0, k).CVector().Dotu(k-1, a.Off(0, k-1).CVector(), 1, 1))
+				work.Copy(k-1, a.Off(0, k).CVector(), 1, 1)
+				if err = Zsymv(uplo, k-1, -cone, a, work, 1, czero, a.Off(0, k).CVector(), 1); err != nil {
 					panic(err)
 				}
-				a.Set(k, k, a.Get(k, k)-goblas.Zdotu(k-1, work.Off(0, 1), a.CVector(0, k, 1)))
+				a.Set(k, k, a.Get(k, k)-a.Off(0, k).CVector().Dotu(k-1, work, 1, 1))
 			}
 			kstep = 2
 		}
@@ -121,9 +120,9 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 			kp = (*ipiv)[k-1]
 			if kp != k {
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, k-1, 1), a.CVector(0, kp-1, 1))
+					a.Off(0, kp-1).CVector().Swap(kp-1, a.Off(0, k-1).CVector(), 1, 1)
 				}
-				goblas.Zswap(k-kp-1, a.CVector(kp, k-1, 1), a.CVector(kp-1, kp))
+				a.Off(kp-1, kp).CVector().Swap(k-kp-1, a.Off(kp, k-1).CVector(), 1, a.Rows)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -134,9 +133,9 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, k-1, 1), a.CVector(0, kp-1, 1))
+					a.Off(0, kp-1).CVector().Swap(kp-1, a.Off(0, k-1).CVector(), 1, 1)
 				}
-				goblas.Zswap(k-kp-1, a.CVector(kp, k-1, 1), a.CVector(kp-1, kp))
+				a.Off(kp-1, kp).CVector().Swap(k-kp-1, a.Off(kp, k-1).CVector(), 1, a.Rows)
 
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
@@ -150,9 +149,9 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, k-1, 1), a.CVector(0, kp-1, 1))
+					a.Off(0, kp-1).CVector().Swap(kp-1, a.Off(0, k-1).CVector(), 1, 1)
 				}
-				goblas.Zswap(k-kp-1, a.CVector(kp, k-1, 1), a.CVector(kp-1, kp))
+				a.Off(kp-1, kp).CVector().Swap(k-kp-1, a.Off(kp, k-1).CVector(), 1, a.Rows)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -184,11 +183,11 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 
 			//           Compute column K of the inverse.
 			if k < n {
-				goblas.Zcopy(n-k, a.CVector(k, k-1, 1), work.Off(0, 1))
-				if err = Zsymv(uplo, n-k, -cone, a.Off(k, k), work.Off(0, 1), czero, a.CVector(k, k-1, 1)); err != nil {
+				work.Copy(n-k, a.Off(k, k-1).CVector(), 1, 1)
+				if err = Zsymv(uplo, n-k, -cone, a.Off(k, k), work, 1, czero, a.Off(k, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(n-k, work.Off(0, 1), a.CVector(k, k-1, 1)))
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-a.Off(k, k-1).CVector().Dotu(n-k, work, 1, 1))
 			}
 			kstep = 1
 		} else {
@@ -206,17 +205,17 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 
 			//           Compute columns K-1 and K of the inverse.
 			if k < n {
-				goblas.Zcopy(n-k, a.CVector(k, k-1, 1), work.Off(0, 1))
-				if err = Zsymv(uplo, n-k, -cone, a.Off(k, k), work.Off(0, 1), czero, a.CVector(k, k-1, 1)); err != nil {
+				work.Copy(n-k, a.Off(k, k-1).CVector(), 1, 1)
+				if err = Zsymv(uplo, n-k, -cone, a.Off(k, k), work, 1, czero, a.Off(k, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
-				a.Set(k-1, k-1, a.Get(k-1, k-1)-goblas.Zdotu(n-k, work.Off(0, 1), a.CVector(k, k-1, 1)))
-				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-goblas.Zdotu(n-k, a.CVector(k, k-1, 1), a.CVector(k, k-1-1, 1)))
-				goblas.Zcopy(n-k, a.CVector(k, k-1-1, 1), work.Off(0, 1))
-				if err = Zsymv(uplo, n-k, -cone, a.Off(k, k), work.Off(0, 1), czero, a.CVector(k, k-1-1, 1)); err != nil {
+				a.Set(k-1, k-1, a.Get(k-1, k-1)-a.Off(k, k-1).CVector().Dotu(n-k, work, 1, 1))
+				a.Set(k-1, k-1-1, a.Get(k-1, k-1-1)-a.Off(k, k-1-1).CVector().Dotu(n-k, a.Off(k, k-1).CVector(), 1, 1))
+				work.Copy(n-k, a.Off(k, k-1-1).CVector(), 1, 1)
+				if err = Zsymv(uplo, n-k, -cone, a.Off(k, k), work, 1, czero, a.Off(k, k-1-1).CVector(), 1); err != nil {
 					panic(err)
 				}
-				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-goblas.Zdotu(n-k, work.Off(0, 1), a.CVector(k, k-1-1, 1)))
+				a.Set(k-1-1, k-1-1, a.Get(k-1-1, k-1-1)-a.Off(k, k-1-1).CVector().Dotu(n-k, work, 1, 1))
 			}
 			kstep = 2
 		}
@@ -227,9 +226,9 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 			kp = (*ipiv)[k-1]
 			if kp != k {
 				if kp < n {
-					goblas.Zswap(n-kp, a.CVector(kp, k-1, 1), a.CVector(kp, kp-1, 1))
+					a.Off(kp, kp-1).CVector().Swap(n-kp, a.Off(kp, k-1).CVector(), 1, 1)
 				}
-				goblas.Zswap(kp-k-1, a.CVector(k, k-1, 1), a.CVector(kp-1, k))
+				a.Off(kp-1, k).CVector().Swap(kp-k-1, a.Off(k, k-1).CVector(), 1, a.Rows)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)
@@ -240,9 +239,9 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp < n {
-					goblas.Zswap(n-kp, a.CVector(kp, k-1, 1), a.CVector(kp, kp-1, 1))
+					a.Off(kp, kp-1).CVector().Swap(n-kp, a.Off(kp, k-1).CVector(), 1, 1)
 				}
-				goblas.Zswap(kp-k-1, a.CVector(k, k-1, 1), a.CVector(kp-1, k))
+				a.Off(kp-1, k).CVector().Swap(kp-k-1, a.Off(k, k-1).CVector(), 1, a.Rows)
 
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
@@ -256,9 +255,9 @@ func ZsytriRook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int, work *mat.
 			kp = -(*ipiv)[k-1]
 			if kp != k {
 				if kp < n {
-					goblas.Zswap(n-kp, a.CVector(kp, k-1, 1), a.CVector(kp, kp-1, 1))
+					a.Off(kp, kp-1).CVector().Swap(n-kp, a.Off(kp, k-1).CVector(), 1, 1)
 				}
-				goblas.Zswap(kp-k-1, a.CVector(k, k-1, 1), a.CVector(kp-1, k))
+				a.Off(kp-1, k).CVector().Swap(kp-k-1, a.Off(k, k-1).CVector(), 1, a.Rows)
 				temp = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(kp-1, kp-1))
 				a.Set(kp-1, kp-1, temp)

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -44,20 +43,20 @@ func dppt03(uplo mat.MatUplo, n int, a, ainv *mat.Vector, work *mat.Matrix, rwor
 		//        Copy AINV
 		jj = 1
 		for j = 1; j <= n-1; j++ {
-			goblas.Dcopy(j, ainv.Off(jj-1, 1), work.Vector(0, j, 1))
-			goblas.Dcopy(j-1, ainv.Off(jj-1, 1), work.Vector(j-1, 1))
+			work.Off(0, j).Vector().Copy(j, ainv.Off(jj-1), 1, 1)
+			work.Off(j-1, 1).Vector().Copy(j-1, ainv.Off(jj-1), 1, work.Rows)
 			jj = jj + j
 		}
 		jj = ((n-1)*n)/2 + 1
-		goblas.Dcopy(n-1, ainv.Off(jj-1, 1), work.Vector(n-1, 1))
+		work.Off(n-1, 1).Vector().Copy(n-1, ainv.Off(jj-1), 1, work.Rows)
 
 		//        Multiply by A
 		for j = 1; j <= n-1; j++ {
-			if err = goblas.Dspmv(Upper, n, -one, a, work.Vector(0, j, 1), zero, work.Vector(0, j-1, 1)); err != nil {
+			if err = work.Off(0, j-1).Vector().Spmv(Upper, n, -one, a, work.Off(0, j).Vector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
-		if err = goblas.Dspmv(Upper, n, -one, a, ainv.Off(jj-1, 1), zero, work.Vector(0, n-1, 1)); err != nil {
+		if err = work.Off(0, n-1).Vector().Spmv(Upper, n, -one, a, ainv.Off(jj-1), 1, zero, 1); err != nil {
 			panic(err)
 		}
 
@@ -66,21 +65,21 @@ func dppt03(uplo mat.MatUplo, n int, a, ainv *mat.Vector, work *mat.Matrix, rwor
 		//     and multiply by A, moving each column to the right.
 	} else {
 		//        Copy AINV
-		goblas.Dcopy(n-1, ainv.Off(1, 1), work.Vector(0, 0))
+		work.Off(0, 0).Vector().Copy(n-1, ainv.Off(1), 1, work.Rows)
 		jj = n + 1
 		for j = 2; j <= n; j++ {
-			goblas.Dcopy(n-j+1, ainv.Off(jj-1, 1), work.Vector(j-1, j-1-1, 1))
-			goblas.Dcopy(n-j, ainv.Off(jj, 1), work.Vector(j-1, j-1))
+			work.Off(j-1, j-1-1).Vector().Copy(n-j+1, ainv.Off(jj-1), 1, 1)
+			work.Off(j-1, j-1).Vector().Copy(n-j, ainv.Off(jj), 1, work.Rows)
 			jj = jj + n - j + 1
 		}
 
 		//        Multiply by A
 		for j = n; j >= 2; j-- {
-			if err = goblas.Dspmv(Lower, n, -one, a, work.Vector(0, j-1-1, 1), zero, work.Vector(0, j-1, 1)); err != nil {
+			if err = work.Off(0, j-1).Vector().Spmv(Lower, n, -one, a, work.Off(0, j-1-1).Vector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 		}
-		if err = goblas.Dspmv(Lower, n, -one, a, ainv.Off(0, 1), zero, work.Vector(0, 0, 1)); err != nil {
+		if err = work.Off(0, 0).Vector().Spmv(Lower, n, -one, a, ainv, 1, zero, 1); err != nil {
 			panic(err)
 		}
 	}

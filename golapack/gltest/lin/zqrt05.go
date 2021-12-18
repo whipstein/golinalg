@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -48,16 +47,16 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 	golapack.Zlaset(Full, m2, n, czero, czero, a)
 	golapack.Zlaset(Full, nb, n, czero, czero, t)
 	for j = 1; j <= n; j++ {
-		golapack.Zlarnv(2, &iseed, j, a.CVector(0, j-1))
+		golapack.Zlarnv(2, &iseed, j, a.Off(0, j-1).CVector())
 	}
 	if m > 0 {
 		for j = 1; j <= n; j++ {
-			golapack.Zlarnv(2, &iseed, m-l, a.CVector(min(n+m, n+1)-1, j-1))
+			golapack.Zlarnv(2, &iseed, m-l, a.Off(min(n+m, n+1)-1, j-1).CVector())
 		}
 	}
 	if l > 0 {
 		for j = 1; j <= n; j++ {
-			golapack.Zlarnv(2, &iseed, min(j, l), a.CVector(min(n+m, n+m-l+1)-1, j-1))
+			golapack.Zlarnv(2, &iseed, min(j, l), a.Off(min(n+m, n+m-l+1)-1, j-1).CVector())
 		}
 	}
 
@@ -80,7 +79,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 	golapack.Zlacpy(Upper, m2, n, af, r)
 
 	//     Compute |R - Q'*A| / |A| and store in RESULT(1)
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m2, n, m2, -one, q, a, one, r); err != nil {
+	if err = r.Gemm(ConjTrans, NoTrans, m2, n, m2, -one, q, a, one); err != nil {
 		panic(err)
 	}
 	anorm = golapack.Zlange('1', m2, n, a, rwork)
@@ -93,7 +92,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 
 	//     Compute |I - Q'*Q| and store in RESULT(2)
 	golapack.Zlaset(Full, m2, m2, czero, one, r)
-	if err = goblas.Zherk(Upper, ConjTrans, m2, m2, real(-one), q, real(one), r); err != nil {
+	if err = r.Herk(Upper, ConjTrans, m2, m2, real(-one), q, real(one)); err != nil {
 		panic(err)
 	}
 	resid = golapack.Zlansy('1', Upper, m2, r, rwork)
@@ -101,7 +100,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 
 	//     Generate random m-by-n matrix C and a copy CF
 	for j = 1; j <= n; j++ {
-		golapack.Zlarnv(2, &iseed, m2, c.CVector(0, j-1))
+		golapack.Zlarnv(2, &iseed, m2, c.Off(0, j-1).CVector())
 	}
 	cnorm = golapack.Zlange('1', m2, n, c, rwork)
 	golapack.Zlacpy(Full, m2, n, c, cf)
@@ -112,7 +111,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |Q*C - Q*C| / |C|
-	if err = goblas.Zgemm(NoTrans, NoTrans, m2, n, m2, -one, q, c, one, cf); err != nil {
+	if err = cf.Gemm(NoTrans, NoTrans, m2, n, m2, -one, q, c, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Zlange('1', m2, n, cf, rwork)
@@ -131,7 +130,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |QT*C - QT*C| / |C|
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m2, n, m2, -one, q, c, one, cf); err != nil {
+	if err = cf.Gemm(ConjTrans, NoTrans, m2, n, m2, -one, q, c, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Zlange('1', m2, n, cf, rwork)
@@ -143,7 +142,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 
 	//     Generate random n-by-m matrix D and a copy DF
 	for j = 1; j <= m2; j++ {
-		golapack.Zlarnv(2, &iseed, n, d.CVector(0, j-1))
+		golapack.Zlarnv(2, &iseed, n, d.Off(0, j-1).CVector())
 	}
 	dnorm = golapack.Zlange('1', n, m2, d, rwork)
 	golapack.Zlacpy(Full, n, m2, d, df)
@@ -154,7 +153,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |D*Q - D*Q| / |D|
-	if err = goblas.Zgemm(NoTrans, NoTrans, n, m2, m2, -one, d, q, one, df); err != nil {
+	if err = df.Gemm(NoTrans, NoTrans, n, m2, m2, -one, d, q, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Zlange('1', n, m2, df, rwork)
@@ -173,7 +172,7 @@ func zqrt05(m, n, l, nb int, result *mat.Vector) {
 	}
 
 	//     Compute |D*QT - D*QT| / |D|
-	if err = goblas.Zgemm(NoTrans, ConjTrans, n, m2, m2, -one, d, q, one, df); err != nil {
+	if err = df.Gemm(NoTrans, ConjTrans, n, m2, m2, -one, d, q, one); err != nil {
 		panic(err)
 	}
 	resid = golapack.Zlange('1', n, m2, df, rwork)

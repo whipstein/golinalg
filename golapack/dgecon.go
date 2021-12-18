@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -92,11 +91,11 @@ label10:
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Idamax(n, work.Off(0, 1))
+			ix = work.Iamax(n, 1)
 			if scale < math.Abs(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}
-			Drscl(n, scale, work.Off(0, 1))
+			Drscl(n, scale, work, 1)
 		}
 		goto label10
 	}

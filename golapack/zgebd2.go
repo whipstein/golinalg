@@ -36,28 +36,28 @@ func Zgebd2(m, n int, a *mat.CMatrix, d, e *mat.Vector, tauq, taup, work *mat.CV
 		for i = 1; i <= n; i++ {
 			//           Generate elementary reflector H(i) to annihilate A(i+1:m,i)
 			alpha = a.Get(i-1, i-1)
-			alpha, *tauq.GetPtr(i - 1) = Zlarfg(m-i+1, alpha, a.CVector(min(i+1, m)-1, i-1, 1))
+			alpha, *tauq.GetPtr(i - 1) = Zlarfg(m-i+1, alpha, a.Off(min(i+1, m)-1, i-1).CVector(), 1)
 			d.Set(i-1, real(alpha))
 			a.Set(i-1, i-1, one)
 
 			//           Apply H(i)**H to A(i:m,i+1:n) from the left
 			if i < n {
-				Zlarf(Left, m-i+1, n-i, a.CVector(i-1, i-1, 1), tauq.GetConj(i-1), a.Off(i-1, i), work)
+				Zlarf(Left, m-i+1, n-i, a.Off(i-1, i-1).CVector(), 1, tauq.GetConj(i-1), a.Off(i-1, i), work)
 			}
 			a.SetRe(i-1, i-1, d.Get(i-1))
 
 			if i < n {
 				//              Generate elementary reflector G(i) to annihilate
 				//              A(i,i+2:n)
-				Zlacgv(n-i, a.CVector(i-1, i))
+				Zlacgv(n-i, a.Off(i-1, i).CVector(), a.Rows)
 				alpha = a.Get(i-1, i)
-				alpha, *taup.GetPtr(i - 1) = Zlarfg(n-i, alpha, a.CVector(i-1, min(i+2, n)-1))
+				alpha, *taup.GetPtr(i - 1) = Zlarfg(n-i, alpha, a.Off(i-1, min(i+2, n)-1).CVector(), a.Rows)
 				e.Set(i-1, real(alpha))
 				a.Set(i-1, i, one)
 
 				//              Apply G(i) to A(i+1:m,i+1:n) from the right
-				Zlarf(Right, m-i, n-i, a.CVector(i-1, i), taup.Get(i-1), a.Off(i, i), work)
-				Zlacgv(n-i, a.CVector(i-1, i))
+				Zlarf(Right, m-i, n-i, a.Off(i-1, i).CVector(), a.Rows, taup.Get(i-1), a.Off(i, i), work)
+				Zlacgv(n-i, a.Off(i-1, i).CVector(), a.Rows)
 				a.SetRe(i-1, i, e.Get(i-1))
 			} else {
 				taup.Set(i-1, zero)
@@ -67,29 +67,29 @@ func Zgebd2(m, n int, a *mat.CMatrix, d, e *mat.Vector, tauq, taup, work *mat.CV
 		//        Reduce to lower bidiagonal form
 		for i = 1; i <= m; i++ {
 			//           Generate elementary reflector G(i) to annihilate A(i,i+1:n)
-			Zlacgv(n-i+1, a.CVector(i-1, i-1))
+			Zlacgv(n-i+1, a.Off(i-1, i-1).CVector(), a.Rows)
 			alpha = a.Get(i-1, i-1)
-			alpha, *taup.GetPtr(i - 1) = Zlarfg(n-i+1, alpha, a.CVector(i-1, min(i+1, n)-1))
+			alpha, *taup.GetPtr(i - 1) = Zlarfg(n-i+1, alpha, a.Off(i-1, min(i+1, n)-1).CVector(), a.Rows)
 			d.Set(i-1, real(alpha))
 			a.Set(i-1, i-1, one)
 
 			//           Apply G(i) to A(i+1:m,i:n) from the right
 			if i < m {
-				Zlarf(Right, m-i, n-i+1, a.CVector(i-1, i-1), taup.Get(i-1), a.Off(i, i-1), work)
+				Zlarf(Right, m-i, n-i+1, a.Off(i-1, i-1).CVector(), a.Rows, taup.Get(i-1), a.Off(i, i-1), work)
 			}
-			Zlacgv(n-i+1, a.CVector(i-1, i-1))
+			Zlacgv(n-i+1, a.Off(i-1, i-1).CVector(), a.Rows)
 			a.SetRe(i-1, i-1, d.Get(i-1))
 
 			if i < m {
 				//              Generate elementary reflector H(i) to annihilate
 				//              A(i+2:m,i)
 				alpha = a.Get(i, i-1)
-				alpha, *tauq.GetPtr(i - 1) = Zlarfg(m-i, alpha, a.CVector(min(i+2, m)-1, i-1, 1))
+				alpha, *tauq.GetPtr(i - 1) = Zlarfg(m-i, alpha, a.Off(min(i+2, m)-1, i-1).CVector(), 1)
 				e.Set(i-1, real(alpha))
 				a.Set(i, i-1, one)
 
 				//              Apply H(i)**H to A(i+1:m,i+1:n) from the left
-				Zlarf(Left, m-i, n-i, a.CVector(i, i-1, 1), tauq.GetConj(i-1), a.Off(i, i), work)
+				Zlarf(Left, m-i, n-i, a.Off(i, i-1).CVector(), 1, tauq.GetConj(i-1), a.Off(i, i), work)
 				a.SetRe(i, i-1, e.Get(i-1))
 			} else {
 				tauq.Set(i-1, zero)

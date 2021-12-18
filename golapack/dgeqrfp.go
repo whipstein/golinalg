@@ -85,7 +85,7 @@ func Dgeqrfp(m, n int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (err err
 				Dlarft('F', 'C', m-i+1, ib, a.Off(i-1, i-1), tau.Off(i-1), work.Matrix(ldwork, opts))
 
 				//              Apply H**T to A(i:m,i+ib:n) from the left
-				Dlarfb(Left, Trans, 'F', 'C', m-i+1, n-i-ib+1, ib, a.Off(i-1, i-1), work.Matrix(ldwork, opts), a.Off(i-1, i+ib-1), work.MatrixOff(ib, ldwork, opts))
+				Dlarfb(Left, Trans, 'F', 'C', m-i+1, n-i-ib+1, ib, a.Off(i-1, i-1), work.Matrix(ldwork, opts), a.Off(i-1, i+ib-1), work.Off(ib).Matrix(ldwork, opts))
 			}
 		}
 	} else {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -121,7 +120,7 @@ func DlaorhrColGetrfnp2(m, n int, a *mat.Matrix, d *mat.Vector) (err error) {
 
 		//        Construct the subdiagonal elements of L
 		if math.Abs(a.Get(0, 0)) >= sfmin {
-			goblas.Dscal(m-1, one/a.Get(0, 0), a.Vector(1, 0, 1))
+			a.Off(1, 0).Vector().Scal(m-1, one/a.Get(0, 0), 1)
 		} else {
 			for i = 2; i <= m; i++ {
 				a.Set(i-1, 0, a.Get(i-1, 0)/a.Get(0, 0))
@@ -139,18 +138,18 @@ func DlaorhrColGetrfnp2(m, n int, a *mat.Matrix, d *mat.Vector) (err error) {
 		}
 
 		//        Solve for B21
-		if err = goblas.Dtrsm(Right, Upper, NoTrans, NonUnit, m-n1, n1, one, a, a.Off(n1, 0)); err != nil {
+		if err = a.Off(n1, 0).Trsm(Right, Upper, NoTrans, NonUnit, m-n1, n1, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Solve for B12
-		if err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, a.Off(0, n1)); err != nil {
+		if err = a.Off(0, n1).Trsm(Left, Lower, NoTrans, Unit, n1, n2, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Update B22, i.e. compute the Schur complement
 		//        B22 := B22 - B21*B12
-		if err = goblas.Dgemm(NoTrans, NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1)); err != nil {
+		if err = a.Off(n1, n1).Gemm(NoTrans, NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one); err != nil {
 			panic(err)
 		}
 

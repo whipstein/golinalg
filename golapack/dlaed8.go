@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -61,7 +60,7 @@ func Dlaed8(icompq, n, qsiz int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho
 	n1p1 = n1 + 1
 
 	if rhoOut < zero {
-		goblas.Dscal(n2, mone, z.Off(n1p1-1))
+		z.Off(n1p1-1).Scal(n2, mone, 1)
 	}
 
 	//     Normalize z so that norm(z) = 1
@@ -69,7 +68,7 @@ func Dlaed8(icompq, n, qsiz int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho
 	for j = 1; j <= n; j++ {
 		(*indx)[j-1] = j
 	}
-	goblas.Dscal(n, t, z)
+	z.Scal(n, t, 1)
 	rhoOut = math.Abs(two * rhoOut)
 
 	//     Sort the eigenvalues into increasing order
@@ -89,8 +88,8 @@ func Dlaed8(icompq, n, qsiz int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho
 	}
 
 	//     Calculate the allowable deflation tolerance
-	imax = goblas.Idamax(n, z)
-	jmax = goblas.Idamax(n, d)
+	imax = z.Iamax(n, 1)
+	jmax = d.Iamax(n, 1)
 	eps = Dlamch(Epsilon)
 	tol = eight * eps * math.Abs(d.Get(jmax-1))
 
@@ -106,7 +105,7 @@ func Dlaed8(icompq, n, qsiz int, d *mat.Vector, q *mat.Matrix, indxq *[]int, rho
 		} else {
 			for j = 1; j <= n; j++ {
 				(*perm)[j-1] = (*indxq)[(*indx)[j-1]-1]
-				goblas.Dcopy(qsiz, q.Vector(0, (*perm)[j-1]-1, 1), q2.Vector(0, j-1, 1))
+				q2.Off(0, j-1).Vector().Copy(qsiz, q.Off(0, (*perm)[j-1]-1).Vector(), 1, 1)
 			}
 			Dlacpy(Full, qsiz, n, q2.Off(0, 0), q.Off(0, 0))
 		}
@@ -166,7 +165,7 @@ label80:
 			givnum.Set(0, givptr-1, c)
 			givnum.Set(1, givptr-1, s)
 			if icompq == 1 {
-				goblas.Drot(qsiz, q.Vector(0, (*indxq)[(*indx)[jlam-1]-1]-1, 1), q.Vector(0, (*indxq)[(*indx)[j-1]-1]-1, 1), c, s)
+				q.Off(0, (*indxq)[(*indx)[j-1]-1]-1).Vector().Rot(qsiz, q.Off(0, (*indxq)[(*indx)[jlam-1]-1]-1).Vector(), 1, 1, c, s)
 			}
 			t = d.Get(jlam-1)*c*c + d.Get(j-1)*s*s
 			d.Set(j-1, d.Get(jlam-1)*s*s+d.Get(j-1)*c*c)
@@ -224,7 +223,7 @@ label110:
 			jp = (*indxp)[j-1]
 			dlamda.Set(j-1, d.Get(jp-1))
 			(*perm)[j-1] = (*indxq)[(*indx)[jp-1]-1]
-			goblas.Dcopy(qsiz, q.Vector(0, (*perm)[j-1]-1, 1), q2.Vector(0, j-1, 1))
+			q2.Off(0, j-1).Vector().Copy(qsiz, q.Off(0, (*perm)[j-1]-1).Vector(), 1, 1)
 		}
 	}
 
@@ -232,9 +231,9 @@ label110:
 	//     into the last N - K slots of D and Q respectively.
 	if k < n {
 		if icompq == 0 {
-			goblas.Dcopy(n-k, dlamda.Off(k), d.Off(k))
+			d.Off(k).Copy(n-k, dlamda.Off(k), 1, 1)
 		} else {
-			goblas.Dcopy(n-k, dlamda.Off(k), d.Off(k))
+			d.Off(k).Copy(n-k, dlamda.Off(k), 1, 1)
 			Dlacpy(Full, qsiz, n-k, q2.Off(0, k), q.Off(0, k))
 		}
 	}

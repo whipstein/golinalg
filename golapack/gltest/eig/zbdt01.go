@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -37,66 +36,66 @@ func zbdt01(m, n, kd int, a, q *mat.CMatrix, d, e *mat.Vector, pt *mat.CMatrix, 
 		if kd != 0 && m >= n {
 			//           B is upper bidiagonal and M >= N.
 			for j = 1; j <= n; j++ {
-				goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).CVector(), 1, 1)
 				for i = 1; i <= n-1; i++ {
 					work.Set(m+i-1, d.GetCmplx(i-1)*pt.Get(i-1, j-1)+e.GetCmplx(i-1)*pt.Get(i, j-1))
 				}
 				work.Set(m+n-1, d.GetCmplx(n-1)*pt.Get(n-1, j-1))
-				if err = goblas.Zgemv(NoTrans, m, n, -toCmplx(one), q, work.Off(m, 1), toCmplx(one), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, n, -toCmplx(one), q, work.Off(m), 1, toCmplx(one), 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dzasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		} else if kd < 0 {
 			//           B is upper bidiagonal and M < N.
 			for j = 1; j <= n; j++ {
-				goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).CVector(), 1, 1)
 				for i = 1; i <= m-1; i++ {
 					work.Set(m+i-1, d.GetCmplx(i-1)*pt.Get(i-1, j-1)+e.GetCmplx(i-1)*pt.Get(i, j-1))
 				}
 				work.Set(m+m-1, d.GetCmplx(m-1)*pt.Get(m-1, j-1))
-				if err = goblas.Zgemv(NoTrans, m, m, -toCmplx(one), q, work.Off(m, 1), toCmplx(one), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, m, -toCmplx(one), q, work.Off(m), 1, toCmplx(one), 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dzasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		} else {
 			//           B is lower bidiagonal.
 			for j = 1; j <= n; j++ {
-				goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).CVector(), 1, 1)
 				work.Set(m, d.GetCmplx(0)*pt.Get(0, j-1))
 				for i = 2; i <= m; i++ {
 					work.Set(m+i-1, e.GetCmplx(i-1-1)*pt.Get(i-1-1, j-1)+d.GetCmplx(i-1)*pt.Get(i-1, j-1))
 				}
-				if err = goblas.Zgemv(NoTrans, m, m, -toCmplx(one), q, work.Off(m, 1), toCmplx(one), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, m, -toCmplx(one), q, work.Off(m), 1, toCmplx(one), 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dzasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		}
 	} else {
 		//        B is diagonal.
 		if m >= n {
 			for j = 1; j <= n; j++ {
-				goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).CVector(), 1, 1)
 				for i = 1; i <= n; i++ {
 					work.Set(m+i-1, d.GetCmplx(i-1)*pt.Get(i-1, j-1))
 				}
-				if err = goblas.Zgemv(NoTrans, m, n, -toCmplx(one), q, work.Off(m, 1), toCmplx(one), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, n, -toCmplx(one), q, work.Off(m), 1, toCmplx(one), 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dzasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				goblas.Zcopy(m, a.CVector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).CVector(), 1, 1)
 				for i = 1; i <= m; i++ {
 					work.Set(m+i-1, d.GetCmplx(i-1)*pt.Get(i-1, j-1))
 				}
-				if err = goblas.Zgemv(NoTrans, m, m, -toCmplx(one), q, work.Off(m, 1), toCmplx(one), work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, m, -toCmplx(one), q, work.Off(m), 1, toCmplx(one), 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dzasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		}
 	}

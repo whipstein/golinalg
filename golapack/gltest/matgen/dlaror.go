@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -77,7 +76,7 @@ func Dlaror(side, init byte, m, n int, a *mat.Matrix, iseed *[]int, x *mat.Vecto
 		}
 
 		//        Generate a Householder transformation from the random vector X
-		xnorm = goblas.Dnrm2(ixfrm, x.Off(kbeg-1, 1))
+		xnorm = x.Off(kbeg-1).Nrm2(ixfrm, 1)
 		xnorms = math.Copysign(xnorm, x.Get(kbeg-1))
 		x.Set(kbeg+nxfrm-1, math.Copysign(one, -x.Get(kbeg-1)))
 		factor = xnorms * (xnorms + x.Get(kbeg-1))
@@ -93,10 +92,10 @@ func Dlaror(side, init byte, m, n int, a *mat.Matrix, iseed *[]int, x *mat.Vecto
 		//        Apply Householder transformation to A
 		if itype == 1 || itype == 3 {
 			//           Apply H(k) from the left.
-			if err = goblas.Dgemv(Trans, ixfrm, n, one, a.Off(kbeg-1, 0), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1)); err != nil {
+			if err = x.Off(2*nxfrm).Gemv(Trans, ixfrm, n, one, a.Off(kbeg-1, 0), x.Off(kbeg-1), 1, zero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dger(ixfrm, n, -factor, x.Off(kbeg-1, 1), x.Off(2*nxfrm, 1), a.Off(kbeg-1, 0)); err != nil {
+			if err = a.Off(kbeg-1, 0).Ger(ixfrm, n, -factor, x.Off(kbeg-1), 1, x.Off(2*nxfrm), 1); err != nil {
 				panic(err)
 			}
 
@@ -104,10 +103,10 @@ func Dlaror(side, init byte, m, n int, a *mat.Matrix, iseed *[]int, x *mat.Vecto
 
 		if itype == 2 || itype == 3 {
 			//           Apply H(k) from the right.
-			if err = goblas.Dgemv(NoTrans, m, ixfrm, one, a.Off(0, kbeg-1), x.Off(kbeg-1, 1), zero, x.Off(2*nxfrm, 1)); err != nil {
+			if err = x.Off(2*nxfrm).Gemv(NoTrans, m, ixfrm, one, a.Off(0, kbeg-1), x.Off(kbeg-1), 1, zero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dger(m, ixfrm, -factor, x.Off(2*nxfrm, 1), x.Off(kbeg-1, 1), a.Off(0, kbeg-1)); err != nil {
+			if err = a.Off(0, kbeg-1).Ger(m, ixfrm, -factor, x.Off(2*nxfrm), 1, x.Off(kbeg-1), 1); err != nil {
 				panic(err)
 			}
 
@@ -118,13 +117,13 @@ func Dlaror(side, init byte, m, n int, a *mat.Matrix, iseed *[]int, x *mat.Vecto
 	//     Scale the matrix A by D.
 	if itype == 1 || itype == 3 {
 		for irow = 1; irow <= m; irow++ {
-			goblas.Dscal(n, x.Get(nxfrm+irow-1), a.Vector(irow-1, 0))
+			a.Off(irow-1, 0).Vector().Scal(n, x.Get(nxfrm+irow-1), a.Rows)
 		}
 	}
 
 	if itype == 2 || itype == 3 {
 		for jcol = 1; jcol <= n; jcol++ {
-			goblas.Dscal(m, x.Get(nxfrm+jcol-1), a.Vector(0, jcol-1, 1))
+			a.Off(0, jcol-1).Vector().Scal(m, x.Get(nxfrm+jcol-1), 1)
 		}
 	}
 

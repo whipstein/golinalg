@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -104,12 +103,12 @@ func Zpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) 
 
 					if i2 > 0 {
 						//                    Update A12
-						if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, ib, i2, cone, ab.Off(kd, i-1).UpdateRows(ab.Rows-1), ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1).Trsm(Left, Upper, ConjTrans, NonUnit, ib, i2, cone, ab.Off(kd, i-1).UpdateRows(ab.Rows-1)); err != nil {
 							panic(err)
 						}
 
 						//                    Update A22
-						if err = goblas.Zherk(Upper, ConjTrans, i2, ib, -one, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), one, ab.Off(kd, i+ib-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(kd, i+ib-1).UpdateRows(ab.Rows-1).Herk(Upper, ConjTrans, i2, ib, -one, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), one); err != nil {
 							panic(err)
 						}
 					}
@@ -123,19 +122,19 @@ func Zpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) 
 						}
 
 						//                    Update A13 (in the work array).
-						if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, ib, i3, cone, ab.Off(kd, i-1).UpdateRows(ab.Rows-1), work); err != nil {
+						if err = work.Trsm(Left, Upper, ConjTrans, NonUnit, ib, i3, cone, ab.Off(kd, i-1).UpdateRows(ab.Rows-1)); err != nil {
 							panic(err)
 						}
 
 						//                    Update A23
 						if i2 > 0 {
-							if err = goblas.Zgemm(ConjTrans, NoTrans, i2, i3, ib, -cone, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), work, cone, ab.Off(1+ib-1, i+kd-1).UpdateRows(ab.Rows-1)); err != nil {
+							if err = ab.Off(1+ib-1, i+kd-1).UpdateRows(ab.Rows-1).Gemm(ConjTrans, NoTrans, i2, i3, ib, -cone, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), work, cone); err != nil {
 								panic(err)
 							}
 						}
 
 						//                    Update A33
-						if err = goblas.Zherk(Upper, ConjTrans, i3, ib, -one, work, one, ab.Off(kd, i+kd-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(kd, i+kd-1).UpdateRows(ab.Rows-1).Herk(Upper, ConjTrans, i3, ib, -one, work, one); err != nil {
 							panic(err)
 						}
 
@@ -191,12 +190,12 @@ func Zpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) 
 
 					if i2 > 0 {
 						//                    Update A21
-						if err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, i2, ib, cone, ab.Off(0, i-1).UpdateRows(ab.Rows-1), ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1).Trsm(Right, Lower, ConjTrans, NonUnit, i2, ib, cone, ab.Off(0, i-1).UpdateRows(ab.Rows-1)); err != nil {
 							panic(err)
 						}
 
 						//                    Update A22
-						if err = goblas.Zherk(Lower, NoTrans, i2, ib, -one, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), one, ab.Off(0, i+ib-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(0, i+ib-1).UpdateRows(ab.Rows-1).Herk(Lower, NoTrans, i2, ib, -one, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), one); err != nil {
 							panic(err)
 						}
 					}
@@ -210,19 +209,19 @@ func Zpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.CMatrix) (info int, err error) 
 						}
 
 						//                    Update A31 (in the work array).
-						if err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, i3, ib, cone, ab.Off(0, i-1).UpdateRows(ab.Rows-1), work); err != nil {
+						if err = work.Trsm(Right, Lower, ConjTrans, NonUnit, i3, ib, cone, ab.Off(0, i-1).UpdateRows(ab.Rows-1)); err != nil {
 							panic(err)
 						}
 
 						//                    Update A32
 						if i2 > 0 {
-							if err = goblas.Zgemm(NoTrans, ConjTrans, i3, i2, ib, -cone, work, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), cone, ab.Off(1+kd-ib-1, i+ib-1).UpdateRows(ab.Rows-1)); err != nil {
+							if err = ab.Off(1+kd-ib-1, i+ib-1).UpdateRows(ab.Rows-1).Gemm(NoTrans, ConjTrans, i3, i2, ib, -cone, work, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), cone); err != nil {
 								panic(err)
 							}
 						}
 
 						//                    Update A33
-						if err = goblas.Zherk(Lower, NoTrans, i3, ib, -one, work, one, ab.Off(0, i+kd-1).UpdateRows(ab.Rows-1)); err != nil {
+						if err = ab.Off(0, i+kd-1).UpdateRows(ab.Rows-1).Herk(Lower, NoTrans, i3, ib, -one, work, one); err != nil {
 							panic(err)
 						}
 

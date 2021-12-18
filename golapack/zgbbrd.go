@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -108,7 +107,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 				//              generate plane rotations to annihilate nonzero elements
 				//              which have been created below the band
 				if nr > 0 {
-					Zlargv(nr, ab.CVector(klu1-1, j1-klm-1-1, inca), work.Off(j1-1, kb1), rwork.Off(j1-1, kb1))
+					Zlargv(nr, ab.Off(klu1-1, j1-klm-1-1).CVector(), inca, work.Off(j1-1), kb1, rwork.Off(j1-1), kb1)
 				}
 
 				//              apply plane rotations from the left
@@ -119,7 +118,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 						nrt = nr
 					}
 					if nrt > 0 {
-						Zlartv(nrt, ab.CVector(klu1-l-1, j1-klm+l-1-1, inca), ab.CVector(klu1-l, j1-klm+l-1-1, inca), rwork.Off(j1-1, kb1), work.Off(j1-1, kb1))
+						Zlartv(nrt, ab.Off(klu1-l-1, j1-klm+l-1-1).CVector(), inca, ab.Off(klu1-l, j1-klm+l-1-1).CVector(), inca, rwork.Off(j1-1), work.Off(j1-1), kb1)
 					}
 				}
 
@@ -130,7 +129,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 						*rwork.GetPtr(i + ml - 1 - 1), *work.GetPtr(i + ml - 1 - 1), ra = Zlartg(ab.Get(ku+ml-1-1, i-1), ab.Get(ku+ml-1, i-1))
 						ab.Set(ku+ml-1-1, i-1, ra)
 						if i < n {
-							Zrot(min(ku+ml-2, n-i), ab.CVector(ku+ml-2-1, i, ab.Rows-1), ab.CVector(ku+ml-1-1, i, ab.Rows-1), rwork.Get(i+ml-1-1), work.Get(i+ml-1-1))
+							Zrot(min(ku+ml-2, n-i), ab.Off(ku+ml-2-1, i).CVector(), ab.Rows-1, ab.Off(ku+ml-1-1, i).CVector(), ab.Rows-1, rwork.Get(i+ml-1-1), work.Get(i+ml-1-1))
 						}
 					}
 					nr = nr + 1
@@ -140,14 +139,14 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 				if wantq {
 					//                 accumulate product of plane rotations in Q
 					for j = j1; j <= j2; j += kb1 {
-						Zrot(m, q.CVector(0, j-1-1, 1), q.CVector(0, j-1, 1), rwork.Get(j-1), work.GetConj(j-1))
+						Zrot(m, q.Off(0, j-1-1).CVector(), 1, q.Off(0, j-1).CVector(), 1, rwork.Get(j-1), work.GetConj(j-1))
 					}
 				}
 
 				if wantc {
 					//                 apply plane rotations to C
 					for j = j1; j <= j2; j += kb1 {
-						Zrot(ncc, c.CVector(j-1-1, 0), c.CVector(j-1, 0), rwork.Get(j-1), work.Get(j-1))
+						Zrot(ncc, c.Off(j-1-1, 0).CVector(), c.Rows, c.Off(j-1, 0).CVector(), c.Rows, rwork.Get(j-1), work.Get(j-1))
 					}
 				}
 
@@ -167,7 +166,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 				//              generate plane rotations to annihilate nonzero elements
 				//              which have been generated above the band
 				if nr > 0 {
-					Zlargv(nr, ab.CVector(0, j1+kun-1-1, inca), work.Off(j1+kun-1, kb1), rwork.Off(j1+kun-1, kb1))
+					Zlargv(nr, ab.Off(0, j1+kun-1-1).CVector(), inca, work.Off(j1+kun-1), kb1, rwork.Off(j1+kun-1), kb1)
 				}
 
 				//              apply plane rotations from the right
@@ -178,7 +177,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 						nrt = nr
 					}
 					if nrt > 0 {
-						Zlartv(nrt, ab.CVector(l, j1+kun-1-1, inca), ab.CVector(l-1, j1+kun-1, inca), rwork.Off(j1+kun-1, kb1), work.Off(j1+kun-1, kb1))
+						Zlartv(nrt, ab.Off(l, j1+kun-1-1).CVector(), inca, ab.Off(l-1, j1+kun-1).CVector(), inca, rwork.Off(j1+kun-1), work.Off(j1+kun-1), kb1)
 					}
 				}
 
@@ -188,7 +187,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 						//                    within the band, and apply rotation from the right
 						*rwork.GetPtr(i + mu - 1 - 1), *work.GetPtr(i + mu - 1 - 1), ra = Zlartg(ab.Get(ku-mu+3-1, i+mu-2-1), ab.Get(ku-mu+2-1, i+mu-1-1))
 						ab.Set(ku-mu+3-1, i+mu-2-1, ra)
-						Zrot(min(kl+mu-2, m-i), ab.CVector(ku-mu+4-1, i+mu-2-1, 1), ab.CVector(ku-mu+3-1, i+mu-1-1, 1), rwork.Get(i+mu-1-1), work.Get(i+mu-1-1))
+						Zrot(min(kl+mu-2, m-i), ab.Off(ku-mu+4-1, i+mu-2-1).CVector(), 1, ab.Off(ku-mu+3-1, i+mu-1-1).CVector(), 1, rwork.Get(i+mu-1-1), work.Get(i+mu-1-1))
 					}
 					nr = nr + 1
 					j1 = j1 - kb1
@@ -197,7 +196,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 				if wantpt {
 					//                 accumulate product of plane rotations in P**H
 					for j = j1; j <= j2; j += kb1 {
-						Zrot(n, pt.CVector(j+kun-1-1, 0), pt.CVector(j+kun-1, 0), rwork.Get(j+kun-1), work.GetConj(j+kun-1))
+						Zrot(n, pt.Off(j+kun-1-1, 0).CVector(), pt.Rows, pt.Off(j+kun-1, 0).CVector(), pt.Rows, rwork.Get(j+kun-1), work.GetConj(j+kun-1))
 					}
 				}
 
@@ -237,10 +236,10 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 				ab.Set(0, i, toCmplx(rc)*ab.Get(0, i))
 			}
 			if wantq {
-				Zrot(m, q.CVector(0, i-1, 1), q.CVector(0, i, 1), rc, cmplx.Conj(rs))
+				Zrot(m, q.Off(0, i-1).CVector(), 1, q.Off(0, i).CVector(), 1, rc, cmplx.Conj(rs))
 			}
 			if wantc {
-				Zrot(ncc, c.CVector(i-1, 0), c.CVector(i, 0), rc, rs)
+				Zrot(ncc, c.Off(i-1, 0).CVector(), c.Rows, c.Off(i, 0).CVector(), c.Rows, rc, rs)
 			}
 		}
 	} else {
@@ -258,7 +257,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 					ab.Set(ku-1, i-1, toCmplx(rc)*ab.Get(ku-1, i-1))
 				}
 				if wantpt {
-					Zrot(n, pt.CVector(i-1, 0), pt.CVector(m, 0), rc, cmplx.Conj(rs))
+					Zrot(n, pt.Off(i-1, 0).CVector(), pt.Rows, pt.Off(m, 0).CVector(), pt.Rows, rc, cmplx.Conj(rs))
 				}
 			}
 		}
@@ -276,10 +275,10 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 			t = cone
 		}
 		if wantq {
-			goblas.Zscal(m, t, q.CVector(0, i-1, 1))
+			q.Off(0, i-1).CVector().Scal(m, t, 1)
 		}
 		if wantc {
-			goblas.Zscal(ncc, cmplx.Conj(t), c.CVector(i-1, 0, *&c.Rows))
+			c.Off(i-1, 0).CVector().Scal(ncc, cmplx.Conj(t), c.Rows)
 		}
 		if i < minmn {
 			if ku == 0 && kl == 0 {
@@ -299,7 +298,7 @@ func Zgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.CMatrix, d, e *mat.Vector,
 					t = cone
 				}
 				if wantpt {
-					goblas.Zscal(n, t, pt.CVector(i, 0, *&pt.Rows))
+					pt.Off(i, 0).CVector().Scal(n, t, pt.Rows)
 				}
 				t = ab.Get(ku, i) * cmplx.Conj(t)
 			}

@@ -173,7 +173,7 @@ func Zlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.CMa
 					for j = 2; j <= n; j++ {
 						colssq.Set(0, zero)
 						colssq.Set(1, one)
-						*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(j-1, k), ab.CVector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+						*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(j-1, k), ab.Off(max(k+2-j, 1)-1, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 						Dcombssq(ssq, colssq)
 					}
 				}
@@ -183,7 +183,7 @@ func Zlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.CMa
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(j, k+1), ab.CVector(max(k+2-j, 1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(j, k+1), ab.Off(max(k+2-j, 1)-1, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}
@@ -195,7 +195,7 @@ func Zlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.CMa
 					for j = 1; j <= n-1; j++ {
 						colssq.Set(0, zero)
 						colssq.Set(1, one)
-						*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n-j, k), ab.CVector(1, j-1, 1), colssq.Get(0), colssq.Get(1))
+						*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n-j, k), ab.Off(1, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 						Dcombssq(ssq, colssq)
 					}
 				}
@@ -205,7 +205,7 @@ func Zlantb(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n, k int, ab *mat.CMa
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n-j+1, k+1), ab.CVector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(min(n-j+1, k+1), ab.Off(0, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}

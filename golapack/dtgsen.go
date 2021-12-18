@@ -141,8 +141,8 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 			dscale = zero
 			dsum = one
 			for i = 1; i <= n; i++ {
-				dscale, dsum = Dlassq(n, a.Vector(0, i-1, 1), dscale, dsum)
-				dscale, dsum = Dlassq(n, b.Vector(0, i-1, 1), dscale, dsum)
+				dscale, dsum = Dlassq(n, a.Off(0, i-1).Vector(), 1, dscale, dsum)
+				dscale, dsum = Dlassq(n, b.Off(0, i-1).Vector(), 1, dscale, dsum)
 			}
 			dif.Set(0, dscale*math.Sqrt(dsum))
 			dif.Set(1, dif.Get(0))
@@ -208,8 +208,8 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 		i = n1 + 1
 		ijb = 0
 		Dlacpy(Full, n1, n2, a.Off(0, i-1), work.Matrix(n1, opts))
-		Dlacpy(Full, n1, n2, b.Off(0, i-1), work.MatrixOff(n1*n2, n1, opts))
-		if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.MatrixOff(n1*n2, n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+		Dlacpy(Full, n1, n2, b.Off(0, i-1), work.Off(n1*n2).Matrix(n1, opts))
+		if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).Matrix(n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 			panic(err)
 		}
 
@@ -217,7 +217,7 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 		//        and right eigenspaces.
 		rdscal = zero
 		dsum = one
-		rdscal, dsum = Dlassq(n1*n2, work.Off(0, 1), rdscal, dsum)
+		rdscal, dsum = Dlassq(n1*n2, work, 1, rdscal, dsum)
 		pl = rdscal * math.Sqrt(dsum)
 		if pl == zero {
 			pl = one
@@ -226,7 +226,7 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 		}
 		rdscal = zero
 		dsum = one
-		rdscal, dsum = Dlassq(n1*n2, work.Off(n1*n2, 1), rdscal, dsum)
+		rdscal, dsum = Dlassq(n1*n2, work.Off(n1*n2), 1, rdscal, dsum)
 		pr = rdscal * math.Sqrt(dsum)
 		if pr == zero {
 			pr = one
@@ -244,12 +244,12 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 			ijb = idifjb
 
 			//           Frobenius norm-based Difu-estimate.
-			if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.MatrixOff(n1*n2, n1, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
+			if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).Matrix(n1, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
 				panic(err)
 			}
 
 			//           Frobenius norm-based Difl-estimate.
-			if dscale, *dif.GetPtr(1), ierr, err = Dtgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.Matrix(n2, opts), b.Off(i-1, i-1), b, work.MatrixOff(n1*n2, n2, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
+			if dscale, *dif.GetPtr(1), ierr, err = Dtgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.Matrix(n2, opts), b.Off(i-1, i-1), b, work.Off(n1*n2).Matrix(n2, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
 				panic(err)
 			}
 		} else {
@@ -272,12 +272,12 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation.
-					if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.MatrixOff(n1*n2, n1, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).Matrix(n1, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				} else {
 					//                 Solve the transposed variant.
-					if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(Trans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.MatrixOff(n1*n2, n1, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(0), ierr, err = Dtgsyl(Trans, ijb, n1, n2, a, a.Off(i-1, i-1), work.Matrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).Matrix(n1, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				}
@@ -293,12 +293,12 @@ func Dtgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.Matrix
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation.
-					if dscale, *dif.GetPtr(1), ierr, err = Dtgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.Matrix(n2, opts), b.Off(i-1, i-1), b, work.MatrixOff(n1*n2, n2, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(1), ierr, err = Dtgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.Matrix(n2, opts), b.Off(i-1, i-1), b, work.Off(n1*n2).Matrix(n2, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				} else {
 					//                 Solve the transposed variant.
-					if dscale, *dif.GetPtr(1), ierr, err = Dtgsyl(Trans, ijb, n2, n1, a.Off(i-1, i-1), a, work.Matrix(n2, opts), b.Off(i-1, i-1), b, work.MatrixOff(n1*n2, n2, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(1), ierr, err = Dtgsyl(Trans, ijb, n2, n1, a.Off(i-1, i-1), a, work.Matrix(n2, opts), b.Off(i-1, i-1), b, work.Off(n1*n2).Matrix(n2, opts), work.Off(2*n1*n2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				}
@@ -336,7 +336,7 @@ label60:
 				work.Set(5, b.Get(k, k-1))
 				work.Set(6, b.Get(k-1, k))
 				work.Set(7, b.Get(k, k))
-				*beta.GetPtr(k - 1), *beta.GetPtr(k), *alphar.GetPtr(k - 1), *alphar.GetPtr(k), *alphai.GetPtr(k - 1) = Dlag2(work.Matrix(2, opts), work.MatrixOff(4, 2, opts), smlnum*eps)
+				*beta.GetPtr(k - 1), *beta.GetPtr(k), *alphar.GetPtr(k - 1), *alphar.GetPtr(k), *alphai.GetPtr(k - 1) = Dlag2(work.Matrix(2, opts), work.Off(4).Matrix(2, opts), smlnum*eps)
 				alphai.Set(k, -alphai.Get(k-1))
 
 			} else {

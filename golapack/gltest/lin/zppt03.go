@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,7 +46,7 @@ func zppt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 		//        Copy AINV
 		jj = 1
 		for j = 1; j <= n-1; j++ {
-			goblas.Zcopy(j, ainv.Off(jj-1, 1), work.CVector(0, j, 1))
+			work.Off(0, j).CVector().Copy(j, ainv.Off(jj-1), 1, 1)
 			for i = 1; i <= j-1; i++ {
 				work.Set(j-1, i, ainv.GetConj(jj+i-1-1))
 			}
@@ -60,11 +59,11 @@ func zppt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 
 		//        Multiply by A
 		for j = 1; j <= n-1; j++ {
-			if err = goblas.Zhpmv(Upper, n, -cone, a, work.CVector(0, j, 1), czero, work.CVector(0, j-1, 1)); err != nil {
+			if err = work.Off(0, j-1).CVector().Hpmv(Upper, n, -cone, a, work.Off(0, j).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
 		}
-		if err = goblas.Zhpmv(Upper, n, -cone, a, ainv.Off(jj-1, 1), czero, work.CVector(0, n-1, 1)); err != nil {
+		if err = work.Off(0, n-1).CVector().Hpmv(Upper, n, -cone, a, ainv.Off(jj-1), 1, czero, 1); err != nil {
 			panic(err)
 		}
 
@@ -78,7 +77,7 @@ func zppt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 		}
 		jj = n + 1
 		for j = 2; j <= n; j++ {
-			goblas.Zcopy(n-j+1, ainv.Off(jj-1, 1), work.CVector(j-1, j-1-1, 1))
+			work.Off(j-1, j-1-1).CVector().Copy(n-j+1, ainv.Off(jj-1), 1, 1)
 			for i = 1; i <= n-j; i++ {
 				work.Set(j-1, j+i-1-1, ainv.GetConj(jj+i-1))
 			}
@@ -87,11 +86,11 @@ func zppt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 
 		//        Multiply by A
 		for j = n; j >= 2; j-- {
-			if err = goblas.Zhpmv(Lower, n, -cone, a, work.CVector(0, j-1-1, 1), czero, work.CVector(0, j-1, 1)); err != nil {
+			if err = work.Off(0, j-1).CVector().Hpmv(Lower, n, -cone, a, work.Off(0, j-1-1).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
 		}
-		if err = goblas.Zhpmv(Lower, n, -cone, a, ainv.Off(0, 1), czero, work.CVector(0, 0, 1)); err != nil {
+		if err = work.Off(0, 0).CVector().Hpmv(Lower, n, -cone, a, ainv, 1, czero, 1); err != nil {
 			panic(err)
 		}
 

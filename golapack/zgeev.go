@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -241,14 +240,14 @@ func Zgeev(jobvl, jobvr byte, n int, a *mat.CMatrix, w *mat.CVector, vl, vr *mat
 
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= n; i++ {
-			scl = one / goblas.Dznrm2(n, vl.CVector(0, i-1, 1))
-			goblas.Zdscal(n, scl, vl.CVector(0, i-1, 1))
+			scl = one / vl.Off(0, i-1).CVector().Nrm2(n, 1)
+			vl.Off(0, i-1).CVector().Dscal(n, scl, 1)
 			for k = 1; k <= n; k++ {
 				rwork.Set(irwork+k-1-1, math.Pow(vl.GetRe(k-1, i-1), 2)+math.Pow(vl.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(n, rwork.Off(irwork-1, 1))
+			k = rwork.Off(irwork-1).Iamax(n, 1)
 			tmp = vl.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(irwork+k-1-1)), 0)
-			goblas.Zscal(n, tmp, vl.CVector(0, i-1, 1))
+			vl.Off(0, i-1).CVector().Scal(n, tmp, 1)
 			vl.Set(k-1, i-1, vl.GetReCmplx(k-1, i-1))
 		}
 	}
@@ -263,14 +262,14 @@ func Zgeev(jobvl, jobvr byte, n int, a *mat.CMatrix, w *mat.CVector, vl, vr *mat
 
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= n; i++ {
-			scl = one / goblas.Dznrm2(n, vr.CVector(0, i-1, 1))
-			goblas.Zdscal(n, scl, vr.CVector(0, i-1, 1))
+			scl = one / vr.Off(0, i-1).CVector().Nrm2(n, 1)
+			vr.Off(0, i-1).CVector().Dscal(n, scl, 1)
 			for k = 1; k <= n; k++ {
 				rwork.Set(irwork+k-1-1, math.Pow(vr.GetRe(k-1, i-1), 2)+math.Pow(vr.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(n, rwork.Off(irwork-1, 1))
+			k = rwork.Off(irwork-1).Iamax(n, 1)
 			tmp = vr.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(irwork+k-1-1)), 0)
-			goblas.Zscal(n, tmp, vr.CVector(0, i-1, 1))
+			vr.Off(0, i-1).CVector().Scal(n, tmp, 1)
 			vr.Set(k-1, i-1, vr.GetReCmplx(k-1, i-1))
 		}
 	}
@@ -279,7 +278,7 @@ func Zgeev(jobvl, jobvr byte, n int, a *mat.CMatrix, w *mat.CVector, vl, vr *mat
 label50:
 	;
 	if scalea {
-		if err = Zlascl('G', 0, 0, cscale, anrm, n-info, 1, w.CMatrixOff(info, max(n-info, 1), opts)); err != nil {
+		if err = Zlascl('G', 0, 0, cscale, anrm, n-info, 1, w.Off(info).CMatrix(max(n-info, 1), opts)); err != nil {
 			panic(err)
 		}
 		if info > 0 {

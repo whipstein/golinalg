@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -103,7 +102,7 @@ func Dspevd(jobz byte, uplo mat.MatUplo, n int, ap, w *mat.Vector, z *mat.Matrix
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Dscal((n*(n+1))/2, sigma, ap.Off(0, 1))
+		ap.Scal((n*(n+1))/2, sigma, 1)
 	}
 
 	//     Call DSPTRD to reduce symmetric packed matrix to tridiagonal form.
@@ -134,7 +133,7 @@ func Dspevd(jobz byte, uplo mat.MatUplo, n int, ap, w *mat.Vector, z *mat.Matrix
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, one/sigma, w.Off(0, 1))
+		w.Scal(n, one/sigma, 1)
 	}
 
 	work.Set(0, float64(lwmin))

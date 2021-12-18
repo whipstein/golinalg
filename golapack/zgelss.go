@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -310,7 +309,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		if info, err = Zbdsqr(Upper, n, n, 0, nrhs, s, rwork.Off(ie-1), a, dum.CMatrix(1, opts), b, rwork.Off(irwork-1)); err != nil {
 			panic(err)
 		}
-		if (*&info) != 0 {
+		if (info) != 0 {
 			goto label70
 		}
 
@@ -322,7 +321,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		rank = 0
 		for i = 1; i <= n; i++ {
 			if s.Get(i-1) > thr {
-				Zdrscl(nrhs, s.Get(i-1), b.CVector(i-1, 0))
+				Zdrscl(nrhs, s.Get(i-1), b.Off(i-1, 0).CVector(), b.Rows)
 				rank = rank + 1
 			} else {
 				Zlaset(Full, 1, nrhs, czero, czero, b.Off(i-1, 0))
@@ -333,7 +332,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		//        (CWorkspace: need N, prefer N*NRHS)
 		//        (RWorkspace: none)
 		if lwork >= b.Rows*nrhs && nrhs > 1 {
-			if err = goblas.Zgemm(ConjTrans, NoTrans, n, nrhs, n, cone, a, b, czero, work.CMatrix(b.Rows, opts)); err != nil {
+			if err = work.CMatrix(b.Rows, opts).Gemm(ConjTrans, NoTrans, n, nrhs, n, cone, a, b, czero); err != nil {
 				panic(err)
 			}
 			Zlacpy(Full, n, nrhs, work.CMatrix(b.Rows, opts), b)
@@ -341,16 +340,16 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 			chunk = lwork / n
 			for i = 1; i <= nrhs; i += chunk {
 				bl = min(nrhs-i+1, chunk)
-				if err = goblas.Zgemm(ConjTrans, NoTrans, n, bl, n, cone, a, b.Off(0, i-1), czero, work.CMatrix(n, opts)); err != nil {
+				if err = work.CMatrix(n, opts).Gemm(ConjTrans, NoTrans, n, bl, n, cone, a, b.Off(0, i-1), czero); err != nil {
 					panic(err)
 				}
 				Zlacpy(Full, n, bl, work.CMatrix(n, opts), b.Off(0, i-1))
 			}
 		} else {
-			if err = goblas.Zgemv(ConjTrans, n, n, cone, a, b.CVector(0, 0, 1), czero, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(ConjTrans, n, n, cone, a, b.Off(0, 0).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
-			goblas.Zcopy(n, work.Off(0, 1), b.CVector(0, 0, 1))
+			b.Off(0, 0).CVector().Copy(n, work, 1, 1)
 		}
 
 	} else if n >= mnthr && lwork >= 3*m+m*m+max(m, nrhs, n-2*m) {
@@ -374,8 +373,8 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		il = iwork
 
 		//        Copy L to WORK(IL), zeroing out above it
-		Zlacpy(Lower, m, m, a, work.CMatrixOff(il-1, ldwork, opts))
-		Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(il+ldwork-1, ldwork, opts))
+		Zlacpy(Lower, m, m, a, work.Off(il-1).CMatrix(ldwork, opts))
+		Zlaset(Upper, m-1, m-1, czero, czero, work.Off(il+ldwork-1).CMatrix(ldwork, opts))
 		ie = 1
 		itauq = il + ldwork*m
 		itaup = itauq + m
@@ -384,21 +383,21 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		//        Bidiagonalize L in WORK(IL)
 		//        (CWorkspace: need M*M+4*M, prefer M*M+3*M+2*M*NB)
 		//        (RWorkspace: need M)
-		if err = Zgebrd(m, m, work.CMatrixOff(il-1, ldwork, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+		if err = Zgebrd(m, m, work.Off(il-1).CMatrix(ldwork, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 			panic(err)
 		}
 
 		//        Multiply B by transpose of left bidiagonalizing vectors of L
 		//        (CWorkspace: need M*M+3*M+NRHS, prefer M*M+3*M+NRHS*NB)
 		//        (RWorkspace: none)
-		if err = Zunmbr('Q', Left, ConjTrans, m, nrhs, m, work.CMatrixOff(il-1, ldwork, opts), work.Off(itauq-1), b, work.Off(iwork-1), lwork-iwork+1); err != nil {
+		if err = Zunmbr('Q', Left, ConjTrans, m, nrhs, m, work.Off(il-1).CMatrix(ldwork, opts), work.Off(itauq-1), b, work.Off(iwork-1), lwork-iwork+1); err != nil {
 			panic(err)
 		}
 
 		//        Generate right bidiagonalizing vectors of R in WORK(IL)
 		//        (CWorkspace: need M*M+4*M-1, prefer M*M+3*M+(M-1)*NB)
 		//        (RWorkspace: none)
-		if err = Zungbr('P', m, m, m, work.CMatrixOff(il-1, ldwork, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
+		if err = Zungbr('P', m, m, m, work.Off(il-1).CMatrix(ldwork, opts), work.Off(itaup-1), work.Off(iwork-1), lwork-iwork+1); err != nil {
 			panic(err)
 		}
 		irwork = ie + m
@@ -408,10 +407,10 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		//        left singular vectors
 		//        (CWorkspace: need M*M)
 		//        (RWorkspace: need BDSPAC)
-		if info, err = Zbdsqr(Upper, m, m, 0, nrhs, s, rwork.Off(ie-1), work.CMatrixOff(il-1, ldwork, opts), a, b, rwork.Off(irwork-1)); err != nil {
+		if info, err = Zbdsqr(Upper, m, m, 0, nrhs, s, rwork.Off(ie-1), work.Off(il-1).CMatrix(ldwork, opts), a, b, rwork.Off(irwork-1)); err != nil {
 			panic(err)
 		}
-		if (*&info) != 0 {
+		if (info) != 0 {
 			goto label70
 		}
 
@@ -423,7 +422,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		rank = 0
 		for i = 1; i <= m; i++ {
 			if s.Get(i-1) > thr {
-				Zdrscl(nrhs, s.Get(i-1), b.CVector(i-1, 0))
+				Zdrscl(nrhs, s.Get(i-1), b.Off(i-1, 0).CVector(), b.Rows)
 				rank = rank + 1
 			} else {
 				Zlaset(Full, 1, nrhs, czero, czero, b.Off(i-1, 0))
@@ -435,24 +434,24 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		//        (CWorkspace: need M*M+2*M, prefer M*M+M+M*NRHS)
 		//        (RWorkspace: none)
 		if lwork >= b.Rows*nrhs+iwork-1 && nrhs > 1 {
-			if err = goblas.Zgemm(ConjTrans, NoTrans, m, nrhs, m, cone, work.CMatrixOff(il-1, ldwork, opts), b, czero, work.CMatrixOff(iwork-1, b.Rows, opts)); err != nil {
+			if err = work.Off(iwork-1).CMatrix(b.Rows, opts).Gemm(ConjTrans, NoTrans, m, nrhs, m, cone, work.Off(il-1).CMatrix(ldwork, opts), b, czero); err != nil {
 				panic(err)
 			}
-			Zlacpy(Full, m, nrhs, work.CMatrixOff(iwork-1, b.Rows, opts), b)
+			Zlacpy(Full, m, nrhs, work.Off(iwork-1).CMatrix(b.Rows, opts), b)
 		} else if nrhs > 1 {
 			chunk = (lwork - iwork + 1) / m
 			for i = 1; i <= nrhs; i += chunk {
 				bl = min(nrhs-i+1, chunk)
-				if err = goblas.Zgemm(ConjTrans, NoTrans, m, bl, m, cone, work.CMatrixOff(il-1, ldwork, opts), b.Off(0, i-1), czero, work.CMatrixOff(iwork-1, m, opts)); err != nil {
+				if err = work.Off(iwork-1).CMatrix(m, opts).Gemm(ConjTrans, NoTrans, m, bl, m, cone, work.Off(il-1).CMatrix(ldwork, opts), b.Off(0, i-1), czero); err != nil {
 					panic(err)
 				}
-				Zlacpy(Full, m, bl, work.CMatrixOff(iwork-1, m, opts), b.Off(0, i-1))
+				Zlacpy(Full, m, bl, work.Off(iwork-1).CMatrix(m, opts), b.Off(0, i-1))
 			}
 		} else {
-			if err = goblas.Zgemv(ConjTrans, m, m, cone, work.CMatrixOff(il-1, ldwork, opts), b.CVector(0, 0, 1), czero, work.Off(iwork-1, 1)); err != nil {
+			if err = work.Off(iwork-1).Gemv(ConjTrans, m, m, cone, work.Off(il-1).CMatrix(ldwork, opts), b.Off(0, 0).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
-			goblas.Zcopy(m, work.Off(iwork-1, 1), b.CVector(0, 0, 1))
+			b.Off(0, 0).CVector().Copy(m, work.Off(iwork-1), 1, 1)
 		}
 
 		//        Zero out below first M rows of B
@@ -503,7 +502,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		if info, err = Zbdsqr(Lower, m, n, 0, nrhs, s, rwork.Off(ie-1), a, dum.CMatrix(1, opts), b, rwork.Off(irwork-1)); err != nil {
 			panic(err)
 		}
-		if (*&info) != 0 {
+		if (info) != 0 {
 			goto label70
 		}
 
@@ -515,7 +514,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		rank = 0
 		for i = 1; i <= m; i++ {
 			if s.Get(i-1) > thr {
-				Zdrscl(nrhs, s.Get(i-1), b.CVector(i-1, 0))
+				Zdrscl(nrhs, s.Get(i-1), b.Off(i-1, 0).CVector(), b.Rows)
 				rank = rank + 1
 			} else {
 				Zlaset(Full, 1, nrhs, czero, czero, b.Off(i-1, 0))
@@ -526,7 +525,7 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 		//        (CWorkspace: need N, prefer N*NRHS)
 		//        (RWorkspace: none)
 		if lwork >= b.Rows*nrhs && nrhs > 1 {
-			if err = goblas.Zgemm(ConjTrans, NoTrans, n, nrhs, m, cone, a, b, czero, work.CMatrix(b.Rows, opts)); err != nil {
+			if err = work.CMatrix(b.Rows, opts).Gemm(ConjTrans, NoTrans, n, nrhs, m, cone, a, b, czero); err != nil {
 				panic(err)
 			}
 			Zlacpy(Full, n, nrhs, work.CMatrix(b.Rows, opts), b)
@@ -534,16 +533,16 @@ func Zgelss(m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, rcond float64, wor
 			chunk = lwork / n
 			for i = 1; i <= nrhs; i += chunk {
 				bl = min(nrhs-i+1, chunk)
-				if err = goblas.Zgemm(ConjTrans, NoTrans, n, bl, m, cone, a, b.Off(0, i-1), czero, work.CMatrix(n, opts)); err != nil {
+				if err = work.CMatrix(n, opts).Gemm(ConjTrans, NoTrans, n, bl, m, cone, a, b.Off(0, i-1), czero); err != nil {
 					panic(err)
 				}
 				Zlacpy(Full, n, bl, work.CMatrix(n, opts), b.Off(0, i-1))
 			}
 		} else {
-			if err = goblas.Zgemv(ConjTrans, m, n, cone, a, b.CVector(0, 0, 1), czero, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(ConjTrans, m, n, cone, a, b.Off(0, 0).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
-			goblas.Zcopy(n, work.Off(0, 1), b.CVector(0, 0, 1))
+			b.Off(0, 0).CVector().Copy(n, work, 1, 1)
 		}
 	}
 

@@ -70,10 +70,10 @@ func Dlanst(norm byte, n int, d, e *mat.Vector) (dlanstReturn float64) {
 		scale = zero
 		sum = one
 		if n > 1 {
-			scale, sum = Dlassq(n-1, e.Off(0, 1), scale, sum)
+			scale, sum = Dlassq(n-1, e, 1, scale, sum)
 			sum = 2 * sum
 		}
-		scale, sum = Dlassq(n, d.Off(0, 1), scale, sum)
+		scale, sum = Dlassq(n, d, 1, scale, sum)
 		anorm = scale * math.Sqrt(sum)
 	}
 

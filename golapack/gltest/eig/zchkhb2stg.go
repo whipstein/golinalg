@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -356,9 +355,9 @@ func zchkhb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 				//
 				//              Compute D1 from the DSBTRD and used as reference for the
 				//              DSYTRD_SB2ST
-				goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
+				d1.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 
 				if iinfo, err = golapack.Zsteqr('N', n, d1, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
@@ -388,9 +387,9 @@ func zchkhb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 				}
 
 				//              Compute D2 from the DSYTRD_SB2ST Upper case
-				goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
+				d2.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 
 				if iinfo, err = golapack.Zsteqr('N', n, d2, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
@@ -451,9 +450,9 @@ func zchkhb2stg(nsizes int, nn []int, nwdths int, kk []int, ntypes int, dotype [
 				}
 
 				//              Compute D3 from the 2-stage Upper case
-				goblas.Dcopy(n, sd.Off(0, 1), d3.Off(0, 1))
+				d3.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 
 				if iinfo, err = golapack.Zsteqr('N', n, d3, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {

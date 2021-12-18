@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -89,12 +88,12 @@ func Ztrcon(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.CMatrix
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Izamax(n, work.Off(0, 1))
+				ix = work.Iamax(n, 1)
 				xnorm = cabs1(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return
 				}
-				Zdrscl(n, scale, work.Off(0, 1))
+				Zdrscl(n, scale, work, 1)
 			}
 			goto label10
 		}

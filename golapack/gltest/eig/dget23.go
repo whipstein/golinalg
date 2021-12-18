@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -195,9 +194,9 @@ func dget23(comp bool, balanc byte, jtype int, thresh float64, iseed []int, noun
 	for j = 1; j <= n; j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(n, vr.Vector(0, j-1, 1))
+			tnrm = vr.Off(0, j-1).Vector().Nrm2(n, 1)
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(goblas.Dnrm2(n, vr.Vector(0, j-1, 1)), goblas.Dnrm2(n, vr.Vector(0, j, 1)))
+			tnrm = golapack.Dlapy2(vr.Off(0, j-1).Vector().Nrm2(n, 1), vr.Off(0, j).Vector().Nrm2(n, 1))
 		}
 		result.Set(2, math.Max(result.Get(2), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {
@@ -222,9 +221,9 @@ func dget23(comp bool, balanc byte, jtype int, thresh float64, iseed []int, noun
 	for j = 1; j <= n; j++ {
 		tnrm = one
 		if wi.Get(j-1) == zero {
-			tnrm = goblas.Dnrm2(n, vl.Vector(0, j-1, 1))
+			tnrm = vl.Off(0, j-1).Vector().Nrm2(n, 1)
 		} else if wi.Get(j-1) > zero {
-			tnrm = golapack.Dlapy2(goblas.Dnrm2(n, vl.Vector(0, j-1, 1)), goblas.Dnrm2(n, vl.Vector(0, j, 1)))
+			tnrm = golapack.Dlapy2(vl.Off(0, j-1).Vector().Nrm2(n, 1), vl.Off(0, j).Vector().Nrm2(n, 1))
 		}
 		result.Set(3, math.Max(result.Get(3), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 		if wi.Get(j-1) > zero {

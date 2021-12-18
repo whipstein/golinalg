@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -37,66 +36,66 @@ func dbdt01(m, n, kd int, a, q *mat.Matrix, d, e *mat.Vector, pt *mat.Matrix, wo
 		if kd != 0 && m >= n {
 			//           B is upper bidiagonal and M >= N.
 			for j = 1; j <= n; j++ {
-				goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).Vector(), 1, 1)
 				for i = 1; i <= n-1; i++ {
 					work.Set(m+i-1, d.Get(i-1)*pt.Get(i-1, j-1)+e.Get(i-1)*pt.Get(i, j-1))
 				}
 				work.Set(m+n-1, d.Get(n-1)*pt.Get(n-1, j-1))
-				if err = goblas.Dgemv(NoTrans, m, n, -one, q, work.Off(m, 1), one, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, n, -one, q, work.Off(m), 1, one, 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		} else if kd < 0 {
 			//           B is upper bidiagonal and M < N.
 			for j = 1; j <= n; j++ {
-				goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).Vector(), 1, 1)
 				for i = 1; i <= m-1; i++ {
 					work.Set(m+i-1, d.Get(i-1)*pt.Get(i-1, j-1)+e.Get(i-1)*pt.Get(i, j-1))
 				}
 				work.Set(m+m-1, d.Get(m-1)*pt.Get(m-1, j-1))
-				if err = goblas.Dgemv(NoTrans, m, m, -one, q, work.Off(m, 1), one, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, m, -one, q, work.Off(m), 1, one, 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		} else {
 			//           B is lower bidiagonal.
 			for j = 1; j <= n; j++ {
-				goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).Vector(), 1, 1)
 				work.Set(m, d.Get(0)*pt.Get(0, j-1))
 				for i = 2; i <= m; i++ {
 					work.Set(m+i-1, e.Get(i-1-1)*pt.Get(i-1-1, j-1)+d.Get(i-1)*pt.Get(i-1, j-1))
 				}
-				if err = goblas.Dgemv(NoTrans, m, m, -one, q, work.Off(m, 1), one, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, m, -one, q, work.Off(m), 1, one, 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		}
 	} else {
 		//        B is diagonal.
 		if m >= n {
 			for j = 1; j <= n; j++ {
-				goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).Vector(), 1, 1)
 				for i = 1; i <= n; i++ {
 					work.Set(m+i-1, d.Get(i-1)*pt.Get(i-1, j-1))
 				}
-				if err = goblas.Dgemv(NoTrans, m, n, -one, q, work.Off(m, 1), one, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, n, -one, q, work.Off(m), 1, one, 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				goblas.Dcopy(m, a.Vector(0, j-1, 1), work.Off(0, 1))
+				work.Copy(m, a.Off(0, j-1).Vector(), 1, 1)
 				for i = 1; i <= m; i++ {
 					work.Set(m+i-1, d.Get(i-1)*pt.Get(i-1, j-1))
 				}
-				if err = goblas.Dgemv(NoTrans, m, m, -one, q, work.Off(m, 1), one, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m, m, -one, q, work.Off(m), 1, one, 1); err != nil {
 					panic(err)
 				}
-				resid = math.Max(resid, goblas.Dasum(m, work.Off(0, 1)))
+				resid = math.Max(resid, work.Asum(m, 1))
 			}
 		}
 	}

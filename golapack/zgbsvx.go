@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -137,7 +136,7 @@ func Zgbsvx(fact byte, trans mat.MatTrans, n, kl, ku, nrhs int, ab, afb *mat.CMa
 		for j = 1; j <= n; j++ {
 			j1 = max(j-ku, 1)
 			j2 = min(j+kl, n)
-			goblas.Zcopy(j2-j1+1, ab.CVector(ku+1-j+j1-1, j-1, 1), afb.CVector(kl+ku+1-j+j1-1, j-1, 1))
+			afb.Off(kl+ku+1-j+j1-1, j-1).CVector().Copy(j2-j1+1, ab.Off(ku+1-j+j1-1, j-1).CVector(), 1, 1)
 		}
 
 		if info, err = Zgbtrf(n, n, kl, ku, afb, ipiv); err != nil {

@@ -127,7 +127,7 @@ func Dormrq(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.Matrix, ta
 
 			//           Form the triangular factor of the block reflector
 			//           H = H(i+ib-1) . . . H(i+1) H(i)
-			Dlarft('B', 'R', nq-k+i+ib-1, ib, a.Off(i-1, 0), tau.Off(i-1), work.MatrixOff(iwt-1, ldt, opts))
+			Dlarft('B', 'R', nq-k+i+ib-1, ib, a.Off(i-1, 0), tau.Off(i-1), work.Off(iwt-1).Matrix(ldt, opts))
 			if left {
 				//              H or H**T is applied to C(1:m-k+i+ib-1,1:n)
 				mi = m - k + i + ib - 1
@@ -137,7 +137,7 @@ func Dormrq(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.Matrix, ta
 			}
 
 			//           Apply H or H**T
-			Dlarfb(side, transt, 'B', 'R', mi, ni, ib, a.Off(i-1, 0), work.MatrixOff(iwt-1, ldt, opts), c, work.Matrix(ldwork, opts))
+			Dlarfb(side, transt, 'B', 'R', mi, ni, ib, a.Off(i-1, 0), work.Off(iwt-1).Matrix(ldt, opts), c, work.Matrix(ldwork, opts))
 		}
 	}
 	work.Set(0, float64(lwkopt))

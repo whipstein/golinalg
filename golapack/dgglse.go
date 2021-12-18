@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,10 +111,10 @@ func Dgglse(m, n, p int, a, b *mat.Matrix, c, d, x, work *mat.Vector, lwork int)
 		}
 
 		//        Put the solution in X
-		goblas.Dcopy(p, d.Off(0, 1), x.Off(n-p, 1))
+		x.Off(n-p).Copy(p, d, 1, 1)
 
 		//        Update c1
-		err = goblas.Dgemv(NoTrans, n-p, p, -one, a.Off(0, n-p), d.Off(0, 1), one, c.Off(0, 1))
+		err = c.Gemv(NoTrans, n-p, p, -one, a.Off(0, n-p), d, 1, one, 1)
 	}
 
 	//     Solve R11*x1 = c1 for x1
@@ -130,21 +129,21 @@ func Dgglse(m, n, p int, a, b *mat.Matrix, c, d, x, work *mat.Vector, lwork int)
 		}
 
 		//        Put the solutions in X
-		goblas.Dcopy(n-p, c.Off(0, 1), x.Off(0, 1))
+		x.Copy(n-p, c, 1, 1)
 	}
 
 	//     Compute the residual vector:
 	if m < n {
 		nr = m + p - n
 		if nr > 0 {
-			err = goblas.Dgemv(NoTrans, nr, n-m, -one, a.Off(n-p, m), d.Off(nr, 1), one, c.Off(n-p, 1))
+			err = c.Off(n-p).Gemv(NoTrans, nr, n-m, -one, a.Off(n-p, m), d.Off(nr), 1, one, 1)
 		}
 	} else {
 		nr = p
 	}
 	if nr > 0 {
-		err = goblas.Dtrmv(Upper, NoTrans, NonUnit, nr, a.Off(n-p, n-p), d.Off(0, 1))
-		goblas.Daxpy(nr, -one, d.Off(0, 1), c.Off(n-p, 1))
+		err = d.Trmv(Upper, NoTrans, NonUnit, nr, a.Off(n-p, n-p), 1)
+		c.Off(n-p).Axpy(nr, -one, d, 1, 1)
 	}
 
 	//     Backward transformation x = Q**T*x

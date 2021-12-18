@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -57,11 +56,11 @@ func zget51(itype, n int, a, b, u, v *mat.CMatrix, work *mat.CVector, rwork *mat
 		if itype == 1 {
 			//           ITYPE=1: Compute W = A - U B V**H
 			golapack.Zlacpy(Full, n, n, a, work.CMatrix(n, opts))
-			if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, cone, u, b, czero, work.CMatrixOff(pow(n, 2), n, opts)); err != nil {
+			if err = work.Off(pow(n, 2)).CMatrix(n, opts).Gemm(NoTrans, NoTrans, n, n, n, cone, u, b, czero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, -cone, work.CMatrixOff(pow(n, 2), n, opts), v, cone, work.CMatrix(n, opts)); err != nil {
+			if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, -cone, work.Off(pow(n, 2)).CMatrix(n, opts), v, cone); err != nil {
 				panic(err)
 			}
 
@@ -93,7 +92,7 @@ func zget51(itype, n int, a, b, u, v *mat.CMatrix, work *mat.CVector, rwork *mat
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  U U**H - I
-		if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero); err != nil {
 			panic(err)
 		}
 

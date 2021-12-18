@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -92,7 +91,7 @@ func Zhetrd(uplo mat.MatUplo, n int, a *mat.CMatrix, d, e *mat.Vector, tau, work
 
 			//           Update the unreduced submatrix A(1:i-1,1:i-1), using an
 			//           update of the form:  A := A - V*W**H - W*V**H
-			if err = goblas.Zher2k(uplo, NoTrans, i-1, nb, -cone, a.Off(0, i-1), work.CMatrix(ldwork, opts), one, a); err != nil {
+			if err = a.Her2k(uplo, NoTrans, i-1, nb, -cone, a.Off(0, i-1), work.CMatrix(ldwork, opts), one); err != nil {
 				panic(err)
 			}
 
@@ -118,7 +117,7 @@ func Zhetrd(uplo mat.MatUplo, n int, a *mat.CMatrix, d, e *mat.Vector, tau, work
 
 			//           Update the unreduced submatrix A(i+nb:n,i+nb:n), using
 			//           an update of the form:  A := A - V*W**H - W*V**H
-			if err = goblas.Zher2k(uplo, NoTrans, n-i-nb+1, nb, -cone, a.Off(i+nb-1, i-1), work.CMatrixOff(nb, ldwork, opts), one, a.Off(i+nb-1, i+nb-1)); err != nil {
+			if err = a.Off(i+nb-1, i+nb-1).Her2k(uplo, NoTrans, n-i-nb+1, nb, -cone, a.Off(i+nb-1, i-1), work.Off(nb).CMatrix(ldwork, opts), one); err != nil {
 				panic(err)
 			}
 

@@ -82,51 +82,52 @@ func TestDblasLevel1(t *testing.T) {
 			dbtrue[2] = -1.0 / 0.6
 			dbtrue[4] = 1.0 / 0.6
 
-			common.combla.n = 0
+			common.combla.ntest = 0
 			for k = 1; k <= 8; k++ {
 				n = k
-				common.combla.n++
+				common.combla.n = n
+				common.combla.ntest++
 				if *_case == "Drotg" {
 					sa = da1[k-1]
 					sb = db1[k-1]
 					sa, sb, sc, ss = Drotg(sa, sb, sc, ss)
-					if ok := dcompare1(sa, datrue[k-1], datrue[k-1], sfac); ok != nil {
+					if ok := dcompare1(1, sa, datrue[k-1], datrue[k-1], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(sb, dbtrue[k-1], dbtrue[k-1], sfac); ok != nil {
+					if ok := dcompare1(1, sb, dbtrue[k-1], dbtrue[k-1], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(sc, dc1[k-1], dc1[k-1], sfac); ok != nil {
+					if ok := dcompare1(1, sc, dc1[k-1], dc1[k-1], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(ss, ds1[k-1], ds1[k-1], sfac); ok != nil {
+					if ok := dcompare1(1, ss, ds1[k-1], ds1[k-1], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
 				} else if *_case == "Drotmg" {
 					d1, d2, x1, y1 := dab[k-1][0], dab[k-1][1], dab[k-1][2], dab[k-1][3]
 					d1, d2, x1, drot = Drotmg(d1, d2, x1, y1)
-					if ok := dcompare1(d1, dtrue[k-1][0], dtrue[k-1][0], sfac); ok != nil {
+					if ok := dcompare1(1, d1, dtrue[k-1][0], dtrue[k-1][0], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(d2, dtrue[k-1][1], dtrue[k-1][1], sfac); ok != nil {
+					if ok := dcompare1(1, d2, dtrue[k-1][1], dtrue[k-1][1], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(x1, dtrue[k-1][2], dtrue[k-1][2], sfac); ok != nil {
+					if ok := dcompare1(1, x1, dtrue[k-1][2], dtrue[k-1][2], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
 					if ok := icompare1(drot.Flag, int(dtrue[k-1][4])); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(drot.H11, dtrue[k-1][5], dtrue[k-1][5], sfac); ok != nil {
+					if ok := dcompare1(1, drot.H11, dtrue[k-1][5], dtrue[k-1][5], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(drot.H21, dtrue[k-1][6], dtrue[k-1][6], sfac); ok != nil {
+					if ok := dcompare1(1, drot.H21, dtrue[k-1][6], dtrue[k-1][6], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(drot.H12, dtrue[k-1][7], dtrue[k-1][7], sfac); ok != nil {
+					if ok := dcompare1(1, drot.H12, dtrue[k-1][7], dtrue[k-1][7], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare1(drot.H22, dtrue[k-1][8], dtrue[k-1][8], sfac); ok != nil {
+					if ok := dcompare1(1, drot.H22, dtrue[k-1][8], dtrue[k-1][8], sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
 				}
@@ -145,21 +146,20 @@ func TestDblasLevel1(t *testing.T) {
 				{0.3, -1.0, 0.0, 1.0, 0.3},
 				{0.3, 0.3, 0.3, 0.3, 0.3},
 			}
-			dtrue := vf(8)
 			itrue2 := []int{0, 1, 2, 2, 3}
 			dtrue5 := [][][]float64{
 				{
-					{0.10, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0},
-					{-0.3, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0},
-					{0.0, 0.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0},
-					{0.20, -0.60, 0.30, 5.0, 5.0, 5.0, 5.0, 5.0},
+					{0.1, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					{-0.3, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					{0.0, 0.0, 4.0, 4.0, 0.0, 0.0, 0.0, 0.0},
+					{0.2, -0.6, 0.3, 5.0, 5.0, 5.0, 0.0, 0.0},
 					{0.03, -0.09, 0.15, -0.03, 6.0, 6.0, 6.0, 6.0},
 				},
 				{
-					{0.10, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0},
-					{0.09, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0, 9.0},
-					{0.09, 2.0, -0.12, 2.0, 2.0, 2.0, 2.0, 2.0},
-					{0.06, 3.0, -0.18, 5.0, 0.09, 2.0, 2.0, 2.0},
+					{0.1, 8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					{0.09, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					{0.09, 2.0, -0.12, 2.0, 0.0, 0.0, 0.0, 0.0},
+					{0.06, 3.0, -0.18, 5.0, 0.09, 2.0, 0.0, 0.0},
 					{0.03, 4.0, -0.09, 6.0, -0.15, 7.0, -0.03, 3.0},
 				},
 			}
@@ -180,36 +180,38 @@ func TestDblasLevel1(t *testing.T) {
 				},
 			}
 
-			common.combla.n = 0
+			common.combla.ntest = 0
 			for incx := 1; incx <= 2; incx++ {
 				common.combla.incx = incx
 				for np1 = 1; np1 <= 5; np1++ {
 					n = np1 - 1
+					common.combla.n = n
 					len = 2 * max(n, 1)
-					dx := vf(8, incx)
+					dx := vf(8)
+					dtrue := vf(8)
 					for i := 1; i <= len; i++ {
 						dx.Set(i-1, dv[incx-1][np1-1][i-1])
 					}
 
-					common.combla.n++
+					common.combla.ntest++
 					if *_case == "Dnrm2" {
-						if ok := dcompare1(Dnrm2(n, dx), dtrue1[np1-1], dtrue1[np1-1], sfac); ok != nil {
+						if ok := dcompare1(incx, Dnrm2(n, dx, incx), dtrue1[np1-1], dtrue1[np1-1], sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dasum" {
-						if ok := dcompare1(Dasum(n, dx), dtrue3[np1-1], dtrue3[np1-1], sfac); ok != nil {
+						if ok := dcompare1(incx, Dasum(n, dx, incx), dtrue3[np1-1], dtrue3[np1-1], sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dscal" {
-						Dscal(n, sa[incx-1][np1-1], dx)
+						Dscal(n, sa[incx-1][np1-1], dx, incx)
 						for i := 1; i <= len; i++ {
 							dtrue.Set(i-1, dtrue5[incx-1][np1-1][i-1])
 						}
-						if ok := dcompare(len, dx, dtrue, dtrue, sfac); ok != nil {
+						if ok := dcompare(len, incx, dx, dtrue, dtrue, sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Idamax" {
-						if ok := icompare1(Idamax(n, dx), itrue2[np1-1]); ok != nil {
+						if ok := icompare1(Idamax(n, dx, incx), itrue2[np1-1]); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					}
@@ -236,7 +238,7 @@ func TestDblasLevel1(t *testing.T) {
 				{1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17},
 			}
 			dtx := vf(10)
-			dty := vf(10)
+			dty := vf(7)
 			ns := []int{0, 1, 2, 4}
 			dpar := [][]float64{
 				{-2, 0, 0, 0, 0},
@@ -246,60 +248,60 @@ func TestDblasLevel1(t *testing.T) {
 			}
 			dt7 := [][]float64{
 				{0.0, 0.30, 0.21, 0.62},
-				{0.0, 0.30, -0.07, 0.85},
-				{0.0, 0.30, -0.79, -0.74},
-				{0.0, 0.30, 0.33, 1.27},
+				{0.0, 0.48, 0.78, 0.85},
+				{0.0, -0.20, -1.01, -0.74},
+				{0.0, -0.32, -0.14, 0.53},
 			}
 			dt10x := [][][]float64{
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, -0.9, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, -0.9, 0.3, 0.7, 0.0, 0.0, 0.0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.5, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.5, -0.9, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.5, -0.9, 0.3, 0.7, 0.9, -0.3, -0.4},
 				},
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.3, 0.1, 0.5, 0.0, 0.0, 0.0, 0.0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.8, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.8, 0.1, -0.6, 0.8, 0.9, -0.3, -0.4},
 					{0.8, 0.1, -0.6, 0.8, 0.3, -0.3, 0.5},
 				},
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{-0.9, 0.1, 0.5, 0.0, 0.0, 0.0, 0.0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, 0.5},
+					{0.6, 0.1, -0.5, 0.8, -0.9, -0.3, 0.5},
 					{0.7, 0.1, 0.3, 0.8, -0.9, -0.3, 0.5},
 				},
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, 0.3, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.5, 0.3, -0.6, 0.8, 0.0, 0.0, 0.0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, 0.8},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.6, 0.8},
+					{0.6, 0.1, -0.5, 0.5, 0.3, -0.6, 0.8},
 				},
 			}
 			dt10y := [][][]float64{
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, 0.1, -0.5, 0.8, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.6, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.6, 0.1, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.6, 0.1, -0.5, 0.8, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{-0.5, -0.9, 0.6, 0.0, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.6},
+					{0.5, -0.9, 0.3, 0.7, -0.5, 0.2, 0.6},
 					{-0.4, -0.9, 0.9, 0.7, -0.5, 0.2, 0.6},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{-0.5, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{-0.4, 0.9, -0.5, 0.6, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-0.4, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-0.4, 0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-0.4, 0.9, -0.5, 0.6, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.6, -0.9, 0.1, 0.0, 0.0, 0.0, 0.0},
-					{0.6, -0.9, 0.1, 0.7, -0.5, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, -0.4},
+					{0.5, -0.9, 0.3, 0.7, -0.3, 0.2, -0.4},
+					{0.8, -0.9, 0.9, 0.7, -0.3, 0.2, -0.4},
 				},
 			}
 			dt8 := [][][]float64{
@@ -310,91 +312,91 @@ func TestDblasLevel1(t *testing.T) {
 					{0.68, -0.87, 0.15, 0.94, 0.0, 0.0, 0.0},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.68, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.35, -0.9, 0.48, 0.0, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.98},
+					{0.5, -0.9, 0.3, 0.7, -0.75, 0.2, 0.98},
 					{0.38, -0.9, 0.57, 0.7, -0.75, 0.2, 0.98},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.68, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.35, -0.72, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.38, -0.63, 0.15, 0.88, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.38, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.38, -0.63, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.38, -0.63, 0.15, 0.88, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.68, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.68, -0.9, 0.33, 0.0, 0.0, 0.0, 0.0},
-					{0.68, -0.9, 0.33, 0.7, -0.75, 0.2, 1.04},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.68},
+					{0.5, -0.9, 0.3, 0.7, -0.69, 0.2, 0.68},
+					{0.74, -0.9, 0.57, 0.7, -0.69, 0.2, 0.68},
 				},
 			}
 			lens := []int{1, 1, 2, 4, 1, 1, 3, 7}
 			dt19x := [][][]float64{
 				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{-0.8, 0, 0, 0, 0, 0, 0},
-					{-0.9, 0, 0, 0, 0, 0, 0},
-					{3.5, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.6, 0.1, 0, 0, 0, 0, 0},
-					{-0.8, 3.8, 0, 0, 0, 0, 0},
-					{-0.9, 2.8, 0, 0, 0, 0, 0},
-					{3.5, -0.4, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.6, 0.1, -0.5, 0.8, 0, 0, 0},
-					{-0.8, 3.8, -2.2, -1.2, 0, 0, 0},
-					{-0.9, 2.8, -1.4, -1.3, 0, 0, 0},
-					{3.5, -0.4, -2.2, 4.7, 0, 0, 0},
-				},
-				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{-0.8, 0, 0, 0, 0, 0, 0},
-					{-0.9, 0, 0, 0, 0, 0, 0},
-					{3.5, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.6, 0.1, -0.5, 0, 0, 0, 0},
-					{0, 0.1, -3.0, 0, 0, 0, 0},
-					{-0.3, 0.1, -2.0, 0, 0, 0, 0},
-					{3.3, 0.1, -2.0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
 				},
 				{
 					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
-					{-2.0, 0.1, 1.4, 0.8, 0.6, -0.3, -2.8},
+					{-0.8, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-0.9, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{3.5, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+				},
+				{
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-0.8, 3.8, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-0.9, 2.8, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{3.5, -0.4, -0.5, 0.8, 0.9, -0.3, -0.4},
+				},
+				{
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-0.8, 3.8, -2.2, -1.2, 0.9, -0.3, -0.4},
+					{-0.9, 2.8, -1.4, -1.3, 0.9, -0.3, -0.4},
+					{3.5, -0.4, -2.2, 4.7, 0.9, -0.3, -0.4},
+				},
+				{
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+				},
+				{
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-2, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-1.8, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{3.8, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+				},
+				{
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-2, 0.1, 1.4, 0.8, 0.9, -0.3, -0.4},
+					{-1.8, 0.1, 1.3, 0.8, 0.9, -0.3, -0.4},
+					{3.8, 0.1, -3.1, 0.8, 0.9, -0.3, -0.4},
+				},
+				{
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{-2, 0.1, 1.4, 0.8, 0.6, -0.3, -2.8},
 					{-1.8, 0.1, 1.3, 0.8, 0, -0.3, -1.9},
 					{3.8, 0.1, -3.1, 0.8, 4.8, -0.3, -1.5},
 				},
 				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
 				},
 				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{-0.8, 0, 0, 0, 0, 0, 0},
-					{-0.9, 0, 0, 0, 0, 0, 0},
-					{3.5, 0, 0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -2.8},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -1.9},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -1.5},
 				},
 				{
-					{0.6, 0.1, -0.5, 0, 0, 0, 0},
-					{4.8, 0.1, -3.0, 0, 0, 0, 0},
-					{3.3, 0.1, -2.0, 0, 0, 0, 0},
-					{2.1, 0.1, -2.0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 5.4, -0.3, -2.8},
+					{0.6, 0.1, -0.5, 0.8, 3.6, -0.3, -1.9},
+					{0.6, 0.1, -0.5, 0.8, 3.6, -0.3, -1.5},
 				},
 				{
 					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
@@ -403,141 +405,142 @@ func TestDblasLevel1(t *testing.T) {
 					{3.7, 0.1, -2.2, 0.8, 3.6, -0.3, -1.5},
 				},
 				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{0.6, 0, 0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
 				},
 				{
-					{0.6, 0, 0, 0, 0, 0, 0},
-					{-0.8, 0, 0, 0, 0, 0, 0},
-					{-0.9, 0, 0, 0, 0, 0, 0},
-					{3.5, 0, 0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -2.8},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -1.2},
 				},
 				{
-					{0.6, 0.1, 0, 0, 0, 0, 0},
-					{-0.8, -1.0, 0, 0, 0, 0, 0},
-					{-0.9, -0.8, 0, 0, 0, 0, 0},
-					{3.5, 0.8, 0, 0, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, 1.8, -4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, 1.5, -2.8},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -2.1, -1.2},
 				},
 				{
-					{0.6, 0.1, -0.5, 0.8, 0, 0, 0},
-					{-0.8, -1.0, 1.4, -1.6, 0, 0, 0},
-					{-0.9, -0.8, 1.3, -1.6, 0, 0, 0},
-					{3.5, 0.8, -3.1, 4.8, 0, 0, 0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, -0.4, 0.6, 1.8, -4},
+					{0.6, 0.1, -0.5, -0.7, 0, 1.5, -2.8},
+					{0.6, 0.1, -0.5, 4.5, 4.8, -2.1, -1.2},
 				},
 			}
 			dt19y := [][][]float64{
 				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.7, 0, 0, 0, 0, 0, 0},
-					{1.7, 0, 0, 0, 0, 0, 0},
-					{-2.6, 0, 0, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.7, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{1.7, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-2.6, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, -0.9, 0, 0, 0, 0, 0},
-					{0.7, -4.8, 0, 0, 0, 0, 0},
-					{1.7, -0.7, 0, 0, 0, 0, 0},
-					{-2.6, 3.5, 0, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.7, -4.8, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{1.7, -0.7, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-2.6, 3.5, 0.3, 0.7, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, -0.9, 0.3, 0.7, 0, 0, 0},
-					{0.7, -4.8, 3.0, 1.1, 0, 0, 0},
-					{1.7, -0.7, -0.7, 2.3, 0, 0, 0},
-					{-2.6, 3.5, -0.7, -3.6, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.7, -4.8, 3.0, 1.1, -0.6, 0.2, 0.8},
+					{1.7, -0.7, -0.7, 2.3, -0.6, 0.2, 0.8},
+					{-2.6, 3.5, -0.7, -3.6, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.7, 0, 0, 0, 0, 0, 0},
-					{1.7, 0, 0, 0, 0, 0, 0},
-					{-2.6, 0, 0, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 2.2},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 2},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, -3.8},
 				},
 				{
-					{0.5, -0.9, 0.3, 0, 0, 0, 0},
-					{4.0, -0.9, -0.3, 0, 0, 0, 0},
-					{-0.5, -0.9, 1.5, 0, 0, 0, 0},
-					{-1.5, -0.9, -1.8, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -1.5, 0.2, 2.2},
+					{0.5, -0.9, 0.3, 0.7, -1.6, 0.2, 2},
+					{0.5, -0.9, 0.3, 0.7, 2.9, 0.2, -3.8},
 				},
 				{
 					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
 					{3.7, -0.9, -1.2, 0.7, -1.5, 0.2, 2.2},
-					{-0.3, -0.9, 2.1, 0.7, -1.6, 0.2, 2.0},
+					{-0.3, -0.9, 2.1, 0.7, -1.6, 0.2, 2},
 					{-1.6, -0.9, -2.1, 0.7, 2.9, 0.2, -3.8},
 				},
 				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.7, 0, 0, 0, 0, 0, 0},
-					{1.7, 0, 0, 0, 0, 0, 0},
-					{-2.6, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.5, -0.9, 0, 0, 0, 0, 0},
-					{4.0, -6.3, 0, 0, 0, 0, 0},
-					{-0.5, 0.3, 0, 0, 0, 0, 0},
-					{-1.5, 3.0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.5, -0.9, 0.3, 0.7, 0, 0, 0},
-					{3.7, -7.2, 3.0, 1.7, 0, 0, 0},
-					{-0.3, 0.9, -0.7, 1.9, 0, 0, 0},
-					{-1.6, 2.7, -0.7, -3.4, 0, 0, 0},
-				},
-				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.5, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.5, 0, 0, 0, 0, 0, 0},
-					{0.7, 0, 0, 0, 0, 0, 0},
-					{1.7, 0, 0, 0, 0, 0, 0},
-					{-2.6, 0, 0, 0, 0, 0, 0},
-				},
-				{
-					{0.5, -0.9, 0.3, 0, 0, 0, 0},
-					{0.7, -0.9, 1.2, 0, 0, 0, 0},
-					{1.7, -0.9, 0.5, 0, 0, 0, 0},
-					{-2.6, -0.9, -1.3, 0, 0, 0, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
 				},
 				{
 					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
-					{0.7, -0.9, 1.2, 0.7, -1.5, 0.2, 1.6},
-					{1.7, -0.9, 0.5, 0.7, -1.6, 0.2, 2.4},
-					{-2.6, -0.9, -1.3, 0.7, 2.9, 0.2, -4.0},
+					{3.7, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-0.3, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-1.6, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+				},
+				{
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{3.7, -7.2, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-0.3, 0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{-1.6, 2.7, 0.3, 0.7, -0.6, 0.2, 0.8},
+				},
+				{
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{3.7, -7.2, 3.0, 1.7, -0.6, 0.2, 0.8},
+					{-0.3, 0.9, -0.7, 1.9, -0.6, 0.2, 0.8},
+					{-1.6, 2.7, -0.7, -3.4, -0.6, 0.2, 0.8},
+				},
+				{
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+				},
+				{
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 5.2},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, -2.8},
+				},
+				{
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -2.1, 0.2, 5.2},
+					{0.5, -0.9, 0.3, 0.7, -1.2, 0.2, 0},
+					{0.5, -0.9, 0.3, 0.7, 2.7, 0.2, -2.8},
+				},
+				{
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.1, -0.9, -1.2, 0.7, -2.1, 0.2, 5.2},
+					{2.1, -0.9, 2.1, 0.7, -1.2, 0.2, 0},
+					{-2.8, -0.9, -2.1, 0.7, 2.7, 0.2, -2.8},
 				},
 			}
 
-			common.combla.n = 0
+			common.combla.ntest = 0
 			for ki := 1; ki <= 4; ki++ {
 				incx := incxs[ki-1]
 				incy := incys[ki-1]
 				mx := abs(incx)
 				my := abs(incy)
 				common.combla.incx, common.combla.incy = incx, incy
-				dx := vf(7, incx)
-				dy := vf(7, incy)
+				dx := vf(7)
+				dy := vf(7)
 
 				for kn = 1; kn <= 4; kn++ {
 					n = ns[kn-1]
+					common.combla.n = n
 					ksize = min(2, kn)
 					lenx := lens[kn-1+(mx-1)*4]
 					leny := lens[kn-1+(my-1)*4]
@@ -548,41 +551,41 @@ func TestDblasLevel1(t *testing.T) {
 						dy.Set(i-1, dy1[i-1])
 					}
 
-					common.combla.n++
+					common.combla.ntest++
 					if *_case == "Ddot" {
-						if ok := dcompare1(Ddot(n, dx, dy), dt7[ki-1][kn-1], dsize1[kn-1], sfac); ok != nil {
+						if ok := dcompare1(incy, Ddot(n, dx, incx, dy, incy), dt7[ki-1][kn-1], dsize1[kn-1], sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Daxpy" {
-						Daxpy(n, da, dx, dy)
-						for j := 1; j <= leny; j++ {
-							dty.Set(j-1, dt8[ki-1][kn-1][j-1])
+						Daxpy(n, da, dx, incx, dy, incy)
+						for _, j := range dty.Iter(leny, incy) {
+							dty.Set(j, dt8[ki-1][kn-1][j])
 						}
-						dsizet := vf(dty.Size)
-						for j := 1; j <= dty.Size; j++ {
+						dsizet := vf(dty.Size())
+						for j := 1; j <= dy.Size(); j++ {
 							dsizet.Set(j-1, dsize2[ksize-1][j-1])
 						}
-						if ok := dcompare(leny, dy, dty, dsizet, sfac); ok != nil {
+						if ok := dcompare(leny, incy, dy, dty, dsizet, sfac); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dcopy" {
 						for i := 1; i <= 7; i++ {
 							dty.Set(i-1, dt10y[ki-1][kn-1][i-1])
 						}
-						Dcopy(n, dx, dy)
-						if ok := dcompare(leny, dy, dty, vdf(dsize2[0]), 1.0); ok != nil {
+						Dcopy(n, dx, incx, dy, incy)
+						if ok := dcompare(leny, incy, dy, dty, vdf(dsize2[0]), 1.0); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Dswap" {
-						Dswap(n, dx, dy)
+						Dswap(n, dx, incx, dy, incy)
 						for i := 1; i <= 7; i++ {
 							dtx.Set(i-1, dt10x[ki-1][kn-1][i-1])
 							dty.Set(i-1, dt10y[ki-1][kn-1][i-1])
 						}
-						if ok := dcompare(lenx, dx, dtx, vdf(dsize2[0]), 1.0); ok != nil {
+						if ok := dcompare(lenx, incx, dx, dtx, vdf(dsize2[0]), 1.0); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
-						if ok := dcompare(leny, dy, dty, vdf(dsize2[0]), 1.0); ok != nil {
+						if ok := dcompare(leny, incy, dy, dty, vdf(dsize2[0]), 1.0); ok != nil {
 							err = fmt.Errorf("%v%v", err, ok)
 						}
 					} else if *_case == "Drotm" {
@@ -612,14 +615,14 @@ func TestDblasLevel1(t *testing.T) {
 							}
 							drb := mat.NewDrotMatrixBuilder()
 							drot := drb.Flag(int(dtemp.Get(0))).H([4]float64{dtemp.Get(1), dtemp.Get(2), dtemp.Get(3), dtemp.Get(4)}).Build()
-							dxx := vdf(dx.Data, incx)
-							dyy := vdf(dy.Data, incy)
+							dxx := vdf(dx.Data())
+							dyy := vdf(dy.Data())
 
-							Drotm(n, dxx, dyy, drot)
-							if ok := dcompare(lenx, dxx, dtx, dsize, sfac); ok != nil {
+							Drotm(n, dxx, incx, dyy, incy, drot)
+							if ok := dcompare(lenx, incx, dxx, dtx, dsize, sfac); ok != nil {
 								err = fmt.Errorf("%v%v", err, ok)
 							}
-							if ok := dcompare(leny, dyy, dty, dty, sfac); ok != nil {
+							if ok := dcompare(leny, incy, dyy, dty, dty, sfac); ok != nil {
 								err = fmt.Errorf("%v%v", err, ok)
 							}
 						}
@@ -652,54 +655,86 @@ func TestDblasLevel1(t *testing.T) {
 			dty := vf(7)
 			dt9x := [][][]float64{
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, -0.46, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, -0.46, -0.22, 1.06, 0.0, 0.0, 0.0},
+					// {0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, -0.46, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, -0.46, -0.22, 1.06, 0.0, 0.0, 0.0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.78, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.78, -0.46, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.78, -0.46, -0.22, 1.06, 0.9, -0.3, -0.4},
 				},
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.66, 0.1, -0.1, 0.0, 0.0, 0.0, 0.0},
-					{0.96, 0.1, -0.76, 0.8, 0.90, -0.3, -0.02},
+					// {0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.66, 0.1, -0.1, 0.0, 0.0, 0.0, 0.0},
+					// {0.96, 0.1, -0.76, 0.8, 0.90, -0.3, -0.02},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.96, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.96, 0.1, -0.76, 0.8, 0.9, -0.3, -0.4},
+					{0.96, 0.1, -0.76, 0.8, 0.9, -0.3, -0.02},
 				},
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{-0.06, 0.1, -0.1, 0.0, 0.0, 0.0, 0.0},
-					{0.90, 0.1, -0.22, 0.8, 0.18, -0.3, -0.02},
+					// {0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {-0.06, 0.1, -0.1, 0.0, 0.0, 0.0, 0.0},
+					// {0.90, 0.1, -0.22, 0.8, 0.18, -0.3, -0.02},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.02},
+					{0.6, 0.1, -0.5, 0.8, 0.18, -0.3, -0.02},
+					{0.9, 0.1, -0.22, 0.8, 0.18, -0.3, -0.02},
 				},
 				{
-					{0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, 0.26, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.78, 0.26, -0.76, 1.12, 0.0, 0.0, 0.0},
+					// {0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, 0.26, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.78, 0.26, -0.76, 1.12, 0.0, 0.0, 0.0},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, -0.4},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.3, 0.16},
+					{0.6, 0.1, -0.5, 0.8, 0.9, -0.6, 0.16},
+					{0.6, 0.1, -0.5, 0.94, 0.9, -0.6, 0.16},
 				},
 			}
 			dt9y := [][][]float64{
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, -0.78, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, -0.78, 0.54, 0.08, 0.0, 0.0, 0.0},
+					// {0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, -0.78, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, -0.78, 0.54, 0.08, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.04, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.04, -0.78, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.04, -0.78, 0.54, 0.08, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.7, -0.9, -0.12, 0.0, 0.0, 0.0, 0.0},
-					{0.64, -0.9, -0.30, 0.7, -0.18, 0.2, 0.28},
+					// {0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.7, -0.9, -0.12, 0.0, 0.0, 0.0, 0.0},
+					// {0.64, -0.9, -0.30, 0.7, -0.18, 0.2, 0.28},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.28},
+					{0.5, -0.9, 0.3, 0.7, -0.18, 0.2, 0.28},
+					{0.64, -0.9, -0.3, 0.7, -0.18, 0.2, 0.28},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.7, -1.08, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.64, -1.26, 0.54, 0.20, 0.0, 0.0, 0.0},
+					// {0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.7, -1.08, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.64, -1.26, 0.54, 0.20, 0.0, 0.0, 0.0},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.64, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.64, -1.26, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.64, -1.26, 0.54, 0.2, -0.6, 0.2, 0.8},
 				},
 				{
-					{0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-					{0.04, -0.9, 0.18, 0.0, 0.0, 0.0, 0.0},
-					{0.04, -0.9, 0.18, 0.7, -0.18, 0.2, 0.16},
+					// {0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, -0.9, 0.18, 0.0, 0.0, 0.0, 0.0},
+					// {0.04, -0.9, 0.18, 0.7, -0.18, 0.2, 0.16},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.8},
+					{0.5, -0.9, 0.3, 0.7, -0.6, 0.2, 0.88},
+					{0.5, -0.9, 0.3, 0.7, -0.3, 0.2, 0.88},
+					{-0.08, -0.9, -0.3, 0.7, -0.3, 0.2, 0.88},
 				},
 			}
 			mwpinx := make([]int, 11)
@@ -712,17 +747,19 @@ func TestDblasLevel1(t *testing.T) {
 				{1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17, 1.17},
 			}
 
-			common.combla.n = 0
+			common.combla.ntest = 0
 			for ki := 1; ki <= 4; ki++ {
 				incx := incxs[ki-1]
 				incy := incys[ki-1]
+				common.combla.incx, common.combla.incy = incx, incy
 				mx := abs(incx)
 				my := abs(incy)
-				dx := vf(7, incx)
-				dy := vf(7, incy)
+				dx := vf(7)
+				dy := vf(7)
 				for kn = 1; kn <= 4; kn++ {
-					common.combla.n++
+					common.combla.ntest++
 					n = ns[kn-1]
+					common.combla.n = n
 					ksize = min(2, kn)
 					lenx := lens[kn-1+(mx-1)*4]
 					leny := lens[kn-1+(my-1)*4]
@@ -733,12 +770,12 @@ func TestDblasLevel1(t *testing.T) {
 						dtx.Set(i-1, dt9x[ki-1][kn-1][i-1])
 						dty.Set(i-1, dt9y[ki-1][kn-1][i-1])
 					}
-					Drot(n, dx, dy, dc, ds)
-					dsize2m := vdf(dsize2[1][ksize-1 : dx.Size+ksize-1])
-					if ok := dcompare(lenx, dx, dtx, dsize2m, sfac); ok != nil {
+					Drot(n, dx, incx, dy, incy, dc, ds)
+					dsize2m := vdf(dsize2[1][ksize-1 : dx.Size()+ksize-1])
+					if ok := dcompare(lenx, incx, dx, dtx, dsize2m, sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := dcompare(leny, dy, dty, dsize2m, sfac); ok != nil {
+					if ok := dcompare(leny, incy, dy, dty, dsize2m, sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
 				}
@@ -829,8 +866,8 @@ func TestDblasLevel1(t *testing.T) {
 				common.combla.n++
 				incx := mwpinx[i-1]
 				incy := mwpiny[i-1]
-				copyx := vf(5, incx)
-				copyy := vf(5, incy)
+				copyx := vf(5)
+				copyy := vf(5)
 				for k := 1; k <= 5; k++ {
 					copyx.Set(k-1, mwpx.Get(k-1))
 					copyy.Set(k-1, mwpy.Get(k-1))
@@ -838,11 +875,11 @@ func TestDblasLevel1(t *testing.T) {
 					mwpsty.Set(k-1, mwpty.Get(i-1+(k-1)*11))
 				}
 
-				Drot(mwpn[i-1], copyx, copyy, mwpc.Get(i-1), mwps.Get(i-1))
-				if ok := dcompare(5, copyx, mwpstx, mwpstx, sfac); ok != nil {
+				Drot(mwpn[i-1], copyx, incx, copyy, incy, mwpc.Get(i-1), mwps.Get(i-1))
+				if ok := dcompare(5, incx, copyx, mwpstx, mwpstx, sfac); ok != nil {
 					err = fmt.Errorf("%v%v", err, ok)
 				}
-				if ok := dcompare(5, copyy, mwpsty, mwpsty, sfac); ok != nil {
+				if ok := dcompare(5, incy, copyy, mwpsty, mwpsty, sfac); ok != nil {
 					err = fmt.Errorf("%v%v", err, ok)
 				}
 			}
@@ -857,22 +894,23 @@ func TestDblasLevel1(t *testing.T) {
 	}
 }
 
-func dcompare1(scomp1, strue1, ssize1, sfac float64) (err error) {
+func dcompare1(inc int, scomp1, strue1, ssize1, sfac float64) (err error) {
 	scomp := vdf([]float64{scomp1})
 	strue := vdf([]float64{strue1})
 	ssize := vdf([]float64{ssize1})
 
-	return dcompare(1, scomp, strue, ssize, sfac)
+	return dcompare(1, inc, scomp, strue, ssize, sfac)
 }
 
-func dcompare(len int, scomp, strue, ssize *mat.Vector, sfac float64) (err error) {
+func dcompare(len, inc int, scomp, strue, ssize *mat.Vector, sfac float64) (err error) {
 	var sd float64
 	_case := &common.combla._case
 	incx := &common.combla.incx
 	incy := &common.combla.incy
 	n := &common.combla.n
 
-	for i := 0; i < len; i++ {
+	// for i := 0; i < len; i++ {
+	for _, i := range scomp.Iter(len, inc) {
 		sd = scomp.Get(i) - strue.Get(i)
 		if math.Abs(sfac*sd) > math.Abs(ssize.Get(i))*eps {
 			//
@@ -904,113 +942,113 @@ func icompare1(icomp int, itrue int) (err error) {
 	return fmt.Errorf("                                       FAIL\n\n case  n                                comp                                true     difference\n %5s%3d%36d%36d%12d\n", *_case, *n, icomp, itrue, id)
 }
 
-func BenchmarkDasum1(b *testing.B)       { benchmarkDasum(1, b) }
-func BenchmarkDasum10(b *testing.B)      { benchmarkDasum(10, b) }
-func BenchmarkDasum100(b *testing.B)     { benchmarkDasum(100, b) }
-func BenchmarkDasum1000(b *testing.B)    { benchmarkDasum(1000, b) }
-func BenchmarkDasum10000(b *testing.B)   { benchmarkDasum(10000, b) }
-func BenchmarkDasum100000(b *testing.B)  { benchmarkDasum(100000, b) }
-func BenchmarkDasum1000000(b *testing.B) { benchmarkDasum(1000000, b) }
-func benchmarkDasum(n int, b *testing.B) {
-	da := 0.4
-	dx := vf(n, 1)
-	for i := 0; i < n; i++ {
-		dx.Set(i, da)
-	}
+// func BenchmarkDasum1(b *testing.B)       { benchmarkDasum(1, b) }
+// func BenchmarkDasum10(b *testing.B)      { benchmarkDasum(10, b) }
+// func BenchmarkDasum100(b *testing.B)     { benchmarkDasum(100, b) }
+// func BenchmarkDasum1000(b *testing.B)    { benchmarkDasum(1000, b) }
+// func BenchmarkDasum10000(b *testing.B)   { benchmarkDasum(10000, b) }
+// func BenchmarkDasum100000(b *testing.B)  { benchmarkDasum(100000, b) }
+// func BenchmarkDasum1000000(b *testing.B) { benchmarkDasum(1000000, b) }
+// func benchmarkDasum(n int, b *testing.B) {
+// 	da := 0.4
+// 	dx := vf(n, 1)
+// 	for i := 0; i < n; i++ {
+// 		dx.Set(i, da)
+// 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		x := Dasum(n, dx)
-		_ = x
-	}
-}
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		x := Dasum(n, dx)
+// 		_ = x
+// 	}
+// }
 
-func BenchmarkDrot1(b *testing.B)       { benchmarkDrot(1, b) }
-func BenchmarkDrot10(b *testing.B)      { benchmarkDrot(10, b) }
-func BenchmarkDrot100(b *testing.B)     { benchmarkDrot(100, b) }
-func BenchmarkDrot1000(b *testing.B)    { benchmarkDrot(1000, b) }
-func BenchmarkDrot10000(b *testing.B)   { benchmarkDrot(10000, b) }
-func BenchmarkDrot100000(b *testing.B)  { benchmarkDrot(100000, b) }
-func BenchmarkDrot1000000(b *testing.B) { benchmarkDrot(1000000, b) }
-func benchmarkDrot(n int, b *testing.B) {
-	da := 0.4
-	dx := vf(n, 1)
-	dy := vf(n, 1)
-	for i := 0; i < n; i++ {
-		dx.Set(i, da)
-		dy.Set(i, da)
-	}
+// func BenchmarkDrot1(b *testing.B)       { benchmarkDrot(1, b) }
+// func BenchmarkDrot10(b *testing.B)      { benchmarkDrot(10, b) }
+// func BenchmarkDrot100(b *testing.B)     { benchmarkDrot(100, b) }
+// func BenchmarkDrot1000(b *testing.B)    { benchmarkDrot(1000, b) }
+// func BenchmarkDrot10000(b *testing.B)   { benchmarkDrot(10000, b) }
+// func BenchmarkDrot100000(b *testing.B)  { benchmarkDrot(100000, b) }
+// func BenchmarkDrot1000000(b *testing.B) { benchmarkDrot(1000000, b) }
+// func benchmarkDrot(n int, b *testing.B) {
+// 	da := 0.4
+// 	dx := vf(n, 1)
+// 	dy := vf(n, 1)
+// 	for i := 0; i < n; i++ {
+// 		dx.Set(i, da)
+// 		dy.Set(i, da)
+// 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		Drot(n, dx, dy, da, da)
-	}
-}
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		Drot(n, dx, dy, da, da)
+// 	}
+// }
 
-func BenchmarkDrotm1(b *testing.B)       { benchmarkDrotm(1, b) }
-func BenchmarkDrotm10(b *testing.B)      { benchmarkDrotm(10, b) }
-func BenchmarkDrotm100(b *testing.B)     { benchmarkDrotm(100, b) }
-func BenchmarkDrotm1000(b *testing.B)    { benchmarkDrotm(1000, b) }
-func BenchmarkDrotm10000(b *testing.B)   { benchmarkDrotm(10000, b) }
-func BenchmarkDrotm100000(b *testing.B)  { benchmarkDrotm(100000, b) }
-func BenchmarkDrotm1000000(b *testing.B) { benchmarkDrotm(1000000, b) }
-func benchmarkDrotm(n int, b *testing.B) {
-	da := 0.4
-	dx := vf(n, 1)
-	dy := vf(n, 1)
-	for i := 0; i < n; i++ {
-		dx.Set(i, da)
-		dy.Set(i, da)
-	}
-	drb := mat.NewDrotMatrixBuilder()
-	drot := drb.Flag(1).H([4]float64{5, 2, 0, -4}).Build()
+// func BenchmarkDrotm1(b *testing.B)       { benchmarkDrotm(1, b) }
+// func BenchmarkDrotm10(b *testing.B)      { benchmarkDrotm(10, b) }
+// func BenchmarkDrotm100(b *testing.B)     { benchmarkDrotm(100, b) }
+// func BenchmarkDrotm1000(b *testing.B)    { benchmarkDrotm(1000, b) }
+// func BenchmarkDrotm10000(b *testing.B)   { benchmarkDrotm(10000, b) }
+// func BenchmarkDrotm100000(b *testing.B)  { benchmarkDrotm(100000, b) }
+// func BenchmarkDrotm1000000(b *testing.B) { benchmarkDrotm(1000000, b) }
+// func benchmarkDrotm(n int, b *testing.B) {
+// 	da := 0.4
+// 	dx := vf(n, 1)
+// 	dy := vf(n, 1)
+// 	for i := 0; i < n; i++ {
+// 		dx.Set(i, da)
+// 		dy.Set(i, da)
+// 	}
+// 	drb := mat.NewDrotMatrixBuilder()
+// 	drot := drb.Flag(1).H([4]float64{5, 2, 0, -4}).Build()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		Drotm(n, dx, dy, drot)
-	}
-}
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		Drotm(n, dx, dy, drot)
+// 	}
+// }
 
-func BenchmarkDscal1(b *testing.B)       { benchmarkDscal(1, b) }
-func BenchmarkDscal10(b *testing.B)      { benchmarkDscal(10, b) }
-func BenchmarkDscal100(b *testing.B)     { benchmarkDscal(100, b) }
-func BenchmarkDscal1000(b *testing.B)    { benchmarkDscal(1000, b) }
-func BenchmarkDscal10000(b *testing.B)   { benchmarkDscal(10000, b) }
-func BenchmarkDscal100000(b *testing.B)  { benchmarkDscal(100000, b) }
-func BenchmarkDscal1000000(b *testing.B) { benchmarkDscal(1000000, b) }
-func benchmarkDscal(n int, b *testing.B) {
-	sa := 0.3
-	ca := 0.4
-	cx := vf(n, 1)
-	for i := 0; i < n; i++ {
-		cx.Set(i, ca)
-	}
+// func BenchmarkDscal1(b *testing.B)       { benchmarkDscal(1, b) }
+// func BenchmarkDscal10(b *testing.B)      { benchmarkDscal(10, b) }
+// func BenchmarkDscal100(b *testing.B)     { benchmarkDscal(100, b) }
+// func BenchmarkDscal1000(b *testing.B)    { benchmarkDscal(1000, b) }
+// func BenchmarkDscal10000(b *testing.B)   { benchmarkDscal(10000, b) }
+// func BenchmarkDscal100000(b *testing.B)  { benchmarkDscal(100000, b) }
+// func BenchmarkDscal1000000(b *testing.B) { benchmarkDscal(1000000, b) }
+// func benchmarkDscal(n int, b *testing.B) {
+// 	sa := 0.3
+// 	ca := 0.4
+// 	cx := vf(n, 1)
+// 	for i := 0; i < n; i++ {
+// 		cx.Set(i, ca)
+// 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		Dscal(n, sa, cx)
-	}
-}
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		Dscal(n, sa, cx)
+// 	}
+// }
 
-func BenchmarkDswap1(b *testing.B)       { benchmarkDswap(1, b) }
-func BenchmarkDswap10(b *testing.B)      { benchmarkDswap(10, b) }
-func BenchmarkDswap100(b *testing.B)     { benchmarkDswap(100, b) }
-func BenchmarkDswap1000(b *testing.B)    { benchmarkDswap(1000, b) }
-func BenchmarkDswap10000(b *testing.B)   { benchmarkDswap(10000, b) }
-func BenchmarkDswap100000(b *testing.B)  { benchmarkDswap(100000, b) }
-func BenchmarkDswap1000000(b *testing.B) { benchmarkDswap(1000000, b) }
-func benchmarkDswap(n int, b *testing.B) {
-	da := 0.4
-	db := 0.8
-	dx := vf(n, 1)
-	dy := vf(n, 1)
-	for i := 0; i < n; i++ {
-		dx.Set(i, da)
-		dy.Set(i, db)
-	}
+// func BenchmarkDswap1(b *testing.B)       { benchmarkDswap(1, b) }
+// func BenchmarkDswap10(b *testing.B)      { benchmarkDswap(10, b) }
+// func BenchmarkDswap100(b *testing.B)     { benchmarkDswap(100, b) }
+// func BenchmarkDswap1000(b *testing.B)    { benchmarkDswap(1000, b) }
+// func BenchmarkDswap10000(b *testing.B)   { benchmarkDswap(10000, b) }
+// func BenchmarkDswap100000(b *testing.B)  { benchmarkDswap(100000, b) }
+// func BenchmarkDswap1000000(b *testing.B) { benchmarkDswap(1000000, b) }
+// func benchmarkDswap(n int, b *testing.B) {
+// 	da := 0.4
+// 	db := 0.8
+// 	dx := vf(n, 1)
+// 	dy := vf(n, 1)
+// 	for i := 0; i < n; i++ {
+// 		dx.Set(i, da)
+// 		dy.Set(i, db)
+// 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		Dswap(n, dx, dy)
-	}
-}
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		Dswap(n, dx, dy)
+// 	}
+// }

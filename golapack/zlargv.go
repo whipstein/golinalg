@@ -20,7 +20,7 @@ import (
 // but differ from the BLAS1 routine ZROTG):
 //    If y(i)=0, then c(i)=1 and s(i)=0.
 //    If x(i)=0, then c(i)=0 and s(i) is chosen so that r(i) is real.
-func Zlargv(n int, x, y *mat.CVector, c *mat.Vector) {
+func Zlargv(n int, x *mat.CVector, incx int, y *mat.CVector, incy int, c *mat.Vector, incc int) {
 	var czero, f, ff, fs, g, gs, r, sn complex128
 	var cs, d, di, dr, eps, f2, f2s, g2, g2s, one, safmin, safmn2, safmx2, scale, two, zero float64
 	var count, i, ic, ix, iy, j int
@@ -142,8 +142,8 @@ func Zlargv(n int, x, y *mat.CVector, c *mat.Vector) {
 		c.Set(ic-1, cs)
 		y.Set(iy-1, sn)
 		x.Set(ix-1, r)
-		ic = ic + c.Inc
-		iy = iy + y.Inc
-		ix = ix + x.Inc
+		ic = ic + incc
+		iy = iy + incy
+		ix = ix + incx
 	}
 }

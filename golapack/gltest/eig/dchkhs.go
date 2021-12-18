@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -390,7 +389,7 @@ func dchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					h.Set(i-1, j-1, zero)
 				}
 			}
-			goblas.Dcopy(n-1, work.Off(0, 1), tau.Off(0, 1))
+			tau.Copy(n-1, work, 1, 1)
 			if err = golapack.Dorghr(n, ilo, ihi, u, work, work.Off(n), nwork-n); err != nil {
 				panic(err)
 			}
@@ -437,7 +436,7 @@ func dchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 			}
 
 			//           Compute Z = U' UZ
-			err = goblas.Dgemm(Trans, NoTrans, n, n, n, one, u, uz, zero, z)
+			err = z.Gemm(Trans, NoTrans, n, n, n, one, u, uz, zero)
 			ntest = 8
 
 			//           Do Tests 3: | H - Z T Z' | / ( |H| n ulp )

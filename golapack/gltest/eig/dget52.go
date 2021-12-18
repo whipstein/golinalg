@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -108,10 +107,10 @@ func dget52(left bool, n int, a, b, e *mat.Matrix, alphar, alphai, beta, work, r
 				scale = one / math.Max(math.Abs(salfr)*bnorm, math.Max(math.Abs(sbeta)*anorm, safmin))
 				acoef = scale * sbeta
 				bcoefr = scale * salfr
-				if err = goblas.Dgemv(trans, n, n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off(n*(jvec-1), 1)); err != nil {
+				if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, acoef, a, e.Off(0, jvec-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(trans, n, n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off(n*(jvec-1), 1)); err != nil {
+				if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, -bcoefr, b, e.Off(0, jvec-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
 			} else {
@@ -136,23 +135,23 @@ func dget52(left bool, n int, a, b, e *mat.Matrix, alphar, alphai, beta, work, r
 					bcoefi = -bcoefi
 				}
 
-				if err = goblas.Dgemv(trans, n, n, acoef, a, e.Vector(0, jvec-1, 1), zero, work.Off(n*(jvec-1), 1)); err != nil {
+				if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, acoef, a, e.Off(0, jvec-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(trans, n, n, -bcoefr, b, e.Vector(0, jvec-1, 1), one, work.Off(n*(jvec-1), 1)); err != nil {
+				if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, -bcoefr, b, e.Off(0, jvec-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(trans, n, n, bcoefi, b, e.Vector(0, jvec, 1), one, work.Off(n*(jvec-1), 1)); err != nil {
+				if err = work.Off(n*(jvec-1)).Gemv(trans, n, n, bcoefi, b, e.Off(0, jvec).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
 
-				if err = goblas.Dgemv(trans, n, n, acoef, a, e.Vector(0, jvec, 1), zero, work.Off(n*jvec, 1)); err != nil {
+				if err = work.Off(n*jvec).Gemv(trans, n, n, acoef, a, e.Off(0, jvec).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(trans, n, n, -bcoefi, b, e.Vector(0, jvec-1, 1), one, work.Off(n*jvec, 1)); err != nil {
+				if err = work.Off(n*jvec).Gemv(trans, n, n, -bcoefi, b, e.Off(0, jvec-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(trans, n, n, -bcoefr, b, e.Vector(0, jvec, 1), one, work.Off(n*jvec, 1)); err != nil {
+				if err = work.Off(n*jvec).Gemv(trans, n, n, -bcoefr, b, e.Off(0, jvec).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
 			}

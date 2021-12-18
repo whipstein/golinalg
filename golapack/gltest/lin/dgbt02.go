@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -33,7 +32,7 @@ func dgbt02(trans mat.MatTrans, m, n, kl, ku, nrhs int, a *mat.Matrix, x *mat.Ma
 	for j = 1; j <= n; j++ {
 		i1 = max(kd+1-j, 1)
 		i2 = min(kd+m-j, kl+kd)
-		anorm = math.Max(anorm, goblas.Dasum(i2-i1+1, a.Vector(i1-1, j-1, 1)))
+		anorm = math.Max(anorm, a.Off(i1-1, j-1).Vector().Asum(i2-i1+1, 1))
 	}
 	if anorm <= zero {
 		resid = one / eps
@@ -48,7 +47,7 @@ func dgbt02(trans mat.MatTrans, m, n, kl, ku, nrhs int, a *mat.Matrix, x *mat.Ma
 
 	//     Compute  B - A*X (or  B - A'*X )
 	for j = 1; j <= nrhs; j++ {
-		if err = goblas.Dgbmv(trans, m, n, kl, ku, -one, a, x.Vector(0, j-1, 1), one, b.Vector(0, j-1, 1)); err != nil {
+		if err = b.Off(0, j-1).Vector().Gbmv(trans, m, n, kl, ku, -one, a, x.Off(0, j-1).Vector(), 1, one, 1); err != nil {
 			panic(err)
 		}
 	}
@@ -58,8 +57,8 @@ func dgbt02(trans mat.MatTrans, m, n, kl, ku, nrhs int, a *mat.Matrix, x *mat.Ma
 	//
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dasum(n1, b.Vector(0, j-1, 1))
-		xnorm = goblas.Dasum(n1, x.Vector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).Vector().Asum(n1, 1)
+		xnorm = x.Off(0, j-1).Vector().Asum(n1, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

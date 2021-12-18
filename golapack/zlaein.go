@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -44,8 +43,8 @@ func Zlaein(rightv, noinit bool, n int, h *mat.CMatrix, w complex128, v *mat.CVe
 		}
 	} else {
 		//        Scale supplied initial vector.
-		vnorm = goblas.Dznrm2(n, v.Off(0, 1))
-		goblas.Zdscal(n, (eps3*rootn)/math.Max(vnorm, nrmsml), v.Off(0, 1))
+		vnorm = v.Nrm2(n, 1)
+		v.Dscal(n, (eps3*rootn)/math.Max(vnorm, nrmsml), 1)
 	}
 
 	if rightv {
@@ -127,7 +126,7 @@ func Zlaein(rightv, noinit bool, n int, h *mat.CMatrix, w complex128, v *mat.CVe
 		normin = 'Y'
 
 		//        Test for sufficient growth in the norm of v.
-		vnorm = goblas.Dzasum(n, v.Off(0, 1))
+		vnorm = v.Asum(n, 1)
 		if vnorm >= growto*scale {
 			goto label120
 		}
@@ -148,8 +147,8 @@ label120:
 	;
 
 	//     Normalize eigenvector.
-	i = goblas.Izamax(n, v.Off(0, 1))
-	goblas.Zdscal(n, one/cabs1(v.Get(i-1)), v.Off(0, 1))
+	i = v.Iamax(n, 1)
+	v.Dscal(n, one/cabs1(v.Get(i-1)), 1)
 
 	return
 }

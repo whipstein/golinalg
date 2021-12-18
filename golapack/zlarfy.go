@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -15,7 +14,7 @@ import (
 // where  tau  is a scalar and  v  is a vector.
 //
 // If  tau  is  zero, then  H  is taken to be the unit matrix.
-func Zlarfy(uplo mat.MatUplo, n int, v *mat.CVector, tau complex128, c *mat.CMatrix, work *mat.CVector) {
+func Zlarfy(uplo mat.MatUplo, n int, v *mat.CVector, incv int, tau complex128, c *mat.CMatrix, work *mat.CVector) {
 	var alpha, half, one, zero complex128
 	var err error
 
@@ -28,15 +27,15 @@ func Zlarfy(uplo mat.MatUplo, n int, v *mat.CVector, tau complex128, c *mat.CMat
 	}
 
 	//     Form  w:= C * v
-	if err = goblas.Zhemv(uplo, n, one, c, v, zero, work.Off(0, 1)); err != nil {
+	if err = work.Hemv(uplo, n, one, c, v, incv, zero, 1); err != nil {
 		panic(err)
 	}
 
-	alpha = -half * tau * goblas.Zdotc(n, work.Off(0, 1), v)
-	goblas.Zaxpy(n, alpha, v, work.Off(0, 1))
+	alpha = -half * tau * v.Dotc(n, work, 1, incv)
+	work.Axpy(n, alpha, v, incv, 1)
 
 	//     C := C - v * w' - w * v'
-	if err = goblas.Zher2(uplo, n, -tau, v, work.Off(0, 1), c); err != nil {
+	if err = c.Her2(uplo, n, -tau, v, incv, work, 1); err != nil {
 		panic(err)
 	}
 }

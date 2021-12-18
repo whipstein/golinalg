@@ -339,10 +339,10 @@ func ddrgev3(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thres
 							q.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
 							z.Set(jr-1, jc-1, matgen.Dlarnd(3, &iseed))
 						}
-						*q.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Dlarfg(n+1-jc, q.Get(jc-1, jc-1), q.Vector(jc, jc-1, 1))
+						*q.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Dlarfg(n+1-jc, q.Get(jc-1, jc-1), q.Off(jc, jc-1).Vector(), 1)
 						work.Set(2*n+jc-1, math.Copysign(one, q.Get(jc-1, jc-1)))
 						q.Set(jc-1, jc-1, one)
-						*z.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Dlarfg(n+1-jc, z.Get(jc-1, jc-1), z.Vector(jc, jc-1, 1))
+						*z.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Dlarfg(n+1-jc, z.Get(jc-1, jc-1), z.Off(jc, jc-1).Vector(), 1)
 						work.Set(3*n+jc-1, math.Copysign(one, z.Get(jc-1, jc-1)))
 						z.Set(jc-1, jc-1, one)
 					}

@@ -64,11 +64,11 @@ func Zhetrd2stage(vect byte, uplo mat.MatUplo, n int, a *mat.CMatrix, d, e *mat.
 	lwrk = lwork - ldab*n
 	abpos = 1
 	wpos = abpos + ldab*n
-	if err = ZhetrdHe2hb(uplo, n, kd, a, work.CMatrixOff(abpos-1, ldab, opts), tau, work.Off(wpos-1), lwrk); err != nil {
+	if err = ZhetrdHe2hb(uplo, n, kd, a, work.Off(abpos-1).CMatrix(ldab, opts), tau, work.Off(wpos-1), lwrk); err != nil {
 		gltest.Xerbla2("ZhetrdHe2hb", err)
 		return
 	}
-	if err = ZhetrdHb2st('Y', vect, uplo, n, kd, work.CMatrixOff(abpos-1, ldab, opts), d, e, hous2, lhous2, work.Off(wpos-1), lwrk); err != nil {
+	if err = ZhetrdHb2st('Y', vect, uplo, n, kd, work.Off(abpos-1).CMatrix(ldab, opts), d, e, hous2, lhous2, work.Off(wpos-1), lwrk); err != nil {
 		gltest.Xerbla2("ZhetrdHb2st", err)
 		return
 	}

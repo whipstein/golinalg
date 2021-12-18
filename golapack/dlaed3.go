@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -69,7 +68,7 @@ func Dlaed3(k, n, n1 int, d *mat.Vector, q *mat.Matrix, rho float64, dlamda, q2 
 
 	for j = 1; j <= k; j++ {
 		_d := d.GetPtr(j - 1)
-		*_d, info = Dlaed4(k, j, dlamda, w, q.Vector(0, j-1), rho)
+		*_d, info = Dlaed4(k, j, dlamda, w, q.Off(0, j-1).Vector(), rho)
 
 		//        If the zero finder fails, the computation is terminated.
 		if info != 0 {
@@ -93,10 +92,10 @@ func Dlaed3(k, n, n1 int, d *mat.Vector, q *mat.Matrix, rho float64, dlamda, q2 
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(k, w, s)
+	s.Copy(k, w, 1, 1)
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(k, q.VectorIdx(0, q.Rows+1), w)
+	w.Copy(k, q.OffIdx(0).Vector(), q.Rows+1, 1)
 	for j = 1; j <= k; j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
@@ -114,7 +113,7 @@ func Dlaed3(k, n, n1 int, d *mat.Vector, q *mat.Matrix, rho float64, dlamda, q2 
 		for i = 1; i <= k; i++ {
 			s.Set(i-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(k, s)
+		temp = s.Nrm2(k, 1)
 		for i = 1; i <= k; i++ {
 			ii = (*indx)[i-1]
 			q.Set(i-1, j-1, s.Get(ii-1)/temp)
@@ -132,7 +131,7 @@ label110:
 	Dlacpy(Full, n23, k, q.Off((*ctot)[0], 0), s.Matrix(n23, opts))
 	iq2 = n1*n12 + 1
 	if n23 != 0 {
-		if err = goblas.Dgemm(NoTrans, NoTrans, n2, k, n23, one, q2.MatrixOff(iq2-1, n2, opts), s.Matrix(n23, opts), zero, q.Off(n1, 0)); err != nil {
+		if err = q.Off(n1, 0).Gemm(NoTrans, NoTrans, n2, k, n23, one, q2.Off(iq2-1).Matrix(n2, opts), s.Matrix(n23, opts), zero); err != nil {
 			panic(err)
 		}
 	} else {
@@ -141,7 +140,7 @@ label110:
 
 	Dlacpy(Full, n12, k, q, s.Matrix(n12, opts))
 	if n12 != 0 {
-		if err = goblas.Dgemm(NoTrans, NoTrans, n1, k, n12, one, q2.Matrix(n1, opts), s.Matrix(n12, opts), zero, q); err != nil {
+		if err = q.Gemm(NoTrans, NoTrans, n1, k, n12, one, q2.Matrix(n1, opts), s.Matrix(n12, opts), zero); err != nil {
 			panic(err)
 		}
 	} else {

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -36,18 +35,18 @@ func Zgeqrt2(m, n int, a, t *mat.CMatrix) (err error) {
 
 	for i = 1; i <= k; i++ {
 		//        Generate elem. refl. H(i) to annihilate A(i+1:m,i), tau(I) -> T(I,1)
-		*a.GetPtr(i-1, i-1), *t.GetPtr(i-1, 0) = Zlarfg(m-i+1, a.Get(i-1, i-1), a.CVector(min(i+1, m)-1, i-1, 1))
+		*a.GetPtr(i-1, i-1), *t.GetPtr(i-1, 0) = Zlarfg(m-i+1, a.Get(i-1, i-1), a.Off(min(i+1, m)-1, i-1).CVector(), 1)
 		if i < n {
 			//           Apply H(i) to A(I:M,I+1:N) from the left
 			aii = a.Get(i-1, i-1)
 			a.Set(i-1, i-1, one)
 
 			//           W(1:N-I) := A(I:M,I+1:N)^H * A(I:M,I) [W = T(:,N)]
-			err = goblas.Zgemv(ConjTrans, m-i+1, n-i, one, a.Off(i-1, i), a.CVector(i-1, i-1, 1), zero, t.CVector(0, n-1, 1))
+			err = t.Off(0, n-1).CVector().Gemv(ConjTrans, m-i+1, n-i, one, a.Off(i-1, i), a.Off(i-1, i-1).CVector(), 1, zero, 1)
 
 			//           A(I:M,I+1:N) = A(I:m,I+1:N) + alpha*A(I:M,I)*W(1:N-1)^H
 			alpha = -t.GetConj(i-1, 0)
-			err = goblas.Zgerc(m-i+1, n-i, alpha, a.CVector(i-1, i-1, 1), t.CVector(0, n-1, 1), a.Off(i-1, i))
+			err = a.Off(i-1, i).Gerc(m-i+1, n-i, alpha, a.Off(i-1, i-1).CVector(), 1, t.Off(0, n-1).CVector(), 1)
 			a.Set(i-1, i-1, aii)
 		}
 	}
@@ -58,11 +57,11 @@ func Zgeqrt2(m, n int, a, t *mat.CMatrix) (err error) {
 
 		//        T(1:I-1,I) := alpha * A(I:M,1:I-1)**H * A(I:M,I)
 		alpha = -t.Get(i-1, 0)
-		err = goblas.Zgemv(ConjTrans, m-i+1, i-1, alpha, a.Off(i-1, 0), a.CVector(i-1, i-1, 1), zero, t.CVector(0, i-1, 1))
+		err = t.Off(0, i-1).CVector().Gemv(ConjTrans, m-i+1, i-1, alpha, a.Off(i-1, 0), a.Off(i-1, i-1).CVector(), 1, zero, 1)
 		a.Set(i-1, i-1, aii)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		err = goblas.Ztrmv(Upper, NoTrans, NonUnit, i-1, t, t.CVector(0, i-1, 1))
+		err = t.Off(0, i-1).CVector().Trmv(Upper, NoTrans, NonUnit, i-1, t, 1)
 
 		//           T(I,I) = tau(I)
 		t.Set(i-1, i-1, t.Get(i-1, 0))

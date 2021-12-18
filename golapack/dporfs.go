@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -75,8 +74,8 @@ func Dporfs(uplo mat.MatUplo, n, nrhs int, a, af, b, x *mat.Matrix, ferr, berr, 
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Dcopy(n, b.Vector(0, j-1, 1), work.Off(n, 1))
-		if err = goblas.Dsymv(uplo, n, -one, a, x.Vector(0, j-1, 1), one, work.Off(n, 1)); err != nil {
+		work.Off(n).Copy(n, b.Off(0, j-1).Vector(), 1, 1)
+		if err = work.Off(n).Symv(uplo, n, -one, a, x.Off(0, j-1).Vector(), 1, one, 1); err != nil {
 			panic(err)
 		}
 
@@ -132,10 +131,10 @@ func Dporfs(uplo mat.MatUplo, n, nrhs int, a, af, b, x *mat.Matrix, ferr, berr, 
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			if err = Dpotrs(uplo, n, 1, af, work.MatrixOff(n, n, opts)); err != nil {
+			if err = Dpotrs(uplo, n, 1, af, work.Off(n).Matrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Daxpy(n, one, work.Off(n, 1), x.Vector(0, j-1, 1))
+			x.Off(0, j-1).Vector().Axpy(n, one, work.Off(n), 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -179,7 +178,7 @@ func Dporfs(uplo mat.MatUplo, n, nrhs int, a, af, b, x *mat.Matrix, ferr, berr, 
 				//
 				//              Multiply by diag(W)*inv(A**T).
 				//
-				if err = Dpotrs(uplo, n, 1, af, work.MatrixOff(n, n, opts)); err != nil {
+				if err = Dpotrs(uplo, n, 1, af, work.Off(n).Matrix(n, opts)); err != nil {
 					panic(err)
 				}
 				for i = 1; i <= n; i++ {
@@ -190,7 +189,7 @@ func Dporfs(uplo mat.MatUplo, n, nrhs int, a, af, b, x *mat.Matrix, ferr, berr, 
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
-				if err = Dpotrs(uplo, n, 1, af, work.MatrixOff(n, n, opts)); err != nil {
+				if err = Dpotrs(uplo, n, 1, af, work.Off(n).Matrix(n, opts)); err != nil {
 					panic(err)
 				}
 			}

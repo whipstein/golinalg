@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -69,23 +68,23 @@ func Dgbtf2(m, n, kl, ku int, ab *mat.Matrix, ipiv *[]int) (info int, err error)
 		//        Find pivot and test for singularity. KM is the number of
 		//        subdiagonal elements in the current column.
 		km = min(kl, m-j)
-		jp = goblas.Idamax(km+1, ab.Vector(kv, j-1, 1))
+		jp = ab.Off(kv, j-1).Vector().Iamax(km+1, 1)
 		(*ipiv)[j-1] = jp + j - 1
 		if ab.Get(kv+jp-1, j-1) != zero {
 			ju = max(ju, min(j+ku+jp-1, n))
 
 			//           Apply interchange to columns J to JU.
 			if jp != 1 {
-				goblas.Dswap(ju-j+1, ab.Vector(kv+jp-1, j-1, ab.Rows-1), ab.Vector(kv, j-1, ab.Rows-1))
+				ab.Off(kv, j-1).Vector().Swap(ju-j+1, ab.Off(kv+jp-1, j-1).Vector(), ab.Rows-1, ab.Rows-1)
 			}
 
 			if km > 0 {
 				//              Compute multipliers.
-				goblas.Dscal(km, one/ab.Get(kv, j-1), ab.Vector(kv+2-1, j-1, 1))
+				ab.Off(kv+2-1, j-1).Vector().Scal(km, one/ab.Get(kv, j-1), 1)
 
 				//              Update trailing submatrix within the band.
 				if ju > j {
-					err = goblas.Dger(km, ju-j, -one, ab.Vector(kv+2-1, j-1, 1), ab.Vector(kv-1, j, ab.Rows-1), ab.Off(kv, j).UpdateRows(ab.Rows-1))
+					err = ab.Off(kv, j).UpdateRows(ab.Rows-1).Ger(km, ju-j, -one, ab.Off(kv+2-1, j-1).Vector(), 1, ab.Off(kv-1, j).Vector(), ab.Rows-1)
 				}
 			}
 		} else {

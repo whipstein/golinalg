@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -100,7 +99,7 @@ func Dsygvd(itype int, jobz byte, uplo mat.MatUplo, n int, a, b *mat.Matrix, w, 
 				trans = Trans
 			}
 
-			if err = goblas.Dtrsm(Left, uplo, trans, NonUnit, n, n, one, b, a); err != nil {
+			if err = a.Trsm(Left, uplo, trans, NonUnit, n, n, one, b); err != nil {
 				panic(err)
 			}
 
@@ -113,7 +112,7 @@ func Dsygvd(itype int, jobz byte, uplo mat.MatUplo, n int, a, b *mat.Matrix, w, 
 				trans = NoTrans
 			}
 
-			if err = goblas.Dtrmm(Left, uplo, trans, NonUnit, n, n, one, b, a); err != nil {
+			if err = a.Trmm(Left, uplo, trans, NonUnit, n, n, one, b); err != nil {
 				panic(err)
 			}
 		}

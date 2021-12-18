@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -117,10 +116,10 @@ func Dptrfs(n, nrhs int, d, e, df, ef *mat.Vector, b, x *mat.Matrix, ferr, berr,
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			if err = Dpttrs(n, 1, df, ef, work.MatrixOff(n, n, opts)); err != nil {
+			if err = Dpttrs(n, 1, df, ef, work.Off(n).Matrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Daxpy(n, one, work.Off(n, 1), x.Vector(0, j-1, 1))
+			x.Off(0, j-1).Vector().Axpy(n, one, work.Off(n), 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -150,7 +149,7 @@ func Dptrfs(n, nrhs int, d, e, df, ef *mat.Vector, b, x *mat.Matrix, ferr, berr,
 				work.Set(i-1, math.Abs(work.Get(n+i-1))+float64(nz)*eps*work.Get(i-1)+safe1)
 			}
 		}
-		ix = goblas.Idamax(n, work.Off(0, 1))
+		ix = work.Iamax(n, 1)
 		ferr.Set(j-1, work.Get(ix-1))
 
 		//        Estimate the norm of inv(A).
@@ -175,7 +174,7 @@ func Dptrfs(n, nrhs int, d, e, df, ef *mat.Vector, b, x *mat.Matrix, ferr, berr,
 		}
 
 		//        Compute norm(inv(A)) = max(x(i)), 1<=i<=n.
-		ix = goblas.Idamax(n, work.Off(0, 1))
+		ix = work.Iamax(n, 1)
 		ferr.Set(j-1, ferr.Get(j-1)*math.Abs(work.Get(ix-1)))
 
 		//        Normalize error.

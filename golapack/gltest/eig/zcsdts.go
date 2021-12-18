@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,7 +57,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     The first half of the routine checks the 2-by-2 CSD
 	golapack.Zlaset(Full, m, m, zero, one, work.CMatrix(x.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, m, m, -realone, x, realone, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Herk(Upper, ConjTrans, m, m, -realone, x, realone); err != nil {
 		panic(err)
 	}
 	if m > 0 {
@@ -79,11 +78,11 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 	//     Compute XF := diag(U1,U2)'*X*diag(V1,V2) - [D11 D12; D21 D22]
 	golapack.Zlacpy(Full, m, m, x, xf)
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, p, q, q, one, xf, v1t, zero, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, p, q, q, one, xf, v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, p, q, p, one, u1, work.CMatrix(x.Rows, opts), zero, xf); err != nil {
+	if err = xf.Gemm(ConjTrans, NoTrans, p, q, p, one, u1, work.CMatrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -94,11 +93,11 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 		xf.Set(min(p, q)-r+i-1, min(p, q)-r+i-1, xf.Get(min(p, q)-r+i-1, min(p, q)-r+i-1)-toCmplx(math.Cos(theta.Get(i-1))))
 	}
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, p, m-q, m-q, one, xf.Off(0, q), v2t, zero, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, p, m-q, m-q, one, xf.Off(0, q), v2t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, p, m-q, p, one, u1, work.CMatrix(x.Rows, opts), zero, xf.Off(0, q)); err != nil {
+	if err = xf.Off(0, q).Gemm(ConjTrans, NoTrans, p, m-q, p, one, u1, work.CMatrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -109,11 +108,11 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 		xf.Set(p-(min(p, m-q)-r)+1-i-1, m-(min(p, m-q)-r)+1-i-1, xf.Get(p-(min(p, m-q)-r)+1-i-1, m-(min(p, m-q)-r)+1-i-1)+toCmplx(math.Sin(theta.Get(r-i))))
 	}
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, m-p, q, q, one, xf.Off(p, 0), v1t, zero, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, m-p, q, q, one, xf.Off(p, 0), v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.CMatrix(x.Rows, opts), zero, xf.Off(p, 0)); err != nil {
+	if err = xf.Off(p, 0).Gemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.CMatrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -124,11 +123,11 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 		xf.Set(m-(min(m-p, q)-r)+1-i-1, q-(min(m-p, q)-r)+1-i-1, xf.Get(m-(min(m-p, q)-r)+1-i-1, q-(min(m-p, q)-r)+1-i-1)-toCmplx(math.Sin(theta.Get(r-i))))
 	}
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, m-p, m-q, m-q, one, xf.Off(p, q), v2t, zero, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, m-p, m-q, m-q, one, xf.Off(p, q), v2t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m-p, m-q, m-p, one, u2, work.CMatrix(x.Rows, opts), zero, xf.Off(p, q)); err != nil {
+	if err = xf.Off(p, q).Gemm(ConjTrans, NoTrans, m-p, m-q, m-p, one, u2, work.CMatrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -157,7 +156,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - U1'*U1
 	golapack.Zlaset(Full, p, p, zero, one, work.CMatrix(u1.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, p, p, -realone, u1, realone, work.CMatrix(u1.Rows, opts)); err != nil {
+	if err = work.CMatrix(u1.Rows, opts).Herk(Upper, ConjTrans, p, p, -realone, u1, realone); err != nil {
 		panic(err)
 	}
 
@@ -167,7 +166,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - U2'*U2
 	golapack.Zlaset(Full, m-p, m-p, zero, one, work.CMatrix(u2.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, m-p, m-p, -realone, u2, realone, work.CMatrix(u2.Rows, opts)); err != nil {
+	if err = work.CMatrix(u2.Rows, opts).Herk(Upper, ConjTrans, m-p, m-p, -realone, u2, realone); err != nil {
 		panic(err)
 	}
 
@@ -177,7 +176,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - V1T*V1T'
 	golapack.Zlaset(Full, q, q, zero, one, work.CMatrix(v1t.Rows, opts))
-	if err = goblas.Zherk(Upper, NoTrans, q, q, -realone, v1t, realone, work.CMatrix(v1t.Rows, opts)); err != nil {
+	if err = work.CMatrix(v1t.Rows, opts).Herk(Upper, NoTrans, q, q, -realone, v1t, realone); err != nil {
 		panic(err)
 	}
 
@@ -187,7 +186,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - V2T*V2T'
 	golapack.Zlaset(Full, m-q, m-q, zero, one, work.CMatrix(v2t.Rows, opts))
-	if err = goblas.Zherk(Upper, NoTrans, m-q, m-q, -realone, v2t, realone, work.CMatrix(v2t.Rows, opts)); err != nil {
+	if err = work.CMatrix(v2t.Rows, opts).Herk(Upper, NoTrans, m-q, m-q, -realone, v2t, realone); err != nil {
 		panic(err)
 	}
 
@@ -210,7 +209,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     The second half of the routine checks the 2-by-1 CSD
 	golapack.Zlaset(Full, q, q, zero, one, work.CMatrix(x.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, q, m, -realone, x, realone, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Herk(Upper, ConjTrans, q, m, -realone, x, realone); err != nil {
 		panic(err)
 	}
 	if m > 0 {
@@ -229,11 +228,11 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 	}
 
 	//     Compute [X11;X21] := diag(U1,U2)'*[X11;X21]*V1 - [D11;D21]
-	if err = goblas.Zgemm(NoTrans, ConjTrans, p, q, q, one, x, v1t, zero, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, p, q, q, one, x, v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, p, q, p, one, u1, work.CMatrix(x.Rows, opts), zero, x); err != nil {
+	if err = x.Gemm(ConjTrans, NoTrans, p, q, p, one, u1, work.CMatrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -244,11 +243,11 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 		x.Set(min(p, q)-r+i-1, min(p, q)-r+i-1, x.Get(min(p, q)-r+i-1, min(p, q)-r+i-1)-toCmplx(math.Cos(theta.Get(i-1))))
 	}
 
-	if err = goblas.Zgemm(NoTrans, ConjTrans, m-p, q, q, one, x.Off(p, 0), v1t, zero, work.CMatrix(x.Rows, opts)); err != nil {
+	if err = work.CMatrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, m-p, q, q, one, x.Off(p, 0), v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.CMatrix(x.Rows, opts), zero, x.Off(p, 0)); err != nil {
+	if err = x.Off(p, 0).Gemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.CMatrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -269,7 +268,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - U1'*U1
 	golapack.Zlaset(Full, p, p, zero, one, work.CMatrix(u1.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, p, p, -realone, u1, realone, work.CMatrix(u1.Rows, opts)); err != nil {
+	if err = work.CMatrix(u1.Rows, opts).Herk(Upper, ConjTrans, p, p, -realone, u1, realone); err != nil {
 		panic(err)
 	}
 
@@ -279,7 +278,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - U2'*U2
 	golapack.Zlaset(Full, m-p, m-p, zero, one, work.CMatrix(u2.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, m-p, m-p, -realone, u2, realone, work.CMatrix(u2.Rows, opts)); err != nil {
+	if err = work.CMatrix(u2.Rows, opts).Herk(Upper, ConjTrans, m-p, m-p, -realone, u2, realone); err != nil {
 		panic(err)
 	}
 
@@ -289,7 +288,7 @@ func zcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.CMatrix, theta *mat.Vector
 
 	//     Compute I - V1T*V1T'
 	golapack.Zlaset(Full, q, q, zero, one, work.CMatrix(v1t.Rows, opts))
-	if err = goblas.Zherk(Upper, NoTrans, q, q, -realone, v1t, realone, work.CMatrix(v1t.Rows, opts)); err != nil {
+	if err = work.CMatrix(v1t.Rows, opts).Herk(Upper, NoTrans, q, q, -realone, v1t, realone); err != nil {
 		panic(err)
 	}
 

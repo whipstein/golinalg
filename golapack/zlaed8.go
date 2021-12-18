@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -53,7 +52,7 @@ func Zlaed8(n, qsiz int, q *mat.CMatrix, d *mat.Vector, rho float64, cutpnt int,
 	n1p1 = n1 + 1
 
 	if rhoOut < zero {
-		goblas.Dscal(n2, mone, z.Off(n1p1-1, 1))
+		z.Off(n1p1-1).Scal(n2, mone, 1)
 	}
 
 	//     Normalize z so that norm(z) = 1
@@ -61,7 +60,7 @@ func Zlaed8(n, qsiz int, q *mat.CMatrix, d *mat.Vector, rho float64, cutpnt int,
 	for j = 1; j <= n; j++ {
 		(*indx)[j-1] = j
 	}
-	goblas.Dscal(n, t, z.Off(0, 1))
+	z.Scal(n, t, 1)
 	rhoOut = math.Abs(two * rhoOut)
 
 	//     Sort the eigenvalues into increasing order
@@ -81,8 +80,8 @@ func Zlaed8(n, qsiz int, q *mat.CMatrix, d *mat.Vector, rho float64, cutpnt int,
 	}
 
 	//     Calculate the allowable deflation tolerance
-	imax = goblas.Idamax(n, z.Off(0, 1))
-	jmax = goblas.Idamax(n, d.Off(0, 1))
+	imax = z.Iamax(n, 1)
+	jmax = d.Iamax(n, 1)
 	eps = Dlamch(Epsilon)
 	tol = eight * eps * d.GetMag(jmax-1)
 
@@ -93,7 +92,7 @@ func Zlaed8(n, qsiz int, q *mat.CMatrix, d *mat.Vector, rho float64, cutpnt int,
 		k = 0
 		for j = 1; j <= n; j++ {
 			(*perm)[j-1] = (*indxq)[(*indx)[j-1]-1]
-			goblas.Zcopy(qsiz, q.CVector(0, (*perm)[j-1]-1, 1), q2.CVector(0, j-1, 1))
+			q2.Off(0, j-1).CVector().Copy(qsiz, q.Off(0, (*perm)[j-1]-1).CVector(), 1, 1)
 		}
 		Zlacpy(Full, qsiz, n, q2, q)
 		return
@@ -151,7 +150,7 @@ label70:
 			(*givcol)[1+(givptr-1)*2] = (*indxq)[(*indx)[j-1]-1]
 			givnum.Set(0, givptr-1, c)
 			givnum.Set(1, givptr-1, s)
-			goblas.Zdrot(qsiz, q.CVector(0, (*indxq)[(*indx)[jlam-1]-1]-1, 1), q.CVector(0, (*indxq)[(*indx)[j-1]-1]-1, 1), c, s)
+			q.Off(0, (*indxq)[(*indx)[j-1]-1]-1).CVector().Drot(qsiz, q.Off(0, (*indxq)[(*indx)[jlam-1]-1]-1).CVector(), 1, 1, c, s)
 			t = d.Get(jlam-1)*c*c + d.Get(j-1)*s*s
 			d.Set(j-1, d.Get(jlam-1)*s*s+d.Get(j-1)*c*c)
 			d.Set(jlam-1, t)
@@ -201,13 +200,13 @@ label100:
 		jp = (*indxp)[j-1]
 		dlamda.Set(j-1, d.Get(jp-1))
 		(*perm)[j-1] = (*indxq)[(*indx)[jp-1]-1]
-		goblas.Zcopy(qsiz, q.CVector(0, (*perm)[j-1]-1, 1), q2.CVector(0, j-1, 1))
+		q2.Off(0, j-1).CVector().Copy(qsiz, q.Off(0, (*perm)[j-1]-1).CVector(), 1, 1)
 	}
 
 	//     The deflated eigenvalues and their corresponding vectors go back
 	//     into the last N - K slots of D and Q respectively.
 	if k < n {
-		goblas.Dcopy(n-k, dlamda.Off(k, 1), d.Off(k, 1))
+		d.Off(k).Copy(n-k, dlamda.Off(k), 1, 1)
 		Zlacpy(Full, qsiz, n-k, q2.Off(0, k), q.Off(0, k))
 	}
 

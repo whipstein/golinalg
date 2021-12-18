@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -76,7 +75,7 @@ func dstt22(n, m, kband int, ad, ae, sd, se *mat.Vector, u, work *mat.Matrix, re
 		}
 	}
 
-	wnorm = golapack.Dlansy('1', Lower, m, work, work.Vector(0, m))
+	wnorm = golapack.Dlansy('1', Lower, m, work, work.Off(0, m).Vector())
 
 	if anorm > wnorm {
 		result.Set(0, (wnorm/anorm)/(float64(m)*ulp))
@@ -91,7 +90,7 @@ func dstt22(n, m, kband int, ad, ae, sd, se *mat.Vector, u, work *mat.Matrix, re
 	//     Do Test 2
 	//
 	//     Compute  U'U - I
-	if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, u, u, zero, work); err != nil {
+	if err = work.Gemm(Trans, NoTrans, m, m, n, one, u, u, zero); err != nil {
 		panic(err)
 	}
 
@@ -99,5 +98,5 @@ func dstt22(n, m, kband int, ad, ae, sd, se *mat.Vector, u, work *mat.Matrix, re
 		work.Set(j-1, j-1, work.Get(j-1, j-1)-one)
 	}
 
-	result.Set(1, math.Min(float64(m), golapack.Dlange('1', m, m, work, work.Vector(0, m)))/(float64(m)*ulp))
+	result.Set(1, math.Min(float64(m), golapack.Dlange('1', m, m, work, work.Off(0, m).Vector()))/(float64(m)*ulp))
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -94,11 +93,11 @@ func dchktb(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 					golapack.Dlaset(Full, n, n, zero, one, ainv.Matrix(lda, opts))
 					if uplo == Upper {
 						for j = 1; j <= n; j++ {
-							err = goblas.Dtbsv(uplo, mat.NoTrans, diag, j, kd, ab.Matrix(ldab, opts), ainv.Off((j-1)*lda, 1))
+							err = ainv.Off((j-1)*lda).Tbsv(uplo, NoTrans, diag, j, kd, ab.Matrix(ldab, opts), 1)
 						}
 					} else {
 						for j = 1; j <= n; j++ {
-							err = goblas.Dtbsv(uplo, mat.NoTrans, diag, n-j+1, kd, ab.MatrixOff((j-1)*ldab, ldab, opts), ainv.Off((j-1)*lda+j-1, 1))
+							err = ainv.Off((j-1)*lda+j-1).Tbsv(uplo, NoTrans, diag, n-j+1, kd, ab.Off((j-1)*ldab).Matrix(ldab, opts), 1)
 						}
 					}
 
@@ -233,7 +232,7 @@ func dchktb(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 						//+    TEST 7
 						//                    Solve the system op(A)*x = b
 						*srnamt = "Dlatbs"
-						goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
+						b.Copy(n, x, 1, 1)
 						if scale, err = golapack.Dlatbs(uplo, trans, diag, 'N', n, kd, ab.Matrix(ldab, opts), b, rwork); err != nil {
 							nerrs = alaerh(path, "Dlatbs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'N'}, n, n, kd, kd, -1, imat, nfail, nerrs)
 						}
@@ -242,7 +241,7 @@ func dchktb(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 						//+    TEST 8
 						//                    Solve op(A)*x = b again with NORMIN = 'Y'.
-						goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
+						b.Copy(n, x, 1, 1)
 						if scale, err = golapack.Dlatbs(uplo, trans, diag, 'Y', n, kd, ab.Matrix(ldab, opts), b, rwork); err != nil {
 							nerrs = alaerh(path, "Dlatbs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'Y'}, n, n, kd, kd, -1, imat, nfail, nerrs)
 						}

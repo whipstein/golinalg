@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,18 +49,18 @@ func dtrt03(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 	//        norm(op(A)*x - s*b) / ( norm(op(A)) * norm(x) * EPS ).
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		goblas.Dcopy(n, x.Vector(0, j-1, 1), work.Off(0, 1))
-		ix = goblas.Idamax(n, work.Off(0, 1))
+		work.Copy(n, x.Off(0, j-1).Vector(), 1, 1)
+		ix = work.Iamax(n, 1)
 		xnorm = math.Max(one, math.Abs(x.Get(ix-1, j-1)))
 		xscal = (one / xnorm) / float64(n)
-		goblas.Dscal(n, xscal, work.Off(0, 1))
-		if err = goblas.Dtrmv(uplo, trans, diag, n, a, work.Off(0, 1)); err != nil {
+		work.Scal(n, xscal, 1)
+		if err = work.Trmv(uplo, trans, diag, n, a, 1); err != nil {
 			panic(err)
 		}
-		goblas.Daxpy(n, -scale*xscal, b.Vector(0, j-1, 1), work.Off(0, 1))
-		ix = goblas.Idamax(n, work.Off(0, 1))
+		work.Axpy(n, -scale*xscal, b.Off(0, j-1).Vector(), 1, 1)
+		ix = work.Iamax(n, 1)
 		err2 = tscal * math.Abs(work.Get(ix-1))
-		ix = goblas.Idamax(n, x.Vector(0, j-1, 1))
+		ix = x.Off(0, j-1).Vector().Iamax(n, 1)
 		xnorm = math.Abs(x.Get(ix-1, j-1))
 		if err2*smlnum <= xnorm {
 			if xnorm > zero {

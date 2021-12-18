@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -83,7 +82,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 			e.Set(i-1, sn*d.Get(i))
 			d.Set(i, cs*d.Get(i))
 			if nrhs == 1 {
-				goblas.Zdrot(1, b.CVector(i-1, 0, 1), b.CVector(i, 0, 1), cs, sn)
+				b.Off(i, 0).CVector().Drot(1, b.Off(i-1, 0).CVector(), 1, 1, cs, sn)
 			} else {
 				rwork.Set(i*2-1-1, cs)
 				rwork.Set(i*2-1, sn)
@@ -94,7 +93,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				for j = 1; j <= n-1; j++ {
 					cs = rwork.Get(j*2 - 1 - 1)
 					sn = rwork.Get(j*2 - 1)
-					goblas.Zdrot(1, b.CVector(j-1, i-1, 1), b.CVector(j, i-1, 1), cs, sn)
+					b.Off(j, i-1).CVector().Drot(1, b.Off(j-1, i-1).CVector(), 1, 1, cs, sn)
 				}
 			}
 		}
@@ -124,9 +123,9 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 		irwrb = irwwrk
 		irwib = irwrb + n*nrhs
 		irwb = irwib + n*nrhs
-		Dlaset(Full, n, n, zero, one, rwork.MatrixOff(irwu-1, n, opts))
-		Dlaset(Full, n, n, zero, one, rwork.MatrixOff(irwvt-1, n, opts))
-		if info, err = Dlasdq(Upper, 0, n, n, n, 0, d, e, rwork.MatrixOff(irwvt-1, n, opts), rwork.MatrixOff(irwu-1, n, opts), rwork.MatrixOff(irwwrk-1, 1, opts), rwork.Off(irwwrk-1)); err != nil {
+		Dlaset(Full, n, n, zero, one, rwork.Off(irwu-1).Matrix(n, opts))
+		Dlaset(Full, n, n, zero, one, rwork.Off(irwvt-1).Matrix(n, opts))
+		if info, err = Dlasdq(Upper, 0, n, n, n, 0, d, e, rwork.Off(irwvt-1).Matrix(n, opts), rwork.Off(irwu-1).Matrix(n, opts), rwork.Off(irwwrk-1).Matrix(1, opts), rwork.Off(irwwrk-1)); err != nil {
 			panic(err)
 		}
 		if info != 0 {
@@ -143,7 +142,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, n, nrhs, n, one, rwork.MatrixOff(irwu-1, n, opts), rwork.MatrixOff(irwb-1, n, opts), zero, rwork.MatrixOff(irwrb-1, n, opts)); err != nil {
+		if err = rwork.Off(irwrb-1).Matrix(n, opts).Gemm(Trans, NoTrans, n, nrhs, n, one, rwork.Off(irwu-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(n, opts), zero); err != nil {
 			panic(err)
 		}
 		j = irwb - 1
@@ -153,7 +152,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, n, nrhs, n, one, rwork.MatrixOff(irwu-1, n, opts), rwork.MatrixOff(irwb-1, n, opts), zero, rwork.MatrixOff(irwib-1, n, opts)); err != nil {
+		if err = rwork.Off(irwib-1).Matrix(n, opts).Gemm(Trans, NoTrans, n, nrhs, n, one, rwork.Off(irwu-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(n, opts), zero); err != nil {
 			panic(err)
 		}
 		jreal = irwrb - 1
@@ -166,7 +165,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 			}
 		}
 
-		tol = rcnd * d.GetMag(goblas.Idamax(n, d.Off(0, 1))-1)
+		tol = rcnd * d.GetMag(d.Iamax(n, 1)-1)
 		for i = 1; i <= n; i++ {
 			if d.Get(i-1) <= tol {
 				Zlaset(Full, 1, nrhs, czero, czero, b.Off(i-1, 0))
@@ -191,7 +190,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, n, nrhs, n, one, rwork.MatrixOff(irwvt-1, n, opts), rwork.MatrixOff(irwb-1, n, opts), zero, rwork.MatrixOff(irwrb-1, n, opts)); err != nil {
+		if err = rwork.Off(irwrb-1).Matrix(n, opts).Gemm(Trans, NoTrans, n, nrhs, n, one, rwork.Off(irwvt-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(n, opts), zero); err != nil {
 			panic(err)
 		}
 		j = irwb - 1
@@ -201,7 +200,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 			}
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, n, nrhs, n, one, rwork.MatrixOff(irwvt-1, n, opts), rwork.MatrixOff(irwb-1, n, opts), zero, rwork.MatrixOff(irwib-1, n, opts)); err != nil {
+		if err = rwork.Off(irwib-1).Matrix(n, opts).Gemm(Trans, NoTrans, n, nrhs, n, one, rwork.Off(irwvt-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(n, opts), zero); err != nil {
 			panic(err)
 		}
 		jreal = irwrb - 1
@@ -292,18 +291,18 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				nsub = nsub + 1
 				(*iwork)[nsub-1] = n
 				(*iwork)[sizei+nsub-1-1] = 1
-				goblas.Zcopy(nrhs, b.CVector(n-1, 0, *&b.Rows), work.Off(bx+nm1-1, n))
+				work.Off(bx+nm1-1).Copy(nrhs, b.Off(n-1, 0).CVector(), b.Rows, n)
 			}
 			st1 = st - 1
 			if nsize == 1 {
 				//              This is a 1-by-1 subproblem and is not solved
 				//              explicitly.
-				goblas.Zcopy(nrhs, b.CVector(st-1, 0, *&b.Rows), work.Off(bx+st1-1, n))
+				work.Off(bx+st1-1).Copy(nrhs, b.Off(st-1, 0).CVector(), b.Rows, n)
 			} else if nsize <= smlsiz {
 				//              This is a small subproblem and is solved by DLASDQ.
-				Dlaset(Full, nsize, nsize, zero, one, rwork.MatrixOff(vt+st1-1, n, opts))
-				Dlaset(Full, nsize, nsize, zero, one, rwork.MatrixOff(u+st1-1, n, opts))
-				if info, err = Dlasdq(Upper, 0, nsize, nsize, nsize, 0, d.Off(st-1), e.Off(st-1), rwork.MatrixOff(vt+st1-1, n, opts), rwork.MatrixOff(u+st1-1, n, opts), rwork.MatrixOff(nrwork-1, 1, opts), rwork.Off(nrwork-1)); err != nil {
+				Dlaset(Full, nsize, nsize, zero, one, rwork.Off(vt+st1-1).Matrix(n, opts))
+				Dlaset(Full, nsize, nsize, zero, one, rwork.Off(u+st1-1).Matrix(n, opts))
+				if info, err = Dlasdq(Upper, 0, nsize, nsize, nsize, 0, d.Off(st-1), e.Off(st-1), rwork.Off(vt+st1-1).Matrix(n, opts), rwork.Off(u+st1-1).Matrix(n, opts), rwork.Off(nrwork-1).Matrix(1, opts), rwork.Off(nrwork-1)); err != nil {
 					panic(err)
 				}
 				if info != 0 {
@@ -320,7 +319,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 						rwork.Set(j-1, b.GetRe(jrow-1, jcol-1))
 					}
 				}
-				if err = goblas.Dgemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.MatrixOff(u+st1-1, n, opts), rwork.MatrixOff(irwb-1, nsize, opts), zero, rwork.MatrixOff(irwrb-1, nsize, opts)); err != nil {
+				if err = rwork.Off(irwrb-1).Matrix(nsize, opts).Gemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.Off(u+st1-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(nsize, opts), zero); err != nil {
 					panic(err)
 				}
 				j = irwb - 1
@@ -330,7 +329,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 						rwork.Set(j-1, b.GetIm(jrow-1, jcol-1))
 					}
 				}
-				if err = goblas.Dgemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.MatrixOff(u+st1-1, n, opts), rwork.MatrixOff(irwb-1, nsize, opts), zero, rwork.MatrixOff(irwib-1, nsize, opts)); err != nil {
+				if err = rwork.Off(irwib-1).Matrix(nsize, opts).Gemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.Off(u+st1-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(nsize, opts), zero); err != nil {
 					panic(err)
 				}
 				jreal = irwrb - 1
@@ -343,17 +342,17 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 					}
 				}
 
-				Zlacpy(Full, nsize, nrhs, b.Off(st-1, 0), work.CMatrixOff(bx+st1-1, n, opts))
+				Zlacpy(Full, nsize, nrhs, b.Off(st-1, 0), work.Off(bx+st1-1).CMatrix(n, opts))
 			} else {
 				//              A large problem. Solve it using divide and conquer.
-				if info, err = Dlasda(icmpq1, smlsiz, nsize, sqre, d.Off(st-1), e.Off(st-1), rwork.MatrixOff(u+st1-1, n, opts), rwork.MatrixOff(vt+st1-1, n, opts), toSlice(iwork, k+st1-1), rwork.MatrixOff(difl+st1-1, n, opts), rwork.MatrixOff(difr+st1-1, n, opts), rwork.MatrixOff(z+st1-1, n, opts), rwork.MatrixOff(poles+st1-1, n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), rwork.MatrixOff(givnum+st1-1, n, opts), rwork.Off(c+st1-1), rwork.Off(s+st1-1), rwork.Off(nrwork-1), toSlice(iwork, iwk-1)); err != nil {
+				if info, err = Dlasda(icmpq1, smlsiz, nsize, sqre, d.Off(st-1), e.Off(st-1), rwork.Off(u+st1-1).Matrix(n, opts), rwork.Off(vt+st1-1).Matrix(n, opts), toSlice(iwork, k+st1-1), rwork.Off(difl+st1-1).Matrix(n, opts), rwork.Off(difr+st1-1).Matrix(n, opts), rwork.Off(z+st1-1).Matrix(n, opts), rwork.Off(poles+st1-1).Matrix(n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), rwork.Off(givnum+st1-1).Matrix(n, opts), rwork.Off(c+st1-1), rwork.Off(s+st1-1), rwork.Off(nrwork-1), toSlice(iwork, iwk-1)); err != nil {
 					panic(err)
 				}
 				if info != 0 {
 					return
 				}
 				bxst = bx + st1
-				if err = Zlalsa(icmpq2, smlsiz, nsize, nrhs, b.Off(st-1, 0), work.CMatrixOff(bxst-1, n, opts), rwork.MatrixOff(u+st1-1, n, opts), rwork.MatrixOff(vt+st1-1, n, opts), toSlice(iwork, k+st1-1), rwork.MatrixOff(difl+st1-1, n, opts), rwork.MatrixOff(difr+st1-1, n, opts), rwork.MatrixOff(z+st1-1, n, opts), rwork.MatrixOff(poles+st1-1, n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), rwork.MatrixOff(givnum+st1-1, n, opts), rwork.Off(c+st1-1), rwork.Off(s+st1-1), rwork.Off(nrwork-1), toSlice(iwork, iwk-1)); err != nil {
+				if err = Zlalsa(icmpq2, smlsiz, nsize, nrhs, b.Off(st-1, 0), work.Off(bxst-1).CMatrix(n, opts), rwork.Off(u+st1-1).Matrix(n, opts), rwork.Off(vt+st1-1).Matrix(n, opts), toSlice(iwork, k+st1-1), rwork.Off(difl+st1-1).Matrix(n, opts), rwork.Off(difr+st1-1).Matrix(n, opts), rwork.Off(z+st1-1).Matrix(n, opts), rwork.Off(poles+st1-1).Matrix(n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), rwork.Off(givnum+st1-1).Matrix(n, opts), rwork.Off(c+st1-1), rwork.Off(s+st1-1), rwork.Off(nrwork-1), toSlice(iwork, iwk-1)); err != nil {
 					panic(err)
 				}
 				if info != 0 {
@@ -365,16 +364,16 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 	}
 
 	//     Apply the singular values and treat the tiny ones as zero.
-	tol = rcnd * d.GetMag(goblas.Idamax(n, d.Off(0, 1))-1)
+	tol = rcnd * d.GetMag(d.Iamax(n, 1)-1)
 
 	for i = 1; i <= n; i++ {
 		//        Some of the elements in D can be negative because 1-by-1
 		//        subproblems were not solved explicitly.
 		if d.GetMag(i-1) <= tol {
-			Zlaset(Full, 1, nrhs, czero, czero, work.CMatrixOff(bx+i-1-1, n, opts))
+			Zlaset(Full, 1, nrhs, czero, czero, work.Off(bx+i-1-1).CMatrix(n, opts))
 		} else {
 			rank = rank + 1
-			if err = Zlascl('G', 0, 0, d.Get(i-1), one, 1, nrhs, work.CMatrixOff(bx+i-1-1, n, opts)); err != nil {
+			if err = Zlascl('G', 0, 0, d.Get(i-1), one, 1, nrhs, work.Off(bx+i-1-1).CMatrix(n, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -389,7 +388,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 		nsize = (*iwork)[sizei+i-1-1]
 		bxst = bx + st1
 		if nsize == 1 {
-			goblas.Zcopy(nrhs, work.Off(bxst-1, n), b.CVector(st-1, 0, *&b.Rows))
+			b.Off(st-1, 0).CVector().Copy(nrhs, work.Off(bxst-1), n, b.Rows)
 		} else if nsize <= smlsiz {
 			//           Since B and BX are complex, the following call to DGEMM
 			//           is performed in two steps (real and imaginary parts).
@@ -406,7 +405,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 					rwork.Set(jreal-1, work.GetRe(j+jrow-1))
 				}
 			}
-			if err = goblas.Dgemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.MatrixOff(vt+st1-1, n, opts), rwork.MatrixOff(irwb-1, nsize, opts), zero, rwork.MatrixOff(irwrb-1, nsize, opts)); err != nil {
+			if err = rwork.Off(irwrb-1).Matrix(nsize, opts).Gemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.Off(vt+st1-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(nsize, opts), zero); err != nil {
 				panic(err)
 			}
 			j = bxst - n - 1
@@ -418,7 +417,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 					rwork.Set(jimag-1, work.GetIm(j+jrow-1))
 				}
 			}
-			if err = goblas.Dgemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.MatrixOff(vt+st1-1, n, opts), rwork.MatrixOff(irwb-1, nsize, opts), zero, rwork.MatrixOff(irwib-1, nsize, opts)); err != nil {
+			if err = rwork.Off(irwib-1).Matrix(nsize, opts).Gemm(Trans, NoTrans, nsize, nrhs, nsize, one, rwork.Off(vt+st1-1).Matrix(n, opts), rwork.Off(irwb-1).Matrix(nsize, opts), zero); err != nil {
 				panic(err)
 			}
 			jreal = irwrb - 1
@@ -431,7 +430,7 @@ func Zlalsd(uplo mat.MatUplo, smlsiz, n, nrhs int, d, e *mat.Vector, b *mat.CMat
 				}
 			}
 		} else {
-			if err = Zlalsa(icmpq2, smlsiz, nsize, nrhs, work.CMatrixOff(bxst-1, n, opts), b.Off(st-1, 0), rwork.MatrixOff(u+st1-1, n, opts), rwork.MatrixOff(vt+st1-1, n, opts), toSlice(iwork, k+st1-1), rwork.MatrixOff(difl+st1-1, n, opts), rwork.MatrixOff(difr+st1-1, n, opts), rwork.MatrixOff(z+st1-1, n, opts), rwork.MatrixOff(poles+st1-1, n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), rwork.MatrixOff(givnum+st1-1, n, opts), rwork.Off(c+st1-1), rwork.Off(s+st1-1), rwork.Off(nrwork-1), toSlice(iwork, iwk-1)); err != nil {
+			if err = Zlalsa(icmpq2, smlsiz, nsize, nrhs, work.Off(bxst-1).CMatrix(n, opts), b.Off(st-1, 0), rwork.Off(u+st1-1).Matrix(n, opts), rwork.Off(vt+st1-1).Matrix(n, opts), toSlice(iwork, k+st1-1), rwork.Off(difl+st1-1).Matrix(n, opts), rwork.Off(difr+st1-1).Matrix(n, opts), rwork.Off(z+st1-1).Matrix(n, opts), rwork.Off(poles+st1-1).Matrix(n, opts), toSlice(iwork, givptr+st1-1), toSlice(iwork, givcol+st1-1), n, toSlice(iwork, perm+st1-1), rwork.Off(givnum+st1-1).Matrix(n, opts), rwork.Off(c+st1-1), rwork.Off(s+st1-1), rwork.Off(nrwork-1), toSlice(iwork, iwk-1)); err != nil {
 				panic(err)
 			}
 			if info != 0 {

@@ -251,7 +251,7 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 				//              Multiply by [-c -s;  s -c] on the right.
 				if j > 1 {
-					goblas.Drot(j-1, a.Off(jcnext-1, 1), a.Off(jc-1, 1), -c, -s)
+					a.Off(jc-1).Rot(j-1, a.Off(jcnext-1), 1, 1, -c, -s)
 				}
 
 				//              Negate A(J,J+1).
@@ -268,7 +268,7 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 				//              Multiply by [ c -s;  s  c] on the right.
 				if n > j+1 {
-					goblas.Drot(n-j-1, a.Off(jcnext, 1), a.Off(jc+2-1, 1), c, -s)
+					a.Off(jc+2-1).Rot(n-j-1, a.Off(jcnext), 1, 1, c, -s)
 				}
 
 				//              Multiply by [-c  s; -s -c] on the left.
@@ -313,10 +313,10 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(2, &iseed, n, b)
-		iy = goblas.Idamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = math.Abs(b.Get(iy - 1))
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Dscal(n, bscal, b.Off(0, 1))
+		b.Scal(n, bscal, 1)
 
 	} else if imat == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
@@ -328,7 +328,7 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			jc = 1
 			for j = 1; j <= n; j++ {
 				golapack.Dlarnv(2, &iseed, j-1, a.Off(jc-1))
-				goblas.Dscal(j-1, tscal, a.Off(jc-1, 1))
+				a.Off(jc-1).Scal(j-1, tscal, 1)
 				a.Set(jc+j-1-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 				jc = jc + j
 			}
@@ -337,7 +337,7 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			jc = 1
 			for j = 1; j <= n; j++ {
 				golapack.Dlarnv(2, &iseed, n-j, a.Off(jc))
-				goblas.Dscal(n-j, tscal, a.Off(jc, 1))
+				a.Off(jc).Scal(n-j, tscal, 1)
 				a.Set(jc-1, math.Copysign(one, matgen.Dlarnd(2, &iseed)))
 				jc = jc + n - j + 1
 			}
@@ -486,7 +486,7 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			}
 		}
 		golapack.Dlarnv(2, &iseed, n, b)
-		goblas.Dscal(n, two, b.Off(0, 1))
+		b.Scal(n, two, 1)
 
 	} else if imat == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -553,10 +553,10 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(2, &iseed, n, b)
-		iy = goblas.Idamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = math.Abs(b.Get(iy - 1))
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Dscal(n, bscal, b.Off(0, 1))
+		b.Scal(n, bscal, 1)
 
 	} else if imat == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
@@ -584,7 +584,7 @@ func dlattp(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			}
 		}
 		golapack.Dlarnv(2, &iseed, n, b)
-		goblas.Dscal(n, two, b.Off(0, 1))
+		b.Scal(n, two, 1)
 	}
 
 	//     Flip the matrix across its counter-diagonal if the transpose will

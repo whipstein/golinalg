@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -51,11 +50,11 @@ func dgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Ve
 	}
 
 	//     Compute A:= U'*A*Q - D1*R
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, one, a, q, zero, work.Matrix(a.Rows, opts)); err != nil {
+	if err = work.Matrix(a.Rows, opts).Gemm(NoTrans, NoTrans, m, n, n, one, a, q, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(Trans, NoTrans, m, n, m, one, u, work.Matrix(a.Rows, opts), zero, a); err != nil {
+	if err = a.Gemm(Trans, NoTrans, m, n, m, one, u, work.Matrix(a.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -81,11 +80,11 @@ func dgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Ve
 	}
 
 	//     Compute B := V'*B*Q - D2*R
-	if err = goblas.Dgemm(NoTrans, NoTrans, p, n, n, one, b, q, zero, work.Matrix(b.Rows, opts)); err != nil {
+	if err = work.Matrix(b.Rows, opts).Gemm(NoTrans, NoTrans, p, n, n, one, b, q, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(Trans, NoTrans, p, n, p, one, v, work.Matrix(a.Rows, opts), zero, b); err != nil {
+	if err = b.Gemm(Trans, NoTrans, p, n, p, one, v, work.Matrix(a.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -105,7 +104,7 @@ func dgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Ve
 
 	//     Compute I - U'*U
 	golapack.Dlaset(Full, m, m, zero, one, work.Matrix(q.Rows, opts))
-	if err = goblas.Dsyrk(Upper, Trans, m, m, -one, u, one, work.Matrix(u.Rows, opts)); err != nil {
+	if err = work.Matrix(u.Rows, opts).Syrk(Upper, Trans, m, m, -one, u, one); err != nil {
 		panic(err)
 	}
 
@@ -115,7 +114,7 @@ func dgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Ve
 
 	//     Compute I - V'*V
 	golapack.Dlaset(Full, p, p, zero, one, work.Matrix(v.Rows, opts))
-	if err = goblas.Dsyrk(Upper, Trans, p, p, -one, v, one, work.Matrix(v.Rows, opts)); err != nil {
+	if err = work.Matrix(v.Rows, opts).Syrk(Upper, Trans, p, p, -one, v, one); err != nil {
 		panic(err)
 	}
 
@@ -125,7 +124,7 @@ func dgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Ve
 
 	//     Compute I - Q'*Q
 	golapack.Dlaset(Full, n, n, zero, one, work.Matrix(q.Rows, opts))
-	if err = goblas.Dsyrk(Upper, Trans, n, n, -one, q, one, work.Matrix(q.Rows, opts)); err != nil {
+	if err = work.Matrix(q.Rows, opts).Syrk(Upper, Trans, n, n, -one, q, one); err != nil {
 		panic(err)
 	}
 
@@ -134,7 +133,7 @@ func dgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.Matrix, alpha, beta *mat.Ve
 	result.Set(4, (resid/float64(max(1, n)))/ulp)
 
 	//     Check sorting
-	goblas.Dcopy(n, alpha.Off(0, 1), work.Off(0, 1))
+	work.Copy(n, alpha, 1, 1)
 	for i = k + 1; i <= min(k+l, m); i++ {
 		j = (*iwork)[i-1]
 		if i != j {

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -50,7 +49,7 @@ func dqrt01p(m, n int, a, af, q, r *mat.Matrix, tau, work *mat.Vector, lwork int
 	golapack.Dlacpy(Upper, m, n, af, r)
 
 	//     Compute R - Q'*A
-	if err = goblas.Dgemm(Trans, NoTrans, m, n, m, -one, q, a, one, r); err != nil {
+	if err = r.Gemm(Trans, NoTrans, m, n, m, -one, q, a, one); err != nil {
 		panic(err)
 	}
 
@@ -65,7 +64,7 @@ func dqrt01p(m, n int, a, af, q, r *mat.Matrix, tau, work *mat.Vector, lwork int
 
 	//     Compute I - Q'*Q
 	golapack.Dlaset(Full, m, m, zero, one, r)
-	if err = goblas.Dsyrk(Upper, Trans, m, m, -one, q, one, r); err != nil {
+	if err = r.Syrk(Upper, Trans, m, m, -one, q, one); err != nil {
 		panic(err)
 	}
 

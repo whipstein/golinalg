@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -44,10 +43,10 @@ func Zgtsvx(fact byte, trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf,
 
 	if nofact {
 		//        Compute the LU factorization of A.
-		goblas.Zcopy(n, d.Off(0, 1), df.Off(0, 1))
+		df.Copy(n, d, 1, 1)
 		if n > 1 {
-			goblas.Zcopy(n-1, dl.Off(0, 1), dlf.Off(0, 1))
-			goblas.Zcopy(n-1, du.Off(0, 1), duf.Off(0, 1))
+			dlf.Copy(n-1, dl, 1, 1)
+			duf.Copy(n-1, du, 1, 1)
 		}
 		if info, err = Zgttrf(n, dlf, df, duf, du2, ipiv); err != nil {
 			panic(err)

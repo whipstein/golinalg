@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -57,7 +56,7 @@ func zunt01(rowcol byte, m, n int, u *mat.CMatrix, work *mat.CVector, lwork int,
 	if ldwork > 0 {
 		//        Compute I - U*U' or I - U'*U.
 		golapack.Zlaset(Upper, mnmin, mnmin, complex(zero, 0), complex(one, 0), work.CMatrix(ldwork, opts))
-		if err = goblas.Zherk(Upper, transu, mnmin, k, -one, u, one, work.CMatrix(ldwork, opts)); err != nil {
+		if err = work.CMatrix(ldwork, opts).Herk(Upper, transu, mnmin, k, -one, u, one); err != nil {
 			panic(err)
 		}
 
@@ -73,7 +72,7 @@ func zunt01(rowcol byte, m, n int, u *mat.CMatrix, work *mat.CVector, lwork int,
 				} else {
 					tmp = complex(one, 0)
 				}
-				tmp = tmp - goblas.Zdotc(m, u.CVector(0, i-1, 1), u.CVector(0, j-1, 1))
+				tmp = tmp - u.Off(0, j-1).CVector().Dotc(m, u.Off(0, i-1).CVector(), 1, 1)
 				resid = math.Max(resid, cabs1(tmp))
 			}
 		}
@@ -87,7 +86,7 @@ func zunt01(rowcol byte, m, n int, u *mat.CMatrix, work *mat.CVector, lwork int,
 				} else {
 					tmp = complex(one, 0)
 				}
-				tmp = tmp - goblas.Zdotc(n, u.CVector(j-1, 0), u.CVector(i-1, 0))
+				tmp = tmp - u.Off(i-1, 0).CVector().Dotc(n, u.Off(j-1, 0).CVector(), u.Rows, u.Rows)
 				resid = math.Max(resid, cabs1(tmp))
 			}
 		}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -63,14 +62,14 @@ func Dgebak(job byte, side mat.MatSide, n, ilo, ihi int, scale *mat.Vector, m in
 		if rightv {
 			for i = ilo; i <= ihi; i++ {
 				s = scale.Get(i - 1)
-				goblas.Dscal(m, s, v.Vector(i-1, 0))
+				v.Off(i-1, 0).Vector().Scal(m, s, v.Rows)
 			}
 		}
 
 		if leftv {
 			for i = ilo; i <= ihi; i++ {
 				s = one / scale.Get(i-1)
-				goblas.Dscal(m, s, v.Vector(i-1, 0))
+				v.Off(i-1, 0).Vector().Scal(m, s, v.Rows)
 			}
 		}
 
@@ -96,7 +95,7 @@ label30:
 				if k == i {
 					goto label40
 				}
-				goblas.Dswap(m, v.Vector(i-1, 0), v.Vector(k-1, 0))
+				v.Off(k-1, 0).Vector().Swap(m, v.Off(i-1, 0).Vector(), v.Rows, v.Rows)
 			label40:
 			}
 		}
@@ -114,7 +113,7 @@ label30:
 				if k == i {
 					goto label50
 				}
-				goblas.Dswap(m, v.Vector(i-1, 0), v.Vector(k-1, 0))
+				v.Off(k-1, 0).Vector().Swap(m, v.Off(i-1, 0).Vector(), v.Rows, v.Rows)
 			label50:
 			}
 		}

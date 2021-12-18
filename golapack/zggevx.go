@@ -323,13 +323,13 @@ func Zggevx(balanc, jobvl, jobvr, sense byte, n int, a, b *mat.CMatrix, alpha, b
 				iwrk1 = iwrk + n
 
 				if wantse || wantsb {
-					if _, err = Ztgevc(Both, 'S', *bwork, n, a, b, work.CMatrix(n, opts), work.CMatrixOff(iwrk-1, n, opts), 1, work.Off(iwrk1-1), rwork); err != nil {
+					if _, err = Ztgevc(Both, 'S', *bwork, n, a, b, work.CMatrix(n, opts), work.Off(iwrk-1).CMatrix(n, opts), 1, work.Off(iwrk1-1), rwork); err != nil {
 						info = n + 2
 						goto label90
 					}
 				}
 
-				if _, err = Ztgsna(sense, 'S', *bwork, n, a, b, work.CMatrix(n, opts), work.CMatrixOff(iwrk-1, n, opts), rconde.Off(i-1), rcondv.Off(i-1), 1, work.Off(iwrk1-1), lwork-iwrk1+1, iwork); err != nil {
+				if _, err = Ztgsna(sense, 'S', *bwork, n, a, b, work.CMatrix(n, opts), work.Off(iwrk-1).CMatrix(n, opts), rconde.Off(i-1), rcondv.Off(i-1), 1, work.Off(iwrk1-1), lwork-iwrk1+1, iwork); err != nil {
 					panic(err)
 				}
 

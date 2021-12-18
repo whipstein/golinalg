@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,12 +49,12 @@ func dsyt22(itype int, uplo mat.MatUplo, n, m, kband int, a *mat.Matrix, d, e *m
 	//     Compute error matrix:
 	//
 	//     ITYPE=1: error = U**T A U - S
-	if err = goblas.Dsymm(Left, uplo, n, m, one, a, u, zero, work.Matrix(n, opts)); err != nil {
+	if err = work.Matrix(n, opts).Symm(Left, uplo, n, m, one, a, u, zero); err != nil {
 		panic(err)
 	}
 	nn = n * n
 	nnp1 = nn + 1
-	if err = goblas.Dgemm(Trans, NoTrans, m, m, n, one, u, work.Matrix(n, opts), zero, work.MatrixOff(nnp1-1, n, opts)); err != nil {
+	if err = work.Off(nnp1-1).Matrix(n, opts).Gemm(Trans, NoTrans, m, m, n, one, u, work.Matrix(n, opts), zero); err != nil {
 		panic(err)
 	}
 	for j = 1; j <= m; j++ {
@@ -70,7 +69,7 @@ func dsyt22(itype int, uplo mat.MatUplo, n, m, kband int, a *mat.Matrix, d, e *m
 			work.Set(jj2-1, work.Get(jj2-1)-e.Get(j-1-1))
 		}
 	}
-	wnorm = golapack.Dlansy('1', uplo, m, work.MatrixOff(nnp1-1, n, opts), work)
+	wnorm = golapack.Dlansy('1', uplo, m, work.Off(nnp1-1).Matrix(n, opts), work)
 
 	if anorm > wnorm {
 		result.Set(0, (wnorm/anorm)/(float64(m)*ulp))

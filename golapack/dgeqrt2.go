@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -36,20 +35,20 @@ func Dgeqrt2(m, n int, a, t *mat.Matrix) (err error) {
 
 	for i = 1; i <= k; i++ {
 		//        Generate elem. refl. H(i) to annihilate A(i+1:m,i), tau(I) -> T(I,1)
-		*a.GetPtr(i-1, i-1), *t.GetPtr(i-1, 0) = Dlarfg(m-i+1, a.Get(i-1, i-1), a.Vector(min(i+1, m)-1, i-1, 1))
+		*a.GetPtr(i-1, i-1), *t.GetPtr(i-1, 0) = Dlarfg(m-i+1, a.Get(i-1, i-1), a.Off(min(i+1, m)-1, i-1).Vector(), 1)
 		if i < n {
 			//           Apply H(i) to A(I:M,I+1:N) from the left
 			aii = a.Get(i-1, i-1)
 			a.Set(i-1, i-1, one)
 
 			//           W(1:N-I) := A(I:M,I+1:N)^H * A(I:M,I) [W = T(:,N)]
-			if err = goblas.Dgemv(Trans, m-i+1, n-i, one, a.Off(i-1, i), a.Vector(i-1, i-1, 1), zero, t.Vector(0, n-1, 1)); err != nil {
+			if err = t.Off(0, n-1).Vector().Gemv(Trans, m-i+1, n-i, one, a.Off(i-1, i), a.Off(i-1, i-1).Vector(), 1, zero, 1); err != nil {
 				panic(err)
 			}
 
 			//           A(I:M,I+1:N) = A(I:m,I+1:N) + alpha*A(I:M,I)*W(1:N-1)^H
 			alpha = -t.Get(i-1, 0)
-			if err = goblas.Dger(m-i+1, n-i, alpha, a.Vector(i-1, i-1, 1), t.Vector(0, n-1, 1), a.Off(i-1, i)); err != nil {
+			if err = a.Off(i-1, i).Ger(m-i+1, n-i, alpha, a.Off(i-1, i-1).Vector(), 1, t.Off(0, n-1).Vector(), 1); err != nil {
 				panic(err)
 			}
 			a.Set(i-1, i-1, aii)
@@ -62,13 +61,13 @@ func Dgeqrt2(m, n int, a, t *mat.Matrix) (err error) {
 
 		//        T(1:I-1,I) := alpha * A(I:M,1:I-1)**T * A(I:M,I)
 		alpha = -t.Get(i-1, 0)
-		if err = goblas.Dgemv(Trans, m-i+1, i-1, alpha, a.Off(i-1, 0), a.Vector(i-1, i-1, 1), zero, t.Vector(0, i-1, 1)); err != nil {
+		if err = t.Off(0, i-1).Vector().Gemv(Trans, m-i+1, i-1, alpha, a.Off(i-1, 0), a.Off(i-1, i-1).Vector(), 1, zero, 1); err != nil {
 			panic(err)
 		}
 		a.Set(i-1, i-1, aii)
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		if err = goblas.Dtrmv(Upper, NoTrans, NonUnit, i-1, t, t.Vector(0, i-1, 1)); err != nil {
+		if err = t.Off(0, i-1).Vector().Trmv(Upper, NoTrans, NonUnit, i-1, t, 1); err != nil {
 			panic(err)
 		}
 

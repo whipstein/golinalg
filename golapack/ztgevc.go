@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -283,7 +282,7 @@ func Ztgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					if err = goblas.Zgemv(NoTrans, n, n+1-je, cone, vl.Off(0, je-1), work.Off(je-1, 1), czero, work.Off(n, 1)); err != nil {
+					if err = work.Off(n).Gemv(NoTrans, n, n+1-je, cone, vl.Off(0, je-1), work.Off(je-1), 1, czero, 1); err != nil {
 						panic(err)
 					}
 					isrc = 2
@@ -433,7 +432,7 @@ func Ztgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *
 
 				//              Back transform eigenvector if HOWMNY='B'.
 				if ilback {
-					err = goblas.Zgemv(NoTrans, n, je, cone, vr, work.Off(0, 1), czero, work.Off(n, 1))
+					err = work.Off(n).Gemv(NoTrans, n, je, cone, vr, work, 1, czero, 1)
 					isrc = 2
 					iend = n
 				} else {

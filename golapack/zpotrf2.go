@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -84,12 +83,12 @@ func Zpotrf2(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 		//        Compute the Cholesky factorization A = U**H*U
 		if upper {
 			//           Update and scale A12
-			if err = goblas.Ztrsm(Left, Upper, ConjTrans, NonUnit, n1, n2, cone, a, a.Off(0, n1)); err != nil {
+			if err = a.Off(0, n1).Trsm(Left, Upper, ConjTrans, NonUnit, n1, n2, cone, a); err != nil {
 				panic(err)
 			}
 
 			//           Update and factor A22
-			if err = goblas.Zherk(uplo, ConjTrans, n2, n1, -one, a.Off(0, n1), one, a.Off(n1, n1)); err != nil {
+			if err = a.Off(n1, n1).Herk(uplo, ConjTrans, n2, n1, -one, a.Off(0, n1), one); err != nil {
 				panic(err)
 			}
 			if iinfo, err = Zpotrf2(uplo, n2, a.Off(n1, n1)); err != nil {
@@ -103,12 +102,12 @@ func Zpotrf2(uplo mat.MatUplo, n int, a *mat.CMatrix) (info int, err error) {
 			//        Compute the Cholesky factorization A = L*L**H
 		} else {
 			//           Update and scale A21
-			if err = goblas.Ztrsm(Right, Lower, ConjTrans, NonUnit, n2, n1, cone, a, a.Off(n1, 0)); err != nil {
+			if err = a.Off(n1, 0).Trsm(Right, Lower, ConjTrans, NonUnit, n2, n1, cone, a); err != nil {
 				panic(err)
 			}
 
 			//           Update and factor A22
-			if err = goblas.Zherk(uplo, NoTrans, n2, n1, -one, a.Off(n1, 0), one, a.Off(n1, n1)); err != nil {
+			if err = a.Off(n1, n1).Herk(uplo, NoTrans, n2, n1, -one, a.Off(n1, 0), one); err != nil {
 				panic(err)
 			}
 			if iinfo, err = Zpotrf2(uplo, n2, a.Off(n1, n1)); err != nil {

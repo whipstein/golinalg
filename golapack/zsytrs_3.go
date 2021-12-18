@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -65,12 +64,12 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		for k = n; k >= 1; k-- {
 			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 		}
 
 		//        Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		if err = goblas.Ztrsm(Left, Upper, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -78,7 +77,7 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		i = n
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Zscal(nrhs, one/a.Get(i-1, i-1), b.CVector(i-1, 0))
+				b.Off(i-1, 0).CVector().Scal(nrhs, one/a.Get(i-1, i-1), b.Rows)
 			} else if i > 1 {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1-1, i-1-1) / akm1k
@@ -96,7 +95,7 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		}
 
 		//        Compute (U**T \ B) -> B   [ U**T \ (D \ (U \P**T * B) ) ]
-		if err = goblas.Ztrsm(Left, Upper, Trans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, Trans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -111,7 +110,7 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		for k = 1; k <= n; k++ {
 			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 		}
 
@@ -130,12 +129,12 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		for k = 1; k <= n; k++ {
 			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 		}
 
 		//        Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -143,7 +142,7 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		i = 1
 		for i <= n {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Zscal(nrhs, one/a.Get(i-1, i-1), b.CVector(i-1, 0))
+				b.Off(i-1, 0).CVector().Scal(nrhs, one/a.Get(i-1, i-1), b.Rows)
 			} else if i < n {
 				akm1k = e.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / akm1k
@@ -161,7 +160,7 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		}
 
 		//        Compute (L**T \ B) -> B   [ L**T \ (D \ (L \P**T * B) ) ]
-		if err = goblas.Ztrsm(Left, Lower, Trans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, Trans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -176,7 +175,7 @@ func Zsytrs3(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, e *mat.CVector, ipiv
 		for k = n; k >= 1; k-- {
 			kp = abs((*ipiv)[k-1])
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 		}
 

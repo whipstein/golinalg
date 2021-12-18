@@ -381,7 +381,7 @@ func Dlaqr0(wantt, wantz bool, n, ilo, ihi int, h *mat.Matrix, wr, wi *mat.Vecto
 				nve = n - kdu - kwv + 1
 
 				//              ==== Small-bulge multi-shift QR sweep ====
-				Dlaqr5(wantt, wantz, kacc22, n, ktop, kbot, ns, wr.Off(ks-1), wi.Off(ks-1), h, iloz, ihiz, z, work.MatrixOff(3, 3, opts), h.Off(ku-1, 0), nve, h.Off(kwv-1, 0), nho, h.Off(ku-1, kwh-1))
+				Dlaqr5(wantt, wantz, kacc22, n, ktop, kbot, ns, wr.Off(ks-1), wi.Off(ks-1), h, iloz, ihiz, z, work.Off(3).Matrix(3, opts), h.Off(ku-1, 0), nve, h.Off(kwv-1, 0), nho, h.Off(ku-1, kwh-1))
 			}
 
 			//           ==== Note progress (or the lack of it). ====

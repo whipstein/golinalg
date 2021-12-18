@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -87,14 +86,14 @@ func zhbt21(uplo mat.MatUplo, n, ka, ks int, a *mat.CMatrix, d, e *mat.Vector, u
 	}
 
 	for j = 1; j <= n; j++ {
-		if err = goblas.Zhpr(cuplo, n, -d.Get(j-1), u.CVector(0, j-1, 1), work); err != nil {
+		if err = work.Hpr(cuplo, n, -d.Get(j-1), u.Off(0, j-1).CVector(), 1); err != nil {
 			panic(err)
 		}
 	}
 
 	if n > 1 && ks == 1 {
 		for j = 1; j <= n-1; j++ {
-			if err = goblas.Zhpr2(cuplo, n, -e.GetCmplx(j-1), u.CVector(0, j-1, 1), u.CVector(0, j, 1), work); err != nil {
+			if err = work.Hpr2(cuplo, n, -e.GetCmplx(j-1), u.Off(0, j-1).CVector(), 1, u.Off(0, j).CVector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -114,7 +113,7 @@ func zhbt21(uplo mat.MatUplo, n, ka, ks int, a *mat.CMatrix, d, e *mat.Vector, u
 	//     Do Test 2
 	//
 	//     Compute  U U**H - I
-	if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero, work.CMatrix(n, opts)); err != nil {
+	if err = work.CMatrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, cone, u, u, czero); err != nil {
 		panic(err)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -152,18 +151,18 @@ func Dtrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.Matrix, s, s
 			//           eigenvalue.
 			if !pair {
 				//              Real eigenvalue.
-				prod = goblas.Ddot(n, vr.Vector(0, ks-1, 1), vl.Vector(0, ks-1, 1))
-				rnrm = goblas.Dnrm2(n, vr.Vector(0, ks-1, 1))
-				lnrm = goblas.Dnrm2(n, vl.Vector(0, ks-1, 1))
+				prod = vl.Off(0, ks-1).Vector().Dot(n, vr.Off(0, ks-1).Vector(), 1, 1)
+				rnrm = vr.Off(0, ks-1).Vector().Nrm2(n, 1)
+				lnrm = vl.Off(0, ks-1).Vector().Nrm2(n, 1)
 				s.Set(ks-1, math.Abs(prod)/(rnrm*lnrm))
 			} else {
 				//              Complex eigenvalue.
-				prod1 = goblas.Ddot(n, vr.Vector(0, ks-1, 1), vl.Vector(0, ks-1, 1))
-				prod1 = prod1 + goblas.Ddot(n, vr.Vector(0, ks, 1), vl.Vector(0, ks, 1))
-				prod2 = goblas.Ddot(n, vl.Vector(0, ks-1, 1), vr.Vector(0, ks, 1))
-				prod2 = prod2 - goblas.Ddot(n, vl.Vector(0, ks, 1), vr.Vector(0, ks-1, 1))
-				rnrm = Dlapy2(goblas.Dnrm2(n, vr.Vector(0, ks-1, 1)), goblas.Dnrm2(n, vr.Vector(0, ks, 1)))
-				lnrm = Dlapy2(goblas.Dnrm2(n, vl.Vector(0, ks-1, 1)), goblas.Dnrm2(n, vl.Vector(0, ks, 1)))
+				prod1 = vl.Off(0, ks-1).Vector().Dot(n, vr.Off(0, ks-1).Vector(), 1, 1)
+				prod1 = prod1 + vl.Off(0, ks).Vector().Dot(n, vr.Off(0, ks).Vector(), 1, 1)
+				prod2 = vr.Off(0, ks).Vector().Dot(n, vl.Off(0, ks-1).Vector(), 1, 1)
+				prod2 = prod2 - vr.Off(0, ks-1).Vector().Dot(n, vl.Off(0, ks).Vector(), 1, 1)
+				rnrm = Dlapy2(vr.Off(0, ks-1).Vector().Nrm2(n, 1), vr.Off(0, ks).Vector().Nrm2(n, 1))
+				lnrm = Dlapy2(vl.Off(0, ks-1).Vector().Nrm2(n, 1), vl.Off(0, ks).Vector().Nrm2(n, 1))
 				cond = Dlapy2(prod1, prod2) / (rnrm * lnrm)
 				s.Set(ks-1, cond)
 				s.Set(ks, cond)
@@ -179,7 +178,7 @@ func Dtrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.Matrix, s, s
 			Dlacpy(Full, n, n, t, work)
 			ifst = k
 			ilst = 1
-			if ifst, ilst, ierr, err = Dtrexc('N', n, work, dummy.Matrix(1, opts), ifst, ilst, work.Vector(0, n)); err != nil {
+			if ifst, ilst, ierr, err = Dtrexc('N', n, work, dummy.Matrix(1, opts), ifst, ilst, work.Off(0, n).Vector()); err != nil {
 				panic(err)
 			}
 
@@ -238,25 +237,25 @@ func Dtrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.Matrix, s, s
 				kase = 0
 			label50:
 				;
-				est, kase = Dlacn2(nn, work.Vector(0, n+2-1), work.Vector(0, n+4-1), iwork, est, kase, &isave)
+				est, kase = Dlacn2(nn, work.Off(0, n+2-1).Vector(), work.Off(0, n+4-1).Vector(), iwork, est, kase, &isave)
 				if kase != 0 {
 					if kase == 1 {
 						if n2 == 1 {
 							//                       Real eigenvalue: solve C**T*x = scale*c.
-							scale, ierr = Dlaqtr(true, true, n-1, work.Off(1, 1), dummy, dumm, work.Vector(0, n+4-1), work.Vector(0, n+6-1))
+							scale, ierr = Dlaqtr(true, true, n-1, work.Off(1, 1), dummy, dumm, work.Off(0, n+4-1).Vector(), work.Off(0, n+6-1).Vector())
 						} else {
 							//                       Complex eigenvalue: solve
 							//                       C**T*(p+iq) = scale*(c+id) in real arithmetic.
-							scale, ierr = Dlaqtr(true, false, n-1, work.Off(1, 1), work.Vector(0, n), mu, work.Vector(0, n+4-1), work.Vector(0, n+6-1))
+							scale, ierr = Dlaqtr(true, false, n-1, work.Off(1, 1), work.Off(0, n).Vector(), mu, work.Off(0, n+4-1).Vector(), work.Off(0, n+6-1).Vector())
 						}
 					} else {
 						if n2 == 1 {
 							//                       Real eigenvalue: solve C*x = scale*c.
-							scale, ierr = Dlaqtr(false, true, n-1, work.Off(1, 1), dummy, dumm, work.Vector(0, n+4-1), work.Vector(0, n+6-1))
+							scale, ierr = Dlaqtr(false, true, n-1, work.Off(1, 1), dummy, dumm, work.Off(0, n+4-1).Vector(), work.Off(0, n+6-1).Vector())
 						} else {
 							//                       Complex eigenvalue: solve
 							//                       C*(p+iq) = scale*(c+id) in real arithmetic.
-							scale, ierr = Dlaqtr(false, false, n-1, work.Off(1, 1), work.Vector(0, n), mu, work.Vector(0, n+4-1), work.Vector(0, n+6-1))
+							scale, ierr = Dlaqtr(false, false, n-1, work.Off(1, 1), work.Off(0, n).Vector(), mu, work.Off(0, n+4-1).Vector(), work.Off(0, n+6-1).Vector())
 
 						}
 					}

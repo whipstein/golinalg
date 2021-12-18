@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -64,18 +63,18 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			if err = goblas.Zgeru(k-1, nrhs, -one, a.CVector(0, k-1, 1), b.CVector(k-1, 0), b); err != nil {
+			if err = b.Geru(k-1, nrhs, -one, a.Off(0, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 				panic(err)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
 			s = real(one) / a.GetRe(k-1, k-1)
-			goblas.Zdscal(nrhs, s, b.CVector(k-1, 0))
+			b.Off(k-1, 0).CVector().Dscal(nrhs, s, b.Rows)
 			k = k - 1
 		} else {
 			//           2 x 2 diagonal block
@@ -83,15 +82,15 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Interchange rows K-1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k-1 {
-				goblas.Zswap(nrhs, b.CVector(k-1-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in columns K-1 and K of A.
-			if err = goblas.Zgeru(k-2, nrhs, -one, a.CVector(0, k-1, 1), b.CVector(k-1, 0), b); err != nil {
+			if err = b.Geru(k-2, nrhs, -one, a.Off(0, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgeru(k-2, nrhs, -one, a.CVector(0, k-1-1, 1), b.CVector(k-1-1, 0), b); err != nil {
+			if err = b.Geru(k-2, nrhs, -one, a.Off(0, k-1-1).CVector(), 1, b.Off(k-1-1, 0).CVector(), b.Rows); err != nil {
 				panic(err)
 			}
 
@@ -132,17 +131,17 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Multiply by inv(U**H(K)), where U(K) is the transformation
 			//           stored in column K of A.
 			if k > 1 {
-				Zlacgv(nrhs, b.CVector(k-1, 0))
-				if err = goblas.Zgemv(ConjTrans, k-1, nrhs, -one, b, a.CVector(0, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+				if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, k-1, nrhs, -one, b, a.Off(0, k-1).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(nrhs, b.CVector(k-1, 0))
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 			}
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			k = k + 1
 		} else {
@@ -151,23 +150,23 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Multiply by inv(U**H(K+1)), where U(K+1) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k > 1 {
-				Zlacgv(nrhs, b.CVector(k-1, 0))
-				if err = goblas.Zgemv(ConjTrans, k-1, nrhs, -one, b, a.CVector(0, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+				if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, k-1, nrhs, -one, b, a.Off(0, k-1).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(nrhs, b.CVector(k-1, 0))
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 
-				Zlacgv(nrhs, b.CVector(k, 0))
-				if err = goblas.Zgemv(ConjTrans, k-1, nrhs, -one, b, a.CVector(0, k, 1), one, b.CVector(k, 0)); err != nil {
+				Zlacgv(nrhs, b.Off(k, 0).CVector(), b.Rows)
+				if err = b.Off(k, 0).CVector().Gemv(ConjTrans, k-1, nrhs, -one, b, a.Off(0, k).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(nrhs, b.CVector(k, 0))
+				Zlacgv(nrhs, b.Off(k, 0).CVector(), b.Rows)
 			}
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			k = k + 2
 		}
@@ -196,20 +195,20 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				if err = goblas.Zgeru(n-k, nrhs, -one, a.CVector(k, k-1, 1), b.CVector(k-1, 0), b.Off(k, 0)); err != nil {
+				if err = b.Off(k, 0).Geru(n-k, nrhs, -one, a.Off(k, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Multiply by the inverse of the diagonal block.
 			s = real(one) / a.GetRe(k-1, k-1)
-			goblas.Zdscal(nrhs, s, b.CVector(k-1, 0))
+			b.Off(k-1, 0).CVector().Dscal(nrhs, s, b.Rows)
 			k = k + 1
 		} else {
 			//           2 x 2 diagonal block
@@ -217,16 +216,16 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Interchange rows K+1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k+1 {
-				goblas.Zswap(nrhs, b.CVector(k, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k < n-1 {
-				if err = goblas.Zgeru(n-k-1, nrhs, -one, a.CVector(k+2-1, k-1, 1), b.CVector(k-1, 0), b.Off(k+2-1, 0)); err != nil {
+				if err = b.Off(k+2-1, 0).Geru(n-k-1, nrhs, -one, a.Off(k+2-1, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgeru(n-k-1, nrhs, -one, a.CVector(k+2-1, k, 1), b.CVector(k, 0), b.Off(k+2-1, 0)); err != nil {
+				if err = b.Off(k+2-1, 0).Geru(n-k-1, nrhs, -one, a.Off(k+2-1, k).CVector(), 1, b.Off(k, 0).CVector(), b.Rows); err != nil {
 					panic(err)
 				}
 			}
@@ -268,17 +267,17 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Multiply by inv(L**H(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				Zlacgv(nrhs, b.CVector(k-1, 0))
-				if err = goblas.Zgemv(ConjTrans, n-k, nrhs, -one, b.Off(k, 0), a.CVector(k, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+				if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, n-k, nrhs, -one, b.Off(k, 0), a.Off(k, k-1).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(nrhs, b.CVector(k-1, 0))
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 			}
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			k = k - 1
 		} else {
@@ -287,25 +286,25 @@ func Zhetrs(uplo mat.MatUplo, n, nrhs int, a *mat.CMatrix, ipiv *[]int, b *mat.C
 			//           Multiply by inv(L**H(K-1)), where L(K-1) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k < n {
-				Zlacgv(nrhs, b.CVector(k-1, 0))
-				if err = goblas.Zgemv(ConjTrans, n-k, nrhs, -one, b.Off(k, 0), a.CVector(k, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+				if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, n-k, nrhs, -one, b.Off(k, 0), a.Off(k, k-1).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(nrhs, b.CVector(k-1, 0))
+				Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 
-				Zlacgv(nrhs, b.CVector(k-1-1, 0))
-				if err = goblas.Zgemv(ConjTrans, n-k, nrhs, -one, b.Off(k, 0), a.CVector(k, k-1-1, 1), one, b.CVector(k-1-1, 0)); err != nil {
+				Zlacgv(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows)
+				if err = b.Off(k-1-1, 0).CVector().Gemv(ConjTrans, n-k, nrhs, -one, b.Off(k, 0), a.Off(k, k-1-1).CVector(), 1, one, b.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(nrhs, b.CVector(k-1-1, 0))
+				Zlacgv(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows)
 			}
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
-			k = k - 2
+			k -= 2
 		}
 
 		goto label90

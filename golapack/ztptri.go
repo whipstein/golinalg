@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -67,10 +66,10 @@ func Ztptri(uplo mat.MatUplo, diag mat.MatDiag, n int, ap *mat.CVector) (info in
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			if err = goblas.Ztpmv(Upper, NoTrans, diag, j-1, ap, ap.Off(jc-1, 1)); err != nil {
+			if err = ap.Off(jc-1).Tpmv(Upper, NoTrans, diag, j-1, ap, 1); err != nil {
 				panic(err)
 			}
-			goblas.Zscal(j-1, ajj, ap.Off(jc-1, 1))
+			ap.Off(jc-1).Scal(j-1, ajj, 1)
 			jc = jc + j
 		}
 
@@ -86,10 +85,10 @@ func Ztptri(uplo mat.MatUplo, diag mat.MatDiag, n int, ap *mat.CVector) (info in
 			}
 			if j < n {
 				//              Compute elements j+1:n of j-th column.
-				if err = goblas.Ztpmv(Lower, NoTrans, diag, n-j, ap.Off(jclast-1), ap.Off(jc, 1)); err != nil {
+				if err = ap.Off(jc).Tpmv(Lower, NoTrans, diag, n-j, ap.Off(jclast-1), 1); err != nil {
 					panic(err)
 				}
-				goblas.Zscal(n-j, ajj, ap.Off(jc, 1))
+				ap.Off(jc).Scal(n-j, ajj, 1)
 			}
 			jclast = jc
 			jc = jc - n + j - 2

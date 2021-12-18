@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -56,11 +55,11 @@ func dget51(itype, n int, a, b, u, v *mat.Matrix, work *mat.Vector) (result floa
 		if itype == 1 {
 			//           ITYPE=1: Compute W = A - UBV'
 			golapack.Dlacpy(Full, n, n, a, work.Matrix(n, opts))
-			if err = goblas.Dgemm(NoTrans, NoTrans, n, n, n, one, u, b, zero, work.MatrixOff(pow(n, 2), n, opts)); err != nil {
+			if err = work.Off(pow(n, 2)).Matrix(n, opts).Gemm(NoTrans, NoTrans, n, n, n, one, u, b, zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, -one, work.MatrixOff(pow(n, 2), n, opts), v, one, work.Matrix(n, opts)); err != nil {
+			if err = work.Matrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, -one, work.Off(pow(n, 2)).Matrix(n, opts), v, one); err != nil {
 				panic(err)
 			}
 
@@ -92,7 +91,7 @@ func dget51(itype, n int, a, b, u, v *mat.Matrix, work *mat.Vector) (result floa
 		//        Tests not scaled by norm(A)
 		//
 		//        ITYPE=3: Compute  UU' - I
-		if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero, work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero); err != nil {
 			panic(err)
 		}
 

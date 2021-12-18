@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -113,7 +112,7 @@ func ZhetrfRk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			for i = k; i >= (k - kb + 1); i-- {
 				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Zswap(n-k, a.CVector(i-1, k, *&a.Rows), a.CVector(ip-1, k, *&a.Rows))
+					a.Off(ip-1, k).CVector().Swap(n-k, a.Off(i-1, k).CVector(), a.Rows, a.Rows)
 				}
 			}
 		}
@@ -179,7 +178,7 @@ func ZhetrfRk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			for i = k; i <= (k + kb - 1); i++ {
 				ip = abs((*ipiv)[i-1])
 				if ip != i {
-					goblas.Zswap(k-1, a.CVector(i-1, 0, *&a.Rows), a.CVector(ip-1, 0, *&a.Rows))
+					a.Off(ip-1, 0).CVector().Swap(k-1, a.Off(i-1, 0).CVector(), a.Rows, a.Rows)
 				}
 			}
 		}

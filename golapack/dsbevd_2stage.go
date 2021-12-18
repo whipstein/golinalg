@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -141,18 +140,18 @@ func Dsbevd2stage(jobz byte, uplo mat.MatUplo, n, kd int, ab *mat.Matrix, w *mat
 			panic(err)
 		}
 	} else {
-		if info, err = Dstedc('I', n, w, work.Off(inde-1), work.MatrixOff(indwrk-1, n, opts), work.Off(indwk2-1), llwrk2, iwork, liwork); err != nil {
+		if info, err = Dstedc('I', n, w, work.Off(inde-1), work.Off(indwrk-1).Matrix(n, opts), work.Off(indwk2-1), llwrk2, iwork, liwork); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, n, n, n, one, z, work.MatrixOff(indwrk-1, n, opts), zero, work.MatrixOff(indwk2-1, n, opts)); err != nil {
+		if err = work.Off(indwk2-1).Matrix(n, opts).Gemm(NoTrans, NoTrans, n, n, n, one, z, work.Off(indwrk-1).Matrix(n, opts), zero); err != nil {
 			panic(err)
 		}
-		Dlacpy(Full, n, n, work.MatrixOff(indwk2-1, n, opts), z)
+		Dlacpy(Full, n, n, work.Off(indwk2-1).Matrix(n, opts), z)
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, one/sigma, w.Off(0, 1))
+		w.Scal(n, one/sigma, 1)
 	}
 
 	work.Set(0, float64(lwmin))

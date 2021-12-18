@@ -102,7 +102,7 @@ func Dorgqr(m, n, k int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (err e
 				Dlarft('F', 'C', m-i+1, ib, a.Off(i-1, i-1), tau.Off(i-1), work.Matrix(ldwork, opts))
 
 				//              Apply H to A(i:m,i+ib:n) from the left
-				Dlarfb(Left, NoTrans, 'F', 'C', m-i+1, n-i-ib+1, ib, a.Off(i-1, i-1), work.Matrix(ldwork, opts), a.Off(i-1, i+ib-1), work.MatrixOff(ib, ldwork, opts))
+				Dlarfb(Left, NoTrans, 'F', 'C', m-i+1, n-i-ib+1, ib, a.Off(i-1, i-1), work.Matrix(ldwork, opts), a.Off(i-1, i+ib-1), work.Off(ib).Matrix(ldwork, opts))
 			}
 
 			//           Apply H to rows i:m of current block

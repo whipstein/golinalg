@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -406,7 +405,7 @@ func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, i
 				}
 
 				//              Apply Q' to an M by NRHS matrix X:  Y := Q' * X.
-				if err = goblas.Zgemm(ConjTrans, NoTrans, m, nrhs, m, cone, q, x, czero, y); err != nil {
+				if err = y.Gemm(ConjTrans, NoTrans, m, nrhs, m, cone, q, x, czero); err != nil {
 					panic(err)
 				}
 
@@ -420,9 +419,9 @@ func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, i
 
 			//           Use Zbdsqr to form the SVD of the bidiagonal matrix B:
 			//           B := U * S1 * VT, and compute Z = U' * Y.
-			goblas.Dcopy(mnmin, bd.Off(0, 1), s1.Off(0, 1))
+			s1.Copy(mnmin, bd, 1, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(mnmin-1, be.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(mnmin-1, be, 1, 1)
 			}
 			golapack.Zlacpy(Full, m, nrhs, y, z)
 			golapack.Zlaset(Full, mnmin, mnmin, czero, cone, u)
@@ -441,9 +440,9 @@ func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, i
 
 			//           Use Zbdsqr to compute only the singular values of the
 			//           bidiagonal matrix B;  U, VT, and Z should not be modified.
-			goblas.Dcopy(mnmin, bd.Off(0, 1), s2.Off(0, 1))
+			s2.Copy(mnmin, bd, 1, 1)
 			if mnmin > 0 {
-				goblas.Dcopy(mnmin-1, be.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(mnmin-1, be, 1, 1)
 			}
 
 			if iinfo, err = golapack.Zbdsqr(uplo, mnmin, 0, 0, 0, s2, rwork, vt, u, z, rwork.Off(mnmin)); err != nil || iinfo != 0 {
@@ -512,9 +511,9 @@ func zchkbd(nsizes int, mval, nval []int, ntypes int, dotype []bool, nrhs int, i
 			//           Use Zbdsqr to form the decomposition A := (QU) S (VT PT)
 			//           from the bidiagonal form A := Q B PT.
 			if !bidiag {
-				goblas.Dcopy(mnmin, bd.Off(0, 1), s2.Off(0, 1))
+				s2.Copy(mnmin, bd, 1, 1)
 				if mnmin > 0 {
-					goblas.Dcopy(mnmin-1, be.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(mnmin-1, be, 1, 1)
 				}
 
 				if iinfo, err = golapack.Zbdsqr(uplo, mnmin, n, m, nrhs, s2, rwork, pt, q, y, rwork.Off(mnmin)); err != nil {

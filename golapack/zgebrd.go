@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -78,14 +77,14 @@ func Zgebrd(m, n int, a *mat.CMatrix, d, e *mat.Vector, tauq, taup, work *mat.CV
 		//        Reduce rows and columns i:i+ib-1 to bidiagonal form and return
 		//        the matrices X and Y which are needed to update the unreduced
 		//        part of the matrix
-		Zlabrd(m-i+1, n-i+1, nb, a.Off(i-1, i-1), d.Off(i-1), e.Off(i-1), tauq.Off(i-1), taup.Off(i-1), work.CMatrix(ldwrkx, opts), work.CMatrixOff(ldwrkx*nb, ldwrky, opts))
+		Zlabrd(m-i+1, n-i+1, nb, a.Off(i-1, i-1), d.Off(i-1), e.Off(i-1), tauq.Off(i-1), taup.Off(i-1), work.CMatrix(ldwrkx, opts), work.Off(ldwrkx*nb).CMatrix(ldwrky, opts))
 
 		//        Update the trailing submatrix A(i+ib:m,i+ib:n), using
 		//        an update of the form  A := A - V*Y**H - X*U**H
-		if err = goblas.Zgemm(NoTrans, ConjTrans, m-i-nb+1, n-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.CMatrixOff(ldwrkx*nb+nb, ldwrky, opts), one, a.Off(i+nb-1, i+nb-1)); err != nil {
+		if err = a.Off(i+nb-1, i+nb-1).Gemm(NoTrans, ConjTrans, m-i-nb+1, n-i-nb+1, nb, -one, a.Off(i+nb-1, i-1), work.Off(ldwrkx*nb+nb).CMatrix(ldwrky, opts), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgemm(NoTrans, NoTrans, m-i-nb+1, n-i-nb+1, nb, -one, work.CMatrixOff(nb, ldwrkx, opts), a.Off(i-1, i+nb-1), one, a.Off(i+nb-1, i+nb-1)); err != nil {
+		if err = a.Off(i+nb-1, i+nb-1).Gemm(NoTrans, NoTrans, m-i-nb+1, n-i-nb+1, nb, -one, work.Off(nb).CMatrix(ldwrkx, opts), a.Off(i-1, i+nb-1), one); err != nil {
 			panic(err)
 		}
 

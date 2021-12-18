@@ -149,7 +149,7 @@ func Dlarrd(_range, order byte, n int, vl, vu float64, il, iu int, gers *mat.Vec
 		(*iwork)[4] = il - 1
 		(*iwork)[5] = iu
 
-		if iout, iinfo, err = Dlaebz(3, itmax, n, 2, 2, nb, atoli, rtoli, pivmin, d, e, e2, toSlice(iwork, 4), work.MatrixOff(n, 2, opts), work.Off(n+5-1), iwork, w, iblock); err != nil {
+		if iout, iinfo, err = Dlaebz(3, itmax, n, 2, 2, nb, atoli, rtoli, pivmin, d, e, e2, toSlice(iwork, 4), work.Off(n).Matrix(2, opts), work.Off(n+5-1), iwork, w, iblock); err != nil {
 			panic(err)
 		}
 		if iinfo != 0 {
@@ -301,7 +301,7 @@ func Dlarrd(_range, order byte, n int, vl, vu float64, il, iu int, gers *mat.Vec
 			work.Set(n, gl)
 			work.Set(n+in, gu)
 			_iblockm1 := (*iblock)[m:]
-			if im, iinfo, err = Dlaebz(1, 0, in, in, 1, nb, atoli, rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.MatrixOff(n, in, opts), work.Off(n+2*in), iwork, w.Off(m), &_iblockm1); err != nil {
+			if im, iinfo, err = Dlaebz(1, 0, in, in, 1, nb, atoli, rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.Off(n).Matrix(in, opts), work.Off(n+2*in), iwork, w.Off(m), &_iblockm1); err != nil {
 				panic(err)
 			}
 			if iinfo != 0 {
@@ -315,7 +315,7 @@ func Dlarrd(_range, order byte, n int, vl, vu float64, il, iu int, gers *mat.Vec
 			//           Compute Eigenvalues
 			itmax = int((math.Log(gu-gl+pivmin)-math.Log(pivmin))/math.Log(two)) + 2
 			_iblockm1 = (*iblock)[m:]
-			if iout, iinfo, err = Dlaebz(2, itmax, in, in, 1, nb, atoli, rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.MatrixOff(n, in, opts), work.Off(n+2*in), iwork, w.Off(m), &_iblockm1); err != nil {
+			if iout, iinfo, err = Dlaebz(2, itmax, in, in, 1, nb, atoli, rtoli, pivmin, d.Off(ibegin-1), e.Off(ibegin-1), e2.Off(ibegin-1), &idumma, work.Off(n).Matrix(in, opts), work.Off(n+2*in), iwork, w.Off(m), &_iblockm1); err != nil {
 				panic(err)
 			}
 			if iinfo != 0 {

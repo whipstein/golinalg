@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -31,134 +30,134 @@ func Dlabrd(m, n, nb int, a *mat.Matrix, d, e, tauq, taup *mat.Vector, x, y *mat
 		//        Reduce to upper bidiagonal form
 		for i = 1; i <= nb; i++ {
 			//           Update A(i:m,i)
-			if err = goblas.Dgemv(NoTrans, m-i+1, i-1, -one, a.Off(i-1, 0), y.Vector(i-1, 0), one, a.Vector(i-1, i-1, 1)); err != nil {
+			if err = a.Off(i-1, i-1).Vector().Gemv(NoTrans, m-i+1, i-1, -one, a.Off(i-1, 0), y.Off(i-1, 0).Vector(), y.Rows, one, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dgemv(NoTrans, m-i+1, i-1, -one, x.Off(i-1, 0), a.Vector(0, i-1, 1), one, a.Vector(i-1, i-1, 1)); err != nil {
+			if err = a.Off(i-1, i-1).Vector().Gemv(NoTrans, m-i+1, i-1, -one, x.Off(i-1, 0), a.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 				panic(err)
 			}
 
 			//           Generate reflection Q(i) to annihilate A(i+1:m,i)
-			*a.GetPtr(i-1, i-1), *tauq.GetPtr(i - 1) = Dlarfg(m-i+1, a.Get(i-1, i-1), a.Vector(min(i+1, m)-1, i-1, 1))
+			*a.GetPtr(i-1, i-1), *tauq.GetPtr(i - 1) = Dlarfg(m-i+1, a.Get(i-1, i-1), a.Off(min(i+1, m)-1, i-1).Vector(), 1)
 			d.Set(i-1, a.Get(i-1, i-1))
 			if i < n {
 				a.Set(i-1, i-1, one)
 
 				//              Compute Y(i+1:n,i)
-				if err = goblas.Dgemv(Trans, m-i+1, n-i, one, a.Off(i-1, i), a.Vector(i-1, i-1, 1), zero, y.Vector(i, i-1, 1)); err != nil {
+				if err = y.Off(i, i-1).Vector().Gemv(Trans, m-i+1, n-i, one, a.Off(i-1, i), a.Off(i-1, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, m-i+1, i-1, one, a.Off(i-1, 0), a.Vector(i-1, i-1, 1), zero, y.Vector(0, i-1, 1)); err != nil {
+				if err = y.Off(0, i-1).Vector().Gemv(Trans, m-i+1, i-1, one, a.Off(i-1, 0), a.Off(i-1, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, n-i, i-1, -one, y.Off(i, 0), y.Vector(0, i-1, 1), one, y.Vector(i, i-1, 1)); err != nil {
+				if err = y.Off(i, i-1).Vector().Gemv(NoTrans, n-i, i-1, -one, y.Off(i, 0), y.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, m-i+1, i-1, one, x.Off(i-1, 0), a.Vector(i-1, i-1, 1), zero, y.Vector(0, i-1, 1)); err != nil {
+				if err = y.Off(0, i-1).Vector().Gemv(Trans, m-i+1, i-1, one, x.Off(i-1, 0), a.Off(i-1, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, i-1, n-i, -one, a.Off(0, i), y.Vector(0, i-1, 1), one, y.Vector(i, i-1, 1)); err != nil {
+				if err = y.Off(i, i-1).Vector().Gemv(Trans, i-1, n-i, -one, a.Off(0, i), y.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				goblas.Dscal(n-i, tauq.Get(i-1), y.Vector(i, i-1, 1))
+				y.Off(i, i-1).Vector().Scal(n-i, tauq.Get(i-1), 1)
 
 				//              Update A(i,i+1:n)
-				if err = goblas.Dgemv(NoTrans, n-i, i, -one, y.Off(i, 0), a.Vector(i-1, 0), one, a.Vector(i-1, i)); err != nil {
+				if err = a.Off(i-1, i).Vector().Gemv(NoTrans, n-i, i, -one, y.Off(i, 0), a.Off(i-1, 0).Vector(), a.Rows, one, a.Rows); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, i-1, n-i, -one, a.Off(0, i), x.Vector(i-1, 0), one, a.Vector(i-1, i)); err != nil {
+				if err = a.Off(i-1, i).Vector().Gemv(Trans, i-1, n-i, -one, a.Off(0, i), x.Off(i-1, 0).Vector(), x.Rows, one, a.Rows); err != nil {
 					panic(err)
 				}
 
 				//              Generate reflection P(i) to annihilate A(i,i+2:n)
-				*a.GetPtr(i-1, i), *taup.GetPtr(i - 1) = Dlarfg(n-i, a.Get(i-1, i), a.Vector(i-1, min(i+2, n)-1))
+				*a.GetPtr(i-1, i), *taup.GetPtr(i - 1) = Dlarfg(n-i, a.Get(i-1, i), a.Off(i-1, min(i+2, n)-1).Vector(), a.Rows)
 				e.Set(i-1, a.Get(i-1, i))
 				a.Set(i-1, i, one)
 
 				//              Compute X(i+1:m,i)
-				if err = goblas.Dgemv(NoTrans, m-i, n-i, one, a.Off(i, i), a.Vector(i-1, i), zero, x.Vector(i, i-1, 1)); err != nil {
+				if err = x.Off(i, i-1).Vector().Gemv(NoTrans, m-i, n-i, one, a.Off(i, i), a.Off(i-1, i).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, n-i, i, one, y.Off(i, 0), a.Vector(i-1, i), zero, x.Vector(0, i-1, 1)); err != nil {
+				if err = x.Off(0, i-1).Vector().Gemv(Trans, n-i, i, one, y.Off(i, 0), a.Off(i-1, i).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, m-i, i, -one, a.Off(i, 0), x.Vector(0, i-1, 1), one, x.Vector(i, i-1, 1)); err != nil {
+				if err = x.Off(i, i-1).Vector().Gemv(NoTrans, m-i, i, -one, a.Off(i, 0), x.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, i-1, n-i, one, a.Off(0, i), a.Vector(i-1, i), zero, x.Vector(0, i-1, 1)); err != nil {
+				if err = x.Off(0, i-1).Vector().Gemv(NoTrans, i-1, n-i, one, a.Off(0, i), a.Off(i-1, i).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, m-i, i-1, -one, x.Off(i, 0), x.Vector(0, i-1, 1), one, x.Vector(i, i-1, 1)); err != nil {
+				if err = x.Off(i, i-1).Vector().Gemv(NoTrans, m-i, i-1, -one, x.Off(i, 0), x.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				goblas.Dscal(m-i, taup.Get(i-1), x.Vector(i, i-1, 1))
+				x.Off(i, i-1).Vector().Scal(m-i, taup.Get(i-1), 1)
 			}
 		}
 	} else {
 		//        Reduce to lower bidiagonal form
 		for i = 1; i <= nb; i++ {
 			//           Update A(i,i:n)
-			if err = goblas.Dgemv(NoTrans, n-i+1, i-1, -one, y.Off(i-1, 0), a.Vector(i-1, 0), one, a.Vector(i-1, i-1)); err != nil {
+			if err = a.Off(i-1, i-1).Vector().Gemv(NoTrans, n-i+1, i-1, -one, y.Off(i-1, 0), a.Off(i-1, 0).Vector(), a.Rows, one, a.Rows); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dgemv(Trans, i-1, n-i+1, -one, a.Off(0, i-1), x.Vector(i-1, 0), one, a.Vector(i-1, i-1)); err != nil {
+			if err = a.Off(i-1, i-1).Vector().Gemv(Trans, i-1, n-i+1, -one, a.Off(0, i-1), x.Off(i-1, 0).Vector(), x.Rows, one, a.Rows); err != nil {
 				panic(err)
 			}
 
 			//           Generate reflection P(i) to annihilate A(i,i+1:n)
-			*a.GetPtr(i-1, i-1), *taup.GetPtr(i - 1) = Dlarfg(n-i+1, a.Get(i-1, i-1), a.Vector(i-1, min(i+1, n)-1))
+			*a.GetPtr(i-1, i-1), *taup.GetPtr(i - 1) = Dlarfg(n-i+1, a.Get(i-1, i-1), a.Off(i-1, min(i+1, n)-1).Vector(), a.Rows)
 			d.Set(i-1, a.Get(i-1, i-1))
 			if i < m {
 				a.Set(i-1, i-1, one)
 
 				//              Compute X(i+1:m,i)
-				if err = goblas.Dgemv(NoTrans, m-i, n-i+1, one, a.Off(i, i-1), a.Vector(i-1, i-1), zero, x.Vector(i, i-1, 1)); err != nil {
+				if err = x.Off(i, i-1).Vector().Gemv(NoTrans, m-i, n-i+1, one, a.Off(i, i-1), a.Off(i-1, i-1).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, n-i+1, i-1, one, y.Off(i-1, 0), a.Vector(i-1, i-1), zero, x.Vector(0, i-1, 1)); err != nil {
+				if err = x.Off(0, i-1).Vector().Gemv(Trans, n-i+1, i-1, one, y.Off(i-1, 0), a.Off(i-1, i-1).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, m-i, i-1, -one, a.Off(i, 0), x.Vector(0, i-1, 1), one, x.Vector(i, i-1, 1)); err != nil {
+				if err = x.Off(i, i-1).Vector().Gemv(NoTrans, m-i, i-1, -one, a.Off(i, 0), x.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, i-1, n-i+1, one, a.Off(0, i-1), a.Vector(i-1, i-1), zero, x.Vector(0, i-1, 1)); err != nil {
+				if err = x.Off(0, i-1).Vector().Gemv(NoTrans, i-1, n-i+1, one, a.Off(0, i-1), a.Off(i-1, i-1).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, m-i, i-1, -one, x.Off(i, 0), x.Vector(0, i-1, 1), one, x.Vector(i, i-1, 1)); err != nil {
+				if err = x.Off(i, i-1).Vector().Gemv(NoTrans, m-i, i-1, -one, x.Off(i, 0), x.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				goblas.Dscal(m-i, taup.Get(i-1), x.Vector(i, i-1, 1))
+				x.Off(i, i-1).Vector().Scal(m-i, taup.Get(i-1), 1)
 
 				//              Update A(i+1:m,i)
-				if err = goblas.Dgemv(NoTrans, m-i, i-1, -one, a.Off(i, 0), y.Vector(i-1, 0), one, a.Vector(i, i-1, 1)); err != nil {
+				if err = a.Off(i, i-1).Vector().Gemv(NoTrans, m-i, i-1, -one, a.Off(i, 0), y.Off(i-1, 0).Vector(), y.Rows, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, m-i, i, -one, x.Off(i, 0), a.Vector(0, i-1, 1), one, a.Vector(i, i-1, 1)); err != nil {
+				if err = a.Off(i, i-1).Vector().Gemv(NoTrans, m-i, i, -one, x.Off(i, 0), a.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
 
 				//              Generate reflection Q(i) to annihilate A(i+2:m,i)
-				*a.GetPtr(i, i-1), *tauq.GetPtr(i - 1) = Dlarfg(m-i, a.Get(i, i-1), a.Vector(min(i+2, m)-1, i-1, 1))
+				*a.GetPtr(i, i-1), *tauq.GetPtr(i - 1) = Dlarfg(m-i, a.Get(i, i-1), a.Off(min(i+2, m)-1, i-1).Vector(), 1)
 				e.Set(i-1, a.Get(i, i-1))
 				a.Set(i, i-1, one)
 
 				//              Compute Y(i+1:n,i)
-				if err = goblas.Dgemv(Trans, m-i, n-i, one, a.Off(i, i), a.Vector(i, i-1, 1), zero, y.Vector(i, i-1, 1)); err != nil {
+				if err = y.Off(i, i-1).Vector().Gemv(Trans, m-i, n-i, one, a.Off(i, i), a.Off(i, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, m-i, i-1, one, a.Off(i, 0), a.Vector(i, i-1, 1), zero, y.Vector(0, i-1, 1)); err != nil {
+				if err = y.Off(0, i-1).Vector().Gemv(Trans, m-i, i-1, one, a.Off(i, 0), a.Off(i, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(NoTrans, n-i, i-1, -one, y.Off(i, 0), y.Vector(0, i-1, 1), one, y.Vector(i, i-1, 1)); err != nil {
+				if err = y.Off(i, i-1).Vector().Gemv(NoTrans, n-i, i-1, -one, y.Off(i, 0), y.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, m-i, i, one, x.Off(i, 0), a.Vector(i, i-1, 1), zero, y.Vector(0, i-1, 1)); err != nil {
+				if err = y.Off(0, i-1).Vector().Gemv(Trans, m-i, i, one, x.Off(i, 0), a.Off(i, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dgemv(Trans, i, n-i, -one, a.Off(0, i), y.Vector(0, i-1, 1), one, y.Vector(i, i-1, 1)); err != nil {
+				if err = y.Off(i, i-1).Vector().Gemv(Trans, i, n-i, -one, a.Off(0, i), y.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
-				goblas.Dscal(n-i, tauq.Get(i-1), y.Vector(i, i-1, 1))
+				y.Off(i, i-1).Vector().Scal(n-i, tauq.Get(i-1), 1)
 			}
 		}
 	}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -24,7 +23,7 @@ import (
 //
 // If the elements of x are all zero, then tau = 0 and H is taken to be
 // the unit matrix.
-func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
+func Dlarfgp(n int, alpha float64, x *mat.Vector, incx int) (alphaOut, tau float64) {
 	var beta, bignum, one, savealpha, smlnum, two, xnorm, zero float64
 	var j, knt int
 
@@ -38,7 +37,7 @@ func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 		return
 	}
 
-	xnorm = goblas.Dnrm2(n-1, x)
+	xnorm = x.Nrm2(n-1, incx)
 
 	if xnorm == zero {
 		//        H  =  [+/-1, 0; I], sign chosen so ALPHA >= 0
@@ -52,7 +51,7 @@ func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 			//           zero checks when TAU.ne.ZERO, and we must clear X.
 			tau = two
 			for j = 1; j <= n-1; j++ {
-				x.Set(1+(j-1)*x.Inc-1, 0)
+				x.Set(1+(j-1)*incx-1, 0)
 			}
 			alphaOut = -alphaOut
 		}
@@ -67,7 +66,7 @@ func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 		label10:
 			;
 			knt = knt + 1
-			goblas.Dscal(n-1, bignum, x)
+			x.Scal(n-1, bignum, incx)
 			beta = beta * bignum
 			alphaOut = alphaOut * bignum
 			if (math.Abs(beta) < smlnum) && (knt < 20) {
@@ -75,7 +74,7 @@ func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 			}
 
 			//           New BETA is at most 1, at least SMLNUM
-			xnorm = goblas.Dnrm2(n-1, x)
+			xnorm = x.Nrm2(n-1, incx)
 			beta = math.Copysign(Dlapy2(alphaOut, xnorm), alphaOut)
 		}
 		savealpha = alphaOut
@@ -101,14 +100,14 @@ func Dlarfgp(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 			} else {
 				tau = two
 				for j = 1; j <= n-1; j++ {
-					x.Set(1+(j-1)*x.Inc-1, 0)
+					x.Set(1+(j-1)*incx-1, 0)
 				}
 				beta = -savealpha
 			}
 
 		} else {
 			//           This is the general case.
-			goblas.Dscal(n-1, one/alphaOut, x)
+			x.Scal(n-1, one/alphaOut, incx)
 
 		}
 

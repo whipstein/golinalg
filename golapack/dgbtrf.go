@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -127,31 +126,31 @@ func Dgbtrf(m, n, kl, ku int, ab *mat.Matrix, ipiv *[]int) (info int, err error)
 				//              Find pivot and test for singularity. KM is the number of
 				//              subdiagonal elements in the current column.
 				km = min(kl, m-jj)
-				jp = goblas.Idamax(km+1, ab.Vector(kv, jj-1, 1))
+				jp = ab.Off(kv, jj-1).Vector().Iamax(km+1, 1)
 				(*ipiv)[jj-1] = jp + jj - j
 				if ab.Get(kv+jp-1, jj-1) != zero {
 					ju = max(ju, min(jj+ku+jp-1, n))
 					if jp != 1 {
 						//                    Apply interchange to columns J to J+JB-1
 						if jp+jj-1 < j+kl {
-							goblas.Dswap(jb, ab.Vector(kv+1+jj-j-1, j-1), ab.Vector(kv+jp+jj-j-1, j-1))
+							ab.Off(kv+jp+jj-j-1, j-1).Vector().Swap(jb, ab.Off(kv+1+jj-j-1, j-1).Vector(), ab.Rows, ab.Rows)
 						} else {
 							//                       The interchange affects columns J to JJ-1 of A31
 							//                       which are stored in the work array WORK31
-							goblas.Dswap(jj-j, ab.Vector(kv+1+jj-j-1, j-1), work31.Vector(jp+jj-j-kl-1, 0))
-							goblas.Dswap(j+jb-jj, ab.Vector(kv, jj-1), ab.Vector(kv+jp-1, jj-1))
+							work31.Off(jp+jj-j-kl-1, 0).Vector().Swap(jj-j, ab.Off(kv+1+jj-j-1, j-1).Vector(), ab.Rows, work31.Rows)
+							ab.Off(kv+jp-1, jj-1).Vector().Swap(j+jb-jj, ab.Off(kv, jj-1).Vector(), ab.Rows, ab.Rows)
 						}
 					}
 
 					//                 Compute multipliers
-					goblas.Dscal(km, one/ab.Get(kv, jj-1), ab.Vector(kv+2-1, jj-1, 1))
+					ab.Off(kv+2-1, jj-1).Vector().Scal(km, one/ab.Get(kv, jj-1), 1)
 
 					//                 Update trailing submatrix within the band and within
 					//                 the current block. JM is the index of the last column
 					//                 which needs to be updated.
 					jm = min(ju, j+jb-1)
 					if jm > jj {
-						err = goblas.Dger(km, jm-jj, -one, ab.Vector(kv+2-1, jj-1, 1), ab.Vector(kv-1, jj), ab.Off(kv, jj))
+						err = ab.Off(kv, jj).Ger(km, jm-jj, -one, ab.Off(kv+2-1, jj-1).Vector(), 1, ab.Off(kv-1, jj).Vector(), ab.Rows)
 					}
 				} else {
 					//                 If pivot is zero, set INFO to the index of the pivot
@@ -164,7 +163,7 @@ func Dgbtrf(m, n, kl, ku int, ab *mat.Matrix, ipiv *[]int) (info int, err error)
 				//              Copy current column of A31 into the work array WORK31
 				nw = min(jj-j+1, i3)
 				if nw > 0 {
-					goblas.Dcopy(nw, ab.Vector(kv+kl+1-jj+j-1, jj-1, 1), work31.Vector(0, jj-j, 1))
+					work31.Off(0, jj-j).Vector().Copy(nw, ab.Off(kv+kl+1-jj+j-1, jj-1).Vector(), 1, 1)
 				}
 			}
 			if j+jb <= n {
@@ -199,16 +198,16 @@ func Dgbtrf(m, n, kl, ku int, ab *mat.Matrix, ipiv *[]int) (info int, err error)
 				//              Update the relevant part of the trailing submatrix
 				if j2 > 0 {
 					//                 Update A12
-					err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, jb, j2, one, ab.Off(kv, j-1), ab.Off(kv+1-jb-1, j+jb-1))
+					err = ab.Off(kv+1-jb-1, j+jb-1).Trsm(Left, Lower, NoTrans, Unit, jb, j2, one, ab.Off(kv, j-1))
 
 					if i2 > 0 {
 						//                    Update A22
-						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1), ab.Off(kv+1-jb-1, j+jb-1), one, ab.Off(kv, j+jb-1))
+						err = ab.Off(kv, j+jb-1).Gemm(NoTrans, NoTrans, i2, j2, jb, -one, ab.Off(kv+1+jb-1, j-1), ab.Off(kv+1-jb-1, j+jb-1), one)
 					}
 
 					if i3 > 0 {
 						//                    Update A32
-						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i3, j2, jb, -one, work31, ab.Off(kv+1-jb-1, j+jb-1), one, ab.Off(kv+kl+1-jb-1, j+jb-1))
+						err = ab.Off(kv+kl+1-jb-1, j+jb-1).Gemm(NoTrans, NoTrans, i3, j2, jb, -one, work31, ab.Off(kv+1-jb-1, j+jb-1), one)
 					}
 				}
 
@@ -222,16 +221,16 @@ func Dgbtrf(m, n, kl, ku int, ab *mat.Matrix, ipiv *[]int) (info int, err error)
 					}
 
 					//                 Update A13 in the work array
-					err = goblas.Dtrsm(mat.Left, mat.Lower, mat.NoTrans, mat.Unit, jb, j3, one, ab.Off(kv, j-1), work13)
+					err = work13.Trsm(Left, Lower, NoTrans, mat.Unit, jb, j3, one, ab.Off(kv, j-1))
 
 					if i2 > 0 {
 						//                    Update A23
-						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1), work13, one, ab.Off(1+jb-1, j+kv-1))
+						err = ab.Off(1+jb-1, j+kv-1).Gemm(NoTrans, NoTrans, i2, j3, jb, -one, ab.Off(kv+1+jb-1, j-1), work13, one)
 					}
 
 					if i3 > 0 {
 						//                    Update A33
-						err = goblas.Dgemm(mat.NoTrans, mat.NoTrans, i3, j3, jb, -one, work31, work13, one, ab.Off(1+kl-1, j+kv-1))
+						err = ab.Off(1+kl-1, j+kv-1).Gemm(NoTrans, NoTrans, i3, j3, jb, -one, work31, work13, one)
 					}
 
 					//                 Copy the lower triangle of A13 back into place
@@ -257,17 +256,17 @@ func Dgbtrf(m, n, kl, ku int, ab *mat.Matrix, ipiv *[]int) (info int, err error)
 					//                 Apply interchange to columns J to JJ-1
 					if jp+jj-1 < j+kl {
 						//                    The interchange does not affect A31
-						goblas.Dswap(jj-j, ab.Vector(kv+1+jj-j-1, j-1), ab.Vector(kv+jp+jj-j-1, j-1))
+						ab.Off(kv+jp+jj-j-1, j-1).Vector().Swap(jj-j, ab.Off(kv+1+jj-j-1, j-1).Vector(), ab.Rows, ab.Rows)
 					} else {
 						//                    The interchange does affect A31
-						goblas.Dswap(jj-j, ab.Vector(kv+1+jj-j-1, j-1), work31.Vector(jp+jj-j-kl-1, 0))
+						work31.Off(jp+jj-j-kl-1, 0).Vector().Swap(jj-j, ab.Off(kv+1+jj-j-1, j-1).Vector(), ab.Rows, work31.Rows)
 					}
 				}
 
 				//              Copy the current column of A31 back into place
 				nw = min(i3, jj-j+1)
 				if nw > 0 {
-					goblas.Dcopy(nw, work31.Vector(0, jj-j, 1), ab.Vector(kv+kl+1-jj+j-1, jj-1, 1))
+					ab.Off(kv+kl+1-jj+j-1, jj-1).Vector().Copy(nw, work31.Off(0, jj-j).Vector(), 1, 1)
 				}
 			}
 		}

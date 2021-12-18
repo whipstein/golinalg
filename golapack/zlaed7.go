@@ -102,10 +102,10 @@ func Zlaed7(n, cutpnt, qsiz, tlvls, curlvl, curpbm int, d *mat.Vector, q *mat.CM
 
 	//     Solve Secular Equation.
 	if k != 0 {
-		if info, err = Dlaed9(k, 1, k, n, d, rwork.MatrixOff(iq-1, k, opts), rho, rwork.Off(idlmda-1), rwork.Off(iw-1), qstore.MatrixOff((*qptr)[curr-1]-1, k, opts)); err != nil {
+		if info, err = Dlaed9(k, 1, k, n, d, rwork.Off(iq-1).Matrix(k, opts), rho, rwork.Off(idlmda-1), rwork.Off(iw-1), qstore.Off((*qptr)[curr-1]-1).Matrix(k, opts)); err != nil {
 			panic(err)
 		}
-		Zlacrm(qsiz, k, work.CMatrix(qsiz, opts), qstore.MatrixOff((*qptr)[curr-1]-1, k, opts), q, rwork.Off(iq-1))
+		Zlacrm(qsiz, k, work.CMatrix(qsiz, opts), qstore.Off((*qptr)[curr-1]-1).Matrix(k, opts), q, rwork.Off(iq-1))
 		(*qptr)[curr] = (*qptr)[curr-1] + pow(k, 2)
 		if info != 0 {
 			return

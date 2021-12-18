@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -36,7 +35,7 @@ func Zgelqt3(m, n int, a, t *mat.CMatrix) (err error) {
 
 	if m == 1 {
 		//        Compute Householder transform when N=1
-		*a.GetPtr(0, 0), *t.GetPtr(0, 0) = Zlarfg(n, a.Get(0, 0), a.CVector(0, min(2, n)-1))
+		*a.GetPtr(0, 0), *t.GetPtr(0, 0) = Zlarfg(n, a.Get(0, 0), a.Off(0, min(2, n)-1).CVector(), a.Rows)
 		t.Set(0, 0, t.GetConj(0, 0))
 
 	} else {
@@ -57,23 +56,23 @@ func Zgelqt3(m, n int, a, t *mat.CMatrix) (err error) {
 				t.Set(i+m1-1, j-1, a.Get(i+m1-1, j-1))
 			}
 		}
-		if err = goblas.Ztrmm(Right, Upper, ConjTrans, Unit, m2, m1, one, a, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Trmm(Right, Upper, ConjTrans, Unit, m2, m1, one, a); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Zgemm(NoTrans, ConjTrans, m2, m1, n-m1, one, a.Off(i1-1, i1-1), a.Off(0, i1-1), one, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Gemm(NoTrans, ConjTrans, m2, m1, n-m1, one, a.Off(i1-1, i1-1), a.Off(0, i1-1), one); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, m2, m1, one, t, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Trmm(Right, Upper, NoTrans, NonUnit, m2, m1, one, t); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Zgemm(NoTrans, NoTrans, m2, n-m1, m1, -one, t.Off(i1-1, 0), a.Off(0, i1-1), one, a.Off(i1-1, i1-1)); err != nil {
+		if err = a.Off(i1-1, i1-1).Gemm(NoTrans, NoTrans, m2, n-m1, m1, -one, t.Off(i1-1, 0), a.Off(0, i1-1), one); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Ztrmm(Right, Upper, NoTrans, Unit, m2, m1, one, a, t.Off(i1-1, 0)); err != nil {
+		if err = t.Off(i1-1, 0).Trmm(Right, Upper, NoTrans, Unit, m2, m1, one, a); err != nil {
 			panic(err)
 		}
 
@@ -96,19 +95,19 @@ func Zgelqt3(m, n int, a, t *mat.CMatrix) (err error) {
 			}
 		}
 
-		if err = goblas.Ztrmm(Right, Upper, ConjTrans, Unit, m1, m2, one, a.Off(i1-1, i1-1), t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Trmm(Right, Upper, ConjTrans, Unit, m1, m2, one, a.Off(i1-1, i1-1)); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Zgemm(NoTrans, ConjTrans, m1, m2, n-m, one, a.Off(0, j1-1), a.Off(i1-1, j1-1), one, t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Gemm(NoTrans, ConjTrans, m1, m2, n-m, one, a.Off(0, j1-1), a.Off(i1-1, j1-1), one); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Ztrmm(Left, Upper, NoTrans, NonUnit, m1, m2, -one, t, t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Trmm(Left, Upper, NoTrans, NonUnit, m1, m2, -one, t); err != nil {
 			panic(err)
 		}
 
-		if err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, m1, m2, one, t.Off(i1-1, i1-1), t.Off(0, i1-1)); err != nil {
+		if err = t.Off(0, i1-1).Trmm(Right, Upper, NoTrans, NonUnit, m1, m2, one, t.Off(i1-1, i1-1)); err != nil {
 			panic(err)
 		}
 

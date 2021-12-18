@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -476,8 +475,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				}
 
 				//              Copy R to WORK( IR ), zeroing out below it
-				Zlacpy(Upper, n, n, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-				Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(ir, ldwrkr, opts))
+				Zlacpy(Upper, n, n, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+				Zlaset(Lower, n-1, n-1, czero, czero, work.Off(ir).CMatrix(ldwrkr, opts))
 
 				//              Generate Q in A
 				//              CWorkspace: need   N*N [U] + N*N [R] + N [tau] + N    [work]
@@ -495,7 +494,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [U] + N*N [R] + 2*N [tauq, taup] + N      [work]
 				//              CWorkspace: prefer N*N [U] + N*N [R] + 2*N [tauq, taup] + 2*N*NB [work]
 				//              RWorkspace: need   N [e]
-				if err = Zgebrd(n, n, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				if err = Zgebrd(n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -507,7 +506,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = ie + n
 				irvt = iru + n*n
 				nrwork = irvt + n*n
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -516,8 +515,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [U] + N*N [R] + 2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer N*N [U] + N*N [R] + 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, n, n, rwork.MatrixOff(iru-1, n, opts), work.CMatrixOff(iu-1, ldwrku, opts))
-				if err = Zunmbr('Q', Left, NoTrans, n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), work.CMatrixOff(iu-1, ldwrku, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, n, n, rwork.Off(iru-1).Matrix(n, opts), work.Off(iu-1).CMatrix(ldwrku, opts))
+				if err = Zunmbr('Q', Left, NoTrans, n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -526,8 +525,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [U] + N*N [R] + 2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer N*N [U] + N*N [R] + 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, n, n, rwork.MatrixOff(irvt-1, n, opts), vt)
-				if err = Zunmbr('P', Right, ConjTrans, n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, n, n, rwork.Off(irvt-1).Matrix(n, opts), vt)
+				if err = Zunmbr('P', Right, ConjTrans, n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -538,10 +537,10 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              RWorkspace: need   0
 				for i = 1; i <= m; i += ldwrkr {
 					chunk = min(m-i+1, ldwrkr)
-					if err = goblas.Zgemm(NoTrans, NoTrans, chunk, n, n, cone, a.Off(i-1, 0), work.CMatrixOff(iu-1, ldwrku, opts), czero, work.CMatrixOff(ir-1, ldwrkr, opts)); err != nil {
+					if err = work.Off(ir-1).CMatrix(ldwrkr, opts).Gemm(NoTrans, NoTrans, chunk, n, n, cone, a.Off(i-1, 0), work.Off(iu-1).CMatrix(ldwrku, opts), czero); err != nil {
 						panic(err)
 					}
-					Zlacpy(Full, chunk, n, work.CMatrixOff(ir-1, ldwrkr, opts), a.Off(i-1, 0))
+					Zlacpy(Full, chunk, n, work.Off(ir-1).CMatrix(ldwrkr, opts), a.Off(i-1, 0))
 				}
 
 			} else if wntqs {
@@ -564,8 +563,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				}
 
 				//              Copy R to WORK(IR), zeroing out below it
-				Zlacpy(Upper, n, n, a, work.CMatrixOff(ir-1, ldwrkr, opts))
-				Zlaset(Lower, n-1, n-1, czero, czero, work.CMatrixOff(ir, ldwrkr, opts))
+				Zlacpy(Upper, n, n, a, work.Off(ir-1).CMatrix(ldwrkr, opts))
+				Zlaset(Lower, n-1, n-1, czero, czero, work.Off(ir).CMatrix(ldwrkr, opts))
 
 				//              Generate Q in A
 				//              CWorkspace: need   N*N [R] + N [tau] + N    [work]
@@ -583,7 +582,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [R] + 2*N [tauq, taup] + N      [work]
 				//              CWorkspace: prefer N*N [R] + 2*N [tauq, taup] + 2*N*NB [work]
 				//              RWorkspace: need   N [e]
-				if err = Zgebrd(n, n, work.CMatrixOff(ir-1, ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				if err = Zgebrd(n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -595,7 +594,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = ie + n
 				irvt = iru + n*n
 				nrwork = irvt + n*n
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -604,8 +603,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [R] + 2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer N*N [R] + 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, n, n, rwork.MatrixOff(iru-1, n, opts), u)
-				if err = Zunmbr('Q', Left, NoTrans, n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, n, n, rwork.Off(iru-1).Matrix(n, opts), u)
+				if err = Zunmbr('Q', Left, NoTrans, n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -614,8 +613,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [R] + 2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer N*N [R] + 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, n, n, rwork.MatrixOff(irvt-1, n, opts), vt)
-				if err = Zunmbr('P', Right, ConjTrans, n, n, n, work.CMatrixOff(ir-1, ldwrkr, opts), work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, n, n, rwork.Off(irvt-1).Matrix(n, opts), vt)
+				if err = Zunmbr('P', Right, ConjTrans, n, n, n, work.Off(ir-1).CMatrix(ldwrkr, opts), work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -623,8 +622,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              WORK(IR), storing result in U
 				//              CWorkspace: need   N*N [R]
 				//              RWorkspace: need   0
-				Zlacpy(Full, n, n, u, work.CMatrixOff(ir-1, ldwrkr, opts))
-				if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, a, work.CMatrixOff(ir-1, ldwrkr, opts), czero, u); err != nil {
+				Zlacpy(Full, n, n, u, work.Off(ir-1).CMatrix(ldwrkr, opts))
+				if err = u.Gemm(NoTrans, NoTrans, m, n, n, cone, a, work.Off(ir-1).CMatrix(ldwrkr, opts), czero); err != nil {
 					panic(err)
 				}
 
@@ -679,7 +678,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              singular vectors of bidiagonal matrix in RWORK(IRVT)
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT] + BDSPAC
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -688,8 +687,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [U] + 2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer N*N [U] + 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, n, n, rwork.MatrixOff(iru-1, n, opts), work.CMatrixOff(iu-1, ldwrku, opts))
-				if err = Zunmbr('Q', Left, NoTrans, n, n, n, a, work.Off(itauq-1), work.CMatrixOff(iu-1, ldwrku, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, n, n, rwork.Off(iru-1).Matrix(n, opts), work.Off(iu-1).CMatrix(ldwrku, opts))
+				if err = Zunmbr('Q', Left, NoTrans, n, n, n, a, work.Off(itauq-1), work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -698,7 +697,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   N*N [U] + 2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer N*N [U] + 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, n, n, rwork.MatrixOff(irvt-1, n, opts), vt)
+				Zlacp2(Full, n, n, rwork.Off(irvt-1).Matrix(n, opts), vt)
 				if err = Zunmbr('P', Right, ConjTrans, n, n, n, a, work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -707,7 +706,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              WORK(IU), storing result in A
 				//              CWorkspace: need   N*N [U]
 				//              RWorkspace: need   0
-				if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, u, work.CMatrixOff(iu-1, ldwrku, opts), czero, a); err != nil {
+				if err = a.Gemm(NoTrans, NoTrans, m, n, n, cone, u, work.Off(iu-1).CMatrix(ldwrku, opts), czero); err != nil {
 					panic(err)
 				}
 
@@ -781,7 +780,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              singular vectors of bidiagonal matrix in RWORK(IRVT)
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT] + BDSPAC
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -789,8 +788,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              storing the result in WORK(IU), copying to VT
 				//              CWorkspace: need   2*N [tauq, taup] + N*N [U]
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT] + 2*N*N [rwork]
-				Zlarcm(n, n, rwork.MatrixOff(irvt-1, n, opts), vt, work.CMatrixOff(iu-1, ldwrku, opts), rwork.Off(nrwork-1))
-				Zlacpy(Full, n, n, work.CMatrixOff(iu-1, ldwrku, opts), vt)
+				Zlarcm(n, n, rwork.Off(irvt-1).Matrix(n, opts), vt, work.Off(iu-1).CMatrix(ldwrku, opts), rwork.Off(nrwork-1))
+				Zlacpy(Full, n, n, work.Off(iu-1).CMatrix(ldwrku, opts), vt)
 
 				//              Multiply Q in A by real matrix RWORK(IRU), storing the
 				//              result in WORK(IU), copying to A
@@ -801,8 +800,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				nrwork = irvt
 				for i = 1; i <= m; i += ldwrku {
 					chunk = min(m-i+1, ldwrku)
-					Zlacrm(chunk, n, a.Off(i-1, 0), rwork.MatrixOff(iru-1, n, opts), work.CMatrixOff(iu-1, ldwrku, opts), rwork.Off(nrwork-1))
-					Zlacpy(Full, chunk, n, work.CMatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
+					Zlacrm(chunk, n, a.Off(i-1, 0), rwork.Off(iru-1).Matrix(n, opts), work.Off(iu-1).CMatrix(ldwrku, opts), rwork.Off(nrwork-1))
+					Zlacpy(Full, chunk, n, work.Off(iu-1).CMatrix(ldwrku, opts), a.Off(i-1, 0))
 				}
 
 			} else if wntqs {
@@ -833,7 +832,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = nrwork
 				irvt = iru + n*n
 				nrwork = irvt + n*n
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -841,7 +840,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              storing the result in A, copying to VT
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT] + 2*N*N [rwork]
-				Zlarcm(n, n, rwork.MatrixOff(irvt-1, n, opts), vt, a, rwork.Off(nrwork-1))
+				Zlarcm(n, n, rwork.Off(irvt-1).Matrix(n, opts), vt, a, rwork.Off(nrwork-1))
 				Zlacpy(Full, n, n, a, vt)
 
 				//              Multiply Q in U by real matrix RWORK(IRU), storing the
@@ -849,7 +848,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + 2*M*N [rwork] < N + 5*N*N since M < 2*N here
 				nrwork = irvt
-				Zlacrm(m, n, u, rwork.MatrixOff(iru-1, n, opts), a, rwork.Off(nrwork-1))
+				Zlacrm(m, n, u, rwork.Off(iru-1).Matrix(n, opts), a, rwork.Off(nrwork-1))
 				Zlacpy(Full, m, n, a, u)
 			} else {
 				//              Path 5a (M >> N, JOBZ='A')
@@ -879,7 +878,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = nrwork
 				irvt = iru + n*n
 				nrwork = irvt + n*n
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -887,7 +886,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              storing the result in A, copying to VT
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT] + 2*N*N [rwork]
-				Zlarcm(n, n, rwork.MatrixOff(irvt-1, n, opts), vt, a, rwork.Off(nrwork-1))
+				Zlarcm(n, n, rwork.Off(irvt-1).Matrix(n, opts), vt, a, rwork.Off(nrwork-1))
 				Zlacpy(Full, n, n, a, vt)
 
 				//              Multiply Q in U by real matrix RWORK(IRU), storing the
@@ -895,7 +894,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + 2*M*N [rwork] < N + 5*N*N since M < 2*N here
 				nrwork = irvt
-				Zlacrm(m, n, u, rwork.MatrixOff(iru-1, n, opts), a, rwork.Off(nrwork-1))
+				Zlacrm(m, n, u, rwork.Off(iru-1).Matrix(n, opts), a, rwork.Off(nrwork-1))
 				Zlacpy(Full, m, n, a, u)
 			}
 
@@ -946,7 +945,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              singular vectors of bidiagonal matrix in RWORK(IRVT)
 				//              CWorkspace: need   0
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT] + BDSPAC
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -955,7 +954,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*N [tauq, taup] + N*N [U] + N    [work]
 				//              CWorkspace: prefer 2*N [tauq, taup] + N*N [U] + N*NB [work]
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT]
-				Zlacp2(Full, n, n, rwork.MatrixOff(irvt-1, n, opts), vt)
+				Zlacp2(Full, n, n, rwork.Off(irvt-1).Matrix(n, opts), vt)
 				if err = Zunmbr('P', Right, ConjTrans, n, n, n, a, work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -968,12 +967,12 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 					//                 CWorkspace: need   2*N [tauq, taup] + M*N [U] + N    [work]
 					//                 CWorkspace: prefer 2*N [tauq, taup] + M*N [U] + N*NB [work]
 					//                 RWorkspace: need   N [e] + N*N [RU]
-					Zlaset(Full, m, n, czero, czero, work.CMatrixOff(iu-1, ldwrku, opts))
-					Zlacp2(Full, n, n, rwork.MatrixOff(iru-1, n, opts), work.CMatrixOff(iu-1, ldwrku, opts))
-					if err = Zunmbr('Q', Left, NoTrans, m, n, n, a, work.Off(itauq-1), work.CMatrixOff(iu-1, ldwrku, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
+					Zlaset(Full, m, n, czero, czero, work.Off(iu-1).CMatrix(ldwrku, opts))
+					Zlacp2(Full, n, n, rwork.Off(iru-1).Matrix(n, opts), work.Off(iu-1).CMatrix(ldwrku, opts))
+					if err = Zunmbr('Q', Left, NoTrans, m, n, n, a, work.Off(itauq-1), work.Off(iu-1).CMatrix(ldwrku, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
 						panic(err)
 					}
-					Zlacpy(Full, m, n, work.CMatrixOff(iu-1, ldwrku, opts), a)
+					Zlacpy(Full, m, n, work.Off(iu-1).CMatrix(ldwrku, opts), a)
 				} else {
 					//                 Path 6o-slow
 					//                 Generate Q in A
@@ -993,8 +992,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 					nrwork = irvt
 					for i = 1; i <= m; i += ldwrku {
 						chunk = min(m-i+1, ldwrku)
-						Zlacrm(chunk, n, a.Off(i-1, 0), rwork.MatrixOff(iru-1, n, opts), work.CMatrixOff(iu-1, ldwrku, opts), rwork.Off(nrwork-1))
-						Zlacpy(Full, chunk, n, work.CMatrixOff(iu-1, ldwrku, opts), a.Off(i-1, 0))
+						Zlacrm(chunk, n, a.Off(i-1, 0), rwork.Off(iru-1).Matrix(n, opts), work.Off(iu-1).CMatrix(ldwrku, opts), rwork.Off(nrwork-1))
+						Zlacpy(Full, chunk, n, work.Off(iu-1).CMatrix(ldwrku, opts), a.Off(i-1, 0))
 					}
 				}
 
@@ -1008,7 +1007,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = nrwork
 				irvt = iru + n*n
 				nrwork = irvt + n*n
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1018,7 +1017,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: prefer 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT]
 				Zlaset(Full, m, n, czero, czero, u)
-				Zlacp2(Full, n, n, rwork.MatrixOff(iru-1, n, opts), u)
+				Zlacp2(Full, n, n, rwork.Off(iru-1).Matrix(n, opts), u)
 				if err = Zunmbr('Q', Left, NoTrans, m, n, n, a, work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1028,7 +1027,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT]
-				Zlacp2(Full, n, n, rwork.MatrixOff(irvt-1, n, opts), vt)
+				Zlacp2(Full, n, n, rwork.Off(irvt-1).Matrix(n, opts), vt)
 				if err = Zunmbr('P', Right, ConjTrans, n, n, n, a, work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1042,7 +1041,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = nrwork
 				irvt = iru + n*n
 				nrwork = irvt + n*n
-				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, n, opts), rwork.MatrixOff(irvt-1, n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', n, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(n, opts), rwork.Off(irvt-1).Matrix(n, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1057,7 +1056,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*N [tauq, taup] + M    [work]
 				//              CWorkspace: prefer 2*N [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT]
-				Zlacp2(Full, n, n, rwork.MatrixOff(iru-1, n, opts), u)
+				Zlacp2(Full, n, n, rwork.Off(iru-1).Matrix(n, opts), u)
 				if err = Zunmbr('Q', Left, NoTrans, m, m, n, a, work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1067,7 +1066,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*N [tauq, taup] + N    [work]
 				//              CWorkspace: prefer 2*N [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   N [e] + N*N [RU] + N*N [RVT]
-				Zlacp2(Full, n, n, rwork.MatrixOff(irvt-1, n, opts), vt)
+				Zlacp2(Full, n, n, rwork.Off(irvt-1).Matrix(n, opts), vt)
 				if err = Zunmbr('P', Right, ConjTrans, n, n, n, a, work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1148,8 +1147,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				}
 
 				//              Copy L to WORK(IL), zeroing about above it
-				Zlacpy(Lower, m, m, a, work.CMatrixOff(il-1, ldwrkl, opts))
-				Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(il+ldwrkl-1, ldwrkl, opts))
+				Zlacpy(Lower, m, m, a, work.Off(il-1).CMatrix(ldwrkl, opts))
+				Zlaset(Upper, m-1, m-1, czero, czero, work.Off(il+ldwrkl-1).CMatrix(ldwrkl, opts))
 
 				//              Generate Q in A
 				//              CWorkspace: need   M*M [VT] + M*M [L] + M [tau] + M    [work]
@@ -1167,7 +1166,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [VT] + M*M [L] + 2*M [tauq, taup] + M      [work]
 				//              CWorkspace: prefer M*M [VT] + M*M [L] + 2*M [tauq, taup] + 2*M*NB [work]
 				//              RWorkspace: need   M [e]
-				if err = Zgebrd(m, m, work.CMatrixOff(il-1, ldwrkl, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				if err = Zgebrd(m, m, work.Off(il-1).CMatrix(ldwrkl, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1179,7 +1178,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = ie + m
 				irvt = iru + m*m
 				nrwork = irvt + m*m
-				if err = Dbdsdc(Upper, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1188,8 +1187,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [VT] + M*M [L] + 2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer M*M [VT] + M*M [L] + 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, m, m, rwork.MatrixOff(iru-1, m, opts), u)
-				if err = Zunmbr('Q', Left, NoTrans, m, m, m, work.CMatrixOff(il-1, ldwrkl, opts), work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, m, m, rwork.Off(iru-1).Matrix(m, opts), u)
+				if err = Zunmbr('Q', Left, NoTrans, m, m, m, work.Off(il-1).CMatrix(ldwrkl, opts), work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1198,8 +1197,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [VT] + M*M [L] + 2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer M*M [VT] + M*M [L] + 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, m, m, rwork.MatrixOff(irvt-1, m, opts), work.CMatrixOff(ivt-1, ldwkvt, opts))
-				if err = Zunmbr('P', Right, ConjTrans, m, m, m, work.CMatrixOff(il-1, ldwrkl, opts), work.Off(itaup-1), work.CMatrixOff(ivt-1, ldwkvt, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, m, m, rwork.Off(irvt-1).Matrix(m, opts), work.Off(ivt-1).CMatrix(ldwkvt, opts))
+				if err = Zunmbr('P', Right, ConjTrans, m, m, m, work.Off(il-1).CMatrix(ldwrkl, opts), work.Off(itaup-1), work.Off(ivt-1).CMatrix(ldwkvt, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1210,8 +1209,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              RWorkspace: need   0
 				for i = 1; i <= n; i += chunk {
 					blk = min(n-i+1, chunk)
-					err = goblas.Zgemm(NoTrans, NoTrans, m, blk, m, cone, work.CMatrixOff(ivt-1, m, opts), a.Off(0, i-1), czero, work.CMatrixOff(il-1, ldwrkl, opts))
-					Zlacpy(Full, m, blk, work.CMatrixOff(il-1, ldwrkl, opts), a.Off(0, i-1))
+					err = work.Off(il-1).CMatrix(ldwrkl, opts).Gemm(NoTrans, NoTrans, m, blk, m, cone, work.Off(ivt-1).CMatrix(m, opts), a.Off(0, i-1), czero)
+					Zlacpy(Full, m, blk, work.Off(il-1).CMatrix(ldwrkl, opts), a.Off(0, i-1))
 				}
 
 			} else if wntqs {
@@ -1234,8 +1233,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				}
 
 				//              Copy L to WORK(IL), zeroing out above it
-				Zlacpy(Lower, m, m, a, work.CMatrixOff(il-1, ldwrkl, opts))
-				Zlaset(Upper, m-1, m-1, czero, czero, work.CMatrixOff(il+ldwrkl-1, ldwrkl, opts))
+				Zlacpy(Lower, m, m, a, work.Off(il-1).CMatrix(ldwrkl, opts))
+				Zlaset(Upper, m-1, m-1, czero, czero, work.Off(il+ldwrkl-1).CMatrix(ldwrkl, opts))
 
 				//              Generate Q in A
 				//              CWorkspace: need   M*M [L] + M [tau] + M    [work]
@@ -1253,7 +1252,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [L] + 2*M [tauq, taup] + M      [work]
 				//              CWorkspace: prefer M*M [L] + 2*M [tauq, taup] + 2*M*NB [work]
 				//              RWorkspace: need   M [e]
-				if err = Zgebrd(m, m, work.CMatrixOff(il-1, ldwrkl, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				if err = Zgebrd(m, m, work.Off(il-1).CMatrix(ldwrkl, opts), s, rwork.Off(ie-1), work.Off(itauq-1), work.Off(itaup-1), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1265,7 +1264,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = ie + m
 				irvt = iru + m*m
 				nrwork = irvt + m*m
-				if err = Dbdsdc(Upper, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1274,8 +1273,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [L] + 2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer M*M [L] + 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, m, m, rwork.MatrixOff(iru-1, m, opts), u)
-				if err = Zunmbr('Q', Left, NoTrans, m, m, m, work.CMatrixOff(il-1, ldwrkl, opts), work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, m, m, rwork.Off(iru-1).Matrix(m, opts), u)
+				if err = Zunmbr('Q', Left, NoTrans, m, m, m, work.Off(il-1).CMatrix(ldwrkl, opts), work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1284,8 +1283,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [L] + 2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer M*M [L] + 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, m, m, rwork.MatrixOff(irvt-1, m, opts), vt)
-				if err = Zunmbr('P', Right, ConjTrans, m, m, m, work.CMatrixOff(il-1, ldwrkl, opts), work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, m, m, rwork.Off(irvt-1).Matrix(m, opts), vt)
+				if err = Zunmbr('P', Right, ConjTrans, m, m, m, work.Off(il-1).CMatrix(ldwrkl, opts), work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1293,8 +1292,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              in WORK(IL) by Q in A, storing result in VT
 				//              CWorkspace: need   M*M [L]
 				//              RWorkspace: need   0
-				Zlacpy(Full, m, m, vt, work.CMatrixOff(il-1, ldwrkl, opts))
-				if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(il-1, ldwrkl, opts), a, czero, vt); err != nil {
+				Zlacpy(Full, m, m, vt, work.Off(il-1).CMatrix(ldwrkl, opts))
+				if err = vt.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(il-1).CMatrix(ldwrkl, opts), a, czero); err != nil {
 					panic(err)
 				}
 
@@ -1349,7 +1348,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = ie + m
 				irvt = iru + m*m
 				nrwork = irvt + m*m
-				if err = Dbdsdc(Upper, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Upper, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1358,7 +1357,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [VT] + 2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer M*M [VT] + 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, m, m, rwork.MatrixOff(iru-1, m, opts), u)
+				Zlacp2(Full, m, m, rwork.Off(iru-1).Matrix(m, opts), u)
 				if err = Zunmbr('Q', Left, NoTrans, m, m, m, a, work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1368,8 +1367,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   M*M [VT] + 2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer M*M [VT] + 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   0
-				Zlacp2(Full, m, m, rwork.MatrixOff(irvt-1, m, opts), work.CMatrixOff(ivt-1, ldwkvt, opts))
-				if err = Zunmbr('P', Right, ConjTrans, m, m, m, a, work.Off(itaup-1), work.CMatrixOff(ivt-1, ldwkvt, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
+				Zlacp2(Full, m, m, rwork.Off(irvt-1).Matrix(m, opts), work.Off(ivt-1).CMatrix(ldwkvt, opts))
+				if err = Zunmbr('P', Right, ConjTrans, m, m, m, a, work.Off(itaup-1), work.Off(ivt-1).CMatrix(ldwkvt, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
 
@@ -1377,7 +1376,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              Q in VT, storing result in A
 				//              CWorkspace: need   M*M [VT]
 				//              RWorkspace: need   0
-				if err = goblas.Zgemm(NoTrans, NoTrans, m, n, m, cone, work.CMatrixOff(ivt-1, ldwkvt, opts), vt, czero, a); err != nil {
+				if err = a.Gemm(NoTrans, NoTrans, m, n, m, cone, work.Off(ivt-1).CMatrix(ldwkvt, opts), vt, czero); err != nil {
 					panic(err)
 				}
 
@@ -1454,7 +1453,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              singular vectors of bidiagonal matrix in RWORK(IRVT)
 				//              CWorkspace: need   0
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU] + BDSPAC
-				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1462,8 +1461,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              storing the result in WORK(IVT), copying to U
 				//              CWorkspace: need   2*M [tauq, taup] + M*M [VT]
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU] + 2*M*M [rwork]
-				Zlacrm(m, m, u, rwork.MatrixOff(iru-1, m, opts), work.CMatrixOff(ivt-1, ldwkvt, opts), rwork.Off(nrwork-1))
-				Zlacpy(Full, m, m, work.CMatrixOff(ivt-1, ldwkvt, opts), u)
+				Zlacrm(m, m, u, rwork.Off(iru-1).Matrix(m, opts), work.Off(ivt-1).CMatrix(ldwkvt, opts), rwork.Off(nrwork-1))
+				Zlacpy(Full, m, m, work.Off(ivt-1).CMatrix(ldwkvt, opts), u)
 
 				//              Multiply RWORK(IRVT) by P**H in A, storing the
 				//              result in WORK(IVT), copying to A
@@ -1474,8 +1473,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				nrwork = iru
 				for i = 1; i <= n; i += chunk {
 					blk = min(n-i+1, chunk)
-					Zlarcm(m, blk, rwork.MatrixOff(irvt-1, m, opts), a.Off(0, i-1), work.CMatrixOff(ivt-1, ldwkvt, opts), rwork.Off(nrwork-1))
-					Zlacpy(Full, m, blk, work.CMatrixOff(ivt-1, ldwkvt, opts), a.Off(0, i-1))
+					Zlarcm(m, blk, rwork.Off(irvt-1).Matrix(m, opts), a.Off(0, i-1), work.Off(ivt-1).CMatrix(ldwkvt, opts), rwork.Off(nrwork-1))
+					Zlacpy(Full, m, blk, work.Off(ivt-1).CMatrix(ldwkvt, opts), a.Off(0, i-1))
 				}
 			} else if wntqs {
 				//              Path 5ts (N >> M, JOBZ='S')
@@ -1505,7 +1504,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				irvt = nrwork
 				iru = irvt + m*m
 				nrwork = iru + m*m
-				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1513,7 +1512,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              result in A, copying to U
 				//              CWorkspace: need   0
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU] + 2*M*M [rwork]
-				Zlacrm(m, m, u, rwork.MatrixOff(iru-1, m, opts), a, rwork.Off(nrwork-1))
+				Zlacrm(m, m, u, rwork.Off(iru-1).Matrix(m, opts), a, rwork.Off(nrwork-1))
 				Zlacpy(Full, m, m, a, u)
 
 				//              Multiply real matrix RWORK(IRVT) by P**H in VT,
@@ -1521,7 +1520,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   0
 				//              RWorkspace: need   M [e] + M*M [RVT] + 2*M*N [rwork] < M + 5*M*M since N < 2*M here
 				nrwork = iru
-				Zlarcm(m, n, rwork.MatrixOff(irvt-1, m, opts), vt, a, rwork.Off(nrwork-1))
+				Zlarcm(m, n, rwork.Off(irvt-1).Matrix(m, opts), vt, a, rwork.Off(nrwork-1))
 				Zlacpy(Full, m, n, a, vt)
 			} else {
 				//              Path 5ta (N >> M, JOBZ='A')
@@ -1551,7 +1550,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				irvt = nrwork
 				iru = irvt + m*m
 				nrwork = iru + m*m
-				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1559,7 +1558,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              result in A, copying to U
 				//              CWorkspace: need   0
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU] + 2*M*M [rwork]
-				Zlacrm(m, m, u, rwork.MatrixOff(iru-1, m, opts), a, rwork.Off(nrwork-1))
+				Zlacrm(m, m, u, rwork.Off(iru-1).Matrix(m, opts), a, rwork.Off(nrwork-1))
 				Zlacpy(Full, m, m, a, u)
 
 				//              Multiply real matrix RWORK(IRVT) by P**H in VT,
@@ -1567,7 +1566,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   0
 				//              RWorkspace: need   M [e] + M*M [RVT] + 2*M*N [rwork] < M + 5*M*M since N < 2*M here
 				nrwork = iru
-				Zlarcm(m, n, rwork.MatrixOff(irvt-1, m, opts), vt, a, rwork.Off(nrwork-1))
+				Zlarcm(m, n, rwork.Off(irvt-1).Matrix(m, opts), vt, a, rwork.Off(nrwork-1))
 				Zlacpy(Full, m, n, a, vt)
 			}
 
@@ -1604,7 +1603,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				ivt = nwork
 				if lwork >= m*n+3*m {
 					//                 WORK( IVT ) is M by N
-					Zlaset(Full, m, n, czero, czero, work.CMatrixOff(ivt-1, ldwkvt, opts))
+					Zlaset(Full, m, n, czero, czero, work.Off(ivt-1).CMatrix(ldwkvt, opts))
 					nwork = ivt + ldwkvt*n
 				} else {
 					//                 WORK( IVT ) is M by CHUNK
@@ -1620,7 +1619,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				irvt = nrwork
 				iru = irvt + m*m
 				nrwork = iru + m*m
-				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1629,7 +1628,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*M [tauq, taup] + M*M [VT] + M    [work]
 				//              CWorkspace: prefer 2*M [tauq, taup] + M*M [VT] + M*NB [work]
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU]
-				Zlacp2(Full, m, m, rwork.MatrixOff(iru-1, m, opts), u)
+				Zlacp2(Full, m, m, rwork.Off(iru-1).Matrix(m, opts), u)
 				if err = Zunmbr('Q', Left, NoTrans, m, m, n, a, work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1642,11 +1641,11 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 					//                 CWorkspace: need   2*M [tauq, taup] + M*N [VT] + M    [work]
 					//                 CWorkspace: prefer 2*M [tauq, taup] + M*N [VT] + M*NB [work]
 					//                 RWorkspace: need   M [e] + M*M [RVT]
-					Zlacp2(Full, m, m, rwork.MatrixOff(irvt-1, m, opts), work.CMatrixOff(ivt-1, ldwkvt, opts))
-					if err = Zunmbr('P', Right, ConjTrans, m, n, m, a, work.Off(itaup-1), work.CMatrixOff(ivt-1, ldwkvt, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
+					Zlacp2(Full, m, m, rwork.Off(irvt-1).Matrix(m, opts), work.Off(ivt-1).CMatrix(ldwkvt, opts))
+					if err = Zunmbr('P', Right, ConjTrans, m, n, m, a, work.Off(itaup-1), work.Off(ivt-1).CMatrix(ldwkvt, opts), work.Off(nwork-1), lwork-nwork+1); err != nil {
 						panic(err)
 					}
-					Zlacpy(Full, m, n, work.CMatrixOff(ivt-1, ldwkvt, opts), a)
+					Zlacpy(Full, m, n, work.Off(ivt-1).CMatrix(ldwkvt, opts), a)
 				} else {
 					//                 Path 6to-slow
 					//                 Generate P**H in A
@@ -1666,8 +1665,8 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 					nrwork = iru
 					for i = 1; i <= n; i += chunk {
 						blk = min(n-i+1, chunk)
-						Zlarcm(m, blk, rwork.MatrixOff(irvt-1, m, opts), a.Off(0, i-1), work.CMatrixOff(ivt-1, ldwkvt, opts), rwork.Off(nrwork-1))
-						Zlacpy(Full, m, blk, work.CMatrixOff(ivt-1, ldwkvt, opts), a.Off(0, i-1))
+						Zlarcm(m, blk, rwork.Off(irvt-1).Matrix(m, opts), a.Off(0, i-1), work.Off(ivt-1).CMatrix(ldwkvt, opts), rwork.Off(nrwork-1))
+						Zlacpy(Full, m, blk, work.Off(ivt-1).CMatrix(ldwkvt, opts), a.Off(0, i-1))
 					}
 				}
 			} else if wntqs {
@@ -1680,7 +1679,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				irvt = nrwork
 				iru = irvt + m*m
 				nrwork = iru + m*m
-				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1689,7 +1688,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU]
-				Zlacp2(Full, m, m, rwork.MatrixOff(iru-1, m, opts), u)
+				Zlacp2(Full, m, m, rwork.Off(iru-1).Matrix(m, opts), u)
 				if err = Zunmbr('Q', Left, NoTrans, m, m, n, a, work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1700,7 +1699,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: prefer 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   M [e] + M*M [RVT]
 				Zlaset(Full, m, n, czero, czero, vt)
-				Zlacp2(Full, m, m, rwork.MatrixOff(irvt-1, m, opts), vt)
+				Zlacp2(Full, m, m, rwork.Off(irvt-1).Matrix(m, opts), vt)
 				if err = Zunmbr('P', Right, ConjTrans, m, n, m, a, work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1715,7 +1714,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				iru = irvt + m*m
 				nrwork = iru + m*m
 
-				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.MatrixOff(iru-1, m, opts), rwork.MatrixOff(irvt-1, m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
+				if err = Dbdsdc(Lower, 'I', m, s, rwork.Off(ie-1), rwork.Off(iru-1).Matrix(m, opts), rwork.Off(irvt-1).Matrix(m, opts), dum, &idum, rwork.Off(nrwork-1), iwork); err != nil {
 					panic(err)
 				}
 
@@ -1724,7 +1723,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*M [tauq, taup] + M    [work]
 				//              CWorkspace: prefer 2*M [tauq, taup] + M*NB [work]
 				//              RWorkspace: need   M [e] + M*M [RVT] + M*M [RU]
-				Zlacp2(Full, m, m, rwork.MatrixOff(iru-1, m, opts), u)
+				Zlacp2(Full, m, m, rwork.Off(iru-1).Matrix(m, opts), u)
 				if err = Zunmbr('Q', Left, NoTrans, m, m, n, a, work.Off(itauq-1), u, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1737,7 +1736,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 				//              CWorkspace: need   2*M [tauq, taup] + N    [work]
 				//              CWorkspace: prefer 2*M [tauq, taup] + N*NB [work]
 				//              RWorkspace: need   M [e] + M*M [RVT]
-				Zlacp2(Full, m, m, rwork.MatrixOff(irvt-1, m, opts), vt)
+				Zlacp2(Full, m, m, rwork.Off(irvt-1).Matrix(m, opts), vt)
 				if err = Zunmbr('P', Right, ConjTrans, n, n, m, a, work.Off(itaup-1), vt, work.Off(nwork-1), lwork-nwork+1); err != nil {
 					panic(err)
 				}
@@ -1755,7 +1754,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 			}
 		}
 		if info != 0 && anrm > bignum {
-			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, rwork.MatrixOff(ie-1, minmn, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, bignum, anrm, minmn-1, 1, rwork.Off(ie-1).Matrix(minmn, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -1765,7 +1764,7 @@ func Zgesdd(jobz byte, m, n int, a *mat.CMatrix, s *mat.Vector, u, vt *mat.CMatr
 			}
 		}
 		if info != 0 && anrm < smlnum {
-			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, rwork.MatrixOff(ie-1, minmn, opts)); err != nil {
+			if err = Dlascl('G', 0, 0, smlnum, anrm, minmn-1, 1, rwork.Off(ie-1).Matrix(minmn, opts)); err != nil {
 				panic(err)
 			}
 		}

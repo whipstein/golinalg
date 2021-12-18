@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -40,12 +39,12 @@ func Dpptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, b *mat.Matrix) (err e
 		//        Solve A*X = B where A = U**T * U.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U**T *X = B, overwriting B with X.
-			if err = goblas.Dtpsv(Upper, Trans, NonUnit, n, ap, b.Vector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).Vector().Tpsv(Upper, Trans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 
 			//           Solve U*X = B, overwriting B with X.
-			if err = goblas.Dtpsv(Upper, NoTrans, NonUnit, n, ap, b.Vector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).Vector().Tpsv(Upper, NoTrans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -53,12 +52,12 @@ func Dpptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.Vector, b *mat.Matrix) (err e
 		//        Solve A*X = B where A = L * L**T.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve L*Y = B, overwriting B with X.
-			if err = goblas.Dtpsv(Lower, NoTrans, NonUnit, n, ap, b.Vector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).Vector().Tpsv(Lower, NoTrans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 
 			//           Solve L**T *X = Y, overwriting B with X.
-			if err = goblas.Dtpsv(Lower, Trans, NonUnit, n, ap, b.Vector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).Vector().Tpsv(Lower, Trans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 		}

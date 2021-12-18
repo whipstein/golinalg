@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -168,13 +167,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi int, h, t *mat.CMatrix, alpha, b
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
 			t.SetRe(j-1, j-1, absb)
 			if ilschr {
-				goblas.Zscal(j-1, signbc, t.CVector(0, j-1, 1))
-				goblas.Zscal(j, signbc, h.CVector(0, j-1, 1))
+				t.Off(0, j-1).CVector().Scal(j-1, signbc, 1)
+				h.Off(0, j-1).CVector().Scal(j, signbc, 1)
 			} else {
-				goblas.Zscal(1, signbc, h.CVector(j-1, j-1, 1))
+				h.Off(j-1, j-1).CVector().Scal(1, signbc, 1)
 			}
 			if ilz {
-				goblas.Zscal(n, signbc, z.CVector(0, j-1, 1))
+				z.Off(0, j-1).CVector().Scal(n, signbc, 1)
 			}
 		} else {
 			t.Set(j-1, j-1, czero)
@@ -277,10 +276,10 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi int, h, t *mat.CMatrix, alpha, b
 						ctemp = h.Get(jch-1, jch-1)
 						c, s, *h.GetPtr(jch-1, jch-1) = Zlartg(ctemp, h.Get(jch, jch-1))
 						h.Set(jch, jch-1, czero)
-						Zrot(ilastm-jch, h.CVector(jch-1, jch), h.CVector(jch, jch), c, s)
-						Zrot(ilastm-jch, t.CVector(jch-1, jch), t.CVector(jch, jch), c, s)
+						Zrot(ilastm-jch, h.Off(jch-1, jch).CVector(), h.Rows, h.Off(jch, jch).CVector(), h.Rows, c, s)
+						Zrot(ilastm-jch, t.Off(jch-1, jch).CVector(), t.Rows, t.Off(jch, jch).CVector(), t.Rows, c, s)
 						if ilq {
-							Zrot(n, q.CVector(0, jch-1, 1), q.CVector(0, jch, 1), c, cmplx.Conj(s))
+							Zrot(n, q.Off(0, jch-1).CVector(), 1, q.Off(0, jch).CVector(), 1, c, cmplx.Conj(s))
 						}
 						if ilazr2 {
 							h.Set(jch-1, jch-1-1, h.Get(jch-1, jch-1-1)*complex(c, 0))
@@ -305,19 +304,19 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi int, h, t *mat.CMatrix, alpha, b
 						c, s, *t.GetPtr(jch-1, jch) = Zlartg(ctemp, t.Get(jch, jch))
 						t.Set(jch, jch, czero)
 						if jch < ilastm-1 {
-							Zrot(ilastm-jch-1, t.CVector(jch-1, jch+2-1), t.CVector(jch, jch+2-1), c, s)
+							Zrot(ilastm-jch-1, t.Off(jch-1, jch+2-1).CVector(), t.Rows, t.Off(jch, jch+2-1).CVector(), t.Rows, c, s)
 						}
-						Zrot(ilastm-jch+2, h.CVector(jch-1, jch-1-1), h.CVector(jch, jch-1-1), c, s)
+						Zrot(ilastm-jch+2, h.Off(jch-1, jch-1-1).CVector(), h.Rows, h.Off(jch, jch-1-1).CVector(), h.Rows, c, s)
 						if ilq {
-							Zrot(n, q.CVector(0, jch-1, 1), q.CVector(0, jch, 1), c, cmplx.Conj(s))
+							Zrot(n, q.Off(0, jch-1).CVector(), 1, q.Off(0, jch).CVector(), 1, c, cmplx.Conj(s))
 						}
 						ctemp = h.Get(jch, jch-1)
 						c, s, *h.GetPtr(jch, jch-1) = Zlartg(ctemp, h.Get(jch, jch-1-1))
 						h.Set(jch, jch-1-1, czero)
-						Zrot(jch+1-ifrstm, h.CVector(ifrstm-1, jch-1, 1), h.CVector(ifrstm-1, jch-1-1, 1), c, s)
-						Zrot(jch-ifrstm, t.CVector(ifrstm-1, jch-1, 1), t.CVector(ifrstm-1, jch-1-1, 1), c, s)
+						Zrot(jch+1-ifrstm, h.Off(ifrstm-1, jch-1).CVector(), 1, h.Off(ifrstm-1, jch-1-1).CVector(), 1, c, s)
+						Zrot(jch-ifrstm, t.Off(ifrstm-1, jch-1).CVector(), 1, t.Off(ifrstm-1, jch-1-1).CVector(), 1, c, s)
 						if ilz {
-							Zrot(n, z.CVector(0, jch-1, 1), z.CVector(0, jch-1-1, 1), c, s)
+							Zrot(n, z.Off(0, jch-1).CVector(), 1, z.Off(0, jch-1-1).CVector(), 1, c, s)
 						}
 					}
 					goto label50
@@ -342,10 +341,10 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi int, h, t *mat.CMatrix, alpha, b
 		ctemp = h.Get(ilast-1, ilast-1)
 		c, s, *h.GetPtr(ilast-1, ilast-1) = Zlartg(ctemp, h.Get(ilast-1, ilast-1-1))
 		h.Set(ilast-1, ilast-1-1, czero)
-		Zrot(ilast-ifrstm, h.CVector(ifrstm-1, ilast-1, 1), h.CVector(ifrstm-1, ilast-1-1, 1), c, s)
-		Zrot(ilast-ifrstm, t.CVector(ifrstm-1, ilast-1, 1), t.CVector(ifrstm-1, ilast-1-1, 1), c, s)
+		Zrot(ilast-ifrstm, h.Off(ifrstm-1, ilast-1).CVector(), 1, h.Off(ifrstm-1, ilast-1-1).CVector(), 1, c, s)
+		Zrot(ilast-ifrstm, t.Off(ifrstm-1, ilast-1).CVector(), 1, t.Off(ifrstm-1, ilast-1-1).CVector(), 1, c, s)
 		if ilz {
-			Zrot(n, z.CVector(0, ilast-1, 1), z.CVector(0, ilast-1-1, 1), c, s)
+			Zrot(n, z.Off(0, ilast-1).CVector(), 1, z.Off(0, ilast-1-1).CVector(), 1, c, s)
 		}
 
 		//        H(ILAST,ILAST-1)=0 -- Standardize B, set ALPHA and BETA
@@ -356,13 +355,13 @@ func Zhgeqz(job, compq, compz byte, n, ilo, ihi int, h, t *mat.CMatrix, alpha, b
 			signbc = cmplx.Conj(t.Get(ilast-1, ilast-1) / complex(absb, 0))
 			t.SetRe(ilast-1, ilast-1, absb)
 			if ilschr {
-				goblas.Zscal(ilast-ifrstm, signbc, t.CVector(ifrstm-1, ilast-1, 1))
-				goblas.Zscal(ilast+1-ifrstm, signbc, h.CVector(ifrstm-1, ilast-1, 1))
+				t.Off(ifrstm-1, ilast-1).CVector().Scal(ilast-ifrstm, signbc, 1)
+				h.Off(ifrstm-1, ilast-1).CVector().Scal(ilast+1-ifrstm, signbc, 1)
 			} else {
-				goblas.Zscal(1, signbc, h.CVector(ilast-1, ilast-1, 1))
+				h.Off(ilast-1, ilast-1).CVector().Scal(1, signbc, 1)
 			}
 			if ilz {
-				goblas.Zscal(n, signbc, z.CVector(0, ilast-1, 1))
+				z.Off(0, ilast-1).CVector().Scal(n, signbc, 1)
 			}
 		} else {
 			t.Set(ilast-1, ilast-1, czero)
@@ -525,13 +524,13 @@ label190:
 			signbc = cmplx.Conj(t.Get(j-1, j-1) / complex(absb, 0))
 			t.SetRe(j-1, j-1, absb)
 			if ilschr {
-				goblas.Zscal(j-1, signbc, t.CVector(0, j-1, 1))
-				goblas.Zscal(j, signbc, h.CVector(0, j-1, 1))
+				t.Off(0, j-1).CVector().Scal(j-1, signbc, 1)
+				h.Off(0, j-1).CVector().Scal(j, signbc, 1)
 			} else {
-				goblas.Zscal(1, signbc, h.CVector(j-1, j-1, 1))
+				h.Off(j-1, j-1).CVector().Scal(1, signbc, 1)
 			}
 			if ilz {
-				goblas.Zscal(n, signbc, z.CVector(0, j-1, 1))
+				z.Off(0, j-1).CVector().Scal(n, signbc, 1)
 			}
 		} else {
 			t.Set(j-1, j-1, czero)

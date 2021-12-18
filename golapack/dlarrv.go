@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -137,7 +136,7 @@ func Dlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 		//        The eigenvalue approximations will be refined when necessary as
 		//        high relative accuracy is required for the computation of the
 		//        corresponding eigenvectors.
-		goblas.Dcopy(im, w.Off(wbegin-1, 1), work.Off(wbegin-1, 1))
+		work.Off(wbegin-1).Copy(im, w.Off(wbegin-1), 1, 1)
 		//        We store in W the eigenvalue approximations w.r.t. the original
 		//        matrix T.
 		for i = 1; i <= im; i++ {
@@ -208,8 +207,8 @@ func Dlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 							j = wbegin + oldfst - 1
 						}
 					}
-					goblas.Dcopy(in, z.Vector(ibegin-1, j-1, 1), d.Off(ibegin-1, 1))
-					goblas.Dcopy(in-1, z.Vector(ibegin-1, j, 1), l.Off(ibegin-1, 1))
+					d.Off(ibegin-1).Copy(in, z.Off(ibegin-1, j-1).Vector(), 1, 1)
+					l.Off(ibegin-1).Copy(in-1, z.Off(ibegin-1, j).Vector(), 1, 1)
 					sigma = z.Get(iend-1, j)
 					//                 Set the corresponding entries in Z to zero
 					Dlaset('F', in, 2, zero, zero, z.Off(ibegin-1, j-1))
@@ -341,7 +340,7 @@ func Dlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 						//                    Note that the new RRR is stored in Z
 						//
 						//                    DLARRF needs LWORK = 2*N
-						tau, iinfo = Dlarrf(in, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), newfst, newlst, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), spdiam, lgap, rgap, pivmin, z.Vector(ibegin-1, newftt-1), z.Vector(ibegin-1, newftt), work.Off(indwrk-1))
+						tau, iinfo = Dlarrf(in, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), newfst, newlst, work.Off(wbegin-1), wgap.Off(wbegin-1), werr.Off(wbegin-1), spdiam, lgap, rgap, pivmin, z.Off(ibegin-1, newftt-1).Vector(), z.Off(ibegin-1, newftt).Vector(), work.Off(indwrk-1))
 						if iinfo == 0 {
 							//                       a new RRR for the cluster was found by DLARRF
 							//                       update shift and store it
@@ -469,7 +468,7 @@ func Dlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 						//                    Given LAMBDA, compute the eigenvector.
 						{
 							_isuppz2windex1 := (*isuppz)[2*windex-1-1:]
-							negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Dlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.Vector(ibegin-1, windex-1), !usedbs, (*iwork)[iindr+windex-1], &_isuppz2windex1, work.Off(indwrk-1))
+							negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Dlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.Off(ibegin-1, windex-1).Vector(), !usedbs, (*iwork)[iindr+windex-1], &_isuppz2windex1, work.Off(indwrk-1))
 						}
 						if iter == 0 {
 							bstres = resid
@@ -555,7 +554,7 @@ func Dlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 							if stp2ii {
 								//                          improve error angle by second step
 								_isuppz2windex1 := (*isuppz)[2*windex-1-1:]
-								negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Dlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.Vector(ibegin-1, windex-1), !usedbs, (*iwork)[iindr+windex-1], &_isuppz2windex1, work.Off(indwrk-1))
+								negcnt, _, _, (*iwork)[iindr+windex-1], nrminv, resid, rqcorr = Dlar1v(in, 1, in, lambda, d.Off(ibegin-1), l.Off(ibegin-1), work.Off(indld+ibegin-1-1), work.Off(indlld+ibegin-1-1), pivmin, gaptol, z.Off(ibegin-1, windex-1).Vector(), !usedbs, (*iwork)[iindr+windex-1], &_isuppz2windex1, work.Off(indwrk-1))
 							}
 							work.Set(windex-1, lambda)
 						}
@@ -579,7 +578,7 @@ func Dlarrv(n int, vl, vu float64, d, l *mat.Vector, pivmin float64, isplit *[]i
 								z.Set(ii-1, windex-1, zero)
 							}
 						}
-						goblas.Dscal(zto-zfrom+1, nrminv, z.Vector(zfrom-1, windex-1, 1))
+						z.Off(zfrom-1, windex-1).Vector().Scal(zto-zfrom+1, nrminv, 1)
 					label125:
 						;
 						//                    Update W

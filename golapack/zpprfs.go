@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -72,8 +71,8 @@ func Zpprfs(uplo mat.MatUplo, n, nrhs int, ap, afp *mat.CVector, b, x *mat.CMatr
 		//        Loop until stopping criterion is satisfied.
 		//
 		//        Compute residual R = B - A * X
-		goblas.Zcopy(n, b.CVector(0, j-1, 1), work.Off(0, 1))
-		if err = goblas.Zhpmv(uplo, n, -cone, ap, x.CVector(0, j-1, 1), cone, work.Off(0, 1)); err != nil {
+		work.Copy(n, b.Off(0, j-1).CVector(), 1, 1)
+		if err = work.Hpmv(uplo, n, -cone, ap, x.Off(0, j-1).CVector(), 1, cone, 1); err != nil {
 			panic(err)
 		}
 
@@ -139,7 +138,7 @@ func Zpprfs(uplo mat.MatUplo, n, nrhs int, ap, afp *mat.CVector, b, x *mat.CMatr
 			if err = Zpptrs(uplo, n, 1, afp, work.CMatrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Zaxpy(n, cone, work.Off(0, 1), x.CVector(0, j-1, 1))
+			x.Off(0, j-1).CVector().Axpy(n, cone, work, 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20

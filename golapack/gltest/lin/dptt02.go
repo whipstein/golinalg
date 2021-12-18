@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -42,8 +41,8 @@ func dptt02(n, nrhs int, d, e *mat.Vector, x, b *mat.Matrix) (resid float64) {
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1, 1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).Vector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).Vector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

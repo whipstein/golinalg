@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -76,7 +75,7 @@ func Zhpgv(itype int, jobz byte, uplo mat.MatUplo, n int, ap, bp *mat.CVector, w
 			}
 
 			for j = 1; j <= neig; j++ {
-				if err = goblas.Ztpsv(uplo, trans, NonUnit, n, bp, z.CVector(0, j-1, 1)); err != nil {
+				if err = z.Off(0, j-1).CVector().Tpsv(uplo, trans, NonUnit, n, bp, 1); err != nil {
 					panic(err)
 				}
 			}
@@ -91,7 +90,7 @@ func Zhpgv(itype int, jobz byte, uplo mat.MatUplo, n int, ap, bp *mat.CVector, w
 			}
 
 			for j = 1; j <= neig; j++ {
-				if err = goblas.Ztpmv(uplo, trans, NonUnit, n, bp, z.CVector(0, j-1, 1)); err != nil {
+				if err = z.Off(0, j-1).CVector().Tpmv(uplo, trans, NonUnit, n, bp, 1); err != nil {
 					panic(err)
 				}
 			}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -70,8 +69,8 @@ func Dpbstf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 
 			//           Compute elements j-km:j-1 of the j-th column and update the
 			//           the leading submatrix within the band.
-			goblas.Dscal(km, one/ajj, ab.Vector(kd+1-km-1, j-1, 1))
-			if err = goblas.Dsyr(Upper, km, -one, ab.Vector(kd+1-km-1, j-1, 1), ab.OffIdx(kd+(j-km-1)*ab.Rows).UpdateRows(kld)); err != nil {
+			ab.Off(kd+1-km-1, j-1).Vector().Scal(km, one/ajj, 1)
+			if err = ab.OffIdx(kd+(j-km-1)*ab.Rows).UpdateRows(kld).Syr(Upper, km, -one, ab.Off(kd+1-km-1, j-1).Vector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -90,8 +89,8 @@ func Dpbstf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 			//           Compute elements j+1:j+km of the j-th row and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Dscal(km, one/ajj, ab.Vector(kd-1, j, kld))
-				if err = goblas.Dsyr(Upper, km, -one, ab.Vector(kd-1, j, kld), ab.OffIdx(kd+(j)*ab.Rows).UpdateRows(kld)); err != nil {
+				ab.Off(kd-1, j).Vector().Scal(km, one/ajj, kld)
+				if err = ab.OffIdx(kd+(j)*ab.Rows).UpdateRows(kld).Syr(Upper, km, -one, ab.Off(kd-1, j).Vector(), kld); err != nil {
 					panic(err)
 				}
 			}
@@ -110,8 +109,8 @@ func Dpbstf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 
 			//           Compute elements j-km:j-1 of the j-th row and update the
 			//           trailing submatrix within the band.
-			goblas.Dscal(km, one/ajj, ab.Vector(km, j-km-1, kld))
-			if err = goblas.Dsyr(Lower, km, -one, ab.Vector(km, j-km-1, kld), ab.OffIdx(0+(j-km-1)*ab.Rows).UpdateRows(kld)); err != nil {
+			ab.Off(km, j-km-1).Vector().Scal(km, one/ajj, kld)
+			if err = ab.OffIdx(0+(j-km-1)*ab.Rows).UpdateRows(kld).Syr(Lower, km, -one, ab.Off(km, j-km-1).Vector(), kld); err != nil {
 				panic(err)
 			}
 		}
@@ -130,8 +129,8 @@ func Dpbstf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 			//           Compute elements j+1:j+km of the j-th column and update the
 			//           trailing submatrix within the band.
 			if km > 0 {
-				goblas.Dscal(km, one/ajj, ab.Vector(1, j-1, 1))
-				if err = goblas.Dsyr(Lower, km, -one, ab.Vector(1, j-1, 1), ab.OffIdx(0+(j)*ab.Rows).UpdateRows(kld)); err != nil {
+				ab.Off(1, j-1).Vector().Scal(km, one/ajj, 1)
+				if err = ab.OffIdx(0+(j)*ab.Rows).UpdateRows(kld).Syr(Lower, km, -one, ab.Off(1, j-1).Vector(), 1); err != nil {
 					panic(err)
 				}
 			}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -70,8 +69,8 @@ label20:
 		goto label30
 	}
 
-	goblas.Dswap(l, a.Vector(0, j-1, 1), a.Vector(0, m-1, 1))
-	goblas.Dswap(n-k+1, a.Vector(j-1, k-1), a.Vector(m-1, k-1))
+	a.Off(0, m-1).Vector().Swap(l, a.Off(0, j-1).Vector(), 1, 1)
+	a.Off(m-1, k-1).Vector().Swap(n-k+1, a.Off(j-1, k-1).Vector(), a.Rows, a.Rows)
 
 label30:
 	;
@@ -161,11 +160,11 @@ label140:
 
 	for i = k; i <= l; i++ {
 
-		c = goblas.Dnrm2(l-k+1, a.Vector(k-1, i-1, 1))
-		r = goblas.Dnrm2(l-k+1, a.Vector(i-1, k-1))
-		ica = goblas.Idamax(l, a.Vector(0, i-1, 1))
+		c = a.Off(k-1, i-1).Vector().Nrm2(l-k+1, 1)
+		r = a.Off(i-1, k-1).Vector().Nrm2(l-k+1, a.Rows)
+		ica = a.Off(0, i-1).Vector().Iamax(l, 1)
 		ca = math.Abs(a.Get(ica-1, i-1))
-		ira = goblas.Idamax(n-k+1, a.Vector(i-1, k-1))
+		ira = a.Off(i-1, k-1).Vector().Iamax(n-k+1, a.Rows)
 		ra = math.Abs(a.Get(i-1, ira+k-1-1))
 
 		//        Guard against zero C or R due to underflow.
@@ -230,8 +229,8 @@ label140:
 		scale.Set(i-1, scale.Get(i-1)*f)
 		noconv = true
 
-		goblas.Dscal(n-k+1, g, a.Vector(i-1, k-1))
-		goblas.Dscal(l, f, a.Vector(0, i-1, 1))
+		a.Off(i-1, k-1).Vector().Scal(n-k+1, g, a.Rows)
+		a.Off(0, i-1).Vector().Scal(l, f, 1)
 
 	label200:
 	}

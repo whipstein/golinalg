@@ -96,7 +96,7 @@ func Dopmtr(side mat.MatSide, uplo mat.MatUplo, trans mat.MatTrans, m, n int, ap
 			//           Apply H(i)
 			aii = ap.Get(ii - 1)
 			ap.Set(ii-1, one)
-			Dlarf(side, mi, ni, ap.Off(ii-i, 1), tau.Get(i-1), c, work)
+			Dlarf(side, mi, ni, ap.Off(ii-i), 1, tau.Get(i-1), c, work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {
@@ -143,7 +143,7 @@ func Dopmtr(side mat.MatSide, uplo mat.MatUplo, trans mat.MatTrans, m, n int, ap
 			}
 
 			//           Apply H(i)
-			Dlarf(side, mi, ni, ap.Off(ii-1, 1), tau.Get(i-1), c.Off(ic-1, jc-1), work)
+			Dlarf(side, mi, ni, ap.Off(ii-1), 1, tau.Get(i-1), c.Off(ic-1, jc-1), work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -53,14 +52,14 @@ func Dspgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.Vector) (err error) 
 
 				//              Compute the j-th column of the upper triangle of A
 				bjj = bp.Get(jj - 1)
-				if err = goblas.Dtpsv(uplo, Trans, NonUnit, j, bp, ap.Off(j1-1, 1)); err != nil {
+				if err = ap.Off(j1-1).Tpsv(uplo, Trans, NonUnit, j, bp, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dspmv(uplo, j-1, -one, ap, bp.Off(j1-1, 1), one, ap.Off(j1-1, 1)); err != nil {
+				if err = ap.Off(j1-1).Spmv(uplo, j-1, -one, ap, bp.Off(j1-1), 1, one, 1); err != nil {
 					panic(err)
 				}
-				goblas.Dscal(j-1, one/bjj, ap.Off(j1-1, 1))
-				ap.Set(jj-1, (ap.Get(jj-1)-goblas.Ddot(j-1, ap.Off(j1-1, 1), bp.Off(j1-1, 1)))/bjj)
+				ap.Off(j1-1).Scal(j-1, one/bjj, 1)
+				ap.Set(jj-1, (ap.Get(jj-1)-bp.Off(j1-1).Dot(j-1, ap.Off(j1-1), 1, 1))/bjj)
 			}
 		} else {
 			//           Compute inv(L)*A*inv(L**T)
@@ -76,14 +75,14 @@ func Dspgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.Vector) (err error) 
 				akk = akk / math.Pow(bkk, 2)
 				ap.Set(kk-1, akk)
 				if k < n {
-					goblas.Dscal(n-k, one/bkk, ap.Off(kk, 1))
+					ap.Off(kk).Scal(n-k, one/bkk, 1)
 					ct = -half * akk
-					goblas.Daxpy(n-k, ct, bp.Off(kk, 1), ap.Off(kk, 1))
-					if err = goblas.Dspr2(uplo, n-k, -one, ap.Off(kk, 1), bp.Off(kk, 1), ap.Off(k1k1-1)); err != nil {
+					ap.Off(kk).Axpy(n-k, ct, bp.Off(kk), 1, 1)
+					if err = ap.Off(k1k1-1).Spr2(uplo, n-k, -one, ap.Off(kk), 1, bp.Off(kk), 1); err != nil {
 						panic(err)
 					}
-					goblas.Daxpy(n-k, ct, bp.Off(kk, 1), ap.Off(kk, 1))
-					if err = goblas.Dtpsv(uplo, NoTrans, NonUnit, n-k, bp.Off(k1k1-1), ap.Off(kk, 1)); err != nil {
+					ap.Off(kk).Axpy(n-k, ct, bp.Off(kk), 1, 1)
+					if err = ap.Off(kk).Tpsv(uplo, NoTrans, NonUnit, n-k, bp.Off(k1k1-1), 1); err != nil {
 						panic(err)
 					}
 				}
@@ -103,16 +102,16 @@ func Dspgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.Vector) (err error) 
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = ap.Get(kk - 1)
 				bkk = bp.Get(kk - 1)
-				if err = goblas.Dtpmv(uplo, NoTrans, NonUnit, k-1, bp, ap.Off(k1-1, 1)); err != nil {
+				if err = ap.Off(k1-1).Tpmv(uplo, NoTrans, NonUnit, k-1, bp, 1); err != nil {
 					panic(err)
 				}
 				ct = half * akk
-				goblas.Daxpy(k-1, ct, bp.Off(k1-1, 1), ap.Off(k1-1, 1))
-				if err = goblas.Dspr2(uplo, k-1, one, ap.Off(k1-1, 1), bp.Off(k1-1, 1), ap); err != nil {
+				ap.Off(k1-1).Axpy(k-1, ct, bp.Off(k1-1), 1, 1)
+				if err = ap.Spr2(uplo, k-1, one, ap.Off(k1-1), 1, bp.Off(k1-1), 1); err != nil {
 					panic(err)
 				}
-				goblas.Daxpy(k-1, ct, bp.Off(k1-1, 1), ap.Off(k1-1, 1))
-				goblas.Dscal(k-1, bkk, ap.Off(k1-1, 1))
+				ap.Off(k1-1).Axpy(k-1, ct, bp.Off(k1-1), 1, 1)
+				ap.Off(k1-1).Scal(k-1, bkk, 1)
 				ap.Set(kk-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -126,12 +125,12 @@ func Dspgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.Vector) (err error) 
 				//              Compute the j-th column of the lower triangle of A
 				ajj = ap.Get(jj - 1)
 				bjj = bp.Get(jj - 1)
-				ap.Set(jj-1, ajj*bjj+goblas.Ddot(n-j, ap.Off(jj, 1), bp.Off(jj, 1)))
-				goblas.Dscal(n-j, bjj, ap.Off(jj, 1))
-				if err = goblas.Dspmv(uplo, n-j, one, ap.Off(j1j1-1), bp.Off(jj, 1), one, ap.Off(jj, 1)); err != nil {
+				ap.Set(jj-1, ajj*bjj+bp.Off(jj).Dot(n-j, ap.Off(jj), 1, 1))
+				ap.Off(jj).Scal(n-j, bjj, 1)
+				if err = ap.Off(jj).Spmv(uplo, n-j, one, ap.Off(j1j1-1), bp.Off(jj), 1, one, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dtpmv(uplo, Trans, NonUnit, n-j+1, bp.Off(jj-1), ap.Off(jj-1, 1)); err != nil {
+				if err = ap.Off(jj-1).Tpmv(uplo, Trans, NonUnit, n-j+1, bp.Off(jj-1), 1); err != nil {
 					panic(err)
 				}
 				jj = j1j1

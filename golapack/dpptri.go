@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,12 +49,12 @@ func Dpptri(uplo mat.MatUplo, n int, ap *mat.Vector) (info int, err error) {
 			jc = jj + 1
 			jj = jj + j
 			if j > 1 {
-				if err = goblas.Dspr(mat.Upper, j-1, one, ap.Off(jc-1, 1), ap); err != nil {
+				if err = ap.Spr(Upper, j-1, one, ap.Off(jc-1), 1); err != nil {
 					panic(err)
 				}
 			}
 			ajj = ap.Get(jj - 1)
-			goblas.Dscal(j, ajj, ap.Off(jc-1, 1))
+			ap.Off(jc-1).Scal(j, ajj, 1)
 		}
 
 	} else {
@@ -63,9 +62,9 @@ func Dpptri(uplo mat.MatUplo, n int, ap *mat.Vector) (info int, err error) {
 		jj = 1
 		for j = 1; j <= n; j++ {
 			jjn = jj + n - j + 1
-			ap.Set(jj-1, goblas.Ddot(n-j+1, ap.Off(jj-1, 1), ap.Off(jj-1, 1)))
+			ap.Set(jj-1, ap.Off(jj-1).Dot(n-j+1, ap.Off(jj-1), 1, 1))
 			if j < n {
-				if err = goblas.Dtpmv(mat.Lower, mat.Trans, mat.NonUnit, n-j, ap.Off(jjn-1), ap.Off(jj, 1)); err != nil {
+				if err = ap.Off(jj).Tpmv(Lower, Trans, NonUnit, n-j, ap.Off(jjn-1), 1); err != nil {
 					panic(err)
 				}
 			}

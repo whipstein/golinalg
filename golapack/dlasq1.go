@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -68,8 +67,8 @@ func Dlasq1(n int, d, e, work *mat.Vector) (info int, err error) {
 	eps = Dlamch(Precision)
 	safmin = Dlamch(SafeMinimum)
 	scale = math.Sqrt(eps / safmin)
-	goblas.Dcopy(n, d.Off(0, 1), work.Off(0, 2))
-	goblas.Dcopy(n-1, e.Off(0, 1), work.Off(1, 2))
+	work.Copy(n, d, 1, 2)
+	work.Off(1).Copy(n-1, e, 1, 2)
 	if err = Dlascl('G', 0, 0, sigmx, scale, 2*n-1, 1, work.Matrix(2*n-1, opts)); err != nil {
 		panic(err)
 	}

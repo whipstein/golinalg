@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -250,8 +249,8 @@ label100:
 	if shift == sleft {
 	} else if shift == sright {
 		//        store new L and D back into DPLUS, LPLUS
-		goblas.Dcopy(n, work.Off(0, 1), dplus.Off(0, 1))
-		goblas.Dcopy(n-1, work.Off(n, 1), lplus.Off(0, 1))
+		dplus.Copy(n, work, 1, 1)
+		lplus.Copy(n-1, work.Off(n), 1, 1)
 	}
 
 	return

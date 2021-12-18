@@ -108,7 +108,7 @@ func Dorgql(m, n, k int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (err e
 				Dlarft('B', 'C', m-k+i+ib-1, ib, a.Off(0, n-k+i-1), tau.Off(i-1), work.Matrix(ldwork, opts))
 
 				//              Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
-				Dlarfb(Left, NoTrans, 'B', 'C', m-k+i+ib-1, n-k+i-1, ib, a.Off(0, n-k+i-1), work.Matrix(ldwork, opts), a, work.MatrixOff(ib, ldwork, opts))
+				Dlarfb(Left, NoTrans, 'B', 'C', m-k+i+ib-1, n-k+i-1, ib, a.Off(0, n-k+i-1), work.Matrix(ldwork, opts), a, work.Off(ib).Matrix(ldwork, opts))
 			}
 
 			//           Apply H to rows 1:m-k+i+ib-1 of current block

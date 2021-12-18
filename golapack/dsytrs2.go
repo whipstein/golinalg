@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -56,7 +55,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k - 1
 			} else {
@@ -64,14 +63,14 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if kp == -(*ipiv)[k-1-1] {
-					goblas.Dswap(nrhs, b.Vector(k-1-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k - 2
 			}
 		}
 
 		//  Compute (U \P**T * B) -> B    [ (U \P**T * B) ]
-		if err = goblas.Dtrsm(Left, Upper, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -79,7 +78,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 		i = n
 		for i >= 1 {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Dscal(nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0))
+				b.Off(i-1, 0).Vector().Scal(nrhs, one/a.Get(i-1, i-1), b.Rows)
 			} else if i > 1 {
 				if (*ipiv)[i-1-1] == (*ipiv)[i-1] {
 					akm1k = work.Get(i - 1)
@@ -99,7 +98,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 		}
 
 		//      Compute (U**T \ B) -> B   [ U**T \ (D \ (U \P**T * B) ) ]
-		if err = goblas.Dtrsm(Left, Upper, Trans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Upper, Trans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -111,7 +110,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k + 1
 			} else {
@@ -119,7 +118,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k < n && kp == -(*ipiv)[k] {
-					goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k + 2
 			}
@@ -136,7 +135,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k + 1
 			} else {
@@ -144,14 +143,14 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K and -IPIV(K+1).
 				kp = -(*ipiv)[k]
 				if kp == -(*ipiv)[k-1] {
-					goblas.Dswap(nrhs, b.Vector(k, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k + 2
 			}
 		}
 
 		//  Compute (L \P**T * B) -> B    [ (L \P**T * B) ]
-		if err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, NoTrans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -159,7 +158,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 		i = 1
 		for i <= n {
 			if (*ipiv)[i-1] > 0 {
-				goblas.Dscal(nrhs, one/a.Get(i-1, i-1), b.Vector(i-1, 0))
+				b.Off(i-1, 0).Vector().Scal(nrhs, one/a.Get(i-1, i-1), b.Rows)
 			} else {
 				akm1k = work.Get(i - 1)
 				akm1 = a.Get(i-1, i-1) / akm1k
@@ -177,7 +176,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 		}
 
 		//  Compute (L**T \ B) -> B   [ L**T \ (D \ (L \P**T * B) ) ]
-		if err = goblas.Dtrsm(Left, Lower, Trans, Unit, n, nrhs, one, a, b); err != nil {
+		if err = b.Trsm(Left, Lower, Trans, Unit, n, nrhs, one, a); err != nil {
 			panic(err)
 		}
 
@@ -189,7 +188,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K and IPIV(K).
 				kp = (*ipiv)[k-1]
 				if kp != k {
-					goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k - 1
 			} else {
@@ -197,7 +196,7 @@ func Dsytrs2(uplo mat.MatUplo, n, nrhs int, a *mat.Matrix, ipiv *[]int, b *mat.M
 				//           Interchange rows K-1 and -IPIV(K).
 				kp = -(*ipiv)[k-1]
 				if k > 1 && kp == -(*ipiv)[k-1-1] {
-					goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+					b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 				}
 				k = k - 2
 			}

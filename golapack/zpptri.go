@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -49,12 +48,12 @@ func Zpptri(uplo mat.MatUplo, n int, ap *mat.CVector) (info int, err error) {
 			jc = jj + 1
 			jj = jj + j
 			if j > 1 {
-				if err = goblas.Zhpr(Upper, j-1, one, ap.Off(jc-1, 1), ap); err != nil {
+				if err = ap.Hpr(Upper, j-1, one, ap.Off(jc-1), 1); err != nil {
 					panic(err)
 				}
 			}
 			ajj = ap.GetRe(jj - 1)
-			goblas.Zdscal(j, ajj, ap.Off(jc-1, 1))
+			ap.Off(jc-1).Dscal(j, ajj, 1)
 		}
 
 	} else {
@@ -62,9 +61,9 @@ func Zpptri(uplo mat.MatUplo, n int, ap *mat.CVector) (info int, err error) {
 		jj = 1
 		for j = 1; j <= n; j++ {
 			jjn = jj + n - j + 1
-			ap.SetRe(jj-1, real(goblas.Zdotc(n-j+1, ap.Off(jj-1, 1), ap.Off(jj-1, 1))))
+			ap.SetRe(jj-1, real(ap.Off(jj-1).Dotc(n-j+1, ap.Off(jj-1), 1, 1)))
 			if j < n {
-				if err = goblas.Ztpmv(Lower, ConjTrans, NonUnit, n-j, ap.Off(jjn-1), ap.Off(jj, 1)); err != nil {
+				if err = ap.Off(jj).Tpmv(Lower, ConjTrans, NonUnit, n-j, ap.Off(jjn-1), 1); err != nil {
 					panic(err)
 				}
 			}

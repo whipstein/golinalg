@@ -1,7 +1,6 @@
 package eig
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 )
 
@@ -146,7 +145,7 @@ func zget36() (rmax float64, lmax, ninfo, knt int) {
 		}
 
 		//     Test for successful reordering of T2
-		goblas.Zcopy(n, tmp.CVector(0, 0, ldt+1), diag.Off(0, 1))
+		diag.Copy(n, tmp.Off(0, 0).CVector(), ldt+1, 1)
 		if ifst < ilst {
 			for i = ifst + 1; i <= ilst; i++ {
 				ctemp = diag.Get(i - 1)

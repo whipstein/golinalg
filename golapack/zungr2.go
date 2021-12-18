@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,11 +57,11 @@ func Zungr2(m, n, k int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 		ii = m - k + i
 
 		//        Apply H(i)**H to A(1:m-k+i,1:n-k+i) from the right
-		Zlacgv(n-m+ii-1, a.CVector(ii-1, 0))
+		Zlacgv(n-m+ii-1, a.Off(ii-1, 0).CVector(), a.Rows)
 		a.Set(ii-1, n-m+ii-1, one)
-		Zlarf(Right, ii-1, n-m+ii, a.CVector(ii-1, 0), tau.GetConj(i-1), a, work)
-		goblas.Zscal(n-m+ii-1, -tau.Get(i-1), a.CVector(ii-1, 0))
-		Zlacgv(n-m+ii-1, a.CVector(ii-1, 0))
+		Zlarf(Right, ii-1, n-m+ii, a.Off(ii-1, 0).CVector(), a.Rows, tau.GetConj(i-1), a, work)
+		a.Off(ii-1, 0).CVector().Scal(n-m+ii-1, -tau.Get(i-1), a.Rows)
+		Zlacgv(n-m+ii-1, a.Off(ii-1, 0).CVector(), a.Rows)
 		a.Set(ii-1, n-m+ii-1, one-tau.GetConj(i-1))
 
 		//        Set A(m-k+i,n-k+i+1:n) to zero

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -146,14 +145,14 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 								a.Set(i-1, zero)
 							}
 							*srnamt = "Dlatms"
-							if info, _ = matgen.Dlatms(m, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, 'Z', a.MatrixOff(koff-1, lda, opts), work); info != 0 {
+							if info, _ = matgen.Dlatms(m, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kl, ku, 'Z', a.Off(koff-1).Matrix(lda, opts), work); info != 0 {
 								nerrs = alaerh(path, "Dlatms", info, 0, []byte{' '}, m, n, kl, ku, -1, imat, nfail, nerrs)
 								continue
 							}
 						} else if izero > 0 {
 							//                       Use the same matrix for types 3 and 4 as for
 							//                       _type 2 by copying back the zeroed out column.
-							goblas.Dcopy(i2-i1+1, b.Off(0, 1), a.Off(ioff+i1-1, 1))
+							a.Off(ioff+i1-1).Copy(i2-i1+1, b, 1, 1)
 						}
 
 						//                    For types 2, 3, and 4, zero one or more columns of
@@ -172,7 +171,7 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 								//                          Store the column to be zeroed out in B.
 								i1 = max(1, ku+2-izero)
 								i2 = min(kl+ku+1, ku+1+(m-izero))
-								goblas.Dcopy(i2-i1+1, a.Off(ioff+i1-1, 1), b.Off(0, 1))
+								b.Copy(i2-i1+1, a.Off(ioff+i1-1), 1, 1)
 
 								for i = i1; i <= i2; i++ {
 									a.Set(ioff+i-1, zero)
@@ -201,7 +200,7 @@ func dchkgb(dotype []bool, mval []int, nval []int, nnb int, nbval []int, nsval [
 
 							//                       Compute the LU factorization of the band matrix.
 							if m > 0 && n > 0 {
-								golapack.Dlacpy(Full, kl+ku+1, n, a.Matrix(lda, opts), afac.MatrixOff(kl, ldafac, opts))
+								golapack.Dlacpy(Full, kl+ku+1, n, a.Matrix(lda, opts), afac.Off(kl).Matrix(ldafac, opts))
 							}
 							*srnamt = "Dgbtrf"
 							if info, err = golapack.Dgbtrf(m, n, kl, ku, afac.Matrix(ldafac, opts), &iwork); err != nil {

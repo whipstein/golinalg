@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -41,7 +40,7 @@ func zspt02(uplo mat.MatUplo, n, nrhs int, a *mat.CVector, x, b *mat.CMatrix, rw
 
 	//     Compute  B - A*X  for the matrix of right hand sides B.
 	for j = 1; j <= nrhs; j++ {
-		if err = golapack.Zspmv(uplo, n, -cone, a, x.CVector(0, j-1, 1), cone, b.CVector(0, j-1, 1)); err != nil {
+		if err = golapack.Zspmv(uplo, n, -cone, a, x.Off(0, j-1).CVector(), 1, cone, b.Off(0, j-1).CVector(), 1); err != nil {
 			panic(err)
 		}
 	}
@@ -50,8 +49,8 @@ func zspt02(uplo mat.MatUplo, n, nrhs int, a *mat.CVector, x, b *mat.CMatrix, rw
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dzasum(n, b.CVector(0, j-1, 1))
-		xnorm = goblas.Dzasum(n, x.CVector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).CVector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).CVector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

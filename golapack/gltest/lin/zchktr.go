@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -233,7 +232,7 @@ func zchktr(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, ns
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "Zlatrs"
-					goblas.Zcopy(n, x.Off(0, 1), b.Off(0, 1))
+					b.Copy(n, x, 1, 1)
 					if scale, err = golapack.Zlatrs(uplo, trans, diag, 'N', n, a.CMatrix(lda, opts), b, rwork); err != nil {
 						panic(err)
 					}
@@ -248,13 +247,13 @@ func zchktr(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, ns
 
 					//+    TEST 9
 					//                 Solve op(A)*X = b again with NORMIN = 'Y'.
-					goblas.Zcopy(n, x.Off(0, 1), b.Off(n, 1))
+					b.Off(n).Copy(n, x, 1, 1)
 					if scale, err = golapack.Zlatrs(uplo, trans, diag, 'Y', n, a.CMatrix(lda, opts), b.Off(n), rwork); err != nil {
 						t.Fail()
 						nerrs = alaerh(path, "Zlatrs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'Y'}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					*result.GetPtr(8) = ztrt03(uplo, trans, diag, n, 1, a.CMatrix(lda, opts), scale, rwork, one, b.CMatrixOff(n, lda, opts), x.CMatrix(lda, opts), work)
+					*result.GetPtr(8) = ztrt03(uplo, trans, diag, n, 1, a.CMatrix(lda, opts), scale, rwork, one, b.Off(n).CMatrix(lda, opts), x.CMatrix(lda, opts), work)
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

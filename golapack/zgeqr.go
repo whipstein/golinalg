@@ -115,11 +115,11 @@ func Zgeqr(m, n int, a *mat.CMatrix, t *mat.CVector, tsize int, work *mat.CVecto
 
 	//     The QR Decomposition
 	if (m <= n) || (mb <= n) || (mb >= m) {
-		if err = Zgeqrt(m, n, nb, a, t.CMatrixOff(5, nb, opts), work); err != nil {
+		if err = Zgeqrt(m, n, nb, a, t.Off(5).CMatrix(nb, opts), work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Zlatsqr(m, n, mb, nb, a, t.CMatrixOff(5, nb, opts), work, lwork); err != nil {
+		if err = Zlatsqr(m, n, mb, nb, a, t.Off(5).CMatrix(nb, opts), work, lwork); err != nil {
 			panic(err)
 		}
 	}

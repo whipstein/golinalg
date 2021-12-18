@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -43,7 +42,7 @@ func Dsytd2(uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau *mat.Vector) (err 
 		for i = n - 1; i >= 1; i-- {
 			//           Generate elementary reflector H(i) = I - tau * v * v**T
 			//           to annihilate A(1:i-1,i+1)
-			*a.GetPtr(i-1, i), taui = Dlarfg(i, a.Get(i-1, i), a.Vector(0, i, 1))
+			*a.GetPtr(i-1, i), taui = Dlarfg(i, a.Get(i-1, i), a.Off(0, i).Vector(), 1)
 			e.Set(i-1, a.Get(i-1, i))
 
 			if taui != zero {
@@ -51,17 +50,17 @@ func Dsytd2(uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau *mat.Vector) (err 
 				a.Set(i-1, i, one)
 
 				//              Compute  x := tau * A * v  storing x in TAU(1:i)
-				if err = goblas.Dsymv(uplo, i, taui, a, a.Vector(0, i, 1), zero, tau.Off(0, 1)); err != nil {
+				if err = tau.Symv(uplo, i, taui, a, a.Off(0, i).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              Compute  w := x - 1/2 * tau * (x**T * v) * v
-				alpha = -half * taui * goblas.Ddot(i, tau.Off(0, 1), a.Vector(0, i, 1))
-				goblas.Daxpy(i, alpha, a.Vector(0, i, 1), tau.Off(0, 1))
+				alpha = -half * taui * a.Off(0, i).Vector().Dot(i, tau, 1, 1)
+				tau.Axpy(i, alpha, a.Off(0, i).Vector(), 1, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				if err = goblas.Dsyr2(uplo, i, -one, a.Vector(0, i, 1), tau.Off(0, 1), a); err != nil {
+				if err = a.Syr2(uplo, i, -one, a.Off(0, i).Vector(), 1, tau, 1); err != nil {
 					panic(err)
 				}
 
@@ -76,7 +75,7 @@ func Dsytd2(uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau *mat.Vector) (err 
 		for i = 1; i <= n-1; i++ {
 			//           Generate elementary reflector H(i) = I - tau * v * v**T
 			//           to annihilate A(i+2:n,i)
-			*a.GetPtr(i, i-1), taui = Dlarfg(n-i, a.Get(i, i-1), a.Vector(min(i+2, n)-1, i-1, 1))
+			*a.GetPtr(i, i-1), taui = Dlarfg(n-i, a.Get(i, i-1), a.Off(min(i+2, n)-1, i-1).Vector(), 1)
 			e.Set(i-1, a.Get(i, i-1))
 
 			if taui != zero {
@@ -84,17 +83,17 @@ func Dsytd2(uplo mat.MatUplo, n int, a *mat.Matrix, d, e, tau *mat.Vector) (err 
 				a.Set(i, i-1, one)
 
 				//              Compute  x := tau * A * v  storing y in TAU(i:n-1)
-				if err = goblas.Dsymv(uplo, n-i, taui, a.Off(i, i), a.Vector(i, i-1, 1), zero, tau.Off(i-1, 1)); err != nil {
+				if err = tau.Off(i-1).Symv(uplo, n-i, taui, a.Off(i, i), a.Off(i, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              Compute  w := x - 1/2 * tau * (x**T * v) * v
-				alpha = -half * taui * goblas.Ddot(n-i, tau.Off(i-1, 1), a.Vector(i, i-1, 1))
-				goblas.Daxpy(n-i, alpha, a.Vector(i, i-1, 1), tau.Off(i-1, 1))
+				alpha = -half * taui * a.Off(i, i-1).Vector().Dot(n-i, tau.Off(i-1), 1, 1)
+				tau.Off(i-1).Axpy(n-i, alpha, a.Off(i, i-1).Vector(), 1, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				if err = goblas.Dsyr2(uplo, n-i, -one, a.Vector(i, i-1, 1), tau.Off(i-1, 1), a.Off(i, i)); err != nil {
+				if err = a.Off(i, i).Syr2(uplo, n-i, -one, a.Off(i, i-1).Vector(), 1, tau.Off(i-1), 1); err != nil {
 					panic(err)
 				}
 

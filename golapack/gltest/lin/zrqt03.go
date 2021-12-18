@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -70,7 +69,7 @@ func zrqt03(m, n, k int, af, c, cc, q *mat.CMatrix, tau, work *mat.CVector, lwor
 
 		//        Generate MC by NC matrix C
 		for j = 1; j <= nc; j++ {
-			golapack.Zlarnv(2, &iseed, mc, c.CVector(0, j-1))
+			golapack.Zlarnv(2, &iseed, mc, c.Off(0, j-1).CVector())
 		}
 		cnorm = golapack.Zlange('1', mc, nc, c, rwork)
 		if cnorm == zero {
@@ -97,11 +96,11 @@ func zrqt03(m, n, k int, af, c, cc, q *mat.CMatrix, tau, work *mat.CVector, lwor
 
 			//           Form explicit product and subtract
 			if side == Left {
-				if err = goblas.Zgemm(trans, NoTrans, mc, nc, mc, complex(-one, 0), q, c, complex(one, 0), cc); err != nil {
+				if err = cc.Gemm(trans, NoTrans, mc, nc, mc, complex(-one, 0), q, c, complex(one, 0)); err != nil {
 					panic(err)
 				}
 			} else {
-				if err = goblas.Zgemm(NoTrans, trans, mc, nc, nc, complex(-one, 0), c, q, complex(one, 0), cc); err != nil {
+				if err = cc.Gemm(NoTrans, trans, mc, nc, nc, complex(-one, 0), c, q, complex(one, 0)); err != nil {
 					panic(err)
 				}
 			}

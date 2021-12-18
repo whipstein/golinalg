@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -54,7 +53,7 @@ func zqrt17(trans mat.MatTrans, iresid, m, n, nrhs int, a, x, b, c *mat.CMatrix,
 
 	//     compute residual and scale it
 	golapack.Zlacpy(Full, nrows, nrhs, b, c)
-	if err = goblas.Zgemm(trans, NoTrans, nrows, nrhs, ncols, complex(-one, 0), a, x, complex(one, 0), c); err != nil {
+	if err = c.Gemm(trans, NoTrans, nrows, nrhs, ncols, complex(-one, 0), a, x, complex(one, 0)); err != nil {
 		panic(err)
 	}
 	normrs = golapack.Zlange('M', nrows, nrhs, c, rwork)
@@ -66,7 +65,7 @@ func zqrt17(trans mat.MatTrans, iresid, m, n, nrhs int, a, x, b, c *mat.CMatrix,
 	}
 
 	//     compute R'*A
-	if err = goblas.Zgemm(ConjTrans, trans, nrhs, ncols, nrows, complex(one, 0), c, a, complex(zero, 0), work.CMatrix(nrhs, opts)); err != nil {
+	if err = work.CMatrix(nrhs, opts).Gemm(ConjTrans, trans, nrhs, ncols, nrows, complex(one, 0), c, a, complex(zero, 0)); err != nil {
 		panic(err)
 	}
 

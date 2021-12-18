@@ -13,7 +13,7 @@ import (
 //
 // where alpha and beta are scalars, x and y are n element vectors and
 // A is an n by n symmetric matrix, supplied in packed form.
-func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta complex128, y *mat.CVector) (err error) {
+func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, incx int, beta complex128, y *mat.CVector, incy int) (err error) {
 	var one, temp1, temp2, zero complex128
 	var i, ix, iy, j, jx, jy, k, kk, kx, ky int
 
@@ -25,10 +25,10 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 		err = fmt.Errorf("uplo != Upper && uplo != Lower: uplo=%s", uplo)
 	} else if n < 0 {
 		err = fmt.Errorf("n < 0: n=%v", n)
-	} else if x.Inc == 0 {
-		err = fmt.Errorf("x.Inc == 0: x.Inc=%v", x.Inc)
-	} else if y.Inc == 0 {
-		err = fmt.Errorf("y.Inc == 0: y.Inc=%v", y.Inc)
+	} else if incx == 0 {
+		err = fmt.Errorf("incx == 0: incx=%v", incx)
+	} else if incy == 0 {
+		err = fmt.Errorf("incy == 0: incy=%v", incy)
 	}
 	if err != nil {
 		gltest.Xerbla2("Zspmv", err)
@@ -41,15 +41,15 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 	}
 
 	//     Set up the start points in  X  and  Y.
-	if x.Inc > 0 {
+	if incx > 0 {
 		kx = 1
 	} else {
-		kx = 1 - (n-1)*x.Inc
+		kx = 1 - (n-1)*incx
 	}
-	if y.Inc > 0 {
+	if incy > 0 {
 		ky = 1
 	} else {
-		ky = 1 - (n-1)*y.Inc
+		ky = 1 - (n-1)*incy
 	}
 
 	//     Start the operations. In this version the elements of the array AP
@@ -57,7 +57,7 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 	//
 	//     First form  y := beta*y.
 	if beta != one {
-		if y.Inc == 1 {
+		if incy == 1 {
 			if beta == zero {
 				for i = 1; i <= n; i++ {
 					y.Set(i-1, zero)
@@ -72,12 +72,12 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 			if beta == zero {
 				for i = 1; i <= n; i++ {
 					y.Set(iy-1, zero)
-					iy = iy + y.Inc
+					iy = iy + incy
 				}
 			} else {
 				for i = 1; i <= n; i++ {
 					y.Set(iy-1, beta*y.Get(iy-1))
-					iy = iy + y.Inc
+					iy = iy + incy
 				}
 			}
 		}
@@ -88,7 +88,7 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 	kk = 1
 	if uplo == Upper {
 		//        Form  y  when AP contains the upper triangle.
-		if (x.Inc == 1) && (y.Inc == 1) {
+		if (incx == 1) && (incy == 1) {
 			for j = 1; j <= n; j++ {
 				temp1 = alpha * x.Get(j-1)
 				temp2 = zero
@@ -112,18 +112,18 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 				for k = kk; k <= kk+j-2; k++ {
 					y.Set(iy-1, y.Get(iy-1)+temp1*ap.Get(k-1))
 					temp2 = temp2 + ap.Get(k-1)*x.Get(ix-1)
-					ix = ix + x.Inc
-					iy = iy + y.Inc
+					ix = ix + incx
+					iy = iy + incy
 				}
 				y.Set(jy-1, y.Get(jy-1)+temp1*ap.Get(kk+j-1-1)+alpha*temp2)
-				jx = jx + x.Inc
-				jy = jy + y.Inc
+				jx = jx + incx
+				jy = jy + incy
 				kk = kk + j
 			}
 		}
 	} else {
 		//        Form  y  when AP contains the lower triangle.
-		if (x.Inc == 1) && (y.Inc == 1) {
+		if (incx == 1) && (incy == 1) {
 			for j = 1; j <= n; j++ {
 				temp1 = alpha * x.Get(j-1)
 				temp2 = zero
@@ -147,14 +147,14 @@ func Zspmv(uplo mat.MatUplo, n int, alpha complex128, ap, x *mat.CVector, beta c
 				ix = jx
 				iy = jy
 				for k = kk + 1; k <= kk+n-j; k++ {
-					ix = ix + x.Inc
-					iy = iy + y.Inc
+					ix = ix + incx
+					iy = iy + incy
 					y.Set(iy-1, y.Get(iy-1)+temp1*ap.Get(k-1))
 					temp2 = temp2 + ap.Get(k-1)*x.Get(ix-1)
 				}
 				y.Set(jy-1, y.Get(jy-1)+alpha*temp2)
-				jx = jx + x.Inc
-				jy = jy + y.Inc
+				jx = jx + incx
+				jy = jy + incy
 				kk = kk + (n - j + 1)
 			}
 		}

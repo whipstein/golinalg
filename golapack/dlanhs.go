@@ -71,7 +71,7 @@ func Dlanhs(norm byte, n int, a *mat.Matrix, work *mat.Vector) (dlanhsReturn flo
 		for j = 1; j <= n; j++ {
 			colssq.Set(0, zero)
 			colssq.Set(1, one)
-			*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n, j+1), a.Vector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+			*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(n, j+1), a.Off(0, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 			Dcombssq(ssq, colssq)
 		}
 		value = ssq.Get(0) * math.Sqrt(ssq.Get(1))

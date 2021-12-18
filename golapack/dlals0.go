@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -84,21 +83,21 @@ func Dlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.Matrix, perm *[]int, givp
 		//
 		//        Step (1L): apply back the Givens rotations performed.
 		for i = 1; i <= givptr; i++ {
-			goblas.Drot(nrhs, b.Vector((*givcol)[i-1+(2-1)*ldgcol]-1, 0), b.Vector((*givcol)[i-1+(1-1)*ldgcol]-1, 0), givnum.Get(i-1, 1), givnum.Get(i-1, 0))
+			b.Off((*givcol)[i-1+(1-1)*ldgcol]-1, 0).Vector().Rot(nrhs, b.Off((*givcol)[i-1+(2-1)*ldgcol]-1, 0).Vector(), b.Rows, b.Rows, givnum.Get(i-1, 1), givnum.Get(i-1, 0))
 		}
 
 		//        Step (2L): permute rows of B.
-		goblas.Dcopy(nrhs, b.Vector(nlp1-1, 0), bx.Vector(0, 0))
+		bx.Off(0, 0).Vector().Copy(nrhs, b.Off(nlp1-1, 0).Vector(), b.Rows, bx.Rows)
 		for i = 2; i <= n; i++ {
-			goblas.Dcopy(nrhs, b.Vector((*perm)[i-1]-1, 0), bx.Vector(i-1, 0))
+			bx.Off(i-1, 0).Vector().Copy(nrhs, b.Off((*perm)[i-1]-1, 0).Vector(), b.Rows, bx.Rows)
 		}
 
 		//        Step (3L): apply the inverse of the left singular vector
 		//        matrix to BX.
 		if k == 1 {
-			goblas.Dcopy(nrhs, bx.VectorIdx(0), b.VectorIdx(0))
+			b.OffIdx(0).Vector().Copy(nrhs, bx.OffIdx(0).Vector(), bx.Rows, b.Rows)
 			if z.Get(0) < zero {
-				goblas.Dscal(nrhs, negone, b.VectorIdx(0))
+				b.OffIdx(0).Vector().Scal(nrhs, negone, b.Rows)
 			}
 		} else {
 			for j = 1; j <= k; j++ {
@@ -129,8 +128,8 @@ func Dlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.Matrix, perm *[]int, givp
 					}
 				}
 				work.Set(0, negone)
-				temp = goblas.Dnrm2(k, work)
-				err = goblas.Dgemv(Trans, k, nrhs, one, bx, work, zero, b.Vector(j-1, 0))
+				temp = work.Nrm2(k, 1)
+				err = b.Off(j-1, 0).Vector().Gemv(Trans, k, nrhs, one, bx, work, 1, zero, b.Rows)
 				if err = Dlascl('G', 0, 0, temp, one, 1, nrhs, b.Off(j-1, 0)); err != nil {
 					panic(err)
 				}
@@ -147,7 +146,7 @@ func Dlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.Matrix, perm *[]int, givp
 		//        Step (1R): apply back the new right singular vector matrix
 		//        to B.
 		if k == 1 {
-			goblas.Dcopy(nrhs, b.VectorIdx(0), bx.VectorIdx(0))
+			bx.OffIdx(0).Vector().Copy(nrhs, b.OffIdx(0).Vector(), b.Rows, bx.Rows)
 		} else {
 			for j = 1; j <= k; j++ {
 				dsigj = poles.Get(j-1, 1)
@@ -170,32 +169,32 @@ func Dlals0(icompq, nl, nr, sqre, nrhs int, b, bx *mat.Matrix, perm *[]int, givp
 						work.Set(i-1, z.Get(j-1)/(Dlamc3(&dsigj, func() *float64 { y := -poles.Get(i-1, 1); return &y }())-difl.Get(i-1))/(dsigj+poles.Get(i-1, 0))/difr.Get(i-1, 1))
 					}
 				}
-				err = goblas.Dgemv(Trans, k, nrhs, one, b, work, zero, bx.Vector(j-1, 0))
+				err = bx.Off(j-1, 0).Vector().Gemv(Trans, k, nrhs, one, b, work, 1, zero, bx.Rows)
 			}
 		}
 
 		//        Step (2R): if SQRE = 1, apply back the rotation that is
 		//        related to the right null space of the subproblem.
 		if sqre == 1 {
-			goblas.Dcopy(nrhs, b.Vector(m-1, 0), bx.Vector(m-1, 0))
-			goblas.Drot(nrhs, bx.Vector(0, 0), bx.Vector(m-1, 0), c, s)
+			bx.Off(m-1, 0).Vector().Copy(nrhs, b.Off(m-1, 0).Vector(), b.Rows, bx.Rows)
+			bx.Off(m-1, 0).Vector().Rot(nrhs, bx.Off(0, 0).Vector(), bx.Rows, bx.Rows, c, s)
 		}
 		if k < max(m, n) {
 			Dlacpy(Full, n-k, nrhs, b.Off(k, 0), bx.Off(k, 0))
 		}
 
 		//        Step (3R): permute rows of B.
-		goblas.Dcopy(nrhs, bx.VectorIdx(0), b.Vector(nlp1-1, 0))
+		b.Off(nlp1-1, 0).Vector().Copy(nrhs, bx.OffIdx(0).Vector(), bx.Rows, b.Rows)
 		if sqre == 1 {
-			goblas.Dcopy(nrhs, bx.Vector(m-1, 0), b.Vector(m-1, 0))
+			b.Off(m-1, 0).Vector().Copy(nrhs, bx.Off(m-1, 0).Vector(), bx.Rows, b.Rows)
 		}
 		for i = 2; i <= n; i++ {
-			goblas.Dcopy(nrhs, bx.Vector(i-1, 0), b.Vector((*perm)[i-1]-1, 0))
+			b.Off((*perm)[i-1]-1, 0).Vector().Copy(nrhs, bx.Off(i-1, 0).Vector(), bx.Rows, b.Rows)
 		}
 
 		//        Step (4R): apply back the Givens rotations performed.
 		for i = givptr; i >= 1; i-- {
-			goblas.Drot(nrhs, b.Vector((*givcol)[i-1+(2-1)*ldgcol]-1, 0), b.Vector((*givcol)[i-1+(1-1)*ldgcol]-1, 0), givnum.Get(i-1, 1), -givnum.Get(i-1, 0))
+			b.Off((*givcol)[i-1+(1-1)*ldgcol]-1, 0).Vector().Rot(nrhs, b.Off((*givcol)[i-1+(2-1)*ldgcol]-1, 0).Vector(), b.Rows, b.Rows, givnum.Get(i-1, 1), -givnum.Get(i-1, 0))
 		}
 	}
 

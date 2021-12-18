@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -71,7 +70,7 @@ func Dptcon(n int, d, e *mat.Vector, anorm float64, work *mat.Vector) (rcond flo
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(n, work.Off(0, 1))
+	ix = work.Iamax(n, 1)
 	ainvnm = math.Abs(work.Get(ix - 1))
 
 	//     Compute the reciprocal condition number.

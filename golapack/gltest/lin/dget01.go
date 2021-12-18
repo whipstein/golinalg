@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -33,24 +32,24 @@ func dget01(m, n int, a *mat.Matrix, afac *mat.Matrix, ipiv []int, rwork *mat.Ve
 	//     column N.
 	for k = n; k >= 1; k-- {
 		if k > m {
-			if err := goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, m, afac, afac.Vector(0, k-1, 1)); err != nil {
+			if err := afac.Off(0, k-1).Vector().Trmv(Lower, NoTrans, Unit, m, afac, 1); err != nil {
 				panic(err)
 			}
 		} else {
 			//           Compute elements (K+1:M,K)
 			t = afac.Get(k-1, k-1)
 			if k+1 <= m {
-				goblas.Dscal(m-k, t, afac.Vector(k, k-1, 1))
-				if err := goblas.Dgemv(mat.NoTrans, m-k, k-1, one, afac.Off(k, 0), afac.Vector(0, k-1, 1), one, afac.Vector(k, k-1, 1)); err != nil {
+				afac.Off(k, k-1).Vector().Scal(m-k, t, 1)
+				if err := afac.Off(k, k-1).Vector().Gemv(NoTrans, m-k, k-1, one, afac.Off(k, 0), afac.Off(0, k-1).Vector(), 1, one, 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Compute the (K,K) element
-			afac.Set(k-1, k-1, t+goblas.Ddot(k-1, afac.Vector(k-1, 0), afac.Vector(0, k-1, 1)))
+			afac.Set(k-1, k-1, t+afac.Off(0, k-1).Vector().Dot(k-1, afac.Off(k-1, 0).Vector(), a.Rows, 1))
 
 			//           Compute elements (1:K-1,K)
-			if err := goblas.Dtrmv(mat.Lower, mat.NoTrans, mat.Unit, k-1, afac, afac.Vector(0, k-1, 1)); err != nil {
+			if err := afac.Off(0, k-1).Vector().Trmv(Lower, NoTrans, Unit, k-1, afac, 1); err != nil {
 				panic(err)
 			}
 		}

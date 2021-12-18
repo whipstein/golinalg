@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -234,7 +233,7 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 
 					if j1 == j2 {
 						//                    1-by-1 diagonal block
-						if scale, xnorm, _ = Dlaln2(false, 1, 1, smin, one, t.Off(j-1, j-1), one, one, work.MatrixOff(j+iv*n-1, n, opts), wr, zero, x); xnorm > one {
+						if scale, xnorm, _ = Dlaln2(false, 1, 1, smin, one, t.Off(j-1, j-1), one, one, work.Off(j+iv*n-1).Matrix(n, opts), wr, zero, x); xnorm > one {
 							if work.Get(j-1) > bignum/xnorm {
 								x.Set(0, 0, x.Get(0, 0)/xnorm)
 								scale = scale / xnorm
@@ -243,16 +242,16 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 
 						//                    Scale if necessary
 						if scale != one {
-							goblas.Dscal(ki, scale, work.Off(1+iv*n-1, 1))
+							work.Off(1+iv*n-1).Scal(ki, scale, 1)
 						}
 						work.Set(j+iv*n-1, x.Get(0, 0))
 
 						//                    Update right-hand side
-						goblas.Daxpy(j-1, -x.Get(0, 0), t.Vector(0, j-1, 1), work.Off(1+iv*n-1, 1))
+						work.Off(1+iv*n-1).Axpy(j-1, -x.Get(0, 0), t.Off(0, j-1).Vector(), 1, 1)
 
 					} else {
 						//                    2-by-2 diagonal block
-						if scale, xnorm, _ = Dlaln2(false, 2, 1, smin, one, t.Off(j-1-1, j-1-1), one, one, work.MatrixOff(j-1+iv*n-1, n, opts), wr, zero, x); xnorm > one {
+						if scale, xnorm, _ = Dlaln2(false, 2, 1, smin, one, t.Off(j-1-1, j-1-1), one, one, work.Off(j-1+iv*n-1).Matrix(n, opts), wr, zero, x); xnorm > one {
 							beta = math.Max(work.Get(j-1-1), work.Get(j-1))
 							if beta > bignum/xnorm {
 								x.Set(0, 0, x.Get(0, 0)/xnorm)
@@ -263,14 +262,14 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 
 						//                    Scale if necessary
 						if scale != one {
-							goblas.Dscal(ki, scale, work.Off(1+iv*n-1, 1))
+							work.Off(1+iv*n-1).Scal(ki, scale, 1)
 						}
 						work.Set(j-1+iv*n-1, x.Get(0, 0))
 						work.Set(j+iv*n-1, x.Get(1, 0))
 
 						//                    Update right-hand side
-						goblas.Daxpy(j-2, -x.Get(0, 0), t.Vector(0, j-1-1, 1), work.Off(1+iv*n-1, 1))
-						goblas.Daxpy(j-2, -x.Get(1, 0), t.Vector(0, j-1, 1), work.Off(1+iv*n-1, 1))
+						work.Off(1+iv*n-1).Axpy(j-2, -x.Get(0, 0), t.Off(0, j-1-1).Vector(), 1, 1)
+						work.Off(1+iv*n-1).Axpy(j-2, -x.Get(1, 0), t.Off(0, j-1).Vector(), 1, 1)
 					}
 				label60:
 				}
@@ -279,11 +278,11 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 				if !over {
 					//                 ------------------------------
 					//                 no back-transform: copy x to VR and normalize.
-					goblas.Dcopy(ki, work.Off(1+iv*n-1, 1), vr.Vector(0, is-1, 1))
+					vr.Off(0, is-1).Vector().Copy(ki, work.Off(1+iv*n-1), 1, 1)
 
-					ii = goblas.Idamax(ki, vr.Vector(0, is-1, 1))
+					ii = vr.Off(0, is-1).Vector().Iamax(ki, 1)
 					remax = one / math.Abs(vr.Get(ii-1, is-1))
-					goblas.Dscal(ki, remax, vr.Vector(0, is-1, 1))
+					vr.Off(0, is-1).Vector().Scal(ki, remax, 1)
 
 					for k = ki + 1; k <= n; k++ {
 						vr.Set(k-1, is-1, zero)
@@ -293,14 +292,14 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 					//                 ------------------------------
 					//                 version 1: back-transform each vector with GEMV, Q*x.
 					if ki > 1 {
-						if err = goblas.Dgemv(NoTrans, n, ki-1, one, vr, work.Off(1+iv*n-1, 1), work.Get(ki+iv*n-1), vr.Vector(0, ki-1, 1)); err != nil {
+						if err = vr.Off(0, ki-1).Vector().Gemv(NoTrans, n, ki-1, one, vr, work.Off(1+iv*n-1), 1, work.Get(ki+iv*n-1), 1); err != nil {
 							panic(err)
 						}
 					}
 
-					ii = goblas.Idamax(n, vr.Vector(0, ki-1, 1))
+					ii = vr.Off(0, ki-1).Vector().Iamax(n, 1)
 					remax = one / math.Abs(vr.Get(ii-1, ki-1))
-					goblas.Dscal(n, remax, vr.Vector(0, ki-1, 1))
+					vr.Off(0, ki-1).Vector().Scal(n, remax, 1)
 
 				} else {
 					//                 ------------------------------
@@ -354,7 +353,7 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 
 					if j1 == j2 {
 						//                    1-by-1 diagonal block
-						if scale, xnorm, _ = Dlaln2(false, 1, 2, smin, one, t.Off(j-1, j-1), one, one, work.MatrixOff(j+(iv-1)*n-1, n, opts), wr, wi, x); xnorm > one {
+						if scale, xnorm, _ = Dlaln2(false, 1, 2, smin, one, t.Off(j-1, j-1), one, one, work.Off(j+(iv-1)*n-1).Matrix(n, opts), wr, wi, x); xnorm > one {
 							if work.Get(j-1) > bignum/xnorm {
 								x.Set(0, 0, x.Get(0, 0)/xnorm)
 								x.Set(0, 1, x.Get(0, 1)/xnorm)
@@ -364,19 +363,19 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 
 						//                    Scale if necessary
 						if scale != one {
-							goblas.Dscal(ki, scale, work.Off(1+(iv-1)*n-1, 1))
-							goblas.Dscal(ki, scale, work.Off(1+iv*n-1, 1))
+							work.Off(1+(iv-1)*n-1).Scal(ki, scale, 1)
+							work.Off(1+iv*n-1).Scal(ki, scale, 1)
 						}
 						work.Set(j+(iv-1)*n-1, x.Get(0, 0))
 						work.Set(j+iv*n-1, x.Get(0, 1))
 
 						//                    Update the right-hand side
-						goblas.Daxpy(j-1, -x.Get(0, 0), t.Vector(0, j-1, 1), work.Off(1+(iv-1)*n-1, 1))
-						goblas.Daxpy(j-1, -x.Get(0, 1), t.Vector(0, j-1, 1), work.Off(1+iv*n-1, 1))
+						work.Off(1+(iv-1)*n-1).Axpy(j-1, -x.Get(0, 0), t.Off(0, j-1).Vector(), 1, 1)
+						work.Off(1+iv*n-1).Axpy(j-1, -x.Get(0, 1), t.Off(0, j-1).Vector(), 1, 1)
 
 					} else {
 						//                    2-by-2 diagonal block
-						if scale, xnorm, _ = Dlaln2(false, 2, 2, smin, one, t.Off(j-1-1, j-1-1), one, one, work.MatrixOff(j-1+(iv-1)*n-1, n, opts), wr, wi, x); xnorm > one {
+						if scale, xnorm, _ = Dlaln2(false, 2, 2, smin, one, t.Off(j-1-1, j-1-1), one, one, work.Off(j-1+(iv-1)*n-1).Matrix(n, opts), wr, wi, x); xnorm > one {
 							beta = math.Max(work.Get(j-1-1), work.Get(j-1))
 							if beta > bignum/xnorm {
 								rec = one / xnorm
@@ -390,8 +389,8 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 
 						//                    Scale if necessary
 						if scale != one {
-							goblas.Dscal(ki, scale, work.Off(1+(iv-1)*n-1, 1))
-							goblas.Dscal(ki, scale, work.Off(1+iv*n-1, 1))
+							work.Off(1+(iv-1)*n-1).Scal(ki, scale, 1)
+							work.Off(1+iv*n-1).Scal(ki, scale, 1)
 						}
 						work.Set(j-1+(iv-1)*n-1, x.Get(0, 0))
 						work.Set(j+(iv-1)*n-1, x.Get(1, 0))
@@ -399,10 +398,10 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						work.Set(j+iv*n-1, x.Get(1, 1))
 
 						//                    Update the right-hand side
-						goblas.Daxpy(j-2, -x.Get(0, 0), t.Vector(0, j-1-1, 1), work.Off(1+(iv-1)*n-1, 1))
-						goblas.Daxpy(j-2, -x.Get(1, 0), t.Vector(0, j-1, 1), work.Off(1+(iv-1)*n-1, 1))
-						goblas.Daxpy(j-2, -x.Get(0, 1), t.Vector(0, j-1-1, 1), work.Off(1+iv*n-1, 1))
-						goblas.Daxpy(j-2, -x.Get(1, 1), t.Vector(0, j-1, 1), work.Off(1+iv*n-1, 1))
+						work.Off(1+(iv-1)*n-1).Axpy(j-2, -x.Get(0, 0), t.Off(0, j-1-1).Vector(), 1, 1)
+						work.Off(1+(iv-1)*n-1).Axpy(j-2, -x.Get(1, 0), t.Off(0, j-1).Vector(), 1, 1)
+						work.Off(1+iv*n-1).Axpy(j-2, -x.Get(0, 1), t.Off(0, j-1-1).Vector(), 1, 1)
+						work.Off(1+iv*n-1).Axpy(j-2, -x.Get(1, 1), t.Off(0, j-1).Vector(), 1, 1)
 					}
 				label90:
 				}
@@ -411,16 +410,16 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 				if !over {
 					//                 ------------------------------
 					//                 no back-transform: copy x to VR and normalize.
-					goblas.Dcopy(ki, work.Off(1+(iv-1)*n-1, 1), vr.Vector(0, is-1-1, 1))
-					goblas.Dcopy(ki, work.Off(1+iv*n-1, 1), vr.Vector(0, is-1, 1))
+					vr.Off(0, is-1-1).Vector().Copy(ki, work.Off(1+(iv-1)*n-1), 1, 1)
+					vr.Off(0, is-1).Vector().Copy(ki, work.Off(1+iv*n-1), 1, 1)
 
 					emax = zero
 					for k = 1; k <= ki; k++ {
 						emax = math.Max(emax, math.Abs(vr.Get(k-1, is-1-1))+math.Abs(vr.Get(k-1, is-1)))
 					}
 					remax = one / emax
-					goblas.Dscal(ki, remax, vr.Vector(0, is-1-1, 1))
-					goblas.Dscal(ki, remax, vr.Vector(0, is-1, 1))
+					vr.Off(0, is-1-1).Vector().Scal(ki, remax, 1)
+					vr.Off(0, is-1).Vector().Scal(ki, remax, 1)
 
 					for k = ki + 1; k <= n; k++ {
 						vr.Set(k-1, is-1-1, zero)
@@ -431,15 +430,15 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 					//                 ------------------------------
 					//                 version 1: back-transform each vector with GEMV, Q*x.
 					if ki > 2 {
-						if err = goblas.Dgemv(NoTrans, n, ki-2, one, vr, work.Off(1+(iv-1)*n-1, 1), work.Get(ki-1+(iv-1)*n-1), vr.Vector(0, ki-1-1, 1)); err != nil {
+						if err = vr.Off(0, ki-1-1).Vector().Gemv(NoTrans, n, ki-2, one, vr, work.Off(1+(iv-1)*n-1), 1, work.Get(ki-1+(iv-1)*n-1), 1); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dgemv(NoTrans, n, ki-2, one, vr, work.Off(1+iv*n-1, 1), work.Get(ki+iv*n-1), vr.Vector(0, ki-1, 1)); err != nil {
+						if err = vr.Off(0, ki-1).Vector().Gemv(NoTrans, n, ki-2, one, vr, work.Off(1+iv*n-1), 1, work.Get(ki+iv*n-1), 1); err != nil {
 							panic(err)
 						}
 					} else {
-						goblas.Dscal(n, work.Get(ki-1+(iv-1)*n-1), vr.Vector(0, ki-1-1, 1))
-						goblas.Dscal(n, work.Get(ki+iv*n-1), vr.Vector(0, ki-1, 1))
+						vr.Off(0, ki-1-1).Vector().Scal(n, work.Get(ki-1+(iv-1)*n-1), 1)
+						vr.Off(0, ki-1).Vector().Scal(n, work.Get(ki+iv*n-1), 1)
 					}
 
 					emax = zero
@@ -447,8 +446,8 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						emax = math.Max(emax, math.Abs(vr.Get(k-1, ki-1-1))+math.Abs(vr.Get(k-1, ki-1)))
 					}
 					remax = one / emax
-					goblas.Dscal(n, remax, vr.Vector(0, ki-1-1, 1))
-					goblas.Dscal(n, remax, vr.Vector(0, ki-1, 1))
+					vr.Off(0, ki-1-1).Vector().Scal(n, remax, 1)
+					vr.Off(0, ki-1).Vector().Scal(n, remax, 1)
 
 				} else {
 					//                 ------------------------------
@@ -477,12 +476,12 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 				//              When the number of vectors stored reaches NB-1 or NB,
 				//              or if this was last vector, do the GEMM
 				if (iv <= 2) || (ki2 == 1) {
-					err = goblas.Dgemm(NoTrans, NoTrans, n, nb-iv+1, ki2+nb-iv, one, vr, work.MatrixOff(1+iv*n-1, n, opts), zero, work.MatrixOff(1+(nb+iv)*n-1, n, opts))
+					err = work.Off(1+(nb+iv)*n-1).Matrix(n, opts).Gemm(NoTrans, NoTrans, n, nb-iv+1, ki2+nb-iv, one, vr, work.Off(1+iv*n-1).Matrix(n, opts), zero)
 					//                 normalize vectors
 					for k = iv; k <= nb; k++ {
 						if iscomplex[k-1] == 0 {
 							//                       real eigenvector
-							ii = goblas.Idamax(n, work.Off(1+(nb+k)*n-1, 1))
+							ii = work.Off(1+(nb+k)*n-1).Iamax(n, 1)
 							remax = one / math.Abs(work.Get(ii+(nb+k)*n-1))
 						} else if iscomplex[k-1] == 1 {
 							//                       first eigenvector of conjugate pair
@@ -495,9 +494,9 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 							//                       second eigenvector of conjugate pair
 							//                       reuse same REMAX as previous K
 						}
-						goblas.Dscal(n, remax, work.Off(1+(nb+k)*n-1, 1))
+						work.Off(1+(nb+k)*n-1).Scal(n, remax, 1)
 					}
-					Dlacpy(Full, n, nb-iv+1, work.MatrixOff(1+(nb+iv)*n-1, n, opts), vr.Off(0, ki2-1))
+					Dlacpy(Full, n, nb-iv+1, work.Off(1+(nb+iv)*n-1).Matrix(n, opts), vr.Off(0, ki2-1))
 					iv = nb
 				} else {
 					iv = iv - 1
@@ -592,16 +591,16 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						//                    the right-hand side.
 						if work.Get(j-1) > vcrit {
 							rec = one / vmax
-							goblas.Dscal(n-ki+1, rec, work.Off(ki+iv*n-1, 1))
+							work.Off(ki+iv*n-1).Scal(n-ki+1, rec, 1)
 							vmax = one
 							vcrit = bignum
 						}
 
-						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-goblas.Ddot(j-ki-1, t.Vector(ki, j-1, 1), work.Off(ki+1+iv*n-1, 1)))
+						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-work.Off(ki+1+iv*n-1).Dot(j-ki-1, t.Off(ki, j-1).Vector(), 1, 1))
 
 						//                    Solve [ T(J,J) - WR ]**T * X = WORK
-						if scale, xnorm, _ = Dlaln2(false, 1, 1, smin, one, t.Off(j-1, j-1), one, one, work.MatrixOff(j+iv*n-1, n, opts), wr, zero, x); scale != one {
-							goblas.Dscal(n-ki+1, scale, work.Off(ki+iv*n-1, 1))
+						if scale, xnorm, _ = Dlaln2(false, 1, 1, smin, one, t.Off(j-1, j-1), one, one, work.Off(j+iv*n-1).Matrix(n, opts), wr, zero, x); scale != one {
+							work.Off(ki+iv*n-1).Scal(n-ki+1, scale, 1)
 						}
 						work.Set(j+iv*n-1, x.Get(0, 0))
 						vmax = math.Max(math.Abs(work.Get(j+iv*n-1)), vmax)
@@ -615,20 +614,20 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						beta = math.Max(work.Get(j-1), work.Get(j))
 						if beta > vcrit {
 							rec = one / vmax
-							goblas.Dscal(n-ki+1, rec, work.Off(ki+iv*n-1, 1))
+							work.Off(ki+iv*n-1).Scal(n-ki+1, rec, 1)
 							vmax = one
 							vcrit = bignum
 						}
 
-						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-goblas.Ddot(j-ki-1, t.Vector(ki, j-1, 1), work.Off(ki+1+iv*n-1, 1)))
+						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-work.Off(ki+1+iv*n-1).Dot(j-ki-1, t.Off(ki, j-1).Vector(), 1, 1))
 
-						work.Set(j+1+iv*n-1, work.Get(j+1+iv*n-1)-goblas.Ddot(j-ki-1, t.Vector(ki, j, 1), work.Off(ki+1+iv*n-1, 1)))
+						work.Set(j+1+iv*n-1, work.Get(j+1+iv*n-1)-work.Off(ki+1+iv*n-1).Dot(j-ki-1, t.Off(ki, j).Vector(), 1, 1))
 
 						//                    Solve
 						//                    [ T(J,J)-WR   T(J,J+1)      ]**T * X = SCALE*( WORK1 )
 						//                    [ T(J+1,J)    T(J+1,J+1)-WR ]                ( WORK2 )
-						if scale, xnorm, _ = Dlaln2(true, 2, 1, smin, one, t.Off(j-1, j-1), one, one, work.MatrixOff(j+iv*n-1, n, opts), wr, zero, x); scale != one {
-							goblas.Dscal(n-ki+1, scale, work.Off(ki+iv*n-1, 1))
+						if scale, xnorm, _ = Dlaln2(true, 2, 1, smin, one, t.Off(j-1, j-1), one, one, work.Off(j+iv*n-1).Matrix(n, opts), wr, zero, x); scale != one {
+							work.Off(ki+iv*n-1).Scal(n-ki+1, scale, 1)
 						}
 						work.Set(j+iv*n-1, x.Get(0, 0))
 						work.Set(j+1+iv*n-1, x.Get(1, 0))
@@ -644,11 +643,11 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 				if !over {
 					//                 ------------------------------
 					//                 no back-transform: copy x to VL and normalize.
-					goblas.Dcopy(n-ki+1, work.Off(ki+iv*n-1, 1), vl.Vector(ki-1, is-1, 1))
+					vl.Off(ki-1, is-1).Vector().Copy(n-ki+1, work.Off(ki+iv*n-1), 1, 1)
 
-					ii = goblas.Idamax(n-ki+1, vl.Vector(ki-1, is-1, 1)) + ki - 1
+					ii = vl.Off(ki-1, is-1).Vector().Iamax(n-ki+1, 1) + ki - 1
 					remax = one / math.Abs(vl.Get(ii-1, is-1))
-					goblas.Dscal(n-ki+1, remax, vl.Vector(ki-1, is-1, 1))
+					vl.Off(ki-1, is-1).Vector().Scal(n-ki+1, remax, 1)
 
 					for k = 1; k <= ki-1; k++ {
 						t.Set(k-1, is-1, zero)
@@ -658,14 +657,14 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 					//                 ------------------------------
 					//                 version 1: back-transform each vector with GEMV, Q*x.
 					if ki < n {
-						if err = goblas.Dgemv(NoTrans, n, n-ki, one, vl.Off(0, ki), work.Off(ki+1+iv*n-1, 1), work.Get(ki+iv*n-1), vl.Vector(0, ki-1, 1)); err != nil {
+						if err = vl.Off(0, ki-1).Vector().Gemv(NoTrans, n, n-ki, one, vl.Off(0, ki), work.Off(ki+1+iv*n-1), 1, work.Get(ki+iv*n-1), 1); err != nil {
 							panic(err)
 						}
 					}
 
-					ii = goblas.Idamax(n, vl.Vector(0, ki-1, 1))
+					ii = vl.Off(0, ki-1).Vector().Iamax(n, 1)
 					remax = one / math.Abs(vl.Get(ii-1, ki-1))
-					goblas.Dscal(n, remax, vl.Vector(0, ki-1, 1))
+					vl.Off(0, ki-1).Vector().Scal(n, remax, 1)
 
 				} else {
 					//                 ------------------------------
@@ -728,19 +727,19 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						//                    forming the right-hand side elements.
 						if work.Get(j-1) > vcrit {
 							rec = one / vmax
-							goblas.Dscal(n-ki+1, rec, work.Off(ki+iv*n-1, 1))
-							goblas.Dscal(n-ki+1, rec, work.Off(ki+(iv+1)*n-1, 1))
+							work.Off(ki+iv*n-1).Scal(n-ki+1, rec, 1)
+							work.Off(ki+(iv+1)*n-1).Scal(n-ki+1, rec, 1)
 							vmax = one
 							vcrit = bignum
 						}
 
-						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-goblas.Ddot(j-ki-2, t.Vector(ki+2-1, j-1, 1), work.Off(ki+2+iv*n-1, 1)))
-						work.Set(j+(iv+1)*n-1, work.Get(j+(iv+1)*n-1)-goblas.Ddot(j-ki-2, t.Vector(ki+2-1, j-1, 1), work.Off(ki+2+(iv+1)*n-1, 1)))
+						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-work.Off(ki+2+iv*n-1).Dot(j-ki-2, t.Off(ki+2-1, j-1).Vector(), 1, 1))
+						work.Set(j+(iv+1)*n-1, work.Get(j+(iv+1)*n-1)-work.Off(ki+2+(iv+1)*n-1).Dot(j-ki-2, t.Off(ki+2-1, j-1).Vector(), 1, 1))
 
 						//                    Solve [ T(J,J)-(WR-i*WI) ]*(X11+i*X12)= WK+I*WK2
-						if scale, xnorm, _ = Dlaln2(false, 1, 2, smin, one, t.Off(j-1, j-1), one, one, work.MatrixOff(j+iv*n-1, n, opts), wr, -wi, x); scale != one {
-							goblas.Dscal(n-ki+1, scale, work.Off(ki+iv*n-1, 1))
-							goblas.Dscal(n-ki+1, scale, work.Off(ki+(iv+1)*n-1, 1))
+						if scale, xnorm, _ = Dlaln2(false, 1, 2, smin, one, t.Off(j-1, j-1), one, one, work.Off(j+iv*n-1).Matrix(n, opts), wr, -wi, x); scale != one {
+							work.Off(ki+iv*n-1).Scal(n-ki+1, scale, 1)
+							work.Off(ki+(iv+1)*n-1).Scal(n-ki+1, scale, 1)
 						}
 						work.Set(j+iv*n-1, x.Get(0, 0))
 						work.Set(j+(iv+1)*n-1, x.Get(0, 1))
@@ -755,26 +754,26 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						beta = math.Max(work.Get(j-1), work.Get(j))
 						if beta > vcrit {
 							rec = one / vmax
-							goblas.Dscal(n-ki+1, rec, work.Off(ki+iv*n-1, 1))
-							goblas.Dscal(n-ki+1, rec, work.Off(ki+(iv+1)*n-1, 1))
+							work.Off(ki+iv*n-1).Scal(n-ki+1, rec, 1)
+							work.Off(ki+(iv+1)*n-1).Scal(n-ki+1, rec, 1)
 							vmax = one
 							vcrit = bignum
 						}
 
-						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-goblas.Ddot(j-ki-2, t.Vector(ki+2-1, j-1, 1), work.Off(ki+2+iv*n-1, 1)))
+						work.Set(j+iv*n-1, work.Get(j+iv*n-1)-work.Off(ki+2+iv*n-1).Dot(j-ki-2, t.Off(ki+2-1, j-1).Vector(), 1, 1))
 
-						work.Set(j+(iv+1)*n-1, work.Get(j+(iv+1)*n-1)-goblas.Ddot(j-ki-2, t.Vector(ki+2-1, j-1, 1), work.Off(ki+2+(iv+1)*n-1, 1)))
+						work.Set(j+(iv+1)*n-1, work.Get(j+(iv+1)*n-1)-work.Off(ki+2+(iv+1)*n-1).Dot(j-ki-2, t.Off(ki+2-1, j-1).Vector(), 1, 1))
 
-						work.Set(j+1+iv*n-1, work.Get(j+1+iv*n-1)-goblas.Ddot(j-ki-2, t.Vector(ki+2-1, j, 1), work.Off(ki+2+iv*n-1, 1)))
+						work.Set(j+1+iv*n-1, work.Get(j+1+iv*n-1)-work.Off(ki+2+iv*n-1).Dot(j-ki-2, t.Off(ki+2-1, j).Vector(), 1, 1))
 
-						work.Set(j+1+(iv+1)*n-1, work.Get(j+1+(iv+1)*n-1)-goblas.Ddot(j-ki-2, t.Vector(ki+2-1, j, 1), work.Off(ki+2+(iv+1)*n-1, 1)))
+						work.Set(j+1+(iv+1)*n-1, work.Get(j+1+(iv+1)*n-1)-work.Off(ki+2+(iv+1)*n-1).Dot(j-ki-2, t.Off(ki+2-1, j).Vector(), 1, 1))
 
 						//                    Solve 2-by-2 complex linear equation
 						//                    [ (T(j,j)   T(j,j+1)  )**T - (wr-i*wi)*I ]*X = SCALE*B
 						//                    [ (T(j+1,j) T(j+1,j+1))                  ]
-						if scale, xnorm, _ = Dlaln2(true, 2, 2, smin, one, t.Off(j-1, j-1), one, one, work.MatrixOff(j+iv*n-1, n, opts), wr, -wi, x); scale != one {
-							goblas.Dscal(n-ki+1, scale, work.Off(ki+iv*n-1, 1))
-							goblas.Dscal(n-ki+1, scale, work.Off(ki+(iv+1)*n-1, 1))
+						if scale, xnorm, _ = Dlaln2(true, 2, 2, smin, one, t.Off(j-1, j-1), one, one, work.Off(j+iv*n-1).Matrix(n, opts), wr, -wi, x); scale != one {
+							work.Off(ki+iv*n-1).Scal(n-ki+1, scale, 1)
+							work.Off(ki+(iv+1)*n-1).Scal(n-ki+1, scale, 1)
 						}
 						work.Set(j+iv*n-1, x.Get(0, 0))
 						work.Set(j+(iv+1)*n-1, x.Get(0, 1))
@@ -791,16 +790,16 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 				if !over {
 					//                 ------------------------------
 					//                 no back-transform: copy x to VL and normalize.
-					goblas.Dcopy(n-ki+1, work.Off(ki+iv*n-1, 1), vl.Vector(ki-1, is-1, 1))
-					goblas.Dcopy(n-ki+1, work.Off(ki+(iv+1)*n-1, 1), vl.Vector(ki-1, is, 1))
+					vl.Off(ki-1, is-1).Vector().Copy(n-ki+1, work.Off(ki+iv*n-1), 1, 1)
+					vl.Off(ki-1, is).Vector().Copy(n-ki+1, work.Off(ki+(iv+1)*n-1), 1, 1)
 
 					emax = zero
 					for k = ki; k <= n; k++ {
 						emax = math.Max(emax, math.Abs(vl.Get(k-1, is-1))+math.Abs(vl.Get(k-1, is)))
 					}
 					remax = one / emax
-					goblas.Dscal(n-ki+1, remax, vl.Vector(ki-1, is-1, 1))
-					goblas.Dscal(n-ki+1, remax, vl.Vector(ki-1, is, 1))
+					vl.Off(ki-1, is-1).Vector().Scal(n-ki+1, remax, 1)
+					vl.Off(ki-1, is).Vector().Scal(n-ki+1, remax, 1)
 
 					for k = 1; k <= ki-1; k++ {
 						t.Set(k-1, is-1, zero)
@@ -811,15 +810,15 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 					//                 ------------------------------
 					//                 version 1: back-transform each vector with GEMV, Q*x.
 					if ki < n-1 {
-						if err = goblas.Dgemv(NoTrans, n, n-ki-1, one, vl.Off(0, ki+2-1), work.Off(ki+2+iv*n-1, 1), work.Get(ki+iv*n-1), vl.Vector(0, ki-1, 1)); err != nil {
+						if err = vl.Off(0, ki-1).Vector().Gemv(NoTrans, n, n-ki-1, one, vl.Off(0, ki+2-1), work.Off(ki+2+iv*n-1), 1, work.Get(ki+iv*n-1), 1); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dgemv(NoTrans, n, n-ki-1, one, vl.Off(0, ki+2-1), work.Off(ki+2+(iv+1)*n-1, 1), work.Get(ki+1+(iv+1)*n-1), vl.Vector(0, ki, 1)); err != nil {
+						if err = vl.Off(0, ki).Vector().Gemv(NoTrans, n, n-ki-1, one, vl.Off(0, ki+2-1), work.Off(ki+2+(iv+1)*n-1), 1, work.Get(ki+1+(iv+1)*n-1), 1); err != nil {
 							panic(err)
 						}
 					} else {
-						goblas.Dscal(n, work.Get(ki+iv*n-1), vl.Vector(0, ki-1, 1))
-						goblas.Dscal(n, work.Get(ki+1+(iv+1)*n-1), vl.Vector(0, ki, 1))
+						vl.Off(0, ki-1).Vector().Scal(n, work.Get(ki+iv*n-1), 1)
+						vl.Off(0, ki).Vector().Scal(n, work.Get(ki+1+(iv+1)*n-1), 1)
 					}
 
 					emax = zero
@@ -827,8 +826,8 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 						emax = math.Max(emax, math.Abs(vl.Get(k-1, ki-1))+math.Abs(vl.Get(k-1, ki)))
 					}
 					remax = one / emax
-					goblas.Dscal(n, remax, vl.Vector(0, ki-1, 1))
-					goblas.Dscal(n, remax, vl.Vector(0, ki, 1))
+					vl.Off(0, ki-1).Vector().Scal(n, remax, 1)
+					vl.Off(0, ki).Vector().Scal(n, remax, 1)
 
 				} else {
 					//                 ------------------------------
@@ -858,14 +857,14 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 				//              When the number of vectors stored reaches NB-1 or NB,
 				//              or if this was last vector, do the GEMM
 				if (iv >= nb-1) || (ki2 == n) {
-					if err = goblas.Dgemm(NoTrans, NoTrans, n, iv, n-ki2+iv, one, vl.Off(0, ki2-iv), work.MatrixOff(ki2-iv+1+1*n-1, n, opts), zero, work.MatrixOff(1+(nb+1)*n-1, n, opts)); err != nil {
+					if err = work.Off(1+(nb+1)*n-1).Matrix(n, opts).Gemm(NoTrans, NoTrans, n, iv, n-ki2+iv, one, vl.Off(0, ki2-iv), work.Off(ki2-iv+1+1*n-1).Matrix(n, opts), zero); err != nil {
 						panic(err)
 					}
 					//                 normalize vectors
 					for k = 1; k <= iv; k++ {
 						if iscomplex[k-1] == 0 {
 							//                       real eigenvector
-							ii = goblas.Idamax(n, work.Off(1+(nb+k)*n-1, 1))
+							ii = work.Off(1+(nb+k)*n-1).Iamax(n, 1)
 							remax = one / math.Abs(work.Get(ii+(nb+k)*n-1))
 						} else if iscomplex[k-1] == 1 {
 							//                       first eigenvector of conjugate pair
@@ -878,9 +877,9 @@ func Dtrevc3(side mat.MatSide, howmny byte, _select *[]bool, n int, t, vl, vr *m
 							//                       second eigenvector of conjugate pair
 							//                       reuse same REMAX as previous K
 						}
-						goblas.Dscal(n, remax, work.Off(1+(nb+k)*n-1, 1))
+						work.Off(1+(nb+k)*n-1).Scal(n, remax, 1)
 					}
-					Dlacpy(Full, n, iv, work.MatrixOff(1+(nb+1)*n-1, n, opts), vl.Off(0, ki2-iv))
+					Dlacpy(Full, n, iv, work.Off(1+(nb+1)*n-1).Matrix(n, opts), vl.Off(0, ki2-iv))
 					iv = 1
 				} else {
 					iv = iv + 1

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -49,18 +48,18 @@ func Dgetf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 	//
 	for j = 1; j <= min(m, n); j++ {
 		//        Find pivot and test for singularity.
-		jp = j - 1 + goblas.Idamax(m-j+1, a.Vector(j-1, j-1, 1))
+		jp = j - 1 + a.Off(j-1, j-1).Vector().Iamax(m-j+1, 1)
 		(*ipiv)[j-1] = jp
 		if a.Get(jp-1, j-1) != zero {
 			//           Apply the interchange to columns 1:N.
 			if jp != j {
-				goblas.Dswap(n, a.Vector(j-1, 0), a.Vector(jp-1, 0))
+				a.Off(jp-1, 0).Vector().Swap(n, a.Off(j-1, 0).Vector(), a.Rows, a.Rows)
 			}
 
 			//           Compute elements J+1:M of J-th column.
 			if j < m {
 				if math.Abs(a.Get(j-1, j-1)) >= sfmin {
-					goblas.Dscal(m-j, one/a.Get(j-1, j-1), a.Vector(j, j-1, 1))
+					a.Off(j, j-1).Vector().Scal(m-j, one/a.Get(j-1, j-1), 1)
 				} else {
 					for i = 1; i <= m-j; i++ {
 						a.Set(j+i-1, j-1, a.Get(j+i-1, j-1)/a.Get(j-1, j-1))
@@ -74,7 +73,7 @@ func Dgetf2(m, n int, a *mat.Matrix, ipiv *[]int) (info int, err error) {
 
 		if j < min(m, n) {
 			//           Update trailing submatrix.
-			err = goblas.Dger(m-j, n-j, -one, a.Vector(j, j-1, 1), a.Vector(j-1, j), a.Off(j, j))
+			err = a.Off(j, j).Ger(m-j, n-j, -one, a.Off(j, j-1).Vector(), 1, a.Off(j-1, j).Vector(), a.Rows)
 		}
 	}
 

@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -695,9 +694,9 @@ func Zlatmr(m, n int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode in
 	} else if ipack == 2 {
 		onorm = golapack.Zlansy('M', Lower, n, a, tempa)
 	} else if ipack == 3 {
-		onorm = golapack.Zlansp('M', Upper, n, a.CVector(0, 0), tempa)
+		onorm = golapack.Zlansp('M', Upper, n, a.Off(0, 0).CVector(), tempa)
 	} else if ipack == 4 {
-		onorm = golapack.Zlansp('M', Lower, n, a.CVector(0, 0), tempa)
+		onorm = golapack.Zlansp('M', Lower, n, a.Off(0, 0).CVector(), tempa)
 	} else if ipack == 5 {
 		onorm = golapack.Zlansb('M', Lower, n, kll, a, tempa)
 	} else if ipack == 6 {
@@ -717,20 +716,20 @@ func Zlatmr(m, n int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode in
 			//           Scale carefully to avoid over / underflow
 			if ipack <= 2 {
 				for j = 1; j <= n; j++ {
-					goblas.Zdscal(m, one/onorm, a.CVector(0, j-1, 1))
-					goblas.Zdscal(m, anorm, a.CVector(0, j-1, 1))
+					a.Off(0, j-1).CVector().Dscal(m, one/onorm, 1)
+					a.Off(0, j-1).CVector().Dscal(m, anorm, 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Zdscal(n*(n+1)/2, one/onorm, a.CVector(0, 0, 1))
-				goblas.Zdscal(n*(n+1)/2, anorm, a.CVector(0, 0, 1))
+				a.CVector().Dscal(n*(n+1)/2, one/onorm, 1)
+				a.CVector().Dscal(n*(n+1)/2, anorm, 1)
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= n; j++ {
-					goblas.Zdscal(kll+kuu+1, one/onorm, a.CVector(0, j-1, 1))
-					goblas.Zdscal(kll+kuu+1, anorm, a.CVector(0, j-1, 1))
+					a.Off(0, j-1).CVector().Dscal(kll+kuu+1, one/onorm, 1)
+					a.Off(0, j-1).CVector().Dscal(kll+kuu+1, anorm, 1)
 				}
 
 			}
@@ -739,17 +738,17 @@ func Zlatmr(m, n int, dist byte, iseed *[]int, sym byte, d *mat.CVector, mode in
 			//           Scale straightforwardly
 			if ipack <= 2 {
 				for j = 1; j <= n; j++ {
-					goblas.Zdscal(m, anorm/onorm, a.CVector(0, j-1, 1))
+					a.Off(0, j-1).CVector().Dscal(m, anorm/onorm, 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Zdscal(n*(n+1)/2, anorm/onorm, a.CVector(0, 0, 1))
+				a.CVector().Dscal(n*(n+1)/2, anorm/onorm, 1)
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= n; j++ {
-					goblas.Zdscal(kll+kuu+1, anorm/onorm, a.CVector(0, j-1, 1))
+					a.Off(0, j-1).CVector().Dscal(kll+kuu+1, anorm/onorm, 1)
 				}
 			}
 

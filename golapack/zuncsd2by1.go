@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -116,26 +115,26 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, t
 		lorglqmin = 1
 		lorglqopt = 1
 		if r == q {
-			if err = Zunbdb1(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+			if err = Zunbdb1(m, p, q, x11, x21, theta, dum, cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), work, -1); err != nil {
 				panic(err)
 			}
 			lorbdb = int(work.GetRe(0))
 			if wantu1 && p > 0 {
-				if err = Zungqr(p, p, q, u1, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(p, p, q, u1, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantu2 && m-p > 0 {
-				if err = Zungqr(m-p, m-p, q, u2, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(m-p, m-p, q, u2, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, m-p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantv1t && q > 0 {
-				if err = Zunglq(q-1, q-1, q-1, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zunglq(q-1, q-1, q-1, v1t, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorglqmin = max(lorglqmin, q-1)
@@ -146,26 +145,26 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, t
 			}
 			lbbcsd = int(rwork.Get(0))
 		} else if r == p {
-			if err = Zunbdb2(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+			if err = Zunbdb2(m, p, q, x11, x21, theta, dum, cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), work, -1); err != nil {
 				panic(err)
 			}
 			lorbdb = int(work.GetRe(0))
 			if wantu1 && p > 0 {
-				if err = Zungqr(p-1, p-1, p-1, u1.Off(1, 1), cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(p-1, p-1, p-1, u1.Off(1, 1), cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, p-1)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantu2 && m-p > 0 {
-				if err = Zungqr(m-p, m-p, q, u2, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(m-p, m-p, q, u2, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, m-p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantv1t && q > 0 {
-				if err = Zunglq(q, q, r, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zunglq(q, q, r, v1t, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorglqmin = max(lorglqmin, q)
@@ -176,26 +175,26 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, t
 			}
 			lbbcsd = int(rwork.Get(0))
 		} else if r == m-p {
-			if err = Zunbdb3(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+			if err = Zunbdb3(m, p, q, x11, x21, theta, dum, cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), work, -1); err != nil {
 				panic(err)
 			}
 			lorbdb = int(work.GetRe(0))
 			if wantu1 && p > 0 {
-				if err = Zungqr(p, p, q, u1, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(p, p, q, u1, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantu2 && m-p > 0 {
-				if err = Zungqr(m-p-1, m-p-1, m-p-1, u2.Off(1, 1), cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(m-p-1, m-p-1, m-p-1, u2.Off(1, 1), cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, m-p-1)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantv1t && q > 0 {
-				if err = Zunglq(q, q, r, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zunglq(q, q, r, v1t, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorglqmin = max(lorglqmin, q)
@@ -206,26 +205,26 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, t
 			}
 			lbbcsd = int(rwork.Get(0))
 		} else {
-			if err = Zunbdb4(m, p, q, x11, x21, theta, dum, cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), cdum.CVector(0, 0), work, -1); err != nil {
+			if err = Zunbdb4(m, p, q, x11, x21, theta, dum, cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), cdum.Off(0, 0).CVector(), work, -1); err != nil {
 				panic(err)
 			}
 			lorbdb = m + int(work.GetRe(0))
 			if wantu1 && p > 0 {
-				if err = Zungqr(p, p, m-q, u1, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(p, p, m-q, u1, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantu2 && m-p > 0 {
-				if err = Zungqr(m-p, m-p, m-q, u2, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zungqr(m-p, m-p, m-q, u2, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorgqrmin = max(lorgqrmin, m-p)
 				lorgqropt = max(lorgqropt, int(work.GetRe(0)))
 			}
 			if wantv1t && q > 0 {
-				if err = Zunglq(q, q, q, v1t, cdum.CVector(0, 0), work, -1); err != nil {
+				if err = Zunglq(q, q, q, v1t, cdum.Off(0, 0).CVector(), work, -1); err != nil {
 					panic(err)
 				}
 				lorglqmin = max(lorglqmin, q)
@@ -419,7 +418,7 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, t
 
 		//        Accumulate Householder reflectors
 		if wantu1 && p > 0 {
-			goblas.Zcopy(p, work.Off(iorbdb-1, 1), u1.CVector(0, 0, 1))
+			u1.Off(0, 0).CVector().Copy(p, work.Off(iorbdb-1), 1, 1)
 			for j = 2; j <= p; j++ {
 				u1.Set(0, j-1, zero)
 			}
@@ -429,7 +428,7 @@ func Zuncsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.CMatrix, t
 			}
 		}
 		if wantu2 && m-p > 0 {
-			goblas.Zcopy(m-p, work.Off(iorbdb+p-1, 1), u2.CVector(0, 0, 1))
+			u2.Off(0, 0).CVector().Copy(m-p, work.Off(iorbdb+p-1), 1, 1)
 			for j = 2; j <= m-p; j++ {
 				u2.Set(0, j-1, zero)
 			}

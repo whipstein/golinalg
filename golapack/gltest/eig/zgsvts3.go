@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -54,11 +53,11 @@ func zgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.CMatrix, alpha, beta *mat.V
 	}
 
 	//     Compute A:= U'*A*Q - D1*R
-	if err = goblas.Zgemm(NoTrans, NoTrans, m, n, n, cone, a, q, czero, work.CMatrix(*&a.Rows, opts)); err != nil {
+	if err = work.CMatrix(a.Rows, opts).Gemm(NoTrans, NoTrans, m, n, n, cone, a, q, czero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, m, n, m, cone, u, work.CMatrix(*&a.Rows, opts), czero, a); err != nil {
+	if err = a.Gemm(ConjTrans, NoTrans, m, n, m, cone, u, work.CMatrix(a.Rows, opts), czero); err != nil {
 		panic(err)
 	}
 
@@ -83,11 +82,11 @@ func zgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.CMatrix, alpha, beta *mat.V
 	}
 
 	//     Compute B := V'*B*Q - D2*R
-	if err = goblas.Zgemm(NoTrans, NoTrans, p, n, n, cone, b, q, czero, work.CMatrix(*&b.Rows, opts)); err != nil {
+	if err = work.CMatrix(b.Rows, opts).Gemm(NoTrans, NoTrans, p, n, n, cone, b, q, czero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Zgemm(ConjTrans, NoTrans, p, n, p, cone, v, work.CMatrix(*&b.Rows, opts), czero, b); err != nil {
+	if err = b.Gemm(ConjTrans, NoTrans, p, n, p, cone, v, work.CMatrix(b.Rows, opts), czero); err != nil {
 		panic(err)
 	}
 
@@ -106,8 +105,8 @@ func zgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.CMatrix, alpha, beta *mat.V
 	}
 
 	//     Compute I - U'*U
-	golapack.Zlaset(Full, m, m, czero, cone, work.CMatrix(*&q.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, m, m, -one, u, one, work.CMatrix(*&u.Rows, opts)); err != nil {
+	golapack.Zlaset(Full, m, m, czero, cone, work.CMatrix(q.Rows, opts))
+	if err = work.CMatrix(u.Rows, opts).Herk(Upper, ConjTrans, m, m, -one, u, one); err != nil {
 		panic(err)
 	}
 
@@ -116,8 +115,8 @@ func zgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.CMatrix, alpha, beta *mat.V
 	result.Set(2, (resid/float64(max(1, m)))/ulp)
 
 	//     Compute I - V'*V
-	golapack.Zlaset(Full, p, p, czero, cone, work.CMatrix(*&v.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, p, p, -one, v, one, work.CMatrix(*&v.Rows, opts)); err != nil {
+	golapack.Zlaset(Full, p, p, czero, cone, work.CMatrix(v.Rows, opts))
+	if err = work.CMatrix(v.Rows, opts).Herk(Upper, ConjTrans, p, p, -one, v, one); err != nil {
 		panic(err)
 	}
 
@@ -126,8 +125,8 @@ func zgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.CMatrix, alpha, beta *mat.V
 	result.Set(3, (resid/float64(max(1, p)))/ulp)
 
 	//     Compute I - Q'*Q
-	golapack.Zlaset(Full, n, n, czero, cone, work.CMatrix(*&q.Rows, opts))
-	if err = goblas.Zherk(Upper, ConjTrans, n, n, -one, q, one, work.CMatrix(*&q.Rows, opts)); err != nil {
+	golapack.Zlaset(Full, n, n, czero, cone, work.CMatrix(q.Rows, opts))
+	if err = work.CMatrix(q.Rows, opts).Herk(Upper, ConjTrans, n, n, -one, q, one); err != nil {
 		panic(err)
 	}
 
@@ -136,7 +135,7 @@ func zgsvts3(m, p, n int, a, af, b, bf, u, v, q *mat.CMatrix, alpha, beta *mat.V
 	result.Set(4, (resid/float64(max(1, n)))/ulp)
 
 	//     Check sorting
-	goblas.Dcopy(n, alpha.Off(0, 1), rwork.Off(0, 1))
+	rwork.Copy(n, alpha, 1, 1)
 	for i = k + 1; i <= min(k+l, m); i++ {
 		j = (*iwork)[i-1]
 		if i != j {

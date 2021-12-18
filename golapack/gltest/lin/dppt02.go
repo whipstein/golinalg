@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -39,7 +38,7 @@ func dppt02(uplo mat.MatUplo, n, nrhs int, a *mat.Vector, x, b *mat.Matrix, rwor
 
 	//     Compute  B - A*X  for the matrix of right hand sides B.
 	for j = 1; j <= nrhs; j++ {
-		if err = goblas.Dspmv(uplo, n, -one, a, x.Vector(0, j-1, 1), one, b.Vector(0, j-1, 1)); err != nil {
+		if err = b.Off(0, j-1).Vector().Spmv(uplo, n, -one, a, x.Off(0, j-1).Vector(), 1, one, 1); err != nil {
 			panic(err)
 		}
 	}
@@ -48,8 +47,8 @@ func dppt02(uplo mat.MatUplo, n, nrhs int, a *mat.Vector, x, b *mat.Matrix, rwor
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1, 1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).Vector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).Vector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

@@ -103,7 +103,7 @@ func Zunmr3(side mat.MatSide, trans mat.MatTrans, m, n, k, l int, a *mat.CMatrix
 		} else {
 			taui = tau.GetConj(i - 1)
 		}
-		Zlarz(side, mi, ni, l, a.CVector(i-1, ja-1), taui, c.Off(ic-1, jc-1), work)
+		Zlarz(side, mi, ni, l, a.Off(i-1, ja-1).CVector(), a.Rows, taui, c.Off(ic-1, jc-1), work)
 
 	}
 

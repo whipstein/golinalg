@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -73,7 +72,7 @@ func Zgetrf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 		sfmin = Dlamch(SafeMinimum)
 
 		//        Find pivot and test for singularity
-		i = goblas.Izamax(m, a.CVector(0, 0, 1))
+		i = a.Off(0, 0).CVector().Iamax(m, 1)
 		(*ipiv)[0] = i
 		if a.Get(i-1, 0) != zero {
 			//           Apply the interchange
@@ -85,7 +84,7 @@ func Zgetrf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 
 			//           Compute elements 2:M of the column
 			if a.GetMag(0, 0) >= sfmin {
-				goblas.Zscal(m-1, one/a.Get(0, 0), a.CVector(1, 0, 1))
+				a.Off(1, 0).CVector().Scal(m-1, one/a.Get(0, 0), 1)
 			} else {
 				for i = 1; i <= m-1; i++ {
 					a.Set(1+i-1, 0, a.Get(1+i-1, 0)/a.Get(0, 0))
@@ -116,12 +115,12 @@ func Zgetrf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 		Zlaswp(n2, a.Off(0, n1), 1, n1, ipiv, 1)
 
 		//        Solve A12
-		if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, n1, n2, one, a, a.Off(0, n1)); err != nil {
+		if err = a.Off(0, n1).Trsm(Left, Lower, NoTrans, Unit, n1, n2, one, a); err != nil {
 			panic(err)
 		}
 
 		//        Update A22
-		if err = goblas.Zgemm(NoTrans, NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one, a.Off(n1, n1)); err != nil {
+		if err = a.Off(n1, n1).Gemm(NoTrans, NoTrans, m-n1, n2, n1, -one, a.Off(n1, 0), a.Off(0, n1), one); err != nil {
 			panic(err)
 		}
 

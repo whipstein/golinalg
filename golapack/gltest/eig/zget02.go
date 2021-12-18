@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -45,7 +44,7 @@ func zget02(trans mat.MatTrans, m, n, nrhs int, a, x, b *mat.CMatrix, rwork *mat
 	}
 
 	//     Compute  B - A*X  (or  B - A'*X ) and store in B.
-	if err = goblas.Zgemm(trans, NoTrans, n1, nrhs, n2, -cone, a, x, cone, b); err != nil {
+	if err = b.Gemm(trans, NoTrans, n1, nrhs, n2, -cone, a, x, cone); err != nil {
 		panic(err)
 	}
 
@@ -53,8 +52,8 @@ func zget02(trans mat.MatTrans, m, n, nrhs int, a, x, b *mat.CMatrix, rwork *mat
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ) .
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1, 1))
-		xnorm = goblas.Dzasum(n2, x.CVector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).CVector().Asum(n1, 1)
+		xnorm = x.Off(0, j-1).CVector().Asum(n2, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -52,7 +51,7 @@ label20:
 		//        ... QUIT
 		goto label150
 	}
-	estOut = goblas.Dasum(n, x.Off(0, 1))
+	estOut = x.Asum(n, 1)
 
 	for i = 1; i <= n; i++ {
 		x.Set(i-1, math.Copysign(one, x.Get(i-1)))
@@ -66,7 +65,7 @@ label20:
 	//     FIRST ITERATION.  X HAS BEEN OVERWRITTEN BY TRANSPOSE(A)*X.
 label40:
 	;
-	(*isave)[1] = goblas.Idamax(n, x.Off(0, 1))
+	(*isave)[1] = x.Iamax(n, 1)
 	(*isave)[2] = 2
 
 	//     MAIN LOOP - ITERATIONS 2,3,...,ITMAX.
@@ -84,9 +83,9 @@ label50:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label70:
 	;
-	goblas.Dcopy(n, x.Off(0, 1), v.Off(0, 1))
+	v.Copy(n, x, 1, 1)
 	estold = estOut
-	estOut = goblas.Dasum(n, v.Off(0, 1))
+	estOut = v.Asum(n, 1)
 	for i = 1; i <= n; i++ {
 		if int(math.Round(math.Copysign(one, x.Get(i-1)))) != (*isgn)[i-1] {
 			goto label90
@@ -115,7 +114,7 @@ label90:
 label110:
 	;
 	jlast = (*isave)[1]
-	(*isave)[1] = goblas.Idamax(n, x.Off(0, 1))
+	(*isave)[1] = x.Iamax(n, 1)
 	if (x.Get(jlast-1) != math.Abs(x.Get((*isave)[1]-1))) && ((*isave)[2] < itmax) {
 		(*isave)[2] = (*isave)[2] + 1
 		goto label50
@@ -137,9 +136,9 @@ label120:
 	//     X HAS BEEN OVERWRITTEN BY A*X.
 label140:
 	;
-	temp = two * (goblas.Dasum(n, x.Off(0, 1)) / float64(3*n))
+	temp = two * (x.Asum(n, 1) / float64(3*n))
 	if temp > estOut {
-		goblas.Dcopy(n, x.Off(0, 1), v.Off(0, 1))
+		v.Copy(n, x, 1, 1)
 		estOut = temp
 	}
 

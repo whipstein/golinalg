@@ -42,17 +42,17 @@ func Dsb2stKernels(uplo mat.MatUplo, wantz bool, ttype, st, ed, sweep, n, nb, ib
 				a.Set(ofdpos-i-1, st+i-1, zero)
 			}
 			ctmp = (a.Get(ofdpos-1, st-1))
-			ctmp, *tau.GetPtr(taupos - 1) = Dlarfg(lm, ctmp, v.Off(vpos, 1))
+			ctmp, *tau.GetPtr(taupos - 1) = Dlarfg(lm, ctmp, v.Off(vpos), 1)
 			a.Set(ofdpos-1, st-1, ctmp)
 
 			lm = ed - st + 1
-			Dlarfy(uplo, lm, v.Off(vpos-1, 1), tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
+			Dlarfy(uplo, lm, v.Off(vpos-1), 1, tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
 		}
 
 		if ttype == 3 {
 
 			lm = ed - st + 1
-			Dlarfy(uplo, lm, v.Off(vpos-1, 1), tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
+			Dlarfy(uplo, lm, v.Off(vpos-1), 1, tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
 		}
 
 		if ttype == 2 {
@@ -77,7 +77,7 @@ func Dsb2stKernels(uplo mat.MatUplo, wantz bool, ttype, st, ed, sweep, n, nb, ib
 					a.Set(dpos-nb-i-1, j1+i-1, zero)
 				}
 				ctmp = (a.Get(dpos-nb-1, j1-1))
-				ctmp, *tau.GetPtr(taupos - 1) = Dlarfg(lm, ctmp, v.Off(vpos, 1))
+				ctmp, *tau.GetPtr(taupos - 1) = Dlarfg(lm, ctmp, v.Off(vpos), 1)
 				a.Set(dpos-nb-1, j1-1, ctmp)
 
 				Dlarfx(Right, ln-1, lm, v.Off(vpos-1), tau.Get(taupos-1), a.Off(dpos-nb, j1-1).UpdateRows(a.Rows-1), work)
@@ -103,17 +103,17 @@ func Dsb2stKernels(uplo mat.MatUplo, wantz bool, ttype, st, ed, sweep, n, nb, ib
 				v.Set(vpos+i-1, a.Get(ofdpos+i-1, st-1-1))
 				a.Set(ofdpos+i-1, st-1-1, zero)
 			}
-			*a.GetPtr(ofdpos-1, st-1-1), *tau.GetPtr(taupos - 1) = Dlarfg(lm, a.Get(ofdpos-1, st-1-1), v.Off(vpos, 1))
+			*a.GetPtr(ofdpos-1, st-1-1), *tau.GetPtr(taupos - 1) = Dlarfg(lm, a.Get(ofdpos-1, st-1-1), v.Off(vpos), 1)
 
 			lm = ed - st + 1
 
-			Dlarfy(uplo, lm, v.Off(vpos-1, 1), tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
+			Dlarfy(uplo, lm, v.Off(vpos-1), 1, tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
 		}
 
 		if ttype == 3 {
 			lm = ed - st + 1
 
-			Dlarfy(uplo, lm, v.Off(vpos-1, 1), tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
+			Dlarfy(uplo, lm, v.Off(vpos-1), 1, tau.Get(taupos-1), a.Off(dpos-1, st-1).UpdateRows(a.Rows-1), work)
 		}
 
 		if ttype == 2 {
@@ -138,7 +138,7 @@ func Dsb2stKernels(uplo mat.MatUplo, wantz bool, ttype, st, ed, sweep, n, nb, ib
 					v.Set(vpos+i-1, a.Get(dpos+nb+i-1, st-1))
 					a.Set(dpos+nb+i-1, st-1, zero)
 				}
-				*a.GetPtr(dpos+nb-1, st-1), *tau.GetPtr(taupos - 1) = Dlarfg(lm, a.Get(dpos+nb-1, st-1), v.Off(vpos, 1))
+				*a.GetPtr(dpos+nb-1, st-1), *tau.GetPtr(taupos - 1) = Dlarfg(lm, a.Get(dpos+nb-1, st-1), v.Off(vpos), 1)
 
 				Dlarfx(Left, lm, ln-1, v.Off(vpos-1), tau.Get(taupos-1), a.Off(dpos+nb-1-1, st).UpdateRows(a.Rows-1), work)
 			}

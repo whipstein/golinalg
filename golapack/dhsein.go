@@ -174,7 +174,7 @@ func Dhsein(side mat.MatSide, eigsrc, initv byte, _select *[]bool, n int, h *mat
 			}
 			if leftv {
 				//              Compute left eigenvector.
-				if iinfo = Dlaein(false, noinit, n-kl+1, h.Off(kl-1, kl-1), wkr, wki, vl.Vector(kl-1, ksr-1), vl.Vector(kl-1, ksi-1), work.Matrix(ldwork, opts), work.Off(n*n+n), eps3, smlnum, bignum); iinfo > 0 {
+				if iinfo = Dlaein(false, noinit, n-kl+1, h.Off(kl-1, kl-1), wkr, wki, vl.Off(kl-1, ksr-1).Vector(), vl.Off(kl-1, ksi-1).Vector(), work.Matrix(ldwork, opts), work.Off(n*n+n), eps3, smlnum, bignum); iinfo > 0 {
 					if pair {
 						info = info + 2
 					} else {
@@ -197,7 +197,7 @@ func Dhsein(side mat.MatSide, eigsrc, initv byte, _select *[]bool, n int, h *mat
 			}
 			if rightv {
 				//              Compute right eigenvector.
-				if iinfo = Dlaein(true, noinit, kr, h, wkr, wki, vr.Vector(0, ksr-1), vr.Vector(0, ksi-1), work.Matrix(ldwork, opts), work.Off(n*n+n), eps3, smlnum, bignum); iinfo > 0 {
+				if iinfo = Dlaein(true, noinit, kr, h, wkr, wki, vr.Off(0, ksr-1).Vector(), vr.Off(0, ksi-1).Vector(), work.Matrix(ldwork, opts), work.Off(n*n+n), eps3, smlnum, bignum); iinfo > 0 {
 					if pair {
 						info = info + 2
 					} else {

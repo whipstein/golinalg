@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -61,25 +60,25 @@ func dqrt15(scale, rksel, m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, iseed
 				goto label20
 			}
 		}
-		dlaord('D', rank, s.Off(0, 1))
+		dlaord('D', rank, s, 1)
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
 		golapack.Dlarnv(2, &iseed, m, work)
-		goblas.Dscal(m, one/goblas.Dnrm2(m, work.Off(0, 1)), work.Off(0, 1))
+		work.Scal(m, one/work.Nrm2(m, 1), 1)
 		golapack.Dlaset('F', m, rank, zero, one, a)
-		golapack.Dlarf(Left, m, rank, work.Off(0, 1), two, a, work.Off(m))
+		golapack.Dlarf(Left, m, rank, work, 1, two, a, work.Off(m))
 
 		//        workspace used: m+mn
 		//
 		//        Generate consistent rhs in the range space of A
 		golapack.Dlarnv(2, &iseed, rank*nrhs, work)
-		err = goblas.Dgemm(NoTrans, NoTrans, m, nrhs, rank, one, a, work.Matrix(rank, opts), zero, b)
+		err = b.Gemm(NoTrans, NoTrans, m, nrhs, rank, one, a, work.Matrix(rank, opts), zero)
 
 		//        work space used: <= mn *nrhs
 		//
 		//        generate (unscaled) matrix A
 		for j = 1; j <= rank; j++ {
-			goblas.Dscal(m, s.Get(j-1), a.Vector(0, j-1, 1))
+			a.Off(0, j-1).Vector().Scal(m, s.Get(j-1), 1)
 		}
 		if rank < n {
 			golapack.Dlaset(Full, m, n-rank, zero, zero, a.Off(0, rank))
@@ -133,7 +132,7 @@ func dqrt15(scale, rksel, m, n, nrhs int, a, b *mat.Matrix, s *mat.Vector, iseed
 		}
 	}
 
-	norma = goblas.Dasum(mn, s.Off(0, 1))
+	norma = s.Asum(mn, 1)
 	normb = golapack.Dlange('O', m, nrhs, b, dummy)
 
 	return rank, norma, normb, iseed

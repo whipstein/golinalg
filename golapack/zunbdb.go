@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -99,123 +98,123 @@ func Zunbdb(trans mat.MatTrans, signs byte, m, p, q int, x11, x12, x21, x22 *mat
 		for i = 1; i <= q; i++ {
 
 			if i == 1 {
-				goblas.Zscal(p-i+1, complex(z1, 0), x11.CVector(i-1, i-1, 1))
+				x11.Off(i-1, i-1).CVector().Scal(p-i+1, complex(z1, 0), 1)
 			} else {
-				goblas.Zscal(p-i+1, complex(z1*math.Cos(phi.Get(i-1-1)), 0), x11.CVector(i-1, i-1, 1))
-				goblas.Zaxpy(p-i+1, complex(-z1*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x12.CVector(i-1, i-1-1, 1), x11.CVector(i-1, i-1, 1))
+				x11.Off(i-1, i-1).CVector().Scal(p-i+1, complex(z1*math.Cos(phi.Get(i-1-1)), 0), 1)
+				x11.Off(i-1, i-1).CVector().Axpy(p-i+1, complex(-z1*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x12.Off(i-1, i-1-1).CVector(), 1, 1)
 			}
 			if i == 1 {
-				goblas.Zscal(m-p-i+1, complex(z2, 0), x21.CVector(i-1, i-1, 1))
+				x21.Off(i-1, i-1).CVector().Scal(m-p-i+1, complex(z2, 0), 1)
 			} else {
-				goblas.Zscal(m-p-i+1, complex(z2*math.Cos(phi.Get(i-1-1)), 0), x21.CVector(i-1, i-1, 1))
-				goblas.Zaxpy(m-p-i+1, complex(-z2*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x22.CVector(i-1, i-1-1, 1), x21.CVector(i-1, i-1, 1))
+				x21.Off(i-1, i-1).CVector().Scal(m-p-i+1, complex(z2*math.Cos(phi.Get(i-1-1)), 0), 1)
+				x21.Off(i-1, i-1).CVector().Axpy(m-p-i+1, complex(-z2*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x22.Off(i-1, i-1-1).CVector(), 1, 1)
 			}
 
-			theta.Set(i-1, math.Atan2(goblas.Dznrm2(m-p-i+1, x21.CVector(i-1, i-1, 1)), goblas.Dznrm2(p-i+1, x11.CVector(i-1, i-1, 1))))
+			theta.Set(i-1, math.Atan2(x21.Off(i-1, i-1).CVector().Nrm2(m-p-i+1, 1), x11.Off(i-1, i-1).CVector().Nrm2(p-i+1, 1)))
 
 			if p > i {
-				*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1), x11.CVector(i, i-1, 1))
+				*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Off(i, i-1).CVector(), 1)
 			} else if p == i {
-				*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1), x11.CVector(i-1, i-1, 1))
+				*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Off(i-1, i-1).CVector(), 1)
 			}
 			x11.Set(i-1, i-1, one)
 			if m-p > i {
-				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.CVector(i, i-1, 1))
+				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Off(i, i-1).CVector(), 1)
 			} else if m-p == i {
-				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.CVector(i-1, i-1, 1))
+				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Off(i-1, i-1).CVector(), 1)
 			}
 			x21.Set(i-1, i-1, one)
 
 			if q > i {
-				Zlarf(Left, p-i+1, q-i, x11.CVector(i-1, i-1, 1), taup1.GetConj(i-1), x11.Off(i-1, i), work)
-				Zlarf(Left, m-p-i+1, q-i, x21.CVector(i-1, i-1, 1), taup2.GetConj(i-1), x21.Off(i-1, i), work)
+				Zlarf(Left, p-i+1, q-i, x11.Off(i-1, i-1).CVector(), 1, taup1.GetConj(i-1), x11.Off(i-1, i), work)
+				Zlarf(Left, m-p-i+1, q-i, x21.Off(i-1, i-1).CVector(), 1, taup2.GetConj(i-1), x21.Off(i-1, i), work)
 			}
 			if m-q+1 > i {
-				Zlarf(Left, p-i+1, m-q-i+1, x11.CVector(i-1, i-1, 1), taup1.GetConj(i-1), x12.Off(i-1, i-1), work)
-				Zlarf(Left, m-p-i+1, m-q-i+1, x21.CVector(i-1, i-1, 1), taup2.GetConj(i-1), x22.Off(i-1, i-1), work)
+				Zlarf(Left, p-i+1, m-q-i+1, x11.Off(i-1, i-1).CVector(), 1, taup1.GetConj(i-1), x12.Off(i-1, i-1), work)
+				Zlarf(Left, m-p-i+1, m-q-i+1, x21.Off(i-1, i-1).CVector(), 1, taup2.GetConj(i-1), x22.Off(i-1, i-1), work)
 			}
 
 			if i < q {
-				goblas.Zscal(q-i, complex(-z1*z3*math.Sin(theta.Get(i-1)), 0), x11.CVector(i-1, i))
-				goblas.Zaxpy(q-i, complex(z2*z3*math.Cos(theta.Get(i-1)), 0), x21.CVector(i-1, i), x11.CVector(i-1, i))
+				x11.Off(i-1, i).CVector().Scal(q-i, complex(-z1*z3*math.Sin(theta.Get(i-1)), 0), x11.Rows)
+				x11.Off(i-1, i).CVector().Axpy(q-i, complex(z2*z3*math.Cos(theta.Get(i-1)), 0), x21.Off(i-1, i).CVector(), x21.Rows, x11.Rows)
 			}
-			goblas.Zscal(m-q-i+1, complex(-z1*z4*math.Sin(theta.Get(i-1)), 0), x12.CVector(i-1, i-1))
-			goblas.Zaxpy(m-q-i+1, complex(z2*z4*math.Cos(theta.Get(i-1)), 0), x22.CVector(i-1, i-1), x12.CVector(i-1, i-1))
+			x12.Off(i-1, i-1).CVector().Scal(m-q-i+1, complex(-z1*z4*math.Sin(theta.Get(i-1)), 0), x12.Rows)
+			x12.Off(i-1, i-1).CVector().Axpy(m-q-i+1, complex(z2*z4*math.Cos(theta.Get(i-1)), 0), x22.Off(i-1, i-1).CVector(), x22.Rows, x12.Rows)
 
 			if i < q {
-				phi.Set(i-1, math.Atan2(goblas.Dznrm2(q-i, x11.CVector(i-1, i)), goblas.Dznrm2(m-q-i+1, x12.CVector(i-1, i-1))))
+				phi.Set(i-1, math.Atan2(x11.Off(i-1, i).CVector().Nrm2(q-i, x11.Rows), x12.Off(i-1, i-1).CVector().Nrm2(m-q-i+1, x12.Rows)))
 			}
 
 			if i < q {
-				Zlacgv(q-i, x11.CVector(i-1, i))
+				Zlacgv(q-i, x11.Off(i-1, i).CVector(), x11.Rows)
 				if i == q-1 {
-					*x11.GetPtr(i-1, i), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i, x11.Get(i-1, i), x11.CVector(i-1, i))
+					*x11.GetPtr(i-1, i), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i, x11.Get(i-1, i), x11.Off(i-1, i).CVector(), x11.Rows)
 				} else {
-					*x11.GetPtr(i-1, i), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i, x11.Get(i-1, i), x11.CVector(i-1, i+2-1))
+					*x11.GetPtr(i-1, i), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i, x11.Get(i-1, i), x11.Off(i-1, i+2-1).CVector(), x11.Rows)
 				}
 				x11.Set(i-1, i, one)
 			}
 			if m-q+1 > i {
-				Zlacgv(m-q-i+1, x12.CVector(i-1, i-1))
+				Zlacgv(m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows)
 				if m-q == i {
-					*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.CVector(i-1, i-1))
+					*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.Off(i-1, i-1).CVector(), x12.Rows)
 				} else {
-					*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.CVector(i-1, i))
+					*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.Off(i-1, i).CVector(), x12.Rows)
 				}
 			}
 			x12.Set(i-1, i-1, one)
 
 			if i < q {
-				Zlarf(Right, p-i, q-i, x11.CVector(i-1, i), tauq1.Get(i-1), x11.Off(i, i), work)
-				Zlarf(Right, m-p-i, q-i, x11.CVector(i-1, i), tauq1.Get(i-1), x21.Off(i, i), work)
+				Zlarf(Right, p-i, q-i, x11.Off(i-1, i).CVector(), x11.Rows, tauq1.Get(i-1), x11.Off(i, i), work)
+				Zlarf(Right, m-p-i, q-i, x11.Off(i-1, i).CVector(), x11.Rows, tauq1.Get(i-1), x21.Off(i, i), work)
 			}
 			if p > i {
-				Zlarf(Right, p-i, m-q-i+1, x12.CVector(i-1, i-1), tauq2.Get(i-1), x12.Off(i, i-1), work)
+				Zlarf(Right, p-i, m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows, tauq2.Get(i-1), x12.Off(i, i-1), work)
 			}
 			if m-p > i {
-				Zlarf(Right, m-p-i, m-q-i+1, x12.CVector(i-1, i-1), tauq2.Get(i-1), x22.Off(i, i-1), work)
+				Zlarf(Right, m-p-i, m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows, tauq2.Get(i-1), x22.Off(i, i-1), work)
 			}
 
 			if i < q {
-				Zlacgv(q-i, x11.CVector(i-1, i))
+				Zlacgv(q-i, x11.Off(i-1, i).CVector(), x11.Rows)
 			}
-			Zlacgv(m-q-i+1, x12.CVector(i-1, i-1))
+			Zlacgv(m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows)
 
 		}
 
 		//        Reduce columns Q + 1, ..., P of X12, X22
 		for i = q + 1; i <= p; i++ {
 
-			goblas.Zscal(m-q-i+1, complex(-z1*z4, 0), x12.CVector(i-1, i-1))
-			Zlacgv(m-q-i+1, x12.CVector(i-1, i-1))
+			x12.Off(i-1, i-1).CVector().Scal(m-q-i+1, complex(-z1*z4, 0), x12.Rows)
+			Zlacgv(m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows)
 			if i >= m-q {
-				*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.CVector(i-1, i-1))
+				*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.Off(i-1, i-1).CVector(), x12.Rows)
 			} else {
-				*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.CVector(i-1, i))
+				*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.Off(i-1, i).CVector(), x12.Rows)
 			}
 			x12.Set(i-1, i-1, one)
 
 			if p > i {
-				Zlarf(Right, p-i, m-q-i+1, x12.CVector(i-1, i-1), tauq2.Get(i-1), x12.Off(i, i-1), work)
+				Zlarf(Right, p-i, m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows, tauq2.Get(i-1), x12.Off(i, i-1), work)
 			}
 			if m-p-q >= 1 {
-				Zlarf(Right, m-p-q, m-q-i+1, x12.CVector(i-1, i-1), tauq2.Get(i-1), x22.Off(q, i-1), work)
+				Zlarf(Right, m-p-q, m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows, tauq2.Get(i-1), x22.Off(q, i-1), work)
 			}
 
-			Zlacgv(m-q-i+1, x12.CVector(i-1, i-1))
+			Zlacgv(m-q-i+1, x12.Off(i-1, i-1).CVector(), x12.Rows)
 
 		}
 
 		//        Reduce columns P + 1, ..., M - Q of X12, X22
 		for i = 1; i <= m-p-q; i++ {
 
-			goblas.Zscal(m-p-q-i+1, complex(z2*z4, 0), x22.CVector(q+i-1, p+i-1))
-			Zlacgv(m-p-q-i+1, x22.CVector(q+i-1, p+i-1))
-			*x22.GetPtr(q+i-1, p+i-1), *tauq2.GetPtr(p + i - 1) = Zlarfgp(m-p-q-i+1, x22.Get(q+i-1, p+i-1), x22.CVector(q+i-1, p+i))
+			x22.Off(q+i-1, p+i-1).CVector().Scal(m-p-q-i+1, complex(z2*z4, 0), x22.Rows)
+			Zlacgv(m-p-q-i+1, x22.Off(q+i-1, p+i-1).CVector(), x22.Rows)
+			*x22.GetPtr(q+i-1, p+i-1), *tauq2.GetPtr(p + i - 1) = Zlarfgp(m-p-q-i+1, x22.Get(q+i-1, p+i-1), x22.Off(q+i-1, p+i).CVector(), x22.Rows)
 			x22.Set(q+i-1, p+i-1, one)
-			Zlarf(Right, m-p-q-i, m-p-q-i+1, x22.CVector(q+i-1, p+i-1), tauq2.Get(p+i-1), x22.Off(q+i, p+i-1), work)
+			Zlarf(Right, m-p-q-i, m-p-q-i+1, x22.Off(q+i-1, p+i-1).CVector(), x22.Rows, tauq2.Get(p+i-1), x22.Off(q+i, p+i-1), work)
 
-			Zlacgv(m-p-q-i+1, x22.CVector(q+i-1, p+i-1))
+			Zlacgv(m-p-q-i+1, x22.Off(q+i-1, p+i-1).CVector(), x22.Rows)
 
 		}
 
@@ -224,65 +223,65 @@ func Zunbdb(trans mat.MatTrans, signs byte, m, p, q int, x11, x12, x21, x22 *mat
 		for i = 1; i <= q; i++ {
 
 			if i == 1 {
-				goblas.Zscal(p-i+1, complex(z1, 0), x11.CVector(i-1, i-1))
+				x11.Off(i-1, i-1).CVector().Scal(p-i+1, complex(z1, 0), x11.Rows)
 			} else {
-				goblas.Zscal(p-i+1, complex(z1*math.Cos(phi.Get(i-1-1)), 0), x11.CVector(i-1, i-1))
-				goblas.Zaxpy(p-i+1, complex(-z1*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x12.CVector(i-1-1, i-1), x11.CVector(i-1, i-1))
+				x11.Off(i-1, i-1).CVector().Scal(p-i+1, complex(z1*math.Cos(phi.Get(i-1-1)), 0), x11.Rows)
+				x11.Off(i-1, i-1).CVector().Axpy(p-i+1, complex(-z1*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x12.Off(i-1-1, i-1).CVector(), x12.Rows, x11.Rows)
 			}
 			if i == 1 {
-				goblas.Zscal(m-p-i+1, complex(z2, 0), x21.CVector(i-1, i-1))
+				x21.Off(i-1, i-1).CVector().Scal(m-p-i+1, complex(z2, 0), x21.Rows)
 			} else {
-				goblas.Zscal(m-p-i+1, complex(z2*math.Cos(phi.Get(i-1-1)), 0), x21.CVector(i-1, i-1))
-				goblas.Zaxpy(m-p-i+1, complex(-z2*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x22.CVector(i-1-1, i-1), x21.CVector(i-1, i-1))
+				x21.Off(i-1, i-1).CVector().Scal(m-p-i+1, complex(z2*math.Cos(phi.Get(i-1-1)), 0), x21.Rows)
+				x21.Off(i-1, i-1).CVector().Axpy(m-p-i+1, complex(-z2*z3*z4*math.Sin(phi.Get(i-1-1)), 0), x22.Off(i-1-1, i-1).CVector(), x22.Rows, x21.Rows)
 			}
 
-			theta.Set(i-1, math.Atan2(goblas.Dznrm2(m-p-i+1, x21.CVector(i-1, i-1)), goblas.Dznrm2(p-i+1, x11.CVector(i-1, i-1))))
+			theta.Set(i-1, math.Atan2(x21.Off(i-1, i-1).CVector().Nrm2(m-p-i+1, x21.Rows), x11.Off(i-1, i-1).CVector().Nrm2(p-i+1, x11.Rows)))
 
-			Zlacgv(p-i+1, x11.CVector(i-1, i-1))
-			Zlacgv(m-p-i+1, x21.CVector(i-1, i-1))
+			Zlacgv(p-i+1, x11.Off(i-1, i-1).CVector(), x11.Rows)
+			Zlacgv(m-p-i+1, x21.Off(i-1, i-1).CVector(), x21.Rows)
 
-			*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1), x11.CVector(i-1, i))
+			*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Zlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Off(i-1, i).CVector(), x11.Rows)
 			x11.Set(i-1, i-1, one)
 			if i == m-p {
-				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.CVector(i-1, i-1))
+				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Off(i-1, i-1).CVector(), x21.Rows)
 			} else {
-				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.CVector(i-1, i))
+				*x21.GetPtr(i-1, i-1), *taup2.GetPtr(i - 1) = Zlarfgp(m-p-i+1, x21.Get(i-1, i-1), x21.Off(i-1, i).CVector(), x21.Rows)
 			}
 			x21.Set(i-1, i-1, one)
 
-			Zlarf(Right, q-i, p-i+1, x11.CVector(i-1, i-1), taup1.Get(i-1), x11.Off(i, i-1), work)
-			Zlarf(Right, m-q-i+1, p-i+1, x11.CVector(i-1, i-1), taup1.Get(i-1), x12.Off(i-1, i-1), work)
-			Zlarf(Right, q-i, m-p-i+1, x21.CVector(i-1, i-1), taup2.Get(i-1), x21.Off(i, i-1), work)
-			Zlarf(Right, m-q-i+1, m-p-i+1, x21.CVector(i-1, i-1), taup2.Get(i-1), x22.Off(i-1, i-1), work)
+			Zlarf(Right, q-i, p-i+1, x11.Off(i-1, i-1).CVector(), x11.Rows, taup1.Get(i-1), x11.Off(i, i-1), work)
+			Zlarf(Right, m-q-i+1, p-i+1, x11.Off(i-1, i-1).CVector(), x11.Rows, taup1.Get(i-1), x12.Off(i-1, i-1), work)
+			Zlarf(Right, q-i, m-p-i+1, x21.Off(i-1, i-1).CVector(), x21.Rows, taup2.Get(i-1), x21.Off(i, i-1), work)
+			Zlarf(Right, m-q-i+1, m-p-i+1, x21.Off(i-1, i-1).CVector(), x21.Rows, taup2.Get(i-1), x22.Off(i-1, i-1), work)
 
-			Zlacgv(p-i+1, x11.CVector(i-1, i-1))
-			Zlacgv(m-p-i+1, x21.CVector(i-1, i-1))
+			Zlacgv(p-i+1, x11.Off(i-1, i-1).CVector(), x11.Rows)
+			Zlacgv(m-p-i+1, x21.Off(i-1, i-1).CVector(), x21.Rows)
 
 			if i < q {
-				goblas.Zscal(q-i, complex(-z1*z3*math.Sin(theta.Get(i-1)), 0), x11.CVector(i, i-1, 1))
-				goblas.Zaxpy(q-i, complex(z2*z3*math.Cos(theta.Get(i-1)), 0), x21.CVector(i, i-1, 1), x11.CVector(i, i-1, 1))
+				x11.Off(i, i-1).CVector().Scal(q-i, complex(-z1*z3*math.Sin(theta.Get(i-1)), 0), 1)
+				x11.Off(i, i-1).CVector().Axpy(q-i, complex(z2*z3*math.Cos(theta.Get(i-1)), 0), x21.Off(i, i-1).CVector(), 1, 1)
 			}
-			goblas.Zscal(m-q-i+1, complex(-z1*z4*math.Sin(theta.Get(i-1)), 0), x12.CVector(i-1, i-1, 1))
-			goblas.Zaxpy(m-q-i+1, complex(z2*z4*math.Cos(theta.Get(i-1)), 0), x22.CVector(i-1, i-1, 1), x12.CVector(i-1, i-1, 1))
+			x12.Off(i-1, i-1).CVector().Scal(m-q-i+1, complex(-z1*z4*math.Sin(theta.Get(i-1)), 0), 1)
+			x12.Off(i-1, i-1).CVector().Axpy(m-q-i+1, complex(z2*z4*math.Cos(theta.Get(i-1)), 0), x22.Off(i-1, i-1).CVector(), 1, 1)
 
 			if i < q {
-				phi.Set(i-1, math.Atan2(goblas.Dznrm2(q-i, x11.CVector(i, i-1, 1)), goblas.Dznrm2(m-q-i+1, x12.CVector(i-1, i-1, 1))))
+				phi.Set(i-1, math.Atan2(x11.Off(i, i-1).CVector().Nrm2(q-i, 1), x12.Off(i-1, i-1).CVector().Nrm2(m-q-i+1, 1)))
 			}
 
 			if i < q {
-				*x11.GetPtr(i, i-1), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i, x11.Get(i, i-1), x11.CVector(i+2-1, i-1, 1))
+				*x11.GetPtr(i, i-1), *tauq1.GetPtr(i - 1) = Zlarfgp(q-i, x11.Get(i, i-1), x11.Off(i+2-1, i-1).CVector(), 1)
 				x11.Set(i, i-1, one)
 			}
-			*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.CVector(i, i-1, 1))
+			*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.Off(i, i-1).CVector(), 1)
 			x12.Set(i-1, i-1, one)
 
 			if i < q {
-				Zlarf(Left, q-i, p-i, x11.CVector(i, i-1, 1), tauq1.GetConj(i-1), x11.Off(i, i), work)
-				Zlarf(Left, q-i, m-p-i, x11.CVector(i, i-1, 1), tauq1.GetConj(i-1), x21.Off(i, i), work)
+				Zlarf(Left, q-i, p-i, x11.Off(i, i-1).CVector(), 1, tauq1.GetConj(i-1), x11.Off(i, i), work)
+				Zlarf(Left, q-i, m-p-i, x11.Off(i, i-1).CVector(), 1, tauq1.GetConj(i-1), x21.Off(i, i), work)
 			}
-			Zlarf(Left, m-q-i+1, p-i, x12.CVector(i-1, i-1, 1), tauq2.GetConj(i-1), x12.Off(i-1, i), work)
+			Zlarf(Left, m-q-i+1, p-i, x12.Off(i-1, i-1).CVector(), 1, tauq2.GetConj(i-1), x12.Off(i-1, i), work)
 			if m-p > i {
-				Zlarf(Left, m-q-i+1, m-p-i, x12.CVector(i-1, i-1, 1), tauq2.GetConj(i-1), x22.Off(i-1, i), work)
+				Zlarf(Left, m-q-i+1, m-p-i, x12.Off(i-1, i-1).CVector(), 1, tauq2.GetConj(i-1), x22.Off(i-1, i), work)
 			}
 
 		}
@@ -290,15 +289,15 @@ func Zunbdb(trans mat.MatTrans, signs byte, m, p, q int, x11, x12, x21, x22 *mat
 		//        Reduce columns Q + 1, ..., P of X12, X22
 		for i = q + 1; i <= p; i++ {
 
-			goblas.Zscal(m-q-i+1, complex(-z1*z4, 0), x12.CVector(i-1, i-1, 1))
-			*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.CVector(i, i-1, 1))
+			x12.Off(i-1, i-1).CVector().Scal(m-q-i+1, complex(-z1*z4, 0), 1)
+			*x12.GetPtr(i-1, i-1), *tauq2.GetPtr(i - 1) = Zlarfgp(m-q-i+1, x12.Get(i-1, i-1), x12.Off(i, i-1).CVector(), 1)
 			x12.Set(i-1, i-1, one)
 
 			if p > i {
-				Zlarf(Left, m-q-i+1, p-i, x12.CVector(i-1, i-1, 1), tauq2.GetConj(i-1), x12.Off(i-1, i), work)
+				Zlarf(Left, m-q-i+1, p-i, x12.Off(i-1, i-1).CVector(), 1, tauq2.GetConj(i-1), x12.Off(i-1, i), work)
 			}
 			if m-p-q >= 1 {
-				Zlarf(Left, m-q-i+1, m-p-q, x12.CVector(i-1, i-1, 1), tauq2.GetConj(i-1), x22.Off(i-1, q), work)
+				Zlarf(Left, m-q-i+1, m-p-q, x12.Off(i-1, i-1).CVector(), 1, tauq2.GetConj(i-1), x22.Off(i-1, q), work)
 			}
 
 		}
@@ -306,12 +305,12 @@ func Zunbdb(trans mat.MatTrans, signs byte, m, p, q int, x11, x12, x21, x22 *mat
 		//        Reduce columns P + 1, ..., M - Q of X12, X22
 		for i = 1; i <= m-p-q; i++ {
 
-			goblas.Zscal(m-p-q-i+1, complex(z2*z4, 0), x22.CVector(p+i-1, q+i-1, 1))
-			*x22.GetPtr(p+i-1, q+i-1), *tauq2.GetPtr(p + i - 1) = Zlarfgp(m-p-q-i+1, x22.Get(p+i-1, q+i-1), x22.CVector(p+i, q+i-1, 1))
+			x22.Off(p+i-1, q+i-1).CVector().Scal(m-p-q-i+1, complex(z2*z4, 0), 1)
+			*x22.GetPtr(p+i-1, q+i-1), *tauq2.GetPtr(p + i - 1) = Zlarfgp(m-p-q-i+1, x22.Get(p+i-1, q+i-1), x22.Off(p+i, q+i-1).CVector(), 1)
 			x22.Set(p+i-1, q+i-1, one)
 
 			if m-p-q != i {
-				Zlarf(Left, m-p-q-i+1, m-p-q-i, x22.CVector(p+i-1, q+i-1, 1), tauq2.GetConj(p+i-1), x22.Off(p+i-1, q+i), work)
+				Zlarf(Left, m-p-q-i+1, m-p-q-i, x22.Off(p+i-1, q+i-1).CVector(), 1, tauq2.GetConj(p+i-1), x22.Off(p+i-1, q+i), work)
 			}
 
 		}

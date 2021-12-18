@@ -11,7 +11,7 @@ func TestZblasLevel1(t *testing.T) {
 	var i, j, l, n, np1 int
 	var err error
 	sfac := 9.765625e-4
-	ntest := &common.combla.n
+	ntest := &common.combla.ntest
 	incx := &common.combla.incx
 	incy := &common.combla.incy
 	_case := &common.combla._case
@@ -85,39 +85,46 @@ func TestZblasLevel1(t *testing.T) {
 			itrue3 := []int{0, 1, 2, 2, 2}
 
 			for (*incx) = 1; (*incx) <= 2; (*incx)++ {
-				cx := cvf(8, *incx)
 				for np1 = 1; np1 <= 5; np1++ {
 					n = np1 - 1
 					l = 2 * max(n, 1)
+					cx := cvf(8)
+					ctrue := cvf(8)
 					for i = 1; i <= l; i++ {
 						cx.Set(i-1, cv[(*incx)-1][np1-1][i-1])
 					}
 
 					if *_case == "Dznrm2" {
 						//              .. DZNRM2 ..
-						if ok := dcompare1(Dznrm2(n, cx), strue2[np1-1], strue2[np1-1], sfac); ok != nil {
+						if ok := dcompare1(1, Dznrm2(n, cx, *incx), strue2[np1-1], strue2[np1-1], sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Dzasum" {
 						//              .. DZASUM ..
-						if ok := dcompare1(Dzasum(n, cx), strue4[np1-1], strue4[np1-1], sfac); ok != nil {
+						if ok := dcompare1(1, Dzasum(n, cx, *incx), strue4[np1-1], strue4[np1-1], sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Zscal" {
 						//              .. ZSCAL ..
-						Zscal(n, ca, cx)
-						if ok := zcompare(l, cx, cvdf(ctrue5[(*incx)-1][np1-1]), cvdf(ctrue5[(*incx)-1][np1-1]), sfac); ok != nil {
+						for i = 1; i <= l; i++ {
+							ctrue.Set(i-1, ctrue5[(*incx)-1][np1-1][i-1])
+						}
+						Zscal(n, ca, cx, *incx)
+						if ok := zcompare(l, *incx, cx, ctrue, ctrue, sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Zdscal" {
 						//              .. ZDSCAL ..
-						Zdscal(n, sa, cx)
-						if ok := zcompare(l, cx, cvdf(ctrue6[(*incx)-1][np1-1]), cvdf(ctrue6[(*incx)-1][np1-1]), sfac); ok != nil {
+						for i = 1; i <= l; i++ {
+							ctrue.Set(i-1, ctrue6[(*incx)-1][np1-1][i-1])
+						}
+						Zdscal(n, sa, cx, *incx)
+						if ok := zcompare(l, *incx, cx, ctrue, ctrue, sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Izamax" {
 						//              .. IZAMAX ..
-						if ok := icompare1(Izamax(n, cx), itrue3[np1-1]); ok != nil {
+						if ok := icompare1(Izamax(n, cx, *incx), itrue3[np1-1]); ok != nil {
 							err = addErr(err, ok)
 						}
 					}
@@ -130,7 +137,7 @@ func TestZblasLevel1(t *testing.T) {
 				for (*incx) = 1; (*incx) <= 2; (*incx)++ {
 					for np1 = 2; np1 <= maxblocks+1; np1++ {
 						n = np1 - 1
-						zx := cvf(blocksize*minParBlocks*maxblocks, *incx)
+						zx := cvf(blocksize * minParBlocks * maxblocks)
 						ctruex := cvf(blocksize * minParBlocks * maxblocks)
 						for j = 1; j <= n; j++ {
 							for i = 1; i <= n; i++ {
@@ -142,8 +149,8 @@ func TestZblasLevel1(t *testing.T) {
 						}
 
 						// //              .. ZSCAL ..
-						Zscal(n*blocksize-n, ca, zx)
-						if ok := zcompare(n*blocksize-n, zx, ctruex, ctruex, sfac); ok != nil {
+						Zscal(n*blocksize-n, ca, zx, *incx)
+						if ok := zcompare(n*blocksize-n, *incx, zx, ctruex, ctruex, sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 
@@ -153,17 +160,17 @@ func TestZblasLevel1(t *testing.T) {
 			}
 
 			(*incx) = 1
-			cx := cvf(8, *incx)
+			cx := cvf(8)
 			if *_case == "Zscal" {
 				//        ZSCAL
 				//        Add a test for alpha equal to zero.
 				ca = 0.0 + 0.0i
-				for i = 1; i <= 5; i++ {
-					mwpct.Set(i-1, 0.0+0.0i)
-					mwpcs.Set(i-1, 1.0+1.0i)
+				for i = 0; i < 5; i++ {
+					mwpct.Set(i, 0.0+0.0i)
+					mwpcs.Set(i, 1.0+1.0i)
 				}
-				Zscal(5, ca, cx)
-				if ok := zcompare(5, cx, mwpct, mwpcs, sfac); ok != nil {
+				Zscal(5, ca, cx, *incx)
+				if ok := zcompare(5, *incx, cx, mwpct, mwpcs, sfac); ok != nil {
 					err = addErr(err, ok)
 				}
 				*ntest++
@@ -175,8 +182,8 @@ func TestZblasLevel1(t *testing.T) {
 					mwpct.Set(i-1, 0.0+0.0i)
 					mwpcs.Set(i-1, 1.0+1.0i)
 				}
-				Zdscal(5, sa, cx)
-				if ok := zcompare(5, cx, mwpct, mwpcs, sfac); ok != nil {
+				Zdscal(5, sa, cx, *incx)
+				if ok := zcompare(5, *incx, cx, mwpct, mwpcs, sfac); ok != nil {
 					err = addErr(err, ok)
 				}
 				*ntest++
@@ -186,8 +193,8 @@ func TestZblasLevel1(t *testing.T) {
 					mwpct.Set(i-1, cx.Get(i-1))
 					mwpcs.Set(i-1, cx.Get(i-1))
 				}
-				Zdscal(5, sa, cx)
-				if ok := zcompare(5, cx, mwpct, mwpcs, sfac); ok != nil {
+				Zdscal(5, sa, cx, *incx)
+				if ok := zcompare(5, *incx, cx, mwpct, mwpcs, sfac); ok != nil {
 					err = addErr(err, ok)
 				}
 				*ntest++
@@ -197,8 +204,8 @@ func TestZblasLevel1(t *testing.T) {
 					mwpct.Set(i-1, -cx.Get(i-1))
 					mwpcs.Set(i-1, -cx.Get(i-1))
 				}
-				Zdscal(5, sa, cx)
-				if ok := zcompare(5, cx, mwpct, mwpcs, sfac); ok != nil {
+				Zdscal(5, sa, cx, *incx)
+				if ok := zcompare(5, *incx, cx, mwpct, mwpcs, sfac); ok != nil {
 					err = addErr(err, ok)
 				}
 				*ntest++
@@ -232,86 +239,86 @@ func TestZblasLevel1(t *testing.T) {
 					{0.32 - 1.41i, -1.55 + 0.5i, 0.03 - 0.89i, -0.38 - 0.96i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
 				},
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.32 - 1.41i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{-0.07 - 0.89i, -0.9 + 0.5i, 0.42 - 1.41i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.52 - 1.51i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.77 - 0.49i, -0.5 - 0.3i, 0.52 - 1.51i},
 					{0.78 + 0.06i, -0.9 + 0.5i, 0.06 - 0.13i, 0.1 - 0.5i, -0.77 - 0.49i, -0.5 - 0.3i, 0.52 - 1.51i},
 				},
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.32 - 1.41i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{-0.07 - 0.89i, -1.18 - 0.31i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.78 + 0.06i, -1.54 + 0.97i, 0.03 - 0.89i, -0.18 - 1.31i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.78 + 0.06i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.78 + 0.06i, -1.54 + 0.97i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.78 + 0.06i, -1.54 + 0.97i, 0.03 - 0.89i, -0.18 - 1.31i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
 				},
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.32 - 1.41i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.32 - 1.41i, -0.9 + 0.5i, 0.05 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.32 - 1.41i, -0.9 + 0.5i, 0.05 - 0.6i, 0.1 - 0.5i, -0.77 - 0.49i, -0.5 - 0.3i, 0.32 - 1.16i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.98 - 0.04i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, 0.22 - 0.11i, -0.5 - 0.3i, 0.98 - 0.04i},
+					{0.12 - 1.06i, -0.9 + 0.5i, 0.06 - 0.13i, 0.1 - 0.5i, 0.22 - 0.11i, -0.5 - 0.3i, 0.98 - 0.04i},
 				},
 			}
 			ct7 := [][]complex128{
 				{0.0 + 0.0i, -0.06 - 0.90i, 0.65 - 0.47i, -0.34 - 1.22i},
-				{0.0 + 0.0i, -0.06 - 0.90i, -0.59 - 1.46i, -1.04 - 0.04i},
-				{0.0 + 0.0i, -0.06 - 0.90i, -0.83 + 0.59i, 0.07 - 0.37i},
-				{0.0 + 0.0i, -0.06 - 0.90i, -0.76 - 1.15i, -1.33 - 1.82i},
+				{0.0 + 0.0i, 0.0 - 1.13i, -0.17 - 1.02i, -1.04 - 0.04i},
+				{0.0 + 0.0i, 0.0 + 0.72i, 1.01 + 0.63i, 0.07 - 0.37i},
+				{0.0 + 0.0i, -0.06 + 0.90i, 0.01 + 0.84i, -1.22 + 0.50i},
 			}
 			ct6 := [][]complex128{
 				{0.0 + 0.0i, 0.90 + 0.06i, 0.91 - 0.77i, 1.80 - 0.10i},
-				{0.0 + 0.0i, 0.90 + 0.06i, 1.45 + 0.74i, 0.20 + 0.90i},
-				{0.0 + 0.0i, 0.90 + 0.06i, -0.55 + 0.23i, 0.83 - 0.39i},
-				{0.0 + 0.0i, 0.90 + 0.06i, 1.04 + 0.79i, 1.95 + 1.22i},
+				{0.0 + 0.0i, 1.12 + 0.15i, 1.31 + 0.08i, 0.20 + 0.90i},
+				{0.0 + 0.0i, -0.72 + 0.0i, -0.11 - 0.81i, 0.83 - 0.39i},
+				{0.0 + 0.0i, -0.90 - 0.06i, -0.99 - 0.04i, -0.78 + 1.14i},
 			}
 			ct10x := [][][]complex128{
 				{
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, -0.9 + 0.5i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.6 - 0.6i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.6 - 0.6i, -0.9 + 0.5i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
 				},
 				{
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.6i, -0.4 - 0.7i, 0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.8 - 0.7i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.8 - 0.7i, -0.4 - 0.7i, -0.1 - 0.2i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
 					{0.8 - 0.7i, -0.4 - 0.7i, -0.1 - 0.2i, 0.2 - 0.8i, 0.7 - 0.6i, 0.1 + 0.4i, 0.6 - 0.6i},
 				},
 				{
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{-0.9 + 0.5i, -0.4 - 0.7i, 0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, 0.6 - 0.6i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 + 0.5i, 0.1 + 0.4i, 0.6 - 0.6i},
 					{0.1 - 0.5i, -0.4 - 0.7i, 0.7 - 0.6i, 0.2 - 0.8i, -0.9 + 0.5i, 0.1 + 0.4i, 0.6 - 0.6i},
 				},
 				{
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, 0.7 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.6 - 0.6i, 0.7 - 0.6i, -0.1 - 0.2i, 0.8 - 0.7i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, 0.8 - 0.7i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, -0.1 - 0.2i, 0.8 - 0.7i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.6 - 0.6i, 0.7 - 0.6i, -0.1 - 0.2i, 0.8 - 0.7i},
 				},
 			}
 			ct10y := [][][]complex128{
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, -0.4 - 0.7i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.7 - 0.8i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.7 - 0.8i, -0.4 - 0.7i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
 				},
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{-0.1 - 0.9i, -0.9 + 0.5i, 0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.7 - 0.8i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.9i, -0.5 - 0.3i, 0.7 - 0.8i},
 					{-0.6 + 0.6i, -0.9 + 0.5i, -0.9 - 0.4i, 0.1 - 0.5i, -0.1 - 0.9i, -0.5 - 0.3i, 0.7 - 0.8i},
 				},
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{-0.1 - 0.9i, 0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{-0.6 + 0.6i, -0.9 - 0.4i, -0.1 - 0.9i, 0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{-0.6 + 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{-0.6 + 0.6i, -0.9 - 0.4i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{-0.6 + 0.6i, -0.9 - 0.4i, -0.1 - 0.9i, 0.7 - 0.8i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
 				},
 				{
-					{0.6 - 0.6i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, -0.9 + 0.5i, -0.4 - 0.7i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i, 0.0 + 0.0i},
-					{0.7 - 0.8i, -0.9 + 0.5i, -0.4 - 0.7i, 0.1 - 0.5i, -0.1 - 0.9i, -0.5 - 0.3i, 0.2 - 0.8i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, -0.6 + 0.6i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, 0.1 + 0.4i, -0.5 - 0.3i, -0.6 + 0.6i},
+					{0.2 - 0.8i, -0.9 + 0.5i, -0.9 - 0.4i, 0.1 - 0.5i, 0.1 + 0.4i, -0.5 - 0.3i, -0.6 + 0.6i},
 				},
 			}
 			csize1 := []complex128{0.0 + 0.0i, 0.9 + 0.9i, 1.63 + 1.73i, 2.90 + 2.78i}
@@ -326,8 +333,8 @@ func TestZblasLevel1(t *testing.T) {
 				(*incy) = incys[ki-1]
 				mx = abs(*incx)
 				my = abs(*incy)
-				cx := cvf(8, *incx)
-				cy := cvf(8, *incy)
+				cx := cvf(7)
+				cy := cvf(7)
 
 				for kn = 1; kn <= 4; kn++ {
 					n = ns[kn-1]
@@ -342,35 +349,35 @@ func TestZblasLevel1(t *testing.T) {
 
 					if *_case == "Zdotc" {
 						//              .. ZDOTC ..
-						cdot.Set(0, Zdotc(n, cx, cy))
-						if ok := zcompare(1, cdot, cvdf(ct6[ki-1][kn-1:]), cvdf(csize1[kn-1:]), sfac); ok != nil {
+						cdot.Set(0, Zdotc(n, cx, *incx, cy, *incy))
+						if ok := zcompare(1, *incx, cdot, cvdf(ct6[ki-1][kn-1:]), cvdf(csize1[kn-1:]), sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Zdotu" {
 						//              .. ZDOTU ..
-						cdot.Set(0, Zdotu(n, cx, cy))
-						if ok := zcompare(1, cdot, cvdf(ct7[ki-1][kn-1:]), cvdf(csize1[kn-1:]), sfac); ok != nil {
+						cdot.Set(0, Zdotu(n, cx, *incx, cy, *incy))
+						if ok := zcompare(1, *incx, cdot, cvdf(ct7[ki-1][kn-1:]), cvdf(csize1[kn-1:]), sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Zaxpy" {
 						//              .. ZAXPY ..
-						Zaxpy(n, ca, cx, cy)
-						if ok := zcompare(leny, cy, cvdf(ct8[ki-1][kn-1]), cvdf(csize2[ksize-1]), sfac); ok != nil {
+						Zaxpy(n, ca, cx, *incx, cy, *incy)
+						if ok := zcompare(leny, *incy, cy, cvdf(ct8[ki-1][kn-1]), cvdf(csize2[ksize-1]), sfac); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Zcopy" {
 						//              .. ZCOPY ..
-						Zcopy(n, cx, cy)
-						if ok := zcompare(leny, cy, cvdf(ct10y[ki-1][kn-1]), cvdf(csize3), 1.0); ok != nil {
+						Zcopy(n, cx, *incx, cy, *incy)
+						if ok := zcompare(leny, *incy, cy, cvdf(ct10y[ki-1][kn-1]), cvdf(csize3), 1.0); ok != nil {
 							err = addErr(err, ok)
 						}
 					} else if *_case == "Zswap" {
 						//              .. ZSWAP ..
-						Zswap(n, cx, cy)
-						if ok := zcompare(lenx, cx, cvdf(ct10x[ki-1][kn-1]), cvdf(csize3), 1.0); ok != nil {
+						Zswap(n, cx, *incx, cy, *incy)
+						if ok := zcompare(lenx, *incx, cx, cvdf(ct10x[ki-1][kn-1]), cvdf(csize3), 1.0); ok != nil {
 							err = addErr(err, ok)
 						}
-						if ok := zcompare(leny, cy, cvdf(ct10y[ki-1][kn-1]), cvdf(csize3), 1.0); ok != nil {
+						if ok := zcompare(leny, *incy, cy, cvdf(ct10y[ki-1][kn-1]), cvdf(csize3), 1.0); ok != nil {
 							err = addErr(err, ok)
 						}
 					}
@@ -393,8 +400,8 @@ func TestZblasLevel1(t *testing.T) {
 							lenx = lens[mx-1][kn-1]
 							leny = lens[my-1][kn-1]
 
-							zx := cvf(blocksize*minParBlocks*maxblocks, *incx)
-							zy := cvf(blocksize*minParBlocks*maxblocks, *incy)
+							zx := cvf(blocksize * minParBlocks * maxblocks)
+							zy := cvf(blocksize * minParBlocks * maxblocks)
 							ctruex := cvf(blocksize * minParBlocks * maxblocks)
 							csizex := cvf(blocksize * minParBlocks * maxblocks)
 							for j = 1; j <= nx; j++ {
@@ -412,8 +419,8 @@ func TestZblasLevel1(t *testing.T) {
 								}
 							}
 
-							Zaxpy((nx-1)*blocksize+n, ca, zx, zy)
-							if ok := zcompare((nx-1)*blocksize+n, zy, ctruex, csizex, sfac); ok != nil {
+							Zaxpy((nx-1)*blocksize+n, ca, zx, *incx, zy, *incy)
+							if ok := zcompare((nx-1)*blocksize+n, *incy, zy, ctruex, csizex, sfac); ok != nil {
 								err = addErr(err, ok)
 							}
 
@@ -455,21 +462,21 @@ func TestZblasLevel1(t *testing.T) {
 				},
 				{
 					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{0.7 - 0.74i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{0.77 - 0.74i, -0.4 - 0.7i, 0.38 - 0.78i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.84 - 0.81i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.84 - 0.81i, -0.4 - 0.7i, -0.11 - 0.5i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
 					{0.84 - 0.81i, -0.4 - 0.7i, -0.11 - 0.5i, 0.2 - 0.8i, 0.13 - 0.58i, 0.1 + 0.4i, 0.18 - 0.18i},
 				},
 				{
 					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{0.7 - 0.74i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{-0.35 + 0.03i, -0.4 - 0.7i, 0.38 - 0.78i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, 0.18 - 0.18i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.99 + 0.19i, 0.1 + 0.4i, 0.18 - 0.18i},
 					{0.35 - 0.67i, -0.4 - 0.7i, 0.45 - 0.78i, 0.2 - 0.8i, -0.99 + 0.19i, 0.1 + 0.4i, 0.18 - 0.18i},
 				},
 				{
 					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{0.7 - 0.74i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{0.7 - 0.74i, 0.33 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
-					{0.7 - 0.74i, 0.33 - 0.7i, -0.11 - 0.5i, 0.64 - 0.81i, -0.9 - 0.4i, 0.1 + 0.4i, -0.6 + 0.6i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, 0.1 + 0.4i, 0.32 - 0.25i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.2 - 0.8i, -0.9 - 0.4i, -0.03 + 0.02i, 0.32 - 0.25i},
+					{0.7 - 0.8i, -0.4 - 0.7i, -0.1 - 0.9i, 0.5 - 0.74i, 0.13 - 0.58i, -0.03 + 0.02i, 0.32 - 0.25i},
 				},
 			}
 			ct9y := [][][]complex128{
@@ -481,21 +488,21 @@ func TestZblasLevel1(t *testing.T) {
 				},
 				{
 					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{-0.25 + 0.32i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{0.31 + 0.39i, -0.9 + 0.5i, -0.21 + 0.32i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, -0.17 + 0.28i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, 0.03 + 0.55i, -0.5 - 0.3i, -0.17 + 0.28i},
 					{0.66 - 0.66i, -0.9 + 0.5i, 0.91 + 0.04i, 0.1 - 0.5i, 0.03 + 0.55i, -0.5 - 0.3i, -0.17 + 0.28i},
 				},
 				{
 					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{-0.25 + 0.32i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{0.31 + 0.39i, -0.85 + 0.76i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.66 - 0.66i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
+					{0.66 - 0.66i, 0.27 + 0.48i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
 					{0.66 - 0.66i, 0.27 + 0.48i, 0.35 + 0.39i, -0.45 + 0.36i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
 				},
 				{
 					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{-0.25 + 0.32i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{-0.25 + 0.32i, -0.9 + 0.5i, 0.56 + 0.25i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.8 - 0.7i},
-					{-0.25 + 0.32i, -0.9 + 0.5i, 0.56 + 0.25i, 0.1 - 0.5i, 0.03 + 0.55i, -0.5 - 0.3i, 0.18 + 0.28i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.1 - 0.2i, -0.5 - 0.3i, 0.74 - 0.7i},
+					{0.6 - 0.6i, -0.9 + 0.5i, 0.7 - 0.6i, 0.1 - 0.5i, -0.11 - 0.36i, -0.5 - 0.3i, 0.74 - 0.7i},
+					{0.1 + 0.32i, -0.9 + 0.5i, 0.91 + 0.04i, 0.1 - 0.5i, -0.11 - 0.36i, -0.5 - 0.3i, 0.74 - 0.7i},
 				},
 			}
 			mwpinx := make([]int, 11)
@@ -512,13 +519,15 @@ func TestZblasLevel1(t *testing.T) {
 			for ki := 1; ki <= 4; ki++ {
 				incx := incxs[ki-1]
 				incy := incys[ki-1]
+				common.combla.incx, common.combla.incy = incx, incy
 				mx := abs(incx)
 				my := abs(incy)
-				cx := cvf(7, incx)
-				cy := cvf(7, incy)
+				cx := cvf(7)
+				cy := cvf(7)
 				for kn := 1; kn <= 4; kn++ {
 					common.combla.n++
 					n = ns[kn-1]
+					common.combla.n = n
 					ksize := min(2, kn)
 					lenx := lens[kn-1+(mx-1)*4]
 					leny := lens[kn-1+(my-1)*4]
@@ -529,14 +538,16 @@ func TestZblasLevel1(t *testing.T) {
 						ctx.Set(i-1, ct9x[ki-1][kn-1][i-1])
 						cty.Set(i-1, ct9y[ki-1][kn-1][i-1])
 					}
-					Zdrot(n, cx, cy, dc, ds)
-					csize2m := cvdf(csize2[1][ksize-1 : cx.Size+ksize-1])
-					if ok := zcompare(lenx, cx, ctx, csize2m, sfac); ok != nil {
+					Zdrot(n, cx, incx, cy, incy, dc, ds)
+					csize2m := cvdf(csize2[1][ksize-1 : cx.Size()+ksize-1])
+					if ok := zcompare(lenx, incx, cx, ctx, csize2m, sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
-					if ok := zcompare(leny, cy, cty, csize2m, sfac); ok != nil {
+					if ok := zcompare(leny, incy, cy, cty, csize2m, sfac); ok != nil {
 						err = fmt.Errorf("%v%v", err, ok)
 					}
+
+					*ntest++
 				}
 			}
 
@@ -625,8 +636,8 @@ func TestZblasLevel1(t *testing.T) {
 				common.combla.n++
 				incx := mwpinx[i-1]
 				incy := mwpiny[i-1]
-				copyx := cvf(5, incx)
-				copyy := cvf(5, incy)
+				copyx := cvf(5)
+				copyy := cvf(5)
 				for k := 1; k <= 5; k++ {
 					copyx.Set(k-1, mwpx.Get(k-1))
 					copyy.Set(k-1, mwpy.Get(k-1))
@@ -634,13 +645,15 @@ func TestZblasLevel1(t *testing.T) {
 					mwpsty.Set(k-1, mwpty.Get(i-1+(k-1)*11))
 				}
 
-				Zdrot(mwpn[i-1], copyx, copyy, mwpc.Get(i-1), mwps.Get(i-1))
-				if ok := zcompare(5, copyx, mwpstx, mwpstx, sfac); ok != nil {
+				Zdrot(mwpn[i-1], copyx, incx, copyy, incy, mwpc.Get(i-1), mwps.Get(i-1))
+				if ok := zcompare(5, incx, copyx, mwpstx, mwpstx, sfac); ok != nil {
 					err = fmt.Errorf("%v%v", err, ok)
 				}
-				if ok := zcompare(5, copyy, mwpsty, mwpsty, sfac); ok != nil {
+				if ok := zcompare(5, incy, copyy, mwpsty, mwpsty, sfac); ok != nil {
 					err = fmt.Errorf("%v%v", err, ok)
 				}
+
+				*ntest++
 			}
 
 			if err == nil {
@@ -653,23 +666,22 @@ func TestZblasLevel1(t *testing.T) {
 	}
 }
 
-func zcompare(l int, ccomp, ctrue, csize *mat.CVector, sfac float64) (err error) {
-	var i int
-
+func zcompare(l, inc int, ccomp, ctrue, csize *mat.CVector, sfac float64) (err error) {
 	scomp := vf(2 * l)
 	ssize := vf(2 * l)
 	strue := vf(2 * l)
 
-	for i = 1; i <= l; i++ {
-		scomp.Set(2*(i-1), real(ccomp.Get(i-1)))
-		scomp.Set(2*(i-1)+1, imag(ccomp.Get(i-1)))
-		strue.Set(2*(i-1), real(ctrue.Get(i-1)))
-		strue.Set(2*(i-1)+1, imag(ctrue.Get(i-1)))
-		ssize.Set(2*(i-1), real(csize.Get(i-1)))
-		ssize.Set(2*(i-1)+1, imag(csize.Get(i-1)))
+	// for i = 1; i <= l; i++ {
+	for i, idx := range ccomp.Iter(l, inc) {
+		scomp.Set(2*i, real(ccomp.Get(idx)))
+		scomp.Set(2*i+1, imag(ccomp.Get(idx)))
+		strue.Set(2*i, real(ctrue.Get(idx)))
+		strue.Set(2*i+1, imag(ctrue.Get(idx)))
+		ssize.Set(2*i, real(csize.Get(idx)))
+		ssize.Set(2*i+1, imag(csize.Get(idx)))
 	}
 
-	return dcompare(2*l, scomp, strue, ssize, sfac)
+	return dcompare(2*l, inc, scomp, strue, ssize, sfac)
 }
 
 func addErr(err, ok error) error {
@@ -695,7 +707,7 @@ func benchmarkDzasum(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		x := Dzasum(n, cx)
+		x := Dzasum(n, cx, 1)
 		_ = x
 	}
 }
@@ -716,7 +728,7 @@ func benchmarkDznrm2(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		x := Dznrm2(n, cx)
+		x := Dznrm2(n, cx, 1)
 		_ = x
 	}
 }
@@ -737,7 +749,7 @@ func benchmarkZscal(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Zscal(n, ca, cx)
+		Zscal(n, ca, cx, 1)
 	}
 }
 
@@ -758,7 +770,7 @@ func benchmarkZdscal(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Zdscal(n, sa, cx)
+		Zdscal(n, sa, cx, 1)
 	}
 }
 
@@ -783,7 +795,7 @@ func benchmarkZdotc(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		x := Zdotc(n, cx, cy)
+		x := Zdotc(n, cx, 1, cy, 1)
 		y := x
 		_ = y
 	}
@@ -810,7 +822,7 @@ func benchmarkZdotu(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		x := Zdotu(n, cx, cy)
+		x := Zdotu(n, cx, 1, cy, 1)
 		y := x
 		_ = y
 	}
@@ -838,7 +850,7 @@ func benchmarkZaxpy(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Zaxpy(n, ca, cx, cy)
+		Zaxpy(n, ca, cx, 1, cy, 1)
 	}
 }
 
@@ -863,7 +875,7 @@ func benchmarkZcopy(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Zcopy(n, cx, cy)
+		Zcopy(n, cx, 1, cy, 1)
 	}
 }
 
@@ -888,7 +900,7 @@ func benchmarkZswap(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Zswap(n, cx, cy)
+		Zswap(n, cx, 1, cy, 1)
 	}
 }
 
@@ -915,6 +927,6 @@ func benchmarkZdrot(n int, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Zdrot(n, cx, cy, c, s)
+		Zdrot(n, cx, 1, cy, 1, c, s)
 	}
 }

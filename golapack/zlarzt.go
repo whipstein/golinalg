@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -54,14 +53,14 @@ func Zlarzt(direct, storev byte, n, k int, v *mat.CMatrix, tau *mat.CVector, t *
 			//           general case
 			if i < k {
 				//              T(i+1:k,i) = - tau(i) * V(i+1:k,1:n) * V(i,1:n)**H
-				Zlacgv(n, v.CVector(i-1, 0))
-				if err = goblas.Zgemv(NoTrans, k-i, n, -tau.Get(i-1), v.Off(i, 0), v.CVector(i-1, 0), zero, t.CVector(i, i-1, 1)); err != nil {
+				Zlacgv(n, v.Off(i-1, 0).CVector(), v.Rows)
+				if err = t.Off(i, i-1).CVector().Gemv(NoTrans, k-i, n, -tau.Get(i-1), v.Off(i, 0), v.Off(i-1, 0).CVector(), v.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				Zlacgv(n, v.CVector(i-1, 0))
+				Zlacgv(n, v.Off(i-1, 0).CVector(), v.Rows)
 
 				//              T(i+1:k,i) = T(i+1:k,i+1:k) * T(i+1:k,i)
-				if err = goblas.Ztrmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), t.CVector(i, i-1, 1)); err != nil {
+				if err = t.Off(i, i-1).CVector().Trmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), 1); err != nil {
 					panic(err)
 				}
 			}

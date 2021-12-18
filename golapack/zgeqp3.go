@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -42,7 +41,7 @@ func Zgeqp3(m, n int, a *mat.CMatrix, jpvt *[]int, tau, work *mat.CVector, lwork
 		work.SetRe(0, float64(lwkopt))
 
 		if (lwork < iws) && !lquery {
-			err = fmt.Errorf("")
+			err = fmt.Errorf("(lwork < iws) && !lquery: lwork=%v, iws=%v, lquery=%v", lwork, iws, lquery)
 		}
 	}
 
@@ -58,7 +57,7 @@ func Zgeqp3(m, n int, a *mat.CMatrix, jpvt *[]int, tau, work *mat.CVector, lwork
 	for j = 1; j <= n; j++ {
 		if (*jpvt)[j-1] != 0 {
 			if j != nfxd {
-				goblas.Zswap(m, a.CVector(0, j-1, 1), a.CVector(0, nfxd-1, 1))
+				a.Off(0, nfxd-1).CVector().Swap(m, a.Off(0, j-1).CVector(), 1, 1)
 				(*jpvt)[j-1] = (*jpvt)[nfxd-1]
 				(*jpvt)[nfxd-1] = j
 			} else {
@@ -128,7 +127,7 @@ func Zgeqp3(m, n int, a *mat.CMatrix, jpvt *[]int, tau, work *mat.CVector, lwork
 		//        Initialize partial column norms. The first N elements of work
 		//        store the exact column norms.
 		for j = nfxd + 1; j <= n; j++ {
-			rwork.Set(j-1, goblas.Dznrm2(sm, a.CVector(nfxd, j-1, 1)))
+			rwork.Set(j-1, a.Off(nfxd, j-1).CVector().Nrm2(sm, 1))
 			rwork.Set(n+j-1, rwork.Get(j-1))
 		}
 
@@ -145,7 +144,7 @@ func Zgeqp3(m, n int, a *mat.CMatrix, jpvt *[]int, tau, work *mat.CVector, lwork
 				jb = min(nb, topbmn-j+1)
 
 				//              Factorize JB columns among columns J:N.
-				fjb = Zlaqps(m, n-j+1, j-1, jb, a.Off(0, j-1), toSlice(jpvt, j-1), tau.Off(j-1), rwork.Off(j-1), rwork.Off(n+j-1), work, work.CMatrixOff(jb, n-j+1, opts))
+				fjb = Zlaqps(m, n-j+1, j-1, jb, a.Off(0, j-1), toSlice(jpvt, j-1), tau.Off(j-1), rwork.Off(j-1), rwork.Off(n+j-1), work, work.Off(jb).CMatrix(n-j+1, opts))
 
 				j = j + fjb
 				goto label30

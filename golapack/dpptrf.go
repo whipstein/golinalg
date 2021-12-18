@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,11 +49,11 @@ func Dpptrf(uplo mat.MatUplo, n int, ap *mat.Vector) (info int, err error) {
 
 			//           Compute elements 1:J-1 of column J.
 			if j > 1 {
-				err = goblas.Dtpsv(mat.Upper, mat.Trans, mat.NonUnit, j-1, ap, ap.Off(jc-1, 1))
+				err = ap.Off(jc-1).Tpsv(Upper, Trans, NonUnit, j-1, ap, 1)
 			}
 
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = ap.Get(jj-1) - goblas.Ddot(j-1, ap.Off(jc-1, 1), ap.Off(jc-1, 1))
+			ajj = ap.Get(jj-1) - ap.Off(jc-1).Dot(j-1, ap.Off(jc-1), 1, 1)
 			if ajj <= zero {
 				ap.Set(jj-1, ajj)
 				goto label30
@@ -77,8 +76,8 @@ func Dpptrf(uplo mat.MatUplo, n int, ap *mat.Vector) (info int, err error) {
 			//           Compute elements J+1:N of column J and update the trailing
 			//           submatrix.
 			if j < n {
-				goblas.Dscal(n-j, one/ajj, ap.Off(jj, 1))
-				err = goblas.Dspr(mat.Lower, n-j, -one, ap.Off(jj, 1), ap.Off(jj+n-j))
+				ap.Off(jj).Scal(n-j, one/ajj, 1)
+				err = ap.Off(jj+n-j).Spr(mat.Lower, n-j, -one, ap.Off(jj), 1)
 				jj = jj + n - j + 1
 			}
 		}

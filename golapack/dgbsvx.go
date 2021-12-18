@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -139,7 +138,7 @@ func Dgbsvx(fact byte, trans mat.MatTrans, n, kl, ku, nrhs int, ab, afb *mat.Mat
 		for j = 1; j <= n; j++ {
 			j1 = max(j-ku, 1)
 			j2 = min(j+kl, n)
-			goblas.Dcopy(j2-j1+1, ab.Vector(ku+1-j+j1-1, j-1, 1), afb.Vector(kl+ku+1-j+j1-1, j-1, 1))
+			afb.Off(kl+ku+1-j+j1-1, j-1).Vector().Copy(j2-j1+1, ab.Off(ku+1-j+j1-1, j-1).Vector(), 1, 1)
 		}
 
 		if info, err = Dgbtrf(n, n, kl, ku, afb, ipiv); err != nil {

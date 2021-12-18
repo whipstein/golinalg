@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -42,22 +41,22 @@ func dsyt01Aa(uplo mat.MatUplo, n int, a, afac *mat.Matrix, ipiv []int, c *mat.M
 
 		//        Call DTRMM to form the product U' * D (or L * D ).
 		if uplo == Upper {
-			if err = goblas.Dtrmm(Left, uplo, Trans, Unit, n-1, n, one, afac.Off(0, 1), c.Off(1, 0)); err != nil {
+			if err = c.Off(1, 0).Trmm(Left, uplo, Trans, Unit, n-1, n, one, afac.Off(0, 1)); err != nil {
 				panic(err)
 			}
 		} else {
-			if err = goblas.Dtrmm(Left, uplo, NoTrans, Unit, n-1, n, one, afac.Off(1, 0), c.Off(1, 0)); err != nil {
+			if err = c.Off(1, 0).Trmm(Left, uplo, NoTrans, Unit, n-1, n, one, afac.Off(1, 0)); err != nil {
 				panic(err)
 			}
 		}
 
 		//        Call DTRMM again to multiply by U (or L ).
 		if uplo == Upper {
-			if err = goblas.Dtrmm(Right, uplo, NoTrans, Unit, n, n-1, one, afac.Off(0, 1), c.Off(0, 1)); err != nil {
+			if err = c.Off(0, 1).Trmm(Right, uplo, NoTrans, Unit, n, n-1, one, afac.Off(0, 1)); err != nil {
 				panic(err)
 			}
 		} else {
-			if err = goblas.Dtrmm(Right, uplo, Trans, Unit, n, n-1, one, afac.Off(1, 0), c.Off(0, 1)); err != nil {
+			if err = c.Off(0, 1).Trmm(Right, uplo, Trans, Unit, n, n-1, one, afac.Off(1, 0)); err != nil {
 				panic(err)
 			}
 		}
@@ -67,13 +66,13 @@ func dsyt01Aa(uplo mat.MatUplo, n int, a, afac *mat.Matrix, ipiv []int, c *mat.M
 	for j = n; j >= 1; j-- {
 		i = ipiv[j-1]
 		if i != j {
-			goblas.Dswap(n, c.Vector(j-1, 0), c.Vector(i-1, 0))
+			c.Off(i-1, 0).Vector().Swap(n, c.Off(j-1, 0).Vector(), c.Rows, c.Rows)
 		}
 	}
 	for j = n; j >= 1; j-- {
 		i = ipiv[j-1]
 		if i != j {
-			goblas.Dswap(n, c.Vector(0, j-1, 1), c.Vector(0, i-1, 1))
+			c.Off(0, i-1).Vector().Swap(n, c.Off(0, j-1).Vector(), 1, 1)
 		}
 	}
 

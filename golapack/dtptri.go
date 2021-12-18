@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -67,8 +66,8 @@ func Dtptri(uplo mat.MatUplo, diag mat.MatDiag, n int, ap *mat.Vector) (info int
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			err = goblas.Dtpmv(Upper, NoTrans, diag, j-1, ap, ap.Off(jc-1, 1))
-			goblas.Dscal(j-1, ajj, ap.Off(jc-1, 1))
+			err = ap.Off(jc-1).Tpmv(Upper, NoTrans, diag, j-1, ap, 1)
+			ap.Off(jc-1).Scal(j-1, ajj, 1)
 			jc = jc + j
 		}
 
@@ -84,8 +83,8 @@ func Dtptri(uplo mat.MatUplo, diag mat.MatDiag, n int, ap *mat.Vector) (info int
 			}
 			if j < n {
 				//              Compute elements j+1:n of j-th column.
-				err = goblas.Dtpmv(Lower, NoTrans, diag, n-j, ap.Off(jclast-1), ap.Off(jc, 1))
-				goblas.Dscal(n-j, ajj, ap.Off(jc, 1))
+				err = ap.Off(jc).Tpmv(Lower, NoTrans, diag, n-j, ap.Off(jclast-1), 1)
+				ap.Off(jc).Scal(n-j, ajj, 1)
 			}
 			jclast = jc
 			jc = jc - n + j - 2

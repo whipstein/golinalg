@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,14 +57,14 @@ func dstt21(n, kband int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, work, resul
 
 	//     Norm of A - USU'
 	for j = 1; j <= n; j++ {
-		if err = goblas.Dsyr(Lower, n, -sd.Get(j-1), u.Vector(0, j-1, 1), work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Syr(Lower, n, -sd.Get(j-1), u.Off(0, j-1).Vector(), 1); err != nil {
 			panic(err)
 		}
 	}
 
 	if n > 1 && kband == 1 {
 		for j = 1; j <= n-1; j++ {
-			if err = goblas.Dsyr2(Lower, n, -se.Get(j-1), u.Vector(0, j-1, 1), u.Vector(0, j, 1), work.Matrix(n, opts)); err != nil {
+			if err = work.Matrix(n, opts).Syr2(Lower, n, -se.Get(j-1), u.Off(0, j-1).Vector(), 1, u.Off(0, j).Vector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -86,7 +85,7 @@ func dstt21(n, kband int, ad, ae, sd, se *mat.Vector, u *mat.Matrix, work, resul
 	//     Do Test 2
 	//
 	//     Compute  UU' - I
-	if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero, work.Matrix(n, opts)); err != nil {
+	if err = work.Matrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero); err != nil {
 		panic(err)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -111,7 +110,7 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz
 	//     .    the deflation window that converged using INFQR
 	//     .    here and there to keep track.) ====
 	Zlacpy(Upper, jw, jw, h.Off(kwtop-1, kwtop-1), t)
-	goblas.Zcopy(jw-1, h.CVector(kwtop, kwtop-1, h.Rows+1), t.CVector(1, 0, (*&t.Rows)+1))
+	t.Off(1, 0).CVector().Copy(jw-1, h.Off(kwtop, kwtop-1).CVector(), h.Rows+1, t.Rows+1)
 
 	Zlaset(Full, jw, jw, zero, one, v)
 	nmin = Ilaenv(12, "Zlaqr3", []byte("SV"), jw, 1, jw, lwork)
@@ -176,19 +175,19 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz
 	if ns < jw || s == zero {
 		if ns > 1 && s != zero {
 			//           ==== Reflect spike back into lower triangle ====
-			goblas.Zcopy(ns, v.CVector(0, 0, *&v.Rows), work.Off(0, 1))
+			work.Copy(ns, v.Off(0, 0).CVector(), v.Rows, 1)
 			for i = 1; i <= ns; i++ {
 				work.Set(i-1, work.GetConj(i-1))
 			}
 			beta = work.Get(0)
-			beta, tau = Zlarfg(ns, beta, work.Off(1, 1))
+			beta, tau = Zlarfg(ns, beta, work.Off(1), 1)
 			work.Set(0, one)
 
 			Zlaset(Lower, jw-2, jw-2, zero, zero, t.Off(2, 0))
 
-			Zlarf(Left, ns, jw, work.Off(0, 1), cmplx.Conj(tau), t, work.Off(jw))
-			Zlarf(Right, ns, ns, work.Off(0, 1), tau, t, work.Off(jw))
-			Zlarf(Right, jw, ns, work.Off(0, 1), tau, v, work.Off(jw))
+			Zlarf(Left, ns, jw, work, 1, cmplx.Conj(tau), t, work.Off(jw))
+			Zlarf(Right, ns, ns, work, 1, tau, t, work.Off(jw))
+			Zlarf(Right, jw, ns, work, 1, tau, v, work.Off(jw))
 
 			if err = Zgehrd(jw, 1, ns, t, work, work.Off(jw), lwork-jw); err != nil {
 				panic(err)
@@ -200,7 +199,7 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz
 			h.Set(kwtop-1, kwtop-1-1, s*v.GetConj(0, 0))
 		}
 		Zlacpy(Upper, jw, jw, t, h.Off(kwtop-1, kwtop-1))
-		goblas.Zcopy(jw-1, t.CVector(1, 0, (*&t.Rows)+1), h.CVector(kwtop, kwtop-1, h.Rows+1))
+		h.Off(kwtop, kwtop-1).CVector().Copy(jw-1, t.Off(1, 0).CVector(), t.Rows+1, h.Rows+1)
 
 		//        ==== Accumulate orthogonal matrix in order update
 		//        .    H and Z, if requested.  ====
@@ -218,7 +217,7 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz
 		}
 		for krow = ltop; krow <= kwtop-1; krow += nv {
 			kln = min(nv, kwtop-krow)
-			err = goblas.Zgemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), v, zero, wv)
+			err = wv.Gemm(NoTrans, NoTrans, kln, jw, jw, one, h.Off(krow-1, kwtop-1), v, zero)
 			Zlacpy(Full, kln, jw, wv, h.Off(krow-1, kwtop-1))
 		}
 
@@ -226,7 +225,7 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz
 		if wantt {
 			for kcol = kbot + 1; kcol <= n; kcol += nh {
 				kln = min(nh, n-kcol+1)
-				err = goblas.Zgemm(ConjTrans, NoTrans, jw, kln, jw, one, v, h.Off(kwtop-1, kcol-1), zero, t)
+				err = t.Gemm(ConjTrans, NoTrans, jw, kln, jw, one, v, h.Off(kwtop-1, kcol-1), zero)
 				Zlacpy(Full, jw, kln, t, h.Off(kwtop-1, kcol-1))
 			}
 		}
@@ -235,7 +234,7 @@ func Zlaqr3(wantt, wantz bool, n, ktop, kbot, nw int, h *mat.CMatrix, iloz, ihiz
 		if wantz {
 			for krow = iloz; krow <= ihiz; krow += nv {
 				kln = min(nv, ihiz-krow+1)
-				err = goblas.Zgemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), v, zero, wv)
+				err = wv.Gemm(NoTrans, NoTrans, kln, jw, jw, one, z.Off(krow-1, kwtop-1), v, zero)
 				Zlacpy(Full, kln, jw, wv, z.Off(krow-1, kwtop-1))
 			}
 		}

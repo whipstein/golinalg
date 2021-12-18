@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,10 +111,10 @@ label10:
 			matsiz = (*iwork)[i] - (*iwork)[i-1]
 		}
 		ll = iq - 1 + (*iwork)[iqptr+curr-1]
-		if info, err = Dsteqr('I', matsiz, d.Off(submat-1), e.Off(submat-1), rwork.MatrixOff(ll-1, matsiz, opts), rwork); err != nil {
+		if info, err = Dsteqr('I', matsiz, d.Off(submat-1), e.Off(submat-1), rwork.Off(ll-1).Matrix(matsiz, opts), rwork); err != nil {
 			panic(err)
 		}
-		Zlacrm(qsiz, matsiz, q.Off(0, submat-1), rwork.MatrixOff(ll-1, matsiz, opts), qstore.Off(0, submat-1), rwork.Off(iwrem-1))
+		Zlacrm(qsiz, matsiz, q.Off(0, submat-1), rwork.Off(ll-1).Matrix(matsiz, opts), qstore.Off(0, submat-1), rwork.Off(iwrem-1))
 		(*iwork)[iqptr+curr] = (*iwork)[iqptr+curr-1] + pow(matsiz, 2)
 		curr = curr + 1
 		if info > 0 {
@@ -157,7 +156,7 @@ label80:
 			//     was reduced to tridiagonal form) are desired.
 			//
 			//     I am free to use Q as a valuable working space until Loop 150.
-			if info, err = Zlaed7(matsiz, msd2, qsiz, tlvls, curlvl, curprb, d.Off(submat-1), qstore.Off(0, submat-1), e.Get(submat+msd2-1-1), toSlice(iwork, indxq+submat-1), rwork.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), rwork.MatrixOff(igivnm-1, 2, opts), q.CVector(0, submat-1), rwork.Off(iwrem-1), toSlice(iwork, subpbs)); err != nil {
+			if info, err = Zlaed7(matsiz, msd2, qsiz, tlvls, curlvl, curprb, d.Off(submat-1), qstore.Off(0, submat-1), e.Get(submat+msd2-1-1), toSlice(iwork, indxq+submat-1), rwork.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), rwork.Off(igivnm-1).Matrix(2, opts), q.Off(0, submat-1).CVector(), rwork.Off(iwrem-1), toSlice(iwork, subpbs)); err != nil {
 				panic(err)
 			}
 			if info > 0 {
@@ -178,9 +177,9 @@ label80:
 	for i = 1; i <= n; i++ {
 		j = (*iwork)[indxq+i-1]
 		rwork.Set(i-1, d.Get(j-1))
-		goblas.Zcopy(qsiz, qstore.CVector(0, j-1, 1), q.CVector(0, i-1, 1))
+		q.Off(0, i-1).CVector().Copy(qsiz, qstore.Off(0, j-1).CVector(), 1, 1)
 	}
-	goblas.Dcopy(n, rwork.Off(0, 1), d.Off(0, 1))
+	d.Copy(n, rwork, 1, 1)
 
 	return
 }

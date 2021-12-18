@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -119,9 +118,9 @@ func Zhbgvx(jobz, _range byte, uplo mat.MatUplo, n, ka, kb int, ab, bb, q *mat.C
 		}
 	}
 	if (alleig || test) && (abstol <= zero) {
-		goblas.Dcopy(n, rwork.Off(indd-1, 1), w.Off(0, 1))
+		w.Copy(n, rwork.Off(indd-1), 1, 1)
 		indee = indrwk + 2*n
-		goblas.Dcopy(n-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
+		rwork.Off(indee-1).Copy(n-1, rwork.Off(inde-1), 1, 1)
 		if !wantz {
 			if info, err = Dsterf(n, w, rwork.Off(indee-1)); err != nil {
 				panic(err)
@@ -166,8 +165,8 @@ func Zhbgvx(jobz, _range byte, uplo mat.MatUplo, n, ka, kb int, ab, bb, q *mat.C
 		//        Apply unitary matrix used in reduction to tridiagonal
 		//        form to eigenvectors returned by ZSTEIN.
 		for j = 1; j <= m; j++ {
-			goblas.Zcopy(n, z.CVector(0, j-1, 1), work.Off(0, 1))
-			if err = goblas.Zgemv(NoTrans, n, n, cone, q, work.Off(0, 1), czero, z.CVector(0, j-1, 1)); err != nil {
+			work.Copy(n, z.Off(0, j-1).CVector(), 1, 1)
+			if err = z.Off(0, j-1).CVector().Gemv(NoTrans, n, n, cone, q, work, 1, czero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -195,7 +194,7 @@ label30:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
+				z.Off(0, j-1).CVector().Swap(n, z.Off(0, i-1).CVector(), 1, 1)
 				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

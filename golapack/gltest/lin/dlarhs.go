@@ -3,7 +3,6 @@ package lin
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -72,7 +71,7 @@ func Dlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	}
 	if xtype != 'C' {
 		for j = 1; j <= nrhs; j++ {
-			golapack.Dlarnv(2, iseed, n, x.Vector(0, j-1))
+			golapack.Dlarnv(2, iseed, n, x.Off(0, j-1).Vector())
 		}
 	}
 
@@ -80,28 +79,28 @@ func Dlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 	//     matrix multiply routine.
 	if c2 == "ge" || c2 == "qr" || c2 == "lq" || c2 == "ql" || c2 == "rq" {
 		//        General matrix
-		err = goblas.Dgemm(trans, mat.NoTrans, mb, nrhs, nx, one, a, x, zero, b)
+		err = b.Gemm(trans, mat.NoTrans, mb, nrhs, nx, one, a, x, zero)
 
 	} else if c2 == "po" || c2 == "sy" {
 		//        Symmetric matrix, 2-D storage
-		err = goblas.Dsymm(mat.Left, uplo, n, nrhs, one, a, x, zero, b)
+		err = b.Symm(mat.Left, uplo, n, nrhs, one, a, x, zero)
 
 	} else if c2 == "gb" {
 		//        General matrix, band storage
 		for j = 1; j <= nrhs; j++ {
-			err = goblas.Dgbmv(trans, mb, nx, kl, ku, one, a, x.Vector(0, j-1, 1), zero, b.Vector(0, j-1, 1))
+			err = b.Off(0, j-1).Vector().Gbmv(trans, mb, nx, kl, ku, one, a, x.Off(0, j-1).Vector(), 1, zero, 1)
 		}
 
 	} else if c2 == "pb" {
 		//        Symmetric matrix, band storage
 		for j = 1; j <= nrhs; j++ {
-			err = goblas.Dsbmv(uplo, n, kl, one, a, x.Vector(0, j-1, 1), zero, b.Vector(0, j-1, 1))
+			err = b.Off(0, j-1).Vector().Sbmv(uplo, n, kl, one, a, x.Off(0, j-1).Vector(), 1, zero, 1)
 		}
 
 	} else if c2 == "pp" || c2 == "sp" {
 		//        Symmetric matrix, packed storage
 		for j = 1; j <= nrhs; j++ {
-			err = goblas.Dspmv(uplo, n, one, a.VectorIdx(0), x.Vector(0, j-1, 1), zero, b.Vector(0, j-1, 1))
+			err = b.Off(0, j-1).Vector().Spmv(uplo, n, one, a.OffIdx(0).Vector(), x.Off(0, j-1).Vector(), 1, zero, 1)
 		}
 
 	} else if c2 == "tr" {
@@ -114,7 +113,7 @@ func Dlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 		} else {
 			diag = NonUnit
 		}
-		err = goblas.Dtrmm(mat.Left, uplo, trans, diag, n, nrhs, one, a, b)
+		err = b.Trmm(mat.Left, uplo, trans, diag, n, nrhs, one, a)
 
 	} else if c2 == "tp" {
 		//        Triangular matrix, packed storage
@@ -125,7 +124,7 @@ func Dlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 			diag = NonUnit
 		}
 		for j = 1; j <= nrhs; j++ {
-			err = goblas.Dtpmv(uplo, trans, diag, n, a.VectorIdx(0), b.Vector(0, j-1, 1))
+			err = b.Off(0, j-1).Vector().Tpmv(uplo, trans, diag, n, a.OffIdx(0).Vector(), 1)
 		}
 		//
 	} else if c2 == "tb" {
@@ -137,7 +136,7 @@ func Dlarhs(path string, xtype byte, uplo mat.MatUplo, trans mat.MatTrans, m, n,
 			diag = NonUnit
 		}
 		for j = 1; j <= nrhs; j++ {
-			err = goblas.Dtbmv(uplo, trans, diag, n, kl, a, b.Vector(0, j-1, 1))
+			err = b.Off(0, j-1).Vector().Tbmv(uplo, trans, diag, n, kl, a, 1)
 		}
 
 	} else {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -635,9 +634,9 @@ func Dlatmr(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 	} else if ipack == 2 {
 		onorm = golapack.Dlansy('M', Lower, n, a, tempa)
 	} else if ipack == 3 {
-		onorm = golapack.Dlansp('M', Upper, n, a.VectorIdx(0), tempa)
+		onorm = golapack.Dlansp('M', Upper, n, a.OffIdx(0).Vector(), tempa)
 	} else if ipack == 4 {
-		onorm = golapack.Dlansp('M', Lower, n, a.VectorIdx(0), tempa)
+		onorm = golapack.Dlansp('M', Lower, n, a.OffIdx(0).Vector(), tempa)
 	} else if ipack == 5 {
 		onorm = golapack.Dlansb('M', Lower, n, kll, a, tempa)
 	} else if ipack == 6 {
@@ -657,19 +656,19 @@ func Dlatmr(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 			//           Scale carefully to avoid over / underflow
 			if ipack <= 2 {
 				for j = 1; j <= n; j++ {
-					goblas.Dscal(m, one/onorm, a.Vector(0, j-1, 1))
-					goblas.Dscal(m, anorm, a.Vector(0, j-1, 1))
+					a.Off(0, j-1).Vector().Scal(m, one/onorm, 1)
+					a.Off(0, j-1).Vector().Scal(m, anorm, 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Dscal(n*(n+1)/2, one/onorm, a.VectorIdx(0, 1))
-				goblas.Dscal(n*(n+1)/2, anorm, a.VectorIdx(0, 1))
+				a.OffIdx(0).Vector().Scal(n*(n+1)/2, one/onorm, 1)
+				a.OffIdx(0).Vector().Scal(n*(n+1)/2, anorm, 1)
 			} else if ipack >= 5 {
 
 				for j = 1; j <= n; j++ {
-					goblas.Dscal(kll+kuu+1, one/onorm, a.Vector(0, j-1, 1))
-					goblas.Dscal(kll+kuu+1, anorm, a.Vector(0, j-1, 1))
+					a.Off(0, j-1).Vector().Scal(kll+kuu+1, one/onorm, 1)
+					a.Off(0, j-1).Vector().Scal(kll+kuu+1, anorm, 1)
 				}
 
 			}
@@ -678,17 +677,17 @@ func Dlatmr(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 			//           Scale straightforwardly
 			if ipack <= 2 {
 				for j = 1; j <= n; j++ {
-					goblas.Dscal(m, anorm/onorm, a.Vector(0, j-1, 1))
+					a.Off(0, j-1).Vector().Scal(m, anorm/onorm, 1)
 				}
 
 			} else if ipack == 3 || ipack == 4 {
 
-				goblas.Dscal(n*(n+1)/2, anorm/onorm, a.VectorIdx(0, 1))
+				a.OffIdx(0).Vector().Scal(n*(n+1)/2, anorm/onorm, 1)
 
 			} else if ipack >= 5 {
 
 				for j = 1; j <= n; j++ {
-					goblas.Dscal(kll+kuu+1, anorm/onorm, a.Vector(0, j-1, 1))
+					a.Off(0, j-1).Vector().Scal(kll+kuu+1, anorm/onorm, 1)
 				}
 			}
 

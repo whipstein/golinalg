@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -62,15 +61,15 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			err = goblas.Zgeru(k-1, nrhs, -one, ap.Off(kc-1, 1), b.CVector(k-1, 0), b)
+			err = b.Geru(k-1, nrhs, -one, ap.Off(kc-1), 1, b.Off(k-1, 0).CVector(), b.Rows)
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Zscal(nrhs, one/ap.Get(kc+k-1-1), b.CVector(k-1, 0))
+			b.Off(k-1, 0).CVector().Scal(nrhs, one/ap.Get(kc+k-1-1), b.Rows)
 			k = k - 1
 		} else {
 			//           2 x 2 diagonal block
@@ -78,13 +77,13 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//           Interchange rows K-1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k-1 {
-				goblas.Zswap(nrhs, b.CVector(k-1-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(U(K)), where U(K) is the transformation
 			//           stored in columns K-1 and K of A.
-			err = goblas.Zgeru(k-2, nrhs, -one, ap.Off(kc-1, 1), b.CVector(k-1, 0), b)
-			err = goblas.Zgeru(k-2, nrhs, -one, ap.Off(kc-(k-1)-1, 1), b.CVector(k-1-1, 0), b)
+			err = b.Geru(k-2, nrhs, -one, ap.Off(kc-1), 1, b.Off(k-1, 0).CVector(), b.Rows)
+			err = b.Geru(k-2, nrhs, -one, ap.Off(kc-(k-1)-1), 1, b.Off(k-1-1, 0).CVector(), b.Rows)
 
 			//           Multiply by the inverse of the diagonal block.
 			akm1k = ap.Get(kc + k - 2 - 1)
@@ -124,12 +123,12 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//
 			//           Multiply by inv(U**T(K)), where U(K) is the transformation
 			//           stored in column K of A.
-			err = goblas.Zgemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1, 1), one, b.CVector(k-1, 0))
+			err = b.Off(k-1, 0).CVector().Gemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1), 1, one, b.Rows)
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			kc = kc + k
 			k = k + 1
@@ -138,13 +137,13 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//
 			//           Multiply by inv(U**T(K+1)), where U(K+1) is the transformation
 			//           stored in columns K and K+1 of A.
-			err = goblas.Zgemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1, 1), one, b.CVector(k-1, 0))
-			err = goblas.Zgemv(Trans, k-1, nrhs, -one, b, ap.Off(kc+k-1, 1), one, b.CVector(k, 0))
+			err = b.Off(k-1, 0).CVector().Gemv(Trans, k-1, nrhs, -one, b, ap.Off(kc-1), 1, one, b.Rows)
+			err = b.Off(k, 0).CVector().Gemv(Trans, k-1, nrhs, -one, b, ap.Off(kc+k-1), 1, one, b.Rows)
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			kc = kc + 2*k + 1
 			k = k + 2
@@ -175,17 +174,17 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				err = goblas.Zgeru(n-k, nrhs, -one, ap.Off(kc, 1), b.CVector(k-1, 0), b.Off(k, 0))
+				err = b.Off(k, 0).Geru(n-k, nrhs, -one, ap.Off(kc), 1, b.Off(k-1, 0).CVector(), b.Rows)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
-			goblas.Zscal(nrhs, one/ap.Get(kc-1), b.CVector(k-1, 0))
+			b.Off(k-1, 0).CVector().Scal(nrhs, one/ap.Get(kc-1), b.Rows)
 			kc = kc + n - k + 1
 			k = k + 1
 		} else {
@@ -194,14 +193,14 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//           Interchange rows K+1 and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k+1 {
-				goblas.Zswap(nrhs, b.CVector(k, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k, 0).CVector(), b.Rows, b.Rows)
 			}
 
 			//           Multiply by inv(L(K)), where L(K) is the transformation
 			//           stored in columns K and K+1 of A.
 			if k < n-1 {
-				err = goblas.Zgeru(n-k-1, nrhs, -one, ap.Off(kc+2-1, 1), b.CVector(k-1, 0), b.Off(k+2-1, 0))
-				err = goblas.Zgeru(n-k-1, nrhs, -one, ap.Off(kc+n-k+2-1, 1), b.CVector(k, 0), b.Off(k+2-1, 0))
+				err = b.Off(k+2-1, 0).Geru(n-k-1, nrhs, -one, ap.Off(kc+2-1), 1, b.Off(k-1, 0).CVector(), b.Rows)
+				err = b.Off(k+2-1, 0).Geru(n-k-1, nrhs, -one, ap.Off(kc+n-k+2-1), 1, b.Off(k, 0).CVector(), b.Rows)
 			}
 
 			//           Multiply by the inverse of the diagonal block.
@@ -244,13 +243,13 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//           Multiply by inv(L**T(K)), where L(K) is the transformation
 			//           stored in column K of A.
 			if k < n {
-				err = goblas.Zgemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc, 1), one, b.CVector(k-1, 0))
+				err = b.Off(k-1, 0).CVector().Gemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc), 1, one, b.Rows)
 			}
 
 			//           Interchange rows K and IPIV(K).
 			kp = (*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			k = k - 1
 		} else {
@@ -259,14 +258,14 @@ func Zsptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, ipiv *[]int, b *mat.
 			//           Multiply by inv(L**T(K-1)), where L(K-1) is the transformation
 			//           stored in columns K-1 and K of A.
 			if k < n {
-				err = goblas.Zgemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc, 1), one, b.CVector(k-1, 0))
-				err = goblas.Zgemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc-(n-k)-1, 1), one, b.CVector(k-1-1, 0))
+				err = b.Off(k-1, 0).CVector().Gemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc), 1, one, b.Rows)
+				err = b.Off(k-1-1, 0).CVector().Gemv(Trans, n-k, nrhs, -one, b.Off(k, 0), ap.Off(kc-(n-k)-1), 1, one, b.Rows)
 			}
 
 			//           Interchange rows K and -IPIV(K).
 			kp = -(*ipiv)[k-1]
 			if kp != k {
-				goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+				b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 			}
 			kc = kc - (n - k + 2)
 			k = k - 2

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -136,7 +135,7 @@ func zdrvpp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 				}
 
 				//              Save a copy of the matrix A in ASAV.
-				goblas.Zcopy(npp, a.Off(0, 1), asav.Off(0, 1))
+				asav.Copy(npp, a, 1, 1)
 
 				for iequed = 1; iequed <= 2; iequed++ {
 					equed = equeds[iequed-1]
@@ -164,7 +163,7 @@ func zdrvpp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 							//                       the value returned by Zppsvx (FACT = 'N' reuses
 							//                       the condition number from the previous iteration
 							//                          with FACT = 'F').
-							goblas.Zcopy(npp, asav.Off(0, 1), afac.Off(0, 1))
+							afac.Copy(npp, asav, 1, 1)
 							if equil || iequed > 1 {
 								//                          Compute row and column scale factors to
 								//                          equilibrate the matrix A.
@@ -196,7 +195,7 @@ func zdrvpp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 							}
 
 							//                       Form the inverse of A.
-							goblas.Zcopy(npp, afac.Off(0, 1), a.Off(0, 1))
+							a.Copy(npp, afac, 1, 1)
 							if info, err = golapack.Zpptri(uplo, n, a); err != nil {
 								panic(err)
 							}
@@ -211,7 +210,7 @@ func zdrvpp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						}
 
 						//                    Restore the matrix A.
-						goblas.Zcopy(npp, asav.Off(0, 1), a.Off(0, 1))
+						a.Copy(npp, asav, 1, 1)
 
 						//                    Form an exact solution and set the right hand side.
 						*srnamt = "zlarhs"
@@ -226,7 +225,7 @@ func zdrvpp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 							//
 							//                       Compute the L*L' or U'*U factorization of the
 							//                       matrix and solve the system.
-							goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+							afac.Copy(npp, a, 1, 1)
 							golapack.Zlacpy(Full, n, nrhs, b.CMatrix(lda, opts), x.CMatrix(lda, opts))
 
 							*srnamt = "Zppsv"

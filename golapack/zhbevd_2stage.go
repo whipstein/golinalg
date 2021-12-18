@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -155,10 +154,10 @@ func Zhbevd2stage(jobz byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, w *ma
 		if info, err = Zstedc('I', n, w, rwork.Off(inde-1), work.CMatrix(n, opts), work.Off(indwk2-1), llwk2, rwork.Off(indrwk-1), llrwk, iwork, liwork); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, cone, z, work.CMatrix(n, opts), czero, work.CMatrixOff(indwk2-1, n, opts)); err != nil {
+		if err = work.Off(indwk2-1).CMatrix(n, opts).Gemm(NoTrans, NoTrans, n, n, n, cone, z, work.CMatrix(n, opts), czero); err != nil {
 			panic(err)
 		}
-		Zlacpy(Full, n, n, work.CMatrixOff(indwk2-1, n, opts), z)
+		Zlacpy(Full, n, n, work.Off(indwk2-1).CMatrix(n, opts), z)
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
@@ -168,7 +167,7 @@ func Zhbevd2stage(jobz byte, uplo mat.MatUplo, n, kd int, ab *mat.CMatrix, w *ma
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	work.SetRe(0, float64(lwmin))

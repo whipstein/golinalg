@@ -24,7 +24,7 @@ import (
 // SCALE and SUMSQ are overwritten by scl and ssq respectively.
 //
 // The routine makes only one pass through the vector X.
-func Zlassq(n int, x *mat.CVector, scale, sumsq float64) (scaleOut, sumsqOut float64) {
+func Zlassq(n int, x *mat.CVector, incx int, scale, sumsq float64) (scaleOut, sumsqOut float64) {
 	var temp1, zero float64
 	var ix int
 
@@ -33,7 +33,7 @@ func Zlassq(n int, x *mat.CVector, scale, sumsq float64) (scaleOut, sumsqOut flo
 	sumsqOut = sumsq
 
 	if n > 0 {
-		for ix = 1; ix <= 1+(n-1)*x.Inc; ix += x.Inc {
+		for ix = 1; ix <= 1+(n-1)*incx; ix += incx {
 			temp1 = math.Abs(real(x.Get(ix - 1)))
 			if temp1 > zero || Disnan(int(temp1)) {
 				if scaleOut < temp1 {

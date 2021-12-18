@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -514,9 +513,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			b21d.Set(imax-1, -b21d.Get(imax-1))
 			if wantv1t {
 				if colmajor {
-					goblas.Dscal(q, negone, v1t.Vector(imax-1, 0))
+					v1t.Off(imax-1, 0).Vector().Scal(q, negone, v1t.Rows)
 				} else {
-					goblas.Dscal(q, negone, v1t.Vector(0, imax-1, 1))
+					v1t.Off(0, imax-1).Vector().Scal(q, negone, 1)
 				}
 			}
 		}
@@ -533,9 +532,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			b12d.Set(imax-1, -b12d.Get(imax-1))
 			if wantu1 {
 				if colmajor {
-					goblas.Dscal(p, negone, u1.Vector(0, imax-1, 1))
+					u1.Off(0, imax-1).Vector().Scal(p, negone, 1)
 				} else {
-					goblas.Dscal(p, negone, u1.Vector(imax-1, 0))
+					u1.Off(imax-1, 0).Vector().Scal(p, negone, u1.Rows)
 				}
 			}
 		}
@@ -543,9 +542,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			b22d.Set(imax-1, -b22d.Get(imax-1))
 			if wantu2 {
 				if colmajor {
-					goblas.Dscal(m-p, negone, u2.Vector(0, imax-1, 1))
+					u2.Off(0, imax-1).Vector().Scal(m-p, negone, 1)
 				} else {
-					goblas.Dscal(m-p, negone, u2.Vector(imax-1, 0))
+					u2.Off(imax-1, 0).Vector().Scal(m-p, negone, u2.Rows)
 				}
 			}
 		}
@@ -554,9 +553,9 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 		if b12d.Get(imax-1)+b22d.Get(imax-1) < 0 {
 			if wantv2t {
 				if colmajor {
-					goblas.Dscal(m-q, negone, v2t.Vector(imax-1, 0))
+					v2t.Off(imax-1, 0).Vector().Scal(m-q, negone, v2t.Rows)
 				} else {
-					goblas.Dscal(m-q, negone, v2t.Vector(0, imax-1, 1))
+					v2t.Off(0, imax-1).Vector().Scal(m-q, negone, 1)
 				}
 			}
 		}
@@ -618,29 +617,29 @@ func Dbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			theta.Set(i-1, thetamin)
 			if colmajor {
 				if wantu1 {
-					goblas.Dswap(p, u1.Vector(0, i-1, 1), u1.Vector(0, mini-1, 1))
+					u1.Off(0, mini-1).Vector().Swap(p, u1.Off(0, i-1).Vector(), 1, 1)
 				}
 				if wantu2 {
-					goblas.Dswap(m-p, u2.Vector(0, i-1, 1), u2.Vector(0, mini-1, 1))
+					u2.Off(0, mini-1).Vector().Swap(m-p, u2.Off(0, i-1).Vector(), 1, 1)
 				}
 				if wantv1t {
-					goblas.Dswap(q, v1t.Vector(i-1, 0), v1t.Vector(mini-1, 0))
+					v1t.Off(mini-1, 0).Vector().Swap(q, v1t.Off(i-1, 0).Vector(), v1t.Rows, v1t.Rows)
 				}
 				if wantv2t {
-					goblas.Dswap(m-q, v2t.Vector(i-1, 0), v2t.Vector(mini-1, 0))
+					v2t.Off(mini-1, 0).Vector().Swap(m-q, v2t.Off(i-1, 0).Vector(), v2t.Rows, v2t.Rows)
 				}
 			} else {
 				if wantu1 {
-					goblas.Dswap(p, u1.Vector(i-1, 0), u1.Vector(mini-1, 0))
+					u1.Off(mini-1, 0).Vector().Swap(p, u1.Off(i-1, 0).Vector(), u1.Rows, u1.Rows)
 				}
 				if wantu2 {
-					goblas.Dswap(m-p, u2.Vector(i-1, 0), u2.Vector(mini-1, 0))
+					u2.Off(mini-1, 0).Vector().Swap(m-p, u2.Off(i-1, 0).Vector(), u2.Rows, u2.Rows)
 				}
 				if wantv1t {
-					goblas.Dswap(q, v1t.Vector(0, i-1, 1), v1t.Vector(0, mini-1, 1))
+					v1t.Off(0, mini-1).Vector().Swap(q, v1t.Off(0, i-1).Vector(), 1, 1)
 				}
 				if wantv2t {
-					goblas.Dswap(m-q, v2t.Vector(0, i-1, 1), v2t.Vector(0, mini-1, 1))
+					v2t.Off(0, mini-1).Vector().Swap(m-q, v2t.Off(0, i-1).Vector(), 1, 1)
 				}
 			}
 		}

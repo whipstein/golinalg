@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -137,18 +136,18 @@ func Dsyevd(jobz byte, uplo mat.MatUplo, n int, a *mat.Matrix, w, work *mat.Vect
 			panic(err)
 		}
 	} else {
-		if info, err = Dstedc('I', n, w, work.Off(inde-1), work.MatrixOff(indwrk-1, n, opts), work.Off(indwk2-1), llwrk2, iwork, liwork); err != nil {
+		if info, err = Dstedc('I', n, w, work.Off(inde-1), work.Off(indwrk-1).Matrix(n, opts), work.Off(indwk2-1), llwrk2, iwork, liwork); err != nil {
 			panic(err)
 		}
-		if err = Dormtr(Left, uplo, NoTrans, n, n, a, work.Off(indtau-1), work.MatrixOff(indwrk-1, n, opts), work.Off(indwk2-1), llwrk2); err != nil {
+		if err = Dormtr(Left, uplo, NoTrans, n, n, a, work.Off(indtau-1), work.Off(indwrk-1).Matrix(n, opts), work.Off(indwk2-1), llwrk2); err != nil {
 			panic(err)
 		}
-		Dlacpy(Full, n, n, work.MatrixOff(indwrk-1, n, opts), a)
+		Dlacpy(Full, n, n, work.Off(indwrk-1).Matrix(n, opts), a)
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
 	if iscale == 1 {
-		goblas.Dscal(n, one/sigma, w.Off(0, 1))
+		w.Scal(n, one/sigma, 1)
 	}
 
 	work.Set(0, float64(lopt))

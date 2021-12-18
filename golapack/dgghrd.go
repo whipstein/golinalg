@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -125,20 +124,20 @@ func Dgghrd(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.Matrix) (err err
 			temp = a.Get(jrow-1-1, jcol-1)
 			c, s, *a.GetPtr(jrow-1-1, jcol-1) = Dlartg(temp, a.Get(jrow-1, jcol-1))
 			a.Set(jrow-1, jcol-1, zero)
-			goblas.Drot(n-jcol, a.Vector(jrow-1-1, jcol), a.Vector(jrow-1, jcol), c, s)
-			goblas.Drot(n+2-jrow, b.Vector(jrow-1-1, jrow-1-1), b.Vector(jrow-1, jrow-1-1), c, s)
+			a.Off(jrow-1, jcol).Vector().Rot(n-jcol, a.Off(jrow-1-1, jcol).Vector(), a.Rows, a.Rows, c, s)
+			b.Off(jrow-1, jrow-1-1).Vector().Rot(n+2-jrow, b.Off(jrow-1-1, jrow-1-1).Vector(), b.Rows, b.Rows, c, s)
 			if ilq {
-				goblas.Drot(n, q.Vector(0, jrow-1-1, 1), q.Vector(0, jrow-1, 1), c, s)
+				q.Off(0, jrow-1).Vector().Rot(n, q.Off(0, jrow-1-1).Vector(), 1, 1, c, s)
 			}
 
 			//           Step 2: rotate columns JROW, JROW-1 to kill B(JROW,JROW-1)
 			temp = b.Get(jrow-1, jrow-1)
 			c, s, *b.GetPtr(jrow-1, jrow-1) = Dlartg(temp, b.Get(jrow-1, jrow-1-1))
 			b.Set(jrow-1, jrow-1-1, zero)
-			goblas.Drot(ihi, a.Vector(0, jrow-1, 1), a.Vector(0, jrow-1-1, 1), c, s)
-			goblas.Drot(jrow-1, b.Vector(0, jrow-1, 1), b.Vector(0, jrow-1-1, 1), c, s)
+			a.Off(0, jrow-1-1).Vector().Rot(ihi, a.Off(0, jrow-1).Vector(), 1, 1, c, s)
+			b.Off(0, jrow-1-1).Vector().Rot(jrow-1, b.Off(0, jrow-1).Vector(), 1, 1, c, s)
 			if ilz {
-				goblas.Drot(n, z.Vector(0, jrow-1, 1), z.Vector(0, jrow-1-1, 1), c, s)
+				z.Off(0, jrow-1-1).Vector().Rot(n, z.Off(0, jrow-1).Vector(), 1, 1, c, s)
 			}
 		}
 	}

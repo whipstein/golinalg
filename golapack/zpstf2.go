@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -59,7 +58,7 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 		work.Set(i-1, real(a.Get(i-1, i-1)))
 	}
 	if n > 1 {
-		pvt = maxlocf64(work.Data[:n-1]...)
+		pvt = maxlocf64(work.Data()[:n-1]...)
 	} else {
 		pvt = 1
 	}
@@ -99,7 +98,7 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 
 			if j > 1 {
 				if n+j < 2*n-1 {
-					itemp = maxlocf64(work.Data[(n + j) : (2*n)-1]...)
+					itemp = maxlocf64(work.Data()[(n + j) : (2*n)-1]...)
 				} else {
 					itemp = 1
 				}
@@ -114,9 +113,9 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 			if j != pvt {
 				//              Pivot OK, so can now swap pivot rows and columns
 				a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-				goblas.Zswap(j-1, a.CVector(0, j-1, 1), a.CVector(0, pvt-1, 1))
+				a.Off(0, pvt-1).CVector().Swap(j-1, a.Off(0, j-1).CVector(), 1, 1)
 				if pvt < n {
-					goblas.Zswap(n-pvt, a.CVector(j-1, pvt), a.CVector(pvt-1, pvt))
+					a.Off(pvt-1, pvt).CVector().Swap(n-pvt, a.Off(j-1, pvt).CVector(), a.Rows, a.Rows)
 				}
 				for i = j + 1; i <= pvt-1; i++ {
 					ztemp = a.GetConj(j-1, i-1)
@@ -139,12 +138,12 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 
 			//           Compute elements J+1:N of row J
 			if j < n {
-				Zlacgv(j-1, a.CVector(0, j-1, 1))
-				if err = goblas.Zgemv(Trans, j-1, n-j, -cone, a.Off(0, j), a.CVector(0, j-1, 1), cone, a.CVector(j-1, j)); err != nil {
+				Zlacgv(j-1, a.Off(0, j-1).CVector(), 1)
+				if err = a.Off(j-1, j).CVector().Gemv(Trans, j-1, n-j, -cone, a.Off(0, j), a.Off(0, j-1).CVector(), 1, cone, a.Rows); err != nil {
 					panic(err)
 				}
-				Zlacgv(j-1, a.CVector(0, j-1, 1))
-				goblas.Zdscal(n-j, one/ajj, a.CVector(j-1, j))
+				Zlacgv(j-1, a.Off(0, j-1).CVector(), 1)
+				a.Off(j-1, j).CVector().Dscal(n-j, one/ajj, a.Rows)
 			}
 
 		}
@@ -166,7 +165,7 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 
 			if j > 1 {
 				if n+j < (2*n)-1 {
-					itemp = maxlocf64(work.Data[(n + j) : (2*n)-1]...)
+					itemp = maxlocf64(work.Data()[(n + j) : (2*n)-1]...)
 				} else {
 					itemp = 1
 				}
@@ -181,9 +180,9 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 			if j != pvt {
 				//              Pivot OK, so can now swap pivot rows and columns
 				a.Set(pvt-1, pvt-1, a.Get(j-1, j-1))
-				goblas.Zswap(j-1, a.CVector(j-1, 0), a.CVector(pvt-1, 0))
+				a.Off(pvt-1, 0).CVector().Swap(j-1, a.Off(j-1, 0).CVector(), a.Rows, a.Rows)
 				if pvt < n {
-					goblas.Zswap(n-pvt, a.CVector(pvt, j-1, 1), a.CVector(pvt, pvt-1, 1))
+					a.Off(pvt, pvt-1).CVector().Swap(n-pvt, a.Off(pvt, j-1).CVector(), 1, 1)
 				}
 				for i = j + 1; i <= pvt-1; i++ {
 					ztemp = a.GetConj(i-1, j-1)
@@ -206,12 +205,12 @@ func Zpstf2(uplo mat.MatUplo, n int, a *mat.CMatrix, piv *[]int, tol float64, wo
 
 			//           Compute elements J+1:N of column J
 			if j < n {
-				Zlacgv(j-1, a.CVector(j-1, 0))
-				if err = goblas.Zgemv(NoTrans, n-j, j-1, -cone, a.Off(j, 0), a.CVector(j-1, 0), cone, a.CVector(j, j-1, 1)); err != nil {
+				Zlacgv(j-1, a.Off(j-1, 0).CVector(), a.Rows)
+				if err = a.Off(j, j-1).CVector().Gemv(NoTrans, n-j, j-1, -cone, a.Off(j, 0), a.Off(j-1, 0).CVector(), a.Rows, cone, 1); err != nil {
 					panic(err)
 				}
-				Zlacgv(j-1, a.CVector(j-1, 0))
-				goblas.Zdscal(n-j, one/ajj, a.CVector(j, j-1, 1))
+				Zlacgv(j-1, a.Off(j-1, 0).CVector(), a.Rows)
+				a.Off(j, j-1).CVector().Dscal(n-j, one/ajj, 1)
 			}
 
 		}

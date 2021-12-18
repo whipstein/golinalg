@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -522,9 +521,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			//
 			//           Compute D1 from the 1-stage and used as reference for the
 			//           2-stage
-			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
+			d1.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(n-1, se, 1, 1)
 			}
 
 			if iinfo, err = golapack.Zsteqr('N', n, d1, rwork, work.CMatrix(u.Rows, opts), rwork.Off(n)); err != nil || iinfo != 0 {
@@ -554,9 +553,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			}
 
 			//           Compute D2 from the 2-stage Upper case
-			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
+			d2.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(n-1, se, 1, 1)
 			}
 
 			ntest = 3
@@ -585,9 +584,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			}
 
 			//           Compute D3 from the 2-stage Upper case
-			goblas.Dcopy(n, sd.Off(0, 1), d3.Off(0, 1))
+			d3.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(n-1, se, 1, 1)
 			}
 
 			ntest = 4
@@ -630,7 +629,7 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			}
 
 			//           Call Zhptrd and Zupgtr to compute S and U from AP
-			goblas.Zcopy(nap, ap.Off(0, 1), vp.Off(0, 1))
+			vp.Copy(nap, ap, 1, 1)
 
 			ntest = 5
 			if err = golapack.Zhptrd(Upper, n, vp, sd, se, tau); err != nil {
@@ -668,7 +667,7 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			}
 
 			//           Call Zhptrd and Zupgtr to compute S and U from AP
-			goblas.Zcopy(nap, ap.Off(0, 1), vp.Off(0, 1))
+			vp.Copy(nap, ap, 1, 1)
 
 			ntest = 7
 			if err = golapack.Zhptrd(Lower, n, vp, sd, se, tau); err != nil {
@@ -698,9 +697,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			//           Call Zsteqr to compute D1, D2, and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
+			d1.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(n-1, se, 1, 1)
 			}
 			golapack.Zlaset(Full, n, n, czero, cone, z)
 
@@ -717,9 +716,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			}
 
 			//           Compute D2
-			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
+			d2.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(n-1, se, 1, 1)
 			}
 
 			ntest = 11
@@ -735,9 +734,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			}
 
 			//           Compute D3 (using PWK method)
-			goblas.Dcopy(n, sd.Off(0, 1), d3.Off(0, 1))
+			d3.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+				rwork.Copy(n-1, se, 1, 1)
 			}
 
 			ntest = 12
@@ -791,9 +790,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			//           and do tests 14, 15, and 16 .
 			if jtype > 15 {
 				//              Compute D4 and Z4
-				goblas.Dcopy(n, sd.Off(0, 1), d4.Off(0, 1))
+				d4.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 				golapack.Zlaset(Full, n, n, czero, cone, z)
 
@@ -813,9 +812,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				zstt21(n, 0, sd, se, d4, dumma, z, work, rwork, result.Off(13))
 
 				//              Compute D5
-				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+				d5.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 
 				ntest = 16
@@ -1007,9 +1006,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			//           Compute D1 and Z
 			inde = 1
 			indrwk = inde + n
-			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
+			d1.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(inde-1, 1))
+				rwork.Off(inde-1).Copy(n-1, se, 1, 1)
 			}
 			golapack.Zlaset(Full, n, n, czero, cone, z)
 
@@ -1031,9 +1030,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			//           Call Zstedc(V) to compute D1 and Z, do tests.
 			//
 			//           Compute D1 and Z
-			goblas.Dcopy(n, sd.Off(0, 1), d1.Off(0, 1))
+			d1.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(inde-1, 1))
+				rwork.Off(inde-1).Copy(n-1, se, 1, 1)
 			}
 			golapack.Zlaset(Full, n, n, czero, cone, z)
 
@@ -1055,9 +1054,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 			//           Call Zstedc(N) to compute D2, do tests.
 			//
 			//           Compute D2
-			goblas.Dcopy(n, sd.Off(0, 1), d2.Off(0, 1))
+			d2.Copy(n, sd, 1, 1)
 			if n > 0 {
-				goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(inde-1, 1))
+				rwork.Off(inde-1).Copy(n-1, se, 1, 1)
 			}
 			golapack.Zlaset(Full, n, n, czero, cone, z)
 			//
@@ -1160,9 +1159,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				//           Call Zstemr(V,I) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+				d5.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 				golapack.Zlaset(Full, n, n, czero, cone, z)
 
@@ -1192,9 +1191,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					//           Call Zstemr to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+					d5.Copy(n, sd, 1, 1)
 					if n > 0 {
-						goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+						rwork.Copy(n-1, se, 1, 1)
 					}
 
 					ntest = 31
@@ -1223,9 +1222,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					//           Call Zstemr(V,V) to compute D1 and Z, do tests.
 					//
 					//           Compute D1 and Z
-					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+					d5.Copy(n, sd, 1, 1)
 					if n > 0 {
-						goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+						rwork.Copy(n-1, se, 1, 1)
 					}
 					golapack.Zlaset(Full, n, n, czero, cone, z)
 
@@ -1264,9 +1263,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 					//           Call Zstemr to compute D2, do tests.
 					//
 					//           Compute D2
-					goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+					d5.Copy(n, sd, 1, 1)
 					if n > 0 {
-						goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+						rwork.Copy(n-1, se, 1, 1)
 					}
 
 					ntest = 34
@@ -1303,9 +1302,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				//           Call Zstemr(V,A) to compute D1 and Z, do tests.
 				//
 				//           Compute D1 and Z
-				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+				d5.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 
 				ntest = 35
@@ -1327,9 +1326,9 @@ func zchkst2stg(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, th
 				//           Call Zstemr to compute D2, do tests.
 				//
 				//           Compute D2
-				goblas.Dcopy(n, sd.Off(0, 1), d5.Off(0, 1))
+				d5.Copy(n, sd, 1, 1)
 				if n > 0 {
-					goblas.Dcopy(n-1, se.Off(0, 1), rwork.Off(0, 1))
+					rwork.Copy(n-1, se, 1, 1)
 				}
 
 				ntest = 37

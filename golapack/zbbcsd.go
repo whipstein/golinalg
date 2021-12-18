@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -515,9 +514,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			b21d.Set(imax-1, -b21d.Get(imax-1))
 			if wantv1t {
 				if colmajor {
-					goblas.Zscal(q, negonecomplex, v1t.CVector(imax-1, 0))
+					v1t.Off(imax-1, 0).CVector().Scal(q, negonecomplex, v1t.Rows)
 				} else {
-					goblas.Zscal(q, negonecomplex, v1t.CVector(0, imax-1, 1))
+					v1t.Off(0, imax-1).CVector().Scal(q, negonecomplex, 1)
 				}
 			}
 		}
@@ -534,9 +533,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			b12d.Set(imax-1, -b12d.Get(imax-1))
 			if wantu1 {
 				if colmajor {
-					goblas.Zscal(p, negonecomplex, u1.CVector(0, imax-1, 1))
+					u1.Off(0, imax-1).CVector().Scal(p, negonecomplex, 1)
 				} else {
-					goblas.Zscal(p, negonecomplex, u1.CVector(imax-1, 0))
+					u1.Off(imax-1, 0).CVector().Scal(p, negonecomplex, u1.Rows)
 				}
 			}
 		}
@@ -544,9 +543,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			b22d.Set(imax-1, -b22d.Get(imax-1))
 			if wantu2 {
 				if colmajor {
-					goblas.Zscal(m-p, negonecomplex, u2.CVector(0, imax-1, 1))
+					u2.Off(0, imax-1).CVector().Scal(m-p, negonecomplex, 1)
 				} else {
-					goblas.Zscal(m-p, negonecomplex, u2.CVector(imax-1, 0))
+					u2.Off(imax-1, 0).CVector().Scal(m-p, negonecomplex, u2.Rows)
 				}
 			}
 		}
@@ -555,9 +554,9 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 		if b12d.Get(imax-1)+b22d.Get(imax-1) < 0 {
 			if wantv2t {
 				if colmajor {
-					goblas.Zscal(m-q, negonecomplex, v2t.CVector(imax-1, 0))
+					v2t.Off(imax-1, 0).CVector().Scal(m-q, negonecomplex, v2t.Rows)
 				} else {
-					goblas.Zscal(m-q, negonecomplex, v2t.CVector(0, imax-1, 1))
+					v2t.Off(0, imax-1).CVector().Scal(m-q, negonecomplex, 1)
 				}
 			}
 		}
@@ -619,29 +618,29 @@ func Zbbcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, m, p, q int, 
 			theta.Set(i-1, thetamin)
 			if colmajor {
 				if wantu1 {
-					goblas.Zswap(p, u1.CVector(0, i-1, 1), u1.CVector(0, mini-1, 1))
+					u1.Off(0, mini-1).CVector().Swap(p, u1.Off(0, i-1).CVector(), 1, 1)
 				}
 				if wantu2 {
-					goblas.Zswap(m-p, u2.CVector(0, i-1, 1), u2.CVector(0, mini-1, 1))
+					u2.Off(0, mini-1).CVector().Swap(m-p, u2.Off(0, i-1).CVector(), 1, 1)
 				}
 				if wantv1t {
-					goblas.Zswap(q, v1t.CVector(i-1, 0), v1t.CVector(mini-1, 0))
+					v1t.Off(mini-1, 0).CVector().Swap(q, v1t.Off(i-1, 0).CVector(), v1t.Rows, v1t.Rows)
 				}
 				if wantv2t {
-					goblas.Zswap(m-q, v2t.CVector(i-1, 0), v2t.CVector(mini-1, 0))
+					v2t.Off(mini-1, 0).CVector().Swap(m-q, v2t.Off(i-1, 0).CVector(), v2t.Rows, v2t.Rows)
 				}
 			} else {
 				if wantu1 {
-					goblas.Zswap(p, u1.CVector(i-1, 0), u1.CVector(mini-1, 0))
+					u1.Off(mini-1, 0).CVector().Swap(p, u1.Off(i-1, 0).CVector(), u1.Rows, u1.Rows)
 				}
 				if wantu2 {
-					goblas.Zswap(m-p, u2.CVector(i-1, 0), u2.CVector(mini-1, 0))
+					u2.Off(mini-1, 0).CVector().Swap(m-p, u2.Off(i-1, 0).CVector(), u2.Rows, u2.Rows)
 				}
 				if wantv1t {
-					goblas.Zswap(q, v1t.CVector(0, i-1, 1), v1t.CVector(0, mini-1, 1))
+					v1t.Off(0, mini-1).CVector().Swap(q, v1t.Off(0, i-1).CVector(), 1, 1)
 				}
 				if wantv2t {
-					goblas.Zswap(m-q, v2t.CVector(0, i-1, 1), v2t.CVector(0, mini-1, 1))
+					v2t.Off(0, mini-1).CVector().Swap(m-q, v2t.Off(0, i-1).CVector(), 1, 1)
 				}
 			}
 		}

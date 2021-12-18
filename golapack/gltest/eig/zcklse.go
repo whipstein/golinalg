@@ -77,11 +77,11 @@ func zcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float
 			}
 
 			//           Generate the right-hand sides C and D for the Lse.
-			if err = zlarhs("Zge", 'N', Upper, NoTrans, m, n, max(m-1, 0), max(n-1, 0), 1, a.CMatrix(lda, opts), x.CMatrixOff(4*nmax, max(n, 1), opts), x.CMatrix(max(m, 1), opts), &iseed); err != nil {
+			if err = zlarhs("Zge", 'N', Upper, NoTrans, m, n, max(m-1, 0), max(n-1, 0), 1, a.CMatrix(lda, opts), x.Off(4*nmax).CMatrix(max(n, 1), opts), x.CMatrix(max(m, 1), opts), &iseed); err != nil {
 				panic(err)
 			}
 
-			if err = zlarhs("Zge", 'C', Upper, NoTrans, p, n, max(p-1, 0), max(n-1, 0), 1, b.CMatrix(ldb, opts), x.CMatrixOff(4*nmax, max(n, 1), opts), x.CMatrixOff(2*nmax, max(p, 1), opts), &iseed); err != nil {
+			if err = zlarhs("Zge", 'C', Upper, NoTrans, p, n, max(p-1, 0), max(n-1, 0), 1, b.CMatrix(ldb, opts), x.Off(4*nmax).CMatrix(max(n, 1), opts), x.Off(2*nmax).CMatrix(max(p, 1), opts), &iseed); err != nil {
 				panic(err)
 			}
 

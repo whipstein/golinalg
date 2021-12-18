@@ -40,8 +40,8 @@ func TestZblasLevel3(t *testing.T) {
 	bet := cvdf([]complex128{0.0 + 0.0i, 1.0 + 0.0i, 1.3 - 1.1i})
 	_bet := []complex128{0.0 + 0.0i, 1.0 + 0.0i, 1.3 - 1.1i}
 	nidim = len(idim)
-	nalf = len(alf.Data)
-	nbet = len(bet.Data)
+	nalf = alf.Size()
+	nbet = bet.Size()
 	a := cmf(nmax, 2*nmax, opts)
 	aa := cmf(nmax, 2*nmax, optsfull)
 	ab := cmf(nmax, 2*nmax, opts)

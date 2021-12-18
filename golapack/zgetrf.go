@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -76,12 +75,12 @@ func Zgetrf(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 				Zlaswp(n-j-jb+1, a.Off(0, j+jb-1), j, j+jb-1, ipiv, 1)
 
 				//              Compute block row of U.
-				if err = goblas.Ztrsm(Left, Lower, NoTrans, Unit, jb, n-j-jb+1, one, a.Off(j-1, j-1), a.Off(j-1, j+jb-1)); err != nil {
+				if err = a.Off(j-1, j+jb-1).Trsm(Left, Lower, NoTrans, Unit, jb, n-j-jb+1, one, a.Off(j-1, j-1)); err != nil {
 					panic(err)
 				}
 				if j+jb <= m {
 					//                 Update trailing submatrix.
-					if err = goblas.Zgemm(NoTrans, NoTrans, m-j-jb+1, n-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), one, a.Off(j+jb-1, j+jb-1)); err != nil {
+					if err = a.Off(j+jb-1, j+jb-1).Gemm(NoTrans, NoTrans, m-j-jb+1, n-j-jb+1, jb, -one, a.Off(j+jb-1, j-1), a.Off(j-1, j+jb-1), one); err != nil {
 						panic(err)
 					}
 				}

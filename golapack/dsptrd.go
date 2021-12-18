@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -44,7 +43,7 @@ func Dsptrd(uplo mat.MatUplo, n int, ap, d, e, tau *mat.Vector) (err error) {
 		for i = n - 1; i >= 1; i-- {
 			//           Generate elementary reflector H(i) = I - tau * v * v**T
 			//           to annihilate A(1:i-1,i+1)
-			*ap.GetPtr(i1 + i - 1 - 1), taui = Dlarfg(i, ap.Get(i1+i-1-1), ap.Off(i1-1, 1))
+			*ap.GetPtr(i1 + i - 1 - 1), taui = Dlarfg(i, ap.Get(i1+i-1-1), ap.Off(i1-1), 1)
 			e.Set(i-1, ap.Get(i1+i-1-1))
 
 			if taui != zero {
@@ -52,17 +51,17 @@ func Dsptrd(uplo mat.MatUplo, n int, ap, d, e, tau *mat.Vector) (err error) {
 				ap.Set(i1+i-1-1, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(1:i)
-				if err = goblas.Dspmv(uplo, i, taui, ap, ap.Off(i1-1, 1), zero, tau.Off(0, 1)); err != nil {
+				if err = tau.Spmv(uplo, i, taui, ap, ap.Off(i1-1), 1, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              Compute  w := y - 1/2 * tau * (y**T *v) * v
-				alpha = -half * taui * goblas.Ddot(i, tau.Off(0, 1), ap.Off(i1-1, 1))
-				goblas.Daxpy(i, alpha, ap.Off(i1-1, 1), tau.Off(0, 1))
+				alpha = -half * taui * ap.Off(i1-1).Dot(i, tau, 1, 1)
+				tau.Axpy(i, alpha, ap.Off(i1-1), 1, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				if err = goblas.Dspr2(uplo, i, -one, ap.Off(i1-1, 1), tau.Off(0, 1), ap); err != nil {
+				if err = ap.Spr2(uplo, i, -one, ap.Off(i1-1), 1, tau, 1); err != nil {
 					panic(err)
 				}
 
@@ -82,7 +81,7 @@ func Dsptrd(uplo mat.MatUplo, n int, ap, d, e, tau *mat.Vector) (err error) {
 
 			//           Generate elementary reflector H(i) = I - tau * v * v**T
 			//           to annihilate A(i+2:n,i)
-			*ap.GetPtr(ii), taui = Dlarfg(n-i, ap.Get(ii), ap.Off(ii+2-1, 1))
+			*ap.GetPtr(ii), taui = Dlarfg(n-i, ap.Get(ii), ap.Off(ii+2-1), 1)
 			e.Set(i-1, ap.Get(ii))
 
 			if taui != zero {
@@ -90,17 +89,17 @@ func Dsptrd(uplo mat.MatUplo, n int, ap, d, e, tau *mat.Vector) (err error) {
 				ap.Set(ii, one)
 
 				//              Compute  y := tau * A * v  storing y in TAU(i:n-1)
-				if err = goblas.Dspmv(uplo, n-i, taui, ap.Off(i1i1-1), ap.Off(ii, 1), zero, tau.Off(i-1, 1)); err != nil {
+				if err = tau.Off(i-1).Spmv(uplo, n-i, taui, ap.Off(i1i1-1), ap.Off(ii), 1, zero, 1); err != nil {
 					panic(err)
 				}
 
 				//              Compute  w := y - 1/2 * tau * (y**T *v) * v
-				alpha = -half * taui * goblas.Ddot(n-i, tau.Off(i-1, 1), ap.Off(ii, 1))
-				goblas.Daxpy(n-i, alpha, ap.Off(ii, 1), tau.Off(i-1, 1))
+				alpha = -half * taui * ap.Off(ii).Dot(n-i, tau.Off(i-1), 1, 1)
+				tau.Off(i-1).Axpy(n-i, alpha, ap.Off(ii), 1, 1)
 
 				//              Apply the transformation as a rank-2 update:
 				//                 A := A - v * w**T - w * v**T
-				if err = goblas.Dspr2(uplo, n-i, -one, ap.Off(ii, 1), tau.Off(i-1, 1), ap.Off(i1i1-1)); err != nil {
+				if err = ap.Off(i1i1-1).Spr2(uplo, n-i, -one, ap.Off(ii), 1, tau.Off(i-1), 1); err != nil {
 					panic(err)
 				}
 

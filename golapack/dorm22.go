@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -87,13 +86,13 @@ func Dorm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.Ma
 
 	//     Degenerate cases (N1 = 0 or N2 = 0) are handled using DTRMM.
 	if n1 == 0 {
-		if err = goblas.Dtrmm(side, Upper, trans, NonUnit, m, n, one, q, c); err != nil {
+		if err = c.Trmm(side, Upper, trans, NonUnit, m, n, one, q); err != nil {
 			panic(err)
 		}
 		work.Set(0, one)
 		return
 	} else if n2 == 0 {
-		if err = goblas.Dtrmm(side, Lower, trans, NonUnit, m, n, one, q, c); err != nil {
+		if err = c.Trmm(side, Lower, trans, NonUnit, m, n, one, q); err != nil {
 			panic(err)
 		}
 		work.Set(0, one)
@@ -111,23 +110,23 @@ func Dorm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.Ma
 
 				//              Multiply bottom part of C by Q12.
 				Dlacpy(Full, n1, len, c.Off(n2, i-1), work.Matrix(ldwork, opts))
-				if err = goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, n1, len, one, q.Off(0, n2), work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Trmm(Left, Lower, NoTrans, NonUnit, n1, len, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q11.
-				if err = goblas.Dgemm(NoTrans, NoTrans, n1, len, n2, one, q, c.Off(0, i-1), one, work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Gemm(NoTrans, NoTrans, n1, len, n2, one, q, c.Off(0, i-1), one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q21.
-				Dlacpy(Full, n2, len, c.Off(0, i-1), work.MatrixOff(n1, ldwork, opts))
-				if err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, n2, len, one, q.Off(n1, 0), work.MatrixOff(n1, ldwork, opts)); err != nil {
+				Dlacpy(Full, n2, len, c.Off(0, i-1), work.Off(n1).Matrix(ldwork, opts))
+				if err = work.Off(n1).Matrix(ldwork, opts).Trmm(Left, Upper, NoTrans, NonUnit, n2, len, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply bottom part of C by Q22.
-				if err = goblas.Dgemm(NoTrans, NoTrans, n2, len, n1, one, q.Off(n1, n2), c.Off(n2, i-1), one, work.MatrixOff(n1, ldwork, opts)); err != nil {
+				if err = work.Off(n1).Matrix(ldwork, opts).Gemm(NoTrans, NoTrans, n2, len, n1, one, q.Off(n1, n2), c.Off(n2, i-1), one); err != nil {
 					panic(err)
 				}
 
@@ -141,23 +140,23 @@ func Dorm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.Ma
 
 				//              Multiply bottom part of C by Q21**T.
 				Dlacpy(Full, n2, len, c.Off(n1, i-1), work.Matrix(ldwork, opts))
-				if err = goblas.Dtrmm(Left, Upper, Trans, NonUnit, n2, len, one, q.Off(n1, 0), work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Trmm(Left, Upper, Trans, NonUnit, n2, len, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q11**T.
-				if err = goblas.Dgemm(Trans, NoTrans, n2, len, n1, one, q, c.Off(0, i-1), one, work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Gemm(Trans, NoTrans, n2, len, n1, one, q, c.Off(0, i-1), one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply top part of C by Q12**T.
-				Dlacpy(Full, n1, len, c.Off(0, i-1), work.MatrixOff(n2, ldwork, opts))
-				if err = goblas.Dtrmm(Left, Lower, Trans, NonUnit, n1, len, one, q.Off(0, n2), work.MatrixOff(n2, ldwork, opts)); err != nil {
+				Dlacpy(Full, n1, len, c.Off(0, i-1), work.Off(n2).Matrix(ldwork, opts))
+				if err = work.Off(n2).Matrix(ldwork, opts).Trmm(Left, Lower, Trans, NonUnit, n1, len, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply bottom part of C by Q22**T.
-				if err = goblas.Dgemm(Trans, NoTrans, n1, len, n2, one, q.Off(n1, n2), c.Off(n1, i-1), one, work.MatrixOff(n2, ldwork, opts)); err != nil {
+				if err = work.Off(n2).Matrix(ldwork, opts).Gemm(Trans, NoTrans, n1, len, n2, one, q.Off(n1, n2), c.Off(n1, i-1), one); err != nil {
 					panic(err)
 				}
 
@@ -173,23 +172,23 @@ func Dorm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.Ma
 
 				//              Multiply right part of C by Q21.
 				Dlacpy(Full, len, n2, c.Off(i-1, n1), work.Matrix(ldwork, opts))
-				if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, len, n2, one, q.Off(n1, 0), work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Trmm(Right, Upper, NoTrans, NonUnit, len, n2, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q11.
-				if err = goblas.Dgemm(NoTrans, NoTrans, len, n2, n1, one, c.Off(i-1, 0), q, one, work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Gemm(NoTrans, NoTrans, len, n2, n1, one, c.Off(i-1, 0), q, one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q12.
-				Dlacpy(Full, len, n1, c.Off(i-1, 0), work.MatrixOff(1+n2*ldwork-1, ldwork, opts))
-				if err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, len, n1, one, q.Off(0, n2), work.MatrixOff(1+n2*ldwork-1, ldwork, opts)); err != nil {
+				Dlacpy(Full, len, n1, c.Off(i-1, 0), work.Off(1+n2*ldwork-1).Matrix(ldwork, opts))
+				if err = work.Off(1+n2*ldwork-1).Matrix(ldwork, opts).Trmm(Right, Lower, NoTrans, NonUnit, len, n1, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply right part of C by Q22.
-				if err = goblas.Dgemm(NoTrans, NoTrans, len, n1, n2, one, c.Off(i-1, n1), q.Off(n1, n2), one, work.MatrixOff(1+n2*ldwork-1, ldwork, opts)); err != nil {
+				if err = work.Off(1+n2*ldwork-1).Matrix(ldwork, opts).Gemm(NoTrans, NoTrans, len, n1, n2, one, c.Off(i-1, n1), q.Off(n1, n2), one); err != nil {
 					panic(err)
 				}
 
@@ -203,23 +202,23 @@ func Dorm22(side mat.MatSide, trans mat.MatTrans, m, n, n1, n2 int, q, c *mat.Ma
 
 				//              Multiply right part of C by Q12**T.
 				Dlacpy(Full, len, n1, c.Off(i-1, n2), work.Matrix(ldwork, opts))
-				if err = goblas.Dtrmm(Right, Lower, Trans, NonUnit, len, n1, one, q.Off(0, n2), work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Trmm(Right, Lower, Trans, NonUnit, len, n1, one, q.Off(0, n2)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q11**T.
-				if err = goblas.Dgemm(NoTrans, Trans, len, n1, n2, one, c.Off(i-1, 0), q, one, work.Matrix(ldwork, opts)); err != nil {
+				if err = work.Matrix(ldwork, opts).Gemm(NoTrans, Trans, len, n1, n2, one, c.Off(i-1, 0), q, one); err != nil {
 					panic(err)
 				}
 
 				//              Multiply left part of C by Q21**T.
-				Dlacpy(Full, len, n2, c.Off(i-1, 0), work.MatrixOff(1+n1*ldwork-1, ldwork, opts))
-				if err = goblas.Dtrmm(Right, Upper, Trans, NonUnit, len, n2, one, q.Off(n1, 0), work.MatrixOff(1+n1*ldwork-1, ldwork, opts)); err != nil {
+				Dlacpy(Full, len, n2, c.Off(i-1, 0), work.Off(1+n1*ldwork-1).Matrix(ldwork, opts))
+				if err = work.Off(1+n1*ldwork-1).Matrix(ldwork, opts).Trmm(Right, Upper, Trans, NonUnit, len, n2, one, q.Off(n1, 0)); err != nil {
 					panic(err)
 				}
 
 				//              Multiply right part of C by Q22**T.
-				if err = goblas.Dgemm(NoTrans, Trans, len, n2, n1, one, c.Off(i-1, n2), q.Off(n1, n2), one, work.MatrixOff(1+n1*ldwork-1, ldwork, opts)); err != nil {
+				if err = work.Off(1+n1*ldwork-1).Matrix(ldwork, opts).Gemm(NoTrans, Trans, len, n2, n1, one, c.Off(i-1, n2), q.Off(n1, n2), one); err != nil {
 					panic(err)
 				}
 

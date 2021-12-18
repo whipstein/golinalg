@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -181,9 +180,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(n-m, one/bii, x.Vector(m, i-1, 1))
+				x.Off(m, i-1).Vector().Scal(n-m, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Dger(n-m, kbt, -one, x.Vector(m, i-1, 1), bb.Vector(kb1-kbt-1, i-1, 1), x.Off(m, i-kbt-1))
+					err = x.Off(m, i-kbt-1).Ger(n-m, kbt, -one, x.Off(m, i-1).Vector(), 1, bb.Off(kb1-kbt-1, i-1).Vector(), 1)
 				}
 			}
 
@@ -229,17 +228,17 @@ label10:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Dlargv(nrt, ab.Vector(0, j2t-1, inca), work.Off(j2t-m-1, ka1), work.Off(n+j2t-m-1, ka1))
+				Dlargv(nrt, ab.Off(0, j2t-1).Vector(), inca, work.Off(j2t-m-1), ka1, work.Off(n+j2t-m-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the right
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(ka1-l-1, j2-1, inca), ab.Vector(ka-l-1, j2, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Dlartv(nr, ab.Off(ka1-l-1, j2-1).Vector(), inca, ab.Off(ka-l-1, j2).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(ka1-1, j2-1, inca), ab.Vector(ka1-1, j2, inca), ab.Vector(ka-1, j2, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+				Dlar2v(nr, ab.Off(ka1-1, j2-1).Vector(), ab.Off(ka1-1, j2).Vector(), ab.Off(ka-1, j2).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 
 			}
 
@@ -247,14 +246,14 @@ label10:
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j2+ka1-l-1, inca), ab.Vector(l, j2+ka1-l-1, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j2+ka1-l-1).Vector(), inca, ab.Off(l, j2+ka1-l-1).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(n-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get(n+j-m-1), work.Get(j-m-1))
+					x.Off(m, j).Vector().Rot(n-m, x.Off(m, j-1).Vector(), 1, 1, work.Get(n+j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -278,7 +277,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + ka + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j2-l, inca), ab.Vector(l, j2-l, inca), work.Off(n+j2-ka-1, ka1), work.Off(j2-ka-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j2-l).Vector(), inca, ab.Off(l, j2-l).Vector(), inca, work.Off(n+j2-ka-1), work.Off(j2-ka-1), ka1)
 				}
 			}
 			nr = (n - j2 + ka) / ka1
@@ -307,16 +306,16 @@ label10:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Dlargv(nr, ab.Vector(0, j2-1, inca), work.Off(j2-1, ka1), work.Off(n+j2-1, ka1))
+				Dlargv(nr, ab.Off(0, j2-1).Vector(), inca, work.Off(j2-1), ka1, work.Off(n+j2-1), ka1)
 
 				//              apply rotations in 2nd set from the right
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(ka1-l-1, j2-1, inca), ab.Vector(ka-l-1, j2, inca), work.Off(n+j2-1, ka1), work.Off(j2-1, ka1))
+					Dlartv(nr, ab.Off(ka1-l-1, j2-1).Vector(), inca, ab.Off(ka-l-1, j2).Vector(), inca, work.Off(n+j2-1), work.Off(j2-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(ka1-1, j2-1, inca), ab.Vector(ka1-1, j2, inca), ab.Vector(ka-1, j2, inca), work.Off(n+j2-1, ka1), work.Off(j2-1, ka1))
+				Dlar2v(nr, ab.Off(ka1-1, j2-1).Vector(), ab.Off(ka1-1, j2).Vector(), ab.Off(ka-1, j2).Vector(), inca, work.Off(n+j2-1), work.Off(j2-1), ka1)
 
 			}
 
@@ -324,14 +323,14 @@ label10:
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j2+ka1-l-1, inca), ab.Vector(l, j2+ka1-l-1, inca), work.Off(n+j2-1, ka1), work.Off(j2-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j2+ka1-l-1).Vector(), inca, ab.Off(l, j2+ka1-l-1).Vector(), inca, work.Off(n+j2-1), work.Off(j2-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(n-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get(n+j-1), work.Get(j-1))
+					x.Off(m, j).Vector().Rot(n-m, x.Off(m, j-1).Vector(), 1, 1, work.Get(n+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -343,7 +342,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j2+ka1-l-1, inca), ab.Vector(l, j2+ka1-l-1, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j2+ka1-l-1).Vector(), inca, ab.Off(l, j2+ka1-l-1).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 		}
@@ -382,9 +381,9 @@ label10:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(n-m, one/bii, x.Vector(m, i-1, 1))
+				x.Off(m, i-1).Vector().Scal(n-m, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Dger(n-m, kbt, -one, x.Vector(m, i-1, 1), bb.Vector(kbt, i-kbt-1, bb.Rows-1), x.Off(m, i-kbt-1))
+					err = x.Off(m, i-kbt-1).Ger(n-m, kbt, -one, x.Off(m, i-1).Vector(), 1, bb.Off(kbt, i-kbt-1).Vector(), bb.Rows-1)
 				}
 			}
 
@@ -430,17 +429,17 @@ label10:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Dlargv(nrt, ab.Vector(ka1-1, j2t-ka-1, inca), work.Off(j2t-m-1, ka1), work.Off(n+j2t-m-1, ka1))
+				Dlargv(nrt, ab.Off(ka1-1, j2t-ka-1).Vector(), inca, work.Off(j2t-m-1), ka1, work.Off(n+j2t-m-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the left
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(l, j2-l-1, inca), ab.Vector(l+2-1, j2-l-1, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Dlartv(nr, ab.Off(l, j2-l-1).Vector(), inca, ab.Off(l+2-1, j2-l-1).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(0, j2-1, inca), ab.Vector(0, j2, inca), ab.Vector(1, j2-1, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+				Dlar2v(nr, ab.Off(0, j2-1).Vector(), ab.Off(0, j2).Vector(), ab.Off(1, j2-1).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				//
 			}
 
@@ -448,14 +447,14 @@ label10:
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j2-1, inca), ab.Vector(ka1-l-1, j2, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j2-1).Vector(), inca, ab.Off(ka1-l-1, j2).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(n-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get(n+j-m-1), work.Get(j-m-1))
+					x.Off(m, j).Vector().Rot(n-m, x.Off(m, j-1).Vector(), 1, 1, work.Get(n+j-m-1), work.Get(j-m-1))
 				}
 			}
 		}
@@ -479,7 +478,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + ka + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j2-ka-1, inca), ab.Vector(ka1-l-1, j2-ka, inca), work.Off(n+j2-ka-1, ka1), work.Off(j2-ka-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j2-ka-1).Vector(), inca, ab.Off(ka1-l-1, j2-ka).Vector(), inca, work.Off(n+j2-ka-1), work.Off(j2-ka-1), ka1)
 				}
 			}
 			nr = (n - j2 + ka) / ka1
@@ -508,16 +507,16 @@ label10:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Dlargv(nr, ab.Vector(ka1-1, j2-ka-1, inca), work.Off(j2-1, ka1), work.Off(n+j2-1, ka1))
+				Dlargv(nr, ab.Off(ka1-1, j2-ka-1).Vector(), inca, work.Off(j2-1), ka1, work.Off(n+j2-1), ka1)
 
 				//              apply rotations in 2nd set from the left
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(l, j2-l-1, inca), ab.Vector(l+2-1, j2-l-1, inca), work.Off(n+j2-1, ka1), work.Off(j2-1, ka1))
+					Dlartv(nr, ab.Off(l, j2-l-1).Vector(), inca, ab.Off(l+2-1, j2-l-1).Vector(), inca, work.Off(n+j2-1), work.Off(j2-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(0, j2-1, inca), ab.Vector(0, j2, inca), ab.Vector(1, j2-1, inca), work.Off(n+j2-1, ka1), work.Off(j2-1, ka1))
+				Dlar2v(nr, ab.Off(0, j2-1).Vector(), ab.Off(0, j2).Vector(), ab.Off(1, j2-1).Vector(), inca, work.Off(n+j2-1), work.Off(j2-1), ka1)
 
 			}
 
@@ -525,14 +524,14 @@ label10:
 			for l = ka - 1; l >= kb-k+1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j2-1, inca), ab.Vector(ka1-l-1, j2, inca), work.Off(n+j2-1, ka1), work.Off(j2-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j2-1).Vector(), inca, ab.Off(ka1-l-1, j2).Vector(), inca, work.Off(n+j2-1), work.Off(j2-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j2; j <= j1; j += ka1 {
-					goblas.Drot(n-m, x.Vector(m, j-1, 1), x.Vector(m, j, 1), work.Get(n+j-1), work.Get(j-1))
+					x.Off(m, j).Vector().Rot(n-m, x.Off(m, j-1).Vector(), 1, 1, work.Get(n+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -544,7 +543,7 @@ label10:
 			for l = kb - k; l >= 1; l-- {
 				nrt = (n - j2 + l) / ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j2-1, inca), ab.Vector(ka1-l-1, j2, inca), work.Off(n+j2-m-1, ka1), work.Off(j2-m-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j2-1).Vector(), inca, ab.Off(ka1-l-1, j2).Vector(), inca, work.Off(n+j2-m-1), work.Off(j2-m-1), ka1)
 				}
 			}
 		}
@@ -637,9 +636,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(nx, one/bii, x.Vector(0, i-1, 1))
+				x.Off(0, i-1).Vector().Scal(nx, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1, 1), bb.Vector(kb-1, i, bb.Rows-1), x.Off(0, i))
+					err = x.Off(0, i).Ger(nx, kbt, -one, x.Off(0, i-1).Vector(), 1, bb.Off(kb-1, i).Vector(), bb.Rows-1)
 				}
 			}
 
@@ -684,17 +683,17 @@ label490:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Dlargv(nrt, ab.Vector(0, j1+ka-1, inca), work.Off(j1-1, ka1), work.Off(n+j1-1, ka1))
+				Dlargv(nrt, ab.Off(0, j1+ka-1).Vector(), inca, work.Off(j1-1), ka1, work.Off(n+j1-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the left
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(ka1-l-1, j1+l-1, inca), ab.Vector(ka-l-1, j1+l-1, inca), work.Off(n+j1-1, ka1), work.Off(j1-1, ka1))
+					Dlartv(nr, ab.Off(ka1-l-1, j1+l-1).Vector(), inca, ab.Off(ka-l-1, j1+l-1).Vector(), inca, work.Off(n+j1-1), work.Off(j1-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(ka1-1, j1-1, inca), ab.Vector(ka1-1, j1-1-1, inca), ab.Vector(ka-1, j1-1, inca), work.Off(n+j1-1, ka1), work.Off(j1-1, ka1))
+				Dlar2v(nr, ab.Off(ka1-1, j1-1).Vector(), ab.Off(ka1-1, j1-1-1).Vector(), ab.Off(ka-1, j1-1).Vector(), inca, work.Off(n+j1-1), work.Off(j1-1), ka1)
 
 			}
 
@@ -703,14 +702,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j1t-1, inca), ab.Vector(l, j1t-1-1, inca), work.Off(n+j1t-1, ka1), work.Off(j1t-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j1t-1).Vector(), inca, ab.Off(l, j1t-1-1).Vector(), inca, work.Off(n+j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get(n+j-1), work.Get(j-1))
+					x.Off(0, j-1-1).Vector().Rot(nx, x.Off(0, j-1).Vector(), 1, 1, work.Get(n+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -735,7 +734,7 @@ label490:
 				nrt = (j2 + ka + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j1t+ka-1, inca), ab.Vector(l, j1t+ka-1-1, inca), work.Off(n+m-kb+j1t+ka-1, ka1), work.Off(m-kb+j1t+ka-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j1t+ka-1).Vector(), inca, ab.Off(l, j1t+ka-1-1).Vector(), inca, work.Off(n+m-kb+j1t+ka-1), work.Off(m-kb+j1t+ka-1), ka1)
 				}
 			}
 			nr = (j2 + ka - 1) / ka1
@@ -764,16 +763,16 @@ label490:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Dlargv(nr, ab.Vector(0, j1+ka-1, inca), work.Off(m-kb+j1-1, ka1), work.Off(n+m-kb+j1-1, ka1))
+				Dlargv(nr, ab.Off(0, j1+ka-1).Vector(), inca, work.Off(m-kb+j1-1), ka1, work.Off(n+m-kb+j1-1), ka1)
 
 				//              apply rotations in 2nd set from the left
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(ka1-l-1, j1+l-1, inca), ab.Vector(ka-l-1, j1+l-1, inca), work.Off(n+m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+					Dlartv(nr, ab.Off(ka1-l-1, j1+l-1).Vector(), inca, ab.Off(ka-l-1, j1+l-1).Vector(), inca, work.Off(n+m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(ka1-1, j1-1, inca), ab.Vector(ka1-1, j1-1-1, inca), ab.Vector(ka-1, j1-1, inca), work.Off(n+m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+				Dlar2v(nr, ab.Off(ka1-1, j1-1).Vector(), ab.Off(ka1-1, j1-1-1).Vector(), ab.Off(ka-1, j1-1).Vector(), inca, work.Off(n+m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 
 			}
 
@@ -782,14 +781,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j1t-1, inca), ab.Vector(l, j1t-1-1, inca), work.Off(n+m-kb+j1t-1, ka1), work.Off(m-kb+j1t-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j1t-1).Vector(), inca, ab.Off(l, j1t-1-1).Vector(), inca, work.Off(n+m-kb+j1t-1), work.Off(m-kb+j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get(n+m-kb+j-1), work.Get(m-kb+j-1))
+					x.Off(0, j-1-1).Vector().Rot(nx, x.Off(0, j-1).Vector(), 1, 1, work.Get(n+m-kb+j-1), work.Get(m-kb+j-1))
 				}
 			}
 		}
@@ -802,7 +801,7 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(l-1, j1t-1, inca), ab.Vector(l, j1t-1-1, inca), work.Off(n+j1t-1, ka1), work.Off(j1t-1, ka1))
+					Dlartv(nrt, ab.Off(l-1, j1t-1).Vector(), inca, ab.Off(l, j1t-1-1).Vector(), inca, work.Off(n+j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 		}
@@ -841,9 +840,9 @@ label490:
 
 			if wantx {
 				//              post-multiply X by inv(S(i))
-				goblas.Dscal(nx, one/bii, x.Vector(0, i-1).Off(0, 1))
+				x.Off(0, i-1).Vector().Scal(nx, one/bii, 1)
 				if kbt > 0 {
-					err = goblas.Dger(nx, kbt, -one, x.Vector(0, i-1, 1), bb.Vector(1, i-1, 1), x.Off(0, i))
+					err = x.Off(0, i).Ger(nx, kbt, -one, x.Off(0, i-1).Vector(), 1, bb.Off(1, i-1).Vector(), 1)
 				}
 			}
 
@@ -888,17 +887,17 @@ label490:
 			//           generate rotations in 1st set to annihilate elements which
 			//           have been created outside the band
 			if nrt > 0 {
-				Dlargv(nrt, ab.Vector(ka1-1, j1-1, inca), work.Off(j1-1, ka1), work.Off(n+j1-1, ka1))
+				Dlargv(nrt, ab.Off(ka1-1, j1-1).Vector(), inca, work.Off(j1-1), ka1, work.Off(n+j1-1), ka1)
 			}
 			if nr > 0 {
 				//              apply rotations in 1st set from the right
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(l, j1-1, inca), ab.Vector(l+2-1, j1-1-1, inca), work.Off(n+j1-1, ka1), work.Off(j1-1, ka1))
+					Dlartv(nr, ab.Off(l, j1-1).Vector(), inca, ab.Off(l+2-1, j1-1-1).Vector(), inca, work.Off(n+j1-1), work.Off(j1-1), ka1)
 				}
 
 				//              apply rotations in 1st set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(0, j1-1, inca), ab.Vector(0, j1-1-1, inca), ab.Vector(1, j1-1-1, inca), work.Off(n+j1-1, ka1), work.Off(j1-1, ka1))
+				Dlar2v(nr, ab.Off(0, j1-1).Vector(), ab.Off(0, j1-1-1).Vector(), ab.Off(1, j1-1-1).Vector(), inca, work.Off(n+j1-1), work.Off(j1-1), ka1)
 
 			}
 
@@ -907,14 +906,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j1t-ka1+l-1, inca), ab.Vector(ka1-l-1, j1t-ka1+l-1, inca), work.Off(n+j1t-1, ka1), work.Off(j1t-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j1t-ka1+l-1).Vector(), inca, ab.Off(ka1-l-1, j1t-ka1+l-1).Vector(), inca, work.Off(n+j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 1st set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get(n+j-1), work.Get(j-1))
+					x.Off(0, j-1-1).Vector().Rot(nx, x.Off(0, j-1).Vector(), 1, 1, work.Get(n+j-1), work.Get(j-1))
 				}
 			}
 		}
@@ -939,7 +938,7 @@ label490:
 				nrt = (j2 + ka + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j1t+l-1-1, inca), ab.Vector(ka1-l-1, j1t+l-1-1, inca), work.Off(n+m-kb+j1t+ka-1, ka1), work.Off(m-kb+j1t+ka-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j1t+l-1-1).Vector(), inca, ab.Off(ka1-l-1, j1t+l-1-1).Vector(), inca, work.Off(n+m-kb+j1t+ka-1), work.Off(m-kb+j1t+ka-1), ka1)
 				}
 			}
 			nr = (j2 + ka - 1) / ka1
@@ -968,16 +967,16 @@ label490:
 			if nr > 0 {
 				//              generate rotations in 2nd set to annihilate elements
 				//              which have been created outside the band
-				Dlargv(nr, ab.Vector(ka1-1, j1-1, inca), work.Off(m-kb+j1-1, ka1), work.Off(n+m-kb+j1-1, ka1))
+				Dlargv(nr, ab.Off(ka1-1, j1-1).Vector(), inca, work.Off(m-kb+j1-1), ka1, work.Off(n+m-kb+j1-1), ka1)
 
 				//              apply rotations in 2nd set from the right
 				for l = 1; l <= ka-1; l++ {
-					Dlartv(nr, ab.Vector(l, j1-1, inca), ab.Vector(l+2-1, j1-1-1, inca), work.Off(n+m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+					Dlartv(nr, ab.Off(l, j1-1).Vector(), inca, ab.Off(l+2-1, j1-1-1).Vector(), inca, work.Off(n+m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 				}
 
 				//              apply rotations in 2nd set from both sides to diagonal
 				//              blocks
-				Dlar2v(nr, ab.Vector(0, j1-1, inca), ab.Vector(0, j1-1-1, inca), ab.Vector(1, j1-1-1, inca), work.Off(n+m-kb+j1-1, ka1), work.Off(m-kb+j1-1, ka1))
+				Dlar2v(nr, ab.Off(0, j1-1).Vector(), ab.Off(0, j1-1-1).Vector(), ab.Off(1, j1-1-1).Vector(), inca, work.Off(n+m-kb+j1-1), work.Off(m-kb+j1-1), ka1)
 
 			}
 
@@ -986,14 +985,14 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j1t-ka1+l-1, inca), ab.Vector(ka1-l-1, j1t-ka1+l-1, inca), work.Off(n+m-kb+j1t-1, ka1), work.Off(m-kb+j1t-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j1t-ka1+l-1).Vector(), inca, ab.Off(ka1-l-1, j1t-ka1+l-1).Vector(), inca, work.Off(n+m-kb+j1t-1), work.Off(m-kb+j1t-1), ka1)
 				}
 			}
 
 			if wantx {
 				//              post-multiply X by product of rotations in 2nd set
 				for j = j1; j <= j2; j += ka1 {
-					goblas.Drot(nx, x.Vector(0, j-1, 1), x.Vector(0, j-1-1, 1), work.Get(n+m-kb+j-1), work.Get(m-kb+j-1))
+					x.Off(0, j-1-1).Vector().Rot(nx, x.Off(0, j-1).Vector(), 1, 1, work.Get(n+m-kb+j-1), work.Get(m-kb+j-1))
 				}
 			}
 		}
@@ -1006,7 +1005,7 @@ label490:
 				nrt = (j2 + l - 1) / ka1
 				j1t = j2 - (nrt-1)*ka1
 				if nrt > 0 {
-					Dlartv(nrt, ab.Vector(ka1-l, j1t-ka1+l-1, inca), ab.Vector(ka1-l-1, j1t-ka1+l-1, inca), work.Off(n+j1t-1, ka1), work.Off(j1t-1, ka1))
+					Dlartv(nrt, ab.Off(ka1-l, j1t-ka1+l-1).Vector(), inca, ab.Off(ka1-l-1, j1t-ka1+l-1).Vector(), inca, work.Off(n+j1t-1), work.Off(j1t-1), ka1)
 				}
 			}
 		}

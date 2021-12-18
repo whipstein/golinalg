@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -45,8 +44,8 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 			}
 		} else {
 			//           Scale supplied initial vector.
-			vnorm = goblas.Dnrm2(n, vr.Off(0, 1))
-			goblas.Dscal(n, (eps3*rootn)/math.Max(vnorm, nrmsml), vr.Off(0, 1))
+			vnorm = vr.Nrm2(n, 1)
+			vr.Scal(n, (eps3*rootn)/math.Max(vnorm, nrmsml), 1)
 		}
 
 		if rightv {
@@ -128,7 +127,7 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 			normin = 'Y'
 
 			//           Test for sufficient growth in the norm of v.
-			vnorm = goblas.Dasum(n, vr.Off(0, 1))
+			vnorm = vr.Asum(n, 1)
 			if vnorm >= growto*scale {
 				goto label120
 			}
@@ -149,8 +148,8 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 		;
 
 		//        Normalize eigenvector.
-		i = goblas.Idamax(n, vr.Off(0, 1))
-		goblas.Dscal(n, one/math.Abs(vr.Get(i-1)), vr.Off(0, 1))
+		i = vr.Iamax(n, 1)
+		vr.Scal(n, one/math.Abs(vr.Get(i-1)), 1)
 	} else {
 		//        Complex eigenvalue.
 		if noinit {
@@ -161,10 +160,10 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 			}
 		} else {
 			//           Scale supplied initial vector.
-			norm = Dlapy2(goblas.Dnrm2(n, vr.Off(0, 1)), goblas.Dnrm2(n, vi.Off(0, 1)))
+			norm = Dlapy2(vr.Nrm2(n, 1), vi.Nrm2(n, 1))
 			rec = (eps3 * rootn) / math.Max(norm, nrmsml)
-			goblas.Dscal(n, rec, vr.Off(0, 1))
-			goblas.Dscal(n, rec, vi.Off(0, 1))
+			vr.Scal(n, rec, 1)
+			vi.Scal(n, rec, 1)
 		}
 
 		if rightv {
@@ -215,7 +214,7 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 				}
 
 				//              Compute 1-norm of offdiagonal elements of i-th row.
-				work.Set(i-1, goblas.Dasum(n-i, b.Vector(i-1, i))+goblas.Dasum(n-i, b.Vector(i+2-1, i-1, 1)))
+				work.Set(i-1, b.Off(i-1, i).Vector().Asum(n-i, b.Rows)+b.Off(i+2-1, i-1).Vector().Asum(n-i, 1))
 			}
 			if b.Get(n-1, n-1) == zero && b.Get(n, n-1) == zero {
 				b.Set(n-1, n-1, eps3)
@@ -273,7 +272,7 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 				}
 
 				//              Compute 1-norm of offdiagonal elements of j-th column.
-				work.Set(j-1, goblas.Dasum(j-1, b.Vector(0, j-1, 1))+goblas.Dasum(j-1, b.Vector(j, 0)))
+				work.Set(j-1, b.Off(0, j-1).Vector().Asum(j-1, 1)+b.Off(j, 0).Vector().Asum(j-1, b.Rows))
 			}
 			if b.Get(0, 0) == zero && b.Get(1, 0) == zero {
 				b.Set(0, 0, eps3)
@@ -297,8 +296,8 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 
 				if work.Get(i-1) > vcrit {
 					rec = one / vmax
-					goblas.Dscal(n, rec, vr.Off(0, 1))
-					goblas.Dscal(n, rec, vi.Off(0, 1))
+					vr.Scal(n, rec, 1)
+					vi.Scal(n, rec, 1)
 					scale = scale * rec
 					vmax = one
 					vcrit = bignum
@@ -324,8 +323,8 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 						w1 = math.Abs(xr) + math.Abs(xi)
 						if w1 > w*bignum {
 							rec = one / w1
-							goblas.Dscal(n, rec, vr.Off(0, 1))
-							goblas.Dscal(n, rec, vi.Off(0, 1))
+							vr.Scal(n, rec, 1)
+							vi.Scal(n, rec, 1)
 							xr = vr.Get(i - 1)
 							xi = vi.Get(i - 1)
 							scale = scale * rec
@@ -353,7 +352,7 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 			}
 
 			//           Test for sufficient growth in the norm of (VR,VI).
-			vnorm = goblas.Dasum(n, vr.Off(0, 1)) + goblas.Dasum(n, vi.Off(0, 1))
+			vnorm = vr.Asum(n, 1) + vi.Asum(n, 1)
 			if vnorm >= growto*scale {
 				goto label280
 			}
@@ -381,8 +380,8 @@ func Dlaein(rightv, noinit bool, n int, h *mat.Matrix, wr, wi float64, vr, vi *m
 		for i = 1; i <= n; i++ {
 			vnorm = math.Max(vnorm, math.Abs(vr.Get(i-1))+math.Abs(vi.Get(i-1)))
 		}
-		goblas.Dscal(n, one/vnorm, vr.Off(0, 1))
-		goblas.Dscal(n, one/vnorm, vi.Off(0, 1))
+		vr.Scal(n, one/vnorm, 1)
+		vi.Scal(n, one/vnorm, 1)
 
 	}
 

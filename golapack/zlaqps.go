@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -41,10 +40,10 @@ label10:
 		rk = offset + k
 
 		//        Determine ith pivot column and swap if necessary
-		pvt = (k - 1) + goblas.Idamax(n-k+1, vn1.Off(k-1, 1))
+		pvt = (k - 1) + vn1.Off(k-1).Iamax(n-k+1, 1)
 		if pvt != k {
-			goblas.Zswap(m, a.CVector(0, pvt-1, 1), a.CVector(0, k-1, 1))
-			goblas.Zswap(k-1, f.CVector(pvt-1, 0), f.CVector(k-1, 0))
+			a.Off(0, k-1).CVector().Swap(m, a.Off(0, pvt-1).CVector(), 1, 1)
+			f.Off(k-1, 0).CVector().Swap(k-1, f.Off(pvt-1, 0).CVector(), f.Rows, f.Rows)
 			itemp = (*jpvt)[pvt-1]
 			(*jpvt)[pvt-1] = (*jpvt)[k-1]
 			(*jpvt)[k-1] = itemp
@@ -58,7 +57,7 @@ label10:
 			for j = 1; j <= k-1; j++ {
 				f.Set(k-1, j-1, f.GetConj(k-1, j-1))
 			}
-			if err = goblas.Zgemv(NoTrans, m-rk+1, k-1, -cone, a.Off(rk-1, 0), f.CVector(k-1, 0), cone, a.CVector(rk-1, k-1, 1)); err != nil {
+			if err = a.Off(rk-1, k-1).CVector().Gemv(NoTrans, m-rk+1, k-1, -cone, a.Off(rk-1, 0), f.Off(k-1, 0).CVector(), f.Rows, cone, 1); err != nil {
 				panic(err)
 			}
 			for j = 1; j <= k-1; j++ {
@@ -68,9 +67,9 @@ label10:
 
 		//        Generate elementary reflector H(k).
 		if rk < m {
-			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Zlarfg(m-rk+1, a.Get(rk-1, k-1), a.CVector(rk, k-1, 1))
+			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Zlarfg(m-rk+1, a.Get(rk-1, k-1), a.Off(rk, k-1).CVector(), 1)
 		} else {
-			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Zlarfg(1, a.Get(rk-1, k-1), a.CVector(rk-1, k-1, 1))
+			*a.GetPtr(rk-1, k-1), *tau.GetPtr(k - 1) = Zlarfg(1, a.Get(rk-1, k-1), a.Off(rk-1, k-1).CVector(), 1)
 		}
 
 		akk = a.Get(rk-1, k-1)
@@ -80,7 +79,7 @@ label10:
 		//
 		//        Compute  F(K+1:N,K) := tau(K)*A(RK:M,K+1:N)**H*A(RK:M,K).
 		if k < n {
-			if err = goblas.Zgemv(ConjTrans, m-rk+1, n-k, tau.Get(k-1), a.Off(rk-1, k), a.CVector(rk-1, k-1, 1), czero, f.CVector(k, k-1, 1)); err != nil {
+			if err = f.Off(k, k-1).CVector().Gemv(ConjTrans, m-rk+1, n-k, tau.Get(k-1), a.Off(rk-1, k), a.Off(rk-1, k-1).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -94,11 +93,11 @@ label10:
 		//        F(1:N,K) := F(1:N,K) - tau(K)*F(1:N,1:K-1)*A(RK:M,1:K-1)**H
 		//                    *A(RK:M,K).
 		if k > 1 {
-			if err = goblas.Zgemv(ConjTrans, m-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), a.CVector(rk-1, k-1, 1), czero, auxv.Off(0, 1)); err != nil {
+			if err = auxv.Gemv(ConjTrans, m-rk+1, k-1, -tau.Get(k-1), a.Off(rk-1, 0), a.Off(rk-1, k-1).CVector(), 1, czero, 1); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemv(NoTrans, n, k-1, cone, f, auxv.Off(0, 1), cone, f.CVector(0, k-1, 1)); err != nil {
+			if err = f.Off(0, k-1).CVector().Gemv(NoTrans, n, k-1, cone, f, auxv, 1, cone, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -106,7 +105,7 @@ label10:
 		//        Update the current row of A:
 		//        A(RK,K+1:N) := A(RK,K+1:N) - A(RK,1:K)*F(K+1:N,1:K)**H.
 		if k < n {
-			if err = goblas.Zgemm(NoTrans, ConjTrans, 1, n-k, k, -cone, a.Off(rk-1, 0), f.Off(k, 0), cone, a.Off(rk-1, k)); err != nil {
+			if err = a.Off(rk-1, k).Gemm(NoTrans, ConjTrans, 1, n-k, k, -cone, a.Off(rk-1, 0), f.Off(k, 0), cone); err != nil {
 				panic(err)
 			}
 		}
@@ -142,7 +141,7 @@ label10:
 	//     A(OFFSET+KB+1:M,KB+1:N) := A(OFFSET+KB+1:M,KB+1:N) -
 	//                         A(OFFSET+KB+1:M,1:KB)*F(KB+1:N,1:KB)**H.
 	if kb < min(n, m-offset) {
-		if err = goblas.Zgemm(NoTrans, ConjTrans, m-rk, n-kb, kb, -cone, a.Off(rk, 0), f.Off(kb, 0), cone, a.Off(rk, kb)); err != nil {
+		if err = a.Off(rk, kb).Gemm(NoTrans, ConjTrans, m-rk, n-kb, kb, -cone, a.Off(rk, 0), f.Off(kb, 0), cone); err != nil {
 			panic(err)
 		}
 	}
@@ -152,7 +151,7 @@ label60:
 	;
 	if lsticc > 0 {
 		itemp = int(math.Round(vn2.Get(lsticc - 1)))
-		vn1.Set(lsticc-1, goblas.Dznrm2(m-rk, a.CVector(rk, lsticc-1, 1)))
+		vn1.Set(lsticc-1, a.Off(rk, lsticc-1).CVector().Nrm2(m-rk, 1))
 
 		//        NOTE: The computation of VN1( LSTICC ) relies on the fact that
 		//        SNRM2 does not fail on vectors with norm below the value of

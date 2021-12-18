@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -64,14 +63,14 @@ func Zggbak(job byte, side mat.MatSide, n, ilo, ihi int, lscale, rscale *mat.Vec
 		//        Backward transformation on right eigenvectors
 		if rightv {
 			for i = ilo; i <= ihi; i++ {
-				goblas.Zdscal(m, rscale.Get(i-1), v.CVector(i-1, 0))
+				v.Off(i-1, 0).CVector().Dscal(m, rscale.Get(i-1), v.Rows)
 			}
 		}
 
 		//        Backward transformation on left eigenvectors
 		if leftv {
 			for i = ilo; i <= ihi; i++ {
-				goblas.Zdscal(m, lscale.Get(i-1), v.CVector(i-1, 0))
+				v.Off(i-1, 0).CVector().Dscal(m, lscale.Get(i-1), v.Rows)
 			}
 		}
 	}
@@ -90,7 +89,7 @@ label30:
 				if k == i {
 					goto label40
 				}
-				goblas.Zswap(m, v.CVector(i-1, 0), v.CVector(k-1, 0))
+				v.Off(k-1, 0).CVector().Swap(m, v.Off(i-1, 0).CVector(), v.Rows, v.Rows)
 			label40:
 			}
 
@@ -104,7 +103,7 @@ label30:
 				if k == i {
 					goto label60
 				}
-				goblas.Zswap(m, v.CVector(i-1, 0), v.CVector(k-1, 0))
+				v.Off(k-1, 0).CVector().Swap(m, v.Off(i-1, 0).CVector(), v.Rows, v.Rows)
 			label60:
 			}
 		}
@@ -121,7 +120,7 @@ label30:
 				if k == i {
 					goto label80
 				}
-				goblas.Zswap(m, v.CVector(i-1, 0), v.CVector(k-1, 0))
+				v.Off(k-1, 0).CVector().Swap(m, v.Off(i-1, 0).CVector(), v.Rows, v.Rows)
 			label80:
 			}
 
@@ -135,7 +134,7 @@ label30:
 				if k == i {
 					goto label100
 				}
-				goblas.Zswap(m, v.CVector(i-1, 0), v.CVector(k-1, 0))
+				v.Off(k-1, 0).CVector().Swap(m, v.Off(i-1, 0).CVector(), v.Rows, v.Rows)
 			label100:
 			}
 		}

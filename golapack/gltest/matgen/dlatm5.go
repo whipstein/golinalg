@@ -3,7 +3,6 @@ package matgen
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -219,16 +218,16 @@ func Dlatm5(prtype, m, n int, a, b, c, d, e, f, r, l *mat.Matrix, alpha float64,
 	}
 
 	//     Compute rhs (C, F)
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, a, r, zero, c); err != nil {
+	if err = c.Gemm(NoTrans, NoTrans, m, n, m, one, a, r, zero); err != nil {
 		panic(err)
 	}
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, -one, l, b, one, c); err != nil {
+	if err = c.Gemm(NoTrans, NoTrans, m, n, n, -one, l, b, one); err != nil {
 		panic(err)
 	}
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, d, r, zero, f); err != nil {
+	if err = f.Gemm(NoTrans, NoTrans, m, n, m, one, d, r, zero); err != nil {
 		panic(err)
 	}
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, n, -one, l, e, one, f); err != nil {
+	if err = f.Gemm(NoTrans, NoTrans, m, n, n, -one, l, e, one); err != nil {
 		panic(err)
 	}
 }

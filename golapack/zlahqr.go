@@ -4,7 +4,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -59,10 +58,10 @@ func Zlahqr(wantt, wantz bool, n, ilo, ihi int, h *mat.CMatrix, w *mat.CVector, 
 			sc = h.Get(i-1, i-1-1) / complex(cabs1(h.Get(i-1, i-1-1)), 0)
 			sc = cmplx.Conj(sc) / complex(cmplx.Abs(sc), 0)
 			h.SetRe(i-1, i-1-1, h.GetMag(i-1, i-1-1))
-			goblas.Zscal(jhi-i+1, sc, h.CVector(i-1, i-1))
-			goblas.Zscal(min(jhi, i+1)-jlo+1, cmplx.Conj(sc), h.CVector(jlo-1, i-1, 1))
+			h.Off(i-1, i-1).CVector().Scal(jhi-i+1, sc, h.Rows)
+			h.Off(jlo-1, i-1).CVector().Scal(min(jhi, i+1)-jlo+1, cmplx.Conj(sc), 1)
 			if wantz {
-				goblas.Zscal(ihiz-iloz+1, cmplx.Conj(sc), z.CVector(iloz-1, i-1, 1))
+				z.Off(iloz-1, i-1).CVector().Scal(ihiz-iloz+1, cmplx.Conj(sc), 1)
 			}
 		}
 	}
@@ -227,9 +226,9 @@ label30:
 			//           V(2) is always real before the call to ZLARFG, and hence
 			//           after the call T2 ( = T1*V(2) ) is also real.
 			if k > m {
-				goblas.Zcopy(2, h.CVector(k-1, k-1-1, 1), v.Off(0, 1))
+				v.Copy(2, h.Off(k-1, k-1-1).CVector(), 1, 1)
 			}
-			*v.GetPtr(0), t1 = Zlarfg(2, v.Get(0), v.Off(1, 1))
+			*v.GetPtr(0), t1 = Zlarfg(2, v.Get(0), v.Off(1), 1)
 			if k > m {
 				h.Set(k-1, k-1-1, v.Get(0))
 				h.Set(k, k-1-1, zero)
@@ -276,11 +275,11 @@ label30:
 				for j = m; j <= i; j++ {
 					if j != m+1 {
 						if i2 > j {
-							goblas.Zscal(i2-j, temp, h.CVector(j-1, j))
+							h.Off(j-1, j).CVector().Scal(i2-j, temp, h.Rows)
 						}
-						goblas.Zscal(j-i1, cmplx.Conj(temp), h.CVector(i1-1, j-1, 1))
+						h.Off(i1-1, j-1).CVector().Scal(j-i1, cmplx.Conj(temp), 1)
 						if wantz {
-							goblas.Zscal(nz, cmplx.Conj(temp), z.CVector(iloz-1, j-1, 1))
+							z.Off(iloz-1, j-1).CVector().Scal(nz, cmplx.Conj(temp), 1)
 						}
 					}
 				}
@@ -294,11 +293,11 @@ label30:
 			h.SetRe(i-1, i-1-1, rtemp)
 			temp = temp / complex(rtemp, 0)
 			if i2 > i {
-				goblas.Zscal(i2-i, cmplx.Conj(temp), h.CVector(i-1, i))
+				h.Off(i-1, i).CVector().Scal(i2-i, cmplx.Conj(temp), h.Rows)
 			}
-			goblas.Zscal(i-i1, temp, h.CVector(i1-1, i-1, 1))
+			h.Off(i1-1, i-1).CVector().Scal(i-i1, temp, 1)
 			if wantz {
-				goblas.Zscal(nz, temp, z.CVector(iloz-1, i-1, 1))
+				z.Off(iloz-1, i-1).CVector().Scal(nz, temp, 1)
 			}
 		}
 

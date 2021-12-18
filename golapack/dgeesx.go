@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -237,7 +236,7 @@ func Dgeesx(jobvs, sort byte, _select dslectFunc, sense byte, n int, a *mat.Matr
 		if err = Dlascl('H', 0, 0, cscale, anrm, n, n, a); err != nil {
 			panic(err)
 		}
-		goblas.Dcopy(n, a.Vector(0, 0, a.Rows+1), wr)
+		wr.Copy(n, a.Off(0, 0).Vector(), a.Rows+1, 1)
 		if (wantsv || wantsb) && info == 0 {
 			dum.Set(0, rcondv)
 			if err = Dlascl('G', 0, 0, cscale, anrm, 1, 1, dum.Matrix(1, opts)); err != nil {
@@ -277,13 +276,13 @@ func Dgeesx(jobvs, sort byte, _select dslectFunc, sense byte, n int, a *mat.Matr
 						wi.Set(i-1, zero)
 						wi.Set(i, zero)
 						if i > 1 {
-							goblas.Dswap(i-1, a.Vector(0, i-1, 1), a.Vector(0, i, 1))
+							a.Off(0, i).Vector().Swap(i-1, a.Off(0, i-1).Vector(), 1, 1)
 						}
 						if n > i+1 {
-							goblas.Dswap(n-i-1, a.Vector(i-1, i+2-1), a.Vector(i, i+2-1))
+							a.Off(i, i+2-1).Vector().Swap(n-i-1, a.Off(i-1, i+2-1).Vector(), a.Rows, a.Rows)
 						}
 						if wantvs {
-							goblas.Dswap(n, vs.Vector(0, i-1, 1), vs.Vector(0, i, 1))
+							vs.Off(0, i).Vector().Swap(n, vs.Off(0, i-1).Vector(), 1, 1)
 						}
 						a.Set(i-1, i, a.Get(i, i-1))
 						a.Set(i, i-1, zero)
@@ -293,7 +292,7 @@ func Dgeesx(jobvs, sort byte, _select dslectFunc, sense byte, n int, a *mat.Matr
 			label20:
 			}
 		}
-		if err = Dlascl('G', 0, 0, cscale, anrm, n-ieval, 1, wi.MatrixOff(ieval, max(n-ieval, 1), opts)); err != nil {
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-ieval, 1, wi.Off(ieval).Matrix(max(n-ieval, 1), opts)); err != nil {
 			panic(err)
 		}
 	}

@@ -47,7 +47,7 @@ func DsysvAa2stage(uplo mat.MatUplo, n, nrhs int, a, tb *mat.Matrix, ltb int, ip
 	}
 
 	if err == nil {
-		if info, err = DsytrfAa2stage(uplo, n, a, tb.VectorIdx(0), -1, ipiv, ipiv2, work, -1); err != nil {
+		if info, err = DsytrfAa2stage(uplo, n, a, tb.OffIdx(0).Vector(), -1, ipiv, ipiv2, work, -1); err != nil {
 			panic(err)
 		}
 		lwkopt = int(work.Get(0))
@@ -61,12 +61,12 @@ func DsysvAa2stage(uplo mat.MatUplo, n, nrhs int, a, tb *mat.Matrix, ltb int, ip
 	}
 
 	//     Compute the factorization A = U**T*T*U or A = L*T*L**T.
-	if info, err = DsytrfAa2stage(uplo, n, a, tb.VectorIdx(0), ltb, ipiv, ipiv2, work, lwork); err != nil {
+	if info, err = DsytrfAa2stage(uplo, n, a, tb.OffIdx(0).Vector(), ltb, ipiv, ipiv2, work, lwork); err != nil {
 		panic(err)
 	}
 	if info == 0 {
 		//        Solve the system A*X = B, overwriting B with X.
-		if info, err = DsytrsAa2stage(uplo, n, nrhs, a, tb.VectorIdx(0), ltb, ipiv, ipiv2, b); err != nil {
+		if info, err = DsytrsAa2stage(uplo, n, nrhs, a, tb.OffIdx(0).Vector(), ltb, ipiv, ipiv2, b); err != nil {
 			panic(err)
 		}
 

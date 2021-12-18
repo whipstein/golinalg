@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -119,17 +118,17 @@ func dspt21(itype int, uplo mat.MatUplo, n, kband int, ap, d, e *mat.Vector, u *
 	if itype == 1 {
 		//        ITYPE=1: error = A - U S U**T
 		golapack.Dlaset(Full, n, n, zero, zero, work.Matrix(n, opts))
-		goblas.Dcopy(lap, ap.Off(0, 1), work.Off(0, 1))
+		work.Copy(lap, ap, 1, 1)
 
 		for j = 1; j <= n; j++ {
-			if err = goblas.Dspr(cuplo, n, -d.Get(j-1), u.Vector(0, j-1, 1), work); err != nil {
+			if err = work.Spr(cuplo, n, -d.Get(j-1), u.Off(0, j-1).Vector(), 1); err != nil {
 				panic(err)
 			}
 		}
 
 		if n > 1 && kband == 1 {
 			for j = 1; j <= n-1; j++ {
-				if err = goblas.Dspr2(cuplo, n, -e.Get(j-1), u.Vector(0, j-1, 1), u.Vector(0, j, 1), work); err != nil {
+				if err = work.Spr2(cuplo, n, -e.Get(j-1), u.Off(0, j-1).Vector(), 1, u.Off(0, j).Vector(), 1); err != nil {
 					panic(err)
 				}
 			}
@@ -155,12 +154,12 @@ func dspt21(itype int, uplo mat.MatUplo, n, kband int, ap, d, e *mat.Vector, u *
 				if tau.Get(j-1) != zero {
 					vsave = vp.Get(jp + j + 1 - 1)
 					vp.Set(jp+j, one)
-					if err = goblas.Dspmv(Lower, n-j, one, work.Off(jp1+j), vp.Off(jp+j, 1), zero, work.Off(lap, 1)); err != nil {
+					if err = work.Off(lap).Spmv(Lower, n-j, one, work.Off(jp1+j), vp.Off(jp+j), 1, zero, 1); err != nil {
 						panic(err)
 					}
-					temp = -half * tau.Get(j-1) * goblas.Ddot(n-j, work.Off(lap, 1), vp.Off(jp+j, 1))
-					goblas.Daxpy(n-j, temp, vp.Off(jp+j, 1), work.Off(lap, 1))
-					if err = goblas.Dspr2(Lower, n-j, -tau.Get(j-1), vp.Off(jp+j, 1), work.Off(lap, 1), work.Off(jp1+j)); err != nil {
+					temp = -half * tau.Get(j-1) * vp.Off(jp+j).Dot(n-j, work.Off(lap), 1, 1)
+					work.Off(lap).Axpy(n-j, temp, vp.Off(jp+j), 1, 1)
+					if err = work.Off(jp1+j).Spr2(Lower, n-j, -tau.Get(j-1), vp.Off(jp+j), 1, work.Off(lap), 1); err != nil {
 						panic(err)
 					}
 					vp.Set(jp+j, vsave)
@@ -182,12 +181,12 @@ func dspt21(itype int, uplo mat.MatUplo, n, kband int, ap, d, e *mat.Vector, u *
 				if tau.Get(j-1) != zero {
 					vsave = vp.Get(jp1 + j - 1)
 					vp.Set(jp1+j-1, one)
-					if err = goblas.Dspmv(Upper, j, one, work, vp.Off(jp1, 1), zero, work.Off(lap, 1)); err != nil {
+					if err = work.Off(lap).Spmv(Upper, j, one, work, vp.Off(jp1), 1, zero, 1); err != nil {
 						panic(err)
 					}
-					temp = -half * tau.Get(j-1) * goblas.Ddot(j, work.Off(lap, 1), vp.Off(jp1, 1))
-					goblas.Daxpy(j, temp, vp.Off(jp1, 1), work.Off(lap, 1))
-					if err = goblas.Dspr2(Upper, j, -tau.Get(j-1), vp.Off(jp1, 1), work.Off(lap, 1), work); err != nil {
+					temp = -half * tau.Get(j-1) * vp.Off(jp1).Dot(j, work.Off(lap), 1, 1)
+					work.Off(lap).Axpy(j, temp, vp.Off(jp1), 1, 1)
+					if err = work.Spr2(Upper, j, -tau.Get(j-1), vp.Off(jp1), 1, work.Off(lap), 1); err != nil {
 						panic(err)
 					}
 					vp.Set(jp1+j-1, vsave)
@@ -233,7 +232,7 @@ func dspt21(itype int, uplo mat.MatUplo, n, kband int, ap, d, e *mat.Vector, u *
 	//
 	//     Compute  U U**T - I
 	if itype == 1 {
-		if err = goblas.Dgemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero, work.Matrix(n, opts)); err != nil {
+		if err = work.Matrix(n, opts).Gemm(NoTrans, ConjTrans, n, n, n, one, u, u, zero); err != nil {
 			panic(err)
 		}
 

@@ -3,7 +3,6 @@ package lin
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -69,18 +68,18 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 				//
 				//              Multiply by the diagonal element if forming U * D.
 				if nounit {
-					goblas.Dscal(nrhs, a.Get(k-1, k-1), b.Vector(k-1, 0))
+					b.Off(k-1, 0).Vector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformation.
-					err = goblas.Dger(k-1, nrhs, one, a.Vector(0, k-1, 1), b.Vector(k-1, 0), b)
+					err = b.Ger(k-1, nrhs, one, a.Off(0, k-1).Vector(), 1, b.Off(k-1, 0).Vector(), b.Rows)
 
 					//                 Interchange if P(K) .ne. I.
 					kp = ipiv[k-1]
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 				}
 				k = k + 1
@@ -104,8 +103,8 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformations.
-					err = goblas.Dger(k-1, nrhs, one, a.Vector(0, k-1, 1), b.Vector(k-1, 0), b)
-					err = goblas.Dger(k-1, nrhs, one, a.Vector(0, k, 1), b.Vector(k, 0), b)
+					err = b.Ger(k-1, nrhs, one, a.Off(0, k-1).Vector(), 1, b.Off(k-1, 0).Vector(), b.Rows)
+					err = b.Ger(k-1, nrhs, one, a.Off(0, k).Vector(), 1, b.Off(k, 0).Vector(), b.Rows)
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
@@ -113,13 +112,13 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					//                 Swap the first of pair with IMAXth
 					kp = abs(ipiv[k-1])
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 NOW swap the first of pair with Pth
 					kp = abs(ipiv[k])
 					if kp != k+1 {
-						goblas.Dswap(nrhs, b.Vector(k, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k, 0).Vector(), b.Rows, b.Rows)
 					}
 				}
 				k = k + 2
@@ -145,7 +144,7 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 				//
 				//              Multiply by the diagonal element if forming L * D.
 				if nounit {
-					goblas.Dscal(nrhs, a.Get(k-1, k-1), b.Vector(k-1, 0))
+					b.Off(k-1, 0).Vector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
@@ -153,12 +152,12 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					kp = ipiv[k-1]
 
 					//                 Apply the transformation.
-					err = goblas.Dger(n-k, nrhs, one, a.Vector(k, k-1, 1), b.Vector(k-1, 0), b.Off(k, 0))
+					err = b.Off(k, 0).Ger(n-k, nrhs, one, a.Off(k, k-1).Vector(), 1, b.Off(k-1, 0).Vector(), b.Rows)
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 				}
 				k = k - 1
@@ -183,8 +182,8 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
 				if k != n {
 					//                 Apply the transformation.
-					err = goblas.Dger(n-k, nrhs, one, a.Vector(k, k-1, 1), b.Vector(k-1, 0), b.Off(k, 0))
-					err = goblas.Dger(n-k, nrhs, one, a.Vector(k, k-1-1, 1), b.Vector(k-1-1, 0), b.Off(k, 0))
+					err = b.Off(k, 0).Ger(n-k, nrhs, one, a.Off(k, k-1).Vector(), 1, b.Off(k-1, 0).Vector(), b.Rows)
+					err = b.Off(k, 0).Ger(n-k, nrhs, one, a.Off(k, k-1-1).Vector(), 1, b.Off(k-1-1, 0).Vector(), b.Rows)
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
@@ -192,13 +191,13 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					//                 Swap the second of pair with IMAXth
 					kp = abs(ipiv[k-1])
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 NOW swap the first of pair with Pth
 					kp = abs(ipiv[k-1-1])
 					if kp != k-1 {
-						goblas.Dswap(nrhs, b.Vector(k-1-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1-1, 0).Vector(), b.Rows, b.Rows)
 					}
 				}
 				k = k - 2
@@ -230,14 +229,14 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					//                 Interchange if P(K) .ne. I.
 					kp = ipiv[k-1]
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformation
-					err = goblas.Dgemv(mat.Trans, k-1, nrhs, one, b, a.Vector(0, k-1, 1), one, b.Vector(k-1, 0))
+					err = b.Off(k-1, 0).Vector().Gemv(Trans, k-1, nrhs, one, b, a.Off(0, k-1).Vector(), 1, one, b.Rows)
 				}
 				if nounit {
-					goblas.Dscal(nrhs, a.Get(k-1, k-1), b.Vector(k-1, 0))
+					b.Off(k-1, 0).Vector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 				k = k - 1
 
@@ -247,18 +246,18 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					//                 Swap the second of pair with Pth
 					kp = abs(ipiv[k-1])
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 Now swap the first of pair with IMAX(r)th
 					kp = abs(ipiv[k-1-1])
 					if kp != k-1 {
-						goblas.Dswap(nrhs, b.Vector(k-1-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformations
-					err = goblas.Dgemv(mat.Trans, k-2, nrhs, one, b, a.Vector(0, k-1, 1), one, b.Vector(k-1, 0))
-					err = goblas.Dgemv(mat.Trans, k-2, nrhs, one, b, a.Vector(0, k-1-1, 1), one, b.Vector(k-1-1, 0))
+					err = b.Off(k-1, 0).Vector().Gemv(Trans, k-2, nrhs, one, b, a.Off(0, k-1).Vector(), 1, one, b.Rows)
+					err = b.Off(k-1-1, 0).Vector().Gemv(Trans, k-2, nrhs, one, b, a.Off(0, k-1-1).Vector(), 1, one, b.Rows)
 				}
 
 				//              Multiply by the diagonal block if non-unit.
@@ -297,14 +296,14 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					//                 Interchange if P(K) .ne. I.
 					kp = ipiv[k-1]
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformation
-					err = goblas.Dgemv(mat.Trans, n-k, nrhs, one, b.Off(k, 0), a.Vector(k, k-1, 1), one, b.Vector(k-1, 0))
+					err = b.Off(k-1, 0).Vector().Gemv(Trans, n-k, nrhs, one, b.Off(k, 0), a.Off(k, k-1).Vector(), 1, one, b.Rows)
 				}
 				if nounit {
-					goblas.Dscal(nrhs, a.Get(k-1, k-1), b.Vector(k-1, 0))
+					b.Off(k-1, 0).Vector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 				k = k + 1
 
@@ -314,18 +313,18 @@ func dlavsyRook(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs 
 					//                 Swap the first of pair with Pth
 					kp = abs(ipiv[k-1])
 					if kp != k {
-						goblas.Dswap(nrhs, b.Vector(k-1, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k-1, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 Now swap the second of pair with IMAX(r)th
 					kp = abs(ipiv[k])
 					if kp != k+1 {
-						goblas.Dswap(nrhs, b.Vector(k, 0), b.Vector(kp-1, 0))
+						b.Off(kp-1, 0).Vector().Swap(nrhs, b.Off(k, 0).Vector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformation
-					err = goblas.Dgemv(mat.Trans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.Vector(k+2-1, k, 1), one, b.Vector(k, 0))
-					err = goblas.Dgemv(mat.Trans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.Vector(k+2-1, k-1, 1), one, b.Vector(k-1, 0))
+					err = b.Off(k, 0).Vector().Gemv(Trans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.Off(k+2-1, k).Vector(), 1, one, b.Rows)
+					err = b.Off(k-1, 0).Vector().Gemv(Trans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.Off(k+2-1, k-1).Vector(), 1, one, b.Rows)
 				}
 
 				//              Multiply by the diagonal block if non-unit.

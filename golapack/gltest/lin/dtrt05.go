@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,7 +46,7 @@ func dtrt05(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 	//     over all the vectors X and XACT using the infinity-norm.
 	errbnd = zero
 	for j = 1; j <= nrhs; j++ {
-		imax = goblas.Idamax(n, x.Vector(0, j-1, 1))
+		imax = x.Off(0, j-1).Vector().Iamax(n, 1)
 		xnorm = math.Max(math.Abs(x.Get(imax-1, j-1)), unfl)
 		diff = zero
 		for i = 1; i <= n; i++ {

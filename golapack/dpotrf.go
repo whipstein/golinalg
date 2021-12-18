@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -58,7 +57,7 @@ func Dpotrf(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
 				jb = min(nb, n-j+1)
-				err = goblas.Dsyrk(mat.Upper, mat.Trans, jb, j-1, -one, a.Off(0, j-1), one, a.Off(j-1, j-1))
+				err = a.Off(j-1, j-1).Syrk(mat.Upper, mat.Trans, jb, j-1, -one, a.Off(0, j-1), one)
 				if info, err = Dpotrf2(Upper, jb, a.Off(j-1, j-1)); err != nil {
 					panic(err)
 				}
@@ -67,8 +66,8 @@ func Dpotrf(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 				}
 				if j+jb <= n {
 					//                 Compute the current block row.
-					err = goblas.Dgemm(mat.Trans, mat.NoTrans, jb, n-j-jb+1, j-1, -one, a.Off(0, j-1), a.Off(0, j+jb-1), one, a.Off(j-1, j+jb-1))
-					err = goblas.Dtrsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, jb, n-j-jb+1, one, a.Off(j-1, j-1), a.Off(j-1, j+jb-1))
+					err = a.Off(j-1, j+jb-1).Gemm(mat.Trans, mat.NoTrans, jb, n-j-jb+1, j-1, -one, a.Off(0, j-1), a.Off(0, j+jb-1), one)
+					err = a.Off(j-1, j+jb-1).Trsm(mat.Left, mat.Upper, mat.Trans, mat.NonUnit, jb, n-j-jb+1, one, a.Off(j-1, j-1))
 				}
 			}
 
@@ -78,7 +77,7 @@ func Dpotrf(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 				//              Update and factorize the current diagonal block and test
 				//              for non-positive-definiteness.
 				jb = min(nb, n-j+1)
-				err = goblas.Dsyrk(mat.Lower, mat.NoTrans, jb, j-1, -one, a.Off(j-1, 0), one, a.Off(j-1, j-1))
+				err = a.Off(j-1, j-1).Syrk(mat.Lower, mat.NoTrans, jb, j-1, -one, a.Off(j-1, 0), one)
 				if info, err = Dpotrf2(Lower, jb, a.Off(j-1, j-1)); err != nil {
 					panic(err)
 				}
@@ -87,8 +86,8 @@ func Dpotrf(uplo mat.MatUplo, n int, a *mat.Matrix) (info int, err error) {
 				}
 				if j+jb <= n {
 					//                 Compute the current block column.
-					err = goblas.Dgemm(mat.NoTrans, mat.Trans, n-j-jb+1, jb, j-1, -one, a.Off(j+jb-1, 0), a.Off(j-1, 0), one, a.Off(j+jb-1, j-1))
-					err = goblas.Dtrsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, n-j-jb+1, jb, one, a.Off(j-1, j-1), a.Off(j+jb-1, j-1))
+					err = a.Off(j+jb-1, j-1).Gemm(mat.NoTrans, mat.Trans, n-j-jb+1, jb, j-1, -one, a.Off(j+jb-1, 0), a.Off(j-1, 0), one)
+					err = a.Off(j+jb-1, j-1).Trsm(mat.Right, mat.Lower, mat.Trans, mat.NonUnit, n-j-jb+1, jb, one, a.Off(j-1, j-1))
 				}
 			}
 		}

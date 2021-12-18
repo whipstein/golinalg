@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -210,12 +209,12 @@ func Dlatme(n int, dist byte, iseed *[]int, d *mat.Vector, mode int, cond, dmax 
 			alpha = zero
 		}
 
-		goblas.Dscal(n, alpha, d.Off(0, 1))
+		d.Scal(n, alpha, 1)
 
 	}
 
 	golapack.Dlaset(Full, n, n, zero, zero, a)
-	goblas.Dcopy(n, d.Off(0, 1), a.VectorIdx(0, a.Rows+1))
+	a.OffIdx(0).Vector().Copy(n, d, 1, a.Rows+1)
 
 	//     Set up complex conjugate pairs
 	if mode == 0 {
@@ -249,7 +248,7 @@ func Dlatme(n int, dist byte, iseed *[]int, d *mat.Vector, mode int, cond, dmax 
 			} else {
 				jr = jc - 1
 			}
-			golapack.Dlarnv(idist, iseed, jr, a.Vector(0, jc-1))
+			golapack.Dlarnv(idist, iseed, jr, a.Off(0, jc-1).Vector())
 		}
 	}
 
@@ -275,9 +274,9 @@ func Dlatme(n int, dist byte, iseed *[]int, d *mat.Vector, mode int, cond, dmax 
 
 		//        Multiply by S and (1/S)
 		for j = 1; j <= n; j++ {
-			goblas.Dscal(n, ds.Get(j-1), a.Vector(j-1, 0))
+			a.Off(j-1, 0).Vector().Scal(n, ds.Get(j-1), a.Rows)
 			if ds.Get(j-1) != zero {
-				goblas.Dscal(n, one/ds.Get(j-1), a.Vector(0, j-1, 1))
+				a.Off(0, j-1).Vector().Scal(n, one/ds.Get(j-1), 1)
 			} else {
 				info = 5
 				return
@@ -299,16 +298,16 @@ func Dlatme(n int, dist byte, iseed *[]int, d *mat.Vector, mode int, cond, dmax 
 			irows = n + 1 - jcr
 			icols = n + kl - jcr
 
-			goblas.Dcopy(irows, a.Vector(jcr-1, ic-1, 1), work.Off(0, 1))
+			work.Copy(irows, a.Off(jcr-1, ic-1).Vector(), 1, 1)
 			xnorms = work.Get(0)
-			xnorms, tau = golapack.Dlarfg(irows, xnorms, work.Off(1, 1))
+			xnorms, tau = golapack.Dlarfg(irows, xnorms, work.Off(1), 1)
 			work.Set(0, one)
 
-			err = goblas.Dgemv(Trans, irows, icols, one, a.Off(jcr-1, ic), work.Off(0, 1), zero, work.Off(irows, 1))
-			err = goblas.Dger(irows, icols, -tau, work.Off(0, 1), work.Off(irows, 1), a.Off(jcr-1, ic))
+			err = work.Off(irows).Gemv(Trans, irows, icols, one, a.Off(jcr-1, ic), work, 1, zero, 1)
+			err = a.Off(jcr-1, ic).Ger(irows, icols, -tau, work, 1, work.Off(irows), 1)
 
-			err = goblas.Dgemv(NoTrans, n, irows, one, a.Off(0, jcr-1), work.Off(0, 1), zero, work.Off(irows, 1))
-			err = goblas.Dger(n, irows, -tau, work.Off(irows, 1), work.Off(0, 1), a.Off(0, jcr-1))
+			err = work.Off(irows).Gemv(NoTrans, n, irows, one, a.Off(0, jcr-1), work, 1, zero, 1)
+			err = a.Off(0, jcr-1).Ger(n, irows, -tau, work.Off(irows), 1, work, 1)
 
 			a.Set(jcr-1, ic-1, xnorms)
 			golapack.Dlaset(Full, irows-1, 1, zero, zero, a.Off(jcr, ic-1))
@@ -320,16 +319,16 @@ func Dlatme(n int, dist byte, iseed *[]int, d *mat.Vector, mode int, cond, dmax 
 			irows = n + ku - jcr
 			icols = n + 1 - jcr
 
-			goblas.Dcopy(icols, a.Vector(ir-1, jcr-1), work.Off(0, 1))
+			work.Copy(icols, a.Off(ir-1, jcr-1).Vector(), a.Rows, 1)
 			xnorms = work.Get(0)
-			xnorms, tau = golapack.Dlarfg(icols, xnorms, work.Off(1, 1))
+			xnorms, tau = golapack.Dlarfg(icols, xnorms, work.Off(1), 1)
 			work.Set(0, one)
 
-			err = goblas.Dgemv(NoTrans, irows, icols, one, a.Off(ir, jcr-1), work.Off(0, 1), zero, work.Off(icols, 1))
-			err = goblas.Dger(irows, icols, -tau, work.Off(icols, 1), work.Off(0, 1), a.Off(ir, jcr-1))
+			err = work.Off(icols).Gemv(NoTrans, irows, icols, one, a.Off(ir, jcr-1), work, 1, zero, 1)
+			err = a.Off(ir, jcr-1).Ger(irows, icols, -tau, work.Off(icols), 1, work, 1)
 
-			err = goblas.Dgemv(ConjTrans, icols, n, one, a.Off(jcr-1, 0), work.Off(0, 1), zero, work.Off(icols, 1))
-			err = goblas.Dger(icols, n, -tau, work.Off(0, 1), work.Off(icols, 1), a.Off(jcr-1, 0))
+			err = work.Off(icols).Gemv(ConjTrans, icols, n, one, a.Off(jcr-1, 0), work, 1, zero, 1)
+			err = a.Off(jcr-1, 0).Ger(icols, n, -tau, work, 1, work, 1)
 
 			a.Set(ir-1, jcr-1, xnorms)
 			golapack.Dlaset(Full, 1, icols-1, zero, zero, a.Off(ir-1, jcr))
@@ -342,7 +341,7 @@ func Dlatme(n int, dist byte, iseed *[]int, d *mat.Vector, mode int, cond, dmax 
 		if temp > zero {
 			alpha = anorm / temp
 			for j = 1; j <= n; j++ {
-				goblas.Dscal(n, alpha, a.Vector(0, j-1, 1))
+				a.Off(0, j-1).Vector().Scal(n, alpha, 1)
 			}
 		}
 	}

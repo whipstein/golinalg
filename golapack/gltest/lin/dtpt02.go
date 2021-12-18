@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,13 +46,13 @@ func dtpt02(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 	//        norm(op(A)*x - b) / ( norm(op(A)) * norm(x) * EPS ).
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		goblas.Dcopy(n, x.Vector(0, j-1, 1), work.Off(0, 1))
-		if err = goblas.Dtpmv(uplo, trans, diag, n, ap, work.Off(0, 1)); err != nil {
+		work.Copy(n, x.Off(0, j-1).Vector(), 1, 1)
+		if err = work.Tpmv(uplo, trans, diag, n, ap, 1); err != nil {
 			panic(err)
 		}
-		goblas.Daxpy(n, -one, b.Vector(0, j-1, 1), work.Off(0, 1))
-		bnorm = goblas.Dasum(n, work.Off(0, 1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1, 1))
+		work.Axpy(n, -one, b.Off(0, j-1).Vector(), 1, 1)
+		bnorm = work.Asum(n, 1)
+		xnorm = x.Off(0, j-1).Vector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

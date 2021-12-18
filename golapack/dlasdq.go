@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -171,13 +170,13 @@ func Dlasdq(uplo mat.MatUplo, sqre, n, ncvt, nru, ncc int, d, e *mat.Vector, vt,
 			d.Set(isub-1, d.Get(i-1))
 			d.Set(i-1, smin)
 			if ncvt > 0 {
-				goblas.Dswap(ncvt, vt.Vector(isub-1, 0), vt.Vector(i-1, 0))
+				vt.Off(i-1, 0).Vector().Swap(ncvt, vt.Off(isub-1, 0).Vector(), vt.Rows, vt.Rows)
 			}
 			if nru > 0 {
-				goblas.Dswap(nru, u.Vector(0, isub-1, 1), u.Vector(0, i-1, 1))
+				u.Off(0, i-1).Vector().Swap(nru, u.Off(0, isub-1).Vector(), 1, 1)
 			}
 			if ncc > 0 {
-				goblas.Dswap(ncc, c.Vector(isub-1, 0), c.Vector(i-1, 0))
+				c.Off(i-1, 0).Vector().Swap(ncc, c.Off(isub-1, 0).Vector(), c.Rows, c.Rows)
 			}
 		}
 	}

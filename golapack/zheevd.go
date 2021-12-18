@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -146,13 +145,13 @@ func Zheevd(jobz byte, uplo mat.MatUplo, n int, a *mat.CMatrix, w *mat.Vector, w
 			panic(err)
 		}
 	} else {
-		if info, err = Zstedc('I', n, w, rwork.Off(inde-1), work.CMatrixOff(indwrk-1, n, opts), work.Off(indwk2-1), llwrk2, rwork.Off(indrwk-1), llrwk, iwork, liwork); err != nil {
+		if info, err = Zstedc('I', n, w, rwork.Off(inde-1), work.Off(indwrk-1).CMatrix(n, opts), work.Off(indwk2-1), llwrk2, rwork.Off(indrwk-1), llrwk, iwork, liwork); err != nil {
 			panic(err)
 		}
-		if err = Zunmtr(Left, uplo, NoTrans, n, n, a, work.Off(indtau-1), work.CMatrixOff(indwrk-1, n, opts), work.Off(indwk2-1), llwrk2); err != nil {
+		if err = Zunmtr(Left, uplo, NoTrans, n, n, a, work.Off(indtau-1), work.Off(indwrk-1).CMatrix(n, opts), work.Off(indwk2-1), llwrk2); err != nil {
 			panic(err)
 		}
-		Zlacpy(Full, n, n, work.CMatrixOff(indwrk-1, n, opts), a)
+		Zlacpy(Full, n, n, work.Off(indwrk-1).CMatrix(n, opts), a)
 	}
 
 	//     If matrix was scaled, then rescale eigenvalues appropriately.
@@ -162,7 +161,7 @@ func Zheevd(jobz byte, uplo mat.MatUplo, n int, a *mat.CMatrix, w *mat.Vector, w
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	work.SetRe(0, float64(lopt))

@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -106,9 +105,9 @@ func Ztrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.CMatrix, s, 
 		if wants {
 			//           Compute the reciprocal condition number of the k-th
 			//           eigenvalue.
-			prod = goblas.Zdotc(n, vr.CVector(0, ks-1, 1), vl.CVector(0, ks-1, 1))
-			rnrm = goblas.Dznrm2(n, vr.CVector(0, ks-1, 1))
-			lnrm = goblas.Dznrm2(n, vl.CVector(0, ks-1, 1))
+			prod = vl.Off(0, ks-1).CVector().Dotc(n, vr.Off(0, ks-1).CVector(), 1, 1)
+			rnrm = vr.Off(0, ks-1).CVector().Nrm2(n, 1)
+			lnrm = vl.Off(0, ks-1).CVector().Nrm2(n, 1)
 			s.Set(ks-1, cmplx.Abs(prod)/(rnrm*lnrm))
 
 		}
@@ -137,17 +136,17 @@ func Ztrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.CMatrix, s, 
 			normin = 'N'
 		label30:
 			;
-			est, kase = Zlacn2(n-1, work.CVector(0, n), work.CVector(0, 0), est, kase, &isave)
+			est, kase = Zlacn2(n-1, work.Off(0, n).CVector(), work.Off(0, 0).CVector(), est, kase, &isave)
 
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve C**H*x = scale*b
-					if scale, err = Zlatrs(Upper, ConjTrans, NonUnit, normin, n-1, work.Off(1, 1), work.CVector(0, 0), rwork); err != nil {
+					if scale, err = Zlatrs(Upper, ConjTrans, NonUnit, normin, n-1, work.Off(1, 1), work.Off(0, 0).CVector(), rwork); err != nil {
 						panic(err)
 					}
 				} else {
 					//                 Solve C*x = scale*b
-					if scale, err = Zlatrs(Upper, NoTrans, NonUnit, normin, n-1, work.Off(1, 1), work.CVector(0, 0), rwork); err != nil {
+					if scale, err = Zlatrs(Upper, NoTrans, NonUnit, normin, n-1, work.Off(1, 1), work.Off(0, 0).CVector(), rwork); err != nil {
 						panic(err)
 					}
 				}
@@ -155,12 +154,12 @@ func Ztrsna(job, howmny byte, _select []bool, n int, t, vl, vr *mat.CMatrix, s, 
 				if scale != one {
 					//                 Multiply by 1/SCALE if doing so will not cause
 					//                 overflow.
-					ix = goblas.Izamax(n-1, work.CVector(0, 0, 1))
+					ix = work.Off(0, 0).CVector().Iamax(n-1, 1)
 					xnorm = cabs1(work.Get(ix-1, 0))
 					if scale < xnorm*smlnum || scale == zero {
 						goto label40
 					}
-					Zdrscl(n, scale, work.CVector(0, 0, 1))
+					Zdrscl(n, scale, work.Off(0, 0).CVector(), 1)
 				}
 				goto label30
 			}

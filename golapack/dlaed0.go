@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -122,14 +121,14 @@ label10:
 				goto label130
 			}
 		} else {
-			if info, err = Dsteqr('I', matsiz, d.Off(submat-1), e.Off(submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), work); err != nil {
+			if info, err = Dsteqr('I', matsiz, d.Off(submat-1), e.Off(submat-1), work.Off(iq-1+(*iwork)[iqptr+curr-1]-1).Matrix(matsiz, opts), work); err != nil {
 				panic(err)
 			}
 			if info != 0 {
 				goto label130
 			}
 			if icompq == 1 {
-				if err = goblas.Dgemm(NoTrans, NoTrans, qsiz, matsiz, matsiz, one, q.Off(0, submat-1), work.MatrixOff(iq-1+(*iwork)[iqptr+curr-1]-1, matsiz, opts), zero, qstore.Off(0, submat-1)); err != nil {
+				if err = qstore.Off(0, submat-1).Gemm(NoTrans, NoTrans, qsiz, matsiz, matsiz, one, q.Off(0, submat-1), work.Off(iq-1+(*iwork)[iqptr+curr-1]-1).Matrix(matsiz, opts), zero); err != nil {
 					panic(err)
 				}
 			}
@@ -177,7 +176,7 @@ label80:
 					panic(err)
 				}
 			} else {
-				if info, err = Dlaed7(icompq, matsiz, qsiz, tlvls, curlvl, curprb, d.Off(submat-1), qstore.Off(0, submat-1), toSlice(iwork, indxq+submat-1), e.Get(submat+msd2-1-1), msd2, work.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), work.MatrixOff(igivnm-1, 2, opts), work.Off(iwrem-1), toSlice(iwork, subpbs)); err != nil {
+				if info, err = Dlaed7(icompq, matsiz, qsiz, tlvls, curlvl, curprb, d.Off(submat-1), qstore.Off(0, submat-1), toSlice(iwork, indxq+submat-1), e.Get(submat+msd2-1-1), msd2, work.Off(iq-1), toSlice(iwork, iqptr-1), toSlice(iwork, iprmpt-1), toSlice(iwork, iperm-1), toSlice(iwork, igivpt-1), toSlice(iwork, igivcl-1), work.Off(igivnm-1).Matrix(2, opts), work.Off(iwrem-1), toSlice(iwork, subpbs)); err != nil {
 					panic(err)
 				}
 			}
@@ -199,23 +198,23 @@ label80:
 		for i = 1; i <= n; i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(qsiz, qstore.Vector(0, j-1, 1), q.Vector(0, i-1, 1))
+			q.Off(0, i-1).Vector().Copy(qsiz, qstore.Off(0, j-1).Vector(), 1, 1)
 		}
-		goblas.Dcopy(n, work.Off(0, 1), d.Off(0, 1))
+		d.Copy(n, work, 1, 1)
 	} else if icompq == 2 {
 		for i = 1; i <= n; i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
-			goblas.Dcopy(n, q.Vector(0, j-1, 1), work.Off(n*i, 1))
+			work.Off(n*i).Copy(n, q.Off(0, j-1).Vector(), 1, 1)
 		}
-		goblas.Dcopy(n, work, d)
-		Dlacpy(Full, n, n, work.MatrixOff(n, n, opts), q)
+		d.Copy(n, work, 1, 1)
+		Dlacpy(Full, n, n, work.Off(n).Matrix(n, opts), q)
 	} else {
 		for i = 1; i <= n; i++ {
 			j = (*iwork)[indxq+i-1]
 			work.Set(i-1, d.Get(j-1))
 		}
-		goblas.Dcopy(n, work, d)
+		d.Copy(n, work, 1, 1)
 	}
 	return
 

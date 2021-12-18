@@ -70,10 +70,10 @@ func Dlangt(norm byte, n int, dl, d, du *mat.Vector) (dlangtReturn float64) {
 		//        Find normF(A).
 		scale = zero
 		sum = one
-		scale, sum = Dlassq(n, d.Off(0, 1), scale, sum)
+		scale, sum = Dlassq(n, d, 1, scale, sum)
 		if n > 1 {
-			scale, sum = Dlassq(n-1, dl.Off(0, 1), scale, sum)
-			scale, sum = Dlassq(n-1, du.Off(0, 1), scale, sum)
+			scale, sum = Dlassq(n-1, dl, 1, scale, sum)
+			scale, sum = Dlassq(n-1, du, 1, scale, sum)
 		}
 		anorm = scale * math.Sqrt(sum)
 	}

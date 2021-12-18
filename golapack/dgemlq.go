@@ -83,11 +83,11 @@ func Dgemlq(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.Matrix, t 
 	}
 
 	if (left && m <= k) || (right && n <= k) || (nb <= k) || (nb >= max(m, n, k)) {
-		if err = Dgemlqt(side, trans, m, n, k, mb, a, t.MatrixOff(5, mb, opts), c, work); err != nil {
+		if err = Dgemlqt(side, trans, m, n, k, mb, a, t.Off(5).Matrix(mb, opts), c, work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Dlamswlq(side, trans, m, n, k, mb, nb, a, t.MatrixOff(5, mb, opts), c, work, lwork); err != nil {
+		if err = Dlamswlq(side, trans, m, n, k, mb, nb, a, t.Off(5).Matrix(mb, opts), c, work, lwork); err != nil {
 			panic(err)
 		}
 	}

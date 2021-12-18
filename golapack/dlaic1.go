@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -42,7 +41,7 @@ func Dlaic1(job, j int, x *mat.Vector, sest float64, w *mat.Vector, gamma float6
 	four = 4.0
 
 	eps = Dlamch(Epsilon)
-	alpha = goblas.Ddot(j, x.Off(0, 1), w.Off(0, 1))
+	alpha = w.Dot(j, x, 1, 1)
 
 	absalp = math.Abs(alpha)
 	absgam = math.Abs(gamma)

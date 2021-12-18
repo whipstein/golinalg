@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -37,11 +36,11 @@ func dpot01(uplo mat.MatUplo, n int, a, afac *mat.Matrix, rwork *mat.Vector) (re
 	if uplo == Upper {
 		for k = n; k >= 1; k-- {
 			//           Compute the (K,K) element of the result.
-			t = goblas.Ddot(k, afac.Vector(0, k-1, 1), afac.Vector(0, k-1, 1))
+			t = afac.Off(0, k-1).Vector().Dot(k, afac.Off(0, k-1).Vector(), 1, 1)
 			afac.Set(k-1, k-1, t)
 
 			//           Compute the rest of column K.
-			if err = goblas.Dtrmv(mat.Upper, mat.Trans, mat.NonUnit, k-1, afac, afac.Vector(0, k-1, 1)); err != nil {
+			if err = afac.Off(0, k-1).Vector().Trmv(Upper, Trans, NonUnit, k-1, afac, 1); err != nil {
 				panic(err)
 			}
 
@@ -53,14 +52,14 @@ func dpot01(uplo mat.MatUplo, n int, a, afac *mat.Matrix, rwork *mat.Vector) (re
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if k+1 <= n {
-				if err = goblas.Dsyr(mat.Lower, n-k, one, afac.Vector(k, k-1, 1), afac.Off(k, k)); err != nil {
+				if err = afac.Off(k, k).Syr(Lower, n-k, one, afac.Off(k, k-1).Vector(), 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Scale column K by the diagonal element.
 			t = afac.Get(k-1, k-1)
-			goblas.Dscal(n-k+1, t, afac.Vector(k-1, k-1, 1))
+			afac.Off(k-1, k-1).Vector().Scal(n-k+1, t, 1)
 
 		}
 	}

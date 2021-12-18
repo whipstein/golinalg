@@ -108,7 +108,7 @@ func ddrvge(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						a.Set(ioff+i-1, zero)
 					}
 				} else {
-					golapack.Dlaset(Full, n, n-izero+1, zero, zero, a.MatrixOff(ioff, lda, opts))
+					golapack.Dlaset(Full, n, n-izero+1, zero, zero, a.Off(ioff).Matrix(lda, opts))
 				}
 			} else {
 				izero = 0

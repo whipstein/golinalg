@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -46,7 +45,7 @@ func zspt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 			//           Code when J <= I
 			for j = 1; j <= i; j++ {
 				jcol = ((j-1)*j)/2 + 1
-				t = goblas.Zdotu(j, a.Off(icol-1, 1), ainv.Off(jcol-1, 1))
+				t = ainv.Off(jcol-1).Dotu(j, a.Off(icol-1), 1, 1)
 				jcol = jcol + 2*j - 1
 				kcol = icol - 1
 				for k = j + 1; k <= i; k++ {
@@ -65,7 +64,7 @@ func zspt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 			//           Code when J > I
 			for j = i + 1; j <= n; j++ {
 				jcol = ((j-1)*j)/2 + 1
-				t = goblas.Zdotu(i, a.Off(icol-1, 1), ainv.Off(jcol-1, 1))
+				t = ainv.Off(jcol-1).Dotu(i, a.Off(icol-1), 1, 1)
 				jcol = jcol - 1
 				kcol = icol + 2*i - 1
 				for k = i + 1; k <= j; k++ {
@@ -89,7 +88,7 @@ func zspt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 			icol = nall - ((n-i+1)*(n-i+2))/2 + 1
 			for j = 1; j <= i; j++ {
 				jcol = nall - ((n-j)*(n-j+1))/2 - (n - i)
-				t = goblas.Zdotu(n-i+1, a.Off(icol-1, 1), ainv.Off(jcol-1, 1))
+				t = ainv.Off(jcol-1).Dotu(n-i+1, a.Off(icol-1), 1, 1)
 				kcol = i
 				jcol = j
 				for k = 1; k <= j-1; k++ {
@@ -109,7 +108,7 @@ func zspt03(uplo mat.MatUplo, n int, a, ainv *mat.CVector, work *mat.CMatrix, rw
 			icol = nall - ((n-i)*(n-i+1))/2
 			for j = i + 1; j <= n; j++ {
 				jcol = nall - ((n-j+1)*(n-j+2))/2 + 1
-				t = goblas.Zdotu(n-j+1, a.Off(icol-n+j-1, 1), ainv.Off(jcol-1, 1))
+				t = ainv.Off(jcol-1).Dotu(n-j+1, a.Off(icol-n+j-1), 1, 1)
 				kcol = i
 				jcol = j
 				for k = 1; k <= i-1; k++ {

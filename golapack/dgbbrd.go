@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -106,7 +105,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 				//              generate plane rotations to annihilate nonzero elements
 				//              which have been created below the band
 				if nr > 0 {
-					Dlargv(nr, ab.Vector(klu1-1, j1-klm-1-1, inca), work.Off(j1-1, kb1), work.Off(mn+j1-1, kb1))
+					Dlargv(nr, ab.Off(klu1-1, j1-klm-1-1).Vector(), inca, work.Off(j1-1), kb1, work.Off(mn+j1-1), kb1)
 				}
 
 				//              apply plane rotations from the left
@@ -117,7 +116,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 						nrt = nr
 					}
 					if nrt > 0 {
-						Dlartv(nrt, ab.Vector(klu1-l-1, j1-klm+l-1-1, inca), ab.Vector(klu1-l, j1-klm+l-1-1, inca), work.Off(mn+j1-1, kb1), work.Off(j1-1, kb1))
+						Dlartv(nrt, ab.Off(klu1-l-1, j1-klm+l-1-1).Vector(), inca, ab.Off(klu1-l, j1-klm+l-1-1).Vector(), inca, work.Off(mn+j1-1), work.Off(j1-1), kb1)
 					}
 				}
 
@@ -128,7 +127,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 						*work.GetPtr(mn + i + ml - 1 - 1), *work.GetPtr(i + ml - 1 - 1), ra = Dlartg(ab.Get(ku+ml-1-1, i-1), ab.Get(ku+ml-1, i-1))
 						ab.Set(ku+ml-1-1, i-1, ra)
 						if i < n {
-							goblas.Drot(min(ku+ml-2, n-i), ab.Vector(ku+ml-2-1, i, ab.Rows-1), ab.Vector(ku+ml-1-1, i, ab.Rows-1), work.Get(mn+i+ml-1-1), work.Get(i+ml-1-1))
+							ab.Off(ku+ml-1-1, i).Vector().Rot(min(ku+ml-2, n-i), ab.Off(ku+ml-2-1, i).Vector(), ab.Rows-1, ab.Rows-1, work.Get(mn+i+ml-1-1), work.Get(i+ml-1-1))
 						}
 					}
 					nr = nr + 1
@@ -138,14 +137,14 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 				if wantq {
 					//                 accumulate product of plane rotations in Q
 					for j = j1; j <= j2; j += kb1 {
-						goblas.Drot(m, q.Vector(0, j-1-1, 1), q.Vector(0, j-1, 1), work.Get(mn+j-1), work.Get(j-1))
+						q.Off(0, j-1).Vector().Rot(m, q.Off(0, j-1-1).Vector(), 1, 1, work.Get(mn+j-1), work.Get(j-1))
 					}
 				}
 
 				if wantc {
 					//                 apply plane rotations to C
 					for j = j1; j <= j2; j += kb1 {
-						goblas.Drot(ncc, c.Vector(j-1-1, 0), c.Vector(j-1, 0), work.Get(mn+j-1), work.Get(j-1))
+						c.Off(j-1, 0).Vector().Rot(ncc, c.Off(j-1-1, 0).Vector(), c.Rows, c.Rows, work.Get(mn+j-1), work.Get(j-1))
 					}
 				}
 
@@ -165,7 +164,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 				//              generate plane rotations to annihilate nonzero elements
 				//              which have been generated above the band
 				if nr > 0 {
-					Dlargv(nr, ab.Vector(0, j1+kun-1-1, inca), work.Off(j1+kun-1, kb1), work.Off(mn+j1+kun-1, kb1))
+					Dlargv(nr, ab.Off(0, j1+kun-1-1).Vector(), inca, work.Off(j1+kun-1), kb1, work.Off(mn+j1+kun-1), kb1)
 				}
 
 				//              apply plane rotations from the right
@@ -176,7 +175,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 						nrt = nr
 					}
 					if nrt > 0 {
-						Dlartv(nrt, ab.Vector(l, j1+kun-1-1, inca), ab.Vector(l-1, j1+kun-1, inca), work.Off(mn+j1+kun-1, kb1), work.Off(j1+kun-1, kb1))
+						Dlartv(nrt, ab.Off(l, j1+kun-1-1).Vector(), inca, ab.Off(l-1, j1+kun-1).Vector(), inca, work.Off(mn+j1+kun-1), work.Off(j1+kun-1), kb1)
 					}
 				}
 
@@ -186,7 +185,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 						//                    within the band, and apply rotation from the right
 						*work.GetPtr(mn + i + mu - 1 - 1), *work.GetPtr(i + mu - 1 - 1), ra = Dlartg(ab.Get(ku-mu+3-1, i+mu-2-1), ab.Get(ku-mu+2-1, i+mu-1-1))
 						ab.Set(ku-mu+3-1, i+mu-2-1, ra)
-						goblas.Drot(min(kl+mu-2, m-i), ab.Vector(ku-mu+4-1, i+mu-2-1, 1), ab.Vector(ku-mu+3-1, i+mu-1-1, 1), work.Get(mn+i+mu-1-1), work.Get(i+mu-1-1))
+						ab.Off(ku-mu+3-1, i+mu-1-1).Vector().Rot(min(kl+mu-2, m-i), ab.Off(ku-mu+4-1, i+mu-2-1).Vector(), 1, 1, work.Get(mn+i+mu-1-1), work.Get(i+mu-1-1))
 					}
 					nr = nr + 1
 					j1 = j1 - kb1
@@ -195,7 +194,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 				if wantpt {
 					//                 accumulate product of plane rotations in P**T
 					for j = j1; j <= j2; j += kb1 {
-						goblas.Drot(n, pt.Vector(j+kun-1-1, 0), pt.Vector(j+kun-1, 0), work.Get(mn+j+kun-1), work.Get(j+kun-1))
+						pt.Off(j+kun-1, 0).Vector().Rot(n, pt.Off(j+kun-1-1, 0).Vector(), pt.Rows, pt.Rows, work.Get(mn+j+kun-1), work.Get(j+kun-1))
 					}
 				}
 
@@ -235,10 +234,10 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 				ab.Set(0, i, rc*ab.Get(0, i))
 			}
 			if wantq {
-				goblas.Drot(m, q.Vector(0, i-1, 1), q.Vector(0, i, 1), rc, rs)
+				q.Off(0, i).Vector().Rot(m, q.Off(0, i-1).Vector(), 1, 1, rc, rs)
 			}
 			if wantc {
-				goblas.Drot(ncc, c.Vector(i-1, 0), c.Vector(i, 0), rc, rs)
+				c.Off(i, 0).Vector().Rot(ncc, c.Off(i-1, 0).Vector(), c.Rows, c.Rows, rc, rs)
 			}
 		}
 		if m <= n {
@@ -259,7 +258,7 @@ func Dgbbrd(vect byte, m, n, ncc, kl, ku int, ab *mat.Matrix, d, e *mat.Vector, 
 					e.Set(i-1-1, rc*ab.Get(ku-1, i-1))
 				}
 				if wantpt {
-					goblas.Drot(n, pt.Vector(i-1, 0), pt.Vector(m, 0), rc, rs)
+					pt.Off(m, 0).Vector().Rot(n, pt.Off(i-1, 0).Vector(), pt.Rows, pt.Rows, rc, rs)
 				}
 			}
 		} else {

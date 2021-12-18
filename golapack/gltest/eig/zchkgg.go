@@ -368,10 +368,10 @@ func zchkgg(nsizes int, nn []int, ntypes int, dotype []bool, iseed *[]int, thres
 							u.Set(jr-1, jc-1, matgen.Zlarnd(3, *iseed))
 							v.Set(jr-1, jc-1, matgen.Zlarnd(3, *iseed))
 						}
-						*u.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Zlarfg(n+1-jc, u.Get(jc-1, jc-1), u.CVector(jc, jc-1, 1))
+						*u.GetPtr(jc-1, jc-1), *work.GetPtr(jc - 1) = golapack.Zlarfg(n+1-jc, u.Get(jc-1, jc-1), u.Off(jc, jc-1).CVector(), 1)
 						work.SetRe(2*n+jc-1, math.Copysign(one, u.GetRe(jc-1, jc-1)))
 						u.Set(jc-1, jc-1, cone)
-						*v.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Zlarfg(n+1-jc, v.Get(jc-1, jc-1), v.CVector(jc, jc-1, 1))
+						*v.GetPtr(jc-1, jc-1), *work.GetPtr(n + jc - 1) = golapack.Zlarfg(n+1-jc, v.Get(jc-1, jc-1), v.Off(jc, jc-1).CVector(), 1)
 						work.SetRe(3*n+jc-1, math.Copysign(one, v.GetRe(jc-1, jc-1)))
 						v.Set(jc-1, jc-1, cone)
 					}

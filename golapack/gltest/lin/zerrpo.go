@@ -156,73 +156,73 @@ func zerrpo(path string, t *testing.T) {
 		//        Zpptrf
 		*srnamt = "Zpptrf"
 		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
-		_, err = golapack.Zpptrf('/', 0, a.CVector(0, 0))
+		_, err = golapack.Zpptrf('/', 0, a.CVector())
 		chkxer2("Zpptrf", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		_, err = golapack.Zpptrf(Upper, -1, a.CVector(0, 0))
+		_, err = golapack.Zpptrf(Upper, -1, a.CVector())
 		chkxer2("Zpptrf", err)
 
 		//        Zpptri
 		*srnamt = "Zpptri"
 		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
-		_, err = golapack.Zpptri('/', 0, a.CVector(0, 0))
+		_, err = golapack.Zpptri('/', 0, a.CVector())
 		chkxer2("Zpptri", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		_, err = golapack.Zpptri(Upper, -1, a.CVector(0, 0))
+		_, err = golapack.Zpptri(Upper, -1, a.CVector())
 		chkxer2("Zpptri", err)
 
 		//        Zpptrs
 		*srnamt = "Zpptrs"
 		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
-		err = golapack.Zpptrs('/', 0, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		err = golapack.Zpptrs('/', 0, 0, a.Off(0, 0).CVector(), b.CMatrix(1, opts))
 		chkxer2("Zpptrs", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		err = golapack.Zpptrs(Upper, -1, 0, a.CVector(0, 0), b.CMatrix(1, opts))
+		err = golapack.Zpptrs(Upper, -1, 0, a.Off(0, 0).CVector(), b.CMatrix(1, opts))
 		chkxer2("Zpptrs", err)
 		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
-		err = golapack.Zpptrs(Upper, 0, -1, a.CVector(0, 0), b.CMatrix(1, opts))
+		err = golapack.Zpptrs(Upper, 0, -1, a.Off(0, 0).CVector(), b.CMatrix(1, opts))
 		chkxer2("Zpptrs", err)
 		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
-		err = golapack.Zpptrs(Upper, 2, 1, a.CVector(0, 0), b.CMatrix(1, opts))
+		err = golapack.Zpptrs(Upper, 2, 1, a.Off(0, 0).CVector(), b.CMatrix(1, opts))
 		chkxer2("Zpptrs", err)
 
 		//        Zpprfs
 		*srnamt = "Zpprfs"
 		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
-		err = golapack.Zpprfs('/', 0, 0, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		err = golapack.Zpprfs('/', 0, 0, a.Off(0, 0).CVector(), af.Off(0, 0).CVector(), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
 		chkxer2("Zpprfs", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		err = golapack.Zpprfs(Upper, -1, 0, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		err = golapack.Zpprfs(Upper, -1, 0, a.Off(0, 0).CVector(), af.Off(0, 0).CVector(), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
 		chkxer2("Zpprfs", err)
 		*errt = fmt.Errorf("nrhs < 0: nrhs=-1")
-		err = golapack.Zpprfs(Upper, 0, -1, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		err = golapack.Zpprfs(Upper, 0, -1, a.Off(0, 0).CVector(), af.Off(0, 0).CVector(), b.CMatrix(1, opts), x.CMatrix(1, opts), r1, r2, w, r)
 		chkxer2("Zpprfs", err)
 		*errt = fmt.Errorf("b.Rows < max(1, n): b.Rows=1, n=2")
-		err = golapack.Zpprfs(Upper, 2, 1, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, r)
+		err = golapack.Zpprfs(Upper, 2, 1, a.Off(0, 0).CVector(), af.Off(0, 0).CVector(), b.CMatrix(1, opts), x.CMatrix(2, opts), r1, r2, w, r)
 		chkxer2("Zpprfs", err)
 		*errt = fmt.Errorf("x.Rows < max(1, n): x.Rows=1, n=2")
-		err = golapack.Zpprfs(Upper, 2, 1, a.CVector(0, 0), af.CVector(0, 0), b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, r)
+		err = golapack.Zpprfs(Upper, 2, 1, a.Off(0, 0).CVector(), af.Off(0, 0).CVector(), b.CMatrix(2, opts), x.CMatrix(1, opts), r1, r2, w, r)
 		chkxer2("Zpprfs", err)
 
 		//        Zppcon
 		*srnamt = "Zppcon"
 		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
-		_, err = golapack.Zppcon('/', 0, a.CVector(0, 0), anrm, w, r)
+		_, err = golapack.Zppcon('/', 0, a.Off(0, 0).CVector(), anrm, w, r)
 		chkxer2("Zppcon", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		_, err = golapack.Zppcon(Upper, -1, a.CVector(0, 0), anrm, w, r)
+		_, err = golapack.Zppcon(Upper, -1, a.Off(0, 0).CVector(), anrm, w, r)
 		chkxer2("Zppcon", err)
 		*errt = fmt.Errorf("anorm < zero: anorm=-1")
-		_, err = golapack.Zppcon(Upper, 1, a.CVector(0, 0), -anrm, w, r)
+		_, err = golapack.Zppcon(Upper, 1, a.Off(0, 0).CVector(), -anrm, w, r)
 		chkxer2("Zppcon", err)
 
 		//        Zppequ
 		*srnamt = "Zppequ"
 		*errt = fmt.Errorf("!upper && uplo != Lower: uplo=Unrecognized: /")
-		_, _, _, err = golapack.Zppequ('/', 0, a.CVector(0, 0), r1)
+		_, _, _, err = golapack.Zppequ('/', 0, a.Off(0, 0).CVector(), r1)
 		chkxer2("Zppequ", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		_, _, _, err = golapack.Zppequ(Upper, -1, a.CVector(0, 0), r1)
+		_, _, _, err = golapack.Zppequ(Upper, -1, a.Off(0, 0).CVector(), r1)
 		chkxer2("Zppequ", err)
 
 		//     Test error exits of the routines that use the Cholesky

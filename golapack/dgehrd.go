@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -101,26 +100,26 @@ func Dgehrd(n, ilo, ihi int, a *mat.Matrix, tau, work *mat.Vector, lwork int) (e
 			//           Reduce columns i:i+ib-1 to Hessenberg form, returning the
 			//           matrices V and T of the block reflector H = I - V*T*V**T
 			//           which performs the reduction, and also the matrix Y = A*V*T
-			Dlahr2(ihi, i, ib, a.Off(0, i-1), tau.Off(i-1), work.MatrixOff(iwt-1, ldt, opts), work.Matrix(ldwork, opts))
+			Dlahr2(ihi, i, ib, a.Off(0, i-1), tau.Off(i-1), work.Off(iwt-1).Matrix(ldt, opts), work.Matrix(ldwork, opts))
 
 			//           Apply the block reflector H to A(1:ihi,i+ib:ihi) from the
 			//           right, computing  A := A - Y * V**T. V(i+ib,ib-1) must be set
 			//           to 1
 			ei = a.Get(i+ib-1, i+ib-1-1)
 			a.Set(i+ib-1, i+ib-1-1, one)
-			err = goblas.Dgemm(NoTrans, Trans, ihi, ihi-i-ib+1, ib, -one, work.Matrix(ldwork, opts), a.Off(i+ib-1, i-1), one, a.Off(0, i+ib-1))
+			err = a.Off(0, i+ib-1).Gemm(NoTrans, Trans, ihi, ihi-i-ib+1, ib, -one, work.Matrix(ldwork, opts), a.Off(i+ib-1, i-1), one)
 			a.Set(i+ib-1, i+ib-1-1, ei)
 
 			//           Apply the block reflector H to A(1:i,i+1:i+ib-1) from the
 			//           right
-			err = goblas.Dtrmm(Right, Lower, Trans, Unit, i, ib-1, one, a.Off(i, i-1), work.Matrix(ldwork, opts))
+			err = work.Matrix(ldwork, opts).Trmm(Right, Lower, Trans, Unit, i, ib-1, one, a.Off(i, i-1))
 			for j = 0; j <= ib-2; j++ {
-				goblas.Daxpy(i, -one, work.Off(ldwork*j, 1), a.Vector(0, i+j, 1))
+				a.Off(0, i+j).Vector().Axpy(i, -one, work.Off(ldwork*j), 1, 1)
 			}
 
 			//           Apply the block reflector H to A(i+1:ihi,i+ib:n) from the
 			//           left
-			Dlarfb(Left, Trans, 'F', 'C', ihi-i, n-i-ib+1, ib, a.Off(i, i-1), work.MatrixOff(iwt-1, ldt, opts), a.Off(i, i+ib-1), work.Matrix(ldwork, opts))
+			Dlarfb(Left, Trans, 'F', 'C', ihi-i, n-i-ib+1, ib, a.Off(i, i-1), work.Off(iwt-1).Matrix(ldt, opts), a.Off(i, i+ib-1), work.Matrix(ldwork, opts))
 		}
 	}
 

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -191,7 +190,7 @@ func Zsytri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           U11**T * invD1 * U11 -> U11
-			if err = goblas.Ztrmm(Left, Upper, Trans, Unit, nnb, nnb, cone, a.Off(cut, cut), work.Off(u11, 0)); err != nil {
+			if err = work.Off(u11, 0).Trmm(Left, Upper, Trans, Unit, nnb, nnb, cone, a.Off(cut, cut)); err != nil {
 				panic(err)
 			}
 
@@ -202,7 +201,7 @@ func Zsytri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           U01**T * invD * U01 -> A( CUT+I, CUT+J )
-			if err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, cut, cone, a.Off(0, cut), work, czero, work.Off(u11, 0)); err != nil {
+			if err = work.Off(u11, 0).Gemm(Trans, NoTrans, nnb, nnb, cut, cone, a.Off(0, cut), work, czero); err != nil {
 				panic(err)
 			}
 
@@ -214,7 +213,7 @@ func Zsytri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           U01 =  U00**T * invD0 * U01
-			if err = goblas.Ztrmm(Left, uplo, Trans, Unit, cut, nnb, cone, a, work); err != nil {
+			if err = work.Trmm(Left, uplo, Trans, Unit, cut, nnb, cone, a); err != nil {
 				panic(err)
 			}
 
@@ -360,7 +359,7 @@ func Zsytri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           L11**T * invD1 * L11 -> L11
-			if err = goblas.Ztrmm(Left, uplo, Trans, Unit, nnb, nnb, cone, a.Off(cut, cut), work.Off(u11, 0)); err != nil {
+			if err = work.Off(u11, 0).Trmm(Left, uplo, Trans, Unit, nnb, nnb, cone, a.Off(cut, cut)); err != nil {
 				panic(err)
 			}
 
@@ -372,7 +371,7 @@ func Zsytri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 
 			if (cut + nnb) < n {
 				//              L21**T * invD2*L21 -> A( CUT+I, CUT+J )
-				if err = goblas.Zgemm(Trans, NoTrans, nnb, nnb, n-nnb-cut, cone, a.Off(cut+nnb, cut), work, czero, work.Off(u11, 0)); err != nil {
+				if err = work.Off(u11, 0).Gemm(Trans, NoTrans, nnb, nnb, n-nnb-cut, cone, a.Off(cut+nnb, cut), work, czero); err != nil {
 					panic(err)
 				}
 
@@ -384,7 +383,7 @@ func Zsytri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				}
 
 				//              L01 =  L22**T * invD2 * L21
-				if err = goblas.Ztrmm(Left, uplo, Trans, Unit, n-nnb-cut, nnb, cone, a.Off(cut+nnb, cut+nnb), work); err != nil {
+				if err = work.Trmm(Left, uplo, Trans, Unit, n-nnb-cut, nnb, cone, a.Off(cut+nnb, cut+nnb)); err != nil {
 					panic(err)
 				}
 

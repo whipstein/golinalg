@@ -40,12 +40,12 @@ func Zgeqr2(m, n int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 
 	for i = 1; i <= k; i++ {
 		//        Generate elementary reflector H(i) to annihilate A(i+1:m,i)
-		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(m-i+1, a.Get(i-1, i-1), a.CVector(min(i+1, m)-1, i-1, 1))
+		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(m-i+1, a.Get(i-1, i-1), a.Off(min(i+1, m)-1, i-1).CVector(), 1)
 		if i < n {
 			//           Apply H(i)**H to A(i:m,i+1:n) from the left
 			alpha = a.Get(i-1, i-1)
 			a.Set(i-1, i-1, one)
-			Zlarf(Left, m-i+1, n-i, a.CVector(i-1, i-1, 1), tau.GetConj(i-1), a.Off(i-1, i), work)
+			Zlarf(Left, m-i+1, n-i, a.Off(i-1, i-1).CVector(), 1, tau.GetConj(i-1), a.Off(i-1, i), work)
 			a.Set(i-1, i-1, alpha)
 		}
 	}

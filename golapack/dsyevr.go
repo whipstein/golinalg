@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -190,11 +189,11 @@ func Dsyevr(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.Matrix, vl, vu fl
 	if iscale == 1 {
 		if lower {
 			for j = 1; j <= n; j++ {
-				goblas.Dscal(n-j+1, sigma, a.Vector(j-1, j-1, 1))
+				a.Off(j-1, j-1).Vector().Scal(n-j+1, sigma, 1)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				goblas.Dscal(j, sigma, a.Vector(0, j-1, 1))
+				a.Off(0, j-1).Vector().Scal(j, sigma, 1)
 			}
 		}
 		if abstol > 0 {
@@ -248,14 +247,14 @@ func Dsyevr(jobz, _range byte, uplo mat.MatUplo, n int, a *mat.Matrix, vl, vu fl
 	//     then call DSTERF or DSTEMR and Dormtr.
 	if (alleig || (indeig && il == 1 && iu == n)) && ieeeok == 1 {
 		if !wantz {
-			goblas.Dcopy(n, work.Off(indd-1, 1), w.Off(0, 1))
-			goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
+			w.Copy(n, work.Off(indd-1), 1, 1)
+			work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
 			if info, err = Dsterf(n, w, work.Off(indee-1)); err != nil {
 				panic(err)
 			}
 		} else {
-			goblas.Dcopy(n-1, work.Off(inde-1, 1), work.Off(indee-1, 1))
-			goblas.Dcopy(n, work.Off(indd-1, 1), work.Off(inddd-1, 1))
+			work.Off(indee-1).Copy(n-1, work.Off(inde-1), 1, 1)
+			work.Off(inddd-1).Copy(n, work.Off(indd-1), 1, 1)
 
 			if abstol <= two*float64(n)*eps {
 				tryrac = true
@@ -322,7 +321,7 @@ label30:
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -343,7 +342,7 @@ label30:
 			if i != 0 {
 				w.Set(i-1, w.Get(j-1))
 				w.Set(j-1, tmp1)
-				goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+				z.Off(0, j-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 			}
 		}
 	}

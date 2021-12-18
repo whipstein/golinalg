@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -197,7 +196,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n int, a *mat.Matrix, wr, wi *m
 		if err = Dlascl('H', 0, 0, cscale, anrm, n, n, a); err != nil {
 			panic(err)
 		}
-		goblas.Dcopy(n, a.VectorIdx(0, a.Rows+1), wr)
+		wr.Copy(n, a.OffIdx(0).Vector(), a.Rows+1, 1)
 		if cscale == smlnum {
 			//           If scaling back towards underflow, adjust WI if an
 			//           offdiagonal element of a 2-by-2 block in the Schur form
@@ -230,13 +229,13 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n int, a *mat.Matrix, wr, wi *m
 						wi.Set(i-1, zero)
 						wi.Set(i, zero)
 						if i > 1 {
-							goblas.Dswap(i-1, a.Vector(0, i-1, 1), a.Vector(0, i, 1))
+							a.Off(0, i).Vector().Swap(i-1, a.Off(0, i-1).Vector(), 1, 1)
 						}
 						if n > i+1 {
-							goblas.Dswap(n-i-1, a.Vector(i-1, i+2-1), a.Vector(i, i+2-1))
+							a.Off(i, i+2-1).Vector().Swap(n-i-1, a.Off(i-1, i+2-1).Vector(), a.Rows, a.Rows)
 						}
 						if wantvs {
-							goblas.Dswap(n, vs.Vector(0, i-1, 1), vs.Vector(0, i, 1))
+							vs.Off(0, i).Vector().Swap(n, vs.Off(0, i-1).Vector(), 1, 1)
 						}
 						a.Set(i-1, i, a.Get(i, i-1))
 						a.Set(i, i-1, zero)
@@ -248,7 +247,7 @@ func Dgees(jobvs, sort byte, _select dslectFunc, n int, a *mat.Matrix, wr, wi *m
 		}
 
 		//        Undo scaling for the imaginary part of the eigenvalues
-		if err = Dlascl('G', 0, 0, cscale, anrm, n-ieval, 1, wi.MatrixOff(ieval, max(n-ieval, 1), opts)); err != nil {
+		if err = Dlascl('G', 0, 0, cscale, anrm, n-ieval, 1, wi.Off(ieval).Matrix(max(n-ieval, 1), opts)); err != nil {
 			panic(err)
 		}
 	}

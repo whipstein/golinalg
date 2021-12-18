@@ -34,19 +34,19 @@ func zerrtz(path string, t *testing.T) {
 		//        Ztzrzf
 		*srnamt = "Ztzrzf"
 		*errt = fmt.Errorf("m < 0: m=-1")
-		err = golapack.Ztzrzf(-1, 0, a.Off(0, 0).UpdateRows(1), tau, w.Off(0, 1), 1)
+		err = golapack.Ztzrzf(-1, 0, a.Off(0, 0).UpdateRows(1), tau, w, 1)
 		chkxer2("Ztzrzf", err)
 		*errt = fmt.Errorf("n < m: m=1, n=0")
-		err = golapack.Ztzrzf(1, 0, a.Off(0, 0).UpdateRows(1), tau, w.Off(0, 1), 1)
+		err = golapack.Ztzrzf(1, 0, a.Off(0, 0).UpdateRows(1), tau, w, 1)
 		chkxer2("Ztzrzf", err)
 		*errt = fmt.Errorf("a.Rows < max(1, m): a.Rows=1, m=2")
-		err = golapack.Ztzrzf(2, 2, a.Off(0, 0).UpdateRows(1), tau, w.Off(0, 1), 1)
+		err = golapack.Ztzrzf(2, 2, a.Off(0, 0).UpdateRows(1), tau, w, 1)
 		chkxer2("Ztzrzf", err)
 		*errt = fmt.Errorf("lwork < lwkmin && !lquery: lwork=0, lwkmin=1, lquery=false")
-		err = golapack.Ztzrzf(2, 2, a.Off(0, 0).UpdateRows(2), tau, w.Off(0, 0), 0)
+		err = golapack.Ztzrzf(2, 2, a.Off(0, 0).UpdateRows(2), tau, w, 0)
 		chkxer2("Ztzrzf", err)
 		*errt = fmt.Errorf("lwork < lwkmin && !lquery: lwork=1, lwkmin=2, lquery=false")
-		err = golapack.Ztzrzf(2, 3, a.Off(0, 0).UpdateRows(2), tau, w.Off(0, 1), 1)
+		err = golapack.Ztzrzf(2, 3, a.Off(0, 0).UpdateRows(2), tau, w, 1)
 		chkxer2("Ztzrzf", err)
 	}
 

@@ -113,11 +113,11 @@ func Dgelq(m, n int, a *mat.Matrix, t *mat.Vector, tsize int, work *mat.Vector, 
 
 	//     The LQ Decomposition
 	if (n <= m) || (nb <= m) || (nb >= n) {
-		if err = Dgelqt(m, n, mb, a, t.MatrixOff(5, mb, opts), work); err != nil {
+		if err = Dgelqt(m, n, mb, a, t.Off(5).Matrix(mb, opts), work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Dlaswlq(m, n, mb, nb, a, t.MatrixOff(5, mb, opts), work, lwork); err != nil {
+		if err = Dlaswlq(m, n, mb, nb, a, t.Off(5).Matrix(mb, opts), work, lwork); err != nil {
 			panic(err)
 		}
 	}

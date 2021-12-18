@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -193,17 +192,17 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.CMatrix, tola, t
 
 				//              Update (K+I)-th and (K+J)-th rows of matrix A: U**H *A
 				if k+j <= m {
-					Zrot(l, a.CVector(k+j-1, n-l), a.CVector(k+i-1, n-l), csu, cmplx.Conj(snu))
+					Zrot(l, a.Off(k+j-1, n-l).CVector(), a.Rows, a.Off(k+i-1, n-l).CVector(), a.Rows, csu, cmplx.Conj(snu))
 				}
 
 				//              Update I-th and J-th rows of matrix B: V**H *B
-				Zrot(l, b.CVector(j-1, n-l), b.CVector(i-1, n-l), csv, cmplx.Conj(snv))
+				Zrot(l, b.Off(j-1, n-l).CVector(), b.Rows, b.Off(i-1, n-l).CVector(), b.Rows, csv, cmplx.Conj(snv))
 
 				//              Update (N-L+I)-th and (N-L+J)-th columns of matrices
 				//              A and B: A*Q and B*Q
-				Zrot(min(k+l, m), a.CVector(0, n-l+j-1, 1), a.CVector(0, n-l+i-1, 1), csq, snq)
+				Zrot(min(k+l, m), a.Off(0, n-l+j-1).CVector(), 1, a.Off(0, n-l+i-1).CVector(), 1, csq, snq)
 
-				Zrot(l, b.CVector(0, n-l+j-1, 1), b.CVector(0, n-l+i-1, 1), csq, snq)
+				Zrot(l, b.Off(0, n-l+j-1).CVector(), 1, b.Off(0, n-l+i-1).CVector(), 1, csq, snq)
 
 				if upper {
 					if k+i <= m {
@@ -229,15 +228,15 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.CMatrix, tola, t
 
 				//              Update unitary matrices U, V, Q, if desired.
 				if wantu && k+j <= m {
-					Zrot(m, u.CVector(0, k+j-1, 1), u.CVector(0, k+i-1, 1), csu, snu)
+					Zrot(m, u.Off(0, k+j-1).CVector(), 1, u.Off(0, k+i-1).CVector(), 1, csu, snu)
 				}
 
 				if wantv {
-					Zrot(p, v.CVector(0, j-1, 1), v.CVector(0, i-1, 1), csv, snv)
+					Zrot(p, v.Off(0, j-1).CVector(), 1, v.Off(0, i-1).CVector(), 1, csv, snv)
 				}
 
 				if wantq {
-					Zrot(n, q.CVector(0, n-l+j-1, 1), q.CVector(0, n-l+i-1, 1), csq, snq)
+					Zrot(n, q.Off(0, n-l+j-1).CVector(), 1, q.Off(0, n-l+i-1).CVector(), 1, csq, snq)
 				}
 
 			}
@@ -251,9 +250,9 @@ func Ztgsja(jobu, jobv, jobq byte, m, p, n, k, l int, a, b *mat.CMatrix, tola, t
 			//           rows of A and B.
 			_error = zero
 			for i = 1; i <= min(l, m-k); i++ {
-				goblas.Zcopy(l-i+1, a.CVector(k+i-1, n-l+i-1), work.Off(0, 1))
-				goblas.Zcopy(l-i+1, b.CVector(i-1, n-l+i-1), work.Off(l, 1))
-				ssmin = Zlapll(l-i+1, work.Off(0, 1), work.Off(l, 1))
+				work.Copy(l-i+1, a.Off(k+i-1, n-l+i-1).CVector(), a.Rows, 1)
+				work.Off(l).Copy(l-i+1, b.Off(i-1, n-l+i-1).CVector(), b.Rows, 1)
+				ssmin = Zlapll(l-i+1, work, 1, work.Off(l), 1)
 				_error = math.Max(_error, ssmin)
 			}
 
@@ -289,26 +288,26 @@ label50:
 			gamma = b1 / a1
 			//
 			if gamma < zero {
-				goblas.Zdscal(l-i+1, -one, b.CVector(i-1, n-l+i-1))
+				b.Off(i-1, n-l+i-1).CVector().Dscal(l-i+1, -one, b.Rows)
 				if wantv {
-					goblas.Zdscal(p, -one, v.CVector(0, i-1, 1))
+					v.Off(0, i-1).CVector().Dscal(p, -one, 1)
 				}
 			}
 
 			*beta.GetPtr(k + i - 1), *alpha.GetPtr(k + i - 1), _ = Dlartg(math.Abs(gamma), one)
 
 			if alpha.Get(k+i-1) >= beta.Get(k+i-1) {
-				goblas.Zdscal(l-i+1, one/alpha.Get(k+i-1), a.CVector(k+i-1, n-l+i-1))
+				a.Off(k+i-1, n-l+i-1).CVector().Dscal(l-i+1, one/alpha.Get(k+i-1), a.Rows)
 			} else {
-				goblas.Zdscal(l-i+1, one/beta.Get(k+i-1), b.CVector(i-1, n-l+i-1))
-				goblas.Zcopy(l-i+1, b.CVector(i-1, n-l+i-1), a.CVector(k+i-1, n-l+i-1))
+				b.Off(i-1, n-l+i-1).CVector().Dscal(l-i+1, one/beta.Get(k+i-1), b.Rows)
+				a.Off(k+i-1, n-l+i-1).CVector().Copy(l-i+1, b.Off(i-1, n-l+i-1).CVector(), b.Rows, a.Rows)
 			}
 
 		} else {
 
 			alpha.Set(k+i-1, zero)
 			beta.Set(k+i-1, one)
-			goblas.Zcopy(l-i+1, b.CVector(i-1, n-l+i-1), a.CVector(k+i-1, n-l+i-1))
+			a.Off(k+i-1, n-l+i-1).CVector().Copy(l-i+1, b.Off(i-1, n-l+i-1).CVector(), b.Rows, a.Rows)
 		}
 	}
 

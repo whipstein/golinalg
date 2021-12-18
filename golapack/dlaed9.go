@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -63,7 +62,7 @@ func Dlaed9(k, kstart, kstop, n int, d *mat.Vector, q *mat.Matrix, rho float64, 
 
 	for j = kstart; j <= kstop; j++ {
 		_d := d.GetPtr(j - 1)
-		if *_d, info = Dlaed4(k, j, dlamda, w, q.Vector(0, j-1), rho); info != 0 {
+		if *_d, info = Dlaed4(k, j, dlamda, w, q.Off(0, j-1).Vector(), rho); info != 0 {
 			return
 		}
 	}
@@ -78,10 +77,10 @@ func Dlaed9(k, kstart, kstop, n int, d *mat.Vector, q *mat.Matrix, rho float64, 
 	}
 
 	//     Compute updated W.
-	goblas.Dcopy(k, w, s.VectorIdx(0, 1))
+	s.OffIdx(0).Vector().Copy(k, w, 1, 1)
 
 	//     Initialize W(I) = Q(I,I)
-	goblas.Dcopy(k, q.VectorIdx(0, q.Rows+1), w)
+	w.Copy(k, q.OffIdx(0).Vector(), q.Rows+1, 1)
 	for j = 1; j <= k; j++ {
 		for i = 1; i <= j-1; i++ {
 			w.Set(i-1, w.Get(i-1)*(q.Get(i-1, j-1)/(dlamda.Get(i-1)-dlamda.Get(j-1))))
@@ -99,7 +98,7 @@ func Dlaed9(k, kstart, kstop, n int, d *mat.Vector, q *mat.Matrix, rho float64, 
 		for i = 1; i <= k; i++ {
 			q.Set(i-1, j-1, w.Get(i-1)/q.Get(i-1, j-1))
 		}
-		temp = goblas.Dnrm2(k, q.Vector(0, j-1, 1))
+		temp = q.Off(0, j-1).Vector().Nrm2(k, 1)
 		for i = 1; i <= k; i++ {
 			s.Set(i-1, j-1, q.Get(i-1, j-1)/temp)
 		}

@@ -84,11 +84,11 @@ func Zgemqr(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, t
 	}
 
 	if (left && m <= k) || (right && n <= k) || (mb <= k) || (mb >= max(m, n, k)) {
-		if err = Zgemqrt(side, trans, m, n, k, nb, a, t.CMatrixOff(5, nb, opts), c, work); err != nil {
+		if err = Zgemqrt(side, trans, m, n, k, nb, a, t.Off(5).CMatrix(nb, opts), c, work); err != nil {
 			panic(err)
 		}
 	} else {
-		if err = Zlamtsqr(side, trans, m, n, k, mb, nb, a, t.CMatrixOff(5, nb, opts), c, work, lwork); err != nil {
+		if err = Zlamtsqr(side, trans, m, n, k, mb, nb, a, t.Off(5).CMatrix(nb, opts), c, work, lwork); err != nil {
 			panic(err)
 		}
 	}

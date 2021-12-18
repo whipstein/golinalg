@@ -103,7 +103,7 @@ func zchkge(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 							a.Set(ioff+i-1, complex(zero, 0))
 						}
 					} else {
-						golapack.Zlaset(Full, m, n-izero+1, complex(zero, 0), complex(zero, 0), a.CMatrixOff(ioff, lda, opts))
+						golapack.Zlaset(Full, m, n-izero+1, complex(zero, 0), complex(zero, 0), a.Off(ioff).CMatrix(lda, opts))
 					}
 				} else {
 					izero = 0

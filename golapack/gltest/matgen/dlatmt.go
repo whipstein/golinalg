@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -245,7 +244,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 			return
 		}
 
-		goblas.Dscal(rank, alpha, d.Off(0, 1))
+		d.Scal(rank, alpha, 1)
 	}
 
 	//     3)      Generate Banded Matrix using Givens rotations.
@@ -279,7 +278,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 	//     Diagonal Matrix -- We are done, unless it
 	//     is to be stored SP/PP/TP (PACK='R' or 'C')
 	if llb == 0 && uub == 0 {
-		goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffst-1, 0, ilda+1))
+		a.Off(1-iskew+ioffst-1, 0).Vector().Copy(mnmin, d, 1, ilda+1)
 		if ipack <= 2 || ipack >= 5 {
 			ipackg = ipack
 		}
@@ -295,7 +294,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 				ipackg = 0
 			}
 
-			goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffst-1, 0, ilda+1))
+			a.Off(1-iskew+ioffst-1, 0).Vector().Copy(mnmin, d, 1, ilda+1)
 
 			if topdwn {
 				jkl = 0
@@ -312,7 +311,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 						icol = max(1, jr-jkl)
 						if jr < m {
 							il = min(n, jr+jku) + 1 - icol
-							extra, dummy = Dlarot(true, jr > jkl, false, il, c, s, a.Vector(jr-iskew*icol+ioffst-1, icol-1), ilda, extra, dummy)
+							extra, dummy = Dlarot(true, jr > jkl, false, il, c, s, a.Off(jr-iskew*icol+ioffst-1, icol-1).Vector(), ilda, extra, dummy)
 						}
 
 						//                    Chase "EXTRA" back up
@@ -326,13 +325,13 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 							il = ir + 2 - irow
 							temp = zero
 							iltemp = jch > jku
-							temp, extra = Dlarot(false, iltemp, true, il, c, -s, a.Vector(irow-iskew*ic+ioffst-1, ic-1), ilda, temp, extra)
+							temp, extra = Dlarot(false, iltemp, true, il, c, -s, a.Off(irow-iskew*ic+ioffst-1, ic-1).Vector(), ilda, temp, extra)
 							if iltemp {
 								c, s, dummy = golapack.Dlartg(a.Get(irow+1-iskew*(ic+1)+ioffst-1, ic), temp)
 								icol = max(1, jch-jku-jkl)
 								il = ic + 2 - icol
 								extra = zero
-								extra, temp = Dlarot(true, jch > jku+jkl, true, il, c, -s, a.Vector(irow-iskew*icol+ioffst-1, icol-1), ilda, extra, temp)
+								extra, temp = Dlarot(true, jch > jku+jkl, true, il, c, -s, a.Off(irow-iskew*icol+ioffst-1, icol-1).Vector(), ilda, extra, temp)
 								ic = icol
 								ir = irow
 							}
@@ -351,7 +350,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 						irow = max(1, jc-jku)
 						if jc < n {
 							il = min(m, jc+jkl) + 1 - irow
-							extra, dummy = Dlarot(false, jc > jku, false, il, c, s, a.Vector(irow-iskew*jc+ioffst-1, jc-1), ilda, extra, dummy)
+							extra, dummy = Dlarot(false, jc > jku, false, il, c, s, a.Off(irow-iskew*jc+ioffst-1, jc-1).Vector(), ilda, extra, dummy)
 						}
 
 						//                    Chase "EXTRA" back up
@@ -365,13 +364,13 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 							il = ic + 2 - icol
 							temp = zero
 							iltemp = jch > jkl
-							temp, extra = Dlarot(true, iltemp, true, il, c, -s, a.Vector(ir-iskew*icol+ioffst-1, icol-1), ilda, temp, extra)
+							temp, extra = Dlarot(true, iltemp, true, il, c, -s, a.Off(ir-iskew*icol+ioffst-1, icol-1).Vector(), ilda, temp, extra)
 							if iltemp {
 								c, s, dummy = golapack.Dlartg(a.Get(ir+1-iskew*(icol+1)+ioffst-1, icol), temp)
 								irow = max(1, jch-jkl-jku)
 								il = ir + 2 - irow
 								extra = zero
-								extra, temp = Dlarot(false, jch > jkl+jku, true, il, c, -s, a.Vector(irow-iskew*icol+ioffst-1, icol-1), ilda, extra, temp)
+								extra, temp = Dlarot(false, jch > jkl+jku, true, il, c, -s, a.Off(irow-iskew*icol+ioffst-1, icol-1).Vector(), ilda, extra, temp)
 								ic = icol
 								ir = irow
 							}
@@ -396,7 +395,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 						irow = max(1, jc-jku+1)
 						if jc > 0 {
 							il = min(m, jc+jkl+1) + 1 - irow
-							dummy, extra = Dlarot(false, false, jc+jkl < m, il, c, s, a.Vector(irow-iskew*jc+ioffst-1, jc-1), ilda, dummy, extra)
+							dummy, extra = Dlarot(false, false, jc+jkl < m, il, c, s, a.Off(irow-iskew*jc+ioffst-1, jc-1).Vector(), ilda, dummy, extra)
 						}
 
 						//                    Chase "EXTRA" back down
@@ -410,12 +409,12 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 							icol = min(n-1, jch+jku)
 							iltemp = jch+jku < n
 							temp = zero
-							extra, temp = Dlarot(true, ilextr, iltemp, icol+2-ic, c, s, a.Vector(jch-iskew*ic+ioffst-1, ic-1), ilda, extra, temp)
+							extra, temp = Dlarot(true, ilextr, iltemp, icol+2-ic, c, s, a.Off(jch-iskew*ic+ioffst-1, ic-1).Vector(), ilda, extra, temp)
 							if iltemp {
 								c, s, dummy = golapack.Dlartg(a.Get(jch-iskew*icol+ioffst-1, icol-1), temp)
 								il = min(iendch, jch+jkl+jku) + 2 - jch
 								extra = zero
-								temp, extra = Dlarot(false, true, jch+jkl+jku <= iendch, il, c, s, a.Vector(jch-iskew*icol+ioffst-1, icol-1), ilda, temp, extra)
+								temp, extra = Dlarot(false, true, jch+jkl+jku <= iendch, il, c, s, a.Off(jch-iskew*icol+ioffst-1, icol-1).Vector(), ilda, temp, extra)
 								ic = icol
 							}
 						}
@@ -437,7 +436,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 						icol = max(1, jr-jkl+1)
 						if jr > 0 {
 							il = min(n, jr+jku+1) + 1 - icol
-							dummy, extra = Dlarot(true, false, jr+jku < n, il, c, s, a.Vector(jr-iskew*icol+ioffst-1, icol-1), ilda, dummy, extra)
+							dummy, extra = Dlarot(true, false, jr+jku < n, il, c, s, a.Off(jr-iskew*icol+ioffst-1, icol-1).Vector(), ilda, dummy, extra)
 						}
 
 						//                    Chase "EXTRA" back down
@@ -451,12 +450,12 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 							irow = min(m-1, jch+jkl)
 							iltemp = jch+jkl < m
 							temp = zero
-							extra, temp = Dlarot(false, ilextr, iltemp, irow+2-ir, c, s, a.Vector(ir-iskew*jch+ioffst-1, jch-1), ilda, extra, temp)
+							extra, temp = Dlarot(false, ilextr, iltemp, irow+2-ir, c, s, a.Off(ir-iskew*jch+ioffst-1, jch-1).Vector(), ilda, extra, temp)
 							if iltemp {
 								c, s, dummy = golapack.Dlartg(a.Get(irow-iskew*jch+ioffst-1, jch-1), temp)
 								il = min(iendch, jch+jkl+jku) + 2 - jch
 								extra = zero
-								temp, extra = Dlarot(true, true, jch+jkl+jku <= iendch, il, c, s, a.Vector(irow-iskew*jch+ioffst-1, jch-1), ilda, temp, extra)
+								temp, extra = Dlarot(true, true, jch+jkl+jku <= iendch, il, c, s, a.Off(irow-iskew*jch+ioffst-1, jch-1).Vector(), ilda, temp, extra)
 								ir = irow
 							}
 						}
@@ -477,7 +476,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 				} else {
 					ipackg = 1
 				}
-				goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffg-1, 0, ilda+1))
+				a.Off(1-iskew+ioffg-1, 0).Vector().Copy(mnmin, d, 1, ilda+1)
 
 				for k = 1; k <= uub; k++ {
 					for jc = 1; jc <= n-1; jc++ {
@@ -488,19 +487,19 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 						angle = twopi * Dlarnd(1, iseed)
 						c = math.Cos(angle)
 						s = math.Sin(angle)
-						extra, temp = Dlarot(false, jc > k, true, il, c, s, a.Vector(irow-iskew*jc+ioffg-1, jc-1), ilda, extra, temp)
-						temp, dummy = Dlarot(true, true, false, min(k, n-jc)+1, c, s, a.Vector((1-iskew)*jc+ioffg-1, jc-1), ilda, temp, dummy)
+						extra, temp = Dlarot(false, jc > k, true, il, c, s, a.Off(irow-iskew*jc+ioffg-1, jc-1).Vector(), ilda, extra, temp)
+						temp, dummy = Dlarot(true, true, false, min(k, n-jc)+1, c, s, a.Off((1-iskew)*jc+ioffg-1, jc-1).Vector(), ilda, temp, dummy)
 
 						//                    Chase EXTRA back up the matrix
 						icol = jc
 						for jch = jc - k; jch >= 1; jch -= k {
 							c, s, dummy = golapack.Dlartg(a.Get(jch+1-iskew*(icol+1)+ioffg-1, icol), extra)
 							temp = a.Get(jch-iskew*(jch+1)+ioffg-1, jch)
-							temp, extra = Dlarot(true, true, true, k+2, c, -s, a.Vector((1-iskew)*jch+ioffg-1, jch-1), ilda, temp, extra)
+							temp, extra = Dlarot(true, true, true, k+2, c, -s, a.Off((1-iskew)*jch+ioffg-1, jch-1).Vector(), ilda, temp, extra)
 							irow = max(1, jch-k)
 							il = min(jch+1, k+2)
 							extra = zero
-							extra, temp = Dlarot(false, jch > k, true, il, c, -s, a.Vector(irow-iskew*jch+ioffg-1, jch-1), ilda, extra, temp)
+							extra, temp = Dlarot(false, jch > k, true, il, c, -s, a.Off(irow-iskew*jch+ioffg-1, jch-1).Vector(), ilda, extra, temp)
 							icol = jch
 						}
 					}
@@ -538,7 +537,7 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 				} else {
 					ipackg = 2
 				}
-				goblas.Dcopy(mnmin, d.Off(0, 1), a.Vector(1-iskew+ioffg-1, 0, ilda+1))
+				a.Off(1-iskew+ioffg-1, 0).Vector().Copy(mnmin, d, 1, ilda+1)
 
 				for k = 1; k <= uub; k++ {
 					for jc = n - 1; jc >= 1; jc-- {
@@ -548,19 +547,19 @@ func Dlatmt(m, n int, dist byte, iseed *[]int, sym byte, d *mat.Vector, mode int
 						angle = twopi * Dlarnd(1, iseed)
 						c = math.Cos(angle)
 						s = -math.Sin(angle)
-						temp, extra = Dlarot(false, true, n-jc > k, il, c, s, a.Vector((1-iskew)*jc+ioffg-1, jc-1), ilda, temp, extra)
+						temp, extra = Dlarot(false, true, n-jc > k, il, c, s, a.Off((1-iskew)*jc+ioffg-1, jc-1).Vector(), ilda, temp, extra)
 						icol = max(1, jc-k+1)
-						dummy, temp = Dlarot(true, false, true, jc+2-icol, c, s, a.Vector(jc-iskew*icol+ioffg-1, icol-1), ilda, dummy, temp)
+						dummy, temp = Dlarot(true, false, true, jc+2-icol, c, s, a.Off(jc-iskew*icol+ioffg-1, icol-1).Vector(), ilda, dummy, temp)
 
 						//                    Chase EXTRA back down the matrix
 						icol = jc
 						for _, jch = range genIter(jc+k, n-1, k) {
 							c, s, dummy = golapack.Dlartg(a.Get(jch-iskew*icol+ioffg-1, icol-1), extra)
 							temp = a.Get(1+(1-iskew)*jch+ioffg-1, jch-1)
-							extra, temp = Dlarot(true, true, true, k+2, c, s, a.Vector(jch-iskew*icol+ioffg-1, icol-1), ilda, extra, temp)
+							extra, temp = Dlarot(true, true, true, k+2, c, s, a.Off(jch-iskew*icol+ioffg-1, icol-1).Vector(), ilda, extra, temp)
 							il = min(n+1-jch, k+2)
 							extra = zero
-							temp, extra = Dlarot(false, true, n-jch > k, il, c, s, a.Vector((1-iskew)*jch+ioffg-1, jch-1), ilda, temp, extra)
+							temp, extra = Dlarot(false, true, n-jch > k, il, c, s, a.Off((1-iskew)*jch+ioffg-1, jch-1).Vector(), ilda, temp, extra)
 							icol = jch
 						}
 					}

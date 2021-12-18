@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -49,7 +48,7 @@ func dqpt01(m, n, k int, a, af *mat.Matrix, tau *mat.Vector, jpvt []int, work *m
 		}
 	}
 	for j = k + 1; j <= n; j++ {
-		goblas.Dcopy(m, af.Vector(0, j-1, 1), work.Off((j-1)*m, 1))
+		work.Off((j-1)*m).Copy(m, af.Off(0, j-1).Vector(), 1, 1)
 	}
 
 	if err = golapack.Dormqr(Left, NoTrans, m, n, k, af, tau, work.Matrix(m, opts), work.Off(m*n), lwork-m*n); err != nil {
@@ -58,7 +57,7 @@ func dqpt01(m, n, k int, a, af *mat.Matrix, tau *mat.Vector, jpvt []int, work *m
 
 	for j = 1; j <= n; j++ {
 		//        Compare i-th column of QR and jpvt(i)-th column of A
-		goblas.Daxpy(m, -one, a.Vector(0, jpvt[j-1]-1, 1), work.Off((j-1)*m, 1))
+		work.Off((j-1)*m).Axpy(m, -one, a.Off(0, jpvt[j-1]-1).Vector(), 1, 1)
 	}
 
 	dqpt01Return = golapack.Dlange('O', m, n, work.Matrix(m, opts), rwork) / (float64(max(m, n)) * golapack.Dlamch(Epsilon))

@@ -5,7 +5,6 @@ import (
 	"math"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 )
 
@@ -430,11 +429,11 @@ func zchkgk(t *testing.T) {
 		//
 		//     Check tilde(VL)'*A*tilde(VR) - VL'*tilde(A)*VR
 		//     where tilde(A) denotes the transformed matrix.
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, af, vr, czero, work)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vl, work, czero, e)
+		err = work.Gemm(NoTrans, NoTrans, n, m, n, cone, af, vr, czero)
+		err = e.Gemm(ConjTrans, NoTrans, m, m, n, cone, vl, work, czero)
 
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, a, vrf, czero, work)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vlf, work, czero, f)
+		err = work.Gemm(NoTrans, NoTrans, n, m, n, cone, a, vrf, czero)
+		err = f.Gemm(ConjTrans, NoTrans, m, m, n, cone, vlf, work, czero)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {
@@ -449,11 +448,11 @@ func zchkgk(t *testing.T) {
 		}
 
 		//     Check tilde(VL)'*B*tilde(VR) - VL'*tilde(B)*VR
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, bf, vr, czero, work)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vl, work, czero, e)
+		err = work.Gemm(NoTrans, NoTrans, n, m, n, cone, bf, vr, czero)
+		err = e.Gemm(ConjTrans, NoTrans, m, m, n, cone, vl, work, czero)
 
-		err = goblas.Zgemm(NoTrans, NoTrans, n, m, n, cone, b, vrf, czero, work)
-		err = goblas.Zgemm(ConjTrans, NoTrans, m, m, n, cone, vlf, work, czero, f)
+		err = work.Gemm(NoTrans, NoTrans, n, m, n, cone, b, vrf, czero)
+		err = f.Gemm(ConjTrans, NoTrans, m, m, n, cone, vlf, work, czero)
 
 		vmax = zero
 		for j = 1; j <= m; j++ {

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -92,11 +91,11 @@ label10:
 		scale = sl * su
 		normin = 'Y'
 		if scale != one {
-			ix = goblas.Izamax(n, work.Off(0, 1))
+			ix = work.Iamax(n, 1)
 			if scale < cabs1(work.Get(ix-1))*smlnum || scale == zero {
 				return
 			}
-			Zdrscl(n, scale, work.Off(0, 1))
+			Zdrscl(n, scale, work, 1)
 		}
 		goto label10
 	}

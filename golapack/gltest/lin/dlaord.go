@@ -1,18 +1,16 @@
 package lin
 
 import (
-	"math"
-
 	"github.com/whipstein/golinalg/mat"
 )
 
 // dlaord sorts the elements of a vector x in increasing or decreasing
 // order.
-func dlaord(job byte, n int, x *mat.Vector) {
+func dlaord(job byte, n int, x *mat.Vector, incx int) {
 	var temp float64
 	var i, inc, ix, ixnext int
 
-	inc = int(math.Abs(float64(x.Inc)))
+	inc = abs(incx)
 	if job == 'I' {
 		//        Sort in increasing order
 		for i = 2; i <= n; i++ {

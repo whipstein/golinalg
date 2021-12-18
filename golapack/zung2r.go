@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -56,10 +55,10 @@ func Zung2r(m, n, k int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 		//
 		if i < n {
 			a.Set(i-1, i-1, one)
-			Zlarf(Left, m-i+1, n-i, a.CVector(i-1, i-1, 1), tau.Get(i-1), a.Off(i-1, i), work)
+			Zlarf(Left, m-i+1, n-i, a.Off(i-1, i-1).CVector(), 1, tau.Get(i-1), a.Off(i-1, i), work)
 		}
 		if i < m {
-			goblas.Zscal(m-i, -tau.Get(i-1), a.CVector(i, i-1, 1))
+			a.Off(i, i-1).CVector().Scal(m-i, -tau.Get(i-1), 1)
 		}
 		a.Set(i-1, i-1, one-tau.Get(i-1))
 

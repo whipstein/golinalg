@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -70,20 +69,20 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 				//
 				//              Multiply by the diagonal element if forming U * D.
 				if nounit {
-					goblas.Zscal(nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0))
+					b.Off(k-1, 0).CVector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformation.
-					if err = goblas.Zgeru(k-1, nrhs, one, a.CVector(0, k-1, 1), b.CVector(k-1, 0), b); err != nil {
+					if err = b.Geru(k-1, nrhs, one, a.Off(0, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
 
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 					}
 				}
 				k = k + 1
@@ -107,17 +106,17 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 				//              Multiply by  P(K) * inv(U(K))  if K > 1.
 				if k > 1 {
 					//                 Apply the transformations.
-					if err = goblas.Zgeru(k-1, nrhs, one, a.CVector(0, k-1, 1), b.CVector(k-1, 0), b); err != nil {
+					if err = b.Geru(k-1, nrhs, one, a.Off(0, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zgeru(k-1, nrhs, one, a.CVector(0, k, 1), b.CVector(k, 0), b); err != nil {
+					if err = b.Geru(k-1, nrhs, one, a.Off(0, k).CVector(), 1, b.Off(k, 0).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
 
 					//                 Interchange if P(K) != I.
 					kp = abs((*ipiv)[k-1])
 					if kp != k {
-						goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 					}
 				}
 				k = k + 2
@@ -143,7 +142,7 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 				//
 				//              Multiply by the diagonal element if forming L * D.
 				if nounit {
-					goblas.Zscal(nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0))
+					b.Off(k-1, 0).CVector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
@@ -151,14 +150,14 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 					kp = (*ipiv)[k-1]
 
 					//                 Apply the transformation.
-					if err = goblas.Zgeru(n-k, nrhs, one, a.CVector(k, k-1, 1), b.CVector(k-1, 0), b.Off(k, 0)); err != nil {
+					if err = b.Off(k, 0).Geru(n-k, nrhs, one, a.Off(k, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
 
 					//                 Interchange if a permutation was applied at the
 					//                 K-th step of the factorization.
 					if kp != k {
-						goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 					}
 				}
 				k = k - 1
@@ -183,10 +182,10 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 				//              Multiply by  P(K) * inv(L(K))  if K < N.
 				if k != n {
 					//                 Apply the transformation.
-					if err = goblas.Zgeru(n-k, nrhs, one, a.CVector(k, k-1, 1), b.CVector(k-1, 0), b.Off(k, 0)); err != nil {
+					if err = b.Off(k, 0).Geru(n-k, nrhs, one, a.Off(k, k-1).CVector(), 1, b.Off(k-1, 0).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zgeru(n-k, nrhs, one, a.CVector(k, k-1-1, 1), b.CVector(k-1-1, 0), b.Off(k, 0)); err != nil {
+					if err = b.Off(k, 0).Geru(n-k, nrhs, one, a.Off(k, k-1-1).CVector(), 1, b.Off(k-1-1, 0).CVector(), b.Rows); err != nil {
 						panic(err)
 					}
 
@@ -194,7 +193,7 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 					//                 K-th step of the factorization.
 					kp = abs((*ipiv)[k-1])
 					if kp != k {
-						goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 					}
 				}
 				k = k - 2
@@ -226,20 +225,20 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformation
 					//                    y = y - B' conjg(x),
 					//                 where x is a column of A and y is a row of B.
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
-					if err = goblas.Zgemv(ConjTrans, k-1, nrhs, one, b, a.CVector(0, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+					if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, k-1, nrhs, one, b, a.Off(0, k-1).CVector(), 1, one, b.Rows); err != nil {
 						panic(err)
 					}
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 				}
 				if nounit {
-					goblas.Zscal(nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0))
+					b.Off(k-1, 0).CVector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 				k = k - 1
 
@@ -249,24 +248,24 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 					//                 Interchange if P(K) != I.
 					kp = abs((*ipiv)[k-1])
 					if kp != k-1 {
-						goblas.Zswap(nrhs, b.CVector(k-1-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformations
 					//                    y = y - B' conjg(x),
 					//                 where x is a block column of A and y is a block
 					//                 row of B.
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
-					if err = goblas.Zgemv(ConjTrans, k-2, nrhs, one, b, a.CVector(0, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+					if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, k-2, nrhs, one, b, a.Off(0, k-1).CVector(), 1, one, b.Rows); err != nil {
 						panic(err)
 					}
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 
-					golapack.Zlacgv(nrhs, b.CVector(k-1-1, 0))
-					if err = goblas.Zgemv(ConjTrans, k-2, nrhs, one, b, a.CVector(0, k-1-1, 1), one, b.CVector(k-1-1, 0)); err != nil {
+					golapack.Zlacgv(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows)
+					if err = b.Off(k-1-1, 0).CVector().Gemv(ConjTrans, k-2, nrhs, one, b, a.Off(0, k-1-1).CVector(), 1, one, b.Rows); err != nil {
 						panic(err)
 					}
-					golapack.Zlacgv(nrhs, b.CVector(k-1-1, 0))
+					golapack.Zlacgv(nrhs, b.Off(k-1-1, 0).CVector(), b.Rows)
 				}
 
 				//              Multiply by the diagonal block if non-unit.
@@ -305,18 +304,18 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 					//                 Interchange if P(K) != I.
 					kp = (*ipiv)[k-1]
 					if kp != k {
-						goblas.Zswap(nrhs, b.CVector(k-1, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k-1, 0).CVector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformation
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
-					if err = goblas.Zgemv(ConjTrans, n-k, nrhs, one, b.Off(k, 0), a.CVector(k, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+					if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, n-k, nrhs, one, b.Off(k, 0), a.Off(k, k-1).CVector(), 1, one, b.Rows); err != nil {
 						panic(err)
 					}
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 				}
 				if nounit {
-					goblas.Zscal(nrhs, a.Get(k-1, k-1), b.CVector(k-1, 0))
+					b.Off(k-1, 0).CVector().Scal(nrhs, a.Get(k-1, k-1), b.Rows)
 				}
 				k = k + 1
 
@@ -326,21 +325,21 @@ func zlavhe(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 					//              Interchange if P(K) != I.
 					kp = abs((*ipiv)[k-1])
 					if kp != k+1 {
-						goblas.Zswap(nrhs, b.CVector(k, 0), b.CVector(kp-1, 0))
+						b.Off(kp-1, 0).CVector().Swap(nrhs, b.Off(k, 0).CVector(), b.Rows, b.Rows)
 					}
 
 					//                 Apply the transformation
-					golapack.Zlacgv(nrhs, b.CVector(k, 0))
-					if err = goblas.Zgemv(ConjTrans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.CVector(k+2-1, k, 1), one, b.CVector(k, 0)); err != nil {
+					golapack.Zlacgv(nrhs, b.Off(k, 0).CVector(), b.Rows)
+					if err = b.Off(k, 0).CVector().Gemv(ConjTrans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.Off(k+2-1, k).CVector(), 1, one, b.Rows); err != nil {
 						panic(err)
 					}
-					golapack.Zlacgv(nrhs, b.CVector(k, 0))
+					golapack.Zlacgv(nrhs, b.Off(k, 0).CVector(), b.Rows)
 
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
-					if err = goblas.Zgemv(ConjTrans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.CVector(k+2-1, k-1, 1), one, b.CVector(k-1, 0)); err != nil {
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
+					if err = b.Off(k-1, 0).CVector().Gemv(ConjTrans, n-k-1, nrhs, one, b.Off(k+2-1, 0), a.Off(k+2-1, k-1).CVector(), 1, one, b.Rows); err != nil {
 						panic(err)
 					}
-					golapack.Zlacgv(nrhs, b.CVector(k-1, 0))
+					golapack.Zlacgv(nrhs, b.Off(k-1, 0).CVector(), b.Rows)
 				}
 
 				//              Multiply by the diagonal block if non-unit.

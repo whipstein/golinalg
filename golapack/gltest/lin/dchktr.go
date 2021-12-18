@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -233,7 +232,7 @@ func dchktr(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, ns
 					//+    TEST 8
 					//                 Solve the system op(A)*x = b.
 					*srnamt = "Dlatrs"
-					goblas.Dcopy(n, x.Off(0, 1), b.Off(0, 1))
+					b.Copy(n, x, 1, 1)
 					if scale, err = golapack.Dlatrs(uplo, trans, diag, 'N', n, a.Matrix(lda, opts), b, scale, rwork); err != nil {
 						nerrs = alaerh(path, "Dlatrs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'N'}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
@@ -242,12 +241,12 @@ func dchktr(dotype []bool, nn int, nval []int, nnb int, nbval []int, nns int, ns
 
 					//+    TEST 9
 					//                 Solve op(A)*X = b again with NORMIN = 'Y'.
-					goblas.Dcopy(n, x.Off(0, 1), b.Off(n, 1))
+					b.Off(n).Copy(n, x, 1, 1)
 					if scale, err = golapack.Dlatrs(uplo, trans, diag, 'Y', n, a.Matrix(lda, opts), b.Off(n), scale, rwork); err != nil {
 						nerrs = alaerh(path, "Dlatrs", info, 0, []byte{uplo.Byte(), trans.Byte(), diag.Byte(), 'Y'}, n, n, -1, -1, -1, imat, nfail, nerrs)
 					}
 
-					result.Set(8, dtrt03(uplo, trans, diag, n, 1, a.Matrix(lda, opts), scale, rwork, one, b.MatrixOff(n, lda, opts), x.Matrix(lda, opts), work))
+					result.Set(8, dtrt03(uplo, trans, diag, n, 1, a.Matrix(lda, opts), scale, rwork, one, b.Off(n).Matrix(lda, opts), x.Matrix(lda, opts), work))
 
 					//                 Print information about the tests that did not pass
 					//                 the threshold.

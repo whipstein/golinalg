@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -45,13 +44,13 @@ func Dtpqrt2(m, n, l int, a, b, t *mat.Matrix) (err error) {
 	for i = 1; i <= n; i++ {
 		//        Generate elementary reflector H(I) to annihilate B(:,I)
 		p = m - l + min(l, i)
-		*a.GetPtr(i-1, i-1), *t.GetPtr(i-1, 0) = Dlarfg(p+1, a.Get(i-1, i-1), b.Vector(0, i-1, 1))
+		*a.GetPtr(i-1, i-1), *t.GetPtr(i-1, 0) = Dlarfg(p+1, a.Get(i-1, i-1), b.Off(0, i-1).Vector(), 1)
 		if i < n {
 			//           W(1:N-I) := C(I:M,I+1:N)^H * C(I:M,I) [use W = T(:,N)]
 			for j = 1; j <= n-i; j++ {
 				t.Set(j-1, n-1, a.Get(i-1, i+j-1))
 			}
-			if err = goblas.Dgemv(Trans, p, n-i, one, b.Off(0, i), b.Vector(0, i-1, 1), one, t.Vector(0, n-1, 1)); err != nil {
+			if err = t.Off(0, n-1).Vector().Gemv(Trans, p, n-i, one, b.Off(0, i), b.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 				panic(err)
 			}
 
@@ -60,7 +59,7 @@ func Dtpqrt2(m, n, l int, a, b, t *mat.Matrix) (err error) {
 			for j = 1; j <= n-i; j++ {
 				a.Set(i-1, i+j-1, a.Get(i-1, i+j-1)+alpha*t.Get(j-1, n-1))
 			}
-			if err = goblas.Dger(p, n-i, alpha, b.Vector(0, i-1, 1), t.Vector(0, n-1, 1), b.Off(0, i)); err != nil {
+			if err = b.Off(0, i).Ger(p, n-i, alpha, b.Off(0, i-1).Vector(), 1, t.Off(0, n-1).Vector(), 1); err != nil {
 				panic(err)
 			}
 		}
@@ -80,22 +79,22 @@ func Dtpqrt2(m, n, l int, a, b, t *mat.Matrix) (err error) {
 		for j = 1; j <= p; j++ {
 			t.Set(j-1, i-1, alpha*b.Get(m-l+j-1, i-1))
 		}
-		if err = goblas.Dtrmv(Upper, Trans, NonUnit, p, b.Off(mp-1, 0), t.Vector(0, i-1, 1)); err != nil {
+		if err = t.Off(0, i-1).Vector().Trmv(Upper, Trans, NonUnit, p, b.Off(mp-1, 0), 1); err != nil {
 			panic(err)
 		}
 
 		//        Rectangular part of B2
-		if err = goblas.Dgemv(Trans, l, i-1-p, alpha, b.Off(mp-1, np-1), b.Vector(mp-1, i-1, 1), zero, t.Vector(np-1, i-1, 1)); err != nil {
+		if err = t.Off(np-1, i-1).Vector().Gemv(Trans, l, i-1-p, alpha, b.Off(mp-1, np-1), b.Off(mp-1, i-1).Vector(), 1, zero, 1); err != nil {
 			panic(err)
 		}
 
 		//        B1
-		if err = goblas.Dgemv(Trans, m-l, i-1, alpha, b, b.Vector(0, i-1, 1), one, t.Vector(0, i-1, 1)); err != nil {
+		if err = t.Off(0, i-1).Vector().Gemv(Trans, m-l, i-1, alpha, b, b.Off(0, i-1).Vector(), 1, one, 1); err != nil {
 			panic(err)
 		}
 
 		//        T(1:I-1,I) := T(1:I-1,1:I-1) * T(1:I-1,I)
-		if err = goblas.Dtrmv(Upper, NoTrans, NonUnit, i-1, t, t.Vector(0, i-1, 1)); err != nil {
+		if err = t.Off(0, i-1).Vector().Trmv(Upper, NoTrans, NonUnit, i-1, t, 1); err != nil {
 			panic(err)
 		}
 

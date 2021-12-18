@@ -34,11 +34,11 @@ func Zgeql2(m, n int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 		//        Generate elementary reflector H(i) to annihilate
 		//        A(1:m-k+i-1,n-k+i)
 		alpha = a.Get(m-k+i-1, n-k+i-1)
-		alpha, *tau.GetPtr(i - 1) = Zlarfg(m-k+i, alpha, a.CVector(0, n-k+i-1, 1))
+		alpha, *tau.GetPtr(i - 1) = Zlarfg(m-k+i, alpha, a.Off(0, n-k+i-1).CVector(), 1)
 
 		//        Apply H(i)**H to A(1:m-k+i,1:n-k+i-1) from the left
 		a.Set(m-k+i-1, n-k+i-1, one)
-		Zlarf(Left, m-k+i, n-k+i-1, a.CVector(0, n-k+i-1, 1), tau.GetConj(i-1), a, work)
+		Zlarf(Left, m-k+i, n-k+i-1, a.Off(0, n-k+i-1).CVector(), 1, tau.GetConj(i-1), a, work)
 		a.Set(m-k+i-1, n-k+i-1, alpha)
 	}
 

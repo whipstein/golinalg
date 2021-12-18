@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -78,13 +77,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(i-1, j-1, b.Get(m-l+i-1, j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Left, Upper, Trans, NonUnit, l, n, one, v.Off(mp-1, 0), work); err != nil {
+		if err = work.Trmm(Left, Upper, Trans, NonUnit, l, n, one, v.Off(mp-1, 0)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, l, n, m-l, one, v, b, one, work); err != nil {
+		if err = work.Gemm(Trans, NoTrans, l, n, m-l, one, v, b, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, k-l, n, m, one, v.Off(0, kp-1), b, zero, work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Gemm(Trans, NoTrans, k-l, n, m, one, v.Off(0, kp-1), b, zero); err != nil {
 			panic(err)
 		}
 
@@ -94,7 +93,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Left, Upper, trans, NonUnit, k, n, one, t, work); err != nil {
+		if err = work.Trmm(Left, Upper, trans, NonUnit, k, n, one, t); err != nil {
 			panic(err)
 		}
 
@@ -104,13 +103,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, m-l, n, k, -one, v, work, one, b); err != nil {
+		if err = b.Gemm(NoTrans, NoTrans, m-l, n, k, -one, v, work, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, l, n, k-l, -one, v.Off(mp-1, kp-1), work.Off(kp-1, 0), one, b.Off(mp-1, 0)); err != nil {
+		if err = b.Off(mp-1, 0).Gemm(NoTrans, NoTrans, l, n, k-l, -one, v.Off(mp-1, kp-1), work.Off(kp-1, 0), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, l, n, one, v.Off(mp-1, 0), work); err != nil {
+		if err = work.Trmm(Left, Upper, NoTrans, NonUnit, l, n, one, v.Off(mp-1, 0)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= n; j++ {
@@ -141,13 +140,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(i-1, j-1, b.Get(i-1, n-l+j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m, l, one, v.Off(np-1, 0), work); err != nil {
+		if err = work.Trmm(Right, Upper, NoTrans, NonUnit, m, l, one, v.Off(np-1, 0)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, l, n-l, one, b, v, one, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, m, l, n-l, one, b, v, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, k-l, n, one, b, v.Off(0, kp-1), zero, work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Gemm(NoTrans, NoTrans, m, k-l, n, one, b, v.Off(0, kp-1), zero); err != nil {
 			panic(err)
 		}
 
@@ -157,7 +156,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Right, Upper, trans, NonUnit, m, k, one, t, work); err != nil {
+		if err = work.Trmm(Right, Upper, trans, NonUnit, m, k, one, t); err != nil {
 			panic(err)
 		}
 
@@ -167,13 +166,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(NoTrans, Trans, m, n-l, k, -one, work, v, one, b); err != nil {
+		if err = b.Gemm(NoTrans, Trans, m, n-l, k, -one, work, v, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, Trans, m, l, k-l, -one, work.Off(0, kp-1), v.Off(np-1, kp-1), one, b.Off(0, np-1)); err != nil {
+		if err = b.Off(0, np-1).Gemm(NoTrans, Trans, m, l, k-l, -one, work.Off(0, kp-1), v.Off(np-1, kp-1), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Right, Upper, Trans, NonUnit, m, l, one, v.Off(np-1, 0), work); err != nil {
+		if err = work.Trmm(Right, Upper, Trans, NonUnit, m, l, one, v.Off(np-1, 0)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= l; j++ {
@@ -206,13 +205,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Left, Lower, Trans, NonUnit, l, n, one, v.Off(0, kp-1), work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Trmm(Left, Lower, Trans, NonUnit, l, n, one, v.Off(0, kp-1)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, l, n, m-l, one, v.Off(mp-1, kp-1), b.Off(mp-1, 0), one, work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Gemm(Trans, NoTrans, l, n, m-l, one, v.Off(mp-1, kp-1), b.Off(mp-1, 0), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, k-l, n, m, one, v, b, zero, work); err != nil {
+		if err = work.Gemm(Trans, NoTrans, k-l, n, m, one, v, b, zero); err != nil {
 			panic(err)
 		}
 
@@ -222,7 +221,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Left, Lower, trans, NonUnit, k, n, one, t, work); err != nil {
+		if err = work.Trmm(Left, Lower, trans, NonUnit, k, n, one, t); err != nil {
 			panic(err)
 		}
 
@@ -232,13 +231,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, m-l, n, k, -one, v.Off(mp-1, 0), work, one, b.Off(mp-1, 0)); err != nil {
+		if err = b.Off(mp-1, 0).Gemm(NoTrans, NoTrans, m-l, n, k, -one, v.Off(mp-1, 0), work, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, l, n, k-l, -one, v, work, one, b); err != nil {
+		if err = b.Gemm(NoTrans, NoTrans, l, n, k-l, -one, v, work, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, l, n, one, v.Off(0, kp-1), work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Trmm(Left, Lower, NoTrans, NonUnit, l, n, one, v.Off(0, kp-1)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= n; j++ {
@@ -269,13 +268,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(i-1, k-l+j-1, b.Get(i-1, j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, m, l, one, v.Off(0, kp-1), work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Trmm(Right, Lower, NoTrans, NonUnit, m, l, one, v.Off(0, kp-1)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, l, n-l, one, b.Off(0, np-1), v.Off(np-1, kp-1), one, work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Gemm(NoTrans, NoTrans, m, l, n-l, one, b.Off(0, np-1), v.Off(np-1, kp-1), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, k-l, n, one, b, v, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, m, k-l, n, one, b, v, zero); err != nil {
 			panic(err)
 		}
 
@@ -285,7 +284,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+		if err = work.Trmm(Right, Lower, trans, NonUnit, m, k, one, t); err != nil {
 			panic(err)
 		}
 
@@ -295,13 +294,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(NoTrans, Trans, m, n-l, k, -one, work, v.Off(np-1, 0), one, b.Off(0, np-1)); err != nil {
+		if err = b.Off(0, np-1).Gemm(NoTrans, Trans, m, n-l, k, -one, work, v.Off(np-1, 0), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, Trans, m, l, k-l, -one, work, v, one, b); err != nil {
+		if err = b.Gemm(NoTrans, Trans, m, l, k-l, -one, work, v, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Right, Lower, Trans, NonUnit, m, l, one, v.Off(0, kp-1), work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Trmm(Right, Lower, Trans, NonUnit, m, l, one, v.Off(0, kp-1)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= l; j++ {
@@ -332,13 +331,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(i-1, j-1, b.Get(m-l+i-1, j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Left, Lower, NoTrans, NonUnit, l, n, one, v.Off(0, mp-1), work); err != nil {
+		if err = work.Trmm(Left, Lower, NoTrans, NonUnit, l, n, one, v.Off(0, mp-1)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, l, n, m-l, one, v, b, one, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, l, n, m-l, one, v, b, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, k-l, n, m, one, v.Off(kp-1, 0), b, zero, work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Gemm(NoTrans, NoTrans, k-l, n, m, one, v.Off(kp-1, 0), b, zero); err != nil {
 			panic(err)
 		}
 
@@ -348,7 +347,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Left, Upper, trans, NonUnit, k, n, one, t, work); err != nil {
+		if err = work.Trmm(Left, Upper, trans, NonUnit, k, n, one, t); err != nil {
 			panic(err)
 		}
 
@@ -358,13 +357,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(Trans, NoTrans, m-l, n, k, -one, v, work, one, b); err != nil {
+		if err = b.Gemm(Trans, NoTrans, m-l, n, k, -one, v, work, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, l, n, k-l, -one, v.Off(kp-1, mp-1), work.Off(kp-1, 0), one, b.Off(mp-1, 0)); err != nil {
+		if err = b.Off(mp-1, 0).Gemm(Trans, NoTrans, l, n, k-l, -one, v.Off(kp-1, mp-1), work.Off(kp-1, 0), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Left, Lower, Trans, NonUnit, l, n, one, v.Off(0, mp-1), work); err != nil {
+		if err = work.Trmm(Left, Lower, Trans, NonUnit, l, n, one, v.Off(0, mp-1)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= n; j++ {
@@ -394,13 +393,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(i-1, j-1, b.Get(i-1, n-l+j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Right, Lower, Trans, NonUnit, m, l, one, v.Off(0, np-1), work); err != nil {
+		if err = work.Trmm(Right, Lower, Trans, NonUnit, m, l, one, v.Off(0, np-1)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, Trans, m, l, n-l, one, b, v, one, work); err != nil {
+		if err = work.Gemm(NoTrans, Trans, m, l, n-l, one, b, v, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, Trans, m, k-l, n, one, b, v.Off(kp-1, 0), zero, work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Gemm(NoTrans, Trans, m, k-l, n, one, b, v.Off(kp-1, 0), zero); err != nil {
 			panic(err)
 		}
 
@@ -410,7 +409,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Right, Upper, trans, NonUnit, m, k, one, t, work); err != nil {
+		if err = work.Trmm(Right, Upper, trans, NonUnit, m, k, one, t); err != nil {
 			panic(err)
 		}
 
@@ -420,13 +419,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, n-l, k, -one, work, v, one, b); err != nil {
+		if err = b.Gemm(NoTrans, NoTrans, m, n-l, k, -one, work, v, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, l, k-l, -one, work.Off(0, kp-1), v.Off(kp-1, np-1), one, b.Off(0, np-1)); err != nil {
+		if err = b.Off(0, np-1).Gemm(NoTrans, NoTrans, m, l, k-l, -one, work.Off(0, kp-1), v.Off(kp-1, np-1), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Right, Lower, NoTrans, NonUnit, m, l, one, v.Off(0, np-1), work); err != nil {
+		if err = work.Trmm(Right, Lower, NoTrans, NonUnit, m, l, one, v.Off(0, np-1)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= l; j++ {
@@ -457,13 +456,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(k-l+i-1, j-1, b.Get(i-1, j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Left, Upper, NoTrans, NonUnit, l, n, one, v.Off(kp-1, 0), work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Trmm(Left, Upper, NoTrans, NonUnit, l, n, one, v.Off(kp-1, 0)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, l, n, m-l, one, v.Off(kp-1, mp-1), b.Off(mp-1, 0), one, work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Gemm(NoTrans, NoTrans, l, n, m-l, one, v.Off(kp-1, mp-1), b.Off(mp-1, 0), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, k-l, n, m, one, v, b, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, NoTrans, k-l, n, m, one, v, b, zero); err != nil {
 			panic(err)
 		}
 
@@ -473,7 +472,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Left, Lower, trans, NonUnit, k, n, one, t, work); err != nil {
+		if err = work.Trmm(Left, Lower, trans, NonUnit, k, n, one, t); err != nil {
 			panic(err)
 		}
 
@@ -483,13 +482,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(Trans, NoTrans, m-l, n, k, -one, v.Off(0, mp-1), work, one, b.Off(mp-1, 0)); err != nil {
+		if err = b.Off(mp-1, 0).Gemm(Trans, NoTrans, m-l, n, k, -one, v.Off(0, mp-1), work, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(Trans, NoTrans, l, n, k-l, -one, v, work, one, b); err != nil {
+		if err = b.Gemm(Trans, NoTrans, l, n, k-l, -one, v, work, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Left, Upper, Trans, NonUnit, l, n, one, v.Off(kp-1, 0), work.Off(kp-1, 0)); err != nil {
+		if err = work.Off(kp-1, 0).Trmm(Left, Upper, Trans, NonUnit, l, n, one, v.Off(kp-1, 0)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= n; j++ {
@@ -519,13 +518,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 				work.Set(i-1, k-l+j-1, b.Get(i-1, j-1))
 			}
 		}
-		if err = goblas.Dtrmm(Right, Upper, Trans, NonUnit, m, l, one, v.Off(kp-1, 0), work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Trmm(Right, Upper, Trans, NonUnit, m, l, one, v.Off(kp-1, 0)); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, Trans, m, l, n-l, one, b.Off(0, np-1), v.Off(kp-1, np-1), one, work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Gemm(NoTrans, Trans, m, l, n-l, one, b.Off(0, np-1), v.Off(kp-1, np-1), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, Trans, m, k-l, n, one, b, v, zero, work); err != nil {
+		if err = work.Gemm(NoTrans, Trans, m, k-l, n, one, b, v, zero); err != nil {
 			panic(err)
 		}
 
@@ -535,7 +534,7 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dtrmm(Right, Lower, trans, NonUnit, m, k, one, t, work); err != nil {
+		if err = work.Trmm(Right, Lower, trans, NonUnit, m, k, one, t); err != nil {
 			panic(err)
 		}
 
@@ -545,13 +544,13 @@ func Dtprfb(side mat.MatSide, trans mat.MatTrans, direct, storev byte, m, n, k, 
 			}
 		}
 
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, n-l, k, -one, work, v.Off(0, np-1), one, b.Off(0, np-1)); err != nil {
+		if err = b.Off(0, np-1).Gemm(NoTrans, NoTrans, m, n-l, k, -one, work, v.Off(0, np-1), one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dgemm(NoTrans, NoTrans, m, l, k-l, -one, work, v, one, b); err != nil {
+		if err = b.Gemm(NoTrans, NoTrans, m, l, k-l, -one, work, v, one); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dtrmm(Right, Upper, NoTrans, NonUnit, m, l, one, v.Off(kp-1, 0), work.Off(0, kp-1)); err != nil {
+		if err = work.Off(0, kp-1).Trmm(Right, Upper, NoTrans, NonUnit, m, l, one, v.Off(kp-1, 0)); err != nil {
 			panic(err)
 		}
 		for j = 1; j <= l; j++ {

@@ -49,7 +49,7 @@ func Dlarfx(side mat.MatSide, m, n int, v *mat.Vector, tau float64, c *mat.Matri
 		}
 
 		//        Code for general M
-		Dlarf(side, m, n, v.Off(0, 1), tau, c, work)
+		Dlarf(side, m, n, v, 1, tau, c, work)
 		return
 	label10:
 		;
@@ -320,7 +320,7 @@ func Dlarfx(side mat.MatSide, m, n int, v *mat.Vector, tau float64, c *mat.Matri
 		}
 
 		//        Code for general N
-		Dlarf(side, m, n, v.Off(0, 1), tau, c, work)
+		Dlarf(side, m, n, v, 1, tau, c, work)
 		return
 	label210:
 		;

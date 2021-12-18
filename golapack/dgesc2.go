@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -40,10 +39,10 @@ func Dgesc2(n int, a *mat.Matrix, rhs *mat.Vector, ipiv, jpiv *[]int) (scale flo
 	scale = one
 
 	//     Check for scaling
-	i = goblas.Idamax(n, rhs)
+	i = rhs.Iamax(n, 1)
 	if two*smlnum*math.Abs(rhs.Get(i-1)) > math.Abs(a.Get(n-1, n-1)) {
 		temp = (one / two) / math.Abs(rhs.Get(i-1))
-		goblas.Dscal(n, temp, rhs)
+		rhs.Scal(n, temp, 1)
 		scale = scale * temp
 	}
 

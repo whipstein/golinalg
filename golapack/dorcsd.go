@@ -113,19 +113,19 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, signs byte, m
 		itauq1 = itaup2 + max(1, m-p)
 		itauq2 = itauq1 + max(1, q)
 		iorgqr = itauq2 + max(1, m-q)
-		if err = Dorgqr(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.VectorIdx(0), work, -1); err != nil {
+		if err = Dorgqr(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.OffIdx(0).Vector(), work, -1); err != nil {
 			panic(err)
 		}
 		lorgqrworkopt = int(work.Get(0))
 		lorgqrworkmin = max(1, m-q)
 		iorglq = itauq2 + max(1, m-q)
-		if err = Dorglq(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.VectorIdx(0), work, -1); err != nil {
+		if err = Dorglq(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.OffIdx(0).Vector(), work, -1); err != nil {
 			panic(err)
 		}
 		lorglqworkopt = int(work.Get(0))
 		lorglqworkmin = max(1, m-q)
 		iorbdb = itauq2 + max(1, m-q)
-		if err = Dorbdb(trans, signs, m, p, q, x11, x12, x21, x22, theta, v1t.VectorIdx(0), u1.VectorIdx(0), u2.VectorIdx(0), v1t.VectorIdx(0), v2t.VectorIdx(0), work, -1); err != nil {
+		if err = Dorbdb(trans, signs, m, p, q, x11, x12, x21, x22, theta, v1t.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u2.OffIdx(0).Vector(), v1t.OffIdx(0).Vector(), v2t.OffIdx(0).Vector(), work, -1); err != nil {
 			panic(err)
 		}
 		lorbdbworkopt = int(work.Get(0))
@@ -139,7 +139,7 @@ func Dorcsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, signs byte, m
 		ib22d = ib21e + max(1, q-1)
 		ib22e = ib22d + max(1, q)
 		ibbcsd = ib22e + max(1, q-1)
-		if _, err = Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans, m, p, q, theta, theta, u1, u2, v1t, v2t, u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), u1.VectorIdx(0), work, -1); err != nil {
+		if _, err = Dbbcsd(jobu1, jobu2, jobv1t, jobv2t, trans, m, p, q, theta, theta, u1, u2, v1t, v2t, u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), u1.OffIdx(0).Vector(), work, -1); err != nil {
 			panic(err)
 		}
 		lbbcsdworkopt = int(work.Get(0))

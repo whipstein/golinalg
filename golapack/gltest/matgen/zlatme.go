@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -123,7 +122,7 @@ func Zlatme(n int, dist byte, iseed *[]int, d *mat.CVector, mode int, cond float
 	} else if isim == -1 {
 		err = fmt.Errorf("isim == -1: sim='%c'", sim)
 	} else if bads {
-		err = fmt.Errorf("bads: ds=%v", ds.Data)
+		err = fmt.Errorf("bads: ds=%v", ds.Data())
 	} else if isim == 1 && abs(modes) > 5 {
 		err = fmt.Errorf("isim == 1 && abs(modes) > 5: sim='%c', modes=%v", sim, modes)
 	} else if isim == 1 && modes != 0 && conds < one {
@@ -171,17 +170,17 @@ func Zlatme(n int, dist byte, iseed *[]int, d *mat.CVector, mode int, cond float
 			return
 		}
 
-		goblas.Zscal(n, alpha, d.Off(0, 1))
+		d.Scal(n, alpha, 1)
 
 	}
 
 	golapack.Zlaset(Full, n, n, czero, czero, a)
-	goblas.Zcopy(n, d.Off(0, 1), a.CVector(0, 0, a.Rows+1))
+	a.Off(0, 0).CVector().Copy(n, d, 1, a.Rows+1)
 
 	//     3)      If UPPER='T', set upper triangle of A to random numbers.
 	if iupper != 0 {
 		for jc = 2; jc <= n; jc++ {
-			golapack.Zlarnv(idist, iseed, jc-1, a.CVector(0, jc-1))
+			golapack.Zlarnv(idist, iseed, jc-1, a.Off(0, jc-1).CVector())
 		}
 	}
 
@@ -207,9 +206,9 @@ func Zlatme(n int, dist byte, iseed *[]int, d *mat.CVector, mode int, cond float
 
 		//        Multiply by S and (1/S)
 		for j = 1; j <= n; j++ {
-			goblas.Zdscal(n, ds.Get(j-1), a.CVector(j-1, 0))
+			a.Off(j-1, 0).CVector().Dscal(n, ds.Get(j-1), a.Rows)
 			if ds.Get(j-1) != zero {
-				goblas.Zdscal(n, one/ds.Get(j-1), a.CVector(0, j-1, 1))
+				a.Off(0, j-1).CVector().Dscal(n, one/ds.Get(j-1), 1)
 			} else {
 				err = fmt.Errorf("Zero singular value from Dlatm1")
 				return
@@ -231,32 +230,32 @@ func Zlatme(n int, dist byte, iseed *[]int, d *mat.CVector, mode int, cond float
 			irows = n + 1 - jcr
 			icols = n + kl - jcr
 
-			goblas.Zcopy(irows, a.CVector(jcr-1, ic-1, 1), work.Off(0, 1))
+			work.Copy(irows, a.Off(jcr-1, ic-1).CVector(), 1, 1)
 			xnorms = work.Get(0)
-			xnorms, tau = golapack.Zlarfg(irows, xnorms, work.Off(1, 1))
+			xnorms, tau = golapack.Zlarfg(irows, xnorms, work.Off(1), 1)
 			tau = cmplx.Conj(tau)
 			work.Set(0, cone)
 			alpha = Zlarnd(5, *iseed)
 
-			if err = goblas.Zgemv(ConjTrans, irows, icols, cone, a.Off(jcr-1, ic), work.Off(0, 1), czero, work.Off(irows, 1)); err != nil {
+			if err = work.Off(irows).Gemv(ConjTrans, irows, icols, cone, a.Off(jcr-1, ic), work, 1, czero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgerc(irows, icols, -tau, work.Off(0, 1), work.Off(irows, 1), a.Off(jcr-1, ic)); err != nil {
+			if err = a.Off(jcr-1, ic).Gerc(irows, icols, -tau, work, 1, work.Off(irows), 1); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemv(NoTrans, n, irows, cone, a.Off(0, jcr-1), work.Off(0, 1), czero, work.Off(irows, 1)); err != nil {
+			if err = work.Off(irows).Gemv(NoTrans, n, irows, cone, a.Off(0, jcr-1), work, 1, czero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgerc(n, irows, -cmplx.Conj(tau), work.Off(irows, 1), work.Off(0, 1), a.Off(0, jcr-1)); err != nil {
+			if err = a.Off(0, jcr-1).Gerc(n, irows, -cmplx.Conj(tau), work.Off(irows), 1, work, 1); err != nil {
 				panic(err)
 			}
 
 			a.Set(jcr-1, ic-1, xnorms)
 			golapack.Zlaset(Full, irows-1, 1, czero, czero, a.Off(jcr, ic-1))
 
-			goblas.Zscal(icols+1, alpha, a.CVector(jcr-1, ic-1))
-			goblas.Zscal(n, cmplx.Conj(alpha), a.CVector(0, jcr-1, 1))
+			a.Off(jcr-1, ic-1).CVector().Scal(icols+1, alpha, a.Rows)
+			a.Off(0, jcr-1).CVector().Scal(n, cmplx.Conj(alpha), 1)
 		}
 	} else if ku < n-1 {
 		//        Reduce upper bandwidth -- kill a row at a time.
@@ -265,33 +264,33 @@ func Zlatme(n int, dist byte, iseed *[]int, d *mat.CVector, mode int, cond float
 			irows = n + ku - jcr
 			icols = n + 1 - jcr
 
-			goblas.Zcopy(icols, a.CVector(ir-1, jcr-1), work.Off(0, 1))
+			work.Copy(icols, a.Off(ir-1, jcr-1).CVector(), a.Rows, 1)
 			xnorms = work.Get(0)
-			xnorms, tau = golapack.Zlarfg(icols, xnorms, work.Off(1, 1))
+			xnorms, tau = golapack.Zlarfg(icols, xnorms, work.Off(1), 1)
 			tau = cmplx.Conj(tau)
 			work.Set(0, cone)
-			golapack.Zlacgv(icols-1, work.Off(1, 1))
+			golapack.Zlacgv(icols-1, work.Off(1), 1)
 			alpha = Zlarnd(5, *iseed)
 
-			if err = goblas.Zgemv(NoTrans, irows, icols, cone, a.Off(ir, jcr-1), work.Off(0, 1), czero, work.Off(icols, 1)); err != nil {
+			if err = work.Off(icols).Gemv(NoTrans, irows, icols, cone, a.Off(ir, jcr-1), work, 1, czero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgerc(irows, icols, -tau, work.Off(icols, 1), work.Off(0, 1), a.Off(ir, jcr-1)); err != nil {
+			if err = a.Off(ir, jcr-1).Gerc(irows, icols, -tau, work.Off(icols), 1, work, 1); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Zgemv(ConjTrans, icols, n, cone, a.Off(jcr-1, 0), work.Off(0, 1), czero, work.Off(icols, 1)); err != nil {
+			if err = work.Off(icols).Gemv(ConjTrans, icols, n, cone, a.Off(jcr-1, 0), work, 1, czero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgerc(icols, n, -cmplx.Conj(tau), work.Off(0, 1), work.Off(icols, 1), a.Off(jcr-1, 0)); err != nil {
+			if err = a.Off(jcr-1, 0).Gerc(icols, n, -cmplx.Conj(tau), work, 1, work.Off(icols), 1); err != nil {
 				panic(err)
 			}
 
 			a.Set(ir-1, jcr-1, xnorms)
 			golapack.Zlaset(Full, 1, icols-1, czero, czero, a.Off(ir-1, jcr))
 
-			goblas.Zscal(irows+1, alpha, a.CVector(ir-1, jcr-1, 1))
-			goblas.Zscal(n, cmplx.Conj(alpha), a.CVector(jcr-1, 0))
+			a.Off(ir-1, jcr-1).CVector().Scal(irows+1, alpha, 1)
+			a.Off(jcr-1, 0).CVector().Scal(n, cmplx.Conj(alpha), a.Rows)
 		}
 	}
 
@@ -301,7 +300,7 @@ func Zlatme(n int, dist byte, iseed *[]int, d *mat.CVector, mode int, cond float
 		if temp > zero {
 			ralpha = anorm / temp
 			for j = 1; j <= n; j++ {
-				goblas.Zdscal(n, ralpha, a.CVector(0, j-1, 1))
+				a.Off(0, j-1).CVector().Dscal(n, ralpha, 1)
 			}
 		}
 	}

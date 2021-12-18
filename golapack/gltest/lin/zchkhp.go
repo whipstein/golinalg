@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -158,7 +157,7 @@ func zchkhp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 
 				//              Compute the L*D*L' or U*D*U' factorization of the matrix.
 				npp = n * (n + 1) / 2
-				goblas.Zcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+				afac.Copy(npp, a, 1, 1)
 				*srnamt = "Zhptrf"
 				info, err = golapack.Zhptrf(uplo, n, afac, &iwork)
 
@@ -197,7 +196,7 @@ func zchkhp(dotype []bool, nn int, nval []int, nns int, nsval []int, thresh floa
 				//+    TEST 2
 				//              Form the inverse and compute the residual.
 				if !trfcon {
-					goblas.Zcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+					ainv.Copy(npp, afac, 1, 1)
 					*srnamt = "Zhptri"
 					if info, err = golapack.Zhptri(uplo, n, ainv, &iwork, work); err != nil || info != 0 {
 						t.Fail()

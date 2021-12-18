@@ -99,7 +99,7 @@ func Zunm2l(side mat.MatSide, trans mat.MatTrans, m, n, k int, a *mat.CMatrix, t
 		}
 		aii = a.Get(nq-k+i-1, i-1)
 		a.Set(nq-k+i-1, i-1, one)
-		Zlarf(side, mi, ni, a.CVector(0, i-1, 1), taui, c, work)
+		Zlarf(side, mi, ni, a.Off(0, i-1).CVector(), 1, taui, c, work)
 		a.Set(nq-k+i-1, i-1, aii)
 	}
 

@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -26,7 +25,7 @@ import (
 // the unit matrix.
 //
 // Otherwise  1 <= tau <= 2.
-func Dlarfg(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
+func Dlarfg(n int, alpha float64, x *mat.Vector, incx int) (alphaOut, tau float64) {
 	var beta, one, rsafmn, safmin, xnorm, zero float64
 	var j, knt int
 
@@ -39,7 +38,7 @@ func Dlarfg(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 		return
 	}
 
-	xnorm = goblas.Dnrm2(n-1, x)
+	xnorm = x.Nrm2(n-1, incx)
 
 	if xnorm == zero {
 		//        H  =  I
@@ -55,7 +54,7 @@ func Dlarfg(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 		label10:
 			;
 			knt = knt + 1
-			goblas.Dscal(n-1, rsafmn, x)
+			x.Scal(n-1, rsafmn, incx)
 			beta = beta * rsafmn
 			alphaOut = alphaOut * rsafmn
 			if (math.Abs(beta) < safmin) && (knt < 20) {
@@ -63,11 +62,11 @@ func Dlarfg(n int, alpha float64, x *mat.Vector) (alphaOut, tau float64) {
 			}
 
 			//           New BETA is at most 1, at least SAFMIN
-			xnorm = goblas.Dnrm2(n-1, x)
+			xnorm = x.Nrm2(n-1, incx)
 			beta = -math.Copysign(Dlapy2(alphaOut, xnorm), alphaOut)
 		}
 		tau = (beta - alphaOut) / beta
-		goblas.Dscal(n-1, one/(alphaOut-beta), x)
+		x.Scal(n-1, one/(alphaOut-beta), incx)
 
 		//        If ALPHA is subnormal, it may lose relative accuracy
 		for j = 1; j <= knt; j++ {

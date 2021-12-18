@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -74,7 +73,7 @@ func dort03(rc byte, mu, mv, n, k int, u, v *mat.Matrix, work *mat.Vector, lwork
 		//        Compare rows
 		res1 = zero
 		for i = 1; i <= k; i++ {
-			lmx = goblas.Idamax(n, u.Vector(i-1, 0))
+			lmx = u.Off(i-1, 0).Vector().Iamax(n, u.Rows)
 			s = math.Copysign(one, u.Get(i-1, lmx-1)) * math.Copysign(one, v.Get(i-1, lmx-1))
 			for j = 1; j <= n; j++ {
 				res1 = math.Max(res1, math.Abs(u.Get(i-1, j-1)-s*v.Get(i-1, j-1)))
@@ -89,7 +88,7 @@ func dort03(rc byte, mu, mv, n, k int, u, v *mat.Matrix, work *mat.Vector, lwork
 		//        Compare columns
 		res1 = zero
 		for i = 1; i <= k; i++ {
-			lmx = goblas.Idamax(n, u.Vector(0, i-1, 1))
+			lmx = u.Off(0, i-1).Vector().Iamax(n, 1)
 			s = math.Copysign(one, u.Get(lmx-1, i-1)) * math.Copysign(one, v.Get(lmx-1, i-1))
 			for j = 1; j <= n; j++ {
 				res1 = math.Max(res1, math.Abs(u.Get(j-1, i-1)-s*v.Get(j-1, i-1)))

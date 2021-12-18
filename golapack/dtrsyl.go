@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -137,8 +136,8 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(m-k1, a.Vector(k1-1, min(k1+1, m)-1), c.Vector(min(k1+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(min(k1+1, m)-1, l1-1).Vector().Dot(m-k1, a.Off(k1-1, min(k1+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -159,7 +158,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -167,12 +166,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(m-k2, a.Vector(k1-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k1-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k2-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k2-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k2-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					if scaloc, _, ierr = Dlaln2(false, 2, 1, smin, one, a.Off(k1-1, k1-1), one, one, vec, -sgn*b.Get(l1-1, l1-1), zero, x); ierr != 0 {
@@ -181,7 +180,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -190,12 +189,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(m-k1, a.Vector(k1-1, min(k1+1, m)-1), c.Vector(min(k1+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(min(k1+1, m)-1, l1-1).Vector().Dot(m-k1, a.Off(k1-1, min(k1+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(m-k1, a.Vector(k1-1, min(k1+1, m)-1), c.Vector(min(k1+1, m)-1, l2-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l2-1, 1))
+					suml = c.Off(min(k1+1, m)-1, l2-1).Vector().Dot(m-k1, a.Off(k1-1, min(k1+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l2-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					if scaloc, _, ierr = Dlaln2(true, 2, 1, smin, one, b.Off(l1-1, l1-1), one, one, vec, -sgn*a.Get(k1-1, k1-1), zero, x); ierr != 0 {
@@ -204,7 +203,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -213,20 +212,20 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(m-k2, a.Vector(k1-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k1-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k1-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l2-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l2-1, 1))
+					suml = c.Off(min(k2+1, m)-1, l2-1).Vector().Dot(m-k2, a.Off(k1-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l2-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k2-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k2-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k2-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k2-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l2-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), b.Vector(0, l2-1, 1))
+					suml = c.Off(min(k2+1, m)-1, l2-1).Vector().Dot(m-k2, a.Off(k2-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(0, l2-1).Vector().Dot(l1-1, c.Off(k2-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					scaloc, _, ierr = Dlasy2(false, false, isgn, 2, 2, a.Off(k1-1, k1-1), b.Off(l1-1, l1-1), vec, x)
@@ -236,7 +235,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -310,8 +309,8 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -332,7 +331,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -340,12 +339,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k2-1).Vector(), 1, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k2-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					if scaloc, _, ierr = Dlaln2(true, 2, 1, smin, one, a.Off(k1-1, k1-1), one, one, vec, -sgn*b.Get(l1-1, l1-1), zero, x); ierr != 0 {
@@ -354,7 +353,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -363,12 +362,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l2-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l2-1, 1))
+					suml = c.Off(0, l2-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(0, l2-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					if scaloc, _, ierr = Dlaln2(true, 2, 1, smin, one, b.Off(l1-1, l1-1), one, one, vec, -sgn*a.Get(k1-1, k1-1), zero, x); ierr != 0 {
@@ -377,7 +376,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -386,20 +385,20 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l2-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k1-1, 0), b.Vector(0, l2-1, 1))
+					suml = c.Off(0, l2-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(0, l2-1).Vector().Dot(l1-1, c.Off(k1-1, 0).Vector(), c.Rows, 1)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), b.Vector(0, l1-1, 1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k2-1).Vector(), 1, 1)
+					sumr = b.Off(0, l1-1).Vector().Dot(l1-1, c.Off(k2-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1, 1), c.Vector(0, l2-1, 1))
-					sumr = goblas.Ddot(l1-1, c.Vector(k2-1, 0), b.Vector(0, l2-1, 1))
+					suml = c.Off(0, l2-1).Vector().Dot(k1-1, a.Off(0, k2-1).Vector(), 1, 1)
+					sumr = b.Off(0, l2-1).Vector().Dot(l1-1, c.Off(k2-1, 0).Vector(), c.Rows, 1)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					scaloc, _, ierr = Dlasy2(true, false, isgn, 2, 2, a.Off(k1-1, k1-1), b.Off(l1-1, l1-1), vec, x)
@@ -409,7 +408,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -482,8 +481,8 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(n-l1, c.Vector(k1-1, min(l1+1, n)-1), b.Vector(l1-1, min(l1+1, n)-1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(l1-1, min(l1+1, n)-1).Vector().Dot(n-l1, c.Off(k1-1, min(l1+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -504,7 +503,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -512,12 +511,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k2-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k2-1).Vector(), 1, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k2-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					if scaloc, _, ierr = Dlaln2(true, 2, 1, smin, one, a.Off(k1-1, k1-1), one, one, vec, -sgn*b.Get(l1-1, l1-1), zero, x); ierr != 0 {
@@ -526,7 +525,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -535,12 +534,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l2-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l2-1, min(l2+1, n)-1))
+					suml = c.Off(0, l2-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(l2-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					if scaloc, _, ierr = Dlaln2(false, 2, 1, smin, one, b.Off(l1-1, l1-1), one, one, vec, -sgn*a.Get(k1-1, k1-1), zero, x); ierr != 0 {
@@ -549,7 +548,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -558,20 +557,20 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k1-1, 1), c.Vector(0, l2-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l2-1, min(l2+1, n)-1))
+					suml = c.Off(0, l2-1).Vector().Dot(k1-1, a.Off(0, k1-1).Vector(), 1, 1)
+					sumr = b.Off(l2-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1, 1), c.Vector(0, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k2-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(0, l1-1).Vector().Dot(k1-1, a.Off(0, k2-1).Vector(), 1, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k2-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(k1-1, a.Vector(0, k2-1, 1), c.Vector(0, l2-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k2-1, min(l2+1, n)-1), b.Vector(l2-1, min(l2+1, n)-1))
+					suml = c.Off(0, l2-1).Vector().Dot(k1-1, a.Off(0, k2-1).Vector(), 1, 1)
+					sumr = b.Off(l2-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k2-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					scaloc, _, ierr = Dlasy2(true, true, isgn, 2, 2, a.Off(k1-1, k1-1), b.Off(l1-1, l1-1), vec, x)
@@ -581,7 +580,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -654,8 +653,8 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 				}
 
 				if l1 == l2 && k1 == k2 {
-					suml = goblas.Ddot(m-k1, a.Vector(k1-1, min(k1+1, m)-1), c.Vector(min(k1+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(n-l1, c.Vector(k1-1, min(l1+1, n)-1), b.Vector(l1-1, min(l1+1, n)-1))
+					suml = c.Off(min(k1+1, m)-1, l1-1).Vector().Dot(m-k1, a.Off(k1-1, min(k1+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l1-1, min(l1+1, n)-1).Vector().Dot(n-l1, c.Off(k1-1, min(l1+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 					scaloc = one
 
@@ -676,7 +675,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -684,12 +683,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 == l2 && k1 != k2 {
 
-					suml = goblas.Ddot(m-k2, a.Vector(k1-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k1-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k2-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k2-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k2-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k2-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
 					if scaloc, _, ierr = Dlaln2(false, 2, 1, smin, one, a.Off(k1-1, k1-1), one, one, vec, -sgn*b.Get(l1-1, l1-1), zero, x); ierr != 0 {
@@ -698,7 +697,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -707,12 +706,12 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 == k2 {
 
-					suml = goblas.Ddot(m-k1, a.Vector(k1-1, min(k1+1, m)-1), c.Vector(min(k1+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(min(k1+1, m)-1, l1-1).Vector().Dot(m-k1, a.Off(k1-1, min(k1+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, sgn*(c.Get(k1-1, l1-1)-(suml+sgn*sumr)))
 
-					suml = goblas.Ddot(m-k1, a.Vector(k1-1, min(k1+1, m)-1), c.Vector(min(k1+1, m)-1, l2-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l2-1, min(l2+1, n)-1))
+					suml = c.Off(min(k1+1, m)-1, l2-1).Vector().Dot(m-k1, a.Off(k1-1, min(k1+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l2-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 0, sgn*(c.Get(k1-1, l2-1)-(suml+sgn*sumr)))
 
 					if scaloc, _, ierr = Dlaln2(false, 2, 1, smin, one, b.Off(l1-1, l1-1), one, one, vec, -sgn*a.Get(k1-1, k1-1), zero, x); ierr != 0 {
@@ -721,7 +720,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}
@@ -730,20 +729,20 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 				} else if l1 != l2 && k1 != k2 {
 
-					suml = goblas.Ddot(m-k2, a.Vector(k1-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k1-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 0, c.Get(k1-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k1-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l2-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k1-1, min(l2+1, n)-1), b.Vector(l2-1, min(l2+1, n)-1))
+					suml = c.Off(min(k2+1, m)-1, l2-1).Vector().Dot(m-k2, a.Off(k1-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l2-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k1-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(0, 1, c.Get(k1-1, l2-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k2-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l1-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k2-1, min(l2+1, n)-1), b.Vector(l1-1, min(l2+1, n)-1))
+					suml = c.Off(min(k2+1, m)-1, l1-1).Vector().Dot(m-k2, a.Off(k2-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l1-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k2-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 0, c.Get(k2-1, l1-1)-(suml+sgn*sumr))
 
-					suml = goblas.Ddot(m-k2, a.Vector(k2-1, min(k2+1, m)-1), c.Vector(min(k2+1, m)-1, l2-1, 1))
-					sumr = goblas.Ddot(n-l2, c.Vector(k2-1, min(l2+1, n)-1), b.Vector(l2-1, min(l2+1, n)-1))
+					suml = c.Off(min(k2+1, m)-1, l2-1).Vector().Dot(m-k2, a.Off(k2-1, min(k2+1, m)-1).Vector(), a.Rows, 1)
+					sumr = b.Off(l2-1, min(l2+1, n)-1).Vector().Dot(n-l2, c.Off(k2-1, min(l2+1, n)-1).Vector(), c.Rows, b.Rows)
 					vec.Set(1, 1, c.Get(k2-1, l2-1)-(suml+sgn*sumr))
 
 					scaloc, _, ierr = Dlasy2(false, true, isgn, 2, 2, a.Off(k1-1, k1-1), b.Off(l1-1, l1-1), vec, x)
@@ -753,7 +752,7 @@ func Dtrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.Matrix) (sca
 
 					if scaloc != one {
 						for j = 1; j <= n; j++ {
-							goblas.Dscal(m, scaloc, c.Vector(0, j-1, 1))
+							c.Off(0, j-1).Vector().Scal(m, scaloc, 1)
 						}
 						scale = scale * scaloc
 					}

@@ -39,12 +39,12 @@ func Dgelq2(m, n int, a *mat.Matrix, tau, work *mat.Vector) (err error) {
 
 	for i = 1; i <= k; i++ {
 		//        Generate elementary reflector H(i) to annihilate A(i,i+1:n)
-		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Dlarfg(n-i+1, a.Get(i-1, i-1), a.Vector(i-1, min(i+1, n)-1))
+		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Dlarfg(n-i+1, a.Get(i-1, i-1), a.Off(i-1, min(i+1, n)-1).Vector(), a.Rows)
 		if i < m {
 			//           Apply H(i) to A(i+1:m,i:n) from the right
 			aii = a.Get(i-1, i-1)
 			a.Set(i-1, i-1, one)
-			Dlarf(Right, m-i, n-i+1, a.Vector(i-1, i-1), tau.Get(i-1), a.Off(i, i-1), work)
+			Dlarf(Right, m-i, n-i+1, a.Off(i-1, i-1).Vector(), a.Rows, tau.Get(i-1), a.Off(i, i-1), work)
 			a.Set(i-1, i-1, aii)
 		}
 	}

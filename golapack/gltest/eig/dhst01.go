@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,12 +46,12 @@ func dhst01(n, ilo, ihi int, a, h, q *mat.Matrix, work *mat.Vector, lwork int, r
 	golapack.Dlacpy(Full, n, n, a, work.Matrix(ldwork, opts))
 
 	//     Compute Q*H
-	if err = goblas.Dgemm(NoTrans, NoTrans, n, n, n, one, q, h, zero, work.MatrixOff(ldwork*n, ldwork, opts)); err != nil {
+	if err = work.Off(ldwork*n).Matrix(ldwork, opts).Gemm(NoTrans, NoTrans, n, n, n, one, q, h, zero); err != nil {
 		panic(err)
 	}
 
 	//     Compute A - Q*H*Q'
-	if err = goblas.Dgemm(NoTrans, Trans, n, n, n, -one, work.MatrixOff(ldwork*n, ldwork, opts), q, one, work.Matrix(ldwork, opts)); err != nil {
+	if err = work.Matrix(ldwork, opts).Gemm(NoTrans, Trans, n, n, n, -one, work.Off(ldwork*n).Matrix(ldwork, opts), q, one); err != nil {
 		panic(err)
 	}
 

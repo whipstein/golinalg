@@ -160,7 +160,7 @@ func zdrgvx(nsize int, thresh float64, a, b, ai, bi *mat.CMatrix, alpha, beta *m
 
 						//                    Compute the norm(A, B)
 						golapack.Zlacpy(Full, n, n, ai, work.CMatrix(n, opts))
-						golapack.Zlacpy(Full, n, n, bi, work.CMatrixOff(n*n, n, opts))
+						golapack.Zlacpy(Full, n, n, bi, work.Off(n*n).CMatrix(n, opts))
 						abnorm = golapack.Zlange('F', n, 2*n, work.CMatrix(n, opts), rwork)
 
 						//                    Tests (1) and (2)
@@ -325,7 +325,7 @@ func zdrgvx(nsize int, thresh float64, a, b, ai, bi *mat.CMatrix, alpha, beta *m
 
 		//     Compute the norm(A, B)
 		golapack.Zlacpy(Full, n, n, ai, work.CMatrix(n, opts))
-		golapack.Zlacpy(Full, n, n, bi, work.CMatrixOff(n*n, n, opts))
+		golapack.Zlacpy(Full, n, n, bi, work.Off(n*n).CMatrix(n, opts))
 		abnorm = golapack.Zlange('F', n, 2*n, work.CMatrix(n, opts), rwork)
 
 		//     Tests (1) and (2)

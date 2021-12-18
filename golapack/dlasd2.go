@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -180,8 +179,8 @@ label100:
 			if idxj <= nlp1 {
 				idxj = idxj - 1
 			}
-			goblas.Drot(n, u.Vector(0, idxjp-1, 1), u.Vector(0, idxj-1, 1), c, s)
-			goblas.Drot(m, vt.Vector(idxjp-1, 0), vt.Vector(idxj-1, 0), c, s)
+			u.Off(0, idxj-1).Vector().Rot(n, u.Off(0, idxjp-1).Vector(), 1, 1, c, s)
+			vt.Off(idxj-1, 0).Vector().Rot(m, vt.Off(idxjp-1, 0).Vector(), vt.Rows, vt.Rows, c, s)
 			if (*coltyp)[j-1] != (*coltyp)[jprev-1] {
 				(*coltyp)[j-1] = 3
 			}
@@ -252,8 +251,8 @@ label120:
 		if idxj <= nlp1 {
 			idxj = idxj - 1
 		}
-		goblas.Dcopy(n, u.Vector(0, idxj-1, 1), u2.Vector(0, j-1, 1))
-		goblas.Dcopy(m, vt.Vector(idxj-1, 0), vt2.Vector(j-1, 0))
+		u2.Off(0, j-1).Vector().Copy(n, u.Off(0, idxj-1).Vector(), 1, 1)
+		vt2.Off(j-1, 0).Vector().Copy(m, vt.Off(idxj-1, 0).Vector(), vt.Rows, vt2.Rows)
 	}
 
 	//     Determine DSIGMA(1), DSIGMA(2) and Z(1)
@@ -281,7 +280,7 @@ label120:
 	}
 
 	//     Move the rest of the updating row to Z.
-	goblas.Dcopy(k-1, u2.Vector(1, 0, 1), z.Off(1, 1))
+	z.Off(1).Copy(k-1, u2.Off(1, 0).Vector(), 1, 1)
 
 	//     Determine the first column of U2, the first row of VT2 and the
 	//     last row of VT.
@@ -297,16 +296,16 @@ label120:
 			vt.Set(m-1, i-1, c*vt.Get(m-1, i-1))
 		}
 	} else {
-		goblas.Dcopy(m, vt.Vector(nlp1-1, 0), vt2.Vector(0, 0))
+		vt2.Off(0, 0).Vector().Copy(m, vt.Off(nlp1-1, 0).Vector(), vt.Rows, vt2.Rows)
 	}
 	if m > n {
-		goblas.Dcopy(m, vt.Vector(m-1, 0), vt2.Vector(m-1, 0))
+		vt2.Off(m-1, 0).Vector().Copy(m, vt.Off(m-1, 0).Vector(), vt.Rows, vt2.Rows)
 	}
 
 	//     The deflated singular values and their corresponding vectors go
 	//     into the back of D, U, and V respectively.
 	if n > k {
-		goblas.Dcopy(n-k, dsigma.Off(k, 1), d.Off(k, 1))
+		d.Off(k).Copy(n-k, dsigma.Off(k), 1, 1)
 		Dlacpy(Full, n, n-k, u2.Off(0, k), u.Off(0, k))
 		Dlacpy(Full, n-k, m, vt2.Off(k, 0), vt.Off(k, 0))
 	}

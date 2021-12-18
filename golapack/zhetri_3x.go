@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -193,7 +192,7 @@ func Zhetri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           U11**H * invD1 * U11 -> U11
-			if err = goblas.Ztrmm(Left, Upper, ConjTrans, Unit, nnb, nnb, cone, a.Off(cut, cut), work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Off(u11, 0).UpdateRows(n+nb+1).Trmm(Left, Upper, ConjTrans, Unit, nnb, nnb, cone, a.Off(cut, cut)); err != nil {
 				panic(err)
 			}
 
@@ -204,7 +203,7 @@ func Zhetri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           U01**H * invD * U01 -> A( CUT+I, CUT+J )
-			if err = goblas.Zgemm(ConjTrans, NoTrans, nnb, nnb, cut, cone, a.Off(0, cut), work.Off(0, 0).UpdateRows(n+nb+1), czero, work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Off(u11, 0).UpdateRows(n+nb+1).Gemm(ConjTrans, NoTrans, nnb, nnb, cut, cone, a.Off(0, cut), work.Off(0, 0).UpdateRows(n+nb+1), czero); err != nil {
 				panic(err)
 			}
 
@@ -216,7 +215,7 @@ func Zhetri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           U01 =  U00**H * invD0 * U01
-			if err = goblas.Ztrmm(Left, uplo, ConjTrans, Unit, cut, nnb, cone, a, work.Off(0, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Off(0, 0).UpdateRows(n+nb+1).Trmm(Left, uplo, ConjTrans, Unit, cut, nnb, cone, a); err != nil {
 				panic(err)
 			}
 
@@ -362,7 +361,7 @@ func Zhetri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 			}
 
 			//           L11**H * invD1 * L11 -> L11
-			if err = goblas.Ztrmm(Left, uplo, ConjTrans, Unit, nnb, nnb, cone, a.Off(cut, cut), work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+			if err = work.Off(u11, 0).UpdateRows(n+nb+1).Trmm(Left, uplo, ConjTrans, Unit, nnb, nnb, cone, a.Off(cut, cut)); err != nil {
 				panic(err)
 			}
 
@@ -374,7 +373,7 @@ func Zhetri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 
 			if (cut + nnb) < n {
 				//              L21**H * invD2*L21 -> A( CUT+I, CUT+J )
-				if err = goblas.Zgemm(ConjTrans, NoTrans, nnb, nnb, n-nnb-cut, cone, a.Off(cut+nnb, cut), work.Off(0, 0).UpdateRows(n+nb+1), czero, work.Off(u11, 0).UpdateRows(n+nb+1)); err != nil {
+				if err = work.Off(u11, 0).UpdateRows(n+nb+1).Gemm(ConjTrans, NoTrans, nnb, nnb, n-nnb-cut, cone, a.Off(cut+nnb, cut), work.Off(0, 0).UpdateRows(n+nb+1), czero); err != nil {
 					panic(err)
 				}
 
@@ -386,7 +385,7 @@ func Zhetri3x(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				}
 
 				//              L01 =  L22**H * invD2 * L21
-				if err = goblas.Ztrmm(Left, uplo, ConjTrans, Unit, n-nnb-cut, nnb, cone, a.Off(cut+nnb, cut+nnb), work); err != nil {
+				if err = work.Trmm(Left, uplo, ConjTrans, Unit, n-nnb-cut, nnb, cone, a.Off(cut+nnb, cut+nnb)); err != nil {
 					panic(err)
 				}
 

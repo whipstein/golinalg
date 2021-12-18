@@ -32,15 +32,15 @@ func Zgerq2(m, n int, a *mat.CMatrix, tau, work *mat.CVector) (err error) {
 	for i = k; i >= 1; i-- {
 		//        Generate elementary reflector H(i) to annihilate
 		//        A(m-k+i,1:n-k+i-1)
-		Zlacgv(n-k+i, a.CVector(m-k+i-1, 0))
+		Zlacgv(n-k+i, a.Off(m-k+i-1, 0).CVector(), a.Rows)
 		alpha = a.Get(m-k+i-1, n-k+i-1)
-		alpha, *tau.GetPtr(i - 1) = Zlarfg(n-k+i, alpha, a.CVector(m-k+i-1, 0))
+		alpha, *tau.GetPtr(i - 1) = Zlarfg(n-k+i, alpha, a.Off(m-k+i-1, 0).CVector(), a.Rows)
 
 		//        Apply H(i) to A(1:m-k+i-1,1:n-k+i) from the right
 		a.Set(m-k+i-1, n-k+i-1, one)
-		Zlarf(Right, m-k+i-1, n-k+i, a.CVector(m-k+i-1, 0), tau.Get(i-1), a, work)
+		Zlarf(Right, m-k+i-1, n-k+i, a.Off(m-k+i-1, 0).CVector(), a.Rows, tau.Get(i-1), a, work)
 		a.Set(m-k+i-1, n-k+i-1, alpha)
-		Zlacgv(n-k+i-1, a.CVector(m-k+i-1, 0))
+		Zlacgv(n-k+i-1, a.Off(m-k+i-1, 0).CVector(), a.Rows)
 	}
 
 	return

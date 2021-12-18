@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -163,12 +162,12 @@ func Ztgsyl(trans mat.MatTrans, ijob, m, n int, a, b, c, d, e, f *mat.CMatrix, w
 				}
 				scale2 = scale
 				Zlacpy(Full, m, n, c, work.CMatrix(m, opts))
-				Zlacpy(Full, m, n, f, work.CMatrixOff(m*n, m, opts))
+				Zlacpy(Full, m, n, f, work.Off(m*n).CMatrix(m, opts))
 				Zlaset(Full, m, n, czero, czero, c)
 				Zlaset(Full, m, n, czero, czero, f)
 			} else if isolve == 2 && iround == 2 {
 				Zlacpy(Full, m, n, work.CMatrix(m, opts), c)
-				Zlacpy(Full, m, n, work.CMatrixOff(m*n, m, opts), f)
+				Zlacpy(Full, m, n, work.Off(m*n).CMatrix(m, opts), f)
 				scale = scale2
 			}
 		}
@@ -249,38 +248,38 @@ label70:
 					pq = pq + mb*nb
 					if scaloc != one {
 						for k = 1; k <= js-1; k++ {
-							goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-							goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+							c.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
+							f.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
 						}
 						for k = js; k <= je; k++ {
-							goblas.Zscal(is-1, complex(scaloc, zero), c.CVector(0, k-1, 1))
-							goblas.Zscal(is-1, complex(scaloc, zero), f.CVector(0, k-1, 1))
+							c.Off(0, k-1).CVector().Scal(is-1, complex(scaloc, zero), 1)
+							f.Off(0, k-1).CVector().Scal(is-1, complex(scaloc, zero), 1)
 						}
 						for k = js; k <= je; k++ {
-							goblas.Zscal(m-ie, complex(scaloc, zero), c.CVector(ie, k-1, 1))
-							goblas.Zscal(m-ie, complex(scaloc, zero), f.CVector(ie, k-1, 1))
+							c.Off(ie, k-1).CVector().Scal(m-ie, complex(scaloc, zero), 1)
+							f.Off(ie, k-1).CVector().Scal(m-ie, complex(scaloc, zero), 1)
 						}
 						for k = je + 1; k <= n; k++ {
-							goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-							goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+							c.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
+							f.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
 						}
 						scale = scale * scaloc
 					}
 
 					//                 Substitute R(I,J) and L(I,J) into remaining equation.
 					if i > 1 {
-						if err = goblas.Zgemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), a.Off(0, is-1), c.Off(is-1, js-1), complex(one, zero), c.Off(0, js-1)); err != nil {
+						if err = c.Off(0, js-1).Gemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), a.Off(0, is-1), c.Off(is-1, js-1), complex(one, zero)); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zgemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), d.Off(0, is-1), c.Off(is-1, js-1), complex(one, zero), f.Off(0, js-1)); err != nil {
+						if err = f.Off(0, js-1).Gemm(NoTrans, NoTrans, is-1, nb, mb, complex(-one, zero), d.Off(0, is-1), c.Off(is-1, js-1), complex(one, zero)); err != nil {
 							panic(err)
 						}
 					}
 					if j < q {
-						if err = goblas.Zgemm(NoTrans, NoTrans, mb, n-je, nb, complex(one, zero), f.Off(is-1, js-1), b.Off(js-1, je), complex(one, zero), c.Off(is-1, je)); err != nil {
+						if err = c.Off(is-1, je).Gemm(NoTrans, NoTrans, mb, n-je, nb, complex(one, zero), f.Off(is-1, js-1), b.Off(js-1, je), complex(one, zero)); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zgemm(NoTrans, NoTrans, mb, n-je, nb, complex(one, zero), f.Off(is-1, js-1), e.Off(js-1, je), complex(one, zero), f.Off(is-1, je)); err != nil {
+						if err = f.Off(is-1, je).Gemm(NoTrans, NoTrans, mb, n-je, nb, complex(one, zero), f.Off(is-1, js-1), e.Off(js-1, je), complex(one, zero)); err != nil {
 							panic(err)
 						}
 					}
@@ -299,12 +298,12 @@ label70:
 				}
 				scale2 = scale
 				Zlacpy(Full, m, n, c, work.CMatrix(m, opts))
-				Zlacpy(Full, m, n, f, work.CMatrixOff(m*n, m, opts))
+				Zlacpy(Full, m, n, f, work.Off(m*n).CMatrix(m, opts))
 				Zlaset(Full, m, n, czero, czero, c)
 				Zlaset(Full, m, n, czero, czero, f)
 			} else if isolve == 2 && iround == 2 {
 				Zlacpy(Full, m, n, work.CMatrix(m, opts), c)
-				Zlacpy(Full, m, n, work.CMatrixOff(m*n, m, opts), f)
+				Zlacpy(Full, m, n, work.Off(m*n).CMatrix(m, opts), f)
 				scale = scale2
 			}
 		}
@@ -330,38 +329,38 @@ label70:
 				}
 				if scaloc != one {
 					for k = 1; k <= js-1; k++ {
-						goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-						goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+						c.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
+						f.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
 					}
 					for k = js; k <= je; k++ {
-						goblas.Zscal(is-1, complex(scaloc, zero), c.CVector(0, k-1, 1))
-						goblas.Zscal(is-1, complex(scaloc, zero), f.CVector(0, k-1, 1))
+						c.Off(0, k-1).CVector().Scal(is-1, complex(scaloc, zero), 1)
+						f.Off(0, k-1).CVector().Scal(is-1, complex(scaloc, zero), 1)
 					}
 					for k = js; k <= je; k++ {
-						goblas.Zscal(m-ie, complex(scaloc, zero), c.CVector(ie, k-1, 1))
-						goblas.Zscal(m-ie, complex(scaloc, zero), f.CVector(ie, k-1, 1))
+						c.Off(ie, k-1).CVector().Scal(m-ie, complex(scaloc, zero), 1)
+						f.Off(ie, k-1).CVector().Scal(m-ie, complex(scaloc, zero), 1)
 					}
 					for k = je + 1; k <= n; k++ {
-						goblas.Zscal(m, complex(scaloc, zero), c.CVector(0, k-1, 1))
-						goblas.Zscal(m, complex(scaloc, zero), f.CVector(0, k-1, 1))
+						c.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
+						f.Off(0, k-1).CVector().Scal(m, complex(scaloc, zero), 1)
 					}
 					scale = scale * scaloc
 				}
 
 				//              Substitute R(I,J) and L(I,J) into remaining equation.
 				if j > p+2 {
-					if err = goblas.Zgemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), c.Off(is-1, js-1), b.Off(0, js-1), complex(one, zero), f.Off(is-1, 0)); err != nil {
+					if err = f.Off(is-1, 0).Gemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), c.Off(is-1, js-1), b.Off(0, js-1), complex(one, zero)); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zgemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), f.Off(is-1, js-1), e.Off(0, js-1), complex(one, zero), f.Off(is-1, 0)); err != nil {
+					if err = f.Off(is-1, 0).Gemm(NoTrans, ConjTrans, mb, js-1, nb, complex(one, zero), f.Off(is-1, js-1), e.Off(0, js-1), complex(one, zero)); err != nil {
 						panic(err)
 					}
 				}
 				if i < p {
-					if err = goblas.Zgemm(ConjTrans, NoTrans, m-ie, nb, mb, complex(-one, zero), a.Off(is-1, ie), c.Off(is-1, js-1), complex(one, zero), c.Off(ie, js-1)); err != nil {
+					if err = c.Off(ie, js-1).Gemm(ConjTrans, NoTrans, m-ie, nb, mb, complex(-one, zero), a.Off(is-1, ie), c.Off(is-1, js-1), complex(one, zero)); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zgemm(ConjTrans, NoTrans, m-ie, nb, mb, complex(-one, zero), d.Off(is-1, ie), f.Off(is-1, js-1), complex(one, zero), c.Off(ie, js-1)); err != nil {
+					if err = c.Off(ie, js-1).Gemm(ConjTrans, NoTrans, m-ie, nb, mb, complex(-one, zero), d.Off(is-1, ie), f.Off(is-1, js-1), complex(one, zero)); err != nil {
 						panic(err)
 					}
 				}

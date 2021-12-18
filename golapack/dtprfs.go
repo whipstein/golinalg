@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -77,9 +76,9 @@ func Dtprfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 	for j = 1; j <= nrhs; j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A or A**T, depending on TRANS.
-		goblas.Dcopy(n, x.Vector(0, j-1, 1), work.Off(n, 1))
-		err = goblas.Dtpmv(uplo, trans, diag, n, ap, work.Off(n, 1))
-		goblas.Daxpy(n, -one, b.Vector(0, j-1, 1), work.Off(n, 1))
+		work.Off(n).Copy(n, x.Off(0, j-1).Vector(), 1, 1)
+		err = work.Off(n).Tpmv(uplo, trans, diag, n, ap, 1)
+		work.Off(n).Axpy(n, -one, b.Off(0, j-1).Vector(), 1, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -229,7 +228,7 @@ func Dtprfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				err = goblas.Dtpsv(uplo, transt, diag, n, ap, work.Off(n, 1))
+				err = work.Off(n).Tpsv(uplo, transt, diag, n, ap, 1)
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
@@ -238,7 +237,7 @@ func Dtprfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
-				err = goblas.Dtpsv(uplo, trans, diag, n, ap, work.Off(n, 1))
+				err = work.Off(n).Tpsv(uplo, trans, diag, n, ap, 1)
 			}
 			goto label210
 		}

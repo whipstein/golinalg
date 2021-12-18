@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -57,7 +56,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     The first half of the routine checks the 2-by-2 CSD
 	golapack.Dlaset(Full, m, m, zero, one, work.Matrix(x.Rows, opts))
-	if err = goblas.Dsyrk(Upper, ConjTrans, m, m, -one, x, one, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Syrk(Upper, ConjTrans, m, m, -one, x, one); err != nil {
 		panic(err)
 	}
 	if m > 0 {
@@ -78,11 +77,11 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 	//     Compute XF := diag(U1,U2)'*X*diag(V1,V2) - [D11 D12; D21 D22]
 	golapack.Dlacpy(Full, m, m, x, xf)
 
-	if err = goblas.Dgemm(NoTrans, ConjTrans, p, q, q, one, xf, v1t, zero, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, p, q, q, one, xf, v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(ConjTrans, NoTrans, p, q, p, one, u1, work.Matrix(x.Rows, opts), zero, xf); err != nil {
+	if err = xf.Gemm(ConjTrans, NoTrans, p, q, p, one, u1, work.Matrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -93,11 +92,11 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 		xf.Set(min(p, q)-r+i-1, min(p, q)-r+i-1, xf.Get(min(p, q)-r+i-1, min(p, q)-r+i-1)-math.Cos(theta.Get(i-1)))
 	}
 
-	if err = goblas.Dgemm(NoTrans, ConjTrans, p, m-q, m-q, one, xf.Off(0, q), v2t, zero, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, p, m-q, m-q, one, xf.Off(0, q), v2t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(ConjTrans, NoTrans, p, m-q, p, one, u1, work.Matrix(x.Rows, opts), zero, xf.Off(0, q)); err != nil {
+	if err = xf.Off(0, q).Gemm(ConjTrans, NoTrans, p, m-q, p, one, u1, work.Matrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -108,11 +107,11 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 		xf.Set(p-(min(p, m-q)-r)+1-i-1, m-(min(p, m-q)-r)+1-i-1, xf.Get(p-(min(p, m-q)-r)+1-i-1, m-(min(p, m-q)-r)+1-i-1)+math.Sin(theta.Get(r-i)))
 	}
 
-	if err = goblas.Dgemm(NoTrans, ConjTrans, m-p, q, q, one, xf.Off(p, 0), v1t, zero, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, m-p, q, q, one, xf.Off(p, 0), v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.Matrix(x.Rows, opts), zero, xf.Off(p, 0)); err != nil {
+	if err = xf.Off(p, 0).Gemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.Matrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -123,11 +122,11 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 		xf.Set(m-(min(m-p, q)-r)+1-i-1, q-(min(m-p, q)-r)+1-i-1, xf.Get(m-(min(m-p, q)-r)+1-i-1, q-(min(m-p, q)-r)+1-i-1)-math.Sin(theta.Get(r-i)))
 	}
 
-	if err = goblas.Dgemm(NoTrans, ConjTrans, m-p, m-q, m-q, one, xf.Off(p, q), v2t, zero, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, m-p, m-q, m-q, one, xf.Off(p, q), v2t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(ConjTrans, NoTrans, m-p, m-q, m-p, one, u2, work.Matrix(x.Rows, opts), zero, xf.Off(p, q)); err != nil {
+	if err = xf.Off(p, q).Gemm(ConjTrans, NoTrans, m-p, m-q, m-p, one, u2, work.Matrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -156,7 +155,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - U1'*U1
 	golapack.Dlaset(Full, p, p, zero, one, work.Matrix(u1.Rows, opts))
-	if err = goblas.Dsyrk(Upper, ConjTrans, p, p, -one, u1, one, work.Matrix(u1.Rows, opts)); err != nil {
+	if err = work.Matrix(u1.Rows, opts).Syrk(Upper, ConjTrans, p, p, -one, u1, one); err != nil {
 		panic(err)
 	}
 
@@ -166,7 +165,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - U2'*U2
 	golapack.Dlaset(Full, m-p, m-p, zero, one, work.Matrix(u2.Rows, opts))
-	if err = goblas.Dsyrk(Upper, ConjTrans, m-p, m-p, -one, u2, one, work.Matrix(u2.Rows, opts)); err != nil {
+	if err = work.Matrix(u2.Rows, opts).Syrk(Upper, ConjTrans, m-p, m-p, -one, u2, one); err != nil {
 		panic(err)
 	}
 
@@ -176,7 +175,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - V1T*V1T'
 	golapack.Dlaset(Full, q, q, zero, one, work.Matrix(v1t.Rows, opts))
-	if err = goblas.Dsyrk(Upper, NoTrans, q, q, -one, v1t, one, work.Matrix(v1t.Rows, opts)); err != nil {
+	if err = work.Matrix(v1t.Rows, opts).Syrk(Upper, NoTrans, q, q, -one, v1t, one); err != nil {
 		panic(err)
 	}
 
@@ -186,7 +185,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - V2T*V2T'
 	golapack.Dlaset(Full, m-q, m-q, zero, one, work.Matrix(v2t.Rows, opts))
-	if err = goblas.Dsyrk(Upper, NoTrans, m-q, m-q, -one, v2t, one, work.Matrix(v2t.Rows, opts)); err != nil {
+	if err = work.Matrix(v2t.Rows, opts).Syrk(Upper, NoTrans, m-q, m-q, -one, v2t, one); err != nil {
 		panic(err)
 	}
 
@@ -209,7 +208,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     The second half of the routine checks the 2-by-1 CSD
 	golapack.Dlaset(Full, q, q, zero, one, work.Matrix(x.Rows, opts))
-	if err = goblas.Dsyrk(Upper, ConjTrans, q, m, -one, x, one, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Syrk(Upper, ConjTrans, q, m, -one, x, one); err != nil {
 		panic(err)
 	}
 	if m > 0 {
@@ -228,11 +227,11 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 	}
 
 	//     Compute [X11;X21] := diag(U1,U2)'*[X11;X21]*V1 - [D11;D21]
-	if err = goblas.Dgemm(NoTrans, ConjTrans, p, q, q, one, x, v1t, zero, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, p, q, q, one, x, v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(ConjTrans, NoTrans, p, q, p, one, u1, work.Matrix(x.Rows, opts), zero, x); err != nil {
+	if err = x.Gemm(ConjTrans, NoTrans, p, q, p, one, u1, work.Matrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -243,11 +242,11 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 		x.Set(min(p, q)-r+i-1, min(p, q)-r+i-1, x.Get(min(p, q)-r+i-1, min(p, q)-r+i-1)-math.Cos(theta.Get(i-1)))
 	}
 
-	if err = goblas.Dgemm(NoTrans, ConjTrans, m-p, q, q, one, x.Off(p, 0), v1t, zero, work.Matrix(x.Rows, opts)); err != nil {
+	if err = work.Matrix(x.Rows, opts).Gemm(NoTrans, ConjTrans, m-p, q, q, one, x.Off(p, 0), v1t, zero); err != nil {
 		panic(err)
 	}
 
-	if err = goblas.Dgemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.Matrix(x.Rows, opts), zero, x.Off(p, 0)); err != nil {
+	if err = x.Off(p, 0).Gemm(ConjTrans, NoTrans, m-p, q, m-p, one, u2, work.Matrix(x.Rows, opts), zero); err != nil {
 		panic(err)
 	}
 
@@ -268,7 +267,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - U1'*U1
 	golapack.Dlaset(Full, p, p, zero, one, work.Matrix(u1.Rows, opts))
-	if err = goblas.Dsyrk(Upper, ConjTrans, p, p, -one, u1, one, work.Matrix(u1.Rows, opts)); err != nil {
+	if err = work.Matrix(u1.Rows, opts).Syrk(Upper, ConjTrans, p, p, -one, u1, one); err != nil {
 		panic(err)
 	}
 
@@ -278,7 +277,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - U2'*U2
 	golapack.Dlaset(Full, m-p, m-p, zero, one, work.Matrix(u2.Rows, opts))
-	if err = goblas.Dsyrk(Upper, ConjTrans, m-p, m-p, -one, u2, one, work.Matrix(u2.Rows, opts)); err != nil {
+	if err = work.Matrix(u2.Rows, opts).Syrk(Upper, ConjTrans, m-p, m-p, -one, u2, one); err != nil {
 		panic(err)
 	}
 
@@ -288,7 +287,7 @@ func dcsdts(m, p, q int, x, xf, u1, u2, v1t, v2t *mat.Matrix, theta *mat.Vector,
 
 	//     Compute I - V1T*V1T'
 	golapack.Dlaset(Full, q, q, zero, one, work.Matrix(v1t.Rows, opts))
-	if err = goblas.Dsyrk(Upper, NoTrans, q, q, -one, v1t, one, work.Matrix(v1t.Rows, opts)); err != nil {
+	if err = work.Matrix(v1t.Rows, opts).Syrk(Upper, NoTrans, q, q, -one, v1t, one); err != nil {
 		panic(err)
 	}
 

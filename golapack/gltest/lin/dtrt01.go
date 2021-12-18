@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -46,13 +45,13 @@ func dtrt01(uplo mat.MatUplo, diag mat.MatDiag, n int, a, ainv *mat.Matrix, work
 	//     Compute A * AINV, overwriting AINV.
 	if uplo == Upper {
 		for j = 1; j <= n; j++ {
-			if err = goblas.Dtrmv(Upper, NoTrans, diag, j, a, ainv.Vector(0, j-1, 1)); err != nil {
+			if err = ainv.Off(0, j-1).Vector().Trmv(Upper, NoTrans, diag, j, a, 1); err != nil {
 				panic(err)
 			}
 		}
 	} else {
 		for j = 1; j <= n; j++ {
-			if err = goblas.Dtrmv(Lower, NoTrans, diag, n-j+1, a.Off(j-1, j-1), ainv.Vector(j-1, j-1, 1)); err != nil {
+			if err = ainv.Off(j-1, j-1).Vector().Trmv(Lower, NoTrans, diag, n-j+1, a.Off(j-1, j-1), 1); err != nil {
 				panic(err)
 			}
 		}

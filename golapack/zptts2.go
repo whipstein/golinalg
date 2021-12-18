@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -17,7 +16,7 @@ func Zptts2(iuplo, n, nrhs int, d *mat.Vector, e *mat.CVector, b *mat.CMatrix) {
 	//     Quick return if possible
 	if n <= 1 {
 		if n == 1 {
-			goblas.Zdscal(nrhs, 1./d.Get(0), b.CVector(0, 0))
+			b.Off(0, 0).CVector().Dscal(nrhs, 1./d.Get(0), b.Rows)
 		}
 		return
 	}

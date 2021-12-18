@@ -3,7 +3,6 @@ package lin
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -45,7 +44,7 @@ func zgelqs(m, n, nrhs int, a *mat.CMatrix, tau *mat.CVector, b *mat.CMatrix, wo
 	}
 
 	//     Solve L*X = B(1:m,:)
-	if err = goblas.Ztrsm(Left, Lower, NoTrans, NonUnit, m, nrhs, cone, a, b); err != nil {
+	if err = b.Trsm(Left, Lower, NoTrans, NonUnit, m, nrhs, cone, a); err != nil {
 		panic(err)
 	}
 

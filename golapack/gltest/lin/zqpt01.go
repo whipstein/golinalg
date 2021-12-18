@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -49,7 +48,7 @@ func zqpt01(m, n, k int, a, af *mat.CMatrix, tau *mat.CVector, jpvt *[]int, work
 		}
 	}
 	for j = k + 1; j <= n; j++ {
-		goblas.Zcopy(m, af.CVector(0, j-1, 1), work.Off((j-1)*m, 1))
+		work.Off((j-1)*m).Copy(m, af.Off(0, j-1).CVector(), 1, 1)
 	}
 
 	if err = golapack.Zunmqr(Left, NoTrans, m, n, k, af, tau, work.CMatrix(m, opts), work.Off(m*n), lwork-m*n); err != nil {
@@ -58,7 +57,7 @@ func zqpt01(m, n, k int, a, af *mat.CMatrix, tau *mat.CVector, jpvt *[]int, work
 
 	for j = 1; j <= n; j++ {
 		//        Compare i-th column of QR and jpvt(i)-th column of A
-		goblas.Zaxpy(m, complex(-one, 0), a.CVector(0, (*jpvt)[j-1]-1, 1), work.Off((j-1)*m, 1))
+		work.Off((j-1)*m).Axpy(m, complex(-one, 0), a.Off(0, (*jpvt)[j-1]-1).CVector(), 1, 1)
 	}
 
 	zqpt01Return = golapack.Zlange('O', m, n, work.CMatrix(m, opts), rwork) / (float64(max(m, n)) * golapack.Dlamch(Epsilon))

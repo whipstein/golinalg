@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -58,7 +57,7 @@ func Zlarft(direct, storev byte, n, k int, v *mat.CMatrix, tau *mat.CVector, t *
 					j = min(lastv, prevlastv)
 
 					//                 T(1:i-1,i) := - tau(i) * V(i:j,1:i-1)**H * V(i:j,i)
-					if err = goblas.Zgemv(ConjTrans, j-i, i-1, -tau.Get(i-1), v.Off(i, 0), v.CVector(i, i-1, 1), one, t.CVector(0, i-1, 1)); err != nil {
+					if err = t.Off(0, i-1).CVector().Gemv(ConjTrans, j-i, i-1, -tau.Get(i-1), v.Off(i, 0), v.Off(i, i-1).CVector(), 1, one, 1); err != nil {
 						panic(err)
 					}
 				} else {
@@ -74,13 +73,13 @@ func Zlarft(direct, storev byte, n, k int, v *mat.CMatrix, tau *mat.CVector, t *
 					j = min(lastv, prevlastv)
 
 					//                 T(1:i-1,i) := - tau(i) * V(1:i-1,i:j) * V(i,i:j)**H
-					if err = goblas.Zgemm(NoTrans, ConjTrans, i-1, 1, j-i, -tau.Get(i-1), v.Off(0, i), v.Off(i-1, i), one, t.Off(0, i-1)); err != nil {
+					if err = t.Off(0, i-1).Gemm(NoTrans, ConjTrans, i-1, 1, j-i, -tau.Get(i-1), v.Off(0, i), v.Off(i-1, i), one); err != nil {
 						panic(err)
 					}
 				}
 
 				//              T(1:i-1,i) := T(1:i-1,1:i-1) * T(1:i-1,i)
-				err = goblas.Ztrmv(Upper, NoTrans, NonUnit, i-1, t, t.CVector(0, i-1, 1))
+				err = t.Off(0, i-1).CVector().Trmv(Upper, NoTrans, NonUnit, i-1, t, 1)
 				t.Set(i-1, i-1, tau.Get(i-1))
 				if i > 1 {
 					prevlastv = max(prevlastv, lastv)
@@ -113,7 +112,7 @@ func Zlarft(direct, storev byte, n, k int, v *mat.CMatrix, tau *mat.CVector, t *
 						j = max(lastv, prevlastv)
 
 						//                    T(i+1:k,i) = -tau(i) * V(j:n-k+i,i+1:k)**H * V(j:n-k+i,i)
-						if err = goblas.Zgemv(ConjTrans, n-k+i-j, k-i, -tau.Get(i-1), v.Off(j-1, i), v.CVector(j-1, i-1, 1), one, t.CVector(i, i-1, 1)); err != nil {
+						if err = t.Off(i, i-1).CVector().Gemv(ConjTrans, n-k+i-j, k-i, -tau.Get(i-1), v.Off(j-1, i), v.Off(j-1, i-1).CVector(), 1, one, 1); err != nil {
 							panic(err)
 						}
 					} else {
@@ -129,13 +128,13 @@ func Zlarft(direct, storev byte, n, k int, v *mat.CMatrix, tau *mat.CVector, t *
 						j = max(lastv, prevlastv)
 
 						//                    T(i+1:k,i) = -tau(i) * V(i+1:k,j:n-k+i) * V(i,j:n-k+i)**H
-						if err = goblas.Zgemm(NoTrans, ConjTrans, k-i, 1, n-k+i-j, -tau.Get(i-1), v.Off(i, j-1), v.Off(i-1, j-1), one, t.Off(i, i-1)); err != nil {
+						if err = t.Off(i, i-1).Gemm(NoTrans, ConjTrans, k-i, 1, n-k+i-j, -tau.Get(i-1), v.Off(i, j-1), v.Off(i-1, j-1), one); err != nil {
 							panic(err)
 						}
 					}
 
 					//                 T(i+1:k,i) := T(i+1:k,i+1:k) * T(i+1:k,i)
-					err = goblas.Ztrmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), t.CVector(i, i-1, 1))
+					err = t.Off(i, i-1).CVector().Trmv(Lower, NoTrans, NonUnit, k-i, t.Off(i, i), 1)
 					if i > 1 {
 						prevlastv = min(prevlastv, lastv)
 					} else {

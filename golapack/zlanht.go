@@ -53,10 +53,10 @@ func Zlanht(norm byte, n int, d *mat.Vector, e *mat.CVector) (zlanhtReturn float
 		scale = zero
 		sum = one
 		if n > 1 {
-			scale, sum = Zlassq(n-1, e.Off(0, 1), scale, sum)
+			scale, sum = Zlassq(n-1, e, 1, scale, sum)
 			sum = 2 * sum
 		}
-		scale, sum = Dlassq(n, d.Off(0, 1), scale, sum)
+		scale, sum = Dlassq(n, d, 1, scale, sum)
 		anorm = scale * math.Sqrt(sum)
 	}
 

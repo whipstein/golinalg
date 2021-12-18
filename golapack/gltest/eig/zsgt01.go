@@ -1,7 +1,6 @@
 package eig
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -48,13 +47,13 @@ func zsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.CMatrix, d *mat.
 
 	if itype == 1 {
 		//        Norm of AZ - BZD
-		if err = goblas.Zhemm(Left, uplo, n, m, cone, a, z, czero, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Hemm(Left, uplo, n, m, cone, a, z, czero); err != nil {
 			panic(err)
 		}
 		for i = 1; i <= m; i++ {
-			goblas.Zdscal(n, d.Get(i-1), z.CVector(0, i-1, 1))
+			z.Off(0, i-1).CVector().Dscal(n, d.Get(i-1), 1)
 		}
-		if err = goblas.Zhemm(Left, uplo, n, m, cone, b, z, -cone, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Hemm(Left, uplo, n, m, cone, b, z, -cone); err != nil {
 			panic(err)
 		}
 
@@ -62,13 +61,13 @@ func zsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.CMatrix, d *mat.
 
 	} else if itype == 2 {
 		//        Norm of ABZ - ZD
-		if err = goblas.Zhemm(Left, uplo, n, m, cone, b, z, czero, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Hemm(Left, uplo, n, m, cone, b, z, czero); err != nil {
 			panic(err)
 		}
 		for i = 1; i <= m; i++ {
-			goblas.Zdscal(n, d.Get(i-1), z.CVector(0, i-1, 1))
+			z.Off(0, i-1).CVector().Dscal(n, d.Get(i-1), 1)
 		}
-		if err = goblas.Zhemm(Left, uplo, n, m, cone, a, work.CMatrix(n, opts), -cone, z); err != nil {
+		if err = z.Hemm(Left, uplo, n, m, cone, a, work.CMatrix(n, opts), -cone); err != nil {
 			panic(err)
 		}
 
@@ -76,13 +75,13 @@ func zsgt01(itype int, uplo mat.MatUplo, n, m int, a, b, z *mat.CMatrix, d *mat.
 
 	} else if itype == 3 {
 		//        Norm of BAZ - ZD
-		if err = goblas.Zhemm(Left, uplo, n, m, cone, a, z, czero, work.CMatrix(n, opts)); err != nil {
+		if err = work.CMatrix(n, opts).Hemm(Left, uplo, n, m, cone, a, z, czero); err != nil {
 			panic(err)
 		}
 		for i = 1; i <= m; i++ {
-			goblas.Zdscal(n, d.Get(i-1), z.CVector(0, i-1, 1))
+			z.Off(0, i-1).CVector().Dscal(n, d.Get(i-1), 1)
 		}
-		if err = goblas.Zhemm(Left, uplo, n, m, cone, b, work.CMatrix(n, opts), -cone, z); err != nil {
+		if err = z.Hemm(Left, uplo, n, m, cone, b, work.CMatrix(n, opts), -cone); err != nil {
 			panic(err)
 		}
 

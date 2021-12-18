@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,12 +46,12 @@ func zhst01(n, ilo, ihi int, a, h, q *mat.CMatrix, work *mat.CVector, lwork int,
 	golapack.Zlacpy(Full, n, n, a, work.CMatrix(ldwork, opts))
 
 	//     Compute Q*H
-	if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, complex(one, 0), q, h, complex(zero, 0), work.CMatrixOff(ldwork*n, ldwork, opts)); err != nil {
+	if err = work.Off(ldwork*n).CMatrix(ldwork, opts).Gemm(NoTrans, NoTrans, n, n, n, complex(one, 0), q, h, complex(zero, 0)); err != nil {
 		panic(err)
 	}
 
 	//     Compute A - Q*H*Q'
-	if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, complex(-one, 0), work.CMatrixOff(ldwork*n, ldwork, opts), q, complex(one, 0), work.CMatrix(ldwork, opts)); err != nil {
+	if err = work.CMatrix(ldwork, opts).Gemm(NoTrans, ConjTrans, n, n, n, complex(-one, 0), work.Off(ldwork*n).CMatrix(ldwork, opts), q, complex(one, 0)); err != nil {
 		panic(err)
 	}
 

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -35,7 +34,7 @@ func dget03(n int, a *mat.Matrix, ainv *mat.Matrix, work *mat.Matrix, rwork *mat
 	rcond = (one / anorm) / ainvnm
 
 	//     Compute I - A * AINV
-	err = goblas.Dgemm(NoTrans, NoTrans, n, n, n, -one, ainv, a, zero, work)
+	err = work.Gemm(NoTrans, NoTrans, n, n, n, -one, ainv, a, zero)
 	for i = 1; i <= n; i++ {
 		work.Set(i-1, i-1, one+work.Get(i-1, i-1))
 	}

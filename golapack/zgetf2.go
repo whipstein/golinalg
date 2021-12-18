@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -49,18 +48,18 @@ func Zgetf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 
 	for j = 1; j <= min(m, n); j++ {
 		//        Find pivot and test for singularity.
-		jp = j - 1 + goblas.Izamax(m-j+1, a.CVector(j-1, j-1, 1))
+		jp = j - 1 + a.Off(j-1, j-1).CVector().Iamax(m-j+1, 1)
 		(*ipiv)[j-1] = jp
 		if a.Get(jp-1, j-1) != zero {
 			//           Apply the interchange to columns 1:N.
 			if jp != j {
-				goblas.Zswap(n, a.CVector(j-1, 0), a.CVector(jp-1, 0))
+				a.Off(jp-1, 0).CVector().Swap(n, a.Off(j-1, 0).CVector(), a.Rows, a.Rows)
 			}
 
 			//           Compute elements J+1:M of J-th column.
 			if j < m {
 				if a.GetMag(j-1, j-1) >= sfmin {
-					goblas.Zscal(m-j, one/a.Get(j-1, j-1), a.CVector(j, j-1, 1))
+					a.Off(j, j-1).CVector().Scal(m-j, one/a.Get(j-1, j-1), 1)
 				} else {
 					for i = 1; i <= m-j; i++ {
 						a.Set(j+i-1, j-1, a.Get(j+i-1, j-1)/a.Get(j-1, j-1))
@@ -75,7 +74,7 @@ func Zgetf2(m, n int, a *mat.CMatrix, ipiv *[]int) (info int, err error) {
 
 		if j < min(m, n) {
 			//           Update trailing submatrix.
-			err = goblas.Zgeru(m-j, n-j, -one, a.CVector(j, j-1, 1), a.CVector(j-1, j), a.Off(j, j))
+			err = a.Off(j, j).Geru(m-j, n-j, -one, a.Off(j, j-1).CVector(), 1, a.Off(j-1, j).CVector(), a.Rows)
 		}
 	}
 

@@ -101,7 +101,7 @@ func Dchkec(thresh *float64, tsterr *bool, t *testing.T) (ntests int) {
 	if rtrsen.Get(0) > (*thresh) || rtrsen.Get(1) > (*thresh) || ntrsen[0] != 0 || ntrsen[1] != 0 || ntrsen[2] != 0 {
 		// ok = false
 		t.Fail()
-		fmt.Printf(" Error in Dtrsen: rmax=%v\n lmax=%8d ninfo=%8d knt=%8d\n", rtrsen.Data, ltrsen, ntrsen, ktrsen)
+		fmt.Printf(" Error in Dtrsen: rmax=%v\n lmax=%8d ninfo=%8d knt=%8d\n", rtrsen.Data(), ltrsen, ntrsen, ktrsen)
 	}
 
 	rlaqtr, llaqtr, nlaqtr, klaqtr = dget39()

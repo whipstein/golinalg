@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -72,7 +71,7 @@ func dgqrts(n, m, p int, a, af, q, r *mat.Matrix, taua *mat.Vector, b, bf, z, t,
 	}
 
 	//     Compute R - Q'*A
-	if err = goblas.Dgemm(Trans, NoTrans, n, m, n, -one, q, a, one, r); err != nil {
+	if err = r.Gemm(Trans, NoTrans, n, m, n, -one, q, a, one); err != nil {
 		panic(err)
 	}
 
@@ -85,10 +84,10 @@ func dgqrts(n, m, p int, a, af, q, r *mat.Matrix, taua *mat.Vector, b, bf, z, t,
 	}
 
 	//     Compute T*Z - Q'*B
-	if err = goblas.Dgemm(NoTrans, NoTrans, n, p, p, one, t, z, zero, bwk); err != nil {
+	if err = bwk.Gemm(NoTrans, NoTrans, n, p, p, one, t, z, zero); err != nil {
 		panic(err)
 	}
-	if err = goblas.Dgemm(Trans, NoTrans, n, p, n, -one, q, b, one, bwk); err != nil {
+	if err = bwk.Gemm(Trans, NoTrans, n, p, n, -one, q, b, one); err != nil {
 		panic(err)
 	}
 
@@ -102,7 +101,7 @@ func dgqrts(n, m, p int, a, af, q, r *mat.Matrix, taua *mat.Vector, b, bf, z, t,
 
 	//     Compute I - Q'*Q
 	golapack.Dlaset(Full, n, n, zero, one, r)
-	if err = goblas.Dsyrk(Upper, Trans, n, n, -one, q, one, r); err != nil {
+	if err = r.Syrk(Upper, Trans, n, n, -one, q, one); err != nil {
 		panic(err)
 	}
 
@@ -112,7 +111,7 @@ func dgqrts(n, m, p int, a, af, q, r *mat.Matrix, taua *mat.Vector, b, bf, z, t,
 
 	//     Compute I - Z'*Z
 	golapack.Dlaset(Full, p, p, zero, one, t)
-	if err = goblas.Dsyrk(Upper, Trans, p, p, -one, z, one, t); err != nil {
+	if err = t.Syrk(Upper, Trans, p, p, -one, z, one); err != nil {
 		panic(err)
 	}
 

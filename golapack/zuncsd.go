@@ -133,19 +133,19 @@ func Zuncsd(jobu1, jobu2, jobv1t, jobv2t byte, trans mat.MatTrans, signs byte, m
 		itauq1 = itaup2 + max(1, m-p)
 		itauq2 = itauq1 + max(1, q)
 		iorgqr = itauq2 + max(1, m-q)
-		if err = Zungqr(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.CVector(0, 0), work, -1); err != nil {
+		if err = Zungqr(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.Off(0, 0).CVector(), work, -1); err != nil {
 			panic(err)
 		}
 		lorgqrworkopt = int(work.GetRe(0))
 		lorgqrworkmin = max(1, m-q)
 		iorglq = itauq2 + max(1, m-q)
-		if err = Zunglq(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.CVector(0, 0), work, -1); err != nil {
+		if err = Zunglq(m-q, m-q, m-q, u1.Off(0, 0).UpdateRows(max(1, m-q)), u1.Off(0, 0).CVector(), work, -1); err != nil {
 			panic(err)
 		}
 		lorglqworkopt = int(work.GetRe(0))
 		lorglqworkmin = max(1, m-q)
 		iorbdb = itauq2 + max(1, m-q)
-		if err = Zunbdb(trans, signs, m, p, q, x11, x12, x21, x22, theta, theta, u1.CVector(0, 0), u2.CVector(0, 0), v1t.CVector(0, 0), v2t.CVector(0, 0), work, -1); err != nil {
+		if err = Zunbdb(trans, signs, m, p, q, x11, x12, x21, x22, theta, theta, u1.Off(0, 0).CVector(), u2.Off(0, 0).CVector(), v1t.Off(0, 0).CVector(), v2t.Off(0, 0).CVector(), work, -1); err != nil {
 			panic(err)
 		}
 		lorbdbworkopt = int(work.GetRe(0))

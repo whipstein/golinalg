@@ -289,7 +289,7 @@ func ddrgsx(nsize int, ncmax int, thresh float64, nin *util.Reader, nout int, a,
 
 					//                 Compute the norm(A, B)
 					golapack.Dlacpy(Full, *mplusn, *mplusn, ai, work.Matrix(*mplusn, opts))
-					golapack.Dlacpy(Full, *mplusn, *mplusn, bi, work.MatrixOff((*mplusn)*(*mplusn), *mplusn, opts))
+					golapack.Dlacpy(Full, *mplusn, *mplusn, bi, work.Off((*mplusn)*(*mplusn)).Matrix(*mplusn, opts))
 					abnrm = golapack.Dlange('F', *mplusn, 2*(*mplusn), work.Matrix(*mplusn, opts), work)
 
 					//                 Do tests (1) to (4)
@@ -378,7 +378,7 @@ func ddrgsx(nsize int, ncmax int, thresh float64, nin *util.Reader, nout int, a,
 						//                    almost same number of test cases fail the test.
 						matgen.Dlakf2(mm, (*mplusn)-mm, ai, ai.Off(mm, mm), bi, bi.Off(mm, mm), c)
 
-						if _, err = golapack.Dgesvd('N', 'N', mn2, mn2, c, s, work.Matrix(1, opts), work.MatrixOff(1, 1, opts), work.Off(2), lwork-2); err != nil {
+						if _, err = golapack.Dgesvd('N', 'N', mn2, mn2, c, s, work.Matrix(1, opts), work.Off(1).Matrix(1, opts), work.Off(2), lwork-2); err != nil {
 							panic(err)
 						}
 						diftru = s.Get(mn2 - 1)
@@ -512,7 +512,7 @@ func ddrgsx(nsize int, ncmax int, thresh float64, nin *util.Reader, nout int, a,
 		//     Compute the norm(A, B)
 		//        (should this be norm of (A,B) or (AI,BI)?)
 		golapack.Dlacpy(Full, *mplusn, *mplusn, ai, work.Matrix(*mplusn, opts))
-		golapack.Dlacpy(Full, *mplusn, *mplusn, bi, work.MatrixOff((*mplusn)*(*mplusn), *mplusn, opts))
+		golapack.Dlacpy(Full, *mplusn, *mplusn, bi, work.Off((*mplusn)*(*mplusn)).Matrix(*mplusn, opts))
 		abnrm = golapack.Dlange('F', *mplusn, 2*(*mplusn), work.Matrix(*mplusn, opts), work)
 
 		//     Do tests (1) to (4)

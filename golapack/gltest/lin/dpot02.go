@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -37,7 +36,7 @@ func dpot02(uplo mat.MatUplo, n, nrhs int, a, x, b *mat.Matrix, rwork *mat.Vecto
 	}
 
 	//     Compute  B - A*X
-	if err = goblas.Dsymm(Left, uplo, n, nrhs, -one, a, x, one, b); err != nil {
+	if err = b.Symm(Left, uplo, n, nrhs, -one, a, x, one); err != nil {
 		panic(err)
 	}
 
@@ -45,8 +44,8 @@ func dpot02(uplo mat.MatUplo, n, nrhs int, a, x, b *mat.Matrix, rwork *mat.Vecto
 	//        norm( B - A*X ) / ( norm(A) * norm(X) * EPS ) .
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dasum(n, b.Vector(0, j-1, 1))
-		xnorm = goblas.Dasum(n, x.Vector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).Vector().Asum(n, 1)
+		xnorm = x.Off(0, j-1).Vector().Asum(n, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

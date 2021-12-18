@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -127,8 +126,8 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 			dscale = zero
 			dsum = one
 			for i = 1; i <= n; i++ {
-				dscale, dsum = Zlassq(n, a.CVector(0, i-1, 1), dscale, dsum)
-				dscale, dsum = Zlassq(n, b.CVector(0, i-1, 1), dscale, dsum)
+				dscale, dsum = Zlassq(n, a.Off(0, i-1).CVector(), 1, dscale, dsum)
+				dscale, dsum = Zlassq(n, b.Off(0, i-1).CVector(), 1, dscale, dsum)
 			}
 			dif.Set(0, dscale*math.Sqrt(dsum))
 			dif.Set(1, dif.Get(0))
@@ -177,9 +176,9 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 		n2 = n - m
 		i = n1 + 1
 		Zlacpy(Full, n1, n2, a.Off(0, i-1), work.CMatrix(n1, opts))
-		Zlacpy(Full, n1, n2, b.Off(0, i-1), work.CMatrixOff(n1*n2, n1, opts))
+		Zlacpy(Full, n1, n2, b.Off(0, i-1), work.Off(n1*n2).CMatrix(n1, opts))
 		ijb = 0
-		if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.CMatrixOff(n1*n2, n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+		if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).CMatrix(n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 			panic(err)
 		}
 
@@ -187,7 +186,7 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 		//        left and right eigenspaces
 		rdscal = zero
 		dsum = one
-		rdscal, dsum = Zlassq(n1*n2, work.Off(0, 1), rdscal, dsum)
+		rdscal, dsum = Zlassq(n1*n2, work, 1, rdscal, dsum)
 		pl = rdscal * math.Sqrt(dsum)
 		if pl == zero {
 			pl = one
@@ -196,7 +195,7 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 		}
 		rdscal = zero
 		dsum = one
-		rdscal, dsum = Zlassq(n1*n2, work.Off(n1*n2, 1), rdscal, dsum)
+		rdscal, dsum = Zlassq(n1*n2, work.Off(n1*n2), 1, rdscal, dsum)
 		pr = rdscal * math.Sqrt(dsum)
 		if pr == zero {
 			pr = one
@@ -213,12 +212,12 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 			ijb = idifjb
 
 			//           Frobenius norm-based Difu estimate.
-			if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.CMatrixOff(n1*n2, n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+			if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).CMatrix(n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 				panic(err)
 			}
 
 			//           Frobenius norm-based Difl estimate.
-			if dscale, *dif.GetPtr(1), ierr, err = Ztgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.CMatrix(n2, opts), b.Off(i-1, i-1), b, work.CMatrixOff(n1*n2, n2, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+			if dscale, *dif.GetPtr(1), ierr, err = Ztgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.CMatrix(n2, opts), b.Off(i-1, i-1), b, work.Off(n1*n2).CMatrix(n2, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 				panic(err)
 			}
 		} else {
@@ -240,12 +239,12 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation
-					if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.CMatrixOff(n1*n2, n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(NoTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).CMatrix(n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				} else {
 					//                 Solve the transposed variant.
-					if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(ConjTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.CMatrixOff(n1*n2, n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(0), ierr, err = Ztgsyl(ConjTrans, ijb, n1, n2, a, a.Off(i-1, i-1), work.CMatrix(n1, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).CMatrix(n1, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				}
@@ -261,12 +260,12 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 			if kase != 0 {
 				if kase == 1 {
 					//                 Solve generalized Sylvester equation
-					if dscale, *dif.GetPtr(1), ierr, err = Ztgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.CMatrix(n2, opts), b.Off(i-1, i-1), b, work.CMatrixOff(n1*n2, n2, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(1), ierr, err = Ztgsyl(NoTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.CMatrix(n2, opts), b.Off(i-1, i-1), b, work.Off(n1*n2).CMatrix(n2, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				} else {
 					//                 Solve the transposed variant.
-					if dscale, *dif.GetPtr(1), ierr, err = Ztgsyl(ConjTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.CMatrix(n2, opts), b, b.Off(i-1, i-1), work.CMatrixOff(n1*n2, n2, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
+					if dscale, *dif.GetPtr(1), ierr, err = Ztgsyl(ConjTrans, ijb, n2, n1, a.Off(i-1, i-1), a, work.CMatrix(n2, opts), b, b.Off(i-1, i-1), work.Off(n1*n2).CMatrix(n2, opts), work.Off(n1*n2*2), lwork-2*n1*n2, iwork); err != nil {
 						panic(err)
 					}
 				}
@@ -285,10 +284,10 @@ func Ztgsen(ijob int, wantq, wantz bool, _select []bool, n int, a, b *mat.CMatri
 			temp1 = b.GetConj(k-1, k-1) / complex(dscale, 0)
 			temp2 = b.Get(k-1, k-1) / complex(dscale, 0)
 			b.SetRe(k-1, k-1, dscale)
-			goblas.Zscal(n-k, temp1, b.CVector(k-1, k))
-			goblas.Zscal(n-k+1, temp1, a.CVector(k-1, k-1))
+			b.Off(k-1, k).CVector().Scal(n-k, temp1, b.Rows)
+			a.Off(k-1, k-1).CVector().Scal(n-k+1, temp1, a.Rows)
 			if wantq {
-				goblas.Zscal(n, temp2, q.CVector(0, k-1, 1))
+				q.Off(0, k-1).CVector().Scal(n, temp2, 1)
 			}
 		} else {
 			b.SetRe(k-1, k-1, zero)

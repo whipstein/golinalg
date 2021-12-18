@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -59,12 +58,12 @@ func zpbt01(uplo mat.MatUplo, n, kd int, a, afac *mat.CMatrix, rwork *mat.Vector
 			klen = kd + 1 - kc
 
 			//           Compute the (K,K) element of the result.
-			akk = real(goblas.Zdotc(klen+1, afac.CVector(kc-1, k-1, 1), afac.CVector(kc-1, k-1, 1)))
+			akk = real(afac.Off(kc-1, k-1).CVector().Dotc(klen+1, afac.Off(kc-1, k-1).CVector(), 1, 1))
 			afac.SetRe(kd, k-1, akk)
 
 			//           Compute the rest of column K.
 			if klen > 0 {
-				if err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, klen, afac.Off(kd, k-klen-1).UpdateRows(afac.Rows-1), afac.CVector(kc-1, k-1, 1)); err != nil {
+				if err = afac.Off(kc-1, k-1).CVector().Trmv(Upper, ConjTrans, NonUnit, klen, afac.Off(kd, k-klen-1).UpdateRows(afac.Rows-1), 1); err != nil {
 					panic(err)
 				}
 			}
@@ -79,14 +78,14 @@ func zpbt01(uplo mat.MatUplo, n, kd int, a, afac *mat.CMatrix, rwork *mat.Vector
 			//           Add a multiple of column K of the factor L to each of
 			//           columns K+1 through N.
 			if klen > 0 {
-				if err = goblas.Zher(Lower, klen, one, afac.CVector(1, k-1, 1), afac.Off(0, k).UpdateRows(afac.Rows-1)); err != nil {
+				if err = afac.Off(0, k).UpdateRows(afac.Rows-1).Her(Lower, klen, one, afac.Off(1, k-1).CVector(), 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Scale column K by the diagonal element.
 			akk = afac.GetRe(0, k-1)
-			goblas.Zdscal(klen+1, akk, afac.CVector(0, k-1, 1))
+			afac.Off(0, k-1).CVector().Dscal(klen+1, akk, 1)
 
 		}
 	}

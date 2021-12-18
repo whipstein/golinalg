@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -40,12 +39,12 @@ func Zpptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, b *mat.CMatrix) (err
 		//        Solve A*X = B where A = U**H * U.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve U**H *X = B, overwriting B with X.
-			if err = goblas.Ztpsv(Upper, ConjTrans, NonUnit, n, ap, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tpsv(Upper, ConjTrans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 
 			//           Solve U*X = B, overwriting B with X.
-			if err = goblas.Ztpsv(Upper, NoTrans, NonUnit, n, ap, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tpsv(Upper, NoTrans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -53,12 +52,12 @@ func Zpptrs(uplo mat.MatUplo, n, nrhs int, ap *mat.CVector, b *mat.CMatrix) (err
 		//        Solve A*X = B where A = L * L**H.
 		for i = 1; i <= nrhs; i++ {
 			//           Solve L*Y = B, overwriting B with X.
-			if err = goblas.Ztpsv(Lower, NoTrans, NonUnit, n, ap, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tpsv(Lower, NoTrans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 
 			//           Solve L**H *X = Y, overwriting B with X.
-			if err = goblas.Ztpsv(Lower, ConjTrans, NonUnit, n, ap, b.CVector(0, i-1, 1)); err != nil {
+			if err = b.Off(0, i-1).CVector().Tpsv(Lower, ConjTrans, NonUnit, n, ap, 1); err != nil {
 				panic(err)
 			}
 		}

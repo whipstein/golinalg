@@ -99,14 +99,14 @@ func Zlanhe(norm byte, uplo mat.MatUplo, n int, a *mat.CMatrix, work *mat.Vector
 			for j = 2; j <= n; j++ {
 				colssq.Set(0, zero)
 				colssq.Set(1, one)
-				*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(j-1, a.CVector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+				*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(j-1, a.Off(0, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 				Dcombssq(ssq, colssq)
 			}
 		} else {
 			for j = 1; j <= n-1; j++ {
 				colssq.Set(0, zero)
 				colssq.Set(1, one)
-				*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(n-j, a.CVector(j, j-1, 1), colssq.Get(0), colssq.Get(1))
+				*colssq.GetPtr(0), *colssq.GetPtr(1) = Zlassq(n-j, a.Off(j, j-1).CVector(), 1, colssq.Get(0), colssq.Get(1))
 				Dcombssq(ssq, colssq)
 			}
 		}

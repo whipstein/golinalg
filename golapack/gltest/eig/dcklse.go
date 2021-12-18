@@ -82,11 +82,11 @@ func dcklse(nn int, mval, pval, nval []int, nmats int, iseed []int, thresh float
 			}
 
 			//           Generate the right-hand sides C and D for the LSE.
-			if err = lin.Dlarhs("Dge", 'N', Upper, NoTrans, m, n, max(m-1, 0), max(n-1, 0), 1, a.Matrix(lda, opts), x.MatrixOff(4*nmax, max(n, 1), opts), x.Matrix(max(m, 1), opts), &iseed); err != nil {
+			if err = lin.Dlarhs("Dge", 'N', Upper, NoTrans, m, n, max(m-1, 0), max(n-1, 0), 1, a.Matrix(lda, opts), x.Off(4*nmax).Matrix(max(n, 1), opts), x.Matrix(max(m, 1), opts), &iseed); err != nil {
 				panic(err)
 			}
 
-			if err = lin.Dlarhs("Dge", 'C', Upper, NoTrans, p, n, max(p-1, 0), max(n-1, 0), 1, b.Matrix(ldb, opts), x.MatrixOff(4*nmax, max(n, 1), opts), x.MatrixOff(2*nmax, max(p, 1), opts), &iseed); err != nil {
+			if err = lin.Dlarhs("Dge", 'C', Upper, NoTrans, p, n, max(p-1, 0), max(n-1, 0), 1, b.Matrix(ldb, opts), x.Off(4*nmax).Matrix(max(n, 1), opts), x.Off(2*nmax).Matrix(max(p, 1), opts), &iseed); err != nil {
 				panic(err)
 			}
 

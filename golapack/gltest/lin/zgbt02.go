@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -34,7 +33,7 @@ func zgbt02(trans mat.MatTrans, m, n, kl, ku, nrhs int, a, x, b *mat.CMatrix) (r
 	for j = 1; j <= n; j++ {
 		i1 = max(kd+1-j, 1)
 		i2 = min(kd+m-j, kl+kd)
-		anorm = math.Max(anorm, goblas.Dzasum(i2-i1+1, a.CVector(i1-1, j-1, 1)))
+		anorm = math.Max(anorm, a.Off(i1-1, j-1).CVector().Asum(i2-i1+1, 1))
 	}
 	if anorm <= zero {
 		resid = one / eps
@@ -49,7 +48,7 @@ func zgbt02(trans mat.MatTrans, m, n, kl, ku, nrhs int, a, x, b *mat.CMatrix) (r
 
 	//     Compute  B - A*X (or  B - A'*X )
 	for j = 1; j <= nrhs; j++ {
-		if err = goblas.Zgbmv(trans, m, n, kl, ku, -cone, a, x.CVector(0, j-1, 1), cone, b.CVector(0, j-1, 1)); err != nil {
+		if err = b.Off(0, j-1).CVector().Gbmv(trans, m, n, kl, ku, -cone, a, x.Off(0, j-1).CVector(), 1, cone, 1); err != nil {
 			panic(err)
 		}
 	}
@@ -58,8 +57,8 @@ func zgbt02(trans mat.MatTrans, m, n, kl, ku, nrhs int, a, x, b *mat.CMatrix) (r
 	//        norm(B - A*X) / ( norm(A) * norm(X) * EPS ).
 	resid = zero
 	for j = 1; j <= nrhs; j++ {
-		bnorm = goblas.Dzasum(n1, b.CVector(0, j-1, 1))
-		xnorm = goblas.Dzasum(n1, x.CVector(0, j-1, 1))
+		bnorm = b.Off(0, j-1).CVector().Asum(n1, 1)
+		xnorm = x.Off(0, j-1).CVector().Asum(n1, 1)
 		if xnorm <= zero {
 			resid = one / eps
 		} else {

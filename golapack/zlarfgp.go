@@ -4,7 +4,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -25,7 +24,7 @@ import (
 //
 // If the elements of x are all zero and alpha is real, then tau = 0
 // and H is taken to be the unit matrix.
-func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128) {
+func Zlarfgp(n int, alpha complex128, x *mat.CVector, incx int) (alphaOut, tau complex128) {
 	var savealpha complex128
 	var alphi, alphr, beta, bignum, one, smlnum, two, xnorm, zero float64
 	var j, knt int
@@ -40,7 +39,7 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 		return
 	}
 
-	xnorm = goblas.Dznrm2(n-1, x)
+	xnorm = x.Nrm2(n-1, incx)
 	alphr = real(alphaOut)
 	alphi = imag(alphaOut)
 
@@ -57,7 +56,7 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 				//              zero checks when TAU.ne.ZERO, and we must clear X.
 				tau = complex(two, 0)
 				for j = 1; j <= n-1; j++ {
-					x.SetRe(1+(j-1)*x.Inc-1, zero)
+					x.SetRe(1+(j-1)*incx-1, zero)
 				}
 				alphaOut = -alphaOut
 			}
@@ -66,7 +65,7 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 			xnorm = Dlapy2(alphr, alphi)
 			tau = complex(one-alphr/xnorm, -alphi/xnorm)
 			for j = 1; j <= n-1; j++ {
-				x.SetRe(1+(j-1)*x.Inc-1, zero)
+				x.SetRe(1+(j-1)*incx-1, zero)
 			}
 			alphaOut = complex(xnorm, 0)
 		}
@@ -82,7 +81,7 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 		label10:
 			;
 			knt = knt + 1
-			goblas.Zdscal(n-1, bignum, x)
+			x.Dscal(n-1, bignum, incx)
 			beta = beta * bignum
 			alphi = alphi * bignum
 			alphr = alphr * bignum
@@ -91,7 +90,7 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 			}
 
 			//           New BETA is at most 1, at least SMLNUM
-			xnorm = goblas.Dznrm2(n-1, x)
+			xnorm = x.Nrm2(n-1, incx)
 			alphaOut = complex(alphr, alphi)
 			beta = math.Copysign(Dlapy3(alphr, alphi, xnorm), alphr)
 		}
@@ -123,7 +122,7 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 				} else {
 					tau = complex(two, 0)
 					for j = 1; j <= n-1; j++ {
-						x.SetRe(1+(j-1)*x.Inc-1, zero)
+						x.SetRe(1+(j-1)*incx-1, zero)
 					}
 					beta = real(-savealpha)
 				}
@@ -131,14 +130,14 @@ func Zlarfgp(n int, alpha complex128, x *mat.CVector) (alphaOut, tau complex128)
 				xnorm = Dlapy2(alphr, alphi)
 				tau = complex(one-alphr/xnorm, -alphi/xnorm)
 				for j = 1; j <= n-1; j++ {
-					x.SetRe(1+(j-1)*x.Inc-1, zero)
+					x.SetRe(1+(j-1)*incx-1, zero)
 				}
 				beta = xnorm
 			}
 
 		} else {
 			//           This is the general case.
-			goblas.Zscal(n-1, alphaOut, x)
+			x.Scal(n-1, alphaOut, incx)
 
 		}
 

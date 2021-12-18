@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -170,13 +169,13 @@ func ddrvsp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						anorm = golapack.Dlansp('1', uplo, n, a, rwork)
 
 						//                    Factor the matrix A.
-						goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+						afac.Copy(npp, a, 1, 1)
 						if info, err = golapack.Dsptrf(uplo, n, afac, &iwork); err != nil {
 							panic(err)
 						}
 
 						//                    Compute inv(A) and take its norm.
-						goblas.Dcopy(npp, afac.Off(0, 1), ainv.Off(0, 1))
+						ainv.Copy(npp, afac, 1, 1)
 						if info, err = golapack.Dsptri(uplo, n, ainv, &iwork, work); err != nil {
 							panic(err)
 						}
@@ -199,7 +198,7 @@ func ddrvsp(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 					//                 --- Test DSPSV  ---
 					if ifact == 2 {
-						goblas.Dcopy(npp, a.Off(0, 1), afac.Off(0, 1))
+						afac.Copy(npp, a, 1, 1)
 						golapack.Dlacpy(Full, n, nrhs, b.Matrix(lda, opts), x.Matrix(lda, opts))
 
 						//                    Factor the matrix and solve the system using DSPSV.

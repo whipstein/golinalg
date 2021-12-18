@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -70,8 +69,8 @@ func Dlagv2(a, b *mat.Matrix, alphar, alphai, beta *mat.Vector) (csl, snl, csr, 
 		csl, snl, _ = Dlartg(a.Get(0, 0), a.Get(1, 0))
 		csr = one
 		snr = zero
-		goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), csl, snl)
-		goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), csl, snl)
+		a.Off(1, 0).Vector().Rot(2, a.Off(0, 0).Vector(), a.Rows, a.Rows, csl, snl)
+		b.Off(1, 0).Vector().Rot(2, b.Off(0, 0).Vector(), b.Rows, b.Rows, csl, snl)
 		a.Set(1, 0, zero)
 		b.Set(0, 0, zero)
 		b.Set(1, 0, zero)
@@ -80,8 +79,8 @@ func Dlagv2(a, b *mat.Matrix, alphar, alphai, beta *mat.Vector) (csl, snl, csr, 
 	} else if math.Abs(b.Get(1, 1)) <= ulp {
 		csr, snr, _ = Dlartg(a.Get(1, 1), a.Get(1, 0))
 		snr = -snr
-		goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), csr, snr)
-		goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), csr, snr)
+		a.Off(0, 1).Vector().Rot(2, a.Off(0, 0).Vector(), 1, 1, csr, snr)
+		b.Off(0, 1).Vector().Rot(2, b.Off(0, 0).Vector(), 1, 1, csr, snr)
 		csl = one
 		snl = zero
 		a.Set(1, 0, zero)
@@ -115,8 +114,8 @@ func Dlagv2(a, b *mat.Matrix, alphar, alphai, beta *mat.Vector) (csl, snl, csr, 
 			}
 
 			snr = -snr
-			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), csr, snr)
-			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), csr, snr)
+			a.Off(0, 1).Vector().Rot(2, a.Off(0, 0).Vector(), 1, 1, csr, snr)
+			b.Off(0, 1).Vector().Rot(2, b.Off(0, 0).Vector(), 1, 1, csr, snr)
 
 			//           compute inf norms of A and B
 			h1 = math.Max(math.Abs(a.Get(0, 0))+math.Abs(a.Get(0, 1)), math.Abs(a.Get(1, 0))+math.Abs(a.Get(1, 1)))
@@ -132,8 +131,8 @@ func Dlagv2(a, b *mat.Matrix, alphar, alphai, beta *mat.Vector) (csl, snl, csr, 
 
 			}
 
-			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), csl, snl)
-			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), csl, snl)
+			a.Off(1, 0).Vector().Rot(2, a.Off(0, 0).Vector(), a.Rows, a.Rows, csl, snl)
+			b.Off(1, 0).Vector().Rot(2, b.Off(0, 0).Vector(), b.Rows, b.Rows, csl, snl)
 
 			a.Set(1, 0, zero)
 			b.Set(1, 0, zero)
@@ -145,10 +144,10 @@ func Dlagv2(a, b *mat.Matrix, alphar, alphai, beta *mat.Vector) (csl, snl, csr, 
 
 			//           Form (A,B) := Q(A,B)Z**T where Q is left rotation matrix and
 			//           Z is right rotation matrix computed from DLASV2
-			goblas.Drot(2, a.Vector(0, 0), a.Vector(1, 0), csl, snl)
-			goblas.Drot(2, b.Vector(0, 0), b.Vector(1, 0), csl, snl)
-			goblas.Drot(2, a.Vector(0, 0, 1), a.Vector(0, 1, 1), csr, snr)
-			goblas.Drot(2, b.Vector(0, 0, 1), b.Vector(0, 1, 1), csr, snr)
+			a.Off(1, 0).Vector().Rot(2, a.Off(0, 0).Vector(), a.Rows, a.Rows, csl, snl)
+			b.Off(1, 0).Vector().Rot(2, b.Off(0, 0).Vector(), b.Rows, b.Rows, csl, snl)
+			a.Off(0, 1).Vector().Rot(2, a.Off(0, 0).Vector(), 1, 1, csr, snr)
+			b.Off(0, 1).Vector().Rot(2, b.Off(0, 0).Vector(), 1, 1, csr, snr)
 
 			b.Set(1, 0, zero)
 			b.Set(0, 1, zero)

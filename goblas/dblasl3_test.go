@@ -17,8 +17,6 @@ func TestDblasLevel3(t *testing.T) {
 	var fatal, left, null, tran, same, upper bool
 	var alpha, als, beta, bls, bets, err float64
 	var i, j, n int
-	var err2 error
-	_ = err2
 	var a, aa, ab, b, bb, c, cc, w *mat.Matrix
 	var ct, g *mat.Vector
 	ok := true
@@ -67,11 +65,11 @@ func TestDblasLevel3(t *testing.T) {
 	}
 	//     CC holds the exact result. On exit from SMMCH CT holds
 	//     the result computed by SMMCH.
-	dmmch(mat.NoTrans, mat.NoTrans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
+	dmmch(NoTrans, NoTrans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
 	if err != 0 {
 		t.Errorf(" ERROR IN DMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n SMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", 'N', 'N', same, err)
 	}
-	dmmch(mat.NoTrans, mat.Trans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
+	dmmch(NoTrans, Trans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
 	if err != 0 {
 		t.Errorf(" ERROR IN DMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n SMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", 'N', 'T', same, err)
 	}
@@ -86,11 +84,11 @@ func TestDblasLevel3(t *testing.T) {
 	for j = 1; j <= n; j++ {
 		cc.Set(n-j, 0, float64(j*((j+1)*j))/2-float64((j+1)*j*(j-1))/3)
 	}
-	dmmch(mat.Trans, mat.NoTrans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
+	dmmch(Trans, NoTrans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
 	if err != 0 {
 		t.Errorf(" ERROR IN DMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n SMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", 'T', 'N', same, err)
 	}
-	dmmch(mat.Trans, mat.Trans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
+	dmmch(Trans, Trans, n, 1, n, 1.0, a, nmax, a.Off(0, nmax), nmax, 0.0, c, nmax, ct, g, cc, nmax, eps, &err, &fatal, true, t)
 	if err != 0 {
 		t.Errorf(" ERROR IN DMMCH -  IN-LINE DOT PRODUCTS ARE BEING EVALUATED WRONGLY.\n SMMCH WAS CALLED WITH TRANSA = %c AND TRANSB = %c\n AND RETURNED SAME =  %t AND ERR = %12.3f.\n THIS MAY BE DUE TO FAULTS IN THE ARITHMETIC OR THE COMPILER.\n ******* TESTS ABANDONED *******\n", 'T', 'T', same, err)
 	}
@@ -106,8 +104,7 @@ func TestDblasLevel3(t *testing.T) {
 
 		if sname == "Dgemm" {
 			var trana, tranb bool
-			var i, k, ks, laa, lbb, lcc, lda, ldb, ldc, m, ma, mb, ms, n, na, nb, ns int
-			_, _, _ = laa, lbb, lcc
+			var i, k, ks, lda, ldb, ldc, m, ma, mb, ms, n, na, nb, ns int
 			var nargs int = 13
 			var nc int = 0
 
@@ -133,7 +130,6 @@ func TestDblasLevel3(t *testing.T) {
 						if ldc > nmax {
 							continue
 						}
-						lcc = ldc * n
 						null = n <= 0 || m <= 0
 
 						for _, k = range idim {
@@ -157,7 +153,6 @@ func TestDblasLevel3(t *testing.T) {
 								if lda > nmax {
 									continue
 								}
-								laa = lda * na
 
 								//                 Generate the matrix A.
 								a = mf(nmax, nmax, optsfull)
@@ -183,7 +178,6 @@ func TestDblasLevel3(t *testing.T) {
 									if ldb > nmax {
 										continue
 									}
-									lbb = ldb * nb
 
 									//                    Generate the matrix B.
 									b = mf(nmax, nmax, optsfull)
@@ -214,7 +208,7 @@ func TestDblasLevel3(t *testing.T) {
 											cs := cc.DeepCopy()
 
 											//                          Call the subroutine.
-											err2 = Dgemm(transa, transb, m, n, k, alpha, aa, bb, beta, cc)
+											_ = Dgemm(transa, transb, m, n, k, alpha, aa, bb, beta, cc)
 
 											//                          Check if error-exit was taken incorrectly.
 											if !ok {
@@ -389,7 +383,7 @@ func TestDblasLevel3(t *testing.T) {
 										cs := cc.DeepCopy()
 
 										//                       Call the subroutine.
-										err2 = Dsymm(side, uplo, m, n, alpha, aa, bb, beta, cc)
+										_ = Dsymm(side, uplo, m, n, alpha, aa, bb, beta, cc)
 
 										//                       Check if error-exit was taken incorrectly.
 										if !ok {
@@ -559,9 +553,9 @@ func TestDblasLevel3(t *testing.T) {
 
 											//                          Call the subroutine.
 											if sname[3:5] == "mm" {
-												err2 = Dtrmm(side, uplo, transa, diag, m, n, alpha, aa, bb)
+												_ = Dtrmm(side, uplo, transa, diag, m, n, alpha, aa, bb)
 											} else if sname[3:5] == "sm" {
-												err2 = Dtrsm(side, uplo, transa, diag, m, n, alpha, aa, bb)
+												_ = Dtrsm(side, uplo, transa, diag, m, n, alpha, aa, bb)
 											}
 
 											//                          Check if error-exit was taken incorrectly.
@@ -745,7 +739,7 @@ func TestDblasLevel3(t *testing.T) {
 										cs := cc.DeepCopy()
 
 										//                       Call the subroutine.
-										err2 = Dsyrk(uplo, trans, n, k, alpha, aa, beta, cc)
+										_ = Dsyrk(uplo, trans, n, k, alpha, aa, beta, cc)
 
 										//                       Check if error-exit was taken incorrectly.
 										if !ok {
@@ -943,7 +937,7 @@ func TestDblasLevel3(t *testing.T) {
 										cs := cc.DeepCopy()
 
 										//                       Call the subroutine.
-										err2 = Dsyr2k(uplo, trans, n, k, alpha, aa, bb, beta, cc)
+										_ = Dsyr2k(uplo, trans, n, k, alpha, aa, bb, beta, cc)
 
 										//                       Check if error-exit was taken incorrectly.
 										if !ok {

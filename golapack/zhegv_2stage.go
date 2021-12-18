@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -100,7 +99,7 @@ func Zhegv2stage(itype int, jobz byte, uplo mat.MatUplo, n int, a, b *mat.CMatri
 				trans = ConjTrans
 			}
 
-			if err = goblas.Ztrsm(Left, uplo, trans, NonUnit, n, neig, one, b, a); err != nil {
+			if err = a.Trsm(Left, uplo, trans, NonUnit, n, neig, one, b); err != nil {
 				panic(err)
 			}
 
@@ -113,7 +112,7 @@ func Zhegv2stage(itype int, jobz byte, uplo mat.MatUplo, n int, a, b *mat.CMatri
 				trans = NoTrans
 			}
 
-			if err = goblas.Ztrmm(Left, uplo, trans, NonUnit, n, neig, one, b, a); err != nil {
+			if err = a.Trmm(Left, uplo, trans, NonUnit, n, neig, one, b); err != nil {
 				panic(err)
 			}
 		}

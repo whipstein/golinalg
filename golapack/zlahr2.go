@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -30,11 +29,11 @@ func Zlahr2(n, k, nb int, a *mat.CMatrix, tau *mat.CVector, t, y *mat.CMatrix) {
 			//           Update A(K+1:N,I)
 			//
 			//           Update I-th column of A - Y * V**H
-			Zlacgv(i-1, a.CVector(k+i-1-1, 0))
-			if err = goblas.Zgemv(NoTrans, n-k, i-1, -one, y.Off(k, 0), a.CVector(k+i-1-1, 0), one, a.CVector(k, i-1, 1)); err != nil {
+			Zlacgv(i-1, a.Off(k+i-1-1, 0).CVector(), a.Rows)
+			if err = a.Off(k, i-1).CVector().Gemv(NoTrans, n-k, i-1, -one, y.Off(k, 0), a.Off(k+i-1-1, 0).CVector(), a.Rows, one, 1); err != nil {
 				panic(err)
 			}
-			Zlacgv(i-1, a.CVector(k+i-1-1, 0))
+			Zlacgv(i-1, a.Off(k+i-1-1, 0).CVector(), a.Rows)
 
 			//           Apply I - V * T**H * V**H to this column (call it b) from the
 			//           left, using the last column of T as workspace
@@ -45,56 +44,56 @@ func Zlahr2(n, k, nb int, a *mat.CMatrix, tau *mat.CVector, t, y *mat.CMatrix) {
 			//           where V1 is unit lower triangular
 			//
 			//           w := V1**H * b1
-			goblas.Zcopy(i-1, a.CVector(k, i-1, 1), t.CVector(0, nb-1, 1))
-			if err = goblas.Ztrmv(Lower, ConjTrans, Unit, i-1, a.Off(k, 0), t.CVector(0, nb-1, 1)); err != nil {
+			t.Off(0, nb-1).CVector().Copy(i-1, a.Off(k, i-1).CVector(), 1, 1)
+			if err = t.Off(0, nb-1).CVector().Trmv(Lower, ConjTrans, Unit, i-1, a.Off(k, 0), 1); err != nil {
 				panic(err)
 			}
 
 			//           w := w + V2**H * b2
-			if err = goblas.Zgemv(ConjTrans, n-k-i+1, i-1, one, a.Off(k+i-1, 0), a.CVector(k+i-1, i-1, 1), one, t.CVector(0, nb-1, 1)); err != nil {
+			if err = t.Off(0, nb-1).CVector().Gemv(ConjTrans, n-k-i+1, i-1, one, a.Off(k+i-1, 0), a.Off(k+i-1, i-1).CVector(), 1, one, 1); err != nil {
 				panic(err)
 			}
 
 			//           w := T**H * w
-			if err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, i-1, t, t.CVector(0, nb-1, 1)); err != nil {
+			if err = t.Off(0, nb-1).CVector().Trmv(Upper, ConjTrans, NonUnit, i-1, t, 1); err != nil {
 				panic(err)
 			}
 
 			//           b2 := b2 - V2*w
-			if err = goblas.Zgemv(NoTrans, n-k-i+1, i-1, -one, a.Off(k+i-1, 0), t.CVector(0, nb-1, 1), one, a.CVector(k+i-1, i-1, 1)); err != nil {
+			if err = a.Off(k+i-1, i-1).CVector().Gemv(NoTrans, n-k-i+1, i-1, -one, a.Off(k+i-1, 0), t.Off(0, nb-1).CVector(), 1, one, 1); err != nil {
 				panic(err)
 			}
 
 			//           b1 := b1 - V1*w
-			if err = goblas.Ztrmv(Lower, NoTrans, Unit, i-1, a.Off(k, 0), t.CVector(0, nb-1, 1)); err != nil {
+			if err = t.Off(0, nb-1).CVector().Trmv(Lower, NoTrans, Unit, i-1, a.Off(k, 0), 1); err != nil {
 				panic(err)
 			}
-			goblas.Zaxpy(i-1, -one, t.CVector(0, nb-1, 1), a.CVector(k, i-1, 1))
+			a.Off(k, i-1).CVector().Axpy(i-1, -one, t.Off(0, nb-1).CVector(), 1, 1)
 
 			a.Set(k+i-1-1, i-1-1, ei)
 		}
 
 		//        Generate the elementary reflector H(I) to annihilate
 		//        A(K+I+1:N,I)
-		*a.GetPtr(k+i-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(n-k-i+1, a.Get(k+i-1, i-1), a.CVector(min(k+i+1, n)-1, i-1, 1))
+		*a.GetPtr(k+i-1, i-1), *tau.GetPtr(i - 1) = Zlarfg(n-k-i+1, a.Get(k+i-1, i-1), a.Off(min(k+i+1, n)-1, i-1).CVector(), 1)
 		ei = a.Get(k+i-1, i-1)
 		a.Set(k+i-1, i-1, one)
 
 		//        Compute  Y(K+1:N,I)
-		if err = goblas.Zgemv(NoTrans, n-k, n-k-i+1, one, a.Off(k, i), a.CVector(k+i-1, i-1, 1), zero, y.CVector(k, i-1, 1)); err != nil {
+		if err = y.Off(k, i-1).CVector().Gemv(NoTrans, n-k, n-k-i+1, one, a.Off(k, i), a.Off(k+i-1, i-1).CVector(), 1, zero, 1); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgemv(ConjTrans, n-k-i+1, i-1, one, a.Off(k+i-1, 0), a.CVector(k+i-1, i-1, 1), zero, t.CVector(0, i-1, 1)); err != nil {
+		if err = t.Off(0, i-1).CVector().Gemv(ConjTrans, n-k-i+1, i-1, one, a.Off(k+i-1, 0), a.Off(k+i-1, i-1).CVector(), 1, zero, 1); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgemv(NoTrans, n-k, i-1, -one, y.Off(k, 0), t.CVector(0, i-1, 1), one, y.CVector(k, i-1, 1)); err != nil {
+		if err = y.Off(k, i-1).CVector().Gemv(NoTrans, n-k, i-1, -one, y.Off(k, 0), t.Off(0, i-1).CVector(), 1, one, 1); err != nil {
 			panic(err)
 		}
-		goblas.Zscal(n-k, tau.Get(i-1), y.CVector(k, i-1, 1))
+		y.Off(k, i-1).CVector().Scal(n-k, tau.Get(i-1), 1)
 
 		//        Compute T(1:I,I)
-		goblas.Zscal(i-1, -tau.Get(i-1), t.CVector(0, i-1, 1))
-		if err = goblas.Ztrmv(Upper, NoTrans, NonUnit, i-1, t, t.CVector(0, i-1, 1)); err != nil {
+		t.Off(0, i-1).CVector().Scal(i-1, -tau.Get(i-1), 1)
+		if err = t.Off(0, i-1).CVector().Trmv(Upper, NoTrans, NonUnit, i-1, t, 1); err != nil {
 			panic(err)
 		}
 		t.Set(i-1, i-1, tau.Get(i-1))
@@ -104,15 +103,15 @@ func Zlahr2(n, k, nb int, a *mat.CMatrix, tau *mat.CVector, t, y *mat.CMatrix) {
 
 	//     Compute Y(1:K,1:NB)
 	Zlacpy(Full, k, nb, a.Off(0, 1), y)
-	if err = goblas.Ztrmm(Right, Lower, NoTrans, Unit, k, nb, one, a.Off(k, 0), y); err != nil {
+	if err = y.Trmm(Right, Lower, NoTrans, Unit, k, nb, one, a.Off(k, 0)); err != nil {
 		panic(err)
 	}
 	if n > k+nb {
-		if err = goblas.Zgemm(NoTrans, NoTrans, k, nb, n-k-nb, one, a.Off(0, 2+nb-1), a.Off(k+1+nb-1, 0), one, y); err != nil {
+		if err = y.Gemm(NoTrans, NoTrans, k, nb, n-k-nb, one, a.Off(0, 2+nb-1), a.Off(k+1+nb-1, 0), one); err != nil {
 			panic(err)
 		}
 	}
-	if err = goblas.Ztrmm(Right, Upper, NoTrans, NonUnit, k, nb, one, t, y); err != nil {
+	if err = y.Trmm(Right, Upper, NoTrans, NonUnit, k, nb, one, t); err != nil {
 		panic(err)
 	}
 }

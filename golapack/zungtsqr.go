@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -102,7 +101,7 @@ func Zungtsqr(m, n, mb, nb int, a, t *mat.CMatrix, work *mat.CVector, lwork int)
 	//     with the leading dimension LDC that starts at WORK(1) into
 	//     the output array A(1:M,1:N) column-by-column.
 	for j = 1; j <= n; j++ {
-		goblas.Zcopy(m, work.Off((j-1)*ldc, 1), a.CVector(0, j-1, 1))
+		a.Off(0, j-1).CVector().Copy(m, work.Off((j-1)*ldc), 1, 1)
 	}
 
 	work.SetRe(0, float64(lworkopt))

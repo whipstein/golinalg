@@ -27,7 +27,7 @@ func Dlatrz(m, n, l int, a *mat.Matrix, tau, work *mat.Vector) {
 	for i = m; i >= 1; i-- {
 		//        Generate elementary reflector H(i) to annihilate
 		//        [ A(i,i) A(i,n-l+1:n) ]
-		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Dlarfg(l+1, a.Get(i-1, i-1), a.Vector(i-1, n-l))
+		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Dlarfg(l+1, a.Get(i-1, i-1), a.Off(i-1, n-l).Vector(), a.Rows)
 
 		//        Apply H(i) to A(1:i-1,i:n) from the right
 		Dlarz(Right, i-1, n-i+1, l, a.Off(i-1, n-l), tau.Get(i-1), a.Off(0, i-1), work)

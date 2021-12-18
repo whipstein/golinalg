@@ -3,7 +3,6 @@ package lin
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -25,9 +24,9 @@ func dqrt13(scale, m, n int, a *mat.Matrix, iseed []int) (float64, []int) {
 
 	//     benign matrix
 	for j = 1; j <= n; j++ {
-		golapack.Dlarnv(2, &iseed, m, a.Vector(0, j-1))
+		golapack.Dlarnv(2, &iseed, m, a.Off(0, j-1).Vector())
 		if j <= m {
-			a.Set(j-1, j-1, a.Get(j-1, j-1)+math.Copysign(goblas.Dasum(m, a.Vector(0, j-1, 1)), a.Get(j-1, j-1)))
+			a.Set(j-1, j-1, a.Get(j-1, j-1)+math.Copysign(a.Off(0, j-1).Vector().Asum(m, 1), a.Get(j-1, j-1)))
 		}
 	}
 

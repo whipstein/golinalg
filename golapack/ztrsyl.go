@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -85,8 +84,8 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 		//                  I=K+1                      J=1
 		for l = 1; l <= n; l++ {
 			for k = m; k >= 1; k-- {
-				suml = goblas.Zdotu(m-k, a.CVector(k-1, min(k+1, m)-1), c.CVector(min(k+1, m)-1, l-1, 1))
-				sumr = goblas.Zdotu(l-1, c.CVector(k-1, 0), b.CVector(0, l-1, 1))
+				suml = c.Off(min(k+1, m)-1, l-1).CVector().Dotu(m-k, a.Off(k-1, min(k+1, m)-1).CVector(), a.Rows, 1)
+				sumr = b.Off(0, l-1).CVector().Dotu(l-1, c.Off(k-1, 0).CVector(), c.Rows, 1)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*sumr)
 
 				scaloc = one
@@ -107,7 +106,7 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 
 				if scaloc != one {
 					for j = 1; j <= n; j++ {
-						goblas.Zdscal(m, scaloc, c.CVector(0, j-1, 1))
+						c.Off(0, j-1).CVector().Dscal(m, scaloc, 1)
 					}
 					scale = scale * scaloc
 				}
@@ -131,8 +130,8 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 		for l = 1; l <= n; l++ {
 			for k = 1; k <= m; k++ {
 
-				suml = goblas.Zdotc(k-1, a.CVector(0, k-1, 1), c.CVector(0, l-1, 1))
-				sumr = goblas.Zdotu(l-1, c.CVector(k-1, 0), b.CVector(0, l-1, 1))
+				suml = c.Off(0, l-1).CVector().Dotc(k-1, a.Off(0, k-1).CVector(), 1, 1)
+				sumr = b.Off(0, l-1).CVector().Dotu(l-1, c.Off(k-1, 0).CVector(), c.Rows, 1)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*sumr)
 
 				scaloc = one
@@ -154,7 +153,7 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 
 				if scaloc != one {
 					for j = 1; j <= n; j++ {
-						goblas.Zdscal(m, scaloc, c.CVector(0, j-1, 1))
+						c.Off(0, j-1).CVector().Dscal(m, scaloc, 1)
 					}
 					scale = scale * scaloc
 				}
@@ -181,8 +180,8 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 		for l = n; l >= 1; l-- {
 			for k = 1; k <= m; k++ {
 
-				suml = goblas.Zdotc(k-1, a.CVector(0, k-1, 1), c.CVector(0, l-1, 1))
-				sumr = goblas.Zdotc(n-l, c.CVector(k-1, min(l+1, n)-1), b.CVector(l-1, min(l+1, n)-1))
+				suml = c.Off(0, l-1).CVector().Dotc(k-1, a.Off(0, k-1).CVector(), 1, 1)
+				sumr = b.Off(l-1, min(l+1, n)-1).CVector().Dotc(n-l, c.Off(k-1, min(l+1, n)-1).CVector(), c.Rows, b.Rows)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*cmplx.Conj(sumr))
 
 				scaloc = one
@@ -204,7 +203,7 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 
 				if scaloc != one {
 					for j = 1; j <= n; j++ {
-						goblas.Zdscal(m, scaloc, c.CVector(0, j-1, 1))
+						c.Off(0, j-1).CVector().Dscal(m, scaloc, 1)
 					}
 					scale = scale * scaloc
 				}
@@ -228,8 +227,8 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 		for l = n; l >= 1; l-- {
 			for k = m; k >= 1; k-- {
 
-				suml = goblas.Zdotu(m-k, a.CVector(k-1, min(k+1, m)-1), c.CVector(min(k+1, m)-1, l-1, 1))
-				sumr = goblas.Zdotc(n-l, c.CVector(k-1, min(l+1, n)-1), b.CVector(l-1, min(l+1, n)-1))
+				suml = c.Off(min(k+1, m)-1, l-1).CVector().Dotu(m-k, a.Off(k-1, min(k+1, m)-1).CVector(), a.Rows, 1)
+				sumr = b.Off(l-1, min(l+1, n)-1).CVector().Dotc(n-l, c.Off(k-1, min(l+1, n)-1).CVector(), c.Rows, b.Rows)
 				vec = c.Get(k-1, l-1) - (suml + complex(sgn, 0)*cmplx.Conj(sumr))
 
 				scaloc = one
@@ -251,7 +250,7 @@ func Ztrsyl(trana, tranb mat.MatTrans, isgn, m, n int, a, b, c *mat.CMatrix) (sc
 
 				if scaloc != one {
 					for j = 1; j <= n; j++ {
-						goblas.Zdscal(m, scaloc, c.CVector(0, j-1, 1))
+						c.Off(0, j-1).CVector().Dscal(m, scaloc, 1)
 					}
 					scale = scale * scaloc
 				}

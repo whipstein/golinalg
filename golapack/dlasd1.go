@@ -103,11 +103,11 @@ func Dlasd1(nl, nr, sqre int, d *mat.Vector, alpha, beta float64, u, vt *mat.Mat
 	betaOut = betaOut / orgnrm
 
 	//     Deflate singular values.
-	k, err = Dlasd2(nl, nr, sqre, d, work.Off(iz-1), alphaOut, betaOut, u, vt, work.Off(isigma-1), work.MatrixOff(iu2-1, ldu2, opts), work.MatrixOff(ivt2-1, ldvt2, opts), toSlice(iwork, idxp-1), toSlice(iwork, idx-1), toSlice(iwork, idxc-1), idxq, toSlice(iwork, coltyp-1))
+	k, err = Dlasd2(nl, nr, sqre, d, work.Off(iz-1), alphaOut, betaOut, u, vt, work.Off(isigma-1), work.Off(iu2-1).Matrix(ldu2, opts), work.Off(ivt2-1).Matrix(ldvt2, opts), toSlice(iwork, idxp-1), toSlice(iwork, idx-1), toSlice(iwork, idxc-1), idxq, toSlice(iwork, coltyp-1))
 
 	//     Solve Secular Equation and update singular vectors.
 	ldq = k
-	info, err = Dlasd3(nl, nr, sqre, k, d, work.MatrixOff(iq-1, ldq, opts), work.Off(isigma-1), u, work.MatrixOff(iu2-1, ldu2, opts), vt, work.MatrixOff(ivt2-1, ldvt2, opts), toSlice(iwork, idxc-1), toSlice(iwork, coltyp-1), work.Off(iz-1))
+	info, err = Dlasd3(nl, nr, sqre, k, d, work.Off(iq-1).Matrix(ldq, opts), work.Off(isigma-1), u, work.Off(iu2-1).Matrix(ldu2, opts), vt, work.Off(ivt2-1).Matrix(ldvt2, opts), toSlice(iwork, idxc-1), toSlice(iwork, coltyp-1), work.Off(iz-1))
 
 	//     Report the convergence failure.
 	if info != 0 {

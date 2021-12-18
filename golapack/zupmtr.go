@@ -101,7 +101,7 @@ func Zupmtr(side mat.MatSide, uplo mat.MatUplo, trans mat.MatTrans, m, n int, ap
 			}
 			aii = ap.Get(ii - 1)
 			ap.Set(ii-1, one)
-			Zlarf(side, mi, ni, ap.Off(ii-i, 1), taui, c, work)
+			Zlarf(side, mi, ni, ap.Off(ii-i), 1, taui, c, work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {
@@ -153,7 +153,7 @@ func Zupmtr(side mat.MatSide, uplo mat.MatUplo, trans mat.MatTrans, m, n int, ap
 			} else {
 				taui = tau.GetConj(i - 1)
 			}
-			Zlarf(side, mi, ni, ap.Off(ii-1, 1), taui, c.Off(ic-1, jc-1), work)
+			Zlarf(side, mi, ni, ap.Off(ii-1), 1, taui, c.Off(ic-1, jc-1), work)
 			ap.Set(ii-1, aii)
 
 			if forwrd {

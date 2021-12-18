@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -85,9 +84,9 @@ func Ztbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 	for j = 1; j <= nrhs; j++ {
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Zcopy(n, x.CVector(0, j-1, 1), work.Off(0, 1))
-		err = goblas.Ztbmv(uplo, trans, diag, n, kd, ab, work.Off(0, 1))
-		goblas.Zaxpy(n, -one, b.CVector(0, j-1, 1), work.Off(0, 1))
+		work.Copy(n, x.Off(0, j-1).CVector(), 1, 1)
+		err = work.Tbmv(uplo, trans, diag, n, kd, ab, 1)
+		work.Axpy(n, -one, b.Off(0, j-1).CVector(), 1, 1)
 
 		//        Compute componentwise relative backward error from formula
 		//
@@ -224,7 +223,7 @@ func Ztbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**H).
-				err = goblas.Ztbsv(uplo, transt, diag, n, kd, ab, work.Off(0, 1))
+				err = work.Tbsv(uplo, transt, diag, n, kd, ab, 1)
 				for i = 1; i <= n; i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
@@ -233,7 +232,7 @@ func Ztbrfs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, kd, nrhs 
 				for i = 1; i <= n; i++ {
 					work.Set(i-1, rwork.GetCmplx(i-1)*work.Get(i-1))
 				}
-				err = goblas.Ztbsv(uplo, transn, diag, n, kd, ab, work.Off(0, 1))
+				err = work.Tbsv(uplo, transn, diag, n, kd, ab, 1)
 			}
 			goto label210
 		}

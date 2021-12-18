@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -74,39 +73,39 @@ func Dorbdb3(m, p, q int, x11, x21 *mat.Matrix, theta, phi, taup1, taup2, tauq1,
 	for i = 1; i <= m-p; i++ {
 
 		if i > 1 {
-			goblas.Drot(q-i+1, x11.Vector(i-1-1, i-1), x21.Vector(i-1, i-1), c, s)
+			x21.Off(i-1, i-1).Vector().Rot(q-i+1, x11.Off(i-1-1, i-1).Vector(), x11.Rows, x21.Rows, c, s)
 		}
 
-		*x21.GetPtr(i-1, i-1), *tauq1.GetPtr(i - 1) = Dlarfgp(q-i+1, x21.Get(i-1, i-1), x21.Vector(i-1, i))
+		*x21.GetPtr(i-1, i-1), *tauq1.GetPtr(i - 1) = Dlarfgp(q-i+1, x21.Get(i-1, i-1), x21.Off(i-1, i).Vector(), x21.Rows)
 		s = x21.Get(i-1, i-1)
 		x21.Set(i-1, i-1, one)
-		Dlarf(Right, p-i+1, q-i+1, x21.Vector(i-1, i-1), tauq1.Get(i-1), x11.Off(i-1, i-1), work.Off(ilarf-1))
-		Dlarf(Right, m-p-i, q-i+1, x21.Vector(i-1, i-1), tauq1.Get(i-1), x21.Off(i, i-1), work.Off(ilarf-1))
-		c = math.Sqrt(math.Pow(goblas.Dnrm2(p-i+1, x11.Vector(i-1, i-1, 1)), 2) + math.Pow(goblas.Dnrm2(m-p-i, x21.Vector(i, i-1, 1)), 2))
+		Dlarf(Right, p-i+1, q-i+1, x21.Off(i-1, i-1).Vector(), x21.Rows, tauq1.Get(i-1), x11.Off(i-1, i-1), work.Off(ilarf-1))
+		Dlarf(Right, m-p-i, q-i+1, x21.Off(i-1, i-1).Vector(), x21.Rows, tauq1.Get(i-1), x21.Off(i, i-1), work.Off(ilarf-1))
+		c = math.Sqrt(math.Pow(x11.Off(i-1, i-1).Vector().Nrm2(p-i+1, 1), 2) + math.Pow(x21.Off(i, i-1).Vector().Nrm2(m-p-i, 1), 2))
 		theta.Set(i-1, math.Atan2(s, c))
 
-		if err = Dorbdb5(p-i+1, m-p-i, q-i, x11.Vector(i-1, i-1, 1), x21.Vector(i, i-1, 1), x11.Off(i-1, i), x21.Off(i, i), work.Off(iorbdb5-1), lorbdb5); err != nil {
+		if err = Dorbdb5(p-i+1, m-p-i, q-i, x11.Off(i-1, i-1).Vector(), 1, x21.Off(i, i-1).Vector(), 1, x11.Off(i-1, i), x21.Off(i, i), work.Off(iorbdb5-1), lorbdb5); err != nil {
 			panic(err)
 		}
-		*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Vector(i, i-1, 1))
+		*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Off(i, i-1).Vector(), 1)
 		if i < m-p {
-			*x21.GetPtr(i, i-1), *taup2.GetPtr(i - 1) = Dlarfgp(m-p-i, x21.Get(i, i-1), x21.Vector(i+2-1, i-1, 1))
+			*x21.GetPtr(i, i-1), *taup2.GetPtr(i - 1) = Dlarfgp(m-p-i, x21.Get(i, i-1), x21.Off(i+2-1, i-1).Vector(), 1)
 			phi.Set(i-1, math.Atan2(x21.Get(i, i-1), x11.Get(i-1, i-1)))
 			c = math.Cos(phi.Get(i - 1))
 			s = math.Sin(phi.Get(i - 1))
 			x21.Set(i, i-1, one)
-			Dlarf(Left, m-p-i, q-i, x21.Vector(i, i-1, 1), taup2.Get(i-1), x21.Off(i, i), work.Off(ilarf-1))
+			Dlarf(Left, m-p-i, q-i, x21.Off(i, i-1).Vector(), 1, taup2.Get(i-1), x21.Off(i, i), work.Off(ilarf-1))
 		}
 		x11.Set(i-1, i-1, one)
-		Dlarf(Left, p-i+1, q-i, x11.Vector(i-1, i-1, 1), taup1.Get(i-1), x11.Off(i-1, i), work.Off(ilarf-1))
+		Dlarf(Left, p-i+1, q-i, x11.Off(i-1, i-1).Vector(), 1, taup1.Get(i-1), x11.Off(i-1, i), work.Off(ilarf-1))
 
 	}
 
 	//     Reduce the bottom-right portion of X11 to the identity matrix
 	for i = m - p + 1; i <= q; i++ {
-		*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Vector(i, i-1, 1))
+		*x11.GetPtr(i-1, i-1), *taup1.GetPtr(i - 1) = Dlarfgp(p-i+1, x11.Get(i-1, i-1), x11.Off(i, i-1).Vector(), 1)
 		x11.Set(i-1, i-1, one)
-		Dlarf(Left, p-i+1, q-i, x11.Vector(i-1, i-1, 1), taup1.Get(i-1), x11.Off(i-1, i), work.Off(ilarf-1))
+		Dlarf(Left, p-i+1, q-i, x11.Off(i-1, i-1).Vector(), 1, taup1.Get(i-1), x11.Off(i-1, i), work.Off(ilarf-1))
 	}
 
 	return

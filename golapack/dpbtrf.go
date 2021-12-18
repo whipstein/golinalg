@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -102,10 +101,10 @@ func Dpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 
 					if i2 > 0 {
 						//                    Update A12
-						err = goblas.Dtrsm(Left, Upper, Trans, NonUnit, ib, i2, one, ab.Off(kd, i-1).UpdateRows(ab.Rows-1), ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1))
+						err = ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1).Trsm(Left, Upper, Trans, NonUnit, ib, i2, one, ab.Off(kd, i-1).UpdateRows(ab.Rows-1))
 
 						//                    Update A22
-						err = goblas.Dsyrk(Upper, Trans, i2, ib, -one, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), one, ab.Off(kd, i+ib-1).UpdateRows(ab.Rows-1))
+						err = ab.Off(kd, i+ib-1).UpdateRows(ab.Rows-1).Syrk(Upper, Trans, i2, ib, -one, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), one)
 					}
 
 					if i3 > 0 {
@@ -117,15 +116,15 @@ func Dpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 						}
 
 						//                    Update A13 (in the work array).
-						err = goblas.Dtrsm(Left, Upper, Trans, NonUnit, ib, i3, one, ab.Off(kd, i-1).UpdateRows(ab.Rows-1), work)
+						err = work.Trsm(Left, Upper, Trans, NonUnit, ib, i3, one, ab.Off(kd, i-1).UpdateRows(ab.Rows-1))
 
 						//                    Update A23
 						if i2 > 0 {
-							err = goblas.Dgemm(Trans, NoTrans, i2, i3, ib, -one, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), work, one, ab.Off(1+ib-1, i+kd-1).UpdateRows(ab.Rows-1))
+							err = ab.Off(1+ib-1, i+kd-1).UpdateRows(ab.Rows-1).Gemm(Trans, NoTrans, i2, i3, ib, -one, ab.Off(kd+1-ib-1, i+ib-1).UpdateRows(ab.Rows-1), work, one)
 						}
 
 						//                    Update A33
-						err = goblas.Dsyrk(Upper, Trans, i3, ib, -one, work, one, ab.Off(kd, i+kd-1).UpdateRows(ab.Rows-1))
+						err = ab.Off(kd, i+kd-1).UpdateRows(ab.Rows-1).Syrk(Upper, Trans, i3, ib, -one, work, one)
 
 						//                    Copy the lower triangle of A13 back into place.
 						for jj = 1; jj <= i3; jj++ {
@@ -179,10 +178,10 @@ func Dpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 
 					if i2 > 0 {
 						//                    Update A21
-						err = goblas.Dtrsm(Right, Lower, Trans, NonUnit, i2, ib, one, ab.Off(0, i-1).UpdateRows(ab.Rows-1), ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1))
+						err = ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1).Trsm(Right, Lower, Trans, NonUnit, i2, ib, one, ab.Off(0, i-1).UpdateRows(ab.Rows-1))
 
 						//                    Update A22
-						err = goblas.Dsyrk(Lower, NoTrans, i2, ib, -one, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), one, ab.Off(0, i+ib-1).UpdateRows(ab.Rows-1))
+						err = ab.Off(0, i+ib-1).UpdateRows(ab.Rows-1).Syrk(Lower, NoTrans, i2, ib, -one, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), one)
 					}
 
 					if i3 > 0 {
@@ -194,15 +193,15 @@ func Dpbtrf(uplo mat.MatUplo, n, kd int, ab *mat.Matrix) (info int, err error) {
 						}
 
 						//                    Update A31 (in the work array).
-						err = goblas.Dtrsm(Right, Lower, Trans, NonUnit, i3, ib, one, ab.Off(0, i-1).UpdateRows(ab.Rows-1), work)
+						err = work.Trsm(Right, Lower, Trans, NonUnit, i3, ib, one, ab.Off(0, i-1).UpdateRows(ab.Rows-1))
 
 						//                    Update A32
 						if i2 > 0 {
-							err = goblas.Dgemm(NoTrans, Trans, i3, i2, ib, -one, work, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), one, ab.Off(1+kd-ib-1, i+ib-1).UpdateRows(ab.Rows-1))
+							err = ab.Off(1+kd-ib-1, i+ib-1).UpdateRows(ab.Rows-1).Gemm(NoTrans, Trans, i3, i2, ib, -one, work, ab.Off(1+ib-1, i-1).UpdateRows(ab.Rows-1), one)
 						}
 
 						//                    Update A33
-						err = goblas.Dsyrk(Lower, NoTrans, i3, ib, -one, work, one, ab.Off(0, i+kd-1).UpdateRows(ab.Rows-1))
+						err = ab.Off(0, i+kd-1).UpdateRows(ab.Rows-1).Syrk(Lower, NoTrans, i3, ib, -one, work, one)
 
 						//                    Copy the upper triangle of A31 back into place.
 						for jj = 1; jj <= ib; jj++ {

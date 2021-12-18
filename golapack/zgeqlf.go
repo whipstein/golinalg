@@ -89,7 +89,7 @@ func Zgeqlf(m, n int, a *mat.CMatrix, tau, work *mat.CVector, lwork int) (err er
 				Zlarft('B', 'C', m-k+i+ib-1, ib, a.Off(0, n-k+i-1), tau.Off(i-1), work.CMatrix(ldwork, opts))
 
 				//              Apply H**H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
-				Zlarfb(Left, ConjTrans, 'B', 'C', m-k+i+ib-1, n-k+i-1, ib, a.Off(0, n-k+i-1), work.CMatrix(ldwork, opts), a, work.CMatrixOff(ib, ldwork, opts))
+				Zlarfb(Left, ConjTrans, 'B', 'C', m-k+i+ib-1, n-k+i-1, ib, a.Off(0, n-k+i-1), work.CMatrix(ldwork, opts), a, work.Off(ib).CMatrix(ldwork, opts))
 			}
 		}
 		mu = m - k + i + nb - 1

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -111,7 +110,7 @@ func Zhpevx(jobz, _range byte, uplo mat.MatUplo, n int, ap *mat.CVector, vl, vu 
 		sigma = rmax / anrm
 	}
 	if iscale == 1 {
-		goblas.Zdscal((n*(n+1))/2, sigma, ap.Off(0, 1))
+		ap.Dscal((n*(n+1))/2, sigma, 1)
 		if abstol > 0 {
 			abstll = abstol * sigma
 		}
@@ -141,10 +140,10 @@ func Zhpevx(jobz, _range byte, uplo mat.MatUplo, n int, ap *mat.CVector, vl, vu 
 		}
 	}
 	if (alleig || test) && (abstol <= zero) {
-		goblas.Dcopy(n, rwork.Off(indd-1, 1), w.Off(0, 1))
+		w.Copy(n, rwork.Off(indd-1), 1, 1)
 		indee = indrwk + 2*n
 		if !wantz {
-			goblas.Dcopy(n-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
+			rwork.Off(indee-1).Copy(n-1, rwork.Off(inde-1), 1, 1)
 			if info, err = Dsterf(n, w, rwork.Off(indee-1)); err != nil {
 				panic(err)
 			}
@@ -152,7 +151,7 @@ func Zhpevx(jobz, _range byte, uplo mat.MatUplo, n int, ap *mat.CVector, vl, vu 
 			if err = Zupgtr(uplo, n, ap, work.Off(indtau-1), z, work.Off(indwrk-1)); err != nil {
 				panic(err)
 			}
-			goblas.Dcopy(n-1, rwork.Off(inde-1, 1), rwork.Off(indee-1, 1))
+			rwork.Off(indee-1).Copy(n-1, rwork.Off(inde-1), 1, 1)
 			if info, err = Zsteqr(jobz, n, w, rwork.Off(indee-1), z, rwork.Off(indrwk-1)); err != nil {
 				panic(err)
 			}
@@ -204,7 +203,7 @@ label20:
 		} else {
 			imax = info - 1
 		}
-		goblas.Dscal(imax, one/sigma, w.Off(0, 1))
+		w.Scal(imax, one/sigma, 1)
 	}
 
 	//     If eigenvalues are not in order, then sort them, along with
@@ -226,7 +225,7 @@ label20:
 				(*iwork)[indibl+i-1-1] = (*iwork)[indibl+j-1-1]
 				w.Set(j-1, tmp1)
 				(*iwork)[indibl+j-1-1] = itmp1
-				goblas.Zswap(n, z.CVector(0, i-1, 1), z.CVector(0, j-1, 1))
+				z.Off(0, j-1).CVector().Swap(n, z.Off(0, i-1).CVector(), 1, 1)
 				if info != 0 {
 					itmp1 = (*ifail)[i-1]
 					(*ifail)[i-1] = (*ifail)[j-1]

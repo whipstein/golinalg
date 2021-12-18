@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -55,14 +54,14 @@ func Dsygs2(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 				akk = akk / math.Pow(bkk, 2)
 				a.Set(k-1, k-1, akk)
 				if k < n {
-					goblas.Dscal(n-k, one/bkk, a.Vector(k-1, k))
+					a.Off(k-1, k).Vector().Scal(n-k, one/bkk, a.Rows)
 					ct = -half * akk
-					goblas.Daxpy(n-k, ct, b.Vector(k-1, k), a.Vector(k-1, k))
-					if err = goblas.Dsyr2(uplo, n-k, -one, a.Vector(k-1, k), b.Vector(k-1, k), a.Off(k, k)); err != nil {
+					a.Off(k-1, k).Vector().Axpy(n-k, ct, b.Off(k-1, k).Vector(), b.Rows, a.Rows)
+					if err = a.Off(k, k).Syr2(uplo, n-k, -one, a.Off(k-1, k).Vector(), a.Rows, b.Off(k-1, k).Vector(), b.Rows); err != nil {
 						panic(err)
 					}
-					goblas.Daxpy(n-k, ct, b.Vector(k-1, k), a.Vector(k-1, k))
-					if err = goblas.Dtrsv(uplo, Trans, NonUnit, n-k, b.Off(k, k), a.Vector(k-1, k)); err != nil {
+					a.Off(k-1, k).Vector().Axpy(n-k, ct, b.Off(k-1, k).Vector(), b.Rows, a.Rows)
+					if err = a.Off(k-1, k).Vector().Trsv(uplo, Trans, NonUnit, n-k, b.Off(k, k), a.Rows); err != nil {
 						panic(err)
 					}
 				}
@@ -76,14 +75,14 @@ func Dsygs2(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 				akk = akk / math.Pow(bkk, 2)
 				a.Set(k-1, k-1, akk)
 				if k < n {
-					goblas.Dscal(n-k, one/bkk, a.Vector(k, k-1, 1))
+					a.Off(k, k-1).Vector().Scal(n-k, one/bkk, 1)
 					ct = -half * akk
-					goblas.Daxpy(n-k, ct, b.Vector(k, k-1, 1), a.Vector(k, k-1, 1))
-					if err = goblas.Dsyr2(uplo, n-k, -one, a.Vector(k, k-1, 1), b.Vector(k, k-1, 1), a.Off(k, k)); err != nil {
+					a.Off(k, k-1).Vector().Axpy(n-k, ct, b.Off(k, k-1).Vector(), 1, 1)
+					if err = a.Off(k, k).Syr2(uplo, n-k, -one, a.Off(k, k-1).Vector(), 1, b.Off(k, k-1).Vector(), 1); err != nil {
 						panic(err)
 					}
-					goblas.Daxpy(n-k, ct, b.Vector(k, k-1, 1), a.Vector(k, k-1, 1))
-					if err = goblas.Dtrsv(uplo, NoTrans, NonUnit, n-k, b.Off(k, k), a.Vector(k, k-1, 1)); err != nil {
+					a.Off(k, k-1).Vector().Axpy(n-k, ct, b.Off(k, k-1).Vector(), 1, 1)
+					if err = a.Off(k, k-1).Vector().Trsv(uplo, NoTrans, NonUnit, n-k, b.Off(k, k), 1); err != nil {
 						panic(err)
 					}
 				}
@@ -96,16 +95,16 @@ func Dsygs2(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = a.Get(k-1, k-1)
 				bkk = b.Get(k-1, k-1)
-				if err = goblas.Dtrmv(uplo, NoTrans, NonUnit, k-1, b, a.Vector(0, k-1, 1)); err != nil {
+				if err = a.Off(0, k-1).Vector().Trmv(uplo, NoTrans, NonUnit, k-1, b, 1); err != nil {
 					panic(err)
 				}
 				ct = half * akk
-				goblas.Daxpy(k-1, ct, b.Vector(0, k-1, 1), a.Vector(0, k-1, 1))
-				if err = goblas.Dsyr2(uplo, k-1, one, a.Vector(0, k-1, 1), b.Vector(0, k-1, 1), a); err != nil {
+				a.Off(0, k-1).Vector().Axpy(k-1, ct, b.Off(0, k-1).Vector(), 1, 1)
+				if err = a.Syr2(uplo, k-1, one, a.Off(0, k-1).Vector(), 1, b.Off(0, k-1).Vector(), 1); err != nil {
 					panic(err)
 				}
-				goblas.Daxpy(k-1, ct, b.Vector(0, k-1, 1), a.Vector(0, k-1, 1))
-				goblas.Dscal(k-1, bkk, a.Vector(0, k-1, 1))
+				a.Off(0, k-1).Vector().Axpy(k-1, ct, b.Off(0, k-1).Vector(), 1, 1)
+				a.Off(0, k-1).Vector().Scal(k-1, bkk, 1)
 				a.Set(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -114,16 +113,16 @@ func Dsygs2(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 				//              Update the lower triangle of A(1:k,1:k)
 				akk = a.Get(k-1, k-1)
 				bkk = b.Get(k-1, k-1)
-				if err = goblas.Dtrmv(uplo, Trans, NonUnit, k-1, b, a.Vector(k-1, 0)); err != nil {
+				if err = a.Off(k-1, 0).Vector().Trmv(uplo, Trans, NonUnit, k-1, b, a.Rows); err != nil {
 					panic(err)
 				}
 				ct = half * akk
-				goblas.Daxpy(k-1, ct, b.Vector(k-1, 0), a.Vector(k-1, 0))
-				if err = goblas.Dsyr2(uplo, k-1, one, a.Vector(k-1, 0), b.Vector(k-1, 0), a); err != nil {
+				a.Off(k-1, 0).Vector().Axpy(k-1, ct, b.Off(k-1, 0).Vector(), b.Rows, a.Rows)
+				if err = a.Syr2(uplo, k-1, one, a.Off(k-1, 0).Vector(), a.Rows, b.Off(k-1, 0).Vector(), b.Rows); err != nil {
 					panic(err)
 				}
-				goblas.Daxpy(k-1, ct, b.Vector(k-1, 0), a.Vector(k-1, 0))
-				goblas.Dscal(k-1, bkk, a.Vector(k-1, 0))
+				a.Off(k-1, 0).Vector().Axpy(k-1, ct, b.Off(k-1, 0).Vector(), b.Rows, a.Rows)
+				a.Off(k-1, 0).Vector().Scal(k-1, bkk, a.Rows)
 				a.Set(k-1, k-1, akk*math.Pow(bkk, 2))
 			}
 		}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -147,7 +146,7 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 			Zlaset(Full, nblst, nblst, czero, cone, work.CMatrix(nblst, opts))
 			pw = nblst*nblst + 1
 			for i = 1; i <= n2nb; i++ {
-				Zlaset(Full, 2*nnb, 2*nnb, czero, cone, work.CMatrixOff(pw-1, 2*nnb, opts))
+				Zlaset(Full, 2*nnb, 2*nnb, czero, cone, work.Off(pw-1).CMatrix(2*nnb, opts))
 				pw = pw + 4*nnb*nnb
 			}
 
@@ -222,7 +221,7 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 						temp = b.Get(jj, jj)
 						c, s, *b.GetPtr(jj, jj) = Zlartg(temp, b.Get(jj, jj-1))
 						b.Set(jj, jj-1, czero)
-						Zrot(jj-top, b.CVector(top, jj, 1), b.CVector(top, jj-1, 1), c, s)
+						Zrot(jj-top, b.Off(top, jj).CVector(), 1, b.Off(top, jj-1).CVector(), 1, c, s)
 						a.SetRe(jj, j-1, c)
 						b.Set(jj, j-1, -cmplx.Conj(s))
 					}
@@ -255,7 +254,7 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 				if jj > 0 {
 					for i = jj; i >= 1; i-- {
 						c = a.GetRe(j+1+i-1, j-1)
-						Zrot(ihi-top, a.CVector(top, j+i, 1), a.CVector(top, j+i-1, 1), c, -b.GetConj(j+1+i-1, j-1))
+						Zrot(ihi-top, a.Off(top, j+i).CVector(), 1, a.Off(top, j+i-1).CVector(), 1, c, -b.GetConj(j+1+i-1, j-1))
 					}
 				}
 
@@ -273,7 +272,7 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 					//                 where U21 is a LEN-by-LEN matrix and U12 is lower
 					//                 triangular.
 					jrow = ihi - nblst + 1
-					if err = goblas.Zgemv(ConjTrans, nblst, len, cone, work.CMatrix(nblst, opts), a.CVector(jrow-1, j, 1), czero, work.Off(pw-1, 1)); err != nil {
+					if err = work.Off(pw-1).Gemv(ConjTrans, nblst, len, cone, work.CMatrix(nblst, opts), a.Off(jrow-1, j).CVector(), 1, czero, 1); err != nil {
 						panic(err)
 					}
 					ppw = pw + len
@@ -281,10 +280,10 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 						work.Set(ppw-1, a.Get(i-1, j))
 						ppw = ppw + 1
 					}
-					if err = goblas.Ztrmv(Lower, ConjTrans, NonUnit, nblst-len, work.CMatrixOff(len*nblst, nblst, opts), work.Off(pw+len-1, 1)); err != nil {
+					if err = work.Off(pw+len-1).Trmv(Lower, ConjTrans, NonUnit, nblst-len, work.Off(len*nblst).CMatrix(nblst, opts), 1); err != nil {
 						panic(err)
 					}
-					if err = goblas.Zgemv(ConjTrans, len, nblst-len, cone, work.CMatrixOff((len+1)*nblst-len, nblst, opts), a.CVector(jrow+nblst-len-1, j, 1), cone, work.Off(pw+len-1, 1)); err != nil {
+					if err = work.Off(pw+len-1).Gemv(ConjTrans, len, nblst-len, cone, work.Off((len+1)*nblst-len).CMatrix(nblst, opts), a.Off(jrow+nblst-len-1, j).CVector(), 1, cone, 1); err != nil {
 						panic(err)
 					}
 					ppw = pw
@@ -318,16 +317,16 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 							work.Set(ppw-1, a.Get(i-1, j))
 							ppw = ppw + 1
 						}
-						if err = goblas.Ztrmv(Upper, ConjTrans, NonUnit, len, work.CMatrixOff(ppwo+nnb-1, 2*nnb, opts), work.Off(pw-1, 1)); err != nil {
+						if err = work.Off(pw-1).Trmv(Upper, ConjTrans, NonUnit, len, work.Off(ppwo+nnb-1).CMatrix(2*nnb, opts), 1); err != nil {
 							panic(err)
 						}
-						if err = goblas.Ztrmv(Lower, ConjTrans, NonUnit, nnb, work.CMatrixOff(ppwo+2*len*nnb-1, 2*nnb, opts), work.Off(pw+len-1, 1)); err != nil {
+						if err = work.Off(pw+len-1).Trmv(Lower, ConjTrans, NonUnit, nnb, work.Off(ppwo+2*len*nnb-1).CMatrix(2*nnb, opts), 1); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zgemv(ConjTrans, nnb, len, cone, work.CMatrixOff(ppwo-1, 2*nnb, opts), a.CVector(jrow-1, j, 1), cone, work.Off(pw-1, 1)); err != nil {
+						if err = work.Off(pw-1).Gemv(ConjTrans, nnb, len, cone, work.Off(ppwo-1).CMatrix(2*nnb, opts), a.Off(jrow-1, j).CVector(), 1, cone, 1); err != nil {
 							panic(err)
 						}
-						if err = goblas.Zgemv(ConjTrans, len, nnb, cone, work.CMatrixOff(ppwo+2*len*nnb+nnb-1, 2*nnb, opts), a.CVector(jrow+nnb-1, j, 1), cone, work.Off(pw+len-1, 1)); err != nil {
+						if err = work.Off(pw+len-1).Gemv(ConjTrans, len, nnb, cone, work.Off(ppwo+2*len*nnb+nnb-1).CMatrix(2*nnb, opts), a.Off(jrow+nnb-1, j).CVector(), 1, cone, 1); err != nil {
 							panic(err)
 						}
 						ppw = pw
@@ -343,10 +342,10 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 			//           Apply accumulated unitary matrices to A.
 			cola = n - jcol - nnb + 1
 			j = ihi - nblst + 1
-			if err = goblas.Zgemm(ConjTrans, NoTrans, nblst, cola, nblst, cone, work.CMatrix(nblst, opts), a.Off(j-1, jcol+nnb-1), czero, work.CMatrixOff(pw-1, nblst, opts)); err != nil {
+			if err = work.Off(pw-1).CMatrix(nblst, opts).Gemm(ConjTrans, NoTrans, nblst, cola, nblst, cone, work.CMatrix(nblst, opts), a.Off(j-1, jcol+nnb-1), czero); err != nil {
 				panic(err)
 			}
-			Zlacpy(Full, nblst, cola, work.CMatrixOff(pw-1, nblst, opts), a.Off(j-1, jcol+nnb-1))
+			Zlacpy(Full, nblst, cola, work.Off(pw-1).CMatrix(nblst, opts), a.Off(j-1, jcol+nnb-1))
 			ppwo = nblst*nblst + 1
 			j0 = j - nnb
 			for j = j0; j >= jcol+1; j -= nnb {
@@ -359,15 +358,15 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 					//
 					//                 where all blocks are NNB-by-NNB, U21 is upper
 					//                 triangular and U12 is lower triangular.
-					if err = Zunm22(Left, ConjTrans, 2*nnb, cola, nnb, nnb, work.CMatrixOff(ppwo-1, 2*nnb, opts), a.Off(j-1, jcol+nnb-1), work.Off(pw-1), lwork-pw+1); err != nil {
+					if err = Zunm22(Left, ConjTrans, 2*nnb, cola, nnb, nnb, work.Off(ppwo-1).CMatrix(2*nnb, opts), a.Off(j-1, jcol+nnb-1), work.Off(pw-1), lwork-pw+1); err != nil {
 						panic(err)
 					}
 				} else {
 					//                 Ignore the structure of U.
-					if err = goblas.Zgemm(ConjTrans, NoTrans, 2*nnb, cola, 2*nnb, cone, work.CMatrixOff(ppwo-1, 2*nnb, opts), a.Off(j-1, jcol+nnb-1), czero, work.CMatrixOff(pw-1, 2*nnb, opts)); err != nil {
+					if err = work.Off(pw-1).CMatrix(2*nnb, opts).Gemm(ConjTrans, NoTrans, 2*nnb, cola, 2*nnb, cone, work.Off(ppwo-1).CMatrix(2*nnb, opts), a.Off(j-1, jcol+nnb-1), czero); err != nil {
 						panic(err)
 					}
-					Zlacpy(Full, 2*nnb, cola, work.CMatrixOff(pw-1, 2*nnb, opts), a.Off(j-1, jcol+nnb-1))
+					Zlacpy(Full, 2*nnb, cola, work.Off(pw-1).CMatrix(2*nnb, opts), a.Off(j-1, jcol+nnb-1))
 				}
 				ppwo = ppwo + 4*nnb*nnb
 			}
@@ -382,10 +381,10 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 					topq = 1
 					nh = n
 				}
-				if err = goblas.Zgemm(NoTrans, NoTrans, nh, nblst, nblst, cone, q.Off(topq-1, j-1), work.CMatrix(nblst, opts), czero, work.CMatrixOff(pw-1, nh, opts)); err != nil {
+				if err = work.Off(pw-1).CMatrix(nh, opts).Gemm(NoTrans, NoTrans, nh, nblst, nblst, cone, q.Off(topq-1, j-1), work.CMatrix(nblst, opts), czero); err != nil {
 					panic(err)
 				}
-				Zlacpy(Full, nh, nblst, work.CMatrixOff(pw-1, nh, opts), q.Off(topq-1, j-1))
+				Zlacpy(Full, nh, nblst, work.Off(pw-1).CMatrix(nh, opts), q.Off(topq-1, j-1))
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
 				for j = j0; j >= jcol+1; j -= nnb {
@@ -395,15 +394,15 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 					}
 					if blk22 {
 						//                    Exploit the structure of U.
-						if err = Zunm22(Right, NoTrans, nh, 2*nnb, nnb, nnb, work.CMatrixOff(ppwo-1, 2*nnb, opts), q.Off(topq-1, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
+						if err = Zunm22(Right, NoTrans, nh, 2*nnb, nnb, nnb, work.Off(ppwo-1).CMatrix(2*nnb, opts), q.Off(topq-1, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
 							panic(err)
 						}
 					} else {
 						//                    Ignore the structure of U.
-						if err = goblas.Zgemm(NoTrans, NoTrans, nh, 2*nnb, 2*nnb, cone, q.Off(topq-1, j-1), work.CMatrixOff(ppwo-1, 2*nnb, opts), czero, work.CMatrixOff(pw-1, nh, opts)); err != nil {
+						if err = work.Off(pw-1).CMatrix(nh, opts).Gemm(NoTrans, NoTrans, nh, 2*nnb, 2*nnb, cone, q.Off(topq-1, j-1), work.Off(ppwo-1).CMatrix(2*nnb, opts), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, nh, 2*nnb, work.CMatrixOff(pw-1, nh, opts), q.Off(topq-1, j-1))
+						Zlacpy(Full, nh, 2*nnb, work.Off(pw-1).CMatrix(nh, opts), q.Off(topq-1, j-1))
 					}
 					ppwo = ppwo + 4*nnb*nnb
 				}
@@ -416,7 +415,7 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 				Zlaset(Full, nblst, nblst, czero, cone, work.CMatrix(nblst, opts))
 				pw = nblst*nblst + 1
 				for i = 1; i <= n2nb; i++ {
-					Zlaset(Full, 2*nnb, 2*nnb, czero, cone, work.CMatrixOff(pw-1, 2*nnb, opts))
+					Zlaset(Full, 2*nnb, 2*nnb, czero, cone, work.Off(pw-1).CMatrix(2*nnb, opts))
 					pw = pw + 4*nnb*nnb
 				}
 
@@ -469,47 +468,47 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 			//           Apply accumulated unitary matrices to A and B.
 			if top > 0 {
 				j = ihi - nblst + 1
-				if err = goblas.Zgemm(NoTrans, NoTrans, top, nblst, nblst, cone, a.Off(0, j-1), work.CMatrix(nblst, opts), czero, work.CMatrixOff(pw-1, top, opts)); err != nil {
+				if err = work.Off(pw-1).CMatrix(top, opts).Gemm(NoTrans, NoTrans, top, nblst, nblst, cone, a.Off(0, j-1), work.CMatrix(nblst, opts), czero); err != nil {
 					panic(err)
 				}
-				Zlacpy(Full, top, nblst, work.CMatrixOff(pw-1, top, opts), a.Off(0, j-1))
+				Zlacpy(Full, top, nblst, work.Off(pw-1).CMatrix(top, opts), a.Off(0, j-1))
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
 				for j = j0; j >= jcol+1; j -= nnb {
 					if blk22 {
 						//                    Exploit the structure of U.
-						if err = Zunm22(Right, NoTrans, top, 2*nnb, nnb, nnb, work.CMatrixOff(ppwo-1, 2*nnb, opts), a.Off(0, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
+						if err = Zunm22(Right, NoTrans, top, 2*nnb, nnb, nnb, work.Off(ppwo-1).CMatrix(2*nnb, opts), a.Off(0, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
 							panic(err)
 						}
 					} else {
 						//                    Ignore the structure of U.
-						if err = goblas.Zgemm(NoTrans, NoTrans, top, 2*nnb, 2*nnb, cone, a.Off(0, j-1), work.CMatrixOff(ppwo-1, 2*nnb, opts), czero, work.CMatrixOff(pw-1, top, opts)); err != nil {
+						if err = work.Off(pw-1).CMatrix(top, opts).Gemm(NoTrans, NoTrans, top, 2*nnb, 2*nnb, cone, a.Off(0, j-1), work.Off(ppwo-1).CMatrix(2*nnb, opts), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, top, 2*nnb, work.CMatrixOff(pw-1, top, opts), a.Off(0, j-1))
+						Zlacpy(Full, top, 2*nnb, work.Off(pw-1).CMatrix(top, opts), a.Off(0, j-1))
 					}
 					ppwo = ppwo + 4*nnb*nnb
 				}
 				//
 				j = ihi - nblst + 1
-				if err = goblas.Zgemm(NoTrans, NoTrans, top, nblst, nblst, cone, b.Off(0, j-1), work.CMatrix(nblst, opts), czero, work.CMatrixOff(pw-1, top, opts)); err != nil {
+				if err = work.Off(pw-1).CMatrix(top, opts).Gemm(NoTrans, NoTrans, top, nblst, nblst, cone, b.Off(0, j-1), work.CMatrix(nblst, opts), czero); err != nil {
 					panic(err)
 				}
-				Zlacpy(Full, top, nblst, work.CMatrixOff(pw-1, top, opts), b.Off(0, j-1))
+				Zlacpy(Full, top, nblst, work.Off(pw-1).CMatrix(top, opts), b.Off(0, j-1))
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
 				for j = j0; j >= jcol+1; j -= nnb {
 					if blk22 {
 						//                    Exploit the structure of U.
-						if err = Zunm22(Right, NoTrans, top, 2*nnb, nnb, nnb, work.CMatrixOff(ppwo-1, 2*nnb, opts), b.Off(0, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
+						if err = Zunm22(Right, NoTrans, top, 2*nnb, nnb, nnb, work.Off(ppwo-1).CMatrix(2*nnb, opts), b.Off(0, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
 							panic(err)
 						}
 					} else {
 						//                    Ignore the structure of U.
-						if err = goblas.Zgemm(NoTrans, NoTrans, top, 2*nnb, 2*nnb, cone, b.Off(0, j-1), work.CMatrixOff(ppwo-1, 2*nnb, opts), czero, work.CMatrixOff(pw-1, top, opts)); err != nil {
+						if err = work.Off(pw-1).CMatrix(top, opts).Gemm(NoTrans, NoTrans, top, 2*nnb, 2*nnb, cone, b.Off(0, j-1), work.Off(ppwo-1).CMatrix(2*nnb, opts), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, top, 2*nnb, work.CMatrixOff(pw-1, top, opts), b.Off(0, j-1))
+						Zlacpy(Full, top, 2*nnb, work.Off(pw-1).CMatrix(top, opts), b.Off(0, j-1))
 					}
 					ppwo = ppwo + 4*nnb*nnb
 				}
@@ -525,10 +524,10 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 					topq = 1
 					nh = n
 				}
-				if err = goblas.Zgemm(NoTrans, NoTrans, nh, nblst, nblst, cone, z.Off(topq-1, j-1), work.CMatrix(nblst, opts), czero, work.CMatrixOff(pw-1, nh, opts)); err != nil {
+				if err = work.Off(pw-1).CMatrix(nh, opts).Gemm(NoTrans, NoTrans, nh, nblst, nblst, cone, z.Off(topq-1, j-1), work.CMatrix(nblst, opts), czero); err != nil {
 					panic(err)
 				}
-				Zlacpy(Full, nh, nblst, work.CMatrixOff(pw-1, nh, opts), z.Off(topq-1, j-1))
+				Zlacpy(Full, nh, nblst, work.Off(pw-1).CMatrix(nh, opts), z.Off(topq-1, j-1))
 				ppwo = nblst*nblst + 1
 				j0 = j - nnb
 				for j = j0; j >= jcol+1; j -= nnb {
@@ -538,15 +537,15 @@ func Zgghd3(compq, compz byte, n, ilo, ihi int, a, b, q, z *mat.CMatrix, work *m
 					}
 					if blk22 {
 						//                    Exploit the structure of U.
-						if err = Zunm22(Right, NoTrans, nh, 2*nnb, nnb, nnb, work.CMatrixOff(ppwo-1, 2*nnb, opts), z.Off(topq-1, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
+						if err = Zunm22(Right, NoTrans, nh, 2*nnb, nnb, nnb, work.Off(ppwo-1).CMatrix(2*nnb, opts), z.Off(topq-1, j-1), work.Off(pw-1), lwork-pw+1); err != nil {
 							panic(err)
 						}
 					} else {
 						//                    Ignore the structure of U.
-						if err = goblas.Zgemm(NoTrans, NoTrans, nh, 2*nnb, 2*nnb, cone, z.Off(topq-1, j-1), work.CMatrixOff(ppwo-1, 2*nnb, opts), czero, work.CMatrixOff(pw-1, nh, opts)); err != nil {
+						if err = work.Off(pw-1).CMatrix(nh, opts).Gemm(NoTrans, NoTrans, nh, 2*nnb, 2*nnb, cone, z.Off(topq-1, j-1), work.Off(ppwo-1).CMatrix(2*nnb, opts), czero); err != nil {
 							panic(err)
 						}
-						Zlacpy(Full, nh, 2*nnb, work.CMatrixOff(pw-1, nh, opts), z.Off(topq-1, j-1))
+						Zlacpy(Full, nh, 2*nnb, work.Off(pw-1).CMatrix(nh, opts), z.Off(topq-1, j-1))
 					}
 					ppwo = ppwo + 4*nnb*nnb
 				}

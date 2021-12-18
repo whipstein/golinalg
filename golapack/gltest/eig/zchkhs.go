@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -390,7 +389,7 @@ func zchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					h.Set(i-1, j-1, czero)
 				}
 			}
-			goblas.Zcopy(n-1, work.Off(0, 1), tau.Off(0, 1))
+			tau.Copy(n-1, work, 1, 1)
 			if err = golapack.Zunghr(n, ilo, ihi, u, work, work.Off(n), nwork-n); err != nil {
 				panic(err)
 			}
@@ -430,7 +429,7 @@ func zchkhs(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 			}
 
 			//           Compute Z = U' UZ
-			if err = goblas.Zgemm(ConjTrans, NoTrans, n, n, n, cone, u, uz, czero, z); err != nil {
+			if err = z.Gemm(ConjTrans, NoTrans, n, n, n, cone, u, uz, czero); err != nil {
 				panic(err)
 			}
 			ntest = 8

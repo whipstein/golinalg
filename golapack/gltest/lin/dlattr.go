@@ -184,9 +184,9 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 		if upper {
 			if n > 3 {
-				goblas.Dcopy(n-3, work.Off(0, 1), a.Vector(1, 2, a.Rows+1))
+				a.Off(1, 2).Vector().Copy(n-3, work, 1, a.Rows+1)
 				if n > 4 {
-					goblas.Dcopy(n-4, work.Off(n, 1), a.Vector(1, 3, a.Rows+1))
+					a.Off(1, 3).Vector().Copy(n-4, work.Off(n), 1, a.Rows+1)
 				}
 			}
 			for j = 2; j <= n-1; j++ {
@@ -196,9 +196,9 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			a.Set(0, n-1, z)
 		} else {
 			if n > 3 {
-				goblas.Dcopy(n-3, work.Off(0, 1), a.Vector(2, 1, a.Rows+1))
+				a.Off(2, 1).Vector().Copy(n-3, work, 1, a.Rows+1)
 				if n > 4 {
-					goblas.Dcopy(n-4, work.Off(n, 1), a.Vector(3, 1, a.Rows+1))
+					a.Off(3, 1).Vector().Copy(n-4, work.Off(n), 1, a.Rows+1)
 				}
 			}
 			for j = 2; j <= n-1; j++ {
@@ -217,12 +217,12 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 				//              Multiply by [ c  s; -s  c] on the left.
 				if n > j+1 {
-					goblas.Drot(n-j-1, a.Vector(j-1, j+2-1), a.Vector(j, j+2-1), c, s)
+					a.Off(j, j+2-1).Vector().Rot(n-j-1, a.Off(j-1, j+2-1).Vector(), a.Rows, a.Rows, c, s)
 				}
 
 				//              Multiply by [-c -s;  s -c] on the right.
 				if j > 1 {
-					goblas.Drot(j-1, a.Vector(0, j, 1), a.Vector(0, j-1, 1), -c, -s)
+					a.Off(0, j-1).Vector().Rot(j-1, a.Off(0, j).Vector(), 1, 1, -c, -s)
 				}
 
 				//              Negate A(J,J+1).
@@ -236,12 +236,12 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 				//              Multiply by [ c -s;  s  c] on the right.
 				if n > j+1 {
-					goblas.Drot(n-j-1, a.Vector(j+2-1, j, 1), a.Vector(j+2-1, j-1, 1), c, -s)
+					a.Off(j+2-1, j-1).Vector().Rot(n-j-1, a.Off(j+2-1, j).Vector(), 1, 1, c, -s)
 				}
 
 				//              Multiply by [-c  s; -s -c] on the left.
 				if j > 1 {
-					goblas.Drot(j-1, a.Vector(j-1, 0), a.Vector(j, 0), -c, s)
+					a.Off(j, 0).Vector().Rot(j-1, a.Off(j-1, 0).Vector(), a.Rows, a.Rows, -c, s)
 				}
 
 				//              Negate A(J+1,J).
@@ -258,22 +258,22 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 		//        Make the right hand side large so that it requires scaling.
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, j, a.Vector(0, j-1))
+				golapack.Dlarnv(2, &iseed, j, a.Off(0, j-1).Vector())
 				a.Set(j-1, j-1, math.Copysign(two, a.Get(j-1, j-1)))
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, n-j+1, a.Vector(j-1, j-1))
+				golapack.Dlarnv(2, &iseed, n-j+1, a.Off(j-1, j-1).Vector())
 				a.Set(j-1, j-1, math.Copysign(two, a.Get(j-1, j-1)))
 			}
 		}
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(2, &iseed, n, b)
-		iy = goblas.Idamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = math.Abs(b.Get(iy - 1))
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Dscal(n, bscal, b.Off(0, 1))
+		b.Scal(n, bscal, 1)
 
 	} else if imat == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
@@ -283,16 +283,16 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 		tscal = one / math.Max(one, float64(n-1))
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, j, a.Vector(0, j-1))
-				goblas.Dscal(j-1, tscal, a.Vector(0, j-1, 1))
+				golapack.Dlarnv(2, &iseed, j, a.Off(0, j-1).Vector())
+				a.Off(0, j-1).Vector().Scal(j-1, tscal, 1)
 				a.Set(j-1, j-1, math.Copysign(one, a.Get(j-1, j-1)))
 			}
 			a.Set(n-1, n-1, smlnum*a.Get(n-1, n-1))
 		} else {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, n-j+1, a.Vector(j-1, j-1))
+				golapack.Dlarnv(2, &iseed, n-j+1, a.Off(j-1, j-1).Vector())
 				if n > j {
-					goblas.Dscal(n-j, tscal, a.Vector(j, j-1, 1))
+					a.Off(j, j-1).Vector().Scal(n-j, tscal, 1)
 				}
 				a.Set(j-1, j-1, math.Copysign(one, a.Get(j-1, j-1)))
 			}
@@ -306,13 +306,13 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 		golapack.Dlarnv(2, &iseed, n, b)
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, j, a.Vector(0, j-1))
+				golapack.Dlarnv(2, &iseed, j, a.Off(0, j-1).Vector())
 				a.Set(j-1, j-1, math.Copysign(one, a.Get(j-1, j-1)))
 			}
 			a.Set(n-1, n-1, smlnum*a.Get(n-1, n-1))
 		} else {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, n-j+1, a.Vector(j-1, j-1))
+				golapack.Dlarnv(2, &iseed, n-j+1, a.Off(j-1, j-1).Vector())
 				a.Set(j-1, j-1, math.Copysign(one, a.Get(j-1, j-1)))
 			}
 			a.Set(0, 0, smlnum*a.Get(0, 0))
@@ -407,7 +407,7 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 		iy = n/2 + 1
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, j, a.Vector(0, j-1))
+				golapack.Dlarnv(2, &iseed, j, a.Off(0, j-1).Vector())
 				if j != iy {
 					a.Set(j-1, j-1, math.Copysign(two, a.Get(j-1, j-1)))
 				} else {
@@ -417,7 +417,7 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, n-j+1, a.Vector(j-1, j-1))
+				golapack.Dlarnv(2, &iseed, n-j+1, a.Off(j-1, j-1).Vector())
 				if j != iy {
 					a.Set(j-1, j-1, math.Copysign(two, a.Get(j-1, j-1)))
 				} else {
@@ -426,7 +426,7 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 			}
 		}
 		golapack.Dlarnv(2, &iseed, n, b)
-		goblas.Dscal(n, two, b.Off(0, 1))
+		b.Scal(n, two, 1)
 
 	} else if imat == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -471,13 +471,13 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 		//        requires scaling.
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, j-1, a.Vector(0, j-1))
+				golapack.Dlarnv(2, &iseed, j-1, a.Off(0, j-1).Vector())
 				a.Set(j-1, j-1, zero)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				if j < n {
-					golapack.Dlarnv(2, &iseed, n-j, a.Vector(j, j-1))
+					golapack.Dlarnv(2, &iseed, n-j, a.Off(j, j-1).Vector())
 				}
 				a.Set(j-1, j-1, zero)
 			}
@@ -485,10 +485,10 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Dlarnv(2, &iseed, n, b)
-		iy = goblas.Idamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = math.Abs(b.Get(iy - 1))
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Dscal(n, bscal, b.Off(0, 1))
+		b.Scal(n, bscal, 1)
 
 	} else if imat == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
@@ -499,32 +499,32 @@ func dlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed []int, n int, 
 		tscal = bignum * (float64(n-1) / math.Max(one, float64(n)))
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, j, a.Vector(0, j-1))
+				golapack.Dlarnv(2, &iseed, j, a.Off(0, j-1).Vector())
 				for i = 1; i <= j; i++ {
 					a.Set(i-1, j-1, math.Copysign(tleft, a.Get(i-1, j-1))+tscal*a.Get(i-1, j-1))
 				}
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				golapack.Dlarnv(2, &iseed, n-j+1, a.Vector(j-1, j-1))
+				golapack.Dlarnv(2, &iseed, n-j+1, a.Off(j-1, j-1).Vector())
 				for i = j; i <= n; i++ {
 					a.Set(i-1, j-1, math.Copysign(tleft, a.Get(i-1, j-1))+tscal*a.Get(i-1, j-1))
 				}
 			}
 		}
 		golapack.Dlarnv(2, &iseed, n, b)
-		goblas.Dscal(n, two, b.Off(0, 1))
+		b.Scal(n, two, 1)
 	}
 
 	//     Flip the matrix if the transpose will be used.
 	if trans != NoTrans {
 		if upper {
 			for j = 1; j <= n/2; j++ {
-				goblas.Dswap(n-2*j+1, a.Vector(j-1, j-1), a.Vector(j, n-j, -1))
+				a.Off(j, n-j).Vector().Swap(n-2*j+1, a.Off(j-1, j-1).Vector(), a.Rows, -1)
 			}
 		} else {
 			for j = 1; j <= n/2; j++ {
-				goblas.Dswap(n-2*j+1, a.Vector(j-1, j-1, 1), a.Vector(n-j, j, -a.Rows))
+				a.Off(n-j, j).Vector().Swap(n-2*j+1, a.Off(j-1, j-1).Vector(), 1, -a.Rows)
 			}
 		}
 	}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -41,9 +40,9 @@ func Dptsvx(fact byte, n, nrhs int, d, e, df, ef *mat.Vector, b, x *mat.Matrix, 
 
 	if nofact {
 		//        Compute the L*D*L**T (or U**T*D*U) factorization of A.
-		goblas.Dcopy(n, d.Off(0, 1), df.Off(0, 1))
+		df.Copy(n, d, 1, 1)
 		if n > 1 {
-			goblas.Dcopy(n-1, e.Off(0, 1), ef.Off(0, 1))
+			ef.Copy(n-1, e, 1, 1)
 		}
 		if info, err = Dpttrf(n, df, ef); err != nil {
 			panic(err)

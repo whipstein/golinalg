@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -70,7 +69,7 @@ func Zptcon(n int, d *mat.Vector, e *mat.CVector, anorm float64, rwork *mat.Vect
 	}
 
 	//     Compute AINVNM = max(x(i)), 1<=i<=n.
-	ix = goblas.Idamax(n, rwork.Off(0, 1))
+	ix = rwork.Iamax(n, 1)
 	ainvnm = rwork.GetMag(ix - 1)
 
 	//     Compute the reciprocal condition number.

@@ -672,7 +672,7 @@ func zdrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					vu = one
 				}
 
-				if _, iinfo, err = golapack.Zhpevx('V', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa1, z, v.CVector(0, 0), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
+				if _, iinfo, err = golapack.Zhpevx('V', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa1, z, v.Off(0, 0).CVector(), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" zdrvst: %s returned info=%6d\n         n=%6d, jtype=%6d, iseed=%5d\n", append([]byte("Zhpevx(V,A,"), uplo.Byte(), ')'), iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
@@ -707,7 +707,7 @@ func zdrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					}
 				}
 
-				if m2, iinfo, err = golapack.Zhpevx('N', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.CVector(0, 0), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
+				if m2, iinfo, err = golapack.Zhpevx('N', 'A', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.Off(0, 0).CVector(), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" zdrvst: %s returned info=%6d\n         n=%6d, jtype=%6d, iseed=%5d\n", append([]byte("Zhpevx(N,A,"), uplo.Byte(), ')'), iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
@@ -747,7 +747,7 @@ func zdrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					}
 				}
 
-				if m2, iinfo, err = golapack.Zhpevx('V', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.CVector(0, 0), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
+				if m2, iinfo, err = golapack.Zhpevx('V', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.Off(0, 0).CVector(), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" zdrvst: %s returned info=%6d\n         n=%6d, jtype=%6d, iseed=%5d\n", append([]byte("Zhpevx(V,I,"), uplo.Byte(), ')'), iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
@@ -782,7 +782,7 @@ func zdrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					}
 				}
 
-				if m3, iinfo, err = golapack.Zhpevx('N', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.CVector(0, 0), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
+				if m3, iinfo, err = golapack.Zhpevx('N', 'I', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.Off(0, 0).CVector(), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" zdrvst: %s returned info=%6d\n         n=%6d, jtype=%6d, iseed=%5d\n", append([]byte("Zhpevx(N,I,"), uplo.Byte(), ')'), iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
@@ -823,7 +823,7 @@ func zdrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					}
 				}
 
-				if m2, iinfo, err = golapack.Zhpevx('V', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.CVector(0, 0), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
+				if m2, iinfo, err = golapack.Zhpevx('V', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa2, z, v.Off(0, 0).CVector(), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" zdrvst: %s returned info=%6d\n         n=%6d, jtype=%6d, iseed=%5d\n", append([]byte("Zhpevx(V,V,"), uplo.Byte(), ')'), iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return
@@ -858,7 +858,7 @@ func zdrvst(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 					}
 				}
 
-				if m3, iinfo, err = golapack.Zhpevx('N', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.CVector(0, 0), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
+				if m3, iinfo, err = golapack.Zhpevx('N', 'V', uplo, n, work, vl, vu, il, iu, abstol, wa3, z, v.Off(0, 0).CVector(), rwork, &iwork, toSlice(&iwork, 5*n)); err != nil || iinfo != 0 {
 					fmt.Printf(" zdrvst: %s returned info=%6d\n         n=%6d, jtype=%6d, iseed=%5d\n", append([]byte("Zhpevx(N,V,"), uplo.Byte(), ')'), iinfo, n, jtype, ioldsd)
 					if iinfo < 0 {
 						return

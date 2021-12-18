@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -90,7 +89,7 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip = (*ipiv)[i-1]
 					if i < n {
 						if ip != i {
-							goblas.Zswap(n-i, a.CVector(i-1, i), a.CVector(ip-1, i))
+							a.Off(ip-1, i).CVector().Swap(n-i, a.Off(i-1, i).CVector(), a.Rows, a.Rows)
 						}
 					}
 
@@ -103,10 +102,10 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip2 = -(*ipiv)[i-1-1]
 					if i < n {
 						if ip != i {
-							goblas.Zswap(n-i, a.CVector(i-1, i), a.CVector(ip-1, i))
+							a.Off(ip-1, i).CVector().Swap(n-i, a.Off(i-1, i).CVector(), a.Rows, a.Rows)
 						}
 						if ip2 != (i - 1) {
-							goblas.Zswap(n-i, a.CVector(i-1-1, i), a.CVector(ip2-1, i))
+							a.Off(ip2-1, i).CVector().Swap(n-i, a.Off(i-1-1, i).CVector(), a.Rows, a.Rows)
 						}
 					}
 					i = i - 1
@@ -132,7 +131,7 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip = (*ipiv)[i-1]
 					if i < n {
 						if ip != i {
-							goblas.Zswap(n-i, a.CVector(ip-1, i), a.CVector(i-1, i))
+							a.Off(i-1, i).CVector().Swap(n-i, a.Off(ip-1, i).CVector(), a.Rows, a.Rows)
 						}
 					}
 
@@ -146,10 +145,10 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip2 = -(*ipiv)[i-1-1]
 					if i < n {
 						if ip2 != (i - 1) {
-							goblas.Zswap(n-i, a.CVector(ip2-1, i), a.CVector(i-1-1, i))
+							a.Off(i-1-1, i).CVector().Swap(n-i, a.Off(ip2-1, i).CVector(), a.Rows, a.Rows)
 						}
 						if ip != i {
-							goblas.Zswap(n-i, a.CVector(ip-1, i), a.CVector(i-1, i))
+							a.Off(i-1, i).CVector().Swap(n-i, a.Off(ip-1, i).CVector(), a.Rows, a.Rows)
 						}
 					}
 
@@ -208,7 +207,7 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip = (*ipiv)[i-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(i-1, 0), a.CVector(ip-1, 0))
+							a.Off(ip-1, 0).CVector().Swap(i-1, a.Off(i-1, 0).CVector(), a.Rows, a.Rows)
 						}
 					}
 
@@ -221,10 +220,10 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip2 = -(*ipiv)[i]
 					if i > 1 {
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(i-1, 0), a.CVector(ip-1, 0))
+							a.Off(ip-1, 0).CVector().Swap(i-1, a.Off(i-1, 0).CVector(), a.Rows, a.Rows)
 						}
 						if ip2 != (i + 1) {
-							goblas.Zswap(i-1, a.CVector(i, 0), a.CVector(ip2-1, 0))
+							a.Off(ip2-1, 0).CVector().Swap(i-1, a.Off(i, 0).CVector(), a.Rows, a.Rows)
 						}
 					}
 					i = i + 1
@@ -250,7 +249,7 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip = (*ipiv)[i-1]
 					if i > 1 {
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(ip-1, 0), a.CVector(i-1, 0))
+							a.Off(i-1, 0).CVector().Swap(i-1, a.Off(ip-1, 0).CVector(), a.Rows, a.Rows)
 						}
 					}
 
@@ -264,10 +263,10 @@ func ZsyconvfRook(uplo mat.MatUplo, way byte, n int, a *mat.CMatrix, e *mat.CVec
 					ip2 = -(*ipiv)[i]
 					if i > 1 {
 						if ip2 != (i + 1) {
-							goblas.Zswap(i-1, a.CVector(ip2-1, 0), a.CVector(i, 0))
+							a.Off(i, 0).CVector().Swap(i-1, a.Off(ip2-1, 0).CVector(), a.Rows, a.Rows)
 						}
 						if ip != i {
-							goblas.Zswap(i-1, a.CVector(ip-1, 0), a.CVector(i-1, 0))
+							a.Off(i-1, 0).CVector().Swap(i-1, a.Off(ip-1, 0).CVector(), a.Rows, a.Rows)
 						}
 					}
 

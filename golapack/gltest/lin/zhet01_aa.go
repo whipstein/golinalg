@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -38,31 +37,31 @@ func zhet01Aa(uplo mat.MatUplo, n int, a, afac *mat.CMatrix, ipiv *[]int, c *mat
 		if uplo == Upper {
 			golapack.Zlacpy(Full, 1, n-1, afac.Off(0, 1).UpdateRows(afac.Rows+1), c.Off(0, 1).UpdateRows(c.Rows+1))
 			golapack.Zlacpy(Full, 1, n-1, afac.Off(0, 1).UpdateRows(afac.Rows+1), c.Off(1, 0).UpdateRows(c.Rows+1))
-			golapack.Zlacgv(n-1, c.CVector(1, 0, c.Rows+1))
+			golapack.Zlacgv(n-1, c.Off(1, 0).CVector(), c.Rows+1)
 		} else {
 			golapack.Zlacpy(Full, 1, n-1, afac.Off(1, 0).UpdateRows(afac.Rows+1), c.Off(0, 1).UpdateRows(c.Rows+1))
 			golapack.Zlacpy(Full, 1, n-1, afac.Off(1, 0).UpdateRows(afac.Rows+1), c.Off(1, 0).UpdateRows(c.Rows+1))
-			golapack.Zlacgv(n-1, c.CVector(0, 1, c.Rows+1))
+			golapack.Zlacgv(n-1, c.Off(0, 1).CVector(), c.Rows+1)
 		}
 
 		//        Call ZTRMM to form the product U' * D (or L * D ).
 		if uplo == Upper {
-			if err = goblas.Ztrmm(Left, uplo, ConjTrans, Unit, n-1, n, cone, afac.Off(0, 1), c.Off(1, 0)); err != nil {
+			if err = c.Off(1, 0).Trmm(Left, uplo, ConjTrans, Unit, n-1, n, cone, afac.Off(0, 1)); err != nil {
 				panic(err)
 			}
 		} else {
-			if err = goblas.Ztrmm(Left, uplo, NoTrans, Unit, n-1, n, cone, afac.Off(1, 0), c.Off(1, 0)); err != nil {
+			if err = c.Off(1, 0).Trmm(Left, uplo, NoTrans, Unit, n-1, n, cone, afac.Off(1, 0)); err != nil {
 				panic(err)
 			}
 		}
 
 		//        Call ZTRMM again to multiply by U (or L ).
 		if uplo == Upper {
-			if err = goblas.Ztrmm(Right, uplo, NoTrans, Unit, n, n-1, cone, afac.Off(0, 1), c.Off(0, 1)); err != nil {
+			if err = c.Off(0, 1).Trmm(Right, uplo, NoTrans, Unit, n, n-1, cone, afac.Off(0, 1)); err != nil {
 				panic(err)
 			}
 		} else {
-			if err = goblas.Ztrmm(Right, uplo, ConjTrans, Unit, n, n-1, cone, afac.Off(1, 0), c.Off(0, 1)); err != nil {
+			if err = c.Off(0, 1).Trmm(Right, uplo, ConjTrans, Unit, n, n-1, cone, afac.Off(1, 0)); err != nil {
 				panic(err)
 			}
 		}
@@ -71,13 +70,13 @@ func zhet01Aa(uplo mat.MatUplo, n int, a, afac *mat.CMatrix, ipiv *[]int, c *mat
 		for j = n; j >= 1; j-- {
 			i = (*ipiv)[j-1]
 			if i != j {
-				goblas.Zswap(n, c.CVector(j-1, 0), c.CVector(i-1, 0))
+				c.Off(i-1, 0).CVector().Swap(n, c.Off(j-1, 0).CVector(), c.Rows, c.Rows)
 			}
 		}
 		for j = n; j >= 1; j-- {
 			i = (*ipiv)[j-1]
 			if i != j {
-				goblas.Zswap(n, c.CVector(0, j-1, 1), c.CVector(0, i-1, 1))
+				c.Off(0, i-1).CVector().Swap(n, c.Off(0, j-1).CVector(), 1, 1)
 			}
 		}
 	}

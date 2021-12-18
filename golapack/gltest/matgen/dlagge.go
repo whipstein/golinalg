@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -60,40 +59,40 @@ func Dlagge(m, n, kl, ku int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *
 			//           generate random reflection
 			//
 			golapack.Dlarnv(3, iseed, m-i+1, work)
-			wn = goblas.Dnrm2(m-i+1, work.Off(0, 1))
+			wn = work.Nrm2(m-i+1, 1)
 			wa = math.Copysign(wn, work.Get(0))
 			if wn == zero {
 				tau = zero
 			} else {
 				wb = work.Get(0) + wa
-				goblas.Dscal(m-i, one/wb, work.Off(1, 1))
+				work.Off(1).Scal(m-i, one/wb, 1)
 				work.Set(0, one)
 				tau = wb / wa
 			}
 
 			//           multiply A(i:m,i:n) by random reflection from the left
-			err = goblas.Dgemv(mat.Trans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work.Off(0, 1), zero, work.Off(m, 1))
-			err = goblas.Dger(m-i+1, n-i+1, -tau, work.Off(0, 1), work.Off(m, 1), a.Off(i-1, i-1))
+			err = work.Off(m).Gemv(Trans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work, 1, zero, 1)
+			err = a.Off(i-1, i-1).Ger(m-i+1, n-i+1, -tau, work, 1, work.Off(m), 1)
 		}
 		if i < n {
 			//           generate random reflection
 			golapack.Dlarnv(3, iseed, n-i+1, work)
-			wn = goblas.Dnrm2(n-i+1, work.Off(0, 1))
+			wn = work.Nrm2(n-i+1, 1)
 			wa = math.Copysign(wn, work.Get(0))
 			if wn == zero {
 				tau = zero
 			} else {
 				wb = work.Get(0) + wa
-				goblas.Dscal(n-i, one/wb, work.Off(1, 1))
+				work.Off(1).Scal(n-i, one/wb, 1)
 				work.Set(0, one)
 				tau = wb / wa
 			}
 
 			//           multiply A(i:m,i:n) by random reflection from the right
-			if err = goblas.Dgemv(mat.NoTrans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work.Off(0, 1), zero, work.Off(n, 1)); err != nil {
+			if err = work.Off(n).Gemv(NoTrans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work, 1, zero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Dger(m-i+1, n-i+1, -tau, work.Off(n, 1), work.Off(0, 1), a.Off(i-1, i-1)); err != nil {
+			if err = a.Off(i-1, i-1).Ger(m-i+1, n-i+1, -tau, work.Off(n), 1, work, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -106,22 +105,22 @@ func Dlagge(m, n, kl, ku int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *
 			//           annihilate subdiagonal elements first (necessary if KL = 0)
 			if i <= min(m-1-kl, n) {
 				//              generate reflection to annihilate A(kl+i+1:m,i)
-				wn = goblas.Dnrm2(m-kl-i+1, a.Vector(kl+i-1, i-1, 1))
+				wn = a.Off(kl+i-1, i-1).Vector().Nrm2(m-kl-i+1, 1)
 				wa = math.Copysign(wn, a.Get(kl+i-1, i-1))
 				if wn == zero {
 					tau = zero
 				} else {
 					wb = a.Get(kl+i-1, i-1) + wa
-					goblas.Dscal(m-kl-i, one/wb, a.Vector(kl+i, i-1, 1))
+					a.Off(kl+i, i-1).Vector().Scal(m-kl-i, one/wb, 1)
 					a.Set(kl+i-1, i-1, one)
 					tau = wb / wa
 				}
 
 				//              apply reflection to A(kl+i:m,i+1:n) from the left
-				if err = goblas.Dgemv(mat.Trans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.Vector(kl+i-1, i-1, 1), zero, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(Trans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.Off(kl+i-1, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dger(m-kl-i+1, n-i, -tau, a.Vector(kl+i-1, i-1, 1), work.Off(0, 1), a.Off(kl+i-1, i)); err != nil {
+				if err = a.Off(kl+i-1, i).Ger(m-kl-i+1, n-i, -tau, a.Off(kl+i-1, i-1).Vector(), 1, work, 1); err != nil {
 					panic(err)
 				}
 				a.Set(kl+i-1, i-1, -wa)
@@ -129,22 +128,22 @@ func Dlagge(m, n, kl, ku int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *
 
 			if i <= min(n-1-ku, m) {
 				//              generate reflection to annihilate A(i,ku+i+1:n)
-				wn = goblas.Dnrm2(n-ku-i+1, a.Vector(i-1, ku+i-1))
+				wn = a.Off(i-1, ku+i-1).Vector().Nrm2(n-ku-i+1, a.Rows)
 				wa = math.Copysign(wn, a.Get(i-1, ku+i-1))
 				if wn == zero {
 					tau = zero
 				} else {
 					wb = a.Get(i-1, ku+i-1) + wa
-					goblas.Dscal(n-ku-i, one/wb, a.Vector(i-1, ku+i))
+					a.Off(i-1, ku+i).Vector().Scal(n-ku-i, one/wb, a.Rows)
 					a.Set(i-1, ku+i-1, one)
 					tau = wb / wa
 				}
 
 				//              apply reflection to A(i+1:m,ku+i:n) from the right
-				if err = goblas.Dgemv(mat.NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.Vector(i-1, ku+i-1), zero, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.Off(i-1, ku+i-1).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dger(m-i, n-ku-i+1, -tau, work.Off(0, 1), a.Vector(i-1, ku+i-1), a.Off(i, ku+i-1)); err != nil {
+				if err = a.Off(i, ku+i-1).Ger(m-i, n-ku-i+1, -tau, work, 1, a.Off(i-1, ku+i-1).Vector(), a.Rows); err != nil {
 					panic(err)
 				}
 				a.Set(i-1, ku+i-1, -wa)
@@ -154,22 +153,22 @@ func Dlagge(m, n, kl, ku int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *
 			//           KU = 0)
 			if i <= min(n-1-ku, m) {
 				//              generate reflection to annihilate A(i,ku+i+1:n)
-				wn = goblas.Dnrm2(n-ku-i+1, a.Vector(i-1, ku+i-1))
+				wn = a.Off(i-1, ku+i-1).Vector().Nrm2(n-ku-i+1, a.Rows)
 				wa = math.Copysign(wn, a.Get(i-1, ku+i-1))
 				if wn == zero {
 					tau = zero
 				} else {
 					wb = a.Get(i-1, ku+i-1) + wa
-					goblas.Dscal(n-ku-i, one/wb, a.Vector(i-1, ku+i))
+					a.Off(i-1, ku+i).Vector().Scal(n-ku-i, one/wb, a.Rows)
 					a.Set(i-1, ku+i-1, one)
 					tau = wb / wa
 				}
 
 				//              apply reflection to A(i+1:m,ku+i:n) from the right
-				if err = goblas.Dgemv(mat.NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.Vector(i-1, ku+i-1), zero, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.Off(i-1, ku+i-1).Vector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dger(m-i, n-ku-i+1, -tau, work.Off(0, 1), a.Vector(i-1, ku+i-1), a.Off(i, ku+i-1)); err != nil {
+				if err = a.Off(i, ku+i-1).Ger(m-i, n-ku-i+1, -tau, work, 1, a.Off(i-1, ku+i-1).Vector(), a.Rows); err != nil {
 					panic(err)
 				}
 				a.Set(i-1, ku+i-1, -wa)
@@ -177,22 +176,22 @@ func Dlagge(m, n, kl, ku int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *
 
 			if i <= min(m-1-kl, n) {
 				//              generate reflection to annihilate A(kl+i+1:m,i)
-				wn = goblas.Dnrm2(m-kl-i+1, a.Vector(kl+i-1, i-1, 1))
+				wn = a.Off(kl+i-1, i-1).Vector().Nrm2(m-kl-i+1, 1)
 				wa = math.Copysign(wn, a.Get(kl+i-1, i-1))
 				if wn == zero {
 					tau = zero
 				} else {
 					wb = a.Get(kl+i-1, i-1) + wa
-					goblas.Dscal(m-kl-i, one/wb, a.Vector(kl+i, i-1, 1))
+					a.Off(kl+i, i-1).Vector().Scal(m-kl-i, one/wb, 1)
 					a.Set(kl+i-1, i-1, one)
 					tau = wb / wa
 				}
 
 				//              apply reflection to A(kl+i:m,i+1:n) from the left
-				if err = goblas.Dgemv(mat.Trans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.Vector(kl+i-1, i-1, 1), zero, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(mat.Trans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.Off(kl+i-1, i-1).Vector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Dger(m-kl-i+1, n-i, -tau, a.Vector(kl+i-1, i-1, 1), work.Off(0, 1), a.Off(kl+i-1, i)); err != nil {
+				if err = a.Off(kl+i-1, i).Ger(m-kl-i+1, n-i, -tau, a.Off(kl+i-1, i-1).Vector(), 1, work, 1); err != nil {
 					panic(err)
 				}
 				a.Set(kl+i-1, i-1, -wa)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -393,7 +392,7 @@ func zdrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 
 				//              Do Test (3)
 				for j = 1; j <= n; j++ {
-					tnrm = goblas.Dznrm2(n, vr.CVector(0, j-1, 1))
+					tnrm = vr.Off(0, j-1).CVector().Nrm2(n, 1)
 					result.Set(2, math.Max(result.Get(2), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 					vmx = zero
 					vrmx = zero
@@ -413,7 +412,7 @@ func zdrvev(nsizes int, nn []int, ntypes int, dotype []bool, iseed []int, thresh
 
 				//              Do Test (4)
 				for j = 1; j <= n; j++ {
-					tnrm = goblas.Dznrm2(n, vl.CVector(0, j-1, 1))
+					tnrm = vl.Off(0, j-1).CVector().Nrm2(n, 1)
 					result.Set(3, math.Max(result.Get(3), math.Min(ulpinv, math.Abs(tnrm-one)/ulp)))
 					vmx = zero
 					vrmx = zero

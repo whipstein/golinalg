@@ -16,7 +16,7 @@ var errString string = "\terrors..................."
 var chkerrString string = "\troutine errors..........."
 var drverrString string = "\tdriver errors............"
 
-// Dchkee tests the DOUBLE PRECISION LAPACK subroutines for the matrix
+// TestDeig tests the DOUBLE PRECISION LAPACK subroutines for the matrix
 // eigenvalue problem.  The test paths in this version are
 //
 // Nep (Nonsymmetric Eigenvalue Problem):
@@ -340,9 +340,9 @@ func TestDeig(t *testing.T) {
 				if tstchk {
 					if c3 == "Se2" {
 						dotype[8] = false
-						nfail, ntest, err = dchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result)
+						nfail, ntest, err = dchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].OffIdx(0).Vector(), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].OffIdx(0).Vector(), d[11], a[5], work, lwork, iwork, liwork, result)
 					} else {
-						nfail, ntest, err = dchkst(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].VectorIdx(0), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].VectorIdx(0), d[11], a[5], work, lwork, iwork, liwork, result, t)
+						nfail, ntest, err = dchkst(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1].OffIdx(0).Vector(), d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], a[2], a[3], a[4].OffIdx(0).Vector(), d[11], a[5], work, lwork, iwork, liwork, result, t)
 					}
 					if err != nil {
 						t.Fail()
@@ -414,7 +414,7 @@ func TestDeig(t *testing.T) {
 					//     $                      D( 1, 3 ), A( 1, 3 ), NMAX, A( 1, 4 ),
 					//     $                      A( 1, 5 ), A( 1, 6 ), A( 1, 7 ), WORK,
 					//     $                      LWORK, IWORK, LIWORK, RESULT, INFO )
-					if nfail, ntest, err = ddrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], d[2], d[2], a[2], a[3], a[4], a[5].VectorIdx(0), a[6].VectorIdx(0), work, lwork, iwork, liwork, result, t); err != nil {
+					if nfail, ntest, err = ddrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, nout, a[0], a[1], d[2], d[2], a[2], a[3], a[4], a[5].OffIdx(0).Vector(), a[6].OffIdx(0).Vector(), work, lwork, iwork, liwork, result, t); err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %4d\n", "ddrvsg", info)
 					}
@@ -916,7 +916,7 @@ func TestDeig(t *testing.T) {
 				fmt.Printf(drvString)
 				ntestt = 0
 				xlaenv(5, 2)
-				if nfailt, ntestt, err = ddrgsx(nn, ncmax, thresh, nin, nout, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], c, a[11].VectorIdx(0), work, lwork, iwork, liwork, logwrk, t); err != nil {
+				if nfailt, ntestt, err = ddrgsx(nn, ncmax, thresh, nin, nout, a[0], a[1], a[2], a[3], a[4], a[5], d[0], d[1], d[2], c, a[11].OffIdx(0).Vector(), work, lwork, iwork, liwork, logwrk, t); err != nil {
 					t.Fail()
 					fmt.Printf(" *** Error code from %s = %4d\n", "ddrgsx", info)
 				}
@@ -1142,7 +1142,7 @@ func TestDeig(t *testing.T) {
 				}
 			}
 			fmt.Printf(chkString)
-			if ntestt, nfailt, err = dckglm(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Vector(0, 0), a[1].Vector(0, 0), b[0].Vector(0, 0), b[1].Vector(0, 0), x, work, d[0], nout, t); err != nil {
+			if ntestt, nfailt, err = dckglm(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Off(0, 0).Vector(), a[1].Off(0, 0).Vector(), b[0].Off(0, 0).Vector(), b[1].Off(0, 0).Vector(), x, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dckglm", info)
 			}
@@ -1250,7 +1250,7 @@ func TestDeig(t *testing.T) {
 				}
 			}
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = dckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), a[2].VectorIdx(0), a[3].VectorIdx(0), a[4].VectorIdx(0), a[5].VectorIdx(0), a[6].VectorIdx(0), iwork, work, d[0], nout, t); err != nil {
+			if nfailt, ntestt, err = dckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), a[2].OffIdx(0).Vector(), a[3].OffIdx(0).Vector(), a[4].OffIdx(0).Vector(), a[5].OffIdx(0).Vector(), a[6].OffIdx(0).Vector(), iwork, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dckcsd", info)
 			}
@@ -1287,7 +1287,7 @@ func TestDeig(t *testing.T) {
 				}
 			}
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = dcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].VectorIdx(0), a[1].VectorIdx(0), b[0].VectorIdx(0), b[1].VectorIdx(0), x, work, d[0], nout, t); err != nil {
+			if nfailt, ntestt, err = dcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].OffIdx(0).Vector(), a[1].OffIdx(0).Vector(), b[0].OffIdx(0).Vector(), b[1].OffIdx(0).Vector(), x, work, d[0], nout, t); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %4d\n", "dcklse", info)
 			}
@@ -1350,7 +1350,7 @@ func TestDeig(t *testing.T) {
 	fmt.Printf("\n End of tests\n")
 }
 
-// Zchkee tests the COMPLEX*16 LAPACK subroutines for the matrix
+// TestZeig tests the COMPLEX*16 LAPACK subroutines for the matrix
 // eigenvalue problem.  The test paths in this version are
 //
 // Nep (Nonsymmetric Eigenvalue Problem):
@@ -2686,9 +2686,9 @@ func TestZeig(t *testing.T) {
 				// fmt.Printf("  nb =%4d, nbmin =%4d, nx =%4d:", nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
 					if path == "Se2" {
-						nfail, ntest, err = zchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
+						nfail, ntest, err = zchkst2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].Off(0, 0).CVector(), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].Off(0, 0).CVector(), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
 					} else {
-						nfail, ntest, err = zchkst(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].CVector(0, 0), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].CVector(0, 0), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
+						nfail, ntest, err = zchkst(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1].Off(0, 0).CVector(), dr[0], dr[1], dr[2], dr[3], dr[4], dr[5], dr[6], dr[7], dr[8], dr[9], dr[10], a[2], a[3], a[4].Off(0, 0).CVector(), dc[0], a[5], work, lwork, rwork, lwork, iwork, liwork, result)
 					}
 					if err != nil {
 						t.Fail()
@@ -2752,7 +2752,7 @@ func TestZeig(t *testing.T) {
 				}
 				// fmt.Printf(" %3s:  nb=%4d, nbmin=%4d, nx=%4d\n", path, nbval[i-1], nbmin[i-1], nxval[i-1])
 				if tstchk {
-					if nfail, ntest, err = zdrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], dr[2], dr[3], a[2], a[3], a[4], a[5].CVector(0, 0), a[6].CVector(0, 0), work, lwork, rwork, lwork, iwork, liwork, result); err != nil {
+					if nfail, ntest, err = zdrvsg2stg(nn, nval, maxtyp, dotype, iseed, thresh, a[0], a[1], dr[2], dr[3], a[2], a[3], a[4], a[5].Off(0, 0).CVector(), a[6].Off(0, 0).CVector(), work, lwork, rwork, lwork, iwork, liwork, result); err != nil {
 						t.Fail()
 						fmt.Printf(" *** Error code from %s = %v\n", "zdrvsg", err)
 					}
@@ -3448,7 +3448,7 @@ func TestZeig(t *testing.T) {
 			}
 			ntestt = 0
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = zckglm(nn, nval, mval, pval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
+			if nfailt, ntestt, err = zckglm(nn, nval, mval, pval, ntypes, iseed, thresh, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), x, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckglm", err)
 			}
@@ -3485,7 +3485,7 @@ func TestZeig(t *testing.T) {
 			}
 			ntestt = 0
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = zckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), taua, b[0].CVector(0, 0), b[1].CVector(0, 0), b[2].CVector(0, 0), b[3].CVector(0, 0), b[4].CVector(0, 0), taub, work, dr[0]); err != nil {
+			if nfailt, ntestt, err = zckgqr(nn, mval, nn, pval, nn, nval, ntypes, iseed, thresh, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), taua, b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), b[3].Off(0, 0).CVector(), b[4].Off(0, 0).CVector(), taub, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckgqr", err)
 			}
@@ -3522,7 +3522,7 @@ func TestZeig(t *testing.T) {
 			}
 			ntestt = 0
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = zckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), a[2].CVector(0, 0), b[2].CVector(0, 0), a[3].CVector(0, 0), alpha, beta, b[3].CVector(0, 0), iwork, work, dr[0]); err != nil {
+			if nfailt, ntestt, err = zckgsv(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), b[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), alpha, beta, b[3].Off(0, 0).CVector(), iwork, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckgsv", err)
 			}
@@ -3559,7 +3559,7 @@ func TestZeig(t *testing.T) {
 			}
 			ntestt = 0
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = zckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), a[2].CVector(0, 0), a[3].CVector(0, 0), a[4].CVector(0, 0), a[5].CVector(0, 0), rwork, iwork, work, dr[0]); err != nil {
+			if nfailt, ntestt, err = zckcsd(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), a[2].Off(0, 0).CVector(), a[3].Off(0, 0).CVector(), a[4].Off(0, 0).CVector(), a[5].Off(0, 0).CVector(), rwork, iwork, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zckcsd", err)
 			}
@@ -3596,7 +3596,7 @@ func TestZeig(t *testing.T) {
 			}
 			ntestt = 0
 			fmt.Printf(chkString)
-			if nfailt, ntestt, err = zcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].CVector(0, 0), a[1].CVector(0, 0), b[0].CVector(0, 0), b[1].CVector(0, 0), x, work, dr[0]); err != nil {
+			if nfailt, ntestt, err = zcklse(nn, mval, pval, nval, ntypes, iseed, thresh, nmax, a[0].Off(0, 0).CVector(), a[1].Off(0, 0).CVector(), b[0].Off(0, 0).CVector(), b[1].Off(0, 0).CVector(), x, work, dr[0]); err != nil {
 				t.Fail()
 				fmt.Printf(" *** Error code from %s = %v\n", "zcklse", err)
 			}

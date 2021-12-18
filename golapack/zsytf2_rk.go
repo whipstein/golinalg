@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -82,7 +81,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
+			imax = a.Off(0, k-1).CVector().Iamax(k-1, 1)
 			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -123,14 +122,14 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax))
+					jmax = imax + a.Off(imax-1, imax).CVector().Iamax(k-imax, a.Rows)
 					rowmax = cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax > 1 {
-					itemp = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
+					itemp = a.Off(0, imax-1).CVector().Iamax(imax-1, 1)
 					dtemp = cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -175,10 +174,10 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Interchange rows and column K and P in the leading
 				//              submatrix A(1:k,1:k) if we have a 2-by-2 pivot
 				if p > 1 {
-					goblas.Zswap(p-1, a.CVector(0, k-1, 1), a.CVector(0, p-1, 1))
+					a.Off(0, p-1).CVector().Swap(p-1, a.Off(0, k-1).CVector(), 1, 1)
 				}
 				if p < (k - 1) {
-					goblas.Zswap(k-p-1, a.CVector(p, k-1, 1), a.CVector(p-1, p))
+					a.Off(p-1, p).CVector().Swap(k-p-1, a.Off(p, k-1).CVector(), 1, a.Rows)
 				}
 				t = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(p-1, p-1))
@@ -187,7 +186,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Convert upper triangle of A into U form by applying
 				//              the interchanges in columns k+1:N.
 				if k < n {
-					goblas.Zswap(n-k, a.CVector(k-1, k), a.CVector(p-1, k))
+					a.Off(p-1, k).CVector().Swap(n-k, a.Off(k-1, k).CVector(), a.Rows, a.Rows)
 				}
 
 			}
@@ -198,10 +197,10 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Interchange rows and columns KK and KP in the leading
 				//              submatrix A(1:k,1:k)
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
+					a.Off(0, kp-1).CVector().Swap(kp-1, a.Off(0, kk-1).CVector(), 1, 1)
 				}
 				if (kk > 1) && (kp < (kk - 1)) {
-					goblas.Zswap(kk-kp-1, a.CVector(kp, kk-1, 1), a.CVector(kp-1, kp))
+					a.Off(kp-1, kp).CVector().Swap(kk-kp-1, a.Off(kp, kk-1).CVector(), 1, a.Rows)
 				}
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
@@ -215,7 +214,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Convert upper triangle of A into U form by applying
 				//              the interchanges in columns k+1:N.
 				if k < n {
-					goblas.Zswap(n-k, a.CVector(kk-1, k), a.CVector(kp-1, k))
+					a.Off(kp-1, k).CVector().Swap(n-k, a.Off(kk-1, k).CVector(), a.Rows, a.Rows)
 				}
 
 			}
@@ -235,12 +234,12 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*1/D(k)*W(k)**T
 						d11 = cone / a.Get(k-1, k-1)
-						if err = Zsyr(uplo, k-1, -d11, a.CVector(0, k-1, 1), a); err != nil {
+						if err = Zsyr(uplo, k-1, -d11, a.Off(0, k-1).CVector(), 1, a); err != nil {
 							panic(err)
 						}
 
 						//                    Store U(k) in column k
-						goblas.Zscal(k-1, d11, a.CVector(0, k-1, 1))
+						a.Off(0, k-1).CVector().Scal(k-1, d11, 1)
 					} else {
 						//                    Store L(k) in column K
 						d11 = a.Get(k-1, k-1)
@@ -252,7 +251,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						if err = Zsyr(uplo, k-1, -d11, a.CVector(0, k-1, 1), a); err != nil {
+						if err = Zsyr(uplo, k-1, -d11, a.Off(0, k-1).CVector(), 1, a); err != nil {
 							panic(err)
 						}
 					}
@@ -351,7 +350,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < n {
-			imax = k + goblas.Izamax(n-k, a.CVector(k, k-1, 1))
+			imax = k + a.Off(k, k-1).CVector().Iamax(n-k, 1)
 			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -392,14 +391,14 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1))
+					jmax = k - 1 + a.Off(imax-1, k-1).CVector().Iamax(imax-k, a.Rows)
 					rowmax = cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax < n {
-					itemp = imax + goblas.Izamax(n-imax, a.CVector(imax, imax-1, 1))
+					itemp = imax + a.Off(imax, imax-1).CVector().Iamax(n-imax, 1)
 					dtemp = cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -444,10 +443,10 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Interchange rows and column K and P in the trailing
 				//              submatrix A(k:n,k:n) if we have a 2-by-2 pivot
 				if p < n {
-					goblas.Zswap(n-p, a.CVector(p, k-1, 1), a.CVector(p, p-1, 1))
+					a.Off(p, p-1).CVector().Swap(n-p, a.Off(p, k-1).CVector(), 1, 1)
 				}
 				if p > (k + 1) {
-					goblas.Zswap(p-k-1, a.CVector(k, k-1, 1), a.CVector(p-1, k))
+					a.Off(p-1, k).CVector().Swap(p-k-1, a.Off(k, k-1).CVector(), 1, a.Rows)
 				}
 				t = a.Get(k-1, k-1)
 				a.Set(k-1, k-1, a.Get(p-1, p-1))
@@ -456,7 +455,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Convert lower triangle of A into L form by applying
 				//              the interchanges in columns 1:k-1.
 				if k > 1 {
-					goblas.Zswap(k-1, a.CVector(k-1, 0), a.CVector(p-1, 0))
+					a.Off(p-1, 0).CVector().Swap(k-1, a.Off(k-1, 0).CVector(), a.Rows, a.Rows)
 				}
 
 			}
@@ -467,10 +466,10 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Interchange rows and columns KK and KP in the trailing
 				//              submatrix A(k:n,k:n)
 				if kp < n {
-					goblas.Zswap(n-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
+					a.Off(kp, kp-1).CVector().Swap(n-kp, a.Off(kp, kk-1).CVector(), 1, 1)
 				}
 				if (kk < n) && (kp > (kk + 1)) {
-					goblas.Zswap(kp-kk-1, a.CVector(kk, kk-1, 1), a.CVector(kp-1, kk))
+					a.Off(kp-1, kk).CVector().Swap(kp-kk-1, a.Off(kk, kk-1).CVector(), 1, a.Rows)
 				}
 				t = a.Get(kk-1, kk-1)
 				a.Set(kk-1, kk-1, a.Get(kp-1, kp-1))
@@ -484,7 +483,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 				//              Convert lower triangle of A into L form by applying
 				//              the interchanges in columns 1:k-1.
 				if k > 1 {
-					goblas.Zswap(k-1, a.CVector(kk-1, 0), a.CVector(kp-1, 0))
+					a.Off(kp-1, 0).CVector().Swap(k-1, a.Off(kk-1, 0).CVector(), a.Rows, a.Rows)
 				}
 
 			}
@@ -504,12 +503,12 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						d11 = cone / a.Get(k-1, k-1)
-						if err = Zsyr(uplo, n-k, -d11, a.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+						if err = Zsyr(uplo, n-k, -d11, a.Off(k, k-1).CVector(), 1, a.Off(k, k)); err != nil {
 							panic(err)
 						}
 
 						//                    Store L(k) in column k
-						goblas.Zscal(n-k, d11, a.CVector(k, k-1, 1))
+						a.Off(k, k-1).CVector().Scal(n-k, d11, 1)
 					} else {
 						//                    Store L(k) in column k
 						d11 = a.Get(k-1, k-1)
@@ -521,7 +520,7 @@ func Zsytf2Rk(uplo mat.MatUplo, n int, a *mat.CMatrix, e *mat.CVector, ipiv *[]i
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						if err = Zsyr(uplo, n-k, -d11, a.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+						if err = Zsyr(uplo, n-k, -d11, a.Off(k, k-1).CVector(), 1, a.Off(k, k)); err != nil {
 							panic(err)
 						}
 					}

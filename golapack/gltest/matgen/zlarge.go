@@ -3,7 +3,6 @@ package matgen
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -34,30 +33,30 @@ func Zlarge(n int, a *mat.CMatrix, iseed *[]int, work *mat.CVector) (err error) 
 	for i = n; i >= 1; i-- { //
 		//        generate random reflection
 		golapack.Zlarnv(3, iseed, n-i+1, work)
-		wn = goblas.Dznrm2(n-i+1, work.Off(0, 1))
+		wn = work.Nrm2(n-i+1, 1)
 		wa = complex(wn/work.GetMag(0), 0) * work.Get(0)
 		if complex(wn, 0) == zero {
 			tau = zero
 		} else {
 			wb = work.Get(0) + wa
-			goblas.Zscal(n-i, one/wb, work.Off(1, 1))
+			work.Off(1).Scal(n-i, one/wb, 1)
 			work.Set(0, one)
 			tau = complex(real(wb/wa), 0)
 		}
 
 		//        multiply A(i:n,1:n) by random reflection from the left
-		if err = goblas.Zgemv(ConjTrans, n-i+1, n, one, a.Off(i-1, 0), work.Off(0, 1), zero, work.Off(n, 1)); err != nil {
+		if err = work.Off(n).Gemv(ConjTrans, n-i+1, n, one, a.Off(i-1, 0), work, 1, zero, 1); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgerc(n-i+1, n, -tau, work.Off(0, 1), work.Off(n, 1), a.Off(i-1, 0)); err != nil {
+		if err = a.Off(i-1, 0).Gerc(n-i+1, n, -tau, work, 1, work.Off(n), 1); err != nil {
 			panic(err)
 		}
 
 		//        multiply A(1:n,i:n) by random reflection from the right
-		if err = goblas.Zgemv(NoTrans, n, n-i+1, one, a.Off(0, i-1), work.Off(0, 1), zero, work.Off(n, 1)); err != nil {
+		if err = work.Off(n).Gemv(NoTrans, n, n-i+1, one, a.Off(0, i-1), work, 1, zero, 1); err != nil {
 			panic(err)
 		}
-		if err = goblas.Zgerc(n, n-i+1, -tau, work.Off(n, 1), work.Off(0, 1), a.Off(0, i-1)); err != nil {
+		if err = a.Off(0, i-1).Gerc(n, n-i+1, -tau, work.Off(n), 1, work, 1); err != nil {
 			panic(err)
 		}
 	}

@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -402,7 +401,7 @@ func Dorcsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.Matrix, th
 
 		//        Accumulate Householder reflectors
 		if wantu1 && p > 0 {
-			goblas.Dcopy(p, work.Off(iorbdb-1, 1), u1.VectorIdx(0, 1))
+			u1.OffIdx(0).Vector().Copy(p, work.Off(iorbdb-1), 1, 1)
 			for j = 2; j <= p; j++ {
 				u1.Set(0, j-1, zero)
 			}
@@ -412,7 +411,7 @@ func Dorcsd2by1(jobu1, jobu2, jobv1t byte, m, p, q int, x11, x21 *mat.Matrix, th
 			}
 		}
 		if wantu2 && m-p > 0 {
-			goblas.Dcopy(m-p, work.Off(iorbdb+p-1, 1), u2.VectorIdx(0, 1))
+			u2.OffIdx(0).Vector().Copy(m-p, work.Off(iorbdb+p-1), 1, 1)
 			for j = 2; j <= m-p; j++ {
 				u2.Set(0, j-1, zero)
 			}

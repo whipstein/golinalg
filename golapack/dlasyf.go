@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -55,9 +54,9 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 		}
 
 		//        Copy column K of A to column KW of W and update it
-		goblas.Dcopy(k, a.Vector(0, k-1, 1), w.Vector(0, kw-1, 1))
+		w.Off(0, kw-1).Vector().Copy(k, a.Off(0, k-1).Vector(), 1, 1)
 		if k < n {
-			err = goblas.Dgemv(NoTrans, k, n-k, -one, a.Off(0, k), w.Vector(k-1, kw), one, w.Vector(0, kw-1, 1))
+			err = w.Off(0, kw-1).Vector().Gemv(NoTrans, k, n-k, -one, a.Off(0, k), w.Off(k-1, kw).Vector(), w.Rows, one, 1)
 		}
 
 		kstep = 1
@@ -70,7 +69,7 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Idamax(k-1, w.Vector(0, kw-1, 1))
+			imax = w.Off(0, kw-1).Vector().Iamax(k-1, 1)
 			colmax = math.Abs(w.Get(imax-1, kw-1))
 		} else {
 			colmax = zero
@@ -88,20 +87,20 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				kp = k
 			} else {
 				//              Copy column IMAX to column KW-1 of W and update it
-				goblas.Dcopy(imax, a.Vector(0, imax-1, 1), w.Vector(0, kw-1-1, 1))
-				goblas.Dcopy(k-imax, a.Vector(imax-1, imax), w.Vector(imax, kw-1-1, 1))
+				w.Off(0, kw-1-1).Vector().Copy(imax, a.Off(0, imax-1).Vector(), 1, 1)
+				w.Off(imax, kw-1-1).Vector().Copy(k-imax, a.Off(imax-1, imax).Vector(), a.Rows, 1)
 				if k < n {
-					if err = goblas.Dgemv(NoTrans, k, n-k, -one, a.Off(0, k), w.Vector(imax-1, kw), one, w.Vector(0, kw-1-1, 1)); err != nil {
+					if err = w.Off(0, kw-1-1).Vector().Gemv(NoTrans, k, n-k, -one, a.Off(0, k), w.Off(imax-1, kw).Vector(), w.Rows, one, 1); err != nil {
 						panic(err)
 					}
 				}
 
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
-				jmax = imax + goblas.Idamax(k-imax, w.Vector(imax, kw-1-1, 1))
+				jmax = imax + w.Off(imax, kw-1-1).Vector().Iamax(k-imax, 1)
 				rowmax = math.Abs(w.Get(jmax-1, kw-1-1))
 				if imax > 1 {
-					jmax = goblas.Idamax(imax-1, w.Vector(0, kw-1-1, 1))
+					jmax = w.Off(0, kw-1-1).Vector().Iamax(imax-1, 1)
 					rowmax = math.Max(rowmax, math.Abs(w.Get(jmax-1, kw-1-1)))
 				}
 
@@ -114,7 +113,7 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 					kp = imax
 
 					//                 copy column KW-1 of W to column KW of W
-					goblas.Dcopy(k, w.Vector(0, kw-1-1, 1), w.Vector(0, kw-1, 1))
+					w.Off(0, kw-1).Vector().Copy(k, w.Off(0, kw-1-1).Vector(), 1, 1)
 				} else {
 					//                 interchange rows and columns K-1 and IMAX, use 2-by-2
 					//                 pivot block
@@ -139,9 +138,9 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				//              (or K and K-1 for 2-by-2 pivot) of A, since these columns
 				//              will be later overwritten.
 				a.Set(kp-1, kp-1, a.Get(kk-1, kk-1))
-				goblas.Dcopy(kk-1-kp, a.Vector(kp, kk-1, 1), a.Vector(kp-1, kp))
+				a.Off(kp-1, kp).Vector().Copy(kk-1-kp, a.Off(kp, kk-1).Vector(), 1, a.Rows)
 				if kp > 1 {
-					goblas.Dcopy(kp-1, a.Vector(0, kk-1, 1), a.Vector(0, kp-1, 1))
+					a.Off(0, kp-1).Vector().Copy(kp-1, a.Off(0, kk-1).Vector(), 1, 1)
 				}
 
 				//              Interchange rows KK and KP in last K+1 to N columns of A
@@ -149,9 +148,9 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				//              later overwritten). Interchange rows KK and KP
 				//              in last KKW to NB columns of W.
 				if k < n {
-					goblas.Dswap(n-k, a.Vector(kk-1, k), a.Vector(kp-1, k))
+					a.Off(kp-1, k).Vector().Swap(n-k, a.Off(kk-1, k).Vector(), a.Rows, a.Rows)
 				}
-				goblas.Dswap(n-kk+1, w.Vector(kk-1, kkw-1), w.Vector(kp-1, kkw-1))
+				w.Off(kp-1, kkw-1).Vector().Swap(n-kk+1, w.Off(kk-1, kkw-1).Vector(), w.Rows, w.Rows)
 			}
 
 			if kstep == 1 {
@@ -167,9 +166,9 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				//              and not stored.
 				//                 A(k,k) := D(k,k) = W(k,kw)
 				//                 A(1:k-1,k) := U(1:k-1,k) = W(1:k-1,kw)/D(k,k)
-				goblas.Dcopy(k, w.Vector(0, kw-1, 1), a.Vector(0, k-1, 1))
+				a.Off(0, k-1).Vector().Copy(k, w.Off(0, kw-1).Vector(), 1, 1)
 				r1 = one / a.Get(k-1, k-1)
-				goblas.Dscal(k-1, r1, a.Vector(0, k-1, 1))
+				a.Off(0, k-1).Vector().Scal(k-1, r1, 1)
 
 			} else {
 				//              2-by-2 pivot block D(k): columns kw and kw-1 of W now hold
@@ -261,13 +260,13 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 
 			//           Update the upper triangle of the diagonal block
 			for jj = j; jj <= j+jb-1; jj++ {
-				if err = goblas.Dgemv(NoTrans, jj-j+1, n-k, -one, a.Off(j-1, k), w.Vector(jj-1, kw), one, a.Vector(j-1, jj-1, 1)); err != nil {
+				if err = a.Off(j-1, jj-1).Vector().Gemv(NoTrans, jj-j+1, n-k, -one, a.Off(j-1, k), w.Off(jj-1, kw).Vector(), w.Rows, one, 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Update the rectangular superdiagonal block
-			if err = goblas.Dgemm(NoTrans, Trans, j-1, jb, n-k, -one, a.Off(0, k), w.Off(j-1, kw), one, a.Off(0, j-1)); err != nil {
+			if err = a.Off(0, j-1).Gemm(NoTrans, Trans, j-1, jb, n-k, -one, a.Off(0, k), w.Off(j-1, kw), one); err != nil {
 				panic(err)
 			}
 		}
@@ -293,7 +292,7 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 		//           of the rows to swap back doesn't include diagonal element)
 		j = j + 1
 		if jp != jj && j <= n {
-			goblas.Dswap(n-j+1, a.Vector(jp-1, j-1), a.Vector(jj-1, j-1))
+			a.Off(jj-1, j-1).Vector().Swap(n-j+1, a.Off(jp-1, j-1).Vector(), a.Rows, a.Rows)
 		}
 		if j < n {
 			goto label60
@@ -318,8 +317,8 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 		}
 
 		//        Copy column K of A to column K of W and update it
-		goblas.Dcopy(n-k+1, a.Vector(k-1, k-1, 1), w.Vector(k-1, k-1, 1))
-		if err = goblas.Dgemv(NoTrans, n-k+1, k-1, -one, a.Off(k-1, 0), w.Vector(k-1, 0), one, w.Vector(k-1, k-1, 1)); err != nil {
+		w.Off(k-1, k-1).Vector().Copy(n-k+1, a.Off(k-1, k-1).Vector(), 1, 1)
+		if err = w.Off(k-1, k-1).Vector().Gemv(NoTrans, n-k+1, k-1, -one, a.Off(k-1, 0), w.Off(k-1, 0).Vector(), w.Rows, one, 1); err != nil {
 			panic(err)
 		}
 
@@ -333,7 +332,7 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < n {
-			imax = k + goblas.Idamax(n-k, w.Vector(k, k-1, 1))
+			imax = k + w.Off(k, k-1).Vector().Iamax(n-k, 1)
 			colmax = math.Abs(w.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -351,18 +350,18 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				kp = k
 			} else {
 				//              Copy column IMAX to column K+1 of W and update it
-				goblas.Dcopy(imax-k, a.Vector(imax-1, k-1), w.Vector(k-1, k, 1))
-				goblas.Dcopy(n-imax+1, a.Vector(imax-1, imax-1, 1), w.Vector(imax-1, k, 1))
-				if err = goblas.Dgemv(NoTrans, n-k+1, k-1, -one, a.Off(k-1, 0), w.Vector(imax-1, 0), one, w.Vector(k-1, k, 1)); err != nil {
+				w.Off(k-1, k).Vector().Copy(imax-k, a.Off(imax-1, k-1).Vector(), a.Rows, 1)
+				w.Off(imax-1, k).Vector().Copy(n-imax+1, a.Off(imax-1, imax-1).Vector(), 1, 1)
+				if err = w.Off(k-1, k).Vector().Gemv(NoTrans, n-k+1, k-1, -one, a.Off(k-1, 0), w.Off(imax-1, 0).Vector(), w.Rows, one, 1); err != nil {
 					panic(err)
 				}
 
 				//              JMAX is the column-index of the largest off-diagonal
 				//              element in row IMAX, and ROWMAX is its absolute value
-				jmax = k - 1 + goblas.Idamax(imax-k, w.Vector(k-1, k, 1))
+				jmax = k - 1 + w.Off(k-1, k).Vector().Iamax(imax-k, 1)
 				rowmax = math.Abs(w.Get(jmax-1, k))
 				if imax < n {
-					jmax = imax + goblas.Idamax(n-imax, w.Vector(imax, k, 1))
+					jmax = imax + w.Off(imax, k).Vector().Iamax(n-imax, 1)
 					rowmax = math.Max(rowmax, math.Abs(w.Get(jmax-1, k)))
 				}
 
@@ -375,7 +374,7 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 					kp = imax
 
 					//                 copy column K+1 of W to column K of W
-					goblas.Dcopy(n-k+1, w.Vector(k-1, k, 1), w.Vector(k-1, k-1, 1))
+					w.Off(k-1, k-1).Vector().Copy(n-k+1, w.Off(k-1, k).Vector(), 1, 1)
 				} else {
 					//                 interchange rows and columns K+1 and IMAX, use 2-by-2
 					//                 pivot block
@@ -397,9 +396,9 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				//              (or K and K+1 for 2-by-2 pivot) of A, since these columns
 				//              will be later overwritten.
 				a.Set(kp-1, kp-1, a.Get(kk-1, kk-1))
-				goblas.Dcopy(kp-kk-1, a.Vector(kk, kk-1, 1), a.Vector(kp-1, kk))
+				a.Off(kp-1, kk).Vector().Copy(kp-kk-1, a.Off(kk, kk-1).Vector(), 1, a.Rows)
 				if kp < n {
-					goblas.Dcopy(n-kp, a.Vector(kp, kk-1, 1), a.Vector(kp, kp-1, 1))
+					a.Off(kp, kp-1).Vector().Copy(n-kp, a.Off(kp, kk-1).Vector(), 1, 1)
 				}
 
 				//              Interchange rows KK and KP in first K-1 columns of A
@@ -407,9 +406,9 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				//              later overwritten). Interchange rows KK and KP
 				//              in first KK columns of W.
 				if k > 1 {
-					goblas.Dswap(k-1, a.Vector(kk-1, 0), a.Vector(kp-1, 0))
+					a.Off(kp-1, 0).Vector().Swap(k-1, a.Off(kk-1, 0).Vector(), a.Rows, a.Rows)
 				}
-				goblas.Dswap(kk, w.Vector(kk-1, 0), w.Vector(kp-1, 0))
+				w.Off(kp-1, 0).Vector().Swap(kk, w.Off(kk-1, 0).Vector(), w.Rows, w.Rows)
 			}
 
 			if kstep == 1 {
@@ -425,10 +424,10 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 				//              and not stored)
 				//                 A(k,k) := D(k,k) = W(k,k)
 				//                 A(k+1:N,k) := L(k+1:N,k) = W(k+1:N,k)/D(k,k)
-				goblas.Dcopy(n-k+1, w.Vector(k-1, k-1, 1), a.Vector(k-1, k-1, 1))
+				a.Off(k-1, k-1).Vector().Copy(n-k+1, w.Off(k-1, k-1).Vector(), 1, 1)
 				if k < n {
 					r1 = one / a.Get(k-1, k-1)
-					goblas.Dscal(n-k, r1, a.Vector(k, k-1, 1))
+					a.Off(k, k-1).Vector().Scal(n-k, r1, 1)
 				}
 
 			} else {
@@ -520,14 +519,14 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 
 			//           Update the lower triangle of the diagonal block
 			for jj = j; jj <= j+jb-1; jj++ {
-				if err = goblas.Dgemv(NoTrans, j+jb-jj, k-1, -one, a.Off(jj-1, 0), w.Vector(jj-1, 0), one, a.Vector(jj-1, jj-1, 1)); err != nil {
+				if err = a.Off(jj-1, jj-1).Vector().Gemv(NoTrans, j+jb-jj, k-1, -one, a.Off(jj-1, 0), w.Off(jj-1, 0).Vector(), w.Rows, one, 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Update the rectangular subdiagonal block
 			if j+jb <= n {
-				if err = goblas.Dgemm(NoTrans, mat.Trans, n-j-jb+1, jb, k-1, -one, a.Off(j+jb-1, 0), w.Off(j-1, 0), one, a.Off(j+jb-1, j-1)); err != nil {
+				if err = a.Off(j+jb-1, j-1).Gemm(NoTrans, mat.Trans, n-j-jb+1, jb, k-1, -one, a.Off(j+jb-1, 0), w.Off(j-1, 0), one); err != nil {
 					panic(err)
 				}
 			}
@@ -554,7 +553,7 @@ func Dlasyf(uplo mat.MatUplo, n, nb int, a *mat.Matrix, ipiv *[]int, w *mat.Matr
 		//           of the rows to swap back doesn't include diagonal element)
 		j = j - 1
 		if jp != jj && j >= 1 {
-			goblas.Dswap(j, a.Vector(jp-1, 0), a.Vector(jj-1, 0))
+			a.Off(jj-1, 0).Vector().Swap(j, a.Off(jp-1, 0).Vector(), a.Rows, a.Rows)
 		}
 		if j > 1 {
 			goto label120

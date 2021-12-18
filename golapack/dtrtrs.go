@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -59,7 +58,7 @@ func Dtrtrs(uplo mat.MatUplo, trans mat.MatTrans, diag mat.MatDiag, n, nrhs int,
 	info = 0
 
 	//     Solve A * x = b  or  A**T * x = b.
-	if err = goblas.Dtrsm(Left, uplo, trans, diag, n, nrhs, one, a, b); err != nil {
+	if err = b.Trsm(Left, uplo, trans, diag, n, nrhs, one, a); err != nil {
 		panic(err)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -65,9 +64,9 @@ func Dlasd3(nl, nr, sqre, k int, d *mat.Vector, q *mat.Matrix, dsigma *mat.Vecto
 	//     Quick return if possible
 	if k == 1 {
 		d.Set(0, math.Abs(z.Get(0)))
-		goblas.Dcopy(m, vt2.Vector(0, 0), vt.Vector(0, 0))
+		vt.Off(0, 0).Vector().Copy(m, vt2.Off(0, 0).Vector(), vt.Rows, vt.Rows)
 		if z.Get(0) > zero {
-			goblas.Dcopy(n, u2.Vector(0, 0, 1), u.Vector(0, 0, 1))
+			u.Off(0, 0).Vector().Copy(n, u2.Off(0, 0).Vector(), 1, 1)
 		} else {
 			for i = 1; i <= n; i++ {
 				u.Set(i-1, 0, -u2.Get(i-1, 0))
@@ -97,10 +96,10 @@ func Dlasd3(nl, nr, sqre, k int, d *mat.Vector, q *mat.Matrix, dsigma *mat.Vecto
 	}
 
 	//     Keep a copy of Z.
-	goblas.Dcopy(k, z.Off(0, 1), q.VectorIdx(0, 1))
+	q.OffIdx(0).Vector().Copy(k, z, 1, 1)
 
 	//     Normalize Z.
-	rho = goblas.Dnrm2(k, z.Off(0, 1))
+	rho = z.Nrm2(k, 1)
 	if err = Dlascl('G', 0, 0, rho, one, k, 1, z.Matrix(k, opts)); err != nil {
 		panic(err)
 	}
@@ -108,7 +107,7 @@ func Dlasd3(nl, nr, sqre, k int, d *mat.Vector, q *mat.Matrix, dsigma *mat.Vecto
 
 	//     Find the new singular values.
 	for j = 1; j <= k; j++ {
-		*d.GetPtr(j - 1), info = Dlasd4(k, j, dsigma, z, u.Vector(0, j-1), rho, vt.Vector(0, j-1))
+		*d.GetPtr(j - 1), info = Dlasd4(k, j, dsigma, z, u.Off(0, j-1).Vector(), rho, vt.Off(0, j-1).Vector())
 
 		//        If the zero finder fails, report the convergence failure.
 		if info != 0 {
@@ -137,7 +136,7 @@ func Dlasd3(nl, nr, sqre, k int, d *mat.Vector, q *mat.Matrix, dsigma *mat.Vecto
 			vt.Set(j-1, i-1, z.Get(j-1)/u.Get(j-1, i-1)/vt.Get(j-1, i-1))
 			u.Set(j-1, i-1, dsigma.Get(j-1)*vt.Get(j-1, i-1))
 		}
-		temp = goblas.Dnrm2(k, u.Vector(0, i-1, 1))
+		temp = u.Off(0, i-1).Vector().Nrm2(k, 1)
 		q.Set(0, i-1, u.Get(0, i-1)/temp)
 		for j = 2; j <= k; j++ {
 			jc = (*idxc)[j-1]
@@ -147,33 +146,33 @@ func Dlasd3(nl, nr, sqre, k int, d *mat.Vector, q *mat.Matrix, dsigma *mat.Vecto
 
 	//     Update the left singular vector matrix.
 	if k == 2 {
-		if err = goblas.Dgemm(NoTrans, NoTrans, n, k, k, one, u2, q, zero, u); err != nil {
+		if err = u.Gemm(NoTrans, NoTrans, n, k, k, one, u2, q, zero); err != nil {
 			panic(err)
 		}
 		goto label100
 	}
 	if (*ctot)[0] > 0 {
-		if err = goblas.Dgemm(NoTrans, NoTrans, nl, k, (*ctot)[0], one, u2.Off(0, 1), q.Off(1, 0), zero, u.Off(0, 0)); err != nil {
+		if err = u.Gemm(NoTrans, NoTrans, nl, k, (*ctot)[0], one, u2.Off(0, 1), q.Off(1, 0), zero); err != nil {
 			panic(err)
 		}
 		if (*ctot)[2] > 0 {
 			ktemp = 2 + (*ctot)[0] + (*ctot)[1]
-			if err = goblas.Dgemm(NoTrans, NoTrans, nl, k, (*ctot)[2], one, u2.Off(0, ktemp-1), q.Off(ktemp-1, 0), one, u.Off(0, 0)); err != nil {
+			if err = u.Gemm(NoTrans, NoTrans, nl, k, (*ctot)[2], one, u2.Off(0, ktemp-1), q.Off(ktemp-1, 0), one); err != nil {
 				panic(err)
 			}
 		}
 	} else if (*ctot)[2] > 0 {
 		ktemp = 2 + (*ctot)[0] + (*ctot)[1]
-		if err = goblas.Dgemm(NoTrans, NoTrans, nl, k, (*ctot)[2], one, u2.Off(0, ktemp-1), q.Off(ktemp-1, 0), zero, u.Off(0, 0)); err != nil {
+		if err = u.Gemm(NoTrans, NoTrans, nl, k, (*ctot)[2], one, u2.Off(0, ktemp-1), q.Off(ktemp-1, 0), zero); err != nil {
 			panic(err)
 		}
 	} else {
 		Dlacpy(Full, nl, k, u2, u)
 	}
-	goblas.Dcopy(k, q.Vector(0, 0), u.Vector(nlp1-1, 0))
+	u.Off(nlp1-1, 0).Vector().Copy(k, q.Off(0, 0).Vector(), q.Rows, u.Rows)
 	ktemp = 2 + (*ctot)[0]
 	ctemp = (*ctot)[1] + (*ctot)[2]
-	if err = goblas.Dgemm(NoTrans, NoTrans, nr, k, ctemp, one, u2.Off(nlp2-1, ktemp-1), q.Off(ktemp-1, 0), zero, u.Off(nlp2-1, 0)); err != nil {
+	if err = u.Off(nlp2-1, 0).Gemm(NoTrans, NoTrans, nr, k, ctemp, one, u2.Off(nlp2-1, ktemp-1), q.Off(ktemp-1, 0), zero); err != nil {
 		panic(err)
 	}
 
@@ -181,7 +180,7 @@ func Dlasd3(nl, nr, sqre, k int, d *mat.Vector, q *mat.Matrix, dsigma *mat.Vecto
 label100:
 	;
 	for i = 1; i <= k; i++ {
-		temp = goblas.Dnrm2(k, vt.Vector(0, i-1, 1))
+		temp = vt.Off(0, i-1).Vector().Nrm2(k, 1)
 		q.Set(i-1, 0, vt.Get(0, i-1)/temp)
 		for j = 2; j <= k; j++ {
 			jc = (*idxc)[j-1]
@@ -191,18 +190,18 @@ label100:
 
 	//     Update the right singular vector matrix.
 	if k == 2 {
-		if err = goblas.Dgemm(NoTrans, NoTrans, k, m, k, one, q, vt2, zero, vt); err != nil {
+		if err = vt.Gemm(NoTrans, NoTrans, k, m, k, one, q, vt2, zero); err != nil {
 			panic(err)
 		}
 		return
 	}
 	ktemp = 1 + (*ctot)[0]
-	if err = goblas.Dgemm(NoTrans, NoTrans, k, nlp1, ktemp, one, q.Off(0, 0), vt2.Off(0, 0), zero, vt.Off(0, 0)); err != nil {
+	if err = vt.Gemm(NoTrans, NoTrans, k, nlp1, ktemp, one, q.Off(0, 0), vt2.Off(0, 0), zero); err != nil {
 		panic(err)
 	}
 	ktemp = 2 + (*ctot)[0] + (*ctot)[1]
 	if ktemp <= vt2.Rows {
-		if err = goblas.Dgemm(NoTrans, NoTrans, k, nlp1, (*ctot)[2], one, q.Off(0, ktemp-1), vt2.Off(ktemp-1, 0), one, vt.Off(0, 0)); err != nil {
+		if err = vt.Gemm(NoTrans, NoTrans, k, nlp1, (*ctot)[2], one, q.Off(0, ktemp-1), vt2.Off(ktemp-1, 0), one); err != nil {
 			panic(err)
 		}
 	}
@@ -218,7 +217,7 @@ label100:
 		}
 	}
 	ctemp = 1 + (*ctot)[1] + (*ctot)[2]
-	if err = goblas.Dgemm(NoTrans, NoTrans, k, nrp1, ctemp, one, q.Off(0, ktemp-1), vt2.Off(ktemp-1, nlp2-1), zero, vt.Off(0, nlp2-1)); err != nil {
+	if err = vt.Off(0, nlp2-1).Gemm(NoTrans, NoTrans, k, nrp1, ctemp, one, q.Off(0, ktemp-1), vt2.Off(ktemp-1, nlp2-1), zero); err != nil {
 		panic(err)
 	}
 

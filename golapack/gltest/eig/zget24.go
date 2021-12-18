@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -168,7 +167,7 @@ func zget24(comp bool, jtype int, thresh float64, iseed []int, n int, a, h, ht *
 			return
 		}
 		if isort == 0 {
-			goblas.Zcopy(n, w.Off(0, 1), wtmp.Off(0, 1))
+			wtmp.Copy(n, w, 1, 1)
 		}
 
 		//        Do Test (1) or Test (7)
@@ -187,12 +186,12 @@ func zget24(comp bool, jtype int, thresh float64, iseed []int, n int, a, h, ht *
 		golapack.Zlacpy(Full, n, n, a, vs1)
 
 		//        Compute Q*H and store in HT.
-		if err = goblas.Zgemm(NoTrans, NoTrans, n, n, n, cone, vs, h, czero, ht); err != nil {
+		if err = ht.Gemm(NoTrans, NoTrans, n, n, n, cone, vs, h, czero); err != nil {
 			panic(err)
 		}
 
 		//        Compute A - Q*H*Q'
-		if err = goblas.Zgemm(NoTrans, ConjTrans, n, n, n, -cone, ht, vs, cone, vs1); err != nil {
+		if err = vs1.Gemm(NoTrans, ConjTrans, n, n, n, -cone, ht, vs, cone); err != nil {
 			panic(err)
 		}
 

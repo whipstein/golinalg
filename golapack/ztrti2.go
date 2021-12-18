@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,10 +46,10 @@ func Ztrti2(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.CMatrix) (err erro
 			}
 
 			//           Compute elements 1:j-1 of j-th column.
-			if err = goblas.Ztrmv(Upper, NoTrans, diag, j-1, a, a.CVector(0, j-1, 1)); err != nil {
+			if err = a.Off(0, j-1).CVector().Trmv(Upper, NoTrans, diag, j-1, a, 1); err != nil {
 				panic(err)
 			}
-			goblas.Zscal(j-1, ajj, a.CVector(0, j-1, 1))
+			a.Off(0, j-1).CVector().Scal(j-1, ajj, 1)
 		}
 	} else {
 		//        Compute inverse of lower triangular matrix.
@@ -63,10 +62,10 @@ func Ztrti2(uplo mat.MatUplo, diag mat.MatDiag, n int, a *mat.CMatrix) (err erro
 			}
 			if j < n {
 				//              Compute elements j+1:n of j-th column.
-				if err = goblas.Ztrmv(Lower, NoTrans, diag, n-j, a.Off(j, j), a.CVector(j, j-1, 1)); err != nil {
+				if err = a.Off(j, j-1).CVector().Trmv(Lower, NoTrans, diag, n-j, a.Off(j, j), 1); err != nil {
 					panic(err)
 				}
-				goblas.Zscal(n-j, ajj, a.CVector(j, j-1, 1))
+				a.Off(j, j-1).CVector().Scal(n-j, ajj, 1)
 			}
 		}
 	}

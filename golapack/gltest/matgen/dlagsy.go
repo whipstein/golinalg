@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -49,13 +48,13 @@ func Dlagsy(n, k int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *mat.Vect
 	for i = n - 1; i >= 1; i-- {
 		//        generate random reflection
 		golapack.Dlarnv(3, iseed, n-i+1, work)
-		wn = goblas.Dnrm2(n-i+1, work.Off(0, 1))
+		wn = work.Nrm2(n-i+1, 1)
 		wa = math.Copysign(wn, work.Get(0))
 		if wn == zero {
 			tau = zero
 		} else {
 			wb = work.Get(0) + wa
-			goblas.Dscal(n-i, one/wb, work.Off(1, 1))
+			work.Off(1).Scal(n-i, one/wb, 1)
 			work.Set(0, one)
 			tau = wb / wa
 		}
@@ -64,16 +63,16 @@ func Dlagsy(n, k int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *mat.Vect
 		//        and the right
 		//
 		//        compute  y := tau * A * u
-		if err = goblas.Dsymv(mat.Lower, n-i+1, tau, a.Off(i-1, i-1), work.Off(0, 1), zero, work.Off(n, 1)); err != nil {
+		if err = work.Off(n).Symv(Lower, n-i+1, tau, a.Off(i-1, i-1), work, 1, zero, 1); err != nil {
 			panic(err)
 		}
 
 		//        compute  v := y - 1/2 * tau * ( y, u ) * u
-		alpha = -half * tau * goblas.Ddot(n-i+1, work.Off(n, 1), work.Off(0, 1))
-		goblas.Daxpy(n-i+1, alpha, work.Off(0, 1), work.Off(n, 1))
+		alpha = -half * tau * work.Dot(n-i+1, work.Off(n), 1, 1)
+		work.Off(n).Axpy(n-i+1, alpha, work, 1, 1)
 
 		//        apply the transformation as a rank-2 update to A(i:n,i:n)
-		if err = goblas.Dsyr2(mat.Lower, n-i+1, -one, work.Off(0, 1), work.Off(n, 1), a.Off(i-1, i-1)); err != nil {
+		if err = a.Off(i-1, i-1).Syr2(Lower, n-i+1, -one, work, 1, work.Off(n), 1); err != nil {
 			panic(err)
 		}
 	}
@@ -81,38 +80,38 @@ func Dlagsy(n, k int, d *mat.Vector, a *mat.Matrix, iseed *[]int, work *mat.Vect
 	//     Reduce number of subdiagonals to K
 	for i = 1; i <= n-1-k; i++ {
 		//        generate reflection to annihilate A(k+i+1:n,i)
-		wn = goblas.Dnrm2(n-k-i+1, a.Vector(k+i-1, i-1, 1))
+		wn = a.Off(k+i-1, i-1).Vector().Nrm2(n-k-i+1, 1)
 		wa = math.Copysign(wn, a.Get(k+i-1, i-1))
 		if wn == zero {
 			tau = zero
 		} else {
 			wb = a.Get(k+i-1, i-1) + wa
-			goblas.Dscal(n-k-i, one/wb, a.Vector(k+i, i-1, 1))
+			a.Off(k+i, i-1).Vector().Scal(n-k-i, one/wb, 1)
 			a.Set(k+i-1, i-1, one)
 			tau = wb / wa
 		}
 
 		//        apply reflection to A(k+i:n,i+1:k+i-1) from the left
-		if err = goblas.Dgemv(mat.Trans, n-k-i+1, k-1, one, a.Off(k+i-1, i), a.Vector(k+i-1, i-1, 1), zero, work.Off(0, 1)); err != nil {
+		if err = work.Gemv(Trans, n-k-i+1, k-1, one, a.Off(k+i-1, i), a.Off(k+i-1, i-1).Vector(), 1, zero, 1); err != nil {
 			panic(err)
 		}
-		if err = goblas.Dger(n-k-i+1, k-1, -tau, a.Vector(k+i-1, i-1, 1), work.Off(0, 1), a.Off(k+i-1, i)); err != nil {
+		if err = a.Off(k+i-1, i).Ger(n-k-i+1, k-1, -tau, a.Off(k+i-1, i-1).Vector(), 1, work, 1); err != nil {
 			panic(err)
 		}
 
 		//        apply reflection to A(k+i:n,k+i:n) from the left and the right
 		//
 		//        compute  y := tau * A * u
-		if err = goblas.Dsymv(mat.Lower, n-k-i+1, tau, a.Off(k+i-1, k+i-1), a.Vector(k+i-1, i-1, 1), zero, work.Off(0, 1)); err != nil {
+		if err = work.Symv(Lower, n-k-i+1, tau, a.Off(k+i-1, k+i-1), a.Off(k+i-1, i-1).Vector(), 1, zero, 1); err != nil {
 			panic(err)
 		}
 
 		//        compute  v := y - 1/2 * tau * ( y, u ) * u
-		alpha = -half * tau * goblas.Ddot(n-k-i+1, work.Off(0, 1), a.Vector(k+i-1, i-1, 1))
-		goblas.Daxpy(n-k-i+1, alpha, a.Vector(k+i-1, i-1, 1), work.Off(0, 1))
+		alpha = -half * tau * a.Off(k+i-1, i-1).Vector().Dot(n-k-i+1, work, 1, 1)
+		work.Axpy(n-k-i+1, alpha, a.Off(k+i-1, i-1).Vector(), 1, 1)
 
 		//        apply symmetric rank-2 update to A(k+i:n,k+i:n)
-		if err = goblas.Dsyr2(mat.Lower, n-k-i+1, -one, a.Vector(k+i-1, i-1, 1), work.Off(0, 1), a.Off(k+i-1, k+i-1)); err != nil {
+		if err = a.Off(k+i-1, k+i-1).Syr2(Lower, n-k-i+1, -one, a.Off(k+i-1, i-1).Vector(), 1, work, 1); err != nil {
 			panic(err)
 		}
 

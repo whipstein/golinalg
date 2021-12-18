@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -75,7 +74,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k > 1 {
-			imax = goblas.Izamax(k-1, a.CVector(0, k-1, 1))
+			imax = a.Off(0, k-1).CVector().Iamax(k-1, 1)
 			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -114,14 +113,14 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = imax + goblas.Izamax(k-imax, a.CVector(imax-1, imax))
+					jmax = imax + a.Off(imax-1, imax).CVector().Iamax(k-imax, a.Rows)
 					rowmax = cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax > 1 {
-					itemp = goblas.Izamax(imax-1, a.CVector(0, imax-1, 1))
+					itemp = a.Off(0, imax-1).CVector().Iamax(imax-1, 1)
 					dtemp = cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -176,7 +175,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 			if (kstep == 2) && (p != k) {
 				//              (1) Swap columnar parts
 				if p > 1 {
-					goblas.Zswap(p-1, a.CVector(0, k-1, 1), a.CVector(0, p-1, 1))
+					a.Off(0, p-1).CVector().Swap(p-1, a.Off(0, k-1).CVector(), 1, 1)
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = p + 1; j <= k-1; j++ {
@@ -197,7 +196,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 			if kp != kk {
 				//              (1) Swap columnar parts
 				if kp > 1 {
-					goblas.Zswap(kp-1, a.CVector(0, kk-1, 1), a.CVector(0, kp-1, 1))
+					a.Off(0, kp-1).CVector().Swap(kp-1, a.Off(0, kk-1).CVector(), 1, 1)
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = kp + 1; j <= kk-1; j++ {
@@ -243,12 +242,12 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*1/D(k)*W(k)**T
 						d11 = one / a.GetRe(k-1, k-1)
-						if err = goblas.Zher(uplo, k-1, -d11, a.CVector(0, k-1, 1), a); err != nil {
+						if err = a.Her(uplo, k-1, -d11, a.Off(0, k-1).CVector(), 1); err != nil {
 							panic(err)
 						}
 
 						//                    Store U(k) in column k
-						goblas.Zdscal(k-1, d11, a.CVector(0, k-1, 1))
+						a.Off(0, k-1).CVector().Dscal(k-1, d11, 1)
 					} else {
 						//                    Store L(k) in column K
 						d11 = a.GetRe(k-1, k-1)
@@ -260,7 +259,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 						//                    A := A - U(k)*D(k)*U(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						if err = goblas.Zher(uplo, k-1, -d11, a.CVector(0, k-1, 1), a); err != nil {
+						if err = a.Her(uplo, k-1, -d11, a.Off(0, k-1).CVector(), 1); err != nil {
 							panic(err)
 						}
 					}
@@ -348,7 +347,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 		//        column K, and COLMAX is its absolute value.
 		//        Determine both COLMAX and IMAX.
 		if k < n {
-			imax = k + goblas.Izamax(n-k, a.CVector(k, k-1, 1))
+			imax = k + a.Off(k, k-1).CVector().Iamax(n-k, 1)
 			colmax = cabs1(a.Get(imax-1, k-1))
 		} else {
 			colmax = zero
@@ -388,14 +387,14 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 				//                 element in row IMAX, and ROWMAX is its absolute value.
 				//                 Determine both ROWMAX and JMAX.
 				if imax != k {
-					jmax = k - 1 + goblas.Izamax(imax-k, a.CVector(imax-1, k-1))
+					jmax = k - 1 + a.Off(imax-1, k-1).CVector().Iamax(imax-k, a.Rows)
 					rowmax = cabs1(a.Get(imax-1, jmax-1))
 				} else {
 					rowmax = zero
 				}
 
 				if imax < n {
-					itemp = imax + goblas.Izamax(n-imax, a.CVector(imax, imax-1, 1))
+					itemp = imax + a.Off(imax, imax-1).CVector().Iamax(n-imax, 1)
 					dtemp = cabs1(a.Get(itemp-1, imax-1))
 					if dtemp > rowmax {
 						rowmax = dtemp
@@ -451,7 +450,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 			if (kstep == 2) && (p != k) {
 				//              (1) Swap columnar parts
 				if p < n {
-					goblas.Zswap(n-p, a.CVector(p, k-1, 1), a.CVector(p, p-1, 1))
+					a.Off(p, p-1).CVector().Swap(n-p, a.Off(p, k-1).CVector(), 1, 1)
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = k + 1; j <= p-1; j++ {
@@ -472,7 +471,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 			if kp != kk {
 				//              (1) Swap columnar parts
 				if kp < n {
-					goblas.Zswap(n-kp, a.CVector(kp, kk-1, 1), a.CVector(kp, kp-1, 1))
+					a.Off(kp, kp-1).CVector().Swap(n-kp, a.Off(kp, kk-1).CVector(), 1, 1)
 				}
 				//              (2) Swap and conjugate middle parts
 				for j = kk + 1; j <= kp-1; j++ {
@@ -520,12 +519,12 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						d11 = one / a.GetRe(k-1, k-1)
-						if err = goblas.Zher(uplo, n-k, -d11, a.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+						if err = a.Off(k, k).Her(uplo, n-k, -d11, a.Off(k, k-1).CVector(), 1); err != nil {
 							panic(err)
 						}
 
 						//                    Store L(k) in column k
-						goblas.Zdscal(n-k, d11, a.CVector(k, k-1, 1))
+						a.Off(k, k-1).CVector().Dscal(n-k, d11, 1)
 					} else {
 						//                    Store L(k) in column k
 						d11 = a.GetRe(k-1, k-1)
@@ -537,7 +536,7 @@ func Zhetf2Rook(uplo mat.MatUplo, n int, a *mat.CMatrix, ipiv *[]int) (info int,
 						//                    A := A - L(k)*D(k)*L(k)**T
 						//                       = A - W(k)*(1/D(k))*W(k)**T
 						//                       = A - (W(k)/D(k))*(D(k))*(W(k)/D(K))**T
-						if err = goblas.Zher(uplo, n-k, -d11, a.CVector(k, k-1, 1), a.Off(k, k)); err != nil {
+						if err = a.Off(k, k).Her(uplo, n-k, -d11, a.Off(k, k-1).CVector(), 1); err != nil {
 							panic(err)
 						}
 					}

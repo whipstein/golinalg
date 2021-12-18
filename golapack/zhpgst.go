@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -56,14 +55,14 @@ func Zhpgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.CVector) (err error)
 				//              Compute the j-th column of the upper triangle of A
 				ap.Set(jj-1, ap.GetReCmplx(jj-1))
 				bjj = bp.GetRe(jj - 1)
-				if err = goblas.Ztpsv(uplo, ConjTrans, NonUnit, j, bp, ap.Off(j1-1, 1)); err != nil {
+				if err = ap.Off(j1-1).Tpsv(uplo, ConjTrans, NonUnit, j, bp, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zhpmv(uplo, j-1, -cone, ap, bp.Off(j1-1, 1), cone, ap.Off(j1-1, 1)); err != nil {
+				if err = ap.Off(j1-1).Hpmv(uplo, j-1, -cone, ap, bp.Off(j1-1), 1, cone, 1); err != nil {
 					panic(err)
 				}
-				goblas.Zdscal(j-1, one/bjj, ap.Off(j1-1, 1))
-				ap.Set(jj-1, (ap.Get(jj-1)-goblas.Zdotc(j-1, ap.Off(j1-1, 1), bp.Off(j1-1, 1)))/complex(bjj, 0))
+				ap.Off(j1-1).Dscal(j-1, one/bjj, 1)
+				ap.Set(jj-1, (ap.Get(jj-1)-bp.Off(j1-1).Dotc(j-1, ap.Off(j1-1), 1, 1))/complex(bjj, 0))
 			}
 		} else {
 			//           Compute inv(L)*A*inv(L**H)
@@ -79,14 +78,14 @@ func Zhpgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.CVector) (err error)
 				akk = akk / math.Pow(bkk, 2)
 				ap.SetRe(kk-1, akk)
 				if k < n {
-					goblas.Zdscal(n-k, one/bkk, ap.Off(kk, 1))
+					ap.Off(kk).Dscal(n-k, one/bkk, 1)
 					ct = complex(-half*akk, 0)
-					goblas.Zaxpy(n-k, ct, bp.Off(kk, 1), ap.Off(kk, 1))
-					if err = goblas.Zhpr2(uplo, n-k, -cone, ap.Off(kk, 1), bp.Off(kk, 1), ap.Off(k1k1-1)); err != nil {
+					ap.Off(kk).Axpy(n-k, ct, bp.Off(kk), 1, 1)
+					if err = ap.Off(k1k1-1).Hpr2(uplo, n-k, -cone, ap.Off(kk), 1, bp.Off(kk), 1); err != nil {
 						panic(err)
 					}
-					goblas.Zaxpy(n-k, ct, bp.Off(kk, 1), ap.Off(kk, 1))
-					if err = goblas.Ztpsv(uplo, NoTrans, NonUnit, n-k, bp.Off(k1k1-1), ap.Off(kk, 1)); err != nil {
+					ap.Off(kk).Axpy(n-k, ct, bp.Off(kk), 1, 1)
+					if err = ap.Off(kk).Tpsv(uplo, NoTrans, NonUnit, n-k, bp.Off(k1k1-1), 1); err != nil {
 						panic(err)
 					}
 				}
@@ -106,16 +105,16 @@ func Zhpgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.CVector) (err error)
 				//              Update the upper triangle of A(1:k,1:k)
 				akk = ap.GetRe(kk - 1)
 				bkk = bp.GetRe(kk - 1)
-				if err = goblas.Ztpmv(uplo, NoTrans, NonUnit, k-1, bp, ap.Off(k1-1, 1)); err != nil {
+				if err = ap.Off(k1-1).Tpmv(uplo, NoTrans, NonUnit, k-1, bp, 1); err != nil {
 					panic(err)
 				}
 				ct = complex(half*akk, 0)
-				goblas.Zaxpy(k-1, ct, bp.Off(k1-1, 1), ap.Off(k1-1, 1))
-				if err = goblas.Zhpr2(uplo, k-1, cone, ap.Off(k1-1, 1), bp.Off(k1-1, 1), ap); err != nil {
+				ap.Off(k1-1).Axpy(k-1, ct, bp.Off(k1-1), 1, 1)
+				if err = ap.Hpr2(uplo, k-1, cone, ap.Off(k1-1), 1, bp.Off(k1-1), 1); err != nil {
 					panic(err)
 				}
-				goblas.Zaxpy(k-1, ct, bp.Off(k1-1, 1), ap.Off(k1-1, 1))
-				goblas.Zdscal(k-1, bkk, ap.Off(k1-1, 1))
+				ap.Off(k1-1).Axpy(k-1, ct, bp.Off(k1-1), 1, 1)
+				ap.Off(k1-1).Dscal(k-1, bkk, 1)
 				ap.SetRe(kk-1, akk*math.Pow(bkk, 2))
 			}
 		} else {
@@ -129,12 +128,12 @@ func Zhpgst(itype int, uplo mat.MatUplo, n int, ap, bp *mat.CVector) (err error)
 				//              Compute the j-th column of the lower triangle of A
 				ajj = ap.GetRe(jj - 1)
 				bjj = bp.GetRe(jj - 1)
-				ap.Set(jj-1, complex(ajj*bjj, 0)+goblas.Zdotc(n-j, ap.Off(jj, 1), bp.Off(jj, 1)))
-				goblas.Zdscal(n-j, bjj, ap.Off(jj, 1))
-				if err = goblas.Zhpmv(uplo, n-j, cone, ap.Off(j1j1-1), bp.Off(jj, 1), cone, ap.Off(jj, 1)); err != nil {
+				ap.Set(jj-1, complex(ajj*bjj, 0)+bp.Off(jj).Dotc(n-j, ap.Off(jj), 1, 1))
+				ap.Off(jj).Dscal(n-j, bjj, 1)
+				if err = ap.Off(jj).Hpmv(uplo, n-j, cone, ap.Off(j1j1-1), bp.Off(jj), 1, cone, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Ztpmv(uplo, ConjTrans, NonUnit, n-j+1, bp.Off(jj-1), ap.Off(jj-1, 1)); err != nil {
+				if err = ap.Off(jj-1).Tpmv(uplo, ConjTrans, NonUnit, n-j+1, bp.Off(jj-1), 1); err != nil {
 					panic(err)
 				}
 				jj = j1j1

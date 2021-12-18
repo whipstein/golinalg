@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -299,7 +298,7 @@ func Zgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.CMatrix, w *mat.CVec
 	//     (CWorkspace: need N*N+2*N unless SENSE = 'E')
 	//     (RWorkspace: need 2*N unless SENSE = 'E')
 	if !wntsnn {
-		if _, err = Ztrsna(sense, 'A', _select, n, a, vl, vr, rconde, rcondv, n, work.CMatrixOff(iwrk-1, n, opts), rwork); err != nil {
+		if _, err = Ztrsna(sense, 'A', _select, n, a, vl, vr, rconde, rcondv, n, work.Off(iwrk-1).CMatrix(n, opts), rwork); err != nil {
 			panic(err)
 		}
 	}
@@ -312,14 +311,14 @@ func Zgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.CMatrix, w *mat.CVec
 
 		//        Normalize left eigenvectors and make largest component real
 		for i = 1; i <= n; i++ {
-			scl = one / goblas.Dznrm2(n, vl.CVector(0, i-1, 1))
-			goblas.Zdscal(n, scl, vl.CVector(0, i-1, 1))
+			scl = one / vl.Off(0, i-1).CVector().Nrm2(n, 1)
+			vl.Off(0, i-1).CVector().Dscal(n, scl, 1)
 			for k = 1; k <= n; k++ {
 				rwork.Set(k-1, math.Pow(vl.GetRe(k-1, i-1), 2)+math.Pow(vl.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(n, rwork.Off(0, 1))
+			k = rwork.Iamax(n, 1)
 			tmp = vl.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(k-1)), 0)
-			goblas.Zscal(n, tmp, vl.CVector(0, i-1, 1))
+			vl.Off(0, i-1).CVector().Scal(n, tmp, 1)
 			vl.SetRe(k-1, i-1, vl.GetRe(k-1, i-1))
 		}
 	}
@@ -332,14 +331,14 @@ func Zgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.CMatrix, w *mat.CVec
 
 		//        Normalize right eigenvectors and make largest component real
 		for i = 1; i <= n; i++ {
-			scl = one / goblas.Dznrm2(n, vr.CVector(0, i-1, 1))
-			goblas.Zdscal(n, scl, vr.CVector(0, i-1, 1))
+			scl = one / vr.Off(0, i-1).CVector().Nrm2(n, 1)
+			vr.Off(0, i-1).CVector().Dscal(n, scl, 1)
 			for k = 1; k <= n; k++ {
 				rwork.Set(k-1, math.Pow(vr.GetRe(k-1, i-1), 2)+math.Pow(vr.GetIm(k-1, i-1), 2))
 			}
-			k = goblas.Idamax(n, rwork.Off(0, 1))
+			k = rwork.Iamax(n, 1)
 			tmp = vr.GetConj(k-1, i-1) / complex(math.Sqrt(rwork.Get(k-1)), 0)
-			goblas.Zscal(n, tmp, vr.CVector(0, i-1, 1))
+			vr.Off(0, i-1).CVector().Scal(n, tmp, 1)
 			vr.SetRe(k-1, i-1, vr.GetRe(k-1, i-1))
 		}
 	}
@@ -348,7 +347,7 @@ func Zgeevx(balanc, jobvl, jobvr, sense byte, n int, a *mat.CMatrix, w *mat.CVec
 label50:
 	;
 	if scalea {
-		if err = Zlascl('G', 0, 0, cscale, anrm, n-info, 1, w.CMatrixOff(info, max(n-info, 1), opts)); err != nil {
+		if err = Zlascl('G', 0, 0, cscale, anrm, n-info, 1, w.Off(info).CMatrix(max(n-info, 1), opts)); err != nil {
 			panic(err)
 		}
 		if info == 0 {

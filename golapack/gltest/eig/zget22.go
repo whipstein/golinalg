@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -129,7 +128,7 @@ func zget22(transa, transe, transw mat.MatTrans, n int, a, e *mat.CMatrix, w, wo
 		joff = joff + n
 	}
 
-	if err = goblas.Zgemm(transa, transe, n, n, n, cone, a, e, -cone, work.CMatrix(n, opts)); err != nil {
+	if err = work.CMatrix(n, opts).Gemm(transa, transe, n, n, n, cone, a, e, -cone); err != nil {
 		panic(err)
 	}
 

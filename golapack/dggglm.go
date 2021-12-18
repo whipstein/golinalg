@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -112,7 +111,7 @@ func Dggglm(n, m, p int, a, b *mat.Matrix, d, x, y, work *mat.Vector, lwork int)
 
 	//     Solve T22*y2 = d2 for y2
 	if n > m {
-		if info, err = Dtrtrs(Upper, NoTrans, NonUnit, n-m, 1, b.Off(m, m+p-n), d.MatrixOff(m, n-m, opts)); err != nil {
+		if info, err = Dtrtrs(Upper, NoTrans, NonUnit, n-m, 1, b.Off(m, m+p-n), d.Off(m).Matrix(n-m, opts)); err != nil {
 			panic(err)
 		}
 
@@ -121,7 +120,7 @@ func Dggglm(n, m, p int, a, b *mat.Matrix, d, x, y, work *mat.Vector, lwork int)
 			return
 		}
 
-		goblas.Dcopy(n-m, d.Off(m, 1), y.Off(m+p-n, 1))
+		y.Off(m+p-n).Copy(n-m, d.Off(m), 1, 1)
 	}
 
 	//     Set y1 = 0
@@ -130,7 +129,7 @@ func Dggglm(n, m, p int, a, b *mat.Matrix, d, x, y, work *mat.Vector, lwork int)
 	}
 
 	//     Update d1 = d1 - T12*y2
-	err = goblas.Dgemv(NoTrans, m, n-m, -one, b.Off(0, m+p-n), y.Off(m+p-n, 1), one, d.Off(0, 1))
+	err = d.Gemv(NoTrans, m, n-m, -one, b.Off(0, m+p-n), y.Off(m+p-n), 1, one, 1)
 
 	//     Solve triangular system: R11*x = d1
 	if m > 0 {
@@ -144,7 +143,7 @@ func Dggglm(n, m, p int, a, b *mat.Matrix, d, x, y, work *mat.Vector, lwork int)
 		}
 
 		//        Copy D to X
-		goblas.Dcopy(m, d.Off(0, 1), x.Off(0, 1))
+		x.Copy(m, d, 1, 1)
 	}
 
 	//     Backward transformation y = Z**T *y

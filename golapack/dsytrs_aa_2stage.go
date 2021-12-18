@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -53,7 +52,7 @@ func DsytrsAa2stage(uplo mat.MatUplo, n int, nrhs int, a *mat.Matrix, tb *mat.Ve
 			Dlaswp(nrhs, b, nb+1, n, *ipiv, 1)
 
 			//           Compute (U**T \ B) -> B    [ (U**T \P**T * B) ]
-			if err = goblas.Dtrsm(Left, Upper, Trans, Unit, n-nb, nrhs, one, a.Off(0, nb), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Upper, Trans, Unit, n-nb, nrhs, one, a.Off(0, nb)); err != nil {
 				panic(err)
 			}
 
@@ -65,7 +64,7 @@ func DsytrsAa2stage(uplo mat.MatUplo, n int, nrhs int, a *mat.Matrix, tb *mat.Ve
 		}
 		if n > nb {
 			//           Compute (U \ B) -> B   [ U \ (T \ (U**T \P**T * B) ) ]
-			if err = goblas.Dtrsm(Left, Upper, NoTrans, Unit, n-nb, nrhs, one, a.Off(0, nb), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Upper, NoTrans, Unit, n-nb, nrhs, one, a.Off(0, nb)); err != nil {
 				panic(err)
 			}
 
@@ -81,7 +80,7 @@ func DsytrsAa2stage(uplo mat.MatUplo, n int, nrhs int, a *mat.Matrix, tb *mat.Ve
 			Dlaswp(nrhs, b, nb+1, n, *ipiv, 1)
 
 			//           Compute (L \ B) -> B    [ (L \P**T * B) ]
-			if err = goblas.Dtrsm(Left, Lower, NoTrans, Unit, n-nb, nrhs, one, a.Off(nb, 0), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Lower, NoTrans, Unit, n-nb, nrhs, one, a.Off(nb, 0)); err != nil {
 				panic(err)
 			}
 
@@ -93,7 +92,7 @@ func DsytrsAa2stage(uplo mat.MatUplo, n int, nrhs int, a *mat.Matrix, tb *mat.Ve
 		}
 		if n > nb {
 			//           Compute (L**T \ B) -> B   [ L**T \ (T \ (L \P**T * B) ) ]
-			if err = goblas.Dtrsm(Left, Lower, Trans, Unit, n-nb, nrhs, one, a.Off(nb, 0), b.Off(nb, 0)); err != nil {
+			if err = b.Off(nb, 0).Trsm(Left, Lower, Trans, Unit, n-nb, nrhs, one, a.Off(nb, 0)); err != nil {
 				panic(err)
 			}
 

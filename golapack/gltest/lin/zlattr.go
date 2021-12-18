@@ -186,9 +186,9 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 
 		if upper {
 			if n > 3 {
-				goblas.Zcopy(n-3, work.Off(0, 1), a.CVector(1, 2, a.Rows+1))
+				a.Off(1, 2).CVector().Copy(n-3, work, 1, a.Rows+1)
 				if n > 4 {
-					goblas.Zcopy(n-4, work.Off(n, 1), a.CVector(1, 3, a.Rows+1))
+					a.Off(1, 3).CVector().Copy(n-4, work.Off(n), 1, a.Rows+1)
 				}
 			}
 			for j = 2; j <= n-1; j++ {
@@ -198,9 +198,9 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 			a.SetRe(0, n-1, z)
 		} else {
 			if n > 3 {
-				goblas.Zcopy(n-3, work.Off(0, 1), a.CVector(2, 1, a.Rows+1))
+				a.Off(2, 1).CVector().Copy(n-3, work, 1, a.Rows+1)
 				if n > 4 {
-					goblas.Zcopy(n-4, work.Off(n, 1), a.CVector(3, 1, a.Rows+1))
+					a.Off(3, 1).CVector().Copy(n-4, work.Off(n), 1, a.Rows+1)
 				}
 			}
 			for j = 2; j <= n-1; j++ {
@@ -219,12 +219,12 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 
 				//              Multiply by [ c  s; -conjg(s)  c] on the left.
 				if n > j+1 {
-					golapack.Zrot(n-j-1, a.CVector(j-1, j+2-1), a.CVector(j, j+2-1), c, s)
+					golapack.Zrot(n-j-1, a.Off(j-1, j+2-1).CVector(), a.Rows, a.Off(j, j+2-1).CVector(), a.Rows, c, s)
 				}
 
 				//              Multiply by [-c -s;  conjg(s) -c] on the right.
 				if j > 1 {
-					golapack.Zrot(j-1, a.CVector(0, j, 1), a.CVector(0, j-1, 1), -c, -s)
+					golapack.Zrot(j-1, a.Off(0, j).CVector(), 1, a.Off(0, j-1).CVector(), 1, -c, -s)
 				}
 
 				//              Negate A(J,J+1).
@@ -239,12 +239,12 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 
 				//              Multiply by [ c -s;  conjg(s) c] on the right.
 				if n > j+1 {
-					golapack.Zrot(n-j-1, a.CVector(j+2-1, j, 1), a.CVector(j+2-1, j-1, 1), c, -s)
+					golapack.Zrot(n-j-1, a.Off(j+2-1, j).CVector(), 1, a.Off(j+2-1, j-1).CVector(), 1, c, -s)
 				}
 
 				//              Multiply by [-c  s; -conjg(s) -c] on the left.
 				if j > 1 {
-					golapack.Zrot(j-1, a.CVector(j-1, 0), a.CVector(j, 0), -c, s)
+					golapack.Zrot(j-1, a.Off(j-1, 0).CVector(), a.Rows, a.Off(j, 0).CVector(), a.Rows, -c, s)
 				}
 
 				//              Negate A(J+1,J).
@@ -261,13 +261,13 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		//        Make the right hand side large so that it requires scaling.
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(4, iseed, j-1, a.CVector(0, j-1))
+				golapack.Zlarnv(4, iseed, j-1, a.Off(0, j-1).CVector())
 				a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				if j < n {
-					golapack.Zlarnv(4, iseed, n-j, a.CVector(j, j-1))
+					golapack.Zlarnv(4, iseed, n-j, a.Off(j, j-1).CVector())
 				}
 				a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 			}
@@ -275,10 +275,10 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(2, iseed, n, b)
-		iy = goblas.Izamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Zdscal(n, bscal, b.Off(0, 1))
+		b.Dscal(n, bscal, 1)
 
 	} else if imat == 12 {
 		//        Type 12:  Make the first diagonal element in the solve small to
@@ -288,16 +288,16 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		tscal = one / math.Max(one, float64(n-1))
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(4, iseed, j-1, a.CVector(0, j-1))
-				goblas.Zdscal(j-1, tscal, a.CVector(0, j-1, 1))
+				golapack.Zlarnv(4, iseed, j-1, a.Off(0, j-1).CVector())
+				a.Off(0, j-1).CVector().Dscal(j-1, tscal, 1)
 				a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed))
 			}
 			a.Set(n-1, n-1, complex(smlnum, 0)*a.Get(n-1, n-1))
 		} else {
 			for j = 1; j <= n; j++ {
 				if j < n {
-					golapack.Zlarnv(4, iseed, n-j, a.CVector(j, j-1))
-					goblas.Zdscal(n-j, tscal, a.CVector(j, j-1, 1))
+					golapack.Zlarnv(4, iseed, n-j, a.Off(j, j-1).CVector())
+					a.Off(j, j-1).CVector().Dscal(n-j, tscal, 1)
 				}
 				a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed))
 			}
@@ -311,14 +311,14 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		golapack.Zlarnv(2, iseed, n, b)
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(4, iseed, j-1, a.CVector(0, j-1))
+				golapack.Zlarnv(4, iseed, j-1, a.Off(0, j-1).CVector())
 				a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed))
 			}
 			a.Set(n-1, n-1, complex(smlnum, 0)*a.Get(n-1, n-1))
 		} else {
 			for j = 1; j <= n; j++ {
 				if j < n {
-					golapack.Zlarnv(4, iseed, n-j, a.CVector(j, j-1))
+					golapack.Zlarnv(4, iseed, n-j, a.Off(j, j-1).CVector())
 				}
 				a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed))
 			}
@@ -414,7 +414,7 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		iy = n/2 + 1
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(4, iseed, j-1, a.CVector(0, j-1))
+				golapack.Zlarnv(4, iseed, j-1, a.Off(0, j-1).CVector())
 				if j != iy {
 					a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
 				} else {
@@ -424,7 +424,7 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		} else {
 			for j = 1; j <= n; j++ {
 				if j < n {
-					golapack.Zlarnv(4, iseed, n-j, a.CVector(j, j-1))
+					golapack.Zlarnv(4, iseed, n-j, a.Off(j, j-1).CVector())
 				}
 				if j != iy {
 					a.Set(j-1, j-1, matgen.Zlarnd(5, *iseed)*complex(two, 0))
@@ -434,7 +434,7 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 			}
 		}
 		golapack.Zlarnv(2, iseed, n, b)
-		goblas.Zdscal(n, two, b.Off(0, 1))
+		b.Dscal(n, two, 1)
 
 	} else if imat == 17 {
 		//        Type 17:  Make the offdiagonal elements large to cause overflow
@@ -479,13 +479,13 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		//        requires scaling.
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(4, iseed, j-1, a.CVector(0, j-1))
+				golapack.Zlarnv(4, iseed, j-1, a.Off(0, j-1).CVector())
 				a.SetRe(j-1, j-1, zero)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				if j < n {
-					golapack.Zlarnv(4, iseed, n-j, a.CVector(j, j-1))
+					golapack.Zlarnv(4, iseed, n-j, a.Off(j, j-1).CVector())
 				}
 				a.SetRe(j-1, j-1, zero)
 			}
@@ -493,10 +493,10 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 
 		//        Set the right hand side so that the largest value is BIGNUM.
 		golapack.Zlarnv(2, iseed, n, b)
-		iy = goblas.Izamax(n, b.Off(0, 1))
+		iy = b.Iamax(n, 1)
 		bnorm = b.GetMag(iy - 1)
 		bscal = bignum / math.Max(one, bnorm)
-		goblas.Zdscal(n, bscal, b.Off(0, 1))
+		b.Dscal(n, bscal, 1)
 
 	} else if imat == 19 {
 		//        Type 19:  Generate a triangular matrix with elements between
@@ -507,7 +507,7 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 		tscal = bignum * (float64(n-1) / math.Max(one, float64(n)))
 		if upper {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(5, iseed, j, a.CVector(0, j-1))
+				golapack.Zlarnv(5, iseed, j, a.Off(0, j-1).CVector())
 				golapack.Dlarnv(1, iseed, j, rwork)
 				for i = 1; i <= j; i++ {
 					a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(tleft+rwork.Get(i-1)*tscal, 0))
@@ -515,7 +515,7 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 			}
 		} else {
 			for j = 1; j <= n; j++ {
-				golapack.Zlarnv(5, iseed, n-j+1, a.CVector(j-1, j-1))
+				golapack.Zlarnv(5, iseed, n-j+1, a.Off(j-1, j-1).CVector())
 				golapack.Dlarnv(1, iseed, n-j+1, rwork)
 				for i = j; i <= n; i++ {
 					a.Set(i-1, j-1, a.Get(i-1, j-1)*complex(tleft+rwork.Get(i-j)*tscal, 0))
@@ -523,18 +523,18 @@ func zlattr(imat int, uplo mat.MatUplo, trans mat.MatTrans, iseed *[]int, n int,
 			}
 		}
 		golapack.Zlarnv(2, iseed, n, b)
-		goblas.Zdscal(n, two, b.Off(0, 1))
+		b.Dscal(n, two, 1)
 	}
 
 	//     Flip the matrix if the transpose will be used.
 	if trans != NoTrans {
 		if upper {
 			for j = 1; j <= n/2; j++ {
-				goblas.Zswap(n-2*j+1, a.CVector(j-1, j-1), a.CVector(j, n-j, -1))
+				a.Off(j, n-j).CVector().Swap(n-2*j+1, a.Off(j-1, j-1).CVector(), a.Rows, -1)
 			}
 		} else {
 			for j = 1; j <= n/2; j++ {
-				goblas.Zswap(n-2*j+1, a.CVector(j-1, j-1, 1), a.CVector(n-j, j, -a.Rows))
+				a.Off(n-j, j).CVector().Swap(n-2*j+1, a.Off(j-1, j-1).CVector(), 1, -a.Rows)
 			}
 		}
 	}

@@ -4,7 +4,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -291,10 +290,10 @@ func zget35() (rmax float64, lmax, ninfo, knt int) {
 											rmul = cone / rmul
 										}
 									}
-									if err = goblas.Zgemm(trana, NoTrans, m, n, m, rmul, a, c, complex(-scale, 0)*rmul, csav); err != nil {
+									if err = csav.Gemm(trana, NoTrans, m, n, m, rmul, a, c, complex(-scale, 0)*rmul); err != nil {
 										panic(err)
 									}
-									if err = goblas.Zgemm(NoTrans, tranb, m, n, n, complex(float64(isgn), 0)*rmul, c, b, cone, csav); err != nil {
+									if err = csav.Gemm(NoTrans, tranb, m, n, n, complex(float64(isgn), 0)*rmul, c, b, cone); err != nil {
 										panic(err)
 									}
 									res1 = golapack.Zlange('M', m, n, csav, dum)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -260,8 +259,8 @@ func Dstemr(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu i
 			scale = rmax / tnrm
 		}
 		if scale != one {
-			goblas.Dscal(n, scale, d.Off(0, 1))
-			goblas.Dscal(n-1, scale, e.Off(0, 1))
+			d.Scal(n, scale, 1)
+			e.Scal(n-1, scale, 1)
 			tnrm = tnrm * scale
 			if valeig {
 				//              If eigenvalues in interval have to be found,
@@ -296,7 +295,7 @@ func Dstemr(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu i
 
 		if tryracOut {
 			//           Copy original diagonal, needed to guarantee relative accuracy
-			goblas.Dcopy(n, d.Off(0, 1), work.Off(indd-1, 1))
+			work.Off(indd-1).Copy(n, d, 1, 1)
 		}
 		//        Store the squares of the offdiagonal values of T
 		for j = 1; j <= n-1; j++ {
@@ -380,7 +379,7 @@ func Dstemr(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu i
 
 		//        If matrix was scaled, then rescale eigenvalues appropriately.
 		if scale != one {
-			goblas.Dscal(m, one/scale, w.Off(0, 1))
+			w.Scal(m, one/scale, 1)
 		}
 	}
 
@@ -406,7 +405,7 @@ func Dstemr(jobz, _range byte, n int, d, e *mat.Vector, vl, vu float64, il, iu i
 					w.Set(i-1, w.Get(j-1))
 					w.Set(j-1, tmp)
 					if wantz {
-						goblas.Dswap(n, z.Vector(0, i-1, 1), z.Vector(0, j-1, 1))
+						z.Off(0, j-1).Vector().Swap(n, z.Off(0, i-1).Vector(), 1, 1)
 						itmp = (*isuppz)[2*i-1-1]
 						(*isuppz)[2*i-1-1] = (*isuppz)[2*j-1-1]
 						(*isuppz)[2*j-1-1] = itmp

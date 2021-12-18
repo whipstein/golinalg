@@ -83,7 +83,7 @@ func Zgelqf(m, n int, a *mat.CMatrix, tau, work *mat.CVector, lwork int) (err er
 				Zlarft('F', 'R', n-i+1, ib, a.Off(i-1, i-1), tau.Off(i-1), work.CMatrix(ldwork, opts))
 
 				//              Apply H to A(i+ib:m,i:n) from the right
-				Zlarfb(Right, NoTrans, 'F', 'R', m-i-ib+1, n-i+1, ib, a.Off(i-1, i-1), work.CMatrix(ldwork, opts), a.Off(i+ib-1, i-1), work.CMatrixOff(ib, ldwork, opts))
+				Zlarfb(Right, NoTrans, 'F', 'R', m-i-ib+1, n-i+1, ib, a.Off(i-1, i-1), work.CMatrix(ldwork, opts), a.Off(i+ib-1, i-1), work.Off(ib).CMatrix(ldwork, opts))
 			}
 		}
 	} else {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -50,13 +49,13 @@ func Zpptrf(uplo mat.MatUplo, n int, ap *mat.CVector) (info int, err error) {
 
 			//           Compute elements 1:J-1 of column J.
 			if j > 1 {
-				if err = goblas.Ztpsv(Upper, ConjTrans, NonUnit, j-1, ap, ap.Off(jc-1, 1)); err != nil {
+				if err = ap.Off(jc-1).Tpsv(Upper, ConjTrans, NonUnit, j-1, ap, 1); err != nil {
 					panic(err)
 				}
 			}
 
 			//           Compute U(J,J) and test for non-positive-definiteness.
-			ajj = real(ap.Get(jj-1) - goblas.Zdotc(j-1, ap.Off(jc-1, 1), ap.Off(jc-1, 1)))
+			ajj = real(ap.Get(jj-1) - ap.Off(jc-1).Dotc(j-1, ap.Off(jc-1), 1, 1))
 			if ajj <= zero {
 				ap.SetRe(jj-1, ajj)
 				goto label30
@@ -79,8 +78,8 @@ func Zpptrf(uplo mat.MatUplo, n int, ap *mat.CVector) (info int, err error) {
 			//           Compute elements J+1:N of column J and update the trailing
 			//           submatrix.
 			if j < n {
-				goblas.Zdscal(n-j, one/ajj, ap.Off(jj, 1))
-				if err = goblas.Zhpr(Lower, n-j, -one, ap.Off(jj, 1), ap.Off(jj+n-j)); err != nil {
+				ap.Off(jj).Dscal(n-j, one/ajj, 1)
+				if err = ap.Off(jj+n-j).Hpr(Lower, n-j, -one, ap.Off(jj), 1); err != nil {
 					panic(err)
 				}
 				jj = jj + n - j + 1

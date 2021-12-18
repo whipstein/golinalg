@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -102,7 +101,7 @@ func Ztrevc(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *mat
 	//     part of T to control overflow in triangular solver.
 	rwork.Set(0, zero)
 	for j = 2; j <= n; j++ {
-		rwork.Set(j-1, goblas.Dzasum(j-1, t.CVector(0, j-1, 1)))
+		rwork.Set(j-1, t.Off(0, j-1).CVector().Asum(j-1, 1))
 	}
 
 	if rightv {
@@ -142,25 +141,25 @@ func Ztrevc(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *mat
 
 			//           Copy the vector x or Q*x to VR and normalize.
 			if !over {
-				goblas.Zcopy(ki, work.Off(0, 1), vr.CVector(0, is-1, 1))
+				vr.Off(0, is-1).CVector().Copy(ki, work, 1, 1)
 
-				ii = goblas.Izamax(ki, vr.CVector(0, is-1, 1))
+				ii = vr.Off(0, is-1).CVector().Iamax(ki, 1)
 				remax = one / cabs1(vr.Get(ii-1, is-1))
-				goblas.Zdscal(ki, remax, vr.CVector(0, is-1, 1))
+				vr.Off(0, is-1).CVector().Dscal(ki, remax, 1)
 
 				for k = ki + 1; k <= n; k++ {
 					vr.Set(k-1, is-1, cmzero)
 				}
 			} else {
 				if ki > 1 {
-					if err = goblas.Zgemv(NoTrans, n, ki-1, cmone, vr, work.Off(0, 1), complex(scale, 0), vr.CVector(0, ki-1, 1)); err != nil {
+					if err = vr.Off(0, ki-1).CVector().Gemv(NoTrans, n, ki-1, cmone, vr, work, 1, complex(scale, 0), 1); err != nil {
 						panic(err)
 					}
 				}
 
-				ii = goblas.Izamax(n, vr.CVector(0, ki-1, 1))
+				ii = vr.Off(0, ki-1).CVector().Iamax(n, 1)
 				remax = one / cabs1(vr.Get(ii-1, ki-1))
-				goblas.Zdscal(n, remax, vr.CVector(0, ki-1, 1))
+				vr.Off(0, ki-1).CVector().Dscal(n, remax, 1)
 			}
 
 			//           Set back the original diagonal elements of T.
@@ -210,25 +209,25 @@ func Ztrevc(side mat.MatSide, howmny byte, _select []bool, n int, t, vl, vr *mat
 
 			//           Copy the vector x or Q*x to VL and normalize.
 			if !over {
-				goblas.Zcopy(n-ki+1, work.Off(ki-1, 1), vl.CVector(ki-1, is-1, 1))
+				vl.Off(ki-1, is-1).CVector().Copy(n-ki+1, work.Off(ki-1), 1, 1)
 
-				ii = goblas.Izamax(n-ki+1, vl.CVector(ki-1, is-1, 1)) + ki - 1
+				ii = vl.Off(ki-1, is-1).CVector().Iamax(n-ki+1, 1) + ki - 1
 				remax = one / cabs1(vl.Get(ii-1, is-1))
-				goblas.Zdscal(n-ki+1, remax, vl.CVector(ki-1, is-1, 1))
+				vl.Off(ki-1, is-1).CVector().Dscal(n-ki+1, remax, 1)
 
 				for k = 1; k <= ki-1; k++ {
 					vl.Set(k-1, is-1, cmzero)
 				}
 			} else {
 				if ki < n {
-					if err = goblas.Zgemv(NoTrans, n, n-ki, cmone, vl.Off(0, ki), work.Off(ki, 1), complex(scale, 0), vl.CVector(0, ki-1, 1)); err != nil {
+					if err = vl.Off(0, ki-1).CVector().Gemv(NoTrans, n, n-ki, cmone, vl.Off(0, ki), work.Off(ki), 1, complex(scale, 0), 1); err != nil {
 						panic(err)
 					}
 				}
 
-				ii = goblas.Izamax(n, vl.CVector(0, ki-1, 1))
+				ii = vl.Off(0, ki-1).CVector().Iamax(n, 1)
 				remax = one / cabs1(vl.Get(ii-1, ki-1))
-				goblas.Zdscal(n, remax, vl.CVector(0, ki-1, 1))
+				vl.Off(0, ki-1).CVector().Dscal(n, remax, 1)
 			}
 
 			//           Set back the original diagonal elements of T.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -79,8 +78,8 @@ func Dgtrfs(trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf, du2 *mat.V
 		//
 		//        Compute residual R = B - op(A) * X,
 		//        where op(A) = A, A**T, or A**H, depending on TRANS.
-		goblas.Dcopy(n, b.Vector(0, j-1, 1), work.Off(n, 1))
-		Dlagtm(trans, n, 1, -one, dl, d, du, x.Off(0, j-1), one, work.MatrixOff(n, n, opts))
+		work.Off(n).Copy(n, b.Off(0, j-1).Vector(), 1, 1)
+		Dlagtm(trans, n, 1, -one, dl, d, du, x.Off(0, j-1), one, work.Off(n).Matrix(n, opts))
 		//
 		//        Compute math.Abs(op(A))*math.Abs(x) + math.Abs(b) for use in the backward
 		//        error bound.
@@ -132,10 +131,10 @@ func Dgtrfs(trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf, du2 *mat.V
 		//           3) At most ITMAX iterations tried.
 		if berr.Get(j-1) > eps && two*berr.Get(j-1) <= lstres && count <= itmax {
 			//           Update solution and try again.
-			if err = Dgttrs(trans, n, 1, dlf, df, duf, du2, ipiv, work.MatrixOff(n, n, opts)); err != nil {
+			if err = Dgttrs(trans, n, 1, dlf, df, duf, du2, ipiv, work.Off(n).Matrix(n, opts)); err != nil {
 				panic(err)
 			}
-			goblas.Daxpy(n, one, work.Off(n, 1), x.Vector(0, j-1, 1))
+			x.Off(0, j-1).Vector().Axpy(n, one, work.Off(n), 1, 1)
 			lstres = berr.Get(j - 1)
 			count = count + 1
 			goto label20
@@ -178,7 +177,7 @@ func Dgtrfs(trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf, du2 *mat.V
 		if kase != 0 {
 			if kase == 1 {
 				//              Multiply by diag(W)*inv(op(A)**T).
-				if err = Dgttrs(transt, n, 1, dlf, df, duf, du2, ipiv, work.MatrixOff(n, n, opts)); err != nil {
+				if err = Dgttrs(transt, n, 1, dlf, df, duf, du2, ipiv, work.Off(n).Matrix(n, opts)); err != nil {
 					panic(err)
 				}
 				for i = 1; i <= n; i++ {
@@ -189,7 +188,7 @@ func Dgtrfs(trans mat.MatTrans, n, nrhs int, dl, d, du, dlf, df, duf, du2 *mat.V
 				for i = 1; i <= n; i++ {
 					work.Set(n+i-1, work.Get(i-1)*work.Get(n+i-1))
 				}
-				if err = Dgttrs(transn, n, 1, dlf, df, duf, du2, ipiv, work.MatrixOff(n, n, opts)); err != nil {
+				if err = Dgttrs(transn, n, 1, dlf, df, duf, du2, ipiv, work.Off(n).Matrix(n, opts)); err != nil {
 					panic(err)
 				}
 			}

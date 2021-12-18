@@ -41,12 +41,12 @@ func Dgeqr2p(m, n int, a *mat.Matrix, tau, work *mat.Vector) (err error) {
 
 	for i = 1; i <= k; i++ {
 		//        Generate elementary reflector H(i) to annihilate A(i+1:m,i)
-		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Dlarfgp(m-i+1, a.Get(i-1, i-1), a.Vector(min(i+1, m)-1, i-1, 1))
+		*a.GetPtr(i-1, i-1), *tau.GetPtr(i - 1) = Dlarfgp(m-i+1, a.Get(i-1, i-1), a.Off(min(i+1, m)-1, i-1).Vector(), 1)
 		if i < n {
 			//           Apply H(i) to A(i:m,i+1:n) from the left
 			aii = a.Get(i-1, i-1)
 			a.Set(i-1, i-1, one)
-			Dlarf(Left, m-i+1, n-i, a.Vector(i-1, i-1, 1), tau.Get(i-1), a.Off(i-1, i), work)
+			Dlarf(Left, m-i+1, n-i, a.Off(i-1, i-1).Vector(), 1, tau.Get(i-1), a.Off(i-1, i), work)
 			a.Set(i-1, i-1, aii)
 		}
 	}

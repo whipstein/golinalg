@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -111,12 +110,12 @@ func Zpbsvx(fact byte, uplo mat.MatUplo, n, kd, nrhs int, ab, afb *mat.CMatrix, 
 		if upper {
 			for j = 1; j <= n; j++ {
 				j1 = max(j-kd, 1)
-				goblas.Zcopy(j-j1+1, ab.CVector(kd+1-j+j1-1, j-1, 1), afb.CVector(kd+1-j+j1-1, j-1, 1))
+				afb.Off(kd+1-j+j1-1, j-1).CVector().Copy(j-j1+1, ab.Off(kd+1-j+j1-1, j-1).CVector(), 1, 1)
 			}
 		} else {
 			for j = 1; j <= n; j++ {
 				j2 = min(j+kd, n)
-				goblas.Zcopy(j2-j+1, ab.CVector(0, j-1, 1), afb.CVector(0, j-1, 1))
+				afb.Off(0, j-1).CVector().Copy(j2-j+1, ab.Off(0, j-1).CVector(), 1, 1)
 			}
 		}
 

@@ -171,7 +171,7 @@ func Dlantr(norm byte, uplo mat.MatUplo, diag mat.MatDiag, m, n int, a *mat.Matr
 				for j = 2; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(m, j-1), a.Vector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(m, j-1), a.Off(0, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 					//Label290:
 				}
@@ -181,7 +181,7 @@ func Dlantr(norm byte, uplo mat.MatUplo, diag mat.MatDiag, m, n int, a *mat.Matr
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(m, j), a.Vector(0, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(min(m, j), a.Off(0, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}
@@ -192,7 +192,7 @@ func Dlantr(norm byte, uplo mat.MatUplo, diag mat.MatDiag, m, n int, a *mat.Matr
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(m-j, a.Vector(min(m, j+1)-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(m-j, a.Off(min(m, j+1)-1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			} else {
@@ -201,7 +201,7 @@ func Dlantr(norm byte, uplo mat.MatUplo, diag mat.MatDiag, m, n int, a *mat.Matr
 				for j = 1; j <= n; j++ {
 					colssq.Set(0, zero)
 					colssq.Set(1, one)
-					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(m-j+1, a.Vector(j-1, j-1, 1), colssq.Get(0), colssq.Get(1))
+					*colssq.GetPtr(0), *colssq.GetPtr(1) = Dlassq(m-j+1, a.Off(j-1, j-1).Vector(), 1, colssq.Get(0), colssq.Get(1))
 					Dcombssq(ssq, colssq)
 				}
 			}

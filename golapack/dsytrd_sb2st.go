@@ -150,8 +150,8 @@ func DsytrdSb2st(stage1, vect byte, uplo mat.MatUplo, n, kd int, ab *mat.Matrix,
 	stepercol = int(math.Ceil(float64(shift) / float64(grsiz)))
 	thgrnb = int(math.Ceil(float64(n-1) / float64(thgrsiz)))
 
-	Dlacpy(Full, kd+1, n, ab, work.MatrixOff(apos-1, lda, opts))
-	Dlaset(Full, kd, n, zero, zero, work.MatrixOff(awpos-1, lda, opts))
+	Dlacpy(Full, kd+1, n, ab, work.Off(apos-1).Matrix(lda, opts))
+	Dlaset(Full, kd, n, zero, zero, work.Off(awpos-1).Matrix(lda, opts))
 
 	//     main bulge chasing loop
 	for thgrid = 1; thgrid <= thgrnb; thgrid++ {
@@ -189,7 +189,7 @@ func DsytrdSb2st(stage1, vect byte, uplo mat.MatUplo, n, kd int, ab *mat.Matrix,
 						}
 
 						//                         Call the kernel
-						Dsb2stKernels(uplo, wantq, ttype, stind, edind, sweepid, n, kd, ib, work.MatrixOff(inda-1, lda, opts), hous.Off(indv-1), hous.Off(indtau-1), work.Off(indw+tid*kd-1))
+						Dsb2stKernels(uplo, wantq, ttype, stind, edind, sweepid, n, kd, ib, work.Off(inda-1).Matrix(lda, opts), hous.Off(indv-1), hous.Off(indtau-1), work.Off(indw+tid*kd-1))
 
 						if blklastind >= (n - 1) {
 							stt = stt + 1

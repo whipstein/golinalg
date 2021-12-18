@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -54,12 +53,12 @@ func DsytrdSy2sb(uplo mat.MatUplo, n, kd int, a, ab *mat.Matrix, tau, work *mat.
 		if upper {
 			for i = 1; i <= n; i++ {
 				lk = min(kd+1, i)
-				goblas.Dcopy(lk, a.Vector(i-lk, i-1, 1), ab.Vector(kd+1-lk, i-1, 1))
+				ab.Off(kd+1-lk, i-1).Vector().Copy(lk, a.Off(i-lk, i-1).Vector(), 1, 1)
 			}
 		} else {
 			for i = 1; i <= n; i++ {
 				lk = min(kd+1, n-i+1)
-				goblas.Dcopy(lk, a.Vector(i-1, i-1, 1), ab.Vector(0, i-1, 1))
+				ab.Off(0, i-1).Vector().Copy(lk, a.Off(i-1, i-1).Vector(), 1, 1)
 			}
 		}
 		work.Set(0, 1)
@@ -88,7 +87,7 @@ func DsytrdSy2sb(uplo mat.MatUplo, n, kd int, a, ab *mat.Matrix, tau, work *mat.
 
 	//     Set the workspace of the triangular matrix T to zero once such a
 	//     way every time T is generated the upper/lower portion will be always zero
-	Dlaset(Full, ldt, kd, zero, zero, work.MatrixOff(tpos-1, ldt, opts))
+	Dlaset(Full, ldt, kd, zero, zero, work.Off(tpos-1).Matrix(ldt, opts))
 
 	if upper {
 		for i = 1; i <= n-kd; i += kd {
@@ -103,34 +102,34 @@ func DsytrdSy2sb(uplo mat.MatUplo, n, kd int, a, ab *mat.Matrix, tau, work *mat.
 			//            Copy the upper portion of A into AB
 			for j = i; j <= i+pk-1; j++ {
 				lk = min(kd, n-j) + 1
-				goblas.Dcopy(lk, a.Vector(j-1, j-1), ab.Vector(kd, j-1, ab.Rows-1))
+				ab.Off(kd, j-1).Vector().Copy(lk, a.Off(j-1, j-1).Vector(), a.Rows, ab.Rows-1)
 			}
 
 			Dlaset(Lower, pk, pk, zero, one, a.Off(i-1, i+kd-1))
 
 			//            Form the matrix T
-			Dlarft('F', 'R', pn, pk, a.Off(i-1, i+kd-1), tau.Off(i-1), work.MatrixOff(tpos-1, ldt, opts))
+			Dlarft('F', 'R', pn, pk, a.Off(i-1, i+kd-1), tau.Off(i-1), work.Off(tpos-1).Matrix(ldt, opts))
 
 			//            Compute W:
-			if err = goblas.Dgemm(ConjTrans, NoTrans, pk, pn, pk, one, work.MatrixOff(tpos-1, ldt, opts), a.Off(i-1, i+kd-1), zero, work.MatrixOff(s2pos-1, lds2, opts)); err != nil {
+			if err = work.Off(s2pos-1).Matrix(lds2, opts).Gemm(ConjTrans, NoTrans, pk, pn, pk, one, work.Off(tpos-1).Matrix(ldt, opts), a.Off(i-1, i+kd-1), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dsymm(Right, uplo, pk, pn, one, a.Off(i+kd-1, i+kd-1), work.MatrixOff(s2pos-1, lds2, opts), zero, work.MatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).Matrix(ldw, opts).Symm(Right, uplo, pk, pn, one, a.Off(i+kd-1, i+kd-1), work.Off(s2pos-1).Matrix(lds2, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dgemm(NoTrans, ConjTrans, pk, pk, pn, one, work.MatrixOff(wpos-1, ldw, opts), work.MatrixOff(s2pos-1, lds2, opts), zero, work.MatrixOff(s1pos-1, lds1, opts)); err != nil {
+			if err = work.Off(s1pos-1).Matrix(lds1, opts).Gemm(NoTrans, ConjTrans, pk, pk, pn, one, work.Off(wpos-1).Matrix(ldw, opts), work.Off(s2pos-1).Matrix(lds2, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dgemm(NoTrans, NoTrans, pk, pn, pk, half, work.MatrixOff(s1pos-1, lds1, opts), a.Off(i-1, i+kd-1), one, work.MatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).Matrix(ldw, opts).Gemm(NoTrans, NoTrans, pk, pn, pk, half, work.Off(s1pos-1).Matrix(lds1, opts), a.Off(i-1, i+kd-1), one); err != nil {
 				panic(err)
 			}
 
 			//            Update the unreduced submatrix A(i+kd:n,i+kd:n), using
 			//            an update of the form:  A := A - V'*W - W'*V
-			if err = goblas.Dsyr2k(uplo, ConjTrans, pn, pk, one, a.Off(i-1, i+kd-1), work.MatrixOff(wpos-1, ldw, opts), rone, a.Off(i+kd-1, i+kd-1)); err != nil {
+			if err = a.Off(i+kd-1, i+kd-1).Syr2k(uplo, ConjTrans, pn, pk, one, a.Off(i-1, i+kd-1), work.Off(wpos-1).Matrix(ldw, opts), rone); err != nil {
 				panic(err)
 			}
 		}
@@ -138,7 +137,7 @@ func DsytrdSy2sb(uplo mat.MatUplo, n, kd int, a, ab *mat.Matrix, tau, work *mat.
 		//        Copy the upper band to AB which is the band storage matrix
 		for j = n - kd + 1; j <= n; j++ {
 			lk = min(kd, n-j) + 1
-			goblas.Dcopy(lk, a.Vector(j-1, j-1), ab.Vector(kd, j-1, ab.Rows-1))
+			ab.Off(kd, j-1).Vector().Copy(lk, a.Off(j-1, j-1).Vector(), a.Rows, ab.Rows-1)
 		}
 
 	} else {
@@ -155,34 +154,34 @@ func DsytrdSy2sb(uplo mat.MatUplo, n, kd int, a, ab *mat.Matrix, tau, work *mat.
 			//            Copy the upper portion of A into AB
 			for j = i; j <= i+pk-1; j++ {
 				lk = min(kd, n-j) + 1
-				goblas.Dcopy(lk, a.Vector(j-1, j-1, 1), ab.Vector(0, j-1, 1))
+				ab.Off(0, j-1).Vector().Copy(lk, a.Off(j-1, j-1).Vector(), 1, 1)
 			}
 
 			Dlaset(Upper, pk, pk, zero, one, a.Off(i+kd-1, i-1))
 
 			//            Form the matrix T
-			Dlarft('F', 'C', pn, pk, a.Off(i+kd-1, i-1), tau.Off(i-1), work.MatrixOff(tpos-1, ldt, opts))
+			Dlarft('F', 'C', pn, pk, a.Off(i+kd-1, i-1), tau.Off(i-1), work.Off(tpos-1).Matrix(ldt, opts))
 
 			//            Compute W:
-			if err = goblas.Dgemm(NoTrans, NoTrans, pn, pk, pk, one, a.Off(i+kd-1, i-1), work.MatrixOff(tpos-1, ldt, opts), zero, work.MatrixOff(s2pos-1, lds2, opts)); err != nil {
+			if err = work.Off(s2pos-1).Matrix(lds2, opts).Gemm(NoTrans, NoTrans, pn, pk, pk, one, a.Off(i+kd-1, i-1), work.Off(tpos-1).Matrix(ldt, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dsymm(Left, uplo, pn, pk, one, a.Off(i+kd-1, i+kd-1), work.MatrixOff(s2pos-1, lds2, opts), zero, work.MatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).Matrix(ldw, opts).Symm(Left, uplo, pn, pk, one, a.Off(i+kd-1, i+kd-1), work.Off(s2pos-1).Matrix(lds2, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dgemm(ConjTrans, NoTrans, pk, pk, pn, one, work.MatrixOff(s2pos-1, lds2, opts), work.MatrixOff(wpos-1, ldw, opts), zero, work.MatrixOff(s1pos-1, lds1, opts)); err != nil {
+			if err = work.Off(s1pos-1).Matrix(lds1, opts).Gemm(ConjTrans, NoTrans, pk, pk, pn, one, work.Off(s2pos-1).Matrix(lds2, opts), work.Off(wpos-1).Matrix(ldw, opts), zero); err != nil {
 				panic(err)
 			}
 
-			if err = goblas.Dgemm(NoTrans, NoTrans, pn, pk, pk, half, a.Off(i+kd-1, i-1), work.MatrixOff(s1pos-1, lds1, opts), one, work.MatrixOff(wpos-1, ldw, opts)); err != nil {
+			if err = work.Off(wpos-1).Matrix(ldw, opts).Gemm(NoTrans, NoTrans, pn, pk, pk, half, a.Off(i+kd-1, i-1), work.Off(s1pos-1).Matrix(lds1, opts), one); err != nil {
 				panic(err)
 			}
 
 			//            Update the unreduced submatrix A(i+kd:n,i+kd:n), using
 			//            an update of the form:  A := A - V*W' - W*V'
-			if err = goblas.Dsyr2k(uplo, NoTrans, pn, pk, one, a.Off(i+kd-1, i-1), work.MatrixOff(wpos-1, ldw, opts), rone, a.Off(i+kd-1, i+kd-1)); err != nil {
+			if err = a.Off(i+kd-1, i+kd-1).Syr2k(uplo, NoTrans, pn, pk, one, a.Off(i+kd-1, i-1), work.Off(wpos-1).Matrix(ldw, opts), rone); err != nil {
 				panic(err)
 			}
 			//            ==================================================================
@@ -197,7 +196,7 @@ func DsytrdSy2sb(uplo mat.MatUplo, n, kd int, a, ab *mat.Matrix, tau, work *mat.
 		//        Copy the lower band to AB which is the band storage matrix
 		for j = n - kd + 1; j <= n; j++ {
 			lk = min(kd, n-j) + 1
-			goblas.Dcopy(lk, a.Vector(j-1, j-1, 1), ab.Vector(0, j-1, 1))
+			ab.Off(0, j-1).Vector().Copy(lk, a.Off(j-1, j-1).Vector(), 1, 1)
 		}
 	}
 

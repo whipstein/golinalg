@@ -122,13 +122,13 @@ func Zlatm6(_type, n int, a, b, x, y *mat.CMatrix, alpha, beta, wx, wy complex12
 	s.Set(4, rone/math.Sqrt((rone+two*cmplx.Abs(wx)*cmplx.Abs(wx))/(rone+a.GetMag(4, 4)*a.GetMag(4, 4))))
 
 	Zlakf2(1, 4, a, a.Off(1, 1), b, b.Off(1, 1), z)
-	if _, err = golapack.Zgesvd('N', 'N', 8, 8, z, rwork, work.CMatrix(1, opts), work.CMatrixOff(1, 1, opts), work.Off(2), 24, rwork.Off(8)); err != nil {
+	if _, err = golapack.Zgesvd('N', 'N', 8, 8, z, rwork, work.CMatrix(1, opts), work.Off(1).CMatrix(1, opts), work.Off(2), 24, rwork.Off(8)); err != nil {
 		panic(err)
 	}
 	dif.Set(0, rwork.Get(7))
 
 	Zlakf2(4, 1, a, a.Off(4, 4), b, b.Off(4, 4), z)
-	if _, err = golapack.Zgesvd('N', 'N', 8, 8, z, rwork, work.CMatrix(1, opts), work.CMatrixOff(1, 1, opts), work.Off(2), 24, rwork.Off(8)); err != nil {
+	if _, err = golapack.Zgesvd('N', 'N', 8, 8, z, rwork, work.CMatrix(1, opts), work.Off(1).CMatrix(1, opts), work.Off(2), 24, rwork.Off(8)); err != nil {
 		panic(err)
 	}
 	dif.Set(4, rwork.Get(7))

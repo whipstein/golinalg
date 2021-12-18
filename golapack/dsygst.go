@@ -3,7 +3,6 @@ package golapack
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -69,19 +68,19 @@ func Dsygst(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 						panic(err)
 					}
 					if k+kb <= n {
-						if err = goblas.Dtrsm(Left, uplo, Trans, NonUnit, kb, n-k-kb+1, one, b.Off(k-1, k-1), a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Trsm(Left, uplo, Trans, NonUnit, kb, n-k-kb+1, one, b.Off(k-1, k-1)); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dsymm(Left, uplo, kb, n-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one, a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Symm(Left, uplo, kb, n-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dsyr2k(uplo, Trans, n-k-kb+1, kb, one, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one, a.Off(k+kb-1, k+kb-1)); err != nil {
+						if err = a.Off(k+kb-1, k+kb-1).Syr2k(uplo, Trans, n-k-kb+1, kb, one, a.Off(k-1, k+kb-1), b.Off(k-1, k+kb-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dsymm(Left, uplo, kb, n-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one, a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Symm(Left, uplo, kb, n-k-kb+1, half, a.Off(k-1, k-1), b.Off(k-1, k+kb-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dtrsm(Right, uplo, NoTrans, NonUnit, kb, n-k-kb+1, one, b.Off(k+kb-1, k+kb-1), a.Off(k-1, k+kb-1)); err != nil {
+						if err = a.Off(k-1, k+kb-1).Trsm(Right, uplo, NoTrans, NonUnit, kb, n-k-kb+1, one, b.Off(k+kb-1, k+kb-1)); err != nil {
 							panic(err)
 						}
 					}
@@ -95,19 +94,19 @@ func Dsygst(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 						panic(err)
 					}
 					if k+kb <= n {
-						if err = goblas.Dtrsm(Right, uplo, Trans, NonUnit, n-k-kb+1, kb, one, b.Off(k-1, k-1), a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Trsm(Right, uplo, Trans, NonUnit, n-k-kb+1, kb, one, b.Off(k-1, k-1)); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dsymm(Right, uplo, n-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Symm(Right, uplo, n-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dsyr2k(uplo, NoTrans, n-k-kb+1, kb, one, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k+kb-1)); err != nil {
+						if err = a.Off(k+kb-1, k+kb-1).Syr2k(uplo, NoTrans, n-k-kb+1, kb, one, a.Off(k+kb-1, k-1), b.Off(k+kb-1, k-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dsymm(Right, uplo, n-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one, a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Symm(Right, uplo, n-k-kb+1, kb, half, a.Off(k-1, k-1), b.Off(k+kb-1, k-1), one); err != nil {
 							panic(err)
 						}
-						if err = goblas.Dtrsm(Left, uplo, NoTrans, NonUnit, n-k-kb+1, kb, one, b.Off(k+kb-1, k+kb-1), a.Off(k+kb-1, k-1)); err != nil {
+						if err = a.Off(k+kb-1, k-1).Trsm(Left, uplo, NoTrans, NonUnit, n-k-kb+1, kb, one, b.Off(k+kb-1, k+kb-1)); err != nil {
 							panic(err)
 						}
 					}
@@ -119,19 +118,19 @@ func Dsygst(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 				for k = 1; k <= n; k += nb {
 					kb = min(n-k+1, nb)
 					//                 Update the upper triangle of A(1:k+kb-1,1:k+kb-1)
-					if err = goblas.Dtrmm(Left, uplo, NoTrans, NonUnit, k-1, kb, one, b, a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Trmm(Left, uplo, NoTrans, NonUnit, k-1, kb, one, b); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsymm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one, a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Symm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsyr2k(uplo, NoTrans, k-1, kb, one, a.Off(0, k-1), b.Off(0, k-1), one, a); err != nil {
+					if err = a.Syr2k(uplo, NoTrans, k-1, kb, one, a.Off(0, k-1), b.Off(0, k-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsymm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one, a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Symm(Right, uplo, k-1, kb, half, a.Off(k-1, k-1), b.Off(0, k-1), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dtrmm(Right, uplo, Trans, NonUnit, k-1, kb, one, b.Off(k-1, k-1), a.Off(0, k-1)); err != nil {
+					if err = a.Off(0, k-1).Trmm(Right, uplo, Trans, NonUnit, k-1, kb, one, b.Off(k-1, k-1)); err != nil {
 						panic(err)
 					}
 					if err = Dsygs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {
@@ -143,19 +142,19 @@ func Dsygst(itype int, uplo mat.MatUplo, n int, a, b *mat.Matrix) (err error) {
 				for k = 1; k <= n; k += nb {
 					kb = min(n-k+1, nb)
 					//                 Update the lower triangle of A(1:k+kb-1,1:k+kb-1)
-					if err = goblas.Dtrmm(Right, uplo, NoTrans, NonUnit, kb, k-1, one, b, a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Trmm(Right, uplo, NoTrans, NonUnit, kb, k-1, one, b); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsymm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one, a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Symm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsyr2k(uplo, Trans, k-1, kb, one, a.Off(k-1, 0), b.Off(k-1, 0), one, a); err != nil {
+					if err = a.Syr2k(uplo, Trans, k-1, kb, one, a.Off(k-1, 0), b.Off(k-1, 0), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dsymm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one, a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Symm(Left, uplo, kb, k-1, half, a.Off(k-1, k-1), b.Off(k-1, 0), one); err != nil {
 						panic(err)
 					}
-					if err = goblas.Dtrmm(Left, uplo, Trans, NonUnit, kb, k-1, one, b.Off(k-1, k-1), a.Off(k-1, 0)); err != nil {
+					if err = a.Off(k-1, 0).Trmm(Left, uplo, Trans, NonUnit, kb, k-1, one, b.Off(k-1, k-1)); err != nil {
 						panic(err)
 					}
 					if err = Dsygs2(itype, uplo, kb, a.Off(k-1, k-1), b.Off(k-1, k-1)); err != nil {

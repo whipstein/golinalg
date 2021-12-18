@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -111,7 +110,7 @@ func zdrvpb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						_type, _, _, anorm, mode, cndnum, dist = zlatb4(path, imat, n, n)
 
 						*srnamt = "Zlatms"
-						if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kd, kd, packit, a.CMatrixOff(koff-1, ldab, opts), work); err != nil {
+						if err = matgen.Zlatms(n, n, dist, &iseed, _type, rwork, mode, cndnum, anorm, kd, kd, packit, a.Off(koff-1).CMatrix(ldab, opts), work); err != nil {
 							t.Fail()
 							nerrs = alaerh(path, "Zlatms", info, 0, []byte{uplo.Byte()}, n, n, -1, -1, -1, imat, nfail, nerrs)
 							goto label80
@@ -122,15 +121,15 @@ func zdrvpb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 						iw = 2*lda + 1
 						if uplo == Upper {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Zcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff-izero+i1-1, 1))
+							a.Off(ioff-izero+i1-1).Copy(izero-i1, work.Off(iw-1), 1, 1)
 							iw = iw + izero - i1
-							goblas.Zcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, max(ldab-1, 1)))
+							a.Off(ioff-1).Copy(i2-izero+1, work.Off(iw-1), 1, max(ldab-1, 1))
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Zcopy(izero-i1, work.Off(iw-1, 1), a.Off(ioff+izero-i1-1, max(ldab-1, 1)))
+							a.Off(ioff+izero-i1-1).Copy(izero-i1, work.Off(iw-1), 1, max(ldab-1, 1))
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Zcopy(i2-izero+1, work.Off(iw-1, 1), a.Off(ioff-1, 1))
+							a.Off(ioff-1).Copy(i2-izero+1, work.Off(iw-1), 1, 1)
 						}
 					}
 
@@ -157,15 +156,15 @@ func zdrvpb(dotype []bool, nn int, nval []int, nrhs int, thresh float64, tsterr 
 
 						if uplo == Upper {
 							ioff = (izero-1)*ldab + kd + 1
-							goblas.Zswap(izero-i1, a.Off(ioff-izero+i1-1, 1), work.Off(iw-1, 1))
+							work.Off(iw-1).Swap(izero-i1, a.Off(ioff-izero+i1-1), 1, 1)
 							iw = iw + izero - i1
-							goblas.Zswap(i2-izero+1, a.Off(ioff-1, max(ldab-1, 1)), work.Off(iw-1, 1))
+							work.Off(iw-1).Swap(i2-izero+1, a.Off(ioff-1), max(ldab-1, 1), 1)
 						} else {
 							ioff = (i1-1)*ldab + 1
-							goblas.Zswap(izero-i1, a.Off(ioff+izero-i1-1, max(ldab-1, 1)), work.Off(iw-1, 1))
+							work.Off(iw-1).Swap(izero-i1, a.Off(ioff+izero-i1-1), max(ldab-1, 1), 1)
 							ioff = (izero-1)*ldab + 1
 							iw = iw + izero - i1
-							goblas.Zswap(i2-izero+1, a.Off(ioff-1, 1), work.Off(iw-1, 1))
+							work.Off(iw-1).Swap(i2-izero+1, a.Off(ioff-1), 1, 1)
 						}
 					}
 

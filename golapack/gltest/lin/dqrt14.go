@@ -61,10 +61,10 @@ func dqrt14(trans mat.MatTrans, m, n, nrhs int, a, x *mat.Matrix, work *mat.Vect
 	//     Copy X or X' into the right place and scale it
 	if tpsd {
 		//        Copy X into columns n+1:n+nrhs of work
-		golapack.Dlacpy(Full, m, nrhs, x, work.MatrixOff(n*ldwork, ldwork, opts))
-		xnrm = golapack.Dlange('M', m, nrhs, work.MatrixOff(n*ldwork, ldwork, opts), rwork)
+		golapack.Dlacpy(Full, m, nrhs, x, work.Off(n*ldwork).Matrix(ldwork, opts))
+		xnrm = golapack.Dlange('M', m, nrhs, work.Off(n*ldwork).Matrix(ldwork, opts), rwork)
 		if xnrm != zero {
-			if err2 = golapack.Dlascl('G', 0, 0, xnrm, one, m, nrhs, work.MatrixOff(n*ldwork, ldwork, opts)); err2 != nil {
+			if err2 = golapack.Dlascl('G', 0, 0, xnrm, one, m, nrhs, work.Off(n*ldwork).Matrix(ldwork, opts)); err2 != nil {
 				panic(err2)
 			}
 		}
@@ -92,9 +92,9 @@ func dqrt14(trans mat.MatTrans, m, n, nrhs int, a, x *mat.Matrix, work *mat.Vect
 			}
 		}
 
-		xnrm = golapack.Dlange('M', nrhs, n, work.MatrixOff(m, ldwork, opts), rwork)
+		xnrm = golapack.Dlange('M', nrhs, n, work.Off(m).Matrix(ldwork, opts), rwork)
 		if xnrm != zero {
-			if err2 = golapack.Dlascl('G', 0, 0, xnrm, one, nrhs, n, work.MatrixOff(m, ldwork, opts)); err2 != nil {
+			if err2 = golapack.Dlascl('G', 0, 0, xnrm, one, nrhs, n, work.Off(m).Matrix(ldwork, opts)); err2 != nil {
 				panic(err2)
 			}
 		}

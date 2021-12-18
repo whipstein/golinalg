@@ -3,7 +3,6 @@ package matgen
 import (
 	"fmt"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
@@ -58,44 +57,44 @@ func Zlagge(m, n, kl, ku int, d *mat.Vector, a *mat.CMatrix, iseed *[]int, work 
 		if i < m {
 			//           generate random reflection
 			golapack.Zlarnv(3, iseed, m-i+1, work)
-			wn = goblas.Dznrm2(m-i+1, work.Off(0, 1))
+			wn = work.Nrm2(m-i+1, 1)
 			wa = complex(wn/work.GetMag(0), 0) * work.Get(0)
 			if complex(wn, 0) == zero {
 				tau = zero
 			} else {
 				wb = work.Get(0) + wa
-				goblas.Zscal(m-i, one/wb, work.Off(1, 1))
+				work.Off(1).Scal(m-i, one/wb, 1)
 				work.Set(0, one)
 				tau = wb / wa
 			}
 
 			//           multiply A(i:m,i:n) by random reflection from the left
-			if err = goblas.Zgemv(ConjTrans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work.Off(0, 1), zero, work.Off(m, 1)); err != nil {
+			if err = work.Off(m).Gemv(ConjTrans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work, 1, zero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgerc(m-i+1, n-i+1, -tau, work.Off(0, 1), work.Off(m, 1), a.Off(i-1, i-1)); err != nil {
+			if err = a.Off(i-1, i-1).Gerc(m-i+1, n-i+1, -tau, work, 1, work.Off(m), 1); err != nil {
 				panic(err)
 			}
 		}
 		if i < n {
 			//           generate random reflection
 			golapack.Zlarnv(3, iseed, n-i+1, work)
-			wn = goblas.Dznrm2(n-i+1, work.Off(0, 1))
+			wn = work.Nrm2(n-i+1, 1)
 			wa = complex(wn/work.GetMag(0), 0) * work.Get(0)
 			if complex(wn, 0) == zero {
 				tau = zero
 			} else {
 				wb = work.Get(0) + wa
-				goblas.Zscal(n-i, one/wb, work.Off(1, 1))
+				work.Off(1).Scal(n-i, one/wb, 1)
 				work.Set(0, one)
 				tau = complex(real(wb/wa), 0)
 			}
 
 			//           multiply A(i:m,i:n) by random reflection from the right
-			if err = goblas.Zgemv(NoTrans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work.Off(0, 1), zero, work.Off(n, 1)); err != nil {
+			if err = work.Off(n).Gemv(NoTrans, m-i+1, n-i+1, one, a.Off(i-1, i-1), work, 1, zero, 1); err != nil {
 				panic(err)
 			}
-			if err = goblas.Zgerc(m-i+1, n-i+1, -tau, work.Off(n, 1), work.Off(0, 1), a.Off(i-1, i-1)); err != nil {
+			if err = a.Off(i-1, i-1).Gerc(m-i+1, n-i+1, -tau, work.Off(n), 1, work, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -108,22 +107,22 @@ func Zlagge(m, n, kl, ku int, d *mat.Vector, a *mat.CMatrix, iseed *[]int, work 
 			//           annihilate subdiagonal elements first (necessary if KL = 0)
 			if i <= min(m-1-kl, n) {
 				//              generate reflection to annihilate A(kl+i+1:m,i)
-				wn = goblas.Dznrm2(m-kl-i+1, a.CVector(kl+i-1, i-1, 1))
+				wn = a.Off(kl+i-1, i-1).CVector().Nrm2(m-kl-i+1, 1)
 				wa = complex(wn/a.GetMag(kl+i-1, i-1), 0) * a.Get(kl+i-1, i-1)
 				if complex(wn, 0) == zero {
 					tau = zero
 				} else {
 					wb = a.Get(kl+i-1, i-1) + wa
-					goblas.Zscal(m-kl-i, one/wb, a.CVector(kl+i, i-1, 1))
+					a.Off(kl+i, i-1).CVector().Scal(m-kl-i, one/wb, 1)
 					a.Set(kl+i-1, i-1, one)
 					tau = complex(real(wb/wa), 0)
 				}
 
 				//              apply reflection to A(kl+i:m,i+1:n) from the left
-				if err = goblas.Zgemv(ConjTrans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.CVector(kl+i-1, i-1, 1), zero, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(ConjTrans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.Off(kl+i-1, i-1).CVector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgerc(m-kl-i+1, n-i, -tau, a.CVector(kl+i-1, i-1, 1), work.Off(0, 1), a.Off(kl+i-1, i)); err != nil {
+				if err = a.Off(kl+i-1, i).Gerc(m-kl-i+1, n-i, -tau, a.Off(kl+i-1, i-1).CVector(), 1, work, 1); err != nil {
 					panic(err)
 				}
 				a.Set(kl+i-1, i-1, -wa)
@@ -131,23 +130,23 @@ func Zlagge(m, n, kl, ku int, d *mat.Vector, a *mat.CMatrix, iseed *[]int, work 
 
 			if i <= min(n-1-ku, m) {
 				//              generate reflection to annihilate A(i,ku+i+1:n)
-				wn = goblas.Dznrm2(n-ku-i+1, a.CVector(i-1, ku+i-1))
+				wn = a.Off(i-1, ku+i-1).CVector().Nrm2(n-ku-i+1, a.Rows)
 				wa = complex(wn/a.GetMag(i-1, ku+i-1), 0) * a.Get(i-1, ku+i-1)
 				if complex(wn, 0) == zero {
 					tau = zero
 				} else {
 					wb = a.Get(i-1, ku+i-1) + wa
-					goblas.Zscal(n-ku-i, one/wb, a.CVector(i-1, ku+i))
+					a.Off(i-1, ku+i).CVector().Scal(n-ku-i, one/wb, a.Rows)
 					a.Set(i-1, ku+i-1, one)
 					tau = complex(real(wb/wa), 0)
 				}
 
 				//              apply reflection to A(i+1:m,ku+i:n) from the right
-				golapack.Zlacgv(n-ku-i+1, a.CVector(i-1, ku+i-1))
-				if err = goblas.Zgemv(NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.CVector(i-1, ku+i-1), zero, work.Off(0, 1)); err != nil {
+				golapack.Zlacgv(n-ku-i+1, a.Off(i-1, ku+i-1).CVector(), a.Rows)
+				if err = work.Gemv(NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.Off(i-1, ku+i-1).CVector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgerc(m-i, n-ku-i+1, -tau, work.Off(0, 1), a.CVector(i-1, ku+i-1), a.Off(i, ku+i-1)); err != nil {
+				if err = a.Off(i, ku+i-1).Gerc(m-i, n-ku-i+1, -tau, work, 1, a.Off(i-1, ku+i-1).CVector(), a.Rows); err != nil {
 					panic(err)
 				}
 				a.Set(i-1, ku+i-1, -wa)
@@ -157,23 +156,23 @@ func Zlagge(m, n, kl, ku int, d *mat.Vector, a *mat.CMatrix, iseed *[]int, work 
 			//           KU = 0)
 			if i <= min(n-1-ku, m) {
 				//              generate reflection to annihilate A(i,ku+i+1:n)
-				wn = goblas.Dznrm2(n-ku-i+1, a.CVector(i-1, ku+i-1))
+				wn = a.Off(i-1, ku+i-1).CVector().Nrm2(n-ku-i+1, a.Rows)
 				wa = complex(wn/a.GetMag(i-1, ku+i-1), 0) * a.Get(i-1, ku+i-1)
 				if complex(wn, 0) == zero {
 					tau = zero
 				} else {
 					wb = a.Get(i-1, ku+i-1) + wa
-					goblas.Zscal(n-ku-i, one/wb, a.CVector(i-1, ku+i))
+					a.Off(i-1, ku+i).CVector().Scal(n-ku-i, one/wb, a.Rows)
 					a.Set(i-1, ku+i-1, one)
 					tau = complex(real(wb/wa), 0)
 				}
 
 				//              apply reflection to A(i+1:m,ku+i:n) from the right
-				golapack.Zlacgv(n-ku-i+1, a.CVector(i-1, ku+i-1))
-				if err = goblas.Zgemv(NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.CVector(i-1, ku+i-1), zero, work.Off(0, 1)); err != nil {
+				golapack.Zlacgv(n-ku-i+1, a.Off(i-1, ku+i-1).CVector(), a.Rows)
+				if err = work.Gemv(NoTrans, m-i, n-ku-i+1, one, a.Off(i, ku+i-1), a.Off(i-1, ku+i-1).CVector(), a.Rows, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgerc(m-i, n-ku-i+1, -tau, work.Off(0, 1), a.CVector(i-1, ku+i-1), a.Off(i, ku+i-1)); err != nil {
+				if err = a.Off(i, ku+i-1).Gerc(m-i, n-ku-i+1, -tau, work, 1, a.Off(i-1, ku+i-1).CVector(), a.Rows); err != nil {
 					panic(err)
 				}
 				a.Set(i-1, ku+i-1, -wa)
@@ -181,22 +180,22 @@ func Zlagge(m, n, kl, ku int, d *mat.Vector, a *mat.CMatrix, iseed *[]int, work 
 
 			if i <= min(m-1-kl, n) {
 				//              generate reflection to annihilate A(kl+i+1:m,i)
-				wn = goblas.Dznrm2(m-kl-i+1, a.CVector(kl+i-1, i-1, 1))
+				wn = a.Off(kl+i-1, i-1).CVector().Nrm2(m-kl-i+1, 1)
 				wa = complex(wn/a.GetMag(kl+i-1, i-1), 0) * a.Get(kl+i-1, i-1)
 				if complex(wn, 0) == zero {
 					tau = zero
 				} else {
 					wb = a.Get(kl+i-1, i-1) + wa
-					goblas.Zscal(m-kl-i, one/wb, a.CVector(kl+i, i-1, 1))
+					a.Off(kl+i, i-1).CVector().Scal(m-kl-i, one/wb, 1)
 					a.Set(kl+i-1, i-1, one)
 					tau = complex(real(wb/wa), 0)
 				}
 
 				//              apply reflection to A(kl+i:m,i+1:n) from the left
-				if err = goblas.Zgemv(ConjTrans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.CVector(kl+i-1, i-1, 1), zero, work.Off(0, 1)); err != nil {
+				if err = work.Gemv(ConjTrans, m-kl-i+1, n-i, one, a.Off(kl+i-1, i), a.Off(kl+i-1, i-1).CVector(), 1, zero, 1); err != nil {
 					panic(err)
 				}
-				if err = goblas.Zgerc(m-kl-i+1, n-i, -tau, a.CVector(kl+i-1, i-1, 1), work.Off(0, 1), a.Off(kl+i-1, i)); err != nil {
+				if err = a.Off(kl+i-1, i).Gerc(m-kl-i+1, n-i, -tau, a.Off(kl+i-1, i-1).CVector(), 1, work, 1); err != nil {
 					panic(err)
 				}
 				a.Set(kl+i-1, i-1, -wa)

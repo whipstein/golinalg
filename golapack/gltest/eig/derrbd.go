@@ -186,19 +186,19 @@ func derrbd(path string, t *testing.T) (nt int) {
 		//        Dbdsdc
 		*srnamt = "Dbdsdc"
 		*errt = fmt.Errorf("iuplo == 0: uplo=Unrecognized: /")
-		err = golapack.Dbdsdc('/', 'N', 0, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		err = golapack.Dbdsdc('/', 'N', 0, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.OffIdx(0).Vector(), &iq, w, &iw)
 		chkxer2("Dbdsdc", err)
 		*errt = fmt.Errorf("icompq < 0: compq='/'")
-		err = golapack.Dbdsdc(Upper, '/', 0, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		err = golapack.Dbdsdc(Upper, '/', 0, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.OffIdx(0).Vector(), &iq, w, &iw)
 		chkxer2("Dbdsdc", err)
 		*errt = fmt.Errorf("n < 0: n=-1")
-		err = golapack.Dbdsdc(Upper, 'N', -1, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		err = golapack.Dbdsdc(Upper, 'N', -1, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.OffIdx(0).Vector(), &iq, w, &iw)
 		chkxer2("Dbdsdc", err)
 		*errt = fmt.Errorf("(u.Rows < 1) || ((icompq == 2) && (u.Rows < n)): compq='I', u.Rows=1, n=2")
-		err = golapack.Dbdsdc(Upper, 'I', 2, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		err = golapack.Dbdsdc(Upper, 'I', 2, d, e, u.Off(0, 0).UpdateRows(1), v.Off(0, 0).UpdateRows(1), q.OffIdx(0).Vector(), &iq, w, &iw)
 		chkxer2("Dbdsdc", err)
 		*errt = fmt.Errorf("(vt.Rows < 1) || ((icompq == 2) && (vt.Rows < n)): compq='I', vt.Rows=1, n=2")
-		err = golapack.Dbdsdc(Upper, 'I', 2, d, e, u.Off(0, 0).UpdateRows(2), v.Off(0, 0).UpdateRows(1), q.VectorIdx(0), &iq, w, &iw)
+		err = golapack.Dbdsdc(Upper, 'I', 2, d, e, u.Off(0, 0).UpdateRows(2), v.Off(0, 0).UpdateRows(1), q.OffIdx(0).Vector(), &iq, w, &iw)
 		chkxer2("Dbdsdc", err)
 		nt = nt + 5
 

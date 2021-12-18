@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/golapack/gltest/matgen"
@@ -67,19 +66,19 @@ func zqrt15(scale, rksel, m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, isee
 				goto label20
 			}
 		}
-		dlaord('D', rank, s.Off(0, 1))
+		dlaord('D', rank, s, 1)
 
 		//        Generate 'rank' columns of a random orthogonal matrix in A
 		golapack.Zlarnv(2, iseed, m, work)
-		goblas.Zdscal(m, one/goblas.Dznrm2(m, work.Off(0, 1)), work.Off(0, 1))
+		work.Dscal(m, one/work.Nrm2(m, 1), 1)
 		golapack.Zlaset(Full, m, rank, czero, cone, a)
-		golapack.Zlarf(Left, m, rank, work.Off(0, 1), complex(two, 0), a, work.Off(m))
+		golapack.Zlarf(Left, m, rank, work, 1, complex(two, 0), a, work.Off(m))
 
 		//        workspace used: m+mn
 		//
 		//        Generate consistent rhs in the range space of A
 		golapack.Zlarnv(2, iseed, rank*nrhs, work)
-		if err = goblas.Zgemm(NoTrans, NoTrans, m, nrhs, rank, cone, a, work.CMatrix(rank, opts), czero, b); err != nil {
+		if err = b.Gemm(NoTrans, NoTrans, m, nrhs, rank, cone, a, work.CMatrix(rank, opts), czero); err != nil {
 			panic(err)
 		}
 
@@ -87,7 +86,7 @@ func zqrt15(scale, rksel, m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, isee
 		//
 		//        generate (unscaled) matrix A
 		for j = 1; j <= rank; j++ {
-			goblas.Zdscal(m, s.Get(j-1), a.CVector(0, j-1, 1))
+			a.Off(0, j-1).CVector().Dscal(m, s.Get(j-1), 1)
 		}
 		if rank < n {
 			golapack.Zlaset(Full, m, n-rank, czero, czero, a.Off(0, rank))
@@ -142,7 +141,7 @@ func zqrt15(scale, rksel, m, n, nrhs int, a, b *mat.CMatrix, s *mat.Vector, isee
 		}
 	}
 
-	norma = goblas.Dasum(mn, s.Off(0, 1))
+	norma = s.Asum(mn, 1)
 	normb = golapack.Zlange('O', m, nrhs, b, dummy)
 
 	return

@@ -1,7 +1,6 @@
 package lin
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -47,7 +46,7 @@ func ztpt01(uplo mat.MatUplo, diag mat.MatDiag, n int, ap, ainvp *mat.CVector, r
 			}
 
 			//           Form the j-th column of A*AINV.
-			if err = goblas.Ztpmv(Upper, NoTrans, diag, j, ap, ainvp.Off(jc-1, 1)); err != nil {
+			if err = ainvp.Off(jc-1).Tpmv(Upper, NoTrans, diag, j, ap, 1); err != nil {
 				panic(err)
 			}
 
@@ -63,7 +62,7 @@ func ztpt01(uplo mat.MatUplo, diag mat.MatDiag, n int, ap, ainvp *mat.CVector, r
 			}
 
 			//           Form the j-th column of A*AINV.
-			if err = goblas.Ztpmv(Lower, NoTrans, diag, n-j+1, ap.Off(jc-1), ainvp.Off(jc-1, 1)); err != nil {
+			if err = ainvp.Off(jc-1).Tpmv(Lower, NoTrans, diag, n-j+1, ap.Off(jc-1), 1); err != nil {
 				panic(err)
 			}
 

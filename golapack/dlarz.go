@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -28,19 +27,19 @@ func Dlarz(side mat.MatSide, m, n, l int, v *mat.Matrix, tau float64, c *mat.Mat
 		//        Form  H * C
 		if tau != zero {
 			//           w( 1:n ) = C( 1, 1:n )
-			goblas.Dcopy(n, c.VectorIdx(0), work.Off(0, 1))
+			work.Copy(n, c.OffIdx(0).Vector(), c.Rows, 1)
 
 			//           w( 1:n ) = w( 1:n ) + C( m-l+1:m, 1:n )**T * v( 1:l )
-			if err = goblas.Dgemv(Trans, l, n, one, c.Off(m-l, 0), v.VectorIdx(0), one, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(Trans, l, n, one, c.Off(m-l, 0), v.OffIdx(0).Vector(), v.Rows, one, 1); err != nil {
 				panic(err)
 			}
 
 			//           C( 1, 1:n ) = C( 1, 1:n ) - tau * w( 1:n )
-			goblas.Daxpy(n, -tau, work.Off(0, 1), c.VectorIdx(0))
+			c.OffIdx(0).Vector().Axpy(n, -tau, work, 1, c.Rows)
 
 			//           C( m-l+1:m, 1:n ) = C( m-l+1:m, 1:n ) - ...
 			//                               tau * v( 1:l ) * w( 1:n )**T
-			if err = goblas.Dger(l, n, -tau, v.VectorIdx(0), work.Off(0, 1), c.Off(m-l, 0)); err != nil {
+			if err = c.Off(m-l, 0).Ger(l, n, -tau, v.OffIdx(0).Vector(), v.Rows, work, 1); err != nil {
 				panic(err)
 			}
 		}
@@ -49,19 +48,19 @@ func Dlarz(side mat.MatSide, m, n, l int, v *mat.Matrix, tau float64, c *mat.Mat
 		//        Form  C * H
 		if tau != zero {
 			//           w( 1:m ) = C( 1:m, 1 )
-			goblas.Dcopy(m, c.VectorIdx(0, 1), work.Off(0, 1))
+			work.Copy(m, c.OffIdx(0).Vector(), 1, 1)
 
 			//           w( 1:m ) = w( 1:m ) + C( 1:m, n-l+1:n, 1:n ) * v( 1:l )
-			if err = goblas.Dgemv(NoTrans, m, l, one, c.Off(0, n-l), v.VectorIdx(0), one, work.Off(0, 1)); err != nil {
+			if err = work.Gemv(NoTrans, m, l, one, c.Off(0, n-l), v.OffIdx(0).Vector(), v.Rows, one, 1); err != nil {
 				panic(err)
 			}
 
 			//           C( 1:m, 1 ) = C( 1:m, 1 ) - tau * w( 1:m )
-			goblas.Daxpy(m, -tau, work.Off(0, 1), c.VectorIdx(0, 1))
+			c.OffIdx(0).Vector().Axpy(m, -tau, work, 1, 1)
 
 			//           C( 1:m, n-l+1:n ) = C( 1:m, n-l+1:n ) - ...
 			//                               tau * w( 1:m ) * v( 1:l )**T
-			if err = goblas.Dger(m, l, -tau, work.Off(0, 1), v.VectorIdx(0), c.Off(0, n-l)); err != nil {
+			if err = c.Off(0, n-l).Ger(m, l, -tau, work, 1, v.OffIdx(0).Vector(), v.Rows); err != nil {
 				panic(err)
 			}
 

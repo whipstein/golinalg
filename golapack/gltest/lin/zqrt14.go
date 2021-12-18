@@ -64,10 +64,10 @@ func zqrt14(trans mat.MatTrans, m, n, nrhs int, a, x *mat.CMatrix, work *mat.CVe
 	//     Copy X or X' into the right place and scale it
 	if tpsd {
 		//        Copy X into columns n+1:n+nrhs of work
-		golapack.Zlacpy(Full, m, nrhs, x, work.CMatrixOff(n*ldwork, ldwork, opts))
-		xnrm = golapack.Zlange('M', m, nrhs, work.CMatrixOff(n*ldwork, ldwork, opts), rwork)
+		golapack.Zlacpy(Full, m, nrhs, x, work.Off(n*ldwork).CMatrix(ldwork, opts))
+		xnrm = golapack.Zlange('M', m, nrhs, work.Off(n*ldwork).CMatrix(ldwork, opts), rwork)
 		if xnrm != zero {
-			if err = golapack.Zlascl('G', 0, 0, xnrm, one, m, nrhs, work.CMatrixOff(n*ldwork, ldwork, opts)); err != nil {
+			if err = golapack.Zlascl('G', 0, 0, xnrm, one, m, nrhs, work.Off(n*ldwork).CMatrix(ldwork, opts)); err != nil {
 				panic(err)
 			}
 		}
@@ -95,9 +95,9 @@ func zqrt14(trans mat.MatTrans, m, n, nrhs int, a, x *mat.CMatrix, work *mat.CVe
 			}
 		}
 
-		xnrm = golapack.Zlange('M', nrhs, n, work.CMatrixOff(m, ldwork, opts), rwork)
+		xnrm = golapack.Zlange('M', nrhs, n, work.Off(m).CMatrix(ldwork, opts), rwork)
 		if xnrm != zero {
-			if err = golapack.Zlascl('G', 0, 0, xnrm, one, nrhs, n, work.CMatrixOff(m, ldwork, opts)); err != nil {
+			if err = golapack.Zlascl('G', 0, 0, xnrm, one, nrhs, n, work.Off(m).CMatrix(ldwork, opts)); err != nil {
 				panic(err)
 			}
 		}

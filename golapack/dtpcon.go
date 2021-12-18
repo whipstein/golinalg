@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -88,12 +87,12 @@ func Dtpcon(norm byte, uplo mat.MatUplo, diag mat.MatDiag, n int, ap *mat.Vector
 
 			//           Multiply by 1/SCALE if doing so will not cause overflow.
 			if scale != one {
-				ix = goblas.Idamax(n, work.Off(0, 1))
+				ix = work.Iamax(n, 1)
 				xnorm = math.Abs(work.Get(ix - 1))
 				if scale < xnorm*smlnum || scale == zero {
 					return
 				}
-				Drscl(n, scale, work.Off(0, 1))
+				Drscl(n, scale, work, 1)
 			}
 			goto label10
 		}

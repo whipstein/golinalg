@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -17,7 +16,7 @@ func Dptts2(n, nrhs int, d, e *mat.Vector, b *mat.Matrix) {
 	//     Quick return if possible
 	if n <= 1 {
 		if n == 1 {
-			goblas.Dscal(nrhs, 1./d.Get(0), b.VectorIdx(0))
+			b.OffIdx(0).Vector().Scal(nrhs, 1./d.Get(0), b.Rows)
 		}
 		return
 	}

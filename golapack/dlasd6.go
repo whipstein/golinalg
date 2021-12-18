@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -127,8 +126,8 @@ func Dlasd6(icompq, nl, nr, sqre int, d, vf, vl *mat.Vector, alpha, beta float64
 
 	//     Save the poles if ICOMPQ = 1.
 	if icompq == 1 {
-		goblas.Dcopy(k, d.Off(0, 1), poles.VectorIdx(0, 1))
-		goblas.Dcopy(k, work.Off(isigma-1, 1), poles.Vector(0, 1, 1))
+		poles.OffIdx(0).Vector().Copy(k, d, 1, 1)
+		poles.Off(0, 1).Vector().Copy(k, work.Off(isigma-1), 1, 1)
 	}
 
 	//     Unscale.

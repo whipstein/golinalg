@@ -8,7 +8,7 @@ import "github.com/whipstein/golinalg/mat"
 //
 //    ( x(i)  z(i) ) := (  c(i)  s(i) ) ( x(i)  z(i) ) ( c(i) -s(i) )
 //    ( z(i)  y(i) )    ( -s(i)  c(i) ) ( z(i)  y(i) ) ( s(i)  c(i) )
-func Dlar2v(n int, x, y, z, c, s *mat.Vector) {
+func Dlar2v(n int, x, y, z *mat.Vector, incx int, c, s *mat.Vector, incc int) {
 	var ci, si, t1, t2, t3, t4, t5, t6, xi, yi, zi float64
 	var i, ic, ix int
 
@@ -29,7 +29,7 @@ func Dlar2v(n int, x, y, z, c, s *mat.Vector) {
 		x.Set(ix-1, ci*t5+si*t4)
 		y.Set(ix-1, ci*t6-si*t3)
 		z.Set(ix-1, ci*t4-si*t5)
-		ix = ix + x.Inc
-		ic = ic + c.Inc
+		ix = ix + incx
+		ic = ic + incc
 	}
 }

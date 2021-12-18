@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -177,8 +176,8 @@ label10:
 	;
 	if rank < mn {
 		i = rank + 1
-		sminpr, s1, c1 = Dlaic1(imin, rank, work.Off(ismin-1), smin, a.Vector(0, i-1), a.Get(i-1, i-1))
-		smaxpr, s2, c2 = Dlaic1(imax, rank, work.Off(ismax-1), smax, a.Vector(0, i-1), a.Get(i-1, i-1))
+		sminpr, s1, c1 = Dlaic1(imin, rank, work.Off(ismin-1), smin, a.Off(0, i-1).Vector(), a.Get(i-1, i-1))
+		smaxpr, s2, c2 = Dlaic1(imax, rank, work.Off(ismax-1), smax, a.Off(0, i-1).Vector(), a.Get(i-1, i-1))
 
 		if smaxpr*rcond <= sminpr {
 			for i = 1; i <= rank; i++ {
@@ -219,7 +218,7 @@ label10:
 	//     workspace: 2*MN+NB*NRHS.
 	//
 	//     B(1:RANK,1:NRHS) := inv(T11) * B(1:RANK,1:NRHS)
-	err = goblas.Dtrsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, one, a, b)
+	err = b.Trsm(Left, Upper, NoTrans, NonUnit, rank, nrhs, one, a)
 
 	for j = 1; j <= nrhs; j++ {
 		for i = rank + 1; i <= n; i++ {
@@ -241,7 +240,7 @@ label10:
 		for i = 1; i <= n; i++ {
 			work.Set((*jpvt)[i-1]-1, b.Get(i-1, j-1))
 		}
-		goblas.Dcopy(n, work, b.Vector(0, j-1, 1))
+		b.Off(0, j-1).Vector().Copy(n, work, 1, 1)
 	}
 
 	//     workspace: N.

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -433,7 +432,7 @@ func Dtgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *
 				//                                  T
 				//              Solve  ( a A - b B )  y = SUM(,)
 				//              with scaling and perturbation of the denominator
-				scale, temp, _ = Dlaln2(true, na, nw, dmin, acoef, s.Off(j-1, j-1), bdiag.Get(0), bdiag.Get(1), sum, bcoefr, bcoefi, work.MatrixOff(2*n+j-1, n, opts))
+				scale, temp, _ = Dlaln2(true, na, nw, dmin, acoef, s.Off(j-1, j-1), bdiag.Get(0), bdiag.Get(1), sum, bcoefr, bcoefi, work.Off(2*n+j-1).Matrix(n, opts))
 				if scale < one {
 					for jw = 0; jw <= nw-1; jw++ {
 						for jr = je; jr <= j-1; jr++ {
@@ -451,14 +450,14 @@ func Dtgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *
 			ieig = ieig + 1
 			if ilback {
 				for jw = 0; jw <= nw-1; jw++ {
-					if err = goblas.Dgemv(NoTrans, n, n+1-je, one, vl.Off(0, je-1), work.Off((jw+2)*n+je-1, 1), zero, work.Off((jw+4)*n, 1)); err != nil {
+					if err = work.Off((jw+4)*n).Gemv(NoTrans, n, n+1-je, one, vl.Off(0, je-1), work.Off((jw+2)*n+je-1), 1, zero, 1); err != nil {
 						panic(err)
 					}
 				}
-				Dlacpy(Full, n, nw, work.MatrixOff(4*n, n, opts), vl.Off(0, je-1))
+				Dlacpy(Full, n, nw, work.Off(4*n).Matrix(n, opts), vl.Off(0, je-1))
 				ibeg = 1
 			} else {
-				Dlacpy(Full, n, nw, work.MatrixOff(2*n, n, opts), vl.Off(0, ieig-1))
+				Dlacpy(Full, n, nw, work.Off(2*n).Matrix(n, opts), vl.Off(0, ieig-1))
 				ibeg = je
 			}
 
@@ -683,7 +682,7 @@ func Dtgevc(side mat.MatSide, howmny byte, _select []bool, n int, s, p, vl, vr *
 				}
 
 				//              Compute x(j) (and x(j+1), if 2-by-2 block)
-				scale, temp, _ = Dlaln2(false, na, nw, dmin, acoef, s.Off(j-1, j-1), bdiag.Get(0), bdiag.Get(1), work.MatrixOff(2*n+j-1, n, opts), bcoefr, bcoefi, sum)
+				scale, temp, _ = Dlaln2(false, na, nw, dmin, acoef, s.Off(j-1, j-1), bdiag.Get(0), bdiag.Get(1), work.Off(2*n+j-1).Matrix(n, opts), bcoefr, bcoefi, sum)
 				if scale < one {
 
 					for jw = 0; jw <= nw-1; jw++ {

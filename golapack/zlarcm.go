@@ -1,7 +1,6 @@
 package golapack
 
 import (
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -29,7 +28,7 @@ func Zlarcm(m, n int, a *mat.Matrix, b, c *mat.CMatrix, rwork *mat.Vector) {
 	}
 
 	l = m*n + 1
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, a, rwork.Matrix(m, opts), zero, rwork.MatrixOff(l-1, m, opts)); err != nil {
+	if err = rwork.Off(l-1).Matrix(m, opts).Gemm(NoTrans, NoTrans, m, n, m, one, a, rwork.Matrix(m, opts), zero); err != nil {
 		panic(err)
 	}
 	for j = 1; j <= n; j++ {
@@ -43,7 +42,7 @@ func Zlarcm(m, n int, a *mat.Matrix, b, c *mat.CMatrix, rwork *mat.Vector) {
 			rwork.Set((j-1)*m+i-1, b.GetIm(i-1, j-1))
 		}
 	}
-	if err = goblas.Dgemm(NoTrans, NoTrans, m, n, m, one, a, rwork.Matrix(m, opts), zero, rwork.MatrixOff(l-1, m, opts)); err != nil {
+	if err = rwork.Off(l-1).Matrix(m, opts).Gemm(NoTrans, NoTrans, m, n, m, one, a, rwork.Matrix(m, opts), zero); err != nil {
 		panic(err)
 	}
 	for j = 1; j <= n; j++ {

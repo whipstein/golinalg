@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack/gltest"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -75,14 +74,14 @@ func Dlasd8(icompq, k int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, dsi
 	iwk3i = iwk3 - 1
 
 	//     Normalize Z.
-	rho = goblas.Dnrm2(k, z.Off(0, 1))
+	rho = z.Nrm2(k, 1)
 	if err = Dlascl('G', 0, 0, rho, one, k, 1, z.Matrix(k, opts)); err != nil {
 		panic(err)
 	}
 	rho = rho * rho
 
 	//     Initialize WORK(IWK3).
-	Dlaset(Full, k, 1, one, one, work.MatrixOff(iwk3-1, k, opts))
+	Dlaset(Full, k, 1, one, one, work.Off(iwk3-1).Matrix(k, opts))
 
 	//     Compute the updated singular values, the arrays DIFL, DIFR,
 	//     and the updated Z.
@@ -125,16 +124,16 @@ func Dlasd8(icompq, k int, d, z, vf, vl, difl *mat.Vector, difr *mat.Matrix, dsi
 		for i = j + 1; i <= k; i++ {
 			work.Set(i-1, z.Get(i-1)/(Dlamc3(dsigma.GetPtr(i-1), &dsigjp)+difrj)/(dsigma.Get(i-1)+dj))
 		}
-		temp = goblas.Dnrm2(k, work.Off(0, 1))
-		work.Set(iwk2i+j-1, goblas.Ddot(k, work.Off(0, 1), vf.Off(0, 1))/temp)
-		work.Set(iwk3i+j-1, goblas.Ddot(k, work.Off(0, 1), vl.Off(0, 1))/temp)
+		temp = work.Nrm2(k, 1)
+		work.Set(iwk2i+j-1, vf.Dot(k, work, 1, 1)/temp)
+		work.Set(iwk3i+j-1, vl.Dot(k, work, 1, 1)/temp)
 		if icompq == 1 {
 			difr.Set(j-1, 1, temp)
 		}
 	}
 
-	goblas.Dcopy(k, work.Off(iwk2-1, 1), vf.Off(0, 1))
-	goblas.Dcopy(k, work.Off(iwk3-1, 1), vl.Off(0, 1))
+	vf.Copy(k, work.Off(iwk2-1), 1, 1)
+	vl.Copy(k, work.Off(iwk3-1), 1, 1)
 
 	return
 }

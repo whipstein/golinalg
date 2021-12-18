@@ -32,15 +32,15 @@ func Dgehd2(n, ilo, ihi int, a *mat.Matrix, tau, work *mat.Vector) (err error) {
 
 	for i = ilo; i <= ihi-1; i++ {
 		//        Compute elementary reflector H(i) to annihilate A(i+2:ihi,i)
-		*a.GetPtr(i, i-1), *tau.GetPtr(i - 1) = Dlarfg(ihi-i, a.Get(i, i-1), a.Vector(min(i+2, n)-1, i-1, 1))
+		*a.GetPtr(i, i-1), *tau.GetPtr(i - 1) = Dlarfg(ihi-i, a.Get(i, i-1), a.Off(min(i+2, n)-1, i-1).Vector(), 1)
 		aii = a.Get(i, i-1)
 		a.Set(i, i-1, one)
 
 		//        Apply H(i) to A(1:ihi,i+1:ihi) from the right
-		Dlarf(Right, ihi, ihi-i, a.Vector(i, i-1, 1), tau.Get(i-1), a.Off(0, i), work)
+		Dlarf(Right, ihi, ihi-i, a.Off(i, i-1).Vector(), 1, tau.Get(i-1), a.Off(0, i), work)
 
 		//        Apply H(i) to A(i+1:ihi,i+1:n) from the left
-		Dlarf(Left, ihi-i, n-i, a.Vector(i, i-1, 1), tau.Get(i-1), a.Off(i, i), work)
+		Dlarf(Left, ihi-i, n-i, a.Off(i, i-1).Vector(), 1, tau.Get(i-1), a.Off(i, i), work)
 
 		a.Set(i, i-1, aii)
 	}

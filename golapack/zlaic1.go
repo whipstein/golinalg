@@ -4,7 +4,6 @@ import (
 	"math"
 	"math/cmplx"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -44,7 +43,7 @@ func Zlaic1(job, j int, x *mat.CVector, sest float64, w *mat.CVector, gamma comp
 	four = 4.0
 
 	eps = Dlamch(Epsilon)
-	alpha = goblas.Zdotc(j, x.Off(0, 1), w.Off(0, 1))
+	alpha = w.Dotc(j, x, 1, 1)
 
 	absalp = cmplx.Abs(alpha)
 	absgam = cmplx.Abs(gamma)

@@ -130,7 +130,7 @@ func dchkrq(dotype []bool, nm int, mval []int, nn int, nval []int, nnb int, nbva
 									panic(err)
 								}
 
-								golapack.Dlacpy(Full, m, nrhs, b.Matrix(lda, opts), x.MatrixOff(n-m, lda, opts))
+								golapack.Dlacpy(Full, m, nrhs, b.Matrix(lda, opts), x.Off(n-m).Matrix(lda, opts))
 								*srnamt = "Dgerqs"
 								if err = dgerqs(m, n, nrhs, af.Matrix(lda, opts), tau, x.Matrix(lda, opts), work, lwork); err != nil {
 									nerrs = alaerh(path, "Dgerqs", info, 0, []byte(" "), m, n, nrhs, -1, nb, imat, nfail, nerrs)

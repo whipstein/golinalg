@@ -3,7 +3,6 @@ package eig
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/golapack"
 	"github.com/whipstein/golinalg/mat"
 )
@@ -38,10 +37,10 @@ func zbdt05(m, n int, a *mat.CMatrix, s *mat.Vector, ns int, u, vt *mat.CMatrix,
 	anorm = golapack.Zlange('M', m, n, a, dum)
 
 	//     Compute U' * A * V.
-	if err = goblas.Zgemm(NoTrans, ConjTrans, m, ns, n, cone, a, vt, czero, work.CMatrixOff(1+ns*ns-1, m, opts)); err != nil {
+	if err = work.Off(1+ns*ns-1).CMatrix(m, opts).Gemm(NoTrans, ConjTrans, m, ns, n, cone, a, vt, czero); err != nil {
 		panic(err)
 	}
-	if err = goblas.Zgemm(ConjTrans, NoTrans, ns, ns, m, -cone, u, work.CMatrixOff(1+ns*ns-1, m, opts), czero, work.CMatrix(ns, opts)); err != nil {
+	if err = work.CMatrix(ns, opts).Gemm(ConjTrans, NoTrans, ns, ns, m, -cone, u, work.Off(1+ns*ns-1).CMatrix(m, opts), czero); err != nil {
 		panic(err)
 	}
 
@@ -49,7 +48,7 @@ func zbdt05(m, n int, a *mat.CMatrix, s *mat.Vector, ns int, u, vt *mat.CMatrix,
 	j = 0
 	for i = 1; i <= ns; i++ {
 		work.Set(j+i-1, work.Get(j+i-1)+complex(s.Get(i-1), zero))
-		resid = math.Max(resid, goblas.Dzasum(ns, work.Off(j, 1)))
+		resid = math.Max(resid, work.Off(j).Asum(ns, 1))
 		j = j + ns
 	}
 

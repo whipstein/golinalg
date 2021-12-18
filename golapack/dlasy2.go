@@ -3,7 +3,6 @@ package golapack
 import (
 	"math"
 
-	"github.com/whipstein/golinalg/goblas"
 	"github.com/whipstein/golinalg/mat"
 )
 
@@ -122,7 +121,7 @@ label40:
 
 	//     Solve 2 by 2 system using complete pivoting.
 	//     Set pivots less than SMIN to SMIN.
-	ipiv = goblas.Idamax(4, tmp.Off(0, 1))
+	ipiv = tmp.Iamax(4, 1)
 	u11 = tmp.Get(ipiv - 1)
 	if math.Abs(u11) <= smin {
 		info = 1
@@ -179,7 +178,7 @@ label50:
 	smin = math.Max(smin, math.Max(math.Abs(tl.Get(0, 0)), math.Max(math.Abs(tl.Get(0, 1)), math.Max(math.Abs(tl.Get(1, 0)), math.Abs(tl.Get(1, 1))))))
 	smin = math.Max(eps*smin, smlnum)
 	btmp.Set(0, zero)
-	goblas.Dcopy(16, btmp.Off(0, 0), t16.VectorIdx(0, 1))
+	t16.OffIdx(0).Vector().Copy(16, btmp, 0, 1)
 	t16.Set(0, 0, tl.Get(0, 0)+sgn*tr.Get(0, 0))
 	t16.Set(1, 1, tl.Get(1, 1)+sgn*tr.Get(0, 0))
 	t16.Set(2, 2, tl.Get(0, 0)+sgn*tr.Get(1, 1))
@@ -224,13 +223,13 @@ label50:
 			}
 		}
 		if ipsv != i {
-			goblas.Dswap(4, t16.Vector(ipsv-1, 0, 4), t16.Vector(i-1, 0, 4))
+			t16.Off(i-1, 0).Vector().Swap(4, t16.Off(ipsv-1, 0).Vector(), 4, 4)
 			temp = btmp.Get(i - 1)
 			btmp.Set(i-1, btmp.Get(ipsv-1))
 			btmp.Set(ipsv-1, temp)
 		}
 		if jpsv != i {
-			goblas.Dswap(4, t16.Vector(0, jpsv-1, 1), t16.Vector(0, i-1, 1))
+			t16.Off(0, i-1).Vector().Swap(4, t16.Off(0, jpsv-1).Vector(), 1, 1)
 		}
 		jpiv[i-1] = jpsv
 		if math.Abs(t16.Get(i-1, i-1)) < smin {
